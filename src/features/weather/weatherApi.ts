@@ -33,6 +33,36 @@ export type WeatherDay = {
   tempMin: number
 }
 
+const CJK_CHAR_RE = /[\u3400-\u9fff]/u
+
+const hasCjkChar = (value: string) => CJK_CHAR_RE.test(value)
+
+const unique = <T,>(items: T[]) => Array.from(new Set(items))
+
+function buildCityQueryCandidates(input: string) {
+  const query = input.trim()
+  if (!query) return []
+
+  const segments = query
+    .split(/[，,]/g)
+    .map((part) => part.trim())
+    .filter(Boolean)
+  const primarySegment = segments[0] ?? query
+
+  if (!hasCjkChar(query)) {
+    return unique([query, primarySegment].filter(Boolean))
+  }
+
+  const normalized = primarySegment.replace(/[省市县区州盟自治区特别行政区]/gu, '')
+  const cjkChars = Array.from(normalized).filter((ch) => CJK_CHAR_RE.test(ch)).join('')
+  const suffixCandidates: string[] = []
+
+  if (cjkChars.length >= 2) suffixCandidates.push(cjkChars.slice(-2))
+  if (cjkChars.length >= 3) suffixCandidates.push(cjkChars.slice(-3))
+
+  return unique([query, primarySegment, normalized, ...suffixCandidates].filter(Boolean))
+}
+
 async function fetchJson<T>(url: string): Promise<T> {
   const controller = new AbortController()
   const timeout = window.setTimeout(() => controller.abort(), 8000)
@@ -45,11 +75,9 @@ async function fetchJson<T>(url: string): Promise<T> {
   }
 }
 
-export async function searchCityLocation(city: string): Promise<WeatherLocation | null> {
-  const query = city.trim()
-  if (!query) return null
+async function fetchGeocodeResult(cityQuery: string, language: 'en' | 'zh'): Promise<WeatherLocation | null> {
   const response = await fetchJson<OpenMeteoGeocodeResponse>(
-    `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=en&format=json`
+    `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityQuery)}&count=1&language=${language}&format=json`
   )
   const match = response.results?.[0]
   if (
@@ -65,6 +93,23 @@ export async function searchCityLocation(city: string): Promise<WeatherLocation 
     latitude: match.latitude,
     longitude: match.longitude,
   }
+}
+
+export async function searchCityLocation(city: string): Promise<WeatherLocation | null> {
+  const query = city.trim()
+  if (!query) return null
+
+  const candidates = buildCityQueryCandidates(query)
+  const languages: Array<'en' | 'zh'> = hasCjkChar(query) ? ['zh', 'en'] : ['en', 'zh']
+
+  for (const candidate of candidates) {
+    for (const language of languages) {
+      const resolved = await fetchGeocodeResult(candidate, language)
+      if (resolved) return resolved
+    }
+  }
+
+  return null
 }
 
 export async function reverseGeocodeLocation(latitude: number, longitude: number): Promise<WeatherLocation | null> {

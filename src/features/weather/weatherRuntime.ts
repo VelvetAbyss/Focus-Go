@@ -115,6 +115,7 @@ async function resolveLocation(config: WeatherConfig): Promise<WeatherLocation> 
   if (config.weatherManualCity.trim()) {
     const resolved = await searchCityLocation(config.weatherManualCity)
     if (resolved) return resolved
+    throw new Error('Manual city not found')
   }
 
   return fallback
@@ -161,7 +162,7 @@ async function loadAndSchedule() {
     }
   } catch {
     if (currentConfig && sameConfig(configAtStart, currentConfig)) {
-      publish({ status: 'error' })
+      publish({ status: 'error', data: null })
       if (retryAttempts < MAX_RETRY_ATTEMPTS) {
         retryAttempts += 1
         scheduleRetry()

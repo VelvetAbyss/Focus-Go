@@ -42,7 +42,7 @@ const WeatherWidgetCard = () => {
   return (
     <Card title="Weather" eyebrow="Today" className="weather-widget-card">
       <div className="weather-widget">
-        {snapshot.status === 'error' && !snapshot.data ? (
+        {snapshot.status === 'error' ? (
           <p className="muted">天气暂不可用</p>
         ) : (
           <>

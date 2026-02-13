@@ -26,6 +26,7 @@ type OpenMeteoGeocodeResponse = {
     admin1?: string
   }>
 }
+type OpenMeteoGeocodeResult = NonNullable<OpenMeteoGeocodeResponse['results']>[number]
 
 const MIN_CITY_QUERY_LENGTH = 2
 const MAX_CITY_SUGGESTIONS = 8
@@ -69,6 +70,9 @@ const normalizeQuery = (value: string) =>
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
+
+const CJK_CHAR_RE = /[\u3400-\u9fff]/u
+const hasCjkChar = (value: string) => CJK_CHAR_RE.test(value)
 
 const getSubsequenceScore = (query: string, target: string) => {
   let queryIndex = 0
@@ -118,18 +122,23 @@ const searchRemoteCitySuggestions = async (query: string, signal: AbortSignal): 
   const normalizedQuery = normalizeQuery(query)
   if (normalizedQuery.length < MIN_CITY_QUERY_LENGTH) return []
 
-  const response = await fetch(
-    `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=${MAX_CITY_SUGGESTIONS}&language=en&format=json`,
-    { signal }
+  const languages: Array<'en' | 'zh'> = hasCjkChar(query) ? ['zh', 'en'] : ['en', 'zh']
+  const resultsByLang = await Promise.all(
+    languages.map(async (language) => {
+      const response = await fetch(
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=${MAX_CITY_SUGGESTIONS}&language=${language}&format=json`,
+        { signal }
+      )
+      if (!response.ok) return [] as OpenMeteoGeocodeResult[]
+      const payload = (await response.json()) as OpenMeteoGeocodeResponse
+      return payload.results ?? []
+    })
   )
-  if (!response.ok) return []
-
-  const payload = (await response.json()) as OpenMeteoGeocodeResponse
-  const results = payload.results ?? []
+  const results: OpenMeteoGeocodeResult[] = resultsByLang.flat()
 
   return results
-    .reduce<CitySuggestion[]>((acc, result) => {
-      const name = result.name?.trim()
+    .reduce<CitySuggestion[]>((acc, result, index) => {
+      const name = result?.name?.trim()
       if (!name) return acc
 
       const suffix = [result.admin1, result.country].filter(Boolean).join(', ')
@@ -141,7 +150,7 @@ const searchRemoteCitySuggestions = async (query: string, signal: AbortSignal): 
       if (score < 0) return acc
 
       acc.push({
-        id: `remote:${result.id ?? label}`,
+        id: `remote:${result.id ?? `${label}:${index}`}`,
         label,
         searchValue: label,
         score,
@@ -172,7 +181,6 @@ const SettingsRoute = () => {
     setWeatherTemperatureUnit,
   } = usePreferences()
   const [manualCityInput, setManualCityInput] = useState(weatherManualCity)
-  const [lastCommittedManualCity, setLastCommittedManualCity] = useState(weatherManualCity)
   const [manualCityOpen, setManualCityOpen] = useState(false)
   const [manualCityHasPendingSelection, setManualCityHasPendingSelection] = useState(false)
   const [manualCityRemoteSearch, setManualCityRemoteSearch] = useState<{ query: string; suggestions: CitySuggestion[] }>({
@@ -259,11 +267,26 @@ const SettingsRoute = () => {
 
   const applyManualCitySuggestion = (suggestion: CitySuggestion) => {
     setManualCityInput(suggestion.label)
-    setLastCommittedManualCity(suggestion.searchValue)
     setWeatherManualCity(suggestion.searchValue)
     setManualCityHasPendingSelection(false)
     setManualCityOpen(false)
     setManualCityActiveIndex(-1)
+  }
+
+  const commitManualCityInput = () => {
+    const committed = manualCityInput.trim()
+    setManualCityHasPendingSelection(false)
+    setManualCityOpen(false)
+    setManualCityActiveIndex(-1)
+
+    if (!committed) {
+      setManualCityInput('')
+      setWeatherManualCity('')
+      return
+    }
+
+    setManualCityInput(committed)
+    setWeatherManualCity(committed)
   }
 
   return (
@@ -442,6 +465,12 @@ const SettingsRoute = () => {
                         return
                       }
 
+                      if (event.key === 'Enter') {
+                        event.preventDefault()
+                        commitManualCityInput()
+                        return
+                      }
+
                       if (event.key === 'Escape') {
                         event.preventDefault()
                         setManualCityOpen(false)
@@ -449,12 +478,11 @@ const SettingsRoute = () => {
                       }
                     }}
                     onBlur={() => {
-                      if (manualCityHasPendingSelection) {
-                        setManualCityInput(lastCommittedManualCity)
-                        setManualCityHasPendingSelection(false)
+                      if (manualCityHasPendingSelection) commitManualCityInput()
+                      else {
+                        setManualCityOpen(false)
+                        setManualCityActiveIndex(-1)
                       }
-                      setManualCityOpen(false)
-                      setManualCityActiveIndex(-1)
                     }}
                   />
 
