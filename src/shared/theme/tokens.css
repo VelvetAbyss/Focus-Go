@@ -1,0 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Manrope:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --font-display: 'Fraunces', serif;
+  --font-body: 'Manrope', sans-serif;
+  --control-height: 36px;
+  --focus-ring: color-mix(in srgb, var(--accent) 35%, transparent);
+  --shadow-soft: 0 10px 30px rgba(22, 24, 28, 0.1);
+  --shadow-lift: 0 16px 40px rgba(22, 24, 28, 0.18);
+  --shadow-drawer: 0 22px 70px rgba(22, 24, 28, 0.22), 0 3px 12px rgba(22, 24, 28, 0.12);
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-accelerate: cubic-bezier(0.4, 0, 1, 1);
+  --ease-decelerate: cubic-bezier(0, 0, 0.2, 1);
+  --motion-duration-fast: 140ms;
+  --motion-duration-base: 200ms;
+  --motion-duration-medium: 280ms;
+  --motion-duration-slow: 360ms;
+  --motion-shift-xs: 4px;
+  --motion-shift-sm: 8px;
+  --motion-shift-md: 14px;
+  --transition-base: var(--motion-duration-base) var(--ease-standard);
+  --grid-gap: 18px;
+  --z-drawer: 100;
+  --z-popover: 1000;
+  --status-todo: #8b95a7;
+  --status-doing: #7ab8ff;
+  --status-blocked: #f2a65a;
+  --status-done: #7edbc7;
+}
+
+html[data-motion='reduce'] {
+  --motion-duration-fast: 1ms;
+  --motion-duration-base: 1ms;
+  --motion-duration-medium: 1ms;
+  --motion-duration-slow: 1ms;
+  --motion-shift-xs: 0px;
+  --motion-shift-sm: 0px;
+  --motion-shift-md: 0px;
+}
+
+html[data-theme='light'] {
+  --bg: #f6f5f2;
+  --bg-elevated: #ffffff;
+  --bg-muted: #efece7;
+  --text-primary: #1e1f23;
+  --text-secondary: #5d6168;
+  --accent: #1b4f4a;
+  --accent-soft: #e0edea;
+  --border: rgba(0, 0, 0, 0.08);
+  --surface: #ffffff;
+  --surface-hover: #f5f5f5;
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+html[data-theme='dark'] {
+  --bg: #151617;
+  --bg-elevated: #1b1d1f;
+  --bg-muted: #212428;
+  --text-primary: #f2f0ec;
+  --text-secondary: #b2aba2;
+  --accent: #7edbc7;
+  --accent-soft: #1f2c28;
+  --border: rgba(255, 255, 255, 0.1);
+  --surface: #1d2022;
+  --surface-hover: #272b2f;
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.28);
+  --status-todo: #8b95a7;
+  --status-doing: #7ab8ff;
+  --status-blocked: #f2a65a;
+  --status-done: #7edbc7;
+}
