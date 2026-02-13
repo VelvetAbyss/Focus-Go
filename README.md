@@ -82,3 +82,11 @@ export default defineConfig([
   },
 ])
 ```
+
+## OSS release backup
+
+This repository includes OSS backup scripts and CI workflows for immutable release archives.
+
+- Documentation: `docs/oss-backup.md`
+- Main workflow: `.github/workflows/oss-release-backup.yml`
+- Monthly restore drill: `.github/workflows/oss-restore-drill.yml`

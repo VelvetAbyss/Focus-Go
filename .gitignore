@@ -28,3 +28,5 @@ archive
 .npm-cache/
 .sisyphus/
 .vercel/
+.vercel
+.artifacts/
