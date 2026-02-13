@@ -7,7 +7,13 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "release:bundle": "node scripts/oss/build-release-bundle.mjs",
+    "release:oss:upload": "node scripts/oss/upload-release.mjs",
+    "release:oss:verify": "node scripts/oss/verify-release.mjs",
+    "release:oss:publish": "npm run release:bundle && npm run release:oss:upload && npm run release:oss:verify",
+    "release:oss:restore": "node scripts/oss/restore-release.mjs",
+    "release:oss:latest": "node scripts/oss/resolve-latest-release.mjs"
   },
   "dependencies": {
     "@number-flow/react": "^0.5.11",
