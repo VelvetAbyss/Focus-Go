@@ -23,4 +23,8 @@ archive
 *.njsproj
 *.sln
 *.sw?
-.vercel
+
+# Local tool/cache directories
+.npm-cache/
+.sisyphus/
+.vercel/

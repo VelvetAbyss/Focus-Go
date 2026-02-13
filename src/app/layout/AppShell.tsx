@@ -90,9 +90,9 @@ const MAX_SCALE = 1.8
 const HEADER_ACTION_GUARD_WIDTH = 360
 
 const DEFAULT_HEADER_INFO_LAYOUT: HeaderInfoLayout = {
-  date: { x: 24, y: 24, scale: 1 },
-  lunar: { x: 24, y: 88, scale: 1 },
-  clock: { x: 360, y: 46, scale: 1 },
+  date: { x: 136, y: 64, scale: 0.55 },
+  lunar: { x: 24, y: 64, scale: 0.55 },
+  clock: { x: 24, y: 0, scale: 0.55 },
 }
 
 const isValidNodeLayout = (value: unknown): value is HeaderInfoNodeLayout => {
