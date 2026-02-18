@@ -7,7 +7,6 @@ on:
 
 jobs:
   release:
-    if: ${{ (matrix.target == 'mac' && secrets.APPLE_ID != '' && secrets.APPLE_APP_SPECIFIC_PASSWORD != '' && secrets.APPLE_TEAM_ID != '' && secrets.CSC_LINK != '' && secrets.CSC_KEY_PASSWORD != '') || (matrix.target == 'win' && secrets.WIN_CSC_LINK != '' && secrets.WIN_CSC_KEY_PASSWORD != '') }}
     strategy:
       fail-fast: false
       matrix:
@@ -36,37 +35,42 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Validate required release secrets
+      - name: Check signing secret readiness
+        id: signing
         shell: bash
         run: |
           set -euo pipefail
-          if [[ -z "${GH_OWNER:-}" || -z "${GH_REPO:-}" ]]; then
-            echo "GH_OWNER / GH_REPO missing" >&2
-            exit 1
-          fi
-
+          READY=false
           if [[ "${{ matrix.target }}" == "mac" ]]; then
-            [[ -n "${APPLE_ID:-}" ]] || { echo "APPLE_ID missing" >&2; exit 1; }
-            [[ -n "${APPLE_APP_SPECIFIC_PASSWORD:-}" ]] || { echo "APPLE_APP_SPECIFIC_PASSWORD missing" >&2; exit 1; }
-            [[ -n "${APPLE_TEAM_ID:-}" ]] || { echo "APPLE_TEAM_ID missing" >&2; exit 1; }
-            [[ -n "${CSC_LINK:-}" ]] || { echo "CSC_LINK missing" >&2; exit 1; }
-            [[ -n "${CSC_KEY_PASSWORD:-}" ]] || { echo "CSC_KEY_PASSWORD missing" >&2; exit 1; }
+            if [[ -n "${APPLE_ID:-}" && -n "${APPLE_APP_SPECIFIC_PASSWORD:-}" && -n "${APPLE_TEAM_ID:-}" && -n "${CSC_LINK:-}" && -n "${CSC_KEY_PASSWORD:-}" ]]; then
+              READY=true
+            fi
           else
-            [[ -n "${WIN_CSC_LINK:-}" ]] || { echo "WIN_CSC_LINK missing" >&2; exit 1; }
-            [[ -n "${WIN_CSC_KEY_PASSWORD:-}" ]] || { echo "WIN_CSC_KEY_PASSWORD missing" >&2; exit 1; }
+            if [[ -n "${WIN_CSC_LINK:-}" && -n "${WIN_CSC_KEY_PASSWORD:-}" ]]; then
+              READY=true
+            fi
           fi
+          echo "ready=${READY}" >> "${GITHUB_OUTPUT}"
+
+      - name: Skip signed release (secrets missing)
+        if: steps.signing.outputs.ready != 'true'
+        shell: bash
+        run: echo "Skipping signed release for ${{ matrix.target }} because required secrets are missing."
 
       - name: Install dependencies
+        if: steps.signing.outputs.ready == 'true'
         run: npm ci
 
       - name: Run verify gates
+        if: steps.signing.outputs.ready == 'true'
         run: npm run verify
 
       - name: Build desktop distributables
+        if: steps.signing.outputs.ready == 'true'
         run: npm run dist --workspace @focus-go/desktop
 
       - name: Validate mac notarization stapling
-        if: matrix.target == 'mac'
+        if: matrix.target == 'mac' && steps.signing.outputs.ready == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -75,7 +79,7 @@ jobs:
           xcrun stapler validate "${DMG_PATH}"
 
       - name: Validate windows signature
-        if: matrix.target == 'win'
+        if: matrix.target == 'win' && steps.signing.outputs.ready == 'true'
         shell: pwsh
         run: |
           $exe = Get-ChildItem -Path "apps/desktop/release" -Recurse -Filter *.exe | Select-Object -First 1
@@ -86,6 +90,7 @@ jobs:
           }
 
       - name: Upload build artifacts
+        if: steps.signing.outputs.ready == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: desktop-${{ matrix.target }}
