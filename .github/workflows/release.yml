@@ -1,0 +1,91 @@
+name: Release Desktop
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: mac
+          - os: windows-latest
+            target: win
+    runs-on: ${{ matrix.os }}
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_OWNER: ${{ github.repository_owner }}
+      GH_REPO: ${{ github.event.repository.name }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      CSC_LINK: ${{ secrets.CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+      WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+      WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Validate required release secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${GH_OWNER:-}" || -z "${GH_REPO:-}" ]]; then
+            echo "GH_OWNER / GH_REPO missing" >&2
+            exit 1
+          fi
+
+          if [[ "${{ matrix.target }}" == "mac" ]]; then
+            [[ -n "${APPLE_ID:-}" ]] || { echo "APPLE_ID missing" >&2; exit 1; }
+            [[ -n "${APPLE_APP_SPECIFIC_PASSWORD:-}" ]] || { echo "APPLE_APP_SPECIFIC_PASSWORD missing" >&2; exit 1; }
+            [[ -n "${APPLE_TEAM_ID:-}" ]] || { echo "APPLE_TEAM_ID missing" >&2; exit 1; }
+            [[ -n "${CSC_LINK:-}" ]] || { echo "CSC_LINK missing" >&2; exit 1; }
+            [[ -n "${CSC_KEY_PASSWORD:-}" ]] || { echo "CSC_KEY_PASSWORD missing" >&2; exit 1; }
+          else
+            [[ -n "${WIN_CSC_LINK:-}" ]] || { echo "WIN_CSC_LINK missing" >&2; exit 1; }
+            [[ -n "${WIN_CSC_KEY_PASSWORD:-}" ]] || { echo "WIN_CSC_KEY_PASSWORD missing" >&2; exit 1; }
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run verify gates
+        run: npm run verify
+
+      - name: Build desktop distributables
+        run: npm run dist --workspace @focus-go/desktop
+
+      - name: Validate mac notarization stapling
+        if: matrix.target == 'mac'
+        shell: bash
+        run: |
+          set -euo pipefail
+          DMG_PATH=$(find apps/desktop/release -name "*.dmg" | head -n 1)
+          [[ -n "${DMG_PATH}" ]] || { echo "No DMG generated" >&2; exit 1; }
+          xcrun stapler validate "${DMG_PATH}"
+
+      - name: Validate windows signature
+        if: matrix.target == 'win'
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Path "apps/desktop/release" -Recurse -Filter *.exe | Select-Object -First 1
+          if (-not $exe) { throw "No EXE generated" }
+          $signature = Get-AuthenticodeSignature $exe.FullName
+          if ($signature.Status -ne 'Valid') {
+            throw "Invalid Authenticode signature status: $($signature.Status)"
+          }
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.target }}
+          path: apps/desktop/release/**

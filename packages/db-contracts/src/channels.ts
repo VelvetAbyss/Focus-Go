@@ -1,0 +1,40 @@
+export const IPC_CHANNELS = [
+  'db:tasks:list',
+  'db:tasks:add',
+  'db:tasks:update',
+  'db:tasks:remove',
+  'db:tasks:updateStatus',
+  'db:tasks:appendProgress',
+  'db:tasks:clearAllTags',
+  'db:widgetTodos:list',
+  'db:widgetTodos:add',
+  'db:widgetTodos:update',
+  'db:widgetTodos:remove',
+  'db:focus:get',
+  'db:focus:upsert',
+  'db:diary:list',
+  'db:diary:listActive',
+  'db:diary:getByDate',
+  'db:diary:listByRange',
+  'db:diary:listTrash',
+  'db:diary:softDeleteByDate',
+  'db:diary:restoreByDate',
+  'db:diary:markExpiredOlderThan',
+  'db:diary:hardDeleteByDate',
+  'db:diary:add',
+  'db:diary:update',
+  'db:spend:listEntries',
+  'db:spend:addEntry',
+  'db:spend:deleteEntry',
+  'db:spend:updateEntry',
+  'db:spend:listCategories',
+  'db:spend:addCategory',
+  'db:spend:updateCategory',
+  'db:dashboard:get',
+  'db:dashboard:upsert',
+] as const
+
+export type IpcChannel = (typeof IPC_CHANNELS)[number]
+
+export const isWhitelistedChannel = (channel: string): channel is IpcChannel =>
+  (IPC_CHANNELS as readonly string[]).includes(channel)
