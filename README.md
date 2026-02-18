@@ -1,92 +1,111 @@
-# React + TypeScript + Vite
+# Focus&go
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+[![Build](https://github.com/VelvetAbyss/Focus-Go/actions/workflows/verify.yml/badge.svg?branch=main)](https://github.com/VelvetAbyss/Focus-Go/actions/workflows/verify.yml)
+[![Release](https://github.com/VelvetAbyss/Focus-Go/actions/workflows/release-unsigned.yml/badge.svg)](https://github.com/VelvetAbyss/Focus-Go/actions/workflows/release-unsigned.yml)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Web%20%7C%20Desktop-blue.svg)](https://github.com/VelvetAbyss/Focus-Go/releases)
 
-## Number animations
+All-in-one personal productivity workspace that reduces context switching across planning, focus, reflection, and daily signals.
 
-This project standardizes changing numeric UI on NumberFlow via `src/shared/ui/AppNumber.tsx`.
+[![Try Web](https://img.shields.io/badge/Try-Web-black?style=for-the-badge)](https://focus-go.vercel.app)
+[![Download Desktop](https://img.shields.io/badge/Download-Desktop-2d7ff9?style=for-the-badge)](https://github.com/VelvetAbyss/Focus-Go/releases)
+[![Quick Start](https://img.shields.io/badge/Quick-Start-0ea5e9?style=for-the-badge)](#quick-start)
 
-- Use `AppNumber` for any changing numbers (timers, totals, counts).
-- Use `AppNumberGroup` when multiple numbers must update in sync (e.g. `mm:ss`).
-- Pass `value` as a `number` + `format` (avoid pre-formatted strings like `"1,234"`).
-- Use `prefix` / `suffix` for units and currency labels.
-- Default `format` is `useGrouping: false` (opt-in per call site).
-- Settings → **Motion** → **Number animations** toggles digit-roll globally (enabled by default). When enabled, animations play even if the system prefers reduced motion.
+## Why Focus&go
 
-Currently, two official plugins are available:
+Most productivity setups are fragmented: tasks in one app, timer in another, notes somewhere else, and no single view of progress.  
+Focus&go brings them together so individuals can plan, execute, and review in one continuous workflow.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Core Features
 
-## React Compiler
+- Unified dashboard with configurable widgets for everyday planning and execution.
+- Task management with status flow, subtasks, due date, priorities, tags, and activity history.
+- Focus Center with Pomodoro timer, break rhythm, and white-noise controls.
+- Daily diary entry panel to capture progress, outcomes, and reflection.
+- Spend tracking widgets for quick personal finance awareness.
+- Weather widget and city controls to keep daily context visible.
+- Persistent local-first data behavior with cloud sync hooks for layout state.
+- Web and desktop app delivery in a single monorepo.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Product Preview
 
-## Expanding the ESLint configuration
+![Focus&go dashboard preview](./docs/assets/focus-go-dashboard-preview.jpg)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Quick Start
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Prerequisites
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- Node.js 20+ (Node.js 22 recommended)
+- npm 10+
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Run Web App
+
+```bash
+npm install
+npm run dev:web
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Run Desktop App
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev:desktop
 ```
 
-## OSS release backup
+### Verify
 
-This repository includes OSS backup scripts and CI workflows for immutable release archives.
+```bash
+npm run verify
+```
 
-- Documentation: `docs/oss-backup.md`
-- Main workflow: `.github/workflows/oss-release-backup.yml`
-- Monthly restore drill: `.github/workflows/oss-restore-drill.yml`
+## Roadmap and Changelog
+
+- Roadmap: [Planned improvements](https://github.com/VelvetAbyss/Focus-Go/issues?q=is%3Aissue%20is%3Aopen%20label%3Aenhancement)
+- Changelog: [Releases](https://github.com/VelvetAbyss/Focus-Go/releases)
+
+## Releases
+
+Focus&go uses a dual-track release model:
+
+- Stable releases for everyday use.
+- Prereleases for early testing and feedback.
+
+## Project Structure
+
+```text
+apps/
+  web/        React + Vite web client
+  desktop/    Electron desktop client
+packages/
+  core/       Shared domain models and interfaces
+  db-contracts/ Shared database contracts and schemas
+docs/
+  README.md   Documentation index
+```
+
+## Documentation
+
+- Docs index: [`docs/README.md`](./docs/README.md)
+- OSS release backup: [`docs/oss-backup.md`](./docs/oss-backup.md)
+
+## Contributing
+
+Contributions are welcome and low-friction. Start with [`CONTRIBUTING.md`](./CONTRIBUTING.md) for bug reports, feature ideas, and pull requests.
+
+## FAQ
+
+### Is Focus&go web-only?
+
+No. Focus&go provides both web and desktop experiences.
+
+### Is this suitable for teams?
+
+Current scope is individual productivity first. Team workflows are not the primary target yet.
+
+### Are prereleases stable?
+
+No. Prereleases are for evaluation and feedback and may include unfinished changes.
+
+## License
+
+This project is licensed under the [MIT License](./LICENSE).
