@@ -1,0 +1,36 @@
+name: Verify
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build core/contracts
+        run: |
+          npm run build --workspace @focus-go/core
+          npm run build --workspace @focus-go/db-contracts
+
+      - name: Run tests
+        run: |
+          npm run test --workspace @focus-go/core
+          npm run test --workspace @focus-go/db-contracts
+          npm run test --workspace @focus-go/web
+          npm run test --workspace @focus-go/desktop
+
+      - name: Verify web + desktop build
+        run: npm run verify

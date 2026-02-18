@@ -9,7 +9,7 @@ import {
   walkFiles,
 } from './_shared.mjs'
 
-const includesRaw = process.env.RELEASE_INCLUDE_PATHS ?? 'dist,public'
+const includesRaw = process.env.RELEASE_INCLUDE_PATHS ?? 'apps/web/dist,apps/web/public'
 const includePaths = includesRaw
   .split(',')
   .map((part) => part.trim())
