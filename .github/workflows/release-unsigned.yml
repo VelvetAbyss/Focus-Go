@@ -93,13 +93,6 @@ jobs:
       GH_OWNER: ${{ github.repository_owner }}
       GH_REPO: ${{ github.event.repository.name }}
       CSC_IDENTITY_AUTO_DISCOVERY: "false"
-      APPLE_ID: ""
-      APPLE_APP_SPECIFIC_PASSWORD: ""
-      APPLE_TEAM_ID: ""
-      CSC_LINK: ""
-      CSC_KEY_PASSWORD: ""
-      WIN_CSC_LINK: ""
-      WIN_CSC_KEY_PASSWORD: ""
     steps:
       - uses: actions/checkout@v4
 
@@ -118,7 +111,7 @@ jobs:
           VERSION="${{ needs.prepare.outputs.version }}"
 
           if [[ "${{ matrix.target }}" == "mac" ]]; then
-            npm run dist --workspace @focus-go/desktop -- --mac --publish never --config.extraMetadata.version="${VERSION}"
+            npm run dist --workspace @focus-go/desktop -- --mac --publish never --config.extraMetadata.version="${VERSION}" --config.mac.identity=null --config.mac.hardenedRuntime=false --config.mac.gatekeeperAssess=false
           else
             npm run dist --workspace @focus-go/desktop -- --win --publish never --config.extraMetadata.version="${VERSION}"
           fi
