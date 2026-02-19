@@ -76,6 +76,7 @@ Focus&go uses a dual-track release model:
 apps/
   web/        React + Vite web client
   desktop/    Electron desktop client
+  ai-screenshot-tool/ Tauri v2 + React desktop screenshot tool
 packages/
   core/       Shared domain models and interfaces
   db-contracts/ Shared database contracts and schemas
