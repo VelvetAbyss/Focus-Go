@@ -2,8 +2,9 @@ import { forwardRef, useEffect, useRef } from 'react'
 import type { CSSProperties } from 'react'
 import { Trash2 } from 'lucide-react'
 import type { TaskItem } from '../tasks.types'
-import Button from '../../../shared/ui/Button'
 import type { HTMLAttributes } from 'react'
+import { Button } from '@/components/ui/button'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 
 type TaskCardProps = {
   task: TaskItem
@@ -12,7 +13,7 @@ type TaskCardProps = {
   statusActions?: {
     key: string
     label: string
-    onClick: (task: TaskItem) => void
+    onClick: (task: TaskItem) => Promise<void> | void
     disabled?: boolean
   }[]
   progressComposer?: {
@@ -29,6 +30,9 @@ type TaskCardProps = {
   dragListeners?: HTMLAttributes<HTMLDivElement>
   interactive?: boolean
   style?: CSSProperties
+  onFocusStart?: (task: TaskItem) => void
+  loadingActionKey?: string | null
+  successActionKey?: string | null
 }
 
 const priorityLabels: Record<'high' | 'medium' | 'low', string> = {
@@ -56,7 +60,20 @@ const tagToneClass = (tag: string) => {
 }
 
 const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>((
-  { task, onClick, onDelete, statusActions, progressComposer, dragAttributes, dragListeners, interactive = true, style },
+  {
+    task,
+    onClick,
+    onDelete,
+    statusActions,
+    progressComposer,
+    dragAttributes,
+    dragListeners,
+    interactive = true,
+    style,
+    onFocusStart,
+    loadingActionKey,
+    successActionKey,
+  },
   ref,
 ) => {
   const visibleTags = task.tags.slice(0, 2)
@@ -144,7 +161,9 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>((
             {!progressComposer?.isOpen ? (
               <Button
                 type="button"
-                className="button button--ghost task-card__progress-btn"
+                variant="outline"
+                size="sm"
+                className="task-card__progress-btn"
                 disabled={progressComposer?.disabled}
                 onClick={(e) => {
                   e.preventDefault()
@@ -153,7 +172,7 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>((
                 }}
                 onPointerDown={(e) => e.stopPropagation()}
               >
-                Update
+                {progressComposer?.disabled ? 'Saving...' : 'Update'}
               </Button>
             ) : (
               <form
@@ -189,23 +208,55 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>((
               </form>
             )}
           </div>
-          {statusActions?.map((statusAction) => (
+          {statusActions?.length ? (
+            <ToggleGroup
+              type="multiple"
+              value={[]}
+              variant="outline"
+              size="sm"
+              className="task-card__status-group"
+              aria-label="Task status actions"
+            >
+              {statusActions.map((statusAction) => (
+                <ToggleGroupItem
+                  key={statusAction.key}
+                  value={statusAction.key}
+                  className={`task-card__status ${
+                    successActionKey === statusAction.key ? 'is-success' : ''
+                  }`}
+                  data-status-action={statusAction.key}
+                  data-loading={loadingActionKey === statusAction.key ? 'true' : undefined}
+                  disabled={Boolean(statusAction.disabled || loadingActionKey)}
+                  onClick={async (e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    if (loadingActionKey) return
+                    await statusAction.onClick(task)
+                  }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
+                  {loadingActionKey === statusAction.key ? 'Working...' : statusAction.label}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          ) : null}
+          {onFocusStart ? (
             <Button
-              key={statusAction.key}
               type="button"
-              className="button button--ghost task-card__status"
-              data-status-action={statusAction.key}
-              disabled={statusAction.disabled}
+              variant="outline"
+              size="sm"
+              className="task-card__status task-card__status--focus"
+              data-status-action="focus"
               onClick={(e) => {
                 e.preventDefault()
                 e.stopPropagation()
-                statusAction.onClick(task)
+                onFocusStart(task)
               }}
               onPointerDown={(e) => e.stopPropagation()}
             >
-              {statusAction.label}
+              Focus
             </Button>
-          ))}
+          ) : null}
         </div>
       </div>
     </div>

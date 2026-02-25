@@ -4,6 +4,14 @@
   --font-display: 'Fraunces', serif;
   --font-body: 'Manrope', sans-serif;
   --control-height: 36px;
+  --page-pad: 20px;
+  --route-pad: 18px;
+  --panel-gap: 18px;
+  --surface-radius-lg: 24px;
+  --surface-radius-md: 20px;
+  --control-height-compact: 34px;
+  --headline-size-xl: clamp(1.75rem, 2.2vw, 2.4rem);
+  --headline-size-lg: clamp(1.4rem, 1.8vw, 1.9rem);
   --focus-ring: color-mix(in srgb, var(--accent) 35%, transparent);
   --shadow-soft: 0 10px 30px rgba(22, 24, 28, 0.1);
   --shadow-lift: 0 16px 40px rgba(22, 24, 28, 0.18);
@@ -27,6 +35,27 @@
   --status-doing: #7ab8ff;
   --status-blocked: #f2a65a;
   --status-done: #7edbc7;
+}
+
+@media (max-width: 1512px) {
+  :root {
+    --page-pad: 16px;
+    --route-pad: 14px;
+    --panel-gap: 14px;
+    --surface-radius-lg: 20px;
+    --surface-radius-md: 16px;
+    --control-height: var(--control-height-compact);
+  }
+}
+
+@media (max-width: 1366px) {
+  :root {
+    --page-pad: 12px;
+    --route-pad: 12px;
+    --panel-gap: 12px;
+    --surface-radius-lg: 16px;
+    --surface-radius-md: 14px;
+  }
 }
 
 html[data-motion='reduce'] {

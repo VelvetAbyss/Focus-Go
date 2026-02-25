@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
+import { Button } from '@/components/ui/button'
 import Card from '../../shared/ui/Card'
-import Button from '../../shared/ui/Button'
 import Select from '../../shared/ui/Select'
 import { spendRepo } from '../../data/repositories/spendRepo'
 import type { SpendCategory, SpendEntry } from '../../data/models/types'
@@ -216,7 +216,7 @@ const SpendCard = () => {
                     }))}
                     onChange={(v) => setCategoryId(v)}
                   />
-                  <Button className="button" onClick={addEntry}>
+                  <Button size="sm" className="spend__add-btn" onClick={addEntry}>
                     Add
                   </Button>
                 </div>

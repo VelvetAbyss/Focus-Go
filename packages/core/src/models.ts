@@ -59,6 +59,19 @@ export type FocusSettings = BaseEntity & {
   volume?: number
 }
 
+export type FocusSessionStatus = 'active' | 'completed' | 'interrupted'
+
+export type FocusSession = BaseEntity & {
+  taskId?: string
+  goal?: string
+  plannedMinutes: number
+  actualMinutes?: number
+  status: FocusSessionStatus
+  completedAt?: number
+  interruptedAt?: number
+  interruptionReason?: string
+}
+
 export type NoiseTrackId = 'cafe' | 'fireplace' | 'rain' | 'wind' | 'thunder' | 'ocean'
 
 export type NoiseTrackSettings = {

@@ -57,6 +57,7 @@ describe('sqlite bundle (mocked)', () => {
     expect(typeof bundle.service.tasks.list).toBe('function')
     expect(typeof bundle.service.widgetTodos.list).toBe('function')
     expect(typeof bundle.service.focus.get).toBe('function')
+    expect(typeof bundle.service.focusSessions.start).toBe('function')
     expect(typeof bundle.service.diary.list).toBe('function')
     expect(typeof bundle.service.spend.listEntries).toBe('function')
     expect(typeof bundle.service.dashboard.get).toBe('function')

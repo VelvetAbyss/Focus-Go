@@ -1,6 +1,7 @@
 import type {
   DashboardLayout,
   DiaryEntry,
+  FocusSession,
   FocusSettings,
   SpendCategory,
   SpendEntry,
@@ -24,6 +25,17 @@ export type WidgetTodoCreateInput = Omit<WidgetTodo, 'id' | 'createdAt' | 'updat
 export type SpendEntryCreateInput = Omit<SpendEntry, 'id' | 'createdAt' | 'updatedAt'>
 export type SpendCategoryCreateInput = Omit<SpendCategory, 'id' | 'createdAt' | 'updatedAt'>
 export type FocusSettingsUpsertInput = Omit<FocusSettings, 'id' | 'createdAt' | 'updatedAt'>
+export type FocusSessionStartInput = {
+  taskId?: string
+  goal?: string
+  plannedMinutes: number
+  userId?: string
+  workspaceId?: string
+}
+export type FocusSessionCompleteInput = {
+  actualMinutes?: number
+  completedAt?: number
+}
 export type DashboardLayoutUpsertInput = Omit<DashboardLayout, 'id' | 'createdAt' | 'updatedAt'>
 export type DiaryEntryCreateInput = Omit<DiaryEntry, 'id' | 'createdAt' | 'updatedAt'>
 
@@ -47,6 +59,12 @@ export interface IWidgetTodoDataAccess {
 export interface IFocusDataAccess {
   get(): Promise<FocusSettings | null>
   upsert(data: FocusSettingsUpsertInput): Promise<FocusSettings>
+}
+
+export interface IFocusSessionDataAccess {
+  list(limit?: number): Promise<FocusSession[]>
+  start(data: FocusSessionStartInput): Promise<FocusSession>
+  complete(id: string, data?: FocusSessionCompleteInput): Promise<FocusSession | undefined>
 }
 
 export interface IDiaryDataAccess {
@@ -82,6 +100,7 @@ export interface IDatabaseService {
   tasks: ITaskDataAccess
   widgetTodos: IWidgetTodoDataAccess
   focus: IFocusDataAccess
+  focusSessions: IFocusSessionDataAccess
   diary: IDiaryDataAccess
   spend: ISpendDataAccess
   dashboard: IDashboardDataAccess

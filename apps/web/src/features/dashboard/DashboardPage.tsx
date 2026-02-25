@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Button } from '@/components/ui/button'
 import { GridLayout, useContainerWidth } from 'react-grid-layout'
 import FadeContent from '../../shared/ui/FadeContent'
-import Button from '../../shared/ui/Button'
 import Dialog from '../../shared/ui/Dialog'
 import { dashboardRepo } from '../../data/repositories/dashboardRepo'
 import { getDashboardCards } from './registry'
@@ -9,6 +9,7 @@ import type { DashboardLayoutItem } from '../../data/models/types'
 import DiaryPanel from '../diary/DiaryPanel'
 import { useSearchParams } from 'react-router-dom'
 import { syncDashboardLayout } from './layoutSyncAdapter'
+import DashboardHeader from './DashboardHeader'
 import {
   DEFAULT_DASHBOARD_HIDDEN_CARD_IDS,
   DEFAULT_DASHBOARD_LAYOUT_ITEMS,
@@ -38,6 +39,24 @@ const DashboardPage = () => {
   const [confirmHideCardId, setConfirmHideCardId] = useState<string | null>(null)
   const [hideSubmitting, setHideSubmitting] = useState(false)
   const [syncError, setSyncError] = useState<string | null>(null)
+  const toggleLayoutEdit = useCallback(() => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (layoutEdit) {
+        next.delete('layoutEdit')
+        next.delete('widgetsPanel')
+      } else next.set('layoutEdit', '1')
+      return next
+    })
+  }, [layoutEdit, setSearchParams])
+  const toggleWidgetsPanel = useCallback(() => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (widgetsPanelOpen) next.delete('widgetsPanel')
+      else next.set('widgetsPanel', '1')
+      return next
+    })
+  }, [setSearchParams, widgetsPanelOpen])
   const setLayoutEdit = useCallback(
     (nextEdit: boolean) => {
       setSearchParams((prev) => {
@@ -265,6 +284,12 @@ const DashboardPage = () => {
   return (
     <FadeContent>
       <div className="dashboard" ref={containerRef}>
+        <DashboardHeader
+          layoutEdit={layoutEdit}
+          widgetsPanelOpen={widgetsPanelOpen}
+          onToggleLayoutEdit={toggleLayoutEdit}
+          onToggleWidgetsPanel={toggleWidgetsPanel}
+        />
         {syncError && <p className="dashboard__sync-error">{syncError}</p>}
         {layoutEdit && widgetsPanelOpen && (
           <section className="dashboard-widgets" aria-label="Manage widgets visibility">
@@ -367,10 +392,10 @@ const DashboardPage = () => {
             </p>
           </div>
           <div className="dialog__actions">
-            <Button className="button button--ghost" onClick={() => setConfirmHideCardId(null)} disabled={hideSubmitting}>
+            <Button variant="outline" onClick={() => setConfirmHideCardId(null)} disabled={hideSubmitting}>
               Cancel
             </Button>
-            <Button className="button" onClick={() => void hideCard()} disabled={hideSubmitting}>
+            <Button onClick={() => void hideCard()} disabled={hideSubmitting}>
               Hide
             </Button>
           </div>

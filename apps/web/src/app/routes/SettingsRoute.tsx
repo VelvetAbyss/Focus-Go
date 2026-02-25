@@ -1,16 +1,37 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import Card from '../../shared/ui/Card'
-import Button from '../../shared/ui/Button'
-import Select from '../../shared/ui/Select'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
+import { Brush, Database, LayoutGrid, Sparkles, SunMedium, Waves, Bell, LocateFixed, AlertTriangle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Badge } from '@/components/ui/badge'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { dashboardRepo } from '../../data/repositories/dashboardRepo'
+import { db } from '../../data/db'
 import { applyTheme, clearStoredThemePreference, resolveTheme, writeStoredThemePreference } from '../../shared/theme/theme'
 import type { DashboardLayout } from '../../data/models/types'
 import { usePreferences } from '../../shared/prefs/usePreferences'
+import { useI18n } from '../../shared/i18n/useI18n'
+import type { LanguageCode } from '../../shared/i18n/types'
 
 const LAYOUT_LOCK_KEY = 'workbench.dashboard.layoutLocked'
 
 type ThemeSelection = 'system' | 'light' | 'dark'
+type SettingsSection = 'appearance' | 'experience' | 'weather' | 'data'
 type CitySuggestion = {
   id: string
   label: string
@@ -30,6 +51,27 @@ type OpenMeteoGeocodeResult = NonNullable<OpenMeteoGeocodeResponse['results']>[n
 
 const MIN_CITY_QUERY_LENGTH = 2
 const MAX_CITY_SUGGESTIONS = 8
+
+const SECTION_META: Array<{
+  key: SettingsSection
+  titleKey:
+    | 'settings.module.appearance.title'
+    | 'settings.module.experience.title'
+    | 'settings.module.weather.title'
+    | 'settings.module.data.title'
+  hintKey:
+    | 'settings.module.appearance.hint'
+    | 'settings.module.experience.hint'
+    | 'settings.module.weather.hint'
+    | 'settings.module.data.hint'
+  icon: typeof Brush
+  badge: string
+}> = [
+  { key: 'appearance', titleKey: 'settings.module.appearance.title', hintKey: 'settings.module.appearance.hint', icon: Brush, badge: 'Visual' },
+  { key: 'experience', titleKey: 'settings.module.experience.title', hintKey: 'settings.module.experience.hint', icon: Sparkles, badge: 'Motion' },
+  { key: 'weather', titleKey: 'settings.module.weather.title', hintKey: 'settings.module.weather.hint', icon: SunMedium, badge: 'Widget' },
+  { key: 'data', titleKey: 'settings.module.data.title', hintKey: 'settings.module.data.hint', icon: Database, badge: 'Safety' },
+]
 
 const LOCAL_CITY_CANDIDATES: Array<{ label: string; tokens: string[] }> = [
   { label: 'Hangzhou, China', tokens: ['hangzhou', 'hang zhou', 'hz', '杭州'] },
@@ -134,9 +176,9 @@ const searchRemoteCitySuggestions = async (query: string, signal: AbortSignal): 
       return payload.results ?? []
     })
   )
-  const results: OpenMeteoGeocodeResult[] = resultsByLang.flat()
 
-  return results
+  return resultsByLang
+    .flat()
     .reduce<CitySuggestion[]>((acc, result, index) => {
       const name = result?.name?.trim()
       if (!name) return acc
@@ -162,11 +204,45 @@ const searchRemoteCitySuggestions = async (query: string, signal: AbortSignal): 
     .slice(0, MAX_CITY_SUGGESTIONS)
 }
 
+type SettingRowProps = {
+  icon: typeof Brush
+  title: string
+  description: string
+  children: ReactNode
+}
+
+const SettingRow = ({ icon: Icon, title, description, children }: SettingRowProps) => (
+  <motion.div
+    layout
+    className="grid gap-4 rounded-xl border border-border/70 bg-background/70 p-4 backdrop-blur-sm lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center"
+    initial={{ opacity: 0, y: 18, scale: 0.98 }}
+    animate={{ opacity: 1, y: 0, scale: 1 }}
+    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+    whileHover={{ y: -2 }}
+  >
+    <div className="flex gap-3">
+      <div className="mt-0.5 rounded-md border border-border/80 bg-muted/60 p-2 text-muted-foreground">
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="space-y-1">
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+        <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>
+      </div>
+    </div>
+    <div className="w-full lg:w-auto lg:justify-self-end">{children}</div>
+  </motion.div>
+)
+
 const SettingsRoute = () => {
+  const { t } = useI18n()
+  const [activeSection, setActiveSection] = useState<SettingsSection>('appearance')
   const [layoutLocked, setLayoutLocked] = useState(() => readLayoutLocked())
   const [theme, setTheme] = useState<ThemeSelection>('system')
   const [dashboard, setDashboard] = useState<DashboardLayout | null>(null)
+  const [isResetting, setIsResetting] = useState(false)
   const {
+    language,
+    setLanguage,
     uiAnimationsEnabled,
     setUiAnimationsEnabled,
     numberAnimationsEnabled,
@@ -179,7 +255,10 @@ const SettingsRoute = () => {
     setWeatherManualCity,
     weatherTemperatureUnit,
     setWeatherTemperatureUnit,
+    focusCompletionSoundEnabled,
+    setFocusCompletionSoundEnabled,
   } = usePreferences()
+
   const [manualCityInput, setManualCityInput] = useState(weatherManualCity)
   const [manualCityOpen, setManualCityOpen] = useState(false)
   const [manualCityHasPendingSelection, setManualCityHasPendingSelection] = useState(false)
@@ -198,13 +277,12 @@ const SettingsRoute = () => {
   }, [])
 
   const themeHelp = useMemo(() => {
-    if (theme === 'system') return 'Auto day/night + system preference'
-    return `Force ${theme} theme`
-  }, [theme])
+    if (theme === 'system') return t('settings.theme.systemHelp')
+    return t('settings.theme.forceHelp', { theme })
+  }, [theme, t])
 
   const saveThemeOverride = async (next: ThemeSelection) => {
     const themeOverride = next === 'system' ? null : next
-
     const stored = (await dashboardRepo.get()) ?? dashboard
     const items = stored?.items ?? []
     const updated = await dashboardRepo.upsert({ items, themeOverride })
@@ -216,10 +294,8 @@ const SettingsRoute = () => {
   }
 
   const localCitySuggestions = useMemo(() => buildLocalSuggestions(manualCityInput), [manualCityInput])
-  const shouldShowManualCitySuggestions =
-    !weatherAutoLocationEnabled && normalizeQuery(manualCityInput).length >= MIN_CITY_QUERY_LENGTH
-  const shouldFetchRemoteSuggestions =
-    shouldShowManualCitySuggestions && localCitySuggestions.length < MAX_CITY_SUGGESTIONS
+  const shouldShowManualCitySuggestions = !weatherAutoLocationEnabled && normalizeQuery(manualCityInput).length >= MIN_CITY_QUERY_LENGTH
+  const shouldFetchRemoteSuggestions = shouldShowManualCitySuggestions && localCitySuggestions.length < MAX_CITY_SUGGESTIONS
 
   useEffect(() => {
     if (!shouldFetchRemoteSuggestions) return
@@ -246,7 +322,7 @@ const SettingsRoute = () => {
         : []
 
     const seen = new Set<string>()
-    const merged = [...localCitySuggestions, ...remoteSuggestions]
+    return [...localCitySuggestions, ...remoteSuggestions]
       .sort((a, b) => b.score - a.score)
       .filter((item) => {
         const key = normalizeQuery(item.label)
@@ -255,7 +331,6 @@ const SettingsRoute = () => {
         return true
       })
       .slice(0, MAX_CITY_SUGGESTIONS)
-    return merged
   }, [localCitySuggestions, manualCityInput, manualCityRemoteSearch, shouldFetchRemoteSuggestions])
 
   const resolvedActiveIndex =
@@ -289,254 +364,403 @@ const SettingsRoute = () => {
     setWeatherManualCity(committed)
   }
 
+  const resetApp = async () => {
+    setIsResetting(true)
+    try {
+      await db.delete()
+      localStorage.clear()
+      sessionStorage.clear()
+      window.location.reload()
+    } finally {
+      setIsResetting(false)
+    }
+  }
+
   return (
-    <div className="settings settings--overlay" role="dialog" aria-modal="true" aria-label="Settings">
-      <div className="settings__panel">
-        <div className="settings__top">
+    <div className="relative min-h-0 overflow-hidden rounded-fluid-2xl border border-border/70 bg-gradient-to-br from-background via-background to-muted/40 p-3 sm:p-4 lg:p-6">
+      <motion.div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8 }}
+      >
+        <div className="absolute -left-24 top-0 h-72 w-72 rounded-full bg-primary/20 blur-3xl" />
+        <div className="absolute bottom-0 right-0 h-72 w-72 rounded-full bg-indigo-400/20 blur-3xl" />
+      </motion.div>
+
+      <div className="relative z-10 flex h-full flex-col gap-5">
+        <motion.header
+          initial={{ opacity: 0, y: -16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+          className="flex flex-wrap items-end justify-between gap-4 rounded-xl border border-border/70 bg-card/75 p-5 backdrop-blur"
+        >
           <div>
-            <p className="settings__eyebrow">Workbench</p>
-            <h2>Settings</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">{t('settings.pageEyebrow')}</p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">{t('settings.pageTitle')}</h1>
+            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{t('settings.pageDescription')}</p>
           </div>
-          <Link className="button button--ghost" to="/">
-            Back
-          </Link>
-        </div>
+          <Badge variant="secondary" className="h-8 px-3 text-xs font-semibold">
+            shadcn system
+          </Badge>
+        </motion.header>
 
-        <div className="settings__stack">
-          <Card title="Layout" eyebrow="Dashboard">
-            <div className="settings__row">
-              <div>
-                <p className="settings__label">Layout lock</p>
-                <p className="muted">Disable grid drag/resize and prevent accidental layout writes.</p>
-              </div>
-              <label className="toggle">
-                <input
-                  type="checkbox"
-                  checked={layoutLocked}
-                  onChange={(event) => {
-                    const locked = event.target.checked
-                    setLayoutLocked(locked)
-                    writeLayoutLocked(locked)
-                  }}
-                />
-                <span className="toggle__track" />
-              </label>
-            </div>
+        <Tabs value={activeSection} onValueChange={(value) => setActiveSection(value as SettingsSection)} className="grid flex-1 gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
+          <Card className="h-full border-border/70 bg-card/80 backdrop-blur">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">{t('settings.modulesTitle')}</CardTitle>
+              <CardDescription>{t('settings.modulesDescription')}</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <TabsList className="h-auto w-full flex-col items-stretch gap-2 bg-transparent p-0">
+                {SECTION_META.map((section) => {
+                  const Icon = section.icon
+                  const active = activeSection === section.key
+                  return (
+                    <motion.div key={section.key} layout>
+                      <TabsTrigger
+                        value={section.key}
+                        className="relative h-auto w-full justify-start rounded-xl border border-border/70 bg-background/60 px-3 py-3 text-left data-[state=active]:border-primary/60 data-[state=active]:bg-primary/10 data-[state=active]:shadow-lg"
+                      >
+                        <div className="flex w-full items-center gap-3">
+                          <Icon className="h-4 w-4 shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm font-semibold">{t(section.titleKey)}</div>
+                            <div className="truncate text-xs text-muted-foreground">{t(section.hintKey)}</div>
+                          </div>
+                          <Badge variant={active ? 'default' : 'secondary'} className="h-6 px-2 text-[11px]">
+                            {section.badge}
+                          </Badge>
+                        </div>
+                      </TabsTrigger>
+                    </motion.div>
+                  )
+                })}
+              </TabsList>
+            </CardContent>
           </Card>
 
-          <Card title="Theme" eyebrow="Override">
-            <label>
-              <span className="settings__label">Theme override</span>
-              <Select
-                value={theme}
-                options={[
-                  { value: 'system', label: 'System' },
-                  { value: 'light', label: 'Light' },
-                  { value: 'dark', label: 'Dark' },
-                ]}
-                onChange={(v) => {
-                  const next = v as ThemeSelection
-                  setTheme(next)
-                  void saveThemeOverride(next)
-                }}
-              />
-            </label>
-            <p className="muted">{themeHelp}</p>
-          </Card>
+          <Card className="h-full border-border/70 bg-card/85 backdrop-blur">
+            <CardContent className="h-full p-0">
+              <ScrollArea className="max-h-[min(72vh,760px)] xl:max-h-[calc(100vh-240px)]">
+                <div className="p-5 md:p-6">
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.div
+                      key={activeSection}
+                      initial={{ opacity: 0, y: 24, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -12, scale: 0.98 }}
+                      transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+                      className="space-y-4"
+                    >
+                      {activeSection === 'appearance' ? (
+                        <>
+                          <SettingRow
+                            icon={Brush}
+                            title={t('settings.language.title')}
+                            description={t('settings.language.description')}
+                          >
+                            <Select value={language} onValueChange={(value) => setLanguage(value as LanguageCode)}>
+                              <SelectTrigger className="w-full sm:max-w-[220px]">
+                                <SelectValue placeholder={t('settings.language.placeholder')} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="en">{t('settings.language.option.en')}</SelectItem>
+                                <SelectItem value="zh">{t('settings.language.option.zh')}</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </SettingRow>
 
-          <Card title="Motion" eyebrow="UI + Numbers">
-            <div className="settings__row">
-              <div>
-                <p className="settings__label">UI animations</p>
-                <p className="muted">Controls route transitions, panel motion, list transitions, and micro-interactions.</p>
-              </div>
-              <label className="toggle">
-                <input
-                  type="checkbox"
-                  checked={uiAnimationsEnabled}
-                  onChange={(event) => setUiAnimationsEnabled(event.target.checked)}
-                />
-                <span className="toggle__track" />
-              </label>
-            </div>
+                          <SettingRow
+                            icon={Brush}
+                            title={t('settings.theme.title')}
+                            description={themeHelp}
+                          >
+                            <Select
+                              value={theme}
+                              onValueChange={(value) => {
+                                const next = value as ThemeSelection
+                                setTheme(next)
+                                void saveThemeOverride(next)
+                              }}
+                            >
+                              <SelectTrigger className="w-full sm:max-w-[220px]">
+                                <SelectValue placeholder={t('settings.theme.placeholder')} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="system">{t('settings.theme.system')}</SelectItem>
+                                <SelectItem value="light">{t('settings.theme.light')}</SelectItem>
+                                <SelectItem value="dark">{t('settings.theme.dark')}</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </SettingRow>
 
-            <div className="settings__row">
-              <div>
-                <p className="settings__label">Number animations</p>
-                <p className="muted">Roll digits for changing numbers. When enabled, animations play even if your system prefers reduced motion.</p>
-              </div>
-              <label className="toggle">
-                <input
-                  type="checkbox"
-                  checked={numberAnimationsEnabled}
-                  onChange={(event) => setNumberAnimationsEnabled(event.target.checked)}
-                />
-                <span className="toggle__track" />
-              </label>
-            </div>
-          </Card>
+                          <SettingRow
+                            icon={LayoutGrid}
+                            title={t('settings.layoutLock.title')}
+                            description={t('settings.layoutLock.description')}
+                          >
+                            <Switch
+                              checked={layoutLocked}
+                              onCheckedChange={(checked) => {
+                                setLayoutLocked(checked)
+                                writeLayoutLocked(checked)
+                              }}
+                            />
+                          </SettingRow>
 
-          <Card title="Currency" eyebrow="Spend">
-            <label>
-              <span className="settings__label">Default currency</span>
-              <Select
-                value={defaultCurrency}
-                options={[
-                  { value: 'USD', label: 'USD' },
-                  { value: 'CNY', label: 'CNY' },
-                ]}
-                onChange={(v) => setDefaultCurrency(v as 'USD' | 'CNY')}
-              />
-            </label>
-            <p className="muted">Used for the Spend total and trend chart.</p>
-          </Card>
-
-          <Card title="Weather" eyebrow="Widget">
-            <div className="settings__stack settings__stack--compact">
-              <div className="settings__row">
-                <div>
-                  <p className="settings__label">Auto location</p>
-                  <p className="muted">When enabled, weather uses your current location.</p>
-                </div>
-                <label className="toggle">
-                  <input
-                    type="checkbox"
-                    checked={weatherAutoLocationEnabled}
-                    onChange={(event) => setWeatherAutoLocationEnabled(event.target.checked)}
-                  />
-                  <span className="toggle__track" />
-                </label>
-              </div>
-
-              <label className="settings__field">
-                <span className="settings__label">Manual city</span>
-                <div className="settings__autocomplete">
-                  <input
-                    className={`settings__manualCityInput${weatherAutoLocationEnabled ? '' : ' is-editable'}`}
-                    type="text"
-                    value={manualCityInput}
-                    placeholder="e.g. Beijing"
-                    disabled={weatherAutoLocationEnabled}
-                    role="combobox"
-                    aria-expanded={manualCityOpen && shouldShowManualCitySuggestions}
-                    aria-controls="manual-city-suggestions"
-                    aria-autocomplete="list"
-                    onFocus={() => {
-                      if (shouldShowManualCitySuggestions) {
-                        setManualCityOpen(true)
-                        setManualCityActiveIndex(0)
-                      }
-                    }}
-                    onChange={(event) => {
-                      const nextValue = event.target.value
-                      setManualCityInput(nextValue)
-                      setManualCityHasPendingSelection(true)
-                      setManualCityOpen(normalizeQuery(nextValue).length >= MIN_CITY_QUERY_LENGTH)
-                      setManualCityActiveIndex(0)
-                    }}
-                    onKeyDown={(event) => {
-                      if (weatherAutoLocationEnabled) return
-                      if (!shouldShowManualCitySuggestions) return
-
-                      if (event.key === 'ArrowDown') {
-                        event.preventDefault()
-                        setManualCityOpen(true)
-                        setManualCityActiveIndex((prev) =>
-                          manualCitySuggestions.length === 0 ? -1 : (prev + 1 + manualCitySuggestions.length) % manualCitySuggestions.length
-                        )
-                        return
-                      }
-
-                      if (event.key === 'ArrowUp') {
-                        event.preventDefault()
-                        setManualCityOpen(true)
-                        setManualCityActiveIndex((prev) =>
-                          manualCitySuggestions.length === 0
-                            ? -1
-                            : (prev - 1 + manualCitySuggestions.length) % manualCitySuggestions.length
-                        )
-                        return
-                      }
-
-                      if (event.key === 'Enter' && manualCityOpen && resolvedActiveIndex >= 0) {
-                        event.preventDefault()
-                        const active = manualCitySuggestions[resolvedActiveIndex]
-                        if (active) applyManualCitySuggestion(active)
-                        return
-                      }
-
-                      if (event.key === 'Enter') {
-                        event.preventDefault()
-                        commitManualCityInput()
-                        return
-                      }
-
-                      if (event.key === 'Escape') {
-                        event.preventDefault()
-                        setManualCityOpen(false)
-                        setManualCityActiveIndex(-1)
-                      }
-                    }}
-                    onBlur={() => {
-                      if (manualCityHasPendingSelection) commitManualCityInput()
-                      else {
-                        setManualCityOpen(false)
-                        setManualCityActiveIndex(-1)
-                      }
-                    }}
-                  />
-
-                  {manualCityOpen && shouldShowManualCitySuggestions ? (
-                    <div className="settings__autocompleteMenu" id="manual-city-suggestions" role="listbox">
-                      {manualCitySuggestions.map((suggestion, index) => (
-                        <button
-                          key={suggestion.id}
-                          type="button"
-                          role="option"
-                          aria-selected={resolvedActiveIndex === index}
-                          className={`settings__autocompleteItem${resolvedActiveIndex === index ? ' is-active' : ''}`}
-                          onMouseDown={(event) => event.preventDefault()}
-                          onClick={() => applyManualCitySuggestion(suggestion)}
-                        >
-                          <span>{suggestion.label}</span>
-                          <span className="settings__autocompleteSource">{suggestion.source === 'local' ? 'Local' : 'Online'}</span>
-                        </button>
-                      ))}
-
-                      {manualCitySuggestions.length === 0 ? (
-                        <p className="settings__autocompleteEmpty">No city found.</p>
+                          <SettingRow
+                            icon={Waves}
+                            title={t('settings.currency.title')}
+                            description={t('settings.currency.description')}
+                          >
+                            <Select value={defaultCurrency} onValueChange={(value) => setDefaultCurrency(value as 'USD' | 'CNY')}>
+                              <SelectTrigger className="w-full sm:max-w-[220px]">
+                                <SelectValue placeholder={t('settings.currency.placeholder')} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="USD">USD</SelectItem>
+                                <SelectItem value="CNY">CNY</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </SettingRow>
+                        </>
                       ) : null}
-                    </div>
-                  ) : null}
+
+                      {activeSection === 'experience' ? (
+                        <>
+                          <SettingRow
+                            icon={Sparkles}
+                            title={t('settings.experience.uiAnimations.title')}
+                            description={t('settings.experience.uiAnimations.description')}
+                          >
+                            <Switch checked={uiAnimationsEnabled} onCheckedChange={(checked) => setUiAnimationsEnabled(checked)} />
+                          </SettingRow>
+
+                          <SettingRow
+                            icon={Sparkles}
+                            title={t('settings.experience.numberAnimations.title')}
+                            description={t('settings.experience.numberAnimations.description')}
+                          >
+                            <Switch checked={numberAnimationsEnabled} onCheckedChange={(checked) => setNumberAnimationsEnabled(checked)} />
+                          </SettingRow>
+
+                          <SettingRow
+                            icon={Bell}
+                            title={t('settings.experience.completionSound.title')}
+                            description={t('settings.experience.completionSound.description')}
+                          >
+                            <Switch checked={focusCompletionSoundEnabled} onCheckedChange={(checked) => setFocusCompletionSoundEnabled(checked)} />
+                          </SettingRow>
+                        </>
+                      ) : null}
+
+                      {activeSection === 'weather' ? (
+                        <>
+                          <SettingRow
+                            icon={LocateFixed}
+                            title={t('settings.weather.autoLocation.title')}
+                            description={t('settings.weather.autoLocation.description')}
+                          >
+                            <Switch checked={weatherAutoLocationEnabled} onCheckedChange={(checked) => setWeatherAutoLocationEnabled(checked)} />
+                          </SettingRow>
+
+                          <motion.div
+                            className="space-y-3 rounded-xl border border-border/70 bg-background/70 p-4"
+                            initial={{ opacity: 0, y: 18 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.35, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
+                          >
+                            <div>
+                              <h3 className="text-sm font-semibold text-foreground">{t('settings.weather.manualCity.title')}</h3>
+                              <p className="text-sm text-muted-foreground">{t('settings.weather.manualCity.description')}</p>
+                            </div>
+
+                            <div className="relative">
+                              <Input
+                                type="text"
+                                value={manualCityInput}
+                                placeholder={t('settings.weather.manualCity.placeholder')}
+                                disabled={weatherAutoLocationEnabled}
+                                role="combobox"
+                                aria-expanded={manualCityOpen && shouldShowManualCitySuggestions}
+                                aria-controls="manual-city-suggestions"
+                                aria-autocomplete="list"
+                                onFocus={() => {
+                                  if (shouldShowManualCitySuggestions) {
+                                    setManualCityOpen(true)
+                                    setManualCityActiveIndex(0)
+                                  }
+                                }}
+                                onChange={(event) => {
+                                  const nextValue = event.target.value
+                                  setManualCityInput(nextValue)
+                                  setManualCityHasPendingSelection(true)
+                                  setManualCityOpen(normalizeQuery(nextValue).length >= MIN_CITY_QUERY_LENGTH)
+                                  setManualCityActiveIndex(0)
+                                }}
+                                onKeyDown={(event) => {
+                                  if (weatherAutoLocationEnabled) return
+                                  if (!shouldShowManualCitySuggestions) return
+
+                                  if (event.key === 'ArrowDown') {
+                                    event.preventDefault()
+                                    setManualCityOpen(true)
+                                    setManualCityActiveIndex((prev) =>
+                                      manualCitySuggestions.length === 0 ? -1 : (prev + 1 + manualCitySuggestions.length) % manualCitySuggestions.length
+                                    )
+                                    return
+                                  }
+
+                                  if (event.key === 'ArrowUp') {
+                                    event.preventDefault()
+                                    setManualCityOpen(true)
+                                    setManualCityActiveIndex((prev) =>
+                                      manualCitySuggestions.length === 0 ? -1 : (prev - 1 + manualCitySuggestions.length) % manualCitySuggestions.length
+                                    )
+                                    return
+                                  }
+
+                                  if (event.key === 'Enter' && manualCityOpen && resolvedActiveIndex >= 0) {
+                                    event.preventDefault()
+                                    const active = manualCitySuggestions[resolvedActiveIndex]
+                                    if (active) applyManualCitySuggestion(active)
+                                    return
+                                  }
+
+                                  if (event.key === 'Enter') {
+                                    event.preventDefault()
+                                    commitManualCityInput()
+                                    return
+                                  }
+
+                                  if (event.key === 'Escape') {
+                                    event.preventDefault()
+                                    setManualCityOpen(false)
+                                    setManualCityActiveIndex(-1)
+                                  }
+                                }}
+                                onBlur={() => {
+                                  if (manualCityHasPendingSelection) commitManualCityInput()
+                                  else {
+                                    setManualCityOpen(false)
+                                    setManualCityActiveIndex(-1)
+                                  }
+                                }}
+                              />
+
+                              {manualCityOpen && shouldShowManualCitySuggestions ? (
+                                <div
+                                  id="manual-city-suggestions"
+                                  role="listbox"
+                                  className="absolute left-0 right-0 top-[calc(100%+8px)] z-20 overflow-hidden rounded-lg border border-border bg-popover shadow-xl"
+                                >
+                                  <ScrollArea className="max-h-64">
+                                    <div className="p-1">
+                                      {manualCitySuggestions.map((suggestion, index) => (
+                                        <button
+                                          key={suggestion.id}
+                                          type="button"
+                                          role="option"
+                                          aria-selected={resolvedActiveIndex === index}
+                                          className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition ${
+                                            resolvedActiveIndex === index ? 'bg-accent text-accent-foreground' : 'hover:bg-muted'
+                                          }`}
+                                          onMouseDown={(event) => event.preventDefault()}
+                                          onClick={() => applyManualCitySuggestion(suggestion)}
+                                        >
+                                          <span>{suggestion.label}</span>
+                                          <span className="text-xs text-muted-foreground">
+                                            {suggestion.source === 'local' ? t('settings.weather.manualCity.local') : t('settings.weather.manualCity.online')}
+                                          </span>
+                                        </button>
+                                      ))}
+                                      {manualCitySuggestions.length === 0 ? (
+                                        <p className="px-3 py-2 text-sm text-muted-foreground">{t('settings.weather.manualCity.empty')}</p>
+                                      ) : null}
+                                    </div>
+                                  </ScrollArea>
+                                </div>
+                              ) : null}
+                            </div>
+
+                            <Select
+                              value={weatherTemperatureUnit}
+                              onValueChange={(value) => setWeatherTemperatureUnit(value as 'celsius' | 'fahrenheit')}
+                            >
+                              <SelectTrigger className="w-full sm:max-w-[220px]">
+                                <SelectValue placeholder={t('settings.weather.temperature.placeholder')} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="celsius">{t('settings.weather.temperature.celsius')}</SelectItem>
+                                <SelectItem value="fahrenheit">{t('settings.weather.temperature.fahrenheit')}</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </motion.div>
+                        </>
+                      ) : null}
+
+                      {activeSection === 'data' ? (
+                        <>
+                          <SettingRow
+                            icon={Database}
+                            title={t('settings.data.export.title')}
+                            description={t('settings.data.export.description')}
+                          >
+                            <div className="flex gap-2">
+                              <Button variant="outline" disabled>
+                                {t('settings.data.export.json')}
+                              </Button>
+                              <Button variant="outline" disabled>
+                                {t('settings.data.export.csv')}
+                              </Button>
+                            </div>
+                          </SettingRow>
+
+                          <motion.div
+                            className="space-y-4 rounded-xl border border-destructive/35 bg-destructive/5 p-4"
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.35, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
+                          >
+                            <div className="flex items-start gap-3">
+                              <AlertTriangle className="mt-0.5 h-5 w-5 text-destructive" />
+                              <div>
+                                <h3 className="text-sm font-semibold text-foreground">{t('settings.data.danger.title')}</h3>
+                                <p className="text-sm text-muted-foreground">{t('settings.data.danger.description')}</p>
+                              </div>
+                            </div>
+
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="destructive" disabled={isResetting}>
+                                  {isResetting ? t('settings.data.resetting') : t('settings.data.reset')}
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>{t('settings.data.resetDialog.title')}</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    {t('settings.data.resetDialog.description')}
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>{t('settings.data.resetDialog.cancel')}</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => void resetApp()}>{t('settings.data.resetDialog.confirm')}</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </motion.div>
+                        </>
+                      ) : null}
+                    </motion.div>
+                  </AnimatePresence>
                 </div>
-              </label>
-
-              <label className="settings__field">
-                <span className="settings__label">Temperature unit</span>
-                <Select
-                  value={weatherTemperatureUnit}
-                  options={[
-                    { value: 'celsius', label: 'Celsius (°C)' },
-                    { value: 'fahrenheit', label: 'Fahrenheit (°F)' },
-                  ]}
-                  onChange={(value) => setWeatherTemperatureUnit(value as 'celsius' | 'fahrenheit')}
-                />
-              </label>
-            </div>
+              </ScrollArea>
+            </CardContent>
           </Card>
-
-          <Card title="Data" eyebrow="Local-first">
-            <p className="muted">Data is stored locally in IndexedDB (Dexie). Export/import will live here.</p>
-            <div className="settings__actions">
-              <Button className="button button--ghost" disabled>
-                Export JSON
-              </Button>
-              <Button className="button button--ghost" disabled>
-                Export CSV
-              </Button>
-            </div>
-          </Card>
-        </div>
+        </Tabs>
       </div>
     </div>
   )

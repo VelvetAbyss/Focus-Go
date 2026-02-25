@@ -57,6 +57,34 @@ export type FocusSettings = BaseEntity & {
   noise?: NoiseSettings
   noisePreset?: NoisePreset
   volume?: number
+  timer?: FocusTimerSnapshot
+}
+
+export type FocusTimerStatus = 'idle' | 'running' | 'paused' | 'completed'
+
+export type FocusTimerSnapshot = {
+  status: FocusTimerStatus
+  durationMinutes: number
+  remainingSeconds: number
+  startedAt?: number
+  endsAt?: number
+  pausedAt?: number
+  activeSessionId?: string | null
+  lastCompletedAt?: number
+  sessionId?: string
+}
+
+export type FocusSessionStatus = 'active' | 'completed' | 'interrupted'
+
+export type FocusSession = BaseEntity & {
+  taskId?: string
+  goal?: string
+  plannedMinutes: number
+  actualMinutes?: number
+  status: FocusSessionStatus
+  completedAt?: number
+  interruptedAt?: number
+  interruptionReason?: string
 }
 
 export type NoiseTrackId = 'cafe' | 'fireplace' | 'rain' | 'wind' | 'thunder' | 'ocean'
@@ -115,4 +143,25 @@ export type DashboardLayout = BaseEntity & {
   items: DashboardLayoutItem[]
   hiddenCardIds?: string[]
   themeOverride?: 'light' | 'dark' | null
+}
+
+export type NoteEntity = BaseEntity & {
+  title: string
+  contentMd: string
+  contentJson?: Record<string, unknown> | null
+  manualTags: string[]
+  tags: string[]
+  linkedNoteIds: string[]
+  backlinks: string[]
+  deletedAt?: number | null
+  expiresAt?: number | null
+}
+
+export type NoteAssetEntity = BaseEntity & {
+  noteId: string
+  kind: 'image'
+  storage: 'blob' | 'remote'
+  blob?: Blob
+  url?: string
+  alt?: string
 }

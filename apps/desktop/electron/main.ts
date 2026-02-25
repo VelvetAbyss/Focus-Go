@@ -110,6 +110,15 @@ app.whenReady().then(() => {
     },
     'db:focus:get': async () => sqliteBundle.service.focus.get(),
     'db:focus:upsert': async (payload) => sqliteBundle.service.focus.upsert(payload as never),
+    'db:focusSessions:list': async (payload) => sqliteBundle.service.focusSessions.list((payload as { limit?: number }).limit),
+    'db:focusSessions:start': async (payload) => sqliteBundle.service.focusSessions.start(payload as never),
+    'db:focusSessions:complete': async (payload) => {
+      const typed = payload as { id: string; actualMinutes?: number; completedAt?: number }
+      return sqliteBundle.service.focusSessions.complete(typed.id, {
+        actualMinutes: typed.actualMinutes,
+        completedAt: typed.completedAt,
+      })
+    },
     'db:diary:list': async () => sqliteBundle.service.diary.list(),
     'db:diary:listActive': async () => sqliteBundle.service.diary.listActive(),
     'db:diary:getByDate': async (payload) => sqliteBundle.service.diary.getByDate((payload as { dateKey: string }).dateKey),

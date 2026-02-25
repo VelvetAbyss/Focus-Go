@@ -2,21 +2,28 @@ import { useEffect, useMemo, useState } from 'react'
 import { PreferencesContext } from './PreferencesContext'
 import {
   DEFAULT_CURRENCY_KEY,
+  LANGUAGE_KEY,
   NUMBER_ANIMATIONS_ENABLED_KEY,
   UI_ANIMATIONS_ENABLED_KEY,
   WEATHER_AUTO_LOCATION_KEY,
+  FOCUS_COMPLETION_SOUND_ENABLED_KEY,
   WEATHER_MANUAL_CITY_KEY,
   WEATHER_TEMP_UNIT_KEY,
   type CurrencyCode,
+  type LanguageCode,
   type TemperatureUnit,
   readDefaultCurrency,
+  readLanguage,
   readNumberAnimationsEnabled,
+  readFocusCompletionSoundEnabled,
   readUiAnimationsEnabled,
   readWeatherAutoLocation,
   readWeatherManualCity,
   readWeatherTemperatureUnit,
   writeDefaultCurrency,
+  writeLanguage,
   writeNumberAnimationsEnabled,
+  writeFocusCompletionSoundEnabled,
   writeUiAnimationsEnabled,
   writeWeatherAutoLocation,
   writeWeatherManualCity,
@@ -30,6 +37,7 @@ const readInitialUiAnimationsEnabled = () => {
 }
 
 export const PreferencesProvider = ({ children }: { children: React.ReactNode }) => {
+  const [language, setLanguageState] = useState<LanguageCode>(() => readLanguage())
   const [uiAnimationsEnabled, setUiAnimationsEnabledState] = useState(() => readInitialUiAnimationsEnabled())
   const [numberAnimationsEnabled, setNumberAnimationsEnabledState] = useState(() => readNumberAnimationsEnabled())
   const [defaultCurrency, setDefaultCurrencyState] = useState<CurrencyCode>(() => readDefaultCurrency())
@@ -38,10 +46,12 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
   const [weatherTemperatureUnit, setWeatherTemperatureUnitState] = useState<TemperatureUnit>(() =>
     readWeatherTemperatureUnit()
   )
+  const [focusCompletionSoundEnabled, setFocusCompletionSoundEnabledState] = useState(() => readFocusCompletionSoundEnabled())
 
   useEffect(() => {
     const handleStorage = (event: StorageEvent) => {
       if (event.key === null) {
+        setLanguageState(readLanguage())
         setUiAnimationsEnabledState(readUiAnimationsEnabled())
         setNumberAnimationsEnabledState(readNumberAnimationsEnabled())
         setDefaultCurrencyState(readDefaultCurrency())
@@ -53,6 +63,11 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
 
       if (event.key === UI_ANIMATIONS_ENABLED_KEY) {
         setUiAnimationsEnabledState(readUiAnimationsEnabled())
+        return
+      }
+
+      if (event.key === LANGUAGE_KEY) {
+        setLanguageState(readLanguage())
         return
       }
 
@@ -78,6 +93,11 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
 
       if (event.key === WEATHER_TEMP_UNIT_KEY) {
         setWeatherTemperatureUnitState(readWeatherTemperatureUnit())
+        return
+      }
+
+      if (event.key === FOCUS_COMPLETION_SOUND_ENABLED_KEY) {
+        setFocusCompletionSoundEnabledState(readFocusCompletionSoundEnabled())
       }
     }
     window.addEventListener('storage', handleStorage)
@@ -88,8 +108,17 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
     document.documentElement.setAttribute('data-motion', uiAnimationsEnabled ? 'force' : 'reduce')
   }, [uiAnimationsEnabled])
 
+  useEffect(() => {
+    document.documentElement.setAttribute('lang', language)
+  }, [language])
+
   const value = useMemo(() => {
     return {
+      language,
+      setLanguage: (nextLanguage: LanguageCode) => {
+        writeLanguage(nextLanguage)
+        setLanguageState(nextLanguage)
+      },
       uiAnimationsEnabled,
       setUiAnimationsEnabled: (enabled: boolean) => {
         writeUiAnimationsEnabled(enabled)
@@ -120,9 +149,16 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
         writeWeatherTemperatureUnit(unit)
         setWeatherTemperatureUnitState(unit)
       },
+      focusCompletionSoundEnabled,
+      setFocusCompletionSoundEnabled: (enabled: boolean) => {
+        writeFocusCompletionSoundEnabled(enabled)
+        setFocusCompletionSoundEnabledState(enabled)
+      },
     }
   }, [
+    language,
     defaultCurrency,
+    focusCompletionSoundEnabled,
     numberAnimationsEnabled,
     uiAnimationsEnabled,
     weatherAutoLocationEnabled,

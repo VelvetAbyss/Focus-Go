@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Button } from '@/components/ui/button'
 import type { TaskItem } from '../tasks.types'
-import Button from '../../../shared/ui/Button'
 import Dialog from '../../../shared/ui/Dialog'
 import { tasksRepo } from '../../../data/repositories/tasksRepo'
 import { toDateKey } from '../../../shared/utils/time'
 import { DatePicker } from '../../../shared/ui/DatePicker'
+import { emitTasksChanged } from '../taskSync'
 
 type CalendarEntry = {
   id: string
@@ -179,6 +180,7 @@ const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted
         tags: [],
         subtasks: [],
       })
+      emitTasksChanged('task-calendar-widget:create')
       onTaskCreated(created)
       closeCreate()
     } finally {
@@ -196,6 +198,7 @@ const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted
           createdAt: toDateAtNoon(nextDateKey),
         }
     const updated = await tasksRepo.update(next)
+    emitTasksChanged('task-calendar-widget:update-date')
     onTaskUpdated(updated)
   }
 
@@ -215,6 +218,7 @@ const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted
     setIsMutating(true)
     try {
       await tasksRepo.remove(activeEntry.taskId)
+      emitTasksChanged('task-calendar-widget:delete')
       onTaskDeleted(activeEntry.taskId)
       closeEdit()
     } finally {
@@ -238,13 +242,13 @@ const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted
       <div className="task-calendar__header">
         <h3 className="task-calendar__title">{formatMonthLabel(visibleMonth)}</h3>
         <div className="task-calendar__actions">
-          <Button type="button" className="button button--ghost task-calendar__action" onClick={toPreviousMonth}>
+          <Button type="button" variant="outline" size="sm" className="task-calendar__action" onClick={toPreviousMonth}>
             Prev
           </Button>
-          <Button type="button" className="button button--ghost task-calendar__action" onClick={toToday}>
+          <Button type="button" variant="outline" size="sm" className="task-calendar__action" onClick={toToday}>
             Today
           </Button>
-          <Button type="button" className="button button--ghost task-calendar__action" onClick={toNextMonth}>
+          <Button type="button" variant="outline" size="sm" className="task-calendar__action" onClick={toNextMonth}>
             Next
           </Button>
         </div>
@@ -369,10 +373,10 @@ const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted
             <DatePicker value={createDueDate || null} onChange={(next) => setCreateDueDate(next ?? '')} />
           </label>
           <div className="dialog__actions">
-            <Button className="button button--ghost" type="button" onClick={closeCreate}>
+            <Button variant="outline" type="button" onClick={closeCreate}>
               Cancel
             </Button>
-            <Button className="button" type="submit" disabled={!canSubmitCreate}>
+            <Button type="submit" disabled={!canSubmitCreate}>
               Add
             </Button>
           </div>
@@ -388,14 +392,13 @@ const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted
             <DatePicker value={editDateKey || null} onChange={(next) => setEditDateKey(next ?? '')} />
           </label>
           <div className="dialog__actions">
-            <Button className="button button--ghost" type="button" onClick={closeEdit}>
+            <Button variant="outline" type="button" onClick={closeEdit}>
               Cancel
             </Button>
-            <Button className="button button--danger" type="button" onClick={() => void handleDeleteFromEdit()}>
+            <Button variant="destructive" type="button" onClick={() => void handleDeleteFromEdit()}>
               Delete
             </Button>
             <Button
-              className="button"
               type="button"
               onClick={() => void submitEdit()}
               disabled={!editDateKey || isMutating}

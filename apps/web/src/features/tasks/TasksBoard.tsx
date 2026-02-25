@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
 import { tasksRepo } from '../../data/repositories/tasksRepo'
 import type { TaskItem, TaskStatus, TaskPriority } from './tasks.types'
 import TaskDrawer from './TaskDrawer'
-import Button from '../../shared/ui/Button'
 import Card from '../../shared/ui/Card'
 import Dialog from '../../shared/ui/Dialog'
 import Select from '../../shared/ui/Select'
@@ -13,6 +14,9 @@ import AnimatedScrollList from '../../shared/ui/AnimatedScrollList'
 import { triggerTabGroupSwitchAnimation, triggerTabPressAnimation } from '../../shared/ui/tabPressAnimation'
 import TaskCalendarWidget from './components/TaskCalendarWidget'
 import { useToast } from '../../shared/ui/toast/toast'
+import { ROUTES } from '../../app/routes/routes'
+import { emitTasksChanged, subscribeTasksChanged } from './taskSync'
+
 const tabs: { key: TaskStatus; label: string }[] = [
   { key: 'todo', label: 'Todo' },
   { key: 'doing', label: 'Doing' },
@@ -57,7 +61,12 @@ const getNextStatus = (status: TaskStatus) => {
   return { next: 'todo' as const, label: 'Reopen' }
 }
 
-const TasksBoard = () => {
+type TasksBoardProps = {
+  asCard?: boolean
+  className?: string
+}
+
+const TasksBoard = ({ asCard = true, className }: TasksBoardProps) => {
   const [tasks, setTasks] = useState<TaskItem[]>([])
   const [activeTask, setActiveTask] = useState<TaskItem | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<TaskItem | null>(null)
@@ -75,7 +84,14 @@ const TasksBoard = () => {
   const [progressComposerTaskId, setProgressComposerTaskId] = useState<string | null>(null)
   const [progressComposerValue, setProgressComposerValue] = useState('')
   const [progressSavingTaskId, setProgressSavingTaskId] = useState<string | null>(null)
+  const [statusActionLoadingTaskId, setStatusActionLoadingTaskId] = useState<string | null>(null)
+  const [statusActionLoadingKey, setStatusActionLoadingKey] = useState<string | null>(null)
+  const [statusActionSuccessTaskId, setStatusActionSuccessTaskId] = useState<string | null>(null)
+  const [statusActionSuccessKey, setStatusActionSuccessKey] = useState<string | null>(null)
+  const statusActionSuccessTimerRef = useRef<number | null>(null)
+  const tasksReloadTokenRef = useRef(0)
   const toast = useToast()
+  const navigate = useNavigate()
 
   const [activeStatus, setActiveStatus] = useState<TaskStatus>(() => {
     if (typeof window === 'undefined') return 'todo'
@@ -90,17 +106,30 @@ const TasksBoard = () => {
   })
   const newTaskInputRef = useRef<HTMLInputElement | null>(null)
 
+  const loadTasks = useCallback(async () => {
+    const token = tasksReloadTokenRef.current + 1
+    tasksReloadTokenRef.current = token
+    const items = await tasksRepo.list()
+    if (tasksReloadTokenRef.current !== token) return
+    setTasks(items)
+    setActiveTask((prev) => (prev ? items.find((item) => item.id === prev.id) ?? null : prev))
+    setDeleteTarget((prev) => (prev ? items.find((item) => item.id === prev.id) ?? null : prev))
+    setProgressComposerTaskId((prev) => (prev && items.some((item) => item.id === prev) ? prev : null))
+  }, [])
+
   useEffect(() => {
-    const load = async () => {
+    const bootstrap = async () => {
       if (typeof window !== 'undefined' && !window.localStorage.getItem(STORAGE_TAGS_MIGRATION_KEY)) {
         await tasksRepo.clearAllTags()
         window.localStorage.setItem(STORAGE_TAGS_MIGRATION_KEY, '1')
       }
-      const items = await tasksRepo.list()
-      setTasks(items)
+      await loadTasks()
     }
-    void load()
-  }, [])
+    void bootstrap()
+    return subscribeTasksChanged(() => {
+      void loadTasks()
+    })
+  }, [loadTasks])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -122,8 +151,18 @@ const TasksBoard = () => {
     setProgressComposerValue('')
   }, [activeStatus, viewMode])
 
+  useEffect(() => {
+    return () => {
+      if (statusActionSuccessTimerRef.current) {
+        window.clearTimeout(statusActionSuccessTimerRef.current)
+        statusActionSuccessTimerRef.current = null
+      }
+    }
+  }, [])
+
   const handleDeleteTask = async (task: TaskItem) => {
     await tasksRepo.remove(task.id)
+    emitTasksChanged('tasks-board:delete')
     setTasks((prev) => prev.filter((item) => item.id !== task.id))
     if (activeTask?.id === task.id) setActiveTask(null)
   }
@@ -170,6 +209,7 @@ const TasksBoard = () => {
       tags: [],
       subtasks: [],
     })
+    emitTasksChanged('tasks-board:create')
     setTasks((prev) => [newTask, ...prev])
     setActiveStatus('todo')
     setNewTaskTitle('')
@@ -217,27 +257,44 @@ const TasksBoard = () => {
   )
 
   const getStatusActions = (task: TaskItem) => {
+    const runStatusAction = async (nextTask: TaskItem, key: string, nextStatus: TaskStatus) => {
+      if (statusActionLoadingTaskId) return
+      setStatusActionLoadingTaskId(nextTask.id)
+      setStatusActionLoadingKey(key)
+      try {
+        const updated = await tasksRepo.updateStatus(nextTask.id, nextStatus)
+        if (!updated) return
+        emitTasksChanged('tasks-board:update-status')
+        setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
+        if (activeTask?.id === updated.id) setActiveTask(updated)
+
+        setStatusActionSuccessTaskId(updated.id)
+        setStatusActionSuccessKey(key)
+        if (statusActionSuccessTimerRef.current) {
+          window.clearTimeout(statusActionSuccessTimerRef.current)
+        }
+        statusActionSuccessTimerRef.current = window.setTimeout(() => {
+          setStatusActionSuccessTaskId(null)
+          setStatusActionSuccessKey(null)
+          statusActionSuccessTimerRef.current = null
+        }, 700)
+      } finally {
+        setStatusActionLoadingTaskId(null)
+        setStatusActionLoadingKey(null)
+      }
+    }
+
     if (task.status === 'todo') {
       return [
         {
           key: 'start',
           label: 'Start',
-          onClick: async (nextTask: TaskItem) => {
-            const updated = await tasksRepo.updateStatus(nextTask.id, 'doing')
-            if (!updated) return
-            setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
-            if (activeTask?.id === updated.id) setActiveTask(updated)
-          },
+          onClick: async (nextTask: TaskItem) => runStatusAction(nextTask, 'start', 'doing'),
         },
         {
           key: 'done',
           label: 'Done',
-          onClick: async (nextTask: TaskItem) => {
-            const updated = await tasksRepo.updateStatus(nextTask.id, 'done')
-            if (!updated) return
-            setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
-            if (activeTask?.id === updated.id) setActiveTask(updated)
-          },
+          onClick: async (nextTask: TaskItem) => runStatusAction(nextTask, 'done', 'done'),
         },
       ]
     }
@@ -246,12 +303,7 @@ const TasksBoard = () => {
       {
         key: next.next,
         label: next.label,
-        onClick: async (nextTask: TaskItem) => {
-          const updated = await tasksRepo.updateStatus(nextTask.id, next.next)
-          if (!updated) return
-          setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
-          if (activeTask?.id === updated.id) setActiveTask(updated)
-        },
+        onClick: async (nextTask: TaskItem) => runStatusAction(nextTask, next.next, next.next),
       },
     ]
   }
@@ -280,6 +332,7 @@ const TasksBoard = () => {
     try {
       const updated = await tasksRepo.appendProgress(task.id, content)
       if (!updated) return
+      emitTasksChanged('tasks-board:append-progress')
       setTasks((prev) => prev.map((item) => (item.id === updated.id ? updated : item)))
       if (activeTask?.id === updated.id) setActiveTask(updated)
       setProgressComposerTaskId(null)
@@ -295,21 +348,8 @@ const TasksBoard = () => {
     }
   }
 
-  return (
-    <Card
-      title="Tasks"
-      eyebrow="Kanban"
-      actions={
-        <Button
-          type="button"
-          className="button button--ghost tasks-fg__view-toggle"
-          onClick={() => setViewMode((prev) => (prev === 'kanban' ? 'calendar' : 'kanban'))}
-        >
-          {viewMode === 'kanban' ? 'Calendar' : 'Task'}
-        </Button>
-      }
-    >
-      <div className="tasks-fg">
+  const content = (
+    <div className={`tasks-fg ${asCard ? '' : 'tasks-fg--plain'}`}>
         <div className="tasks-fg__top">
           <div className="tasks-fg__tabs-row">
             <div className="tasks-fg__tabs tab-motion-group" role="tablist" aria-label="Task status tabs" style={tabMotionStyle}>
@@ -400,6 +440,9 @@ const TasksBoard = () => {
                               task={task}
                               onClick={(nextTask) => setActiveTask(nextTask)}
                               onDelete={(nextTask) => requestDelete(nextTask)}
+                              onFocusStart={(nextTask) => {
+                                navigate(`${ROUTES.FOCUS}?taskId=${encodeURIComponent(nextTask.id)}&autostart=1`)
+                              }}
                               statusActions={getStatusActions(task)}
                               progressComposer={{
                                 isOpen: progressComposerTaskId === task.id,
@@ -412,6 +455,8 @@ const TasksBoard = () => {
                                 },
                                 onCancel: closeQuickProgress,
                               }}
+                              loadingActionKey={statusActionLoadingTaskId === task.id ? statusActionLoadingKey : null}
+                              successActionKey={statusActionSuccessTaskId === task.id ? statusActionSuccessKey : null}
                             />
                           )
                         }}
@@ -437,14 +482,53 @@ const TasksBoard = () => {
                 onAnimationEnd={clearInputShake}
                 placeholder="Add a new task..."
               />
-              <Button type="submit" className="button tasks-fg__add-btn" disabled={!canSubmitNewTask}>
+              <Button type="submit" className="tasks-fg__add-btn" size="sm" disabled={!canSubmitNewTask}>
                 Add
               </Button>
             </form>
           </>
         )}
-      </div>
+    </div>
+  )
 
+  return (
+    <>
+      {asCard ? (
+        <Card
+          title="Tasks"
+          eyebrow="Kanban"
+          actions={
+            <Button
+              type="button"
+              className="tasks-fg__view-toggle"
+              size="sm"
+              variant="outline"
+              onClick={() => setViewMode((prev) => (prev === 'kanban' ? 'calendar' : 'kanban'))}
+            >
+              {viewMode === 'kanban' ? 'Calendar' : 'Task'}
+            </Button>
+          }
+          className={className}
+        >
+          {content}
+        </Card>
+      ) : (
+        <section className={`tasks-board-surface ${className ?? ''}`}>
+          <header className="tasks-board-surface__header">
+            <h2 className="card__title">Board</h2>
+            <Button
+              type="button"
+              className="tasks-fg__view-toggle"
+              size="sm"
+              variant="outline"
+              onClick={() => setViewMode((prev) => (prev === 'kanban' ? 'calendar' : 'kanban'))}
+            >
+              {viewMode === 'kanban' ? 'Calendar' : 'Task'}
+            </Button>
+          </header>
+          {content}
+        </section>
+      )}
       <TaskDrawer
         open={Boolean(activeTask)}
         task={activeTask}
@@ -457,16 +541,16 @@ const TasksBoard = () => {
         <div className="dialog__body">
           <p>Delete "{deleteTarget?.title}"?</p>
           <div className="dialog__actions">
-            <Button className="button button--ghost" type="button" onClick={cancelDelete}>
+            <Button variant="outline" type="button" onClick={cancelDelete}>
               Cancel
             </Button>
-            <Button className="button button--danger" type="button" onClick={confirmDelete}>
+            <Button variant="destructive" type="button" onClick={confirmDelete}>
               Delete
             </Button>
           </div>
         </div>
       </Dialog>
-    </Card>
+    </>
   )
 }
 

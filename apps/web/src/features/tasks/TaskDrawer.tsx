@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Button } from '@/components/ui/button'
 import { ChevronDown, Plus, X } from 'lucide-react'
 import Dialog from '../../shared/ui/Dialog'
-import Button from '../../shared/ui/Button'
 import Select from '../../shared/ui/Select'
 import { DatePicker } from '../../shared/ui/DatePicker'
 import { tasksRepo } from '../../data/repositories/tasksRepo'
@@ -10,6 +10,7 @@ import { useToast } from '../../shared/ui/toast/toast'
 import type { TaskItem, TaskPriority } from './tasks.types'
 import { useAddInputComposer } from '../../shared/hooks/useAddInputComposer'
 import { Popover, PopoverContent, PopoverTrigger } from '../../shared/ui/popover'
+import { emitTasksChanged } from './taskSync'
 
 type TaskDrawerProps = {
   open: boolean
@@ -171,6 +172,7 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
       setIsSaving(true)
       try {
         const next = await tasksRepo.update(nextDraft)
+        emitTasksChanged('task-drawer:update')
         onUpdated(next)
         baselineRef.current = {
           title: next.title,
@@ -268,7 +270,10 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
     setIsSaving(true)
     try {
       const updated = await tasksRepo.updateStatus(currentTask.id, status)
-      if (updated) onUpdated(updated)
+      if (updated) {
+        emitTasksChanged('task-drawer:update-status')
+        onUpdated(updated)
+      }
     } catch {
       toast.push({ variant: 'error', title: 'Update failed', message: 'Try again.' })
     } finally {
@@ -285,6 +290,7 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
     }
     if (!window.confirm(`Delete task "${currentTask.title}"?`)) return
     await tasksRepo.remove(currentTask.id)
+    emitTasksChanged('task-drawer:delete')
     onDeleted(currentTask.id)
     onClose()
   }

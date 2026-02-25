@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { Button } from '@/components/ui/button'
 import Card from '../../shared/ui/Card'
-import Button from '../../shared/ui/Button'
 import { focusRepo } from '../../data/repositories/focusRepo'
 import type { NoiseSettings, NoiseTrackId, NoiseTrackSettings } from '../../data/models/types'
 import FocusSettingsDrawer from './FocusSettingsDrawer'
@@ -8,34 +8,35 @@ import { createDefaultNoiseSettings, DEFAULT_NOISE_PRESET } from './noise'
 import { useNoiseMixer } from './useNoiseMixer'
 import { AppNumber, AppNumberGroup } from '../../shared/ui/AppNumber'
 import { useMotionPreference } from '../../shared/prefs/useMotionPreference'
-type TimerMode = 'focus' | 'break' | 'longBreak'
+import { useSharedFocusTimer } from './useSharedFocusTimer'
+
+const clampDuration = (value: number) => {
+  if (!Number.isFinite(value)) return 25
+  const stepped = Math.round(value / 5) * 5
+  return Math.max(15, Math.min(120, stepped))
+}
 
 const FocusCard = () => {
   const [focusMinutes, setFocusMinutes] = useState(25)
   const [breakMinutes, setBreakMinutes] = useState(5)
   const [longBreakMinutes, setLongBreakMinutes] = useState(15)
   const [noise, setNoise] = useState<NoiseSettings>(createDefaultNoiseSettings())
-  const [mode, setMode] = useState<TimerMode>('focus')
-  const [secondsLeft, setSecondsLeft] = useState(25 * 60)
-  const [running, setRunning] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const intervalRef = useRef<number | null>(null)
   const { reduceMotion } = useMotionPreference()
+  const { state: timerState, start, pause, resume, reset, setDuration } = useSharedFocusTimer({ defaultDurationMinutes: focusMinutes })
 
   useNoiseMixer(noise)
 
   useEffect(() => {
-    focusRepo.get().then((settings) => {
+    void focusRepo.get().then((settings) => {
       if (!settings) return
       setFocusMinutes(settings.focusMinutes)
       setBreakMinutes(settings.breakMinutes)
       setLongBreakMinutes(settings.longBreakMinutes)
-      setSecondsLeft(settings.focusMinutes * 60)
 
       const preset = settings.noisePreset ?? DEFAULT_NOISE_PRESET
       const fallbackNoise = settings.noise ?? createDefaultNoiseSettings()
       setNoise({
-        // Keep last manual playback state from persisted noise settings.
         playing: fallbackNoise.playing,
         loop: fallbackNoise.loop ?? preset.loop,
         masterVolume: fallbackNoise.masterVolume ?? 0.6,
@@ -43,7 +44,7 @@ const FocusCard = () => {
       })
 
       if (!settings.noisePreset) {
-        focusRepo.upsert({
+        void focusRepo.upsert({
           focusMinutes: settings.focusMinutes,
           breakMinutes: settings.breakMinutes,
           longBreakMinutes: settings.longBreakMinutes,
@@ -55,31 +56,7 @@ const FocusCard = () => {
   }, [])
 
   useEffect(() => {
-    if (!running) return
-    intervalRef.current = window.setInterval(() => {
-      setSecondsLeft((prev) => Math.max(prev - 1, 0))
-    }, 1000)
-
-    return () => {
-      if (intervalRef.current) window.clearInterval(intervalRef.current)
-    }
-  }, [running])
-
-  useEffect(() => {
-    if (secondsLeft !== 0) return
-    const raf = window.requestAnimationFrame(() => {
-      setRunning(false)
-      setMode((prevMode) => {
-        const nextMode = prevMode === 'focus' ? 'break' : 'focus'
-        setSecondsLeft(nextMode === 'focus' ? focusMinutes * 60 : breakMinutes * 60)
-        return nextMode
-      })
-    })
-    return () => window.cancelAnimationFrame(raf)
-  }, [secondsLeft, focusMinutes, breakMinutes])
-
-  useEffect(() => {
-    focusRepo.upsert({
+    void focusRepo.upsert({
       focusMinutes,
       breakMinutes,
       longBreakMinutes,
@@ -87,17 +64,12 @@ const FocusCard = () => {
     })
   }, [focusMinutes, breakMinutes, longBreakMinutes, noise])
 
-  const totalSeconds = useMemo(() => {
-    if (mode === 'focus') return focusMinutes * 60
-    if (mode === 'break') return breakMinutes * 60
-    return longBreakMinutes * 60
-  }, [mode, focusMinutes, breakMinutes, longBreakMinutes])
-
-  const minutes = Math.floor(secondsLeft / 60)
-  const seconds = secondsLeft % 60
+  const minutes = Math.floor(timerState.remainingSeconds / 60)
+  const seconds = timerState.remainingSeconds % 60
   const timerTrend = useMemo(() => {
     return (oldValue: number, value: number) => (value >= oldValue ? 1 : -1)
   }, [])
+
   const setNoiseTrack = (trackId: NoiseTrackId, patch: Partial<NoiseTrackSettings>) => {
     setNoise((prev) => ({
       ...prev,
@@ -119,13 +91,24 @@ const FocusCard = () => {
     setNoise((prev) => ({ ...prev, masterVolume: value }))
   }
 
+  const handlePrimaryAction = async () => {
+    if (timerState.running) {
+      await pause()
+      return
+    }
+    if (timerState.status === 'paused') {
+      await resume()
+      return
+    }
+    await start(clampDuration(timerState.durationMinutes))
+  }
 
   return (
     <Card
       title="Focus Center"
       eyebrow="Pomodoro"
       actions={
-        <Button className="button button--ghost" onClick={() => setSettingsOpen(true)} aria-label="Open settings">
+        <Button variant="outline" size="icon" onClick={() => setSettingsOpen(true)} aria-label="Open settings">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path
               d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"
@@ -146,7 +129,7 @@ const FocusCard = () => {
       }
     >
       <div className="focus" style={{ margin: '-6px 0', gap: 6 }}>
-        <div className="focus__mode">{mode === 'focus' ? 'Focus' : 'Break'}</div>
+        <div className="focus__mode">Focus</div>
         <div className="focus__time" style={{ margin: '4px 0 8px' }}>
           <AppNumberGroup>
             <AppNumber value={minutes} trend={timerTrend} />
@@ -155,10 +138,10 @@ const FocusCard = () => {
           </AppNumberGroup>
         </div>
         <div className="focus__actions" style={{ marginTop: 8, gap: 14 }}>
-          <Button className="button" onClick={() => setRunning((prev) => !prev)}>
-            {running ? 'Pause' : 'Start'}
+          <Button size="sm" onClick={() => void handlePrimaryAction()}>
+            {timerState.running ? 'Pause' : timerState.status === 'paused' ? 'Resume' : 'Start'}
           </Button>
-          <Button className="button button--ghost" onClick={() => setSecondsLeft(totalSeconds)}>
+          <Button variant="outline" size="sm" onClick={() => void reset()}>
             Reset
           </Button>
         </div>
@@ -187,12 +170,12 @@ const FocusCard = () => {
             .mini-equalizer span:nth-child(1) { animation-delay: 0ms; height: 4px; }
             .mini-equalizer span:nth-child(2) { animation-delay: 150ms; height: 8px; }
             .mini-equalizer span:nth-child(3) { animation-delay: 300ms; height: 5px; }
-            
+
             @keyframes mini-eq-bounce {
               0%, 100% { height: 4px; }
               50% { height: 10px; }
             }
-            
+
             html[data-motion='reduce'] .mini-equalizer span {
               animation: none;
               height: 6px !important;
@@ -230,7 +213,11 @@ const FocusCard = () => {
         focusMinutes={focusMinutes}
         breakMinutes={breakMinutes}
         longBreakMinutes={longBreakMinutes}
-        setFocusMinutes={setFocusMinutes}
+        setFocusMinutes={(value) => {
+          const next = clampDuration(value)
+          setFocusMinutes(next)
+          void setDuration(next)
+        }}
         setBreakMinutes={setBreakMinutes}
         setLongBreakMinutes={setLongBreakMinutes}
         noise={noise}

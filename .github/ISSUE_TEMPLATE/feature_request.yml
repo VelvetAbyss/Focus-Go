@@ -1,0 +1,41 @@
+name: Feature request
+description: Suggest an improvement for Focus&go.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea. Keep it practical and outcome-focused.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Describe the pain point first.
+      placeholder: I lose track of...
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the behavior you want.
+      placeholder: Add a widget that...
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Optional.
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Which app surface is this for?
+      options:
+        - Web app
+        - Desktop app
+        - Shared/core behavior
+        - Unsure
+    validations:
+      required: true

@@ -3,6 +3,7 @@ import { db } from '../db'
 import type {
   DashboardLayout,
   DiaryEntry,
+  FocusSession,
   FocusSettings,
   SpendCategory,
   SpendEntry,
@@ -171,6 +172,38 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       }
       const next = touch({ ...existing, ...(data as Partial<FocusSettings>) })
       await db.focusSettings.put(next)
+      return next
+    },
+  },
+  focusSessions: {
+    async list(limit) {
+      const rows = await db.focusSessions.orderBy('createdAt').reverse().toArray()
+      if (!limit || limit <= 0) return rows
+      return rows.slice(0, limit)
+    },
+    async start(data) {
+      const session: FocusSession = withBase({
+        status: 'active',
+        plannedMinutes: data.plannedMinutes,
+        taskId: data.taskId,
+        goal: data.goal?.trim() || undefined,
+      })
+      await db.focusSessions.add(session)
+      return session
+    },
+    async complete(id, data) {
+      const existing = await db.focusSessions.get(id)
+      if (!existing) return undefined
+      const completedAt = data?.completedAt ?? Date.now()
+      const actualMinutes =
+        typeof data?.actualMinutes === 'number' ? data.actualMinutes : Math.max(1, Math.round((completedAt - existing.createdAt) / 60000))
+      const next = touch({
+        ...existing,
+        status: 'completed' as const,
+        actualMinutes,
+        completedAt,
+      })
+      await db.focusSessions.put(next)
       return next
     },
   },

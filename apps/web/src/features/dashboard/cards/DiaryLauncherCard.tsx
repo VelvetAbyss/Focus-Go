@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Button } from '@/components/ui/button'
 import Card from '../../../shared/ui/Card'
-import Button from '../../../shared/ui/Button'
 import { diaryRepo } from '../../../data/repositories/diaryRepo'
 import type { DiaryEntry } from '../../../data/models/types'
 import { toDateKey } from '../../../shared/utils/time'
+import { hasReviewBlock } from '../../diary/review/reviewDiaryBridge'
 
 type DiaryLauncherCardProps = {
   onOpen: (intent?: 'openToday') => void
@@ -38,6 +39,11 @@ const DiaryLauncherCard = ({ onOpen }: DiaryLauncherCardProps) => {
     return cleaned.slice(0, 60)
   }, [todayEntry])
 
+  const hasReviewSnapshot = useMemo(() => {
+    if (!todayEntry?.contentMd || todayEntry.deletedAt) return false
+    return hasReviewBlock(todayEntry.contentMd)
+  }, [todayEntry])
+
   const handleClick = () => onOpen('openToday')
 
   return (
@@ -48,7 +54,8 @@ const DiaryLauncherCard = ({ onOpen }: DiaryLauncherCardProps) => {
       onClick={handleClick}
       actions={
         <Button
-          className="button button--ghost"
+          variant="outline"
+          size="sm"
           onClick={(e) => {
             e.stopPropagation()
             handleClick()
@@ -60,6 +67,7 @@ const DiaryLauncherCard = ({ onOpen }: DiaryLauncherCardProps) => {
     >
       <p className="diary__date">{toDateKey()}</p>
       <p className="diary__status">{status}</p>
+      {hasReviewSnapshot ? <p className="diary__status">Includes review snapshot</p> : null}
       {preview && <p className="diary__preview">{preview}</p>}
     </Card>
   )

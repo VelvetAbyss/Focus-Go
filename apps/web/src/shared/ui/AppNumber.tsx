@@ -31,12 +31,9 @@ export const AppNumber = ({
   title,
   ...aria
 }: AppNumberProps) => {
-  const { numberAnimationsEnabled } = usePreferences()
+  const { language, numberAnimationsEnabled } = usePreferences()
 
-  const locales = useMemo<Intl.LocalesArgument | undefined>(() => {
-    if (typeof navigator === 'undefined') return undefined
-    return navigator.languages
-  }, [])
+  const locales = useMemo<Intl.LocalesArgument>(() => (language === 'zh' ? 'zh-CN' : 'en-US'), [language])
 
   const flowAnimated = numberAnimationsEnabled && animated
 

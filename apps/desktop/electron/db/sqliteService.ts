@@ -5,6 +5,7 @@ import Database from 'better-sqlite3'
 import type {
   DashboardLayout,
   DiaryEntry,
+  FocusSession,
   FocusSettings,
   IDatabaseService,
   SpendCategory,
@@ -76,6 +77,22 @@ const toFocusSettings = (row: Record<string, unknown>): FocusSettings => ({
   noise: parseJson(row.noise as string, undefined),
   noisePreset: parseJson(row.noisePreset as string, undefined),
   volume: row.volume === null || row.volume === undefined ? undefined : Number(row.volume),
+})
+
+const toFocusSession = (row: Record<string, unknown>): FocusSession => ({
+  id: String(row.id),
+  createdAt: Number(row.createdAt),
+  updatedAt: Number(row.updatedAt),
+  userId: row.userId ? String(row.userId) : undefined,
+  workspaceId: row.workspaceId ? String(row.workspaceId) : undefined,
+  taskId: row.taskId ? String(row.taskId) : undefined,
+  goal: row.goal ? String(row.goal) : undefined,
+  plannedMinutes: Number(row.plannedMinutes),
+  actualMinutes: row.actualMinutes === null || row.actualMinutes === undefined ? undefined : Number(row.actualMinutes),
+  status: String(row.status) as FocusSession['status'],
+  completedAt: row.completedAt === null || row.completedAt === undefined ? undefined : Number(row.completedAt),
+  interruptedAt: row.interruptedAt === null || row.interruptedAt === undefined ? undefined : Number(row.interruptedAt),
+  interruptionReason: row.interruptionReason ? String(row.interruptionReason) : undefined,
 })
 
 const toDiaryEntry = (row: Record<string, unknown>): DiaryEntry => ({
@@ -177,6 +194,22 @@ const ensureSchema = (database: Database.Database) => {
       workspaceId TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS focus_sessions (
+      id TEXT PRIMARY KEY,
+      taskId TEXT,
+      goal TEXT,
+      plannedMinutes INTEGER NOT NULL,
+      actualMinutes INTEGER,
+      status TEXT NOT NULL,
+      completedAt INTEGER,
+      interruptedAt INTEGER,
+      interruptionReason TEXT,
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL,
+      userId TEXT,
+      workspaceId TEXT
+    );
+
     CREATE TABLE IF NOT EXISTS diary_entries (
       id TEXT PRIMARY KEY,
       dateKey TEXT NOT NULL,
@@ -240,6 +273,7 @@ type DexieDump = Partial<{
   tasks: TaskItem[]
   widgetTodos: WidgetTodo[]
   focusSettings: FocusSettings[]
+  focusSessions: FocusSession[]
   diaryEntries: DiaryEntry[]
   spends: SpendEntry[]
   spendCategories: SpendCategory[]
@@ -518,6 +552,96 @@ export const createSqliteBundle = (dbPath: string): SqliteBundle => {
             noise: next.noise ? serializeJson(next.noise) : null,
             noisePreset: next.noisePreset ? serializeJson(next.noisePreset) : null,
             volume: next.volume ?? null,
+            userId: next.userId ?? null,
+            workspaceId: next.workspaceId ?? null,
+          })
+        return next
+      },
+    },
+    focusSessions: {
+      async list(limit) {
+        const query = typeof limit === 'number' && limit > 0
+          ? 'SELECT * FROM focus_sessions ORDER BY createdAt DESC LIMIT ?'
+          : 'SELECT * FROM focus_sessions ORDER BY createdAt DESC'
+        const rows = (
+          typeof limit === 'number' && limit > 0
+            ? database.prepare(query).all(limit)
+            : database.prepare(query).all()
+        ) as Record<string, unknown>[]
+        return rows.map(toFocusSession)
+      },
+      async start(data) {
+        const time = now()
+        const entity: FocusSession = {
+          id: createId(),
+          createdAt: time,
+          updatedAt: time,
+          taskId: data.taskId,
+          goal: data.goal?.trim() || undefined,
+          plannedMinutes: data.plannedMinutes,
+          status: 'active',
+          userId: data.userId,
+          workspaceId: data.workspaceId,
+        }
+        database
+          .prepare(
+            `INSERT INTO focus_sessions
+             (id, taskId, goal, plannedMinutes, actualMinutes, status, completedAt, interruptedAt, interruptionReason, createdAt, updatedAt, userId, workspaceId)
+             VALUES (@id, @taskId, @goal, @plannedMinutes, @actualMinutes, @status, @completedAt, @interruptedAt, @interruptionReason, @createdAt, @updatedAt, @userId, @workspaceId)`
+          )
+          .run({
+            ...entity,
+            taskId: entity.taskId ?? null,
+            goal: entity.goal ?? null,
+            actualMinutes: null,
+            completedAt: null,
+            interruptedAt: null,
+            interruptionReason: null,
+            userId: entity.userId ?? null,
+            workspaceId: entity.workspaceId ?? null,
+          })
+        return entity
+      },
+      async complete(id, data) {
+        const row = database.prepare('SELECT * FROM focus_sessions WHERE id = ? LIMIT 1').get(id) as Record<string, unknown> | undefined
+        if (!row) return undefined
+        const existing = toFocusSession(row)
+        const completedAt = data?.completedAt ?? now()
+        const actualMinutes =
+          typeof data?.actualMinutes === 'number'
+            ? data.actualMinutes
+            : Math.max(1, Math.round((completedAt - existing.createdAt) / 60000))
+        const next: FocusSession = {
+          ...existing,
+          updatedAt: now(),
+          status: 'completed',
+          completedAt,
+          actualMinutes,
+        }
+        database
+          .prepare(
+            `UPDATE focus_sessions SET
+               taskId=@taskId,
+               goal=@goal,
+               plannedMinutes=@plannedMinutes,
+               actualMinutes=@actualMinutes,
+               status=@status,
+               completedAt=@completedAt,
+               interruptedAt=@interruptedAt,
+               interruptionReason=@interruptionReason,
+               updatedAt=@updatedAt,
+               userId=@userId,
+               workspaceId=@workspaceId
+             WHERE id=@id`
+          )
+          .run({
+            ...next,
+            taskId: next.taskId ?? null,
+            goal: next.goal ?? null,
+            actualMinutes: next.actualMinutes ?? null,
+            completedAt: next.completedAt ?? null,
+            interruptedAt: next.interruptedAt ?? null,
+            interruptionReason: next.interruptionReason ?? null,
             userId: next.userId ?? null,
             workspaceId: next.workspaceId ?? null,
           })
@@ -997,6 +1121,42 @@ export const createSqliteBundle = (dbPath: string): SqliteBundle => {
               noise: value.noise ? serializeJson(value.noise) : null,
               noisePreset: value.noisePreset ? serializeJson(value.noisePreset) : null,
               volume: value.volume ?? null,
+              userId: value.userId ?? null,
+              workspaceId: value.workspaceId ?? null,
+            })
+        })
+        if (changed) importedRows += 1
+      }
+
+      for (const item of raw.focusSessions ?? []) {
+        const entity: FocusSession = { ...item, id: item.id || createId() }
+        const changed = upsertIfNewer('focus_sessions', entity, (value) => {
+          database
+            .prepare(
+              `INSERT INTO focus_sessions
+               (id, taskId, goal, plannedMinutes, actualMinutes, status, completedAt, interruptedAt, interruptionReason, createdAt, updatedAt, userId, workspaceId)
+               VALUES (@id, @taskId, @goal, @plannedMinutes, @actualMinutes, @status, @completedAt, @interruptedAt, @interruptionReason, @createdAt, @updatedAt, @userId, @workspaceId)
+               ON CONFLICT(id) DO UPDATE SET
+                 taskId=excluded.taskId,
+                 goal=excluded.goal,
+                 plannedMinutes=excluded.plannedMinutes,
+                 actualMinutes=excluded.actualMinutes,
+                 status=excluded.status,
+                 completedAt=excluded.completedAt,
+                 interruptedAt=excluded.interruptedAt,
+                 interruptionReason=excluded.interruptionReason,
+                 updatedAt=excluded.updatedAt,
+                 userId=excluded.userId,
+                 workspaceId=excluded.workspaceId`
+            )
+            .run({
+              ...value,
+              taskId: value.taskId ?? null,
+              goal: value.goal ?? null,
+              actualMinutes: value.actualMinutes ?? null,
+              completedAt: value.completedAt ?? null,
+              interruptedAt: value.interruptedAt ?? null,
+              interruptionReason: value.interruptionReason ?? null,
               userId: value.userId ?? null,
               workspaceId: value.workspaceId ?? null,
             })

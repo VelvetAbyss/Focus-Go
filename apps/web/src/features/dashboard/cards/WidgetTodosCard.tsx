@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
+import { Button } from '@/components/ui/button'
 import Card from '../../../shared/ui/Card'
-import Button from '../../../shared/ui/Button'
 import { Trash2 } from 'lucide-react'
 import { widgetTodoRepo } from '../../../data/repositories/widgetTodoRepo'
 import type { WidgetTodo, WidgetTodoScope } from '../../../data/models/types'
@@ -229,7 +229,7 @@ const WidgetTodosCard = () => {
             onAnimationEnd={clearShake}
             placeholder="Add a new task..."
           />
-          <Button type="submit" className="button widget-todos__add-btn" disabled={!canSubmit}>
+          <Button type="submit" size="sm" className="widget-todos__add-btn" disabled={!canSubmit}>
             Add
           </Button>
         </form>
