@@ -1,11 +1,10 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Drawer from '../../shared/ui/Drawer'
 import type { NoiseSettings, NoiseTrackId, NoiseTrackSettings } from '../../data/models/types'
-import { NOISE_TRACKS } from './noise'
-import NoiseSlider from './NoiseSlider'
-import Button from '../../shared/ui/Button'
+import { Button } from '@/components/ui/button'
 import { useMotionPreference } from '../../shared/prefs/useMotionPreference'
+import NoiseControlPanel from './components/NoiseControlPanel'
 
 type FocusSettingsDrawerProps = {
   open: boolean
@@ -43,6 +42,8 @@ const FocusSettingsDrawer = ({
   setNoiseMasterVolume,
 }: FocusSettingsDrawerProps) => {
   const [activeTimer, setActiveTimer] = useState<'focus' | 'break' | 'longBreak' | null>(null)
+  const [noiseHint, setNoiseHint] = useState<string | null>(null)
+  const noiseHintTimerRef = useRef<number | null>(null)
   const { reduceMotion } = useMotionPreference()
   const layoutTransition = reduceMotion ? { duration: 0 } : { duration: 0.22, ease: [0.22, 1, 0.36, 1] as const }
 
@@ -65,10 +66,39 @@ const FocusSettingsDrawer = ({
     { key: 'longBreak', label: 'Long Break', value: longBreakMinutes },
   ]
 
-  const toPercent = (value: number) => Math.round((Number.isFinite(value) ? value : 0) * 100)
-  const fromPercent = (value: number) => Math.max(0, Math.min(100, value)) / 100
+  const setNoiseTrackEnabled = useCallback(
+    (trackId: NoiseTrackId, enabled: boolean) => {
+      setNoiseTrack(trackId, { enabled })
+    },
+    [setNoiseTrack]
+  )
+  const setNoiseTrackVolume = useCallback(
+    (trackId: NoiseTrackId, volume: number) => {
+      setNoiseTrack(trackId, { volume })
+    },
+    [setNoiseTrack]
+  )
+  const toggleNoisePlaying = useCallback(() => {
+    setNoise({ ...noise, playing: !noise.playing })
+  }, [noise, setNoise])
+  const handlePlayBlocked = useCallback(() => {
+    setNoiseHint('Enable at least one track')
+    if (noiseHintTimerRef.current) {
+      window.clearTimeout(noiseHintTimerRef.current)
+    }
+    noiseHintTimerRef.current = window.setTimeout(() => {
+      setNoiseHint(null)
+      noiseHintTimerRef.current = null
+    }, 2000)
+  }, [])
+
   const handleClose = () => {
     setActiveTimer(null)
+    setNoiseHint(null)
+    if (noiseHintTimerRef.current) {
+      window.clearTimeout(noiseHintTimerRef.current)
+      noiseHintTimerRef.current = null
+    }
     onClose()
   }
 
@@ -81,6 +111,15 @@ const FocusSettingsDrawer = ({
     if (nextBreak !== breakMinutes) setBreakMinutes(nextBreak)
     if (nextLongBreak !== longBreakMinutes) setLongBreakMinutes(nextLongBreak)
   }, [open, focusMinutes, breakMinutes, longBreakMinutes, setFocusMinutes, setBreakMinutes, setLongBreakMinutes])
+
+  useEffect(() => {
+    return () => {
+      if (noiseHintTimerRef.current) {
+        window.clearTimeout(noiseHintTimerRef.current)
+        noiseHintTimerRef.current = null
+      }
+    }
+  }, [])
 
   return (
     <Drawer
@@ -150,97 +189,16 @@ const FocusSettingsDrawer = ({
       </motion.section>
 
       <motion.section layout transition={layoutTransition} className="focus-settings__panel">
-        <div className="focus-settings__noiseHeader">
-          <h4>Noise</h4>
-          <Button
-            className="button button--ghost focus-settings__stopBtn"
-            onClick={() => setNoise({ ...noise, playing: false })}
-            disabled={!noise.playing}
-          >
-            Stop
-          </Button>
-        </div>
-        <p className="muted">Enable one or more tracks, then use Play in the card.</p>
-
-        <motion.div layout transition={layoutTransition} className="focus-noise-track focus-noise-track--master">
-          <div className="focus-noise-track__top">
-            <p className="focus-noise-track__name">Master Volume</p>
-            <span className="focus-noise-track__value">{toPercent(noise.masterVolume)}%</span>
-          </div>
-          <div className="focus-noise-track__slider">
-            <div className="focus-noise-track__sliderWrap">
-              <NoiseSlider
-                value={noise.masterVolume ?? 0}
-                onChange={setNoiseMasterVolume}
-                step={0.05}
-                className="noise-slider--compact"
-              />
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div layout transition={layoutTransition} className="focus-noise-grid">
-          {NOISE_TRACKS.map((track) => {
-            const current = noise.tracks[track.id]
-            const trackPercent = toPercent(current.volume)
-            return (
-              <motion.div
-                layout
-                transition={layoutTransition}
-                className="focus-noise-track focus-noise-track--compact"
-                key={track.id}
-              >
-                <div className="focus-noise-track__top">
-                  <p className="focus-noise-track__name">{track.label}</p>
-                  <label className="toggle">
-                    <input
-                      type="checkbox"
-                      checked={current.enabled}
-                      onChange={(event) => setNoiseTrack(track.id, { enabled: event.target.checked })}
-                    />
-                    <span className="toggle__track" />
-                  </label>
-                </div>
-                <AnimatePresence initial={false} mode="wait">
-                  {current.enabled ? (
-                    <motion.div
-                      key={`${track.id}-enabled`}
-                      layout
-                      initial={reduceMotion ? { opacity: 1 } : { opacity: 0, y: -4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={reduceMotion ? { opacity: 1 } : { opacity: 0, y: -4 }}
-                      transition={layoutTransition}
-                    >
-                      <div className="focus-noise-track__slider">
-                        <div className="focus-noise-track__sliderWrap">
-                          <NoiseSlider
-                            value={current.volume}
-                            onChange={(value) => setNoiseTrack(track.id, { volume: fromPercent(toPercent(value)) })}
-                            step={0.05}
-                            className="noise-slider--compact"
-                          />
-                        </div>
-                      </div>
-                      <p className="focus-noise-track__meta">{trackPercent}%</p>
-                    </motion.div>
-                  ) : (
-                    <motion.p
-                      key={`${track.id}-disabled`}
-                      layout
-                      initial={reduceMotion ? { opacity: 1 } : { opacity: 0, y: -4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={reduceMotion ? { opacity: 1 } : { opacity: 0, y: -4 }}
-                      transition={layoutTransition}
-                      className="focus-noise-track__meta focus-noise-track__meta--muted"
-                    >
-                      Muted (remembers {trackPercent}%)
-                    </motion.p>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            )
-          })}
-        </motion.div>
+        <NoiseControlPanel
+          noise={noise}
+          onTogglePlay={toggleNoisePlaying}
+          onToggleTrack={setNoiseTrackEnabled}
+          onTrackVolume={setNoiseTrackVolume}
+          onMasterVolume={setNoiseMasterVolume}
+          onPlayBlocked={handlePlayBlocked}
+          compact
+        />
+        {noiseHint ? <p className="focus-settings__noiseHint">{noiseHint}</p> : null}
       </motion.section>
     </Drawer>
   )

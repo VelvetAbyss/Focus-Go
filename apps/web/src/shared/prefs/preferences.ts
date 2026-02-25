@@ -5,13 +5,24 @@ export const WEATHER_AUTO_LOCATION_KEY = 'workbench.weather.autoLocation'
 export const WEATHER_MANUAL_CITY_KEY = 'workbench.weather.manualCity'
 export const WEATHER_TEMP_UNIT_KEY = 'workbench.weather.temperatureUnit'
 export const WEATHER_LAST_LOCATION_KEY = 'workbench.weather.lastLocation'
+export const FOCUS_COMPLETION_SOUND_ENABLED_KEY = 'workbench.focus.completionSound.enabled'
+export const LANGUAGE_KEY = 'workbench.ui.language'
 
 export type CurrencyCode = 'CNY' | 'USD'
 export type TemperatureUnit = 'celsius' | 'fahrenheit'
+export type LanguageCode = import('../i18n/types').LanguageCode
 export type WeatherStoredLocation = {
   name: string
   latitude: number
   longitude: number
+}
+
+export function detectBrowserLanguage(raw: string | string[]): LanguageCode {
+  const first = Array.isArray(raw) ? raw.find((item) => typeof item === 'string' && item.trim().length > 0) : raw
+  if (typeof first !== 'string') return 'en'
+  const normalized = first.trim().toLowerCase()
+  if (normalized.startsWith('zh')) return 'zh'
+  return 'en'
 }
 
 export function readNumberAnimationsEnabled(): boolean {
@@ -70,6 +81,29 @@ export function readWeatherTemperatureUnit(): TemperatureUnit {
 
 export function writeWeatherTemperatureUnit(unit: TemperatureUnit) {
   localStorage.setItem(WEATHER_TEMP_UNIT_KEY, unit)
+}
+
+export function readFocusCompletionSoundEnabled(): boolean {
+  const raw = localStorage.getItem(FOCUS_COMPLETION_SOUND_ENABLED_KEY)
+  if (raw === null) return true
+  return raw === 'true'
+}
+
+export function writeFocusCompletionSoundEnabled(enabled: boolean) {
+  localStorage.setItem(FOCUS_COMPLETION_SOUND_ENABLED_KEY, enabled ? 'true' : 'false')
+}
+
+export function readLanguage(): LanguageCode {
+  const raw = localStorage.getItem(LANGUAGE_KEY)
+  if (raw === 'en' || raw === 'zh') return raw
+
+  if (typeof navigator === 'undefined') return 'en'
+  const fallback = navigator.languages?.length ? [...navigator.languages] : navigator.language
+  return detectBrowserLanguage(fallback)
+}
+
+export function writeLanguage(language: LanguageCode) {
+  localStorage.setItem(LANGUAGE_KEY, language)
 }
 
 export function readWeatherLastLocation(): WeatherStoredLocation | null {

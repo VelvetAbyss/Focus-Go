@@ -51,7 +51,7 @@ const SpendChart = () => {
 
   if (entries.length === 0) {
       return (
-          <div className="h-[200px] flex items-center justify-center text-gray-400">
+          <div className="min-h-[160px] sm:min-h-[200px] flex items-center justify-center text-gray-400">
               No data available
           </div>
       )
@@ -63,7 +63,7 @@ const SpendChart = () => {
         <span className="px-3 py-1 text-xs rounded-full bg-gray-100 text-gray-600">30D</span>
       </div>
 
-      <div className="h-[200px] w-full">
+      <div className="min-h-[160px] h-[clamp(160px,24vh,220px)] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />

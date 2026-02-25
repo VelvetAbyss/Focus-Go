@@ -81,6 +81,20 @@ export const createIPCDatabaseService = (api: ElectronDatabaseApi): IDatabaseSer
       return unwrapData(response)
     },
   },
+  focusSessions: {
+    async list(limit) {
+      const response = await invokeDb(api, 'db:focusSessions:list', { limit })
+      return unwrapData(response)
+    },
+    async start(data) {
+      const response = await invokeDb(api, 'db:focusSessions:start', data)
+      return unwrapData(response)
+    },
+    async complete(id, data) {
+      const response = await invokeDb(api, 'db:focusSessions:complete', { id, ...(data ?? {}) })
+      return unwrapData(response)
+    },
+  },
   diary: {
     async list() {
       const response = await invokeDb(api, 'db:diary:list', {})

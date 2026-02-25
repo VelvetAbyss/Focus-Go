@@ -131,6 +131,17 @@ const focusSettingsSchema = baseEntitySchema.extend({
   volume: z.number().optional(),
 })
 
+const focusSessionSchema = baseEntitySchema.extend({
+  taskId: z.string().optional(),
+  goal: z.string().optional(),
+  plannedMinutes: z.number(),
+  actualMinutes: z.number().optional(),
+  status: z.enum(['active', 'completed', 'interrupted']),
+  completedAt: z.number().optional(),
+  interruptedAt: z.number().optional(),
+  interruptionReason: z.string().optional(),
+})
+
 const focusSettingsUpsertInputSchema = z
   .object({
     focusMinutes: z.number(),
@@ -141,6 +152,24 @@ const focusSettingsUpsertInputSchema = z
     volume: z.number().optional(),
     userId: z.string().optional(),
     workspaceId: z.string().optional(),
+  })
+  .strict()
+
+const focusSessionStartInputSchema = z
+  .object({
+    taskId: z.string().optional(),
+    goal: z.string().optional(),
+    plannedMinutes: z.number().min(1),
+    userId: z.string().optional(),
+    workspaceId: z.string().optional(),
+  })
+  .strict()
+
+const focusSessionCompleteInputSchema = z
+  .object({
+    id: z.string().min(1),
+    actualMinutes: z.number().optional(),
+    completedAt: z.number().optional(),
   })
   .strict()
 
@@ -238,6 +267,9 @@ export const ipcRequestSchemas = {
   'db:widgetTodos:remove': idSchema,
   'db:focus:get': emptySchema,
   'db:focus:upsert': focusSettingsUpsertInputSchema,
+  'db:focusSessions:list': z.object({ limit: z.number().int().positive().max(200).optional() }).strict(),
+  'db:focusSessions:start': focusSessionStartInputSchema,
+  'db:focusSessions:complete': focusSessionCompleteInputSchema,
   'db:diary:list': emptySchema,
   'db:diary:listActive': emptySchema,
   'db:diary:getByDate': z.object({ dateKey: z.string() }).strict(),
@@ -288,6 +320,9 @@ export const ipcResponseSchemas = {
   'db:widgetTodos:remove': responseSchema(z.null()),
   'db:focus:get': responseSchema(focusSettingsSchema.nullable()),
   'db:focus:upsert': responseSchema(focusSettingsSchema),
+  'db:focusSessions:list': responseSchema(z.array(focusSessionSchema)),
+  'db:focusSessions:start': responseSchema(focusSessionSchema),
+  'db:focusSessions:complete': responseSchema(focusSessionSchema.nullable()),
   'db:diary:list': responseSchema(z.array(diaryEntrySchema)),
   'db:diary:listActive': responseSchema(z.array(diaryEntrySchema)),
   'db:diary:getByDate': responseSchema(diaryEntrySchema.nullable()),

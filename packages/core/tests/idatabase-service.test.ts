@@ -34,6 +34,19 @@ const createMockService = (): IDatabaseService => ({
     get: async () => null,
     upsert: async (data) => ({ id: 'focus-settings', createdAt: Date.now(), updatedAt: Date.now(), ...data }),
   },
+  focusSessions: {
+    list: async () => [],
+    start: async (data) => ({
+      id: 'focus-session-1',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      status: 'active' as const,
+      plannedMinutes: data.plannedMinutes,
+      taskId: data.taskId,
+      goal: data.goal,
+    }),
+    complete: async () => undefined,
+  },
   diary: {
     list: async () => [],
     listActive: async () => [],
@@ -65,7 +78,7 @@ const createMockService = (): IDatabaseService => ({
 describe('IDatabaseService contract', () => {
   it('contains all required data access groups', () => {
     const service = createMockService()
-    expect(Object.keys(service).sort()).toEqual(['dashboard', 'diary', 'focus', 'spend', 'tasks', 'widgetTodos'])
+    expect(Object.keys(service).sort()).toEqual(['dashboard', 'diary', 'focus', 'focusSessions', 'spend', 'tasks', 'widgetTodos'])
   })
 
   it('accepts minimal task create payload', async () => {

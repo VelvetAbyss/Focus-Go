@@ -9,13 +9,13 @@
   "scripts": {
     "dev:web": "npm run dev --workspace @focus-go/web",
     "dev:desktop": "npm run dev --workspace @focus-go/desktop",
-    "dev:screenshot": "npm run dev:tauri --workspace @focus-go/ai-screenshot-tool",
+    "dev:screenshot": "pnpm --dir ./apps/ai-screenshot-tool tauri dev",
     "build:web": "npm run build --workspace @focus-go/web",
     "build:desktop": "npm run build --workspace @focus-go/desktop",
-    "build:screenshot": "npm run build:tauri --workspace @focus-go/ai-screenshot-tool",
+    "build:screenshot": "pnpm --dir ./apps/ai-screenshot-tool tauri build --debug --bundles app",
     "lint:web": "npm run lint --workspace @focus-go/web",
     "lint:desktop": "npm run lint --workspace @focus-go/desktop",
-    "test:screenshot": "npm run test --workspace @focus-go/ai-screenshot-tool",
+    "test:screenshot": "pnpm --dir ./apps/ai-screenshot-tool test",
     "verify": "npm run lint:web && npm run build:web && npm run build:desktop",
     "release:bundle": "node scripts/oss/build-release-bundle.mjs",
     "release:oss:upload": "node scripts/oss/upload-release.mjs",
@@ -25,6 +25,7 @@
     "release:oss:latest": "node scripts/oss/resolve-latest-release.mjs"
   },
   "devDependencies": {
-    "electron": "^30.0.1"
+    "electron": "^30.0.1",
+    "shadcn": "^3.8.5"
   }
 }

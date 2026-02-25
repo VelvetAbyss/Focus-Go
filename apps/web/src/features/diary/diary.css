@@ -158,9 +158,9 @@ html[data-motion='reduce'] .diary-fg__track {
 
 .diary-fg__save-btn.button {
   background: #000;
-  border-radius: 999px;
+  border-radius: 10px;
   padding: 0 16px;
-  height: 32px;
+  height: 36px;
 }
 
 .diary-fg__save-btn.button:disabled {

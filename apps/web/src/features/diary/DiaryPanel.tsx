@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
+import { Button } from '@/components/ui/button'
 import { Calendar, Trash2, X } from 'lucide-react'
 import { format } from 'date-fns'
 import { useSearchParams } from 'react-router-dom'
 import Drawer from '../../shared/ui/Drawer'
 import Dialog from '../../shared/ui/Dialog'
-import Button from '../../shared/ui/Button'
 import { AppNumber } from '../../shared/ui/AppNumber'
 import { diaryRepo } from '../../data/repositories/diaryRepo'
 import type { DiaryEntry } from '../../data/models/types'
@@ -524,7 +524,11 @@ const DiaryPanel = ({ open, intent, onClose }: DiaryPanelProps) => {
                   {selectedDateKey ? (
                     <div className="diary-fg__detail">
                       <div className="diary-fg__detail-header">
-                        <Button className="button button--ghost" onClick={() => void requestIntent({ type: 'closeDetail' })}>
+                        <Button
+                          variant="outline"
+                          className="button button--ghost"
+                          onClick={() => void requestIntent({ type: 'closeDetail' })}
+                        >
                           Back
                         </Button>
                         <div className="diary-fg__detail-actions">
@@ -535,7 +539,11 @@ const DiaryPanel = ({ open, intent, onClose }: DiaryPanelProps) => {
                           >
                             {detailIsSaving ? 'Saving...' : 'Save'}
                           </Button>
-                          <Button className="button button--ghost" onClick={() => void handleSoftDelete(selectedDateKey)}>
+                          <Button
+                            variant="destructive"
+                            className="button button--danger"
+                            onClick={() => void handleSoftDelete(selectedDateKey)}
+                          >
                             Delete
                           </Button>
                         </div>
