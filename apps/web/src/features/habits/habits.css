@@ -1,0 +1,197 @@
+.habits-page {
+  position: relative;
+  display: grid;
+  gap: 16px;
+}
+
+.habits-page__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.habits-page__date {
+  margin-top: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.habits-page__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  gap: 14px;
+}
+
+.habits-page__main,
+.habits-page__side {
+  display: grid;
+  gap: 12px;
+}
+
+.habit-list {
+  display: grid;
+  gap: 10px;
+}
+
+.habit-card {
+  border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base), transform var(--transition-base);
+}
+
+.habit-card:hover {
+  border-color: color-mix(in srgb, var(--habit-color) 40%, var(--border));
+  transform: translateY(calc(var(--motion-shift-xs) * -1));
+}
+
+.habit-card.is-hot-streak {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--habit-color) 55%, transparent), 0 10px 24px color-mix(in srgb, var(--habit-color) 18%, transparent);
+}
+
+.habit-card.is-completed {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
+  background: color-mix(in srgb, var(--accent-soft) 26%, var(--surface));
+}
+
+.habit-card__header {
+  display: grid;
+  gap: 8px;
+}
+
+.habit-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.habit-card__content-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.habit-card__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.habit-card__value-popover {
+  width: 180px;
+}
+
+.habit-card__value-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.habit-progress-card__stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+
+.habit-progress-card__percent {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.habit-stats-card__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.habit-stats-card__value {
+  margin: 4px 0 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.habit-heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.habit-heatmap-grid__cell {
+  aspect-ratio: 1;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  background: color-mix(in srgb, var(--bg-muted) 78%, transparent);
+}
+
+.habit-heatmap-grid__cell.is-level-1 {
+  background: color-mix(in srgb, var(--accent) 22%, var(--surface));
+}
+
+.habit-heatmap-grid__cell.is-level-2 {
+  background: color-mix(in srgb, var(--accent) 38%, var(--surface));
+}
+
+.habit-heatmap-grid__cell.is-level-3 {
+  background: color-mix(in srgb, var(--accent) 56%, var(--surface));
+}
+
+.habit-heatmap-grid__cell.is-level-4 {
+  background: color-mix(in srgb, var(--accent) 72%, var(--surface));
+}
+
+.habit-form-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.habit-form-grid__field {
+  display: grid;
+  gap: 6px;
+}
+
+.habit-form-grid__error {
+  margin: 0;
+  color: hsl(var(--destructive));
+  font-size: 12px;
+}
+
+.habit-color-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.habit-color-palette__swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+
+.habit-color-palette__swatch.is-active {
+  border-color: color-mix(in srgb, var(--text-primary) 72%, transparent);
+}
+
+.habit-celebration {
+  position: fixed;
+  top: 35%;
+  left: 50%;
+  pointer-events: none;
+  z-index: var(--z-popover);
+}
+
+.habit-celebration__dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 80%, #fff);
+}
+
+@media (max-width: 1080px) {
+  .habits-page__layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

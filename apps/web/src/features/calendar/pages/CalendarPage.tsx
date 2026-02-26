@@ -1,8 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronDown, ChevronRight, PanelLeftOpen, PanelRightOpen, RotateCcw, Trash2, X } from 'lucide-react'
+import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { Eye, EyeOff, GripVertical, PanelLeftOpen, PanelRightOpen, Plus, RotateCcw, Trash2, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -22,20 +38,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import AnimatedScrollList from '../../../shared/ui/AnimatedScrollList'
+import { useAddInputComposer } from '../../../shared/hooks/useAddInputComposer'
 import { tasksRepo } from '../../../data/repositories/tasksRepo'
 import { emitTasksChanged, subscribeTasksChanged } from '../../tasks/taskSync'
 import type { TaskItem } from '../../tasks/tasks.types'
+import { formatTaskDateRange, taskCoversDate } from '../../tasks/taskDates'
 import { fetchIcsEventsWithFallback, filterEventsInMonth } from '../calendar.ics'
 import {
   buildInitialCalendarSubscriptions,
   buildSampleMonthEvents,
   formatMonthLabel,
-  getActiveSubscriptions,
-  getDeletedSubscriptions,
   getMonthGridDateKeys,
   isDateInMonth,
-  restoreSubscription,
-  softRemoveSubscription,
+  removeAllSystemSubscriptions,
+  removeSubscriptionHard,
+  reorderSubscriptions,
   sortSubscriptions,
   toggleSubscriptionEnabled,
   updateSubscriptionColor,
@@ -49,6 +67,23 @@ const weekLabels = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 const STORAGE_SUBSCRIPTIONS_KEY = 'focusgo.calendar.subscriptions.v1'
 const STORAGE_ICS_EVENTS_KEY = 'focusgo.calendar.icsEvents.v1'
 const CALENDAR_PRESET_COLORS = ['#94a3b8', '#60a5fa', '#2563eb', '#0ea5e9', '#10b981', '#22c55e', '#f59e0b', '#ef4444', '#64748b', '#0f766e']
+const CALENDAR_PRESET_SUBSCRIPTION_PLACEHOLDERS = [
+  {
+    id: 'preset-cn-holidays',
+    name: 'China Public Holidays',
+    description: 'Official public holiday calendar',
+  },
+  {
+    id: 'preset-us-holidays',
+    name: 'US Federal Holidays',
+    description: 'Federal holiday schedule',
+  },
+  {
+    id: 'preset-moon',
+    name: 'Moon Phases',
+    description: 'Lunar phase events',
+  },
+]
 
 type SubscriptionSyncState = {
   status: 'idle' | 'loading' | 'ok' | 'error'
@@ -63,6 +98,49 @@ const toDateKey = (date: Date) => {
 }
 
 const hasCjk = (text: string) => /[\u3400-\u9FFF]/.test(text)
+
+const formatDateTimeLocalInput = (value?: number) => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return ''
+  const date = new Date(value)
+  const y = date.getFullYear()
+  const m = `${date.getMonth() + 1}`.padStart(2, '0')
+  const d = `${date.getDate()}`.padStart(2, '0')
+  const hh = `${date.getHours()}`.padStart(2, '0')
+  const mm = `${date.getMinutes()}`.padStart(2, '0')
+  return `${y}-${m}-${d}T${hh}:${mm}`
+}
+
+const parseDateTimeLocalInput = (value: string) => {
+  const trimmed = value.trim()
+  if (!trimmed) return undefined
+  const ts = new Date(trimmed).getTime()
+  return Number.isFinite(ts) ? ts : undefined
+}
+
+const formatReminderLabel = (value?: number) => {
+  if (typeof value !== 'number') return 'No reminder'
+  return new Date(value).toLocaleString(undefined, {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+type TaskCardDraft = {
+  startDate: string
+  endDate: string
+  reminderAtInput: string
+  priority: TaskItem['priority']
+}
+
+const buildTaskCardDraft = (task: TaskItem): TaskCardDraft => ({
+  startDate: task.startDate ?? '',
+  endDate: task.endDate ?? '',
+  reminderAtInput: formatDateTimeLocalInput(task.reminderAt),
+  priority: task.priority,
+})
 
 const providerLabel: Record<CalendarProvider, string> = {
   builtin: 'Built-in',
@@ -80,7 +158,7 @@ const readStoredSubscriptions = () => {
     if (!raw) return buildInitialCalendarSubscriptions()
     const parsed = JSON.parse(raw) as CalendarSubscription[]
     if (!Array.isArray(parsed) || parsed.length === 0) return buildInitialCalendarSubscriptions()
-    return sortSubscriptions(parsed)
+    return sortSubscriptions(removeAllSystemSubscriptions(parsed))
   } catch {
     return buildInitialCalendarSubscriptions()
   }
@@ -99,16 +177,150 @@ const readStoredIcsEvents = () => {
   }
 }
 
+type SortableSubscriptionItemProps = {
+  sub: CalendarSubscription
+  syncState?: SubscriptionSyncState
+  onToggleSubscription: (subscriptionId: string) => void
+  onUpdateColor: (subscriptionId: string, color: string) => void
+  onRemoveSubscription: (subscriptionId: string) => void
+  onMoveByStep: (subscriptionId: string, step: -1 | 1) => void
+}
+
+const SortableSubscriptionItem = ({
+  sub,
+  syncState,
+  onToggleSubscription,
+  onUpdateColor,
+  onRemoveSubscription,
+  onMoveByStep,
+}: SortableSubscriptionItemProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+    isOver,
+  } = useSortable({ id: sub.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`calendar-subscriptions__item${isDragging ? ' is-dragging' : ''}${isOver ? ' is-over' : ''}${sub.enabled ? '' : ' is-disabled'}`}
+    >
+      <Button
+        variant="ghost"
+        size="icon"
+        className="calendar-subscriptions__drag-handle"
+        aria-label={`Reorder ${sub.name}`}
+        title={`Reorder ${sub.name}`}
+        {...attributes}
+        {...listeners}
+        onKeyDown={(event) => {
+          if (!event.altKey) return
+          if (event.key === 'ArrowUp') {
+            event.preventDefault()
+            onMoveByStep(sub.id, -1)
+          }
+          if (event.key === 'ArrowDown') {
+            event.preventDefault()
+            onMoveByStep(sub.id, 1)
+          }
+        }}
+      >
+        <GripVertical />
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="calendar-subscriptions__visibility"
+        aria-label={`Toggle visibility for ${sub.name}`}
+        onClick={() => onToggleSubscription(sub.id)}
+      >
+        {sub.enabled ? <Eye /> : <EyeOff />}
+      </Button>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="calendar-subscriptions__dot-trigger"
+            aria-label={`Open color picker for ${sub.name}`}
+            style={{ background: sub.color }}
+          />
+        </PopoverTrigger>
+        <PopoverContent className="calendar-color-popover" align="end">
+          <div className="calendar-color-popover__title">Preset colors</div>
+          <div className="calendar-color-grid" role="listbox" aria-label={`Preset colors for ${sub.name}`}>
+            {CALENDAR_PRESET_COLORS.map((presetColor) => (
+              <button
+                key={`${sub.id}-${presetColor}`}
+                type="button"
+                className={`calendar-color-swatch${sub.color.toLowerCase() === presetColor.toLowerCase() ? ' is-selected' : ''}`}
+                style={{ background: presetColor }}
+                onClick={() => onUpdateColor(sub.id, presetColor)}
+                aria-label={`Set ${sub.name} color to ${presetColor}`}
+              />
+            ))}
+          </div>
+          <Label htmlFor={`color-${sub.id}`}>Custom</Label>
+          <Input
+            id={`color-${sub.id}`}
+            type="color"
+            aria-label={`Color for ${sub.name}`}
+            value={sub.color}
+            onChange={(event) => onUpdateColor(sub.id, event.currentTarget.value)}
+          />
+        </PopoverContent>
+      </Popover>
+      <span className="calendar-subscriptions__name">{sub.name}</span>
+      <div className="calendar-subscriptions__meta">
+        {sub.provider === 'google' ? (
+          <Badge variant="outline" className="calendar-provider-badge">
+            {providerLabel[sub.provider]}
+          </Badge>
+        ) : null}
+        {syncState?.status === 'loading' ? <Badge variant="outline">Syncing</Badge> : null}
+        {syncState?.status === 'error' ? (
+          <Badge variant="destructive" title={syncState.message} className="calendar-sync-error">
+            !
+          </Badge>
+        ) : null}
+      </div>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="calendar-subscriptions__remove"
+        aria-label={`Remove ${sub.name}`}
+        onClick={() => onRemoveSubscription(sub.id)}
+      >
+        <Trash2 />
+      </Button>
+    </div>
+  )
+}
+
 const CalendarPage = () => {
   const [anchorDate, setAnchorDate] = useState(() => new Date())
   const [selectedDateKey, setSelectedDateKey] = useState(() => toDateKey(new Date()))
   const [subscriptions, setSubscriptions] = useState<CalendarSubscription[]>(readStoredSubscriptions)
   const [icsEventsBySubscription, setIcsEventsBySubscription] = useState<Record<string, CalendarEvent[]>>(readStoredIcsEvents)
   const [syncStateBySubscription, setSyncStateBySubscription] = useState<Record<string, SubscriptionSyncState>>({})
-  const [userEvents, setUserEvents] = useState<CalendarEvent[]>([])
   const [allTasks, setAllTasks] = useState<TaskItem[]>([])
   const [creatingSelectedDayTask, setCreatingSelectedDayTask] = useState(false)
-  const [selectedDayTaskTitle, setSelectedDayTaskTitle] = useState('')
+  const [deletingTaskIds, setDeletingTaskIds] = useState<Record<string, boolean>>({})
+  const [savingTaskCardIds, setSavingTaskCardIds] = useState<Record<string, boolean>>({})
+  const [taskCardDrafts, setTaskCardDrafts] = useState<Record<string, TaskCardDraft>>({})
+  const [taskDeleteError, setTaskDeleteError] = useState<string | null>(null)
+  const [taskCardError, setTaskCardError] = useState<string | null>(null)
 
   const [isAccountDialogOpen, setIsAccountDialogOpen] = useState(false)
   const [accountMode, setAccountMode] = useState<'google' | 'ics'>('google')
@@ -116,14 +328,23 @@ const CalendarPage = () => {
   const [icsUrl, setIcsUrl] = useState('')
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(false)
   const [rightSidebarOpen, setRightSidebarOpen] = useState(false)
-  const [showDeletedSubscriptions, setShowDeletedSubscriptions] = useState(false)
   const [pendingDeleteSubscriptionId, setPendingDeleteSubscriptionId] = useState<string | null>(null)
 
   const [createDateKey, setCreateDateKey] = useState<string | null>(null)
   const [createTitle, setCreateTitle] = useState('')
+  const [creatingGridTask, setCreatingGridTask] = useState(false)
   const tasksLoadRequestRef = useRef(0)
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 5 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
 
   const monthGridDateKeys = useMemo(() => getMonthGridDateKeys(anchorDate), [anchorDate])
+  const todayDateKey = toDateKey(new Date())
   const visibleSubscriptionIds = useMemo(
     () => new Set(subscriptions.filter((sub) => sub.enabled).map((sub) => sub.id)),
     [subscriptions]
@@ -182,8 +403,8 @@ const CalendarPage = () => {
     const seeded = buildSampleMonthEvents(anchorDate)
     const remoteEvents = filterEventsInMonth(Object.values(icsEventsBySubscription).flat(), anchorDate)
 
-    return [...seeded, ...userEvents, ...remoteEvents].filter((event) => visibleSubscriptionIds.has(event.subscriptionId))
-  }, [anchorDate, icsEventsBySubscription, userEvents, visibleSubscriptionIds])
+    return [...seeded, ...remoteEvents].filter((event) => visibleSubscriptionIds.has(event.subscriptionId))
+  }, [anchorDate, icsEventsBySubscription, visibleSubscriptionIds])
 
   const eventsByDate = useMemo(() => {
     const grouped = new Map<string, CalendarEvent[]>()
@@ -191,22 +412,14 @@ const CalendarPage = () => {
     return grouped
   }, [monthEvents])
 
-  const sortedSubscriptions = useMemo(() => sortSubscriptions(subscriptions), [subscriptions])
-  const activeSubscriptions = useMemo(() => getActiveSubscriptions(sortedSubscriptions), [sortedSubscriptions])
-  const deletedSubscriptions = useMemo(() => getDeletedSubscriptions(sortedSubscriptions), [sortedSubscriptions])
-
-  const groupedSubscriptions = useMemo(
-    () => ({
-      system: activeSubscriptions.filter((sub) => sub.sourceType === 'system'),
-      account: activeSubscriptions.filter((sub) => sub.sourceType === 'account'),
-      custom: activeSubscriptions.filter((sub) => sub.sourceType === 'custom'),
-    }),
-    [activeSubscriptions]
+  const unifiedSubscriptions = useMemo(
+    () => sortSubscriptions(removeAllSystemSubscriptions(subscriptions)),
+    [subscriptions]
   )
 
   const pendingDeleteSubscription = useMemo(
-    () => subscriptions.find((subscription) => subscription.id === pendingDeleteSubscriptionId) ?? null,
-    [subscriptions, pendingDeleteSubscriptionId]
+    () => unifiedSubscriptions.find((subscription) => subscription.id === pendingDeleteSubscriptionId) ?? null,
+    [unifiedSubscriptions, pendingDeleteSubscriptionId]
   )
 
   const selectedDayEvents = useMemo(() => eventsByDate.get(selectedDateKey) ?? [], [eventsByDate, selectedDateKey])
@@ -218,8 +431,10 @@ const CalendarPage = () => {
   const tasksByDate = useMemo(() => {
     const grouped = new Map<string, TaskItem[]>()
     allTasks.forEach((task) => {
-      if (!task.dueDate) return
-      grouped.set(task.dueDate, [...(grouped.get(task.dueDate) ?? []), task])
+      monthGridDateKeys.forEach((dateKey) => {
+        if (!taskCoversDate(task, dateKey)) return
+        grouped.set(dateKey, [...(grouped.get(dateKey) ?? []), task])
+      })
     })
     grouped.forEach((tasks, dateKey) => {
       grouped.set(
@@ -230,12 +445,12 @@ const CalendarPage = () => {
       )
     })
     return grouped
-  }, [allTasks])
+  }, [allTasks, monthGridDateKeys])
 
   const selectedDayTasks = useMemo(
     () =>
       allTasks
-        .filter((task) => task.dueDate === selectedDateKey)
+        .filter((task) => taskCoversDate(task, selectedDateKey))
         .slice()
         .sort((a, b) => b.createdAt - a.createdAt),
     [allTasks, selectedDateKey]
@@ -275,22 +490,57 @@ const CalendarPage = () => {
   const confirmRemoveSubscription = () => {
     const targetId = pendingDeleteSubscriptionId
     if (!targetId) return
-    setSubscriptions((prev) => softRemoveSubscription(prev, targetId))
+    setSubscriptions((prev) => removeSubscriptionHard(prev, targetId))
+    setIcsEventsBySubscription((prev) => {
+      const next = { ...prev }
+      delete next[targetId]
+      return next
+    })
+    setSyncStateBySubscription((prev) => {
+      const next = { ...prev }
+      delete next[targetId]
+      return next
+    })
     setPendingDeleteSubscriptionId(null)
   }
 
-  const handleRestoreSubscription = (subscriptionId: string) => {
-    const previous = subscriptions.find((subscription) => subscription.id === subscriptionId)
-    setSubscriptions((prev) => restoreSubscription(prev, subscriptionId))
-    if (previous?.url) {
-      void syncSubscription({ ...previous, enabled: true, deletedAt: null })
-    }
+  const handleSubscriptionDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    setSubscriptions((prev) => {
+      const withoutSystem = removeAllSystemSubscriptions(prev)
+      const ordered = sortSubscriptions(withoutSystem)
+      const oldIndex = ordered.findIndex((item) => item.id === active.id)
+      const newIndex = ordered.findIndex((item) => item.id === over.id)
+
+      if (oldIndex === -1 || newIndex === -1) return prev
+
+      const moved = arrayMove(ordered, oldIndex, newIndex)
+      return reorderSubscriptions(withoutSystem, moved.map((item) => item.id))
+    })
+  }
+
+  const moveSubscriptionByStep = (subscriptionId: string, step: -1 | 1) => {
+    setSubscriptions((prev) => {
+      const withoutSystem = removeAllSystemSubscriptions(prev)
+      const ordered = sortSubscriptions(withoutSystem)
+      const currentIndex = ordered.findIndex((item) => item.id === subscriptionId)
+      if (currentIndex === -1) return prev
+
+      const nextIndex = currentIndex + step
+      if (nextIndex < 0 || nextIndex >= ordered.length) return prev
+
+      const moved = arrayMove(ordered, currentIndex, nextIndex)
+      return reorderSubscriptions(withoutSystem, moved.map((item) => item.id))
+    })
   }
 
   const addIcsSubscription = async () => {
     const name = icsName.trim()
     const url = icsUrl.trim()
     if (!name || !url) return
+    const nextOrder = unifiedSubscriptions.length
 
     const next: CalendarSubscription = {
       id: `custom-${Date.now()}`,
@@ -300,7 +550,7 @@ const CalendarPage = () => {
       color: '#0ea5e9',
       enabled: true,
       syncPermission: 'read',
-      order: 999,
+      order: nextOrder,
       url,
     }
 
@@ -314,6 +564,7 @@ const CalendarPage = () => {
   const addGoogleReadOnlyAccount = () => {
     const hasGoogle = subscriptions.some((sub) => sub.provider === 'google')
     if (!hasGoogle) {
+      const nextOrder = unifiedSubscriptions.length
       const next: CalendarSubscription = {
         id: `account-google-${Date.now()}`,
         name: 'Google Calendar (M1 Read-Only)',
@@ -322,7 +573,7 @@ const CalendarPage = () => {
         color: '#2563eb',
         enabled: true,
         syncPermission: 'read',
-        order: 1,
+        order: nextOrder,
       }
       setSubscriptions((prev) => sortSubscriptions([...prev, next]))
     }
@@ -334,33 +585,34 @@ const CalendarPage = () => {
     setCreateTitle('')
   }
 
-  const createEvent = () => {
-    if (!createDateKey || !createTitle.trim()) return
-    const targetSub =
-      subscriptions.find((sub) => sub.enabled && sub.sourceType === 'account') ??
-      subscriptions.find((sub) => sub.enabled)
+  const createTaskFromGridDate = async () => {
+    const dateKey = createDateKey
+    const title = createTitle.trim()
+    if (!dateKey || !title || creatingGridTask) return
 
-    if (!targetSub) return
-
-    const nextEvent: CalendarEvent = {
-      id: `manual-${Date.now()}`,
-      subscriptionId: targetSub.id,
-      title: createTitle.trim(),
-      dateKey: createDateKey,
-      timeLabel: 'All day',
-      kind: 'event',
+    setCreatingGridTask(true)
+    try {
+      const created = await tasksRepo.add({
+        title,
+        description: '',
+        status: 'todo',
+        priority: null,
+        dueDate: dateKey,
+        tags: ['red'],
+        subtasks: [],
+      })
+      setAllTasks((prev) => [created, ...prev])
+      emitTasksChanged('calendar:grid-doubleclick-create')
+      setSelectedDateKey(dateKey)
+      setCreateDateKey(null)
+      setCreateTitle('')
+    } finally {
+      setCreatingGridTask(false)
     }
-
-    setUserEvents((prev) => [...prev, nextEvent])
-    setSelectedDateKey(createDateKey)
-    setCreateDateKey(null)
-    setCreateTitle('')
   }
 
-  const handleCreateSelectedDayTask = async () => {
-    const title = selectedDayTaskTitle.trim()
-    if (!title || creatingSelectedDayTask) return
-
+  const handleCreateSelectedDayTask = async (title: string) => {
+    if (creatingSelectedDayTask) return
     setCreatingSelectedDayTask(true)
     try {
       const created = await tasksRepo.add({
@@ -369,94 +621,91 @@ const CalendarPage = () => {
         status: 'todo',
         priority: null,
         dueDate: selectedDateKey,
-        tags: [],
+        tags: ['red'],
         subtasks: [],
       })
       setAllTasks((prev) => [created, ...prev])
       emitTasksChanged('calendar:selected-day-create')
-      setSelectedDayTaskTitle('')
     } finally {
       setCreatingSelectedDayTask(false)
     }
   }
 
-  useEffect(() => {
-    setSelectedDayTaskTitle('')
-  }, [selectedDateKey])
+  const selectedDayTaskComposer = useAddInputComposer({
+    onSubmit: handleCreateSelectedDayTask,
+  })
 
-  const renderSubscriptionItem = (sub: CalendarSubscription, options?: { showProvider?: boolean }) => {
-    const syncState = syncStateBySubscription[sub.id]
+  const handleDeleteSelectedDayTask = async (taskId: string) => {
+    if (deletingTaskIds[taskId]) return
 
-    return (
-      <div key={sub.id} className="calendar-subscriptions__item">
-        <Checkbox
-          className="calendar-checkbox"
-          checked={sub.enabled}
-          onCheckedChange={() => handleToggleSubscription(sub.id)}
-          aria-label={`Toggle ${sub.name}`}
-        />
-        <span className="calendar-subscriptions__dot" style={{ background: sub.color }} />
-        <span className="calendar-subscriptions__name">{sub.name}</span>
-        <div className="calendar-subscriptions__actions">
-          {options?.showProvider ? (
-            <Badge variant="outline" className="calendar-provider-badge">
-              {providerLabel[sub.provider]}
-            </Badge>
-          ) : null}
-          {syncState?.status === 'loading' ? <Badge variant="outline">Syncing</Badge> : null}
-          {syncState?.status === 'error' ? (
-            <Badge variant="destructive" title={syncState.message} className="calendar-sync-error">
-              !
-            </Badge>
-          ) : null}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="calendar-color-dot-trigger"
-                aria-label={`Open color picker for ${sub.name}`}
-              >
-                <span className="calendar-color-dot-trigger__dot" style={{ background: sub.color }} />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="calendar-color-popover" align="end">
-              <div className="calendar-color-popover__title">Preset colors</div>
-              <div className="calendar-color-grid" role="listbox" aria-label={`Preset colors for ${sub.name}`}>
-                {CALENDAR_PRESET_COLORS.map((presetColor) => (
-                  <button
-                    key={`${sub.id}-${presetColor}`}
-                    type="button"
-                    className={`calendar-color-swatch${sub.color.toLowerCase() === presetColor.toLowerCase() ? ' is-selected' : ''}`}
-                    style={{ background: presetColor }}
-                    onClick={() => handleUpdateSubscriptionColor(sub.id, presetColor)}
-                    aria-label={`Set ${sub.name} color to ${presetColor}`}
-                  />
-                ))}
-              </div>
-              <Label htmlFor={`color-${sub.id}`}>Custom</Label>
-              <Input
-                id={`color-${sub.id}`}
-                type="color"
-                aria-label={`Color for ${sub.name}`}
-                value={sub.color}
-                onChange={(event) => handleUpdateSubscriptionColor(sub.id, event.currentTarget.value)}
-              />
-            </PopoverContent>
-          </Popover>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="calendar-subscriptions__remove"
-            aria-label={`Remove ${sub.name}`}
-            onClick={() => requestRemoveSubscription(sub.id)}
-          >
-            <Trash2 />
-          </Button>
-        </div>
-      </div>
-    )
+    setTaskDeleteError(null)
+    setDeletingTaskIds((prev) => ({ ...prev, [taskId]: true }))
+    try {
+      await tasksRepo.remove(taskId)
+      setAllTasks((prev) => prev.filter((task) => task.id !== taskId))
+      emitTasksChanged('calendar:selected-day-delete')
+      setTaskDeleteError(null)
+    } catch {
+      setTaskDeleteError('Failed to delete task. Please try again.')
+    } finally {
+      setDeletingTaskIds((prev) => {
+        const next = { ...prev }
+        delete next[taskId]
+        return next
+      })
+    }
   }
+
+  const updateTaskCardDraft = (taskId: string, patch: Partial<TaskCardDraft>) => {
+    setTaskCardDrafts((prev) => {
+      const current = prev[taskId]
+      const next = { ...(current ?? { startDate: '', endDate: '', reminderAtInput: '', priority: null }), ...patch }
+      return { ...prev, [taskId]: next }
+    })
+  }
+
+  const handleTaskCardEditorOpen = (task: TaskItem, open: boolean) => {
+    if (!open) return
+    setTaskCardDrafts((prev) => ({ ...prev, [task.id]: buildTaskCardDraft(task) }))
+  }
+
+  const handleSaveTaskCard = async (task: TaskItem) => {
+    if (savingTaskCardIds[task.id]) return
+    const draft = taskCardDrafts[task.id] ?? buildTaskCardDraft(task)
+    if (draft.startDate && draft.endDate && draft.endDate < draft.startDate) {
+      setTaskCardError('End date must be on or after start date.')
+      return
+    }
+
+    setTaskCardError(null)
+    setSavingTaskCardIds((prev) => ({ ...prev, [task.id]: true }))
+    try {
+      const nextReminderAt = parseDateTimeLocalInput(draft.reminderAtInput)
+      const nextTask: TaskItem = {
+        ...task,
+        priority: draft.priority,
+        startDate: draft.startDate || undefined,
+        endDate: draft.endDate || undefined,
+        reminderAt: nextReminderAt,
+        reminderFiredAt: nextReminderAt === task.reminderAt ? task.reminderFiredAt : undefined,
+      }
+      const updated = await tasksRepo.update(nextTask)
+      setAllTasks((prev) => prev.map((item) => (item.id === updated.id ? updated : item)))
+      emitTasksChanged('calendar:selected-day-update-task')
+    } finally {
+      setSavingTaskCardIds((prev) => {
+        const next = { ...prev }
+        delete next[task.id]
+        return next
+      })
+    }
+  }
+
+  useEffect(() => {
+    selectedDayTaskComposer.setValue('')
+    setTaskDeleteError(null)
+    setTaskCardError(null)
+  }, [selectedDateKey])
 
   return (
     <section
@@ -488,11 +737,12 @@ const CalendarPage = () => {
               const date = new Date(`${dateKey}T12:00:00`)
               const isCurrentMonth = isDateInMonth(dateKey, anchorDate)
               const isSelected = selectedDateKey === dateKey
+              const isToday = todayDateKey === dateKey
               return (
                 <button
                   key={dateKey}
                   type="button"
-                  className={`calendar-mini__cell${isCurrentMonth ? '' : ' is-dim'}${isSelected ? ' is-selected' : ''}`}
+                  className={`calendar-mini__cell${isCurrentMonth ? '' : ' is-dim'}${isSelected ? ' is-selected' : ''}${isToday ? ' is-today' : ''}`}
                   onClick={() => setSelectedDateKey(dateKey)}
                 >
                   {date.getDate()}
@@ -506,63 +756,29 @@ const CalendarPage = () => {
           <h3>Scheduling</h3>
           <ScrollArea className="calendar-subscriptions__scroll">
             <div className="calendar-subscriptions__inner">
-              <div className="calendar-subscriptions__group">
-                <p>System calendars</p>
-                {groupedSubscriptions.system.map((sub) => renderSubscriptionItem(sub))}
-              </div>
-
-              <div className="calendar-subscriptions__group">
-                <p>Account calendars</p>
-                {groupedSubscriptions.account.map((sub) => renderSubscriptionItem(sub, { showProvider: true }))}
-              </div>
-
-              <div className="calendar-subscriptions__group">
-                <p>Custom subscriptions</p>
-                {groupedSubscriptions.custom.map((sub) => renderSubscriptionItem(sub))}
-              </div>
-
-              <div className="calendar-subscriptions__deleted">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="calendar-subscriptions__deleted-trigger"
-                  onClick={() => setShowDeletedSubscriptions((prev) => !prev)}
-                >
-                  {showDeletedSubscriptions ? <ChevronDown /> : <ChevronRight />}
-                  Manage deleted
-                  <Badge variant="outline">{deletedSubscriptions.length}</Badge>
-                </Button>
-                {showDeletedSubscriptions ? (
-                  <div className="calendar-subscriptions__deleted-list">
-                    {deletedSubscriptions.length ? (
-                      deletedSubscriptions.map((sub) => (
-                        <div key={sub.id} className="calendar-subscriptions__deleted-item">
-                          <div>
-                            <p>{sub.name}</p>
-                            <small>{sub.sourceType}</small>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="calendar-subscriptions__restore"
-                            onClick={() => handleRestoreSubscription(sub.id)}
-                          >
-                            <RotateCcw />
-                            Restore
-                          </Button>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="muted">No deleted calendars</p>
-                    )}
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSubscriptionDragEnd}>
+                <SortableContext items={unifiedSubscriptions.map((sub) => sub.id)} strategy={verticalListSortingStrategy}>
+                  <div className="calendar-subscriptions__list">
+                    {unifiedSubscriptions.map((sub) => (
+                      <SortableSubscriptionItem
+                        key={sub.id}
+                        sub={sub}
+                        syncState={syncStateBySubscription[sub.id]}
+                        onToggleSubscription={handleToggleSubscription}
+                        onUpdateColor={handleUpdateSubscriptionColor}
+                        onRemoveSubscription={requestRemoveSubscription}
+                        onMoveByStep={moveSubscriptionByStep}
+                      />
+                    ))}
                   </div>
-                ) : null}
-              </div>
+                </SortableContext>
+              </DndContext>
             </div>
           </ScrollArea>
 
-          <Button variant="ghost" className="calendar-subscriptions__add" onClick={() => setIsAccountDialogOpen(true)}>
-            Add calendar account
+          <Button variant="outline" className="calendar-subscriptions__add" onClick={() => setIsAccountDialogOpen(true)}>
+            <Plus />
+            Add subscription
           </Button>
         </section>
       </aside>
@@ -651,12 +867,13 @@ const CalendarPage = () => {
             const overflow = dayItems.length - visible.length
             const isCurrentMonth = isDateInMonth(dateKey, anchorDate)
             const isSelected = selectedDateKey === dateKey
+            const isToday = todayDateKey === dateKey
 
             return (
               <button
                 key={dateKey}
                 type="button"
-                className={`calendar-month-grid__cell${isCurrentMonth ? '' : ' is-outside'}${isSelected ? ' is-selected' : ''}`}
+                className={`calendar-month-grid__cell${isCurrentMonth ? '' : ' is-outside'}${isSelected ? ' is-selected' : ''}${isToday ? ' is-today' : ''}`}
                 onClick={() => setSelectedDateKey(dateKey)}
                 onDoubleClick={() => openCreateEvent(dateKey)}
               >
@@ -667,7 +884,7 @@ const CalendarPage = () => {
                       <Badge
                         key={item.id}
                         variant="secondary"
-                        className={`calendar-chip calendar-chip--task calendar-chip--task-${item.status}`}
+                        className="calendar-chip calendar-chip--task calendar-chip--task-red"
                       >
                         {item.title}
                       </Badge>
@@ -734,47 +951,188 @@ const CalendarPage = () => {
           <div className="calendar-side-panel__divider" />
 
           <h3 className="calendar-side-panel__title">Tasks</h3>
-          <ul className="calendar-side-panel__list" aria-label="Tasks list">
-            {selectedDayTasks.map((task) => {
-              const taskTitle = task.title.trim() || 'Untitled'
-              return (
-                <li key={task.id} className="calendar-side-row">
-                  <span className={`calendar-side-row__dot calendar-side-row__dot--${task.status}`} aria-hidden="true" />
-                  <span className={`calendar-side-row__text${hasCjk(taskTitle) ? ' is-cjk' : ''}`}>{taskTitle}</span>
-                </li>
-              )
-            })}
-          </ul>
+          <div className="calendar-side-panel__list calendar-side-panel__list--animated" aria-label="Tasks list">
+            <AnimatedScrollList
+              items={selectedDayTasks}
+              getKey={(task) => task.id}
+              showGradients={false}
+              displayScrollbar={false}
+              itemDelay={0.1}
+              listClassName="calendar-side-panel__animated-scroll"
+              renderItem={(task) => {
+                const taskTitle = task.title.trim() || 'Untitled'
+                const isDeleting = Boolean(deletingTaskIds[task.id])
+                const isSavingCard = Boolean(savingTaskCardIds[task.id])
+                const draft = taskCardDrafts[task.id] ?? buildTaskCardDraft(task)
+                const taskTags = task.tags.slice(0, 2)
+                const hiddenTagCount = Math.max(0, task.tags.length - taskTags.length)
+                return (
+                  <article className="calendar-task-card">
+                    <div className="calendar-task-card__header">
+                      <span className={`calendar-side-row__dot calendar-side-row__dot--${task.status}`} aria-hidden="true" />
+                      <span className={`calendar-side-row__text${hasCjk(taskTitle) ? ' is-cjk' : ''}`}>{taskTitle}</span>
+                      <div className="calendar-side-row__action">
+                        <Popover onOpenChange={(open) => handleTaskCardEditorOpen(task, open)}>
+                          <PopoverTrigger asChild>
+                            <Button type="button" variant="outline" size="sm" className="calendar-task-card__edit">
+                              Edit
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="calendar-task-card__editor" align="end">
+                            <div className="calendar-task-card__editor-grid">
+                              <label>
+                                <span>Start date</span>
+                                <Input
+                                  type="date"
+                                  value={draft.startDate}
+                                  onChange={(event) => updateTaskCardDraft(task.id, { startDate: event.currentTarget.value })}
+                                />
+                              </label>
+                              <label>
+                                <span>End date</span>
+                                <Input
+                                  type="date"
+                                  value={draft.endDate}
+                                  onChange={(event) => updateTaskCardDraft(task.id, { endDate: event.currentTarget.value })}
+                                />
+                              </label>
+                              <label>
+                                <span>Reminder</span>
+                                <Input
+                                  type="datetime-local"
+                                  value={draft.reminderAtInput}
+                                  onChange={(event) => updateTaskCardDraft(task.id, { reminderAtInput: event.currentTarget.value })}
+                                />
+                              </label>
+                              <label>
+                                <span>Priority</span>
+                                <Select
+                                  value={draft.priority ?? '__none'}
+                                  onValueChange={(value) =>
+                                    updateTaskCardDraft(task.id, { priority: value === '__none' ? null : (value as TaskItem['priority']) })
+                                  }
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="__none">None</SelectItem>
+                                    <SelectItem value="high">High</SelectItem>
+                                    <SelectItem value="medium">Medium</SelectItem>
+                                    <SelectItem value="low">Low</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </label>
+                            </div>
+                            <div className="calendar-task-card__editor-actions">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => updateTaskCardDraft(task.id, { reminderAtInput: '' })}
+                              >
+                                Clear reminder
+                              </Button>
+                              <Button type="button" size="sm" onClick={() => void handleSaveTaskCard(task)} disabled={isSavingCard}>
+                                Save
+                              </Button>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="calendar-side-row__delete"
+                          aria-label="Delete task"
+                          title="Delete task"
+                          disabled={isDeleting}
+                          onClick={() => void handleDeleteSelectedDayTask(task.id)}
+                        >
+                          {isDeleting ? (
+                            <RotateCcw className="calendar-side-row__delete-icon is-loading" />
+                          ) : (
+                            <Trash2 className="calendar-side-row__delete-icon" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="calendar-task-card__meta">
+                      <Badge variant="outline" className="calendar-task-card__meta-badge">
+                        {task.status}
+                      </Badge>
+                      <Badge variant="outline" className="calendar-task-card__meta-badge">
+                        {task.priority ?? 'none'}
+                      </Badge>
+                      <Badge variant="outline" className="calendar-task-card__meta-badge">
+                        {formatTaskDateRange(task)}
+                      </Badge>
+                      <Badge variant="outline" className="calendar-task-card__meta-badge">
+                        {formatReminderLabel(task.reminderAt)}
+                      </Badge>
+                    </div>
+                    {taskTags.length > 0 ? (
+                      <div className="calendar-task-card__tags">
+                        {taskTags.map((tag) => (
+                          <Badge key={`${task.id}-${tag}`} variant="secondary" className="calendar-task-card__tag">
+                            {tag}
+                          </Badge>
+                        ))}
+                        {hiddenTagCount > 0 ? (
+                          <Badge variant="secondary" className="calendar-task-card__tag">
+                            +{hiddenTagCount}
+                          </Badge>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </article>
+                )
+              }}
+            />
+          </div>
+          {taskCardError ? (
+            <p role="status" className="calendar-side-panel__error">
+              {taskCardError}
+            </p>
+          ) : null}
+          {taskDeleteError ? (
+            <p role="status" className="calendar-side-panel__error">
+              {taskDeleteError}
+            </p>
+          ) : null}
 
-          <div className="calendar-side-panel__composer">
+          <form
+            className="calendar-side-panel__composer"
+            onSubmit={(event) => {
+              event.preventDefault()
+              if (creatingSelectedDayTask) return
+              void selectedDayTaskComposer.submit()
+            }}
+          >
             <Input
               aria-label="New task title"
               placeholder=""
-              value={selectedDayTaskTitle}
-              onChange={(event) => setSelectedDayTaskTitle(event.currentTarget.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault()
-                  void handleCreateSelectedDayTask()
-                }
-              }}
+              ref={selectedDayTaskComposer.inputRef}
+              className={`widget-todos__input ${selectedDayTaskComposer.isShaking ? 'is-shaking' : ''}`}
+              value={selectedDayTaskComposer.value}
+              onChange={(event) => selectedDayTaskComposer.setValue(event.currentTarget.value)}
+              onAnimationEnd={selectedDayTaskComposer.clearShake}
             />
             <Button
-              type="button"
+              type="submit"
               className="calendar-side-panel__add"
-              onClick={() => void handleCreateSelectedDayTask()}
-              disabled={creatingSelectedDayTask || !selectedDayTaskTitle.trim()}
+              disabled={creatingSelectedDayTask || !selectedDayTaskComposer.canSubmit}
             >
               Add
             </Button>
-          </div>
+          </form>
         </section>
       </aside>
 
       <Dialog open={isAccountDialogOpen} onOpenChange={setIsAccountDialogOpen}>
-        <DialogContent>
+        <DialogContent className="calendar-dialog__content">
           <DialogHeader>
-            <DialogTitle>Add calendar account</DialogTitle>
+            <DialogTitle>Add subscription</DialogTitle>
             <DialogDescription>Connect Google (read-only) or add an ICS/webcal subscription.</DialogDescription>
           </DialogHeader>
           <div className="calendar-dialog">
@@ -795,6 +1153,29 @@ const CalendarPage = () => {
               </Button>
             </div>
 
+            <section className="calendar-dialog__presets" aria-label="Preset subscriptions">
+              <h4>Preset subscriptions</h4>
+              <div className="calendar-dialog__presets-list">
+                {CALENDAR_PRESET_SUBSCRIPTION_PLACEHOLDERS.map((preset) => (
+                  <article key={preset.id} className="calendar-dialog__preset-card">
+                    <div className="calendar-dialog__preset-meta">
+                      <p>{preset.name}</p>
+                      <small>{preset.description} · Coming soon</small>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="calendar-dialog__preset-add"
+                      disabled
+                    >
+                      Add
+                    </Button>
+                  </article>
+                ))}
+              </div>
+            </section>
+
             {accountMode === 'google' ? (
               <div className="calendar-dialog__panel">
                 <p>Connect Google calendar in read-only mode for M1.</p>
@@ -804,6 +1185,18 @@ const CalendarPage = () => {
               </div>
             ) : (
               <div className="calendar-dialog__panel">
+                <section className="calendar-dialog__guide" aria-label="ICS guide">
+                  <p className="calendar-dialog__guide-title">How to get an ICS subscription URL</p>
+                  <ol className="calendar-dialog__guide-list">
+                    <li>Open your calendar provider settings.</li>
+                    <li>Find “Secret address in iCal format” or “Subscribe URL”.</li>
+                    <li>Copy the URL and paste it into the ICS URL field below.</li>
+                  </ol>
+                  <p className="calendar-dialog__guide-note">
+                    Common providers: Google Calendar / Outlook / Apple Calendar. Accepted format: https://...ics or
+                    webcal://...
+                  </p>
+                </section>
                 <Label htmlFor="ics-name">Name</Label>
                 <Input id="ics-name" value={icsName} onChange={(event) => setIcsName(event.currentTarget.value)} />
                 <Label htmlFor="ics-url">ICS URL</Label>
@@ -833,8 +1226,8 @@ const CalendarPage = () => {
             <DialogTitle>Remove calendar?</DialogTitle>
             <DialogDescription>
               {pendingDeleteSubscription
-                ? `Remove "${pendingDeleteSubscription.name}" from scheduling list? You can restore it later in Manage deleted.`
-                : 'Remove this calendar from scheduling list? You can restore it later in Manage deleted.'}
+                ? `Delete "${pendingDeleteSubscription.name}" permanently? This subscription will be permanently deleted.`
+                : 'Delete this subscription permanently? This subscription will be permanently deleted.'}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -851,18 +1244,30 @@ const CalendarPage = () => {
       <Dialog open={Boolean(createDateKey)} onOpenChange={(open) => (open ? null : setCreateDateKey(null))}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create event</DialogTitle>
+            <DialogTitle>Create task</DialogTitle>
             <DialogDescription>Date: {createDateKey}</DialogDescription>
           </DialogHeader>
           <div className="calendar-dialog__panel">
-            <Label htmlFor="event-title">Title</Label>
-            <Input id="event-title" value={createTitle} onChange={(event) => setCreateTitle(event.currentTarget.value)} />
+            <Label htmlFor="task-title">Title</Label>
+            <Input
+              id="task-title"
+              value={createTitle}
+              onChange={(event) => setCreateTitle(event.currentTarget.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  void createTaskFromGridDate()
+                }
+              }}
+            />
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setCreateDateKey(null)}>
               Cancel
             </Button>
-            <Button onClick={createEvent}>Create</Button>
+            <Button onClick={() => void createTaskFromGridDate()} disabled={creatingGridTask || !createTitle.trim()}>
+              Create
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

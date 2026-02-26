@@ -62,11 +62,32 @@ const formatDateTime = (value: number) =>
     minute: '2-digit',
   })
 
+const formatDateTimeLocalInput = (value?: number) => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return ''
+  const date = new Date(value)
+  const y = date.getFullYear()
+  const m = `${date.getMonth() + 1}`.padStart(2, '0')
+  const d = `${date.getDate()}`.padStart(2, '0')
+  const hh = `${date.getHours()}`.padStart(2, '0')
+  const mm = `${date.getMinutes()}`.padStart(2, '0')
+  return `${y}-${m}-${d}T${hh}:${mm}`
+}
+
+const parseDateTimeLocalInput = (value: string) => {
+  const trimmed = value.trim()
+  if (!trimmed) return undefined
+  const timestamp = new Date(trimmed).getTime()
+  return Number.isFinite(timestamp) ? timestamp : undefined
+}
+
 const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete }: TaskDrawerProps) => {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [priority, setPriority] = useState<TaskPriority | null>(null)
   const [dueDate, setDueDate] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [reminderAtInput, setReminderAtInput] = useState('')
   const [tags, setTags] = useState<string[]>([])
   const [tagOptions, setTagOptions] = useState<string[]>(defaultTagOptions)
   const [tagDraft, setTagDraft] = useState('')
@@ -87,6 +108,9 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
     description: string
     priority: TaskPriority | null
     dueDate: string
+    startDate: string
+    endDate: string
+    reminderAt?: number
     tags: string[]
     subtasks: TaskItem['subtasks']
   } | null>(null)
@@ -108,6 +132,9 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
     setDescription(task.description ?? '')
     setPriority(task.priority ?? null)
     setDueDate(task.dueDate ?? '')
+    setStartDate(task.startDate ?? '')
+    setEndDate(task.endDate ?? '')
+    setReminderAtInput(formatDateTimeLocalInput(task.reminderAt))
     setTags(task.tags)
     setTagOptions(() => {
       const map = new Map<string, string>()
@@ -122,6 +149,9 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
       description: task.description ?? '',
       priority: task.priority,
       dueDate: task.dueDate ?? '',
+      startDate: task.startDate ?? '',
+      endDate: task.endDate ?? '',
+      reminderAt: task.reminderAt,
       tags: task.tags,
       subtasks: task.subtasks,
     }
@@ -135,10 +165,13 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
       description,
       priority,
       dueDate: dueDate || undefined,
+      startDate: startDate || undefined,
+      endDate: endDate || undefined,
+      reminderAt: parseDateTimeLocalInput(reminderAtInput),
       tags,
       subtasks,
     }
-  }, [task, title, description, priority, dueDate, tags, subtasks])
+  }, [task, title, description, priority, dueDate, startDate, endDate, reminderAtInput, tags, subtasks])
 
   draftRef.current = draft
 
@@ -149,10 +182,13 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
     if (description !== baseline.description) return true
     if (priority !== baseline.priority) return true
     if ((dueDate || '') !== (baseline.dueDate || '')) return true
+    if ((startDate || '') !== (baseline.startDate || '')) return true
+    if ((endDate || '') !== (baseline.endDate || '')) return true
+    if (parseDateTimeLocalInput(reminderAtInput) !== baseline.reminderAt) return true
     if (!equalStringArrays(tags, baseline.tags)) return true
     if (!equalSubtasks(subtasks, baseline.subtasks)) return true
     return false
-  }, [task, title, description, priority, dueDate, tags, subtasks])
+  }, [task, title, description, priority, dueDate, startDate, endDate, reminderAtInput, tags, subtasks])
 
   const isDraftDirty = useCallback((nextDraft: TaskItem) => {
     const baseline = baselineRef.current
@@ -161,6 +197,9 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
     if ((nextDraft.description ?? '') !== baseline.description) return true
     if (nextDraft.priority !== baseline.priority) return true
     if ((nextDraft.dueDate ?? '') !== (baseline.dueDate ?? '')) return true
+    if ((nextDraft.startDate ?? '') !== (baseline.startDate ?? '')) return true
+    if ((nextDraft.endDate ?? '') !== (baseline.endDate ?? '')) return true
+    if (nextDraft.reminderAt !== baseline.reminderAt) return true
     if (!equalStringArrays(nextDraft.tags, baseline.tags)) return true
     if (!equalSubtasks(nextDraft.subtasks, baseline.subtasks)) return true
     return false
@@ -168,6 +207,14 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
 
   const saveDraft = useCallback(
     async (nextDraft: TaskItem) => {
+      if (nextDraft.startDate && nextDraft.endDate && nextDraft.endDate < nextDraft.startDate) {
+        toast.push({
+          variant: 'error',
+          title: 'Invalid date range',
+          message: 'End date must be on or after start date.',
+        })
+        return
+      }
       isSavingRef.current = true
       setIsSaving(true)
       try {
@@ -179,6 +226,9 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
           description: next.description ?? '',
           priority: next.priority,
           dueDate: next.dueDate ?? '',
+          startDate: next.startDate ?? '',
+          endDate: next.endDate ?? '',
+          reminderAt: next.reminderAt,
           tags: next.tags,
           subtasks: next.subtasks,
         }
@@ -252,7 +302,7 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
         saveTimerRef.current = null
       }
     }
-  }, [open, dirty, title, description, priority, dueDate, tags, subtasks, lastId, isDraftDirty, saveDraft, task])
+  }, [open, dirty, title, description, priority, dueDate, startDate, endDate, reminderAtInput, tags, subtasks, lastId, isDraftDirty, saveDraft, task])
 
   useEffect(() => {
     return () => {
@@ -460,6 +510,25 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
                 <label className="task-fg__field">
                   <span className="task-fg__label">Due Date</span>
                   <DatePicker value={dueDate} onChange={(date) => setDueDate(date ?? '')} placeholder="Set due date" />
+                </label>
+
+                <label className="task-fg__field">
+                  <span className="task-fg__label">Start Date</span>
+                  <DatePicker value={startDate} onChange={(date) => setStartDate(date ?? '')} placeholder="Set start date" />
+                </label>
+
+                <label className="task-fg__field">
+                  <span className="task-fg__label">End Date</span>
+                  <DatePicker value={endDate} onChange={(date) => setEndDate(date ?? '')} placeholder="Set end date" />
+                </label>
+
+                <label className="task-fg__field">
+                  <span className="task-fg__label">Reminder</span>
+                  <input
+                    type="datetime-local"
+                    value={reminderAtInput}
+                    onChange={(event) => setReminderAtInput(event.target.value)}
+                  />
                 </label>
 
                 <label className="task-fg__field">

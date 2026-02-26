@@ -3,6 +3,8 @@ import type {
   DiaryEntry,
   FocusSession,
   FocusSettings,
+  Habit,
+  HabitLog,
   SpendCategory,
   SpendEntry,
   TaskItem,
@@ -17,6 +19,10 @@ export type TaskCreateInput = {
   status: TaskStatus
   priority: TaskItem['priority']
   dueDate?: string
+  startDate?: string
+  endDate?: string
+  reminderAt?: number
+  reminderFiredAt?: number
   tags?: string[]
   subtasks?: TaskItem['subtasks']
 }
@@ -38,6 +44,11 @@ export type FocusSessionCompleteInput = {
 }
 export type DashboardLayoutUpsertInput = Omit<DashboardLayout, 'id' | 'createdAt' | 'updatedAt'>
 export type DiaryEntryCreateInput = Omit<DiaryEntry, 'id' | 'createdAt' | 'updatedAt'>
+export type HabitCreateInput = Omit<Habit, 'id' | 'createdAt' | 'updatedAt'>
+export type HabitUpdateInput = Partial<Omit<Habit, 'id' | 'createdAt' | 'updatedAt' | 'userId'>>
+export type HabitListOptions = { archived?: boolean }
+export type HabitHeatmapCell = { dateKey: string; completed: number; total: number }
+export type HabitDailyProgress = { completed: number; total: number; percent: number }
 
 export interface ITaskDataAccess {
   list(): Promise<TaskItem[]>
@@ -96,6 +107,21 @@ export interface IDashboardDataAccess {
   upsert(data: DashboardLayoutUpsertInput): Promise<DashboardLayout>
 }
 
+export interface IHabitDataAccess {
+  listHabits(userId: string, options?: HabitListOptions): Promise<Habit[]>
+  createHabit(data: HabitCreateInput): Promise<Habit>
+  updateHabit(id: string, patch: HabitUpdateInput): Promise<Habit | undefined>
+  archiveHabit(id: string): Promise<Habit | undefined>
+  restoreHabit(id: string): Promise<Habit | undefined>
+  reorderHabits(userId: string, ids: string[]): Promise<void>
+  recordHabitCompletion(habitId: string, dateKey: string, value?: number): Promise<HabitLog>
+  undoHabitCompletion(habitId: string, dateKey: string): Promise<void>
+  listHabitLogs(habitId: string): Promise<HabitLog[]>
+  computeHabitStreak(habitId: string, dateKey: string): Promise<number>
+  getDailyProgress(userId: string, dateKey: string): Promise<HabitDailyProgress>
+  getHeatmap(userId: string, days: number): Promise<HabitHeatmapCell[]>
+}
+
 export interface IDatabaseService {
   tasks: ITaskDataAccess
   widgetTodos: IWidgetTodoDataAccess
@@ -104,4 +130,5 @@ export interface IDatabaseService {
   diary: IDiaryDataAccess
   spend: ISpendDataAccess
   dashboard: IDashboardDataAccess
+  habits: IHabitDataAccess
 }

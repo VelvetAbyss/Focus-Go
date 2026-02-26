@@ -181,4 +181,42 @@ export const createIPCDatabaseService = (api: ElectronDatabaseApi): IDatabaseSer
       return unwrapData(response)
     },
   },
+  habits: {
+    async listHabits() {
+      throw new Error('Habits are not implemented for IPCDatabaseService yet.')
+    },
+    async createHabit() {
+      throw new Error('Habits are not implemented for IPCDatabaseService yet.')
+    },
+    async updateHabit() {
+      throw new Error('Habits are not implemented for IPCDatabaseService yet.')
+    },
+    async archiveHabit() {
+      throw new Error('Habits are not implemented for IPCDatabaseService yet.')
+    },
+    async restoreHabit() {
+      throw new Error('Habits are not implemented for IPCDatabaseService yet.')
+    },
+    async reorderHabits() {
+      throw new Error('Habits are not implemented for IPCDatabaseService yet.')
+    },
+    async recordHabitCompletion() {
+      throw new Error('Habits are not implemented for IPCDatabaseService yet.')
+    },
+    async undoHabitCompletion() {
+      throw new Error('Habits are not implemented for IPCDatabaseService yet.')
+    },
+    async listHabitLogs() {
+      throw new Error('Habits are not implemented for IPCDatabaseService yet.')
+    },
+    async computeHabitStreak() {
+      throw new Error('Habits are not implemented for IPCDatabaseService yet.')
+    },
+    async getDailyProgress() {
+      throw new Error('Habits are not implemented for IPCDatabaseService yet.')
+    },
+    async getHeatmap() {
+      throw new Error('Habits are not implemented for IPCDatabaseService yet.')
+    },
+  },
 })

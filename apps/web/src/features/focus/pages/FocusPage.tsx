@@ -18,16 +18,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { FocusSession, NoiseSettings, NoiseTrackId } from '../../../data/models/types'
+import type { FocusSession, NoiseTrackId } from '../../../data/models/types'
 import { focusRepo } from '../../../data/repositories/focusRepo'
-import { createDefaultNoiseSettings, DEFAULT_NOISE_PRESET } from '../noise'
+import { DEFAULT_NOISE_PRESET } from '../noise'
 import FocusSettingsDrawer from '../FocusSettingsDrawer'
-import { useNoiseMixer } from '../useNoiseMixer'
 import { usePreferences } from '../../../shared/prefs/usePreferences'
 import FocusPortal from '../FocusPortal'
 import NoiseControlPanel from '../components/NoiseControlPanel'
 import { useToast } from '../../../shared/ui/toast/toast'
 import { useSharedFocusTimer } from '../useSharedFocusTimer'
+import { useSharedNoise } from '../SharedNoiseProvider'
 
 const DURATION_PRESETS = [25, 45, 60]
 
@@ -137,7 +137,6 @@ const FocusPage = () => {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [durationDialogOpen, setDurationDialogOpen] = useState(false)
   const [immersive, setImmersive] = useState(false)
-  const [noise, setNoise] = useState<NoiseSettings>(createDefaultNoiseSettings())
   const [soundPlayedAt, setSoundPlayedAt] = useState<number | null>(null)
   const [historySessions, setHistorySessions] = useState<FocusSession[]>([])
   const [historyStatusFilter, setHistoryStatusFilter] = useState<'all' | 'completed' | 'interrupted'>('all')
@@ -146,9 +145,8 @@ const FocusPage = () => {
   const toast = useToast()
 
   const { focusCompletionSoundEnabled } = usePreferences()
+  const { noise, setNoise, toggleNoisePlaying, setNoiseTrackEnabled, setNoiseTrackVolume, setNoiseMasterVolume } = useSharedNoise()
   const { state: timerState, start, pause, resume, reset, setDuration } = useSharedFocusTimer({ defaultDurationMinutes: focusMinutes })
-
-  useNoiseMixer(noise)
 
   const durationMinutes = timerState.durationMinutes
   const secondsLeft = timerState.remainingSeconds
@@ -161,35 +159,6 @@ const FocusPage = () => {
     return (oldValue: number, value: number) => (value >= oldValue ? 1 : -1)
   }, [])
 
-  const setNoiseTrack = useCallback((trackId: NoiseTrackId, patch: Partial<NoiseSettings['tracks'][NoiseTrackId]>) => {
-    setNoise((prev) => ({
-      ...prev,
-      tracks: {
-        ...prev.tracks,
-        [trackId]: {
-          ...prev.tracks[trackId],
-          ...patch,
-        },
-      },
-    }))
-  }, [])
-
-  const setNoiseMasterVolume = useCallback((value: number) => {
-    setNoise((prev) => ({ ...prev, masterVolume: value }))
-  }, [])
-
-  const toggleNoisePlaying = useCallback(() => {
-    setNoise((prev) => ({ ...prev, playing: !prev.playing }))
-  }, [])
-
-  const setNoiseTrackEnabled = useCallback((trackId: NoiseTrackId, enabled: boolean) => {
-    setNoiseTrack(trackId, { enabled })
-  }, [setNoiseTrack])
-
-  const setNoiseTrackVolume = useCallback((trackId: NoiseTrackId, volume: number) => {
-    setNoiseTrack(trackId, { volume })
-  }, [setNoiseTrack])
-
   const loadFocusSettings = useCallback(async () => {
     const settings = await focusRepo.get()
     if (!settings) return
@@ -197,15 +166,6 @@ const FocusPage = () => {
     setFocusMinutes(nextFocusMinutes)
     setBreakMinutes(clampDuration(settings.breakMinutes))
     setLongBreakMinutes(clampDuration(settings.longBreakMinutes))
-
-    const preset = settings.noisePreset ?? DEFAULT_NOISE_PRESET
-    const fallbackNoise = settings.noise ?? createDefaultNoiseSettings()
-    setNoise({
-      playing: fallbackNoise.playing,
-      loop: fallbackNoise.loop ?? preset.loop,
-      masterVolume: fallbackNoise.masterVolume ?? 0.6,
-      tracks: { ...preset.tracks, ...fallbackNoise.tracks },
-    })
   }, [])
 
   const loadHistory = useCallback(async () => {
@@ -226,9 +186,9 @@ const FocusPage = () => {
       focusMinutes,
       breakMinutes,
       longBreakMinutes,
-      noise,
+      noisePreset: DEFAULT_NOISE_PRESET,
     })
-  }, [focusMinutes, breakMinutes, longBreakMinutes, noise])
+  }, [focusMinutes, breakMinutes, longBreakMinutes])
 
   const applyDuration = (value: number) => {
     const next = clampDuration(value)
@@ -427,7 +387,14 @@ const FocusPage = () => {
         setLongBreakMinutes={setLongBreakMinutes}
         noise={noise}
         setNoise={setNoise}
-        setNoiseTrack={setNoiseTrack}
+        setNoiseTrack={(trackId: NoiseTrackId, patch: { enabled?: boolean; volume?: number }) => {
+          if (typeof patch.enabled === 'boolean') {
+            setNoiseTrackEnabled(trackId, patch.enabled)
+          }
+          if (typeof patch.volume === 'number') {
+            setNoiseTrackVolume(trackId, patch.volume)
+          }
+        }}
         setNoiseMasterVolume={setNoiseMasterVolume}
       />
     </section>

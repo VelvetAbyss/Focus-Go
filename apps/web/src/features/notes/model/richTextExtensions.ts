@@ -19,15 +19,29 @@ export const AssetImage = Image.extend({
       assetId: {
         default: null,
       },
+      width: {
+        default: null,
+        parseHTML: (element) => {
+          const value = element.getAttribute('data-width') ?? element.getAttribute('width')
+          if (!value) return null
+          const parsed = Number(value)
+          return Number.isFinite(parsed) ? parsed : value
+        },
+        renderHTML: (attributes) => {
+          if (!attributes.width) return {}
+          return { 'data-width': attributes.width }
+        },
+      },
     }
   },
 })
 
 type ExtensionOptions = {
   placeholder?: string
+  imageExtension?: AnyExtension
 }
 
-export const createRichTextExtensions = ({ placeholder }: ExtensionOptions = {}): AnyExtension[] => {
+export const createRichTextExtensions = ({ placeholder, imageExtension }: ExtensionOptions = {}): AnyExtension[] => {
   const extensions: AnyExtension[] = [
     StarterKit.configure({
       heading: { levels: [1, 2, 3] },
@@ -46,7 +60,7 @@ export const createRichTextExtensions = ({ placeholder }: ExtensionOptions = {})
     TableRow,
     TableHeader,
     TableCell,
-    AssetImage,
+    imageExtension ?? AssetImage,
   ]
 
   if (placeholder) {

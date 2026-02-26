@@ -10,6 +10,8 @@ type ToastItem = {
   title?: string
   message: string
   variant: ToastVariant
+  actionLabel?: string
+  onAction?: () => void
 }
 
 export const ToastProvider = ({ children }: { children: ReactNode }) => {
@@ -26,9 +28,9 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
   }, [])
 
   const push = useCallback(
-    ({ title, message, variant = 'info', durationMs = 3200 }: ToastPushArgs) => {
+    ({ title, message, variant = 'info', durationMs = 3200, actionLabel, onAction }: ToastPushArgs) => {
       const id = createId()
-      setToasts((prev) => [...prev, { id, title, message, variant }])
+      setToasts((prev) => [...prev, { id, title, message, variant, actionLabel, onAction }])
       timeoutsRef.current[id] = window.setTimeout(() => dismiss(id), durationMs)
     },
     [dismiss],
@@ -52,6 +54,18 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
             <div className="toast__body">
               {toast.title ? <div className="toast__title">{toast.title}</div> : null}
               <div className="toast__message">{toast.message}</div>
+              {toast.actionLabel && toast.onAction ? (
+                <button
+                  type="button"
+                  className="toast__action button button--ghost"
+                  onClick={() => {
+                    toast.onAction?.()
+                    dismiss(toast.id)
+                  }}
+                >
+                  {toast.actionLabel}
+                </button>
+              ) : null}
             </div>
             <button type="button" className="toast__close" onClick={() => dismiss(toast.id)} aria-label="Dismiss">
               <X size={16} />

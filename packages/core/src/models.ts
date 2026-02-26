@@ -34,6 +34,10 @@ export type TaskItem = BaseEntity & {
   status: TaskStatus
   priority: TaskPriority | null
   dueDate?: string
+  startDate?: string
+  endDate?: string
+  reminderAt?: number
+  reminderFiredAt?: number
   tags: string[]
   subtasks: TaskSubtask[]
   progressLogs: TaskProgressLog[]
@@ -128,4 +132,26 @@ export type DashboardLayout = BaseEntity & {
   items: DashboardLayoutItem[]
   hiddenCardIds?: string[]
   themeOverride?: 'light' | 'dark' | null
+}
+
+export type HabitType = 'boolean' | 'numeric' | 'timer'
+export type HabitStatus = 'completed' | 'failed' | 'frozen'
+
+export type Habit = BaseEntity & {
+  userId: string
+  title: string
+  type: HabitType
+  color: string
+  archived: boolean
+  target?: number
+  freezesAllowed: number
+  sortOrder: number
+}
+
+export type HabitLog = BaseEntity & {
+  userId: string
+  habitId: string
+  dateKey: string
+  value?: number
+  status: HabitStatus
 }

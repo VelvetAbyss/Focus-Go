@@ -6,6 +6,7 @@ import { tasksRepo } from '../../../data/repositories/tasksRepo'
 import { toDateKey } from '../../../shared/utils/time'
 import { DatePicker } from '../../../shared/ui/DatePicker'
 import { emitTasksChanged } from '../taskSync'
+import { getTaskDisplayRange } from '../taskDates'
 
 type CalendarEntry = {
   id: string
@@ -50,6 +51,26 @@ const toDateAtNoon = (dateKey: string) => {
   return new Date(y, (m || 1) - 1, d || 1, 12, 0, 0, 0).getTime()
 }
 
+const expandDateRange = (startDate: string, endDate: string) => {
+  const start = new Date(`${startDate}T12:00:00`)
+  const end = new Date(`${endDate}T12:00:00`)
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return [] as string[]
+  const keys: string[] = []
+  const cursor = new Date(start)
+  while (cursor.getTime() <= end.getTime()) {
+    keys.push(toDateKey(cursor))
+    cursor.setDate(cursor.getDate() + 1)
+  }
+  return keys
+}
+
+const moveDateKey = (dateKey: string, offsetDays: number) => {
+  const [y, m, d] = dateKey.split('-').map((part) => Number(part))
+  const date = new Date(y, (m || 1) - 1, d || 1, 12, 0, 0, 0)
+  date.setDate(date.getDate() + offsetDays)
+  return toDateKey(date)
+}
+
 const getMonthGrid = (monthDate: Date) => {
   const year = monthDate.getFullYear()
   const month = monthDate.getMonth()
@@ -87,18 +108,22 @@ const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted
     const grouped = new Map<string, CalendarEntry[]>()
 
     tasks.forEach((task) => {
-      const createdDateKey = toDateKey(new Date(task.createdAt))
-      const targetDateKey = task.dueDate ?? createdDateKey
-      const entry: CalendarEntry = {
-        id: `${task.id}:calendar`,
-        taskId: task.id,
-        dateKey: targetDateKey,
-        title: task.title,
-        status: task.status,
-        priority: task.priority,
-        taskCreatedAt: task.createdAt,
-      }
-      grouped.set(targetDateKey, [...(grouped.get(targetDateKey) ?? []), entry])
+      const range = getTaskDisplayRange(task)
+      const targetDateKeys = range
+        ? expandDateRange(range.startDate, range.endDate)
+        : [toDateKey(new Date(task.createdAt))]
+      targetDateKeys.forEach((targetDateKey) => {
+        const entry: CalendarEntry = {
+          id: `${task.id}:${targetDateKey}:calendar`,
+          taskId: task.id,
+          dateKey: targetDateKey,
+          title: task.title,
+          status: task.status,
+          priority: task.priority,
+          taskCreatedAt: task.createdAt,
+        }
+        grouped.set(targetDateKey, [...(grouped.get(targetDateKey) ?? []), entry])
+      })
     })
 
     grouped.forEach((items, key) => {
@@ -191,12 +216,26 @@ const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted
   const applyDateChange = async (entry: CalendarEntry, nextDateKey: string) => {
     const task = tasks.find((item) => item.id === entry.taskId)
     if (!task || !nextDateKey) return
-    const next = task.dueDate
-      ? { ...task, dueDate: nextDateKey }
-      : {
-          ...task,
-          createdAt: toDateAtNoon(nextDateKey),
-        }
+    const range = getTaskDisplayRange(task)
+    const next = range
+      ? (() => {
+          const durationDays = Math.max(
+            0,
+            Math.round((new Date(`${range.endDate}T12:00:00`).getTime() - new Date(`${range.startDate}T12:00:00`).getTime()) / 86_400_000)
+          )
+          return {
+            ...task,
+            startDate: nextDateKey,
+            endDate: moveDateKey(nextDateKey, durationDays),
+            dueDate: durationDays === 0 ? nextDateKey : undefined,
+          }
+        })()
+      : task.dueDate
+        ? { ...task, dueDate: nextDateKey }
+        : {
+            ...task,
+            createdAt: toDateAtNoon(nextDateKey),
+          }
     const updated = await tasksRepo.update(next)
     emitTasksChanged('task-calendar-widget:update-date')
     onTaskUpdated(updated)

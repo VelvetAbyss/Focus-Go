@@ -7,6 +7,7 @@ import { widgetTodoRepo } from './repositories/widgetTodoRepo'
 import type { TaskPriority } from './models/types'
 import { createId } from '../shared/utils/ids'
 import { toDateKey } from '../shared/utils/time'
+import { ensureLabsSeed } from '../features/labs/labsApi'
 import {
   DEFAULT_DASHBOARD_HIDDEN_CARD_IDS,
   DEFAULT_DASHBOARD_LAYOUT_ITEMS,
@@ -16,6 +17,7 @@ import {
 const priorityCycle: TaskPriority[] = ['high', 'medium', 'low']
 
 export const seedDatabase = async () => {
+  await ensureLabsSeed()
   const existingTasks = await tasksRepo.list()
   if (existingTasks.length > 0) return
 

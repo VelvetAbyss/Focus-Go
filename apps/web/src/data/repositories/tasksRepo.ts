@@ -7,6 +7,10 @@ type TaskCreateInput = {
   status: TaskStatus
   priority: TaskItem['priority']
   dueDate?: string
+  startDate?: string
+  endDate?: string
+  reminderAt?: number
+  reminderFiredAt?: number
   tags?: string[]
   subtasks?: TaskItem['subtasks']
 }

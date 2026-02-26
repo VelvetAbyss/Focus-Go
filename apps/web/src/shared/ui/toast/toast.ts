@@ -7,6 +7,8 @@ export type ToastPushArgs = {
   message: string
   variant?: ToastVariant
   durationMs?: number
+  actionLabel?: string
+  onAction?: () => void
 }
 
 export type ToastContextValue = {
@@ -20,4 +22,3 @@ export const useToast = () => {
   if (!ctx) throw new Error('useToast must be used within ToastProvider')
   return ctx
 }
-

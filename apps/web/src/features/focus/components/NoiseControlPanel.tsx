@@ -4,6 +4,7 @@ import { Switch } from '@/components/ui/switch'
 import type { NoiseSettings, NoiseTrackId } from '../../../data/models/types'
 import { NOISE_TRACKS } from '../noise'
 import NoiseSlider from '../NoiseSlider'
+import NoiseVisualizerBars from './NoiseVisualizerBars'
 
 export type NoiseControlPanelProps = {
   noise: NoiseSettings
@@ -64,14 +65,21 @@ const NoiseControlPanel = ({
     onTogglePlay()
   }
 
+  const playButton = (
+    <Button type="button" variant={noise.playing ? 'default' : 'outline'} size="sm" onClick={handleTogglePlay}>
+      {noise.playing ? 'Pause' : 'Play'}
+    </Button>
+  )
+
   return (
     <section className={`focus-noise-panel ${compact ? 'focus-noise-panel--compact' : ''}`}>
       <div className="focus-noise-panel__header">
         <h4 className="focus-noise-panel__title">White Noise</h4>
-        <Button type="button" variant={noise.playing ? 'default' : 'outline'} size="sm" onClick={handleTogglePlay}>
-          {noise.playing ? 'Pause' : 'Play'}
-        </Button>
+        {compact ? playButton : null}
       </div>
+
+      {!compact ? <NoiseVisualizerBars playing={noise.playing} /> : null}
+      {!compact ? <div className="focus-noise-panel__playRow">{playButton}</div> : null}
 
       {inlineHint ? <p className="focus-noise-panel__hint">{inlineHint}</p> : null}
 

@@ -10,7 +10,9 @@ import {
   type ThemeMode,
   writeStoredThemePreference,
 } from '../../shared/theme/theme'
+import { THEME_BEFORE_MODE_TOGGLE_EVENT } from '../../shared/theme/themePack'
 import Sidebar from './Sidebar'
+import { useTaskReminderEngine } from '../../features/tasks/useTaskReminderEngine'
 
 type AppShellProps = {
   children: ReactNode
@@ -42,6 +44,7 @@ const AppShell = ({ children }: AppShellProps) => {
     }
     return readStoredThemePreference() ?? resolveInitialTheme()
   })
+  useTaskReminderEngine()
 
   useEffect(() => {
     if (compactViewport) return
@@ -104,6 +107,7 @@ const AppShell = ({ children }: AppShellProps) => {
   }, [])
 
   const toggleTheme = () => {
+    window.dispatchEvent(new CustomEvent(THEME_BEFORE_MODE_TOGGLE_EVENT))
     const nextTheme: ThemeMode = theme === 'dark' ? 'light' : 'dark'
     setTheme(nextTheme)
     writeStoredThemePreference(nextTheme)
