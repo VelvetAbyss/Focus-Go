@@ -3,13 +3,21 @@ import type { Table } from 'dexie'
 import type {
   DashboardLayout,
   DiaryEntry,
+  FeatureInstallation,
   FocusSession,
   FocusSettings,
+  Habit,
+  HabitLog,
   NoteAssetEntity,
   NoteEntity,
+  RssEntry,
+  RssReadState,
+  RssSource,
+  RssSourceGroup,
   SpendCategory,
   SpendEntry,
   TaskItem,
+  UserSubscription,
   WidgetTodo,
 } from '../models/types'
 import {
@@ -18,7 +26,8 @@ import {
   LEGACY_TABLES,
   schemaV10,
   schemaV11,
-  schemaV12,
+  schemaV13,
+  schemaV16,
   schemaV2,
   schemaV3,
   schemaV4,
@@ -41,6 +50,14 @@ export class WorkbenchDb extends Dexie {
   dashboardLayout!: Table<DashboardLayout, string>
   noteEntries!: Table<NoteEntity, string>
   noteAssets!: Table<NoteAssetEntity, string>
+  userSubscriptions!: Table<UserSubscription, string>
+  featureInstallations!: Table<FeatureInstallation, string>
+  rssSourceGroups!: Table<RssSourceGroup, string>
+  rssSources!: Table<RssSource, string>
+  rssEntries!: Table<RssEntry, string>
+  rssReadStates!: Table<RssReadState, string>
+  habits!: Table<Habit, string>
+  habitLogs!: Table<HabitLog, string>
 
   constructor() {
     super(DB_NAME)
@@ -60,8 +77,8 @@ export class WorkbenchDb extends Dexie {
         if (!legacyRows.length) return
         await tx.table(TABLES.noteEntries).bulkPut(legacyRows as NoteEntity[])
       })
-    this.version(DB_VERSION)
-      .stores(schemaV12)
+    this.version(13)
+      .stores(schemaV13)
       .upgrade(async (tx) => {
         const rows = await tx.table(TABLES.noteEntries).toArray()
         if (!rows.length) return
@@ -75,6 +92,21 @@ export class WorkbenchDb extends Dexie {
 
         await tx.table(TABLES.noteEntries).bulkPut(migrated as NoteEntity[])
       })
+    this.version(DB_VERSION)
+      .stores(schemaV16)
+      .upgrade(async (tx) => {
+        const rssRows = await tx.table(TABLES.rssSources).toArray()
+        if (!rssRows.length) return
+
+        const migrated = rssRows.map((row) => ({
+          ...row,
+          groupId: row.groupId ?? null,
+          starredAt: row.starredAt ?? null,
+          lastEntryAt: row.lastEntryAt ?? row.lastSuccessAt,
+        }))
+
+        await tx.table(TABLES.rssSources).bulkPut(migrated as RssSource[])
+      })
 
     this.tasks = this.table(TABLES.tasks)
     this.widgetTodos = this.table(TABLES.widgetTodos)
@@ -86,6 +118,14 @@ export class WorkbenchDb extends Dexie {
     this.dashboardLayout = this.table(TABLES.dashboardLayout)
     this.noteEntries = this.table(TABLES.noteEntries)
     this.noteAssets = this.table(TABLES.noteAssets)
+    this.userSubscriptions = this.table(TABLES.userSubscriptions)
+    this.featureInstallations = this.table(TABLES.featureInstallations)
+    this.rssSourceGroups = this.table(TABLES.rssSourceGroups)
+    this.rssSources = this.table(TABLES.rssSources)
+    this.rssEntries = this.table(TABLES.rssEntries)
+    this.rssReadStates = this.table(TABLES.rssReadStates)
+    this.habits = this.table(TABLES.habits)
+    this.habitLogs = this.table(TABLES.habitLogs)
   }
 }
 

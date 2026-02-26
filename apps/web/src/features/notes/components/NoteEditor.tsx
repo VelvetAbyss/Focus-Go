@@ -1,14 +1,15 @@
 import type { Editor, JSONContent } from '@tiptap/core'
-import { EditorContent, useEditor } from '@tiptap/react'
-import { Bold, Highlighter, ImageIcon, Italic, Link2, ListChecks, ListOrdered, ListPlus, Table2, Underline as UnderlineIcon, Upload } from 'lucide-react'
+import type { EditorView } from '@tiptap/pm/view'
+import { EditorContent, NodeViewWrapper, ReactNodeViewRenderer, useEditor } from '@tiptap/react'
+import { Bold, Highlighter, ImageIcon, Italic, Link2, ListChecks, ListOrdered, ListPlus, Table2, Trash2, Underline as UnderlineIcon, Upload } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { ChangeEvent } from 'react'
+import type { ChangeEvent, MouseEvent as ReactMouseEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { noteAssetsRepo } from '../../../data/repositories/noteAssetsRepo'
 import { ensureRichDoc, richDocToMarkdown } from '../model/richTextCodec'
-import { createRichTextExtensions } from '../model/richTextExtensions'
+import { AssetImage, createRichTextExtensions } from '../model/richTextExtensions'
 import { mergeTags, normalizeTag } from '../model/tags'
 
 type NoteEditorChange = {
@@ -81,11 +82,76 @@ const getHeadingValue = (editor: Editor | null) => {
   return 'paragraph'
 }
 
+type ImageNodeViewProps = {
+  node: {
+    attrs: {
+      src?: string
+      alt?: string
+      width?: number | string | null
+    }
+  }
+  selected: boolean
+  updateAttributes: (attributes: Record<string, unknown>) => void
+}
+
+const MIN_IMAGE_WIDTH = 160
+
+const ResizableImageNodeView = ({ node, selected, updateAttributes }: ImageNodeViewProps) => {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [dragging, setDragging] = useState(false)
+
+  const width =
+    typeof node.attrs.width === 'number' ? node.attrs.width : Number.isFinite(Number(node.attrs.width)) ? Number(node.attrs.width) : null
+
+  const startResize = (event: ReactMouseEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+    const container = containerRef.current
+    if (!container) return
+
+    setDragging(true)
+    const startX = event.clientX
+    const startWidth = container.getBoundingClientRect().width
+
+    const onMove = (moveEvent: MouseEvent) => {
+      const delta = moveEvent.clientX - startX
+      const nextWidth = Math.max(MIN_IMAGE_WIDTH, Math.round(startWidth + delta))
+      updateAttributes({ width: nextWidth })
+    }
+
+    const onUp = () => {
+      setDragging(false)
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
+
+  return (
+    <NodeViewWrapper
+      ref={containerRef}
+      className={`notes-editor__image-node ${selected ? 'is-selected' : ''} ${dragging ? 'is-dragging' : ''}`}
+      style={width ? { width: `${width}px` } : undefined}
+      data-drag-handle="false"
+    >
+      <img src={node.attrs.src} alt={node.attrs.alt ?? ''} draggable={false} />
+      {selected ? (
+        <button type="button" className="notes-editor__image-resize-handle" onMouseDown={startResize} aria-label="Resize image">
+          <span />
+        </button>
+      ) : null}
+    </NodeViewWrapper>
+  )
+}
+
 const NoteEditor = ({ noteId, title, contentMd, contentJson, manualTags, allTagSuggestions, onChange }: NoteEditorProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const hintTimerRef = useRef<number | null>(null)
   const objectUrlsRef = useRef<string[]>([])
   const currentAssetSourcesRef = useRef<Map<string, string>>(new Map())
+  const editorRef = useRef<Editor | null>(null)
   const [initialDoc] = useState<JSONContent>(() => ensureRichDoc(contentJson, contentMd))
   const [hadPersistedRichDoc] = useState(() => Boolean(contentJson))
   const currentDocRef = useRef<JSONContent>(initialDoc)
@@ -109,10 +175,17 @@ const NoteEditor = ({ noteId, title, contentMd, contentJson, manualTags, allTagS
     onChangeRef.current = onChange
   }, [onChange])
 
-  const extensions = useMemo(
-    () => createRichTextExtensions({ placeholder: 'Type notes here. #tags in content are indexed automatically.' }),
-    [],
-  )
+  const extensions = useMemo(() => {
+    const ResizableAssetImage = AssetImage.extend({
+      addNodeView() {
+        return ReactNodeViewRenderer(ResizableImageNodeView)
+      },
+    })
+    return createRichTextExtensions({
+      placeholder: 'Type notes here. #tags in content are indexed automatically.',
+      imageExtension: ResizableAssetImage,
+    })
+  }, [])
 
   const emitChange = useCallback(
     (nextTitle: string, nextManualTags: string[], nextDoc: JSONContent) => {
@@ -128,6 +201,20 @@ const NoteEditor = ({ noteId, title, contentMd, contentJson, manualTags, allTagS
     [],
   )
 
+  const insertLocalImageFile = useCallback(
+    async (file: File, targetEditor?: Editor | null) => {
+      const activeEditor = targetEditor ?? editorRef.current
+      if (!activeEditor) return
+
+      const asset = await noteAssetsRepo.addLocalImage(noteId, file)
+      const objectUrl = URL.createObjectURL(file)
+      objectUrlsRef.current.push(objectUrl)
+      currentAssetSourcesRef.current.set(asset.id, objectUrl)
+      activeEditor.chain().focus().setImage({ src: objectUrl, alt: file.name || 'image', assetId: asset.id, width: 520 }).run()
+    },
+    [noteId],
+  )
+
   const editor = useEditor({
     extensions,
     content: initialDoc,
@@ -140,8 +227,30 @@ const NoteEditor = ({ noteId, title, contentMd, contentJson, manualTags, allTagS
       attributes: {
         class: 'notes-editor__body',
       },
+      handlePaste: (_view: EditorView, event) => {
+        const clipboardItems = event.clipboardData?.items
+        if (!clipboardItems?.length) return false
+
+        for (const item of Array.from(clipboardItems)) {
+          if (!item.type.startsWith('image/')) continue
+          const file = item.getAsFile()
+          if (!file) continue
+          event.preventDefault()
+          void insertLocalImageFile(file)
+          return true
+        }
+
+        return false
+      },
     },
   })
+
+  useEffect(() => {
+    editorRef.current = editor ?? null
+    return () => {
+      editorRef.current = null
+    }
+  }, [editor])
 
   const releaseObjectUrls = useCallback(() => {
     for (const url of objectUrlsRef.current) URL.revokeObjectURL(url)
@@ -272,7 +381,7 @@ const NoteEditor = ({ noteId, title, contentMd, contentJson, manualTags, allTagS
       const asset = await noteAssetsRepo.addRemoteImage(noteId, raw)
       const src = asset.url ?? raw.trim()
       currentAssetSourcesRef.current.set(asset.id, src)
-      editor.chain().focus().setImage({ src, alt: asset.alt ?? 'image', assetId: asset.id }).run()
+      editor.chain().focus().setImage({ src, alt: asset.alt ?? 'image', assetId: asset.id, width: 520 }).run()
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to insert image.'
       window.alert(message)
@@ -284,14 +393,10 @@ const NoteEditor = ({ noteId, title, contentMd, contentJson, manualTags, allTagS
   const handleLocalImageSelected = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     event.target.value = ''
-    if (!file || !editor) return
+    if (!file) return
 
     try {
-      const asset = await noteAssetsRepo.addLocalImage(noteId, file)
-      const objectUrl = URL.createObjectURL(file)
-      objectUrlsRef.current.push(objectUrl)
-      currentAssetSourcesRef.current.set(asset.id, objectUrl)
-      editor.chain().focus().setImage({ src: objectUrl, alt: file.name || 'image', assetId: asset.id }).run()
+      await insertLocalImageFile(file, editor)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to upload image.'
       window.alert(message)
@@ -391,13 +496,31 @@ const NoteEditor = ({ noteId, title, contentMd, contentJson, manualTags, allTagS
           </SelectContent>
         </Select>
 
-        <Button type="button" variant={editor?.isActive('taskList') ? 'secondary' : 'ghost'} size="sm" onClick={() => editor?.chain().focus().toggleTaskList().run()}>
+        <Button
+          type="button"
+          variant={editor?.isActive('taskList') ? 'secondary' : 'ghost'}
+          size="sm"
+          aria-label="Toggle checklist"
+          onClick={() => editor?.chain().focus().toggleTaskList().run()}
+        >
           <ListChecks size={16} />
         </Button>
-        <Button type="button" variant={editor?.isActive('bulletList') ? 'secondary' : 'ghost'} size="sm" onClick={() => editor?.chain().focus().toggleBulletList().run()}>
+        <Button
+          type="button"
+          variant={editor?.isActive('bulletList') ? 'secondary' : 'ghost'}
+          size="sm"
+          aria-label="Toggle bullet list"
+          onClick={() => editor?.chain().focus().toggleBulletList().run()}
+        >
           <ListPlus size={16} />
         </Button>
-        <Button type="button" variant={editor?.isActive('orderedList') ? 'secondary' : 'ghost'} size="sm" onClick={() => editor?.chain().focus().toggleOrderedList().run()}>
+        <Button
+          type="button"
+          variant={editor?.isActive('orderedList') ? 'secondary' : 'ghost'}
+          size="sm"
+          aria-label="Toggle numbered list"
+          onClick={() => editor?.chain().focus().toggleOrderedList().run()}
+        >
           <ListOrdered size={16} />
         </Button>
 
@@ -441,6 +564,10 @@ const NoteEditor = ({ noteId, title, contentMd, contentJson, manualTags, allTagS
             </Button>
             <Button type="button" variant="outline" size="sm" onClick={() => editor?.chain().focus().deleteRow().run()}>
               -Row
+            </Button>
+            <Button type="button" variant="destructive" size="sm" onClick={() => editor?.chain().focus().deleteTable().run()}>
+              <Trash2 size={14} />
+              Delete table
             </Button>
           </div>
         ) : null}

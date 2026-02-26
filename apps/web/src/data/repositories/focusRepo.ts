@@ -1,4 +1,4 @@
-import type { FocusSettings, FocusTimerSnapshot } from '../models/types'
+import type { FocusSettings, FocusTimerSnapshot, NoiseSettings } from '../models/types'
 import { dbService } from '../services/dbService'
 
 type FocusSettingsWithTimer = FocusSettings & {
@@ -31,6 +31,19 @@ export const focusRepo = {
       noisePreset: existing?.noisePreset,
       volume: existing?.volume,
       timer,
+    }
+    return dbService.focus.upsert(payload as unknown as FocusUpsertInput) as Promise<FocusSettingsWithTimer>
+  },
+  async updateNoise(noise: NoiseSettings) {
+    const existing = (await dbService.focus.get()) as FocusSettingsWithTimer | null
+    const payload = {
+      focusMinutes: existing?.focusMinutes ?? 25,
+      breakMinutes: existing?.breakMinutes ?? 5,
+      longBreakMinutes: existing?.longBreakMinutes ?? 15,
+      noise,
+      noisePreset: existing?.noisePreset,
+      volume: existing?.volume,
+      timer: existing?.timer,
     }
     return dbService.focus.upsert(payload as unknown as FocusUpsertInput) as Promise<FocusSettingsWithTimer>
   },

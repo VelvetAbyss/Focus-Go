@@ -6,6 +6,8 @@ export const WEATHER_MANUAL_CITY_KEY = 'workbench.weather.manualCity'
 export const WEATHER_TEMP_UNIT_KEY = 'workbench.weather.temperatureUnit'
 export const WEATHER_LAST_LOCATION_KEY = 'workbench.weather.lastLocation'
 export const FOCUS_COMPLETION_SOUND_ENABLED_KEY = 'workbench.focus.completionSound.enabled'
+export const TASK_REMINDER_ENABLED_KEY = 'focusgo.tasks.reminder.enabled.v1'
+export const TASK_REMINDER_LEAD_MINUTES_KEY = 'focusgo.tasks.reminder.leadMinutes.v1'
 export const LANGUAGE_KEY = 'workbench.ui.language'
 
 export type CurrencyCode = 'CNY' | 'USD'
@@ -91,6 +93,28 @@ export function readFocusCompletionSoundEnabled(): boolean {
 
 export function writeFocusCompletionSoundEnabled(enabled: boolean) {
   localStorage.setItem(FOCUS_COMPLETION_SOUND_ENABLED_KEY, enabled ? 'true' : 'false')
+}
+
+export function readTaskReminderEnabled(): boolean {
+  const raw = localStorage.getItem(TASK_REMINDER_ENABLED_KEY)
+  if (raw === null) return true
+  return raw === 'true'
+}
+
+export function writeTaskReminderEnabled(enabled: boolean) {
+  localStorage.setItem(TASK_REMINDER_ENABLED_KEY, enabled ? 'true' : 'false')
+}
+
+export function readTaskReminderLeadMinutes(): number {
+  const raw = localStorage.getItem(TASK_REMINDER_LEAD_MINUTES_KEY)
+  const next = Number(raw)
+  if (Number.isFinite(next) && next > 0) return Math.max(1, Math.floor(next))
+  return 10
+}
+
+export function writeTaskReminderLeadMinutes(minutes: number) {
+  const safe = Math.max(1, Math.floor(minutes))
+  localStorage.setItem(TASK_REMINDER_LEAD_MINUTES_KEY, String(safe))
 }
 
 export function readLanguage(): LanguageCode {

@@ -1,25 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { LEGACY_ROUTES, NAV_ITEMS, ROUTES } from './routes'
+import { BASE_NAV_ITEMS, ROUTES } from './routes'
 
 describe('routes config', () => {
-  it('defines eight core module routes', () => {
-    expect(Object.keys(ROUTES).length).toBe(8)
-    expect(ROUTES.DASHBOARD).toBe('/')
+  it('defines labs, rss, and habits routes', () => {
+    expect(ROUTES.LABS).toBe('/labs')
     expect(ROUTES.RSS).toBe('/rss')
-    expect(ROUTES.TASKS).toBe('/tasks')
-    expect(ROUTES.CALENDAR).toBe('/calendar')
-    expect(ROUTES.FOCUS).toBe('/focus')
-    expect(ROUTES.NOTES).toBe('/note')
-    expect(LEGACY_ROUTES.KNOWLEDGE).toBe('/knowledge')
-    expect(ROUTES.REVIEW).toBe('/review')
-    expect(ROUTES.SETTINGS).toBe('/workspace/settings')
+    expect(ROUTES.HABITS).toBe('/habits')
   })
 
-  it('has matching sidebar items and keeps dashboard first', () => {
-    expect(NAV_ITEMS).toHaveLength(8)
-    expect(NAV_ITEMS[0]?.key).toBe('dashboard')
-    expect(NAV_ITEMS[0]?.to).toBe(ROUTES.DASHBOARD)
-    expect(NAV_ITEMS[1]?.key).toBe('rss')
-    expect(NAV_ITEMS[1]?.to).toBe(ROUTES.RSS)
+  it('keeps dashboard first in base nav and excludes rss', () => {
+    expect(BASE_NAV_ITEMS[0]?.key).toBe('dashboard')
+    expect(BASE_NAV_ITEMS.some((item) => item.key === 'rss')).toBe(false)
   })
 })

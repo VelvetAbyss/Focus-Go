@@ -7,6 +7,8 @@ import { BrowserRouter } from 'react-router-dom'
 import { DatePickerProvider } from './shared/ui/datePicker/DatePickerProvider'
 import { PreferencesProvider } from './shared/prefs/PreferencesProvider'
 import { ToastProvider } from './shared/ui/toast/ToastProvider'
+import { LabsProvider } from './features/labs/LabsContext'
+import { SharedNoiseProvider } from './features/focus/SharedNoiseProvider'
 
 const App = () => {
   useEffect(() => {
@@ -19,11 +21,15 @@ const App = () => {
     <BrowserRouter>
       <PreferencesProvider>
         <ToastProvider>
-          <DatePickerProvider>
-            <AppShell>
-              <AppRoutes />
-            </AppShell>
-          </DatePickerProvider>
+          <LabsProvider>
+            <DatePickerProvider>
+              <SharedNoiseProvider>
+                <AppShell>
+                  <AppRoutes />
+                </AppShell>
+              </SharedNoiseProvider>
+            </DatePickerProvider>
+          </LabsProvider>
         </ToastProvider>
       </PreferencesProvider>
     </BrowserRouter>

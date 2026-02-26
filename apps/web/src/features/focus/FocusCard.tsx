@@ -2,13 +2,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import Card from '../../shared/ui/Card'
 import { focusRepo } from '../../data/repositories/focusRepo'
-import type { NoiseSettings, NoiseTrackId, NoiseTrackSettings } from '../../data/models/types'
+import type { NoiseTrackId, NoiseTrackSettings } from '../../data/models/types'
 import FocusSettingsDrawer from './FocusSettingsDrawer'
-import { createDefaultNoiseSettings, DEFAULT_NOISE_PRESET } from './noise'
-import { useNoiseMixer } from './useNoiseMixer'
+import { DEFAULT_NOISE_PRESET } from './noise'
 import { AppNumber, AppNumberGroup } from '../../shared/ui/AppNumber'
 import { useMotionPreference } from '../../shared/prefs/useMotionPreference'
 import { useSharedFocusTimer } from './useSharedFocusTimer'
+import { useSharedNoise } from './SharedNoiseProvider'
 
 const clampDuration = (value: number) => {
   if (!Number.isFinite(value)) return 25
@@ -20,12 +20,10 @@ const FocusCard = () => {
   const [focusMinutes, setFocusMinutes] = useState(25)
   const [breakMinutes, setBreakMinutes] = useState(5)
   const [longBreakMinutes, setLongBreakMinutes] = useState(15)
-  const [noise, setNoise] = useState<NoiseSettings>(createDefaultNoiseSettings())
   const [settingsOpen, setSettingsOpen] = useState(false)
   const { reduceMotion } = useMotionPreference()
+  const { noise, setNoise, toggleNoisePlaying, setNoiseTrackEnabled, setNoiseTrackVolume, setNoiseMasterVolume } = useSharedNoise()
   const { state: timerState, start, pause, resume, reset, setDuration } = useSharedFocusTimer({ defaultDurationMinutes: focusMinutes })
-
-  useNoiseMixer(noise)
 
   useEffect(() => {
     void focusRepo.get().then((settings) => {
@@ -34,22 +32,13 @@ const FocusCard = () => {
       setBreakMinutes(settings.breakMinutes)
       setLongBreakMinutes(settings.longBreakMinutes)
 
-      const preset = settings.noisePreset ?? DEFAULT_NOISE_PRESET
-      const fallbackNoise = settings.noise ?? createDefaultNoiseSettings()
-      setNoise({
-        playing: fallbackNoise.playing,
-        loop: fallbackNoise.loop ?? preset.loop,
-        masterVolume: fallbackNoise.masterVolume ?? 0.6,
-        tracks: { ...preset.tracks, ...fallbackNoise.tracks },
-      })
-
       if (!settings.noisePreset) {
         void focusRepo.upsert({
           focusMinutes: settings.focusMinutes,
           breakMinutes: settings.breakMinutes,
           longBreakMinutes: settings.longBreakMinutes,
-          noise: settings.noise ?? fallbackNoise,
           noisePreset: DEFAULT_NOISE_PRESET,
+          timer: settings.timer,
         })
       }
     })
@@ -60,36 +49,15 @@ const FocusCard = () => {
       focusMinutes,
       breakMinutes,
       longBreakMinutes,
-      noise,
+      noisePreset: DEFAULT_NOISE_PRESET,
     })
-  }, [focusMinutes, breakMinutes, longBreakMinutes, noise])
+  }, [focusMinutes, breakMinutes, longBreakMinutes])
 
   const minutes = Math.floor(timerState.remainingSeconds / 60)
   const seconds = timerState.remainingSeconds % 60
   const timerTrend = useMemo(() => {
     return (oldValue: number, value: number) => (value >= oldValue ? 1 : -1)
   }, [])
-
-  const setNoiseTrack = (trackId: NoiseTrackId, patch: Partial<NoiseTrackSettings>) => {
-    setNoise((prev) => ({
-      ...prev,
-      tracks: {
-        ...prev.tracks,
-        [trackId]: {
-          ...prev.tracks[trackId],
-          ...patch,
-        },
-      },
-    }))
-  }
-
-  const handleToggleNoise = () => {
-    setNoise((prev) => ({ ...prev, playing: !prev.playing }))
-  }
-
-  const setNoiseMasterVolume = (value: number) => {
-    setNoise((prev) => ({ ...prev, masterVolume: value }))
-  }
 
   const handlePrimaryAction = async () => {
     if (timerState.running) {
@@ -195,7 +163,7 @@ const FocusCard = () => {
           </div>
           <Button
             className={`noiseBtn noise-icon-toggle ${noise.playing ? 'is-playing' : ''} ${reduceMotion ? 'is-reduced-motion' : ''}`}
-            onClick={handleToggleNoise}
+            onClick={toggleNoisePlaying}
             aria-label={noise.playing ? 'Pause noise' : 'Play noise'}
           >
             <svg viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg" className="noise-icon-toggle__play" aria-hidden>
@@ -222,7 +190,14 @@ const FocusCard = () => {
         setLongBreakMinutes={setLongBreakMinutes}
         noise={noise}
         setNoise={setNoise}
-        setNoiseTrack={setNoiseTrack}
+        setNoiseTrack={(trackId: NoiseTrackId, patch: Partial<NoiseTrackSettings>) => {
+          if (typeof patch.enabled === 'boolean') {
+            setNoiseTrackEnabled(trackId, patch.enabled)
+          }
+          if (typeof patch.volume === 'number') {
+            setNoiseTrackVolume(trackId, patch.volume)
+          }
+        }}
         setNoiseMasterVolume={setNoiseMasterVolume}
       />
     </Card>

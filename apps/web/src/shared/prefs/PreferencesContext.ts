@@ -17,6 +17,10 @@ export type PreferencesContextValue = {
   setWeatherTemperatureUnit: (unit: import('./preferences').TemperatureUnit) => void
   focusCompletionSoundEnabled: boolean
   setFocusCompletionSoundEnabled: (enabled: boolean) => void
+  taskReminderEnabled: boolean
+  setTaskReminderEnabled: (enabled: boolean) => void
+  taskReminderLeadMinutes: number
+  setTaskReminderLeadMinutes: (minutes: number) => void
 }
 
 export const PreferencesContext = createContext<PreferencesContextValue | null>(null)

@@ -31,5 +31,9 @@ export const resolveTheme = () => {
 export const resolveInitialTheme = (): ThemeMode => readStoredThemePreference() ?? 'light'
 
 export const applyTheme = (theme: ThemeMode) => {
-  document.documentElement.dataset.theme = theme
+  if (typeof document === 'undefined') return
+  const root = document.documentElement
+  root.dataset.theme = theme
+  if (theme === 'dark') root.classList.add('dark')
+  else root.classList.remove('dark')
 }

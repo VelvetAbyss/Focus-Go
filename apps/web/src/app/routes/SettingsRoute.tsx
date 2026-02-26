@@ -23,6 +23,12 @@ import {
 import { dashboardRepo } from '../../data/repositories/dashboardRepo'
 import { db } from '../../data/db'
 import { applyTheme, clearStoredThemePreference, resolveTheme, writeStoredThemePreference } from '../../shared/theme/theme'
+import {
+  applyThemePackPreview,
+  clearThemePackPreview,
+  THEME_BEFORE_MODE_TOGGLE_EVENT,
+  type ThemePackId,
+} from '../../shared/theme/themePack'
 import type { DashboardLayout } from '../../data/models/types'
 import { usePreferences } from '../../shared/prefs/usePreferences'
 import { useI18n } from '../../shared/i18n/useI18n'
@@ -238,6 +244,8 @@ const SettingsRoute = () => {
   const [activeSection, setActiveSection] = useState<SettingsSection>('appearance')
   const [layoutLocked, setLayoutLocked] = useState(() => readLayoutLocked())
   const [theme, setTheme] = useState<ThemeSelection>('system')
+  const [themePackSelection, setThemePackSelection] = useState<ThemePackId>('theme-a')
+  const [themePackPreview, setThemePackPreview] = useState<ThemePackId | null>(null)
   const [dashboard, setDashboard] = useState<DashboardLayout | null>(null)
   const [isResetting, setIsResetting] = useState(false)
   const {
@@ -257,6 +265,10 @@ const SettingsRoute = () => {
     setWeatherTemperatureUnit,
     focusCompletionSoundEnabled,
     setFocusCompletionSoundEnabled,
+    taskReminderEnabled,
+    setTaskReminderEnabled,
+    taskReminderLeadMinutes,
+    setTaskReminderLeadMinutes,
   } = usePreferences()
 
   const [manualCityInput, setManualCityInput] = useState(weatherManualCity)
@@ -280,6 +292,7 @@ const SettingsRoute = () => {
     if (theme === 'system') return t('settings.theme.systemHelp')
     return t('settings.theme.forceHelp', { theme })
   }, [theme, t])
+  const resolvedThemeMode = useMemo(() => (theme === 'system' ? resolveTheme() : theme), [theme])
 
   const saveThemeOverride = async (next: ThemeSelection) => {
     const themeOverride = next === 'system' ? null : next
@@ -292,6 +305,34 @@ const SettingsRoute = () => {
     else clearStoredThemePreference()
     applyTheme(themeOverride ?? resolveTheme())
   }
+
+  useEffect(() => {
+    if (!themePackPreview) {
+      clearThemePackPreview()
+      return
+    }
+    applyThemePackPreview(themePackPreview, resolvedThemeMode)
+  }, [resolvedThemeMode, themePackPreview])
+
+  useEffect(() => {
+    const handleBeforeModeToggle = () => {
+      if (!themePackPreview) return
+      clearThemePackPreview()
+      setThemePackPreview(null)
+      setThemePackSelection('theme-a')
+    }
+
+    window.addEventListener(THEME_BEFORE_MODE_TOGGLE_EVENT, handleBeforeModeToggle)
+    return () => {
+      window.removeEventListener(THEME_BEFORE_MODE_TOGGLE_EVENT, handleBeforeModeToggle)
+    }
+  }, [themePackPreview])
+
+  useEffect(() => {
+    return () => {
+      clearThemePackPreview()
+    }
+  }, [])
 
   const localCitySuggestions = useMemo(() => buildLocalSuggestions(manualCityInput), [manualCityInput])
   const shouldShowManualCitySuggestions = !weatherAutoLocationEnabled && normalizeQuery(manualCityInput).length >= MIN_CITY_QUERY_LENGTH
@@ -497,6 +538,45 @@ const SettingsRoute = () => {
                           </SettingRow>
 
                           <SettingRow
+                            icon={Brush}
+                            title={t('settings.themePack.title')}
+                            description={t('settings.themePack.previewDescription')}
+                          >
+                            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+                              <Select
+                                value={themePackSelection}
+                                onValueChange={(value) => {
+                                  const next = value as ThemePackId
+                                  setThemePackSelection(next)
+                                  setThemePackPreview(next)
+                                }}
+                              >
+                                <SelectTrigger aria-label={t('settings.themePack.title')} className="w-full sm:w-[220px]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="theme-a">{t('settings.themePack.option.a')}</SelectItem>
+                                  <SelectItem value="theme-b">{t('settings.themePack.option.b')}</SelectItem>
+                                  <SelectItem value="theme-c">{t('settings.themePack.option.c')}</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              {themePackPreview ? (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => {
+                                    clearThemePackPreview()
+                                    setThemePackPreview(null)
+                                    setThemePackSelection('theme-a')
+                                  }}
+                                >
+                                  {t('settings.themePack.cancelPreview')}
+                                </Button>
+                              ) : null}
+                            </div>
+                          </SettingRow>
+
+                          <SettingRow
                             icon={LayoutGrid}
                             title={t('settings.layoutLock.title')}
                             description={t('settings.layoutLock.description')}
@@ -552,6 +632,35 @@ const SettingsRoute = () => {
                             description={t('settings.experience.completionSound.description')}
                           >
                             <Switch checked={focusCompletionSoundEnabled} onCheckedChange={(checked) => setFocusCompletionSoundEnabled(checked)} />
+                          </SettingRow>
+
+                          <SettingRow
+                            icon={Bell}
+                            title="Task reminders"
+                            description="In-app reminder toast for tasks with reminder time."
+                          >
+                            <Switch checked={taskReminderEnabled} onCheckedChange={(checked) => setTaskReminderEnabled(checked)} />
+                          </SettingRow>
+
+                          <SettingRow
+                            icon={AlertTriangle}
+                            title="Reminder lead time"
+                            description="How many minutes before reminder time the in-app toast should appear."
+                          >
+                            <Select
+                              value={String(taskReminderLeadMinutes)}
+                              onValueChange={(value) => setTaskReminderLeadMinutes(Number(value))}
+                            >
+                              <SelectTrigger className="w-full sm:max-w-[220px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="5">5 minutes</SelectItem>
+                                <SelectItem value="10">10 minutes</SelectItem>
+                                <SelectItem value="15">15 minutes</SelectItem>
+                                <SelectItem value="30">30 minutes</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </SettingRow>
                         </>
                       ) : null}

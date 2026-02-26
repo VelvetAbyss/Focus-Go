@@ -12,5 +12,6 @@ describe('DexieDatabaseService', () => {
     expect(typeof service.diary.listTrash).toBe('function')
     expect(typeof service.spend.listCategories).toBe('function')
     expect(typeof service.dashboard.get).toBe('function')
+    expect(typeof service.habits.listHabits).toBe('function')
   })
 })

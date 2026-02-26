@@ -39,34 +39,13 @@ export const sortSubscriptions = <T extends { sourceType: CalendarSourceType; or
     .slice()
     .sort(
       (a, b) =>
-        sourceOrder[a.sourceType] - sourceOrder[b.sourceType] ||
         a.order - b.order ||
+        sourceOrder[a.sourceType] - sourceOrder[b.sourceType] ||
         a.name.localeCompare(b.name)
     )
 
 export const buildInitialCalendarSubscriptions = (): CalendarSubscription[] =>
   sortSubscriptions([
-    {
-      id: 'system-cn-lunar',
-      name: 'Chinese Lunar Calendar',
-      sourceType: 'system',
-      provider: 'ics',
-      color: '#94a3b8',
-      enabled: true,
-      syncPermission: 'read',
-      order: 0,
-      url: 'https://raw.githubusercontent.com/infinet/lunar-calendar/master/chinese_lunar_prev_year_next_year.ics',
-    },
-    {
-      id: 'system-us-holidays',
-      name: 'US Holidays & Major Observances',
-      sourceType: 'system',
-      provider: 'builtin',
-      color: '#60a5fa',
-      enabled: true,
-      syncPermission: 'read',
-      order: 1,
-    },
     {
       id: 'account-google',
       name: 'Google Calendar (M1 Read-Only)',
@@ -81,6 +60,12 @@ export const buildInitialCalendarSubscriptions = (): CalendarSubscription[] =>
 
 export const removeSubscription = (subscriptions: CalendarSubscription[], subscriptionId: string) =>
   subscriptions.filter((item) => item.id !== subscriptionId)
+
+export const removeSubscriptionHard = (subscriptions: CalendarSubscription[], subscriptionId: string) =>
+  subscriptions.filter((item) => item.id !== subscriptionId)
+
+export const removeAllSystemSubscriptions = (subscriptions: CalendarSubscription[]) =>
+  subscriptions.filter((item) => item.sourceType !== 'system')
 
 export const softRemoveSubscription = (subscriptions: CalendarSubscription[], subscriptionId: string) => {
   const now = Date.now()
@@ -120,6 +105,16 @@ export const updateSubscriptionColor = (
 
 export const toggleSubscriptionEnabled = (subscriptions: CalendarSubscription[], subscriptionId: string) =>
   subscriptions.map((item) => (item.id === subscriptionId ? { ...item, enabled: !item.enabled } : item))
+
+export const reorderSubscriptions = (subscriptions: CalendarSubscription[], orderedIds: string[]) => {
+  const orderMap = new Map(orderedIds.map((id, index) => [id, index]))
+  let nextOrder = orderedIds.length
+  const withOrder = subscriptions.map((item) => ({
+    ...item,
+    order: orderMap.get(item.id) ?? nextOrder++,
+  }))
+  return sortSubscriptions(withOrder)
+}
 
 const toDateKey = (date: Date) => {
   const y = date.getFullYear()

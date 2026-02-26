@@ -4,8 +4,9 @@ import { NOISE_SOURCES, NOISE_TRACKS } from './noise'
 
 const clamp01 = (value: number) => Math.max(0, Math.min(1, value))
 
-export const useNoiseMixer = (noise: NoiseSettings) => {
+export const useNoiseMixer = (noise: NoiseSettings, onPlaybackBlocked?: () => void) => {
   const audiosRef = useRef<Record<NoiseTrackId, HTMLAudioElement> | null>(null)
+  const blockedReportedRef = useRef(false)
   const fadeRafRef = useRef<Record<NoiseTrackId, number | null>>({
     cafe: null,
     fireplace: null,
@@ -74,6 +75,9 @@ export const useNoiseMixer = (noise: NoiseSettings) => {
   useEffect(() => {
     const audios = audiosRef.current
     if (!audios) return
+    if (!noise.playing) {
+      blockedReportedRef.current = false
+    }
 
     for (const track of NOISE_TRACKS) {
       const settings = noise.tracks[track.id]
@@ -90,6 +94,10 @@ export const useNoiseMixer = (noise: NoiseSettings) => {
               .then(() => fadeTo(track.id, audio, targetVolume))
               .catch(() => {
                 // Autoplay restrictions or decode errors: stay silent until next user gesture.
+                if (!blockedReportedRef.current) {
+                  blockedReportedRef.current = true
+                  onPlaybackBlocked?.()
+                }
               })
           } else {
             fadeTo(track.id, audio, targetVolume)
@@ -105,5 +113,5 @@ export const useNoiseMixer = (noise: NoiseSettings) => {
         }
       }
     }
-  }, [fadeTo, noise])
+  }, [fadeTo, noise, onPlaybackBlocked])
 }

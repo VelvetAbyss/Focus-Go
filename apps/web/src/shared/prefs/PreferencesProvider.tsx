@@ -7,6 +7,8 @@ import {
   UI_ANIMATIONS_ENABLED_KEY,
   WEATHER_AUTO_LOCATION_KEY,
   FOCUS_COMPLETION_SOUND_ENABLED_KEY,
+  TASK_REMINDER_ENABLED_KEY,
+  TASK_REMINDER_LEAD_MINUTES_KEY,
   WEATHER_MANUAL_CITY_KEY,
   WEATHER_TEMP_UNIT_KEY,
   type CurrencyCode,
@@ -16,6 +18,8 @@ import {
   readLanguage,
   readNumberAnimationsEnabled,
   readFocusCompletionSoundEnabled,
+  readTaskReminderEnabled,
+  readTaskReminderLeadMinutes,
   readUiAnimationsEnabled,
   readWeatherAutoLocation,
   readWeatherManualCity,
@@ -24,6 +28,8 @@ import {
   writeLanguage,
   writeNumberAnimationsEnabled,
   writeFocusCompletionSoundEnabled,
+  writeTaskReminderEnabled,
+  writeTaskReminderLeadMinutes,
   writeUiAnimationsEnabled,
   writeWeatherAutoLocation,
   writeWeatherManualCity,
@@ -47,6 +53,8 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
     readWeatherTemperatureUnit()
   )
   const [focusCompletionSoundEnabled, setFocusCompletionSoundEnabledState] = useState(() => readFocusCompletionSoundEnabled())
+  const [taskReminderEnabled, setTaskReminderEnabledState] = useState(() => readTaskReminderEnabled())
+  const [taskReminderLeadMinutes, setTaskReminderLeadMinutesState] = useState(() => readTaskReminderLeadMinutes())
 
   useEffect(() => {
     const handleStorage = (event: StorageEvent) => {
@@ -58,6 +66,8 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
         setWeatherAutoLocationEnabledState(readWeatherAutoLocation())
         setWeatherManualCityState(readWeatherManualCity())
         setWeatherTemperatureUnitState(readWeatherTemperatureUnit())
+        setTaskReminderEnabledState(readTaskReminderEnabled())
+        setTaskReminderLeadMinutesState(readTaskReminderLeadMinutes())
         return
       }
 
@@ -98,6 +108,16 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
 
       if (event.key === FOCUS_COMPLETION_SOUND_ENABLED_KEY) {
         setFocusCompletionSoundEnabledState(readFocusCompletionSoundEnabled())
+        return
+      }
+
+      if (event.key === TASK_REMINDER_ENABLED_KEY) {
+        setTaskReminderEnabledState(readTaskReminderEnabled())
+        return
+      }
+
+      if (event.key === TASK_REMINDER_LEAD_MINUTES_KEY) {
+        setTaskReminderLeadMinutesState(readTaskReminderLeadMinutes())
       }
     }
     window.addEventListener('storage', handleStorage)
@@ -154,11 +174,23 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
         writeFocusCompletionSoundEnabled(enabled)
         setFocusCompletionSoundEnabledState(enabled)
       },
+      taskReminderEnabled,
+      setTaskReminderEnabled: (enabled: boolean) => {
+        writeTaskReminderEnabled(enabled)
+        setTaskReminderEnabledState(enabled)
+      },
+      taskReminderLeadMinutes,
+      setTaskReminderLeadMinutes: (minutes: number) => {
+        writeTaskReminderLeadMinutes(minutes)
+        setTaskReminderLeadMinutesState(Math.max(1, Math.floor(minutes)))
+      },
     }
   }, [
     language,
     defaultCurrency,
     focusCompletionSoundEnabled,
+    taskReminderEnabled,
+    taskReminderLeadMinutes,
     numberAnimationsEnabled,
     uiAnimationsEnabled,
     weatherAutoLocationEnabled,

@@ -34,6 +34,10 @@ export type TaskItem = BaseEntity & {
   status: TaskStatus
   priority: TaskPriority | null
   dueDate?: string
+  startDate?: string
+  endDate?: string
+  reminderAt?: number
+  reminderFiredAt?: number
   tags: string[]
   subtasks: TaskSubtask[]
   progressLogs: TaskProgressLog[]
@@ -164,4 +168,89 @@ export type NoteAssetEntity = BaseEntity & {
   blob?: Blob
   url?: string
   alt?: string
+}
+
+export type SubscriptionTier = 'free' | 'premium'
+
+export type UserSubscription = BaseEntity & {
+  userId: string
+  tier: SubscriptionTier
+}
+
+export type FeatureKey = 'rss' | 'ai-digest' | 'automation' | 'habit-tracker'
+export type FeatureInstallState = 'installed' | 'removed'
+
+export type FeatureInstallation = BaseEntity & {
+  userId: string
+  featureKey: FeatureKey
+  state: FeatureInstallState
+  installedAt?: number
+  removedAt?: number | null
+}
+
+export type RssSource = BaseEntity & {
+  userId: string
+  route: string
+  displayName: string
+  isPreset: boolean
+  enabled: boolean
+  groupId?: string | null
+  starredAt?: number | null
+  deletedAt?: number | null
+  lastSuccessAt?: number
+  lastEntryAt?: number
+  lastErrorAt?: number
+  lastErrorMessage?: string
+}
+
+export type RssSourceGroup = BaseEntity & {
+  userId: string
+  name: string
+}
+
+export type RssEntry = BaseEntity & {
+  sourceId: string
+  route: string
+  guidOrLink: string
+  title: string
+  summary: string
+  url: string
+  thumbnailUrl?: string
+  publishedAt: number
+  cachedAt: number
+}
+
+export type RssReadState = BaseEntity & {
+  userId: string
+  entryId: string
+  readAt: number
+}
+
+export type RssFetchSnapshot = {
+  sourceId: string
+  stale: boolean
+  lastSuccessAt?: number
+  fetchedAt: number
+}
+
+export type HabitType = 'boolean' | 'numeric' | 'timer'
+export type HabitStatus = 'completed' | 'failed' | 'frozen'
+
+export type Habit = BaseEntity & {
+  userId: string
+  title: string
+  type: HabitType
+  color: string
+  archived: boolean
+  target?: number
+  freezesAllowed: number
+  sortOrder: number
+}
+
+export type HabitLog = BaseEntity & {
+  userId: string
+  habitId: string
+  dateKey: string
+  value?: number
+  status: HabitStatus
 }
