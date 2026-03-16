@@ -135,7 +135,7 @@ const AppShell = ({ children }: AppShellProps) => {
       <main className="focus-shell__main">
         <AnimatePresence mode="wait" initial={false}>
           <motion.section
-            key={location.pathname}
+            key={location.key ?? location.pathname}
             className={`focus-shell__route-layer ${isNoteRoute ? 'focus-shell__route-layer--full-bleed' : ''}`}
             variants={routeVariants}
             initial={uiAnimationsEnabled ? 'initial' : false}
