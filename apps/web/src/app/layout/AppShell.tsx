@@ -53,6 +53,7 @@ const AppShell = ({ children }: AppShellProps) => {
   useTaskReminderEngine()
   const isHabitRoute = location.pathname === ROUTES.HABITS
   const isNoteRoute = location.pathname === ROUTES.NOTE
+  const isFocusRoute = location.pathname === ROUTES.FOCUS
   const routeVariants = isHabitRoute ? habitPageTransitionVariants : pageTransitionVariants
   const routeTransition = isHabitRoute ? habitPageTransitionTiming : pageTransitionTiming
 
@@ -133,19 +134,25 @@ const AppShell = ({ children }: AppShellProps) => {
         onToggleTheme={toggleTheme}
       />
       <main className="focus-shell__main">
-        <AnimatePresence mode="sync" initial={false}>
-          <motion.section
-            key={location.key ?? location.pathname}
-            className={`focus-shell__route-layer ${isNoteRoute ? 'focus-shell__route-layer--full-bleed' : ''}`}
-            variants={routeVariants}
-            initial={uiAnimationsEnabled ? 'initial' : false}
-            animate="animate"
-            exit={uiAnimationsEnabled ? 'exit' : undefined}
-            transition={uiAnimationsEnabled ? routeTransition : { duration: 0 }}
-          >
+        {isFocusRoute ? (
+          <section className={`focus-shell__route-layer ${isNoteRoute ? 'focus-shell__route-layer--full-bleed' : ''}`}>
             {children}
-          </motion.section>
-        </AnimatePresence>
+          </section>
+        ) : (
+          <AnimatePresence mode="sync" initial={false}>
+            <motion.section
+              key={location.key ?? location.pathname}
+              className={`focus-shell__route-layer ${isNoteRoute ? 'focus-shell__route-layer--full-bleed' : ''}`}
+              variants={routeVariants}
+              initial={uiAnimationsEnabled ? 'initial' : false}
+              animate="animate"
+              exit={uiAnimationsEnabled ? 'exit' : undefined}
+              transition={uiAnimationsEnabled ? routeTransition : { duration: 0 }}
+            >
+              {children}
+            </motion.section>
+          </AnimatePresence>
+        )}
       </main>
     </div>
   )
