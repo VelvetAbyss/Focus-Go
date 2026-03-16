@@ -133,7 +133,7 @@ const AppShell = ({ children }: AppShellProps) => {
         onToggleTheme={toggleTheme}
       />
       <main className="focus-shell__main">
-        <AnimatePresence mode="wait" initial={false}>
+        <AnimatePresence mode="sync" initial={false}>
           <motion.section
             key={location.key ?? location.pathname}
             className={`focus-shell__route-layer ${isNoteRoute ? 'focus-shell__route-layer--full-bleed' : ''}`}
