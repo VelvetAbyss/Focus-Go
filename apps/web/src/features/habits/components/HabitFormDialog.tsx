@@ -1,12 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import type { Habit, HabitType } from '../../../data/models/types'
-import { HABIT_COLORS, type HabitDraft } from '../model/habitSchema'
+import { useEffect, useState } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
+import { X } from 'lucide-react'
+import type { Habit } from '../../../data/models/types'
+import { HABIT_COLORS, HABIT_ICONS, type HabitDraft } from '../model/habitSchema'
 import { useHabitsI18n } from '../habitsI18n'
 
 type HabitFormDialogProps = {
@@ -16,70 +12,40 @@ type HabitFormDialogProps = {
   initialHabit?: Habit | null
 }
 
-type FormState = {
-  title: string
-  type: HabitType
-  target: string
-  freezesAllowed: string
-  color: string
-}
-
-const createInitialState = (habit?: Habit | null): FormState => ({
-  title: habit?.title ?? '',
-  type: habit?.type ?? 'boolean',
-  target: habit?.target ? String(habit.target) : '1',
-  freezesAllowed: String(habit?.freezesAllowed ?? 1),
-  color: habit?.color ?? HABIT_COLORS[0],
-})
-
 export const HabitFormDialog = ({ open, onOpenChange, onSubmit, initialHabit }: HabitFormDialogProps) => {
   const i18n = useHabitsI18n()
-  const [form, setForm] = useState<FormState>(() => createInitialState(initialHabit))
-  const [errors, setErrors] = useState<{ title?: string; target?: string }>({})
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+  const [selectedColor, setSelectedColor] = useState<string>(HABIT_COLORS[0])
+  const [selectedIcon, setSelectedIcon] = useState<string>(HABIT_ICONS[0])
+  const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
-  const [confirmDiscardOpen, setConfirmDiscardOpen] = useState(false)
 
   useEffect(() => {
     if (!open) return
-    setForm(createInitialState(initialHabit))
-    setErrors({})
+    setName(initialHabit?.title ?? '')
+    setDescription(initialHabit?.description ?? '')
+    setSelectedColor(initialHabit?.color ?? HABIT_COLORS[0])
+    setSelectedIcon(initialHabit?.icon ?? HABIT_ICONS[0])
+    setError('')
   }, [initialHabit, open])
 
-  const dirty = useMemo(() => {
-    const base = createInitialState(initialHabit)
-    return JSON.stringify(base) !== JSON.stringify(form)
-  }, [form, initialHabit])
-
-  const handleOpenChange = (nextOpen: boolean) => {
-    if (nextOpen) {
-      onOpenChange(true)
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!name.trim()) {
+      setError(i18n.formValidationName)
       return
     }
-    if (dirty && !saving) {
-      setConfirmDiscardOpen(true)
-      return
-    }
-    onOpenChange(false)
-  }
-
-  const handleSubmit = async () => {
-    const nextErrors: { title?: string; target?: string } = {}
-    if (!form.title.trim()) nextErrors.title = i18n.form.validationTitle
-    const target = Number(form.target)
-    if ((form.type === 'numeric' || form.type === 'timer') && (!Number.isFinite(target) || target < 1)) {
-      nextErrors.target = i18n.form.validationTarget
-    }
-    setErrors(nextErrors)
-    if (nextErrors.title || nextErrors.target) return
-
     setSaving(true)
     try {
       await onSubmit({
-        title: form.title.trim(),
-        type: form.type,
-        color: form.color,
-        target: form.type === 'boolean' ? undefined : Math.round(target),
-        freezesAllowed: Math.max(0, Math.round(Number(form.freezesAllowed) || 0)),
+        title: name.trim(),
+        description: description.trim(),
+        icon: selectedIcon,
+        color: selectedColor,
+        type: initialHabit?.type ?? 'boolean',
+        freezesAllowed: initialHabit?.freezesAllowed ?? 1,
+        target: initialHabit?.target,
       })
       onOpenChange(false)
     } finally {
@@ -88,113 +54,149 @@ export const HabitFormDialog = ({ open, onOpenChange, onSubmit, initialHabit }: 
   }
 
   return (
-    <>
-      <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{initialHabit ? i18n.form.editTitle : i18n.form.createTitle}</DialogTitle>
-            <DialogDescription>{i18n.subtitle}</DialogDescription>
-          </DialogHeader>
-
-          <div className="habit-form-grid">
-            <div className="habit-form-grid__field">
-              <Label htmlFor="habit-title">{i18n.form.title}</Label>
-              <Input
-                id="habit-title"
-                value={form.title}
-                placeholder={i18n.form.titlePlaceholder}
-                onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
-              />
-              {errors.title ? <p className="habit-form-grid__error">{errors.title}</p> : null}
-            </div>
-
-            <div className="habit-form-grid__field">
-              <Label>{i18n.form.type}</Label>
-              <Select value={form.type} onValueChange={(value: HabitType) => setForm((prev) => ({ ...prev, type: value }))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="boolean">{i18n.form.typeBoolean}</SelectItem>
-                  <SelectItem value="numeric">{i18n.form.typeNumeric}</SelectItem>
-                  <SelectItem value="timer">{i18n.form.typeTimer}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {form.type !== 'boolean' ? (
-              <div className="habit-form-grid__field">
-                <Label htmlFor="habit-target">{i18n.form.target}</Label>
-                <Input
-                  id="habit-target"
-                  type="number"
-                  min={1}
-                  value={form.target}
-                  onChange={(event) => setForm((prev) => ({ ...prev, target: event.target.value }))}
-                />
-                {errors.target ? <p className="habit-form-grid__error">{errors.target}</p> : null}
+    <AnimatePresence>
+      {open ? (
+        <motion.div
+          className="habit-dialog"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          onClick={(event) => {
+            if (event.target === event.currentTarget && !saving) onOpenChange(false)
+          }}
+        >
+          <motion.div
+            className="habit-dialog__panel"
+            initial={{ opacity: 0, scale: 0.93, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.93, y: 20 }}
+            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <div className="habit-dialog__content">
+              <div className="habit-dialog__header">
+                <motion.h2
+                  className="habit-dialog__title"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1, duration: 0.3 }}
+                >
+                  {initialHabit ? i18n.formTitleEdit : i18n.formTitleCreate}
+                </motion.h2>
+                <motion.button
+                  type="button"
+                  onClick={() => onOpenChange(false)}
+                  className="habit-dialog__close"
+                  whileHover={{ scale: 1.15, rotate: 90 }}
+                  whileTap={{ scale: 0.9 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <X size={24} />
+                </motion.button>
               </div>
-            ) : null}
 
-            <div className="habit-form-grid__field">
-              <Label htmlFor="habit-freezes">{i18n.form.freezesAllowed}</Label>
-              <Input
-                id="habit-freezes"
-                type="number"
-                min={0}
-                value={form.freezesAllowed}
-                onChange={(event) => setForm((prev) => ({ ...prev, freezesAllowed: event.target.value }))}
-              />
-            </div>
-
-            <div className="habit-form-grid__field">
-              <Label>{i18n.form.color}</Label>
-              <div className="habit-color-palette" role="radiogroup" aria-label={i18n.form.color}>
-                {HABIT_COLORS.map((color) => (
-                  <button
-                    key={color}
-                    type="button"
-                    className={`habit-color-palette__swatch ${form.color === color ? 'is-active' : ''}`}
-                    style={{ backgroundColor: color }}
-                    aria-checked={form.color === color}
-                    role="radio"
-                    onClick={() => setForm((prev) => ({ ...prev, color }))}
+              <form onSubmit={(event) => void handleSubmit(event)}>
+                <motion.div className="habit-dialog__field" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.3 }}>
+                  <label className="habit-dialog__label" htmlFor="habit-name-input">{i18n.formName}</label>
+                  <input
+                    id="habit-name-input"
+                    type="text"
+                    value={name}
+                    onChange={(event) => {
+                      setName(event.target.value)
+                      if (error) setError('')
+                    }}
+                    placeholder={i18n.formNamePlaceholder}
+                    className="habit-dialog__input"
                   />
-                ))}
-              </div>
+                  {error ? <p className="habit-dialog__error">{error}</p> : null}
+                </motion.div>
+
+                <motion.div className="habit-dialog__field" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.3 }}>
+                  <label className="habit-dialog__label" htmlFor="habit-description-input">{i18n.formDescription}</label>
+                  <textarea
+                    id="habit-description-input"
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value)}
+                    placeholder={i18n.formDescriptionPlaceholder}
+                    rows={3}
+                    className="habit-dialog__textarea"
+                  />
+                </motion.div>
+
+                <motion.div className="habit-dialog__field" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.3 }}>
+                  <label className="habit-dialog__label">{i18n.formIcon}</label>
+                  <div className="habit-dialog__icon-grid">
+                    {HABIT_ICONS.map((icon, index) => (
+                      <motion.button
+                        key={icon}
+                        type="button"
+                        onClick={() => setSelectedIcon(icon)}
+                        className={`habit-dialog__icon-swatch ${selectedIcon === icon ? 'is-active' : ''}`}
+                        initial={{ opacity: 0, scale: 0.5 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.2 + index * 0.015, duration: 0.2 }}
+                        whileHover={{ scale: 1.15 }}
+                        whileTap={{ scale: 0.9 }}
+                      >
+                        {icon}
+                      </motion.button>
+                    ))}
+                  </div>
+                </motion.div>
+
+                <motion.div className="habit-dialog__field" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25, duration: 0.3 }}>
+                  <label className="habit-dialog__label">{i18n.formColor}</label>
+                  <div className="habit-dialog__color-grid">
+                    {HABIT_COLORS.map((color, index) => (
+                      <motion.button
+                        key={color}
+                        type="button"
+                        onClick={() => setSelectedColor(color)}
+                        className={`habit-dialog__color-swatch ${selectedColor === color ? 'is-active' : ''}`}
+                        style={{ backgroundColor: color }}
+                        initial={{ opacity: 0, scale: 0.5 }}
+                        animate={{ opacity: 1, scale: selectedColor === color ? 1.1 : 1 }}
+                        transition={{ delay: 0.25 + index * 0.02, duration: 0.2 }}
+                        whileHover={{ scale: 1.15 }}
+                        whileTap={{ scale: 0.9 }}
+                      />
+                    ))}
+                  </div>
+                </motion.div>
+
+                <motion.div className="habit-dialog__preview" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.3 }}>
+                  <div className="habit-dialog__preview-label">{i18n.formPreview}</div>
+                  <div className="habit-dialog__preview-row">
+                    <motion.span
+                      className="habit-dialog__preview-icon"
+                      key={selectedIcon}
+                      initial={{ scale: 0, rotate: -45 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                    >
+                      {selectedIcon}
+                    </motion.span>
+                    <div>
+                      <div className="habit-dialog__preview-title">{name || i18n.formName}</div>
+                      <div className="habit-dialog__preview-description">{description || i18n.formDescription}</div>
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.div className="habit-dialog__actions" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.3 }}>
+                  <motion.button type="button" onClick={() => onOpenChange(false)} className="habit-dialog__button habit-dialog__button--secondary" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                    {i18n.formCancel}
+                  </motion.button>
+                  <motion.button type="submit" className="habit-dialog__button habit-dialog__button--primary" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} disabled={saving}>
+                    {initialHabit ? i18n.formSubmitSave : i18n.formSubmitCreate}
+                  </motion.button>
+                </motion.div>
+              </form>
             </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => handleOpenChange(false)}>
-              {i18n.form.cancel}
-            </Button>
-            <Button onClick={() => void handleSubmit()} disabled={saving}>
-              {i18n.form.save}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog open={confirmDiscardOpen} onOpenChange={setConfirmDiscardOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{i18n.form.discardTitle}</AlertDialogTitle>
-            <AlertDialogDescription>{i18n.form.discardDescription}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{i18n.form.keepEditing}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                setConfirmDiscardOpen(false)
-                onOpenChange(false)
-              }}
-            >
-              {i18n.form.discardConfirm}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+          </motion.div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
   )
 }

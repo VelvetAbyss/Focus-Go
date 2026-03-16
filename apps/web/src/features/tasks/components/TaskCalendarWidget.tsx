@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import type { TaskItem } from '../tasks.types'
 import Dialog from '../../../shared/ui/Dialog'
 import { tasksRepo } from '../../../data/repositories/tasksRepo'
@@ -7,6 +9,7 @@ import { toDateKey } from '../../../shared/utils/time'
 import { DatePicker } from '../../../shared/ui/DatePicker'
 import { emitTasksChanged } from '../taskSync'
 import { getTaskDisplayRange } from '../taskDates'
+import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, getTaskPriorityKey } from './taskPresentation'
 
 type CalendarEntry = {
   id: string
@@ -23,22 +26,12 @@ type TaskCalendarWidgetProps = {
   onTaskCreated: (task: TaskItem) => void
   onTaskUpdated: (task: TaskItem) => void
   onTaskDeleted: (id: string) => void
+  compact?: boolean
+  plain?: boolean
 }
 
 const weekLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-
-const priorityOrder: Record<'high' | 'medium' | 'low' | 'none', number> = {
-  high: 0,
-  medium: 1,
-  low: 2,
-  none: 3,
-}
-
-const statusDotColor: Record<TaskItem['status'], string> = {
-  todo: 'var(--status-todo)',
-  doing: 'var(--status-doing)',
-  done: 'var(--status-done)',
-}
+const priorityOrder: Record<'high' | 'medium' | 'low' | 'none', number> = { high: 0, medium: 1, low: 2, none: 3 }
 
 const formatMonthLabel = (date: Date) =>
   date.toLocaleDateString(undefined, {
@@ -86,7 +79,7 @@ const getMonthGrid = (monthDate: Date) => {
   })
 }
 
-const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted }: TaskCalendarWidgetProps) => {
+const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted, compact = false, plain = false }: TaskCalendarWidgetProps) => {
   const [visibleMonth, setVisibleMonth] = useState(() => {
     const now = new Date()
     return new Date(now.getFullYear(), now.getMonth(), 1)
@@ -109,20 +102,20 @@ const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted
 
     tasks.forEach((task) => {
       const range = getTaskDisplayRange(task)
-      const targetDateKeys = range
-        ? expandDateRange(range.startDate, range.endDate)
-        : [toDateKey(new Date(task.createdAt))]
+      const targetDateKeys = range ? expandDateRange(range.startDate, range.endDate) : [toDateKey(new Date(task.createdAt))]
       targetDateKeys.forEach((targetDateKey) => {
-        const entry: CalendarEntry = {
-          id: `${task.id}:${targetDateKey}:calendar`,
-          taskId: task.id,
-          dateKey: targetDateKey,
-          title: task.title,
-          status: task.status,
-          priority: task.priority,
-          taskCreatedAt: task.createdAt,
-        }
-        grouped.set(targetDateKey, [...(grouped.get(targetDateKey) ?? []), entry])
+        grouped.set(targetDateKey, [
+          ...(grouped.get(targetDateKey) ?? []),
+          {
+            id: `${task.id}:${targetDateKey}:calendar`,
+            taskId: task.id,
+            dateKey: targetDateKey,
+            title: task.title,
+            status: task.status,
+            priority: task.priority,
+            taskCreatedAt: task.createdAt,
+          },
+        ])
       })
     })
 
@@ -134,7 +127,7 @@ const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted
           const pb = b.priority ? priorityOrder[b.priority] : priorityOrder.none
           if (pa !== pb) return pa - pb
           return b.taskCreatedAt - a.taskCreatedAt
-        })
+        }),
       )
     })
 
@@ -167,29 +160,13 @@ const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted
 
   useEffect(() => {
     if (!createDateKey || !shouldFocusCreateTitleRef.current) return
-
-    let retryTimer: number | null = null
-    const focusAndSelectTitle = () => {
+    requestAnimationFrame(() => {
       const input = createTitleRef.current
-      if (!input) return false
+      if (!input) return
       input.focus()
       input.select()
-      return document.activeElement === input
-    }
-
-    requestAnimationFrame(() => {
-      const focused = focusAndSelectTitle()
-      if (!focused) {
-        retryTimer = window.setTimeout(() => {
-          focusAndSelectTitle()
-        }, 100)
-      }
       shouldFocusCreateTitleRef.current = false
     })
-
-    return () => {
-      if (retryTimer !== null) window.clearTimeout(retryTimer)
-    }
   }, [createDateKey])
 
   const submitCreate = async () => {
@@ -221,21 +198,13 @@ const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted
       ? (() => {
           const durationDays = Math.max(
             0,
-            Math.round((new Date(`${range.endDate}T12:00:00`).getTime() - new Date(`${range.startDate}T12:00:00`).getTime()) / 86_400_000)
+            Math.round((new Date(`${range.endDate}T12:00:00`).getTime() - new Date(`${range.startDate}T12:00:00`).getTime()) / 86_400_000),
           )
-          return {
-            ...task,
-            startDate: nextDateKey,
-            endDate: moveDateKey(nextDateKey, durationDays),
-            dueDate: durationDays === 0 ? nextDateKey : undefined,
-          }
+          return { ...task, startDate: nextDateKey, endDate: moveDateKey(nextDateKey, durationDays), dueDate: durationDays === 0 ? nextDateKey : undefined }
         })()
       : task.dueDate
         ? { ...task, dueDate: nextDateKey }
-        : {
-            ...task,
-            createdAt: toDateAtNoon(nextDateKey),
-          }
+        : { ...task, createdAt: toDateAtNoon(nextDateKey) }
     const updated = await tasksRepo.update(next)
     emitTasksChanged('task-calendar-widget:update-date')
     onTaskUpdated(updated)
@@ -265,52 +234,47 @@ const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted
     }
   }
 
-  const toPreviousMonth = () =>
-    setVisibleMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
-  const toNextMonth = () =>
-    setVisibleMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))
-  const toToday = () => {
-    const now = new Date()
-    setVisibleMonth(new Date(now.getFullYear(), now.getMonth(), 1))
-  }
-
-  const canSubmitCreate = Boolean(createTitle.trim() && createDueDate && !isCreating)
-
   return (
-    <section className="task-calendar" aria-label="Task calendar widget">
-      <div className="task-calendar__header">
-        <h3 className="task-calendar__title">{formatMonthLabel(visibleMonth)}</h3>
-        <div className="task-calendar__actions">
-          <Button type="button" variant="outline" size="sm" className="task-calendar__action" onClick={toPreviousMonth}>
-            Prev
+    <section className={cn('mt-4 flex min-h-0 flex-1 flex-col rounded-[24px] border border-[#3a3733]/6 bg-white/88 p-4 shadow-[0_18px_60px_rgba(15,23,42,0.06)]', compact && 'rounded-[20px] p-3', plain && 'mt-0 rounded-none border-0 bg-transparent p-0 shadow-none')}>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Calendar</p>
+          <h3 className="mt-1 text-[22px] font-semibold tracking-[-0.03em] text-slate-950">{formatMonthLabel(visibleMonth)}</h3>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => setVisibleMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}>
+            <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button type="button" variant="outline" size="sm" className="task-calendar__action" onClick={toToday}>
+          <Button variant="outline" size="sm" className="h-8 rounded-full px-3 text-[11px] font-semibold" onClick={() => {
+            const now = new Date()
+            setVisibleMonth(new Date(now.getFullYear(), now.getMonth(), 1))
+          }}>
             Today
           </Button>
-          <Button type="button" variant="outline" size="sm" className="task-calendar__action" onClick={toNextMonth}>
-            Next
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => setVisibleMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}>
+            <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      <div className="task-calendar__weekdays" role="row">
+      <div className="grid grid-cols-7 gap-2">
         {weekLabels.map((label) => (
-          <div key={label} className="task-calendar__weekday" role="columnheader">
+          <div key={label} className="px-1 py-2 text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
             {label}
           </div>
         ))}
       </div>
 
-      <div className="task-calendar__grid">
+      <div className="grid min-h-0 flex-1 grid-cols-7 gap-2">
         {monthGrid.map((date) => {
           const dateKey = toDateKey(date)
           const inMonth = date.getMonth() === visibleMonth.getMonth()
-          const entries = inMonth ? (entriesByDate.get(dateKey) ?? []) : []
+          const entries = inMonth ? entriesByDate.get(dateKey) ?? [] : []
           const isToday = dateKey === todayKey
           return (
             <div
               key={dateKey}
-              className={`task-calendar__cell ${inMonth ? '' : 'is-outside'} ${isToday ? 'is-today' : ''}`}
+              className={cn('min-h-[120px] rounded-[18px] border border-[#3a3733]/6 bg-slate-50/70 p-2.5 transition hover:border-slate-300 hover:bg-white', !inMonth && 'bg-slate-100/60 opacity-60', isToday && 'border-sky-200 bg-sky-50/60')}
               onDoubleClick={inMonth ? () => openCreate(dateKey) : undefined}
               onDragOver={(event) => {
                 if (!inMonth) return
@@ -322,12 +286,8 @@ const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted
                 const raw = event.dataTransfer.getData('application/x-task-calendar-entry')
                 if (!raw) return
                 try {
-                  const payload = JSON.parse(raw) as {
-                    taskId?: string
-                    fromDateKey?: string
-                  }
-                  if (!payload.taskId) return
-                  if (payload.fromDateKey === dateKey) return
+                  const payload = JSON.parse(raw) as { taskId?: string; fromDateKey?: string }
+                  if (!payload.taskId || payload.fromDateKey === dateKey) return
                   void applyDateChange(
                     {
                       id: `${payload.taskId}:calendar`,
@@ -338,45 +298,60 @@ const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted
                       priority: null,
                       taskCreatedAt: Date.now(),
                     },
-                    dateKey
+                    dateKey,
                   )
                 } catch {
                   return
                 }
               }}
             >
-              <div className="task-calendar__date">{inMonth ? date.getDate() : ''}</div>
-              <div className="task-calendar__events">
-                {entries.map((entry) => (
+              <div className="mb-2 flex items-center justify-between">
+                <span className={cn('inline-flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-semibold', isToday ? 'bg-sky-600 text-white' : 'text-slate-700')}>
+                  {inMonth ? date.getDate() : ''}
+                </span>
+                {inMonth ? (
                   <button
-                    key={entry.id}
                     type="button"
-                    draggable
-                    className={`task-calendar__event task-calendar__event--${entry.status}`}
-                    onDragStart={(event) => {
-                      event.dataTransfer.setData(
-                        'application/x-task-calendar-entry',
-                        JSON.stringify({ taskId: entry.taskId, fromDateKey: entry.dateKey })
-                      )
-                      event.dataTransfer.effectAllowed = 'move'
-                    }}
+                    className="inline-flex h-6 w-6 items-center justify-center rounded-full text-slate-400 opacity-0 transition hover:bg-slate-100 hover:text-slate-700 group-hover:opacity-100"
                     onClick={(event) => {
                       event.stopPropagation()
-                      openEdit(entry)
+                      openCreate(dateKey)
                     }}
-                    onDoubleClick={(event) => {
-                      event.stopPropagation()
-                    }}
-                    title={entry.title.trim() || 'Untitled'}
+                    aria-label="Create task"
                   >
-                    <span
-                      className="task-calendar__event-dot"
-                      style={{ backgroundColor: statusDotColor[entry.status] }}
-                      aria-hidden
-                    />
-                    <span className="task-calendar__event-title">{entry.title.trim() || 'Untitled'}</span>
+                    <Plus className="h-3.5 w-3.5" />
                   </button>
-                ))}
+                ) : null}
+              </div>
+
+              <div className="space-y-1.5">
+                {entries.slice(0, compact ? 2 : 3).map((entry) => {
+                  const status = TASK_STATUS_CONFIG[entry.status]
+                  const priority = TASK_PRIORITY_CONFIG[getTaskPriorityKey(entry.priority)]
+                  return (
+                    <button
+                      key={entry.id}
+                      type="button"
+                      draggable
+                      className={cn('w-full rounded-[14px] border px-2 py-1.5 text-left text-[10px] font-medium transition hover:shadow-sm', status.badge)}
+                      onDragStart={(event) => {
+                        event.dataTransfer.setData('application/x-task-calendar-entry', JSON.stringify({ taskId: entry.taskId, fromDateKey: entry.dateKey }))
+                        event.dataTransfer.effectAllowed = 'move'
+                      }}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        openEdit(entry)
+                      }}
+                      title={entry.title.trim() || 'Untitled'}
+                    >
+                      <span className="flex items-center gap-1">
+                        <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', priority.dot)} />
+                        <span className="truncate">{entry.title.trim() || 'Untitled'}</span>
+                      </span>
+                    </button>
+                  )
+                })}
+                {entries.length > (compact ? 2 : 3) ? <p className="px-1 text-[10px] font-medium text-slate-500">+{entries.length - (compact ? 2 : 3)} more</p> : null}
               </div>
             </div>
           )
@@ -385,37 +360,25 @@ const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted
 
       <Dialog open={Boolean(createDateKey)} title="Create task" onClose={closeCreate}>
         <form
-          className="dialog__body task-calendar__dialog"
+          className="space-y-4"
           onSubmit={(event) => {
             event.preventDefault()
-            if (!canSubmitCreate) return
-            void submitCreate()
-          }}
-          onKeyDown={(event) => {
-            if (event.key !== 'Enter') return
-            event.preventDefault()
-            if (!canSubmitCreate) return
             void submitCreate()
           }}
         >
-          <label className="task-calendar__field">
-            <span>Title</span>
-            <input
-              ref={createTitleRef}
-              value={createTitle}
-              onChange={(event) => setCreateTitle(event.target.value)}
-              placeholder="Task title"
-            />
-          </label>
-          <label className="task-calendar__field">
-            <span>Due date</span>
+          <div className="grid gap-2">
+            <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Title</label>
+            <input ref={createTitleRef} value={createTitle} onChange={(event) => setCreateTitle(event.target.value)} placeholder="Task title" className="h-11 rounded-[14px] border border-[#3a3733]/8 bg-slate-50/80 px-3 text-[13px]" />
+          </div>
+          <div className="grid gap-2">
+            <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Due date</label>
             <DatePicker value={createDueDate || null} onChange={(next) => setCreateDueDate(next ?? '')} />
-          </label>
-          <div className="dialog__actions">
+          </div>
+          <div className="flex items-center justify-end gap-2">
             <Button variant="outline" type="button" onClick={closeCreate}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!canSubmitCreate}>
+            <Button type="submit" disabled={!createTitle.trim() || !createDueDate || isCreating}>
               Add
             </Button>
           </div>
@@ -423,27 +386,27 @@ const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted
       </Dialog>
 
       <Dialog open={Boolean(activeEntry)} title="Edit task date" onClose={closeEdit}>
-        <div className="dialog__body task-calendar__dialog">
-          <p className="task-calendar__dialog-title">{activeEntry?.title.trim() || 'Untitled'}</p>
-          <p className="muted task-calendar__dialog-meta">Editing: Task date</p>
-          <label className="task-calendar__field">
-            <span>Date</span>
+        <div className="space-y-4">
+          <div>
+            <p className="text-[15px] font-semibold text-slate-950">{activeEntry?.title.trim() || 'Untitled'}</p>
+            <p className="mt-1 text-[12px] text-slate-500">Move this task to another day or delete it from the workspace.</p>
+          </div>
+          <div className="grid gap-2">
+            <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Date</label>
             <DatePicker value={editDateKey || null} onChange={(next) => setEditDateKey(next ?? '')} />
-          </label>
-          <div className="dialog__actions">
-            <Button variant="outline" type="button" onClick={closeEdit}>
-              Cancel
-            </Button>
-            <Button variant="destructive" type="button" onClick={() => void handleDeleteFromEdit()}>
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <Button variant="destructive" type="button" onClick={() => void handleDeleteFromEdit()} disabled={isMutating}>
               Delete
             </Button>
-            <Button
-              type="button"
-              onClick={() => void submitEdit()}
-              disabled={!editDateKey || isMutating}
-            >
-              Save
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" type="button" onClick={closeEdit}>
+                Cancel
+              </Button>
+              <Button type="button" onClick={() => void submitEdit()} disabled={!editDateKey || isMutating}>
+                Save
+              </Button>
+            </div>
           </div>
         </div>
       </Dialog>

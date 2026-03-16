@@ -15,11 +15,15 @@ const turndown = new TurndownService({
   bulletListMarker: '-',
   codeBlockStyle: 'fenced',
 })
+
 turndown.use(gfm)
 
-const baseExtensions = createRichTextExtensions()
+const extensions = createRichTextExtensions()
 
-export const emptyRichDoc = () => ({ ...EMPTY_DOC })
+export const emptyRichDoc = (): JSONContent => ({
+  ...EMPTY_DOC,
+  content: [{ type: 'paragraph' }],
+})
 
 export const markdownToRichDoc = (contentMd: string): JSONContent => {
   const source = contentMd.trim()
@@ -27,7 +31,7 @@ export const markdownToRichDoc = (contentMd: string): JSONContent => {
 
   try {
     const html = marked.parse(source, { async: false, gfm: true, breaks: true }) as string
-    const json = generateJSON(html, baseExtensions)
+    const json = generateJSON(html, extensions)
     return json.type === 'doc' ? json : emptyRichDoc()
   } catch {
     return {
@@ -37,11 +41,10 @@ export const markdownToRichDoc = (contentMd: string): JSONContent => {
   }
 }
 
-export const richDocToMarkdown = (contentJson: JSONContent | null | undefined): string => {
+export const richDocToMarkdown = (contentJson: JSONContent | null | undefined) => {
   if (!contentJson) return ''
   try {
-    const html = generateHTML(contentJson, baseExtensions)
-    return turndown.turndown(html).trimEnd()
+    return turndown.turndown(generateHTML(contentJson, extensions)).trimEnd()
   } catch {
     return ''
   }
@@ -53,4 +56,3 @@ export const ensureRichDoc = (contentJson: Record<string, unknown> | null | unde
   }
   return markdownToRichDoc(fallbackMd)
 }
-

@@ -7,7 +7,6 @@ import { vi, describe, it, beforeEach, afterEach, expect } from 'vitest'
 import LabsPage from './LabsPage'
 import type { FeatureCatalogItem } from '../labsApi'
 
-const mockNavigate = vi.fn()
 const mockPushToast = vi.fn()
 const mockInstall = vi.fn(async () => undefined)
 const mockRemove = vi.fn(async () => undefined)
@@ -15,14 +14,6 @@ const mockRestore = vi.fn(async () => undefined)
 const mockUpgrade = vi.fn(async () => undefined)
 
 const mockUseLabs = vi.fn()
-
-vi.mock('react-router-dom', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('react-router-dom')>()
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-  }
-})
 
 vi.mock('../LabsContext', () => ({
   useLabs: () => mockUseLabs(),
@@ -35,11 +26,10 @@ vi.mock('../../../shared/ui/toast/toast', () => ({
 const i18n = {
   nav: {
     dashboard: 'Dashboard',
-    rss: 'RSS',
     tasks: 'Tasks',
+    note: 'Note',
     calendar: 'Calendar',
     focus: 'Focus',
-    notes: 'Notes',
     review: 'Review',
     settings: 'Settings',
     labs: 'Labs',
@@ -52,7 +42,7 @@ const i18n = {
     removed: 'Removed',
     premiumLocked: 'Premium required',
     install: 'Install',
-    openRss: 'Open RSS',
+    openHabits: 'Open Habits',
     remove: 'Remove',
     restore: 'Restore',
     upgrade: 'Upgrade to Premium',
@@ -61,32 +51,11 @@ const i18n = {
     upgradeDesc: 'desc',
     upgradeConfirm: 'Activate mock Premium',
     cancel: 'Cancel',
-    removeTitle: 'Remove RSS?',
+    removeTitle: 'Remove feature?',
     removeDesc: 'remove desc',
   },
-  rss: {
-    title: 'RSS Reader',
-    subtitle: 'rss subtitle',
-    back: 'Back',
-    refresh: 'Refresh',
-    stale: 'stale',
-    staleHint: 'hint',
-    retry: 'Retry',
-    emptyError: 'empty',
-    sourceInputRoute: 'route',
-    sourceInputName: 'name',
-    addSource: 'Add source',
-    removedSources: 'Removed sources',
-    restore: 'Restore',
-    noRemoved: 'No removed',
-    noEntries: 'No entries',
-    noSelection: 'No selection',
-    read: 'Read',
-    closeSummary: 'Close summary',
-    openSummary: 'Open summary',
-  },
   toast: {
-    rssAccessDenied: 'denied',
+    habitAccessDenied: 'denied',
     upgraded: 'upgraded',
     installed: 'installed',
     removed: 'removed',
@@ -98,9 +67,12 @@ vi.mock('../labsI18n', () => ({
   useLabsI18n: () => i18n,
 }))
 
-const makeFeature = (state: FeatureCatalogItem['state'], overrides: Partial<FeatureCatalogItem> = {}): FeatureCatalogItem => ({
-  featureKey: 'rss',
-  title: 'RSS Reader',
+const makeFeature = (
+  state: FeatureCatalogItem['state'],
+  overrides: Partial<FeatureCatalogItem> = {},
+): FeatureCatalogItem => ({
+  featureKey: 'habit-tracker',
+  title: 'Habit Tracker',
   description: 'desc',
   premiumOnly: true,
   comingSoon: false,
@@ -118,7 +90,6 @@ const renderPage = () =>
 
 describe('LabsPage', () => {
   beforeEach(() => {
-    mockNavigate.mockReset()
     mockPushToast.mockReset()
     mockInstall.mockClear()
     mockRemove.mockClear()
@@ -130,7 +101,7 @@ describe('LabsPage', () => {
     cleanup()
   })
 
-  it('installs RSS and redirects to /rss', async () => {
+  it('installs Habit Tracker', async () => {
     mockUseLabs.mockReturnValue({
       ready: true,
       catalog: [makeFeature('available')],
@@ -144,8 +115,7 @@ describe('LabsPage', () => {
     renderPage()
     await userEvent.click(screen.getByRole('button', { name: i18n.labs.install }))
 
-    await waitFor(() => expect(mockInstall).toHaveBeenCalledWith('rss'))
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/rss'))
+    await waitFor(() => expect(mockInstall).toHaveBeenCalledWith('habit-tracker'))
   })
 
   it('shows upgrade dialog for free user', async () => {
@@ -164,7 +134,7 @@ describe('LabsPage', () => {
     expect(await screen.findByText(i18n.labs.upgradeTitle)).toBeInTheDocument()
   })
 
-  it('removes and restores RSS with confirm flow', async () => {
+  it('removes and restores features with confirm flow', async () => {
     mockUseLabs.mockReturnValue({
       ready: true,
       catalog: [makeFeature('installed'), makeFeature('removed', { featureKey: 'ai-digest', title: 'AI Digest' })],
@@ -177,12 +147,12 @@ describe('LabsPage', () => {
 
     renderPage()
 
-    const rssCard = screen.getByText('RSS Reader').closest('.rounded-xl')
-    expect(rssCard).not.toBeNull()
-    await userEvent.click(within(rssCard as HTMLElement).getByRole('button', { name: i18n.labs.remove }))
+    const habitCard = screen.getByText('Habit Tracker').closest('.rounded-xl')
+    expect(habitCard).not.toBeNull()
+    await userEvent.click(within(habitCard as HTMLElement).getByRole('button', { name: i18n.labs.remove }))
     const dialog = await screen.findByRole('alertdialog')
     await userEvent.click(within(dialog).getByRole('button', { name: i18n.labs.remove }))
-    await waitFor(() => expect(mockRemove).toHaveBeenCalledWith('rss'))
+    await waitFor(() => expect(mockRemove).toHaveBeenCalledWith('habit-tracker'))
 
     await userEvent.click(screen.getByRole('button', { name: i18n.labs.restore }))
     await waitFor(() => expect(mockRestore).toHaveBeenCalledWith('ai-digest'))

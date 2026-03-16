@@ -28,9 +28,71 @@ export type TaskActivityLog = {
   createdAt: number
 }
 
+export type TaskNoteParagraphBlock = {
+  id: string
+  type: 'paragraph'
+  text: string
+}
+
+export type TaskNoteBlock = TaskNoteParagraphBlock
+
+export type NoteCollection = 'all-notes' | 'work' | 'personal' | 'ideas'
+
+export type NoteHeading = {
+  level: 1 | 2 | 3
+  text: string
+  id: string
+}
+
+export type NoteBacklink = {
+  noteId: string
+  noteTitle: string
+}
+
+export type NoteTag = BaseEntity & {
+  name: string
+  icon?: string
+  pinned: boolean
+  parentId?: string | null
+  noteCount: number
+  sortOrder: number
+}
+
+export type NoteThemeMode = 'paper' | 'graphite'
+export type NoteFontFamily = 'sans' | 'serif' | 'mono'
+
+export type NoteAppearanceSettings = BaseEntity & {
+  id: 'note_appearance'
+  theme: NoteThemeMode
+  font: NoteFontFamily
+  fontSize: number
+  lineHeight: number
+  contentWidth: number
+  focusMode: boolean
+}
+
+export type NoteItem = BaseEntity & {
+  title: string
+  contentMd: string
+  contentJson?: Record<string, unknown> | null
+  collection: NoteCollection
+  tags: string[]
+  excerpt: string
+  pinned: boolean
+  wordCount: number
+  charCount: number
+  paragraphCount: number
+  imageCount: number
+  fileCount: number
+  headings: NoteHeading[]
+  backlinks: NoteBacklink[]
+  deletedAt?: number | null
+}
+
 export type TaskItem = BaseEntity & {
   title: string
   description: string
+  pinned: boolean
   status: TaskStatus
   priority: TaskPriority | null
   dueDate?: string
@@ -40,6 +102,9 @@ export type TaskItem = BaseEntity & {
   reminderFiredAt?: number
   tags: string[]
   subtasks: TaskSubtask[]
+  taskNoteBlocks: TaskNoteBlock[]
+  taskNoteContentMd?: string
+  taskNoteContentJson?: Record<string, unknown> | null
   progressLogs: TaskProgressLog[]
   activityLogs: TaskActivityLog[]
 }
@@ -140,6 +205,8 @@ export type HabitStatus = 'completed' | 'failed' | 'frozen'
 export type Habit = BaseEntity & {
   userId: string
   title: string
+  description?: string
+  icon?: string
   type: HabitType
   color: string
   archived: boolean

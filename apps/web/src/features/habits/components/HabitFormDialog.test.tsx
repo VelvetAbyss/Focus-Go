@@ -17,10 +17,10 @@ describe('HabitFormDialog', () => {
 
     render(<HabitFormDialog open onOpenChange={onOpenChange} onSubmit={onSubmit} />)
 
-    await user.click(screen.getByRole('button', { name: /save|保存/i }))
+    await user.click(screen.getByRole('button', { name: /add habit|添加习惯/i }))
 
     expect(onSubmit).not.toHaveBeenCalled()
-    expect(screen.getByText(/Title is required|请输入标题/i)).toBeInTheDocument()
+    expect(screen.getByText(/Habit name is required|请输入习惯名称/i)).toBeInTheDocument()
   })
 
   it('submits a valid form', async () => {
@@ -30,8 +30,8 @@ describe('HabitFormDialog', () => {
 
     render(<HabitFormDialog open onOpenChange={onOpenChange} onSubmit={onSubmit} />)
 
-    fireEvent.change(screen.getByLabelText(/title|标题/i), { target: { value: 'Drink Water' } })
-    await user.click(screen.getByRole('button', { name: /save|保存/i }))
+    fireEvent.change(screen.getByLabelText(/habit name|习惯名称/i), { target: { value: 'Drink Water' } })
+    await user.click(screen.getByRole('button', { name: /add habit|添加习惯/i }))
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1))
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))

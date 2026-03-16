@@ -61,19 +61,6 @@ vi.mock('../../../data/repositories/diaryRepo', () => ({
   diaryRepo: diaryRepoMock,
 }))
 
-const walkToCloseStep = async (user: ReturnType<typeof userEvent.setup>) => {
-  const clickNext = async () => {
-    const nextButtons = await screen.findAllByRole('button', { name: 'Next' })
-    await user.click(nextButtons[nextButtons.length - 1])
-  }
-
-  await clickNext()
-  const reflectionField = await screen.findByLabelText('Daily reflection')
-  await user.type(reflectionField, 'Today was productive.')
-  await clickNext()
-  await clickNext()
-}
-
 const findSnapshotCount = async (count: number) => {
   await waitFor(() => {
     expect(diaryRepoMock.listActive).toHaveBeenCalled()
@@ -100,16 +87,17 @@ describe('ReviewPage', () => {
     const user = userEvent.setup()
     render(<ReviewPage />)
 
-    await walkToCloseStep(user)
-    const submitButtons = await screen.findAllByRole('button', { name: 'Submit Review' })
-    await user.click(submitButtons[submitButtons.length - 1])
+    await user.type(screen.getByLabelText('One-line summary of today'), 'Today was productive.')
+    await user.type(screen.getByLabelText('Most important thing for tomorrow'), 'Finish the proposal.')
+    await user.click(screen.getByRole('button', { name: "Save today's review" }))
 
-    expect((await screen.findAllByText('Review complete')).length).toBeGreaterThan(0)
+    expect(await screen.findByText('Saved for today')).toBeInTheDocument()
     const today = toDateKey()
     const saved = store.get(today)
     expect(saved).toBeTruthy()
     expect(saved?.contentMd).toContain('REVIEW_BLOCK_START')
-    expect(saved?.contentMd).toContain('Today was productive.')
+    expect(saved?.contentMd).toContain('- Summary: Today was productive.')
+    expect(saved?.contentMd).toContain('- Tomorrow Focus: Finish the proposal.')
     expect(diaryRepoMock.add).toHaveBeenCalledTimes(1)
   })
 
@@ -117,10 +105,9 @@ describe('ReviewPage', () => {
     const user = userEvent.setup()
     render(<ReviewPage />)
 
-    await walkToCloseStep(user)
-    const submitButtons = await screen.findAllByRole('button', { name: 'Submit Review' })
-    await user.click(submitButtons[submitButtons.length - 1])
-    expect((await screen.findAllByText('Review complete')).length).toBeGreaterThan(0)
+    await user.type(screen.getByLabelText('One-line summary of today'), 'A quiet day.')
+    await user.click(screen.getByRole('button', { name: "Save today's review" }))
+    expect(await screen.findByText('Saved for today')).toBeInTheDocument()
 
     await findSnapshotCount(1)
   })
@@ -129,16 +116,14 @@ describe('ReviewPage', () => {
     const user = userEvent.setup()
     render(<ReviewPage />)
 
-    await walkToCloseStep(user)
-    const firstSubmitButtons = await screen.findAllByRole('button', { name: 'Submit Review' })
-    await user.click(firstSubmitButtons[firstSubmitButtons.length - 1])
-    expect((await screen.findAllByText('Review complete')).length).toBeGreaterThan(0)
+    await user.type(screen.getByLabelText('One-line summary of today'), 'First pass.')
+    await user.click(screen.getByRole('button', { name: "Save today's review" }))
+    expect(await screen.findByText('Saved for today')).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Start New Review' }))
-    await walkToCloseStep(user)
-    const secondSubmitButtons = await screen.findAllByRole('button', { name: 'Submit Review' })
-    await user.click(secondSubmitButtons[secondSubmitButtons.length - 1])
-    expect((await screen.findAllByText('Review complete')).length).toBeGreaterThan(0)
+    await user.click(screen.getByRole('button', { name: 'Start a new reflection' }))
+    await user.type(screen.getByLabelText('One-line summary of today'), 'Second pass.')
+    await user.click(await screen.findByRole('button', { name: "Save today's review" }))
+    expect(await screen.findByText('Saved for today')).toBeInTheDocument()
 
     await findSnapshotCount(2)
   })
@@ -148,16 +133,14 @@ describe('ReviewPage', () => {
     diaryRepoMock.add.mockRejectedValueOnce(new Error('write failed'))
     render(<ReviewPage />)
 
-    await walkToCloseStep(user)
-    const submitButtons = await screen.findAllByRole('button', { name: 'Submit Review' })
-    await user.click(submitButtons[submitButtons.length - 1])
+    await user.click(screen.getByRole('button', { name: "Save today's review" }))
 
     await waitFor(() => {
       expect(
         screen.getByText('Failed to save review snapshot to diary. Please try again.')
       ).toBeInTheDocument()
     })
-    expect(screen.queryAllByText('Review complete')).toHaveLength(0)
+    expect(screen.queryByText('Saved for today')).not.toBeInTheDocument()
   })
 
   it('renders workflow and history containers simultaneously', async () => {
@@ -165,18 +148,18 @@ describe('ReviewPage', () => {
 
     expect(screen.getByLabelText('Review workflow')).toBeInTheDocument()
     expect(screen.getByLabelText('Review history')).toBeInTheDocument()
-    expect(screen.getByText('Review History')).toBeInTheDocument()
+    expect(screen.getByText('Your reflections')).toBeInTheDocument()
+    expect(screen.getByLabelText('One-line summary of today')).toBeInTheDocument()
   })
 
   it('keeps completed state visible while history updates after submit', async () => {
     const user = userEvent.setup()
     render(<ReviewPage />)
 
-    await walkToCloseStep(user)
-    const submitButtons = await screen.findAllByRole('button', { name: 'Submit Review' })
-    await user.click(submitButtons[submitButtons.length - 1])
+    await user.type(screen.getByLabelText('One-line summary of today'), 'A gentle finish.')
+    await user.click(screen.getByRole('button', { name: "Save today's review" }))
 
-    expect((await screen.findAllByText('Review complete')).length).toBeGreaterThan(0)
+    expect(await screen.findByText('Saved for today')).toBeInTheDocument()
     await findSnapshotCount(1)
   })
 })

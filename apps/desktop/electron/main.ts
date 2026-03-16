@@ -101,9 +101,36 @@ app.whenReady().then(() => {
       await sqliteBundle.service.tasks.clearAllTags()
       return null
     },
+    'db:notes:list': async () => sqliteBundle.service.notes.list(),
+    'db:notes:listTrash': async () => sqliteBundle.service.notes.listTrash(),
+    'db:notes:create': async (payload) => sqliteBundle.service.notes.create(payload as never),
+    'db:notes:update': async (payload) => {
+      const typed = payload as { id: string; patch: never }
+      return sqliteBundle.service.notes.update(typed.id, typed.patch)
+    },
+    'db:notes:softDelete': async (payload) => sqliteBundle.service.notes.softDelete((payload as { id: string }).id),
+    'db:notes:restore': async (payload) => sqliteBundle.service.notes.restore((payload as { id: string }).id),
+    'db:notes:hardDelete': async (payload) => {
+      await sqliteBundle.service.notes.hardDelete((payload as { id: string }).id)
+      return null
+    },
+    'db:noteTags:list': async () => sqliteBundle.service.noteTags.list(),
+    'db:noteTags:create': async (payload) => sqliteBundle.service.noteTags.create(payload as never),
+    'db:noteTags:update': async (payload) => {
+      const typed = payload as { id: string; patch: never }
+      return sqliteBundle.service.noteTags.update(typed.id, typed.patch)
+    },
+    'db:noteTags:remove': async (payload) => {
+      await sqliteBundle.service.noteTags.remove((payload as { id: string }).id)
+      return null
+    },
+    'db:noteAppearance:get': async () => sqliteBundle.service.noteAppearance.get(),
+    'db:noteAppearance:upsert': async (payload) => sqliteBundle.service.noteAppearance.upsert(payload as never),
     'db:widgetTodos:list': async (payload) => sqliteBundle.service.widgetTodos.list((payload as { scope?: never }).scope),
     'db:widgetTodos:add': async (payload) => sqliteBundle.service.widgetTodos.add(payload as never),
     'db:widgetTodos:update': async (payload) => sqliteBundle.service.widgetTodos.update((payload as { item: never }).item),
+    'db:widgetTodos:resetDone': async (payload) =>
+      sqliteBundle.service.widgetTodos.resetDone((payload as { scope: never }).scope),
     'db:widgetTodos:remove': async (payload) => {
       await sqliteBundle.service.widgetTodos.remove((payload as { id: string }).id)
       return null

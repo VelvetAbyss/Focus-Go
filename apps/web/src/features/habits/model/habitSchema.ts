@@ -5,13 +5,60 @@ import { calculateStreak } from './streak'
 
 export type HabitDraft = {
   title: string
+  description: string
+  icon: string
   type: HabitType
   color: string
   target?: number
   freezesAllowed: number
 }
 
-export const HABIT_COLORS = ['#7edbc7', '#7ab8ff', '#f2a65a', '#e88dd8', '#c3f27f', '#f28482'] as const
+export const HABIT_COLORS = [
+  '#3a3733',
+  '#374151',
+  '#4b5563',
+  '#6b7280',
+  '#9ca3af',
+  '#d1d5db',
+  '#e5e7eb',
+  '#f3f4f6',
+  '#f9fafb',
+  '#ffffff',
+  '#3a3733',
+  '#525252',
+  '#737373',
+  '#a3a3a3',
+  '#d4d4d4',
+  '#e5e5e5',
+  '#f5f5f5',
+] as const
+
+export const HABIT_ICONS = [
+  '💪',
+  '📚',
+  '🏃',
+  '🧘',
+  '💧',
+  '🥗',
+  '😴',
+  '✍️',
+  '🎨',
+  '🎵',
+  '🧠',
+  '💻',
+  '🎯',
+  '📝',
+  '🌟',
+  '⚡',
+  '🔥',
+  '🌱',
+  '🎓',
+  '🏆',
+  '💼',
+  '🏋️',
+  '🚴',
+  '🏊',
+] as const
 
 export const listHabits = (archived = false) => dbService.habits.listHabits(CURRENT_USER_ID, { archived })
 
@@ -19,6 +66,8 @@ export const createHabit = (draft: HabitDraft) => {
   return dbService.habits.createHabit({
     userId: CURRENT_USER_ID,
     title: draft.title,
+    description: draft.description,
+    icon: draft.icon,
     type: draft.type,
     color: draft.color,
     target: draft.type === 'boolean' ? undefined : Math.max(1, Math.round(draft.target ?? 1)),
@@ -31,6 +80,8 @@ export const createHabit = (draft: HabitDraft) => {
 export const updateHabit = (habitId: string, draft: Partial<HabitDraft>) => {
   const patch: Partial<Habit> = {}
   if (typeof draft.title === 'string') patch.title = draft.title
+  if (typeof draft.description === 'string') patch.description = draft.description
+  if (typeof draft.icon === 'string') patch.icon = draft.icon
   if (typeof draft.color === 'string') patch.color = draft.color
   if (typeof draft.type === 'string') patch.type = draft.type
   if (typeof draft.freezesAllowed === 'number') patch.freezesAllowed = Math.max(0, Math.round(draft.freezesAllowed))

@@ -3,8 +3,11 @@ import type {
   DiaryEntry,
   FocusSession,
   FocusSettings,
+  NoteAppearanceSettings,
   Habit,
   HabitLog,
+  NoteItem,
+  NoteTag,
   SpendCategory,
   SpendEntry,
   TaskItem,
@@ -16,6 +19,7 @@ import type {
 export type TaskCreateInput = {
   title: string
   description?: string
+  pinned?: boolean
   status: TaskStatus
   priority: TaskItem['priority']
   dueDate?: string
@@ -25,9 +29,24 @@ export type TaskCreateInput = {
   reminderFiredAt?: number
   tags?: string[]
   subtasks?: TaskItem['subtasks']
+  taskNoteBlocks?: TaskItem['taskNoteBlocks']
+  taskNoteContentMd?: TaskItem['taskNoteContentMd']
+  taskNoteContentJson?: TaskItem['taskNoteContentJson']
 }
 
 export type WidgetTodoCreateInput = Omit<WidgetTodo, 'id' | 'createdAt' | 'updatedAt'>
+export type NoteCreateInput = Partial<
+  Pick<NoteItem, 'title' | 'contentMd' | 'contentJson' | 'collection' | 'tags' | 'pinned' | 'backlinks'>
+>
+export type NoteUpdateInput = Partial<
+  Pick<
+    NoteItem,
+    'title' | 'contentMd' | 'contentJson' | 'collection' | 'tags' | 'excerpt' | 'pinned' | 'wordCount' | 'charCount' | 'paragraphCount' | 'imageCount' | 'fileCount' | 'headings' | 'backlinks' | 'deletedAt'
+  >
+>
+export type NoteTagCreateInput = Omit<NoteTag, 'id' | 'createdAt' | 'updatedAt' | 'noteCount'>
+export type NoteTagUpdateInput = Partial<Omit<NoteTag, 'id' | 'createdAt' | 'updatedAt'>>
+export type NoteAppearanceUpsertInput = Omit<NoteAppearanceSettings, 'createdAt' | 'updatedAt'>
 export type SpendEntryCreateInput = Omit<SpendEntry, 'id' | 'createdAt' | 'updatedAt'>
 export type SpendCategoryCreateInput = Omit<SpendCategory, 'id' | 'createdAt' | 'updatedAt'>
 export type FocusSettingsUpsertInput = Omit<FocusSettings, 'id' | 'createdAt' | 'updatedAt'>
@@ -64,7 +83,30 @@ export interface IWidgetTodoDataAccess {
   list(scope?: WidgetTodoScope): Promise<WidgetTodo[]>
   add(data: WidgetTodoCreateInput): Promise<WidgetTodo>
   update(item: WidgetTodo): Promise<WidgetTodo>
+  resetDone(scope: WidgetTodoScope): Promise<WidgetTodo[]>
   remove(id: string): Promise<void>
+}
+
+export interface INoteDataAccess {
+  list(): Promise<NoteItem[]>
+  listTrash(): Promise<NoteItem[]>
+  create(data?: NoteCreateInput): Promise<NoteItem>
+  update(id: string, patch: NoteUpdateInput): Promise<NoteItem | undefined>
+  softDelete(id: string): Promise<NoteItem | undefined>
+  restore(id: string): Promise<NoteItem | undefined>
+  hardDelete(id: string): Promise<void>
+}
+
+export interface INoteTagDataAccess {
+  list(): Promise<NoteTag[]>
+  create(data: NoteTagCreateInput): Promise<NoteTag>
+  update(id: string, patch: NoteTagUpdateInput): Promise<NoteTag | undefined>
+  remove(id: string): Promise<void>
+}
+
+export interface INoteAppearanceDataAccess {
+  get(): Promise<NoteAppearanceSettings | null>
+  upsert(data: Partial<NoteAppearanceUpsertInput> & Pick<NoteAppearanceUpsertInput, 'id'>): Promise<NoteAppearanceSettings>
 }
 
 export interface IFocusDataAccess {
@@ -124,6 +166,9 @@ export interface IHabitDataAccess {
 
 export interface IDatabaseService {
   tasks: ITaskDataAccess
+  notes: INoteDataAccess
+  noteTags: INoteTagDataAccess
+  noteAppearance: INoteAppearanceDataAccess
   widgetTodos: IWidgetTodoDataAccess
   focus: IFocusDataAccess
   focusSessions: IFocusSessionDataAccess

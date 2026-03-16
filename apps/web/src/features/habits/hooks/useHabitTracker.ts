@@ -25,6 +25,7 @@ type State = {
   activeHabits: Habit[]
   archivedHabits: Habit[]
   logsByHabit: HabitLogsMap
+  completedDatesByHabit: Record<string, string[]>
   streakByHabit: Record<string, number>
   dailyProgress: { completed: number; total: number; percent: number }
   heatmap: Array<{ dateKey: string; completed: number; total: number }>
@@ -35,6 +36,7 @@ const initialState: State = {
   activeHabits: [],
   archivedHabits: [],
   logsByHabit: {},
+  completedDatesByHabit: {},
   streakByHabit: {},
   dailyProgress: { completed: 0, total: 0, percent: 0 },
   heatmap: [],
@@ -60,6 +62,15 @@ export const useHabitTracker = () => {
       return acc
     }, {})
 
+    const completedDatesByHabit = allHabits.reduce<Record<string, string[]>>((acc, habit, index) => {
+      const rows = logsRows[index] ?? []
+      acc[habit.id] = rows
+        .filter((log) => log.status === 'completed')
+        .map((log) => log.dateKey)
+        .sort()
+      return acc
+    }, {})
+
     const streakByHabit = allHabits.reduce<Record<string, number>>((acc, habit, index) => {
       acc[habit.id] = streakRows[index] ?? 0
       return acc
@@ -70,6 +81,7 @@ export const useHabitTracker = () => {
       activeHabits,
       archivedHabits,
       logsByHabit,
+      completedDatesByHabit,
       streakByHabit,
       dailyProgress,
       heatmap,
@@ -77,7 +89,10 @@ export const useHabitTracker = () => {
   }, [dateKey])
 
   useEffect(() => {
-    void refresh()
+    const timer = window.setTimeout(() => {
+      void refresh()
+    }, 0)
+    return () => window.clearTimeout(timer)
   }, [refresh])
 
   const completedHabitIds = useMemo(() => {
@@ -121,16 +136,16 @@ export const useHabitTracker = () => {
   )
 
   const handleComplete = useCallback(
-    async (habit: Habit, value?: number) => {
-      await completeHabit(habit, dateKey, value)
+    async (habit: Habit, value?: number, targetDateKey?: string) => {
+      await completeHabit(habit, targetDateKey ?? dateKey, value)
       await refresh()
     },
     [dateKey, refresh],
   )
 
   const handleUndo = useCallback(
-    async (habitId: string) => {
-      await undoHabit(habitId, dateKey)
+    async (habitId: string, targetDateKey?: string) => {
+      await undoHabit(habitId, targetDateKey ?? dateKey)
       await refresh()
     },
     [dateKey, refresh],

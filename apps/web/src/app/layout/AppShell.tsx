@@ -1,8 +1,14 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useLocation } from 'react-router-dom'
+import { ROUTES } from '../routes/routes'
 import { usePreferences } from '../../shared/prefs/usePreferences'
-import { pageTransitionTiming, pageTransitionVariants } from '../../shared/ui/transitions'
+import {
+  habitPageTransitionTiming,
+  habitPageTransitionVariants,
+  pageTransitionTiming,
+  pageTransitionVariants,
+} from '../../shared/ui/transitions'
 import {
   applyTheme,
   readStoredThemePreference,
@@ -45,6 +51,10 @@ const AppShell = ({ children }: AppShellProps) => {
     return readStoredThemePreference() ?? resolveInitialTheme()
   })
   useTaskReminderEngine()
+  const isHabitRoute = location.pathname === ROUTES.HABITS
+  const isNoteRoute = location.pathname === ROUTES.NOTE
+  const routeVariants = isHabitRoute ? habitPageTransitionVariants : pageTransitionVariants
+  const routeTransition = isHabitRoute ? habitPageTransitionTiming : pageTransitionTiming
 
   useEffect(() => {
     if (compactViewport) return
@@ -126,12 +136,12 @@ const AppShell = ({ children }: AppShellProps) => {
         <AnimatePresence mode="wait" initial={false}>
           <motion.section
             key={location.pathname}
-            className="focus-shell__route-layer"
-            variants={pageTransitionVariants}
+            className={`focus-shell__route-layer ${isNoteRoute ? 'focus-shell__route-layer--full-bleed' : ''}`}
+            variants={routeVariants}
             initial={uiAnimationsEnabled ? 'initial' : false}
             animate="animate"
             exit={uiAnimationsEnabled ? 'exit' : undefined}
-            transition={uiAnimationsEnabled ? pageTransitionTiming : { duration: 0 }}
+            transition={uiAnimationsEnabled ? routeTransition : { duration: 0 }}
           >
             {children}
           </motion.section>

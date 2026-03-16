@@ -48,6 +48,8 @@ export const createDefaultNoiseSettings = (): NoiseSettings => {
     playing: false,
     loop: true,
     masterVolume: 0.6,
+    sleepEndsAt: null,
+    sleepDurationMinutes: null,
     tracks,
   }
 }

@@ -16,7 +16,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Eye, EyeOff, GripVertical, PanelLeftOpen, PanelRightOpen, Plus, RotateCcw, Trash2, X } from 'lucide-react'
+import { Check, Eye, EyeOff, GripVertical, PanelLeftOpen, PanelRightOpen, Plus, RotateCcw, Trash2, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -39,6 +39,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import AnimatedScrollList from '../../../shared/ui/AnimatedScrollList'
+import { DateRangePicker } from '../../../shared/ui/DateRangePicker'
+import { DateTimePicker } from '../../../shared/ui/DateTimePicker'
 import { useAddInputComposer } from '../../../shared/hooks/useAddInputComposer'
 import { tasksRepo } from '../../../data/repositories/tasksRepo'
 import { emitTasksChanged, subscribeTasksChanged } from '../../tasks/taskSync'
@@ -66,7 +68,8 @@ const weekLabels = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 
 const STORAGE_SUBSCRIPTIONS_KEY = 'focusgo.calendar.subscriptions.v1'
 const STORAGE_ICS_EVENTS_KEY = 'focusgo.calendar.icsEvents.v1'
-const CALENDAR_PRESET_COLORS = ['#94a3b8', '#60a5fa', '#2563eb', '#0ea5e9', '#10b981', '#22c55e', '#f59e0b', '#ef4444', '#64748b', '#0f766e']
+const STORAGE_TASK_COLORS_KEY = 'focusgo.calendar.taskColors.v1'
+const CALENDAR_PRESET_COLORS = ['#9ca3af', '#60a5fa', '#2563eb', '#22d3ee', '#34d399', '#10b981', '#22c55e', '#f59e0b', '#ef4444', '#fb7185', '#6b7280', '#0f766e']
 const CALENDAR_PRESET_SUBSCRIPTION_PLACEHOLDERS = [
   {
     id: 'preset-cn-holidays',
@@ -98,23 +101,79 @@ const toDateKey = (date: Date) => {
 }
 
 const hasCjk = (text: string) => /[\u3400-\u9FFF]/.test(text)
-
-const formatDateTimeLocalInput = (value?: number) => {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return ''
-  const date = new Date(value)
-  const y = date.getFullYear()
-  const m = `${date.getMonth() + 1}`.padStart(2, '0')
-  const d = `${date.getDate()}`.padStart(2, '0')
-  const hh = `${date.getHours()}`.padStart(2, '0')
-  const mm = `${date.getMinutes()}`.padStart(2, '0')
-  return `${y}-${m}-${d}T${hh}:${mm}`
+const isHexColor = (value: string) => /^#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$/.test(value.trim())
+const normalizeHexColor = (value: string) => {
+  const trimmed = value.trim()
+  if (!isHexColor(trimmed)) return null
+  if (trimmed.length === 4) {
+    const [, r, g, b] = trimmed
+    return `#${r}${r}${g}${g}${b}${b}`.toLowerCase()
+  }
+  return trimmed.toLowerCase()
 }
 
-const parseDateTimeLocalInput = (value: string) => {
-  const trimmed = value.trim()
-  if (!trimmed) return undefined
-  const ts = new Date(trimmed).getTime()
-  return Number.isFinite(ts) ? ts : undefined
+type ColorPalettePopoverContentProps = {
+  title: string
+  currentColor: string
+  swatchLabelPrefix: string
+  inputId: string
+  onChange: (nextColor: string) => void
+}
+
+const ColorPalettePopoverContent = ({
+  title,
+  currentColor,
+  swatchLabelPrefix,
+  inputId,
+  onChange,
+}: ColorPalettePopoverContentProps) => {
+  const normalizedCurrent = normalizeHexColor(currentColor) ?? '#ef4444'
+  const [draftHex, setDraftHex] = useState(normalizedCurrent.toUpperCase())
+
+  useEffect(() => {
+    setDraftHex(normalizedCurrent.toUpperCase())
+  }, [normalizedCurrent])
+
+  return (
+    <div className="calendar-color-popover">
+      <div className="calendar-color-popover__title">{title}</div>
+      <div className="calendar-color-grid" role="listbox" aria-label={`${title} presets`}>
+        {CALENDAR_PRESET_COLORS.map((presetColor) => {
+          const normalizedPreset = normalizeHexColor(presetColor) ?? presetColor
+          const isSelected = normalizedCurrent === normalizedPreset
+          return (
+            <button
+              key={`${swatchLabelPrefix}-${presetColor}`}
+              type="button"
+              className={`calendar-color-swatch${isSelected ? ' is-selected' : ''}`}
+              style={{ background: presetColor }}
+              onClick={() => onChange(normalizedPreset)}
+              aria-label={`Set ${swatchLabelPrefix} color to ${presetColor}`}
+            >
+              {isSelected ? <Check className="calendar-color-swatch__check" /> : null}
+            </button>
+          )
+        })}
+      </div>
+      <Label htmlFor={inputId} className="calendar-color-popover__label">
+        Custom
+      </Label>
+      <div className="calendar-color-popover__spectrum" aria-hidden />
+      <Input
+        id={inputId}
+        value={draftHex}
+        onChange={(event) => {
+          const next = event.currentTarget.value
+          setDraftHex(next)
+          const normalized = normalizeHexColor(next)
+          if (normalized) onChange(normalized)
+        }}
+        onBlur={() => setDraftHex(normalizedCurrent.toUpperCase())}
+        className="calendar-color-popover__hex-input"
+        aria-label={`${swatchLabelPrefix} custom color hex`}
+      />
+    </div>
+  )
 }
 
 const formatReminderLabel = (value?: number) => {
@@ -129,16 +188,51 @@ const formatReminderLabel = (value?: number) => {
 }
 
 type TaskCardDraft = {
+  title: string
   startDate: string
   endDate: string
-  reminderAtInput: string
+  reminderDate: string
+  reminderTime: string
   priority: TaskItem['priority']
 }
 
+const readStoredTaskColors = () => {
+  if (typeof window === 'undefined') return {} as Record<string, string>
+  try {
+    const raw = window.localStorage.getItem(STORAGE_TASK_COLORS_KEY)
+    if (!raw) return {} as Record<string, string>
+    const parsed = JSON.parse(raw) as Record<string, string>
+    if (!parsed || typeof parsed !== 'object') return {} as Record<string, string>
+    return parsed
+  } catch {
+    return {} as Record<string, string>
+  }
+}
+
+const getReminderDateParts = (value?: number) => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return { reminderDate: '', reminderTime: '' }
+  const date = new Date(value)
+  const y = date.getFullYear()
+  const m = `${date.getMonth() + 1}`.padStart(2, '0')
+  const d = `${date.getDate()}`.padStart(2, '0')
+  const hh = `${date.getHours()}`.padStart(2, '0')
+  const mm = `${date.getMinutes()}`.padStart(2, '0')
+  return { reminderDate: `${y}-${m}-${d}`, reminderTime: `${hh}:${mm}` }
+}
+
+const combineReminderDateTime = (dateKey: string, time: string) => {
+  const date = dateKey.trim()
+  const timeText = time.trim()
+  if (!date || !timeText) return undefined
+  const ts = new Date(`${date}T${timeText}`).getTime()
+  return Number.isFinite(ts) ? ts : undefined
+}
+
 const buildTaskCardDraft = (task: TaskItem): TaskCardDraft => ({
+  title: task.title,
   startDate: task.startDate ?? '',
   endDate: task.endDate ?? '',
-  reminderAtInput: formatDateTimeLocalInput(task.reminderAt),
+  ...getReminderDateParts(task.reminderAt),
   priority: task.priority,
 })
 
@@ -257,27 +351,13 @@ const SortableSubscriptionItem = ({
             style={{ background: sub.color }}
           />
         </PopoverTrigger>
-        <PopoverContent className="calendar-color-popover" align="end">
-          <div className="calendar-color-popover__title">Preset colors</div>
-          <div className="calendar-color-grid" role="listbox" aria-label={`Preset colors for ${sub.name}`}>
-            {CALENDAR_PRESET_COLORS.map((presetColor) => (
-              <button
-                key={`${sub.id}-${presetColor}`}
-                type="button"
-                className={`calendar-color-swatch${sub.color.toLowerCase() === presetColor.toLowerCase() ? ' is-selected' : ''}`}
-                style={{ background: presetColor }}
-                onClick={() => onUpdateColor(sub.id, presetColor)}
-                aria-label={`Set ${sub.name} color to ${presetColor}`}
-              />
-            ))}
-          </div>
-          <Label htmlFor={`color-${sub.id}`}>Custom</Label>
-          <Input
-            id={`color-${sub.id}`}
-            type="color"
-            aria-label={`Color for ${sub.name}`}
-            value={sub.color}
-            onChange={(event) => onUpdateColor(sub.id, event.currentTarget.value)}
+        <PopoverContent className="calendar-color-popover-shell" align="end">
+          <ColorPalettePopoverContent
+            title="Color"
+            currentColor={sub.color}
+            swatchLabelPrefix={sub.name}
+            inputId={`color-${sub.id}`}
+            onChange={(nextColor) => onUpdateColor(sub.id, nextColor)}
           />
         </PopoverContent>
       </Popover>
@@ -313,6 +393,7 @@ const CalendarPage = () => {
   const [selectedDateKey, setSelectedDateKey] = useState(() => toDateKey(new Date()))
   const [subscriptions, setSubscriptions] = useState<CalendarSubscription[]>(readStoredSubscriptions)
   const [icsEventsBySubscription, setIcsEventsBySubscription] = useState<Record<string, CalendarEvent[]>>(readStoredIcsEvents)
+  const [taskColorsById, setTaskColorsById] = useState<Record<string, string>>(readStoredTaskColors)
   const [syncStateBySubscription, setSyncStateBySubscription] = useState<Record<string, SubscriptionSyncState>>({})
   const [allTasks, setAllTasks] = useState<TaskItem[]>([])
   const [creatingSelectedDayTask, setCreatingSelectedDayTask] = useState(false)
@@ -375,6 +456,11 @@ const CalendarPage = () => {
     if (typeof window === 'undefined') return
     window.localStorage.setItem(STORAGE_ICS_EVENTS_KEY, JSON.stringify(icsEventsBySubscription))
   }, [icsEventsBySubscription])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem(STORAGE_TASK_COLORS_KEY, JSON.stringify(taskColorsById))
+  }, [taskColorsById])
 
   useEffect(() => {
     subscriptions
@@ -454,6 +540,13 @@ const CalendarPage = () => {
         .slice()
         .sort((a, b) => b.createdAt - a.createdAt),
     [allTasks, selectedDateKey]
+  )
+
+  const resolveTaskChipColor = useCallback(
+    (task: TaskItem) => {
+      return taskColorsById[task.id] ?? '#ef4444'
+    },
+    [taskColorsById]
   )
 
   const jumpToToday = () => {
@@ -659,7 +752,13 @@ const CalendarPage = () => {
   const updateTaskCardDraft = (taskId: string, patch: Partial<TaskCardDraft>) => {
     setTaskCardDrafts((prev) => {
       const current = prev[taskId]
-      const next = { ...(current ?? { startDate: '', endDate: '', reminderAtInput: '', priority: null }), ...patch }
+      const next = {
+        ...(current ?? { title: '', startDate: '', endDate: '', reminderDate: '', reminderTime: '', priority: null }),
+        ...patch,
+      }
+      if (!next.reminderDate) {
+        next.reminderTime = ''
+      }
       return { ...prev, [taskId]: next }
     })
   }
@@ -669,9 +768,9 @@ const CalendarPage = () => {
     setTaskCardDrafts((prev) => ({ ...prev, [task.id]: buildTaskCardDraft(task) }))
   }
 
-  const handleSaveTaskCard = async (task: TaskItem) => {
+  const handleSaveTaskCard = async (task: TaskItem, nextDraft?: TaskCardDraft) => {
     if (savingTaskCardIds[task.id]) return
-    const draft = taskCardDrafts[task.id] ?? buildTaskCardDraft(task)
+    const draft = nextDraft ?? taskCardDrafts[task.id] ?? buildTaskCardDraft(task)
     if (draft.startDate && draft.endDate && draft.endDate < draft.startDate) {
       setTaskCardError('End date must be on or after start date.')
       return
@@ -680,9 +779,10 @@ const CalendarPage = () => {
     setTaskCardError(null)
     setSavingTaskCardIds((prev) => ({ ...prev, [task.id]: true }))
     try {
-      const nextReminderAt = parseDateTimeLocalInput(draft.reminderAtInput)
+      const nextReminderAt = combineReminderDateTime(draft.reminderDate, draft.reminderTime)
       const nextTask: TaskItem = {
         ...task,
+        title: draft.title.trim() || task.title,
         priority: draft.priority,
         startDate: draft.startDate || undefined,
         endDate: draft.endDate || undefined,
@@ -714,7 +814,7 @@ const CalendarPage = () => {
     >
       <aside className="calendar-v2__left calendar-v2__drawer" aria-label="Calendar sidebar">
         <div className="calendar-v2__drawer-header">
-          <h3>Scheduling panel</h3>
+          <h3>Subscriptions panel</h3>
           <Button
             type="button"
             variant="ghost"
@@ -753,7 +853,6 @@ const CalendarPage = () => {
         </div>
 
         <section className="calendar-subscriptions" aria-label="Subscriptions">
-          <h3>Scheduling</h3>
           <ScrollArea className="calendar-subscriptions__scroll">
             <div className="calendar-subscriptions__inner">
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSubscriptionDragEnd}>
@@ -808,7 +907,7 @@ const CalendarPage = () => {
               aria-pressed={leftSidebarOpen}
             >
               <PanelLeftOpen />
-              Scheduling
+              Subscriptions
             </Button>
             <Button
               type="button"
@@ -847,13 +946,14 @@ const CalendarPage = () => {
               const rank = { lunar: 0, holiday: 1, event: 2 }
               return rank[a.kind] - rank[b.kind]
             })
-            const dayTasks = (tasksByDate.get(dateKey) ?? []).slice(0, 2)
+            const dayTasks = (tasksByDate.get(dateKey) ?? []).slice()
             const dayItems = [
               ...dayTasks.map((task) => ({
                 id: `task-${task.id}`,
                 title: task.title.trim() || 'Untitled',
                 type: 'task' as const,
                 status: task.status,
+                color: resolveTaskChipColor(task),
               })),
               ...dayEvents.map((event) => ({
                 id: event.id,
@@ -863,7 +963,7 @@ const CalendarPage = () => {
                 subscriptionId: event.subscriptionId,
               })),
             ]
-            const visible = dayItems.slice(0, 2)
+            const visible = dayItems.slice(0, 4)
             const overflow = dayItems.length - visible.length
             const isCurrentMonth = isDateInMonth(dateKey, anchorDate)
             const isSelected = selectedDateKey === dateKey
@@ -884,7 +984,11 @@ const CalendarPage = () => {
                       <Badge
                         key={item.id}
                         variant="secondary"
-                        className="calendar-chip calendar-chip--task calendar-chip--task-red"
+                        className="calendar-chip calendar-chip--task"
+                        style={{
+                          background: `color-mix(in srgb, ${item.color} 24%, var(--bg-muted))`,
+                          color: `color-mix(in srgb, ${item.color} 88%, var(--text-primary))`,
+                        }}
                       >
                         {item.title}
                       </Badge>
@@ -962,17 +1066,46 @@ const CalendarPage = () => {
               renderItem={(task) => {
                 const taskTitle = task.title.trim() || 'Untitled'
                 const isDeleting = Boolean(deletingTaskIds[task.id])
-                const isSavingCard = Boolean(savingTaskCardIds[task.id])
                 const draft = taskCardDrafts[task.id] ?? buildTaskCardDraft(task)
                 const taskTags = task.tags.slice(0, 2)
                 const hiddenTagCount = Math.max(0, task.tags.length - taskTags.length)
                 return (
                   <article className="calendar-task-card">
                     <div className="calendar-task-card__header">
-                      <span className={`calendar-side-row__dot calendar-side-row__dot--${task.status}`} aria-hidden="true" />
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            className="calendar-side-row__dot calendar-task-card__color-dot"
+                            aria-label={`Set task color for ${taskTitle}`}
+                            style={{ background: resolveTaskChipColor(task) }}
+                          />
+                        </PopoverTrigger>
+                        <PopoverContent className="calendar-color-popover-shell" align="start">
+                          <ColorPalettePopoverContent
+                            title="Task color"
+                            currentColor={resolveTaskChipColor(task)}
+                            swatchLabelPrefix={taskTitle}
+                            inputId={`task-color-${task.id}`}
+                            onChange={(nextColor) =>
+                              setTaskColorsById((prev) => ({
+                                ...prev,
+                                [task.id]: nextColor,
+                              }))
+                            }
+                          />
+                        </PopoverContent>
+                      </Popover>
                       <span className={`calendar-side-row__text${hasCjk(taskTitle) ? ' is-cjk' : ''}`}>{taskTitle}</span>
                       <div className="calendar-side-row__action">
-                        <Popover onOpenChange={(open) => handleTaskCardEditorOpen(task, open)}>
+                        <Popover
+                          onOpenChange={(open) => {
+                            handleTaskCardEditorOpen(task, open)
+                            if (!open) {
+                              void handleSaveTaskCard(task)
+                            }
+                          }}
+                        >
                           <PopoverTrigger asChild>
                             <Button type="button" variant="outline" size="sm" className="calendar-task-card__edit">
                               Edit
@@ -980,37 +1113,66 @@ const CalendarPage = () => {
                           </PopoverTrigger>
                           <PopoverContent className="calendar-task-card__editor" align="end">
                             <div className="calendar-task-card__editor-grid">
-                              <label>
-                                <span>Start date</span>
+                              <div className="calendar-task-card__field">
+                                <span>Title</span>
                                 <Input
-                                  type="date"
-                                  value={draft.startDate}
-                                  onChange={(event) => updateTaskCardDraft(task.id, { startDate: event.currentTarget.value })}
+                                  aria-label="Title"
+                                  value={draft.title}
+                                  onChange={(event) => {
+                                    const patch = { title: event.currentTarget.value }
+                                    const nextDraft = { ...draft, ...patch }
+                                    updateTaskCardDraft(task.id, patch)
+                                    void handleSaveTaskCard(task, nextDraft)
+                                  }}
                                 />
-                              </label>
-                              <label>
-                                <span>End date</span>
-                                <Input
-                                  type="date"
-                                  value={draft.endDate}
-                                  onChange={(event) => updateTaskCardDraft(task.id, { endDate: event.currentTarget.value })}
+                              </div>
+                              <div className="calendar-task-card__field">
+                                <span>Date Range</span>
+                                <DateRangePicker
+                                  value={{ startDate: draft.startDate, endDate: draft.endDate }}
+                                  onChange={({ startDate, endDate }) => {
+                                    const patch = { startDate: startDate ?? '', endDate: endDate ?? '' }
+                                    const nextDraft = { ...draft, ...patch }
+                                    updateTaskCardDraft(task.id, patch)
+                                    void handleSaveTaskCard(task, nextDraft)
+                                  }}
+                                  className="w-full"
+                                  popoverClassName="calendar-task-card__date-popover"
                                 />
-                              </label>
-                              <label>
+                              </div>
+                              <div className="calendar-task-card__field">
                                 <span>Reminder</span>
-                                <Input
-                                  type="datetime-local"
-                                  value={draft.reminderAtInput}
-                                  onChange={(event) => updateTaskCardDraft(task.id, { reminderAtInput: event.currentTarget.value })}
+                                <DateTimePicker
+                                  dateValue={draft.reminderDate}
+                                  timeValue={draft.reminderTime}
+                                  onDateChange={(date) => {
+                                    const patch = { reminderDate: date ?? '', reminderTime: date ? draft.reminderTime : '' }
+                                    const nextDraft = { ...draft, ...patch }
+                                    updateTaskCardDraft(task.id, patch)
+                                    void handleSaveTaskCard(task, nextDraft)
+                                  }}
+                                  onTimeChange={(time) => {
+                                    const patch = { reminderTime: time ?? '' }
+                                    const nextDraft = { ...draft, ...patch }
+                                    updateTaskCardDraft(task.id, patch)
+                                    void handleSaveTaskCard(task, nextDraft)
+                                  }}
+                                  placeholder="—"
+                                  ariaLabel="Reminder date"
+                                  className="w-full"
+                                  popoverClassName="calendar-task-card__date-popover"
                                 />
-                              </label>
-                              <label>
+                              </div>
+                              <div className="calendar-task-card__field">
                                 <span>Priority</span>
                                 <Select
                                   value={draft.priority ?? '__none'}
-                                  onValueChange={(value) =>
-                                    updateTaskCardDraft(task.id, { priority: value === '__none' ? null : (value as TaskItem['priority']) })
-                                  }
+                                  onValueChange={(value) => {
+                                    const patch = { priority: value === '__none' ? null : (value as TaskItem['priority']) }
+                                    const nextDraft = { ...draft, ...patch }
+                                    updateTaskCardDraft(task.id, patch)
+                                    void handleSaveTaskCard(task, nextDraft)
+                                  }}
                                 >
                                   <SelectTrigger>
                                     <SelectValue />
@@ -1022,20 +1184,7 @@ const CalendarPage = () => {
                                     <SelectItem value="low">Low</SelectItem>
                                   </SelectContent>
                                 </Select>
-                              </label>
-                            </div>
-                            <div className="calendar-task-card__editor-actions">
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                onClick={() => updateTaskCardDraft(task.id, { reminderAtInput: '' })}
-                              >
-                                Clear reminder
-                              </Button>
-                              <Button type="button" size="sm" onClick={() => void handleSaveTaskCard(task)} disabled={isSavingCard}>
-                                Save
-                              </Button>
+                              </div>
                             </div>
                           </PopoverContent>
                         </Popover>
@@ -1057,34 +1206,32 @@ const CalendarPage = () => {
                         </Button>
                       </div>
                     </div>
-                    <div className="calendar-task-card__meta">
-                      <Badge variant="outline" className="calendar-task-card__meta-badge">
-                        {task.status}
-                      </Badge>
-                      <Badge variant="outline" className="calendar-task-card__meta-badge">
-                        {task.priority ?? 'none'}
-                      </Badge>
-                      <Badge variant="outline" className="calendar-task-card__meta-badge">
-                        {formatTaskDateRange(task)}
-                      </Badge>
-                      <Badge variant="outline" className="calendar-task-card__meta-badge">
-                        {formatReminderLabel(task.reminderAt)}
-                      </Badge>
-                    </div>
-                    {taskTags.length > 0 ? (
-                      <div className="calendar-task-card__tags">
-                        {taskTags.map((tag) => (
-                          <Badge key={`${task.id}-${tag}`} variant="secondary" className="calendar-task-card__tag">
-                            {tag}
-                          </Badge>
-                        ))}
-                        {hiddenTagCount > 0 ? (
-                          <Badge variant="secondary" className="calendar-task-card__tag">
-                            +{hiddenTagCount}
-                          </Badge>
-                        ) : null}
+                    <div className="calendar-task-card__meta-lines">
+                      <div className="calendar-task-card__meta-line">
+                        <span className="calendar-task-card__meta-item">
+                          <strong>Status</strong> {task.status}
+                        </span>
+                        <span className="calendar-task-card__meta-item">
+                          <strong>Priority</strong> {task.priority ?? 'none'}
+                        </span>
                       </div>
-                    ) : null}
+                      <div className="calendar-task-card__meta-line calendar-task-card__meta-line--single">
+                        <span className="calendar-task-card__meta-item">
+                          <strong>Date</strong> {formatTaskDateRange(task)}
+                        </span>
+                      </div>
+                      <div className="calendar-task-card__meta-line">
+                        <span className="calendar-task-card__meta-item">
+                          <strong>Reminder</strong> {formatReminderLabel(task.reminderAt)}
+                        </span>
+                        <span className="calendar-task-card__meta-item">
+                          <strong>Tags</strong>{' '}
+                          {taskTags.length > 0
+                            ? `${taskTags.join(', ')}${hiddenTagCount > 0 ? ` +${hiddenTagCount}` : ''}`
+                            : 'none'}
+                        </span>
+                      </div>
+                    </div>
                   </article>
                 )
               }}

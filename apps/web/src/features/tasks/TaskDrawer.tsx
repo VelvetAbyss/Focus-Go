@@ -1,9 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { CalendarDays, Check, Clock3, LoaderCircle, Pin, Plus, RotateCcw, Target, Trash2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { ChevronDown, Plus, X } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { cn } from '@/lib/utils'
 import Dialog from '../../shared/ui/Dialog'
 import Select from '../../shared/ui/Select'
+import AnimatedPlanCheckbox from '../../shared/ui/AnimatedPlanCheckbox'
 import { DatePicker } from '../../shared/ui/DatePicker'
+import { DateRangePicker } from '../../shared/ui/DateRangePicker'
+import { DateTimePicker } from '../../shared/ui/DateTimePicker'
 import { tasksRepo } from '../../data/repositories/tasksRepo'
 import { createId } from '../../shared/utils/ids'
 import { useToast } from '../../shared/ui/toast/toast'
@@ -11,6 +19,9 @@ import type { TaskItem, TaskPriority } from './tasks.types'
 import { useAddInputComposer } from '../../shared/hooks/useAddInputComposer'
 import { Popover, PopoverContent, PopoverTrigger } from '../../shared/ui/popover'
 import { emitTasksChanged } from './taskSync'
+import TaskNoteEditor from './components/TaskNoteEditor'
+import { createTaskNoteDoc, resolveTaskNoteRichText } from './model/taskNoteRichText'
+import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, formatTaskDateTime, getTaskTagTone } from './components/taskPresentation'
 
 type TaskDrawerProps = {
   open: boolean
@@ -23,14 +34,6 @@ type TaskDrawerProps = {
 
 const priorityOptions: TaskPriority[] = ['high', 'medium', 'low']
 const defaultTagOptions = ['work', 'life', 'health', 'study', 'finance', 'family']
-
-const priorityLabel = (priority: TaskPriority) => priority.charAt(0).toUpperCase() + priority.slice(1)
-const priorityTextColors: Record<TaskPriority | 'none', string> = {
-  high: '#b91c1c',
-  medium: '#b45309',
-  low: '#1d4ed8',
-  none: '#6b7280',
-}
 
 const equalStringArrays = (a: string[], b: string[]) => {
   if (a.length !== b.length) return false
@@ -46,37 +49,27 @@ const equalSubtasks = (a: TaskItem['subtasks'], b: TaskItem['subtasks']) => {
     const left = a[i]
     const right = b[i]
     if (!left || !right) return false
-    if (left.id !== right.id) return false
-    if (left.title !== right.title) return false
-    if (left.done !== right.done) return false
+    if (left.id !== right.id || left.title !== right.title || left.done !== right.done) return false
   }
   return true
 }
 
-const formatDateTime = (value: number) =>
-  new Date(value).toLocaleString(undefined, {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-
-const formatDateTimeLocalInput = (value?: number) => {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return ''
+const getReminderDateParts = (value?: number) => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return { reminderDate: '', reminderTime: '' }
   const date = new Date(value)
   const y = date.getFullYear()
   const m = `${date.getMonth() + 1}`.padStart(2, '0')
   const d = `${date.getDate()}`.padStart(2, '0')
   const hh = `${date.getHours()}`.padStart(2, '0')
   const mm = `${date.getMinutes()}`.padStart(2, '0')
-  return `${y}-${m}-${d}T${hh}:${mm}`
+  return { reminderDate: `${y}-${m}-${d}`, reminderTime: `${hh}:${mm}` }
 }
 
-const parseDateTimeLocalInput = (value: string) => {
-  const trimmed = value.trim()
-  if (!trimmed) return undefined
-  const timestamp = new Date(trimmed).getTime()
+const combineReminderDateTime = (dateKey: string, time: string) => {
+  const date = dateKey.trim()
+  const timeText = time.trim()
+  if (!date || !timeText) return undefined
+  const timestamp = new Date(`${date}T${timeText}`).getTime()
   return Number.isFinite(timestamp) ? timestamp : undefined
 }
 
@@ -87,20 +80,28 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
   const [dueDate, setDueDate] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
-  const [reminderAtInput, setReminderAtInput] = useState('')
+  const [reminderDate, setReminderDate] = useState('')
+  const [reminderTime, setReminderTime] = useState('')
   const [tags, setTags] = useState<string[]>([])
   const [tagOptions, setTagOptions] = useState<string[]>(defaultTagOptions)
   const [tagDraft, setTagDraft] = useState('')
   const [tagPickerOpen, setTagPickerOpen] = useState(false)
   const [subtasks, setSubtasks] = useState<TaskItem['subtasks']>([])
+  const [taskNoteContent, setTaskNoteContent] = useState<{ contentJson?: TaskItem['taskNoteContentJson']; contentMd?: TaskItem['taskNoteContentMd'] }>({
+    contentJson: createTaskNoteDoc() as TaskItem['taskNoteContentJson'],
+    contentMd: '',
+  })
   const [lastId, setLastId] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const toast = useToast()
   const taskSnapshotRef = useRef<TaskItem | null>(null)
+  const bodyOverflowRef = useRef<string>('')
+
   useEffect(() => {
     if (!task) return
     taskSnapshotRef.current = task
   }, [task])
+
   const currentTask = task ?? taskSnapshotRef.current
 
   const baselineRef = useRef<{
@@ -113,17 +114,19 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
     reminderAt?: number
     tags: string[]
     subtasks: TaskItem['subtasks']
+    taskNoteContentMd?: TaskItem['taskNoteContentMd']
+    taskNoteContentJson?: TaskItem['taskNoteContentJson']
   } | null>(null)
 
   const saveTimerRef = useRef<number | null>(null)
   const pendingSaveRef = useRef(false)
   const queuedDraftRef = useRef<TaskItem | null>(null)
   const isSavingRef = useRef(false)
+  const draftRef = useRef<TaskItem | null>(null)
+
   useEffect(() => {
     isSavingRef.current = isSaving
   }, [isSaving])
-
-  const draftRef = useRef<TaskItem | null>(null)
 
   useEffect(() => {
     if (!task || task.id === lastId) return
@@ -134,16 +137,19 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
     setDueDate(task.dueDate ?? '')
     setStartDate(task.startDate ?? '')
     setEndDate(task.endDate ?? '')
-    setReminderAtInput(formatDateTimeLocalInput(task.reminderAt))
+    const reminderParts = getReminderDateParts(task.reminderAt)
+    setReminderDate(reminderParts.reminderDate)
+    setReminderTime(reminderParts.reminderTime)
     setTags(task.tags)
     setTagOptions(() => {
       const map = new Map<string, string>()
-      defaultTagOptions.forEach((tag) => map.set(tag.toLowerCase(), tag))
-      task.tags.forEach((tag) => map.set(tag.toLowerCase(), tag))
+      defaultTagOptions.forEach((tagName) => map.set(tagName.toLowerCase(), tagName))
+      task.tags.forEach((tagName) => map.set(tagName.toLowerCase(), tagName))
       return Array.from(map.values())
     })
     setTagDraft('')
     setSubtasks(task.subtasks)
+    setTaskNoteContent(resolveTaskNoteRichText(task))
     baselineRef.current = {
       title: task.title,
       description: task.description ?? '',
@@ -154,6 +160,8 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
       reminderAt: task.reminderAt,
       tags: task.tags,
       subtasks: task.subtasks,
+      taskNoteContentMd: task.taskNoteContentMd,
+      taskNoteContentJson: task.taskNoteContentJson,
     }
   }, [task, lastId])
 
@@ -167,28 +175,16 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
       dueDate: dueDate || undefined,
       startDate: startDate || undefined,
       endDate: endDate || undefined,
-      reminderAt: parseDateTimeLocalInput(reminderAtInput),
+      reminderAt: combineReminderDateTime(reminderDate, reminderTime),
       tags,
       subtasks,
+      taskNoteBlocks: [],
+      taskNoteContentMd: taskNoteContent.contentMd,
+      taskNoteContentJson: taskNoteContent.contentJson,
     }
-  }, [task, title, description, priority, dueDate, startDate, endDate, reminderAtInput, tags, subtasks])
+  }, [task, title, description, priority, dueDate, startDate, endDate, reminderDate, reminderTime, tags, subtasks, taskNoteContent])
 
   draftRef.current = draft
-
-  const dirty = useMemo(() => {
-    const baseline = baselineRef.current
-    if (!task || !baseline) return false
-    if (title !== baseline.title) return true
-    if (description !== baseline.description) return true
-    if (priority !== baseline.priority) return true
-    if ((dueDate || '') !== (baseline.dueDate || '')) return true
-    if ((startDate || '') !== (baseline.startDate || '')) return true
-    if ((endDate || '') !== (baseline.endDate || '')) return true
-    if (parseDateTimeLocalInput(reminderAtInput) !== baseline.reminderAt) return true
-    if (!equalStringArrays(tags, baseline.tags)) return true
-    if (!equalSubtasks(subtasks, baseline.subtasks)) return true
-    return false
-  }, [task, title, description, priority, dueDate, startDate, endDate, reminderAtInput, tags, subtasks])
 
   const isDraftDirty = useCallback((nextDraft: TaskItem) => {
     const baseline = baselineRef.current
@@ -202,6 +198,8 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
     if (nextDraft.reminderAt !== baseline.reminderAt) return true
     if (!equalStringArrays(nextDraft.tags, baseline.tags)) return true
     if (!equalSubtasks(nextDraft.subtasks, baseline.subtasks)) return true
+    if ((nextDraft.taskNoteContentMd ?? '') !== (baseline.taskNoteContentMd ?? '')) return true
+    if (JSON.stringify(nextDraft.taskNoteContentJson ?? null) !== JSON.stringify(baseline.taskNoteContentJson ?? null)) return true
     return false
   }, [])
 
@@ -215,6 +213,7 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
         })
         return
       }
+
       isSavingRef.current = true
       setIsSaving(true)
       try {
@@ -231,6 +230,8 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
           reminderAt: next.reminderAt,
           tags: next.tags,
           subtasks: next.subtasks,
+          taskNoteContentMd: next.taskNoteContentMd,
+          taskNoteContentJson: next.taskNoteContentJson,
         }
       } catch {
         toast.push({
@@ -245,13 +246,11 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
           pendingSaveRef.current = false
           const queued = queuedDraftRef.current
           queuedDraftRef.current = null
-          if (queued && isDraftDirty(queued)) {
-            void saveDraft(queued)
-          }
+          if (queued && isDraftDirty(queued)) void saveDraft(queued)
         }
       }
     },
-    [isDraftDirty, onUpdated, toast]
+    [isDraftDirty, onUpdated, toast],
   )
 
   const flushSave = useCallback(() => {
@@ -260,9 +259,7 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
       saveTimerRef.current = null
     }
     const nextDraft = draftRef.current
-    if (!task || task.id !== lastId) return
-    if (!nextDraft) return
-    if (!isDraftDirty(nextDraft)) return
+    if (!task || task.id !== lastId || !nextDraft || !isDraftDirty(nextDraft)) return
     if (isSavingRef.current) {
       pendingSaveRef.current = true
       queuedDraftRef.current = nextDraft
@@ -272,11 +269,9 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
   }, [isDraftDirty, lastId, saveDraft, task])
 
   useEffect(() => {
-    if (!open) return
-    if (!task || task.id !== lastId) return
+    if (!open || !task || task.id !== lastId) return
     const nextDraft = draftRef.current
-    if (!nextDraft) return
-    if (!isDraftDirty(nextDraft)) return
+    if (!nextDraft || !isDraftDirty(nextDraft)) return
     if (isSavingRef.current) {
       pendingSaveRef.current = true
       queuedDraftRef.current = nextDraft
@@ -286,8 +281,7 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
     saveTimerRef.current = window.setTimeout(() => {
       saveTimerRef.current = null
       const latestDraft = draftRef.current
-      if (!latestDraft) return
-      if (!isDraftDirty(latestDraft)) return
+      if (!latestDraft || !isDraftDirty(latestDraft)) return
       if (isSavingRef.current) {
         pendingSaveRef.current = true
         queuedDraftRef.current = latestDraft
@@ -302,13 +296,22 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
         saveTimerRef.current = null
       }
     }
-  }, [open, dirty, title, description, priority, dueDate, startDate, endDate, reminderAtInput, tags, subtasks, lastId, isDraftDirty, saveDraft, task])
+  }, [open, title, description, priority, dueDate, startDate, endDate, reminderDate, reminderTime, tags, subtasks, taskNoteContent, lastId, isDraftDirty, saveDraft, task])
 
   useEffect(() => {
     return () => {
       flushSave()
     }
   }, [flushSave])
+
+  useEffect(() => {
+    if (!open) return
+    bodyOverflowRef.current = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = bodyOverflowRef.current
+    }
+  }, [open])
 
   const requestClose = () => {
     flushSave()
@@ -351,34 +354,20 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
     },
   })
 
-  const visibleTags = useMemo(() => tags.slice(0, 2), [tags])
-  const hiddenTagCount = Math.max(0, tags.length - visibleTags.length)
+  const progressLogs = useMemo(() => (currentTask?.progressLogs ?? []).slice().sort((a, b) => b.createdAt - a.createdAt), [currentTask?.progressLogs])
+  const activityLogs = useMemo(() => (currentTask?.activityLogs ?? []).slice().sort((a, b) => b.createdAt - a.createdAt), [currentTask?.activityLogs])
+  const statusConfig = currentTask ? TASK_STATUS_CONFIG[currentTask.status] : TASK_STATUS_CONFIG.todo
+  const priorityConfig = TASK_PRIORITY_CONFIG[priority ?? 'none']
+  const reminderAtIso = useMemo(() => {
+    const reminderAt = combineReminderDateTime(reminderDate, reminderTime)
+    return reminderAt ? new Date(reminderAt).toISOString() : '—'
+  }, [reminderDate, reminderTime])
 
-  const progressLogs = useMemo(
-    () => (currentTask?.progressLogs ?? []).slice().sort((a, b) => b.createdAt - a.createdAt),
-    [currentTask?.progressLogs]
-  )
-  const activityLogs = useMemo(
-    () => (currentTask?.activityLogs ?? []).slice().sort((a, b) => b.createdAt - a.createdAt),
-    [currentTask?.activityLogs]
-  )
-
-  const tagToneClass = (tag: string) => {
-    const key = tag.toLowerCase()
-    if (key === 'work') return 'task-tag-chip--work'
-    if (key === 'life') return 'task-tag-chip--life'
-    if (key === 'health') return 'task-tag-chip--health'
-    if (key === 'study') return 'task-tag-chip--study'
-    if (key === 'finance') return 'task-tag-chip--finance'
-    if (key === 'family') return 'task-tag-chip--family'
-    return 'task-tag-chip--custom'
-  }
-
-  const toggleTag = (tag: string) => {
+  const toggleTag = (tagName: string) => {
     setTags((prev) => {
-      const exists = prev.some((item) => item.toLowerCase() === tag.toLowerCase())
-      if (exists) return prev.filter((item) => item.toLowerCase() !== tag.toLowerCase())
-      return [...prev, tag]
+      const exists = prev.some((item) => item.toLowerCase() === tagName.toLowerCase())
+      if (exists) return prev.filter((item) => item.toLowerCase() !== tagName.toLowerCase())
+      return [...prev, tagName]
     })
   }
 
@@ -386,12 +375,8 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
     const next = tagDraft.trim()
     if (!next) return
     const optionExists = tagOptions.some((item) => item.toLowerCase() === next.toLowerCase())
-    const normalized = optionExists
-      ? tagOptions.find((item) => item.toLowerCase() === next.toLowerCase()) ?? next
-      : next
-    if (!optionExists) {
-      setTagOptions((prev) => [...prev, normalized])
-    }
+    const normalized = optionExists ? tagOptions.find((item) => item.toLowerCase() === next.toLowerCase()) ?? next : next
+    if (!optionExists) setTagOptions((prev) => [...prev, normalized])
     setTags((prev) => {
       const selected = prev.some((item) => item.toLowerCase() === normalized.toLowerCase())
       if (selected) return prev
@@ -401,294 +386,369 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
   }
 
   return (
-    <Dialog open={open} title="" onClose={requestClose} panelClassName="task-detail-dialog__panel">
+    <Dialog
+      open={open}
+      title=""
+      onClose={requestClose}
+      panelClassName="!max-w-[1080px] !w-[calc(100vw-48px)] !h-[calc(100vh-40px)] !max-h-none rounded-[30px] border border-[#3a3733]/8 bg-white shadow-[0_30px_100px_rgba(15,23,42,0.18)]"
+      contentClassName="!h-full !p-0"
+    >
       {currentTask ? (
-        <div className="task-fg task-detail-dialog">
-          <div className="task-fg__header">
-            <h1 className="task-fg__title" title={title.trim() || 'Untitled'}>
-              Task · <span className="task-fg__title-accent">{title.trim() || 'Untitled'}</span>
-            </h1>
-            <div className="task-fg__toolbar">
-              <div className="task-fg__actions" aria-label="Task actions">
-                {currentTask.status === 'todo' && (
-                  <>
-                    <Button
-                      className="button button--ghost task-fg__action"
-                      onClick={() => void handleStatusChange('doing')}
-                      disabled={isSaving}
-                    >
-                      Start
-                    </Button>
-                    <Button
-                      className="button button--ghost task-fg__action"
-                      onClick={() => void handleStatusChange('done')}
-                      disabled={isSaving}
-                    >
-                      Done
-                    </Button>
-                  </>
-                )}
-                {currentTask.status === 'doing' && (
-                  <Button
-                    className="button button--ghost task-fg__action"
-                    onClick={() => void handleStatusChange('done')}
-                    disabled={isSaving}
-                  >
+        <div className="flex h-full min-h-0 flex-col overflow-hidden">
+          <div className="flex items-center justify-between gap-4 border-b border-[#3a3733]/6 bg-white px-6 py-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <Badge variant="outline" className={cn('rounded-full border px-3 py-1 text-[11px] font-semibold', statusConfig.badge)}>
+                <span className={cn('mr-1.5 h-1.5 w-1.5 rounded-full', statusConfig.dot)} />
+                {statusConfig.label}
+              </Badge>
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
+                {isSaving ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5 text-emerald-500" />}
+                {isSaving ? 'Saving...' : 'Saved'}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {currentTask.status === 'todo' ? (
+                <>
+                  <Button variant="outline" size="sm" className="h-8 rounded-full px-3 text-[11px] font-semibold" onClick={() => void handleStatusChange('doing')} disabled={isSaving}>
+                    <Target className="mr-1.5 h-3.5 w-3.5" />
+                    Start
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-8 rounded-full px-3 text-[11px] font-semibold" onClick={() => void handleStatusChange('done')} disabled={isSaving}>
+                    <Check className="mr-1.5 h-3.5 w-3.5" />
                     Done
                   </Button>
-                )}
-                {currentTask.status === 'done' && (
-                  <Button
-                    className="button button--ghost task-fg__action"
-                    onClick={() => void handleStatusChange('todo')}
-                    disabled={isSaving}
-                  >
-                    Reopen
-                  </Button>
-                )}
-                <Button className="button button--ghost task-fg__action" onClick={() => void handleDelete()}>
-                  Delete
+                </>
+              ) : null}
+              {currentTask.status === 'doing' ? (
+                <Button variant="outline" size="sm" className="h-8 rounded-full px-3 text-[11px] font-semibold" onClick={() => void handleStatusChange('done')} disabled={isSaving}>
+                  <Check className="mr-1.5 h-3.5 w-3.5" />
+                  Done
                 </Button>
-              </div>
-
-              <button type="button" className="task-fg__icon-btn" onClick={requestClose} aria-label="Close task">
-                <X size={18} />
-              </button>
+              ) : null}
+              {currentTask.status === 'done' ? (
+                <Button variant="outline" size="sm" className="h-8 rounded-full px-3 text-[11px] font-semibold" onClick={() => void handleStatusChange('todo')} disabled={isSaving}>
+                  <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+                  Reopen
+                </Button>
+              ) : null}
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-slate-400 hover:bg-rose-50 hover:text-rose-600" onClick={() => void handleDelete()} disabled={isSaving}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700" onClick={requestClose}>
+                <X className="h-4 w-4" />
+              </Button>
             </div>
           </div>
 
-          <div className="task-detail-dialog__meta muted">
-            <span>Created {formatDateTime(currentTask.createdAt)}</span>
-            <span>Updated {formatDateTime(currentTask.updatedAt)}</span>
-          </div>
-
-          <div className="task-fg__content">
-            <section className="task-fg__card" aria-label="Task details">
-              <h2 className="task-fg__section-title">Details</h2>
-              <div className="task-fg__fields">
-                <label className="task-fg__field">
-                  <span className="task-fg__label">Title</span>
-                  <input value={title} onChange={(event) => setTitle(event.target.value)} />
-                </label>
-
-                <label className="task-fg__field">
-                  <span className="task-fg__label">Description</span>
-                  <textarea
-                    className="task-fg__textarea"
-                    value={description}
-                    onChange={(event) => setDescription(event.target.value)}
-                    rows={3}
-                  />
-                </label>
-
-                <label className="task-fg__field">
-                  <span className="task-fg__label">Priority</span>
-                  <Select
-                    value={priority ?? '__none'}
-                    options={[
-                      {
-                        value: '__none',
-                        label: 'None',
-                        className: 'task-priority-option task-priority-option--none',
-                        valueClassName: 'task-priority-value task-priority-value--none',
-                        valueStyle: { color: priorityTextColors.none },
-                        labelStyle: { color: priorityTextColors.none },
-                      },
-                      ...priorityOptions.map((opt) => ({
-                        value: opt,
-                        label: priorityLabel(opt),
-                        className: `task-priority-option task-priority-option--${opt}`,
-                        valueClassName: `task-priority-value task-priority-value--${opt}`,
-                        valueStyle: { color: priorityTextColors[opt] },
-                        labelStyle: { color: priorityTextColors[opt] },
-                      })),
-                    ]}
-                    onChange={(v) => setPriority(v === '__none' ? null : (v as TaskPriority))}
-                  />
-                </label>
-
-                <label className="task-fg__field">
-                  <span className="task-fg__label">Due Date</span>
-                  <DatePicker value={dueDate} onChange={(date) => setDueDate(date ?? '')} placeholder="Set due date" />
-                </label>
-
-                <label className="task-fg__field">
-                  <span className="task-fg__label">Start Date</span>
-                  <DatePicker value={startDate} onChange={(date) => setStartDate(date ?? '')} placeholder="Set start date" />
-                </label>
-
-                <label className="task-fg__field">
-                  <span className="task-fg__label">End Date</span>
-                  <DatePicker value={endDate} onChange={(date) => setEndDate(date ?? '')} placeholder="Set end date" />
-                </label>
-
-                <label className="task-fg__field">
-                  <span className="task-fg__label">Reminder</span>
-                  <input
-                    type="datetime-local"
-                    value={reminderAtInput}
-                    onChange={(event) => setReminderAtInput(event.target.value)}
-                  />
-                </label>
-
-                <label className="task-fg__field">
-                  <span className="task-fg__label">Tags</span>
-                  <Popover open={tagPickerOpen} onOpenChange={setTagPickerOpen}>
-                    <PopoverTrigger asChild>
-                      <button
-                        type="button"
-                        className={`task-tag-select__trigger ${tagPickerOpen ? 'is-open' : ''}`}
-                        aria-label="Select tags"
-                      >
-                        <span className="task-tag-select__value">
-                          {visibleTags.map((tag) => (
-                            <span key={tag} className={`task-tag-chip ${tagToneClass(tag)}`}>
-                              {tag}
-                            </span>
-                          ))}
-                          {hiddenTagCount > 0 ? (
-                            <span className="task-tag-chip task-tag-chip--count">+{hiddenTagCount}</span>
-                          ) : null}
-                          {tags.length === 0 ? <span className="task-tag-select__empty" aria-hidden /> : null}
+          <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1.6fr)_340px]">
+            <ScrollArea className="min-h-0 border-r border-[#3a3733]/6">
+              <div className="space-y-6 px-6 py-6">
+                <div className="rounded-[28px] border border-[#3a3733]/6 bg-[linear-gradient(180deg,#ffffff,#f8fafc)] p-6 shadow-[0_24px_60px_rgba(15,23,42,0.05)]">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <Input
+                        value={title}
+                        onChange={(event) => setTitle(event.target.value)}
+                        className="h-auto border-0 bg-transparent px-0 py-0 text-[28px] font-semibold tracking-[-0.03em] text-slate-950 shadow-none focus-visible:ring-0 md:text-[32px]"
+                        placeholder="Task title"
+                      />
+                      <div className="mt-4 flex flex-wrap items-center gap-2 text-[12px] text-slate-500">
+                        <span className="inline-flex items-center gap-1">
+                          <CalendarDays className="h-3.5 w-3.5" />
+                          Created {formatTaskDateTime(currentTask.createdAt)}
                         </span>
-                        <ChevronDown size={16} aria-hidden />
-                      </button>
-                    </PopoverTrigger>
-
-                    <PopoverContent className="task-tag-select__panel" align="start" sideOffset={8}>
-                      <div className="task-tag-select__options" role="listbox" aria-label="Tag options">
-                        {tagOptions.map((tag) => {
-                          const selected = tags.some((item) => item.toLowerCase() === tag.toLowerCase())
-                          return (
-                            <button
-                              key={tag}
-                              type="button"
-                              className={`task-tag-select__option ${selected ? 'is-selected' : ''}`}
-                              onClick={() => toggleTag(tag)}
-                              aria-selected={selected}
-                            >
-                              <span className={`task-tag-chip ${tagToneClass(tag)}`}>{tag}</span>
-                            </button>
-                          )
-                        })}
+                        <span className="text-slate-300">•</span>
+                        <span className="inline-flex items-center gap-1">
+                          <Clock3 className="h-3.5 w-3.5" />
+                          Updated {formatTaskDateTime(currentTask.updatedAt)}
+                        </span>
+                        {currentTask.pinned ? (
+                          <>
+                            <span className="text-slate-300">•</span>
+                            <span className="inline-flex items-center gap-1 text-amber-600">
+                              <Pin className="h-3.5 w-3.5 fill-current" />
+                              Pinned
+                            </span>
+                          </>
+                        ) : null}
                       </div>
-                      <form
-                        className="task-tag-select__composer"
-                        onSubmit={(event) => {
-                          event.preventDefault()
-                          addCustomTag()
-                        }}
-                      >
-                        <input value={tagDraft} onChange={(event) => setTagDraft(event.target.value)} />
-                        <Button
-                          type="submit"
-                          className="button button--ghost task-tag-select__add"
-                          disabled={!tagDraft.trim()}
-                        >
-                          <Plus size={14} />
-                          Add
-                        </Button>
-                      </form>
-                    </PopoverContent>
-                  </Popover>
-                </label>
-              </div>
-            </section>
-
-            <section className="task-fg__card" aria-label="Task progress logs">
-              <h2 className="task-fg__section-title">Progress Logs</h2>
-              {progressLogs.length === 0 ? (
-                <p className="muted task-detail-dialog__empty">No progress yet.</p>
-              ) : (
-                <ul className="task-detail-dialog__log-list">
-                  {progressLogs.map((log) => (
-                    <li key={log.id} className="task-detail-dialog__log-item">
-                      <p>{log.content}</p>
-                      <span className="muted">{formatDateTime(log.createdAt)}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            <section className="task-fg__card" aria-label="Task history">
-              <h2 className="task-fg__section-title">Activity</h2>
-              {activityLogs.length === 0 ? (
-                <p className="muted task-detail-dialog__empty">No activity.</p>
-              ) : (
-                <ul className="task-detail-dialog__log-list">
-                  {activityLogs.map((log) => (
-                    <li key={log.id} className="task-detail-dialog__log-item">
-                      <p>{log.message}</p>
-                      <span className="muted">{formatDateTime(log.createdAt)}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            <section className="task-fg__card" aria-label="Task subtasks">
-              <h2 className="task-fg__section-title">Subtasks</h2>
-              <div className={`task-fg__subtasks ${subtasks.length === 0 ? 'is-empty' : ''}`}>
-                {subtasks.length > 0 ? (
-                  <div className="task-fg__subtask-list">
-                    {subtasks.map((subtask, index) => (
-                      <div key={subtask.id} className="task-fg__subtask-row">
-                        <input
-                          type="checkbox"
-                          checked={subtask.done}
-                          onChange={(event) => {
-                            const next = [...subtasks]
-                            next[index] = { ...subtask, done: event.target.checked }
-                            setSubtasks(next)
-                          }}
-                        />
-                        <input
-                          value={subtask.title}
-                          onChange={(event) => {
-                            const next = [...subtasks]
-                            next[index] = { ...subtask, title: event.target.value }
-                            setSubtasks(next)
-                          }}
-                          placeholder="Subtask"
-                        />
-                        <Button
-                          type="button"
-                          className="button button--ghost task-fg__subtask-remove"
-                          onClick={() => setSubtasks((prev) => prev.filter((s) => s.id !== subtask.id))}
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    ))}
+                    </div>
+                    <div className="min-w-[120px]">
+                      <Select
+                        value={priority ?? '__none'}
+                        options={[
+                          { value: '__none', label: 'None' },
+                          ...priorityOptions.map((option) => ({ value: option, label: TASK_PRIORITY_CONFIG[option].label })),
+                        ]}
+                        onChange={(value) => setPriority(value === '__none' ? null : (value as TaskPriority))}
+                      />
+                    </div>
                   </div>
-                ) : null}
 
-                <form
-                  className="widget-todos__composer task-fg__composer"
-                  onSubmit={(event) => {
-                    event.preventDefault()
-                    void subtaskComposer.submit()
-                  }}
-                >
-                  <input
-                    ref={subtaskComposer.inputRef}
-                    className={`widget-todos__input task-fg__input ${subtaskComposer.isShaking ? 'is-shaking' : ''}`}
-                    value={subtaskComposer.value}
-                    onChange={(event) => subtaskComposer.setValue(event.target.value)}
-                    onAnimationEnd={subtaskComposer.clearShake}
-                    placeholder="Add a new subtask..."
-                  />
-                  <Button
-                    type="submit"
-                    className="button widget-todos__add-btn task-fg__add-btn"
-                    disabled={!subtaskComposer.canSubmit}
-                  >
-                    Add
-                  </Button>
-                </form>
+                  <div className="mt-5 grid gap-3 md:grid-cols-3">
+                    <div className="rounded-[20px] border border-[#3a3733]/6 bg-white/90 p-4">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Status</p>
+                      <div className="mt-3">
+                        <Badge variant="outline" className={cn('rounded-full border px-3 py-1 text-[11px] font-semibold', statusConfig.badge)}>
+                          <span className={cn('mr-1.5 h-1.5 w-1.5 rounded-full', statusConfig.dot)} />
+                          {statusConfig.label}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="rounded-[20px] border border-[#3a3733]/6 bg-white/90 p-4">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Priority</p>
+                      <div className="mt-3">
+                        <Badge variant="secondary" className={cn('rounded-full px-3 py-1 text-[11px] font-semibold', priorityConfig.badge)}>
+                          <span className={cn('mr-1.5 h-1.5 w-1.5 rounded-full', priorityConfig.dot)} />
+                          {priorityConfig.label}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="rounded-[20px] border border-[#3a3733]/6 bg-white/90 p-4">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Reminder timestamp</p>
+                      <p className="mt-3 text-[12px] font-medium text-slate-600">{reminderAtIso}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <section className="rounded-[26px] border border-[#3a3733]/6 bg-white/88 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Details</p>
+                      <h2 className="mt-1 text-[18px] font-semibold tracking-[-0.02em] text-slate-950">Core task properties</h2>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid gap-4 md:grid-cols-2">
+                    <label className="grid gap-2">
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Due date</span>
+                      <DatePicker value={dueDate} onChange={(date) => setDueDate(date ?? '')} placeholder="Set due date" className="rounded-[14px]" />
+                    </label>
+
+                    <label className="grid gap-2">
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Reminder</span>
+                      <DateTimePicker
+                        dateValue={reminderDate}
+                        timeValue={reminderTime}
+                        onDateChange={(date) => {
+                          const nextDate = date ?? ''
+                          setReminderDate(nextDate)
+                          if (!nextDate) setReminderTime('')
+                        }}
+                        onTimeChange={(time) => setReminderTime(time ?? '')}
+                        placeholder="Set reminder"
+                        ariaLabel="Reminder date"
+                        className="w-full"
+                        triggerClassName="rounded-[14px]"
+                      />
+                    </label>
+
+                    <label className="grid gap-2 md:col-span-2">
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Date range</span>
+                      <DateRangePicker
+                        value={{ startDate, endDate }}
+                        className="rounded-[14px]"
+                        onChange={({ startDate: nextStartDate, endDate: nextEndDate }) => {
+                          setStartDate(nextStartDate ?? '')
+                          setEndDate(nextEndDate ?? '')
+                        }}
+                      />
+                    </label>
+
+                    <label className="grid gap-2 md:col-span-2">
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Task summary</span>
+                      <Textarea
+                        value={description}
+                        onChange={(event) => setDescription(event.target.value)}
+                        className="min-h-[100px] rounded-[18px] border-[#3a3733]/8 bg-slate-50/80 text-[13px] leading-6 shadow-none"
+                        placeholder="Optional short summary for this task..."
+                      />
+                    </label>
+                  </div>
+                </section>
+
+                <section className="rounded-[26px] border border-[#3a3733]/6 bg-white/88 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Tags</p>
+                      <h2 className="mt-1 text-[18px] font-semibold tracking-[-0.02em] text-slate-950">Context and categorization</h2>
+                    </div>
+                    <Popover open={tagPickerOpen} onOpenChange={setTagPickerOpen}>
+                      <PopoverTrigger asChild>
+                        <Button type="button" variant="outline" size="sm" className="h-9 rounded-full px-4 text-[11px] font-semibold">
+                          <Plus className="mr-1.5 h-3.5 w-3.5" />
+                          New tag
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[280px] rounded-[22px] border border-[#3a3733]/8 p-3 shadow-[0_20px_50px_rgba(15,23,42,0.12)]" align="end" sideOffset={12}>
+                        <div className="space-y-3">
+                          <div className="grid gap-2">
+                            {tagOptions.map((tagName) => {
+                              const selected = tags.some((item) => item.toLowerCase() === tagName.toLowerCase())
+                              const tone = getTaskTagTone(tagName)
+                              return (
+                                <button
+                                  key={tagName}
+                                  type="button"
+                                  className={cn('flex items-center justify-between rounded-[16px] px-3 py-2 text-left transition', selected ? 'bg-slate-100' : 'hover:bg-slate-50')}
+                                  onClick={() => toggleTag(tagName)}
+                                >
+                                  <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[11px] font-medium', tone.badge)}>
+                                    <span className={cn('h-1.5 w-1.5 rounded-full', tone.dot)} />
+                                    {tagName}
+                                  </span>
+                                  {selected ? <Check className="h-3.5 w-3.5 text-slate-600" /> : null}
+                                </button>
+                              )
+                            })}
+                          </div>
+                          <form
+                            className="flex items-center gap-2"
+                            onSubmit={(event) => {
+                              event.preventDefault()
+                              addCustomTag()
+                            }}
+                          >
+                            <Input value={tagDraft} onChange={(event) => setTagDraft(event.target.value)} placeholder="Custom tag" className="h-10 rounded-[14px] border-[#3a3733]/8 bg-slate-50/80 text-[13px]" />
+                            <Button type="submit" size="sm" className="h-10 rounded-full px-4 text-[11px] font-semibold" disabled={!tagDraft.trim()}>
+                              Add
+                            </Button>
+                          </form>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    {tags.length > 0 ? (
+                      tags.map((tagName) => {
+                        const tone = getTaskTagTone(tagName)
+                        return (
+                          <span key={tagName} className={cn('inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium', tone.badge)}>
+                            <span className={cn('h-1.5 w-1.5 rounded-full', tone.dot)} />
+                            {tagName}
+                          </span>
+                        )
+                      })
+                    ) : (
+                      <p className="text-[13px] text-slate-500">No tags selected yet.</p>
+                    )}
+                  </div>
+                </section>
+
+                <section className="grid gap-4 xl:grid-cols-2">
+                  <div className="rounded-[26px] border border-[#3a3733]/6 bg-white/88 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Progress logs</p>
+                    <h2 className="mt-1 text-[18px] font-semibold tracking-[-0.02em] text-slate-950">Recorded updates</h2>
+                    <div className="mt-4 space-y-3">
+                      {progressLogs.length === 0 ? (
+                        <p className="rounded-[18px] border border-dashed border-slate-200 bg-slate-50/80 px-4 py-6 text-[13px] text-slate-500">No progress yet.</p>
+                      ) : (
+                        progressLogs.map((log) => (
+                          <article key={log.id} className="rounded-[18px] border border-[#3a3733]/6 bg-slate-50/80 px-4 py-3">
+                            <p className="text-[13px] leading-6 text-slate-700">{log.content}</p>
+                            <p className="mt-2 text-[11px] font-medium text-slate-500">{formatTaskDateTime(log.createdAt)}</p>
+                          </article>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="rounded-[26px] border border-[#3a3733]/6 bg-white/88 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Activity</p>
+                    <h2 className="mt-1 text-[18px] font-semibold tracking-[-0.02em] text-slate-950">System timeline</h2>
+                    <div className="mt-4 space-y-3">
+                      {activityLogs.length === 0 ? (
+                        <p className="rounded-[18px] border border-dashed border-slate-200 bg-slate-50/80 px-4 py-6 text-[13px] text-slate-500">No activity recorded.</p>
+                      ) : (
+                        activityLogs.map((log) => (
+                          <article key={log.id} className="rounded-[18px] border border-[#3a3733]/6 bg-slate-50/80 px-4 py-3">
+                            <p className="text-[13px] leading-6 text-slate-700">{log.message}</p>
+                            <p className="mt-2 text-[11px] font-medium text-slate-500">{formatTaskDateTime(log.createdAt)}</p>
+                          </article>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </section>
               </div>
-            </section>
+            </ScrollArea>
+
+            <aside className="flex min-h-0 flex-col bg-slate-50/70">
+              <ScrollArea className="min-h-0 flex-1">
+                <div className="space-y-5 px-5 py-6">
+                  <section className="rounded-[24px] border border-[#3a3733]/6 bg-white/92 p-4 shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Subtasks</p>
+                    <h2 className="mt-1 text-[17px] font-semibold tracking-[-0.02em] text-slate-950">Execution checklist</h2>
+
+                    <div className="mt-4 space-y-2">
+                      {subtasks.length > 0 ? (
+                        subtasks.map((subtask, index) => (
+                          <div key={subtask.id} className="rounded-[18px] border border-[#3a3733]/6 bg-slate-50/80 px-3 py-3">
+                            <div className="task-popup-detail__subtask-checkbox-row flex items-center gap-3">
+                              <AnimatedPlanCheckbox
+                                checked={subtask.done}
+                                className="shrink-0 self-center"
+                                onChange={(event) => {
+                                  const next = [...subtasks]
+                                  next[index] = { ...subtask, done: event.target.checked }
+                                  setSubtasks(next)
+                                }}
+                              />
+                              <div className="task-popup-detail__subtask-title min-w-0 flex-1">
+                                <input
+                                  value={subtask.title}
+                                  onChange={(event) => {
+                                    const next = [...subtasks]
+                                    next[index] = { ...subtask, title: event.target.value }
+                                    setSubtasks(next)
+                                  }}
+                                  placeholder="Subtask"
+                                  className={cn('task-popup-detail__subtask-title-input', subtask.done && 'is-done')}
+                                />
+                              </div>
+                              <Button type="button" variant="ghost" size="sm" className="h-7 rounded-full px-2.5 text-[10px] font-semibold text-slate-400 hover:bg-rose-50 hover:text-rose-600" onClick={() => setSubtasks((prev) => prev.filter((item) => item.id !== subtask.id))}>
+                                Delete
+                              </Button>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="rounded-[18px] border border-dashed border-slate-200 bg-slate-50/80 px-4 py-6 text-[13px] text-slate-500">No subtasks yet.</p>
+                      )}
+                    </div>
+
+                    <form
+                      className="mt-4 flex items-center gap-2"
+                      onSubmit={(event) => {
+                        event.preventDefault()
+                        void subtaskComposer.submit()
+                      }}
+                    >
+                      <Input
+                        ref={subtaskComposer.inputRef}
+                        value={subtaskComposer.value}
+                        onChange={(event) => subtaskComposer.setValue(event.target.value)}
+                        onAnimationEnd={subtaskComposer.clearShake}
+                        className={cn('h-10 rounded-[14px] border-[#3a3733]/8 bg-slate-50/80 text-[13px]', subtaskComposer.isShaking && 'is-shaking')}
+                        placeholder="Add subtask"
+                      />
+                      <Button type="submit" className="h-10 rounded-full px-4 text-[11px] font-semibold" disabled={!subtaskComposer.canSubmit}>
+                        Add
+                      </Button>
+                    </form>
+                  </section>
+
+                  <section className="rounded-[24px] border border-[#3a3733]/6 bg-white/92 p-4 shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Note</p>
+                    <h2 className="mt-1 text-[17px] font-semibold tracking-[-0.02em] text-slate-950">Context and working notes</h2>
+                    <div className="mt-4">
+                      <TaskNoteEditor value={taskNoteContent} onChange={setTaskNoteContent} />
+                    </div>
+                  </section>
+                </div>
+              </ScrollArea>
+            </aside>
           </div>
         </div>
       ) : null}

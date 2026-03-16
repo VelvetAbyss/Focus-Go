@@ -4,6 +4,7 @@ import { dbService } from '../services/dbService'
 type TaskCreateInput = {
   title: string
   description?: string
+  pinned?: boolean
   status: TaskStatus
   priority: TaskItem['priority']
   dueDate?: string
@@ -13,6 +14,9 @@ type TaskCreateInput = {
   reminderFiredAt?: number
   tags?: string[]
   subtasks?: TaskItem['subtasks']
+  taskNoteBlocks?: TaskItem['taskNoteBlocks']
+  taskNoteContentMd?: TaskItem['taskNoteContentMd']
+  taskNoteContentJson?: TaskItem['taskNoteContentJson']
 }
 
 export const tasksRepo = {

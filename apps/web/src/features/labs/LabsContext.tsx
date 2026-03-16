@@ -13,16 +13,14 @@ import {
   type UserSubscriptionRecord,
   upgradeToPremiumMock,
 } from './labsApi'
-import { canAccessHabitTracker, canAccessRss } from './accessRules'
+import { canAccessHabitTracker } from './accessRules'
 import type { FeatureKey } from '../../data/models/types'
 
 type LabsContextValue = {
   ready: boolean
   subscription: UserSubscriptionRecord | null
   catalog: FeatureCatalogItem[]
-  canAccessRssFeature: boolean
   canAccessHabitFeature: boolean
-  rssState: 'available' | 'installed' | 'removed'
   habitState: 'available' | 'installed' | 'removed'
   refresh: () => Promise<void>
   upgradeMock: () => Promise<void>
@@ -35,7 +33,6 @@ type LabsContextValue = {
 
 const LabsContext = createContext<LabsContextValue | null>(null)
 
-const defaultRssState = 'available' as const
 const defaultHabitState = 'available' as const
 
 export const LabsProvider = ({ children }: { children: React.ReactNode }) => {
@@ -54,7 +51,6 @@ export const LabsProvider = ({ children }: { children: React.ReactNode }) => {
     void refresh().finally(() => setReady(true))
   }, [])
 
-  const rssState = (catalog.find((item) => item.featureKey === 'rss')?.state ?? defaultRssState)
   const habitState = (catalog.find((item) => item.featureKey === 'habit-tracker')?.state ?? defaultHabitState)
 
   const value = useMemo<LabsContextValue>(() => {
@@ -62,9 +58,7 @@ export const LabsProvider = ({ children }: { children: React.ReactNode }) => {
       ready,
       subscription,
       catalog,
-      canAccessRssFeature: canAccessRss(subscription?.tier ?? 'free', rssState),
       canAccessHabitFeature: canAccessHabitTracker(subscription?.tier ?? 'free', habitState),
-      rssState,
       habitState,
       refresh,
       upgradeMock: async () => {
@@ -89,7 +83,7 @@ export const LabsProvider = ({ children }: { children: React.ReactNode }) => {
       },
       canAccessFeature: async (featureKey) => canAccessFeature(featureKey),
     }
-  }, [catalog, habitState, ready, rssState, subscription])
+  }, [catalog, habitState, ready, subscription])
 
   return <LabsContext.Provider value={value}>{children}</LabsContext.Provider>
 }

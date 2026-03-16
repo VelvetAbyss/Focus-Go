@@ -1,79 +1,79 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import type { CSSProperties } from 'react'
-import { triggerTabGroupSwitchAnimation, triggerTabPressAnimation } from '../../../shared/ui/tabPressAnimation'
+import { BarChart3, LayoutGrid } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import TasksBoard from '../TasksBoard'
 import { useI18n } from '../../../shared/i18n/useI18n'
+import { useTasksViewportProfile } from './tasksViewport'
 
-type TasksPageViewMode = 'board' | 'list'
+type TasksPageViewMode = 'board' | 'analytics'
 
 const STORAGE_VIEW_KEY = 'tasks_page_view_mode'
 
 const TasksPage = () => {
   const { t } = useI18n()
+  const viewportProfile = useTasksViewportProfile()
   const [viewMode, setViewMode] = useState<TasksPageViewMode>(() => {
     if (typeof window === 'undefined') return 'board'
     const stored = window.localStorage.getItem(STORAGE_VIEW_KEY)
-    return stored === 'list' || stored === 'board' ? stored : 'board'
+    if (stored === 'list') {
+      window.localStorage.setItem(STORAGE_VIEW_KEY, 'analytics')
+      return 'analytics'
+    }
+    return stored === 'analytics' || stored === 'board' ? stored : 'board'
   })
 
-  const tabs: { key: TasksPageViewMode; label: string }[] = [
-    { key: 'board', label: t('modules.tasks.board') },
-    { key: 'list', label: t('modules.tasks.list') },
-  ]
-
-  const activeIndex = useMemo(() => {
-    const idx = tabs.findIndex((tab) => tab.key === viewMode)
-    return idx >= 0 ? idx : 0
-  }, [tabs, viewMode])
-
-  const tabMotionStyle = useMemo(
-    () =>
-      ({
-        '--tab-count': `${tabs.length}`,
-        '--tab-active-index': `${activeIndex}`,
-      }) as CSSProperties,
-    [activeIndex, tabs.length]
-  )
-
-  const handleSwitchView = (nextView: TasksPageViewMode) => {
+  const switchView = (nextView: TasksPageViewMode) => {
     setViewMode(nextView)
     if (typeof window !== 'undefined') window.localStorage.setItem(STORAGE_VIEW_KEY, nextView)
   }
 
   return (
-    <section className="tasks-page">
-      <header className="tasks-page-shell__header">
-        <h1 className="tasks-page-shell__title">{t('modules.tasks.title')}</h1>
-
-        <div className="tasks-page-shell__switch tab-motion-group" role="tablist" aria-label={t('modules.tasks.viewAria')} style={tabMotionStyle}>
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              role="tab"
-              aria-selected={viewMode === tab.key}
-              className={`tasks-page-shell__tab tab-motion-tab ${viewMode === tab.key ? 'is-active' : ''}`}
-              onClick={(event) => {
-                triggerTabPressAnimation(event.currentTarget)
-                triggerTabGroupSwitchAnimation(event.currentTarget)
-                handleSwitchView(tab.key)
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
+    <section
+      className="tasks-page flex h-full min-h-0 flex-col bg-background"
+      data-height-band={viewportProfile.heightBand}
+      data-ratio-band={viewportProfile.ratioBand}
+      style={{ '--tasks-page-viewport-height': `${viewportProfile.viewportHeight}px` } as CSSProperties}
+    >
+      <div className="flex items-center justify-between px-6 pb-0 pt-5">
+        <div className="flex items-center gap-4">
+          <h1 className="tasks-page-shell__title text-xl tracking-tight text-foreground">{t('modules.tasks.title')}</h1>
         </div>
-      </header>
 
-      <div className="tasks-page-shell__panel">
-        {viewMode === 'board' ? (
-          <TasksBoard asCard={false} />
-        ) : (
-          <section className="tasks-page-shell__list-placeholder" aria-label={t('modules.tasks.listScaffoldAria')}>
-            <h2>{t('modules.tasks.listScaffoldTitle')}</h2>
-            <p className="muted">{t('modules.tasks.listScaffoldDescription')}</p>
-          </section>
-        )}
+        <div className="tasks-page-shell__switch flex items-center gap-0.5 rounded-lg bg-muted p-0.5" role="tablist" aria-label={t('modules.tasks.viewAria')}>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={viewMode === 'board'}
+            className={cn(
+              'tasks-page-shell__tab flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-all',
+              viewMode === 'board' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+            )}
+            onClick={() => switchView('board')}
+          >
+            <LayoutGrid className="size-3.5" />
+            {t('modules.tasks.board')}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={viewMode === 'analytics'}
+            className={cn(
+              'tasks-page-shell__tab flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-all',
+              viewMode === 'analytics' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+            )}
+            onClick={() => switchView('analytics')}
+          >
+            <BarChart3 className="size-3.5" />
+            {t('modules.tasks.analytics')}
+          </button>
+        </div>
+      </div>
+
+      <div className="tasks-page-shell__panel min-h-0 flex flex-1 px-6 pt-4">
+        <div className="tasks-page-shell__panel-frame min-h-0 flex-1 pb-8">
+          <TasksBoard asCard={false} topView={viewMode} />
+        </div>
       </div>
     </section>
   )

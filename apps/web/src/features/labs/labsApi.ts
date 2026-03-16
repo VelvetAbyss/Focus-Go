@@ -1,5 +1,4 @@
 import { db } from '../../data/db'
-import { createId } from '../../shared/utils/ids'
 import { deriveFeatureState, nextFeatureInstallations, type FeatureState } from './labsModel'
 import type { FeatureKey } from '../../data/models/types'
 
@@ -30,13 +29,6 @@ export type UserSubscriptionRecord = {
 
 const FEATURE_META: FeatureMeta[] = [
   {
-    featureKey: 'rss',
-    title: 'RSS Reader',
-    description: 'In-app feed reader with stale cache fallback and read-state sync model.',
-    premiumOnly: true,
-    comingSoon: false,
-  },
-  {
     featureKey: 'ai-digest',
     title: 'AI Digest',
     description: 'Weekly summarization digest for your subscriptions.',
@@ -58,12 +50,6 @@ const FEATURE_META: FeatureMeta[] = [
     comingSoon: false,
   },
 ]
-
-const PRESET_RSS_SOURCES = [
-  { route: '/github/trending/daily', displayName: 'GitHub Trending Daily' },
-  { route: '/hackernews/frontpage', displayName: 'Hacker News Frontpage' },
-  { route: '/producthunt/posts', displayName: 'Product Hunt New Posts' },
-] as const
 
 const upsertSubscription = async (tier: SubscriptionTier) => {
   const now = Date.now()
@@ -89,31 +75,17 @@ const upsertSubscription = async (tier: SubscriptionTier) => {
   return next
 }
 
-const ensurePresetSources = async () => {
-  const now = Date.now()
-  const existing = await db.rssSources.where('userId').equals(CURRENT_USER_ID).toArray()
-  const byRoute = new Set(existing.map((item) => item.route))
-  const rows = PRESET_RSS_SOURCES.filter((item) => !byRoute.has(item.route)).map((item) => ({
-    id: createId(),
-    userId: CURRENT_USER_ID,
-    route: item.route,
-    displayName: item.displayName,
-    isPreset: true,
-    enabled: true,
-    groupId: null,
-    starredAt: null,
-    deletedAt: null,
-    lastEntryAt: undefined,
-    createdAt: now,
-    updatedAt: now,
-  }))
-  if (rows.length > 0) await db.rssSources.bulkAdd(rows)
+const removeLegacyRssInstallations = async () => {
+  const rows = await db.featureInstallations.where('userId').equals(CURRENT_USER_ID).toArray()
+  const rssRows = rows.filter((item) => (item as { featureKey: string }).featureKey === 'rss')
+  if (rssRows.length === 0) return
+  await db.featureInstallations.bulkDelete(rssRows.map((item) => item.id))
 }
 
 export const ensureLabsSeed = async () => {
   const existing = await db.userSubscriptions.where('userId').equals(CURRENT_USER_ID).first()
   if (!existing) await upsertSubscription('free')
-  await ensurePresetSources()
+  await removeLegacyRssInstallations()
 }
 
 export const getSubscription = async () => {
@@ -162,10 +134,6 @@ export const getFeatureCatalog = async (): Promise<FeatureCatalogItem[]> => {
 
 const mutateFeature = async (featureKey: FeatureKey, action: 'install' | 'remove' | 'restore') => {
   const now = Date.now()
-  const subscription = await getSubscription()
-  if (featureKey === 'rss' && action === 'install' && subscription.tier !== 'premium') {
-    throw new Error('Premium required to install RSS')
-  }
 
   const rows = await db.featureInstallations.where('userId').equals(CURRENT_USER_ID).toArray()
   const records = rows.map((item) => ({

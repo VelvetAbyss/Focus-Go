@@ -31,27 +31,35 @@ const NoiseVisualizerBars = ({ playing }: NoiseVisualizerBarsProps) => {
   useEffect(() => {
     if (typeof window === 'undefined') return
     const media = window.matchMedia(MOBILE_QUERY)
+    const legacyMedia = media as MediaQueryList & {
+      addListener?: (listener: (event: MediaQueryListEvent) => void) => void
+      removeListener?: (listener: (event: MediaQueryListEvent) => void) => void
+    }
     const sync = () => setIsMobile(media.matches)
     sync()
-    if ('addEventListener' in media) {
+    if (typeof media.addEventListener === 'function') {
       media.addEventListener('change', sync)
       return () => media.removeEventListener('change', sync)
     }
-    media.addListener(sync)
-    return () => media.removeListener(sync)
+    legacyMedia.addListener?.(sync)
+    return () => legacyMedia.removeListener?.(sync)
   }, [])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
     const media = window.matchMedia(REDUCE_MOTION_QUERY)
+    const legacyMedia = media as MediaQueryList & {
+      addListener?: (listener: (event: MediaQueryListEvent) => void) => void
+      removeListener?: (listener: (event: MediaQueryListEvent) => void) => void
+    }
     const sync = () => setReduceMotion(media.matches)
     sync()
-    if ('addEventListener' in media) {
+    if (typeof media.addEventListener === 'function') {
       media.addEventListener('change', sync)
       return () => media.removeEventListener('change', sync)
     }
-    media.addListener(sync)
-    return () => media.removeListener(sync)
+    legacyMedia.addListener?.(sync)
+    return () => legacyMedia.removeListener?.(sync)
   }, [])
 
   useEffect(() => {
