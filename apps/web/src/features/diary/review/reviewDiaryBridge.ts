@@ -7,7 +7,10 @@ const REVIEW_BLOCK_PATTERN =
   /<!-- REVIEW_BLOCK_START ([\s\S]*?) -->\n([\s\S]*?)\n<!-- REVIEW_BLOCK_END -->/g
 
 export type ReviewSubmitPayload = {
+  summary?: string
+  tomorrow?: string
   inboxCount?: string
+  inboxSnapshot?: string
   inboxCleared?: boolean
   focusScore?: string
   reflectionNote?: string
@@ -22,6 +25,8 @@ export type ParsedReviewBlock = {
   submittedAt: number
   raw: string
   summary: {
+    summaryLine?: string
+    tomorrow?: string
     focusScore?: string
     reflectionPreview: string
   }
@@ -36,9 +41,17 @@ const buildReflectionPreview = (value: string) => {
 }
 
 export const buildSubmitPayload = (answers: ReviewAnswers, submittedAt = Date.now()): ReviewSubmitPayload => ({
+  summary: typeof answers.summary === 'string' ? answers.summary : undefined,
+  tomorrow: typeof answers.tomorrow === 'string' ? answers.tomorrow : undefined,
   inboxCount: typeof answers.inboxCount === 'string' ? answers.inboxCount : undefined,
+  inboxSnapshot: typeof answers.inboxSnapshot === 'string' ? answers.inboxSnapshot : undefined,
   inboxCleared: answers.inboxCleared === true,
-  focusScore: typeof answers.focusScore === 'string' ? answers.focusScore : undefined,
+  focusScore:
+    typeof answers.focusScore === 'string'
+      ? answers.focusScore
+      : typeof answers.focusScore === 'number'
+        ? String(answers.focusScore)
+        : undefined,
   reflectionNote: typeof answers.reflectionNote === 'string' ? answers.reflectionNote : undefined,
   mustDo1: typeof answers.mustDo1 === 'string' ? answers.mustDo1 : undefined,
   mustDo2: typeof answers.mustDo2 === 'string' ? answers.mustDo2 : undefined,
@@ -53,7 +66,9 @@ export const serializeReviewBlock = (payload: ReviewSubmitPayload): string => {
   })
 
   const lines = [
-    `- Inbox Count: ${cleanLine(payload.inboxCount)}`,
+    `- Summary: ${cleanLine(payload.summary)}`,
+    `- Tomorrow Focus: ${cleanLine(payload.tomorrow)}`,
+    `- Inbox Snapshot: ${cleanLine(payload.inboxSnapshot ?? payload.inboxCount)}`,
     `- Inbox Cleared: ${payload.inboxCleared === true}`,
     `- Focus Score: ${cleanLine(payload.focusScore)}`,
     `- Must Do 1: ${cleanLine(payload.mustDo1)}`,
@@ -81,13 +96,17 @@ export const appendReviewBlock = (contentMd: string, payload: ReviewSubmitPayloa
   return `${trimmed}\n\n${block}`
 }
 
+const extractLineValue = (body: string, label: string): string | undefined => {
+  const match = body.match(new RegExp(`^- ${label}:\\s*(.*)$`, 'm'))
+  const value = match?.[1]?.trim()
+  return value ? value : undefined
+}
+
 export const hasReviewBlock = (contentMd: string): boolean =>
   contentMd.includes(REVIEW_BLOCK_START_PREFIX) && contentMd.includes(REVIEW_BLOCK_END)
 
 const extractFocusScoreFromBody = (body: string): string | undefined => {
-  const focusLine = body.match(/^- Focus Score:\s*(.*)$/m)
-  const score = focusLine?.[1]?.trim()
-  return score ? score : undefined
+  return extractLineValue(body, 'Focus Score')
 }
 
 const extractReflectionFromBody = (body: string): string => {
@@ -112,12 +131,16 @@ export const extractReviewBlocks = (contentMd: string): ParsedReviewBlock[] => {
 
       const reflection = extractReflectionFromBody(bodyRaw)
       const focusScore = extractFocusScoreFromBody(bodyRaw)
+      const summaryLine = extractLineValue(bodyRaw, 'Summary')
+      const tomorrow = extractLineValue(bodyRaw, 'Tomorrow Focus')
 
       blocks.push({
         version,
         submittedAt,
         raw: match[0],
         summary: {
+          summaryLine,
+          tomorrow,
           focusScore,
           reflectionPreview: buildReflectionPreview(reflection),
         },

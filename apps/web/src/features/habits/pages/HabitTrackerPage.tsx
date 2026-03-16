@@ -1,226 +1,157 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Plus } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { Habit } from '../../../data/models/types'
-import { useMotionPreference } from '../../../shared/prefs/useMotionPreference'
 import { useToast } from '../../../shared/ui/toast/toast'
-import { DailyProgressRing } from '../components/DailyProgressRing'
 import { HabitFormDialog } from '../components/HabitFormDialog'
-import { HabitHeatmap } from '../components/HabitHeatmap'
 import { HabitList } from '../components/HabitList'
-import { HabitStatsPanel } from '../components/HabitStatsPanel'
 import { useHabitTracker } from '../hooks/useHabitTracker'
 import { useHabitsI18n } from '../habitsI18n'
-import { parseDateKey } from '../model/dateKey'
+import { todayDateKey } from '../model/dateKey'
 import '../habits.css'
-
-const CelebrationBurst = ({ active }: { active: boolean }) => {
-  const dots = Array.from({ length: 18 }, (_, index) => index)
-
-  return (
-    <AnimatePresence>
-      {active ? (
-        <motion.div className="habit-celebration" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-          {dots.map((index) => {
-            const angle = (Math.PI * 2 * index) / dots.length
-            const offsetX = Math.cos(angle) * (80 + (index % 3) * 24)
-            const offsetY = Math.sin(angle) * (80 + (index % 4) * 20)
-            return (
-              <motion.span
-                key={index}
-                className="habit-celebration__dot"
-                initial={{ x: 0, y: 0, scale: 0.5, opacity: 0.9 }}
-                animate={{ x: offsetX, y: offsetY, scale: 1.2, opacity: 0 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.9, ease: 'easeOut' }}
-              />
-            )
-          })}
-        </motion.div>
-      ) : null}
-    </AnimatePresence>
-  )
-}
 
 const HabitTrackerPage = () => {
   const i18n = useHabitsI18n()
   const toast = useToast()
-  const { reduceMotion } = useMotionPreference()
   const {
-    loading,
     activeHabits,
     archivedHabits,
-    streakByHabit,
-    dailyProgress,
-    completedHabitIds,
-    heatmap,
-    dateKey,
+    completedDatesByHabit,
     createHabit,
     updateHabit,
     archiveHabit,
     restoreHabit,
     completeHabit,
     undoHabit,
-    moveHabit,
   } = useHabitTracker()
-
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null)
-  const [celebrate, setCelebrate] = useState(false)
-  const previousPercent = useRef(0)
-
-  const activeSorted = useMemo(() => {
-    return [...activeHabits].sort((a, b) => {
-      const aDone = completedHabitIds.has(a.id)
-      const bDone = completedHabitIds.has(b.id)
-      if (aDone !== bDone) return aDone ? 1 : -1
-      return a.sortOrder - b.sortOrder
-    })
-  }, [activeHabits, completedHabitIds])
-
-  const longestStreak = useMemo(() => {
-    const values = Object.values(streakByHabit)
-    return values.length ? Math.max(...values) : 0
-  }, [streakByHabit])
-
-  useEffect(() => {
-    const nowPercent = dailyProgress.percent
-    const shouldCelebrate = dailyProgress.total > 0 && nowPercent === 100 && previousPercent.current < 100
-    if (shouldCelebrate) {
-      toast.push({ variant: 'success', message: i18n.toast.allCompleted })
-      if (!reduceMotion) {
-        previousPercent.current = nowPercent
-        setCelebrate(true)
-        const timer = window.setTimeout(() => setCelebrate(false), 1100)
-        return () => window.clearTimeout(timer)
-      }
-    }
-    previousPercent.current = nowPercent
-  }, [dailyProgress.percent, dailyProgress.total, i18n.toast.allCompleted, reduceMotion, toast])
-
-  const formattedDate = useMemo(() => {
-    return parseDateKey(dateKey).toLocaleDateString(undefined, i18n.dateFormat)
-  }, [dateKey, i18n.dateFormat])
+  const today = todayDateKey()
 
   return (
-    <section className="module-page-shell habits-page">
-      <CelebrationBurst active={celebrate} />
+    <section className="habits-page-design">
+      <div className="habits-page-design__container">
+        <motion.div
+          className="habits-page-design__header"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <h1 className="habits-page-design__title">{i18n.title}</h1>
+          <p className="habits-page-design__subtitle">{i18n.subtitle}</p>
+        </motion.div>
 
-      <header className="habits-page__header">
-        <div>
-          <h1>{i18n.title}</h1>
-          <p className="muted">{i18n.subtitle}</p>
-          <p className="habits-page__date">{i18n.today}: {formattedDate}</p>
-        </div>
-        <Button
-          size="icon"
-          aria-label={i18n.addHabit}
+        <motion.button
+          type="button"
           onClick={() => {
             setEditingHabit(null)
             setDialogOpen(true)
           }}
+          className="habits-page-design__add"
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.22, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
         >
-          <Plus size={18} />
-        </Button>
-      </header>
+          <Plus size={20} />
+          {i18n.addHabit}
+        </motion.button>
 
-      <div className="habits-page__layout">
-        <div className="habits-page__main">
-          <Tabs defaultValue="active">
-            <TabsList>
-              <TabsTrigger value="active">{i18n.active}</TabsTrigger>
-              <TabsTrigger value="archived">{i18n.archived}</TabsTrigger>
-            </TabsList>
+        <AnimatePresence mode="wait">
+          {activeHabits.length === 0 ? (
+            <motion.div
+              key="empty"
+              className="habits-page-design__empty"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.24 }}
+            >
+              <motion.div
+                className="habits-page-design__empty-emoji"
+                animate={{ y: [0, -8, 0] }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                🎯
+              </motion.div>
+              <h3>{i18n.emptyTitle}</h3>
+              <p>{i18n.emptyDescription}</p>
+            </motion.div>
+          ) : (
+            <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
+              <HabitList
+                habits={activeHabits}
+                completedDatesByHabit={completedDatesByHabit}
+                onToggleToday={async (habit) => {
+                  const completedDates = completedDatesByHabit[habit.id] ?? []
+                  if (completedDates.includes(today)) {
+                    await undoHabit(habit.id)
+                    toast.push({ variant: 'info', message: i18n.toastUndone })
+                    return
+                  }
+                  await completeHabit(habit)
+                  toast.push({
+                    variant: 'success',
+                    message: i18n.toastCompleted,
+                    actionLabel: i18n.undo,
+                    durationMs: 6000,
+                    onAction: () => {
+                      void undoHabit(habit.id).then(() => {
+                        toast.push({ variant: 'info', message: i18n.toastUndone })
+                      })
+                    },
+                  })
+                }}
+                onToggleDate={async (habit, dateKey) => {
+                  const completedDates = completedDatesByHabit[habit.id] ?? []
+                  await (completedDates.includes(dateKey) ? undoHabit(habit.id, dateKey) : completeHabit(habit, undefined, dateKey))
+                }}
+                onArchive={async (habitId) => {
+                  await archiveHabit(habitId)
+                  toast.push({ variant: 'info', message: i18n.toastArchived })
+                }}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-            <TabsContent value="active">
-              {loading ? <p className="muted">Loading…</p> : null}
-              {!loading && activeSorted.length === 0 ? <p className="muted">{i18n.emptyActive}</p> : null}
-              {!loading && activeSorted.length > 0 ? (
-                <HabitList
-                  habits={activeSorted}
-                  completedHabitIds={completedHabitIds}
-                  streakByHabit={streakByHabit}
-                  archived={false}
-                  onComplete={async (habit, value) => {
-                    await completeHabit(habit, value)
-                    toast.push({
-                      variant: 'success',
-                      message: i18n.toast.completed,
-                      actionLabel: i18n.toast.undo,
-                      durationMs: 6000,
-                      onAction: () => {
-                        void undoHabit(habit.id).then(() => {
-                          toast.push({ variant: 'info', message: i18n.toast.undone })
-                        })
-                      },
+        {archivedHabits.length > 0 ? (
+          <section className="habits-page-design__archived">
+            <h2>{i18n.archived}</h2>
+            <div className="habits-page-design__archived-list">
+              {archivedHabits.map((habit) => (
+                <button
+                  key={habit.id}
+                  type="button"
+                  className="habits-page-design__archived-item"
+                  onClick={() => {
+                    void restoreHabit(habit.id).then(() => {
+                      toast.push({ variant: 'success', message: i18n.toastRestored })
                     })
                   }}
-                  onArchive={async (habitId) => {
-                    await archiveHabit(habitId)
-                    toast.push({ variant: 'info', message: i18n.toast.archived })
-                  }}
-                  onRestore={async (habitId) => {
-                    await restoreHabit(habitId)
-                    toast.push({ variant: 'success', message: i18n.toast.restored })
-                  }}
-                  onEdit={(habit) => {
-                    setEditingHabit(habit)
-                    setDialogOpen(true)
-                  }}
-                  onMove={moveHabit}
-                />
-              ) : null}
-            </TabsContent>
+                >
+                  <span>{habit.icon ?? '🎯'}</span>
+                  <span>{habit.title}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
-            <TabsContent value="archived">
-              {loading ? <p className="muted">Loading…</p> : null}
-              {!loading && archivedHabits.length === 0 ? <p className="muted">{i18n.emptyArchived}</p> : null}
-              {!loading && archivedHabits.length > 0 ? (
-                <HabitList
-                  habits={archivedHabits}
-                  completedHabitIds={completedHabitIds}
-                  streakByHabit={streakByHabit}
-                  archived
-                  onComplete={async () => {}}
-                  onArchive={async () => {}}
-                  onRestore={async (habitId) => {
-                    await restoreHabit(habitId)
-                    toast.push({ variant: 'success', message: i18n.toast.restored })
-                  }}
-                  onEdit={(habit) => {
-                    setEditingHabit(habit)
-                    setDialogOpen(true)
-                  }}
-                  onMove={async () => {}}
-                />
-              ) : null}
-            </TabsContent>
-          </Tabs>
-        </div>
-
-        <aside className="habits-page__side">
-          <DailyProgressRing completed={dailyProgress.completed} total={dailyProgress.total} percent={dailyProgress.percent} />
-          <HabitStatsPanel activeCount={activeHabits.length} longestStreak={longestStreak} completedToday={dailyProgress.completed} />
-          <HabitHeatmap points={heatmap} />
-        </aside>
+        <HabitFormDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          initialHabit={editingHabit}
+          onSubmit={async (draft) => {
+            if (editingHabit) {
+              await updateHabit(editingHabit.id, draft)
+              return
+            }
+            await createHabit(draft)
+          }}
+        />
       </div>
-
-      <HabitFormDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        initialHabit={editingHabit}
-        onSubmit={async (draft) => {
-          if (editingHabit) {
-            await updateHabit(editingHabit.id, draft)
-            toast.push({ variant: 'success', message: i18n.toast.updated })
-            return
-          }
-          await createHabit(draft)
-          toast.push({ variant: 'success', message: i18n.toast.created })
-        }}
-      />
     </section>
   )
 }

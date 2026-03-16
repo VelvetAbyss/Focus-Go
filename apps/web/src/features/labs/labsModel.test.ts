@@ -15,8 +15,8 @@ describe('labsModel', () => {
     let records: FeatureInstallationRecord[] = []
 
     const run = (action: FeatureTransitionAction) => {
-      records = nextFeatureInstallations(records, 'local-user', 'rss', action, 1000)
-      return records.find((item) => item.userId === 'local-user' && item.featureKey === 'rss')
+      records = nextFeatureInstallations(records, 'local-user', 'habit-tracker', action, 1000)
+      return records.find((item) => item.userId === 'local-user' && item.featureKey === 'habit-tracker')
     }
 
     const installed = run('install')

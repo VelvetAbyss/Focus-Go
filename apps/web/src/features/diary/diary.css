@@ -23,11 +23,11 @@ html[data-theme='light'] .diary-fg {
   font-size: 34px;
   line-height: 1.1;
   font-weight: 800;
-  color: #000;
+  color: var(--color-ink);
 }
 
 .diary-fg__title-accent {
-  color: #000;
+  color: var(--color-ink);
 }
 
 .diary-fg__tabs-row {
@@ -91,7 +91,7 @@ html[data-theme='light'] .diary-fg {
 
 .diary-fg__icon-btn:hover {
   background: #eae8e4;
-  color: #000;
+  color: var(--color-ink);
 }
 
 .diary-fg__content {
@@ -157,7 +157,7 @@ html[data-motion='reduce'] .diary-fg__track {
 }
 
 .diary-fg__save-btn.button {
-  background: #000;
+  background: var(--color-ink);
   border-radius: 10px;
   padding: 0 16px;
   height: 36px;
@@ -194,7 +194,7 @@ html[data-motion='reduce'] .diary-fg__track {
   outline: none;
   border: none;
   background: transparent;
-  color: #1f2937;
+  color: #3a3733;
   font-family: var(--font-body);
   font-size: 18px;
   line-height: 1.6;

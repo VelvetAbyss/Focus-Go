@@ -91,11 +91,13 @@ const makeTask = (id: string, title: string): TaskItem => ({
   id,
   title,
   description: '',
+  pinned: false,
   status: 'todo',
   priority: null,
   dueDate: undefined,
   tags: [],
   subtasks: [],
+  taskNoteBlocks: [],
   progressLogs: [],
   activityLogs: [],
   createdAt: 1,
@@ -131,5 +133,15 @@ describe('TasksBoard sync', () => {
 
     await waitFor(() => expect(listMock).toHaveBeenCalledTimes(2))
     expect(screen.getByText('Synced task')).toBeInTheDocument()
+  })
+
+  it('keeps dashboard card layout separate from the plain tasks page layout', async () => {
+    listMock.mockResolvedValueOnce([makeTask('task-1', 'First task')])
+
+    const { container } = render(<TasksBoard />)
+
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1))
+    expect(container.querySelector('.tasks-fg')).toBeInTheDocument()
+    expect(container.querySelector('.tasks-fg--plain')).not.toBeInTheDocument()
   })
 })

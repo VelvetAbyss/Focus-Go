@@ -1,4 +1,12 @@
-import type { IDatabaseService, TaskCreateInput } from '@focus-go/core'
+import type {
+  IDatabaseService,
+  NoteAppearanceUpsertInput,
+  NoteCreateInput,
+  NoteTagCreateInput,
+  NoteTagUpdateInput,
+  NoteUpdateInput,
+  TaskCreateInput,
+} from '@focus-go/core'
 import { db } from '../db'
 import type {
   DashboardLayout,
@@ -8,6 +16,9 @@ import type {
   Habit,
   HabitLog,
   HabitStatus,
+  NoteAppearanceSettings,
+  NoteItem,
+  NoteTag,
   SpendCategory,
   SpendEntry,
   TaskItem,
@@ -17,6 +28,8 @@ import type {
 } from '../models/types'
 import { touch, withBase } from '../repositories/base'
 import { createId } from '../../shared/utils/ids'
+import { areTaskNoteBlocksEqual, normalizeTaskNoteBlocks } from '../../features/tasks/model/taskNote'
+import { resolveTaskNoteRichText } from '../../features/tasks/model/taskNoteRichText'
 
 const statusLabelMap: Record<TaskStatus, string> = {
   todo: 'Todo',
@@ -24,20 +37,126 @@ const statusLabelMap: Record<TaskStatus, string> = {
   done: 'Done',
 }
 
-const normalizeTask = (task: TaskItem): TaskItem => ({
-  ...task,
-  description: typeof task.description === 'string' ? task.description : '',
-  dueDate: typeof task.dueDate === 'string' && task.dueDate ? task.dueDate : undefined,
-  startDate: typeof task.startDate === 'string' && task.startDate ? task.startDate : undefined,
-  endDate: typeof task.endDate === 'string' && task.endDate ? task.endDate : undefined,
-  reminderAt: typeof task.reminderAt === 'number' && Number.isFinite(task.reminderAt) ? task.reminderAt : undefined,
-  reminderFiredAt:
-    typeof task.reminderFiredAt === 'number' && Number.isFinite(task.reminderFiredAt) ? task.reminderFiredAt : undefined,
-  tags: Array.isArray(task.tags) ? task.tags : [],
-  subtasks: Array.isArray(task.subtasks) ? task.subtasks : [],
-  progressLogs: Array.isArray(task.progressLogs) ? task.progressLogs : [],
-  activityLogs: Array.isArray(task.activityLogs) ? task.activityLogs : [],
+const DEFAULT_NOTE_COLLECTION = 'all-notes' as const
+const NOTE_APPEARANCE_ID = 'note_appearance' as const
+const normalizeTags = (value: unknown) =>
+  Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string').map((item) => item.trim()).filter(Boolean)
+    : []
+
+const buildNoteExcerpt = (contentMd: string) => {
+  const compact = contentMd.replace(/\s+/g, ' ').trim()
+  if (!compact) return ''
+  return compact.length > 160 ? `${compact.slice(0, 160)}…` : compact
+}
+
+const countMatches = (content: string, pattern: RegExp) => (content.match(pattern) ?? []).length
+
+const slugifyHeading = (value: string) =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '-')
+
+const buildNoteStats = (contentMd: string) => {
+  const content = typeof contentMd === 'string' ? contentMd : ''
+  const words = content.trim().split(/\s+/).filter(Boolean)
+  const paragraphs = content.split(/\n\s*\n/).map((part) => part.trim()).filter(Boolean)
+  const headings = content
+    .split('\n')
+    .map((line) => line.match(/^(#{1,3})\s+(.+)$/))
+    .filter((match): match is RegExpMatchArray => Boolean(match))
+    .map((match) => ({
+      level: Math.min(3, match[1].length) as 1 | 2 | 3,
+      text: match[2].trim(),
+      id: slugifyHeading(match[2]),
+    }))
+
+  return {
+    wordCount: words.length,
+    charCount: content.length,
+    paragraphCount: paragraphs.length,
+    imageCount: countMatches(content, /!\[[^\]]*\]\([^)]+\)/g),
+    fileCount: countMatches(content, /\battachment:\b/gi),
+    headings,
+  }
+}
+
+const buildNoteBacklinks = (note: Pick<NoteItem, 'id' | 'title'>, allNotes: NoteItem[]) =>
+  allNotes
+    .filter((candidate) => candidate.id !== note.id && candidate.contentMd.toLowerCase().includes(note.title.trim().toLowerCase()))
+    .map((candidate) => ({ noteId: candidate.id, noteTitle: candidate.title.trim() || 'Untitled' }))
+
+const normalizeNoteAppearance = (value?: Partial<NoteAppearanceSettings> | null): NoteAppearanceSettings =>
+  withBase({
+    id: NOTE_APPEARANCE_ID,
+    theme: value?.theme === 'graphite' ? 'graphite' : 'paper',
+    font: value?.font === 'serif' || value?.font === 'mono' ? value.font : 'sans',
+    fontSize: typeof value?.fontSize === 'number' ? value.fontSize : 16,
+    lineHeight: typeof value?.lineHeight === 'number' ? value.lineHeight : 1.7,
+    contentWidth: typeof value?.contentWidth === 'number' ? value.contentWidth : 56,
+    focusMode: value?.focusMode === true,
+  } as NoteAppearanceSettings)
+
+const normalizeNoteTag = (value: NoteTag): NoteTag => ({
+  ...value,
+  name: typeof value.name === 'string' ? value.name : '',
+  icon: typeof value.icon === 'string' && value.icon ? value.icon : undefined,
+  pinned: value.pinned === true,
+  parentId: typeof value.parentId === 'string' && value.parentId ? value.parentId : null,
+  noteCount: typeof value.noteCount === 'number' ? value.noteCount : 0,
+  sortOrder: typeof value.sortOrder === 'number' ? value.sortOrder : 0,
 })
+
+const normalizeNote = (note: NoteItem): NoteItem => ({
+  ...note,
+  title: typeof note.title === 'string' ? note.title : '',
+  contentMd: typeof note.contentMd === 'string' ? note.contentMd : '',
+  contentJson: note.contentJson && typeof note.contentJson === 'object' ? note.contentJson : null,
+  collection: note.collection ?? DEFAULT_NOTE_COLLECTION,
+  tags: normalizeTags(note.tags),
+  pinned: note.pinned === true,
+  excerpt:
+    typeof note.excerpt === 'string' && note.excerpt.trim().length > 0
+      ? note.excerpt.trim()
+      : buildNoteExcerpt(typeof note.contentMd === 'string' ? note.contentMd : ''),
+  wordCount: typeof note.wordCount === 'number' ? note.wordCount : buildNoteStats(note.contentMd).wordCount,
+  charCount: typeof note.charCount === 'number' ? note.charCount : buildNoteStats(note.contentMd).charCount,
+  paragraphCount: typeof note.paragraphCount === 'number' ? note.paragraphCount : buildNoteStats(note.contentMd).paragraphCount,
+  imageCount: typeof note.imageCount === 'number' ? note.imageCount : buildNoteStats(note.contentMd).imageCount,
+  fileCount: typeof note.fileCount === 'number' ? note.fileCount : buildNoteStats(note.contentMd).fileCount,
+  headings: Array.isArray(note.headings) ? note.headings : buildNoteStats(note.contentMd).headings,
+  backlinks: Array.isArray(note.backlinks) ? note.backlinks : [],
+  deletedAt: typeof note.deletedAt === 'number' && Number.isFinite(note.deletedAt) ? note.deletedAt : null,
+})
+
+const normalizeTask = (task: TaskItem): TaskItem => {
+  const taskNote = resolveTaskNoteRichText({
+    taskNoteBlocks: normalizeTaskNoteBlocks((task as { taskNoteBlocks?: unknown }).taskNoteBlocks, (task as { note?: unknown }).note),
+    taskNoteContentJson: (task as { taskNoteContentJson?: TaskItem['taskNoteContentJson'] }).taskNoteContentJson,
+    taskNoteContentMd: (task as { taskNoteContentMd?: TaskItem['taskNoteContentMd'] }).taskNoteContentMd,
+  })
+
+  return {
+    ...task,
+    description: typeof task.description === 'string' ? task.description : '',
+    pinned: task.pinned === true,
+    dueDate: typeof task.dueDate === 'string' && task.dueDate ? task.dueDate : undefined,
+    startDate: typeof task.startDate === 'string' && task.startDate ? task.startDate : undefined,
+    endDate: typeof task.endDate === 'string' && task.endDate ? task.endDate : undefined,
+    reminderAt: typeof task.reminderAt === 'number' && Number.isFinite(task.reminderAt) ? task.reminderAt : undefined,
+    reminderFiredAt:
+      typeof task.reminderFiredAt === 'number' && Number.isFinite(task.reminderFiredAt) ? task.reminderFiredAt : undefined,
+    tags: Array.isArray(task.tags) ? task.tags : [],
+    subtasks: Array.isArray(task.subtasks) ? task.subtasks : [],
+    taskNoteBlocks: [],
+    taskNoteContentMd: taskNote.contentMd,
+    taskNoteContentJson: taskNote.contentJson as TaskItem['taskNoteContentJson'],
+    progressLogs: Array.isArray(task.progressLogs) ? task.progressLogs : [],
+    activityLogs: Array.isArray(task.activityLogs) ? task.activityLogs : [],
+  }
+}
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000
 
@@ -68,6 +187,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
         const next = normalized[index]
         return (
           task.description !== next.description ||
+          task.pinned !== next.pinned ||
           task.dueDate !== next.dueDate ||
           task.startDate !== next.startDate ||
           task.endDate !== next.endDate ||
@@ -75,6 +195,9 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
           task.reminderFiredAt !== next.reminderFiredAt ||
           task.tags !== next.tags ||
           task.subtasks !== next.subtasks ||
+          !areTaskNoteBlocksEqual(normalizeTaskNoteBlocks((task as { taskNoteBlocks?: unknown }).taskNoteBlocks), next.taskNoteBlocks) ||
+          JSON.stringify(task.taskNoteContentJson ?? null) !== JSON.stringify(next.taskNoteContentJson ?? null) ||
+          task.taskNoteContentMd !== next.taskNoteContentMd ||
           task.progressLogs !== next.progressLogs ||
           task.activityLogs !== next.activityLogs
         )
@@ -83,9 +206,15 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       return normalized
     },
     async add(data: TaskCreateInput) {
+      const taskNote = resolveTaskNoteRichText({
+        taskNoteBlocks: data.taskNoteBlocks,
+        taskNoteContentJson: data.taskNoteContentJson,
+        taskNoteContentMd: data.taskNoteContentMd,
+      })
       const task: TaskItem = withBase({
         title: data.title,
         description: data.description ?? '',
+        pinned: data.pinned === true,
         status: data.status,
         priority: data.priority ?? null,
         dueDate: data.dueDate,
@@ -95,6 +224,9 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
         reminderFiredAt: data.reminderFiredAt,
         tags: data.tags ?? [],
         subtasks: data.subtasks ?? [],
+        taskNoteBlocks: [],
+        taskNoteContentMd: taskNote.contentMd,
+        taskNoteContentJson: taskNote.contentJson as TaskItem['taskNoteContentJson'],
         progressLogs: [],
         activityLogs: [],
       })
@@ -177,6 +309,155 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       await db.tasks.bulkPut(tagged.map((task) => touch({ ...task, tags: [] })))
     },
   },
+  notes: {
+    async list() {
+      const notes = await db.notes.toArray()
+      const normalizedBase = notes.map((note) => normalizeNote(note))
+      const normalized = normalizedBase
+        .map((note) => ({
+          ...note,
+          backlinks: buildNoteBacklinks(note, normalizedBase),
+        }))
+        .sort((left, right) => right.updatedAt - left.updatedAt)
+      const changed = notes.some((note, index) => JSON.stringify(note) !== JSON.stringify(normalized[index]))
+      if (changed) await db.notes.bulkPut(normalized)
+      return normalized.filter((note) => !note.deletedAt)
+    },
+    async listTrash() {
+      const notes = await db.notes.toArray()
+      const normalizedBase = notes.map((note) => normalizeNote(note))
+      const normalized = normalizedBase
+        .map((note) => ({
+          ...note,
+          backlinks: buildNoteBacklinks(note, normalizedBase),
+        }))
+        .sort((left, right) => right.updatedAt - left.updatedAt)
+      const changed = notes.some((note, index) => JSON.stringify(note) !== JSON.stringify(normalized[index]))
+      if (changed) await db.notes.bulkPut(normalized)
+      return normalized.filter((note) => Boolean(note.deletedAt))
+    },
+    async create(data?: NoteCreateInput) {
+      const stats = buildNoteStats(data?.contentMd ?? '')
+      const note: NoteItem = withBase({
+        title: data?.title ?? '',
+        contentMd: data?.contentMd ?? '',
+        contentJson: data?.contentJson ?? null,
+        collection: data?.collection ?? DEFAULT_NOTE_COLLECTION,
+        tags: data?.tags ?? [],
+        pinned: data?.pinned === true,
+        excerpt: buildNoteExcerpt(data?.contentMd ?? ''),
+        ...stats,
+        backlinks: data?.backlinks ?? [],
+        deletedAt: null,
+      })
+      await db.notes.add(note)
+      return normalizeNote(note)
+    },
+    async update(id: string, patch: NoteUpdateInput) {
+      const current = await db.notes.get(id)
+      if (!current) return undefined
+      const contentMd = patch.contentMd ?? current.contentMd
+      const stats = buildNoteStats(contentMd)
+      const next = touch(
+        normalizeNote({
+          ...current,
+          ...patch,
+          id,
+          excerpt: typeof patch.excerpt === 'string' ? patch.excerpt : buildNoteExcerpt(patch.contentMd ?? current.contentMd),
+          wordCount: typeof patch.wordCount === 'number' ? patch.wordCount : stats.wordCount,
+          charCount: typeof patch.charCount === 'number' ? patch.charCount : stats.charCount,
+          paragraphCount: typeof patch.paragraphCount === 'number' ? patch.paragraphCount : stats.paragraphCount,
+          imageCount: typeof patch.imageCount === 'number' ? patch.imageCount : stats.imageCount,
+          fileCount: typeof patch.fileCount === 'number' ? patch.fileCount : stats.fileCount,
+          headings: Array.isArray(patch.headings) ? patch.headings : stats.headings,
+          deletedAt: current.deletedAt ?? null,
+        }),
+      )
+      await db.notes.put(next)
+      return next
+    },
+    async softDelete(id: string) {
+      const current = await db.notes.get(id)
+      if (!current) return undefined
+      const next = touch({
+        ...normalizeNote(current),
+        deletedAt: Date.now(),
+      })
+      await db.notes.put(next)
+      return next
+    },
+    async restore(id: string) {
+      const current = await db.notes.get(id)
+      if (!current) return undefined
+      const next = touch({
+        ...normalizeNote(current),
+        deletedAt: null,
+      })
+      await db.notes.put(next)
+      return next
+    },
+    async hardDelete(id: string) {
+      await db.notes.delete(id)
+    },
+  },
+  noteTags: {
+    async list() {
+      const rows = await db.noteTags.orderBy('sortOrder').toArray()
+      const normalized = rows.map((row) => normalizeNoteTag(row))
+      const changed = rows.some((row, index) => JSON.stringify(row) !== JSON.stringify(normalized[index]))
+      if (changed) await db.noteTags.bulkPut(normalized)
+      return normalized
+    },
+    async create(data: NoteTagCreateInput) {
+      const tag = withBase({
+        name: data.name,
+        icon: data.icon,
+        pinned: data.pinned === true,
+        parentId: data.parentId ?? null,
+        noteCount: 0,
+        sortOrder: data.sortOrder ?? 0,
+      } satisfies Omit<NoteTag, 'id' | 'createdAt' | 'updatedAt'>)
+      await db.noteTags.add(tag)
+      return normalizeNoteTag(tag)
+    },
+    async update(id: string, patch: NoteTagUpdateInput) {
+      const current = await db.noteTags.get(id)
+      if (!current) return undefined
+      const next = touch(
+        normalizeNoteTag({
+          ...current,
+          ...patch,
+          id,
+        } as NoteTag),
+      )
+      await db.noteTags.put(next)
+      return next
+    },
+    async remove(id: string) {
+      await db.noteTags.delete(id)
+    },
+  },
+  noteAppearance: {
+    async get() {
+      const current = await db.noteAppearance.get(NOTE_APPEARANCE_ID)
+      return current ? normalizeNoteAppearance(current) : null
+    },
+    async upsert(data: Partial<NoteAppearanceUpsertInput> & Pick<NoteAppearanceUpsertInput, 'id'>) {
+      const current = await db.noteAppearance.get(NOTE_APPEARANCE_ID)
+      if (!current) {
+        const created = normalizeNoteAppearance(data)
+        await db.noteAppearance.put(created)
+        return created
+      }
+      const next = touch({
+        ...normalizeNoteAppearance(current),
+        ...data,
+        id: NOTE_APPEARANCE_ID,
+      })
+      await db.noteAppearance.put(next)
+      return next
+    },
+  },
   widgetTodos: {
     async list(scope?: WidgetTodoScope) {
       if (scope) return db.widgetTodos.where('scope').equals(scope).toArray()
@@ -191,6 +472,13 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       const next = touch(item as WidgetTodo)
       await db.widgetTodos.put(next)
       return next
+    },
+    async resetDone(scope) {
+      const rows = await db.widgetTodos.where('scope').equals(scope).filter((item) => item.done).toArray()
+      if (rows.length === 0) return []
+      const reset = rows.map((item) => ({ ...item, done: false }))
+      await db.widgetTodos.bulkPut(reset)
+      return reset
     },
     async remove(id) {
       await db.widgetTodos.delete(id)

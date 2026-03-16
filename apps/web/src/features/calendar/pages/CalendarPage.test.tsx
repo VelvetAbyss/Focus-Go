@@ -29,6 +29,7 @@ const createTask = (patch: Partial<TaskItem> = {}): TaskItem => {
     updatedAt: patch.updatedAt ?? now,
     title: patch.title ?? 'Untitled',
     description: patch.description ?? '',
+    pinned: patch.pinned ?? false,
     status: patch.status ?? 'todo',
     priority: patch.priority ?? null,
     dueDate: patch.dueDate,
@@ -38,6 +39,7 @@ const createTask = (patch: Partial<TaskItem> = {}): TaskItem => {
     reminderFiredAt: patch.reminderFiredAt,
     tags: patch.tags ?? [],
     subtasks: patch.subtasks ?? [],
+    taskNoteBlocks: patch.taskNoteBlocks ?? [],
     progressLogs: patch.progressLogs ?? [],
     activityLogs: patch.activityLogs ?? [],
   }
@@ -54,6 +56,7 @@ vi.mock('../../../data/repositories/tasksRepo', () => ({
         updatedAt: now,
         title: payload.title ?? '',
         description: payload.description ?? '',
+        pinned: payload.pinned ?? false,
         status: payload.status ?? 'todo',
         priority: payload.priority ?? null,
         dueDate: payload.dueDate,
@@ -63,6 +66,7 @@ vi.mock('../../../data/repositories/tasksRepo', () => ({
         reminderFiredAt: payload.reminderFiredAt,
         tags: payload.tags ?? [],
         subtasks: payload.subtasks ?? [],
+        taskNoteBlocks: payload.taskNoteBlocks ?? [],
         progressLogs: [],
         activityLogs: [],
       } as TaskItem
@@ -90,6 +94,8 @@ vi.mock('../../../shared/prefs/useMotionPreference', () => ({
 
 import { tasksRepo } from '../../../data/repositories/tasksRepo'
 import CalendarPage from './CalendarPage'
+
+const renderCalendar = () => render(<CalendarPage />)
 
 describe('CalendarPage', () => {
   beforeEach(() => {
@@ -131,7 +137,7 @@ describe('CalendarPage', () => {
   })
 
   it('right panel renders compact calendar event and task sections', () => {
-    const view = render(<CalendarPage />)
+    const view = renderCalendar()
     const scoped = within(view.container)
 
     expect(scoped.getByRole('heading', { name: 'Calendar Event' })).toBeInTheDocument()
@@ -174,7 +180,7 @@ describe('CalendarPage', () => {
       })
     )
 
-    const view = render(<CalendarPage />)
+    const view = renderCalendar()
     const eventList = view.container.querySelector('[aria-label="Calendar events list"]')
     expect(eventList).not.toBeNull()
     expect(within(eventList as HTMLElement).getByText('春节')).toHaveClass('is-cjk')
@@ -182,7 +188,7 @@ describe('CalendarPage', () => {
 
   it('applies cjk class for mixed text row', async () => {
     const user = userEvent.setup()
-    const view = render(<CalendarPage />)
+    const view = renderCalendar()
     const scoped = within(view.container)
     const mixedTitle = 'Fix 春节 banner'
 
@@ -196,7 +202,7 @@ describe('CalendarPage', () => {
 
   it('creates task for selected date and renders immediately', async () => {
     const user = userEvent.setup()
-    const view = render(<CalendarPage />)
+    const view = renderCalendar()
     const scoped = within(view.container)
 
     const now = new Date()
@@ -222,7 +228,7 @@ describe('CalendarPage', () => {
 
   it('renders added selected-day task in month grid cell', async () => {
     const user = userEvent.setup()
-    const view = render(<CalendarPage />)
+    const view = renderCalendar()
     const scoped = within(view.container)
     const taskTitle = 'Grid task'
 
@@ -232,11 +238,14 @@ describe('CalendarPage', () => {
     const selectedCell = view.container.querySelector('.calendar-month-grid__cell.is-selected')
     expect(selectedCell).not.toBeNull()
     expect(within(selectedCell as HTMLElement).getByText(taskTitle)).toHaveClass('calendar-chip--task')
-    expect(within(selectedCell as HTMLElement).getByText(taskTitle)).toHaveClass('calendar-chip--task-red')
+    expect(within(selectedCell as HTMLElement).getByText(taskTitle)).toHaveAttribute(
+      'style',
+      expect.stringContaining('#ef4444')
+    )
   })
 
   it('today cell keeps red border while selected state remains', () => {
-    const view = render(<CalendarPage />)
+    const view = renderCalendar()
     const selectedCell = view.container.querySelector('.calendar-month-grid__cell.is-selected')
     expect(selectedCell).not.toBeNull()
     expect(selectedCell).toHaveClass('is-today')
@@ -256,7 +265,7 @@ describe('CalendarPage', () => {
       }),
     ]
 
-    const view = render(<CalendarPage />)
+    const view = renderCalendar()
 
     await waitFor(() => {
       const cells = Array.from(view.container.querySelectorAll('.calendar-month-grid__cell'))
@@ -279,7 +288,7 @@ describe('CalendarPage', () => {
       }),
     ]
 
-    const view = render(<CalendarPage />)
+    const view = renderCalendar()
     const tasksList = view.container.querySelector('[aria-label="Tasks list"]')
     expect(tasksList).not.toBeNull()
     await waitFor(() => {
@@ -288,16 +297,40 @@ describe('CalendarPage', () => {
     const card = (tasksList as HTMLElement).querySelector('.calendar-task-card')
     expect(card).not.toBeNull()
     expect(within(card as HTMLElement).getByText('high')).toBeInTheDocument()
-    expect(within(card as HTMLElement).getByText('work')).toBeInTheDocument()
+    expect(
+      within(card as HTMLElement).getByText((content) => content.includes('work, urgent +1')),
+    ).toBeInTheDocument()
   })
 
-  it('editing reminder/date range from right card updates task and re-renders', async () => {
+  it('updates task tag color and syncs month grid task chip color', async () => {
     const user = userEvent.setup()
     const today = toDateKey(new Date())
-    const [year, month] = today.split('-')
-    const nextStart = `${year}-${month}-18`
-    const nextEnd = `${year}-${month}-20`
-    const reminderDateTime = `${nextStart}T09:30`
+    tasksDb = [
+      createTask({
+        id: 'tag-color-task',
+        title: 'Tag color task',
+        dueDate: today,
+        tags: ['work'],
+      }),
+    ]
+
+    const view = renderCalendar()
+    const tasksList = view.container.querySelector('[aria-label="Tasks list"]')
+    expect(tasksList).not.toBeNull()
+    await within(tasksList as HTMLElement).findByText('Tag color task')
+    await user.click(within(tasksList as HTMLElement).getByRole('button', { name: 'Set task color for Tag color task' }))
+    await user.click(screen.getByRole('button', { name: /set .*color to #22c55e/i }))
+
+    const selectedCell = view.container.querySelector('.calendar-month-grid__cell.is-selected')
+    expect(selectedCell).not.toBeNull()
+    const chip = within(selectedCell as HTMLElement).getByText('Tag color task')
+    expect(chip).toHaveAttribute('style', expect.stringContaining('#22c55e'))
+  })
+
+  it('editing task card updates task and re-renders', async () => {
+    const user = userEvent.setup()
+    const today = toDateKey(new Date())
+    const nextTitle = 'Edited task title'
     tasksDb = [
       createTask({
         id: 'editable-task',
@@ -306,27 +339,27 @@ describe('CalendarPage', () => {
       }),
     ]
 
-    const view = render(<CalendarPage />)
+    const view = renderCalendar()
     const tasksList = view.container.querySelector('[aria-label="Tasks list"]')
     expect(tasksList).not.toBeNull()
     await within(tasksList as HTMLElement).findByText('Editable task')
     await user.click(within(tasksList as HTMLElement).getByRole('button', { name: 'Edit' }))
-    await user.clear(screen.getByLabelText('Start date'))
-    await user.type(screen.getByLabelText('Start date'), nextStart)
-    await user.clear(screen.getByLabelText('End date'))
-    await user.type(screen.getByLabelText('End date'), nextEnd)
-    await user.clear(screen.getByLabelText('Reminder'))
-    await user.type(screen.getByLabelText('Reminder'), reminderDateTime)
-    await user.click(screen.getByRole('button', { name: 'Save' }))
+    const titleInput = await screen.findByLabelText('Title')
+    const editor = document.querySelector('.calendar-task-card__editor')
+    expect(editor).not.toBeNull()
+    expect(within(editor as HTMLElement).getByText('Date Range')).toBeInTheDocument()
+    expect(within(editor as HTMLElement).getByText('Reminder')).toBeInTheDocument()
+    expect(within(editor as HTMLElement).queryByRole('button', { name: /clear reminder/i })).not.toBeInTheDocument()
+    expect(within(editor as HTMLElement).queryByRole('button', { name: 'Save' })).not.toBeInTheDocument()
+    await user.clear(titleInput)
+    await user.type(titleInput, nextTitle)
 
     await waitFor(() => {
       expect(tasksRepo.update).toHaveBeenCalled()
       expect(tasksRepo.update).toHaveBeenLastCalledWith(
         expect.objectContaining({
           id: 'editable-task',
-          startDate: nextStart,
-          endDate: nextEnd,
-          reminderAt: expect.any(Number),
+          title: nextTitle,
         })
       )
     })
@@ -343,19 +376,19 @@ describe('CalendarPage', () => {
       }),
     ]
 
-    const view = render(<CalendarPage />)
+    const view = renderCalendar()
 
     await waitFor(() => {
       const selectedCell = view.container.querySelector('.calendar-month-grid__cell.is-selected')
       expect(selectedCell).not.toBeNull()
       const chip = within(selectedCell as HTMLElement).getByText('Legacy task')
-      expect(chip).toHaveClass('calendar-chip--task-red')
+      expect(chip).toHaveAttribute('style', expect.stringContaining('#ef4444'))
     })
   })
 
   it('double-clicking a date creates a task (not calendar event)', async () => {
     const user = userEvent.setup()
-    const view = render(<CalendarPage />)
+    const view = renderCalendar()
     const today = toDateKey(new Date())
 
     const selectedCell = view.container.querySelector('.calendar-month-grid__cell.is-selected')
@@ -387,14 +420,14 @@ describe('CalendarPage', () => {
   })
 
   it('month title renders once in main area', () => {
-    const view = render(<CalendarPage />)
+    const view = renderCalendar()
     const monthTitle = view.container.querySelectorAll('.calendar-main-title')
     expect(monthTitle.length).toBe(1)
     expect(view.container.querySelectorAll('.calendar-v2__left-header h2').length).toBe(0)
   })
 
   it('right panel does not render removed elements', () => {
-    const view = render(<CalendarPage />)
+    const view = renderCalendar()
     const scoped = within(view.container)
 
     expect(scoped.queryByPlaceholderText('Search events')).not.toBeInTheDocument()
@@ -405,7 +438,7 @@ describe('CalendarPage', () => {
 
   it('does not create task when title is empty', async () => {
     const user = userEvent.setup()
-    const view = render(<CalendarPage />)
+    const view = renderCalendar()
     const scoped = within(view.container)
 
     await user.click(scoped.getByRole('button', { name: 'Add' }))
@@ -414,7 +447,7 @@ describe('CalendarPage', () => {
   })
 
   it('shakes task input on empty submit', async () => {
-    const view = render(<CalendarPage />)
+    const view = renderCalendar()
     const scoped = within(view.container)
     const input = scoped.getByRole('textbox', { name: 'New task title' })
     const form = input.closest('form')
@@ -435,7 +468,7 @@ describe('CalendarPage', () => {
       createTask({ id: 'keep-target', title: 'Keep me', dueDate: today, createdAt: 999 }),
     ]
 
-    const view = render(<CalendarPage />)
+    const view = renderCalendar()
     const tasksList = view.container.querySelector('[aria-label="Tasks list"]')
     expect(tasksList).not.toBeNull()
 
@@ -462,7 +495,7 @@ describe('CalendarPage', () => {
     tasksDb = [createTask({ id: 'delete-fail', title: 'Delete fails', dueDate: today })]
     vi.mocked(tasksRepo.remove).mockRejectedValueOnce(new Error('boom'))
 
-    const view = render(<CalendarPage />)
+    const view = renderCalendar()
     const scoped = within(view.container)
     const tasksList = view.container.querySelector('[aria-label="Tasks list"]')
     expect(tasksList).not.toBeNull()
@@ -493,7 +526,7 @@ describe('CalendarPage', () => {
     })
     vi.mocked(tasksRepo.remove).mockReturnValueOnce(pendingRemove)
 
-    const view = render(<CalendarPage />)
+    const view = renderCalendar()
     const tasksList = view.container.querySelector('[aria-label="Tasks list"]')
     expect(tasksList).not.toBeNull()
 
@@ -519,7 +552,7 @@ describe('CalendarPage', () => {
   })
 
   it('renders unified calendar list without legacy group labels and without custom subtitle', () => {
-    const view = render(<CalendarPage />)
+    const view = renderCalendar()
     const scoped = within(view.container)
 
     expect(scoped.queryByText('Custom Calendar')).not.toBeInTheDocument()
@@ -567,7 +600,7 @@ describe('CalendarPage', () => {
       ])
     )
 
-    const view = render(<CalendarPage />)
+    const view = renderCalendar()
     const scoped = within(view.container)
 
     expect(scoped.queryByText('Chinese Lunar Calendar')).not.toBeInTheDocument()
@@ -576,7 +609,7 @@ describe('CalendarPage', () => {
   })
 
   it('updates add entry label to Add subscription', () => {
-    const view = render(<CalendarPage />)
+    const view = renderCalendar()
     const addButton = within(view.container).getByRole('button', { name: 'Add subscription' })
     expect(addButton).toBeInTheDocument()
     expect(addButton).toHaveClass('calendar-subscriptions__add')
@@ -584,7 +617,7 @@ describe('CalendarPage', () => {
 
   it('shows ics guide only in ics mode', async () => {
     const user = userEvent.setup()
-    const view = render(<CalendarPage />)
+    const view = renderCalendar()
     const scoped = within(view.container)
     await user.click(scoped.getByRole('button', { name: 'Add subscription' }))
 
@@ -596,7 +629,7 @@ describe('CalendarPage', () => {
 
   it('renders preset placeholder cards', async () => {
     const user = userEvent.setup()
-    const view = render(<CalendarPage />)
+    const view = renderCalendar()
     const scoped = within(view.container)
     await user.click(scoped.getByRole('button', { name: 'Add subscription' }))
 
@@ -643,7 +676,7 @@ describe('CalendarPage', () => {
       ])
     )
 
-    const view = render(<CalendarPage />)
+    const view = renderCalendar()
     const scoped = within(view.container)
 
     const alphaHandle = scoped.getByRole('button', { name: 'Reorder Alpha' })
@@ -667,7 +700,7 @@ describe('CalendarPage', () => {
 
   it('updates subscription color in unified list via preset swatches', async () => {
     const user = userEvent.setup()
-    const view = render(<CalendarPage />)
+    const view = renderCalendar()
     const scoped = within(view.container)
 
     const getRowDot = (name: string) => {
@@ -700,7 +733,7 @@ describe('CalendarPage', () => {
 
   it('uses eye visibility toggles in subscription rows', async () => {
     const user = userEvent.setup()
-    const view = render(<CalendarPage />)
+    const view = renderCalendar()
     const scoped = within(view.container)
 
     const toggle = scoped.getByRole('button', { name: 'Toggle visibility for Google Calendar (M1 Read-Only)' })
@@ -714,7 +747,7 @@ describe('CalendarPage', () => {
 
   it('ics add flow still works with guide and presets present', async () => {
     const user = userEvent.setup()
-    const view = render(<CalendarPage />)
+    const view = renderCalendar()
     const scoped = within(view.container)
 
     await user.click(scoped.getByRole('button', { name: 'Add subscription' }))
@@ -728,7 +761,7 @@ describe('CalendarPage', () => {
 
   it('delete permanently removes subscription and no restore panel appears', async () => {
     const user = userEvent.setup()
-    const view = render(<CalendarPage />)
+    const view = renderCalendar()
     const scoped = within(view.container)
 
     await user.click(scoped.getByRole('button', { name: 'Remove Google Calendar (M1 Read-Only)' }))
@@ -742,7 +775,7 @@ describe('CalendarPage', () => {
 
   it('selected cell keeps stable visual class on click', async () => {
     const user = userEvent.setup()
-    const view = render(<CalendarPage />)
+    const view = renderCalendar()
 
     const monthGrid = view.container.querySelector('.calendar-month-grid')
     expect(monthGrid).not.toBeNull()
@@ -758,7 +791,7 @@ describe('CalendarPage', () => {
 
   it('date switch clears right-panel task input draft', async () => {
     const user = userEvent.setup()
-    const view = render(<CalendarPage />)
+    const view = renderCalendar()
     const input = within(view.container).getByRole('textbox', { name: 'New task title' })
     await user.type(input, 'draft text')
     expect(input).toHaveValue('draft text')

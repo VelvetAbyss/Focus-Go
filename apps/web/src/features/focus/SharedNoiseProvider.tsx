@@ -27,6 +27,7 @@ type SharedNoiseContextValue = {
   setNoiseTrackEnabled: (trackId: NoiseTrackId, enabled: boolean) => void
   setNoiseTrackVolume: (trackId: NoiseTrackId, volume: number) => void
   setNoiseMasterVolume: (volume: number) => void
+  setNoiseSleepTimer: (minutes: number | null) => void
 }
 
 const SharedNoiseContext = createContext<SharedNoiseContextValue | null>(null)
@@ -53,6 +54,8 @@ export const SharedNoiseProvider = ({ children }: { children: ReactNode }) => {
         playing: resumedFromSameSession ? storedNoise.playing : false,
         loop: storedNoise.loop ?? preset.loop,
         masterVolume: storedNoise.masterVolume ?? 0.6,
+        sleepEndsAt: storedNoise.sleepEndsAt ?? null,
+        sleepDurationMinutes: storedNoise.sleepDurationMinutes ?? null,
         tracks: { ...preset.tracks, ...storedNoise.tracks },
       }
 
@@ -114,10 +117,50 @@ export const SharedNoiseProvider = ({ children }: { children: ReactNode }) => {
     setNoise((prev) => ({ ...prev, masterVolume: volume }))
   }, [])
 
+  const setNoiseSleepTimer = useCallback((minutes: number | null) => {
+    setNoise((prev) => {
+      if (minutes === null) {
+        return {
+          ...prev,
+          sleepEndsAt: null,
+          sleepDurationMinutes: null,
+        }
+      }
+
+      return {
+        ...prev,
+        sleepEndsAt: Date.now() + minutes * 60 * 1000,
+        sleepDurationMinutes: minutes,
+      }
+    })
+  }, [])
+
   const handlePlaybackBlocked = useCallback(() => {
     if (!readyRef.current) return
     setNoise((prev) => (prev.playing ? { ...prev, playing: false } : prev))
   }, [])
+
+  useEffect(() => {
+    if (!ready || !noise.sleepEndsAt) return
+    const sleepEndsAt = noise.sleepEndsAt
+
+    const tick = () => {
+      if (Date.now() < sleepEndsAt) return
+      setNoise((prev) => {
+        if (!prev.sleepEndsAt || Date.now() < prev.sleepEndsAt) return prev
+        return {
+          ...prev,
+          playing: false,
+          sleepEndsAt: null,
+          sleepDurationMinutes: null,
+        }
+      })
+    }
+
+    tick()
+    const timer = window.setInterval(tick, 1000)
+    return () => window.clearInterval(timer)
+  }, [noise.sleepEndsAt, ready])
 
   useNoiseMixer(noise, handlePlaybackBlocked)
 
@@ -128,7 +171,8 @@ export const SharedNoiseProvider = ({ children }: { children: ReactNode }) => {
     setNoiseTrackEnabled,
     setNoiseTrackVolume,
     setNoiseMasterVolume,
-  }), [noise, toggleNoisePlaying, setNoiseTrackEnabled, setNoiseTrackVolume, setNoiseMasterVolume])
+    setNoiseSleepTimer,
+  }), [noise, toggleNoisePlaying, setNoiseTrackEnabled, setNoiseTrackVolume, setNoiseMasterVolume, setNoiseSleepTimer])
 
   return <SharedNoiseContext.Provider value={value}>{children}</SharedNoiseContext.Provider>
 }

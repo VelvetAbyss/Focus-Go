@@ -11,6 +11,9 @@ export const widgetTodoRepo = {
   async update(item: WidgetTodo) {
     return dbService.widgetTodos.update(item)
   },
+  async resetDone(scope: WidgetTodoScope) {
+    return dbService.widgetTodos.resetDone(scope)
+  },
   async remove(id: string) {
     await dbService.widgetTodos.remove(id)
   },

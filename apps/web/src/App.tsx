@@ -4,7 +4,6 @@ import AppRoutes from './app/routes/AppRoutes'
 import { seedDatabase } from './data/seed'
 import { applyTheme, resolveInitialTheme } from './shared/theme/theme'
 import { BrowserRouter } from 'react-router-dom'
-import { DatePickerProvider } from './shared/ui/datePicker/DatePickerProvider'
 import { PreferencesProvider } from './shared/prefs/PreferencesProvider'
 import { ToastProvider } from './shared/ui/toast/ToastProvider'
 import { LabsProvider } from './features/labs/LabsContext'
@@ -22,13 +21,11 @@ const App = () => {
       <PreferencesProvider>
         <ToastProvider>
           <LabsProvider>
-            <DatePickerProvider>
-              <SharedNoiseProvider>
-                <AppShell>
-                  <AppRoutes />
-                </AppShell>
-              </SharedNoiseProvider>
-            </DatePickerProvider>
+            <SharedNoiseProvider>
+              <AppShell>
+                <AppRoutes />
+              </AppShell>
+            </SharedNoiseProvider>
           </LabsProvider>
         </ToastProvider>
       </PreferencesProvider>

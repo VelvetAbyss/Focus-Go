@@ -3,6 +3,7 @@
 :root {
   --font-display: 'Fraunces', serif;
   --font-body: 'Manrope', sans-serif;
+  --color-ink: #3a3733;
   --control-height: 36px;
   --page-pad: 20px;
   --route-pad: 18px;
@@ -72,28 +73,28 @@ html[data-theme='light'] {
   --bg: #f6f5f2;
   --bg-elevated: #ffffff;
   --bg-muted: #efece7;
-  --text-primary: #1e1f23;
+  --text-primary: #3a3733;
   --text-secondary: #5d6168;
   --accent: #1b4f4a;
   --accent-soft: #e0edea;
-  --border: rgba(0, 0, 0, 0.08);
+  --border: rgba(58, 55, 51, 0.08);
   --surface: #ffffff;
   --surface-hover: #f5f5f5;
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(58, 55, 51, 0.08);
 }
 
 html[data-theme='dark'] {
-  --bg: #151617;
-  --bg-elevated: #1b1d1f;
-  --bg-muted: #212428;
+  --bg: #3a3733;
+  --bg-elevated: #3a3733;
+  --bg-muted: #3a3733;
   --text-primary: #f2f0ec;
   --text-secondary: #b2aba2;
   --accent: #7edbc7;
   --accent-soft: #1f2c28;
   --border: rgba(255, 255, 255, 0.1);
-  --surface: #1d2022;
+  --surface: #3a3733;
   --surface-hover: #272b2f;
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.28);
+  --shadow-md: 0 8px 24px rgba(58, 55, 51, 0.28);
   --status-todo: #8b95a7;
   --status-doing: #7ab8ff;
   --status-blocked: #f2a65a;

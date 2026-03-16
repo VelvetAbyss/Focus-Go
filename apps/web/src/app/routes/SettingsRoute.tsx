@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Brush, Database, LayoutGrid, Sparkles, SunMedium, Waves, Bell, LocateFixed, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { dashboardRepo } from '../../data/repositories/dashboardRepo'
 import { db } from '../../data/db'
+import { DB_NAME, DB_VERSION, TABLES } from '../../data/db/schema'
 import { applyTheme, clearStoredThemePreference, resolveTheme, writeStoredThemePreference } from '../../shared/theme/theme'
 import {
   applyThemePackPreview,
@@ -33,6 +34,15 @@ import type { DashboardLayout } from '../../data/models/types'
 import { usePreferences } from '../../shared/prefs/usePreferences'
 import { useI18n } from '../../shared/i18n/useI18n'
 import type { LanguageCode } from '../../shared/i18n/types'
+import { useToast } from '../../shared/ui/toast/toast'
+import {
+  createBackupDownload,
+  createBrowserStorageAdapter,
+  createTableDatabaseAdapter,
+  exportLocalBackup,
+  importLocalBackup,
+  type LocalBackupPayload,
+} from '../../shared/backup/localBackup'
 
 const LAYOUT_LOCK_KEY = 'workbench.dashboard.layoutLocked'
 
@@ -241,6 +251,7 @@ const SettingRow = ({ icon: Icon, title, description, children }: SettingRowProp
 
 const SettingsRoute = () => {
   const { t } = useI18n()
+  const toast = useToast()
   const [activeSection, setActiveSection] = useState<SettingsSection>('appearance')
   const [layoutLocked, setLayoutLocked] = useState(() => readLayoutLocked())
   const [theme, setTheme] = useState<ThemeSelection>('system')
@@ -248,6 +259,10 @@ const SettingsRoute = () => {
   const [themePackPreview, setThemePackPreview] = useState<ThemePackId | null>(null)
   const [dashboard, setDashboard] = useState<DashboardLayout | null>(null)
   const [isResetting, setIsResetting] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
+  const [pendingImport, setPendingImport] = useState<{ fileName: string; payload: LocalBackupPayload } | null>(null)
+  const importInputRef = useRef<HTMLInputElement | null>(null)
   const {
     language,
     setLanguage,
@@ -414,6 +429,70 @@ const SettingsRoute = () => {
       window.location.reload()
     } finally {
       setIsResetting(false)
+    }
+  }
+
+  const backupTableNames = useMemo(() => Object.values(TABLES), [])
+
+  const exportBackup = async () => {
+    setIsExporting(true)
+    try {
+      const payload = await exportLocalBackup({
+        db: createTableDatabaseAdapter(db, backupTableNames),
+        storage: createBrowserStorageAdapter(window.localStorage),
+        tableNames: backupTableNames,
+        dbName: DB_NAME,
+        dbVersion: DB_VERSION,
+      })
+      const download = createBackupDownload(payload)
+      const link = document.createElement('a')
+      link.href = download.url
+      link.download = download.fileName
+      link.click()
+      URL.revokeObjectURL(download.url)
+      toast.push({ variant: 'success', message: t('settings.data.export.success') })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : t('settings.data.export.failed')
+      toast.push({ variant: 'error', message })
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const onImportFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+
+    try {
+      const raw = JSON.parse(await file.text()) as LocalBackupPayload
+      if (raw?.format !== 'focus-go-local-backup') {
+        throw new Error(t('settings.data.import.invalidFile'))
+      }
+      setPendingImport({ fileName: file.name, payload: raw })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : t('settings.data.import.invalidFile')
+      toast.push({ variant: 'error', message })
+    }
+  }
+
+  const confirmImport = async () => {
+    if (!pendingImport) return
+
+    setIsImporting(true)
+    try {
+      await importLocalBackup(pendingImport.payload, {
+        db: createTableDatabaseAdapter(db, backupTableNames),
+        storage: createBrowserStorageAdapter(window.localStorage),
+        tableNames: backupTableNames,
+      })
+      window.location.reload()
+    } catch (error) {
+      const fallback = t('settings.data.import.failed')
+      const message = error instanceof Error ? error.message : fallback
+      toast.push({ variant: 'error', message: message || fallback })
+      setIsImporting(false)
+      setPendingImport(null)
     }
   }
 
@@ -817,12 +896,32 @@ const SettingsRoute = () => {
                             title={t('settings.data.export.title')}
                             description={t('settings.data.export.description')}
                           >
-                            <div className="flex gap-2">
-                              <Button variant="outline" disabled>
+                            <div className="flex flex-wrap gap-2">
+                              <Button variant="outline" disabled={isExporting || isImporting} onClick={() => void exportBackup()}>
                                 {t('settings.data.export.json')}
                               </Button>
-                              <Button variant="outline" disabled>
-                                {t('settings.data.export.csv')}
+                            </div>
+                          </SettingRow>
+
+                          <SettingRow
+                            icon={Database}
+                            title={t('settings.data.import.title')}
+                            description={t('settings.data.import.description')}
+                          >
+                            <div className="flex flex-wrap gap-2">
+                              <input
+                                ref={importInputRef}
+                                hidden
+                                type="file"
+                                accept="application/json,.json"
+                                onChange={(event) => void onImportFileChange(event)}
+                              />
+                              <Button
+                                variant="outline"
+                                disabled={isExporting || isImporting}
+                                onClick={() => importInputRef.current?.click()}
+                              >
+                                {t('settings.data.import.action')}
                               </Button>
                             </div>
                           </SettingRow>
@@ -861,6 +960,26 @@ const SettingsRoute = () => {
                               </AlertDialogContent>
                             </AlertDialog>
                           </motion.div>
+
+                          <AlertDialog open={pendingImport !== null} onOpenChange={(open) => {
+                            if (!open && !isImporting) setPendingImport(null)
+                          }}>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>{t('settings.data.import.confirmTitle')}</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  {t('settings.data.import.confirmDescription')}
+                                  {pendingImport ? ` ${pendingImport.fileName}` : ''}
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel disabled={isImporting}>{t('settings.data.import.confirmCancel')}</AlertDialogCancel>
+                                <AlertDialogAction disabled={isImporting} onClick={() => void confirmImport()}>
+                                  {t('settings.data.import.confirmAction')}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </>
                       ) : null}
                     </motion.div>

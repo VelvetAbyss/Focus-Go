@@ -7,7 +7,14 @@ import { widgetTodoRepo } from '../../../data/repositories/widgetTodoRepo'
 import type { WidgetTodo, WidgetTodoScope } from '../../../data/models/types'
 import { useAddInputComposer } from '../../../shared/hooks/useAddInputComposer'
 import AnimatedScrollList from '../../../shared/ui/AnimatedScrollList'
+import AnimatedPlanCheckbox from '../../../shared/ui/AnimatedPlanCheckbox'
 import { triggerTabGroupSwitchAnimation, triggerTabPressAnimation } from '../../../shared/ui/tabPressAnimation'
+import {
+  readWidgetTodoResetBucket,
+  shouldBootstrapResetWidgetTodos,
+  shouldResetWidgetTodos,
+  writeWidgetTodoResetBucket,
+} from '../model/widgetTodoRefresh'
 
 const scopes: { key: WidgetTodoScope; label: string }[] = [
   { key: 'day', label: 'Daily' },
@@ -28,11 +35,37 @@ const WidgetTodosCard = () => {
   })
 
   useEffect(() => {
-    widgetTodoRepo.list().then((loaded) => {
-      setItems(loaded)
-      const anchor = loaded.reduce((max, item) => (item.updatedAt > max ? item.updatedAt : max), 0)
+    let cancelled = false
+
+    const load = async () => {
+      const loaded = await widgetTodoRepo.list()
+      const now = Date.now()
+      const itemsById = new Map(loaded.map((item) => [item.id, item]))
+
+      for (const scope of scopes) {
+        const storedBucket = readWidgetTodoResetBucket(scope.key)
+        const { shouldReset, currentBucket } = shouldResetWidgetTodos(scope.key, storedBucket, now)
+        const needsBootstrapReset = storedBucket === null && shouldBootstrapResetWidgetTodos(loaded, scope.key, now)
+
+        if (shouldReset || needsBootstrapReset) {
+          const reset = await widgetTodoRepo.resetDone(scope.key)
+          for (const item of reset) itemsById.set(item.id, item)
+        }
+
+        writeWidgetTodoResetBucket(scope.key, currentBucket)
+      }
+
+      if (cancelled) return
+      const merged = [...itemsById.values()]
+      setItems(merged)
+      const anchor = merged.reduce((max, item) => (item.updatedAt > max ? item.updatedAt : max), 0)
       setSortAnchorTime(anchor)
-    })
+    }
+
+    void load()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const scopeItems = useMemo(
@@ -182,8 +215,7 @@ const WidgetTodosCard = () => {
                     }}
                     renderItem={(item) => (
                       <label className={`widget-todos__item ${item.done ? 'is-done' : ''}`}>
-                        <input
-                          type="checkbox"
+                        <AnimatedPlanCheckbox
                           checked={item.done}
                           onChange={(event) => void handleToggle(item, event.target.checked)}
                         />

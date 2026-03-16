@@ -12,7 +12,7 @@ describe('translator', () => {
   })
 
   it('falls back to english when key missing in current locale', () => {
-    const result = t('modules.rss.title', 'zh')
-    expect(result).toBe('订阅')
+    const result = t('modules.tasks.title', 'zh')
+    expect(result).toBe('任务')
   })
 })

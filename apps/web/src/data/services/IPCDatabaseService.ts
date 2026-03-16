@@ -53,6 +53,64 @@ export const createIPCDatabaseService = (api: ElectronDatabaseApi): IDatabaseSer
       unwrapData(response)
     },
   },
+  notes: {
+    async list() {
+      const response = await invokeDb(api, 'db:notes:list', {})
+      return unwrapData(response)
+    },
+    async listTrash() {
+      const response = await invokeDb(api, 'db:notes:listTrash', {})
+      return unwrapData(response)
+    },
+    async create(data) {
+      const response = await invokeDb(api, 'db:notes:create', data ?? {})
+      return unwrapData(response)
+    },
+    async update(id, patch) {
+      const response = await invokeDb(api, 'db:notes:update', { id, patch })
+      return unwrapData(response)
+    },
+    async softDelete(id) {
+      const response = await invokeDb(api, 'db:notes:softDelete', { id })
+      return unwrapData(response)
+    },
+    async restore(id) {
+      const response = await invokeDb(api, 'db:notes:restore', { id })
+      return unwrapData(response)
+    },
+    async hardDelete(id) {
+      const response = await invokeDb(api, 'db:notes:hardDelete', { id })
+      unwrapData(response)
+    },
+  },
+  noteTags: {
+    async list() {
+      const response = await invokeDb(api, 'db:noteTags:list', {})
+      return unwrapData(response)
+    },
+    async create(data) {
+      const response = await invokeDb(api, 'db:noteTags:create', data)
+      return unwrapData(response)
+    },
+    async update(id, patch) {
+      const response = await invokeDb(api, 'db:noteTags:update', { id, patch })
+      return unwrapData(response)
+    },
+    async remove(id) {
+      const response = await invokeDb(api, 'db:noteTags:remove', { id })
+      unwrapData(response)
+    },
+  },
+  noteAppearance: {
+    async get() {
+      const response = await invokeDb(api, 'db:noteAppearance:get', {})
+      return unwrapData(response)
+    },
+    async upsert(data) {
+      const response = await invokeDb(api, 'db:noteAppearance:upsert', data)
+      return unwrapData(response)
+    },
+  },
   widgetTodos: {
     async list(scope) {
       const response = await invokeDb(api, 'db:widgetTodos:list', { scope })
@@ -64,6 +122,10 @@ export const createIPCDatabaseService = (api: ElectronDatabaseApi): IDatabaseSer
     },
     async update(item) {
       const response = await invokeDb(api, 'db:widgetTodos:update', { item })
+      return unwrapData(response)
+    },
+    async resetDone(scope) {
+      const response = await invokeDb(api, 'db:widgetTodos:resetDone', { scope })
       return unwrapData(response)
     },
     async remove(id) {

@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -23,7 +23,6 @@ import { useToast } from '../../../shared/ui/toast/toast'
 const LabsPage = () => {
   const i18n = useLabsI18n()
   const toast = useToast()
-  const navigate = useNavigate()
   const { ready, catalog, subscription, install, remove, restore, upgradeMock } = useLabs()
   const [removingFeature, setRemovingFeature] = useState<FeatureCatalogItem | null>(null)
 
@@ -86,8 +85,6 @@ const LabsPage = () => {
                     onClick={() => {
                       void install(feature.featureKey).then(() => {
                         toast.push({ variant: 'success', message: i18n.toast.installed })
-                        if (feature.featureKey === 'rss') navigate(ROUTES.RSS)
-                        if (feature.featureKey === 'habit-tracker') navigate(ROUTES.HABITS)
                       })
                     }}
                   >
@@ -110,29 +107,7 @@ const LabsPage = () => {
                 <CardDescription>{feature.description}</CardDescription>
               </CardHeader>
               <CardFooter className="labs-page__card-actions">
-                {feature.featureKey === 'rss' ? (
-                  feature.requiresPremium ? (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button>{i18n.labs.upgrade}</Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>{i18n.labs.upgradeTitle}</AlertDialogTitle>
-                          <AlertDialogDescription>{i18n.labs.upgradeDesc}</AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>{i18n.labs.cancel}</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => void handleUpgrade()}>{i18n.labs.upgradeConfirm}</AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  ) : (
-                    <Button asChild>
-                      <Link to={ROUTES.RSS}>{i18n.labs.openRss}</Link>
-                    </Button>
-                  )
-                ) : feature.featureKey === 'habit-tracker' ? (
+                {feature.featureKey === 'habit-tracker' ? (
                   feature.requiresPremium ? (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>

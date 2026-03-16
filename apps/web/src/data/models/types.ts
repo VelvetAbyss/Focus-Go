@@ -28,9 +28,71 @@ export type TaskActivityLog = {
   createdAt: number
 }
 
+export type TaskNoteParagraphBlock = {
+  id: string
+  type: 'paragraph'
+  text: string
+}
+
+export type TaskNoteBlock = TaskNoteParagraphBlock
+
+export type NoteCollection = 'all-notes' | 'work' | 'personal' | 'ideas'
+
+export type NoteHeading = {
+  level: 1 | 2 | 3
+  text: string
+  id: string
+}
+
+export type NoteBacklink = {
+  noteId: string
+  noteTitle: string
+}
+
+export type NoteTag = BaseEntity & {
+  name: string
+  icon?: string
+  pinned: boolean
+  parentId?: string | null
+  noteCount: number
+  sortOrder: number
+}
+
+export type NoteThemeMode = 'paper' | 'graphite'
+export type NoteFontFamily = 'sans' | 'serif' | 'mono'
+
+export type NoteAppearanceSettings = BaseEntity & {
+  id: 'note_appearance'
+  theme: NoteThemeMode
+  font: NoteFontFamily
+  fontSize: number
+  lineHeight: number
+  contentWidth: number
+  focusMode: boolean
+}
+
+export type NoteItem = BaseEntity & {
+  title: string
+  contentMd: string
+  contentJson?: Record<string, unknown> | null
+  collection: NoteCollection
+  tags: string[]
+  excerpt: string
+  pinned: boolean
+  wordCount: number
+  charCount: number
+  paragraphCount: number
+  imageCount: number
+  fileCount: number
+  headings: NoteHeading[]
+  backlinks: NoteBacklink[]
+  deletedAt?: number | null
+}
+
 export type TaskItem = BaseEntity & {
   title: string
   description: string
+  pinned: boolean
   status: TaskStatus
   priority: TaskPriority | null
   dueDate?: string
@@ -40,6 +102,9 @@ export type TaskItem = BaseEntity & {
   reminderFiredAt?: number
   tags: string[]
   subtasks: TaskSubtask[]
+  taskNoteBlocks: TaskNoteBlock[]
+  taskNoteContentMd?: string
+  taskNoteContentJson?: Record<string, unknown> | null
   progressLogs: TaskProgressLog[]
   activityLogs: TaskActivityLog[]
 }
@@ -102,6 +167,8 @@ export type NoiseSettings = {
   playing: boolean
   loop: boolean
   masterVolume: number
+  sleepEndsAt?: number | null
+  sleepDurationMinutes?: number | null
   tracks: Record<NoiseTrackId, NoiseTrackSettings>
 }
 
@@ -149,27 +216,6 @@ export type DashboardLayout = BaseEntity & {
   themeOverride?: 'light' | 'dark' | null
 }
 
-export type NoteEntity = BaseEntity & {
-  title: string
-  contentMd: string
-  contentJson?: Record<string, unknown> | null
-  manualTags: string[]
-  tags: string[]
-  linkedNoteIds: string[]
-  backlinks: string[]
-  deletedAt?: number | null
-  expiresAt?: number | null
-}
-
-export type NoteAssetEntity = BaseEntity & {
-  noteId: string
-  kind: 'image'
-  storage: 'blob' | 'remote'
-  blob?: Blob
-  url?: string
-  alt?: string
-}
-
 export type SubscriptionTier = 'free' | 'premium'
 
 export type UserSubscription = BaseEntity & {
@@ -177,7 +223,7 @@ export type UserSubscription = BaseEntity & {
   tier: SubscriptionTier
 }
 
-export type FeatureKey = 'rss' | 'ai-digest' | 'automation' | 'habit-tracker'
+export type FeatureKey = 'ai-digest' | 'automation' | 'habit-tracker'
 export type FeatureInstallState = 'installed' | 'removed'
 
 export type FeatureInstallation = BaseEntity & {
@@ -188,57 +234,14 @@ export type FeatureInstallation = BaseEntity & {
   removedAt?: number | null
 }
 
-export type RssSource = BaseEntity & {
-  userId: string
-  route: string
-  displayName: string
-  isPreset: boolean
-  enabled: boolean
-  groupId?: string | null
-  starredAt?: number | null
-  deletedAt?: number | null
-  lastSuccessAt?: number
-  lastEntryAt?: number
-  lastErrorAt?: number
-  lastErrorMessage?: string
-}
-
-export type RssSourceGroup = BaseEntity & {
-  userId: string
-  name: string
-}
-
-export type RssEntry = BaseEntity & {
-  sourceId: string
-  route: string
-  guidOrLink: string
-  title: string
-  summary: string
-  url: string
-  thumbnailUrl?: string
-  publishedAt: number
-  cachedAt: number
-}
-
-export type RssReadState = BaseEntity & {
-  userId: string
-  entryId: string
-  readAt: number
-}
-
-export type RssFetchSnapshot = {
-  sourceId: string
-  stale: boolean
-  lastSuccessAt?: number
-  fetchedAt: number
-}
-
 export type HabitType = 'boolean' | 'numeric' | 'timer'
 export type HabitStatus = 'completed' | 'failed' | 'frozen'
 
 export type Habit = BaseEntity & {
   userId: string
   title: string
+  description?: string
+  icon?: string
   type: HabitType
   color: string
   archived: boolean

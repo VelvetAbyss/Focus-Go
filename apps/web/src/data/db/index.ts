@@ -6,14 +6,11 @@ import type {
   FeatureInstallation,
   FocusSession,
   FocusSettings,
+  NoteAppearanceSettings,
   Habit,
   HabitLog,
-  NoteAssetEntity,
-  NoteEntity,
-  RssEntry,
-  RssReadState,
-  RssSource,
-  RssSourceGroup,
+  NoteItem,
+  NoteTag,
   SpendCategory,
   SpendEntry,
   TaskItem,
@@ -23,11 +20,13 @@ import type {
 import {
   DB_NAME,
   DB_VERSION,
-  LEGACY_TABLES,
   schemaV10,
   schemaV11,
   schemaV13,
-  schemaV16,
+  schemaV17,
+  schemaV23,
+  schemaV24,
+  schemaV25,
   schemaV2,
   schemaV3,
   schemaV4,
@@ -41,6 +40,9 @@ import {
 
 export class WorkbenchDb extends Dexie {
   tasks!: Table<TaskItem, string>
+  notes!: Table<NoteItem, string>
+  noteTags!: Table<NoteTag, string>
+  noteAppearance!: Table<NoteAppearanceSettings, string>
   widgetTodos!: Table<WidgetTodo, string>
   focusSettings!: Table<FocusSettings, string>
   focusSessions!: Table<FocusSession, string>
@@ -48,14 +50,8 @@ export class WorkbenchDb extends Dexie {
   spends!: Table<SpendEntry, string>
   spendCategories!: Table<SpendCategory, string>
   dashboardLayout!: Table<DashboardLayout, string>
-  noteEntries!: Table<NoteEntity, string>
-  noteAssets!: Table<NoteAssetEntity, string>
   userSubscriptions!: Table<UserSubscription, string>
   featureInstallations!: Table<FeatureInstallation, string>
-  rssSourceGroups!: Table<RssSourceGroup, string>
-  rssSources!: Table<RssSource, string>
-  rssEntries!: Table<RssEntry, string>
-  rssReadStates!: Table<RssReadState, string>
   habits!: Table<Habit, string>
   habitLogs!: Table<HabitLog, string>
 
@@ -72,43 +68,72 @@ export class WorkbenchDb extends Dexie {
     this.version(10).stores(schemaV10)
     this.version(11)
       .stores(schemaV11)
-      .upgrade(async (tx) => {
-        const legacyRows = await tx.table(LEGACY_TABLES.knowledgeNotes).toArray()
-        if (!legacyRows.length) return
-        await tx.table(TABLES.noteEntries).bulkPut(legacyRows as NoteEntity[])
-      })
+      .upgrade(async () => {})
     this.version(13)
       .stores(schemaV13)
+      .upgrade(async () => {})
+    this.version(17)
+      .stores(schemaV17)
       .upgrade(async (tx) => {
-        const rows = await tx.table(TABLES.noteEntries).toArray()
-        if (!rows.length) return
-
-        const migrated = rows.map((row) => ({
-          ...row,
-          contentJson: row.contentJson ?? null,
-          manualTags: Array.isArray(row.manualTags) ? row.manualTags.filter((tag: unknown): tag is string => typeof tag === 'string') : [],
-          tags: Array.isArray(row.tags) ? row.tags.filter((tag: unknown): tag is string => typeof tag === 'string') : [],
-        }))
-
-        await tx.table(TABLES.noteEntries).bulkPut(migrated as NoteEntity[])
+        const taskRows = await tx.table(TABLES.tasks).toArray()
+        if (taskRows.length) {
+          const migratedTasks = taskRows.map((row) => ({
+            ...row,
+            pinned: row.pinned === true,
+          }))
+          await tx.table(TABLES.tasks).bulkPut(migratedTasks as TaskItem[])
+        }
+      })
+    this.version(23)
+      .stores(schemaV23)
+      .upgrade(async (tx) => {
+        const taskRows = await tx.table(TABLES.tasks).toArray()
+        if (taskRows.length) {
+          const migratedTasks = taskRows.map((row) => {
+            const legacyNote = typeof (row as { note?: unknown }).note === 'string' ? (row as { note?: string }).note : undefined
+            return {
+              ...row,
+              taskNoteBlocks: Array.isArray((row as { taskNoteBlocks?: unknown }).taskNoteBlocks)
+                ? (row as TaskItem).taskNoteBlocks
+                : [
+                    {
+                      id: crypto.randomUUID(),
+                      type: 'paragraph' as const,
+                      text: legacyNote ?? '',
+                    },
+                  ],
+            }
+          })
+          await tx.table(TABLES.tasks).bulkPut(migratedTasks as TaskItem[])
+        }
+      })
+    this.version(24)
+      .stores(schemaV24)
+      .upgrade(async (tx) => {
+        const noteRows = await tx.table(TABLES.notes).toArray()
+        if (noteRows.length) {
+          const migratedNotes = noteRows.map((row) => ({
+            ...row,
+            pinned: row.pinned === true,
+            wordCount: typeof row.wordCount === 'number' ? row.wordCount : 0,
+            charCount: typeof row.charCount === 'number' ? row.charCount : 0,
+            paragraphCount: typeof row.paragraphCount === 'number' ? row.paragraphCount : 0,
+            imageCount: typeof row.imageCount === 'number' ? row.imageCount : 0,
+            fileCount: typeof row.fileCount === 'number' ? row.fileCount : 0,
+            headings: Array.isArray(row.headings) ? row.headings : [],
+            backlinks: Array.isArray(row.backlinks) ? row.backlinks : [],
+          }))
+          await tx.table(TABLES.notes).bulkPut(migratedNotes as NoteItem[])
+        }
       })
     this.version(DB_VERSION)
-      .stores(schemaV16)
-      .upgrade(async (tx) => {
-        const rssRows = await tx.table(TABLES.rssSources).toArray()
-        if (!rssRows.length) return
-
-        const migrated = rssRows.map((row) => ({
-          ...row,
-          groupId: row.groupId ?? null,
-          starredAt: row.starredAt ?? null,
-          lastEntryAt: row.lastEntryAt ?? row.lastSuccessAt,
-        }))
-
-        await tx.table(TABLES.rssSources).bulkPut(migrated as RssSource[])
-      })
+      .stores(schemaV25)
+      .upgrade(async () => {})
 
     this.tasks = this.table(TABLES.tasks)
+    this.notes = this.table(TABLES.notes)
+    this.noteTags = this.table(TABLES.noteTags)
+    this.noteAppearance = this.table(TABLES.noteAppearance)
     this.widgetTodos = this.table(TABLES.widgetTodos)
     this.focusSettings = this.table(TABLES.focusSettings)
     this.focusSessions = this.table(TABLES.focusSessions)
@@ -116,14 +141,8 @@ export class WorkbenchDb extends Dexie {
     this.spends = this.table(TABLES.spends)
     this.spendCategories = this.table(TABLES.spendCategories)
     this.dashboardLayout = this.table(TABLES.dashboardLayout)
-    this.noteEntries = this.table(TABLES.noteEntries)
-    this.noteAssets = this.table(TABLES.noteAssets)
     this.userSubscriptions = this.table(TABLES.userSubscriptions)
     this.featureInstallations = this.table(TABLES.featureInstallations)
-    this.rssSourceGroups = this.table(TABLES.rssSourceGroups)
-    this.rssSources = this.table(TABLES.rssSources)
-    this.rssEntries = this.table(TABLES.rssEntries)
-    this.rssReadStates = this.table(TABLES.rssReadStates)
     this.habits = this.table(TABLES.habits)
     this.habitLogs = this.table(TABLES.habitLogs)
   }

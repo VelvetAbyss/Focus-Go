@@ -5,181 +5,124 @@ export type HabitsLang = 'en' | 'zh'
 type HabitsMessages = {
   title: string
   subtitle: string
-  today: string
   addHabit: string
-  active: string
-  archived: string
-  emptyActive: string
-  emptyArchived: string
-  completeAll: string
+  emptyTitle: string
+  emptyDescription: string
+  todayCompleted: string
+  markToday: string
+  hideCalendar: string
+  showCalendar: string
   progress: string
-  stats: string
+  completed: string
   heatmap: string
+  stats: string
   activeCount: string
   streak: string
-  freezes: string
-  completed: string
-  archive: string
+  completionRate: string
+  total: string
+  archived: string
   restore: string
-  edit: string
-  moveUp: string
-  moveDown: string
-  complete: string
-  updateValue: string
-  target: string
-  minutes: string
-  dateFormat: Intl.DateTimeFormatOptions
-  form: {
-    createTitle: string
-    editTitle: string
-    title: string
-    titlePlaceholder: string
-    type: string
-    typeBoolean: string
-    typeNumeric: string
-    typeTimer: string
-    target: string
-    freezesAllowed: string
-    color: string
-    cancel: string
-    save: string
-    validationTitle: string
-    validationTarget: string
-    discardTitle: string
-    discardDescription: string
-    discardConfirm: string
-    keepEditing: string
-  }
-  toast: {
-    created: string
-    updated: string
-    archived: string
-    restored: string
-    completed: string
-    undone: string
-    allCompleted: string
-    undo: string
-  }
+  remove: string
+  undo: string
+  toastCompleted: string
+  toastUndone: string
+  toastArchived: string
+  toastRestored: string
+  formTitleCreate: string
+  formTitleEdit: string
+  formName: string
+  formNamePlaceholder: string
+  formDescription: string
+  formDescriptionPlaceholder: string
+  formIcon: string
+  formColor: string
+  formPreview: string
+  formCancel: string
+  formSubmitCreate: string
+  formSubmitSave: string
+  formValidationName: string
 }
 
 const messages: Record<HabitsLang, HabitsMessages> = {
   en: {
     title: 'Habit Tracker',
-    subtitle: 'Identity-first habits with gentle consistency and clear daily progress.',
-    today: 'Today',
-    addHabit: 'Add habit',
-    active: 'Active',
-    archived: 'Archived',
-    emptyActive: 'No active habits yet. Create your first one to start a streak.',
-    emptyArchived: 'No archived habits.',
-    completeAll: 'All habits complete',
-    progress: 'Daily Progress',
-    stats: 'Stats',
+    subtitle: 'Build better routines one quiet day at a time.',
+    addHabit: 'Add New Habit',
+    emptyTitle: 'No habits yet',
+    emptyDescription: 'Add your first habit to start building momentum.',
+    todayCompleted: 'Completed Today',
+    markToday: 'Mark Today Complete',
+    hideCalendar: 'Hide Calendar',
+    showCalendar: 'View Calendar',
+    progress: 'Progress',
+    completed: 'Completed',
     heatmap: 'Heatmap',
+    stats: 'Stats',
     activeCount: 'Active',
     streak: 'Streak',
-    freezes: 'Freeze',
-    completed: 'Completed',
-    archive: 'Archive',
+    completionRate: 'Rate',
+    total: 'Total',
+    archived: 'Archived',
     restore: 'Restore',
-    edit: 'Edit habit',
-    moveUp: 'Move up',
-    moveDown: 'Move down',
-    complete: 'Complete',
-    updateValue: 'Update value',
-    target: 'Target',
-    minutes: 'min',
-    dateFormat: { weekday: 'long', month: 'short', day: 'numeric' },
-    form: {
-      createTitle: 'Create habit',
-      editTitle: 'Edit habit',
-      title: 'Title',
-      titlePlaceholder: 'Drink water',
-      type: 'Type',
-      typeBoolean: 'Boolean',
-      typeNumeric: 'Numeric goal',
-      typeTimer: 'Timer (minutes)',
-      target: 'Target',
-      freezesAllowed: 'Freeze allowance',
-      color: 'Color',
-      cancel: 'Cancel',
-      save: 'Save',
-      validationTitle: 'Title is required.',
-      validationTarget: 'Target must be at least 1.',
-      discardTitle: 'Discard changes?',
-      discardDescription: 'You have unsaved changes.',
-      discardConfirm: 'Discard',
-      keepEditing: 'Keep editing',
-    },
-    toast: {
-      created: 'Habit created.',
-      updated: 'Habit updated.',
-      archived: 'Habit archived.',
-      restored: 'Habit restored.',
-      completed: 'Habit completed.',
-      undone: 'Completion undone.',
-      allCompleted: 'All habits complete for today.',
-      undo: 'Undo',
-    },
+    remove: 'Archive',
+    undo: 'Undo',
+    toastCompleted: 'Habit completed.',
+    toastUndone: 'Completion undone.',
+    toastArchived: 'Habit archived.',
+    toastRestored: 'Habit restored.',
+    formTitleCreate: 'Add New Habit',
+    formTitleEdit: 'Edit Habit',
+    formName: 'Habit Name',
+    formNamePlaceholder: 'Daily Reading',
+    formDescription: 'Description',
+    formDescriptionPlaceholder: 'Add a short note...',
+    formIcon: 'Choose Icon',
+    formColor: 'Choose Color',
+    formPreview: 'Preview:',
+    formCancel: 'Cancel',
+    formSubmitCreate: 'Add Habit',
+    formSubmitSave: 'Save Habit',
+    formValidationName: 'Habit name is required.',
   },
   zh: {
-    title: '习惯追踪',
-    subtitle: '以身份习惯为核心，减少中断焦虑，清晰展示每日进度。',
-    today: '今天',
-    addHabit: '新增习惯',
-    active: '进行中',
-    archived: '已归档',
-    emptyActive: '当前没有进行中的习惯，先创建一个开始连胜。',
-    emptyArchived: '暂无已归档习惯。',
-    completeAll: '今日全部完成',
-    progress: '今日进度',
-    stats: '统计',
+    title: '习惯追踪器',
+    subtitle: '养成好习惯，成就更好的自己',
+    addHabit: '添加新习惯',
+    emptyTitle: '还没有习惯',
+    emptyDescription: '点击上方按钮添加你的第一个习惯吧！',
+    todayCompleted: '今日已完成',
+    markToday: '标记今日完成',
+    hideCalendar: '隐藏日历',
+    showCalendar: '查看日历',
+    progress: '进度',
+    completed: '完成',
     heatmap: '热力图',
+    stats: '统计',
     activeCount: '进行中',
-    streak: '连胜',
-    freezes: '冻结',
-    completed: '已完成',
-    archive: '归档',
+    streak: '连续',
+    completionRate: '完成率',
+    total: '总计',
+    archived: '已归档',
     restore: '恢复',
-    edit: '编辑习惯',
-    moveUp: '上移',
-    moveDown: '下移',
-    complete: '完成',
-    updateValue: '更新数值',
-    target: '目标',
-    minutes: '分钟',
-    dateFormat: { weekday: 'long', month: 'short', day: 'numeric' },
-    form: {
-      createTitle: '创建习惯',
-      editTitle: '编辑习惯',
-      title: '标题',
-      titlePlaceholder: '例如：喝水',
-      type: '类型',
-      typeBoolean: '是否完成',
-      typeNumeric: '数值目标',
-      typeTimer: '计时（分钟）',
-      target: '目标值',
-      freezesAllowed: '可用冻结次数',
-      color: '颜色',
-      cancel: '取消',
-      save: '保存',
-      validationTitle: '请输入标题。',
-      validationTarget: '目标值不能小于 1。',
-      discardTitle: '放弃修改？',
-      discardDescription: '你有未保存的更改。',
-      discardConfirm: '放弃',
-      keepEditing: '继续编辑',
-    },
-    toast: {
-      created: '习惯已创建。',
-      updated: '习惯已更新。',
-      archived: '习惯已归档。',
-      restored: '习惯已恢复。',
-      completed: '已完成打卡。',
-      undone: '已撤销本次打卡。',
-      allCompleted: '今日习惯全部完成。',
-      undo: '撤销',
-    },
+    remove: '移除',
+    undo: '撤销',
+    toastCompleted: '已完成今日打卡。',
+    toastUndone: '已撤销本次打卡。',
+    toastArchived: '习惯已归档。',
+    toastRestored: '习惯已恢复。',
+    formTitleCreate: '添加新习惯',
+    formTitleEdit: '编辑习惯',
+    formName: '习惯名称 *',
+    formNamePlaceholder: '例如：每日阅读',
+    formDescription: '描述',
+    formDescriptionPlaceholder: '添加一些描述...',
+    formIcon: '选择图标',
+    formColor: '选择颜色',
+    formPreview: '预览：',
+    formCancel: '取消',
+    formSubmitCreate: '添加习惯',
+    formSubmitSave: '保存习惯',
+    formValidationName: '请输入习惯名称。',
   },
 }
 

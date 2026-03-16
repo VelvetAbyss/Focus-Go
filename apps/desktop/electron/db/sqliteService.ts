@@ -8,6 +8,14 @@ import type {
   FocusSession,
   FocusSettings,
   IDatabaseService,
+  NoteAppearanceSettings,
+  NoteAppearanceUpsertInput,
+  NoteCreateInput,
+  NoteItem,
+  NoteTag,
+  NoteTagCreateInput,
+  NoteTagUpdateInput,
+  NoteUpdateInput,
   SpendCategory,
   SpendEntry,
   TaskCreateInput,
@@ -19,6 +27,7 @@ import type {
 
 const FOCUS_SETTINGS_ID = 'focus_settings'
 const DASHBOARD_LAYOUT_ID = 'dashboard_layout'
+const NOTE_APPEARANCE_ID = 'note_appearance'
 
 const createId = () => randomUUID().replace(/-/g, '')
 
@@ -35,6 +44,36 @@ const serializeJson = (value: unknown) => JSON.stringify(value)
 
 const now = () => Date.now()
 
+const buildNoteExcerpt = (contentMd: string) => contentMd.replace(/\s+/g, ' ').trim().slice(0, 160)
+
+const buildNoteStats = (contentMd: string) => {
+  const content = typeof contentMd === 'string' ? contentMd : ''
+  const words = content.trim().split(/\s+/).filter(Boolean)
+  const paragraphs = content.split(/\n\s*\n/).map((part) => part.trim()).filter(Boolean)
+  const headings = content
+    .split('\n')
+    .map((line) => line.match(/^(#{1,3})\s+(.+)$/))
+    .filter((match): match is RegExpMatchArray => Boolean(match))
+    .map((match) => ({
+      level: Math.min(3, match[1].length) as 1 | 2 | 3,
+      text: match[2].trim(),
+      id: match[2]
+        .trim()
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/\s+/g, '-'),
+    }))
+
+  return {
+    wordCount: words.length,
+    charCount: content.length,
+    paragraphCount: paragraphs.length,
+    imageCount: (content.match(/!\[[^\]]*\]\([^)]+\)/g) ?? []).length,
+    fileCount: (content.match(/\battachment:\b/gi) ?? []).length,
+    headings,
+  }
+}
+
 const toTaskItem = (row: Record<string, unknown>): TaskItem => ({
   id: String(row.id),
   createdAt: Number(row.createdAt),
@@ -43,11 +82,19 @@ const toTaskItem = (row: Record<string, unknown>): TaskItem => ({
   workspaceId: row.workspaceId ? String(row.workspaceId) : undefined,
   title: String(row.title ?? ''),
   description: String(row.description ?? ''),
+  pinned: Number(row.pinned ?? 0) === 1,
   status: String(row.status) as TaskStatus,
   priority: (row.priority as TaskItem['priority']) ?? null,
   dueDate: row.dueDate ? String(row.dueDate) : undefined,
+  startDate: row.startDate ? String(row.startDate) : undefined,
+  endDate: row.endDate ? String(row.endDate) : undefined,
+  reminderAt: row.reminderAt === null || row.reminderAt === undefined ? undefined : Number(row.reminderAt),
+  reminderFiredAt: row.reminderFiredAt === null || row.reminderFiredAt === undefined ? undefined : Number(row.reminderFiredAt),
   tags: parseJson(row.tags as string, [] as string[]),
   subtasks: parseJson(row.subtasks as string, [] as TaskItem['subtasks']),
+  taskNoteBlocks: parseJson(row.taskNoteBlocks as string, [] as TaskItem['taskNoteBlocks']),
+  taskNoteContentMd: row.taskNoteContentMd ? String(row.taskNoteContentMd) : undefined,
+  taskNoteContentJson: parseJson(row.taskNoteContentJson as string, null),
   progressLogs: parseJson(row.progressLogs as string, [] as TaskItem['progressLogs']),
   activityLogs: parseJson(row.activityLogs as string, [] as TaskItem['activityLogs']),
 })
@@ -63,6 +110,57 @@ const toWidgetTodo = (row: Record<string, unknown>): WidgetTodo => ({
   priority: String(row.priority) as WidgetTodo['priority'],
   dueDate: row.dueDate ? String(row.dueDate) : undefined,
   done: Number(row.done) === 1,
+})
+
+const toNoteItem = (row: Record<string, unknown>): NoteItem => ({
+  id: String(row.id),
+  createdAt: Number(row.createdAt),
+  updatedAt: Number(row.updatedAt),
+  userId: row.userId ? String(row.userId) : undefined,
+  workspaceId: row.workspaceId ? String(row.workspaceId) : undefined,
+  title: String(row.title ?? ''),
+  contentMd: String(row.contentMd ?? ''),
+  contentJson: parseJson(row.contentJson as string, null),
+  collection: String(row.collection ?? 'all-notes') as NoteItem['collection'],
+  tags: parseJson(row.tags as string, [] as string[]),
+  excerpt: String(row.excerpt ?? ''),
+  pinned: Number(row.pinned ?? 0) === 1,
+  wordCount: Number(row.wordCount ?? 0),
+  charCount: Number(row.charCount ?? 0),
+  paragraphCount: Number(row.paragraphCount ?? 0),
+  imageCount: Number(row.imageCount ?? 0),
+  fileCount: Number(row.fileCount ?? 0),
+  headings: parseJson(row.headings as string, [] as NoteItem['headings']),
+  backlinks: parseJson(row.backlinks as string, [] as NoteItem['backlinks']),
+  deletedAt: row.deletedAt === null || row.deletedAt === undefined ? null : Number(row.deletedAt),
+})
+
+const toNoteTag = (row: Record<string, unknown>): NoteTag => ({
+  id: String(row.id),
+  createdAt: Number(row.createdAt),
+  updatedAt: Number(row.updatedAt),
+  userId: row.userId ? String(row.userId) : undefined,
+  workspaceId: row.workspaceId ? String(row.workspaceId) : undefined,
+  name: String(row.name ?? ''),
+  icon: row.icon ? String(row.icon) : undefined,
+  pinned: Number(row.pinned ?? 0) === 1,
+  parentId: row.parentId === null || row.parentId === undefined ? null : String(row.parentId),
+  noteCount: Number(row.noteCount ?? 0),
+  sortOrder: Number(row.sortOrder ?? 0),
+})
+
+const toNoteAppearance = (row: Record<string, unknown>): NoteAppearanceSettings => ({
+  id: NOTE_APPEARANCE_ID,
+  createdAt: Number(row.createdAt),
+  updatedAt: Number(row.updatedAt),
+  userId: row.userId ? String(row.userId) : undefined,
+  workspaceId: row.workspaceId ? String(row.workspaceId) : undefined,
+  theme: String(row.theme) === 'graphite' ? 'graphite' : 'paper',
+  font: String(row.font) === 'serif' || String(row.font) === 'mono' ? (String(row.font) as NoteAppearanceSettings['font']) : 'sans',
+  fontSize: Number(row.fontSize ?? 16),
+  lineHeight: Number(row.lineHeight ?? 1.7),
+  contentWidth: Number(row.contentWidth ?? 56),
+  focusMode: Number(row.focusMode ?? 0) === 1,
 })
 
 const toFocusSettings = (row: Record<string, unknown>): FocusSettings => ({
@@ -154,13 +252,44 @@ const ensureSchema = (database: Database.Database) => {
       id TEXT PRIMARY KEY,
       title TEXT NOT NULL,
       description TEXT NOT NULL,
+      pinned INTEGER NOT NULL DEFAULT 0,
       status TEXT NOT NULL,
       priority TEXT,
       dueDate TEXT,
+      startDate TEXT,
+      endDate TEXT,
+      reminderAt INTEGER,
+      reminderFiredAt INTEGER,
       tags TEXT NOT NULL,
       subtasks TEXT NOT NULL,
+      taskNoteBlocks TEXT NOT NULL DEFAULT '[]',
+      taskNoteContentMd TEXT,
+      taskNoteContentJson TEXT,
       progressLogs TEXT NOT NULL,
       activityLogs TEXT NOT NULL,
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL,
+      userId TEXT,
+      workspaceId TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS notes (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      contentMd TEXT NOT NULL,
+      contentJson TEXT,
+      collection TEXT NOT NULL,
+      tags TEXT NOT NULL,
+      excerpt TEXT NOT NULL,
+      pinned INTEGER NOT NULL DEFAULT 0,
+      wordCount INTEGER NOT NULL DEFAULT 0,
+      charCount INTEGER NOT NULL DEFAULT 0,
+      paragraphCount INTEGER NOT NULL DEFAULT 0,
+      imageCount INTEGER NOT NULL DEFAULT 0,
+      fileCount INTEGER NOT NULL DEFAULT 0,
+      headings TEXT NOT NULL DEFAULT '[]',
+      backlinks TEXT NOT NULL DEFAULT '[]',
+      deletedAt INTEGER,
       createdAt INTEGER NOT NULL,
       updatedAt INTEGER NOT NULL,
       userId TEXT,
@@ -256,7 +385,59 @@ const ensureSchema = (database: Database.Database) => {
       userId TEXT,
       workspaceId TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS note_tags (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      icon TEXT,
+      pinned INTEGER NOT NULL DEFAULT 0,
+      parentId TEXT,
+      noteCount INTEGER NOT NULL DEFAULT 0,
+      sortOrder INTEGER NOT NULL DEFAULT 0,
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL,
+      userId TEXT,
+      workspaceId TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS note_appearance (
+      id TEXT PRIMARY KEY,
+      theme TEXT NOT NULL,
+      font TEXT NOT NULL,
+      fontSize REAL NOT NULL,
+      lineHeight REAL NOT NULL,
+      contentWidth REAL NOT NULL,
+      focusMode INTEGER NOT NULL DEFAULT 0,
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL,
+      userId TEXT,
+      workspaceId TEXT
+    );
   `)
+
+  const ensureColumn = (table: string, column: string, definition: string) => {
+    const rows = database.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>
+    if (rows.some((row) => row.name === column)) return
+    database.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`)
+  }
+
+  ensureColumn('tasks', 'pinned', 'INTEGER NOT NULL DEFAULT 0')
+  ensureColumn('tasks', 'startDate', 'TEXT')
+  ensureColumn('tasks', 'endDate', 'TEXT')
+  ensureColumn('tasks', 'reminderAt', 'INTEGER')
+  ensureColumn('tasks', 'reminderFiredAt', 'INTEGER')
+  ensureColumn('tasks', 'taskNoteBlocks', `TEXT NOT NULL DEFAULT '[]'`)
+  ensureColumn('tasks', 'taskNoteContentMd', 'TEXT')
+  ensureColumn('tasks', 'taskNoteContentJson', 'TEXT')
+
+  ensureColumn('notes', 'pinned', 'INTEGER NOT NULL DEFAULT 0')
+  ensureColumn('notes', 'wordCount', 'INTEGER NOT NULL DEFAULT 0')
+  ensureColumn('notes', 'charCount', 'INTEGER NOT NULL DEFAULT 0')
+  ensureColumn('notes', 'paragraphCount', 'INTEGER NOT NULL DEFAULT 0')
+  ensureColumn('notes', 'imageCount', 'INTEGER NOT NULL DEFAULT 0')
+  ensureColumn('notes', 'fileCount', 'INTEGER NOT NULL DEFAULT 0')
+  ensureColumn('notes', 'headings', `TEXT NOT NULL DEFAULT '[]'`)
+  ensureColumn('notes', 'backlinks', `TEXT NOT NULL DEFAULT '[]'`)
 
   const versionRow = database.prepare('SELECT version FROM schema_version LIMIT 1').get() as { version: number } | undefined
   if (!versionRow) {
@@ -271,6 +452,7 @@ const createTaskActivityMessage = (status: TaskStatus) => {
 
 type DexieDump = Partial<{
   tasks: TaskItem[]
+  notes: NoteItem[]
   widgetTodos: WidgetTodo[]
   focusSettings: FocusSettings[]
   focusSessions: FocusSession[]
@@ -306,11 +488,19 @@ export const createSqliteBundle = (dbPath: string): SqliteBundle => {
           updatedAt: time,
           title: data.title,
           description: data.description ?? '',
+          pinned: data.pinned === true,
           status: data.status,
           priority: data.priority,
           dueDate: data.dueDate,
+          startDate: data.startDate,
+          endDate: data.endDate,
+          reminderAt: data.reminderAt,
+          reminderFiredAt: data.reminderFiredAt,
           tags: data.tags ?? [],
           subtasks: data.subtasks ?? [],
+          taskNoteBlocks: data.taskNoteBlocks ?? [],
+          taskNoteContentMd: data.taskNoteContentMd,
+          taskNoteContentJson: data.taskNoteContentJson ?? null,
           progressLogs: [],
           activityLogs: [
             {
@@ -325,19 +515,27 @@ export const createSqliteBundle = (dbPath: string): SqliteBundle => {
         database
           .prepare(
             `INSERT INTO tasks
-              (id, title, description, status, priority, dueDate, tags, subtasks, progressLogs, activityLogs, createdAt, updatedAt, userId, workspaceId)
+              (id, title, description, pinned, status, priority, dueDate, startDate, endDate, reminderAt, reminderFiredAt, tags, subtasks, taskNoteBlocks, taskNoteContentMd, taskNoteContentJson, progressLogs, activityLogs, createdAt, updatedAt, userId, workspaceId)
              VALUES
-              (@id, @title, @description, @status, @priority, @dueDate, @tags, @subtasks, @progressLogs, @activityLogs, @createdAt, @updatedAt, @userId, @workspaceId)`
+              (@id, @title, @description, @pinned, @status, @priority, @dueDate, @startDate, @endDate, @reminderAt, @reminderFiredAt, @tags, @subtasks, @taskNoteBlocks, @taskNoteContentMd, @taskNoteContentJson, @progressLogs, @activityLogs, @createdAt, @updatedAt, @userId, @workspaceId)`
           )
           .run({
             ...entity,
+            pinned: entity.pinned ? 1 : 0,
             tags: serializeJson(entity.tags),
             subtasks: serializeJson(entity.subtasks),
+            taskNoteBlocks: serializeJson(entity.taskNoteBlocks),
+            taskNoteContentMd: entity.taskNoteContentMd ?? null,
+            taskNoteContentJson: serializeJson(entity.taskNoteContentJson),
             progressLogs: serializeJson(entity.progressLogs),
             activityLogs: serializeJson(entity.activityLogs),
             userId: entity.userId ?? null,
             workspaceId: entity.workspaceId ?? null,
             dueDate: entity.dueDate ?? null,
+            startDate: entity.startDate ?? null,
+            endDate: entity.endDate ?? null,
+            reminderAt: entity.reminderAt ?? null,
+            reminderFiredAt: entity.reminderFiredAt ?? null,
           })
 
         return entity
@@ -349,11 +547,19 @@ export const createSqliteBundle = (dbPath: string): SqliteBundle => {
             `UPDATE tasks SET
                title=@title,
                description=@description,
+               pinned=@pinned,
                status=@status,
                priority=@priority,
                dueDate=@dueDate,
+               startDate=@startDate,
+               endDate=@endDate,
+               reminderAt=@reminderAt,
+               reminderFiredAt=@reminderFiredAt,
                tags=@tags,
                subtasks=@subtasks,
+               taskNoteBlocks=@taskNoteBlocks,
+               taskNoteContentMd=@taskNoteContentMd,
+               taskNoteContentJson=@taskNoteContentJson,
                progressLogs=@progressLogs,
                activityLogs=@activityLogs,
                updatedAt=@updatedAt,
@@ -363,9 +569,17 @@ export const createSqliteBundle = (dbPath: string): SqliteBundle => {
           )
           .run({
             ...next,
+            pinned: next.pinned ? 1 : 0,
             dueDate: next.dueDate ?? null,
+            startDate: next.startDate ?? null,
+            endDate: next.endDate ?? null,
+            reminderAt: next.reminderAt ?? null,
+            reminderFiredAt: next.reminderFiredAt ?? null,
             tags: serializeJson(next.tags),
             subtasks: serializeJson(next.subtasks),
+            taskNoteBlocks: serializeJson(next.taskNoteBlocks),
+            taskNoteContentMd: next.taskNoteContentMd ?? null,
+            taskNoteContentJson: serializeJson(next.taskNoteContentJson),
             progressLogs: serializeJson(next.progressLogs),
             activityLogs: serializeJson(next.activityLogs),
             userId: next.userId ?? null,
@@ -439,6 +653,261 @@ export const createSqliteBundle = (dbPath: string): SqliteBundle => {
         }
       },
     },
+    notes: {
+      async list() {
+        const rows = database
+          .prepare('SELECT * FROM notes WHERE deletedAt IS NULL ORDER BY updatedAt DESC')
+          .all() as Record<string, unknown>[]
+        return rows.map(toNoteItem)
+      },
+      async listTrash() {
+        const rows = database
+          .prepare('SELECT * FROM notes WHERE deletedAt IS NOT NULL ORDER BY updatedAt DESC')
+          .all() as Record<string, unknown>[]
+        return rows.map(toNoteItem)
+      },
+      async create(data?: NoteCreateInput) {
+        const time = now()
+        const stats = buildNoteStats(data?.contentMd ?? '')
+        const entity: NoteItem = {
+          id: createId(),
+          createdAt: time,
+          updatedAt: time,
+          title: data?.title ?? '',
+          contentMd: data?.contentMd ?? '',
+          contentJson: data?.contentJson ?? null,
+          collection: data?.collection ?? 'all-notes',
+          tags: data?.tags ?? [],
+          pinned: data?.pinned === true,
+          excerpt: buildNoteExcerpt(data?.contentMd ?? ''),
+          ...stats,
+          backlinks: data?.backlinks ?? [],
+          deletedAt: null,
+        }
+
+        database
+          .prepare(
+            `INSERT INTO notes
+             (id, title, contentMd, contentJson, collection, tags, excerpt, pinned, wordCount, charCount, paragraphCount, imageCount, fileCount, headings, backlinks, deletedAt, createdAt, updatedAt, userId, workspaceId)
+             VALUES (@id, @title, @contentMd, @contentJson, @collection, @tags, @excerpt, @pinned, @wordCount, @charCount, @paragraphCount, @imageCount, @fileCount, @headings, @backlinks, @deletedAt, @createdAt, @updatedAt, @userId, @workspaceId)`
+          )
+          .run({
+            ...entity,
+            contentJson: serializeJson(entity.contentJson),
+            tags: serializeJson(entity.tags),
+            pinned: entity.pinned ? 1 : 0,
+            headings: serializeJson(entity.headings),
+            backlinks: serializeJson(entity.backlinks),
+            deletedAt: entity.deletedAt ?? null,
+            userId: entity.userId ?? null,
+            workspaceId: entity.workspaceId ?? null,
+          })
+
+        return entity
+      },
+      async update(id, patch: NoteUpdateInput) {
+        const row = database.prepare('SELECT * FROM notes WHERE id = ? LIMIT 1').get(id) as Record<string, unknown> | undefined
+        if (!row) return undefined
+        const current = toNoteItem(row)
+        const contentMd = patch.contentMd ?? current.contentMd
+        const stats = buildNoteStats(contentMd)
+        const next: NoteItem = {
+          ...current,
+          ...patch,
+          id,
+          updatedAt: now(),
+          excerpt: typeof patch.excerpt === 'string' ? patch.excerpt : buildNoteExcerpt(contentMd),
+          wordCount: typeof patch.wordCount === 'number' ? patch.wordCount : stats.wordCount,
+          charCount: typeof patch.charCount === 'number' ? patch.charCount : stats.charCount,
+          paragraphCount: typeof patch.paragraphCount === 'number' ? patch.paragraphCount : stats.paragraphCount,
+          imageCount: typeof patch.imageCount === 'number' ? patch.imageCount : stats.imageCount,
+          fileCount: typeof patch.fileCount === 'number' ? patch.fileCount : stats.fileCount,
+          headings: Array.isArray(patch.headings) ? patch.headings : stats.headings,
+          backlinks: Array.isArray(patch.backlinks) ? patch.backlinks : current.backlinks,
+        }
+
+        database
+          .prepare(
+            `UPDATE notes SET
+               title=@title,
+               contentMd=@contentMd,
+               contentJson=@contentJson,
+               collection=@collection,
+               tags=@tags,
+               excerpt=@excerpt,
+               pinned=@pinned,
+               wordCount=@wordCount,
+               charCount=@charCount,
+               paragraphCount=@paragraphCount,
+               imageCount=@imageCount,
+               fileCount=@fileCount,
+               headings=@headings,
+               backlinks=@backlinks,
+               deletedAt=@deletedAt,
+               updatedAt=@updatedAt
+             WHERE id=@id`
+          )
+          .run({
+            ...next,
+            contentJson: serializeJson(next.contentJson),
+            tags: serializeJson(next.tags),
+            pinned: next.pinned ? 1 : 0,
+            headings: serializeJson(next.headings),
+            backlinks: serializeJson(next.backlinks),
+            deletedAt: next.deletedAt ?? null,
+          })
+
+        return next
+      },
+      async softDelete(id) {
+        return service.notes.update(id, { deletedAt: now() })
+      },
+      async restore(id) {
+        return service.notes.update(id, { deletedAt: null })
+      },
+      async hardDelete(id) {
+        database.prepare('DELETE FROM notes WHERE id = ?').run(id)
+      },
+    },
+    noteTags: {
+      async list() {
+        const rows = database.prepare('SELECT * FROM note_tags ORDER BY sortOrder ASC, updatedAt DESC').all() as Record<string, unknown>[]
+        return rows.map(toNoteTag)
+      },
+      async create(data: NoteTagCreateInput) {
+        const entity: NoteTag = {
+          id: createId(),
+          createdAt: now(),
+          updatedAt: now(),
+          name: data.name,
+          icon: data.icon,
+          pinned: data.pinned === true,
+          parentId: data.parentId ?? null,
+          noteCount: 0,
+          sortOrder: data.sortOrder ?? 0,
+          userId: data.userId,
+          workspaceId: data.workspaceId,
+        }
+        database
+          .prepare(
+            `INSERT INTO note_tags
+             (id, name, icon, pinned, parentId, noteCount, sortOrder, createdAt, updatedAt, userId, workspaceId)
+             VALUES (@id, @name, @icon, @pinned, @parentId, @noteCount, @sortOrder, @createdAt, @updatedAt, @userId, @workspaceId)`
+          )
+          .run({
+            ...entity,
+            icon: entity.icon ?? null,
+            pinned: entity.pinned ? 1 : 0,
+            parentId: entity.parentId ?? null,
+            userId: entity.userId ?? null,
+            workspaceId: entity.workspaceId ?? null,
+          })
+        return entity
+      },
+      async update(id: string, patch: NoteTagUpdateInput) {
+        const row = database.prepare('SELECT * FROM note_tags WHERE id = ? LIMIT 1').get(id) as Record<string, unknown> | undefined
+        if (!row) return undefined
+        const current = toNoteTag(row)
+        const next: NoteTag = {
+          ...current,
+          ...patch,
+          id,
+          updatedAt: now(),
+        }
+        database
+          .prepare(
+            `UPDATE note_tags SET
+               name=@name,
+               icon=@icon,
+               pinned=@pinned,
+               parentId=@parentId,
+               noteCount=@noteCount,
+               sortOrder=@sortOrder,
+               updatedAt=@updatedAt,
+               userId=@userId,
+               workspaceId=@workspaceId
+             WHERE id=@id`
+          )
+          .run({
+            ...next,
+            icon: next.icon ?? null,
+            pinned: next.pinned ? 1 : 0,
+            parentId: next.parentId ?? null,
+            userId: next.userId ?? null,
+            workspaceId: next.workspaceId ?? null,
+          })
+        return next
+      },
+      async remove(id) {
+        database.prepare('DELETE FROM note_tags WHERE id = ?').run(id)
+      },
+    },
+    noteAppearance: {
+      async get() {
+        const row = database.prepare('SELECT * FROM note_appearance WHERE id = ? LIMIT 1').get(NOTE_APPEARANCE_ID) as
+          | Record<string, unknown>
+          | undefined
+        return row ? toNoteAppearance(row) : null
+      },
+      async upsert(data: Partial<NoteAppearanceUpsertInput> & Pick<NoteAppearanceUpsertInput, 'id'>) {
+        const current = await service.noteAppearance.get()
+        if (!current) {
+          const entity: NoteAppearanceSettings = {
+            id: NOTE_APPEARANCE_ID,
+            createdAt: now(),
+            updatedAt: now(),
+            theme: data.theme === 'graphite' ? 'graphite' : 'paper',
+            font: data.font === 'serif' || data.font === 'mono' ? data.font : 'sans',
+            fontSize: data.fontSize ?? 16,
+            lineHeight: data.lineHeight ?? 1.7,
+            contentWidth: data.contentWidth ?? 56,
+            focusMode: data.focusMode === true,
+            userId: data.userId,
+            workspaceId: data.workspaceId,
+          }
+          database
+            .prepare(
+              `INSERT INTO note_appearance
+               (id, theme, font, fontSize, lineHeight, contentWidth, focusMode, createdAt, updatedAt, userId, workspaceId)
+               VALUES (@id, @theme, @font, @fontSize, @lineHeight, @contentWidth, @focusMode, @createdAt, @updatedAt, @userId, @workspaceId)`
+            )
+            .run({
+              ...entity,
+              focusMode: entity.focusMode ? 1 : 0,
+              userId: entity.userId ?? null,
+              workspaceId: entity.workspaceId ?? null,
+            })
+          return entity
+        }
+        const next: NoteAppearanceSettings = {
+          ...current,
+          ...data,
+          id: NOTE_APPEARANCE_ID,
+          updatedAt: now(),
+        }
+        database
+          .prepare(
+            `UPDATE note_appearance SET
+               theme=@theme,
+               font=@font,
+               fontSize=@fontSize,
+               lineHeight=@lineHeight,
+               contentWidth=@contentWidth,
+               focusMode=@focusMode,
+               updatedAt=@updatedAt,
+               userId=@userId,
+               workspaceId=@workspaceId
+             WHERE id=@id`
+          )
+          .run({
+            ...next,
+            focusMode: next.focusMode ? 1 : 0,
+            userId: next.userId ?? null,
+            workspaceId: next.workspaceId ?? null,
+          })
+        return next
+      },
+    },
     widgetTodos: {
       async list(scope) {
         if (scope) {
@@ -494,6 +963,14 @@ export const createSqliteBundle = (dbPath: string): SqliteBundle => {
             workspaceId: next.workspaceId ?? null,
           })
         return next
+      },
+      async resetDone(scope) {
+        const rows = database
+          .prepare('SELECT * FROM widget_todos WHERE scope = ? AND done = 1 ORDER BY updatedAt DESC')
+          .all(scope) as Record<string, unknown>[]
+        if (rows.length === 0) return []
+        database.prepare('UPDATE widget_todos SET done = 0 WHERE scope = ? AND done = 1').run(scope)
+        return rows.map((row) => ({ ...toWidgetTodo(row), done: false }))
       },
       async remove(id) {
         database.prepare('DELETE FROM widget_todos WHERE id = ?').run(id)
@@ -954,16 +1431,24 @@ export const createSqliteBundle = (dbPath: string): SqliteBundle => {
           database
             .prepare(
               `INSERT INTO tasks
-               (id, title, description, status, priority, dueDate, tags, subtasks, progressLogs, activityLogs, createdAt, updatedAt, userId, workspaceId)
-               VALUES (@id, @title, @description, @status, @priority, @dueDate, @tags, @subtasks, @progressLogs, @activityLogs, @createdAt, @updatedAt, @userId, @workspaceId)
+               (id, title, description, pinned, status, priority, dueDate, startDate, endDate, reminderAt, reminderFiredAt, tags, subtasks, taskNoteBlocks, taskNoteContentMd, taskNoteContentJson, progressLogs, activityLogs, createdAt, updatedAt, userId, workspaceId)
+               VALUES (@id, @title, @description, @pinned, @status, @priority, @dueDate, @startDate, @endDate, @reminderAt, @reminderFiredAt, @tags, @subtasks, @taskNoteBlocks, @taskNoteContentMd, @taskNoteContentJson, @progressLogs, @activityLogs, @createdAt, @updatedAt, @userId, @workspaceId)
                ON CONFLICT(id) DO UPDATE SET
                  title=excluded.title,
                  description=excluded.description,
+                 pinned=excluded.pinned,
                  status=excluded.status,
                  priority=excluded.priority,
                  dueDate=excluded.dueDate,
+                 startDate=excluded.startDate,
+                 endDate=excluded.endDate,
+                 reminderAt=excluded.reminderAt,
+                 reminderFiredAt=excluded.reminderFiredAt,
                  tags=excluded.tags,
                  subtasks=excluded.subtasks,
+                 taskNoteBlocks=excluded.taskNoteBlocks,
+                 taskNoteContentMd=excluded.taskNoteContentMd,
+                 taskNoteContentJson=excluded.taskNoteContentJson,
                  progressLogs=excluded.progressLogs,
                  activityLogs=excluded.activityLogs,
                  updatedAt=excluded.updatedAt,
@@ -973,9 +1458,17 @@ export const createSqliteBundle = (dbPath: string): SqliteBundle => {
             .run({
               ...value,
               description: value.description ?? '',
+              pinned: value.pinned ? 1 : 0,
               dueDate: value.dueDate ?? null,
+              startDate: value.startDate ?? null,
+              endDate: value.endDate ?? null,
+              reminderAt: value.reminderAt ?? null,
+              reminderFiredAt: value.reminderFiredAt ?? null,
               tags: serializeJson(value.tags ?? []),
               subtasks: serializeJson(value.subtasks ?? []),
+              taskNoteBlocks: serializeJson(value.taskNoteBlocks ?? []),
+              taskNoteContentMd: value.taskNoteContentMd ?? null,
+              taskNoteContentJson: serializeJson(value.taskNoteContentJson ?? null),
               progressLogs: serializeJson(value.progressLogs ?? []),
               activityLogs: serializeJson(value.activityLogs ?? []),
               userId: value.userId ?? null,
