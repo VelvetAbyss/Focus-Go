@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { NoteAppearanceSettings, NoteItem, NoteTag } from '../../../data/models/types'
@@ -127,10 +127,10 @@ const appearance: NoteAppearanceSettings = {
   createdAt: 1,
   updatedAt: 1,
   theme: 'paper',
-  font: 'sans',
+  font: 'uiSans',
   fontSize: 16,
   lineHeight: 1.7,
-  contentWidth: 56,
+  contentWidth: 0,
   focusMode: false,
 }
 
@@ -170,7 +170,13 @@ describe('NotePage', () => {
 
   it('opens the info popover and shows statistics', async () => {
     listMock.mockResolvedValue([
-      createNote({ title: 'Design doc', wordCount: 22, charCount: 120, paragraphCount: 2, headings: [{ level: 1, text: 'Heading', id: 'heading' }] }),
+      createNote({
+        title: 'Design doc',
+        contentMd:
+          'one two three four five six seven eight nine ten eleven\n\n' +
+          'twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty twentyone twentytwo',
+        headings: [{ level: 1, text: 'Heading', id: 'heading' }],
+      }),
     ])
     listTrashMock.mockResolvedValue([])
 
@@ -201,15 +207,38 @@ describe('NotePage', () => {
   it('opens appearance controls and persists settings', async () => {
     listMock.mockResolvedValue([createNote({ title: 'Design doc' })])
     listTrashMock.mockResolvedValue([])
-    appearanceUpsertMock.mockResolvedValue({ ...appearance, theme: 'graphite' })
+    appearanceUpsertMock.mockResolvedValue({ ...appearance, fontSize: 17 })
 
     render(<NotePage />)
 
     expect(await screen.findByText('Editor:Design doc')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Open appearance' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Graphite' }))
+    const fontSizeSlider = screen.getAllByRole('slider')[0]
+    fireEvent.change(fontSizeSlider, { target: { value: '17' } })
 
     await waitFor(() => expect(appearanceUpsertMock).toHaveBeenCalled())
+    expect(appearanceUpsertMock.mock.calls.some((entry) => (entry[0] as { fontSize?: number })?.fontSize !== undefined)).toBe(true)
+  })
+
+  it('persists font and line-height changes from appearance modal', async () => {
+    listMock.mockResolvedValue([createNote({ title: 'Design doc' })])
+    listTrashMock.mockResolvedValue([])
+    appearanceUpsertMock.mockResolvedValue({ ...appearance, font: 'cnSans', lineHeight: 2 })
+
+    render(<NotePage />)
+
+    expect(await screen.findByText('Editor:Design doc')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Open appearance' }))
+    await userEvent.click(screen.getByRole('button', { name: 'CN Sans' }))
+
+    await waitFor(() =>
+      expect(appearanceUpsertMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'note_appearance',
+        }),
+      ),
+    )
+    expect(appearanceUpsertMock.mock.calls.some((entry) => (entry[0] as { font?: string })?.font === 'cnSans')).toBe(true)
   })
 
   it('filters by selected tag from the sidebar tree', async () => {
@@ -241,5 +270,26 @@ describe('NotePage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Change note' }))
 
     await waitFor(() => expect(updateMock).toHaveBeenCalledWith('save-1', expect.objectContaining({ title: 'Updated title' })))
+  })
+
+  it('renders trash as inline page and supports restore/delete actions', async () => {
+    const note = createNote({ id: 'trash-1', title: 'Trash me' })
+    const trashed = createNote({ ...note, deletedAt: Date.now() })
+    listMock.mockResolvedValue([note])
+    listTrashMock.mockResolvedValue([])
+    softDeleteMock.mockResolvedValue(trashed)
+    restoreMock.mockResolvedValue(note)
+
+    render(<NotePage />)
+
+    expect(await screen.findByText('Trash me')).toBeInTheDocument()
+    await userEvent.click((await screen.findAllByTitle('Move to trash'))[0]!)
+    await waitFor(() => expect(softDeleteMock).toHaveBeenCalledWith('trash-1'))
+
+    await userEvent.click(screen.getByRole('button', { name: /Trash/i }))
+    expect(await screen.findByText('Delete permanently')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Restore' }))
+    await waitFor(() => expect(restoreMock).toHaveBeenCalledWith('trash-1'))
   })
 })
