@@ -144,7 +144,7 @@ const AppShell = ({ children }: AppShellProps) => {
               key={location.key ?? location.pathname}
               className={`focus-shell__route-layer ${isNoteRoute ? 'focus-shell__route-layer--full-bleed' : ''}`}
               variants={routeVariants}
-              initial={uiAnimationsEnabled ? 'initial' : false}
+              initial={false}
               animate="animate"
               exit={uiAnimationsEnabled ? 'exit' : undefined}
               transition={uiAnimationsEnabled ? routeTransition : { duration: 0 }}
