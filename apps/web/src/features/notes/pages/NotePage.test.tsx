@@ -156,16 +156,27 @@ describe('NotePage', () => {
     vi.unstubAllGlobals()
   })
 
-  it('auto creates a blank note when the workspace is empty', async () => {
-    const created = createNote()
+  it('does not auto create a blank note when the workspace is empty', async () => {
+    listMock.mockResolvedValueOnce([])
+    listTrashMock.mockResolvedValue([])
+
+    render(<NotePage />)
+
+    await waitFor(() => expect(createMock).not.toHaveBeenCalled())
+    expect(await screen.findByText('Editor:Untitled')).toBeInTheDocument()
+  })
+
+  it('auto creates the first note when user starts typing in an empty workspace', async () => {
+    const created = createNote({ id: 'created-1', title: 'Updated title', contentMd: '# Heading\n\nBody copy', tags: ['Research'] })
     listMock.mockResolvedValueOnce([])
     listTrashMock.mockResolvedValue([])
     createMock.mockResolvedValue(created)
 
     render(<NotePage />)
 
+    await userEvent.click(screen.getByRole('button', { name: 'Change note' }))
     await waitFor(() => expect(createMock).toHaveBeenCalledTimes(1))
-    expect(await screen.findByText('Editor:Untitled')).toBeInTheDocument()
+    expect(await screen.findByText('Editor:Updated title')).toBeInTheDocument()
   })
 
   it('opens the info popover and shows statistics', async () => {
@@ -272,13 +283,12 @@ describe('NotePage', () => {
     await waitFor(() => expect(updateMock).toHaveBeenCalledWith('save-1', expect.objectContaining({ title: 'Updated title' })))
   })
 
-  it('renders trash as inline page and supports restore/delete actions', async () => {
+  it('renders trash notes in editor layout and supports permanent delete from list', async () => {
     const note = createNote({ id: 'trash-1', title: 'Trash me' })
     const trashed = createNote({ ...note, deletedAt: Date.now() })
     listMock.mockResolvedValue([note])
     listTrashMock.mockResolvedValue([])
     softDeleteMock.mockResolvedValue(trashed)
-    restoreMock.mockResolvedValue(note)
 
     render(<NotePage />)
 
@@ -287,9 +297,7 @@ describe('NotePage', () => {
     await waitFor(() => expect(softDeleteMock).toHaveBeenCalledWith('trash-1'))
 
     await userEvent.click(screen.getByRole('button', { name: /Trash/i }))
-    expect(await screen.findByText('Delete permanently')).toBeInTheDocument()
-
-    await userEvent.click(screen.getByRole('button', { name: 'Restore' }))
-    await waitFor(() => expect(restoreMock).toHaveBeenCalledWith('trash-1'))
+    await userEvent.click((await screen.findAllByTitle('Delete permanently'))[0]!)
+    await waitFor(() => expect(hardDeleteMock).toHaveBeenCalledWith('trash-1'))
   })
 })

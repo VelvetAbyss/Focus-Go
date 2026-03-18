@@ -1,4 +1,4 @@
-import { useMemo, useState, type RefObject } from 'react'
+import { useMemo, useRef, useState, type RefObject } from 'react'
 import { ChevronDown, Pin, PinOff, Plus, Search, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { NoteItem } from '../../../data/models/types'
@@ -192,14 +192,43 @@ function NoteCard({
   onTrash: () => void
   onDelete: () => void
 }) {
-  const displayTags = note.tags.slice(0, 2)
-  const overflowCount = note.tags.length - displayTags.length
+  const dragImageRef = useRef<HTMLElement | null>(null)
 
   return (
     <div
+      draggable={mode === 'notes'}
+      onDragStart={(event) => {
+        if (mode !== 'notes') return
+        event.dataTransfer.effectAllowed = 'move'
+        event.dataTransfer.setData('text/plain', note.id)
+        event.dataTransfer.setData('application/x-focus-note-id', note.id)
+        const source = event.currentTarget as HTMLDivElement
+        const rect = source.getBoundingClientRect()
+        const clone = source.cloneNode(true) as HTMLDivElement
+        clone.style.position = 'fixed'
+        clone.style.top = '-10000px'
+        clone.style.left = '-10000px'
+        clone.style.width = `${rect.width}px`
+        clone.style.height = `${rect.height}px`
+        clone.style.maxWidth = `${rect.width}px`
+        clone.style.boxSizing = 'border-box'
+        clone.style.opacity = '0.4'
+        clone.style.pointerEvents = 'none'
+        clone.style.margin = '0'
+        document.body.appendChild(clone)
+        dragImageRef.current = clone
+        event.dataTransfer.setDragImage(clone, 24, 16)
+      }}
+      onDragEnd={() => {
+        const node = dragImageRef.current
+        if (node) {
+          node.remove()
+          dragImageRef.current = null
+        }
+      }}
       onClick={onSelect}
       className={cn(
-        'group relative mb-0.5 cursor-pointer rounded-lg px-3 py-2.5 transition-all',
+        'group relative mb-0.5 cursor-pointer rounded-lg px-3 py-2.5 pb-6 transition-all',
         selected ? 'bg-[#f0eeeb] shadow-[0_0_0_1px_rgba(58, 55, 51, 0.04)] dark:bg-slate-700/40 dark:shadow-none' : 'hover:bg-[#f0eeeb]/60 dark:hover:bg-slate-700/25',
       )}
       style={{ minHeight: '101.1875px' }}
@@ -209,19 +238,9 @@ function NoteCard({
           {note.pinned ? <Pin size={10} className="mr-1 inline text-muted-foreground" /> : null}
           {note.title.trim() || 'Untitled'}
         </h4>
-        <span className="mt-0.5 shrink-0 text-[10px] text-[#8d867f] dark:text-slate-400">{formatTime(note.updatedAt)}</span>
       </div>
       <p className="mt-0.5 line-clamp-2 text-[12px] leading-[1.5] text-[#7a7570] dark:text-slate-300/80">{note.excerpt || 'This note does not have a preview yet.'}</p>
-      {displayTags.length > 0 ? (
-        <div className="mt-1.5 flex items-center gap-1">
-          {displayTags.map((tag) => (
-            <span key={tag} className="rounded bg-[#f0eeeb] px-1.5 py-0.5 text-[10px] text-[#8d867f] dark:bg-slate-700/40 dark:text-slate-300">
-              {tag}
-            </span>
-          ))}
-          {overflowCount > 0 ? <span className="text-[10px] text-[#8d867f] dark:text-slate-400">+{overflowCount}</span> : null}
-        </div>
-      ) : null}
+      <span className="absolute bottom-2 right-3 text-[10px] text-[#8d867f] dark:text-slate-400">{formatTime(note.updatedAt)}</span>
 
       <div className="absolute right-2 top-2 flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
         {mode === 'notes' ? (
@@ -234,8 +253,7 @@ function NoteCard({
           onClick={(event) => {
             event.stopPropagation()
             if (mode === 'trash') {
-              const confirmed = window.confirm(`Delete "${note.title.trim() || 'Untitled'}" permanently?`)
-              if (confirmed) onDelete()
+              onDelete()
               return
             }
             onTrash()

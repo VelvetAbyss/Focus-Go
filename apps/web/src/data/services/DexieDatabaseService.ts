@@ -112,10 +112,10 @@ const normalizeNoteAppearance = (value?: Partial<NoteAppearanceSettings> | null)
   withBase({
     id: NOTE_APPEARANCE_ID,
     theme: value?.theme === 'graphite' ? 'graphite' : 'paper',
-    font: normalizeNoteFontFamily(value?.font),
+    font: value?.font ? normalizeNoteFontFamily(value.font) : 'serif',
     fontSize: typeof value?.fontSize === 'number' ? value.fontSize : 16,
-    lineHeight: typeof value?.lineHeight === 'number' ? value.lineHeight : 1.7,
-    contentWidth: typeof value?.contentWidth === 'number' ? value.contentWidth : 0,
+    lineHeight: typeof value?.lineHeight === 'number' ? value.lineHeight : 1.8,
+    contentWidth: typeof value?.contentWidth === 'number' ? value.contentWidth : 60,
     focusMode: value?.focusMode === true,
   } as NoteAppearanceSettings)
 
