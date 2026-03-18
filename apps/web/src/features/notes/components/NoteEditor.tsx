@@ -37,7 +37,6 @@ import { Toolbar, ToolbarGroup, ToolbarSeparator } from '@/components/tiptap-ui-
 import { MAX_FILE_SIZE } from '@/lib/tiptap-utils'
 import type { NoteFontFamily } from '../../../data/models/types'
 import { ensureRichDoc, richDocToMarkdown } from '../model/richTextCodec'
-import { extractHashTagsFromMarkdown, mergeTags } from '../model/tags'
 
 type NoteEditorValue = {
   title: string
@@ -108,12 +107,11 @@ const NoteEditor = ({ value, appearance, onOpenInfo, onOpenAppearance, onExport,
 
   const emitChange = (doc: JSONContent | null | undefined) => {
     const contentMd = richDocToMarkdown(doc)
-    const tags = mergeTags(value.tags, extractHashTagsFromMarkdown(contentMd))
     onChange({
       title: extractTitleFromMarkdown(contentMd),
       contentMd,
       contentJson: (doc ?? null) as Record<string, unknown> | null,
-      tags,
+      tags: value.tags,
     })
   }
 
@@ -234,16 +232,6 @@ const NoteEditor = ({ value, appearance, onOpenInfo, onOpenAppearance, onExport,
             } as CSSProperties
           }
         >
-          {value.tags.length ? (
-            <div className="note-editor__tag-row">
-              {value.tags.map((tag) => (
-                <span key={tag} className="note-editor__tag-chip">
-                  #{tag}
-                </span>
-              ))}
-            </div>
-          ) : null}
-
           <EditorContext.Provider value={{ editor }}>
             <EditorContent editor={editor} className="simple-editor-content" />
           </EditorContext.Provider>

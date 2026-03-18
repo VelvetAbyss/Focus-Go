@@ -1,4 +1,4 @@
-import { useMemo, useState, type RefObject } from 'react'
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import {
   BookOpen,
   Calendar,
@@ -8,7 +8,6 @@ import {
   FolderOpen,
   Lightbulb,
   Microscope,
-  MoreHorizontal,
   Plus,
   Pin,
   PinOff,
@@ -42,7 +41,8 @@ type SidebarProps = {
   onCreateTag: (name: string, parentId?: string | null) => void
   onRenameTag: (tagId: string, nextName: string) => void
   onDeleteTag: (tagId: string) => void
-  onMoveTag: (tagId: string, parentId: string | null) => void
+  onDropNoteOnTag: (noteId: string, tagId: string) => void
+  onDropTag: (dragTagId: string, targetTagId: string | null, mode: 'before' | 'after' | 'inside' | 'root') => void
   className?: string
   scrollContainerRef?: RefObject<HTMLElement | null>
 }
@@ -74,7 +74,8 @@ export default function NoteSidebar({
   onCreateTag,
   onRenameTag,
   onDeleteTag,
-  onMoveTag,
+  onDropNoteOnTag,
+  onDropTag,
   className,
   scrollContainerRef,
 }: SidebarProps) {
@@ -113,14 +114,14 @@ export default function NoteSidebar({
               key={`pin-${tag.id}`}
               tag={{ ...tag, children: [] }}
               depth={0}
-              allTags={tags}
               activeTagId={activeTagId}
               onSelect={onSelectTag}
               onTogglePin={onTogglePinTag}
-              onCreateTag={onCreateTag}
               onRenameTag={onRenameTag}
               onDeleteTag={onDeleteTag}
-              onMoveTag={onMoveTag}
+              onDropNoteOnTag={onDropNoteOnTag}
+              onDropTag={onDropTag}
+              enableTagDnd={false}
             />
           ))}
         </div>
@@ -134,28 +135,40 @@ export default function NoteSidebar({
             className="rounded p-1 text-[#8d867f] transition-colors hover:bg-[#f0eeeb] dark:text-slate-300 dark:hover:bg-slate-700/30"
             title="New tag"
             onClick={() => {
-              const nextName = window.prompt('New tag name')
-              if (nextName) onCreateTag(nextName, null)
+              const parentId = activeTagId && tags.some((tag) => tag.id === activeTagId) ? activeTagId : null
+              onCreateTag('New tag', parentId)
             }}
           >
             <Plus size={13} />
           </button>
         </div>
-        {tree.map((tag) => (
-          <TagRow
-            key={tag.id}
-            tag={tag}
-            depth={0}
-            allTags={tags}
-            activeTagId={activeTagId}
-            onSelect={onSelectTag}
-            onTogglePin={onTogglePinTag}
-            onCreateTag={onCreateTag}
-            onRenameTag={onRenameTag}
-            onDeleteTag={onDeleteTag}
-            onMoveTag={onMoveTag}
-          />
-        ))}
+        <div
+          onDragOver={(event) => {
+            if (event.dataTransfer.types.includes('application/x-focus-tag-id')) event.preventDefault()
+          }}
+          onDrop={(event) => {
+            const dragTagId = event.dataTransfer.getData('application/x-focus-tag-id')
+            if (!dragTagId) return
+            event.preventDefault()
+            onDropTag(dragTagId, null, 'root')
+          }}
+        >
+          {tree.map((tag) => (
+            <TagRow
+              key={tag.id}
+              tag={tag}
+              depth={0}
+              activeTagId={activeTagId}
+              onSelect={onSelectTag}
+              onTogglePin={onTogglePinTag}
+              onRenameTag={onRenameTag}
+              onDeleteTag={onDeleteTag}
+              onDropNoteOnTag={onDropNoteOnTag}
+              onDropTag={onDropTag}
+              enableTagDnd
+            />
+          ))}
+        </div>
       </div>
     </aside>
   )
@@ -199,39 +212,132 @@ function CollectionButton({
 function TagRow({
   tag,
   depth,
-  allTags,
   activeTagId,
   onSelect,
   onTogglePin,
-  onCreateTag,
   onRenameTag,
   onDeleteTag,
-  onMoveTag,
+  onDropNoteOnTag,
+  onDropTag,
+  enableTagDnd,
 }: {
   tag: TreeTag
   depth: number
-  allTags: NoteTag[]
   activeTagId: string | null
   onSelect: (id: string) => void
   onTogglePin: (id: string) => void
-  onCreateTag: (name: string, parentId?: string | null) => void
   onRenameTag: (tagId: string, nextName: string) => void
   onDeleteTag: (tagId: string) => void
-  onMoveTag: (tagId: string, parentId: string | null) => void
+  onDropNoteOnTag: (noteId: string, tagId: string) => void
+  onDropTag: (dragTagId: string, targetTagId: string, mode: 'before' | 'after' | 'inside') => void
+  enableTagDnd: boolean
 }) {
   const [expanded, setExpanded] = useState(true)
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [isRenaming, setIsRenaming] = useState(false)
+  const [draftName, setDraftName] = useState(tag.name)
+  const [dragPlacement, setDragPlacement] = useState<'before' | 'inside' | 'after' | null>(null)
+  const [isNoteHover, setIsNoteHover] = useState(false)
+  const dragImageRef = useRef<HTMLElement | null>(null)
   const hasChildren = tag.children.length > 0
   const isActive = activeTagId === tag.id
   const Icon = tag.icon ? iconMap[tag.icon as keyof typeof iconMap] ?? TagIcon : TagIcon
+  useEffect(() => {
+    if (!isRenaming) setDraftName(tag.name)
+  }, [isRenaming, tag.name])
+
+  const commitRename = () => {
+    const next = draftName.trim()
+    if (next && next !== tag.name) onRenameTag(tag.id, next)
+    setIsRenaming(false)
+  }
 
   return (
     <div>
       <div
         className={cn(
-          'group relative flex cursor-pointer items-center gap-1.5 rounded-lg py-[6px] transition-colors',
+          'group relative flex cursor-pointer items-center gap-1.5 rounded-lg py-[6px] transition-all duration-200 ease-out',
           isActive ? 'bg-[#f0eeeb] text-[#3a3733] dark:bg-slate-700/40 dark:text-slate-100' : 'hover:bg-[#f0eeeb]/60 dark:hover:bg-slate-700/25',
+          dragPlacement === 'inside' && 'ring-1 ring-[#3a3733]/25 bg-[#f0eeeb]/70',
+          isNoteHover && 'ring-1 ring-[#3a3733]/30 bg-[#f0eeeb]/70',
         )}
+        draggable={enableTagDnd}
+        onDragStart={(event) => {
+          if (!enableTagDnd) return
+          event.dataTransfer.effectAllowed = 'move'
+          event.dataTransfer.setData('application/x-focus-tag-id', tag.id)
+          const source = event.currentTarget as HTMLDivElement
+          const rect = source.getBoundingClientRect()
+          const clone = source.cloneNode(true) as HTMLDivElement
+          clone.style.position = 'fixed'
+          clone.style.top = '-10000px'
+          clone.style.left = '-10000px'
+          clone.style.width = `${rect.width}px`
+          clone.style.height = `${rect.height}px`
+          clone.style.maxWidth = `${rect.width}px`
+          clone.style.boxSizing = 'border-box'
+          clone.style.opacity = '0.4'
+          clone.style.pointerEvents = 'none'
+          clone.style.margin = '0'
+          document.body.appendChild(clone)
+          dragImageRef.current = clone
+          event.dataTransfer.setDragImage(clone, 16, 12)
+        }}
+        onDragEnd={() => {
+          setDragPlacement(null)
+          setIsNoteHover(false)
+          const node = dragImageRef.current
+          if (node) {
+            node.remove()
+            dragImageRef.current = null
+          }
+        }}
+        onDragOver={(event) => {
+          const types = Array.from(event.dataTransfer.types)
+          const incomingTag = types.includes('application/x-focus-tag-id')
+          const incomingNote = types.includes('application/x-focus-note-id') || types.includes('text/plain')
+          if (!incomingTag && !incomingNote) return
+          event.preventDefault()
+          if (incomingNote && !incomingTag) {
+            setIsNoteHover(true)
+            setDragPlacement(null)
+            return
+          }
+          setIsNoteHover(false)
+          if (!incomingTag || !enableTagDnd) return
+          const rect = (event.currentTarget as HTMLDivElement).getBoundingClientRect()
+          const ratio = (event.clientY - rect.top) / Math.max(1, rect.height)
+          const beforeLimit = dragPlacement === 'before' ? 0.42 : 0.3
+          const afterLimit = dragPlacement === 'after' ? 0.58 : 0.7
+          if (ratio < beforeLimit) setDragPlacement('before')
+          else if (ratio > afterLimit) setDragPlacement('after')
+          else setDragPlacement('inside')
+        }}
+        onDragLeave={(event) => {
+          // Ignore internal child transitions to avoid flicker.
+          // dragleave fires frequently when crossing descendants.
+          const nextTarget = event.relatedTarget as Node | null
+          if (nextTarget && (event.currentTarget as HTMLDivElement).contains(nextTarget)) return
+          setDragPlacement(null)
+          setIsNoteHover(false)
+        }}
+        onDrop={(event) => {
+          event.stopPropagation()
+          const dragTagId = event.dataTransfer.getData('application/x-focus-tag-id')
+          const dragNoteId = event.dataTransfer.getData('application/x-focus-note-id') || event.dataTransfer.getData('text/plain')
+          if (!dragTagId && !dragNoteId) return
+          event.preventDefault()
+          if (dragNoteId && !dragTagId) {
+            onDropNoteOnTag(dragNoteId, tag.id)
+            setDragPlacement(null)
+            setIsNoteHover(false)
+            return
+          }
+          if (dragTagId && enableTagDnd && dragTagId !== tag.id) {
+            onDropTag(dragTagId, tag.id, dragPlacement ?? 'inside')
+          }
+          setDragPlacement(null)
+          setIsNoteHover(false)
+        }}
         style={{ paddingLeft: `${10 + depth * 16}px`, paddingRight: '8px' }}
         role="button"
         tabIndex={0}
@@ -253,104 +359,69 @@ function TagRow({
           <div className="w-4" />
         )}
         <Icon size={14} className="text-[#8d867f] dark:text-slate-400" />
-        <span className="flex-1 truncate text-[13px]" style={{ fontWeight: isActive ? 500 : 400 }}>
-          {tag.name}
-        </span>
-        <span className="text-[11px] text-[#8d867f] opacity-0 transition-opacity group-hover:opacity-100 dark:text-slate-400">{tag.noteCount}</span>
-        <button
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation()
-            setMenuOpen((current) => !current)
-          }}
-          className="rounded p-0.5 opacity-0 transition-opacity hover:bg-[#3a3733]/5 group-hover:opacity-100 dark:hover:bg-white/10"
-        >
-          <MoreHorizontal size={12} />
-        </button>
-
-        {menuOpen ? (
-          <div className="absolute right-0 top-full z-50 mt-1 w-36 rounded-lg border border-border bg-popover p-1 shadow-lg">
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation()
-                const nextName = window.prompt('Rename tag', tag.name)
-                if (nextName) onRenameTag(tag.id, nextName)
-                setMenuOpen(false)
-              }}
-              className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] hover:bg-accent"
-            >
-              Rename
-            </button>
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation()
-                const childName = window.prompt('Child tag name')
-                if (childName) onCreateTag(childName, tag.id)
-                setMenuOpen(false)
-              }}
-              className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] hover:bg-accent"
-            >
-              Add child
-            </button>
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation()
-                onMoveTag(tag.id, null)
-                setMenuOpen(false)
-              }}
-              className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] hover:bg-accent"
-            >
-              Move to root
-            </button>
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation()
-                const parentChoices = allTags
-                  .filter((candidate) => candidate.id !== tag.id)
-                  .map((candidate) => candidate.name)
-                  .join(', ')
-                const parentName = window.prompt(`Move under which tag?\n${parentChoices}`)
-                if (!parentName) {
-                  setMenuOpen(false)
-                  return
-                }
-                const parent = allTags.find((candidate) => candidate.name.toLowerCase() === parentName.trim().toLowerCase())
-                if (parent) onMoveTag(tag.id, parent.id)
-                setMenuOpen(false)
-              }}
-              className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] hover:bg-accent"
-            >
-              Move under...
-            </button>
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation()
-                onTogglePin(tag.id)
-                setMenuOpen(false)
-              }}
-              className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] hover:bg-accent"
-            >
-              {tag.pinned ? <PinOff size={12} /> : <Pin size={12} />}
-              {tag.pinned ? 'Unpin' : 'Pin'}
-            </button>
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation()
-                onDeleteTag(tag.id)
-                setMenuOpen(false)
-              }}
-              className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] text-destructive hover:bg-destructive/10"
-            >
-              Delete
-            </button>
-          </div>
+        {isRenaming ? (
+          <input
+            autoFocus
+            value={draftName}
+            onChange={(event) => setDraftName(event.target.value)}
+            onClick={(event) => event.stopPropagation()}
+            onBlur={commitRename}
+            onKeyDown={(event) => {
+              event.stopPropagation()
+              if (event.key === 'Enter') {
+                event.preventDefault()
+                commitRename()
+              }
+              if (event.key === 'Escape') {
+                event.preventDefault()
+                setDraftName(tag.name)
+                setIsRenaming(false)
+              }
+            }}
+            className="h-6 flex-1 rounded border border-[#3a3733]/20 bg-transparent px-1 text-[13px] outline-none"
+          />
+        ) : (
+          <span
+            className="flex-1 truncate text-[13px]"
+            style={{ fontWeight: isActive ? 500 : 400 }}
+            onDoubleClick={(event) => {
+              event.stopPropagation()
+              setIsRenaming(true)
+            }}
+          >
+            {tag.name}
+          </span>
+        )}
+        {dragPlacement === 'before' ? <span className="pointer-events-none absolute left-2 right-2 top-0 h-[2px] rounded-full bg-[#3a3733]/45" /> : null}
+        {dragPlacement === 'after' ? <span className="pointer-events-none absolute bottom-0 left-2 right-2 h-[2px] rounded-full bg-[#3a3733]/45" /> : null}
+        {dragPlacement === 'inside' || isNoteHover ? (
+          <span className="mr-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#3a3733] px-1 text-[10px] font-semibold leading-none text-white">+</span>
         ) : null}
+        <span className="text-[11px] text-[#8d867f] transition-opacity group-hover:opacity-0 dark:text-slate-400">{tag.noteCount}</span>
+        <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation()
+              onTogglePin(tag.id)
+            }}
+            className="rounded p-1 hover:bg-[#3a3733]/5 dark:hover:bg-white/10"
+            title={tag.pinned ? 'Unpin' : 'Pin'}
+          >
+            {tag.pinned ? <PinOff size={12} /> : <Pin size={12} />}
+          </button>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation()
+              onDeleteTag(tag.id)
+            }}
+            className="rounded p-1 text-destructive hover:bg-destructive/10"
+            title="Delete"
+          >
+            <Trash2 size={12} />
+          </button>
+        </div>
       </div>
       {expanded
         ? tag.children.map((child) => (
@@ -358,14 +429,14 @@ function TagRow({
               key={child.id}
               tag={child}
               depth={depth + 1}
-              allTags={allTags}
               activeTagId={activeTagId}
               onSelect={onSelect}
               onTogglePin={onTogglePin}
-              onCreateTag={onCreateTag}
               onRenameTag={onRenameTag}
               onDeleteTag={onDeleteTag}
-              onMoveTag={onMoveTag}
+              onDropNoteOnTag={onDropNoteOnTag}
+              onDropTag={onDropTag}
+              enableTagDnd={enableTagDnd}
             />
           ))
         : null}
