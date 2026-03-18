@@ -230,7 +230,7 @@ type SettingRowProps = {
 const SettingRow = ({ icon: Icon, title, description, children }: SettingRowProps) => (
   <motion.div
     layout
-    className="grid gap-4 rounded-xl border border-border/70 bg-background/70 p-4 backdrop-blur-sm lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center"
+    className="grid gap-4 rounded-xl bg-background/40 p-4 shadow-sm backdrop-blur-sm transition-shadow hover:shadow-md lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center"
     initial={{ opacity: 0, y: 18, scale: 0.98 }}
     animate={{ opacity: 1, y: 0, scale: 1 }}
     transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
@@ -497,37 +497,23 @@ const SettingsRoute = () => {
   }
 
   return (
-    <div className="relative min-h-0 overflow-hidden rounded-fluid-2xl border border-border/70 bg-gradient-to-br from-background via-background to-muted/40 p-3 sm:p-4 lg:p-6">
-      <motion.div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.8 }}
-      >
-        <div className="absolute -left-24 top-0 h-72 w-72 rounded-full bg-primary/20 blur-3xl" />
-        <div className="absolute bottom-0 right-0 h-72 w-72 rounded-full bg-indigo-400/20 blur-3xl" />
-      </motion.div>
-
+    <div className="relative h-full min-h-0 p-3 sm:p-4 lg:p-6">
       <div className="relative z-10 flex h-full flex-col gap-5">
         <motion.header
           initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
-          className="flex flex-wrap items-end justify-between gap-4 rounded-xl border border-border/70 bg-card/75 p-5 backdrop-blur"
+          className="flex flex-wrap items-end justify-between gap-4 rounded-xl bg-background/20 p-5 shadow-lg backdrop-blur"
         >
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">{t('settings.pageEyebrow')}</p>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">{t('settings.pageTitle')}</h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{t('settings.pageDescription')}</p>
           </div>
-          <Badge variant="secondary" className="h-8 px-3 text-xs font-semibold">
-            shadcn system
-          </Badge>
         </motion.header>
 
         <Tabs value={activeSection} onValueChange={(value) => setActiveSection(value as SettingsSection)} className="grid flex-1 gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
-          <Card className="h-full border-border/70 bg-card/80 backdrop-blur">
+          <Card className="h-full bg-background/20 shadow-xl backdrop-blur">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">{t('settings.modulesTitle')}</CardTitle>
               <CardDescription>{t('settings.modulesDescription')}</CardDescription>
@@ -541,7 +527,7 @@ const SettingsRoute = () => {
                     <motion.div key={section.key} layout>
                       <TabsTrigger
                         value={section.key}
-                        className="relative h-auto w-full justify-start rounded-xl border border-border/70 bg-background/60 px-3 py-3 text-left data-[state=active]:border-primary/60 data-[state=active]:bg-primary/10 data-[state=active]:shadow-lg"
+                        className="relative h-auto w-full justify-start rounded-xl bg-background/40 px-3 py-3 text-left data-[state=active]:bg-primary/10 data-[state=active]:shadow-lg"
                       >
                         <div className="flex w-full items-center gap-3">
                           <Icon className="h-4 w-4 shrink-0" />
@@ -561,7 +547,7 @@ const SettingsRoute = () => {
             </CardContent>
           </Card>
 
-          <Card className="h-full border-border/70 bg-card/85 backdrop-blur">
+          <Card className="h-full bg-background/20 shadow-xl backdrop-blur">
             <CardContent className="h-full p-0">
               <ScrollArea className="max-h-[min(72vh,760px)] xl:max-h-[calc(100vh-240px)]">
                 <div className="p-5 md:p-6">
@@ -755,7 +741,7 @@ const SettingsRoute = () => {
                           </SettingRow>
 
                           <motion.div
-                            className="space-y-3 rounded-xl border border-border/70 bg-background/70 p-4"
+                            className="space-y-3 rounded-xl bg-background/40 p-4 shadow-sm"
                             initial={{ opacity: 0, y: 18 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.35, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
@@ -927,7 +913,7 @@ const SettingsRoute = () => {
                           </SettingRow>
 
                           <motion.div
-                            className="space-y-4 rounded-xl border border-destructive/35 bg-destructive/5 p-4"
+                            className="space-y-4 rounded-xl bg-destructive/5 p-4 shadow-sm ring-1 ring-destructive/20"
                             initial={{ opacity: 0, y: 16 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.35, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}

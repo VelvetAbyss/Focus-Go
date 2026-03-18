@@ -1,9 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import Card from '../../shared/ui/Card'
 import { focusRepo } from '../../data/repositories/focusRepo'
-import type { NoiseTrackId, NoiseTrackSettings } from '../../data/models/types'
-import FocusSettingsDrawer from './FocusSettingsDrawer'
 import { DEFAULT_NOISE_PRESET } from './noise'
 import { AppNumber, AppNumberGroup } from '../../shared/ui/AppNumber'
 import { useMotionPreference } from '../../shared/prefs/useMotionPreference'
@@ -18,23 +16,33 @@ const clampDuration = (value: number) => {
 
 const FocusCard = () => {
   const [focusMinutes, setFocusMinutes] = useState(25)
-  const [breakMinutes, setBreakMinutes] = useState(5)
-  const [longBreakMinutes, setLongBreakMinutes] = useState(15)
-  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [todayStats, setTodayStats] = useState({ minutes: 0, sessions: 0 })
   const { reduceMotion } = useMotionPreference()
-  const { noise, setNoise, toggleNoisePlaying, setNoiseTrackEnabled, setNoiseTrackVolume, setNoiseMasterVolume } = useSharedNoise()
+  const { noise, toggleNoisePlaying } = useSharedNoise()
   const { state: timerState, start, pause, resume, reset, setDuration } = useSharedFocusTimer({ defaultDurationMinutes: focusMinutes })
+
+  const loadTodayStats = useCallback(async () => {
+    const sessions = await focusRepo.listSessions(120)
+    const today = new Date().toDateString()
+    const completed = sessions.filter((session) => {
+      if (session.status !== 'completed') return false
+      const stamp = session.completedAt ?? session.updatedAt
+      return new Date(stamp).toDateString() === today
+    })
+    const minutes = completed.reduce((sum, session) => sum + (session.actualMinutes ?? session.plannedMinutes), 0)
+    setTodayStats({ minutes, sessions: completed.length })
+  }, [])
 
   useEffect(() => {
     void focusRepo.get().then((settings) => {
       if (!settings) return
-      setFocusMinutes(settings.focusMinutes)
-      setBreakMinutes(settings.breakMinutes)
-      setLongBreakMinutes(settings.longBreakMinutes)
+      const nextFocusMinutes = clampDuration(settings.focusMinutes)
+      setFocusMinutes(nextFocusMinutes)
+      void setDuration(nextFocusMinutes)
 
       if (!settings.noisePreset) {
         void focusRepo.upsert({
-          focusMinutes: settings.focusMinutes,
+          focusMinutes: nextFocusMinutes,
           breakMinutes: settings.breakMinutes,
           longBreakMinutes: settings.longBreakMinutes,
           noisePreset: DEFAULT_NOISE_PRESET,
@@ -42,16 +50,12 @@ const FocusCard = () => {
         })
       }
     })
-  }, [])
+    void loadTodayStats()
+  }, [loadTodayStats, setDuration])
 
   useEffect(() => {
-    void focusRepo.upsert({
-      focusMinutes,
-      breakMinutes,
-      longBreakMinutes,
-      noisePreset: DEFAULT_NOISE_PRESET,
-    })
-  }, [focusMinutes, breakMinutes, longBreakMinutes])
+    void loadTodayStats()
+  }, [loadTodayStats, timerState.lastCompletedAt])
 
   const minutes = Math.floor(timerState.remainingSeconds / 60)
   const seconds = timerState.remainingSeconds % 60
@@ -72,40 +76,24 @@ const FocusCard = () => {
   }
 
   return (
-    <Card
-      title="Focus Center"
-      eyebrow="Pomodoro"
-      actions={
-        <Button variant="outline" size="icon" onClick={() => setSettingsOpen(true)} aria-label="Open settings">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path
-              d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M19.4 15a1.8 1.8 0 0 0 .36 1.98l.07.07a2.18 2.18 0 0 1 0 3.08 2.18 2.18 0 0 1-3.08 0l-.07-.07a1.8 1.8 0 0 0-1.98-.36 1.8 1.8 0 0 0-1.1 1.64V21a2.2 2.2 0 0 1-4.4 0v-.1a1.8 1.8 0 0 0-1.1-1.64 1.8 1.8 0 0 0-1.98.36l-.07.07a2.18 2.18 0 0 1-3.08 0 2.18 2.18 0 0 1 0-3.08l.07-.07A1.8 1.8 0 0 0 4.6 15a1.8 1.8 0 0 0-1.64-1.1H2.9a2.2 2.2 0 0 1 0-4.4h.1A1.8 1.8 0 0 0 4.64 8.4a1.8 1.8 0 0 0-.36-1.98l-.07-.07a2.18 2.18 0 0 1 0-3.08 2.18 2.18 0 0 1 3.08 0l.07.07A1.8 1.8 0 0 0 9.4 3.6a1.8 1.8 0 0 0 1.1-1.64V1.9a2.2 2.2 0 0 1 4.4 0v.1a1.8 1.8 0 0 0 1.1 1.64 1.8 1.8 0 0 0 1.98-.36l.07-.07a2.18 2.18 0 0 1 3.08 0 2.18 2.18 0 0 1 0 3.08l-.07.07a1.8 1.8 0 0 0-.36 1.98 1.8 1.8 0 0 0 1.64 1.1h.1a2.2 2.2 0 0 1 0 4.4h-.1A1.8 1.8 0 0 0 19.4 15Z"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </Button>
-      }
-    >
-      <div className="focus" style={{ margin: '-6px 0', gap: 6 }}>
-        <div className="focus__mode">Focus</div>
-        <div className="focus__time" style={{ margin: '4px 0 8px' }}>
+    <Card title="Focus Center" eyebrow="Pomodoro">
+      <div className="focus-card-lite">
+        <div className="focus-card-lite__header">
+          <div className="focus__mode">Deep focus mode</div>
+          <div className="focus-card-lite__stats">
+            <span>{todayStats.sessions} sessions</span>
+            <span>·</span>
+            <span>{todayStats.minutes} min</span>
+          </div>
+        </div>
+        <div className="focus__time focus-card-lite__time">
           <AppNumberGroup>
             <AppNumber value={minutes} trend={timerTrend} />
             <span aria-hidden>:</span>
             <AppNumber value={seconds} trend={timerTrend} format={{ minimumIntegerDigits: 2 }} />
           </AppNumberGroup>
         </div>
-        <div className="focus__actions" style={{ marginTop: 8, gap: 14 }}>
+        <div className="focus__actions focus-card-lite__actions">
           <Button size="sm" onClick={() => void handlePrimaryAction()}>
             {timerState.running ? 'Pause' : timerState.status === 'paused' ? 'Resume' : 'Start'}
           </Button>
@@ -114,7 +102,7 @@ const FocusCard = () => {
           </Button>
         </div>
 
-        <div className="focus__noise" style={{ marginTop: 10, minHeight: 36 }}>
+        <div className="focus__noise focus-card-lite__noise">
           <style>{`
             .noiseTitleRow {
               display: flex;
@@ -175,31 +163,6 @@ const FocusCard = () => {
           </Button>
         </div>
       </div>
-      <FocusSettingsDrawer
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        focusMinutes={focusMinutes}
-        breakMinutes={breakMinutes}
-        longBreakMinutes={longBreakMinutes}
-        setFocusMinutes={(value) => {
-          const next = clampDuration(value)
-          setFocusMinutes(next)
-          void setDuration(next)
-        }}
-        setBreakMinutes={setBreakMinutes}
-        setLongBreakMinutes={setLongBreakMinutes}
-        noise={noise}
-        setNoise={setNoise}
-        setNoiseTrack={(trackId: NoiseTrackId, patch: Partial<NoiseTrackSettings>) => {
-          if (typeof patch.enabled === 'boolean') {
-            setNoiseTrackEnabled(trackId, patch.enabled)
-          }
-          if (typeof patch.volume === 'number') {
-            setNoiseTrackVolume(trackId, patch.volume)
-          }
-        }}
-        setNoiseMasterVolume={setNoiseMasterVolume}
-      />
     </Card>
   )
 }

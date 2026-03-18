@@ -1075,6 +1075,15 @@ html[data-motion='reduce'] .app-shell__status {
   box-shadow: var(--shadow-lift);
 }
 
+.dashboard .card {
+  transition: box-shadow var(--transition-base);
+}
+
+.dashboard .card:hover {
+  transform: none;
+  box-shadow: var(--shadow-soft), inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent);
+}
+
 .card__header {
   display: flex;
   justify-content: space-between;
@@ -1326,6 +1335,53 @@ html[data-motion='reduce'] .app-shell__status {
   letter-spacing: 0.01em;
   color: var(--priority-text);
   padding-left: 10px;
+}
+
+.task-card-shell {
+  transition-property: transform, box-shadow !important;
+  transition-duration: 500ms !important;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1) !important;
+  will-change: transform, box-shadow;
+}
+
+.task-card__priority-flag {
+  position: absolute;
+  right: 14px;
+  top: 0;
+  width: 30px;
+  height: 8px;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  box-shadow: 0 3px 8px color-mix(in srgb, #111827 16%, transparent);
+  transform-origin: top center;
+  will-change: height, box-shadow;
+  transition-property: height, box-shadow !important;
+  transition-duration: 860ms !important;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
+  z-index: 1;
+}
+
+.task-card__actions {
+  transition-property: grid-template-rows, opacity, transform, padding-top !important;
+  transition-duration: 500ms !important;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1) !important;
+  will-change: grid-template-rows, opacity, transform;
+}
+
+.task-card-shell:hover .task-card__priority-flag,
+.task-card-shell:focus-within .task-card__priority-flag {
+  height: 56px;
+  box-shadow: 0 8px 14px color-mix(in srgb, #111827 22%, transparent);
+}
+
+html[data-motion='reduce'] .task-card__priority-flag {
+  transition: none;
+  height: 8px;
+}
+
+html[data-motion='reduce'] .task-card__actions {
+  transition: none;
+  transform: none;
 }
 
 .task-card__priority::before {
@@ -1639,7 +1695,7 @@ html[data-motion='reduce'] .app-shell__status {
 .drawer__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(10, 12, 14, 0.5);
+  background: rgba(10, 12, 14, 0.34);
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--motion-duration-medium) var(--ease-accelerate);
@@ -1663,7 +1719,7 @@ html[data-motion='reduce'] .app-shell__status {
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   @apply rounded-3xl;
-  transform: translate3d(calc(var(--motion-shift-md) * 1.2), 0, 0) scale(0.99);
+  transform: translate3d(8px, 0, 0);
   opacity: 0;
   transition: transform var(--motion-duration-medium) var(--ease-accelerate),
     opacity var(--motion-duration-medium) var(--ease-accelerate);
@@ -1677,8 +1733,9 @@ html[data-motion='reduce'] .app-shell__status {
 
 .drawer--visible .drawer__panel {
   opacity: 1;
-  transition: none;
-  animation: drawer-panel-in var(--motion-duration-slow) var(--ease-emphasized) both;
+  transform: translate3d(0, 0, 0);
+  transition: transform var(--motion-duration-slow) var(--ease-decelerate),
+    opacity var(--motion-duration-slow) var(--ease-decelerate);
 }
 
 html[data-motion='reduce'] .drawer__panel {
@@ -1752,6 +1809,46 @@ html[data-motion='reduce'] .drawer--visible .drawer__panel {
 .focus {
   display: flex;
   flex-direction: column;
+}
+
+.focus-card-lite {
+  margin: -4px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.focus-card-lite__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.focus-card-lite__stats {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--text-secondary) 88%, transparent);
+  background: color-mix(in srgb, var(--bg-muted) 78%, var(--bg-elevated));
+}
+
+.focus-card-lite__time {
+  margin: 0;
+}
+
+.focus-card-lite__actions {
+  margin-top: 2px;
+  gap: 12px;
+}
+
+.focus-card-lite__noise {
+  margin-top: 2px;
+  min-height: 34px;
 }
 
 .focus__time {
@@ -4093,21 +4190,25 @@ html[data-motion='reduce'] .tasks-fg__track {
   color: color-mix(in srgb, var(--text-secondary) 82%, transparent);
 }
 
-.task-popup-detail__subtask-checkbox-row .widget-plan-checkbox-wrap[data-checked='true'] + .task-popup-detail__subtask-title {
+.task-popup-detail__subtask-checkbox-row .widget-plan-checkbox-wrap[data-checked='true'] + .task-popup-detail__subtask-title,
+.task-popup-detail__subtask-checkbox-row .widget-plan-checkbox-wrap[data-state='checked'] + .task-popup-detail__subtask-title {
   animation: widget-title-move 0.3s ease 0.1s forwards;
 }
 
-.task-popup-detail__subtask-checkbox-row .widget-plan-checkbox-wrap[data-checked='true'] + .task-popup-detail__subtask-title::before {
+.task-popup-detail__subtask-checkbox-row .widget-plan-checkbox-wrap[data-checked='true'] + .task-popup-detail__subtask-title::before,
+.task-popup-detail__subtask-checkbox-row .widget-plan-checkbox-wrap[data-state='checked'] + .task-popup-detail__subtask-title::before {
   background: color-mix(in srgb, var(--text-secondary) 86%, transparent);
   opacity: 1;
   animation: widget-title-slice 0.4s ease forwards;
 }
 
-.task-popup-detail__subtask-checkbox-row .widget-plan-checkbox-wrap[data-checked='true'] + .task-popup-detail__subtask-title::after {
+.task-popup-detail__subtask-checkbox-row .widget-plan-checkbox-wrap[data-checked='true'] + .task-popup-detail__subtask-title::after,
+.task-popup-detail__subtask-checkbox-row .widget-plan-checkbox-wrap[data-state='checked'] + .task-popup-detail__subtask-title::after {
   animation: widget-title-firework 0.5s ease forwards 0.1s;
 }
 
-.task-popup-detail__subtask-checkbox-row .widget-plan-checkbox-wrap[data-checked='true'] + .task-popup-detail__subtask-title .task-popup-detail__subtask-title-input {
+.task-popup-detail__subtask-checkbox-row .widget-plan-checkbox-wrap[data-checked='true'] + .task-popup-detail__subtask-title .task-popup-detail__subtask-title-input,
+.task-popup-detail__subtask-checkbox-row .widget-plan-checkbox-wrap[data-state='checked'] + .task-popup-detail__subtask-title .task-popup-detail__subtask-title-input {
   color: color-mix(in srgb, var(--text-secondary) 86%, transparent);
 }
 
@@ -4774,59 +4875,54 @@ html[data-motion='reduce'] .widget-todos__track {
   width: 12px;
   height: 12px;
   pointer-events: none;
+  opacity: 0;
+  transform: scale(0.78);
+  transition: opacity 170ms ease, transform 170ms ease;
 }
 
 .widget-plan-checkbox-icon path {
   fill: none;
   stroke: #fff;
-  stroke-width: 2.2;
+  stroke-width: 2.6;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-dasharray: 16;
-  stroke-dashoffset: 16;
-  transition: stroke-dashoffset 220ms ease;
-}
-
-.widget-todos__item input[type='checkbox'] {
-  margin: 0;
-  width: 18px;
-  height: 18px;
-  min-height: 18px;
-  padding: 0;
-  appearance: none;
-  -webkit-appearance: none;
-  border-radius: 6px;
-  border: 1px solid color-mix(in srgb, var(--border) 92%, transparent);
-  background: color-mix(in srgb, #fff 92%, var(--bg-muted));
-  cursor: pointer;
-  position: relative;
-  display: inline-grid;
-  place-content: center;
-  transition: border-color 180ms ease, background-color 180ms ease;
 }
 
 .widget-plan-checkbox-wrap[data-checked='true'],
-.widget-todos__item input[type='checkbox']:checked {
+.widget-plan-checkbox-wrap[data-state='checked'] {
   border-color: color-mix(in srgb, #114f48 72%, var(--border));
   background: #114f48;
 }
 
-.widget-plan-checkbox-wrap[data-checked='true'] .widget-plan-checkbox-icon path {
-  stroke-dashoffset: 0;
+.widget-plan-checkbox-wrap[data-checked='true'] .widget-plan-checkbox-icon,
+.widget-plan-checkbox-wrap[data-state='checked'] .widget-plan-checkbox-icon {
+  opacity: 1;
+  transform: scale(1);
 }
 
-.widget-todos__item input[type='checkbox']:checked + .widget-todos__title {
-  color: color-mix(in srgb, var(--text-secondary) 86%, transparent);
+.widget-plan-checkbox-wrap[data-checked='true'] + .widget-todos__title,
+.widget-plan-checkbox-wrap[data-state='checked'] + .widget-todos__title {
   animation: widget-title-move 0.3s ease 0.1s forwards;
 }
 
-.widget-todos__item input[type='checkbox']:checked + .widget-todos__title::before {
+.widget-plan-checkbox-wrap[data-checked='true'] + .widget-todos__title::before,
+.widget-plan-checkbox-wrap[data-state='checked'] + .widget-todos__title::before {
   background: color-mix(in srgb, var(--text-secondary) 86%, transparent);
   animation: widget-title-slice 0.4s ease forwards;
 }
 
-.widget-todos__item input[type='checkbox']:checked + .widget-todos__title::after {
+.widget-plan-checkbox-wrap[data-checked='true'] + .widget-todos__title::after,
+.widget-plan-checkbox-wrap[data-state='checked'] + .widget-todos__title::after {
   animation: widget-title-firework 0.5s ease forwards 0.1s;
+}
+
+.widget-plan-checkbox-wrap[data-checked='true'] + .widget-todos__title .widget-todos__title-text,
+.widget-plan-checkbox-wrap[data-state='checked'] + .widget-todos__title .widget-todos__title-text {
+  color: color-mix(in srgb, var(--text-secondary) 86%, transparent);
+  text-decoration-line: line-through;
+  text-decoration-thickness: 2px;
+  text-decoration-color: color-mix(in srgb, var(--text-secondary) 90%, #7c7c7c);
+  text-decoration-skip-ink: none;
 }
 
 @keyframes widget-check-01 {
@@ -4924,50 +5020,54 @@ html[data-motion='reduce'] .widget-todos__track {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .widget-plan-checkbox-wrap,
-  .widget-todos__item input[type='checkbox'] {
+  .widget-plan-checkbox-wrap {
     transition: none;
   }
 
-  .widget-plan-checkbox-icon path,
-  .widget-todos__item input[type='checkbox']::after {
+  .widget-plan-checkbox-icon,
+  .widget-plan-checkbox-icon path {
     transition: none;
   }
 
-  .widget-todos__item input[type='checkbox']:checked + .widget-todos__title,
-  .widget-todos__item input[type='checkbox']:checked + .widget-todos__title::before,
-  .widget-todos__item input[type='checkbox']:checked + .widget-todos__title::after {
+  .widget-plan-checkbox-wrap[data-checked='true'] + .widget-todos__title,
+  .widget-plan-checkbox-wrap[data-checked='true'] + .widget-todos__title::before,
+  .widget-plan-checkbox-wrap[data-checked='true'] + .widget-todos__title::after {
     animation: none;
   }
 }
 
-html[data-motion='reduce'] .widget-plan-checkbox-wrap,
-html[data-motion='reduce'] .widget-todos__item input[type='checkbox'] {
+html[data-motion='reduce'] .widget-plan-checkbox-wrap {
   transition: none;
 }
 
-html[data-motion='reduce'] .widget-plan-checkbox-icon path,
-html[data-motion='reduce'] .widget-todos__item input[type='checkbox']::after {
+html[data-motion='reduce'] .widget-plan-checkbox-icon,
+html[data-motion='reduce'] .widget-plan-checkbox-icon path {
   transition: none;
 }
 
-html[data-motion='reduce'] .widget-todos__item input[type='checkbox']:checked + .widget-todos__title,
-html[data-motion='reduce'] .widget-todos__item input[type='checkbox']:checked + .widget-todos__title::before,
-html[data-motion='reduce'] .widget-todos__item input[type='checkbox']:checked + .widget-todos__title::after {
+html[data-motion='reduce'] .widget-plan-checkbox-wrap[data-checked='true'] + .widget-todos__title,
+html[data-motion='reduce'] .widget-plan-checkbox-wrap[data-checked='true'] + .widget-todos__title::before,
+html[data-motion='reduce'] .widget-plan-checkbox-wrap[data-checked='true'] + .widget-todos__title::after {
   animation: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .task-popup-detail__subtask-checkbox-row .widget-plan-checkbox-wrap[data-checked='true'] + .task-popup-detail__subtask-title,
+  .task-popup-detail__subtask-checkbox-row .widget-plan-checkbox-wrap[data-state='checked'] + .task-popup-detail__subtask-title,
   .task-popup-detail__subtask-checkbox-row .widget-plan-checkbox-wrap[data-checked='true'] + .task-popup-detail__subtask-title::before,
-  .task-popup-detail__subtask-checkbox-row .widget-plan-checkbox-wrap[data-checked='true'] + .task-popup-detail__subtask-title::after {
+  .task-popup-detail__subtask-checkbox-row .widget-plan-checkbox-wrap[data-state='checked'] + .task-popup-detail__subtask-title::before,
+  .task-popup-detail__subtask-checkbox-row .widget-plan-checkbox-wrap[data-checked='true'] + .task-popup-detail__subtask-title::after,
+  .task-popup-detail__subtask-checkbox-row .widget-plan-checkbox-wrap[data-state='checked'] + .task-popup-detail__subtask-title::after {
     animation: none;
   }
 }
 
 html[data-motion='reduce'] .task-popup-detail__subtask-checkbox-row .widget-plan-checkbox-wrap[data-checked='true'] + .task-popup-detail__subtask-title,
+html[data-motion='reduce'] .task-popup-detail__subtask-checkbox-row .widget-plan-checkbox-wrap[data-state='checked'] + .task-popup-detail__subtask-title,
 html[data-motion='reduce'] .task-popup-detail__subtask-checkbox-row .widget-plan-checkbox-wrap[data-checked='true'] + .task-popup-detail__subtask-title::before,
-html[data-motion='reduce'] .task-popup-detail__subtask-checkbox-row .widget-plan-checkbox-wrap[data-checked='true'] + .task-popup-detail__subtask-title::after {
+html[data-motion='reduce'] .task-popup-detail__subtask-checkbox-row .widget-plan-checkbox-wrap[data-state='checked'] + .task-popup-detail__subtask-title::before,
+html[data-motion='reduce'] .task-popup-detail__subtask-checkbox-row .widget-plan-checkbox-wrap[data-checked='true'] + .task-popup-detail__subtask-title::after,
+html[data-motion='reduce'] .task-popup-detail__subtask-checkbox-row .widget-plan-checkbox-wrap[data-state='checked'] + .task-popup-detail__subtask-title::after {
   animation: none;
 }
 
@@ -5008,9 +5108,15 @@ html[data-motion='reduce'] .task-popup-detail__subtask-checkbox-row .widget-plan
   position: relative;
   min-width: 0;
   overflow: hidden;
+  text-align: left;
+}
+
+.widget-todos__title-text {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  text-align: left;
   font-weight: 600;
   color: var(--text-primary);
   transition: color 0.3s ease;
@@ -5044,16 +5150,18 @@ html[data-motion='reduce'] .task-popup-detail__subtask-checkbox-row .widget-plan
 }
 
 .widget-todos__item.is-done {
-  opacity: 0.78;
+  opacity: 1;
 }
 
 .widget-todos__item.is-done .widget-todos__title {
-  text-decoration: line-through;
+  animation: none;
 }
 
-.widget-todos__item.is-done .widget-todos__title::before,
-.widget-todos__item.is-done .widget-todos__title::after {
-  opacity: 1;
+.widget-todos__item.is-done .widget-todos__title-text {
+  text-decoration-line: line-through;
+  text-decoration-thickness: 2px;
+  text-decoration-color: color-mix(in srgb, var(--text-secondary) 90%, #7c7c7c);
+  text-decoration-skip-ink: none;
 }
 
 .widget-todos__composer {
@@ -6097,7 +6205,7 @@ html[data-motion='reduce'] .spend-fg__track {
 .dialog__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(10, 12, 14, 0.6);
+  background: rgba(10, 12, 14, 0.38);
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--motion-duration-medium) var(--ease-accelerate);

@@ -142,14 +142,17 @@ const DiaryPanel = ({ open, intent, onClose }: DiaryPanelProps) => {
 
   useEffect(() => {
     if (!open) return
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev)
-      next.set('diary', '1')
-      next.set('diaryTab', view)
-      if (view === 'history' && selectedDateKey) next.set('date', selectedDateKey)
-      else next.delete('date')
-      return next
-    })
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.set('diary', '1')
+        next.set('diaryTab', view)
+        if (view === 'history' && selectedDateKey) next.set('date', selectedDateKey)
+        else next.delete('date')
+        return next
+      },
+      { replace: true }
+    )
   }, [open, setSearchParams, view, selectedDateKey])
 
   useEffect(() => {

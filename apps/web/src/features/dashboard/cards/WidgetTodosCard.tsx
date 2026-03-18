@@ -219,7 +219,9 @@ const WidgetTodosCard = () => {
                           checked={item.done}
                           onChange={(event) => void handleToggle(item, event.target.checked)}
                         />
-                        <span className="widget-todos__title">{item.title}</span>
+                        <div className="widget-todos__title">
+                          <span className="widget-todos__title-text">{item.title}</span>
+                        </div>
                         <button
                           type="button"
                           className="widget-todos__delete"

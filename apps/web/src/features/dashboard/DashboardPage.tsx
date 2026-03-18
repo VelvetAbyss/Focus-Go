@@ -80,14 +80,17 @@ const DashboardPage = () => {
 
   const openDiary = useCallback(
     (intent?: 'openToday') => {
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev)
-        next.set('diary', '1')
-        next.set('diaryTab', 'today')
-        next.delete('date')
-        if (intent === 'openToday') next.set('diaryTab', 'today')
-        return next
-      })
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev)
+          next.set('diary', '1')
+          next.set('diaryTab', 'today')
+          next.delete('date')
+          if (intent === 'openToday') next.set('diaryTab', 'today')
+          return next
+        },
+        { replace: true }
+      )
     },
     [setSearchParams]
   )
@@ -368,13 +371,16 @@ const DashboardPage = () => {
         <DiaryPanel
           open={diaryOpen}
           onClose={() =>
-            setSearchParams((prev) => {
-              const next = new URLSearchParams(prev)
-              next.delete('diary')
-              next.delete('diaryTab')
-              next.delete('date')
-              return next
-            })
+            setSearchParams(
+              (prev) => {
+                const next = new URLSearchParams(prev)
+                next.delete('diary')
+                next.delete('diaryTab')
+                next.delete('date')
+                return next
+              },
+              { replace: true }
+            )
           }
         />
         <Dialog
