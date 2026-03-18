@@ -1,5 +1,5 @@
 import { Clock, FileText, Image, Paperclip, X } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 import type { NoteItem } from '../../../data/models/types'
 
@@ -9,18 +9,41 @@ type Props = {
   open: boolean
   note: NoteItem | null
   onClose: () => void
+  onNavigateToHeading: (headingId: string, headingText: string) => void
   onNavigateToNote: (id: string) => void
 }
 
-export default function InfoPopover({ open, note, onClose, onNavigateToNote }: Props) {
-  const [tab, setTab] = useState<InfoTab>('stats')
-  if (!open || !note) return null
+const countWords = (content: string) => {
+  const tokens = content.match(/[\p{Script=Han}]|[A-Za-z0-9]+/gu)
+  return tokens?.length ?? 0
+}
 
-  const readTime = Math.max(1, Math.ceil(note.wordCount / 200))
-  const charsNoSpaces = Math.floor(note.charCount * 0.82)
+export default function InfoPopover({ open, note, onClose, onNavigateToHeading, onNavigateToNote }: Props) {
+  const [tab, setTab] = useState<InfoTab>('stats')
+  const [rendered, setRendered] = useState(open)
+  const [visible, setVisible] = useState(open)
+
+  useEffect(() => {
+    if (open) {
+      setRendered(true)
+      setVisible(true)
+      return
+    }
+    setVisible(false)
+    const timer = window.setTimeout(() => setRendered(false), 180)
+    return () => window.clearTimeout(timer)
+  }, [open])
+
+  if (!rendered || !note) return null
+
+  const words = countWords(note.contentMd)
+  const paragraphs = note.contentMd.split(/\n\s*\n/).map((part) => part.trim()).filter(Boolean)
+  const imageCount = (note.contentMd.match(/!\[[^\]]*\]\([^)]+\)/g) ?? []).length
+  const fileCount = (note.contentMd.match(/\battachment:\b/gi) ?? []).length
+  const charsNoSpaces = note.contentMd.replace(/\s+/g, '').length
 
   return (
-    <div className="absolute right-4 top-12 z-40 w-72 overflow-hidden rounded-xl border border-border bg-popover shadow-xl">
+    <div data-note-floating-panel="info" data-state={visible ? 'open' : 'closed'} className="note-page__panel">
       <div className="flex items-center justify-between px-4 pb-2 pt-3">
         <h3 className="text-[13px] font-semibold">Info</h3>
         <button type="button" onClick={onClose} className="rounded p-1 transition-colors hover:bg-accent">
@@ -49,14 +72,14 @@ export default function InfoPopover({ open, note, onClose, onNavigateToNote }: P
       <div className="max-h-[300px] overflow-y-auto px-4 py-3">
         {tab === 'stats' ? (
           <div className="space-y-2">
-            <StatRow label="Words" value={note.wordCount.toLocaleString()} />
-            <StatRow label="Characters" value={note.charCount.toLocaleString()} />
+            <StatRow label="Words" value={words.toLocaleString()} />
+            <StatRow label="Characters" value={note.contentMd.length.toLocaleString()} />
             <StatRow label="Chars (no spaces)" value={charsNoSpaces.toLocaleString()} />
-            <StatRow label="Paragraphs" value={note.paragraphCount.toString()} />
-            <StatRow label="Read time" value={`${readTime} min`} />
+            <StatRow label="Paragraphs" value={paragraphs.length.toString()} />
+            <StatRow label="Read time" value={`${Math.max(1, Math.ceil(words / 200))} min`} />
             <div className="my-2 border-t border-border" />
-            <StatRow label="Images" value={note.imageCount.toString()} icon={Image} />
-            <StatRow label="Files" value={note.fileCount.toString()} icon={Paperclip} />
+            <StatRow label="Images" value={imageCount.toString()} icon={Image} />
+            <StatRow label="Files" value={fileCount.toString()} icon={Paperclip} />
             <div className="my-2 border-t border-border" />
             <StatRow label="Modified" value={new Date(note.updatedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })} icon={Clock} />
             <StatRow label="Created" value={new Date(note.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} />
@@ -72,6 +95,7 @@ export default function InfoPopover({ open, note, onClose, onNavigateToNote }: P
                 <button
                   key={heading.id}
                   type="button"
+                  onClick={() => onNavigateToHeading(heading.id, heading.text)}
                   className="w-full truncate rounded-md px-2 py-1.5 text-left text-[12px] transition-colors hover:bg-accent"
                   style={{ paddingLeft: `${8 + (heading.level - 1) * 12}px`, fontWeight: heading.level === 1 ? 500 : 400 }}
                 >

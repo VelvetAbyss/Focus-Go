@@ -1,4 +1,3 @@
-import type { CSSProperties } from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { NoteAppearanceSettings, NoteItem, NoteTag } from '../../../data/models/types'
 import { noteAppearanceRepo } from '../../../data/repositories/noteAppearanceRepo'
@@ -10,7 +9,6 @@ import InfoPopover from '../components/InfoPopover'
 import NoteBrowser, { type NoteSortOption } from '../components/NoteBrowser'
 import NoteEditor from '../components/NoteEditor'
 import NoteSidebar, { type NoteSystemCollection } from '../components/NoteSidebar'
-import TrashModal from '../components/TrashModal'
 import '../notes.css'
 
 const DEFAULT_APPEARANCE: NoteAppearanceSettings = {
@@ -18,10 +16,10 @@ const DEFAULT_APPEARANCE: NoteAppearanceSettings = {
   createdAt: 0,
   updatedAt: 0,
   theme: 'paper',
-  font: 'sans',
+  font: 'uiSans',
   fontSize: 16,
   lineHeight: 1.7,
-  contentWidth: 56,
+  contentWidth: 0,
   focusMode: false,
 }
 
@@ -40,7 +38,7 @@ const DEFAULT_TAGS: Array<Pick<NoteTag, 'name' | 'icon' | 'pinned' | 'sortOrder'
   { name: 'Ideas', icon: 'lightbulb', pinned: false, sortOrder: 12 },
 ]
 
-type SaveState = 'idle' | 'saving' | 'saved'
+type NotePanel = 'info' | 'appearance' | 'export' | null
 
 const buildPreview = (content: string) => {
   const compact = content.replace(/\s+/g, ' ').trim()
@@ -48,10 +46,42 @@ const buildPreview = (content: string) => {
   return compact.length > 140 ? `${compact.slice(0, 140)}…` : compact
 }
 
-const isSameDay = (left: number, right: number) => {
-  const a = new Date(left)
-  const b = new Date(right)
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+const slugifyHeading = (value: string) =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '-')
+
+const countMatches = (content: string, pattern: RegExp) => (content.match(pattern) ?? []).length
+
+const buildNoteStats = (contentMd: string) => {
+  const content = typeof contentMd === 'string' ? contentMd : ''
+  const words = content.trim().split(/\s+/).filter(Boolean)
+  const paragraphs = content.split(/\n\s*\n/).map((part) => part.trim()).filter(Boolean)
+  const headings = content
+    .split('\n')
+    .map((line) => line.match(/^(#{1,3})\s+(.+)$/))
+    .filter((match): match is RegExpMatchArray => Boolean(match))
+    .map((match) => ({
+      level: Math.min(3, match[1].length) as 1 | 2 | 3,
+      text: match[2].trim(),
+      id: slugifyHeading(match[2]),
+    }))
+
+  return {
+    wordCount: words.length,
+    charCount: content.length,
+    paragraphCount: paragraphs.length,
+    imageCount: countMatches(content, /!\[[^\]]*\]\([^)]+\)/g),
+    fileCount: countMatches(content, /\battachment:\b/gi),
+    headings,
+  }
+}
+
+const dateKey = (value: number) => {
+  const date = new Date(value)
+  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
 }
 
 const sortNotes = (notes: NoteItem[], sortBy: NoteSortOption) => {
@@ -71,6 +101,16 @@ const collectionLabelMap: Record<NoteSystemCollection, string> = {
   trash: 'Trash',
 }
 
+const recomputeTagCounts = (tags: NoteTag[], activeNotes: NoteItem[]) => {
+  const counts = new Map<string, number>()
+  for (const note of activeNotes) {
+    for (const tagName of note.tags) {
+      counts.set(tagName, (counts.get(tagName) ?? 0) + 1)
+    }
+  }
+  return tags.map((tag) => ({ ...tag, noteCount: counts.get(tag.name) ?? 0 }))
+}
+
 export default function NotePage() {
   const [notes, setNotes] = useState<NoteItem[]>([])
   const [trash, setTrash] = useState<NoteItem[]>([])
@@ -81,11 +121,9 @@ export default function NotePage() {
   const [activeTagId, setActiveTagId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<NoteSortOption>('edited')
-  const [saveState, setSaveState] = useState<SaveState>('idle')
-  const [trashOpen, setTrashOpen] = useState(false)
-  const [appearanceOpen, setAppearanceOpen] = useState(false)
-  const [exportOpen, setExportOpen] = useState(false)
-  const [infoOpen, setInfoOpen] = useState(false)
+  const [openPanel, setOpenPanel] = useState<NotePanel>(null)
+  const [todayKey, setTodayKey] = useState(() => dateKey(Date.now()))
+  const [isAppDark, setIsAppDark] = useState(() => document.documentElement.classList.contains('dark'))
   const pendingSaveRef = useRef<{ id: string; patch: Partial<NoteItem> } | null>(null)
   const saveTimerRef = useRef<number | null>(null)
   const sidebarScrollRef = useRef<HTMLElement | null>(null)
@@ -99,6 +137,8 @@ export default function NotePage() {
       noteTagsRepo.list(),
       noteAppearanceRepo.get(),
     ])
+
+    let resolvedTags: NoteTag[] = storedTags
 
     if (storedTags.length === 0) {
       const createdTags: NoteTag[] = []
@@ -114,7 +154,7 @@ export default function NotePage() {
         createdTags.push(created)
         byName.set(created.name, created)
       }
-      setTags(createdTags)
+      resolvedTags = createdTags
     } else {
       const shouldRelinkDefaults = storedTags.every((tag) => DEFAULT_TAGS.some((seed) => seed.name === tag.name)) && storedTags.every((tag) => !tag.parentId)
       if (shouldRelinkDefaults) {
@@ -129,9 +169,9 @@ export default function NotePage() {
             if (updated) byName.set(updated.name, updated)
           }
         }
-        setTags(Array.from(byName.values()).sort((a, b) => a.sortOrder - b.sortOrder))
+        resolvedTags = Array.from(byName.values()).sort((a, b) => a.sortOrder - b.sortOrder)
       } else {
-        setTags(storedTags)
+        resolvedTags = storedTags
       }
     }
 
@@ -142,10 +182,14 @@ export default function NotePage() {
       setAppearance({ ...DEFAULT_APPEARANCE, ...storedAppearance })
     }
 
-    setNotes(activeNotes)
-    setTrash(trashedNotes)
+    const visibleNotes = activeNotes.filter((note) => !note.deletedAt)
+    const trashedOnly = trashedNotes.filter((note) => Boolean(note.deletedAt))
 
-    if (activeNotes.length === 0 && trashedNotes.length === 0) {
+    setTags(recomputeTagCounts(resolvedTags, visibleNotes))
+    setNotes(visibleNotes)
+    setTrash(trashedOnly)
+
+    if (visibleNotes.length === 0 && trashedOnly.length === 0) {
       const created = await notesRepo.create()
       setNotes([created])
       setSelectedNoteId(created.id)
@@ -153,8 +197,8 @@ export default function NotePage() {
     }
 
     setSelectedNoteId((current) => {
-      const source = activeCollection === 'trash' ? trashedNotes : activeNotes
-      if (current && [...activeNotes, ...trashedNotes].some((note) => note.id === current)) return current
+      const source = activeCollection === 'trash' ? trashedOnly : visibleNotes
+      if (current && [...visibleNotes, ...trashedOnly].some((note) => note.id === current)) return current
       return source[0]?.id ?? null
     })
   }
@@ -167,32 +211,50 @@ export default function NotePage() {
       window.clearTimeout(saveTimerRef.current)
       saveTimerRef.current = null
     }
-    setSaveState('saving')
     const updated = await notesRepo.update(pending.id, pending.patch)
     if (updated) {
       setNotes((current) => current.map((note) => (note.id === updated.id ? updated : note)))
       setTrash((current) => current.map((note) => (note.id === updated.id ? updated : note)))
     }
-    setSaveState('saved')
   }
 
   useEffect(() => {
-    void refresh()
+    const bootTimer = window.setTimeout(() => {
+      void refresh()
+    }, 0)
     return () => {
+      window.clearTimeout(bootTimer)
       void flushPendingSave()
     }
   }, [])
 
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setTodayKey(dateKey(Date.now()))
+    }, 60000)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    const root = document.documentElement
+    const sync = () => setIsAppDark(root.classList.contains('dark') || root.dataset.theme === 'dark')
+    sync()
+    const observer = new MutationObserver(sync)
+    observer.observe(root, { attributes: true, attributeFilter: ['class', 'data-theme'] })
+    return () => observer.disconnect()
+  }, [])
+
   const sourceNotes = activeCollection === 'trash' ? trash : notes
+  const tagNameById = useMemo(() => new Map(tags.map((tag) => [tag.id, tag.name])), [tags])
   const filteredNotes = useMemo(() => {
     const next = sourceNotes.filter((note) => {
-      if (activeCollection === 'today' && !isSameDay(note.updatedAt, Date.now())) return false
+      if (activeCollection === 'today' && dateKey(note.updatedAt) !== todayKey) return false
       if (activeCollection === 'untagged' && note.tags.length > 0) return false
-      if (activeTagId && !note.tags.includes(tags.find((tag) => tag.id === activeTagId)?.name ?? '')) return false
+      if (activeTagId && !note.tags.includes(tagNameById.get(activeTagId) ?? '')) return false
       return true
     })
     return sortNotes(next, sortBy)
-  }, [activeCollection, activeTagId, notes, sortBy, sourceNotes, tags])
+  }, [activeCollection, activeTagId, tagNameById, sortBy, sourceNotes, todayKey])
 
   const activeNote = useMemo(() => filteredNotes.find((note) => note.id === selectedNoteId) ?? filteredNotes[0] ?? null, [filteredNotes, selectedNoteId])
   const activeNoteValue = activeNote
@@ -207,19 +269,18 @@ export default function NotePage() {
   const noteCounts = useMemo(
     () => ({
       all: notes.length,
-      today: notes.filter((note) => isSameDay(note.updatedAt, Date.now())).length,
+      today: notes.filter((note) => dateKey(note.updatedAt) === todayKey).length,
       untagged: notes.filter((note) => note.tags.length === 0).length,
       trash: trash.length,
     }),
-    [notes, trash],
+    [notes, todayKey, trash],
   )
 
-  const saveLabel = saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved' : 'Auto save'
+  const effectiveTheme: 'paper' | 'graphite' = appearance.theme === 'graphite' || isAppDark ? 'graphite' : 'paper'
 
   const scheduleSave = (id: string, patch: Partial<NoteItem>) => {
     pendingSaveRef.current = { id, patch }
     if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current)
-    setSaveState('saving')
     saveTimerRef.current = window.setTimeout(() => {
       void flushPendingSave()
     }, 280)
@@ -263,17 +324,28 @@ export default function NotePage() {
 
   const handleDeletePermanently = async (id: string) => {
     await notesRepo.hardDelete(id)
-    setTrash((current) => current.filter((note) => note.id !== id))
+    setTrash((current) => {
+      const next = current.filter((note) => note.id !== id)
+      if (selectedNoteId === id) setSelectedNoteId(next[0]?.id ?? null)
+      return next
+    })
   }
 
   const handleUpdateNote = (next: { title: string; contentMd: string; contentJson?: Record<string, unknown> | null; tags: string[] }) => {
     if (!activeNote) return
+    const stats = buildNoteStats(next.contentMd)
     const patch: Partial<NoteItem> = {
       title: next.title,
       contentMd: next.contentMd,
       contentJson: next.contentJson ?? null,
       tags: next.tags,
       excerpt: buildPreview(next.contentMd),
+      wordCount: stats.wordCount,
+      charCount: stats.charCount,
+      paragraphCount: stats.paragraphCount,
+      imageCount: stats.imageCount,
+      fileCount: stats.fileCount,
+      headings: stats.headings,
     }
     setNotes((current) =>
       current.map((note) =>
@@ -289,6 +361,18 @@ export default function NotePage() {
     scheduleSave(activeNote.id, patch)
   }
 
+  const handleNavigateToHeading = (headingId: string, headingText: string) => {
+    const surface = editorSurfaceRef.current
+    if (!surface) return
+    const headings = Array.from(surface.querySelectorAll('h1, h2, h3')) as HTMLElement[]
+    const target =
+      headings.find((heading) => heading.id === headingId) ??
+      headings.find((heading) => slugifyHeading(heading.textContent ?? '') === headingId) ??
+      headings.find((heading) => (heading.textContent ?? '').trim() === headingText.trim())
+    if (!target) return
+    target.scrollIntoView({ block: 'start', behavior: 'smooth' })
+  }
+
   const handleTogglePinTag = async (tagId: string) => {
     const target = tags.find((tag) => tag.id === tagId)
     if (!target) return
@@ -297,11 +381,96 @@ export default function NotePage() {
     setTags((current) => current.map((tag) => (tag.id === tagId ? updated : tag)))
   }
 
+  const handleCreateTag = async (name: string, parentId?: string | null) => {
+    const cleanName = name.trim()
+    if (!cleanName) return
+    if (tags.some((tag) => tag.name.toLowerCase() === cleanName.toLowerCase())) return
+    const nextSortOrder = tags.reduce((max, tag) => Math.max(max, tag.sortOrder), 0) + 1
+    const created = await noteTagsRepo.create({
+      name: cleanName,
+      icon: undefined,
+      pinned: false,
+      parentId: parentId ?? null,
+      sortOrder: nextSortOrder,
+    })
+    setTags((current) => recomputeTagCounts([...current, created], notes))
+  }
+
+  const handleRenameTag = async (tagId: string, nextName: string) => {
+    const cleanName = nextName.trim()
+    if (!cleanName) return
+    const target = tags.find((tag) => tag.id === tagId)
+    if (!target) return
+    if (tags.some((tag) => tag.id !== tagId && tag.name.toLowerCase() === cleanName.toLowerCase())) return
+    const updated = await noteTagsRepo.update(tagId, { name: cleanName })
+    if (!updated) return
+    const changedNotes = notes.filter((note) => note.tags.includes(target.name))
+    if (changedNotes.length > 0) {
+      const updates = changedNotes.map((note) => {
+        const nextTags = note.tags.map((name) => (name === target.name ? cleanName : name))
+        return { id: note.id, nextTags }
+      })
+      await Promise.all(updates.map((entry) => notesRepo.update(entry.id, { tags: entry.nextTags })))
+      setNotes((current) =>
+        current.map((note) => {
+          const match = updates.find((entry) => entry.id === note.id)
+          return match ? { ...note, tags: match.nextTags } : note
+        }),
+      )
+    }
+    setTags((current) => recomputeTagCounts(current.map((tag) => (tag.id === tagId ? updated : tag)), notes))
+  }
+
+  const handleDeleteTag = async (tagId: string) => {
+    const target = tags.find((tag) => tag.id === tagId)
+    if (!target) return
+    await flushPendingSave()
+    const affectedChildren = tags.filter((tag) => tag.parentId === tagId)
+    await Promise.all(affectedChildren.map((tag) => noteTagsRepo.update(tag.id, { parentId: null })))
+    await noteTagsRepo.remove(tagId)
+    const updates = notes
+      .filter((note) => note.tags.includes(target.name))
+      .map((note) => ({ id: note.id, nextTags: note.tags.filter((tagName) => tagName !== target.name) }))
+    if (updates.length > 0) {
+      await Promise.all(updates.map((entry) => notesRepo.update(entry.id, { tags: entry.nextTags })))
+    }
+    const nextNotes = notes.map((note) => {
+      const hit = updates.find((entry) => entry.id === note.id)
+      return hit ? { ...note, tags: hit.nextTags } : note
+    })
+    setNotes(nextNotes)
+    setTags((current) =>
+      recomputeTagCounts(
+        current
+          .filter((tag) => tag.id !== tagId)
+          .map((tag) => (tag.parentId === tagId ? { ...tag, parentId: null } : tag)),
+        nextNotes,
+      ),
+    )
+    if (activeTagId === tagId) setActiveTagId(null)
+  }
+
+  const handleMoveTag = async (tagId: string, parentId: string | null) => {
+    if (parentId === tagId) return
+    const byId = new Map(tags.map((tag) => [tag.id, tag]))
+    const target = byId.get(tagId)
+    if (!target) return
+    if (parentId) {
+      let cursor: string | null | undefined = parentId
+      while (cursor) {
+        if (cursor === tagId) return
+        cursor = byId.get(cursor)?.parentId ?? null
+      }
+    }
+    const updated = await noteTagsRepo.update(tagId, { parentId })
+    if (!updated) return
+    setTags((current) => current.map((tag) => (tag.id === tagId ? updated : tag)))
+  }
+
   const handleSelectCollection = (collection: NoteSystemCollection) => {
     setActiveCollection(collection)
     setActiveTagId(null)
     setSelectedNoteId(null)
-    if (collection === 'trash') setTrashOpen(true)
   }
 
   const handleSelectTag = (tagId: string) => {
@@ -333,21 +502,32 @@ export default function NotePage() {
     if (editorSurfaceRef.current) editorSurfaceRef.current.scrollTop = 0
   }, [selectedNoteId])
 
+  useEffect(() => {
+    if (activeCollection === 'trash') setOpenPanel(null)
+  }, [activeCollection])
+
+  useEffect(() => {
+    if (!openPanel) return
+    const onPointerDown = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null
+      if (!target) return
+      if (target.closest('[data-note-floating-panel]')) return
+      if (target.closest('[data-note-panel-trigger]')) return
+      setOpenPanel(null)
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpenPanel(null)
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [openPanel])
+
   return (
-    <section
-      className="note-page-shell flex h-full max-h-full min-h-0"
-      data-note-theme={appearance.theme}
-      style={
-        ({
-          ...(appearance.theme === 'graphite'
-            ? {
-              backgroundColor: 'hsl(var(--background))',
-              color: 'hsl(var(--foreground))',
-            }
-            : {}),
-        } as CSSProperties)
-      }
-    >
+    <section className="note-page-shell flex h-full max-h-full min-h-0" data-note-theme={effectiveTheme}>
       <div className="note-page-shell__content note-page">
         <NoteSidebar
           className="note-page-column note-page-column--sidebar"
@@ -359,6 +539,10 @@ export default function NotePage() {
           onSelectCollection={handleSelectCollection}
           onSelectTag={handleSelectTag}
           onTogglePinTag={handleTogglePinTag}
+          onCreateTag={handleCreateTag}
+          onRenameTag={handleRenameTag}
+          onDeleteTag={handleDeleteTag}
+          onMoveTag={handleMoveTag}
         />
         <NoteBrowser
           className="note-page-column note-page-column--browser"
@@ -366,6 +550,7 @@ export default function NotePage() {
           notes={filteredNotes}
           selectedNoteId={activeNote?.id ?? null}
           collectionLabel={collectionLabelMap[activeCollection]}
+          mode={activeCollection === 'trash' ? 'trash' : 'notes'}
           onSelectNote={async (id) => {
             await flushPendingSave()
             setSelectedNoteId(id)
@@ -373,28 +558,86 @@ export default function NotePage() {
           onNewNote={handleCreate}
           onTogglePin={handleTogglePinNote}
           onTrashNote={handleTrashNote}
+          onDeleteNote={handleDeletePermanently}
           sortBy={sortBy}
           onSortChange={setSortBy}
           search={search}
           onSearchChange={setSearch}
         />
         <div className="note-page-column note-page-column--editor relative flex min-w-0 flex-1">
-          <NoteEditor
-            surfaceRef={editorSurfaceRef}
-            value={activeNoteValue}
-            appearance={appearance}
-            saveStateLabel={saveLabel}
-            onOpenInfo={() => setInfoOpen(true)}
-            onOpenAppearance={() => setAppearanceOpen(true)}
-            onExport={() => setExportOpen(true)}
-            onChange={handleUpdateNote}
-          />
-          <InfoPopover open={infoOpen} note={activeNote} onClose={() => setInfoOpen(false)} onNavigateToNote={(id) => setSelectedNoteId(id)} />
+          {activeCollection === 'trash' ? (
+            <TrashPreviewPanel note={activeNote} onRestore={handleRestore} onDelete={handleDeletePermanently} />
+          ) : (
+            <>
+              <NoteEditor
+                surfaceRef={editorSurfaceRef}
+                value={activeNoteValue}
+                appearance={appearance}
+                onOpenInfo={() => setOpenPanel((current) => (current === 'info' ? null : 'info'))}
+                onOpenAppearance={() => setOpenPanel((current) => (current === 'appearance' ? null : 'appearance'))}
+                onExport={() => setOpenPanel((current) => (current === 'export' ? null : 'export'))}
+                onChange={handleUpdateNote}
+              />
+              <InfoPopover
+                open={openPanel === 'info'}
+                note={activeNote}
+                onClose={() => setOpenPanel(null)}
+                onNavigateToHeading={handleNavigateToHeading}
+                onNavigateToNote={(id) => setSelectedNoteId(id)}
+              />
+              <AppearanceModal open={openPanel === 'appearance'} settings={appearance} onClose={() => setOpenPanel(null)} onUpdate={handleUpdateAppearance} />
+              <ExportModal
+                open={openPanel === 'export'}
+                noteTitle={activeNote?.title.trim() || 'Untitled'}
+                onClose={() => setOpenPanel(null)}
+                onExportMarkdown={handleExportMarkdown}
+              />
+            </>
+          )}
         </div>
       </div>
-      <TrashModal open={trashOpen} trashedNotes={trash} onClose={() => setTrashOpen(false)} onRestore={handleRestore} onDeletePermanently={handleDeletePermanently} />
-      <AppearanceModal open={appearanceOpen} settings={appearance} onClose={() => setAppearanceOpen(false)} onUpdate={handleUpdateAppearance} />
-      <ExportModal open={exportOpen} noteTitle={activeNote?.title.trim() || 'Untitled'} onClose={() => setExportOpen(false)} onExportMarkdown={handleExportMarkdown} />
     </section>
+  )
+}
+
+function TrashPreviewPanel({
+  note,
+  onRestore,
+  onDelete,
+}: {
+  note: NoteItem | null
+  onRestore: (id: string) => void
+  onDelete: (id: string) => void
+}) {
+  if (!note) {
+    return <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Select a note from Trash</div>
+  }
+
+  return (
+    <div className="flex h-full flex-col overflow-hidden bg-[#f5f3f0] dark:bg-[#3a3733]">
+      <div className="flex items-center justify-end gap-2 border-b border-[#e5e2dd] px-6 py-4 dark:border-slate-700/40">
+        <button
+          type="button"
+          className="rounded-md border border-[#e5e2dd] px-3 py-1.5 text-xs text-[#3a3733] hover:bg-[#f0eeeb] dark:border-slate-700/40 dark:text-slate-100 dark:hover:bg-slate-700/30"
+          onClick={() => onRestore(note.id)}
+        >
+          Restore
+        </button>
+        <button
+          type="button"
+          className="rounded-md border border-destructive/30 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10"
+          onClick={() => {
+            const confirmed = window.confirm(`Delete "${note.title.trim() || 'Untitled'}" permanently?`)
+            if (confirmed) onDelete(note.id)
+          }}
+        >
+          Delete permanently
+        </button>
+      </div>
+      <div className="min-h-0 flex-1 overflow-auto px-8 py-8">
+        <h1 className="mb-4 text-5xl font-semibold leading-[1.05] tracking-tight text-[#3a3733] dark:text-slate-100">{note.title.trim() || 'Untitled'}</h1>
+        <pre className="whitespace-pre-wrap text-[16px] leading-[1.8] text-[#3a3733] dark:text-slate-200">{note.contentMd || 'No content'}</pre>
+      </div>
+    </div>
   )
 }

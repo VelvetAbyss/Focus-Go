@@ -4,6 +4,7 @@ import type { IpcChannel, IpcRequestByChannel, IpcResponseByChannel } from '@foc
 export type ElectronDatabaseApi = {
   invokeDb: (channel: IpcChannel, payload?: unknown) => Promise<unknown>
 }
+const NOTE_TRASH_RETENTION_MS = 7 * 24 * 60 * 60 * 1000
 
 const unwrapData = <T>(response: unknown): T => {
   const typed = response as { ok: boolean; data?: unknown; error?: { message?: string } }
@@ -55,10 +56,24 @@ export const createIPCDatabaseService = (api: ElectronDatabaseApi): IDatabaseSer
   },
   notes: {
     async list() {
+      const trashResponse = await invokeDb(api, 'db:notes:listTrash', {})
+      const trash = unwrapData<Array<{ id: string; deletedAt?: number | null }>>(trashResponse)
+      const threshold = Date.now() - NOTE_TRASH_RETENTION_MS
+      const expired = trash.filter((item) => typeof item.deletedAt === 'number' && item.deletedAt > 0 && item.deletedAt < threshold)
+      if (expired.length > 0) {
+        await Promise.all(expired.map((item) => invokeDb(api, 'db:notes:hardDelete', { id: item.id })))
+      }
       const response = await invokeDb(api, 'db:notes:list', {})
       return unwrapData(response)
     },
     async listTrash() {
+      const trashResponse = await invokeDb(api, 'db:notes:listTrash', {})
+      const trash = unwrapData<Array<{ id: string; deletedAt?: number | null }>>(trashResponse)
+      const threshold = Date.now() - NOTE_TRASH_RETENTION_MS
+      const expired = trash.filter((item) => typeof item.deletedAt === 'number' && item.deletedAt > 0 && item.deletedAt < threshold)
+      if (expired.length > 0) {
+        await Promise.all(expired.map((item) => invokeDb(api, 'db:notes:hardDelete', { id: item.id })))
+      }
       const response = await invokeDb(api, 'db:notes:listTrash', {})
       return unwrapData(response)
     },

@@ -59,7 +59,7 @@ export type NoteTag = BaseEntity & {
 }
 
 export type NoteThemeMode = 'paper' | 'graphite'
-export type NoteFontFamily = 'sans' | 'serif' | 'mono'
+export type NoteFontFamily = 'uiSans' | 'humanistSans' | 'cnSans' | 'serif' | 'cnSerif' | 'mono'
 
 export type NoteAppearanceSettings = BaseEntity & {
   id: 'note_appearance'

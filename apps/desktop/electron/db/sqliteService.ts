@@ -156,10 +156,17 @@ const toNoteAppearance = (row: Record<string, unknown>): NoteAppearanceSettings 
   userId: row.userId ? String(row.userId) : undefined,
   workspaceId: row.workspaceId ? String(row.workspaceId) : undefined,
   theme: String(row.theme) === 'graphite' ? 'graphite' : 'paper',
-  font: String(row.font) === 'serif' || String(row.font) === 'mono' ? (String(row.font) as NoteAppearanceSettings['font']) : 'sans',
+  font:
+    String(row.font) === 'humanistSans' ||
+    String(row.font) === 'cnSans' ||
+    String(row.font) === 'serif' ||
+    String(row.font) === 'cnSerif' ||
+    String(row.font) === 'mono'
+      ? (String(row.font) as NoteAppearanceSettings['font'])
+      : 'uiSans',
   fontSize: Number(row.fontSize ?? 16),
   lineHeight: Number(row.lineHeight ?? 1.7),
-  contentWidth: Number(row.contentWidth ?? 56),
+  contentWidth: Number(row.contentWidth ?? 0),
   focusMode: Number(row.focusMode ?? 0) === 1,
 })
 
@@ -857,10 +864,17 @@ export const createSqliteBundle = (dbPath: string): SqliteBundle => {
             createdAt: now(),
             updatedAt: now(),
             theme: data.theme === 'graphite' ? 'graphite' : 'paper',
-            font: data.font === 'serif' || data.font === 'mono' ? data.font : 'sans',
+            font:
+              data.font === 'humanistSans' ||
+              data.font === 'cnSans' ||
+              data.font === 'serif' ||
+              data.font === 'cnSerif' ||
+              data.font === 'mono'
+                ? data.font
+                : 'uiSans',
             fontSize: data.fontSize ?? 16,
             lineHeight: data.lineHeight ?? 1.7,
-            contentWidth: data.contentWidth ?? 56,
+            contentWidth: data.contentWidth ?? 0,
             focusMode: data.focusMode === true,
             userId: data.userId,
             workspaceId: data.workspaceId,

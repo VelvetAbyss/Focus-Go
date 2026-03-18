@@ -52,7 +52,7 @@ const taskNoteParagraphBlockSchema = z
 const taskNoteBlockSchema = taskNoteParagraphBlockSchema
 const noteCollectionSchema = z.enum(['all-notes', 'work', 'personal', 'ideas'])
 const noteThemeModeSchema = z.enum(['paper', 'graphite'])
-const noteFontFamilySchema = z.enum(['sans', 'serif', 'mono'])
+const noteFontFamilySchema = z.enum(['uiSans', 'humanistSans', 'cnSans', 'serif', 'cnSerif', 'mono'])
 
 const noteHeadingSchema = z
   .object({

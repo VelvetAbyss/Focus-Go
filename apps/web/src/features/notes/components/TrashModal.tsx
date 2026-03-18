@@ -55,7 +55,14 @@ export default function TrashModal({ open, trashedNotes, onClose, onRestore, onD
                       <RotateCcw size={12} />
                       Restore
                     </button>
-                    <button type="button" onClick={() => onDeletePermanently(note.id)} className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-destructive transition-colors hover:bg-destructive/10">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const confirmed = window.confirm(`Delete "${note.title.trim() || 'Untitled'}" permanently?`)
+                        if (confirmed) onDeletePermanently(note.id)
+                      }}
+                      className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-destructive transition-colors hover:bg-destructive/10"
+                    >
                       <Trash2 size={12} />
                       Delete
                     </button>

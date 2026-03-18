@@ -39,6 +39,7 @@ const statusLabelMap: Record<TaskStatus, string> = {
 
 const DEFAULT_NOTE_COLLECTION = 'all-notes' as const
 const NOTE_APPEARANCE_ID = 'note_appearance' as const
+const NOTE_TRASH_RETENTION_MS = 7 * 24 * 60 * 60 * 1000
 const normalizeTags = (value: unknown) =>
   Array.isArray(value)
     ? value.filter((item): item is string => typeof item === 'string').map((item) => item.trim()).filter(Boolean)
@@ -88,14 +89,33 @@ const buildNoteBacklinks = (note: Pick<NoteItem, 'id' | 'title'>, allNotes: Note
     .filter((candidate) => candidate.id !== note.id && candidate.contentMd.toLowerCase().includes(note.title.trim().toLowerCase()))
     .map((candidate) => ({ noteId: candidate.id, noteTitle: candidate.title.trim() || 'Untitled' }))
 
+const purgeExpiredTrashedNotes = async () => {
+  const threshold = Date.now() - NOTE_TRASH_RETENTION_MS
+  const rows = await db.notes.toArray()
+  const expiredIds = rows
+    .filter((row) => typeof row.deletedAt === 'number' && row.deletedAt > 0 && row.deletedAt < threshold)
+    .map((row) => row.id)
+  if (expiredIds.length > 0) {
+    await db.notes.bulkDelete(expiredIds)
+  }
+}
+
+const normalizeNoteFontFamily = (font?: string | null): NoteAppearanceSettings['font'] => {
+  if (font === 'humanistSans' || font === 'cnSans' || font === 'serif' || font === 'cnSerif' || font === 'mono') {
+    return font
+  }
+  if (font === 'sans') return 'uiSans'
+  return 'uiSans'
+}
+
 const normalizeNoteAppearance = (value?: Partial<NoteAppearanceSettings> | null): NoteAppearanceSettings =>
   withBase({
     id: NOTE_APPEARANCE_ID,
     theme: value?.theme === 'graphite' ? 'graphite' : 'paper',
-    font: value?.font === 'serif' || value?.font === 'mono' ? value.font : 'sans',
+    font: normalizeNoteFontFamily(value?.font),
     fontSize: typeof value?.fontSize === 'number' ? value.fontSize : 16,
     lineHeight: typeof value?.lineHeight === 'number' ? value.lineHeight : 1.7,
-    contentWidth: typeof value?.contentWidth === 'number' ? value.contentWidth : 56,
+    contentWidth: typeof value?.contentWidth === 'number' ? value.contentWidth : 0,
     focusMode: value?.focusMode === true,
   } as NoteAppearanceSettings)
 
@@ -311,6 +331,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
   },
   notes: {
     async list() {
+      await purgeExpiredTrashedNotes()
       const notes = await db.notes.toArray()
       const normalizedBase = notes.map((note) => normalizeNote(note))
       const normalized = normalizedBase
@@ -324,6 +345,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       return normalized.filter((note) => !note.deletedAt)
     },
     async listTrash() {
+      await purgeExpiredTrashedNotes()
       const notes = await db.notes.toArray()
       const normalizedBase = notes.map((note) => normalizeNote(note))
       const normalized = normalizedBase
@@ -402,8 +424,18 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
   },
   noteTags: {
     async list() {
-      const rows = await db.noteTags.orderBy('sortOrder').toArray()
-      const normalized = rows.map((row) => normalizeNoteTag(row))
+      const [rows, notes] = await Promise.all([db.noteTags.orderBy('sortOrder').toArray(), db.notes.toArray()])
+      const activeNotes = notes.map((row) => normalizeNote(row)).filter((note) => !note.deletedAt)
+      const noteCountByName = new Map<string, number>()
+      for (const note of activeNotes) {
+        for (const tagName of note.tags) {
+          noteCountByName.set(tagName, (noteCountByName.get(tagName) ?? 0) + 1)
+        }
+      }
+      const normalized = rows.map((row) => {
+        const next = normalizeNoteTag(row)
+        return { ...next, noteCount: noteCountByName.get(next.name) ?? 0 }
+      })
       const changed = rows.some((row, index) => JSON.stringify(row) !== JSON.stringify(normalized[index]))
       if (changed) await db.noteTags.bulkPut(normalized)
       return normalized
