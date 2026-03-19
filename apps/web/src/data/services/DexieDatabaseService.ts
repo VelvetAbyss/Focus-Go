@@ -173,7 +173,6 @@ const normalizeTask = (task: TaskItem): TaskItem => {
     taskNoteBlocks: [],
     taskNoteContentMd: taskNote.contentMd,
     taskNoteContentJson: taskNote.contentJson as TaskItem['taskNoteContentJson'],
-    progressLogs: Array.isArray(task.progressLogs) ? task.progressLogs : [],
     activityLogs: Array.isArray(task.activityLogs) ? task.activityLogs : [],
   }
 }
@@ -218,7 +217,6 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
           !areTaskNoteBlocksEqual(normalizeTaskNoteBlocks((task as { taskNoteBlocks?: unknown }).taskNoteBlocks), next.taskNoteBlocks) ||
           JSON.stringify(task.taskNoteContentJson ?? null) !== JSON.stringify(next.taskNoteContentJson ?? null) ||
           task.taskNoteContentMd !== next.taskNoteContentMd ||
-          task.progressLogs !== next.progressLogs ||
           task.activityLogs !== next.activityLogs
         )
       })
@@ -247,7 +245,6 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
         taskNoteBlocks: [],
         taskNoteContentMd: taskNote.contentMd,
         taskNoteContentJson: taskNote.contentJson as TaskItem['taskNoteContentJson'],
-        progressLogs: [],
         activityLogs: [],
       })
       const now = Date.now()
@@ -285,36 +282,6 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
             id: createId(),
             type: 'status' as const,
             message: `Status changed to ${statusLabelMap[status]}`,
-            createdAt: now,
-          },
-        ],
-      })
-      await db.tasks.put(next)
-      return next
-    },
-    async appendProgress(id, content) {
-      const task = await db.tasks.get(id)
-      if (!task) return undefined
-      const normalized = normalizeTask(task)
-      const text = content.trim()
-      if (!text) return normalized
-      const now = Date.now()
-      const next = touch({
-        ...normalized,
-        progressLogs: [
-          ...normalized.progressLogs,
-          {
-            id: createId(),
-            content: text,
-            createdAt: now,
-          },
-        ],
-        activityLogs: [
-          ...normalized.activityLogs,
-          {
-            id: createId(),
-            type: 'progress' as const,
-            message: `Progress added: ${text.slice(0, 80)}${text.length > 80 ? '…' : ''}`,
             createdAt: now,
           },
         ],

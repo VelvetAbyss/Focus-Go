@@ -88,9 +88,6 @@ const TasksBoard = ({ asCard = true, className, topView = 'board' }: TasksBoardP
   })
   const [tagFilter, setTagFilter] = useState<string[]>([])
   const [boardMode, setBoardMode] = useState<BoardMode>('kanban')
-  const [progressComposerTaskId, setProgressComposerTaskId] = useState<string | null>(null)
-  const [progressComposerValue, setProgressComposerValue] = useState('')
-  const [progressSavingTaskId, setProgressSavingTaskId] = useState<string | null>(null)
   const [statusActionLoadingTaskId, setStatusActionLoadingTaskId] = useState<string | null>(null)
   const [statusActionLoadingKey, setStatusActionLoadingKey] = useState<string | null>(null)
   const [statusActionSuccessTaskId, setStatusActionSuccessTaskId] = useState<string | null>(null)
@@ -113,7 +110,6 @@ const TasksBoard = ({ asCard = true, className, topView = 'board' }: TasksBoardP
     setTasks(items)
     setActiveTask((prev) => (prev ? items.find((item) => item.id === prev.id) ?? null : prev))
     setDeleteTarget((prev) => (prev ? items.find((item) => item.id === prev.id) ?? null : prev))
-    setProgressComposerTaskId((prev) => (prev && items.some((item) => item.id === prev) ? prev : null))
   }, [])
 
   useEffect(() => {
@@ -139,11 +135,6 @@ const TasksBoard = ({ asCard = true, className, topView = 'board' }: TasksBoardP
     if (typeof window === 'undefined') return
     window.localStorage.setItem(STORAGE_SORT_KEY, sortMode)
   }, [sortMode])
-
-  useEffect(() => {
-    setProgressComposerTaskId(null)
-    setProgressComposerValue('')
-  }, [activeStatus, boardMode, topView])
 
   useEffect(() => {
     return () => {
@@ -250,35 +241,6 @@ const TasksBoard = ({ asCard = true, className, topView = 'board' }: TasksBoardP
     return true
   }, [activeStatus])
 
-  const submitQuickProgress = useCallback(async (task: TaskItem) => {
-    const content = progressComposerValue.trim()
-    if (!content || progressSavingTaskId) return
-    setProgressSavingTaskId(task.id)
-    try {
-      const updated = await tasksRepo.appendProgress(task.id, content)
-      if (!updated) return
-      emitTasksChanged('tasks-board:append-progress')
-      setTasks((prev) => prev.map((item) => (item.id === updated.id ? updated : item)))
-      setActiveTask((prev) => (prev?.id === updated.id ? updated : prev))
-      setProgressComposerTaskId(null)
-      setProgressComposerValue('')
-    } catch {
-      toast.push({ variant: 'error', title: 'Save failed', message: 'Progress is kept in the input. Press Enter to retry.' })
-    } finally {
-      setProgressSavingTaskId(null)
-    }
-  }, [progressComposerValue, progressSavingTaskId, toast])
-
-  const handleToggleProgressComposer = (task: TaskItem) => {
-    if (progressComposerTaskId === task.id) {
-      setProgressComposerTaskId(null)
-      setProgressComposerValue('')
-      return
-    }
-    setProgressComposerTaskId(task.id)
-    setProgressComposerValue('')
-  }
-
   const isKanbanMode = asCard || boardMode === 'kanban'
 
   const boardContent = topView === 'board'
@@ -321,20 +283,6 @@ const TasksBoard = ({ asCard = true, className, topView = 'board' }: TasksBoardP
                           ]
                         : [{ key: getNextStatus(task.status).next, label: getNextStatus(task.status).label, onClick: async (nextTask) => handleStatusChange(nextTask.id, getNextStatus(nextTask.status).next) }]
                     }
-                    progressComposer={{
-                      isOpen: progressComposerTaskId === task.id,
-                      value: progressComposerTaskId === task.id ? progressComposerValue : '',
-                      disabled: progressSavingTaskId === task.id,
-                      onToggle: handleToggleProgressComposer,
-                      onChange: setProgressComposerValue,
-                      onSubmit: (nextTask) => {
-                        void submitQuickProgress(nextTask)
-                      },
-                      onCancel: () => {
-                        setProgressComposerTaskId(null)
-                        setProgressComposerValue('')
-                      },
-                    }}
                     loadingActionKey={statusActionLoadingTaskId === task.id ? statusActionLoadingKey : null}
                     successActionKey={statusActionSuccessTaskId === task.id ? statusActionSuccessKey : null}
                     compact={asCard}

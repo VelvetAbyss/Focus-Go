@@ -61,6 +61,26 @@ describe('sqlite bundle (mocked)', () => {
     expect(typeof bundle.service.diary.list).toBe('function')
     expect(typeof bundle.service.spend.listEntries).toBe('function')
     expect(typeof bundle.service.dashboard.get).toBe('function')
+    expect(typeof bundle.service.habits.listHabits).toBe('function')
+
+    bundle.close()
+  })
+
+  it('persists linked habit ids for widget todos', async () => {
+    const baseDir = await fs.mkdtemp(path.join(os.tmpdir(), 'focusgo-sqlite-'))
+    const dbPath = path.join(baseDir, 'focus-go.sqlite3')
+    const bundle = createSqliteBundle(dbPath)
+
+    await bundle.service.widgetTodos.add({
+      scope: 'day',
+      title: '喝水',
+      priority: 'medium',
+      done: false,
+      linkedHabitId: 'habit-water',
+    })
+
+    const payloads = runMock.mock.calls.map(([arg]) => arg).filter(Boolean)
+    expect(payloads).toContainEqual(expect.objectContaining({ linkedHabitId: 'habit-water' }))
 
     bundle.close()
   })

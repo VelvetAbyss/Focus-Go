@@ -40,7 +40,6 @@ const createTask = (patch: Partial<TaskItem> = {}): TaskItem => {
     tags: patch.tags ?? [],
     subtasks: patch.subtasks ?? [],
     taskNoteBlocks: patch.taskNoteBlocks ?? [],
-    progressLogs: patch.progressLogs ?? [],
     activityLogs: patch.activityLogs ?? [],
   }
 }
@@ -67,7 +66,6 @@ vi.mock('../../../data/repositories/tasksRepo', () => ({
         tags: payload.tags ?? [],
         subtasks: payload.subtasks ?? [],
         taskNoteBlocks: payload.taskNoteBlocks ?? [],
-        progressLogs: [],
         activityLogs: [],
       } as TaskItem
       tasksDb = [created, ...tasksDb]

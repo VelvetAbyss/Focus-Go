@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
+import { motion } from 'motion/react'
 import { Plus } from 'lucide-react'
 import type { Habit } from '../../../data/models/types'
 import { useToast } from '../../../shared/ui/toast/toast'
@@ -14,6 +14,7 @@ const HabitTrackerPage = () => {
   const i18n = useHabitsI18n()
   const toast = useToast()
   const {
+    loading,
     activeHabits,
     archivedHabits,
     completedDatesByHabit,
@@ -31,15 +32,10 @@ const HabitTrackerPage = () => {
   return (
     <section className="habits-page-design">
       <div className="habits-page-design__container">
-        <motion.div
-          className="habits-page-design__header"
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-        >
+        <div className="habits-page-design__header">
           <h1 className="habits-page-design__title">{i18n.title}</h1>
           <p className="habits-page-design__subtitle">{i18n.subtitle}</p>
-        </motion.div>
+        </div>
 
         <motion.button
           type="button"
@@ -48,9 +44,6 @@ const HabitTrackerPage = () => {
             setDialogOpen(true)
           }}
           className="habits-page-design__add"
-          initial={{ opacity: 0, y: -6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.22, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.97 }}
         >
@@ -58,16 +51,14 @@ const HabitTrackerPage = () => {
           {i18n.addHabit}
         </motion.button>
 
-        <AnimatePresence mode="wait">
-          {activeHabits.length === 0 ? (
-            <motion.div
-              key="empty"
-              className="habits-page-design__empty"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.24 }}
-            >
+        {loading ? (
+          <div className="habits-page-design__empty">
+            <p>{i18n.subtitle}</p>
+          </div>
+        ) : (
+          <>
+            {activeHabits.length === 0 ? (
+            <div className="habits-page-design__empty">
               <motion.div
                 className="habits-page-design__empty-emoji"
                 animate={{ y: [0, -8, 0] }}
@@ -77,9 +68,9 @@ const HabitTrackerPage = () => {
               </motion.div>
               <h3>{i18n.emptyTitle}</h3>
               <p>{i18n.emptyDescription}</p>
-            </motion.div>
+            </div>
           ) : (
-            <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
+            <div>
               <HabitList
                 habits={activeHabits}
                 completedDatesByHabit={completedDatesByHabit}
@@ -112,9 +103,10 @@ const HabitTrackerPage = () => {
                   toast.push({ variant: 'info', message: i18n.toastArchived })
                 }}
               />
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
+            )}
+          </>
+        )}
 
         {archivedHabits.length > 0 ? (
           <section className="habits-page-design__archived">

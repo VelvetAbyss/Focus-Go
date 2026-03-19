@@ -301,7 +301,7 @@ export function FocusHistory({ externalSessions }: { externalSessions?: FocusSes
     .reduce((sum, s) => sum + s.durationMinutes, 0);
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="focus-zip-history h-full flex flex-col">
       {/* Header */}
       <div className="mb-4">
         <h2

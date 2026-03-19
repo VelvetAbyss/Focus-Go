@@ -15,15 +15,9 @@ export type TaskSubtask = {
   done: boolean
 }
 
-export type TaskProgressLog = {
-  id: string
-  content: string
-  createdAt: number
-}
-
 export type TaskActivityLog = {
   id: string
-  type: 'status' | 'progress' | 'details'
+  type: 'status' | 'details'
   message: string
   createdAt: number
 }
@@ -105,7 +99,6 @@ export type TaskItem = BaseEntity & {
   taskNoteBlocks: TaskNoteBlock[]
   taskNoteContentMd?: string
   taskNoteContentJson?: Record<string, unknown> | null
-  progressLogs: TaskProgressLog[]
   activityLogs: TaskActivityLog[]
 }
 
@@ -117,6 +110,7 @@ export type WidgetTodo = BaseEntity & {
   priority: TaskPriority
   dueDate?: string
   done: boolean
+  linkedHabitId?: string
 }
 
 export type FocusSettings = BaseEntity & {

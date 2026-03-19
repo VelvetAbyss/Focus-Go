@@ -74,7 +74,7 @@ const WeatherWidgetCard = () => {
                 const RowIcon = rowIcon.Icon
                 return (
                   <div className="weather-widget__row" key={row.date}>
-                    <span className="weather-widget__day-label">{dayLabel(index)}</span>
+                    <span className="weather-widget__day-label" title={dayLabel(index)}>{dayLabel(index)}</span>
                     <span className={`weather-icon ${rowIcon.className}`} title={row.condition} aria-label={row.condition}>
                       <RowIcon size={15} strokeWidth={2.05} />
                     </span>

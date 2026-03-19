@@ -18,7 +18,6 @@ const task: TaskItem = {
   tags: [],
   subtasks: [],
   taskNoteBlocks: [],
-  progressLogs: [],
   activityLogs: [],
 }
 
@@ -28,14 +27,6 @@ describe('TaskCard', () => {
       <TaskCard
         task={task}
         onSelect={vi.fn()}
-        progressComposer={{
-          isOpen: false,
-          value: '',
-          onToggle: vi.fn(),
-          onChange: vi.fn(),
-          onSubmit: vi.fn(),
-          onCancel: vi.fn(),
-        }}
       />,
     )
 
@@ -51,5 +42,12 @@ describe('TaskCard', () => {
 
     expect(reveal.className).toContain('grid-rows-[1fr]')
     expect(reveal.className).toContain('translate-y-0')
+  })
+
+  it('does not render a progress entry action', () => {
+    render(<TaskCard task={task} onSelect={vi.fn()} />)
+
+    expect(screen.queryByRole('button', { name: /save/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
   })
 })

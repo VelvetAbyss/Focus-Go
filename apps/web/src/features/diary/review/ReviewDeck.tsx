@@ -81,7 +81,7 @@ const ReviewDeck = ({
   const disabled = isComplete || isSubmittingDiary
 
   return (
-    <section className="min-h-0 rounded-[24px] border border-[#eee] bg-white p-6 text-[#3a3733] shadow-[0_8px_30px_rgba(26,26,26,0.04)] sm:p-8 lg:p-10">
+    <section className="review-deck min-h-0 rounded-[24px] border border-[#eee] bg-white p-6 text-[#3a3733] shadow-[0_8px_30px_rgba(26,26,26,0.04)] sm:p-8 lg:p-10">
       <div className="flex h-full flex-col">
         <div className="mb-8 lg:mb-10">
           <div className="mb-4 flex items-center gap-2.5">

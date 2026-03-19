@@ -35,9 +35,6 @@ export const tasksRepo = {
   async updateStatus(id: string, status: TaskStatus) {
     return dbService.tasks.updateStatus(id, status)
   },
-  async appendProgress(id: string, content: string) {
-    return dbService.tasks.appendProgress(id, content)
-  },
   async clearAllTags() {
     await dbService.tasks.clearAllTags()
   },

@@ -75,7 +75,6 @@ export interface ITaskDataAccess {
   update(task: TaskItem): Promise<TaskItem>
   remove(id: string): Promise<void>
   updateStatus(id: string, status: TaskStatus): Promise<TaskItem | undefined>
-  appendProgress(id: string, content: string): Promise<TaskItem | undefined>
   clearAllTags(): Promise<void>
 }
 

@@ -45,10 +45,6 @@ export const createIPCDatabaseService = (api: ElectronDatabaseApi): IDatabaseSer
       const response = await invokeDb(api, 'db:tasks:updateStatus', { id, status })
       return unwrapData(response)
     },
-    async appendProgress(id, content) {
-      const response = await invokeDb(api, 'db:tasks:appendProgress', { id, content })
-      return unwrapData(response)
-    },
     async clearAllTags() {
       const response = await invokeDb(api, 'db:tasks:clearAllTags', {})
       unwrapData(response)
@@ -259,41 +255,53 @@ export const createIPCDatabaseService = (api: ElectronDatabaseApi): IDatabaseSer
     },
   },
   habits: {
-    async listHabits() {
-      throw new Error('Habits are not implemented for IPCDatabaseService yet.')
+    async listHabits(userId, options) {
+      const response = await invokeDb(api, 'db:habits:list', { userId, options })
+      return unwrapData(response)
     },
-    async createHabit() {
-      throw new Error('Habits are not implemented for IPCDatabaseService yet.')
+    async createHabit(data) {
+      const response = await invokeDb(api, 'db:habits:create', data)
+      return unwrapData(response)
     },
-    async updateHabit() {
-      throw new Error('Habits are not implemented for IPCDatabaseService yet.')
+    async updateHabit(id, patch) {
+      const response = await invokeDb(api, 'db:habits:update', { id, patch })
+      return unwrapData(response)
     },
-    async archiveHabit() {
-      throw new Error('Habits are not implemented for IPCDatabaseService yet.')
+    async archiveHabit(id) {
+      const response = await invokeDb(api, 'db:habits:archive', { id })
+      return unwrapData(response)
     },
-    async restoreHabit() {
-      throw new Error('Habits are not implemented for IPCDatabaseService yet.')
+    async restoreHabit(id) {
+      const response = await invokeDb(api, 'db:habits:restore', { id })
+      return unwrapData(response)
     },
-    async reorderHabits() {
-      throw new Error('Habits are not implemented for IPCDatabaseService yet.')
+    async reorderHabits(userId, ids) {
+      const response = await invokeDb(api, 'db:habits:reorder', { userId, ids })
+      unwrapData(response)
     },
-    async recordHabitCompletion() {
-      throw new Error('Habits are not implemented for IPCDatabaseService yet.')
+    async recordHabitCompletion(habitId, dateKey, value) {
+      const response = await invokeDb(api, 'db:habits:recordCompletion', { habitId, dateKey, value })
+      return unwrapData(response)
     },
-    async undoHabitCompletion() {
-      throw new Error('Habits are not implemented for IPCDatabaseService yet.')
+    async undoHabitCompletion(habitId, dateKey) {
+      const response = await invokeDb(api, 'db:habits:undoCompletion', { habitId, dateKey })
+      unwrapData(response)
     },
-    async listHabitLogs() {
-      throw new Error('Habits are not implemented for IPCDatabaseService yet.')
+    async listHabitLogs(habitId) {
+      const response = await invokeDb(api, 'db:habits:listLogs', { habitId })
+      return unwrapData(response)
     },
-    async computeHabitStreak() {
-      throw new Error('Habits are not implemented for IPCDatabaseService yet.')
+    async computeHabitStreak(habitId, dateKey) {
+      const response = await invokeDb(api, 'db:habits:computeStreak', { habitId, dateKey })
+      return unwrapData(response)
     },
-    async getDailyProgress() {
-      throw new Error('Habits are not implemented for IPCDatabaseService yet.')
+    async getDailyProgress(userId, dateKey) {
+      const response = await invokeDb(api, 'db:habits:getDailyProgress', { userId, dateKey })
+      return unwrapData(response)
     },
-    async getHeatmap() {
-      throw new Error('Habits are not implemented for IPCDatabaseService yet.')
+    async getHeatmap(userId, days) {
+      const response = await invokeDb(api, 'db:habits:getHeatmap', { userId, days })
+      return unwrapData(response)
     },
   },
 })

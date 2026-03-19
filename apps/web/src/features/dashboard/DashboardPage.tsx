@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { GridLayout, useContainerWidth } from 'react-grid-layout'
-import FadeContent from '../../shared/ui/FadeContent'
 import Dialog from '../../shared/ui/Dialog'
 import { dashboardRepo } from '../../data/repositories/dashboardRepo'
 import { getDashboardCards } from './registry'
@@ -285,8 +284,7 @@ const DashboardPage = () => {
   )
 
   return (
-    <FadeContent>
-      <div className="dashboard" ref={containerRef}>
+    <div className="dashboard" ref={containerRef}>
         <DashboardHeader
           layoutEdit={layoutEdit}
           widgetsPanelOpen={widgetsPanelOpen}
@@ -406,8 +404,7 @@ const DashboardPage = () => {
             </Button>
           </div>
         </Dialog>
-      </div>
-    </FadeContent>
+    </div>
   )
 }
 

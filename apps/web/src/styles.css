@@ -432,80 +432,12 @@ label input[type='checkbox'] {
   z-index: 1;
 }
 
-.app-shell__hero-stage--editing {
-  background-image:
-    linear-gradient(to right, color-mix(in srgb, var(--border) 62%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in srgb, var(--border) 62%, transparent) 1px, transparent 1px);
-  background-size: 8px 8px;
-}
-
-.app-shell__hero-stage--editing::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: var(--header-action-guard);
-  height: 100%;
-  background: transparent;
-  border-left: 1px dashed color-mix(in srgb, var(--border) 65%, transparent);
-  pointer-events: auto;
-  z-index: 1;
-}
-
 .app-shell__hero-item {
   --node-scale: 1;
   position: absolute;
   transform-origin: top left;
   z-index: 2;
   pointer-events: none;
-}
-
-.app-shell__hero-item.is-editable {
-  border: 1px dashed color-mix(in srgb, var(--accent) 52%, var(--border));
-  border-radius: 10px;
-  padding: 6px 8px;
-  cursor: grab;
-  background: color-mix(in srgb, var(--surface) 72%, transparent);
-  box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 15%, transparent);
-  user-select: none;
-  -webkit-user-select: none;
-  pointer-events: auto;
-}
-
-.app-shell__hero-item.is-editable:active {
-  cursor: grabbing;
-}
-
-.app-shell__hero-handle {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--accent) 68%, var(--border));
-  background: var(--surface);
-  padding: 0;
-  min-height: 0;
-  cursor: nwse-resize;
-}
-
-.app-shell__hero-handle--nw {
-  left: -6px;
-  top: -6px;
-}
-
-.app-shell__hero-handle--ne {
-  right: -6px;
-  top: -6px;
-}
-
-.app-shell__hero-handle--sw {
-  left: -6px;
-  bottom: -6px;
-}
-
-.app-shell__hero-handle--se {
-  right: -6px;
-  bottom: -6px;
 }
 
 .app-shell__hero-date {
@@ -1813,16 +1745,61 @@ html[data-motion='reduce'] .drawer--visible .drawer__panel {
 
 .focus-card-lite {
   margin: -4px 0;
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
+.focus-card-lite--misted {
+  padding: 2px 2px 0;
+}
+
+.focus-card-lite__glow {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(34px);
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.focus-card-lite__glow--primary {
+  top: -22px;
+  right: 18px;
+  width: 120px;
+  height: 120px;
+  background: rgba(139, 168, 138, 0.18);
+}
+
+.focus-card-lite__glow--secondary {
+  bottom: -42px;
+  left: -12px;
+  width: 150px;
+  height: 150px;
+  background: rgba(196, 168, 130, 0.14);
+}
+
 .focus-card-lite__header {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+}
+
+.focus-card-lite__mode-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.focus-card-lite__eyebrow-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(139, 168, 138, 0.72);
+  box-shadow: 0 0 0 6px rgba(139, 168, 138, 0.12);
 }
 
 .focus-card-lite__stats {
@@ -1839,6 +1816,12 @@ html[data-motion='reduce'] .drawer--visible .drawer__panel {
 
 .focus-card-lite__time {
   margin: 0;
+}
+
+.focus-card-lite__body {
+  position: relative;
+  display: grid;
+  gap: 12px;
 }
 
 .focus-card-lite__actions {
@@ -4528,7 +4511,7 @@ html[data-motion='reduce'] .tasks-fg__track {
 .tasks-page-shell__panel {
   flex: 1;
   min-height: 0;
-  overflow: visible;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -4536,6 +4519,9 @@ html[data-motion='reduce'] .tasks-fg__track {
 .tasks-page-shell__panel-frame {
   flex: 1;
   min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .tasks-page-shell__list-placeholder {
@@ -4908,6 +4894,7 @@ html[data-motion='reduce'] .widget-todos__track {
 .widget-plan-checkbox-wrap[data-checked='true'] + .widget-todos__title::before,
 .widget-plan-checkbox-wrap[data-state='checked'] + .widget-todos__title::before {
   background: color-mix(in srgb, var(--text-secondary) 86%, transparent);
+  opacity: 1;
   animation: widget-title-slice 0.4s ease forwards;
 }
 
@@ -4919,10 +4906,6 @@ html[data-motion='reduce'] .widget-todos__track {
 .widget-plan-checkbox-wrap[data-checked='true'] + .widget-todos__title .widget-todos__title-text,
 .widget-plan-checkbox-wrap[data-state='checked'] + .widget-todos__title .widget-todos__title-text {
   color: color-mix(in srgb, var(--text-secondary) 86%, transparent);
-  text-decoration-line: line-through;
-  text-decoration-thickness: 2px;
-  text-decoration-color: color-mix(in srgb, var(--text-secondary) 90%, #7c7c7c);
-  text-decoration-skip-ink: none;
 }
 
 @keyframes widget-check-01 {
@@ -5122,6 +5105,24 @@ html[data-motion='reduce'] .task-popup-detail__subtask-checkbox-row .widget-plan
   transition: color 0.3s ease;
 }
 
+.widget-todos__summary {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.widget-todos__meta-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  font-size: 14px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+}
+
 .widget-todos__title::before,
 .widget-todos__title::after {
   content: '';
@@ -5153,17 +5154,6 @@ html[data-motion='reduce'] .task-popup-detail__subtask-checkbox-row .widget-plan
   opacity: 1;
 }
 
-.widget-todos__item.is-done .widget-todos__title {
-  animation: none;
-}
-
-.widget-todos__item.is-done .widget-todos__title-text {
-  text-decoration-line: line-through;
-  text-decoration-thickness: 2px;
-  text-decoration-color: color-mix(in srgb, var(--text-secondary) 90%, #7c7c7c);
-  text-decoration-skip-ink: none;
-}
-
 .widget-todos__composer {
   flex: none;
   display: flex;
@@ -5173,6 +5163,15 @@ html[data-motion='reduce'] .task-popup-detail__subtask-checkbox-row .widget-plan
   border-radius: 16px;
   background: color-mix(in srgb, var(--bg-muted) 70%, var(--bg-elevated));
   border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+}
+
+.widget-todos__composer--summary {
+  justify-content: center;
+}
+
+.widget-todos__summary-copy {
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
 .widget-todos__composer input {
@@ -5925,6 +5924,7 @@ html[data-motion='reduce'] .spend-fg__track {
 
 .weather-widget__day-label {
   font-weight: 650;
+  white-space: nowrap;
 }
 
 .weather-widget__day-range {
@@ -6301,10 +6301,6 @@ html[data-motion='reduce'] .dialog--visible .dialog__panel {
     min-height: 84px;
   }
 
-  .app-shell__hero-stage--editing::after {
-    display: none;
-  }
-
   .app-shell__hero-date {
     font-size: calc(16px * var(--node-scale));
   }
@@ -6493,6 +6489,10 @@ textarea:focus-visible,
 .focus-shell__route-layer {
   min-height: calc(100vh - 40px);
   padding: 18px;
+  will-change: opacity;
+  contain: paint;
+  backface-visibility: hidden;
+  transform: translateZ(0);
 }
 
 .focus-shell__route-layer--full-bleed {
@@ -7799,39 +7799,45 @@ textarea:focus-visible,
   pointer-events: none;
   will-change: transform;
   transform: translate3d(0, 0, 0);
+}
+
+.focus-zip-app--entered .focus-zip-app__light {
   animation-timing-function: ease-in-out;
   animation-iteration-count: infinite;
   animation-direction: alternate;
 }
 
-.focus-zip-app__light--left {
+.focus-zip-app--entered .focus-zip-app__light--left {
   animation-name: focus-zip-float-left;
   animation-duration: 24s;
 }
 
-.focus-zip-app__light--right {
+.focus-zip-app--entered .focus-zip-app__light--right {
   animation-name: focus-zip-float-right;
   animation-duration: 28s;
 }
 
 .focus-zip-app__column {
-  animation-duration: 360ms;
-  animation-fill-mode: both;
-  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform, opacity;
   transform: translate3d(0, 0, 0);
 }
 
-.focus-zip-app__column--left {
+.focus-zip-app--entered .focus-zip-app__column {
+  animation-duration: 360ms;
+  animation-fill-mode: both;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.focus-zip-app--entered .focus-zip-app__column--left {
   animation-name: focus-zip-enter-left;
 }
 
-.focus-zip-app__column--center {
+.focus-zip-app--entered .focus-zip-app__column--center {
   animation-name: focus-zip-enter-up;
   animation-delay: 48ms;
 }
 
-.focus-zip-app__column--right {
+.focus-zip-app--entered .focus-zip-app__column--right {
   animation-name: focus-zip-enter-right;
   animation-delay: 96ms;
 }
@@ -8037,15 +8043,15 @@ textarea:focus-visible,
 .focus-shell {
   min-height: 100vh;
   display: flex;
-  gap: 14px;
-  padding: 14px;
+  gap: var(--page-pad, 14px);
+  padding: var(--page-pad, 14px);
   background: linear-gradient(180deg, var(--surface), var(--bg-muted));
 }
 
 .focus-shell__main {
   flex: 1;
   min-width: 0;
-  min-height: calc(100vh - 28px);
+  min-height: calc(100vh - (var(--page-pad, 14px) * 2));
   border-radius: 22px;
   border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
   background: color-mix(in srgb, var(--surface) 94%, var(--bg-muted) 6%);
@@ -8053,12 +8059,12 @@ textarea:focus-visible,
 }
 
 .focus-shell__route-layer {
-  min-height: calc(100vh - 28px);
-  padding: 16px;
+  min-height: calc(100vh - (var(--page-pad, 14px) * 2));
+  padding: var(--route-pad, 16px);
 }
 
 .focus-sidebar {
-  min-height: calc(100vh - 28px);
+  min-height: calc(100vh - (var(--page-pad, 14px) * 2));
   border-radius: 22px;
   border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
   background: color-mix(in srgb, var(--surface) 97%, var(--bg-muted) 3%);
@@ -8165,7 +8171,7 @@ textarea:focus-visible,
 }
 
 .module-page-shell {
-  min-height: calc(100vh - 72px);
+  min-height: calc(100vh - (var(--page-pad, 14px) * 2) - (var(--route-pad, 16px) * 2));
 }
 
 .module-page-shell--narrow {
@@ -8173,7 +8179,7 @@ textarea:focus-visible,
 }
 
 .module-placeholder-shell {
-  min-height: calc(100vh - 76px);
+  min-height: calc(100vh - (var(--page-pad, 14px) * 2) - (var(--route-pad, 16px) * 2));
   display: grid;
   place-items: center;
 }
@@ -8239,4 +8245,229 @@ textarea:focus-visible,
   flex: 1 1 auto !important;
   min-width: 0 !important;
   min-height: 100% !important;
+}
+
+html[data-theme='dark'] .focus-card-lite__glow--primary {
+  background: rgba(126, 219, 199, 0.18);
+}
+
+html[data-theme='dark'] .focus-card-lite__glow--secondary {
+  background: rgba(123, 165, 181, 0.16);
+}
+
+html[data-theme='dark'] .focus-card-lite__eyebrow-dot {
+  background: rgba(126, 219, 199, 0.78);
+  box-shadow: 0 0 0 6px rgba(126, 219, 199, 0.12);
+}
+
+html[data-theme='dark'] .tasks-page {
+  background: linear-gradient(180deg, #262b30 0%, #22272b 100%);
+}
+
+html[data-theme='dark'] .tasks-page-shell__switch,
+html[data-theme='dark'] .tasks-analytics__toolbar > div,
+html[data-theme='dark'] .tasks-page-shell__panel-frame,
+html[data-theme='dark'] .tasks-fg {
+  background: transparent;
+}
+
+html[data-theme='dark'] .task-card-shell,
+html[data-theme='dark'] .tasks-analytics__summary-card,
+html[data-theme='dark'] .tasks-analytics__trend-panel,
+html[data-theme='dark'] .tasks-fg__composer,
+html[data-theme='dark'] .calendar-task-card,
+html[data-theme='dark'] .calendar-side-panel__composer,
+html[data-theme='dark'] .calendar-task-card__editor,
+html[data-theme='dark'] .calendar-color-popover-shell {
+  background: rgba(39, 45, 51, 0.9) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.2) !important;
+}
+
+html[data-theme='dark'] .task-card-shell:hover {
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.28);
+}
+
+html[data-theme='dark'] .tasks-analytics__chart,
+html[data-theme='dark'] .calendar-side-panel,
+html[data-theme='dark'] .calendar-month-grid__cell,
+html[data-theme='dark'] .calendar-day,
+html[data-theme='dark'] .widget-todos__item,
+html[data-theme='dark'] .widget-todos__composer {
+  background: rgba(31, 37, 43, 0.82) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+html[data-theme='dark'] .calendar-page {
+  background: linear-gradient(180deg, #262b30 0%, #22272b 100%);
+  border-radius: 28px;
+}
+
+html[data-theme='dark'] .calendar-v2__right {
+  background: color-mix(in srgb, var(--bg-muted) 88%, var(--bg-elevated) 12%) !important;
+}
+
+html[data-theme='dark'] .calendar-side-panel__composer input,
+html[data-theme='dark'] .calendar-task-card__editor input,
+html[data-theme='dark'] .calendar-task-card__editor button,
+html[data-theme='dark'] .widget-todos__composer input,
+html[data-theme='dark'] .widget-todos__input {
+  background: rgba(17, 21, 25, 0.72) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #f2f0ec !important;
+}
+
+html[data-theme='dark'] .tasks-page-shell__title,
+html[data-theme='dark'] .tasks-analytics h2,
+html[data-theme='dark'] .tasks-analytics p,
+html[data-theme='dark'] .calendar-page,
+html[data-theme='dark'] .calendar-task-card,
+html[data-theme='dark'] .calendar-side-panel,
+html[data-theme='dark'] .widget-todos__title-text,
+html[data-theme='dark'] .widget-todos__summary {
+  color: #f2f0ec;
+}
+
+html[data-theme='dark'] .tasks-page-shell__tab,
+html[data-theme='dark'] .calendar-side-row__text,
+html[data-theme='dark'] .calendar-task-card__meta-item,
+html[data-theme='dark'] .calendar-task-card__meta-item strong,
+html[data-theme='dark'] .widget-todos__summary-copy {
+  color: #c8c2b8 !important;
+}
+
+html[data-theme='dark'] .focus-page--zip-bleed::before {
+  background:
+    radial-gradient(ellipse 120% 80% at 20% 10%, rgba(110, 138, 132, 0.18) 0%, transparent 60%),
+    radial-gradient(ellipse 100% 70% at 80% 90%, rgba(76, 98, 112, 0.2) 0%, transparent 55%),
+    radial-gradient(ellipse 80% 60% at 50% 50%, rgba(92, 88, 82, 0.14) 0%, transparent 50%),
+    radial-gradient(circle at 18% 14%, rgba(126, 219, 199, 0.12) 0%, transparent 26%),
+    radial-gradient(circle at 84% 88%, rgba(123, 165, 181, 0.12) 0%, transparent 24%),
+    linear-gradient(175deg, #1f2328 0%, #232932 36%, #242924 68%, #1e211e 100%);
+}
+
+html[data-theme='dark'] .task-drawer-panel,
+html[data-theme='dark'] .task-drawer-shell > div:first-child,
+html[data-theme='dark'] .task-drawer-shell aside,
+html[data-theme='dark'] .task-drawer-shell section,
+html[data-theme='dark'] .task-drawer-shell .rounded-\[28px\],
+html[data-theme='dark'] .task-drawer-shell .rounded-\[26px\],
+html[data-theme='dark'] .task-drawer-shell .rounded-\[24px\],
+html[data-theme='dark'] .task-drawer-shell .rounded-\[20px\] {
+  background: rgba(34, 40, 46, 0.92) !important;
+  color: #f2f0ec !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+html[data-theme='dark'] .task-drawer-shell input,
+html[data-theme='dark'] .task-drawer-shell textarea,
+html[data-theme='dark'] .task-drawer-shell button[data-slot='select-trigger'] {
+  background: rgba(17, 21, 25, 0.72) !important;
+  color: #f2f0ec !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-timer,
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-history,
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-noise {
+  color: #f2f0ec;
+}
+
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-timer h2,
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-history h2,
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-noise h2,
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-timer p,
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-history p,
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-noise p,
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-timer span,
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-history span,
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-noise span {
+  color: inherit;
+}
+
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-noise > div:first-child button,
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-history button,
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-timer button {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-noise [style*='rgba(255,255,255,0.95)'],
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-history [style*='rgba(255,255,255,0.95)'],
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-timer [style*='rgba(255,255,255,0.95)'],
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-timer [style*='rgba(247,246,243,0.92)'] {
+  background: rgba(26, 32, 38, 0.94) !important;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28) !important;
+}
+
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-noise [style*='rgba(58, 55, 51, 0.015)'],
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-noise [style*='rgba(58, 55, 51, 0.018)'],
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-noise [style*='rgba(58, 55, 51, 0.025)'],
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-noise [style*='rgba(58, 55, 51, 0.04)'],
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-noise [style*='rgba(58, 55, 51, 0.06)'],
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-history [style*='rgba(58, 55, 51, 0.012)'],
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-history [style*='rgba(58, 55, 51, 0.015)'],
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-history [style*='rgba(58, 55, 51, 0.02)'],
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-history [style*='rgba(58, 55, 51, 0.025)'],
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-history [style*='rgba(58, 55, 51, 0.04)'],
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-timer [style*='rgba(58, 55, 51, 0.04)'] {
+  background: rgba(17, 21, 25, 0.56) !important;
+}
+
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-noise [style*='#3a3733'],
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-history [style*='#3a3733'],
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-timer [style*='#3a3733'],
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-noise .text-\[\#3a3733\],
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-history .text-\[\#3a3733\],
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-timer .text-\[\#3a3733\] {
+  color: #f2f0ec !important;
+}
+
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-timer__digits,
+html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-timer__digits * {
+  color: #f2f0ec !important;
+}
+
+html[data-theme='dark'] .review-deck,
+html[data-theme='dark'] .review-history-panel {
+  background: rgba(31, 36, 41, 0.88) !important;
+  color: #f2f0ec !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.2) !important;
+}
+
+html[data-theme='dark'] .review-deck input,
+html[data-theme='dark'] .review-deck textarea,
+html[data-theme='dark'] .review-deck button,
+html[data-theme='dark'] .review-history-panel button {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+html[data-theme='dark'] .review-deck input,
+html[data-theme='dark'] .review-deck textarea {
+  background: rgba(17, 21, 25, 0.72) !important;
+  color: #f2f0ec !important;
+}
+
+html[data-theme='dark'] .review-deck h1,
+html[data-theme='dark'] .review-deck h2,
+html[data-theme='dark'] .review-deck h3,
+html[data-theme='dark'] .review-deck p,
+html[data-theme='dark'] .review-deck span,
+html[data-theme='dark'] .review-deck label,
+html[data-theme='dark'] .review-deck button,
+html[data-theme='dark'] .review-deck strong,
+html[data-theme='dark'] .review-history-panel h1,
+html[data-theme='dark'] .review-history-panel h2,
+html[data-theme='dark'] .review-history-panel h3,
+html[data-theme='dark'] .review-history-panel p,
+html[data-theme='dark'] .review-history-panel span,
+html[data-theme='dark'] .review-history-panel label,
+html[data-theme='dark'] .review-history-panel button,
+html[data-theme='dark'] .review-history-panel strong {
+  color: #f2f0ec !important;
+}
+
+html[data-theme='dark'] .review-deck input::placeholder,
+html[data-theme='dark'] .review-deck textarea::placeholder {
+  color: #b8b1a7 !important;
 }

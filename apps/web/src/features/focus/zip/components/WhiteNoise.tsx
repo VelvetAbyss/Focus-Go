@@ -337,7 +337,7 @@ export function WhiteNoise() {
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="focus-zip-noise h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>

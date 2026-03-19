@@ -1,9 +1,9 @@
 import type { Transition, Variants } from 'motion/react'
 
 export const pageTransitionVariants: Variants = {
-  initial: { opacity: 0, y: 14, scale: 0.995 },
-  animate: { opacity: 1, y: 0, scale: 1 },
-  exit: { opacity: 0, y: -8, scale: 0.995 },
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  exit: { opacity: 0 },
 }
 
 export const pageTransitionTiming: Transition = {
@@ -12,9 +12,9 @@ export const pageTransitionTiming: Transition = {
 }
 
 export const habitPageTransitionVariants: Variants = {
-  initial: { opacity: 0, y: 8, scale: 0.998 },
-  animate: { opacity: 1, y: 0, scale: 1 },
-  exit: { opacity: 0, y: -4, scale: 0.998 },
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  exit: { opacity: 0 },
 }
 
 export const habitPageTransitionTiming: Transition = {

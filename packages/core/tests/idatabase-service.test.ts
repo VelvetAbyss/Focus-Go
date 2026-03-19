@@ -42,13 +42,11 @@ const createMockService = (): IDatabaseService => ({
       tags: data.tags ?? [],
       subtasks: data.subtasks ?? [],
       taskNoteBlocks: data.taskNoteBlocks ?? [],
-      progressLogs: [],
       activityLogs: [],
     }),
     update: async (task) => task,
     remove: async () => undefined,
     updateStatus: async () => undefined,
-    appendProgress: async () => undefined,
     clearAllTags: async () => undefined,
   },
   notes: {

@@ -75,7 +75,7 @@ const ReviewHistoryPanel = ({
 
   if (loading) {
     return (
-      <div className={cn('h-full rounded-2xl border border-[#eee] bg-[#fafafa] p-5 lg:p-6', className)}>
+      <div className={cn('review-history-panel h-full rounded-2xl border border-[#eee] bg-[#fafafa] p-5 lg:p-6', className)}>
         {header}
         <p
           className="text-[#bbb]"
@@ -89,7 +89,7 @@ const ReviewHistoryPanel = ({
 
   if (rows.length === 0) {
     return (
-      <div className={cn('h-full rounded-2xl border border-[#eee] bg-[#fafafa] p-5 lg:p-6', className)}>
+      <div className={cn('review-history-panel h-full rounded-2xl border border-[#eee] bg-[#fafafa] p-5 lg:p-6', className)}>
         {header}
         <div className="py-10 text-center">
           <p
@@ -110,7 +110,7 @@ const ReviewHistoryPanel = ({
   }
 
   return (
-    <div className={cn('h-full rounded-2xl border border-[#eee] bg-[#fafafa] p-5 lg:p-6', className)}>
+    <div className={cn('review-history-panel h-full rounded-2xl border border-[#eee] bg-[#fafafa] p-5 lg:p-6', className)}>
       {header}
 
       <div className={cn('review-history-scrollbar space-y-1.5 overflow-y-auto pr-1', maxHeightClassName)}>

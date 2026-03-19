@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
+import { motion } from 'motion/react'
 import { Brush, Database, LayoutGrid, Sparkles, SunMedium, Waves, Bell, LocateFixed, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -257,6 +257,7 @@ const SettingsRoute = () => {
   const [theme, setTheme] = useState<ThemeSelection>('system')
   const [themePackSelection, setThemePackSelection] = useState<ThemePackId>('theme-a')
   const [themePackPreview, setThemePackPreview] = useState<ThemePackId | null>(null)
+  const [pageEntered, setPageEntered] = useState(false)
   const [dashboard, setDashboard] = useState<DashboardLayout | null>(null)
   const [isResetting, setIsResetting] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
@@ -294,6 +295,11 @@ const SettingsRoute = () => {
     suggestions: [],
   })
   const [manualCityActiveIndex, setManualCityActiveIndex] = useState(-1)
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => setPageEntered(true))
+    return () => window.cancelAnimationFrame(frame)
+  }, [])
 
   useEffect(() => {
     dashboardRepo.get().then((stored) => {
@@ -500,7 +506,7 @@ const SettingsRoute = () => {
     <div className="relative h-full min-h-0 p-3 sm:p-4 lg:p-6">
       <div className="relative z-10 flex h-full flex-col gap-5">
         <motion.header
-          initial={{ opacity: 0, y: -16 }}
+          initial={pageEntered ? { opacity: 0, y: -16 } : false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
           className="flex flex-wrap items-end justify-between gap-4 rounded-xl bg-background/20 p-5 shadow-lg backdrop-blur"
@@ -551,15 +557,7 @@ const SettingsRoute = () => {
             <CardContent className="h-full p-0">
               <ScrollArea className="max-h-[min(72vh,760px)] xl:max-h-[calc(100vh-240px)]">
                 <div className="p-5 md:p-6">
-                  <AnimatePresence mode="wait" initial={false}>
-                    <motion.div
-                      key={activeSection}
-                      initial={{ opacity: 0, y: 24, scale: 0.98 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -12, scale: 0.98 }}
-                      transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
-                      className="space-y-4"
-                    >
+                  <div className="space-y-4">
                       {activeSection === 'appearance' ? (
                         <>
                           <SettingRow
@@ -968,8 +966,7 @@ const SettingsRoute = () => {
                           </AlertDialog>
                         </>
                       ) : null}
-                    </motion.div>
-                  </AnimatePresence>
+                  </div>
                 </div>
               </ScrollArea>
             </CardContent>

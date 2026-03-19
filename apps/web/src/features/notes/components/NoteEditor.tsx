@@ -2,18 +2,21 @@ import type { JSONContent } from '@tiptap/core'
 import { Placeholder } from '@tiptap/extension-placeholder'
 import { Selection } from '@tiptap/extensions'
 import { Highlight } from '@tiptap/extension-highlight'
-import { Image } from '@tiptap/extension-image'
 import { TaskItem, TaskList } from '@tiptap/extension-list'
 import { Subscript } from '@tiptap/extension-subscript'
 import { Superscript } from '@tiptap/extension-superscript'
+import { Table } from '@tiptap/extension-table'
+import TableCell from '@tiptap/extension-table-cell'
+import TableHeader from '@tiptap/extension-table-header'
+import TableRow from '@tiptap/extension-table-row'
 import { TextAlign } from '@tiptap/extension-text-align'
 import { Typography } from '@tiptap/extension-typography'
 import { Underline } from '@tiptap/extension-underline'
 import { StarterKit } from '@tiptap/starter-kit'
 import { EditorContent, EditorContext, useEditor } from '@tiptap/react'
-import { Download, Info, Palette } from 'lucide-react'
+import { Download, Expand, Info, Minimize2, Palette } from 'lucide-react'
 import type { CSSProperties, ReactNode, RefObject } from 'react'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { HorizontalRule } from '@/components/tiptap-node/horizontal-rule-node/horizontal-rule-node-extension'
 import { ImageUploadNode } from '@/components/tiptap-node/image-upload-node/image-upload-node-extension'
 import '@/components/tiptap-node/blockquote-node/blockquote-node.scss'
@@ -37,6 +40,7 @@ import { Toolbar, ToolbarGroup, ToolbarSeparator } from '@/components/tiptap-ui-
 import { MAX_FILE_SIZE } from '@/lib/tiptap-utils'
 import type { NoteFontFamily } from '../../../data/models/types'
 import { ensureRichDoc, richDocToMarkdown } from '../model/richTextCodec'
+import { ResizableImage } from '../model/resizableImage'
 
 type NoteEditorValue = {
   title: string
@@ -58,8 +62,17 @@ type NoteEditorProps = {
   onOpenInfo?: () => void
   onOpenAppearance?: () => void
   onExport?: () => void
+  onToggleFullscreen?: () => void
   onChange: (next: NoteEditorValue) => void
+  isFullscreen?: boolean
   surfaceRef?: RefObject<HTMLDivElement | null>
+}
+
+type HeadingNavItem = {
+  id: string
+  text: string
+  level: 1 | 2 | 3
+  top: number
 }
 
 const extractTitleFromMarkdown = (markdown: string) => {
@@ -99,11 +112,97 @@ const uploadImageAsDataUrl = async (file: File): Promise<string> => {
   })
 }
 
-const NoteEditor = ({ value, appearance, onOpenInfo, onOpenAppearance, onExport, onChange, surfaceRef }: NoteEditorProps) => {
+const getPastedImageFiles = (event: ClipboardEvent) =>
+  Array.from(event.clipboardData?.items ?? [])
+    .filter((item) => item.type.startsWith('image/'))
+    .map((item) => item.getAsFile())
+    .filter((file): file is File => Boolean(file))
+
+const normalizeTableRows = (rows: string[][]) => {
+  const maxCols = rows.reduce((max, row) => Math.max(max, row.length), 0)
+  if (maxCols < 2 || rows.length < 2) return null
+  return rows.map((row) => {
+    const padded = [...row]
+    while (padded.length < maxCols) padded.push('')
+    return padded
+  })
+}
+
+const parseHtmlTable = (html: string) => {
+  if (!html || !html.includes('<table')) return null
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(html, 'text/html')
+  const table = doc.querySelector('table')
+  if (!table) return null
+  const rows = Array.from(table.querySelectorAll('tr')).map((tr) =>
+    Array.from(tr.querySelectorAll('th,td')).map((cell) => cell.textContent?.trim() ?? ''),
+  )
+  return normalizeTableRows(rows.filter((row) => row.length > 0))
+}
+
+const parseCsvLine = (line: string) => {
+  const result: string[] = []
+  let current = ''
+  let inQuotes = false
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i]
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"'
+        i += 1
+      } else {
+        inQuotes = !inQuotes
+      }
+      continue
+    }
+    if (char === ',' && !inQuotes) {
+      result.push(current.trim())
+      current = ''
+      continue
+    }
+    current += char
+  }
+  result.push(current.trim())
+  return result
+}
+
+const parseTextTable = (text: string) => {
+  if (!text) return null
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trimEnd())
+    .filter((line) => line.length > 0)
+  if (lines.length < 2) return null
+  if (lines.some((line) => line.includes('\t'))) {
+    return normalizeTableRows(lines.map((line) => line.split('\t').map((cell) => cell.trim())))
+  }
+  if (lines.some((line) => line.includes(','))) {
+    return normalizeTableRows(lines.map((line) => parseCsvLine(line)))
+  }
+  return null
+}
+
+const createTableNode = (rows: string[][]): JSONContent => ({
+  type: 'table',
+  content: rows.map((row) => ({
+    type: 'tableRow',
+    content: row.map((cell) => ({
+      type: 'tableCell',
+      content: cell ? [{ type: 'paragraph', content: [{ type: 'text', text: cell }] }] : [{ type: 'paragraph' }],
+    })),
+  })),
+})
+
+const NoteEditor = ({ value, appearance, onOpenInfo, onOpenAppearance, onExport, onToggleFullscreen, onChange, isFullscreen = false, surfaceRef }: NoteEditorProps) => {
   const initialDoc = useMemo(() => ensureRichDoc(value.contentJson, value.contentMd), [value.contentJson, value.contentMd])
   const fontFamily = fontFamilyMap[appearance?.font ?? 'uiSans']
   const widthScale = Math.max(0, Math.min(100, appearance?.contentWidth ?? 0)) / 100
   const contentWidthPercent = 100 - widthScale * 42
+  const [headings, setHeadings] = useState<HeadingNavItem[]>([])
+  const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null)
+  const [hoverHeadingId, setHoverHeadingId] = useState<string | null>(null)
+  const [tocVersion, setTocVersion] = useState(0)
+  const scrollSyncFrameRef = useRef<number | null>(null)
 
   const emitChange = (doc: JSONContent | null | undefined) => {
     const contentMd = richDocToMarkdown(doc)
@@ -132,11 +231,17 @@ const NoteEditor = ({ value, appearance, onOpenInfo, onOpenAppearance, onExport,
       TaskItem.configure({ nested: true }),
       Highlight.configure({ multicolor: true }),
       Underline,
-      Image,
+      ResizableImage,
       Typography,
       Superscript,
       Subscript,
       Selection,
+      Table.configure({
+        resizable: false,
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
       ImageUploadNode.configure({
         accept: 'image/*',
         maxSize: MAX_FILE_SIZE,
@@ -149,10 +254,40 @@ const NoteEditor = ({ value, appearance, onOpenInfo, onOpenAppearance, onExport,
       attributes: {
         class: 'note-editor__body simple-editor',
       },
+      handlePaste: (_view, event) => {
+        const imageFiles = getPastedImageFiles(event)
+        if (imageFiles.length > 0) {
+          event.preventDefault()
+          void Promise.all(imageFiles.map((file) => uploadImageAsDataUrl(file)))
+            .then((sources) => {
+              for (const src of sources) {
+                editor?.chain().focus().setImage({ src }).run()
+              }
+            })
+            .catch((error) => console.error('Paste image failed:', error))
+          return true
+        }
+
+        const html = event.clipboardData?.getData('text/html') ?? ''
+        const text = event.clipboardData?.getData('text/plain') ?? ''
+        const rows = parseHtmlTable(html) ?? parseTextTable(text)
+        if (!rows) return false
+
+        event.preventDefault()
+        const to = editor?.state.selection.to
+        if (to == null) return false
+        editor?.chain()
+          .focus()
+          .setTextSelection(to)
+          .insertContent(createTableNode(rows))
+          .run()
+        return true
+      },
     },
     content: initialDoc,
     onUpdate: ({ editor }) => {
       emitChange(editor.getJSON())
+      setTocVersion((version) => version + 1)
     },
   })
 
@@ -165,6 +300,66 @@ const NoteEditor = ({ value, appearance, onOpenInfo, onOpenAppearance, onExport,
       editor.commands.setContent(nextDoc, { emitUpdate: false })
     }
   }, [editor, value.contentJson, value.contentMd])
+
+  useEffect(() => {
+    if (!editor) return
+    if (!editor.view?.dom) return
+    const root = editor.view.dom as HTMLElement
+    const nextHeadings: HeadingNavItem[] = Array.from(root.querySelectorAll('h1, h2, h3')).map((heading, index) => ({
+      id: `heading-${index}`,
+      text: (heading.textContent ?? '').trim() || `Section ${index + 1}`,
+      level: Number(heading.tagName.slice(1)) as 1 | 2 | 3,
+      top: heading.offsetTop,
+    }))
+    setHeadings(nextHeadings)
+    setActiveHeadingId((current) => (nextHeadings.some((item) => item.id === current) ? current : nextHeadings[0]?.id ?? null))
+  }, [editor, tocVersion, value.contentJson, value.contentMd])
+
+  useEffect(() => {
+    if (!editor) return
+    if (!editor.view?.dom) return
+    const surface = (surfaceRef?.current ?? editor.view.dom.closest('.note-editor__surface')) as HTMLDivElement | null
+    if (!surface) return
+    const syncActive = () => {
+      if (headings.length === 0) {
+        setActiveHeadingId(null)
+        return
+      }
+      const marker = surface.scrollTop + 16
+      let current = headings[0].id
+      for (const heading of headings) {
+        if (heading.top <= marker) current = heading.id
+      }
+      setActiveHeadingId(current)
+    }
+    const scheduleSyncActive = () => {
+      if (scrollSyncFrameRef.current !== null) return
+      scrollSyncFrameRef.current = window.requestAnimationFrame(() => {
+        scrollSyncFrameRef.current = null
+        syncActive()
+      })
+    }
+    scheduleSyncActive()
+    surface.addEventListener('scroll', scheduleSyncActive, { passive: true })
+    return () => {
+      surface.removeEventListener('scroll', scheduleSyncActive)
+      if (scrollSyncFrameRef.current !== null) {
+        window.cancelAnimationFrame(scrollSyncFrameRef.current)
+        scrollSyncFrameRef.current = null
+      }
+    }
+  }, [editor, headings, surfaceRef])
+
+  const handleHeadingJump = (id: string) => {
+    if (!editor) return
+    if (!editor.view?.dom) return
+    const surface = (surfaceRef?.current ?? editor.view.dom.closest('.note-editor__surface')) as HTMLDivElement | null
+    if (!surface) return
+    const target = headings.find((heading) => heading.id === id)
+    if (!target) return
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    surface.scrollTo({ top: Math.max(0, target.top - 12), behavior: prefersReducedMotion ? 'auto' : 'smooth' })
+  }
 
   return (
     <div className="note-editor">
@@ -213,6 +408,15 @@ const NoteEditor = ({ value, appearance, onOpenInfo, onOpenAppearance, onExport,
           </EditorContext.Provider>
         </div>
         <div className="note-editor__actions">
+          <button
+            type="button"
+            className="note-editor__action-button note-editor__action-button--icon"
+            aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+            title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+            onClick={onToggleFullscreen}
+          >
+            {isFullscreen ? <Minimize2 size={14} /> : <Expand size={14} />}
+          </button>
           <ActionButton icon={<Info size={14} />} label="Info" panelId="info" onClick={onOpenInfo} />
           <ActionButton icon={<Palette size={14} />} label="Appearance" panelId="appearance" onClick={onOpenAppearance} />
           <ActionButton icon={<Download size={14} />} label="Export" panelId="export" onClick={onExport} />
@@ -237,6 +441,27 @@ const NoteEditor = ({ value, appearance, onOpenInfo, onOpenAppearance, onExport,
           </EditorContext.Provider>
         </div>
       </div>
+      {headings.length > 0 && (
+        <aside className="note-editor__heading-nav" aria-label="Table of contents">
+          {headings.map((heading) => (
+            <button
+              key={heading.id}
+              type="button"
+              className={`note-editor__heading-nav-item${activeHeadingId === heading.id ? ' is-active' : ''}${hoverHeadingId === heading.id ? ' is-hover' : ''}`}
+              onMouseEnter={() => setHoverHeadingId(heading.id)}
+              onMouseLeave={() => setHoverHeadingId((current) => (current === heading.id ? null : current))}
+              onFocus={() => setHoverHeadingId(heading.id)}
+              onBlur={() => setHoverHeadingId((current) => (current === heading.id ? null : current))}
+              onClick={() => handleHeadingJump(heading.id)}
+              title={heading.text}
+              aria-label={heading.text}
+            >
+              <span className="note-editor__heading-nav-bar" />
+              <span className="note-editor__heading-nav-label">{heading.text}</span>
+            </button>
+          ))}
+        </aside>
+      )}
 
     </div>
   )
