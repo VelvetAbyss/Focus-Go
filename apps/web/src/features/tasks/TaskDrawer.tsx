@@ -3,11 +3,17 @@ import { CalendarDays, Check, Clock3, LoaderCircle, Pin, Plus, RotateCcw, Target
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import {
+  Select as ShadcnSelect,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import Dialog from '../../shared/ui/Dialog'
-import Select from '../../shared/ui/Select'
 import AnimatedPlanCheckbox from '../../shared/ui/AnimatedPlanCheckbox'
 import { DatePicker } from '../../shared/ui/DatePicker'
 import { DateRangePicker } from '../../shared/ui/DateRangePicker'
@@ -34,6 +40,14 @@ type TaskDrawerProps = {
 
 const priorityOptions: TaskPriority[] = ['high', 'medium', 'low']
 const defaultTagOptions = ['work', 'life', 'health', 'study', 'finance', 'family']
+const TASK_DRAWER_WIDTH_STORAGE_KEY = 'task_drawer_width_v1'
+const TASK_DRAWER_SPLIT_STORAGE_KEY = 'task_drawer_split_ratio_v1'
+const TASK_DRAWER_MIN_WIDTH = 1100
+const TASK_DRAWER_MAX_WIDTH = 1800
+const TASK_DRAWER_MIN_LEFT_RATIO = 0.45
+const TASK_DRAWER_MAX_LEFT_RATIO = 0.75
+const TASK_DRAWER_TOGGLE_RATIO_A = 0.6
+const TASK_DRAWER_TOGGLE_RATIO_B = 0.7
 
 const equalStringArrays = (a: string[], b: string[]) => {
   if (a.length !== b.length) return false
@@ -73,6 +87,8 @@ const combineReminderDateTime = (dateKey: string, time: string) => {
   return Number.isFinite(timestamp) ? timestamp : undefined
 }
 
+const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max)
+
 const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete }: TaskDrawerProps) => {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -96,6 +112,20 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
   const toast = useToast()
   const taskSnapshotRef = useRef<TaskItem | null>(null)
   const bodyOverflowRef = useRef<string>('')
+  const panelRef = useRef<HTMLDivElement | null>(null)
+  const [panelWidth, setPanelWidth] = useState<number>(() => {
+    if (typeof window === 'undefined') return 1280
+    const stored = Number(window.localStorage.getItem(TASK_DRAWER_WIDTH_STORAGE_KEY))
+    const fallback = Number.isFinite(stored) ? stored : 1280
+    const viewportMax = Math.max(TASK_DRAWER_MIN_WIDTH, window.innerWidth - 48)
+    return clamp(fallback, TASK_DRAWER_MIN_WIDTH, Math.min(TASK_DRAWER_MAX_WIDTH, viewportMax))
+  })
+  const [leftRatio, setLeftRatio] = useState<number>(() => {
+    if (typeof window === 'undefined') return 0.7
+    const stored = Number(window.localStorage.getItem(TASK_DRAWER_SPLIT_STORAGE_KEY))
+    const fallback = Number.isFinite(stored) ? stored : 0.7
+    return clamp(fallback, TASK_DRAWER_MIN_LEFT_RATIO, TASK_DRAWER_MAX_LEFT_RATIO)
+  })
 
   useEffect(() => {
     if (!task) return
@@ -313,6 +343,83 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
     }
   }, [open])
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem(TASK_DRAWER_WIDTH_STORAGE_KEY, String(panelWidth))
+  }, [panelWidth])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem(TASK_DRAWER_SPLIT_STORAGE_KEY, String(leftRatio))
+  }, [leftRatio])
+
+  useEffect(() => {
+    if (!open || typeof window === 'undefined') return
+    const onResize = () => {
+      const viewportMax = Math.max(TASK_DRAWER_MIN_WIDTH, window.innerWidth - 48)
+      setPanelWidth((prev) => clamp(prev, TASK_DRAWER_MIN_WIDTH, Math.min(TASK_DRAWER_MAX_WIDTH, viewportMax)))
+    }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [open])
+
+  const beginWidthResize = useCallback((event: React.PointerEvent, edge: 'left' | 'right') => {
+    if (!open) return
+    event.preventDefault()
+    const startX = event.clientX
+    const startWidth = panelRef.current?.getBoundingClientRect().width ?? panelWidth
+    const viewportMax = typeof window === 'undefined' ? TASK_DRAWER_MAX_WIDTH : Math.max(TASK_DRAWER_MIN_WIDTH, window.innerWidth - 48)
+    const maxWidth = Math.min(TASK_DRAWER_MAX_WIDTH, viewportMax)
+    const multiplier = edge === 'right' ? 1 : -1
+    const previousUserSelect = document.body.style.userSelect
+    const previousCursor = document.body.style.cursor
+    document.body.style.userSelect = 'none'
+    document.body.style.cursor = 'ew-resize'
+    const onMove = (moveEvent: PointerEvent) => {
+      const delta = (moveEvent.clientX - startX) * multiplier
+      setPanelWidth(clamp(startWidth + delta, TASK_DRAWER_MIN_WIDTH, maxWidth))
+    }
+    const onUp = () => {
+      document.body.style.userSelect = previousUserSelect
+      document.body.style.cursor = previousCursor
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  }, [open, panelWidth])
+
+  const beginSplitResize = useCallback((event: React.PointerEvent) => {
+    if (!open) return
+    event.preventDefault()
+    const panelRect = panelRef.current?.getBoundingClientRect()
+    if (!panelRect || panelRect.width <= 0) return
+    const previousUserSelect = document.body.style.userSelect
+    const previousCursor = document.body.style.cursor
+    document.body.style.userSelect = 'none'
+    document.body.style.cursor = 'col-resize'
+    const onMove = (moveEvent: PointerEvent) => {
+      const next = (moveEvent.clientX - panelRect.left) / panelRect.width
+      setLeftRatio(clamp(next, TASK_DRAWER_MIN_LEFT_RATIO, TASK_DRAWER_MAX_LEFT_RATIO))
+    }
+    const onUp = () => {
+      document.body.style.userSelect = previousUserSelect
+      document.body.style.cursor = previousCursor
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  }, [open])
+
+  const toggleSplitPreset = useCallback(() => {
+    setLeftRatio((prev) => {
+      const distanceToA = Math.abs(prev - TASK_DRAWER_TOGGLE_RATIO_A)
+      const distanceToB = Math.abs(prev - TASK_DRAWER_TOGGLE_RATIO_B)
+      return distanceToA <= distanceToB ? TASK_DRAWER_TOGGLE_RATIO_B : TASK_DRAWER_TOGGLE_RATIO_A
+    })
+  }, [])
+
   const requestClose = () => {
     flushSave()
     onClose()
@@ -354,7 +461,6 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
     },
   })
 
-  const progressLogs = useMemo(() => (currentTask?.progressLogs ?? []).slice().sort((a, b) => b.createdAt - a.createdAt), [currentTask?.progressLogs])
   const activityLogs = useMemo(() => (currentTask?.activityLogs ?? []).slice().sort((a, b) => b.createdAt - a.createdAt), [currentTask?.activityLogs])
   const statusConfig = currentTask ? TASK_STATUS_CONFIG[currentTask.status] : TASK_STATUS_CONFIG.todo
   const priorityConfig = TASK_PRIORITY_CONFIG[priority ?? 'none']
@@ -390,11 +496,15 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
       open={open}
       title=""
       onClose={requestClose}
-      panelClassName="!max-w-[1080px] !w-[calc(100vw-48px)] !h-[calc(100vh-40px)] !max-h-none rounded-[30px] border border-[#3a3733]/8 bg-white shadow-[0_30px_100px_rgba(15,23,42,0.18)]"
+      panelClassName="task-drawer-panel !h-[calc(100vh-40px)] !max-h-none rounded-[30px] border border-[#3a3733]/8 bg-white shadow-[0_30px_100px_rgba(15,23,42,0.18)]"
+      panelStyle={{ width: `${panelWidth}px`, maxWidth: 'calc(100vw - 48px)' }}
       contentClassName="!h-full !p-0"
     >
       {currentTask ? (
-        <div className="flex h-full min-h-0 flex-col overflow-hidden">
+        <div ref={panelRef} className="task-drawer-shell relative flex h-full min-h-0 flex-col overflow-hidden">
+          <div className="absolute inset-y-0 left-0 z-20 w-3 cursor-ew-resize" onPointerDown={(event) => beginWidthResize(event, 'left')} />
+          <div className="absolute inset-y-0 right-0 z-20 w-3 cursor-ew-resize" onPointerDown={(event) => beginWidthResize(event, 'right')} />
+          <div className="absolute bottom-1 right-1 z-20 h-4 w-4 cursor-ew-resize" onPointerDown={(event) => beginWidthResize(event, 'right')} />
           <div className="flex items-center justify-between gap-4 border-b border-[#3a3733]/6 bg-white px-6 py-4">
             <div className="flex min-w-0 items-center gap-3">
               <Badge variant="outline" className={cn('rounded-full border px-3 py-1 text-[11px] font-semibold', statusConfig.badge)}>
@@ -441,8 +551,8 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
             </div>
           </div>
 
-          <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1.6fr)_340px]">
-            <ScrollArea className="min-h-0 border-r border-[#3a3733]/6">
+          <div className="grid min-h-0 flex-1" style={{ gridTemplateColumns: `${leftRatio}fr 10px ${1 - leftRatio}fr` }}>
+            <ScrollArea className="min-h-0">
               <div className="space-y-6 px-6 py-6">
                 <div className="rounded-[28px] border border-[#3a3733]/6 bg-[linear-gradient(180deg,#ffffff,#f8fafc)] p-6 shadow-[0_24px_60px_rgba(15,23,42,0.05)]">
                   <div className="flex items-start justify-between gap-4">
@@ -475,14 +585,19 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
                       </div>
                     </div>
                     <div className="min-w-[120px]">
-                      <Select
-                        value={priority ?? '__none'}
-                        options={[
-                          { value: '__none', label: 'None' },
-                          ...priorityOptions.map((option) => ({ value: option, label: TASK_PRIORITY_CONFIG[option].label })),
-                        ]}
-                        onChange={(value) => setPriority(value === '__none' ? null : (value as TaskPriority))}
-                      />
+                      <ShadcnSelect value={priority ?? '__none'} onValueChange={(value) => setPriority(value === '__none' ? null : (value as TaskPriority))}>
+                        <SelectTrigger className="h-9 rounded-[14px] border-[#3a3733]/8 bg-white/90 px-3 text-sm font-semibold">
+                          <SelectValue placeholder="None" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none">None</SelectItem>
+                          {priorityOptions.map((option) => (
+                            <SelectItem key={option} value={option}>
+                              {TASK_PRIORITY_CONFIG[option].label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </ShadcnSelect>
                     </div>
                   </div>
 
@@ -636,24 +751,7 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
                   </div>
                 </section>
 
-                <section className="grid gap-4 xl:grid-cols-2">
-                  <div className="rounded-[26px] border border-[#3a3733]/6 bg-white/88 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Progress logs</p>
-                    <h2 className="mt-1 text-[18px] font-semibold tracking-[-0.02em] text-slate-950">Recorded updates</h2>
-                    <div className="mt-4 space-y-3">
-                      {progressLogs.length === 0 ? (
-                        <p className="rounded-[18px] border border-dashed border-slate-200 bg-slate-50/80 px-4 py-6 text-[13px] text-slate-500">No progress yet.</p>
-                      ) : (
-                        progressLogs.map((log) => (
-                          <article key={log.id} className="rounded-[18px] border border-[#3a3733]/6 bg-slate-50/80 px-4 py-3">
-                            <p className="text-[13px] leading-6 text-slate-700">{log.content}</p>
-                            <p className="mt-2 text-[11px] font-medium text-slate-500">{formatTaskDateTime(log.createdAt)}</p>
-                          </article>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
+                <section>
                   <div className="rounded-[26px] border border-[#3a3733]/6 bg-white/88 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Activity</p>
                     <h2 className="mt-1 text-[18px] font-semibold tracking-[-0.02em] text-slate-950">System timeline</h2>
@@ -673,6 +771,16 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
                 </section>
               </div>
             </ScrollArea>
+
+            <button
+              type="button"
+              aria-label="Resize columns"
+              className="group relative h-full w-[10px] cursor-col-resize border-x border-[#3a3733]/6 bg-slate-100/70 transition-colors hover:bg-slate-200/80"
+              onPointerDown={beginSplitResize}
+              onDoubleClick={toggleSplitPreset}
+            >
+              <span className="absolute left-1/2 top-1/2 h-14 w-[2px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-slate-300 transition-colors group-hover:bg-slate-400" />
+            </button>
 
             <aside className="flex min-h-0 flex-col bg-slate-50/70">
               <ScrollArea className="min-h-0 flex-1">

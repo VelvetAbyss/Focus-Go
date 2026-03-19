@@ -1,14 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
 import { useLocation } from 'react-router-dom'
 import { ROUTES } from '../routes/routes'
-import { usePreferences } from '../../shared/prefs/usePreferences'
-import {
-  habitPageTransitionTiming,
-  habitPageTransitionVariants,
-  pageTransitionTiming,
-  pageTransitionVariants,
-} from '../../shared/ui/transitions'
 import {
   applyTheme,
   readStoredThemePreference,
@@ -25,7 +17,7 @@ type AppShellProps = {
 }
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'focusgo.sidebar.collapsed.v1'
-const COMPACT_SIDEBAR_MEDIA_QUERY = '(max-width: 1366px)'
+const COMPACT_SIDEBAR_MEDIA_QUERY = '(max-width: 1536px)'
 
 const readSidebarCollapsed = () => {
   if (typeof localStorage === 'undefined') return false
@@ -39,7 +31,6 @@ const readCompactViewport = () =>
 
 const AppShell = ({ children }: AppShellProps) => {
   const location = useLocation()
-  const { uiAnimationsEnabled } = usePreferences()
   const [compactViewport, setCompactViewport] = useState(() => readCompactViewport())
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => readCompactViewport() || readSidebarCollapsed())
   const [sidebarDimmed, setSidebarDimmed] = useState(false)
@@ -51,11 +42,7 @@ const AppShell = ({ children }: AppShellProps) => {
     return readStoredThemePreference() ?? resolveInitialTheme()
   })
   useTaskReminderEngine()
-  const isHabitRoute = location.pathname === ROUTES.HABITS
   const isNoteRoute = location.pathname === ROUTES.NOTE
-  const isFocusRoute = location.pathname === ROUTES.FOCUS
-  const routeVariants = isHabitRoute ? habitPageTransitionVariants : pageTransitionVariants
-  const routeTransition = isHabitRoute ? habitPageTransitionTiming : pageTransitionTiming
 
   useEffect(() => {
     if (compactViewport) return
@@ -133,26 +120,10 @@ const AppShell = ({ children }: AppShellProps) => {
         theme={theme}
         onToggleTheme={toggleTheme}
       />
-      <main className="focus-shell__main">
-        {isFocusRoute ? (
-          <section className={`focus-shell__route-layer ${isNoteRoute ? 'focus-shell__route-layer--full-bleed' : ''}`}>
-            {children}
-          </section>
-        ) : (
-          <AnimatePresence mode="sync" initial={false}>
-            <motion.section
-              key={location.pathname}
-              className={`focus-shell__route-layer ${isNoteRoute ? 'focus-shell__route-layer--full-bleed' : ''}`}
-              variants={routeVariants}
-              initial={false}
-              animate="animate"
-              exit={uiAnimationsEnabled ? 'exit' : undefined}
-              transition={uiAnimationsEnabled ? routeTransition : { duration: 0 }}
-            >
-              {children}
-            </motion.section>
-          </AnimatePresence>
-        )}
+      <main className="focus-shell__main flex min-h-0 flex-1 flex-col">
+        <section className={`focus-shell__route-layer flex min-h-0 flex-1 flex-col ${isNoteRoute ? 'focus-shell__route-layer--full-bleed' : ''}`}>
+          {children}
+        </section>
       </main>
     </div>
   )

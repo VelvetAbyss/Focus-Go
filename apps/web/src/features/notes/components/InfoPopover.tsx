@@ -2,6 +2,7 @@ import { Clock, FileText, Image, Paperclip, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 import type { NoteItem } from '../../../data/models/types'
+import { countCharactersInMarkdown, countCharactersNoSpacesInMarkdown, countWordsInMarkdown } from '../model/noteStats'
 
 type InfoTab = 'stats' | 'toc' | 'backlinks'
 
@@ -11,11 +12,6 @@ type Props = {
   onClose: () => void
   onNavigateToHeading: (headingId: string, headingText: string) => void
   onNavigateToNote: (id: string) => void
-}
-
-const countWords = (content: string) => {
-  const tokens = content.match(/[\p{Script=Han}]|[A-Za-z0-9]+/gu)
-  return tokens?.length ?? 0
 }
 
 export default function InfoPopover({ open, note, onClose, onNavigateToHeading, onNavigateToNote }: Props) {
@@ -36,11 +32,12 @@ export default function InfoPopover({ open, note, onClose, onNavigateToHeading, 
 
   if (!rendered || !note) return null
 
-  const words = countWords(note.contentMd)
+  const words = countWordsInMarkdown(note.contentMd)
   const paragraphs = note.contentMd.split(/\n\s*\n/).map((part) => part.trim()).filter(Boolean)
   const imageCount = (note.contentMd.match(/!\[[^\]]*\]\([^)]+\)/g) ?? []).length
   const fileCount = (note.contentMd.match(/\battachment:\b/gi) ?? []).length
-  const charsNoSpaces = note.contentMd.replace(/\s+/g, '').length
+  const characterCount = countCharactersInMarkdown(note.contentMd)
+  const charsNoSpaces = countCharactersNoSpacesInMarkdown(note.contentMd)
 
   return (
     <div data-note-floating-panel="info" data-state={visible ? 'open' : 'closed'} className="note-page__panel">
@@ -73,7 +70,7 @@ export default function InfoPopover({ open, note, onClose, onNavigateToHeading, 
         {tab === 'stats' ? (
           <div className="space-y-2">
             <StatRow label="Words" value={words.toLocaleString()} />
-            <StatRow label="Characters" value={note.contentMd.length.toLocaleString()} />
+            <StatRow label="Characters" value={characterCount.toLocaleString()} />
             <StatRow label="Chars (no spaces)" value={charsNoSpaces.toLocaleString()} />
             <StatRow label="Paragraphs" value={paragraphs.length.toString()} />
             <StatRow label="Read time" value={`${Math.max(1, Math.ceil(words / 200))} min`} />

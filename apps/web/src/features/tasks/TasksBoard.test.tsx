@@ -17,7 +17,6 @@ vi.mock('../../data/repositories/tasksRepo', () => ({
     remove: vi.fn(),
     update: vi.fn(),
     updateStatus: vi.fn(),
-    appendProgress: vi.fn(),
     clearAllTags: vi.fn(),
   },
 }))
@@ -54,18 +53,6 @@ vi.mock('../../shared/ui/Dialog', () => ({
   default: () => null,
 }))
 
-vi.mock('../../shared/ui/Select', () => ({
-  default: ({ value, options, onChange }: { value: string; options: Array<{ value: string; label: string }>; onChange: (v: string) => void }) => (
-    <select aria-label="select" value={value} onChange={(event) => onChange(event.target.value)}>
-      {options.map((option) => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-    </select>
-  ),
-}))
-
 vi.mock('../../shared/ui/AppNumber', () => ({
   AppNumber: ({ value }: { value: number }) => <span>{value}</span>,
 }))
@@ -98,7 +85,6 @@ const makeTask = (id: string, title: string): TaskItem => ({
   tags: [],
   subtasks: [],
   taskNoteBlocks: [],
-  progressLogs: [],
   activityLogs: [],
   createdAt: 1,
   updatedAt: 1,

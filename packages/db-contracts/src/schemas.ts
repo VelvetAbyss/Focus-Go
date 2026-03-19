@@ -24,18 +24,10 @@ const taskSubtaskSchema = z
   })
   .strict()
 
-const taskProgressLogSchema = z
-  .object({
-    id: z.string().min(1),
-    content: z.string(),
-    createdAt: z.number(),
-  })
-  .strict()
-
 const taskActivityLogSchema = z
   .object({
     id: z.string().min(1),
-    type: z.enum(['status', 'progress', 'details']),
+    type: z.enum(['status', 'details']),
     message: z.string(),
     createdAt: z.number(),
   })
@@ -143,7 +135,6 @@ const taskItemSchema = baseEntitySchema.extend({
   taskNoteBlocks: z.array(taskNoteBlockSchema),
   taskNoteContentMd: z.string().optional(),
   taskNoteContentJson: z.record(z.string(), z.unknown()).nullable().optional(),
-  progressLogs: z.array(taskProgressLogSchema),
   activityLogs: z.array(taskActivityLogSchema),
 })
 
@@ -224,6 +215,7 @@ const widgetTodoSchema = baseEntitySchema.extend({
   priority: z.enum(['high', 'medium', 'low']),
   dueDate: z.string().optional(),
   done: z.boolean(),
+  linkedHabitId: z.string().optional(),
 })
 
 const widgetTodoCreateInputSchema = z
@@ -233,10 +225,70 @@ const widgetTodoCreateInputSchema = z
     priority: z.enum(['high', 'medium', 'low']),
     dueDate: z.string().optional(),
     done: z.boolean(),
+    linkedHabitId: z.string().optional(),
     userId: z.string().optional(),
     workspaceId: z.string().optional(),
   })
   .strict()
+
+const habitTypeSchema = z.enum(['boolean', 'numeric', 'timer'])
+const habitStatusSchema = z.enum(['completed', 'failed', 'frozen'])
+
+const habitSchema = baseEntitySchema.extend({
+  userId: z.string(),
+  title: z.string(),
+  description: z.string().optional(),
+  icon: z.string().optional(),
+  type: habitTypeSchema,
+  color: z.string(),
+  archived: z.boolean(),
+  target: z.number().optional(),
+  freezesAllowed: z.number(),
+  sortOrder: z.number(),
+})
+
+const habitCreateInputSchema = z
+  .object({
+    userId: z.string(),
+    title: z.string(),
+    description: z.string().optional(),
+    icon: z.string().optional(),
+    type: habitTypeSchema,
+    color: z.string(),
+    archived: z.boolean(),
+    target: z.number().optional(),
+    freezesAllowed: z.number(),
+    sortOrder: z.number(),
+    workspaceId: z.string().optional(),
+  })
+  .strict()
+
+const habitUpdateInputSchema = z
+  .object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    icon: z.string().optional(),
+    type: habitTypeSchema.optional(),
+    color: z.string().optional(),
+    archived: z.boolean().optional(),
+    target: z.number().optional(),
+    freezesAllowed: z.number().optional(),
+    sortOrder: z.number().optional(),
+    workspaceId: z.string().optional(),
+  })
+  .strict()
+
+const habitLogSchema = baseEntitySchema.extend({
+  userId: z.string(),
+  habitId: z.string(),
+  dateKey: z.string(),
+  value: z.number().optional(),
+  status: habitStatusSchema,
+})
+
+const habitListOptionsSchema = z.object({ archived: z.boolean().optional() }).strict()
+const habitDailyProgressSchema = z.object({ completed: z.number(), total: z.number(), percent: z.number() }).strict()
+const habitHeatmapCellSchema = z.object({ dateKey: z.string(), completed: z.number(), total: z.number() }).strict()
 
 const noiseTrackSettingsSchema = z
   .object({
@@ -411,7 +463,6 @@ export const ipcRequestSchemas = {
   'db:tasks:update': z.object({ task: taskItemSchema }).strict(),
   'db:tasks:remove': idSchema,
   'db:tasks:updateStatus': z.object({ id: z.string().min(1), status: taskStatusSchema }).strict(),
-  'db:tasks:appendProgress': z.object({ id: z.string().min(1), content: z.string() }).strict(),
   'db:tasks:clearAllTags': emptySchema,
   'db:notes:list': emptySchema,
   'db:notes:listTrash': emptySchema,
@@ -462,6 +513,18 @@ export const ipcRequestSchemas = {
   'db:spend:updateCategory': z.object({ category: spendCategorySchema }).strict(),
   'db:dashboard:get': emptySchema,
   'db:dashboard:upsert': dashboardLayoutUpsertInputSchema,
+  'db:habits:list': z.object({ userId: z.string().min(1), options: habitListOptionsSchema.optional() }).strict(),
+  'db:habits:create': habitCreateInputSchema,
+  'db:habits:update': z.object({ id: z.string().min(1), patch: habitUpdateInputSchema }).strict(),
+  'db:habits:archive': idSchema,
+  'db:habits:restore': idSchema,
+  'db:habits:reorder': z.object({ userId: z.string().min(1), ids: z.array(z.string().min(1)) }).strict(),
+  'db:habits:recordCompletion': z.object({ habitId: z.string().min(1), dateKey: z.string(), value: z.number().optional() }).strict(),
+  'db:habits:undoCompletion': z.object({ habitId: z.string().min(1), dateKey: z.string() }).strict(),
+  'db:habits:listLogs': z.object({ habitId: z.string().min(1) }).strict(),
+  'db:habits:computeStreak': z.object({ habitId: z.string().min(1), dateKey: z.string() }).strict(),
+  'db:habits:getDailyProgress': z.object({ userId: z.string().min(1), dateKey: z.string() }).strict(),
+  'db:habits:getHeatmap': z.object({ userId: z.string().min(1), days: z.number().int().positive() }).strict(),
 } as const satisfies Record<IpcChannel, ZodTypeAny>
 
 const ipcErrorSchema = z.object({ code: z.string(), message: z.string() }).strict()
@@ -478,7 +541,6 @@ export const ipcResponseSchemas = {
   'db:tasks:update': responseSchema(taskItemSchema),
   'db:tasks:remove': responseSchema(z.null()),
   'db:tasks:updateStatus': responseSchema(taskItemSchema.nullable()),
-  'db:tasks:appendProgress': responseSchema(taskItemSchema.nullable()),
   'db:tasks:clearAllTags': responseSchema(z.null()),
   'db:notes:list': responseSchema(z.array(noteItemSchema)),
   'db:notes:listTrash': responseSchema(z.array(noteItemSchema)),
@@ -523,6 +585,18 @@ export const ipcResponseSchemas = {
   'db:spend:updateCategory': responseSchema(spendCategorySchema),
   'db:dashboard:get': responseSchema(dashboardLayoutSchema.nullable()),
   'db:dashboard:upsert': responseSchema(dashboardLayoutSchema),
+  'db:habits:list': responseSchema(z.array(habitSchema)),
+  'db:habits:create': responseSchema(habitSchema),
+  'db:habits:update': responseSchema(habitSchema.nullable()),
+  'db:habits:archive': responseSchema(habitSchema.nullable()),
+  'db:habits:restore': responseSchema(habitSchema.nullable()),
+  'db:habits:reorder': responseSchema(z.null()),
+  'db:habits:recordCompletion': responseSchema(habitLogSchema),
+  'db:habits:undoCompletion': responseSchema(z.null()),
+  'db:habits:listLogs': responseSchema(z.array(habitLogSchema)),
+  'db:habits:computeStreak': responseSchema(z.number()),
+  'db:habits:getDailyProgress': responseSchema(habitDailyProgressSchema),
+  'db:habits:getHeatmap': responseSchema(z.array(habitHeatmapCellSchema)),
 } as const satisfies Record<IpcChannel, ZodTypeAny>
 
 export type IpcRequestByChannel = {

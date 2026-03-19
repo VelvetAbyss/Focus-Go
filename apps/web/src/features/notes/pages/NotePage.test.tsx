@@ -50,12 +50,16 @@ vi.mock('../../../data/repositories/noteAppearanceRepo', () => ({
 vi.mock('../components/NoteEditor', () => ({
   default: ({
     value,
+    isFullscreen,
+    onToggleFullscreen,
     onOpenInfo,
     onOpenAppearance,
     onExport,
     onChange,
   }: {
     value: { title: string; contentMd: string; tags: string[] }
+    isFullscreen?: boolean
+    onToggleFullscreen?: () => void
     onOpenInfo?: () => void
     onOpenAppearance?: () => void
     onExport?: () => void
@@ -63,6 +67,10 @@ vi.mock('../components/NoteEditor', () => ({
   }) => (
     <div data-testid="note-editor">
       <div>Editor:{value.title || 'Untitled'}</div>
+      <div>Fullscreen:{isFullscreen ? 'on' : 'off'}</div>
+      <button type="button" onClick={onToggleFullscreen}>
+        Toggle fullscreen
+      </button>
       <button type="button" onClick={onOpenInfo}>
         Open info
       </button>
@@ -199,6 +207,26 @@ describe('NotePage', () => {
     expect(await screen.findByText('Statistics')).toBeInTheDocument()
     expect(screen.getByText('Words')).toBeInTheDocument()
     expect(screen.getByText('22')).toBeInTheDocument()
+  })
+
+  it('toggles note fullscreen mode and exits on escape', async () => {
+    listMock.mockResolvedValue([createNote({ title: 'Design doc' })])
+    listTrashMock.mockResolvedValue([])
+
+    const { container } = render(<NotePage />)
+
+    expect(await screen.findByText('Editor:Design doc')).toBeInTheDocument()
+    expect(screen.getByText('Fullscreen:off')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Toggle fullscreen' }))
+
+    expect(screen.getByText('Fullscreen:on')).toBeInTheDocument()
+    expect(container.querySelector('.note-page')?.getAttribute('data-fullscreen')).toBe('true')
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+
+    await waitFor(() => expect(screen.getByText('Fullscreen:off')).toBeInTheDocument())
+    expect(container.querySelector('.note-page')?.getAttribute('data-fullscreen')).toBe('false')
   })
 
   it('exports the active note as markdown', async () => {

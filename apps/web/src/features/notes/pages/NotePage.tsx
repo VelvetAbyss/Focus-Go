@@ -9,6 +9,7 @@ import InfoPopover from '../components/InfoPopover'
 import NoteBrowser, { type NoteSortOption } from '../components/NoteBrowser'
 import NoteEditor from '../components/NoteEditor'
 import NoteSidebar, { type NoteSystemCollection } from '../components/NoteSidebar'
+import { countCharactersInMarkdown, countWordsInMarkdown } from '../model/noteStats'
 import '../notes.css'
 
 const DEFAULT_APPEARANCE: NoteAppearanceSettings = {
@@ -50,7 +51,6 @@ const countMatches = (content: string, pattern: RegExp) => (content.match(patter
 
 const buildNoteStats = (contentMd: string) => {
   const content = typeof contentMd === 'string' ? contentMd : ''
-  const words = content.trim().split(/\s+/).filter(Boolean)
   const paragraphs = content.split(/\n\s*\n/).map((part) => part.trim()).filter(Boolean)
   const headings = content
     .split('\n')
@@ -63,8 +63,8 @@ const buildNoteStats = (contentMd: string) => {
     }))
 
   return {
-    wordCount: words.length,
-    charCount: content.length,
+    wordCount: countWordsInMarkdown(content),
+    charCount: countCharactersInMarkdown(content),
     paragraphCount: paragraphs.length,
     imageCount: countMatches(content, /!\[[^\]]*\]\([^)]+\)/g),
     fileCount: countMatches(content, /\battachment:\b/gi),
@@ -117,6 +117,7 @@ export default function NotePage() {
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<NoteSortOption>('edited')
   const [openPanel, setOpenPanel] = useState<NotePanel>(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const [todayKey, setTodayKey] = useState(() => dateKey(Date.now()))
   const [isAppDark, setIsAppDark] = useState(() => document.documentElement.classList.contains('dark'))
   const pendingSaveRef = useRef<{ id: string; patch: Partial<NoteItem> } | null>(null)
@@ -604,9 +605,18 @@ export default function NotePage() {
     }
   }, [openPanel])
 
+  useEffect(() => {
+    if (!isFullscreen) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsFullscreen(false)
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [isFullscreen])
+
   return (
     <section className="note-page-shell flex h-full max-h-full min-h-0" data-note-theme={effectiveTheme}>
-      <div className="note-page-shell__content note-page">
+      <div className="note-page-shell__content note-page" data-fullscreen={isFullscreen ? 'true' : 'false'}>
         <NoteSidebar
           className="note-page-column note-page-column--sidebar"
           scrollContainerRef={sidebarScrollRef}
@@ -649,6 +659,8 @@ export default function NotePage() {
               surfaceRef={editorSurfaceRef}
               value={activeNoteValue}
               appearance={appearance}
+              isFullscreen={isFullscreen}
+              onToggleFullscreen={() => setIsFullscreen((current) => !current)}
               onOpenInfo={() => setOpenPanel((current) => (current === 'info' ? null : 'info'))}
               onOpenAppearance={() => setOpenPanel((current) => (current === 'appearance' ? null : 'appearance'))}
               onExport={() => setOpenPanel((current) => (current === 'export' ? null : 'export'))}

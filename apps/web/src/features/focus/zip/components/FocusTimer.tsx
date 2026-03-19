@@ -111,7 +111,7 @@ function TimerDisplay({ time }: { time: number }) {
   return (
     <div className="flex items-center justify-center select-none">
       <div
-        className="flex items-center tracking-[-0.04em]"
+        className="focus-zip-timer__digits flex items-center tracking-[-0.04em]"
         style={{
           fontFamily: "'DM Serif Display', serif",
           fontSize: "clamp(3.8rem, 6.5vw, 6rem)",
@@ -498,7 +498,7 @@ export function FocusTimer({
   const quote = quotes[quoteIndex];
 
   return (
-    <div className="h-full flex flex-col items-center justify-center relative overflow-hidden">
+    <div className="focus-zip-timer h-full flex flex-col items-center justify-center relative overflow-hidden">
       {/* Breathing guide overlay */}
       <AnimatePresence>
         {showBreathing && <BreathingGuide onComplete={handleBreathingComplete} />}

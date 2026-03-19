@@ -7,6 +7,9 @@ import type {
   DiaryEntry,
   FocusSession,
   FocusSettings,
+  Habit,
+  HabitLog,
+  HabitStatus,
   IDatabaseService,
   NoteAppearanceSettings,
   NoteAppearanceUpsertInput,
@@ -28,6 +31,7 @@ import type {
 const FOCUS_SETTINGS_ID = 'focus_settings'
 const DASHBOARD_LAYOUT_ID = 'dashboard_layout'
 const NOTE_APPEARANCE_ID = 'note_appearance'
+const MS_PER_DAY = 24 * 60 * 60 * 1000
 
 const createId = () => randomUUID().replace(/-/g, '')
 
@@ -43,6 +47,24 @@ const parseJson = <T>(value: string | null | undefined, fallback: T): T => {
 const serializeJson = (value: unknown) => JSON.stringify(value)
 
 const now = () => Date.now()
+
+const parseDateKey = (dateKey: string) => {
+  const [year, month, day] = dateKey.split('-').map(Number)
+  return new Date(year, (month || 1) - 1, day || 1, 12, 0, 0, 0)
+}
+
+const toDateKey = (date: Date) => {
+  const year = date.getFullYear()
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const moveDateKey = (dateKey: string, delta: number) => {
+  const date = parseDateKey(dateKey)
+  date.setDate(date.getDate() + delta)
+  return toDateKey(date)
+}
 
 const buildNoteExcerpt = (contentMd: string) => contentMd.replace(/\s+/g, ' ').trim().slice(0, 160)
 
@@ -110,6 +132,36 @@ const toWidgetTodo = (row: Record<string, unknown>): WidgetTodo => ({
   priority: String(row.priority) as WidgetTodo['priority'],
   dueDate: row.dueDate ? String(row.dueDate) : undefined,
   done: Number(row.done) === 1,
+  linkedHabitId: row.linkedHabitId ? String(row.linkedHabitId) : undefined,
+})
+
+const toHabit = (row: Record<string, unknown>): Habit => ({
+  id: String(row.id),
+  createdAt: Number(row.createdAt),
+  updatedAt: Number(row.updatedAt),
+  userId: String(row.userId ?? ''),
+  workspaceId: row.workspaceId ? String(row.workspaceId) : undefined,
+  title: String(row.title ?? ''),
+  description: row.description ? String(row.description) : undefined,
+  icon: row.icon ? String(row.icon) : undefined,
+  type: String(row.type) as Habit['type'],
+  color: String(row.color ?? '#3a3733'),
+  archived: Number(row.archived ?? 0) === 1,
+  target: row.target === null || row.target === undefined ? undefined : Number(row.target),
+  freezesAllowed: Number(row.freezesAllowed ?? 0),
+  sortOrder: Number(row.sortOrder ?? 0),
+})
+
+const toHabitLog = (row: Record<string, unknown>): HabitLog => ({
+  id: String(row.id),
+  createdAt: Number(row.createdAt),
+  updatedAt: Number(row.updatedAt),
+  userId: String(row.userId ?? ''),
+  workspaceId: row.workspaceId ? String(row.workspaceId) : undefined,
+  habitId: String(row.habitId),
+  dateKey: String(row.dateKey),
+  value: row.value === null || row.value === undefined ? undefined : Number(row.value),
+  status: String(row.status) as HabitStatus,
 })
 
 const toNoteItem = (row: Record<string, unknown>): NoteItem => ({
@@ -310,9 +362,39 @@ const ensureSchema = (database: Database.Database) => {
       priority TEXT NOT NULL,
       dueDate TEXT,
       done INTEGER NOT NULL,
+      linkedHabitId TEXT,
       createdAt INTEGER NOT NULL,
       updatedAt INTEGER NOT NULL,
       userId TEXT,
+      workspaceId TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS habits (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      icon TEXT,
+      type TEXT NOT NULL,
+      color TEXT NOT NULL,
+      archived INTEGER NOT NULL DEFAULT 0,
+      target REAL,
+      freezesAllowed INTEGER NOT NULL DEFAULT 0,
+      sortOrder INTEGER NOT NULL DEFAULT 0,
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL,
+      workspaceId TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS habit_logs (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      habitId TEXT NOT NULL,
+      dateKey TEXT NOT NULL,
+      value REAL,
+      status TEXT NOT NULL,
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL,
       workspaceId TEXT
     );
 
@@ -445,6 +527,7 @@ const ensureSchema = (database: Database.Database) => {
   ensureColumn('notes', 'fileCount', 'INTEGER NOT NULL DEFAULT 0')
   ensureColumn('notes', 'headings', `TEXT NOT NULL DEFAULT '[]'`)
   ensureColumn('notes', 'backlinks', `TEXT NOT NULL DEFAULT '[]'`)
+  ensureColumn('widget_todos', 'linkedHabitId', 'TEXT')
 
   const versionRow = database.prepare('SELECT version FROM schema_version LIMIT 1').get() as { version: number } | undefined
   if (!versionRow) {
@@ -461,6 +544,8 @@ type DexieDump = Partial<{
   tasks: TaskItem[]
   notes: NoteItem[]
   widgetTodos: WidgetTodo[]
+  habits: Habit[]
+  habitLogs: HabitLog[]
   focusSettings: FocusSettings[]
   focusSessions: FocusSession[]
   diaryEntries: DiaryEntry[]
@@ -942,13 +1027,14 @@ export const createSqliteBundle = (dbPath: string): SqliteBundle => {
         database
           .prepare(
             `INSERT INTO widget_todos
-             (id, scope, title, priority, dueDate, done, createdAt, updatedAt, userId, workspaceId)
-             VALUES (@id, @scope, @title, @priority, @dueDate, @done, @createdAt, @updatedAt, @userId, @workspaceId)`
+             (id, scope, title, priority, dueDate, done, linkedHabitId, createdAt, updatedAt, userId, workspaceId)
+             VALUES (@id, @scope, @title, @priority, @dueDate, @done, @linkedHabitId, @createdAt, @updatedAt, @userId, @workspaceId)`
           )
           .run({
             ...entity,
             dueDate: entity.dueDate ?? null,
             done: entity.done ? 1 : 0,
+            linkedHabitId: entity.linkedHabitId ?? null,
             userId: entity.userId ?? null,
             workspaceId: entity.workspaceId ?? null,
           })
@@ -958,12 +1044,13 @@ export const createSqliteBundle = (dbPath: string): SqliteBundle => {
         const next: WidgetTodo = { ...item, updatedAt: now() }
         database
           .prepare(
-            `UPDATE widget_todos SET
+             `UPDATE widget_todos SET
                scope=@scope,
                title=@title,
                priority=@priority,
                dueDate=@dueDate,
                done=@done,
+               linkedHabitId=@linkedHabitId,
                updatedAt=@updatedAt,
                userId=@userId,
                workspaceId=@workspaceId
@@ -973,6 +1060,7 @@ export const createSqliteBundle = (dbPath: string): SqliteBundle => {
             ...next,
             dueDate: next.dueDate ?? null,
             done: next.done ? 1 : 0,
+            linkedHabitId: next.linkedHabitId ?? null,
             userId: next.userId ?? null,
             workspaceId: next.workspaceId ?? null,
           })
@@ -988,6 +1076,206 @@ export const createSqliteBundle = (dbPath: string): SqliteBundle => {
       },
       async remove(id) {
         database.prepare('DELETE FROM widget_todos WHERE id = ?').run(id)
+      },
+    },
+    habits: {
+      async listHabits(userId, options = {}) {
+        const archived = options.archived ?? false
+        const rows = database.prepare('SELECT * FROM habits WHERE userId = ? AND archived = ? ORDER BY sortOrder ASC, createdAt ASC').all(userId, archived ? 1 : 0) as Record<string, unknown>[]
+        return rows.map(toHabit)
+      },
+      async createHabit(data) {
+        const row = database.prepare('SELECT MAX(sortOrder) as maxSortOrder FROM habits WHERE userId = ?').get(data.userId) as { maxSortOrder?: number } | undefined
+        const time = now()
+        const entity: Habit = {
+          id: createId(),
+          createdAt: time,
+          updatedAt: time,
+          ...data,
+          sortOrder: typeof data.sortOrder === 'number' ? data.sortOrder : Number(row?.maxSortOrder ?? -1) + 1,
+        }
+        database
+          .prepare(
+            `INSERT INTO habits
+             (id, userId, title, description, icon, type, color, archived, target, freezesAllowed, sortOrder, createdAt, updatedAt, workspaceId)
+             VALUES (@id, @userId, @title, @description, @icon, @type, @color, @archived, @target, @freezesAllowed, @sortOrder, @createdAt, @updatedAt, @workspaceId)`
+          )
+          .run({
+            ...entity,
+            description: entity.description ?? null,
+            icon: entity.icon ?? null,
+            archived: entity.archived ? 1 : 0,
+            target: entity.target ?? null,
+            workspaceId: entity.workspaceId ?? null,
+          })
+        return entity
+      },
+      async updateHabit(id, patch) {
+        const existing = database.prepare('SELECT * FROM habits WHERE id = ?').get(id) as Record<string, unknown> | undefined
+        if (!existing) return undefined
+        const next: Habit = { ...toHabit(existing), ...patch, updatedAt: now() }
+        database
+          .prepare(
+            `UPDATE habits SET
+               title=@title,
+               description=@description,
+               icon=@icon,
+               type=@type,
+               color=@color,
+               archived=@archived,
+               target=@target,
+               freezesAllowed=@freezesAllowed,
+               sortOrder=@sortOrder,
+               updatedAt=@updatedAt,
+               workspaceId=@workspaceId
+             WHERE id=@id`
+          )
+          .run({
+            ...next,
+            description: next.description ?? null,
+            icon: next.icon ?? null,
+            archived: next.archived ? 1 : 0,
+            target: next.target ?? null,
+            workspaceId: next.workspaceId ?? null,
+          })
+        return next
+      },
+      async archiveHabit(id) {
+        return service.habits.updateHabit(id, { archived: true })
+      },
+      async restoreHabit(id) {
+        return service.habits.updateHabit(id, { archived: false })
+      },
+      async reorderHabits(userId, ids) {
+        if (ids.length === 0) return
+        const rows = database.prepare('SELECT * FROM habits WHERE userId = ? AND archived = 0').all(userId) as Record<string, unknown>[]
+        const byId = new Map(rows.map((row) => {
+          const habit = toHabit(row)
+          return [habit.id, habit]
+        }))
+        const time = now()
+        const updateStmt = database.prepare('UPDATE habits SET sortOrder = ?, updatedAt = ? WHERE id = ?')
+        for (const [index, id] of ids.entries()) {
+          if (!byId.has(id)) continue
+          updateStmt.run(index, time, id)
+        }
+      },
+      async recordHabitCompletion(habitId, dateKey, value) {
+        const habitRow = database.prepare('SELECT * FROM habits WHERE id = ?').get(habitId) as Record<string, unknown> | undefined
+        if (!habitRow) throw new Error('Habit not found')
+        const habit = toHabit(habitRow)
+        const existingRow = database.prepare('SELECT * FROM habit_logs WHERE habitId = ? AND dateKey = ? LIMIT 1').get(habitId, dateKey) as Record<string, unknown> | undefined
+        const time = now()
+        const nextValue =
+          typeof value === 'number' ? value : habit.type === 'boolean' ? undefined : typeof habit.target === 'number' ? habit.target : undefined
+        const entity: HabitLog = existingRow
+          ? {
+              ...toHabitLog(existingRow),
+              status: 'completed',
+              value: nextValue ?? toHabitLog(existingRow).value,
+              updatedAt: time,
+            }
+          : {
+              id: createId(),
+              createdAt: time,
+              updatedAt: time,
+              userId: habit.userId,
+              workspaceId: habit.workspaceId,
+              habitId,
+              dateKey,
+              value: nextValue,
+              status: 'completed',
+            }
+
+        database
+          .prepare(
+            `INSERT INTO habit_logs
+             (id, userId, habitId, dateKey, value, status, createdAt, updatedAt, workspaceId)
+             VALUES (@id, @userId, @habitId, @dateKey, @value, @status, @createdAt, @updatedAt, @workspaceId)
+             ON CONFLICT(id) DO UPDATE SET
+               userId=excluded.userId,
+               habitId=excluded.habitId,
+               dateKey=excluded.dateKey,
+               value=excluded.value,
+               status=excluded.status,
+               updatedAt=excluded.updatedAt,
+               workspaceId=excluded.workspaceId`
+          )
+          .run({
+            ...entity,
+            value: entity.value ?? null,
+            workspaceId: entity.workspaceId ?? null,
+          })
+        return entity
+      },
+      async undoHabitCompletion(habitId, dateKey) {
+        database.prepare('DELETE FROM habit_logs WHERE habitId = ? AND dateKey = ?').run(habitId, dateKey)
+      },
+      async listHabitLogs(habitId) {
+        const rows = database.prepare('SELECT * FROM habit_logs WHERE habitId = ? ORDER BY dateKey DESC').all(habitId) as Record<string, unknown>[]
+        return rows.map(toHabitLog)
+      },
+      async computeHabitStreak(habitId, dateKey) {
+        const habitRow = database.prepare('SELECT * FROM habits WHERE id = ?').get(habitId) as Record<string, unknown> | undefined
+        if (!habitRow) return 0
+        const habit = toHabit(habitRow)
+        const logs = service.habits.listHabitLogs(habitId)
+        const resolvedLogs = await logs
+        const map = new Map(resolvedLogs.map((item) => [item.dateKey, item]))
+        const earliestDateKey =
+          resolvedLogs.length > 0 ? resolvedLogs.reduce((min, item) => (item.dateKey < min ? item.dateKey : min), resolvedLogs[0].dateKey) : null
+        let streak = 0
+        let cursor = dateKey
+        let freezesLeft = Math.max(0, habit.freezesAllowed)
+
+        for (let index = 0; index < 3650; index += 1) {
+          const log = map.get(cursor)
+          if (!log) {
+            if (earliestDateKey && cursor < earliestDateKey) break
+            if (freezesLeft <= 0) break
+            freezesLeft -= 1
+            streak += 1
+            cursor = moveDateKey(cursor, -1)
+            continue
+          }
+          if (log.status === 'completed' || log.status === 'frozen') {
+            streak += 1
+            if (log.status === 'frozen') freezesLeft = Math.max(0, freezesLeft - 1)
+            cursor = moveDateKey(cursor, -1)
+            continue
+          }
+          if (freezesLeft <= 0) break
+          freezesLeft -= 1
+          streak += 1
+          cursor = moveDateKey(cursor, -1)
+        }
+        return streak
+      },
+      async getDailyProgress(userId, dateKey) {
+        const habits = await service.habits.listHabits(userId, { archived: false })
+        if (habits.length === 0) return { completed: 0, total: 0, percent: 0 }
+        const rows = database.prepare('SELECT habitId FROM habit_logs WHERE userId = ? AND dateKey = ? AND status = ?').all(userId, dateKey, 'completed') as Array<{ habitId: string }>
+        const completedIds = new Set(rows.map((row) => row.habitId))
+        const completed = habits.filter((habit) => completedIds.has(habit.id)).length
+        return { completed, total: habits.length, percent: Math.round((completed / habits.length) * 100) }
+      },
+      async getHeatmap(userId, days) {
+        const range = Math.max(1, days)
+        const end = new Date()
+        const first = new Date(end.getTime() - (range - 1) * MS_PER_DAY)
+        const startKey = toDateKey(first)
+        const endKey = toDateKey(end)
+        const habits = await service.habits.listHabits(userId, { archived: false })
+        const rows = database.prepare('SELECT * FROM habit_logs WHERE userId = ? AND dateKey >= ? AND dateKey <= ?').all(userId, startKey, endKey) as Record<string, unknown>[]
+        const byDate = new Map<string, number>()
+        for (const row of rows.map(toHabitLog)) {
+          if (row.status !== 'completed') continue
+          byDate.set(row.dateKey, (byDate.get(row.dateKey) ?? 0) + 1)
+        }
+        return Array.from({ length: range }).map((_, index) => {
+          const key = toDateKey(new Date(first.getTime() + index * MS_PER_DAY))
+          return { dateKey: key, completed: byDate.get(key) ?? 0, total: habits.length }
+        })
       },
     },
     focus: {
@@ -1498,14 +1786,15 @@ export const createSqliteBundle = (dbPath: string): SqliteBundle => {
           database
             .prepare(
               `INSERT INTO widget_todos
-               (id, scope, title, priority, dueDate, done, createdAt, updatedAt, userId, workspaceId)
-               VALUES (@id, @scope, @title, @priority, @dueDate, @done, @createdAt, @updatedAt, @userId, @workspaceId)
+               (id, scope, title, priority, dueDate, done, linkedHabitId, createdAt, updatedAt, userId, workspaceId)
+               VALUES (@id, @scope, @title, @priority, @dueDate, @done, @linkedHabitId, @createdAt, @updatedAt, @userId, @workspaceId)
                ON CONFLICT(id) DO UPDATE SET
                  scope=excluded.scope,
                  title=excluded.title,
                  priority=excluded.priority,
                  dueDate=excluded.dueDate,
                  done=excluded.done,
+                 linkedHabitId=excluded.linkedHabitId,
                  updatedAt=excluded.updatedAt,
                  userId=excluded.userId,
                  workspaceId=excluded.workspaceId`
@@ -1514,7 +1803,68 @@ export const createSqliteBundle = (dbPath: string): SqliteBundle => {
               ...value,
               dueDate: value.dueDate ?? null,
               done: value.done ? 1 : 0,
+              linkedHabitId: value.linkedHabitId ?? null,
               userId: value.userId ?? null,
+              workspaceId: value.workspaceId ?? null,
+            })
+        })
+        if (changed) importedRows += 1
+      }
+
+      for (const item of raw.habits ?? []) {
+        const entity: Habit = { ...item, id: item.id || createId() }
+        const changed = upsertIfNewer('habits', entity, (value) => {
+          database
+            .prepare(
+              `INSERT INTO habits
+               (id, userId, title, description, icon, type, color, archived, target, freezesAllowed, sortOrder, createdAt, updatedAt, workspaceId)
+               VALUES (@id, @userId, @title, @description, @icon, @type, @color, @archived, @target, @freezesAllowed, @sortOrder, @createdAt, @updatedAt, @workspaceId)
+               ON CONFLICT(id) DO UPDATE SET
+                 userId=excluded.userId,
+                 title=excluded.title,
+                 description=excluded.description,
+                 icon=excluded.icon,
+                 type=excluded.type,
+                 color=excluded.color,
+                 archived=excluded.archived,
+                 target=excluded.target,
+                 freezesAllowed=excluded.freezesAllowed,
+                 sortOrder=excluded.sortOrder,
+                 updatedAt=excluded.updatedAt,
+                 workspaceId=excluded.workspaceId`
+            )
+            .run({
+              ...value,
+              description: value.description ?? null,
+              icon: value.icon ?? null,
+              archived: value.archived ? 1 : 0,
+              target: value.target ?? null,
+              workspaceId: value.workspaceId ?? null,
+            })
+        })
+        if (changed) importedRows += 1
+      }
+
+      for (const item of raw.habitLogs ?? []) {
+        const entity: HabitLog = { ...item, id: item.id || createId() }
+        const changed = upsertIfNewer('habit_logs', entity, (value) => {
+          database
+            .prepare(
+              `INSERT INTO habit_logs
+               (id, userId, habitId, dateKey, value, status, createdAt, updatedAt, workspaceId)
+               VALUES (@id, @userId, @habitId, @dateKey, @value, @status, @createdAt, @updatedAt, @workspaceId)
+               ON CONFLICT(id) DO UPDATE SET
+                 userId=excluded.userId,
+                 habitId=excluded.habitId,
+                 dateKey=excluded.dateKey,
+                 value=excluded.value,
+                 status=excluded.status,
+                 updatedAt=excluded.updatedAt,
+                 workspaceId=excluded.workspaceId`
+            )
+            .run({
+              ...value,
+              value: value.value ?? null,
               workspaceId: value.workspaceId ?? null,
             })
         })

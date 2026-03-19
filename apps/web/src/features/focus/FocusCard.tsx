@@ -77,33 +77,39 @@ const FocusCard = () => {
 
   return (
     <Card title="Focus Center" eyebrow="Pomodoro">
-      <div className="focus-card-lite">
+      <div className="focus-card-lite focus-card-lite--misted">
+        <div className="focus-card-lite__glow focus-card-lite__glow--primary" aria-hidden />
+        <div className="focus-card-lite__glow focus-card-lite__glow--secondary" aria-hidden />
         <div className="focus-card-lite__header">
-          <div className="focus__mode">Deep focus mode</div>
+          <div className="focus-card-lite__mode-wrap">
+            <div className="focus-card-lite__eyebrow-dot" aria-hidden />
+            <div className="focus__mode">Deep focus mode</div>
+          </div>
           <div className="focus-card-lite__stats">
             <span>{todayStats.sessions} sessions</span>
             <span>·</span>
             <span>{todayStats.minutes} min</span>
           </div>
         </div>
-        <div className="focus__time focus-card-lite__time">
-          <AppNumberGroup>
-            <AppNumber value={minutes} trend={timerTrend} />
-            <span aria-hidden>:</span>
-            <AppNumber value={seconds} trend={timerTrend} format={{ minimumIntegerDigits: 2 }} />
-          </AppNumberGroup>
-        </div>
-        <div className="focus__actions focus-card-lite__actions">
-          <Button size="sm" onClick={() => void handlePrimaryAction()}>
-            {timerState.running ? 'Pause' : timerState.status === 'paused' ? 'Resume' : 'Start'}
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => void reset()}>
-            Reset
-          </Button>
-        </div>
+        <div className="focus-card-lite__body">
+          <div className="focus__time focus-card-lite__time">
+            <AppNumberGroup>
+              <AppNumber value={minutes} trend={timerTrend} />
+              <span aria-hidden>:</span>
+              <AppNumber value={seconds} trend={timerTrend} format={{ minimumIntegerDigits: 2 }} />
+            </AppNumberGroup>
+          </div>
+          <div className="focus__actions focus-card-lite__actions">
+            <Button size="sm" onClick={() => void handlePrimaryAction()}>
+              {timerState.running ? 'Pause' : timerState.status === 'paused' ? 'Resume' : 'Start'}
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => void reset()}>
+              Reset
+            </Button>
+          </div>
 
-        <div className="focus__noise focus-card-lite__noise">
-          <style>{`
+          <div className="focus__noise focus-card-lite__noise">
+            <style>{`
             .noiseTitleRow {
               display: flex;
               align-items: center;
@@ -137,30 +143,31 @@ const FocusCard = () => {
               height: 6px !important;
             }
           `}</style>
-          <div className="focus__noise-meta" style={{ gap: 0 }}>
-            <span className="focus__noise-label noiseTitleRow">
-              White noise
-              {noise.playing && (
-                <span className="mini-equalizer" aria-label="Playing" title="Playing">
-                  <span />
-                  <span />
-                  <span />
-                </span>
-              )}
-            </span>
+            <div className="focus__noise-meta" style={{ gap: 0 }}>
+              <span className="focus__noise-label noiseTitleRow">
+                White noise
+                {noise.playing && (
+                  <span className="mini-equalizer" aria-label="Playing" title="Playing">
+                    <span />
+                    <span />
+                    <span />
+                  </span>
+                )}
+              </span>
+            </div>
+            <Button
+              className={`noiseBtn noise-icon-toggle ${noise.playing ? 'is-playing' : ''} ${reduceMotion ? 'is-reduced-motion' : ''}`}
+              onClick={toggleNoisePlaying}
+              aria-label={noise.playing ? 'Pause noise' : 'Play noise'}
+            >
+              <svg viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg" className="noise-icon-toggle__play" aria-hidden>
+                <path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z" />
+              </svg>
+              <svg viewBox="0 0 320 512" xmlns="http://www.w3.org/2000/svg" className="noise-icon-toggle__pause" aria-hidden>
+                <path d="M48 64C21.5 64 0 85.5 0 112V400c0 26.5 21.5 48 48 48H80c26.5 0 48-21.5 48-48V112c0-26.5-21.5-48-48-48H48zm192 0c-26.5 0-48 21.5-48 48V400c0 26.5 21.5 48 48 48h32c26.5 0 48-21.5 48-48V112c0-26.5-21.5-48-48-48H240z" />
+              </svg>
+            </Button>
           </div>
-          <Button
-            className={`noiseBtn noise-icon-toggle ${noise.playing ? 'is-playing' : ''} ${reduceMotion ? 'is-reduced-motion' : ''}`}
-            onClick={toggleNoisePlaying}
-            aria-label={noise.playing ? 'Pause noise' : 'Play noise'}
-          >
-            <svg viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg" className="noise-icon-toggle__play" aria-hidden>
-              <path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z" />
-            </svg>
-            <svg viewBox="0 0 320 512" xmlns="http://www.w3.org/2000/svg" className="noise-icon-toggle__pause" aria-hidden>
-              <path d="M48 64C21.5 64 0 85.5 0 112V400c0 26.5 21.5 48 48 48H80c26.5 0 48-21.5 48-48V112c0-26.5-21.5-48-48-48H48zm192 0c-26.5 0-48 21.5-48 48V400c0 26.5 21.5 48 48 48h32c26.5 0 48-21.5 48-48V112c0-26.5-21.5-48-48-48H240z" />
-            </svg>
-          </Button>
         </div>
       </div>
     </Card>

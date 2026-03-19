@@ -4,7 +4,6 @@ export const IPC_CHANNELS = [
   'db:tasks:update',
   'db:tasks:remove',
   'db:tasks:updateStatus',
-  'db:tasks:appendProgress',
   'db:tasks:clearAllTags',
   'db:notes:list',
   'db:notes:listTrash',
@@ -49,6 +48,18 @@ export const IPC_CHANNELS = [
   'db:spend:updateCategory',
   'db:dashboard:get',
   'db:dashboard:upsert',
+  'db:habits:list',
+  'db:habits:create',
+  'db:habits:update',
+  'db:habits:archive',
+  'db:habits:restore',
+  'db:habits:reorder',
+  'db:habits:recordCompletion',
+  'db:habits:undoCompletion',
+  'db:habits:listLogs',
+  'db:habits:computeStreak',
+  'db:habits:getDailyProgress',
+  'db:habits:getHeatmap',
 ] as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[number]

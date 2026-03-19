@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { cn } from '../lib/utils'
 
 type DialogProps = {
@@ -10,11 +10,12 @@ type DialogProps = {
   children: ReactNode
   panelClassName?: string
   contentClassName?: string
+  panelStyle?: CSSProperties
 }
 
 const DIALOG_EXIT_MS = 360
 
-const Dialog = ({ open, title, onClose, children, panelClassName, contentClassName }: DialogProps) => {
+const Dialog = ({ open, title, onClose, children, panelClassName, contentClassName, panelStyle }: DialogProps) => {
   const [mounted, setMounted] = useState(false)
   const [visible, setVisible] = useState(false)
   const exitTimeoutRef = useRef<number | null>(null)
@@ -81,6 +82,7 @@ const Dialog = ({ open, title, onClose, children, panelClassName, contentClassNa
       />
       <div 
         className={cn('dialog__panel', panelClassName)} 
+        style={panelStyle}
         onClick={handlePanelClick}
         role="dialog"
         aria-modal="true"

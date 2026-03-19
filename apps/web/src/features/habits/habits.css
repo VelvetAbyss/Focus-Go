@@ -9,7 +9,7 @@
   content: '';
   position: absolute;
   inset: calc(var(--route-pad, 16px) * -1);
-  background: linear-gradient(180deg, #fff 0%, #fcfcfb 40%, #faf8f4 100%);
+  background: linear-gradient(0deg, rgba(232, 226, 216, 0.82) 0%, rgba(245, 243, 240, 0.98) 38%, #f5f3f0 100%);
   z-index: -1;
 }
 
@@ -503,6 +503,45 @@
   padding: 8px 12px;
   cursor: pointer;
   color: #374151;
+}
+
+html[data-theme='dark'] .habits-page-design::before {
+  background: linear-gradient(0deg, rgba(21, 26, 31, 0.92) 0%, rgba(31, 36, 41, 0.98) 42%, #2a3036 100%);
+}
+
+html[data-theme='dark'] .habits-page-design__title,
+html[data-theme='dark'] .habit-card-design__title,
+html[data-theme='dark'] .habit-card-design__stat-value,
+html[data-theme='dark'] .habits-page-design__archived h2 {
+  color: #f2f0ec;
+}
+
+html[data-theme='dark'] .habits-page-design__subtitle,
+html[data-theme='dark'] .habit-card-design__description,
+html[data-theme='dark'] .habit-card-design__stat-label,
+html[data-theme='dark'] .habits-page-design__archived-item {
+  color: #c8c2b8;
+}
+
+html[data-theme='dark'] .habits-page-design__add,
+html[data-theme='dark'] .habit-card-design__complete.is-completed,
+html[data-theme='dark'] .habit-dialog__button--primary {
+  background: #7edbc7;
+  color: #182024;
+}
+
+html[data-theme='dark'] .habit-card-design,
+html[data-theme='dark'] .habit-card-design__stat,
+html[data-theme='dark'] .habit-card-design__complete,
+html[data-theme='dark'] .habit-calendar__day,
+html[data-theme='dark'] .habit-dialog__panel,
+html[data-theme='dark'] .habits-page-design__archived-item {
+  background: rgba(34, 40, 46, 0.88);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme='dark'] .habit-card-design__complete {
+  color: #f2f0ec;
 }
 
 @media (min-width: 768px) {

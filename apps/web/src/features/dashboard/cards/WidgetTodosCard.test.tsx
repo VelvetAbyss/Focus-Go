@@ -2,29 +2,63 @@
 
 import '@testing-library/jest-dom/vitest'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
-import type { WidgetTodo } from '../../../data/models/types'
+import type { Habit, WidgetTodo } from '../../../data/models/types'
 
+const createHabitMock = vi.fn()
+const completeHabitMock = vi.fn()
+const undoHabitMock = vi.fn()
 const listMock = vi.fn()
-const resetDoneMock = vi.fn()
 const addMock = vi.fn()
 const updateMock = vi.fn()
 const removeMock = vi.fn()
-const pushToastMock = vi.fn()
+
+vi.mock('../../habits/hooks/useHabitTracker', () => ({
+  useHabitTracker: () => ({
+    activeHabits: [
+      {
+        id: 'habit-1',
+        userId: 'local-user',
+        title: 'Plan day rhythm',
+        description: '',
+        icon: '🎯',
+        type: 'boolean',
+        color: '#3a3733',
+        archived: false,
+        freezesAllowed: 0,
+        sortOrder: 0,
+        createdAt: 100,
+        updatedAt: 200,
+      } satisfies Habit,
+    ],
+    completedDatesByHabit: { 'habit-1': ['2026-03-19'] },
+    createHabit: (...args: unknown[]) => createHabitMock(...args),
+    completeHabit: (...args: unknown[]) => completeHabitMock(...args),
+    undoHabit: (...args: unknown[]) => undoHabitMock(...args),
+  }),
+}))
+
+vi.mock('../../habits/model/dateKey', () => ({
+  todayDateKey: () => '2026-03-19',
+}))
 
 vi.mock('../../../data/repositories/widgetTodoRepo', () => ({
   widgetTodoRepo: {
     list: (...args: unknown[]) => listMock(...args),
-    resetDone: (...args: unknown[]) => resetDoneMock(...args),
     add: (...args: unknown[]) => addMock(...args),
     update: (...args: unknown[]) => updateMock(...args),
+    resetDone: vi.fn(async () => []),
     remove: (...args: unknown[]) => removeMock(...args),
   },
 }))
 
-vi.mock('../../../shared/ui/toast/toast', () => ({
-  useToast: () => ({ push: pushToastMock }),
+vi.mock('../model/widgetTodoRefresh', () => ({
+  readWidgetTodoResetBucket: vi.fn(() => '2026-03-19'),
+  shouldBootstrapResetWidgetTodos: vi.fn(() => false),
+  shouldResetWidgetTodos: vi.fn(() => ({ shouldReset: false, currentBucket: '2026-03-19' })),
+  writeWidgetTodoResetBucket: vi.fn(),
 }))
 
 vi.mock('../../../shared/ui/AnimatedScrollList', () => ({
@@ -40,46 +74,94 @@ vi.mock('../../../shared/ui/tabPressAnimation', () => ({
 
 import WidgetTodosCard from './WidgetTodosCard'
 
-const makeTodo = (overrides: Partial<WidgetTodo> = {}): WidgetTodo => ({
-  id: 'todo-1',
-  createdAt: 100,
-  updatedAt: 200,
-  scope: 'day',
-  title: 'Plan day rhythm',
-  priority: 'medium',
-  done: true,
-  ...overrides,
-})
-
 describe('WidgetTodosCard', () => {
   beforeEach(() => {
     cleanup()
+    createHabitMock.mockReset()
+    completeHabitMock.mockReset()
+    undoHabitMock.mockReset()
     listMock.mockReset()
-    resetDoneMock.mockReset()
     addMock.mockReset()
     updateMock.mockReset()
     removeMock.mockReset()
-    pushToastMock.mockReset()
-    window.localStorage.clear()
+    listMock.mockResolvedValue([
+      {
+        id: 'todo-day-1',
+        createdAt: 1,
+        updatedAt: 2,
+        scope: 'day',
+        title: 'Plan day rhythm',
+        priority: 'medium',
+        done: true,
+        linkedHabitId: 'habit-1',
+      },
+      {
+        id: 'todo-week-1',
+        createdAt: 3,
+        updatedAt: 4,
+        scope: 'week',
+        title: 'Weekly review',
+        priority: 'medium',
+        done: false,
+      },
+      {
+        id: 'todo-month-1',
+        createdAt: 5,
+        updatedAt: 6,
+        scope: 'month',
+        title: 'Monthly reset',
+        priority: 'medium',
+        done: false,
+      },
+    ])
+    addMock.mockImplementation(async (payload: Partial<WidgetTodo>) => ({
+      id: `added-${payload.scope ?? 'day'}`,
+      createdAt: 7,
+      updatedAt: 8,
+      scope: payload.scope ?? 'day',
+      title: payload.title ?? '',
+      priority: payload.priority ?? 'medium',
+      done: Boolean(payload.done),
+      linkedHabitId: payload.linkedHabitId,
+    }))
+    updateMock.mockImplementation(async (item: WidgetTodo) => item)
+    removeMock.mockResolvedValue(undefined)
   })
 
   afterEach(() => {
     cleanup()
   })
 
-  it('catches up overdue daily resets on load without changing timestamps', async () => {
-    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(new Date(2026, 2, 12, 9, 0, 0).getTime())
-    window.localStorage.setItem('focusgo.widgetTodos.reset.day', '2026-03-10')
+  it('renders daily habits from the habit tracker state', async () => {
+    render(<WidgetTodosCard />)
 
-    listMock.mockResolvedValueOnce([makeTodo()])
-    resetDoneMock.mockResolvedValueOnce([makeTodo({ done: false })])
+    await waitFor(() => expect(screen.getByText('Plan day rhythm')).toBeInTheDocument())
+    expect(screen.getByText('Weekly review')).toBeInTheDocument()
+    expect(screen.getByText('Monthly reset')).toBeInTheDocument()
+    expect(screen.getByText('1 / 1 completed')).toBeInTheDocument()
+    expect(screen.getAllByRole('checkbox')[0]).toBeChecked()
+  })
+
+  it('creates a new boolean habit from the daily composer', async () => {
+    const user = userEvent.setup()
+    createHabitMock.mockResolvedValue(undefined)
 
     render(<WidgetTodosCard />)
 
-    await waitFor(() => expect(resetDoneMock).toHaveBeenCalledWith('day'))
-    await waitFor(() => expect(screen.getByRole('checkbox')).not.toBeChecked())
-    expect(window.localStorage.getItem('focusgo.widgetTodos.reset.day')).toBe('2026-03-12')
-    expect(pushToastMock).not.toHaveBeenCalled()
-    nowSpy.mockRestore()
+    await user.type(screen.getByPlaceholderText('Add a new habit...'), 'Read 10 pages')
+    await user.click(screen.getByRole('button', { name: 'Add' }))
+
+    expect(createHabitMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Read 10 pages',
+        type: 'boolean',
+      }),
+    )
+    expect(addMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scope: 'day',
+        title: 'Read 10 pages',
+      }),
+    )
   })
 })

@@ -55,7 +55,7 @@ const ReviewPage = () => {
   }
 
   return (
-    <section className="review-page-shell review-shadcn-scope flex flex-col text-[#3a3733]">
+    <section className="review-page-shell review-page-shell--themed review-shadcn-scope flex flex-col">
       <div className="review-page-shell__content mx-auto grid min-h-full w-full max-w-6xl flex-1 grid-cols-1 gap-4 px-3 py-4 sm:px-4 sm:py-5 md:grid-cols-3 md:gap-6 md:px-6 md:py-8">
         <div className="md:col-span-2" aria-label="Review workflow">
           {submitError ? <p className="mb-3 text-sm text-destructive">{submitError}</p> : null}

@@ -17,6 +17,7 @@ import {
   type HabitDraft,
 } from '../model/habitSchema'
 import { todayDateKey } from '../model/dateKey'
+import { emitHabitsChanged, subscribeHabitsChanged } from '../habitSync'
 
 type HabitLogsMap = Record<string, HabitLog[]>
 
@@ -89,11 +90,12 @@ export const useHabitTracker = () => {
   }, [dateKey])
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      void refresh()
-    }, 0)
-    return () => window.clearTimeout(timer)
+    void refresh()
   }, [refresh])
+
+  useEffect(() => subscribeHabitsChanged(() => {
+    void refresh()
+  }), [refresh])
 
   const completedHabitIds = useMemo(() => {
     return new Set(
@@ -105,50 +107,51 @@ export const useHabitTracker = () => {
 
   const handleCreate = useCallback(
     async (draft: HabitDraft) => {
-      await createHabit(draft)
-      await refresh()
+      const habit = await createHabit(draft)
+      emitHabitsChanged('create')
+      return habit
     },
-    [refresh],
+    [],
   )
 
   const handleUpdate = useCallback(
     async (habitId: string, draft: Partial<HabitDraft>) => {
       await updateHabit(habitId, draft)
-      await refresh()
+      emitHabitsChanged('update')
     },
-    [refresh],
+    [],
   )
 
   const handleArchive = useCallback(
     async (habitId: string) => {
       await archiveHabit(habitId)
-      await refresh()
+      emitHabitsChanged('archive')
     },
-    [refresh],
+    [],
   )
 
   const handleRestore = useCallback(
     async (habitId: string) => {
       await restoreHabit(habitId)
-      await refresh()
+      emitHabitsChanged('restore')
     },
-    [refresh],
+    [],
   )
 
   const handleComplete = useCallback(
     async (habit: Habit, value?: number, targetDateKey?: string) => {
       await completeHabit(habit, targetDateKey ?? dateKey, value)
-      await refresh()
+      emitHabitsChanged('complete')
     },
-    [dateKey, refresh],
+    [dateKey],
   )
 
   const handleUndo = useCallback(
     async (habitId: string, targetDateKey?: string) => {
       await undoHabit(habitId, targetDateKey ?? dateKey)
-      await refresh()
+      emitHabitsChanged('undo')
     },
-    [dateKey, refresh],
+    [dateKey],
   )
 
   const moveHabit = useCallback(
@@ -161,9 +164,9 @@ export const useHabitTracker = () => {
       const [picked] = next.splice(index, 1)
       next.splice(targetIndex, 0, picked)
       await reorderHabits(next.map((item) => item.id))
-      await refresh()
+      emitHabitsChanged('reorder')
     },
-    [refresh, state.activeHabits],
+    [state.activeHabits],
   )
 
   return {

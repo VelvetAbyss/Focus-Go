@@ -62,11 +62,10 @@ export const HabitCard = ({ habit, completedDates, onToggleToday, onToggleDate, 
       whileHover={{ y: -2, boxShadow: '0 4px 20px rgba(58, 55, 51, 0.06)' }}
       transition={{ duration: 0.2 }}
     >
-      <AnimatePresence>
+      <AnimatePresence initial={false}>
         {justCompleted ? (
           <motion.div
             className="habit-card-design__celebration"
-            initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.22 }}
@@ -106,16 +105,12 @@ export const HabitCard = ({ habit, completedDates, onToggleToday, onToggleDate, 
           <motion.div
             key={stat.label}
             className="habit-card-design__stat"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.03 + 0.04, duration: 0.2 }}
           >
             <stat.icon className="habit-card-design__stat-icon" size={16} />
             <motion.div
               className="habit-card-design__stat-value"
               key={String(stat.value)}
-              initial={{ scale: 0.8 }}
-              animate={{ scale: 1 }}
               transition={{ type: 'spring', stiffness: 400, damping: 15 }}
             >
               {stat.value}
@@ -133,17 +128,15 @@ export const HabitCard = ({ habit, completedDates, onToggleToday, onToggleDate, 
         animate={justCompleted ? { scale: [1, 1.04, 1] } : {}}
         transition={{ duration: 0.2 }}
       >
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" initial={false}>
           {completedToday ? (
             <motion.span
               key="completed"
               className="habit-card-design__complete-text"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.16 }}
             >
-              <motion.span initial={{ scale: 0, rotate: -180 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 400, damping: 15 }}>
+              <motion.span transition={{ type: 'spring', stiffness: 400, damping: 15 }}>
                 <Check size={18} />
               </motion.span>
               {i18n.todayCompleted}
@@ -151,8 +144,6 @@ export const HabitCard = ({ habit, completedDates, onToggleToday, onToggleDate, 
           ) : (
             <motion.span
               key="uncompleted"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.16 }}
             >
@@ -174,11 +165,10 @@ export const HabitCard = ({ habit, completedDates, onToggleToday, onToggleDate, 
         {showCalendar ? i18n.hideCalendar : i18n.showCalendar}
       </motion.button>
 
-      <AnimatePresence>
+      <AnimatePresence initial={false}>
         {showCalendar ? (
           <motion.div
             className="habit-card-design__calendar-wrap"
-            initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.22, ease: 'easeInOut' }}

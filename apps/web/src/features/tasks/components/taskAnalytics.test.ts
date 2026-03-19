@@ -19,7 +19,6 @@ const createTask = (overrides: Partial<TaskItem> = {}): TaskItem => ({
   taskNoteBlocks: [],
   taskNoteContentMd: '',
   taskNoteContentJson: null,
-  progressLogs: [],
   activityLogs: overrides.activityLogs ?? [],
   createdAt: overrides.createdAt ?? Date.parse('2026-03-01T08:00:00Z'),
   updatedAt: overrides.updatedAt ?? overrides.createdAt ?? Date.parse('2026-03-01T08:00:00Z'),
@@ -52,7 +51,7 @@ describe('buildTaskAnalytics', () => {
         createdAt: Date.parse('2026-03-01T08:00:00Z'),
         activityLogs: [
           { id: 'a', type: 'status', message: 'Status changed to Doing', createdAt: Date.parse('2026-03-02T08:00:00Z') },
-          { id: 'b', type: 'progress', message: 'Progress added: drafted outline', createdAt: Date.parse('2026-03-03T08:00:00Z') },
+          { id: 'b', type: 'details', message: 'Details updated', createdAt: Date.parse('2026-03-03T08:00:00Z') },
           { id: 'c', type: 'status', message: 'Status changed to Done', createdAt: Date.parse('2026-03-04T08:00:00Z') },
         ],
       }),

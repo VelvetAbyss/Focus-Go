@@ -39,12 +39,11 @@ export const HabitCalendar = ({ completedDates, onToggleCompletion }: HabitCalen
         }} whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9, x: -3 }}>
           <ChevronLeft size={16} />
         </motion.button>
-        <AnimatePresence mode="wait" custom={direction}>
+        <AnimatePresence mode="wait" custom={direction} initial={false}>
           <motion.div
             key={monthKey}
             className="habit-calendar__title"
             custom={direction}
-            initial={{ opacity: 0, x: direction * 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: direction * -20 }}
             transition={{ duration: 0.2 }}
@@ -71,7 +70,7 @@ export const HabitCalendar = ({ completedDates, onToggleCompletion }: HabitCalen
           <div key={`empty-${index}`} className="habit-calendar__empty" />
         ))}
 
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" initial={false}>
           {Array.from({ length: daysInMonth }).map((_, index) => {
             const day = index + 1
             const dateKey = toDateKey(year, month, day)
@@ -85,7 +84,6 @@ export const HabitCalendar = ({ completedDates, onToggleCompletion }: HabitCalen
                 disabled={isFuture}
                 className={`habit-calendar__day ${completed ? 'is-completed' : ''} ${isFuture ? 'is-future' : ''} ${isToday ? 'is-today' : ''}`}
                 onClick={() => void onToggleCompletion(dateKey)}
-                initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.2, delay: index * 0.01 }}
                 whileHover={!isFuture ? { scale: 1.15 } : {}}

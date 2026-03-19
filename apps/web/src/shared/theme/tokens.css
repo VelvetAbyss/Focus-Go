@@ -49,13 +49,23 @@
   }
 }
 
-@media (max-width: 1366px) {
+@media (max-width: 1536px) {
   :root {
-    --page-pad: 12px;
+    --page-pad: 14px;
     --route-pad: 12px;
     --panel-gap: 12px;
-    --surface-radius-lg: 16px;
+    --surface-radius-lg: 18px;
     --surface-radius-md: 14px;
+  }
+}
+
+@media (max-width: 1366px) {
+  :root {
+    --page-pad: 10px;
+    --route-pad: 10px;
+    --panel-gap: 10px;
+    --surface-radius-lg: 14px;
+    --surface-radius-md: 12px;
   }
 }
 

@@ -11,6 +11,20 @@ const FOCUS_HISTORY_RESET_KEY = "focusgo.focus-history-reset-v1";
 export default function App() {
   const [sessions, setSessions] = useState<FocusSession[]>([]);
   const [navExpanded, setNavExpanded] = useState(false);
+  const [entered] = useState(true);
+  const [isDark, setIsDark] = useState(() =>
+    typeof document !== "undefined" && document.documentElement.dataset.theme === "dark"
+  );
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const root = document.documentElement;
+    const observer = new MutationObserver(() => {
+      setIsDark(root.dataset.theme === "dark" || root.classList.contains("dark"));
+    });
+    observer.observe(root, { attributes: true, attributeFilter: ["data-theme", "class"] });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -56,19 +70,33 @@ export default function App() {
     };
   }, [sessions]);
 
+  const shellGradient = isDark
+    ? `
+      radial-gradient(ellipse 120% 80% at 20% 10%, rgba(110, 138, 132, 0.18) 0%, transparent 60%),
+      radial-gradient(ellipse 100% 70% at 80% 90%, rgba(76, 98, 112, 0.2) 0%, transparent 55%),
+      radial-gradient(ellipse 80% 60% at 50% 50%, rgba(92, 88, 82, 0.14) 0%, transparent 50%),
+      linear-gradient(175deg, #1f2328 0%, #232932 36%, #242924 68%, #1e211e 100%)
+    `
+    : `
+      radial-gradient(ellipse 120% 80% at 20% 10%, rgba(210, 208, 200, 0.25) 0%, transparent 60%),
+      radial-gradient(ellipse 100% 70% at 80% 90%, rgba(195, 205, 200, 0.2) 0%, transparent 55%),
+      radial-gradient(ellipse 80% 60% at 50% 50%, rgba(220, 218, 212, 0.15) 0%, transparent 50%),
+      linear-gradient(175deg, #f7f6f3 0%, #f3f2ee 35%, #efeeea 65%, #f0efeb 100%)
+    `;
+  const panelBackground = isDark ? "rgba(23, 29, 35, 0.62)" : "rgba(255, 255, 255, 0.55)";
+  const panelBackgroundStrong = isDark ? "rgba(26, 32, 38, 0.72)" : "rgba(255, 255, 255, 0.45)";
+  const shellShadow = isDark
+    ? "0 18px 56px rgba(0, 0, 0, 0.28), 0 1px 4px rgba(0, 0, 0, 0.2)"
+    : "0 4px 32px rgba(58, 55, 51, 0.03), 0 1px 4px rgba(58, 55, 51, 0.02)";
+
   return (
-    <div className="focus-zip-app w-full h-screen overflow-hidden relative" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className={`focus-zip-app w-full h-screen overflow-hidden relative ${isDark ? "is-dark" : ""} ${entered ? "focus-zip-app--entered" : ""}`} style={{ fontFamily: "'Inter', sans-serif" }}>
       {/* Ambient misty background */}
       <div className="absolute inset-0 -z-10">
         <div
           className="absolute inset-0"
           style={{
-            background: `
-              radial-gradient(ellipse 120% 80% at 20% 10%, rgba(210, 208, 200, 0.25) 0%, transparent 60%),
-              radial-gradient(ellipse 100% 70% at 80% 90%, rgba(195, 205, 200, 0.2) 0%, transparent 55%),
-              radial-gradient(ellipse 80% 60% at 50% 50%, rgba(220, 218, 212, 0.15) 0%, transparent 50%),
-              linear-gradient(175deg, #f7f6f3 0%, #f3f2ee 35%, #efeeea 65%, #f0efeb 100%)
-            `,
+            background: shellGradient,
           }}
         />
         {/* Subtle floating light spots */}
@@ -77,8 +105,9 @@ export default function App() {
           style={{
             top: "10%",
             left: "15%",
-            background: "radial-gradient(circle, rgba(200,198,190,0.12) 0%, transparent 70%)",
-            filter: "blur(40px)",
+            background: isDark ? "radial-gradient(circle, rgba(110,138,132,0.14) 0%, transparent 70%)" : "radial-gradient(circle, rgba(200,198,190,0.12) 0%, transparent 70%)",
+            filter: entered ? "blur(40px)" : "none",
+            opacity: entered ? 1 : 0.3,
           }}
         />
         <div
@@ -86,8 +115,9 @@ export default function App() {
           style={{
             bottom: "5%",
             right: "10%",
-            background: "radial-gradient(circle, rgba(190,200,195,0.1) 0%, transparent 70%)",
-            filter: "blur(40px)",
+            background: isDark ? "radial-gradient(circle, rgba(88,108,124,0.14) 0%, transparent 70%)" : "radial-gradient(circle, rgba(190,200,195,0.1) 0%, transparent 70%)",
+            filter: entered ? "blur(40px)" : "none",
+            opacity: entered ? 1 : 0.3,
           }}
         />
       </div>
@@ -98,11 +128,11 @@ export default function App() {
         <div className="flex items-center gap-2">
           <div
             className="w-2 h-2 rounded-full"
-            style={{ background: "rgba(139,168,138,0.6)" }}
+            style={{ background: isDark ? "rgba(126,219,199,0.72)" : "rgba(139,168,138,0.6)" }}
           />
           <span
-            className="text-[0.82rem] tracking-[0.06em] text-[#8a8478]"
-            style={{ fontFamily: "'DM Serif Display', serif" }}
+            className="text-[0.82rem] tracking-[0.06em]"
+            style={{ color: isDark ? "#d5d0c8" : "#8a8478", fontFamily: "'DM Serif Display', serif" }}
           >
             Focus&go
           </span>
@@ -115,13 +145,13 @@ export default function App() {
           onClick={() => setNavExpanded(!navExpanded)}
           className="flex items-center gap-2 px-4 py-2 rounded-xl cursor-pointer transition-colors"
           style={{
-            background: "rgba(255,255,255,0.6)",
-            backdropFilter: "blur(12px)",
-            boxShadow: "0 1px 4px rgba(58, 55, 51, 0.03)",
+            background: isDark ? "rgba(24,29,35,0.72)" : "rgba(255,255,255,0.6)",
+            backdropFilter: entered ? "blur(12px)" : "none",
+            boxShadow: shellShadow,
           }}
         >
-          <PanelLeft size={15} className="text-[#918b80]" />
-          <span className="text-[0.72rem] text-[#918b80]">Toggle Nav</span>
+          <PanelLeft size={15} className={isDark ? "text-[#d5d0c8]" : "text-[#918b80]"} />
+          <span className={`text-[0.72rem] ${isDark ? "text-[#d5d0c8]" : "text-[#918b80]"}`}>Toggle Nav</span>
         </motion.button>
       </div>
 
@@ -132,10 +162,9 @@ export default function App() {
           <div
             className="focus-zip-app__panel h-full rounded-2xl p-6 overflow-hidden"
             style={{
-              background: "rgba(255, 255, 255, 0.55)",
-              backdropFilter: "blur(18px)",
-              boxShadow:
-                "0 4px 32px rgba(58, 55, 51, 0.03), 0 1px 4px rgba(58, 55, 51, 0.02)",
+              background: panelBackground,
+              backdropFilter: entered ? "blur(18px)" : "none",
+              boxShadow: shellShadow,
             }}
           >
             <WhiteNoise />
@@ -147,18 +176,18 @@ export default function App() {
           <div
             className="focus-zip-app__panel h-full rounded-2xl overflow-hidden relative"
             style={{
-              background: "rgba(255, 255, 255, 0.45)",
-              backdropFilter: "blur(18px)",
-              boxShadow:
-                "0 8px 48px rgba(58, 55, 51, 0.03), 0 1px 4px rgba(58, 55, 51, 0.015)",
+              background: panelBackgroundStrong,
+              backdropFilter: entered ? "blur(18px)" : "none",
+              boxShadow: shellShadow,
             }}
           >
             {/* Subtle inner ambient glow */}
             <div
               className="absolute inset-0 pointer-events-none"
               style={{
-                background:
-                  "radial-gradient(ellipse 60% 50% at 50% 45%, rgba(245,243,237,0.6) 0%, transparent 70%)",
+                background: isDark
+                  ? "radial-gradient(ellipse 60% 50% at 50% 45%, rgba(126,219,199,0.1) 0%, transparent 70%)"
+                  : "radial-gradient(ellipse 60% 50% at 50% 45%, rgba(245,243,237,0.6) 0%, transparent 70%)",
               }}
             />
             <FocusTimer
@@ -175,10 +204,9 @@ export default function App() {
           <div
             className="focus-zip-app__panel h-full rounded-2xl p-6 overflow-hidden"
             style={{
-              background: "rgba(255, 255, 255, 0.55)",
-              backdropFilter: "blur(18px)",
-              boxShadow:
-                "0 4px 32px rgba(58, 55, 51, 0.03), 0 1px 4px rgba(58, 55, 51, 0.02)",
+              background: panelBackground,
+              backdropFilter: entered ? "blur(18px)" : "none",
+              boxShadow: shellShadow,
             }}
           >
             <FocusHistory externalSessions={sessions} />

@@ -1,5 +1,5 @@
-import { forwardRef, useEffect, useRef, useState } from 'react'
-import { Calendar, CircleCheck, Crosshair, Ellipsis, MessageSquarePlus, Pin, PinOff, Play, RotateCcw, Trash2 } from 'lucide-react'
+import { forwardRef, useState } from 'react'
+import { Calendar, CircleCheck, Crosshair, Ellipsis, Pin, PinOff, Play, RotateCcw, Trash2 } from 'lucide-react'
 import type { CSSProperties, HTMLAttributes } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -17,16 +17,6 @@ type TaskCardProps = {
     onClick: (task: TaskItem) => Promise<void> | void
     disabled?: boolean
   }[]
-  progressComposer?: {
-    isOpen: boolean
-    value: string
-    placeholder?: string
-    disabled?: boolean
-    onToggle: (task: TaskItem) => void
-    onChange: (value: string) => void
-    onSubmit: (task: TaskItem) => void
-    onCancel: (task: TaskItem) => void
-  }
   dragAttributes?: HTMLAttributes<HTMLDivElement>
   dragListeners?: HTMLAttributes<HTMLDivElement>
   interactive?: boolean
@@ -54,7 +44,6 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
       onDelete,
       onTogglePin,
       statusActions,
-      progressComposer,
       dragAttributes,
       dragListeners,
       interactive = true,
@@ -67,20 +56,12 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
     ref,
   ) => {
     const [isHovered, setIsHovered] = useState(false)
-    const progressInputRef = useRef<HTMLTextAreaElement | null>(null)
     const priorityKey = getTaskPriorityKey(task.priority)
     const priorityCfg = TASK_PRIORITY_CONFIG[priorityKey]
     const statusCfg = TASK_STATUS_CONFIG[task.status]
     const displayTags = task.tags.slice(0, 2)
     const extraTagCount = task.tags.length - 2
     const isOverdue = task.dueDate != null && new Date(task.dueDate) < TODAY && task.status !== 'done'
-
-    useEffect(() => {
-      if (!progressComposer?.isOpen) return
-      const node = progressInputRef.current
-      if (!node) return
-      requestAnimationFrame(() => node.focus())
-    }, [progressComposer?.isOpen])
 
     return (
       <div
@@ -152,39 +133,12 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
             data-testid="task-card-actions"
             className={cn(
               'task-card__actions grid overflow-hidden group-focus-within:grid-rows-[1fr] group-focus-within:translate-y-0 group-focus-within:pt-1 group-focus-within:opacity-100',
-              isHovered || progressComposer?.isOpen ? 'grid-rows-[1fr] translate-y-0 pt-1 opacity-100' : 'grid-rows-[0fr] -translate-y-1 pt-0 opacity-0',
+              isHovered ? 'grid-rows-[1fr] translate-y-0 pt-1 opacity-100' : 'grid-rows-[0fr] -translate-y-1 pt-0 opacity-0',
             )}
             onClick={(event) => event.stopPropagation()}
           >
             <div className="min-h-0 overflow-hidden">
               <div className="flex items-center gap-0.5 border-t border-transparent pt-1">
-                {!progressComposer?.isOpen ? (
-                  <Button variant="ghost" size="icon" className="size-7 text-muted-foreground hover:text-foreground" onClick={() => progressComposer?.onToggle(task)}>
-                    <MessageSquarePlus className="size-3.5" />
-                  </Button>
-                ) : (
-                  <div className="flex flex-1 items-start gap-2">
-                    <textarea
-                      ref={progressInputRef}
-                      rows={2}
-                      value={progressComposer.value}
-                      placeholder={progressComposer.placeholder ?? 'Record progress...'}
-                      className="min-h-[56px] flex-1 rounded-md border bg-background px-2 py-1.5 text-xs"
-                      onChange={(event) => progressComposer.onChange(event.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Escape') progressComposer.onCancel(task)
-                        if (event.key === 'Enter' && !event.shiftKey) {
-                          event.preventDefault()
-                          progressComposer.onSubmit(task)
-                        }
-                      }}
-                    />
-                    <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => progressComposer.onSubmit(task)}>
-                      Save
-                    </Button>
-                  </div>
-                )}
-
                 {statusActions?.map((action) => {
                   const icon =
                     action.key === 'doing' || action.key === 'start' ? Play :

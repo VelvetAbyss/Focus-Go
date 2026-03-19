@@ -172,6 +172,44 @@ app.whenReady().then(() => {
     'db:spend:updateCategory': async (payload) => sqliteBundle.service.spend.updateCategory((payload as { category: never }).category),
     'db:dashboard:get': async () => sqliteBundle.service.dashboard.get(),
     'db:dashboard:upsert': async (payload) => sqliteBundle.service.dashboard.upsert(payload as never),
+    'db:habits:list': async (payload) => {
+      const typed = payload as { userId: string; options?: { archived?: boolean } }
+      return sqliteBundle.service.habits.listHabits(typed.userId, typed.options)
+    },
+    'db:habits:create': async (payload) => sqliteBundle.service.habits.createHabit(payload as never),
+    'db:habits:update': async (payload) => {
+      const typed = payload as { id: string; patch: never }
+      return sqliteBundle.service.habits.updateHabit(typed.id, typed.patch)
+    },
+    'db:habits:archive': async (payload) => sqliteBundle.service.habits.archiveHabit((payload as { id: string }).id),
+    'db:habits:restore': async (payload) => sqliteBundle.service.habits.restoreHabit((payload as { id: string }).id),
+    'db:habits:reorder': async (payload) => {
+      const typed = payload as { userId: string; ids: string[] }
+      await sqliteBundle.service.habits.reorderHabits(typed.userId, typed.ids)
+      return null
+    },
+    'db:habits:recordCompletion': async (payload) => {
+      const typed = payload as { habitId: string; dateKey: string; value?: number }
+      return sqliteBundle.service.habits.recordHabitCompletion(typed.habitId, typed.dateKey, typed.value)
+    },
+    'db:habits:undoCompletion': async (payload) => {
+      const typed = payload as { habitId: string; dateKey: string }
+      await sqliteBundle.service.habits.undoHabitCompletion(typed.habitId, typed.dateKey)
+      return null
+    },
+    'db:habits:listLogs': async (payload) => sqliteBundle.service.habits.listHabitLogs((payload as { habitId: string }).habitId),
+    'db:habits:computeStreak': async (payload) => {
+      const typed = payload as { habitId: string; dateKey: string }
+      return sqliteBundle.service.habits.computeHabitStreak(typed.habitId, typed.dateKey)
+    },
+    'db:habits:getDailyProgress': async (payload) => {
+      const typed = payload as { userId: string; dateKey: string }
+      return sqliteBundle.service.habits.getDailyProgress(typed.userId, typed.dateKey)
+    },
+    'db:habits:getHeatmap': async (payload) => {
+      const typed = payload as { userId: string; days: number }
+      return sqliteBundle.service.habits.getHeatmap(typed.userId, typed.days)
+    },
   }
 
   const router = createIpcRouter(dbHandlers, auditLogger)

@@ -5,10 +5,12 @@ import Card from '../../../shared/ui/Card'
 import { Trash2 } from 'lucide-react'
 import { widgetTodoRepo } from '../../../data/repositories/widgetTodoRepo'
 import type { WidgetTodo, WidgetTodoScope } from '../../../data/models/types'
-import { useAddInputComposer } from '../../../shared/hooks/useAddInputComposer'
 import AnimatedScrollList from '../../../shared/ui/AnimatedScrollList'
 import AnimatedPlanCheckbox from '../../../shared/ui/AnimatedPlanCheckbox'
+import { useAddInputComposer } from '../../../shared/hooks/useAddInputComposer'
 import { triggerTabGroupSwitchAnimation, triggerTabPressAnimation } from '../../../shared/ui/tabPressAnimation'
+import { useHabitTracker } from '../../habits/hooks/useHabitTracker'
+import { todayDateKey } from '../../habits/model/dateKey'
 import {
   readWidgetTodoResetBucket,
   shouldBootstrapResetWidgetTodos,
@@ -22,30 +24,42 @@ const scopes: { key: WidgetTodoScope; label: string }[] = [
   { key: 'month', label: 'Monthly' },
 ]
 
+const DEFAULT_HABIT_COLOR = '#3a3733'
+const DEFAULT_HABIT_ICON = '🎯'
+
 const WidgetTodosCard = () => {
   const [items, setItems] = useState<WidgetTodo[]>([])
+  const [loaded, setLoaded] = useState(false)
+  const {
+    activeHabits,
+    completedDatesByHabit,
+    createHabit,
+    completeHabit,
+    undoHabit,
+  } = useHabitTracker()
   const [activeScope, setActiveScope] = useState<WidgetTodoScope>('day')
+  const [pendingHabitId, setPendingHabitId] = useState<string | null>(null)
   const [lastAdded, setLastAdded] = useState<{ id: string; scope: WidgetTodoScope } | null>(null)
   const [sortAnchorTime, setSortAnchorTime] = useState(0)
-
   const listRefs = useRef<Record<WidgetTodoScope, HTMLDivElement | null>>({
     day: null,
     week: null,
     month: null,
   })
+  const today = todayDateKey()
 
   useEffect(() => {
     let cancelled = false
 
     const load = async () => {
-      const loaded = await widgetTodoRepo.list()
+      const loadedItems = await widgetTodoRepo.list()
       const now = Date.now()
-      const itemsById = new Map(loaded.map((item) => [item.id, item]))
+      const itemsById = new Map(loadedItems.map((item) => [item.id, item]))
 
       for (const scope of scopes) {
         const storedBucket = readWidgetTodoResetBucket(scope.key)
         const { shouldReset, currentBucket } = shouldResetWidgetTodos(scope.key, storedBucket, now)
-        const needsBootstrapReset = storedBucket === null && shouldBootstrapResetWidgetTodos(loaded, scope.key, now)
+        const needsBootstrapReset = storedBucket === null && shouldBootstrapResetWidgetTodos(loadedItems, scope.key, now)
 
         if (shouldReset || needsBootstrapReset) {
           const reset = await widgetTodoRepo.resetDone(scope.key)
@@ -58,8 +72,8 @@ const WidgetTodosCard = () => {
       if (cancelled) return
       const merged = [...itemsById.values()]
       setItems(merged)
-      const anchor = merged.reduce((max, item) => (item.updatedAt > max ? item.updatedAt : max), 0)
-      setSortAnchorTime(anchor)
+      setSortAnchorTime(merged.reduce((max, item) => (item.updatedAt > max ? item.updatedAt : max), 0))
+      setLoaded(true)
     }
 
     void load()
@@ -68,59 +82,92 @@ const WidgetTodosCard = () => {
     }
   }, [])
 
-  const scopeItems = useMemo(
-    () => items.filter((item) => item.scope === activeScope),
-    [items, activeScope]
-  )
+  useEffect(() => {
+    if (!loaded) return
+    let cancelled = false
 
-  const activeIndex = useMemo(() => {
-    const next = scopes.findIndex((scope) => scope.key === activeScope)
-    return next < 0 ? 0 : next
-  }, [activeScope])
-  const tabMotionStyle = useMemo(
-    () =>
-      ({
-        '--tab-count': `${scopes.length}`,
-        '--tab-active-index': `${activeIndex}`,
-      }) as CSSProperties,
-    [activeIndex]
-  )
+    const syncDailyTodos = async () => {
+      const dailyItems = items.filter((item) => item.scope === 'day')
+      const booleanHabits = activeHabits.filter((habit) => habit.type === 'boolean')
+      const completedHabitIds = new Set(
+        Object.entries(completedDatesByHabit)
+          .filter(([, dates]) => dates.includes(today))
+          .map(([habitId]) => habitId),
+      )
 
-  const completionLabel = useMemo(() => {
-    const total = scopeItems.length
-    if (total === 0) return '— completed'
-    const done = scopeItems.reduce((acc, item) => acc + (item.done ? 1 : 0), 0)
-    return `${done} / ${total} completed`
-  }, [scopeItems])
+      const byLinkedHabitId = new Map(
+        dailyItems.filter((item) => item.linkedHabitId).map((item) => [item.linkedHabitId as string, item]),
+      )
+      const byTitle = new Map(
+        dailyItems.filter((item) => !item.linkedHabitId).map((item) => [item.title.trim().toLowerCase(), item]),
+      )
+
+      const operations: Array<Promise<unknown>> = []
+
+      for (const habit of booleanHabits) {
+        const matched = byLinkedHabitId.get(habit.id) ?? byTitle.get(habit.title.trim().toLowerCase())
+        const nextDone = completedHabitIds.has(habit.id)
+
+        if (!matched) {
+          operations.push(
+            widgetTodoRepo.add({
+              scope: 'day',
+              title: habit.title,
+              priority: 'medium',
+              done: nextDone,
+              linkedHabitId: habit.id,
+            }),
+          )
+          continue
+        }
+
+        if (matched.linkedHabitId !== habit.id || matched.title !== habit.title || matched.done !== nextDone) {
+          operations.push(
+            widgetTodoRepo.update({
+              ...matched,
+              linkedHabitId: habit.id,
+              title: habit.title,
+              done: nextDone,
+            }),
+          )
+        }
+      }
+
+      if (operations.length === 0) return
+      await Promise.all(operations)
+      const refreshed = await widgetTodoRepo.list()
+      if (cancelled) return
+      setItems(refreshed)
+      setSortAnchorTime(refreshed.reduce((max, item) => (item.updatedAt > max ? item.updatedAt : max), 0))
+    }
+
+    void syncDailyTodos()
+    return () => {
+      cancelled = true
+    }
+  }, [activeHabits, completedDatesByHabit, items, loaded, today])
+
+  const scopeItems = useMemo(() => items.filter((item) => item.scope === activeScope), [items, activeScope])
 
   const orderedItemsByScope = useMemo(() => {
     const toTimestamp = (todo: WidgetTodo) => {
       if (todo.dueDate) {
         const match = todo.dueDate.match(/^(\d{4})-(\d{2})-(\d{2})$/)
-        if (match) {
-          const year = Number(match[1])
-          const month = Number(match[2]) - 1
-          const day = Number(match[3])
-          return new Date(year, month, day).getTime()
-        }
+        if (match) return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])).getTime()
         const parsed = Date.parse(todo.dueDate)
         if (!Number.isNaN(parsed)) return parsed
       }
       return todo.createdAt
     }
 
-    const now = sortAnchorTime
     const buildList = (scope: WidgetTodoScope) => {
       const base = items.filter((item) => item.scope === scope)
       const sorted = base.slice().sort((a, b) => {
         const ta = toTimestamp(a)
         const tb = toTimestamp(b)
-
-        if (now === 0) return tb - ta
-
-        return Math.abs(ta - now) - Math.abs(tb - now) || b.createdAt - a.createdAt
+        if (sortAnchorTime === 0) return tb - ta
+        return Math.abs(ta - sortAnchorTime) - Math.abs(tb - sortAnchorTime) || b.createdAt - a.createdAt
       })
-
       if (lastAdded?.scope !== scope) return sorted
       const index = sorted.findIndex((item) => item.id === lastAdded.id)
       if (index <= 0) return sorted
@@ -136,7 +183,40 @@ const WidgetTodosCard = () => {
     }
   }, [items, lastAdded, sortAnchorTime])
 
+  const activeIndex = useMemo(() => {
+    const next = scopes.findIndex((scope) => scope.key === activeScope)
+    return next < 0 ? 0 : next
+  }, [activeScope])
+  const tabMotionStyle = useMemo(
+    () =>
+      ({
+        '--tab-count': `${scopes.length}`,
+        '--tab-active-index': `${activeIndex}`,
+      }) as CSSProperties,
+    [activeIndex],
+  )
+
+  const completionLabel = useMemo(() => {
+    const total = scopeItems.length
+    if (total === 0) return '— completed'
+    const done = scopeItems.reduce((acc, item) => acc + (item.done ? 1 : 0), 0)
+    return `${done} / ${total} completed`
+  }, [scopeItems])
+
   const handleToggle = async (todo: WidgetTodo, done: boolean) => {
+    if (todo.scope === 'day' && todo.linkedHabitId) {
+      const habit = activeHabits.find((item) => item.id === todo.linkedHabitId)
+      if (habit && !pendingHabitId) {
+        setPendingHabitId(habit.id)
+        try {
+          if (done) await completeHabit(habit)
+          else await undoHabit(habit.id)
+        } finally {
+          setPendingHabitId(null)
+        }
+      }
+    }
+
     const updated = await widgetTodoRepo.update({ ...todo, done })
     setItems((prev) => prev.map((item) => (item.id === updated.id ? updated : item)))
     setSortAnchorTime(updated.updatedAt)
@@ -149,11 +229,24 @@ const WidgetTodosCard = () => {
 
   const { inputRef, isShaking, value, setValue, clearShake, canSubmit, submit } = useAddInputComposer({
     onSubmit: async (title) => {
+      const linkedHabit =
+        activeScope === 'day'
+          ? await createHabit({
+              title,
+              description: '',
+              icon: DEFAULT_HABIT_ICON,
+              type: 'boolean',
+              color: DEFAULT_HABIT_COLOR,
+              freezesAllowed: 0,
+            })
+          : null
+
       const added = await widgetTodoRepo.add({
         scope: activeScope,
         title,
         priority: 'medium',
         done: false,
+        linkedHabitId: activeScope === 'day' ? linkedHabit?.id : undefined,
       })
 
       setItems((prev) => [added, ...prev])
@@ -167,11 +260,7 @@ const WidgetTodosCard = () => {
   })
 
   return (
-    <Card
-      title="To-do List"
-      eyebrow="WIDGET"
-      actions={<span className="widget-todos__completed">{completionLabel}</span>}
-    >
+    <Card title="To-do List" eyebrow="WIDGET" actions={<span className="widget-todos__completed">{completionLabel}</span>}>
       <div className="widget-todos-card">
         <div className="widget-todos__tabs tab-motion-group" role="tablist" aria-label="Todo scope" style={tabMotionStyle}>
           {scopes.map((scope) => (
@@ -197,12 +286,7 @@ const WidgetTodosCard = () => {
             {scopes.map((scope) => {
               const rows = orderedItemsByScope[scope.key]
               return (
-                <div
-                  key={scope.key}
-                  className="widget-todos__panel"
-                  role="tabpanel"
-                  aria-label={`${scope.label} todos`}
-                >
+                <div key={scope.key} className="widget-todos__panel" role="tabpanel" aria-label={`${scope.label} todos`}>
                   <AnimatedScrollList
                     items={rows}
                     getKey={(item) => item.id}
@@ -217,6 +301,7 @@ const WidgetTodosCard = () => {
                       <label className={`widget-todos__item ${item.done ? 'is-done' : ''}`}>
                         <AnimatedPlanCheckbox
                           checked={item.done}
+                          disabled={pendingHabitId === item.linkedHabitId}
                           onChange={(event) => void handleToggle(item, event.target.checked)}
                         />
                         <div className="widget-todos__title">
@@ -227,14 +312,14 @@ const WidgetTodosCard = () => {
                           className="widget-todos__delete"
                           aria-label="Delete task"
                           title="Delete task"
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
+                          onClick={(event) => {
+                            event.preventDefault()
+                            event.stopPropagation()
                             void handleDelete(item)
                           }}
-                          onPointerDown={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
+                          onPointerDown={(event) => {
+                            event.preventDefault()
+                            event.stopPropagation()
                           }}
                         >
                           <Trash2 size={16} />
@@ -250,8 +335,8 @@ const WidgetTodosCard = () => {
 
         <form
           className="widget-todos__composer"
-          onSubmit={(e) => {
-            e.preventDefault()
+          onSubmit={(event) => {
+            event.preventDefault()
             void submit()
           }}
         >
@@ -259,9 +344,9 @@ const WidgetTodosCard = () => {
             ref={inputRef}
             className={`widget-todos__input ${isShaking ? 'is-shaking' : ''}`}
             value={value}
-            onChange={(e) => setValue(e.target.value)}
+            onChange={(event) => setValue(event.target.value)}
             onAnimationEnd={clearShake}
-            placeholder="Add a new task..."
+            placeholder={activeScope === 'day' ? 'Add a new habit...' : 'Add a new task...'}
           />
           <Button type="submit" size="sm" className="widget-todos__add-btn" disabled={!canSubmit}>
             Add
