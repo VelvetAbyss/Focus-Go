@@ -17,6 +17,7 @@ describe('resizableImage', () => {
 
   it('updates image width when dragging the resize handle', () => {
     const updateAttributes = vi.fn()
+    const node = { attrs: { src: 'data:image/png;base64,1', alt: '', title: '', width: 180 } } as unknown as Parameters<typeof ResizableImageView>[0]['node']
 
     render(
       <div
@@ -30,7 +31,7 @@ describe('resizableImage', () => {
         }}
       >
         <ResizableImageView
-          node={{ attrs: { src: 'data:image/png;base64,1', alt: '', title: '', width: 180 } }}
+          node={node}
           selected
           updateAttributes={updateAttributes}
         />
