@@ -305,7 +305,7 @@ const NoteEditor = ({ value, appearance, onOpenInfo, onOpenAppearance, onExport,
     if (!editor) return
     if (!editor.view?.dom) return
     const root = editor.view.dom as HTMLElement
-    const nextHeadings: HeadingNavItem[] = Array.from(root.querySelectorAll('h1, h2, h3')).map((heading, index) => ({
+    const nextHeadings: HeadingNavItem[] = Array.from(root.querySelectorAll<HTMLElement>('h1, h2, h3')).map((heading, index) => ({
       id: `heading-${index}`,
       text: (heading.textContent ?? '').trim() || `Section ${index + 1}`,
       level: Number(heading.tagName.slice(1)) as 1 | 2 | 3,
