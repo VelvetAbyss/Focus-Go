@@ -33,6 +33,7 @@ const CLASS_BY_TONE = {
 export function getWeatherIconMeta(code: number) {
   const meta = getWeatherCodeMeta(code)
   return {
+    tone: meta.tone,
     label: meta.label,
     Icon: ICON_BY_TONE[meta.tone],
     className: CLASS_BY_TONE[meta.tone],

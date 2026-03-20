@@ -21,7 +21,7 @@ const DiaryLauncherCard = ({ onOpen }: DiaryLauncherCardProps) => {
   const hasContent = useMemo(() => Boolean(todayEntry?.contentMd && !todayEntry.deletedAt), [todayEntry])
 
   const hasReviewSnapshot = useMemo(() => {
-    if (!hasContent) return false
+    if (!hasContent || !todayEntry?.contentMd) return false
     return hasReviewBlock(todayEntry.contentMd)
   }, [hasContent, todayEntry])
 
