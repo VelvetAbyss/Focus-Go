@@ -8,13 +8,13 @@ export type TaskTagTone = {
 export const TASK_STATUS_CONFIG: Record<TaskStatus, { label: string; dot: string; badge: string }> = {
   todo: {
     label: 'Todo',
-    dot: 'bg-slate-400',
-    badge: 'border-slate-200 bg-slate-50 text-slate-600',
+    dot: 'bg-stone-400',
+    badge: 'border-stone-300 bg-stone-100 text-stone-700',
   },
   doing: {
     label: 'Doing',
-    dot: 'bg-sky-500',
-    badge: 'border-sky-200 bg-sky-50 text-sky-700',
+    dot: 'bg-teal-500',
+    badge: 'border-teal-200 bg-teal-50 text-teal-700',
   },
   done: {
     label: 'Done',
@@ -36,13 +36,13 @@ export const TASK_PRIORITY_CONFIG: Record<NonNullable<TaskPriority> | 'none', { 
   },
   low: {
     label: 'Low',
-    dot: 'bg-blue-500',
-    badge: 'bg-blue-50 text-blue-700',
+    dot: 'bg-cyan-600',
+    badge: 'bg-cyan-50 text-cyan-700',
   },
   none: {
     label: 'None',
-    dot: 'bg-slate-300',
-    badge: 'bg-slate-100 text-slate-500',
+    dot: 'bg-stone-300',
+    badge: 'bg-stone-100 text-stone-500',
   },
 }
 
@@ -50,13 +50,13 @@ export const getTaskPriorityKey = (priority: TaskPriority | null | undefined) =>
 
 export const getTaskTagTone = (tag: string): TaskTagTone => {
   const key = tag.toLowerCase()
-  if (key === 'work') return { dot: 'bg-indigo-500', badge: 'bg-indigo-50 text-indigo-700' }
+  if (key === 'work') return { dot: 'bg-teal-600', badge: 'bg-teal-50 text-teal-700' }
   if (key === 'life') return { dot: 'bg-fuchsia-500', badge: 'bg-fuchsia-50 text-fuchsia-700' }
   if (key === 'health') return { dot: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700' }
-  if (key === 'study') return { dot: 'bg-cyan-500', badge: 'bg-cyan-50 text-cyan-700' }
+  if (key === 'study') return { dot: 'bg-cyan-600', badge: 'bg-cyan-50 text-cyan-700' }
   if (key === 'finance') return { dot: 'bg-amber-500', badge: 'bg-amber-50 text-amber-700' }
   if (key === 'family') return { dot: 'bg-rose-500', badge: 'bg-rose-50 text-rose-700' }
-  return { dot: 'bg-slate-400', badge: 'bg-slate-100 text-slate-700' }
+  return { dot: 'bg-stone-400', badge: 'bg-stone-100 text-stone-700' }
 }
 
 export const formatTaskDate = (value?: string) => {

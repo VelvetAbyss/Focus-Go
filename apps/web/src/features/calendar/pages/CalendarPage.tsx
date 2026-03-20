@@ -65,6 +65,7 @@ import {
 } from '../calendar.model'
 
 const weekLabels = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+const calendarEventKindRank = { lunar: 0, holiday: 1, event: 2 } as const
 
 const STORAGE_SUBSCRIPTIONS_KEY = 'focusgo.calendar.subscriptions.v1'
 const STORAGE_ICS_EVENTS_KEY = 'focusgo.calendar.icsEvents.v1'
@@ -391,6 +392,7 @@ const SortableSubscriptionItem = ({
 const CalendarPage = () => {
   const [anchorDate, setAnchorDate] = useState(() => new Date())
   const [selectedDateKey, setSelectedDateKey] = useState(() => toDateKey(new Date()))
+  const [monthMotionDirection, setMonthMotionDirection] = useState<'forward' | 'back' | null>(null)
   const [subscriptions, setSubscriptions] = useState<CalendarSubscription[]>(readStoredSubscriptions)
   const [icsEventsBySubscription, setIcsEventsBySubscription] = useState<Record<string, CalendarEvent[]>>(readStoredIcsEvents)
   const [taskColorsById, setTaskColorsById] = useState<Record<string, string>>(readStoredTaskColors)
@@ -415,6 +417,7 @@ const CalendarPage = () => {
   const [createTitle, setCreateTitle] = useState('')
   const [creatingGridTask, setCreatingGridTask] = useState(false)
   const tasksLoadRequestRef = useRef(0)
+  const syncedSubscriptionSignatureRef = useRef<Record<string, string>>({})
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 5 },
@@ -463,11 +466,19 @@ const CalendarPage = () => {
   }, [taskColorsById])
 
   useEffect(() => {
-    subscriptions
-      .filter((subscription) => subscription.enabled && Boolean(subscription.url))
-      .forEach((subscription) => {
-        void syncSubscription(subscription)
-      })
+    const nextSignatureById: Record<string, string> = {}
+    subscriptions.forEach((subscription) => {
+      const signature = subscription.enabled && subscription.url ? subscription.url : ''
+      nextSignatureById[subscription.id] = signature
+      if (!signature) return
+      if (syncedSubscriptionSignatureRef.current[subscription.id] === signature) return
+      syncedSubscriptionSignatureRef.current[subscription.id] = signature
+      void syncSubscription(subscription)
+    })
+    Object.keys(syncedSubscriptionSignatureRef.current).forEach((subscriptionId) => {
+      if (Object.prototype.hasOwnProperty.call(nextSignatureById, subscriptionId)) return
+      delete syncedSubscriptionSignatureRef.current[subscriptionId]
+    })
   }, [subscriptions, syncSubscription])
 
   const loadTasks = useCallback(async () => {
@@ -497,6 +508,16 @@ const CalendarPage = () => {
     monthEvents.forEach((event) => grouped.set(event.dateKey, [...(grouped.get(event.dateKey) ?? []), event]))
     return grouped
   }, [monthEvents])
+  const sortedEventsByDate = useMemo(() => {
+    const grouped = new Map<string, CalendarEvent[]>()
+    eventsByDate.forEach((items, dateKey) => {
+      grouped.set(
+        dateKey,
+        items.slice().sort((a, b) => calendarEventKindRank[a.kind] - calendarEventKindRank[b.kind])
+      )
+    })
+    return grouped
+  }, [eventsByDate])
 
   const unifiedSubscriptions = useMemo(
     () => sortSubscriptions(removeAllSystemSubscriptions(subscriptions)),
@@ -508,7 +529,7 @@ const CalendarPage = () => {
     [unifiedSubscriptions, pendingDeleteSubscriptionId]
   )
 
-  const selectedDayEvents = useMemo(() => eventsByDate.get(selectedDateKey) ?? [], [eventsByDate, selectedDateKey])
+  const selectedDayEvents = useMemo(() => sortedEventsByDate.get(selectedDateKey) ?? [], [sortedEventsByDate, selectedDateKey])
   const subscriptionColorById = useMemo(
     () => new Map(subscriptions.map((subscription) => [subscription.id, subscription.color])),
     [subscriptions]
@@ -533,14 +554,7 @@ const CalendarPage = () => {
     return grouped
   }, [allTasks, monthGridDateKeys])
 
-  const selectedDayTasks = useMemo(
-    () =>
-      allTasks
-        .filter((task) => taskCoversDate(task, selectedDateKey))
-        .slice()
-        .sort((a, b) => b.createdAt - a.createdAt),
-    [allTasks, selectedDateKey]
-  )
+  const selectedDayTasks = useMemo(() => tasksByDate.get(selectedDateKey) ?? [], [tasksByDate, selectedDateKey])
 
   const resolveTaskChipColor = useCallback(
     (task: TaskItem) => {
@@ -551,24 +565,31 @@ const CalendarPage = () => {
 
   const jumpToToday = () => {
     const now = new Date()
+    const nowMonthIndex = now.getFullYear() * 12 + now.getMonth()
+    const anchorMonthIndex = anchorDate.getFullYear() * 12 + anchorDate.getMonth()
+    if (nowMonthIndex !== anchorMonthIndex) {
+      setMonthMotionDirection(nowMonthIndex > anchorMonthIndex ? 'forward' : 'back')
+    }
     setAnchorDate(now)
     setSelectedDateKey(toDateKey(now))
   }
 
-  const moveMonth = (direction: -1 | 1) =>
+  const moveMonth = (direction: -1 | 1) => {
+    setMonthMotionDirection(direction === 1 ? 'forward' : 'back')
     setAnchorDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + direction, 1))
+  }
+
+  useEffect(() => {
+    if (!monthMotionDirection) return
+    const timeout = window.setTimeout(() => setMonthMotionDirection(null), 520)
+    return () => window.clearTimeout(timeout)
+  }, [monthMotionDirection])
 
   const handleToggleSubscription = (subscriptionId: string) => {
     setSubscriptions((prev) => {
       const current = prev.find((sub) => sub.id === subscriptionId)
       if (!current) return prev
-
-      const next = toggleSubscriptionEnabled(prev, subscriptionId)
-      const nextSub = next.find((sub) => sub.id === subscriptionId)
-      if (nextSub?.enabled && nextSub.url) {
-        void syncSubscription(nextSub)
-      }
-      return next
+      return toggleSubscriptionEnabled(prev, subscriptionId)
     })
   }
 
@@ -594,6 +615,7 @@ const CalendarPage = () => {
       delete next[targetId]
       return next
     })
+    delete syncedSubscriptionSignatureRef.current[targetId]
     setPendingDeleteSubscriptionId(null)
   }
 
@@ -651,7 +673,6 @@ const CalendarPage = () => {
     setIcsName('')
     setIcsUrl('')
     setIsAccountDialogOpen(false)
-    await syncSubscription(next)
   }
 
   const addGoogleReadOnlyAccount = () => {
@@ -809,7 +830,7 @@ const CalendarPage = () => {
 
   return (
     <section
-      className={`calendar-v2${leftSidebarOpen ? ' is-left-open' : ''}${rightSidebarOpen ? ' is-right-open' : ''}`}
+      className={`calendar-v2${leftSidebarOpen ? ' is-left-open' : ''}${rightSidebarOpen ? ' is-right-open' : ''}${monthMotionDirection ? ` calendar-v2--month-${monthMotionDirection}` : ''}`}
       aria-label="Calendar page"
     >
       <aside className="calendar-v2__left calendar-v2__drawer" aria-label="Calendar sidebar">
@@ -942,10 +963,7 @@ const CalendarPage = () => {
 
           {monthGridDateKeys.map((dateKey) => {
             const date = new Date(`${dateKey}T12:00:00`)
-            const dayEvents = (eventsByDate.get(dateKey) ?? []).slice().sort((a, b) => {
-              const rank = { lunar: 0, holiday: 1, event: 2 }
-              return rank[a.kind] - rank[b.kind]
-            })
+            const dayEvents = sortedEventsByDate.get(dateKey) ?? []
             const dayTasks = (tasksByDate.get(dateKey) ?? []).slice()
             const dayItems = [
               ...dayTasks.map((task) => ({
@@ -1035,7 +1053,7 @@ const CalendarPage = () => {
         </div>
         <section className="calendar-side-panel" aria-label="Selected date details">
           <h3 className="calendar-side-panel__title">Calendar Event</h3>
-          <ul className="calendar-side-panel__list" aria-label="Calendar events list">
+          <ul key={`events-${selectedDateKey}`} className="calendar-side-panel__list calendar-side-panel__list--enter" aria-label="Calendar events list">
             {selectedDayEvents.slice(0, 6).map((event) => {
               const eventTitle = event.title.trim() || 'Untitled event'
               const eventColor = subscriptionColorById.get(event.subscriptionId)
@@ -1055,7 +1073,7 @@ const CalendarPage = () => {
           <div className="calendar-side-panel__divider" />
 
           <h3 className="calendar-side-panel__title">Tasks</h3>
-          <div className="calendar-side-panel__list calendar-side-panel__list--animated" aria-label="Tasks list">
+          <div key={`tasks-${selectedDateKey}`} className="calendar-side-panel__list calendar-side-panel__list--animated calendar-side-panel__list--enter" aria-label="Tasks list">
             <AnimatedScrollList
               items={selectedDayTasks}
               getKey={(task) => task.id}

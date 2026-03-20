@@ -47,7 +47,7 @@ const TasksPage = () => {
             aria-selected={viewMode === 'board'}
             className={cn(
               'tasks-page-shell__tab flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-all',
-              viewMode === 'board' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+              viewMode === 'board' ? 'is-active' : 'text-muted-foreground hover:text-foreground',
             )}
             onClick={() => switchView('board')}
           >
@@ -60,7 +60,7 @@ const TasksPage = () => {
             aria-selected={viewMode === 'analytics'}
             className={cn(
               'tasks-page-shell__tab flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-all',
-              viewMode === 'analytics' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+              viewMode === 'analytics' ? 'is-active' : 'text-muted-foreground hover:text-foreground',
             )}
             onClick={() => switchView('analytics')}
           >

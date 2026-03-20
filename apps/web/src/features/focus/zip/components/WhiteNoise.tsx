@@ -99,29 +99,45 @@ function SoundBarVisualizer({ tracks, isPlaying }: { tracks: SoundTrack[]; isPla
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animRef = useRef<number>(0);
   const barsRef = useRef<number[]>([]);
+  const rafActiveRef = useRef(false);
 
-  const draw = useCallback(() => {
+  const activeTrackCount = useMemo(() => tracks.filter((t) => t.enabled).length, [tracks]);
+  const avgVol = useMemo(() => {
+    const activeTracks = tracks.filter((t) => t.enabled);
+    return activeTracks.length > 0
+      ? activeTracks.reduce((sum, t) => sum + t.volume, 0) / activeTracks.length
+      : 0;
+  }, [tracks]);
+
+  const syncCanvasSize = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    const w = Math.floor(canvas.clientWidth);
+    const h = Math.floor(canvas.clientHeight);
+    const targetWidth = Math.max(1, Math.floor(w * dpr));
+    const targetHeight = Math.max(1, Math.floor(h * dpr));
+    if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+    }
+  }, []);
+
+  const draw = useCallback((now: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const dpr = window.devicePixelRatio || 1;
     const w = canvas.clientWidth;
     const h = canvas.clientHeight;
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-    ctx.scale(dpr, dpr);
+    const dpr = window.devicePixelRatio || 1;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
 
     const barCount = 36;
     const gap = 3;
     const barWidth = (w - gap * (barCount - 1)) / barCount;
-    const activeTracks = tracks.filter((t) => t.enabled);
-    const avgVol =
-      activeTracks.length > 0
-        ? activeTracks.reduce((sum, t) => sum + t.volume, 0) / activeTracks.length
-        : 0;
 
     if (barsRef.current.length !== barCount) {
       barsRef.current = Array.from({ length: barCount }, () => Math.random() * 0.3);
@@ -129,8 +145,8 @@ function SoundBarVisualizer({ tracks, isPlaying }: { tracks: SoundTrack[]; isPla
 
     for (let i = 0; i < barCount; i++) {
       const target =
-        isPlaying && activeTracks.length > 0
-          ? (Math.sin(Date.now() * 0.002 + i * 0.5) * 0.3 + 0.5) * avgVol
+        isPlaying && activeTrackCount > 0
+          ? (Math.sin(now * 0.002 + i * 0.5) * 0.3 + 0.5) * avgVol
           : 0.03;
       barsRef.current[i] += (target - barsRef.current[i]) * 0.08;
       const barH = Math.max(2, barsRef.current[i] * h * 0.85);
@@ -146,14 +162,40 @@ function SoundBarVisualizer({ tracks, isPlaying }: { tracks: SoundTrack[]; isPla
       ctx.roundRect(x, y, barWidth, barH, barWidth / 2);
       ctx.fill();
     }
-
-    animRef.current = requestAnimationFrame(draw);
-  }, [tracks, isPlaying]);
+  }, [activeTrackCount, avgVol, isPlaying]);
 
   useEffect(() => {
-    animRef.current = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(animRef.current);
-  }, [draw]);
+    syncCanvasSize();
+    const handleResize = () => {
+      syncCanvasSize();
+      draw(performance.now());
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [draw, syncCanvasSize]);
+
+  useEffect(() => {
+    syncCanvasSize();
+    if (!isPlaying || activeTrackCount === 0) {
+      rafActiveRef.current = false;
+      cancelAnimationFrame(animRef.current);
+      draw(performance.now());
+      return;
+    }
+
+    rafActiveRef.current = true;
+    const loop = (t: number) => {
+      if (!rafActiveRef.current) return;
+      draw(t);
+      animRef.current = requestAnimationFrame(loop);
+    };
+    animRef.current = requestAnimationFrame(loop);
+
+    return () => {
+      rafActiveRef.current = false;
+      cancelAnimationFrame(animRef.current);
+    };
+  }, [activeTrackCount, draw, isPlaying, syncCanvasSize]);
 
   return <canvas ref={canvasRef} className="w-full" style={{ height: 44 }} />;
 }
