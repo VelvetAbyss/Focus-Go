@@ -1,11 +1,10 @@
-import { useEffect, useRef } from 'react'
+import { lazy, Suspense, useEffect, useRef } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import DashboardRoute from './DashboardRoute'
 import SettingsRoute from './SettingsRoute'
 import { LEGACY_ROUTES, ROUTES } from './routes'
 import TasksPage from '../../features/tasks/pages/TasksPage'
 import NotePage from '../../features/notes/pages/NotePage'
-import FocusPage from '../../features/focus/pages/FocusPage'
 import CalendarPage from '../../features/calendar/pages/CalendarPage'
 import ReviewPage from '../../features/diary/pages/ReviewPage'
 import LabsPage from '../../features/labs/pages/LabsPage'
@@ -13,6 +12,8 @@ import HabitTrackerPage from '../../features/habits/pages/HabitTrackerPage'
 import { useLabs } from '../../features/labs/LabsContext'
 import { useToast } from '../../shared/ui/toast/toast'
 import { useLabsI18n } from '../../features/labs/labsI18n'
+
+const FocusPage = lazy(() => import('../../features/focus/pages/FocusPage'))
 
 const GuardedHabitsRoute = () => {
   const { ready, canAccessHabitFeature } = useLabs()
@@ -47,7 +48,14 @@ const AppRoutes = () => {
       <Route path={ROUTES.TASKS} element={<TasksPage />} />
       <Route path={ROUTES.NOTE} element={<NotePage />} />
       <Route path={ROUTES.CALENDAR} element={<CalendarPage />} />
-      <Route path={ROUTES.FOCUS} element={<FocusPage />} />
+      <Route
+        path={ROUTES.FOCUS}
+        element={
+          <Suspense fallback={null}>
+            <FocusPage />
+          </Suspense>
+        }
+      />
       <Route path={ROUTES.REVIEW} element={<ReviewPage />} />
       <Route path={ROUTES.SETTINGS} element={<SettingsRoute />} />
       <Route path={ROUTES.LABS} element={<LabsPage />} />

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { CalendarDays, Columns3, LayoutGrid, ListFilter } from 'lucide-react'
+import { CalendarDays, CheckSquare, Columns3, LayoutGrid, ListFilter, Plus, Square, Tag, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import {
@@ -92,6 +92,9 @@ const TasksBoard = ({ asCard = true, className, topView = 'board' }: TasksBoardP
   const [statusActionLoadingKey, setStatusActionLoadingKey] = useState<string | null>(null)
   const [statusActionSuccessTaskId, setStatusActionSuccessTaskId] = useState<string | null>(null)
   const [statusActionSuccessKey, setStatusActionSuccessKey] = useState<string | null>(null)
+  const [bulkMode, setBulkMode] = useState(false)
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set())
+  const [bulkTagDraft, setBulkTagDraft] = useState('')
   const [activeStatus, setActiveStatus] = useState<TaskStatus>(() => {
     if (typeof window === 'undefined') return 'todo'
     const stored = window.localStorage.getItem(STORAGE_TAB_KEY)
@@ -161,11 +164,24 @@ const TasksBoard = ({ asCard = true, className, topView = 'board' }: TasksBoardP
     })
     return ordered
   }, [tasks, activeStatus, tagFilter, sortMode])
+  const filteredTaskIds = useMemo(() => filteredTasks.map((task) => task.id), [filteredTasks])
+  const selectedCount = selectedTaskIds.size
 
   const allFilteredTasks = useMemo(() => {
     if (tagFilter.length === 0) return tasks
     return tasks.filter((task) => tagFilter.some((tag) => task.tags.some((item) => item.toLowerCase() === tag)))
   }, [tasks, tagFilter])
+  const bulkTagOptions = useMemo(() => {
+    const seen = new Map<string, string>()
+    tasks.forEach((task) => {
+      task.tags.forEach((tag) => {
+        const key = tag.trim().toLowerCase()
+        if (!key || seen.has(key)) return
+        seen.set(key, tag.trim())
+      })
+    })
+    return [...seen.values()].sort((a, b) => a.localeCompare(b))
+  }, [tasks])
 
   const handleStatusChange = useCallback(async (taskId: string, nextStatus: TaskStatus) => {
     if (statusActionLoadingTaskId) return
@@ -241,6 +257,70 @@ const TasksBoard = ({ asCard = true, className, topView = 'board' }: TasksBoardP
     return true
   }, [activeStatus])
 
+  useEffect(() => {
+    setSelectedTaskIds((prev) => {
+      if (prev.size === 0) return prev
+      const visible = new Set(filteredTaskIds)
+      const next = new Set([...prev].filter((id) => visible.has(id)))
+      return next.size === prev.size ? prev : next
+    })
+  }, [filteredTaskIds])
+
+  const toggleTaskSelection = useCallback((taskId: string) => {
+    setSelectedTaskIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(taskId)) next.delete(taskId)
+      else next.add(taskId)
+      return next
+    })
+  }, [])
+
+  const toggleSelectAllVisible = useCallback(() => {
+    setSelectedTaskIds((prev) => {
+      const allVisible = filteredTaskIds.length > 0 && filteredTaskIds.every((id) => prev.has(id))
+      if (allVisible) return new Set()
+      return new Set(filteredTaskIds)
+    })
+  }, [filteredTaskIds])
+
+  const handleBulkMarkDone = useCallback(async () => {
+    if (selectedTaskIds.size === 0) return
+    const ids = [...selectedTaskIds]
+    const updates = await Promise.all(ids.map((id) => tasksRepo.updateStatus(id, 'done')))
+    const updatedById = new Map(updates.filter((item): item is TaskItem => Boolean(item)).map((item) => [item.id, item]))
+    if (updatedById.size === 0) return
+    emitTasksChanged('tasks-board:bulk-done')
+    setTasks((prev) => prev.map((task) => updatedById.get(task.id) ?? task))
+    setSelectedTaskIds(new Set())
+  }, [selectedTaskIds])
+
+  const handleBulkDelete = useCallback(async () => {
+    if (selectedTaskIds.size === 0) return
+    const ids = [...selectedTaskIds]
+    await Promise.all(ids.map((id) => tasksRepo.remove(id)))
+    emitTasksChanged('tasks-board:bulk-delete')
+    setTasks((prev) => prev.filter((task) => !selectedTaskIds.has(task.id)))
+    setSelectedTaskIds(new Set())
+  }, [selectedTaskIds])
+
+  const handleBulkAddTag = useCallback(async () => {
+    const nextTag = bulkTagDraft.trim()
+    if (!nextTag || selectedTaskIds.size === 0) return
+    const selected = tasks.filter((task) => selectedTaskIds.has(task.id))
+    if (selected.length === 0) return
+    const updates = await Promise.all(
+      selected.map((task) => {
+        const exists = task.tags.some((tag) => tag.toLowerCase() === nextTag.toLowerCase())
+        if (exists) return Promise.resolve(task)
+        return tasksRepo.update({ ...task, tags: [...task.tags, nextTag] })
+      }),
+    )
+    const updatedById = new Map(updates.map((item) => [item.id, item]))
+    emitTasksChanged('tasks-board:bulk-add-tag')
+    setTasks((prev) => prev.map((task) => updatedById.get(task.id) ?? task))
+    setBulkTagDraft('')
+  }, [bulkTagDraft, selectedTaskIds, tasks])
+
   const isKanbanMode = asCard || boardMode === 'kanban'
 
   const boardContent = topView === 'board'
@@ -268,6 +348,10 @@ const TasksBoard = ({ asCard = true, className, topView = 'board' }: TasksBoardP
                     key={task.id}
                     task={task}
                     onSelect={setActiveTask}
+                    onClick={(nextTask) => {
+                      if (bulkMode) toggleTaskSelection(nextTask.id)
+                      else setActiveTask(nextTask)
+                    }}
                     onDelete={(nextTask) => setDeleteTarget(nextTask)}
                     onTogglePin={(nextTask) => {
                       void handlePin(nextTask.id)
@@ -286,6 +370,8 @@ const TasksBoard = ({ asCard = true, className, topView = 'board' }: TasksBoardP
                     loadingActionKey={statusActionLoadingTaskId === task.id ? statusActionLoadingKey : null}
                     successActionKey={statusActionSuccessTaskId === task.id ? statusActionSuccessKey : null}
                     compact={asCard}
+                    selected={selectedTaskIds.has(task.id)}
+                    selectionMode={bulkMode}
                   />
                 ))}
               </div>
@@ -315,7 +401,7 @@ const TasksBoard = ({ asCard = true, className, topView = 'board' }: TasksBoardP
                     <button
                       key={status.key}
                       className={cn(
-                        'flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-all',
+                        'tasks-fg__status-tab flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-all',
                         isActive ? 'bg-muted text-foreground shadow-sm' : 'text-muted-foreground hover:bg-accent/70 hover:text-foreground',
                       )}
                       onClick={() => setActiveStatus(status.key)}
@@ -334,7 +420,7 @@ const TasksBoard = ({ asCard = true, className, topView = 'board' }: TasksBoardP
 
               <Popover>
                 <PopoverTrigger asChild>
-                  <button className="flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent">
+                  <button className="tasks-fg__filter-btn flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent">
                     <ListFilter className="size-3" />
                     Tags
                     {tagFilter.length > 0 ? (
@@ -384,30 +470,91 @@ const TasksBoard = ({ asCard = true, className, topView = 'board' }: TasksBoardP
               <span className="text-xs tabular-nums text-muted-foreground">{filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''}</span>
             </div>
 
-            {!asCard ? (
-              <div className="flex items-center gap-0.5 rounded-md bg-muted p-0.5">
-                <button
-                  className={cn(
-                    'flex items-center gap-1.5 rounded px-2.5 py-1 text-xs transition-all',
-                    boardMode === 'kanban' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
-                  )}
-                  onClick={() => setBoardMode('kanban')}
-                >
-                  <Columns3 className="size-3" />
-                  Kanban
-                </button>
-                <button
-                  className={cn(
-                    'flex items-center gap-1.5 rounded px-2.5 py-1 text-xs transition-all',
-                    boardMode === 'calendar' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
-                  )}
-                  onClick={() => setBoardMode('calendar')}
-                >
-                  <CalendarDays className="size-3" />
-                  Calendar
-                </button>
-              </div>
-            ) : null}
+            <div className="flex items-center gap-2">
+              {topView === 'board' && isKanbanMode && !asCard ? (
+                bulkMode ? (
+                  <div className="tasks-fg__bulk-bar flex items-center gap-1.5 rounded-md border border-[#3a3733]/10 bg-white px-2 py-1">
+                    <button type="button" aria-label="Select all visible tasks" className="tasks-fg__bulk-btn inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-[#3A3733]" onClick={toggleSelectAllVisible}>
+                      {filteredTaskIds.length > 0 && filteredTaskIds.every((id) => selectedTaskIds.has(id)) ? <CheckSquare className="size-3.5" /> : <Square className="size-3.5" />}
+                      All
+                    </button>
+                    <span className="px-1 text-xs text-muted-foreground">{selectedCount} selected</span>
+                    <div className="h-4 w-px bg-border" />
+                    <div className="inline-flex items-center gap-1">
+                      <ShadcnSelect value={bulkTagDraft} onValueChange={setBulkTagDraft}>
+                        <SelectTrigger aria-label="Bulk tag selector" className="h-7 min-w-[108px] rounded border-[#3a3733]/12 bg-white px-2 text-xs">
+                          <SelectValue placeholder="Select tag" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {bulkTagOptions.map((tag) => (
+                            <SelectItem key={tag} value={tag}>
+                              {tag}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </ShadcnSelect>
+                      <button type="button" aria-label="Apply tag to selected tasks" className="tasks-fg__bulk-btn inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-[#3A3733]" onClick={() => void handleBulkAddTag()} disabled={selectedCount === 0 || !bulkTagDraft.trim()}>
+                        <Plus className="size-3.5" />
+                        <Tag className="size-3.5" />
+                      </button>
+                    </div>
+                    <button type="button" aria-label="Mark selected tasks done" className="tasks-fg__bulk-btn inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-[#3A3733]" onClick={() => void handleBulkMarkDone()} disabled={selectedCount === 0}>
+                      <CheckSquare className="size-3.5" />
+                      Done
+                    </button>
+                    <button type="button" aria-label="Delete selected tasks" className="tasks-fg__bulk-btn inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-rose-600" onClick={() => void handleBulkDelete()} disabled={selectedCount === 0}>
+                      <Trash2 className="size-3.5" />
+                      Delete
+                    </button>
+                    <button
+                      type="button"
+                      className="tasks-fg__bulk-btn inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-muted-foreground"
+                      onClick={() => {
+                        setBulkMode(false)
+                        setSelectedTaskIds(new Set())
+                        setBulkTagDraft('')
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="tasks-fg__bulk-toggle inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent"
+                    onClick={() => setBulkMode(true)}
+                  >
+                    <CheckSquare className="size-3.5" />
+                    Bulk edit
+                  </button>
+                )
+              ) : null}
+
+              {!asCard ? (
+                <div className="flex items-center gap-0.5 rounded-md bg-muted p-0.5">
+                  <button
+                    className={cn(
+                      'tasks-fg__mode-tab flex items-center gap-1.5 rounded px-2.5 py-1 text-xs transition-all',
+                      boardMode === 'kanban' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                    )}
+                    onClick={() => setBoardMode('kanban')}
+                  >
+                    <Columns3 className="size-3" />
+                    Kanban
+                  </button>
+                  <button
+                    className={cn(
+                      'tasks-fg__mode-tab flex items-center gap-1.5 rounded px-2.5 py-1 text-xs transition-all',
+                      boardMode === 'calendar' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                    )}
+                    onClick={() => setBoardMode('calendar')}
+                  >
+                    <CalendarDays className="size-3" />
+                    Calendar
+                  </button>
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
       ) : null}

@@ -1,10 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Button } from '@/components/ui/button'
+import type { CSSProperties } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { Brain, Infinity, Pause, Play, Rocket, RotateCcw, Timer } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
 import Card from '../../shared/ui/Card'
-import { focusRepo } from '../../data/repositories/focusRepo'
-import { DEFAULT_NOISE_PRESET } from './noise'
-import { AppNumber, AppNumberGroup } from '../../shared/ui/AppNumber'
-import { useMotionPreference } from '../../shared/prefs/useMotionPreference'
 import { useSharedFocusTimer } from './useSharedFocusTimer'
 import { useSharedNoise } from './SharedNoiseProvider'
 
@@ -14,160 +12,296 @@ const clampDuration = (value: number) => {
   return Math.max(15, Math.min(120, stepped))
 }
 
+const FOCUS_MODES = [
+  { id: 'pomodoro', label: 'Pomodoro', minutes: 25, icon: Timer },
+  { id: 'deep-work', label: 'Deep Work', minutes: 50, icon: Brain },
+  { id: 'sprint', label: 'Sprint', minutes: 15, icon: Rocket },
+  { id: 'flow', label: 'Flow', minutes: 90, icon: Infinity },
+] as const
+
+type FocusModeId = (typeof FOCUS_MODES)[number]['id']
+
+const getClosestModeId = (minutes: number): FocusModeId => {
+  const matched = FOCUS_MODES.reduce((best, current) => {
+    const currentDistance = Math.abs(current.minutes - minutes)
+    const bestDistance = Math.abs(best.minutes - minutes)
+    return currentDistance < bestDistance ? current : best
+  }, FOCUS_MODES[0])
+  return matched.id
+}
+
+const clamp01 = (value: number) => Math.max(0, Math.min(1, value))
+
+const shouldReduceMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+const withViewTransition = async (action: () => Promise<void>) => {
+  if (typeof document === 'undefined' || shouldReduceMotion()) {
+    await action()
+    return
+  }
+  const viewTransitionDocument = document as Document & {
+    startViewTransition?: (callback: () => Promise<void>) => { finished: Promise<void> }
+  }
+  if (!viewTransitionDocument.startViewTransition) {
+    await action()
+    return
+  }
+  await viewTransitionDocument.startViewTransition(action).finished
+}
+
+const springPress = (element: HTMLElement | null) => {
+  if (!element || shouldReduceMotion()) return
+  element.animate(
+    [
+      { transform: 'translateY(0) scale(1)' },
+      { transform: 'translateY(1px) scale(0.965)' },
+      { transform: 'translateY(0) scale(1)' },
+    ],
+    { duration: 280, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }
+  )
+}
+
+function RollingDigit({ digit, prevDigit }: { digit: string; prevDigit: string }) {
+  const moveDown = digit > prevDigit
+  return (
+    <div className="focus-card-lite__digit-shell">
+      <AnimatePresence mode="popLayout">
+        <motion.span
+          key={digit}
+          initial={{ y: moveDown ? '100%' : '-100%', opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: moveDown ? '-100%' : '100%', opacity: 0 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 25 }}
+          className="focus-card-lite__digit-char"
+          style={{ fontVariantNumeric: 'tabular-nums' }}
+        >
+          {digit}
+        </motion.span>
+      </AnimatePresence>
+    </div>
+  )
+}
+
+function TimerDisplay({ timeText }: { timeText: string }) {
+  const prevRef = useRef(timeText)
+  const prev = prevRef.current
+  const chars = timeText.split('')
+  const prevChars = prev.split('')
+
+  useEffect(() => {
+    prevRef.current = timeText
+  }, [timeText])
+
+  return (
+    <div className="focus-card-lite__digits">
+      {chars.map((char, index) =>
+        char === ':' ? (
+          <motion.span
+            key={`colon-${index}`}
+            className="focus-card-lite__colon"
+            animate={{ opacity: [0.2, 0.45, 0.2] }}
+            transition={{ repeat: 9999, duration: 2, ease: 'easeInOut' }}
+          >
+            :
+          </motion.span>
+        ) : (
+          <RollingDigit key={`digit-${index}`} digit={char} prevDigit={prevChars[index] || char} />
+        )
+      )}
+    </div>
+  )
+}
+
 const FocusCard = () => {
-  const [focusMinutes, setFocusMinutes] = useState(25)
-  const [todayStats, setTodayStats] = useState({ minutes: 0, sessions: 0 })
-  const { reduceMotion } = useMotionPreference()
-  const { noise, toggleNoisePlaying } = useSharedNoise()
-  const { state: timerState, start, pause, resume, reset, setDuration } = useSharedFocusTimer({ defaultDurationMinutes: focusMinutes })
-
-  const loadTodayStats = useCallback(async () => {
-    const sessions = await focusRepo.listSessions(120)
-    const today = new Date().toDateString()
-    const completed = sessions.filter((session) => {
-      if (session.status !== 'completed') return false
-      const stamp = session.completedAt ?? session.updatedAt
-      return new Date(stamp).toDateString() === today
-    })
-    const minutes = completed.reduce((sum, session) => sum + (session.actualMinutes ?? session.plannedMinutes), 0)
-    setTodayStats({ minutes, sessions: completed.length })
-  }, [])
+  const [activeMode, setActiveMode] = useState<FocusModeId>('pomodoro')
+  const { noise, setNoiseMasterVolume, toggleNoisePlaying } = useSharedNoise()
+  const { state: timerState, start, pause, resume, reset, setDuration } = useSharedFocusTimer({ defaultDurationMinutes: 25 })
+  const sliderRef = useRef<HTMLDivElement | null>(null)
+  const draggingRef = useRef(false)
+  const statusRef = useRef<HTMLDivElement | null>(null)
+  const timerRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
-    void focusRepo.get().then((settings) => {
-      if (!settings) return
-      const nextFocusMinutes = clampDuration(settings.focusMinutes)
-      setFocusMinutes(nextFocusMinutes)
-      void setDuration(nextFocusMinutes)
-
-      if (!settings.noisePreset) {
-        void focusRepo.upsert({
-          focusMinutes: nextFocusMinutes,
-          breakMinutes: settings.breakMinutes,
-          longBreakMinutes: settings.longBreakMinutes,
-          noisePreset: DEFAULT_NOISE_PRESET,
-          timer: settings.timer,
-        })
-      }
-    })
-    void loadTodayStats()
-  }, [loadTodayStats, setDuration])
-
-  useEffect(() => {
-    void loadTodayStats()
-  }, [loadTodayStats, timerState.lastCompletedAt])
+    setActiveMode(getClosestModeId(timerState.durationMinutes))
+  }, [timerState.durationMinutes])
 
   const minutes = Math.floor(timerState.remainingSeconds / 60)
   const seconds = timerState.remainingSeconds % 60
-  const timerTrend = useMemo(() => {
-    return (oldValue: number, value: number) => (value >= oldValue ? 1 : -1)
-  }, [])
+  const timeText = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+
+  useEffect(() => {
+    const onMove = (event: MouseEvent) => {
+      if (!draggingRef.current || !sliderRef.current) return
+      const rect = sliderRef.current.getBoundingClientRect()
+      const next = clamp01((event.clientX - rect.left) / rect.width)
+      setNoiseMasterVolume(next)
+    }
+    const onUp = () => {
+      draggingRef.current = false
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+  }, [setNoiseMasterVolume])
 
   const handlePrimaryAction = async () => {
-    if (timerState.running) {
-      await pause()
-      return
-    }
-    if (timerState.status === 'paused') {
-      await resume()
-      return
-    }
-    await start(clampDuration(timerState.durationMinutes))
+    await withViewTransition(async () => {
+      if (timerState.running) {
+        await pause()
+        return
+      }
+      if (timerState.status === 'paused') {
+        await resume()
+        return
+      }
+      await start(clampDuration(timerState.durationMinutes))
+    })
   }
 
+  const handleModeChange = async (modeId: FocusModeId) => {
+    const mode = FOCUS_MODES.find((item) => item.id === modeId)
+    if (!mode) return
+    await withViewTransition(async () => {
+      setActiveMode(mode.id)
+      await setDuration(clampDuration(mode.minutes))
+    })
+  }
+
+  const primaryActionLabel = timerState.running ? 'Pause' : timerState.status === 'paused' ? 'Resume' : 'Start Focus'
+  const statusLabel =
+    timerState.status === 'paused'
+      ? 'PAUSED'
+      : timerState.status === 'running'
+        ? 'FOCUSING'
+        : 'READY TO FOCUS'
+
+  useEffect(() => {
+    if (shouldReduceMotion()) return
+    statusRef.current?.animate(
+      [
+        { opacity: 0.58, transform: 'translateY(6px)' },
+        { opacity: 1, transform: 'translateY(0)' },
+      ],
+      { duration: 220, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' }
+    )
+    timerRef.current?.animate(
+      [
+        { opacity: 0.82, transform: 'translateY(10px) scale(0.985)' },
+        { opacity: 1, transform: 'translateY(0) scale(1)' },
+      ],
+      { duration: 280, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' }
+    )
+  }, [statusLabel, activeMode])
+
+  const volumePercent = Math.round(noise.masterVolume * 100)
+  const progress = Math.max(0, Math.min(1, 1 - timerState.remainingSeconds / (Math.max(1, timerState.durationMinutes) * 60)))
+  const timerRingStyle = { '--focus-progress': `${progress}` } as CSSProperties
+
   return (
-    <Card title="Focus Center" eyebrow="Pomodoro">
+    <Card className="focus-card-figma-shell" title="Focus Center" eyebrow="Pomodoro">
       <div className="focus-card-lite focus-card-lite--misted">
-        <div className="focus-card-lite__glow focus-card-lite__glow--primary" aria-hidden />
-        <div className="focus-card-lite__glow focus-card-lite__glow--secondary" aria-hidden />
-        <div className="focus-card-lite__header">
-          <div className="focus-card-lite__mode-wrap">
-            <div className="focus-card-lite__eyebrow-dot" aria-hidden />
-            <div className="focus__mode">Deep focus mode</div>
-          </div>
-          <div className="focus-card-lite__stats">
-            <span>{todayStats.sessions} sessions</span>
-            <span>·</span>
-            <span>{todayStats.minutes} min</span>
-          </div>
-        </div>
         <div className="focus-card-lite__body">
-          <div className="focus__time focus-card-lite__time">
-            <AppNumberGroup>
-              <AppNumber value={minutes} trend={timerTrend} />
-              <span aria-hidden>:</span>
-              <AppNumber value={seconds} trend={timerTrend} format={{ minimumIntegerDigits: 2 }} />
-            </AppNumberGroup>
-          </div>
-          <div className="focus__actions focus-card-lite__actions">
-            <Button size="sm" onClick={() => void handlePrimaryAction()}>
-              {timerState.running ? 'Pause' : timerState.status === 'paused' ? 'Resume' : 'Start'}
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => void reset()}>
-              Reset
-            </Button>
-          </div>
-
-          <div className="focus__noise focus-card-lite__noise">
-            <style>{`
-            .noiseTitleRow {
-              display: flex;
-              align-items: center;
-              gap: 6px;
-            }
-            .mini-equalizer {
-              display: inline-flex;
-              align-items: flex-end;
-              gap: 2px;
-              height: 10px;
-              width: 14px;
-            }
-            .mini-equalizer span {
-              width: 2px;
-              background-color: var(--text-secondary);
-              border-radius: 2px;
-              opacity: 0.6;
-              animation: mini-eq-bounce 900ms ease-in-out infinite;
-            }
-            .mini-equalizer span:nth-child(1) { animation-delay: 0ms; height: 4px; }
-            .mini-equalizer span:nth-child(2) { animation-delay: 150ms; height: 8px; }
-            .mini-equalizer span:nth-child(3) { animation-delay: 300ms; height: 5px; }
-
-            @keyframes mini-eq-bounce {
-              0%, 100% { height: 4px; }
-              50% { height: 10px; }
-            }
-
-            html[data-motion='reduce'] .mini-equalizer span {
-              animation: none;
-              height: 6px !important;
-            }
-          `}</style>
-            <div className="focus__noise-meta" style={{ gap: 0 }}>
-              <span className="focus__noise-label noiseTitleRow">
-                White noise
-                {noise.playing && (
-                  <span className="mini-equalizer" aria-label="Playing" title="Playing">
-                    <span />
-                    <span />
-                    <span />
-                  </span>
-                )}
-              </span>
+          <section className="focus-card-lite__modes-band">
+            <div className="focus-card-lite__modes" role="tablist" aria-label="Focus modes">
+              {FOCUS_MODES.map((mode) => (
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeMode === mode.id}
+                  key={mode.id}
+                  className={`focus-card-lite__mode-pill ${activeMode === mode.id ? 'is-active' : ''}`}
+                  onClick={() => void handleModeChange(mode.id)}
+                >
+                  <mode.icon size={12} className="focus-card-lite__mode-icon" aria-hidden />
+                  <span>{mode.label}</span>
+                </button>
+              ))}
             </div>
-            <Button
-              className={`noiseBtn noise-icon-toggle ${noise.playing ? 'is-playing' : ''} ${reduceMotion ? 'is-reduced-motion' : ''}`}
-              onClick={toggleNoisePlaying}
-              aria-label={noise.playing ? 'Pause noise' : 'Play noise'}
-            >
-              <svg viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg" className="noise-icon-toggle__play" aria-hidden>
-                <path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z" />
-              </svg>
-              <svg viewBox="0 0 320 512" xmlns="http://www.w3.org/2000/svg" className="noise-icon-toggle__pause" aria-hidden>
-                <path d="M48 64C21.5 64 0 85.5 0 112V400c0 26.5 21.5 48 48 48H80c26.5 0 48-21.5 48-48V112c0-26.5-21.5-48-48-48H48zm192 0c-26.5 0-48 21.5-48 48V400c0 26.5 21.5 48 48 48h32c26.5 0 48-21.5 48-48V112c0-26.5-21.5-48-48-48H240z" />
-              </svg>
-            </Button>
-          </div>
+          </section>
+
+          <section className="focus-card-lite__timer-band">
+            <div className="focus-card-lite__timer-ring" style={timerRingStyle} aria-hidden />
+            <div ref={statusRef} className={`focus-card-lite__status ${timerState.status === 'running' ? 'is-running' : ''}`}>
+              ◉ {statusLabel}
+            </div>
+            <div ref={timerRef} className="focus-card-lite__timer-raw">
+              <TimerDisplay timeText={timeText} />
+            </div>
+          </section>
+
+          <section className="focus-card-lite__actions-band">
+            <div className="focus-card-lite__actions-raw">
+              <button
+                className="focus-card-lite__primary-raw"
+                onPointerDown={(event) => springPress(event.currentTarget)}
+                onClick={() => void handlePrimaryAction()}
+              >
+                {timerState.running ? <Pause size={15} /> : <Play size={15} />}
+                <span>{primaryActionLabel}</span>
+              </button>
+              <button
+                className="focus-card-lite__reset-raw"
+                onPointerDown={(event) => springPress(event.currentTarget)}
+                onClick={() => void reset()}
+                aria-label="Reset"
+              >
+                <RotateCcw size={15} />
+              </button>
+            </div>
+          </section>
+
+          <section className="focus-card-lite__sound-band">
+            <div className="focus-card-lite__volume-cluster">
+              <button
+                className={`focus-card-lite__noise-play-raw ${noise.playing ? 'is-playing' : ''}`}
+                onPointerDown={(event) => springPress(event.currentTarget)}
+                onClick={toggleNoisePlaying}
+                aria-label={noise.playing ? 'Pause noise' : 'Play noise'}
+              >
+                {noise.playing ? <Pause size={14} /> : <Play size={14} />}
+              </button>
+
+              <div className="focus-card-lite__volume-raw">
+                <div className="focus-card-lite__volume-row-raw">
+                  <span>MASTER VOLUME</span>
+                  <span>{volumePercent}%</span>
+                </div>
+                <div
+                  ref={sliderRef}
+                  className="focus-card-lite__volume-track-raw"
+                  onMouseDown={(event) => {
+                    draggingRef.current = true
+                    if (!sliderRef.current) return
+                    const rect = sliderRef.current.getBoundingClientRect()
+                    const next = clamp01((event.clientX - rect.left) / rect.width)
+                    setNoiseMasterVolume(next)
+                  }}
+                >
+                  <div className="focus-card-lite__volume-fill-raw" style={{ width: `${noise.masterVolume * 100}%` }} />
+                  <div className="focus-card-lite__volume-thumb-raw" style={{ left: `${noise.masterVolume * 100}%` }} />
+                </div>
+              </div>
+
+              <div className={`focus-card-lite__eq ${noise.playing ? 'is-active' : ''}`} aria-hidden>
+                {Array.from({ length: 8 }).map((_, index) => (
+                  <span
+                    key={index}
+                    style={
+                      {
+                        '--eq-delay': `${index * 80}ms`,
+                        '--eq-gain': `${0.42 + index * 0.07}`,
+                      } as CSSProperties
+                    }
+                  />
+                ))}
+              </div>
+            </div>
+
+          </section>
         </div>
       </div>
     </Card>

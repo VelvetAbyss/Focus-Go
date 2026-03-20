@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { GridLayout, useContainerWidth } from 'react-grid-layout'
 import Dialog from '../../shared/ui/Dialog'
 import { dashboardRepo } from '../../data/repositories/dashboardRepo'
 import { getDashboardCards } from './registry'
 import type { DashboardLayoutItem } from '../../data/models/types'
-import DiaryPanel from '../diary/DiaryPanel'
 import { useSearchParams } from 'react-router-dom'
 import { syncDashboardLayout } from './layoutSyncAdapter'
 import DashboardHeader from './DashboardHeader'
@@ -16,6 +15,27 @@ import {
 } from '../../data/defaultDashboardLayout'
 
 const LAYOUT_LOCK_KEY = 'workbench.dashboard.layoutLocked'
+const LAYOUT_PERSIST_DEBOUNCE_MS = 180
+const DiaryPanel = lazy(() => import('../diary/DiaryPanel'))
+
+const isSameLayout = (a: DashboardLayoutItem[], b: DashboardLayoutItem[]) => {
+  if (a.length !== b.length) return false
+  for (let i = 0; i < a.length; i += 1) {
+    const left = a[i]
+    const right = b[i]
+    if (!right) return false
+    if (
+      left.key !== right.key ||
+      left.x !== right.x ||
+      left.y !== right.y ||
+      left.w !== right.w ||
+      left.h !== right.h
+    ) {
+      return false
+    }
+  }
+  return true
+}
 
 const readLayoutLocked = () => {
   const raw = localStorage.getItem(LAYOUT_LOCK_KEY)
@@ -38,6 +58,12 @@ const DashboardPage = () => {
   const [confirmHideCardId, setConfirmHideCardId] = useState<string | null>(null)
   const [hideSubmitting, setHideSubmitting] = useState(false)
   const [syncError, setSyncError] = useState<string | null>(null)
+  const persistTimerRef = useRef<number | null>(null)
+  const layoutSnapshotRef = useRef<{ layout: DashboardLayoutItem[]; hiddenCardIds: string[] }>({
+    layout: [],
+    hiddenCardIds: [],
+  })
+  const pendingLayoutKeyRef = useRef('')
   const toggleLayoutEdit = useCallback(() => {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev)
@@ -71,6 +97,16 @@ const DashboardPage = () => {
   useEffect(() => {
     writeLayoutLocked(!layoutEdit)
   }, [layoutEdit])
+
+  useEffect(() => {
+    layoutSnapshotRef.current = { layout, hiddenCardIds }
+  }, [hiddenCardIds, layout])
+
+  useEffect(() => {
+    return () => {
+      if (persistTimerRef.current) window.clearTimeout(persistTimerRef.current)
+    }
+  }, [])
 
   useEffect(() => {
     if (searchParams.get('layoutEdit') !== null) return
@@ -350,7 +386,16 @@ const DashboardPage = () => {
                   w: item.w,
                   h: item.h,
                 }))
-              void persistLayout(updated, hiddenCardIds, { layout, hiddenCardIds })
+              if (isSameLayout(updated, layoutSnapshotRef.current.layout)) return
+              const key = JSON.stringify(updated)
+              if (pendingLayoutKeyRef.current === key) return
+              pendingLayoutKeyRef.current = key
+              const rollbackState = layoutSnapshotRef.current
+              if (persistTimerRef.current) window.clearTimeout(persistTimerRef.current)
+              persistTimerRef.current = window.setTimeout(() => {
+                persistTimerRef.current = null
+                void persistLayout(updated, hiddenCardIds, rollbackState)
+              }, LAYOUT_PERSIST_DEBOUNCE_MS)
             }}
           >
             {visibleCards.map((card) => (
@@ -366,21 +411,25 @@ const DashboardPage = () => {
           </GridLayout>
         )}
 
-        <DiaryPanel
-          open={diaryOpen}
-          onClose={() =>
-            setSearchParams(
-              (prev) => {
-                const next = new URLSearchParams(prev)
-                next.delete('diary')
-                next.delete('diaryTab')
-                next.delete('date')
-                return next
-              },
-              { replace: true }
-            )
-          }
-        />
+        {diaryOpen ? (
+          <Suspense fallback={null}>
+            <DiaryPanel
+              open={diaryOpen}
+              onClose={() =>
+                setSearchParams(
+                  (prev) => {
+                    const next = new URLSearchParams(prev)
+                    next.delete('diary')
+                    next.delete('diaryTab')
+                    next.delete('date')
+                    return next
+                  },
+                  { replace: true }
+                )
+              }
+            />
+          </Suspense>
+        ) : null}
         <Dialog
           open={Boolean(confirmHideCardId)}
           title="Hide widget"

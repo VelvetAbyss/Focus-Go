@@ -95,7 +95,7 @@ export default function NoteSidebar({
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-foreground">
             <span className="text-[11px] font-bold tracking-tight text-background">F</span>
           </div>
-          <span className="text-[15px] font-semibold tracking-tight text-foreground">Focus&amp;Go</span>
+          <span className="text-[0.9375rem] font-semibold tracking-[-0.015em] text-foreground">Focus&amp;Go</span>
         </div>
       </div>
 
@@ -175,7 +175,7 @@ export default function NoteSidebar({
 }
 
 function SectionTitle({ children, className }: { children: string; className?: string }) {
-  return <div className={cn('mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-[#8d867f] dark:text-slate-400', className)}>{children}</div>
+  return <div className={cn('mb-1.5 px-2 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-[#8d867f] dark:text-slate-400', className)}>{children}</div>
 }
 
 function CollectionButton({
@@ -201,10 +201,10 @@ function CollectionButton({
       )}
     >
       <Icon size={16} className={active ? 'text-[#3a3733] dark:text-slate-100' : 'text-[#8d867f] dark:text-slate-400'} />
-      <span className="flex-1 text-[13px]" style={{ fontWeight: active ? 500 : 400 }}>
+      <span className="flex-1 text-[0.875rem]" style={{ fontWeight: active ? 500 : 400 }}>
         {label}
       </span>
-      <span className="text-[11px] text-[#8d867f] dark:text-slate-400">{count}</span>
+      <span className="text-[0.75rem] tabular-nums text-[#8d867f] dark:text-slate-400">{count}</span>
     </button>
   )
 }
@@ -255,7 +255,7 @@ function TagRow({
     <div>
       <div
         className={cn(
-          'group relative flex cursor-pointer items-center gap-1.5 rounded-lg py-[6px] transition-all duration-200 ease-out',
+          'group relative flex cursor-pointer items-center gap-1.5 rounded-lg py-[6px] transition-[background-color,color,transform,box-shadow,opacity] duration-200 ease-out',
           isActive ? 'bg-[#f0eeeb] text-[#3a3733] dark:bg-slate-700/40 dark:text-slate-100' : 'hover:bg-[#f0eeeb]/60 dark:hover:bg-slate-700/25',
           dragPlacement === 'inside' && 'ring-1 ring-[#3a3733]/25 bg-[#f0eeeb]/70',
           isNoteHover && 'ring-1 ring-[#3a3733]/30 bg-[#f0eeeb]/70',
@@ -378,11 +378,11 @@ function TagRow({
                 setIsRenaming(false)
               }
             }}
-            className="h-6 flex-1 rounded border border-[#3a3733]/20 bg-transparent px-1 text-[13px] outline-none"
+            className="h-6 flex-1 rounded border border-[#3a3733]/20 bg-transparent px-1 text-[0.875rem] outline-none"
           />
         ) : (
           <span
-            className="flex-1 truncate text-[13px]"
+            className="flex-1 truncate text-[0.875rem]"
             style={{ fontWeight: isActive ? 500 : 400 }}
             onDoubleClick={(event) => {
               event.stopPropagation()
@@ -397,7 +397,7 @@ function TagRow({
         {dragPlacement === 'inside' || isNoteHover ? (
           <span className="mr-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#3a3733] px-1 text-[10px] font-semibold leading-none text-white">+</span>
         ) : null}
-        <span className="text-[11px] text-[#8d867f] transition-opacity group-hover:opacity-0 dark:text-slate-400">{tag.noteCount}</span>
+        <span className="text-[0.75rem] tabular-nums text-[#8d867f] transition-opacity group-hover:opacity-0 dark:text-slate-400">{tag.noteCount}</span>
         <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
           <button
             type="button"

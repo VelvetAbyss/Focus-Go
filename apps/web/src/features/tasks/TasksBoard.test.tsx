@@ -1,12 +1,15 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
 import type { TaskItem } from './tasks.types'
 
 const listMock = vi.fn()
+const updateMock = vi.fn()
+const removeMock = vi.fn()
+const updateStatusMock = vi.fn()
 const subscribeTasksChangedMock = vi.fn()
 let tasksChangedHandler: (() => void) | null = null
 
@@ -14,9 +17,9 @@ vi.mock('../../data/repositories/tasksRepo', () => ({
   tasksRepo: {
     list: (...args: unknown[]) => listMock(...args),
     add: vi.fn(),
-    remove: vi.fn(),
-    update: vi.fn(),
-    updateStatus: vi.fn(),
+    remove: (...args: unknown[]) => removeMock(...args),
+    update: (...args: unknown[]) => updateMock(...args),
+    updateStatus: (...args: unknown[]) => updateStatusMock(...args),
     clearAllTags: vi.fn(),
   },
 }))
@@ -64,7 +67,11 @@ vi.mock('../../shared/ui/AnimatedScrollList', () => ({
 }))
 
 vi.mock('./components/TaskCard', () => ({
-  default: ({ task }: { task: TaskItem }) => <div>{task.title}</div>,
+  default: ({ task, onClick, selected }: { task: TaskItem; onClick?: (task: TaskItem) => void; selected?: boolean }) => (
+    <button type="button" data-testid={`task-card-${task.id}`} data-selected={selected ? 'yes' : 'no'} onClick={() => onClick?.(task)}>
+      {task.title}
+    </button>
+  ),
 }))
 
 vi.mock('../../shared/ui/tabPressAnimation', () => ({
@@ -94,10 +101,34 @@ describe('TasksBoard sync', () => {
   beforeEach(() => {
     cleanup()
     listMock.mockReset()
+    updateMock.mockReset()
+    removeMock.mockReset()
+    updateStatusMock.mockReset()
     subscribeTasksChangedMock.mockReset()
     tasksChangedHandler = null
     window.localStorage.clear()
     window.localStorage.setItem('tasks_tags_select_v2_migrated', '1')
+  })
+
+  it('supports bulk done on currently visible tasks and renders tag selector', async () => {
+    const taskA = { ...makeTask('task-1', 'First task'), tags: ['work'] }
+    const taskB = { ...makeTask('task-2', 'Second task'), tags: ['work'] }
+    listMock.mockResolvedValueOnce([taskA, taskB])
+    updateStatusMock.mockImplementation(async (id: string, status: TaskItem['status']) => ({ ...(id === 'task-1' ? taskA : taskB), status }))
+
+    render(<TasksBoard asCard={false} />)
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1))
+
+    await waitFor(() => expect(screen.getByText('Bulk edit')).toBeInTheDocument())
+    fireEvent.click(screen.getByText('Bulk edit'))
+    await waitFor(() => expect(screen.getByLabelText('Select all visible tasks')).toBeInTheDocument())
+    fireEvent.click(screen.getByTestId('task-card-task-1'))
+    fireEvent.click(screen.getByTestId('task-card-task-2'))
+
+    expect(screen.getByLabelText('Bulk tag selector')).toBeInTheDocument()
+
+    screen.getByLabelText('Mark selected tasks done').click()
+    await waitFor(() => expect(updateStatusMock).toHaveBeenCalledTimes(2))
   })
 
   afterEach(() => {

@@ -10,16 +10,6 @@ type DiaryLauncherCardProps = {
   onOpen: (intent?: 'openToday') => void
 }
 
-const formatLastEdited = (timestamp: number) => {
-  const diff = Date.now() - timestamp
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'Last edited · Just now'
-  if (mins < 60) return `Last edited · ${mins} min ago`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `Last edited · ${hours}h ago`
-  return 'Last edited · >1 day ago'
-}
-
 const DiaryLauncherCard = ({ onOpen }: DiaryLauncherCardProps) => {
   const [todayEntry, setTodayEntry] = useState<DiaryEntry | null>(null)
 
@@ -28,21 +18,12 @@ const DiaryLauncherCard = ({ onOpen }: DiaryLauncherCardProps) => {
     diaryRepo.getByDate(todayKey).then((entry) => setTodayEntry(entry ?? null))
   }, [])
 
-  const status = useMemo(() => {
-    if (!todayEntry?.contentMd || todayEntry.deletedAt) return 'Start a short note for today.'
-    return formatLastEdited(todayEntry.updatedAt)
-  }, [todayEntry])
-
-  const preview = useMemo(() => {
-    if (!todayEntry?.contentMd || todayEntry.deletedAt) return ''
-    const cleaned = todayEntry.contentMd.replace(/\s+/g, ' ').trim()
-    return cleaned.slice(0, 60)
-  }, [todayEntry])
+  const hasContent = useMemo(() => Boolean(todayEntry?.contentMd && !todayEntry.deletedAt), [todayEntry])
 
   const hasReviewSnapshot = useMemo(() => {
-    if (!todayEntry?.contentMd || todayEntry.deletedAt) return false
+    if (!hasContent) return false
     return hasReviewBlock(todayEntry.contentMd)
-  }, [todayEntry])
+  }, [hasContent, todayEntry])
 
   const handleClick = () => onOpen('openToday')
 
@@ -50,25 +31,27 @@ const DiaryLauncherCard = ({ onOpen }: DiaryLauncherCardProps) => {
     <Card
       title="Diary"
       eyebrow="Today"
-      className="card--clickable"
+      className="card--clickable diary-launcher-card"
       onClick={handleClick}
       actions={
         <Button
           variant="outline"
           size="sm"
+          className="diary-launcher-card__open"
           onClick={(e) => {
             e.stopPropagation()
             handleClick()
           }}
         >
-          Open
+          {hasContent ? 'Continue' : 'Open'}
         </Button>
       }
     >
-      <p className="diary__date">{toDateKey()}</p>
-      <p className="diary__status">{status}</p>
-      {hasReviewSnapshot ? <p className="diary__status">Includes review snapshot</p> : null}
-      {preview && <p className="diary__preview">{preview}</p>}
+      <div className="diary-launcher-card__meta">
+        <p className="diary-launcher-card__date">{toDateKey()}</p>
+        <span className="diary-launcher-card__chip">{hasContent ? 'Updated' : 'New'}</span>
+      </div>
+      {hasReviewSnapshot ? <p className="diary-launcher-card__snapshot">Review snapshot included</p> : null}
     </Card>
   )
 }

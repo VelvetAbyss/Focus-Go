@@ -16,7 +16,7 @@ import { StarterKit } from '@tiptap/starter-kit'
 import { EditorContent, EditorContext, useEditor } from '@tiptap/react'
 import { Download, Expand, Info, Minimize2, Palette } from 'lucide-react'
 import type { CSSProperties, ReactNode, RefObject } from 'react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { HorizontalRule } from '@/components/tiptap-node/horizontal-rule-node/horizontal-rule-node-extension'
 import { ImageUploadNode } from '@/components/tiptap-node/image-upload-node/image-upload-node-extension'
 import '@/components/tiptap-node/blockquote-node/blockquote-node.scss'
@@ -203,16 +203,50 @@ const NoteEditor = ({ value, appearance, onOpenInfo, onOpenAppearance, onExport,
   const [hoverHeadingId, setHoverHeadingId] = useState<string | null>(null)
   const [tocVersion, setTocVersion] = useState(0)
   const scrollSyncFrameRef = useRef<number | null>(null)
+  const emitTimerRef = useRef<number | null>(null)
+  const pendingDocRef = useRef<JSONContent | null | undefined>(undefined)
+  const shouldSkipSyncRef = useRef(false)
+  const changeMetaRef = useRef({ onChange, tags: value.tags })
 
-  const emitChange = (doc: JSONContent | null | undefined) => {
+  useEffect(() => {
+    changeMetaRef.current = { onChange, tags: value.tags }
+  }, [onChange, value.tags])
+
+  const flushEmitChange = useCallback(() => {
+    const doc = pendingDocRef.current
+    if (doc === undefined) return
+    pendingDocRef.current = undefined
+    if (emitTimerRef.current) {
+      window.clearTimeout(emitTimerRef.current)
+      emitTimerRef.current = null
+    }
     const contentMd = richDocToMarkdown(doc)
-    onChange({
+    const { onChange: handleChange, tags } = changeMetaRef.current
+    handleChange({
       title: extractTitleFromMarkdown(contentMd),
       contentMd,
       contentJson: (doc ?? null) as Record<string, unknown> | null,
-      tags: value.tags,
+      tags,
     })
-  }
+  }, [])
+
+  const scheduleEmitChange = useCallback(
+    (doc: JSONContent | null | undefined) => {
+      pendingDocRef.current = doc
+      if (emitTimerRef.current) window.clearTimeout(emitTimerRef.current)
+      emitTimerRef.current = window.setTimeout(() => {
+        flushEmitChange()
+      }, 120)
+    },
+    [flushEmitChange],
+  )
+
+  useEffect(
+    () => () => {
+      flushEmitChange()
+    },
+    [flushEmitChange],
+  )
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -286,20 +320,23 @@ const NoteEditor = ({ value, appearance, onOpenInfo, onOpenAppearance, onExport,
     },
     content: initialDoc,
     onUpdate: ({ editor }) => {
-      emitChange(editor.getJSON())
+      shouldSkipSyncRef.current = true
+      scheduleEmitChange(editor.getJSON())
       setTocVersion((version) => version + 1)
     },
   })
 
   useEffect(() => {
     if (!editor) return
-    const nextDoc = ensureRichDoc(value.contentJson, value.contentMd)
-    const current = JSON.stringify(editor.getJSON())
-    const next = JSON.stringify(nextDoc)
-    if (current !== next) {
-      editor.commands.setContent(nextDoc, { emitUpdate: false })
+    if (shouldSkipSyncRef.current) {
+      shouldSkipSyncRef.current = false
+      return
     }
-  }, [editor, value.contentJson, value.contentMd])
+    flushEmitChange()
+    const nextDoc = ensureRichDoc(value.contentJson, value.contentMd)
+    editor.commands.setContent(nextDoc, { emitUpdate: false })
+    setTocVersion((version) => version + 1)
+  }, [editor, flushEmitChange, value.contentJson, value.contentMd])
 
   useEffect(() => {
     if (!editor) return
@@ -313,7 +350,7 @@ const NoteEditor = ({ value, appearance, onOpenInfo, onOpenAppearance, onExport,
     }))
     setHeadings(nextHeadings)
     setActiveHeadingId((current) => (nextHeadings.some((item) => item.id === current) ? current : nextHeadings[0]?.id ?? null))
-  }, [editor, tocVersion, value.contentJson, value.contentMd])
+  }, [editor, tocVersion])
 
   useEffect(() => {
     if (!editor) return

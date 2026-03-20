@@ -83,8 +83,8 @@ export default function NoteBrowser({
     >
       <div className="flex items-center gap-2 px-4 pb-2 pt-4">
         <div className="flex flex-1 items-center gap-2">
-          <span className="rounded-md bg-[#f0eeeb] px-2.5 py-1 text-[12px] font-medium text-[#3a3733] dark:bg-slate-700/40 dark:text-slate-100">{collectionLabel}</span>
-          <span className="text-[12px] text-[#8d867f] dark:text-slate-400">{notes.length}</span>
+          <span className="rounded-md bg-[#f0eeeb] px-2.5 py-1 text-[0.75rem] font-medium text-[#3a3733] dark:bg-slate-700/40 dark:text-slate-100">{collectionLabel}</span>
+          <span className="text-[0.75rem] tabular-nums text-[#8d867f] dark:text-slate-400">{notes.length}</span>
         </div>
         <button
           type="button"
@@ -101,7 +101,7 @@ export default function NoteBrowser({
           <button
             type="button"
             onClick={() => setShowSortMenu((current) => !current)}
-            className="flex items-center gap-1 rounded-md px-2 py-1 text-[12px] text-[#66615b] transition-colors hover:bg-[#f0eeeb] dark:text-slate-300 dark:hover:bg-slate-700/30"
+            className="flex items-center gap-1 rounded-md px-2 py-1 text-[0.75rem] text-[#66615b] transition-colors hover:bg-[#f0eeeb] dark:text-slate-300 dark:hover:bg-slate-700/30"
           >
             {sortLabels[sortBy]}
             <ChevronDown size={12} />
@@ -117,7 +117,7 @@ export default function NoteBrowser({
                     setShowSortMenu(false)
                   }}
                   className={cn(
-                    'w-full rounded-md px-2.5 py-1.5 text-left text-[12px] hover:bg-[#f0eeeb] dark:text-slate-200 dark:hover:bg-slate-700/40',
+                    'w-full rounded-md px-2.5 py-1.5 text-left text-[0.75rem] hover:bg-[#f0eeeb] dark:text-slate-200 dark:hover:bg-slate-700/40',
                     sortBy === option && 'bg-[#f0eeeb] dark:bg-slate-700/50',
                   )}
                 >
@@ -133,7 +133,7 @@ export default function NoteBrowser({
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
             placeholder="Search title, content, or tag"
-            className="w-full rounded-md border-0 bg-[#f0eeeb]/80 py-1 pl-7 pr-2 text-[12px] outline-none placeholder:text-[#8d867f]/70 dark:bg-slate-700/35 dark:text-slate-200 dark:placeholder:text-slate-400"
+            className="w-full rounded-md border-0 bg-[#f0eeeb]/80 py-1 pl-7 pr-2 text-[0.75rem] outline-none placeholder:text-[#8d867f]/70 dark:bg-slate-700/35 dark:text-slate-200 dark:placeholder:text-slate-400"
           />
         </div>
       </div>
@@ -172,7 +172,7 @@ export default function NoteBrowser({
 }
 
 function SectionLabel({ children }: { children: string }) {
-  return <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.24em] text-[#8d867f] dark:text-slate-400">{children}</div>
+  return <div className="px-2 py-1.5 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-[#8d867f] dark:text-slate-400">{children}</div>
 }
 
 function NoteCard({
@@ -228,19 +228,19 @@ function NoteCard({
       }}
       onClick={onSelect}
       className={cn(
-        'group relative mb-0.5 cursor-pointer rounded-lg px-3 py-2.5 pb-6 transition-all',
+        'group relative mb-0.5 cursor-pointer rounded-lg px-3 py-2.5 pb-6 transition-[background-color,border-color,box-shadow,transform,opacity]',
         selected ? 'bg-[#f0eeeb] shadow-[0_0_0_1px_rgba(58, 55, 51, 0.04)] dark:bg-slate-700/40 dark:shadow-none' : 'hover:bg-[#f0eeeb]/60 dark:hover:bg-slate-700/25',
       )}
       style={{ minHeight: '101.1875px' }}
     >
       <div className="flex items-start justify-between gap-2">
-        <h4 className="flex-1 truncate text-[13px] leading-[1.4] text-foreground" style={{ fontWeight: 500 }}>
+        <h4 className="flex-1 truncate text-[0.875rem] leading-[1.45] tracking-[-0.01em] text-foreground" style={{ fontWeight: 500 }}>
           {note.pinned ? <Pin size={10} className="mr-1 inline text-muted-foreground" /> : null}
           {note.title.trim() || 'Untitled'}
         </h4>
       </div>
-      <p className="mt-0.5 line-clamp-2 text-[12px] leading-[1.5] text-[#7a7570] dark:text-slate-300/80">{note.excerpt || 'This note does not have a preview yet.'}</p>
-      <span className="absolute bottom-2 right-3 text-[10px] text-[#8d867f] dark:text-slate-400">{formatTime(note.updatedAt)}</span>
+      <p className="mt-0.5 line-clamp-2 text-[0.8125rem] leading-[1.55] text-[#7a7570] dark:text-slate-300/80">{note.excerpt || 'This note does not have a preview yet.'}</p>
+      <span className="absolute bottom-2 right-3 text-[0.6875rem] tabular-nums text-[#8d867f] dark:text-slate-400">{formatTime(note.updatedAt)}</span>
 
       <div className="absolute right-2 top-2 flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
         {mode === 'notes' ? (

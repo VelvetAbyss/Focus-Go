@@ -501,12 +501,12 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
       contentClassName="!h-full !p-0"
     >
       {currentTask ? (
-        <div ref={panelRef} className="task-drawer-shell relative flex h-full min-h-0 flex-col overflow-hidden">
+        <div ref={panelRef} className="task-drawer-shell task-detail-shell relative flex h-full min-h-0 flex-col overflow-hidden">
           <div className="absolute inset-y-0 left-0 z-20 w-3 cursor-ew-resize" onPointerDown={(event) => beginWidthResize(event, 'left')} />
           <div className="absolute inset-y-0 right-0 z-20 w-3 cursor-ew-resize" onPointerDown={(event) => beginWidthResize(event, 'right')} />
           <div className="absolute bottom-1 right-1 z-20 h-4 w-4 cursor-ew-resize" onPointerDown={(event) => beginWidthResize(event, 'right')} />
-          <div className="flex items-center justify-between gap-4 border-b border-[#3a3733]/6 bg-white px-6 py-4">
-            <div className="flex min-w-0 items-center gap-3">
+          <div className="task-detail-topbar flex items-center justify-between gap-4 border-b border-[#3a3733]/6 bg-white px-6 py-4">
+            <div className="task-detail-topbar__state flex min-w-0 items-center gap-3">
               <Badge variant="outline" className={cn('rounded-full border px-3 py-1 text-[11px] font-semibold', statusConfig.badge)}>
                 <span className={cn('mr-1.5 h-1.5 w-1.5 rounded-full', statusConfig.dot)} />
                 {statusConfig.label}
@@ -551,10 +551,10 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
             </div>
           </div>
 
-          <div className="grid min-h-0 flex-1" style={{ gridTemplateColumns: `${leftRatio}fr 10px ${1 - leftRatio}fr` }}>
+          <div className="task-detail-layout grid min-h-0 flex-1" style={{ gridTemplateColumns: `${leftRatio}fr 10px ${1 - leftRatio}fr` }}>
             <ScrollArea className="min-h-0">
-              <div className="space-y-6 px-6 py-6">
-                <div className="rounded-[28px] border border-[#3a3733]/6 bg-[linear-gradient(180deg,#ffffff,#f8fafc)] p-6 shadow-[0_24px_60px_rgba(15,23,42,0.05)]">
+              <div className="task-detail-column space-y-6 px-6 py-6">
+                <div className="task-detail-card task-detail-card--hero rounded-[28px] border border-[#3a3733]/6 bg-[linear-gradient(180deg,#ffffff,#f8fafc)] p-6 shadow-[0_24px_60px_rgba(15,23,42,0.05)]">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       <Input
@@ -627,11 +627,11 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
                   </div>
                 </div>
 
-                <section className="rounded-[26px] border border-[#3a3733]/6 bg-white/88 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+                <section className="task-detail-card rounded-[26px] border border-[#3a3733]/6 bg-white/88 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Details</p>
-                      <h2 className="mt-1 text-[18px] font-semibold tracking-[-0.02em] text-slate-950">Core task properties</h2>
+                      <p className="task-detail-kicker text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Details</p>
+                      <h2 className="task-detail-title mt-1 text-[18px] font-semibold tracking-[-0.02em] text-slate-950">Core task properties</h2>
                     </div>
                   </div>
 
@@ -683,11 +683,11 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
                   </div>
                 </section>
 
-                <section className="rounded-[26px] border border-[#3a3733]/6 bg-white/88 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+                <section className="task-detail-card rounded-[26px] border border-[#3a3733]/6 bg-white/88 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Tags</p>
-                      <h2 className="mt-1 text-[18px] font-semibold tracking-[-0.02em] text-slate-950">Context and categorization</h2>
+                      <p className="task-detail-kicker text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Tags</p>
+                      <h2 className="task-detail-title mt-1 text-[18px] font-semibold tracking-[-0.02em] text-slate-950">Context and categorization</h2>
                     </div>
                     <Popover open={tagPickerOpen} onOpenChange={setTagPickerOpen}>
                       <PopoverTrigger asChild>
@@ -752,9 +752,9 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
                 </section>
 
                 <section>
-                  <div className="rounded-[26px] border border-[#3a3733]/6 bg-white/88 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Activity</p>
-                    <h2 className="mt-1 text-[18px] font-semibold tracking-[-0.02em] text-slate-950">System timeline</h2>
+                  <div className="task-detail-card rounded-[26px] border border-[#3a3733]/6 bg-white/88 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+                    <p className="task-detail-kicker text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Activity</p>
+                    <h2 className="task-detail-title mt-1 text-[18px] font-semibold tracking-[-0.02em] text-slate-950">System timeline</h2>
                     <div className="mt-4 space-y-3">
                       {activityLogs.length === 0 ? (
                         <p className="rounded-[18px] border border-dashed border-slate-200 bg-slate-50/80 px-4 py-6 text-[13px] text-slate-500">No activity recorded.</p>
@@ -782,12 +782,12 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
               <span className="absolute left-1/2 top-1/2 h-14 w-[2px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-slate-300 transition-colors group-hover:bg-slate-400" />
             </button>
 
-            <aside className="flex min-h-0 flex-col bg-slate-50/70">
+            <aside className="task-detail-aside flex min-h-0 flex-col bg-slate-50/70">
               <ScrollArea className="min-h-0 flex-1">
-                <div className="space-y-5 px-5 py-6">
-                  <section className="rounded-[24px] border border-[#3a3733]/6 bg-white/92 p-4 shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Subtasks</p>
-                    <h2 className="mt-1 text-[17px] font-semibold tracking-[-0.02em] text-slate-950">Execution checklist</h2>
+                <div className="task-detail-column space-y-5 px-5 py-6">
+                  <section className="task-detail-card task-detail-card--side rounded-[24px] border border-[#3a3733]/6 bg-white/92 p-4 shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
+                    <p className="task-detail-kicker text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Subtasks</p>
+                    <h2 className="task-detail-title mt-1 text-[17px] font-semibold tracking-[-0.02em] text-slate-950">Execution checklist</h2>
 
                     <div className="mt-4 space-y-2">
                       {subtasks.length > 0 ? (
@@ -847,9 +847,9 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
                     </form>
                   </section>
 
-                  <section className="rounded-[24px] border border-[#3a3733]/6 bg-white/92 p-4 shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Note</p>
-                    <h2 className="mt-1 text-[17px] font-semibold tracking-[-0.02em] text-slate-950">Context and working notes</h2>
+                  <section className="task-detail-card task-detail-card--side rounded-[24px] border border-[#3a3733]/6 bg-white/92 p-4 shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
+                    <p className="task-detail-kicker text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Note</p>
+                    <h2 className="task-detail-title mt-1 text-[17px] font-semibold tracking-[-0.02em] text-slate-950">Context and working notes</h2>
                     <div className="mt-4">
                       <TaskNoteEditor value={taskNoteContent} onChange={setTaskNoteContent} />
                     </div>

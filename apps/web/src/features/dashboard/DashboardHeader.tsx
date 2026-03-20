@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { LayoutGrid, Settings as SettingsIcon } from 'lucide-react'
 import { ROUTES } from '../../app/routes/routes'
 import { AppNumber, AppNumberGroup } from '../../shared/ui/AppNumber'
+import { useI18n } from '../../shared/i18n/useI18n'
 
 type DashboardHeaderProps = {
   layoutEdit: boolean
@@ -60,6 +61,47 @@ const DEFAULT_HEADER_INFO_LAYOUT: HeaderInfoLayout = {
   clock: { x: 24, y: 0, scale: 0.55 },
 }
 
+type QuoteState = {
+  content: string
+  author: string
+}
+
+const FALLBACK_QUOTES_EN: QuoteState[] = [
+  { content: 'Success is the sum of small efforts, repeated day in and day out.', author: 'Robert Collier' },
+  { content: 'Discipline is choosing between what you want now and what you want most.', author: 'Abraham Lincoln' },
+  { content: 'The future depends on what you do today.', author: 'Mahatma Gandhi' },
+]
+
+const FALLBACK_QUOTES_ZH: QuoteState[] = [
+  { content: '千里之行，始于足下。', author: '《道德经》' },
+  { content: '路虽远，行则将至。', author: '《荀子》' },
+  { content: '不积跬步，无以至千里。', author: '《荀子》' },
+]
+
+const randomFallbackQuote = (language: 'en' | 'zh'): QuoteState => {
+  const source = language === 'zh' ? FALLBACK_QUOTES_ZH : FALLBACK_QUOTES_EN
+  return source[Math.floor(Math.random() * source.length)] ?? source[0]
+}
+
+const fetchMotivationalQuote = async (language: 'en' | 'zh', signal: AbortSignal): Promise<QuoteState> => {
+  if (language === 'zh') {
+    const response = await fetch('https://v1.hitokoto.cn/?encode=json&c=k', { signal })
+    if (!response.ok) throw new Error(`quote request failed: ${response.status}`)
+    const payload = (await response.json()) as { hitokoto?: string; from?: string; from_who?: string }
+    const content = payload.hitokoto?.trim()
+    if (!content) throw new Error('empty quote')
+    const from = payload.from_who?.trim() || payload.from?.trim() || '佚名'
+    return { content, author: from }
+  }
+
+  const response = await fetch('https://api.quotable.io/random?tags=inspirational', { signal })
+  if (!response.ok) throw new Error(`quote request failed: ${response.status}`)
+  const payload = (await response.json()) as { content?: string; author?: string }
+  const content = payload.content?.trim()
+  if (!content) throw new Error('empty quote')
+  return { content, author: payload.author?.trim() || 'Unknown' }
+}
+
 const formatHeaderDate = (date: Date) => {
   const year = date.getFullYear()
   const month = `${date.getMonth() + 1}`.padStart(2, '0')
@@ -89,7 +131,10 @@ const DashboardHeader = ({
   onToggleLayoutEdit,
   onToggleWidgetsPanel,
 }: DashboardHeaderProps) => {
+  const { language } = useI18n()
   const [now, setNow] = useState(() => new Date())
+  const [quote, setQuote] = useState<QuoteState>(() => randomFallbackQuote(language))
+  const [quoteKey, setQuoteKey] = useState(0)
   const headerLayout = DEFAULT_HEADER_INFO_LAYOUT
   const showProjectBadges = false
 
@@ -99,6 +144,37 @@ const DashboardHeader = ({
     }, 1000)
     return () => window.clearInterval(timerId)
   }, [])
+
+  useEffect(() => {
+    let mounted = true
+    let controller: AbortController | null = null
+
+    const loadQuote = async () => {
+      controller?.abort()
+      controller = new AbortController()
+      try {
+        const next = await fetchMotivationalQuote(language, controller.signal)
+        if (!mounted) return
+        setQuote(next)
+        setQuoteKey((prev) => prev + 1)
+      } catch {
+        if (!mounted) return
+        setQuote(randomFallbackQuote(language))
+        setQuoteKey((prev) => prev + 1)
+      }
+    }
+
+    void loadQuote()
+    const timer = window.setInterval(() => {
+      void loadQuote()
+    }, 180_000)
+
+    return () => {
+      mounted = false
+      controller?.abort()
+      window.clearInterval(timer)
+    }
+  }, [language])
 
   const getNodeStyle = (nodeId: HeaderInfoNodeId): CSSProperties => {
     const node = headerLayout[nodeId]
@@ -158,6 +234,12 @@ const DashboardHeader = ({
                 />
               </span>
             </AppNumberGroup>
+          </div>
+        </div>
+        <div className="app-shell__hero-item app-shell__hero-item--quote">
+          <div key={quoteKey} className="app-shell__hero-quote-content">
+            <p className="app-shell__hero-quote">"{quote.content}"</p>
+            <p className="app-shell__hero-quote-author">- {quote.author}</p>
           </div>
         </div>
       </div>
