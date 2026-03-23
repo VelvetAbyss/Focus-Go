@@ -4,12 +4,13 @@ import { motion } from 'motion/react'
 import {
   closestCenter,
   DndContext,
+  KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
 } from '@dnd-kit/core'
-import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import {
   Bot,
@@ -32,6 +33,7 @@ import ThemeToggle from '../../shared/theme/ThemeToggle'
 import type { ThemeMode } from '../../shared/theme/theme'
 import { useLabs } from '../../features/labs/LabsContext'
 import { useLabsI18n } from '../../features/labs/labsI18n'
+import { useI18n } from '../../shared/i18n/useI18n'
 import type { FeatureKey } from '../../data/models/types'
 import { mergeSidebarOrder, moveSidebarOrder, readSidebarOrder, writeSidebarOrder } from './sidebarOrder'
 
@@ -80,13 +82,14 @@ const SortableSidebarItem = ({ item, collapsed }: SortableSidebarItemProps) => {
       to={item.to}
       end={item.end}
       style={style}
+      aria-label={item.label}
       className={({ isActive }) =>
         `focus-sidebar__item${item.extraClassName ? ` ${item.extraClassName}` : ''}${isActive ? ' is-active' : ''}${isDragging ? ' is-dragging' : ''}`
       }
       {...attributes}
       {...listeners}
     >
-      <item.Icon size={18} aria-hidden />
+      <item.Icon size={18} aria-hidden="true" />
       {!collapsed ? <span>{item.label}</span> : null}
     </NavLink>
   )
@@ -95,6 +98,7 @@ const SortableSidebarItem = ({ item, collapsed }: SortableSidebarItemProps) => {
 const Sidebar = ({ collapsed, onToggle, theme, onToggleTheme }: SidebarProps) => {
   const { catalog } = useLabs()
   const i18n = useLabsI18n()
+  const { t } = useI18n()
   const [savedOrder, setSavedOrder] = useState<string[]>(() => readSidebarOrder())
 
   const FEATURE_ICONS: Record<FeatureKey, LucideIcon> = {
@@ -170,6 +174,9 @@ const Sidebar = ({ collapsed, onToggle, theme, onToggleTheme }: SidebarProps) =>
         tolerance: 8,
       },
     }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
   )
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
@@ -186,14 +193,20 @@ const Sidebar = ({ collapsed, onToggle, theme, onToggleTheme }: SidebarProps) =>
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
     >
       <div className="focus-sidebar__top">
-        <button type="button" className="focus-sidebar__toggle" onClick={onToggle}>
-          {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
-          {!collapsed ? <span>Hide nav</span> : null}
+        <button
+          type="button"
+          className="focus-sidebar__toggle"
+          onClick={onToggle}
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? t('shell.expandNav') : t('shell.collapseNav')}
+        >
+          {collapsed ? <PanelLeftOpen size={16} aria-hidden="true" /> : <PanelLeftClose size={16} aria-hidden="true" />}
+          {!collapsed ? <span>{t('shell.hideNav')}</span> : null}
         </button>
       </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <nav className="focus-sidebar__nav" aria-label="Main modules">
+        <nav className="focus-sidebar__nav" aria-label={t('shell.mainModules')}>
           <SortableContext items={orderedVisibleItems.map((item) => item.id)} strategy={verticalListSortingStrategy}>
             {orderedVisibleItems.map((item) => (
               <SortableSidebarItem key={item.id} item={item} collapsed={collapsed} />

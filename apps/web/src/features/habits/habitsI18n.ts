@@ -1,6 +1,8 @@
 import { useMemo } from 'react'
+import { usePreferences } from '../../shared/prefs/usePreferences'
+import type { LanguageCode } from '../../shared/i18n/types'
 
-export type HabitsLang = 'en' | 'zh'
+export type HabitsLang = LanguageCode
 
 type HabitsMessages = {
   title: string
@@ -126,13 +128,10 @@ const messages: Record<HabitsLang, HabitsMessages> = {
   },
 }
 
-const resolveLang = (): HabitsLang => {
-  if (typeof navigator === 'undefined') return 'en'
-  const first = navigator.languages?.[0] ?? navigator.language
-  return String(first).toLowerCase().startsWith('zh') ? 'zh' : 'en'
-}
+const resolveLang = (language: LanguageCode): HabitsLang => language
 
 export const useHabitsI18n = () => {
-  const lang = resolveLang()
+  const { language } = usePreferences()
+  const lang = resolveLang(language)
   return useMemo(() => messages[lang], [lang])
 }

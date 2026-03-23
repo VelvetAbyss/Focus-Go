@@ -65,7 +65,7 @@ export function DateRangePicker({
       ? `${format(committedSelection.from, 'LLL dd, y')} - ${format(committedSelection.to, 'LLL dd, y')}`
       : committedSelection?.from
         ? format(committedSelection.from, 'LLL dd, y')
-        : 'Select range'
+        : placeholder ?? '选择范围'
 
   const handleSelect = React.useCallback(
     (next: DateRange | undefined) => {

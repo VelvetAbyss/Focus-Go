@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { Button } from '@/components/ui/button'
-import { Calendar, Trash2, X } from 'lucide-react'
+import { BookText, Calendar, Trash2, X } from 'lucide-react'
 import { format } from 'date-fns'
 import { useSearchParams } from 'react-router-dom'
 import Drawer from '../../shared/ui/Drawer'
@@ -12,6 +12,8 @@ import type { DiaryEntry } from '../../data/models/types'
 import { toDateKey } from '../../shared/utils/time'
 import AnimatedScrollList from '../../shared/ui/AnimatedScrollList'
 import { triggerTabGroupSwitchAnimation, triggerTabPressAnimation } from '../../shared/ui/tabPressAnimation'
+import { useI18n } from '../../shared/i18n/useI18n'
+import EmptyState from '../../shared/ui/EmptyState'
 import './diary.css'
 
 type DiaryPanelProps = {
@@ -27,12 +29,6 @@ type ConfirmIntent =
   | { type: 'setView'; view: ViewMode }
   | { type: 'openDetail'; dateKey: string; entry: DiaryEntry | undefined }
   | { type: 'closeDetail' }
-
-const tabs: { key: ViewMode; label: string }[] = [
-  { key: 'today', label: 'Today' },
-  { key: 'history', label: 'History' },
-  { key: 'trash', label: 'Trash' },
-]
 
 const canSaveText = (text: string) => text.trim().length > 0
 
@@ -50,6 +46,12 @@ const buildPastDateKeys = (days: number, baseDate: Date = new Date()) => {
 }
 
 const DiaryPanel = ({ open, intent, onClose }: DiaryPanelProps) => {
+  const { t } = useI18n()
+  const tabs: { key: ViewMode; label: string }[] = [
+    { key: 'today', label: t('diary.today') },
+    { key: 'history', label: t('diary.history') },
+    { key: 'trash', label: t('diary.trash') },
+  ]
   const [searchParams, setSearchParams] = useSearchParams()
   const [now, setNow] = useState(() => new Date())
   const todayKey = useMemo(() => toDateKey(now), [now])
@@ -451,17 +453,17 @@ const DiaryPanel = ({ open, intent, onClose }: DiaryPanelProps) => {
   }, [entries])
   const visibleTrashEntries = useMemo(() => trashEntries.filter((entry) => Boolean(entry.deletedAt)), [trashEntries])
 
-  const tabTitle = selectedDateKey ? selectedDateKey : view === 'today' ? 'Today' : view === 'history' ? 'History' : 'Trash'
+  const tabTitle = selectedDateKey ? selectedDateKey : view === 'today' ? t('diary.today') : view === 'history' ? t('diary.history') : t('diary.trash')
 
   return (
     <Drawer open={open} title="" onClose={() => void requestIntent({ type: 'closePanel' })} hideHeader>
       <div className="diary-fg">
         <div className="diary-fg__header">
           <h1 className="diary-fg__title">
-            Diary · <span className="diary-fg__title-accent">{tabTitle}</span>
+            {t('diary.title')} · <span className="diary-fg__title-accent">{tabTitle}</span>
           </h1>
           <div className="diary-fg__tabs-row">
-            <div className="diary-fg__tabs tab-motion-group" role="tablist" aria-label="Diary views" style={tabMotionStyle}>
+            <div className="diary-fg__tabs tab-motion-group" role="tablist" aria-label={t('diary.views')} style={tabMotionStyle}>
               {tabs.map((tab) => (
                 <button
                   key={tab.key}
@@ -484,7 +486,7 @@ const DiaryPanel = ({ open, intent, onClose }: DiaryPanelProps) => {
               type="button"
               className="diary-fg__icon-btn"
               onClick={() => void requestIntent({ type: 'closePanel' })}
-              aria-label="Close diary"
+              aria-label={t('diary.close')}
             >
               <X size={18} />
             </button>
@@ -492,9 +494,9 @@ const DiaryPanel = ({ open, intent, onClose }: DiaryPanelProps) => {
         </div>
 
         <div className="diary-fg__content">
-          <div className="diary-fg__viewport" aria-label="Diary panels">
+          <div className="diary-fg__viewport" aria-label={t('diary.panels')}>
             <div className="diary-fg__track" style={{ transform: `translate3d(-${activeViewIndex * 100}%, 0, 0)` }}>
-              <section className="diary-fg__panel" role="tabpanel" aria-label="Diary today">
+              <section className="diary-fg__panel" role="tabpanel" aria-label={t('diary.todayPanel')}>
                 <section className="diary-fg__view diary-fg__view--today">
                   {!selectedDateKey && (
                     <>
@@ -511,10 +513,10 @@ const DiaryPanel = ({ open, intent, onClose }: DiaryPanelProps) => {
                           className="diary-fg__editor"
                           value={todayContent}
                           onChange={(event) => setTodayContent(event.target.value)}
-                          placeholder="What happened today?"
+                          placeholder={t('diary.placeholder')}
                         />
                         <div className="diary-fg__char-count">
-                          <AppNumber value={todayContent.length} /> characters
+                          <AppNumber value={todayContent.length} /> {t('diary.characters')}
                         </div>
                       </div>
                     </>
@@ -522,7 +524,7 @@ const DiaryPanel = ({ open, intent, onClose }: DiaryPanelProps) => {
                 </section>
               </section>
 
-              <section className="diary-fg__panel" role="tabpanel" aria-label="Diary history">
+              <section className="diary-fg__panel" role="tabpanel" aria-label={t('diary.historyPanel')}>
                 <section className="diary-fg__view diary-fg__view--history">
                   {selectedDateKey ? (
                     <div className="diary-fg__detail">
@@ -532,7 +534,7 @@ const DiaryPanel = ({ open, intent, onClose }: DiaryPanelProps) => {
                           className="button button--ghost"
                           onClick={() => void requestIntent({ type: 'closeDetail' })}
                         >
-                          Back
+                          {t('diary.back')}
                         </Button>
                         <div className="diary-fg__detail-actions">
                           <Button
@@ -540,14 +542,14 @@ const DiaryPanel = ({ open, intent, onClose }: DiaryPanelProps) => {
                             onClick={() => void saveDetail()}
                             disabled={detailIsSaving || !canSaveText(detailContent)}
                           >
-                            {detailIsSaving ? 'Saving...' : 'Save'}
+                            {detailIsSaving ? t('diary.saving') : t('diary.save')}
                           </Button>
                           <Button
                             variant="destructive"
                             className="button button--danger"
                             onClick={() => void handleSoftDelete(selectedDateKey)}
                           >
-                            Delete
+                            {t('diary.delete')}
                           </Button>
                         </div>
                       </div>
@@ -557,16 +559,24 @@ const DiaryPanel = ({ open, intent, onClose }: DiaryPanelProps) => {
                           className="diary-fg__editor"
                           value={detailContent}
                           onChange={(event) => setDetailContent(event.target.value)}
-                          placeholder="What happened that day?"
+                          placeholder={t('diary.historyPlaceholder')}
                         />
                         <div className="diary-fg__char-count">
-                          <AppNumber value={detailContent.length} /> characters
+                          <AppNumber value={detailContent.length} /> {t('diary.characters')}
                         </div>
                       </div>
                     </div>
                   ) : (
                     <>
-                      <h2 className="diary-fg__section-title">Entries</h2>
+                      <h2 className="diary-fg__section-title">{t('diary.entries')}</h2>
+                      {entries.length === 0 ? (
+                        <EmptyState
+                          icon={<BookText size={22} />}
+                          title={t('empty.diary.historyTitle')}
+                          description={t('empty.diary.historyDescription')}
+                          className="mb-4 border-0 bg-transparent px-0 py-8 shadow-none"
+                        />
+                      ) : null}
                       <AnimatedScrollList
                         items={historyPresetDates}
                         getKey={(dateKey) => dateKey}
@@ -597,13 +607,15 @@ const DiaryPanel = ({ open, intent, onClose }: DiaryPanelProps) => {
                 </section>
               </section>
 
-              <section className="diary-fg__panel" role="tabpanel" aria-label="Diary trash">
+              <section className="diary-fg__panel" role="tabpanel" aria-label={t('diary.trashPanel')}>
                 <section className="diary-fg__view diary-fg__view--trash">
                   {visibleTrashEntries.length === 0 ? (
-                    <div className="diary-fg__empty">
-                      <Trash2 size={44} />
-                      <p>Trash is empty</p>
-                    </div>
+                    <EmptyState
+                      icon={<Trash2 size={22} />}
+                      title={t('empty.diary.trashTitle')}
+                      description={t('empty.diary.trashDescription')}
+                      className="border-0 bg-transparent px-0 py-12 shadow-none"
+                    />
                   ) : (
                     <div className="diary-fg__list-wrap">
                       <div className="diary-fg__list diary-fg__trash-list">
@@ -614,17 +626,17 @@ const DiaryPanel = ({ open, intent, onClose }: DiaryPanelProps) => {
                             <div key={entry.id} className={`diary-fg__trash-row ${isExpired ? 'is-expired' : ''}`}>
                               <div className="diary-fg__trash-row-main">
                                 <span className="diary-fg__row-date">{entry.dateKey}</span>
-                                <span className="diary-fg__row-preview">{preview || 'No content'}</span>
-                                <span className="diary-fg__trash-status">{isExpired ? 'Expired' : 'Recoverable'}</span>
+                                <span className="diary-fg__row-preview">{preview || t('diary.noContent')}</span>
+                                <span className="diary-fg__trash-status">{isExpired ? t('diary.expired') : t('diary.recoverable')}</span>
                               </div>
                               <div className="diary-fg__trash-actions">
                                 {!isExpired ? (
                                   <Button className="button button--ghost" onClick={() => void handleRestore(entry.dateKey)}>
-                                    Restore
+                                    {t('diary.restore')}
                                   </Button>
                                 ) : null}
                                 <Button className="button button--ghost" onClick={() => void handleHardDelete(entry.dateKey)}>
-                                  Permanently delete
+                                  {t('diary.permanentlyDelete')}
                                 </Button>
                               </div>
                             </div>
@@ -640,22 +652,22 @@ const DiaryPanel = ({ open, intent, onClose }: DiaryPanelProps) => {
         </div>
       </div>
 
-      <Dialog open={confirmOpen} title="Unsaved changes" onClose={() => setConfirmOpen(false)}>
+      <Dialog open={confirmOpen} title={t('diary.unsavedTitle')} onClose={() => setConfirmOpen(false)}>
         <div className="diary-fg__confirm">
-          <p className="diary-fg__confirm-text">You have unsaved changes. What would you like to do?</p>
+          <p className="diary-fg__confirm-text">{t('diary.unsavedDesc')}</p>
           <div className="diary-fg__confirm-actions">
             <Button
               className="button"
               onClick={() => void confirmSave()}
               disabled={!detailDirty || !canSaveText(detailContent)}
             >
-              Save
+              {t('diary.save')}
             </Button>
             <Button className="button button--ghost" onClick={() => void confirmDiscard()}>
-              Discard
+              {t('diary.discard')}
             </Button>
             <Button className="button button--ghost" onClick={() => setConfirmOpen(false)}>
-              Cancel
+              {t('diary.cancel')}
             </Button>
           </div>
         </div>

@@ -1,14 +1,15 @@
 export type ThemeMode = 'light' | 'dark'
+export type ThemeSelection = ThemeMode | 'system'
 
 export const THEME_PREFERENCE_KEY = 'focusgo.theme'
 
-export const readStoredThemePreference = (): ThemeMode | null => {
+export const readStoredThemePreference = (): ThemeSelection | null => {
   if (typeof window === 'undefined') return null
   const stored = window.localStorage.getItem(THEME_PREFERENCE_KEY)
-  return stored === 'light' || stored === 'dark' ? stored : null
+  return stored === 'light' || stored === 'dark' || stored === 'system' ? stored : null
 }
 
-export const writeStoredThemePreference = (theme: ThemeMode) => {
+export const writeStoredThemePreference = (theme: ThemeSelection) => {
   if (typeof window === 'undefined') return
   window.localStorage.setItem(THEME_PREFERENCE_KEY, theme)
 }
@@ -18,17 +19,19 @@ export const clearStoredThemePreference = () => {
   window.localStorage.removeItem(THEME_PREFERENCE_KEY)
 }
 
-export const resolveTheme = () => {
-  const hour = new Date().getHours()
-  const isNight = hour >= 19 || hour < 7
-  if (typeof window !== 'undefined' && window.matchMedia) {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-    return isNight || prefersDark ? 'dark' : 'light'
+export const resolveSystemTheme = (): ThemeMode => {
+  if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
   }
-  return isNight ? 'dark' : 'light'
+  return 'light'
 }
 
-export const resolveInitialTheme = (): ThemeMode => readStoredThemePreference() ?? 'light'
+export const resolveTheme = (selection: ThemeSelection = 'system'): ThemeMode => {
+  if (selection === 'light' || selection === 'dark') return selection
+  return resolveSystemTheme()
+}
+
+export const resolveInitialTheme = (): ThemeMode => resolveTheme(readStoredThemePreference() ?? 'system')
 
 export const applyTheme = (theme: ThemeMode) => {
   if (typeof document === 'undefined') return

@@ -5,8 +5,10 @@ import type { SpendEntry } from '../../data/models/types'
 import { convertToBase, currencyToSymbol } from '../../lib/currency'
 import { subDays, format, parseISO, startOfDay, isAfter } from 'date-fns'
 import { usePreferences } from '../../shared/prefs/usePreferences'
+import { useI18n } from '../../shared/i18n/useI18n'
 
 const SpendChart = () => {
+  const { t } = useI18n()
   const [entries, setEntries] = useState<SpendEntry[]>([])
   const { defaultCurrency } = usePreferences()
 
@@ -52,7 +54,7 @@ const SpendChart = () => {
   if (entries.length === 0) {
       return (
           <div className="min-h-[160px] sm:min-h-[200px] flex items-center justify-center text-gray-400">
-              No data available
+              {t('spend.noData')}
           </div>
       )
   }

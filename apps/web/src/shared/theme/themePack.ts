@@ -26,11 +26,11 @@ const THEME_PACK_PALETTES: Record<ThemePackId, Record<ThemeMode, ThemePalette>> 
       ringHsl: '164 49% 21%',
     },
     dark: {
-      bg: '#3a3733',
-      bgElevated: '#3a3733',
-      bgMuted: '#3a3733',
+      bg: '#242320',
+      bgElevated: '#2d2b27',
+      bgMuted: '#35322e',
       accent: '#7edbc7',
-      accentSoft: '#1f2c28',
+      accentSoft: '#18322d',
       primaryHsl: '164 57% 68%',
       ringHsl: '164 57% 68%',
     },
@@ -46,7 +46,7 @@ const THEME_PACK_PALETTES: Record<ThemePackId, Record<ThemeMode, ThemePalette>> 
       ringHsl: '211 60% 36%',
     },
     dark: {
-      bg: '#3a3733',
+      bg: '#151e2b',
       bgElevated: '#182130',
       bgMuted: '#1e2a3d',
       accent: '#74b9ff',
@@ -66,7 +66,7 @@ const THEME_PACK_PALETTES: Record<ThemePackId, Record<ThemeMode, ThemePalette>> 
       ringHsl: '17 58% 40%',
     },
     dark: {
-      bg: '#3a3733',
+      bg: '#261813',
       bgElevated: '#2b1d18',
       bgMuted: '#34241e',
       accent: '#ffb089',

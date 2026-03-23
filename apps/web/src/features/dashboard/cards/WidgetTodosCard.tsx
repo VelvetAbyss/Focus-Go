@@ -11,6 +11,7 @@ import { useAddInputComposer } from '../../../shared/hooks/useAddInputComposer'
 import { triggerTabGroupSwitchAnimation, triggerTabPressAnimation } from '../../../shared/ui/tabPressAnimation'
 import { useHabitTracker } from '../../habits/hooks/useHabitTracker'
 import { todayDateKey } from '../../habits/model/dateKey'
+import { useI18n } from '../../../shared/i18n/useI18n'
 import {
   readWidgetTodoResetBucket,
   shouldBootstrapResetWidgetTodos,
@@ -18,16 +19,16 @@ import {
   writeWidgetTodoResetBucket,
 } from '../model/widgetTodoRefresh'
 
-const scopes: { key: WidgetTodoScope; label: string }[] = [
-  { key: 'day', label: 'Daily' },
-  { key: 'week', label: 'Weekly' },
-  { key: 'month', label: 'Monthly' },
-]
-
 const DEFAULT_HABIT_COLOR = '#3a3733'
 const DEFAULT_HABIT_ICON = '🎯'
 
 const WidgetTodosCard = () => {
+  const { t } = useI18n()
+  const scopes: { key: WidgetTodoScope; label: string }[] = [
+    { key: 'day', label: t('todo.daily') },
+    { key: 'week', label: t('todo.weekly') },
+    { key: 'month', label: t('todo.monthly') },
+  ]
   const [items, setItems] = useState<WidgetTodo[]>([])
   const [loaded, setLoaded] = useState(false)
   const {
@@ -198,10 +199,10 @@ const WidgetTodosCard = () => {
 
   const completionLabel = useMemo(() => {
     const total = scopeItems.length
-    if (total === 0) return '— completed'
+    if (total === 0) return t('todo.completedCount', { completed: 0, total: 0 })
     const done = scopeItems.reduce((acc, item) => acc + (item.done ? 1 : 0), 0)
-    return `${done} / ${total} completed`
-  }, [scopeItems])
+    return t('todo.completedCount', { completed: done, total })
+  }, [scopeItems, t])
 
   const handleToggle = async (todo: WidgetTodo, done: boolean) => {
     if (todo.scope === 'day' && todo.linkedHabitId) {
@@ -260,9 +261,9 @@ const WidgetTodosCard = () => {
   })
 
   return (
-    <Card title="To-do List" eyebrow="WIDGET" actions={<span className="widget-todos__completed">{completionLabel}</span>}>
+    <Card title={t('todo.cardTitle')} eyebrow="WIDGET" actions={<span className="widget-todos__completed">{completionLabel}</span>}>
       <div className="widget-todos-card">
-        <div className="widget-todos__tabs tab-motion-group" role="tablist" aria-label="Todo scope" style={tabMotionStyle}>
+        <div className="widget-todos__tabs tab-motion-group" role="tablist" aria-label={t('todo.scope')} style={tabMotionStyle}>
           {scopes.map((scope) => (
             <button
               key={scope.key}
@@ -281,12 +282,12 @@ const WidgetTodosCard = () => {
           ))}
         </div>
 
-        <div className="widget-todos__viewport" aria-label="Todo lists">
+        <div className="widget-todos__viewport" aria-label={t('todo.lists')}>
           <div className="widget-todos__track" style={{ transform: `translate3d(-${activeIndex * 100}%, 0, 0)` }}>
             {scopes.map((scope) => {
               const rows = orderedItemsByScope[scope.key]
               return (
-                <div key={scope.key} className="widget-todos__panel" role="tabpanel" aria-label={`${scope.label} todos`}>
+                <div key={scope.key} className="widget-todos__panel" role="tabpanel" aria-label={t('todo.scopeTodos', { scope: scope.label })}>
                   <AnimatedScrollList
                     items={rows}
                     getKey={(item) => item.id}
@@ -310,8 +311,8 @@ const WidgetTodosCard = () => {
                         <button
                           type="button"
                           className="widget-todos__delete"
-                          aria-label="Delete task"
-                          title="Delete task"
+                          aria-label={t('todo.deleteTask')}
+                          title={t('todo.deleteTask')}
                           onClick={(event) => {
                             event.preventDefault()
                             event.stopPropagation()
@@ -346,10 +347,10 @@ const WidgetTodosCard = () => {
             value={value}
             onChange={(event) => setValue(event.target.value)}
             onAnimationEnd={clearShake}
-            placeholder={activeScope === 'day' ? 'Add a new habit...' : 'Add a new task...'}
+            placeholder={activeScope === 'day' ? t('todo.addHabit') : t('todo.addTask')}
           />
           <Button type="submit" size="sm" className="widget-todos__add-btn" disabled={!canSubmit}>
-            Add
+            {t('modules.tasks.add')}
           </Button>
         </form>
       </div>

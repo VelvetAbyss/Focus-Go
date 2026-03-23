@@ -8,16 +8,18 @@ import {
   subscribeWeatherRuntime,
   type WeatherSnapshot,
 } from '../../weather/weatherRuntime'
+import { useI18n } from '../../../shared/i18n/useI18n'
 
 const dayLabel = (index: number) => {
-  if (index === 0) return 'Today'
-  if (index === 1) return 'Tomorrow'
-  return 'After'
+  if (index === 0) return 'weather.today'
+  if (index === 1) return 'weather.tomorrow'
+  return 'weather.after'
 }
 
 const roundTemp = (value: number) => Math.round(value)
 
 const WeatherWidgetCard = () => {
+  const { t } = useI18n()
   const { weatherAutoLocationEnabled, weatherManualCity, weatherTemperatureUnit } = usePreferences()
   const [snapshot, setSnapshot] = useState<WeatherSnapshot>(() => getWeatherSnapshot())
   const [selectedIndex, setSelectedIndex] = useState(0)
@@ -60,17 +62,17 @@ const WeatherWidgetCard = () => {
   }
 
   return (
-    <Card title="Weather" eyebrow="Today" className="weather-widget-card">
+    <Card title={t('weather.cardTitle')} eyebrow={t('weather.today')} className="weather-widget-card">
       <div
         className={`weather-widget weather-widget--tone-${selectedMeta?.tone ?? 'cloud'}`}
         style={widgetStyle}
       >
         {snapshot.status === 'error' ? (
-          <p className="muted">天气暂不可用</p>
+          <p className="muted">{t('weather.error')}</p>
         ) : (
           <>
-            <section className="weather-widget__main" aria-label="Today's weather">
-              <p className="weather-widget__city">{snapshot.data?.location.name ?? 'Loading location...'}</p>
+            <section className="weather-widget__main" aria-label={t('weather.today')}>
+              <p className="weather-widget__city">{snapshot.data?.location.name ?? t('weather.loading')}</p>
               <div
                 className="weather-widget__temp"
                 key={
@@ -101,7 +103,7 @@ const WeatherWidgetCard = () => {
               </div>
             </section>
 
-            <section className="weather-widget__days" aria-label="Three day forecast">
+            <section className="weather-widget__days" aria-label={t('weather.threeDayForecast')}>
               {rows.map((row, index) => {
                 const rowIcon = getWeatherIconMeta(row.weatherCode)
                 const RowIcon = rowIcon.Icon
@@ -114,7 +116,7 @@ const WeatherWidgetCard = () => {
                     key={row.date}
                     onClick={() => selectDay(index)}
                   >
-                    <span className="weather-widget__day-label" title={dayLabel(index)}>{dayLabel(index)}</span>
+                    <span className="weather-widget__day-label" title={t(dayLabel(index))}>{t(dayLabel(index))}</span>
                     <span className={`weather-icon ${rowIcon.className}`} title={row.condition} aria-label={row.condition}>
                       <RowIcon size={15} strokeWidth={2.05} />
                     </span>

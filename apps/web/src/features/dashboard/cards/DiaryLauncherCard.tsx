@@ -5,12 +5,14 @@ import { diaryRepo } from '../../../data/repositories/diaryRepo'
 import type { DiaryEntry } from '../../../data/models/types'
 import { toDateKey } from '../../../shared/utils/time'
 import { hasReviewBlock } from '../../diary/review/reviewDiaryBridge'
+import { useI18n } from '../../../shared/i18n/useI18n'
 
 type DiaryLauncherCardProps = {
   onOpen: (intent?: 'openToday') => void
 }
 
 const DiaryLauncherCard = ({ onOpen }: DiaryLauncherCardProps) => {
+  const { t } = useI18n()
   const [todayEntry, setTodayEntry] = useState<DiaryEntry | null>(null)
 
   useEffect(() => {
@@ -29,9 +31,10 @@ const DiaryLauncherCard = ({ onOpen }: DiaryLauncherCardProps) => {
 
   return (
     <Card
-      title="Diary"
-      eyebrow="Today"
+      title={t('diaryLauncher.cardTitle')}
+      eyebrow={t('diaryLauncher.eyebrow')}
       className="card--clickable diary-launcher-card"
+      data-coachmark-anchor="dashboard-diary"
       onClick={handleClick}
       actions={
         <Button
@@ -43,15 +46,15 @@ const DiaryLauncherCard = ({ onOpen }: DiaryLauncherCardProps) => {
             handleClick()
           }}
         >
-          {hasContent ? 'Continue' : 'Open'}
+          {hasContent ? t('diaryLauncher.continue') : t('diaryLauncher.open')}
         </Button>
       }
     >
       <div className="diary-launcher-card__meta">
         <p className="diary-launcher-card__date">{toDateKey()}</p>
-        <span className="diary-launcher-card__chip">{hasContent ? 'Updated' : 'New'}</span>
+        <span className="diary-launcher-card__chip">{hasContent ? t('diaryLauncher.updated') : t('diaryLauncher.new')}</span>
       </div>
-      {hasReviewSnapshot ? <p className="diary-launcher-card__snapshot">Review snapshot included</p> : null}
+      {hasReviewSnapshot ? <p className="diary-launcher-card__snapshot">{t('diaryLauncher.snapshotIncluded')}</p> : null}
     </Card>
   )
 }

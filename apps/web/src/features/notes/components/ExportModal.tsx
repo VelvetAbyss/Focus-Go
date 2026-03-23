@@ -1,5 +1,6 @@
 import { Code, FileDown, FileText, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useI18n } from '../../../shared/i18n/useI18n'
 
 type Props = {
   open: boolean
@@ -9,6 +10,7 @@ type Props = {
 }
 
 export default function ExportModal({ open, noteTitle, onClose, onExportMarkdown }: Props) {
+  const { t } = useI18n()
   const [rendered, setRendered] = useState(open)
   const [visible, setVisible] = useState(open)
 
@@ -26,16 +28,16 @@ export default function ExportModal({ open, noteTitle, onClose, onExportMarkdown
   if (!rendered) return null
 
   const formats = [
-    { id: 'markdown', label: 'Markdown', ext: '.md', desc: 'Plain text with formatting', action: onExportMarkdown, icon: FileText, disabled: false },
-    { id: 'html', label: 'HTML', ext: '.html', desc: 'Web-ready document', action: onClose, icon: Code, disabled: true },
-    { id: 'pdf', label: 'PDF', ext: '.pdf', desc: 'Print-ready format', action: onClose, icon: FileDown, disabled: true },
+    { id: 'markdown', label: t('notes.exportModal.markdown'), ext: '.md', desc: t('notes.exportModal.markdownDesc'), action: onExportMarkdown, icon: FileText, disabled: false },
+    { id: 'html', label: t('notes.exportModal.html'), ext: '.html', desc: t('notes.exportModal.htmlDesc'), action: onClose, icon: Code, disabled: true },
+    { id: 'pdf', label: t('notes.exportModal.pdf'), ext: '.pdf', desc: t('notes.exportModal.pdfDesc'), action: onClose, icon: FileDown, disabled: true },
   ] as const
 
   return (
     <div data-note-floating-panel="export" data-state={visible ? 'open' : 'closed'} className="note-page__panel">
       <div className="flex items-center justify-between px-4 pb-2 pt-3">
         <div>
-          <h2 className="text-[16px] font-semibold">Export</h2>
+          <h2 className="text-[16px] font-semibold">{t('notes.exportModal.title')}</h2>
           <p className="mt-0.5 max-w-[200px] truncate text-[12px] text-muted-foreground">{noteTitle}</p>
         </div>
         <button type="button" onClick={onClose} className="rounded-lg p-1.5 transition-colors hover:bg-accent">
@@ -59,7 +61,7 @@ export default function ExportModal({ open, noteTitle, onClose, onExportMarkdown
             </div>
             <div className="flex-1">
               <div className="text-[13px] font-medium text-foreground">{format.label}</div>
-              <div className="text-[11px] text-muted-foreground">{format.disabled ? `${format.desc} · Soon` : format.desc}</div>
+              <div className="text-[11px] text-muted-foreground">{format.disabled ? `${format.desc} · ${t('notes.exportModal.soon')}` : format.desc}</div>
             </div>
             <span className="text-[11px] text-muted-foreground">{format.ext}</span>
           </button>

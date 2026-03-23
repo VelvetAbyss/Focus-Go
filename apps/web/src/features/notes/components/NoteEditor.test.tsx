@@ -5,6 +5,10 @@ import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import NoteEditor from './NoteEditor'
 
+vi.mock('../../../shared/i18n/useI18n', () => ({
+  useI18n: () => ({ t: (key: string) => key, language: 'en' as const }),
+}))
+
 const useEditorMock = vi.fn()
 const setImageMock = vi.fn()
 const focusMock = vi.fn()
@@ -92,9 +96,9 @@ describe('NoteEditor', () => {
 
     expect(topbar).toBeInTheDocument()
     expect(toolbar).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Info' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Appearance' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Export' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'notes.info' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'notes.appearance' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'notes.export' })).toBeInTheDocument()
   })
 
   it('uses full-width by default and shrinks with content width slider value', () => {

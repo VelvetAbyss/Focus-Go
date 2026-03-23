@@ -44,15 +44,10 @@ vi.mock('../../shared/prefs/usePreferences', () => ({
   }),
 }))
 
-vi.mock('../../shared/i18n/useI18n', () => ({
-  useI18n: () => ({
-    language: 'en',
-    t: (key: string, values?: Record<string, string>) => {
-      if (key === 'settings.theme.forceHelp') return `Force ${values?.theme}`
-      return key
-    },
-  }),
-}))
+vi.mock('../../shared/i18n/useI18n', async () => {
+  const { mockUseI18n } = await import('../../shared/i18n/testMock')
+  return { useI18n: mockUseI18n }
+})
 
 const renderRoute = () =>
   render(

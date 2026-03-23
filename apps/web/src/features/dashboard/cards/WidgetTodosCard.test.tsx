@@ -72,6 +72,11 @@ vi.mock('../../../shared/ui/tabPressAnimation', () => ({
   triggerTabPressAnimation: vi.fn(),
 }))
 
+vi.mock('../../../shared/i18n/useI18n', async () => {
+  const { mockUseI18n } = await import('../../../shared/i18n/testMock')
+  return { useI18n: mockUseI18n }
+})
+
 import WidgetTodosCard from './WidgetTodosCard'
 
 describe('WidgetTodosCard', () => {

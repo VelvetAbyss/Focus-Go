@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useI18n } from '../../../shared/i18n/useI18n'
 import {
   closestCenter,
   DndContext,
@@ -64,7 +65,7 @@ import {
   type CalendarSubscription,
 } from '../calendar.model'
 
-const weekLabels = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+const weekLabels = ['日', '一', '二', '三', '四', '五', '六']
 const calendarEventKindRank = { lunar: 0, holiday: 1, event: 2 } as const
 
 const STORAGE_SUBSCRIPTIONS_KEY = 'focusgo.calendar.subscriptions.v1'
@@ -85,7 +86,7 @@ const CALENDAR_PRESET_SUBSCRIPTION_PLACEHOLDERS = [
   {
     id: 'preset-moon',
     name: 'Moon Phases',
-    description: 'Lunar phase events',
+    description: '月相事件',
   },
 ]
 
@@ -156,9 +157,7 @@ const ColorPalettePopoverContent = ({
           )
         })}
       </div>
-      <Label htmlFor={inputId} className="calendar-color-popover__label">
-        Custom
-      </Label>
+      <Label htmlFor={inputId} className="calendar-color-popover__label">自定义</Label>
       <div className="calendar-color-popover__spectrum" aria-hidden />
       <Input
         id={inputId}
@@ -178,7 +177,7 @@ const ColorPalettePopoverContent = ({
 }
 
 const formatReminderLabel = (value?: number) => {
-  if (typeof value !== 'number') return 'No reminder'
+  if (typeof value !== 'number') return '无提醒'
   return new Date(value).toLocaleString(undefined, {
     year: 'numeric',
     month: '2-digit',
@@ -237,8 +236,8 @@ const buildTaskCardDraft = (task: TaskItem): TaskCardDraft => ({
   priority: task.priority,
 })
 
-const providerLabel: Record<CalendarProvider, string> = {
-  builtin: 'Built-in',
+  const providerLabel: Record<CalendarProvider, string> = {
+  builtin: '内置',
   ics: 'ICS/webcal',
   google: 'Google',
   apple: 'Apple',
@@ -390,6 +389,7 @@ const SortableSubscriptionItem = ({
 }
 
 const CalendarPage = () => {
+  const { t } = useI18n()
   const [anchorDate, setAnchorDate] = useState(() => new Date())
   const [selectedDateKey, setSelectedDateKey] = useState(() => toDateKey(new Date()))
   const [monthMotionDirection, setMonthMotionDirection] = useState<'forward' | 'back' | null>(null)
@@ -444,7 +444,7 @@ const CalendarPage = () => {
       setIcsEventsBySubscription((prev) => ({ ...prev, [subscription.id]: events }))
       setSyncStateBySubscription((prev) => ({ ...prev, [subscription.id]: { status: 'ok' } }))
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to sync this calendar source'
+      const message = error instanceof Error ? error.message : '同步该日历源失败'
       setIcsEventsBySubscription((prev) => ({ ...prev, [subscription.id]: [] }))
       setSyncStateBySubscription((prev) => ({ ...prev, [subscription.id]: { status: 'error', message } }))
     }
@@ -760,7 +760,7 @@ const CalendarPage = () => {
       emitTasksChanged('calendar:selected-day-delete')
       setTaskDeleteError(null)
     } catch {
-      setTaskDeleteError('Failed to delete task. Please try again.')
+      setTaskDeleteError('删除任务失败，请重试。')
     } finally {
       setDeletingTaskIds((prev) => {
         const next = { ...prev }
@@ -793,7 +793,7 @@ const CalendarPage = () => {
     if (savingTaskCardIds[task.id]) return
     const draft = nextDraft ?? taskCardDrafts[task.id] ?? buildTaskCardDraft(task)
     if (draft.startDate && draft.endDate && draft.endDate < draft.startDate) {
-      setTaskCardError('End date must be on or after start date.')
+      setTaskCardError('结束日期不能早于开始日期。')
       return
     }
 
@@ -831,17 +831,17 @@ const CalendarPage = () => {
   return (
     <section
       className={`calendar-v2${leftSidebarOpen ? ' is-left-open' : ''}${rightSidebarOpen ? ' is-right-open' : ''}${monthMotionDirection ? ` calendar-v2--month-${monthMotionDirection}` : ''}`}
-      aria-label="Calendar page"
+      aria-label={t('calendar.page')}
     >
-      <aside className="calendar-v2__left calendar-v2__drawer" aria-label="Calendar sidebar">
+      <aside className="calendar-v2__left calendar-v2__drawer" aria-label={t('calendar.sidebar')}>
         <div className="calendar-v2__drawer-header">
-          <h3>Subscriptions panel</h3>
+          <h3>{t('calendar.subscriptions')}</h3>
           <Button
             type="button"
             variant="ghost"
             size="icon"
             className="calendar-v2__drawer-close"
-            aria-label="Close scheduling panel"
+            aria-label={t('calendar.closePanel')}
             onClick={() => setLeftSidebarOpen(false)}
           >
             <X />
@@ -873,7 +873,7 @@ const CalendarPage = () => {
           </div>
         </div>
 
-        <section className="calendar-subscriptions" aria-label="Subscriptions">
+        <section className="calendar-subscriptions"             aria-label={t('calendar.subscriptions')}>
           <ScrollArea className="calendar-subscriptions__scroll">
             <div className="calendar-subscriptions__inner">
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSubscriptionDragEnd}>
@@ -898,24 +898,24 @@ const CalendarPage = () => {
 
           <Button variant="outline" className="calendar-subscriptions__add" onClick={() => setIsAccountDialogOpen(true)}>
             <Plus />
-            Add subscription
+            {t('calendar.addSubscription')}
           </Button>
         </section>
       </aside>
 
-      <main className="calendar-v2__main" aria-label="Monthly calendar">
+      <main className="calendar-v2__main" aria-label={t('calendar.monthlyCalendar')}>
         <header className="calendar-toolbar">
           <div className="calendar-toolbar__left">
             <Select value="month" onValueChange={() => undefined}>
-              <SelectTrigger aria-label="View mode" className="calendar-toolbar__select">
-                <SelectValue placeholder="Month" />
+              <SelectTrigger aria-label={t('calendar.viewMode')} className="calendar-toolbar__select">
+                <SelectValue placeholder={t('calendar.month')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="month">Month</SelectItem>
+                <SelectItem value="month">{t('calendar.month')}</SelectItem>
               </SelectContent>
             </Select>
             <Button variant="ghost" onClick={jumpToToday}>
-              Today
+              {t('calendar.today')}
             </Button>
           </div>
           <div className="calendar-toolbar__compact-actions">
@@ -928,7 +928,7 @@ const CalendarPage = () => {
               aria-pressed={leftSidebarOpen}
             >
               <PanelLeftOpen />
-              Subscriptions
+              {t('calendar.subscriptions')}
             </Button>
             <Button
               type="button"
@@ -939,14 +939,14 @@ const CalendarPage = () => {
               aria-pressed={rightSidebarOpen}
             >
               <PanelRightOpen />
-              Day panel
+              {t('calendar.dayPanel')}
             </Button>
           </div>
           <div className="calendar-toolbar__right">
-            <Button variant="ghost" size="icon" onClick={() => moveMonth(-1)} aria-label="Previous month">
+            <Button variant="ghost" size="icon" onClick={() => moveMonth(-1)} aria-label={t('calendar.prevMonth')}>
               ‹
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => moveMonth(1)} aria-label="Next month">
+            <Button variant="ghost" size="icon" onClick={() => moveMonth(1)} aria-label={t('calendar.nextMonth')}>
               ›
             </Button>
           </div>
@@ -968,14 +968,14 @@ const CalendarPage = () => {
             const dayItems = [
               ...dayTasks.map((task) => ({
                 id: `task-${task.id}`,
-                title: task.title.trim() || 'Untitled',
+                title: task.title.trim() || t('calendar.untitled'),
                 type: 'task' as const,
                 status: task.status,
                 color: resolveTaskChipColor(task),
               })),
               ...dayEvents.map((event) => ({
                 id: event.id,
-                title: event.title.trim() || 'Untitled event',
+                title: event.title.trim() || t('calendar.untitledEvent'),
                 type: 'event' as const,
                 kind: event.kind,
                 subscriptionId: event.subscriptionId,
@@ -1037,25 +1037,25 @@ const CalendarPage = () => {
         </div>
       </main>
 
-      <aside className="calendar-v2__right calendar-v2__drawer" aria-label="Events tools">
+      <aside className="calendar-v2__right calendar-v2__drawer" aria-label={t('calendar.eventsTools')}>
         <div className="calendar-v2__drawer-header">
-          <h3>Day panel</h3>
+          <h3>{t('calendar.dayPanel')}</h3>
           <Button
             type="button"
             variant="ghost"
             size="icon"
             className="calendar-v2__drawer-close"
-            aria-label="Close day panel"
+            aria-label={t('calendar.dayPanel')}
             onClick={() => setRightSidebarOpen(false)}
           >
             <X />
           </Button>
         </div>
         <section className="calendar-side-panel" aria-label="Selected date details">
-          <h3 className="calendar-side-panel__title">Calendar Event</h3>
+          <h3 className="calendar-side-panel__title">{t('calendar.calendarEvent')}</h3>
           <ul key={`events-${selectedDateKey}`} className="calendar-side-panel__list calendar-side-panel__list--enter" aria-label="Calendar events list">
             {selectedDayEvents.slice(0, 6).map((event) => {
-              const eventTitle = event.title.trim() || 'Untitled event'
+              const eventTitle = event.title.trim() || t('calendar.untitledEvent')
               const eventColor = subscriptionColorById.get(event.subscriptionId)
               return (
                 <li key={event.id} className="calendar-side-row">
@@ -1072,8 +1072,8 @@ const CalendarPage = () => {
 
           <div className="calendar-side-panel__divider" />
 
-          <h3 className="calendar-side-panel__title">Tasks</h3>
-          <div key={`tasks-${selectedDateKey}`} className="calendar-side-panel__list calendar-side-panel__list--animated calendar-side-panel__list--enter" aria-label="Tasks list">
+          <h3 className="calendar-side-panel__title">{t('calendar.tasks')}</h3>
+          <div key={`tasks-${selectedDateKey}`} className="calendar-side-panel__list calendar-side-panel__list--animated calendar-side-panel__list--enter" aria-label={t('calendar.tasksList')}>
             <AnimatedScrollList
               items={selectedDayTasks}
               getKey={(task) => task.id}
@@ -1082,7 +1082,7 @@ const CalendarPage = () => {
               itemDelay={0.1}
               listClassName="calendar-side-panel__animated-scroll"
               renderItem={(task) => {
-                const taskTitle = task.title.trim() || 'Untitled'
+                const taskTitle = task.title.trim() || t('calendar.untitled')
                 const isDeleting = Boolean(deletingTaskIds[task.id])
                 const draft = taskCardDrafts[task.id] ?? buildTaskCardDraft(task)
                 const taskTags = task.tags.slice(0, 2)
@@ -1095,13 +1095,13 @@ const CalendarPage = () => {
                           <button
                             type="button"
                             className="calendar-side-row__dot calendar-task-card__color-dot"
-                            aria-label={`Set task color for ${taskTitle}`}
+                            aria-label={t('calendar.setTaskColor', { title: taskTitle })}
                             style={{ background: resolveTaskChipColor(task) }}
                           />
                         </PopoverTrigger>
                         <PopoverContent className="calendar-color-popover-shell" align="start">
                           <ColorPalettePopoverContent
-                            title="Task color"
+                            title={t('calendar.taskColor')}
                             currentColor={resolveTaskChipColor(task)}
                             swatchLabelPrefix={taskTitle}
                             inputId={`task-color-${task.id}`}
@@ -1126,13 +1126,13 @@ const CalendarPage = () => {
                         >
                           <PopoverTrigger asChild>
                             <Button type="button" variant="outline" size="sm" className="calendar-task-card__edit">
-                              Edit
+                              {t('calendar.edit')}
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="calendar-task-card__editor" align="end">
                             <div className="calendar-task-card__editor-grid">
                               <div className="calendar-task-card__field">
-                                <span>Title</span>
+                                <span>{t('calendar.title')}</span>
                                 <Input
                                   aria-label="Title"
                                   value={draft.title}
@@ -1145,7 +1145,7 @@ const CalendarPage = () => {
                                 />
                               </div>
                               <div className="calendar-task-card__field">
-                                <span>Date Range</span>
+                                <span>{t('calendar.dateRange')}</span>
                                 <DateRangePicker
                                   value={{ startDate: draft.startDate, endDate: draft.endDate }}
                                   onChange={({ startDate, endDate }) => {
@@ -1159,7 +1159,7 @@ const CalendarPage = () => {
                                 />
                               </div>
                               <div className="calendar-task-card__field">
-                                <span>Reminder</span>
+                                <span>{t('calendar.reminder')}</span>
                                 <DateTimePicker
                                   dateValue={draft.reminderDate}
                                   timeValue={draft.reminderTime}
@@ -1176,13 +1176,13 @@ const CalendarPage = () => {
                                     void handleSaveTaskCard(task, nextDraft)
                                   }}
                                   placeholder="—"
-                                  ariaLabel="Reminder date"
+                                  ariaLabel={t('calendar.reminderDate')}
                                   className="w-full"
                                   popoverClassName="calendar-task-card__date-popover"
                                 />
                               </div>
                               <div className="calendar-task-card__field">
-                                <span>Priority</span>
+                                <span>{t('calendar.priority')}</span>
                                 <Select
                                   value={draft.priority ?? '__none'}
                                   onValueChange={(value) => {
@@ -1196,10 +1196,10 @@ const CalendarPage = () => {
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="__none">None</SelectItem>
-                                    <SelectItem value="high">High</SelectItem>
-                                    <SelectItem value="medium">Medium</SelectItem>
-                                    <SelectItem value="low">Low</SelectItem>
+                                    <SelectItem value="__none">{t('calendar.none')}</SelectItem>
+                                    <SelectItem value="high">{t('calendar.high')}</SelectItem>
+                                    <SelectItem value="medium">{t('calendar.medium')}</SelectItem>
+                                    <SelectItem value="low">{t('calendar.low')}</SelectItem>
                                   </SelectContent>
                                 </Select>
                               </div>
@@ -1211,8 +1211,8 @@ const CalendarPage = () => {
                           variant="ghost"
                           size="icon"
                           className="calendar-side-row__delete"
-                          aria-label="Delete task"
-                          title="Delete task"
+                          aria-label={t('calendar.deleteTask')}
+                          title={t('calendar.deleteTask')}
                           disabled={isDeleting}
                           onClick={() => void handleDeleteSelectedDayTask(task.id)}
                         >
@@ -1227,26 +1227,26 @@ const CalendarPage = () => {
                     <div className="calendar-task-card__meta-lines">
                       <div className="calendar-task-card__meta-line">
                         <span className="calendar-task-card__meta-item">
-                          <strong>Status</strong> {task.status}
+                          <strong>{t('calendar.status')}</strong> {task.status}
                         </span>
                         <span className="calendar-task-card__meta-item">
-                          <strong>Priority</strong> {task.priority ?? 'none'}
+                          <strong>{t('calendar.priority')}</strong> {task.priority ?? t('calendar.none')}
                         </span>
                       </div>
                       <div className="calendar-task-card__meta-line calendar-task-card__meta-line--single">
                         <span className="calendar-task-card__meta-item">
-                          <strong>Date</strong> {formatTaskDateRange(task)}
+                          <strong>日期</strong> {formatTaskDateRange(task)}
                         </span>
                       </div>
                       <div className="calendar-task-card__meta-line">
                         <span className="calendar-task-card__meta-item">
-                          <strong>Reminder</strong> {formatReminderLabel(task.reminderAt)}
+                          <strong>{t('calendar.reminder')}</strong> {formatReminderLabel(task.reminderAt)}
                         </span>
                         <span className="calendar-task-card__meta-item">
-                          <strong>Tags</strong>{' '}
+                          <strong>标签</strong>{' '}
                           {taskTags.length > 0
                             ? `${taskTags.join(', ')}${hiddenTagCount > 0 ? ` +${hiddenTagCount}` : ''}`
-                            : 'none'}
+                            : t('calendar.none')}
                         </span>
                       </div>
                     </div>
@@ -1275,7 +1275,7 @@ const CalendarPage = () => {
             }}
           >
             <Input
-              aria-label="New task title"
+              aria-label={t('calendar.newTaskTitle')}
               placeholder=""
               ref={selectedDayTaskComposer.inputRef}
               className={`widget-todos__input ${selectedDayTaskComposer.isShaking ? 'is-shaking' : ''}`}
@@ -1288,7 +1288,7 @@ const CalendarPage = () => {
               className="calendar-side-panel__add"
               disabled={creatingSelectedDayTask || !selectedDayTaskComposer.canSubmit}
             >
-              Add
+              {t('calendar.add')}
             </Button>
           </form>
         </section>
@@ -1297,8 +1297,8 @@ const CalendarPage = () => {
       <Dialog open={isAccountDialogOpen} onOpenChange={setIsAccountDialogOpen}>
         <DialogContent className="calendar-dialog__content">
           <DialogHeader>
-            <DialogTitle>Add subscription</DialogTitle>
-            <DialogDescription>Connect Google (read-only) or add an ICS/webcal subscription.</DialogDescription>
+            <DialogTitle>{t('calendar.addSubscriptionTitle')}</DialogTitle>
+            <DialogDescription>{t('calendar.addSubscriptionDesc')}</DialogDescription>
           </DialogHeader>
           <div className="calendar-dialog">
             <div className="calendar-dialog__switch">
@@ -1307,25 +1307,25 @@ const CalendarPage = () => {
                 variant={accountMode === 'google' ? 'default' : 'outline'}
                 onClick={() => setAccountMode('google')}
               >
-                Google
+                {t('calendar.google')}
               </Button>
               <Button
                 type="button"
                 variant={accountMode === 'ics' ? 'default' : 'outline'}
                 onClick={() => setAccountMode('ics')}
               >
-                ICS / webcal
+                {t('calendar.icsWebcal')}
               </Button>
             </div>
 
-            <section className="calendar-dialog__presets" aria-label="Preset subscriptions">
-              <h4>Preset subscriptions</h4>
+            <section className="calendar-dialog__presets" aria-label={t('calendar.presetSubscriptions')}>
+              <h4>{t('calendar.presetSubscriptions')}</h4>
               <div className="calendar-dialog__presets-list">
                 {CALENDAR_PRESET_SUBSCRIPTION_PLACEHOLDERS.map((preset) => (
                   <article key={preset.id} className="calendar-dialog__preset-card">
                     <div className="calendar-dialog__preset-meta">
                       <p>{preset.name}</p>
-                      <small>{preset.description} · Coming soon</small>
+                      <small>{preset.description} · {t('calendar.comingSoon')}</small>
                     </div>
                     <Button
                       type="button"
@@ -1334,7 +1334,7 @@ const CalendarPage = () => {
                       className="calendar-dialog__preset-add"
                       disabled
                     >
-                      Add
+                      {t('calendar.add')}
                     </Button>
                   </article>
                 ))}
@@ -1343,43 +1343,42 @@ const CalendarPage = () => {
 
             {accountMode === 'google' ? (
               <div className="calendar-dialog__panel">
-                <p>Connect Google calendar in read-only mode for M1.</p>
+                <p>以只读模式连接 Google 日历（M1）。</p>
                 <Button type="button" onClick={addGoogleReadOnlyAccount}>
-                  Connect Google (read-only)
+                  {t('calendar.connectGoogle')}
                 </Button>
               </div>
             ) : (
               <div className="calendar-dialog__panel">
-                <section className="calendar-dialog__guide" aria-label="ICS guide">
-                  <p className="calendar-dialog__guide-title">How to get an ICS subscription URL</p>
+                <section className="calendar-dialog__guide" aria-label={t('calendar.icsGuide')}>
+                  <p className="calendar-dialog__guide-title">{t('calendar.icsGuideTitle')}</p>
                   <ol className="calendar-dialog__guide-list">
-                    <li>Open your calendar provider settings.</li>
-                    <li>Find “Secret address in iCal format” or “Subscribe URL”.</li>
-                    <li>Copy the URL and paste it into the ICS URL field below.</li>
+                    <li>{t('calendar.icsGuideStep1')}</li>
+                    <li>{t('calendar.icsGuideStep2')}</li>
+                    <li>{t('calendar.icsGuideStep3')}</li>
                   </ol>
                   <p className="calendar-dialog__guide-note">
-                    Common providers: Google Calendar / Outlook / Apple Calendar. Accepted format: https://...ics or
-                    webcal://...
+                    {t('calendar.icsGuideNote')}
                   </p>
                 </section>
-                <Label htmlFor="ics-name">Name</Label>
+                <Label htmlFor="ics-name">{t('calendar.name')}</Label>
                 <Input id="ics-name" value={icsName} onChange={(event) => setIcsName(event.currentTarget.value)} />
-                <Label htmlFor="ics-url">ICS URL</Label>
+                <Label htmlFor="ics-url">{t('calendar.icsUrl')}</Label>
                 <Input
                   id="ics-url"
                   value={icsUrl}
                   onChange={(event) => setIcsUrl(event.currentTarget.value)}
-                  placeholder="https://example.com/calendar.ics"
+                  placeholder={t('calendar.icsPlaceholder')}
                 />
                 <Button type="button" onClick={() => void addIcsSubscription()}>
-                  Add ICS subscription
+                  {t('calendar.addSubscription')}
                 </Button>
               </div>
             )}
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setIsAccountDialogOpen(false)}>
-              Close
+              {t('calendar.closePanel')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1388,19 +1387,19 @@ const CalendarPage = () => {
       <Dialog open={Boolean(pendingDeleteSubscriptionId)} onOpenChange={(open) => (open ? null : setPendingDeleteSubscriptionId(null))}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Remove calendar?</DialogTitle>
+            <DialogTitle>移除日历？</DialogTitle>
             <DialogDescription>
               {pendingDeleteSubscription
-                ? `Delete "${pendingDeleteSubscription.name}" permanently? This subscription will be permanently deleted.`
-                : 'Delete this subscription permanently? This subscription will be permanently deleted.'}
+                ? `确认永久删除“${pendingDeleteSubscription.name}”？该订阅将被移除。`
+                : '确认永久删除该订阅？该订阅将被移除。'}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setPendingDeleteSubscriptionId(null)}>
-              Cancel
+              {t('tasks.cancel')}
             </Button>
             <Button variant="destructive" onClick={confirmRemoveSubscription}>
-              Remove
+              {t('calendar.deleteTask')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1409,11 +1408,11 @@ const CalendarPage = () => {
       <Dialog open={Boolean(createDateKey)} onOpenChange={(open) => (open ? null : setCreateDateKey(null))}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create task</DialogTitle>
-            <DialogDescription>Date: {createDateKey}</DialogDescription>
+            <DialogTitle>创建任务</DialogTitle>
+            <DialogDescription>日期：{createDateKey}</DialogDescription>
           </DialogHeader>
           <div className="calendar-dialog__panel">
-            <Label htmlFor="task-title">Title</Label>
+            <Label htmlFor="task-title">{t('calendar.title')}</Label>
             <Input
               id="task-title"
               value={createTitle}
@@ -1428,10 +1427,10 @@ const CalendarPage = () => {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setCreateDateKey(null)}>
-              Cancel
+              {t('tasks.cancel')}
             </Button>
             <Button onClick={() => void createTaskFromGridDate()} disabled={creatingGridTask || !createTitle.trim()}>
-              Create
+              创建
             </Button>
           </DialogFooter>
         </DialogContent>

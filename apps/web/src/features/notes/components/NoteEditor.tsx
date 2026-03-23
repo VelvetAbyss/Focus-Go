@@ -26,6 +26,7 @@ import '@/components/tiptap-node/list-node/list-node.scss'
 import '@/components/tiptap-node/image-node/image-node.scss'
 import '@/components/tiptap-node/heading-node/heading-node.scss'
 import '@/components/tiptap-node/paragraph-node/paragraph-node.scss'
+import { useI18n } from '../../../shared/i18n/useI18n'
 import { BlockquoteButton } from '@/components/tiptap-ui/blockquote-button'
 import { CodeBlockButton } from '@/components/tiptap-ui/code-block-button'
 import { ColorHighlightPopover } from '@/components/tiptap-ui/color-highlight-popover'
@@ -194,6 +195,7 @@ const createTableNode = (rows: string[][]): JSONContent => ({
 })
 
 const NoteEditor = ({ value, appearance, onOpenInfo, onOpenAppearance, onExport, onToggleFullscreen, onChange, isFullscreen = false, surfaceRef }: NoteEditorProps) => {
+  const { t } = useI18n()
   const initialDoc = useMemo(() => ensureRichDoc(value.contentJson, value.contentMd), [value.contentJson, value.contentMd])
   const fontFamily = fontFamilyMap[appearance?.font ?? 'uiSans']
   const widthScale = Math.max(0, Math.min(100, appearance?.contentWidth ?? 0)) / 100
@@ -259,7 +261,7 @@ const NoteEditor = ({ value, appearance, onOpenInfo, onOpenAppearance, onExport,
         },
       }),
       HorizontalRule,
-      Placeholder.configure({ placeholder: 'Start writing...' }),
+      Placeholder.configure({ placeholder: '开始写作...' }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       TaskList,
       TaskItem.configure({ nested: true }),
@@ -439,7 +441,7 @@ const NoteEditor = ({ value, appearance, onOpenInfo, onOpenAppearance, onExport,
               </ToolbarGroup>
               <ToolbarSeparator />
               <ToolbarGroup>
-                <ImageUploadButton text="Add" />
+                <ImageUploadButton text={t('notes.add')} />
               </ToolbarGroup>
             </Toolbar>
           </EditorContext.Provider>
@@ -448,15 +450,15 @@ const NoteEditor = ({ value, appearance, onOpenInfo, onOpenAppearance, onExport,
           <button
             type="button"
             className="note-editor__action-button note-editor__action-button--icon"
-            aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-            title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+            aria-label={isFullscreen ? t('notes.exitFullscreen') : t('notes.enterFullscreen')}
+            title={isFullscreen ? t('notes.exitFullscreen') : t('notes.enterFullscreen')}
             onClick={onToggleFullscreen}
           >
             {isFullscreen ? <Minimize2 size={14} /> : <Expand size={14} />}
           </button>
-          <ActionButton icon={<Info size={14} />} label="Info" panelId="info" onClick={onOpenInfo} />
-          <ActionButton icon={<Palette size={14} />} label="Appearance" panelId="appearance" onClick={onOpenAppearance} />
-          <ActionButton icon={<Download size={14} />} label="Export" panelId="export" onClick={onExport} />
+          <ActionButton icon={<Info size={14} />} label={t('notes.info')} panelId="info" onClick={onOpenInfo} />
+          <ActionButton icon={<Palette size={14} />} label={t('notes.appearance')} panelId="appearance" onClick={onOpenAppearance} />
+          <ActionButton icon={<Download size={14} />} label={t('notes.export')} panelId="export" onClick={onExport} />
         </div>
       </div>
 
@@ -479,7 +481,7 @@ const NoteEditor = ({ value, appearance, onOpenInfo, onOpenAppearance, onExport,
         </div>
       </div>
       {headings.length > 0 && (
-        <aside className="note-editor__heading-nav" aria-label="Table of contents">
+        <aside className="note-editor__heading-nav" aria-label={t('notes.tableOfContents')}>
           {headings.map((heading) => (
             <button
               key={heading.id}

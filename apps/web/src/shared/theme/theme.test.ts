@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { beforeEach, describe, expect, it } from 'vitest'
-import { applyTheme } from './theme'
+import { applyTheme, readStoredThemePreference, resolveTheme } from './theme'
 
 describe('applyTheme', () => {
   beforeEach(() => {
@@ -31,5 +31,21 @@ describe('applyTheme', () => {
 
     expect(document.documentElement.dataset.theme).toBe('dark')
     expect(document.documentElement.classList.contains('dark')).toBe(true)
+  })
+})
+
+describe('theme preference helpers', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  it('reads system theme preference from storage', () => {
+    window.localStorage.setItem('focusgo.theme', 'system')
+    expect(readStoredThemePreference()).toBe('system')
+  })
+
+  it('resolves explicit theme selection without media query', () => {
+    expect(resolveTheme('dark')).toBe('dark')
+    expect(resolveTheme('light')).toBe('light')
   })
 })

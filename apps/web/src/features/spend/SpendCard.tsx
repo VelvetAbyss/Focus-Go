@@ -8,20 +8,22 @@ import type { SpendCategory, SpendEntry } from '../../data/models/types'
 import { toDateKey } from '../../shared/utils/time'
 import { AppNumber } from '../../shared/ui/AppNumber'
 import SpendChart from './SpendChart'
+import { useI18n } from '../../shared/i18n/useI18n'
 import { convertToBase, currencyToSymbol } from '../../lib/currency'
 import { usePreferences } from '../../shared/prefs/usePreferences'
 import { EMOJI_TO_ICON_KEY, renderSpendIcon } from './spendIcons'
-import { Trash2 } from 'lucide-react'
+import { Receipt, Trash2 } from 'lucide-react'
 import AnimatedScrollList from '../../shared/ui/AnimatedScrollList'
 import { triggerTabGroupSwitchAnimation, triggerTabPressAnimation } from '../../shared/ui/tabPressAnimation'
-const tabs = [
-  { key: 'today', label: 'Today' },
-  { key: 'trend', label: 'Trend' },
-] as const
-
-type SpendView = (typeof tabs)[number]['key']
+import EmptyState from '../../shared/ui/EmptyState'
+type SpendView = 'today' | 'trend'
 
 const SpendCard = () => {
+  const { t } = useI18n()
+  const tabs = [
+    { key: 'today' as const, label: t('spend.today') },
+    { key: 'trend' as const, label: t('spend.trend') },
+  ] as const
   const [now, setNow] = useState(() => new Date())
   const [entries, setEntries] = useState<SpendEntry[]>([])
   const [categories, setCategories] = useState<SpendCategory[]>([])
@@ -139,9 +141,9 @@ const SpendCard = () => {
   }
 
   return (
-    <Card title="Spend" eyebrow="Today">
+    <Card title={t('spend.title')} eyebrow={t('spend.today')}>
       <div className="spend-fg">
-        <div className="spend-fg__tabs tab-motion-group" role="tablist" aria-label="Spend views" style={tabMotionStyle}>
+        <div className="spend-fg__tabs tab-motion-group" role="tablist" aria-label={t('spend.title')} style={tabMotionStyle}>
           {tabs.map((tab) => (
             <button
               key={tab.key}
@@ -162,13 +164,13 @@ const SpendCard = () => {
 
         <div className="spend-fg__viewport" aria-label="Spend panels">
           <div className="spend-fg__track" style={{ transform: `translate3d(-${activeIndex * 100}%, 0, 0)` }}>
-            <section className="spend-fg__panel" role="tabpanel" aria-label="Spend today">
+            <section className="spend-fg__panel" role="tabpanel" aria-label={t('spend.today')}>
               <div className="spend">
                 <div className="spend__total">
-                  <span className="muted">Total today</span>
+                  <span className="muted">{t('spend.totalToday')}</span>
                   <div className="spend__amount">
                     {totalTodayBase.count === 0 ? (
-                      <span className="muted">No entries yet</span>
+                      <span className="muted">{t('spend.noEntries')}</span>
                     ) : (
                       <div className="spend__amount-row spend__amount-row--main">
                         <AppNumber
@@ -194,7 +196,7 @@ const SpendCard = () => {
                       event.preventDefault()
                       void addEntry()
                     }}
-                    placeholder="Amount"
+                    placeholder={t('spend.amount')}
                   />
                   <Select
                     value={currency}
@@ -217,7 +219,7 @@ const SpendCard = () => {
                     onChange={(v) => setCategoryId(v)}
                   />
                   <Button size="sm" className="spend__add-btn" onClick={addEntry}>
-                    Add
+                    {t('spend.add')}
                   </Button>
                 </div>
 
@@ -231,7 +233,14 @@ const SpendCard = () => {
                   setListRef={(node) => {
                     listRef.current = node
                   }}
-                  emptyState={<div className="spend__empty muted">No entries</div>}
+                  emptyState={
+                    <EmptyState
+                      icon={<Receipt size={22} />}
+                      title={t('empty.spend.title')}
+                      description={t('empty.spend.description')}
+                      className="border-0 bg-transparent px-0 py-8 shadow-none"
+                    />
+                  }
                   renderItem={(entry) => {
                     const category = categoriesById.get(entry.categoryId)
                     return (
@@ -240,7 +249,7 @@ const SpendCard = () => {
                         tabIndex={0}
                         onClick={() => setActiveEntryId(entry.id)}
                         onFocus={() => setActiveEntryId(entry.id)}
-                        aria-label={category?.name ?? 'Category'}
+                        aria-label={category?.name ?? t('spend.category')}
                       >
                         <span className="spend__item-left">
                           <span className="spend__item-icon">{renderSpendIcon(category?.icon, { size: 16 })}</span>
@@ -260,8 +269,8 @@ const SpendCard = () => {
                               void deleteEntry(entry.id)
                             }}
                             onPointerDown={(e) => e.stopPropagation()}
-                            aria-label="Delete entry"
-                            title="Delete entry"
+                             aria-label={t('spend.deleteEntry')}
+                             title={t('spend.deleteEntry')}
                           >
                             <Trash2 size={16} />
                           </button>
@@ -273,7 +282,7 @@ const SpendCard = () => {
               </div>
             </section>
 
-            <section className="spend-fg__panel" role="tabpanel" aria-label="Spend trend">
+            <section className="spend-fg__panel" role="tabpanel" aria-label={t('spend.trend')}>
               <div className="spend__trend">
                 <SpendChart />
               </div>

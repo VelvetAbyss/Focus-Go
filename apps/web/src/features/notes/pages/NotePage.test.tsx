@@ -6,6 +6,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { NoteAppearanceSettings, NoteItem, NoteTag } from '../../../data/models/types'
 import NotePage from './NotePage'
 
+vi.mock('../../../shared/i18n/useI18n', () => ({
+  useI18n: () => ({ t: (key: string) => key, language: 'en' as const }),
+}))
+
 const listMock = vi.fn<() => Promise<NoteItem[]>>()
 const listTrashMock = vi.fn<() => Promise<NoteItem[]>>()
 const createMock = vi.fn<(data?: unknown) => Promise<NoteItem>>()

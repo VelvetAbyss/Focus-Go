@@ -17,6 +17,7 @@ import {
   User,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useI18n } from '../../../shared/i18n/useI18n'
 import type { NoteTag } from '../../../data/models/types'
 
 export type NoteSystemCollection = 'notes' | 'today' | 'untagged' | 'trash'
@@ -79,6 +80,7 @@ export default function NoteSidebar({
   className,
   scrollContainerRef,
 }: SidebarProps) {
+  const { t } = useI18n()
   const tree = useMemo(() => buildTree(tags), [tags])
   const pinned = useMemo(() => tags.filter((tag) => tag.pinned).sort((a, b) => a.sortOrder - b.sortOrder), [tags])
 
@@ -100,15 +102,15 @@ export default function NoteSidebar({
       </div>
 
       <div className="mt-2 px-3">
-        <CollectionButton icon={FileText} label="Notes" count={noteCounts.all} active={activeCollection === 'notes'} onClick={() => onSelectCollection('notes')} />
-        <CollectionButton icon={Sun} label="Today" count={noteCounts.today} active={activeCollection === 'today'} onClick={() => onSelectCollection('today')} />
-        <CollectionButton icon={TagIcon} label="Untagged" count={noteCounts.untagged} active={activeCollection === 'untagged'} onClick={() => onSelectCollection('untagged')} />
-        <CollectionButton icon={Trash2} label="Trash" count={noteCounts.trash} active={activeCollection === 'trash'} onClick={() => onSelectCollection('trash')} />
+        <CollectionButton icon={FileText} label={t('modules.note.collection.notes')} count={noteCounts.all} active={activeCollection === 'notes'} onClick={() => onSelectCollection('notes')} />
+        <CollectionButton icon={Sun} label={t('modules.note.collection.today')} count={noteCounts.today} active={activeCollection === 'today'} onClick={() => onSelectCollection('today')} />
+        <CollectionButton icon={TagIcon} label={t('modules.note.collection.untagged')} count={noteCounts.untagged} active={activeCollection === 'untagged'} onClick={() => onSelectCollection('untagged')} />
+        <CollectionButton icon={Trash2} label={t('modules.note.collection.trash')} count={noteCounts.trash} active={activeCollection === 'trash'} onClick={() => onSelectCollection('trash')} />
       </div>
 
       {pinned.length > 0 ? (
         <div className="mt-5 px-3">
-          <SectionTitle>Pinned</SectionTitle>
+          <SectionTitle>{t('modules.note.pinnedTitle')}</SectionTitle>
           {pinned.map((tag) => (
             <TagRow
               key={`pin-${tag.id}`}
@@ -129,14 +131,14 @@ export default function NoteSidebar({
 
       <div className="mt-5 flex-1 px-3 pb-5">
         <div className="mb-1.5 flex items-center justify-between px-2">
-          <SectionTitle className="mb-0 px-0">Tags</SectionTitle>
+          <SectionTitle className="mb-0 px-0">{t('modules.note.tagTitle')}</SectionTitle>
           <button
             type="button"
             className="rounded p-1 text-[#8d867f] transition-colors hover:bg-[#f0eeeb] dark:text-slate-300 dark:hover:bg-slate-700/30"
-            title="New tag"
+            title={t('notes.newTag')}
             onClick={() => {
               const parentId = activeTagId && tags.some((tag) => tag.id === activeTagId) ? activeTagId : null
-              onCreateTag('New tag', parentId)
+              onCreateTag(t('notes.newTag'), parentId)
             }}
           >
             <Plus size={13} />

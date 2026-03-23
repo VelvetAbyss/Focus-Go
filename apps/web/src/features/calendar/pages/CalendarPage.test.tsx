@@ -90,6 +90,11 @@ vi.mock('../../../shared/prefs/useMotionPreference', () => ({
   useMotionPreference: () => ({ reduceMotion: false }),
 }))
 
+vi.mock('../../../shared/i18n/useI18n', async () => {
+  const { mockUseI18n } = await import('../../../shared/i18n/testMock')
+  return { useI18n: mockUseI18n }
+})
+
 import { tasksRepo } from '../../../data/repositories/tasksRepo'
 import CalendarPage from './CalendarPage'
 

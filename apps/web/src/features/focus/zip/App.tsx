@@ -90,7 +90,7 @@ export default function App() {
     : "0 4px 32px rgba(58, 55, 51, 0.03), 0 1px 4px rgba(58, 55, 51, 0.02)";
 
   return (
-    <div className={`focus-zip-app w-full h-screen overflow-hidden relative ${isDark ? "is-dark" : ""} ${entered ? "focus-zip-app--entered" : ""}`} style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className={`focus-zip-app w-full h-screen overflow-hidden relative ${isDark ? "is-dark" : ""}`} style={{ fontFamily: "'Inter', sans-serif" }}>
       {/* Ambient misty background */}
       <div className="absolute inset-0 -z-10">
         <div

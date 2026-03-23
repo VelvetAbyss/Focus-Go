@@ -24,7 +24,7 @@
 .review-page-shell {
   position: relative;
   isolation: isolate;
-  min-height: calc(100vh - (var(--page-pad, 14px) * 2));
+  min-height: var(--shell-content-height, calc(100vh - (var(--page-pad, 14px) * 2)));
 }
 
 .review-page-shell::before {
