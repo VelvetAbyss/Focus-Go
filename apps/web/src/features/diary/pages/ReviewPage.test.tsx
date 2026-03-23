@@ -61,6 +61,11 @@ vi.mock('../../../data/repositories/diaryRepo', () => ({
   diaryRepo: diaryRepoMock,
 }))
 
+vi.mock('../../../shared/i18n/useI18n', async () => {
+  const { mockUseI18n } = await import('../../../shared/i18n/testMock')
+  return { useI18n: mockUseI18n }
+})
+
 const findSnapshotCount = async (count: number) => {
   await waitFor(() => {
     expect(diaryRepoMock.listActive).toHaveBeenCalled()

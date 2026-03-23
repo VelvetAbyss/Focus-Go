@@ -18,49 +18,61 @@ import {
   Target,
   Keyboard,
 } from "lucide-react";
+import { useI18n } from "../../../../shared/i18n/useI18n";
 
 type TimerStatus = "idle" | "running" | "paused" | "completed";
 
 interface FocusMode {
   id: string;
   name: string;
-  duration: number;
-  icon: React.ReactNode;
+  nameKey: import('../../../../shared/i18n/types').TranslationKey;
   description: string;
+  descriptionKey: string;
+  duration: number;
   color: string;
+  icon: React.ReactNode;
+  bgGradient: string;
 }
 
 const focusModes: FocusMode[] = [
   {
     id: "pomodoro",
     name: "Pomodoro",
+    nameKey: "focus.pomodoro",
     duration: 25,
     icon: <Timer size={14} />,
     description: "Classic 25-minute sprint",
+    descriptionKey: "focus.pomodoroDesc",
     color: "#C4A882",
   },
   {
     id: "deep",
     name: "Deep Work",
+    nameKey: "focus.deepWork",
     duration: 50,
     icon: <Brain size={14} />,
     description: "Extended deep focus",
+    descriptionKey: "focus.deepWorkDesc",
     color: "#8BA4B8",
   },
   {
     id: "sprint",
     name: "Sprint",
+    nameKey: "focus.sprint",
     duration: 15,
     icon: <Rocket size={14} />,
     description: "Quick 15-minute burst",
+    descriptionKey: "focus.sprintDesc",
     color: "#D4956A",
   },
   {
     id: "flow",
     name: "Flow",
+    nameKey: "focus.flow",
     duration: 90,
     icon: <Infinity size={14} />,
     description: "Long flow state",
+    descriptionKey: "focus.flowDesc",
     color: "#8BA88A",
   },
 ];
@@ -142,10 +154,14 @@ function DurationPicker({
   value,
   onChange,
   onClose,
+  customDurationLabel,
+  minLabel,
 }: {
   value: number;
   onChange: (v: number) => void;
   onClose: () => void;
+  customDurationLabel: string;
+  minLabel: string;
 }) {
   const presets = [15, 25, 30, 45, 60, 90];
 
@@ -166,7 +182,7 @@ function DurationPicker({
         }}
       >
         <p className="text-[0.68rem] text-[#918b80] uppercase tracking-[0.08em] mb-3">
-          Custom Duration
+          {customDurationLabel}
         </p>
         <div className="flex items-center justify-center gap-3 mb-4">
           <motion.button
@@ -183,7 +199,7 @@ function DurationPicker({
           >
             {value}
           </span>
-          <span className="text-[0.75rem] text-[#a09a90] -ml-1">min</span>
+          <span className="text-[0.75rem] text-[#a09a90] -ml-1">{minLabel}</span>
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={() => onChange(Math.min(120, value + 5))}
@@ -208,7 +224,7 @@ function DurationPicker({
                 color: p === value ? "#4a4640" : "#918b80",
               }}
             >
-              {p}m
+              {p}{minLabel}
             </motion.button>
           ))}
         </div>
@@ -217,7 +233,7 @@ function DurationPicker({
   );
 }
 
-function BreathingGuide({ onComplete }: { onComplete: () => void }) {
+function BreathingGuide({ onComplete, phaseLabels }: { onComplete: () => void; phaseLabels: Record<string, string> }) {
   const [phase, setPhase] = useState<"inhale" | "hold" | "exhale">("inhale");
   const [count, setCount] = useState(0);
   const totalCycles = 3;
@@ -253,8 +269,6 @@ function BreathingGuide({ onComplete }: { onComplete: () => void }) {
     runStep();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const phaseLabels = { inhale: "Breathe in...", hold: "Hold...", exhale: "Breathe out..." };
 
   return (
     <motion.div
@@ -302,9 +316,11 @@ function BreathingGuide({ onComplete }: { onComplete: () => void }) {
 function DailyGoalRing({
   completedMinutes,
   goalMinutes,
+  minLabel,
 }: {
   completedMinutes: number;
   goalMinutes: number;
+  minLabel: string;
 }) {
   const progress = Math.min(1, completedMinutes / goalMinutes);
   const radius = 28;
@@ -340,7 +356,7 @@ function DailyGoalRing({
         <span className="text-[0.85rem] text-[#3a3733] tabular-nums" style={{ fontFamily: "'DM Serif Display', serif" }}>
           {completedMinutes}
         </span>
-        <span className="text-[0.5rem] text-[#b0aa9e] -mt-0.5">/ {goalMinutes}min</span>
+        <span className="text-[0.5rem] text-[#b0aa9e] -mt-0.5">/ {goalMinutes}{minLabel}</span>
       </div>
     </div>
   );
@@ -363,6 +379,7 @@ export function FocusTimer({
   dailyGoal?: number;
   todaySessions?: number;
 }) {
+  const { t } = useI18n()
   const [selectedMode, setSelectedMode] = useState<FocusMode>(focusModes[0]);
   const [duration, setDuration] = useState(25);
   const [timeLeft, setTimeLeft] = useState(25 * 60);
@@ -489,10 +506,10 @@ export function FocusTimer({
   };
 
   const statusLabels: Record<TimerStatus, string> = {
-    idle: "Ready to focus",
-    running: "Focusing...",
-    paused: "Paused",
-    completed: "Session complete",
+    idle: t("focus.readyToFocus"),
+    running: t("focus.focusing"),
+    paused: t("focus.paused"),
+    completed: t("focus.sessionComplete"),
   };
 
   const quote = quotes[quoteIndex];
@@ -501,7 +518,7 @@ export function FocusTimer({
     <div className="focus-zip-timer h-full flex flex-col items-center justify-center relative overflow-hidden">
       {/* Breathing guide overlay */}
       <AnimatePresence>
-        {showBreathing && <BreathingGuide onComplete={handleBreathingComplete} />}
+        {showBreathing && <BreathingGuide onComplete={handleBreathingComplete} phaseLabels={{ inhale: t("focus.breatheIn"), hold: t("focus.hold"), exhale: t("focus.breatheOut") }} />}
       </AnimatePresence>
 
       {/* Breathing ambient ring */}
@@ -526,13 +543,13 @@ export function FocusTimer({
       {/* Daily goal ring - top left */}
       <div className="absolute top-5 left-6 z-10">
         <div className="flex items-center gap-3">
-          <DailyGoalRing completedMinutes={todayMinutes} goalMinutes={dailyGoal} />
+          <DailyGoalRing completedMinutes={todayMinutes} goalMinutes={dailyGoal} minLabel={t("focus.minUnit")} />
           <div>
             <p className="text-[0.66rem] text-[#918b80] uppercase tracking-[0.06em]">
-              Daily Goal
+              {t("focus.dailyGoal")}
             </p>
             <p className="text-[0.72rem] text-[#5a5650] mt-0.5">
-              {todaySessions} sessions today
+              {t("focus.sessionsToday", { count: todaySessions })}
             </p>
           </div>
         </div>
@@ -565,12 +582,12 @@ export function FocusTimer({
                 }}
               >
                 <p className="text-[0.62rem] text-[#918b80] uppercase tracking-[0.08em] mb-2.5">
-                  Shortcuts
+                  {t("focus.shortcuts")}
                 </p>
                 {[
-                  { key: "Space", action: "Start / Pause" },
-                  { key: "R", action: "Reset" },
-                  { key: "B", action: "Breathe first" },
+                  { key: "Space", action: t("focus.shortcutStartPause") },
+                  { key: "R", action: t("focus.shortcutReset") },
+                  { key: "B", action: t("focus.shortcutBreathe") },
                 ].map((s) => (
                   <div key={s.key} className="flex items-center justify-between py-1">
                     <span className="text-[0.68rem] text-[#5a5650]">{s.action}</span>
@@ -616,7 +633,7 @@ export function FocusTimer({
               }}
             >
               {mode.icon}
-              <span className="text-[0.68rem]">{mode.name}</span>
+              <span className="text-[0.68rem]">{t(mode.nameKey)}</span>
             </motion.button>
           ))}
         </div>
@@ -693,7 +710,7 @@ export function FocusTimer({
                 >
                   <span className="text-[0.82rem]">○</span>
                 </motion.div>
-                <span className="text-[0.78rem]">Breathe</span>
+                <span className="text-[0.78rem]">{t("focus.breathe")}</span>
               </motion.button>
 
               {/* Start button */}
@@ -705,7 +722,7 @@ export function FocusTimer({
                 style={{ background: "#3a3733", color: "#f5f3ef" }}
               >
                 <Play size={15} />
-                <span className="text-[0.82rem] tracking-[0.02em]">Start Focus</span>
+                <span className="text-[0.82rem] tracking-[0.02em]">{t("focus.startFocus")}</span>
               </motion.button>
             </>
           ) : (
@@ -720,12 +737,12 @@ export function FocusTimer({
                 {status === "running" ? (
                   <>
                     <Pause size={15} />
-                    <span className="text-[0.82rem]">Pause</span>
+                    <span className="text-[0.82rem]">{t("focus.pause")}</span>
                   </>
                 ) : (
                   <>
                     <Play size={15} />
-                    <span className="text-[0.82rem]">Resume</span>
+                    <span className="text-[0.82rem]">{t("focus.resume")}</span>
                   </>
                 )}
               </motion.button>
@@ -764,6 +781,8 @@ export function FocusTimer({
                     value={duration}
                     onChange={handleDurationChange}
                     onClose={() => setShowDuration(false)}
+                    customDurationLabel={t("focus.customDuration")}
+                    minLabel={t("focus.minUnit")}
                   />
                 </>
               )}
@@ -801,7 +820,7 @@ export function FocusTimer({
               }}
             />
             <span className="text-[0.66rem] text-[#b0aa9e]">
-              {selectedMode.name} · {duration}min
+              {t(selectedMode.nameKey)} · {duration}{t("focus.minUnit")}
             </span>
           </div>
           <div className="flex items-center gap-1.5">
@@ -811,7 +830,7 @@ export function FocusTimer({
               <BellOff size={10} className="text-[#c8c2b8]" />
             )}
             <span className="text-[0.66rem] text-[#b0aa9e]">
-              {completionSound ? "Sound on" : "Sound off"}
+              {completionSound ? t("focus.soundOn") : t("focus.soundOff")}
             </span>
           </div>
         </div>

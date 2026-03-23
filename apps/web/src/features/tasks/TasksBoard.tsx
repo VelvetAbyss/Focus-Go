@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { CalendarDays, CheckSquare, Columns3, LayoutGrid, ListFilter, Plus, Square, Tag, Trash2 } from 'lucide-react'
+import { CalendarDays, CheckSquare, Columns3, LayoutGrid, Plus, Square, Tag, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import {
@@ -24,11 +24,14 @@ import { useToast } from '../../shared/ui/toast/toast'
 import { ROUTES } from '../../app/routes/routes'
 import { emitTasksChanged, subscribeTasksChanged } from './taskSync'
 import { TASK_STATUS_CONFIG } from './components/taskPresentation'
+import { useI18n } from '../../shared/i18n/useI18n'
+import { completeOnboarding, markFeatureSeen, resetOnboarding, setPendingCoachmark } from '../onboarding/onboarding.runtime'
+import EmptyState from '../../shared/ui/EmptyState'
 
 const tabs: { key: TaskStatus; label: string }[] = [
-  { key: 'todo', label: 'Todo' },
-  { key: 'doing', label: 'Doing' },
-  { key: 'done', label: 'Done' },
+  { key: 'todo', label: '待办' },
+  { key: 'doing', label: '进行中' },
+  { key: 'done', label: '已完成' },
 ]
 
 type SortMode = 'importance' | 'time'
@@ -66,20 +69,30 @@ const sortByImportance = (a: TaskItem, b: TaskItem) => {
 const sortByTime = (a: TaskItem, b: TaskItem) => b.createdAt - a.createdAt
 
 const getNextStatus = (status: TaskStatus) => {
-  if (status === 'todo') return { next: 'doing' as const, label: 'Start' }
-  if (status === 'doing') return { next: 'done' as const, label: 'Done' }
-  return { next: 'todo' as const, label: 'Reopen' }
+  if (status === 'todo') return { next: 'doing' as const, label: '开始' }
+  if (status === 'doing') return { next: 'done' as const, label: '完成' }
+  return { next: 'todo' as const, label: '重新打开' }
 }
 
 type TasksBoardProps = {
   asCard?: boolean
   className?: string
   topView?: TopView
+  onboardingMode?: boolean
+  onOnboardingTaskCreated?: (task: TaskItem) => void
 }
 
-const TasksBoard = ({ asCard = true, className, topView = 'board' }: TasksBoardProps) => {
+const TasksBoard = ({
+  asCard = true,
+  className,
+  topView = 'board',
+  onboardingMode = false,
+  onOnboardingTaskCreated,
+}: TasksBoardProps) => {
+  const { t } = useI18n()
   const [tasks, setTasks] = useState<TaskItem[]>([])
   const [activeTask, setActiveTask] = useState<TaskItem | null>(null)
+  const [onboardingDrawerOpen, setOnboardingDrawerOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<TaskItem | null>(null)
   const [sortMode, setSortMode] = useState<SortMode>(() => {
     if (typeof window === 'undefined') return 'importance'
@@ -144,6 +157,14 @@ const TasksBoard = ({ asCard = true, className, topView = 'board' }: TasksBoardP
       if (statusActionSuccessTimerRef.current) window.clearTimeout(statusActionSuccessTimerRef.current)
     }
   }, [])
+
+  useEffect(() => {
+    if (!onboardingMode) {
+      setOnboardingDrawerOpen(false)
+      return
+    }
+    setOnboardingDrawerOpen(true)
+  }, [onboardingMode])
 
   const statusCounts = useMemo(() => {
     const counts: Record<TaskStatus, number> = { todo: 0, doing: 0, done: 0 }
@@ -224,8 +245,8 @@ const TasksBoard = ({ asCard = true, className, topView = 'board' }: TasksBoardP
     emitTasksChanged('tasks-board:toggle-pin')
     if (task.pinned) {
       toast.push({
-        message: 'Task unpinned',
-        actionLabel: 'Undo',
+        message: t('tasks.unpinned'),
+        actionLabel: t('tasks.undo'),
         onAction: () => {
           void (async () => {
             const restored = await tasksRepo.update({ ...updated, pinned: true })
@@ -256,6 +277,29 @@ const TasksBoard = ({ asCard = true, className, topView = 'board' }: TasksBoardP
     setTasks((prev) => [created, ...prev])
     return true
   }, [activeStatus])
+
+  const handleOnboardingCreated = useCallback(
+    (task: TaskItem) => {
+      setTasks((prev) => [task, ...prev])
+      setOnboardingDrawerOpen(false)
+      markFeatureSeen('tasks')
+      completeOnboarding()
+      setPendingCoachmark('focus')
+      toast.push({
+        variant: 'success',
+        title: t('tasks.onboarding.focusReady'),
+        message: t('tasks.onboarding.focusHint'),
+      })
+      onOnboardingTaskCreated?.(task)
+    },
+    [onOnboardingTaskCreated, t, toast],
+  )
+
+  const exitOnboarding = useCallback(() => {
+    resetOnboarding()
+    setOnboardingDrawerOpen(false)
+    navigate(ROUTES.DASHBOARD)
+  }, [navigate])
 
   useEffect(() => {
     setSelectedTaskIds((prev) => {
@@ -322,19 +366,32 @@ const TasksBoard = ({ asCard = true, className, topView = 'board' }: TasksBoardP
   }, [bulkTagDraft, selectedTaskIds, tasks])
 
   const isKanbanMode = asCard || boardMode === 'kanban'
+  const showTasksEmptyState = filteredTasks.length === 0 && topView === 'board' && isKanbanMode
+  const tasksEmptyState = onboardingMode ? (
+    <EmptyState
+      icon={<LayoutGrid className="size-6" />}
+      title={t('onboarding.empty.tasksTitle')}
+      description={t('onboarding.empty.tasksDescription')}
+      actionLabel={t('onboarding.empty.tasksAction')}
+      onAction={() => setOnboardingDrawerOpen(true)}
+      variant="onboarding"
+      className="mx-auto my-10 max-w-xl"
+    />
+  ) : (
+    <EmptyState
+      icon={<LayoutGrid className="size-6" />}
+      title="该状态下暂无任务"
+      description="在下方创建新任务开始使用"
+      className="mx-auto my-10 max-w-xl"
+    />
+  )
 
   const boardContent = topView === 'board'
     ? isKanbanMode
       ? (
         <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-          {filteredTasks.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center py-20 text-muted-foreground">
-              <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-muted">
-                <LayoutGrid className="size-6" />
-              </div>
-              <p className="text-sm">No tasks in this status</p>
-              <p className="mt-1 text-xs text-muted-foreground/70">Create a new task below to get started</p>
-            </div>
+          {showTasksEmptyState ? (
+            tasksEmptyState
           ) : (
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               <div
@@ -362,8 +419,8 @@ const TasksBoard = ({ asCard = true, className, topView = 'board' }: TasksBoardP
                     statusActions={
                       task.status === 'todo'
                         ? [
-                            { key: 'doing', label: 'Start', onClick: async (nextTask) => handleStatusChange(nextTask.id, 'doing') },
-                            { key: 'done', label: 'Done', onClick: async (nextTask) => handleStatusChange(nextTask.id, 'done') },
+                            { key: 'doing', label: '开始', onClick: async (nextTask) => handleStatusChange(nextTask.id, 'doing') },
+                            { key: 'done', label: '完成', onClick: async (nextTask) => handleStatusChange(nextTask.id, 'done') },
                           ]
                         : [{ key: getNextStatus(task.status).next, label: getNextStatus(task.status).label, onClick: async (nextTask) => handleStatusChange(nextTask.id, getNextStatus(nextTask.status).next) }]
                     }
@@ -418,72 +475,80 @@ const TasksBoard = ({ asCard = true, className, topView = 'board' }: TasksBoardP
 
               <div className="h-5 w-px bg-border" />
 
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button className="tasks-fg__filter-btn flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent">
-                    <ListFilter className="size-3" />
-                    Tags
-                    {tagFilter.length > 0 ? (
-                      <span className="min-w-[16px] rounded-full bg-primary px-1 text-center text-[10px] text-primary-foreground">{tagFilter.length}</span>
-                    ) : null}
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-48 p-2" align="start">
-                  <div className="space-y-1">
-                    {tagFilterOptions.slice(1).map((tag) => {
-                      const checked = tagFilter.includes(tag.value)
-                      return (
-                        <button
-                          key={tag.value}
-                          type="button"
-                          className={cn('flex w-full items-center justify-between rounded px-2 py-1.5 text-xs transition hover:bg-accent', checked && 'bg-accent')}
-                          onClick={() => {
-                            setTagFilter((prev) => checked ? prev.filter((item) => item !== tag.value) : [...prev, tag.value])
-                          }}
-                        >
-                          <span>{tag.label}</span>
-                          {checked ? <span className="text-primary">✓</span> : null}
-                        </button>
-                      )
-                    })}
-                    {tagFilter.length > 0 ? (
-                      <button type="button" className="w-full rounded px-2 py-1.5 text-left text-xs text-muted-foreground hover:bg-accent hover:text-foreground" onClick={() => setTagFilter([])}>
-                        Clear filters
+              {onboardingMode ? (
+                <div className="rounded-full border border-[#3A3733]/10 bg-[#F5F3F0] px-3 py-1.5 text-xs text-[#3A3733]/72">
+                  {t('tasks.onboarding.description')}
+                </div>
+              ) : (
+                <>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="tasks-fg__filter-btn flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent">
+                        <Tag className="size-3" />
+                        标签
+                        {tagFilter.length > 0 ? (
+                          <span className="min-w-[16px] rounded-full bg-primary px-1 text-center text-[10px] text-primary-foreground">{tagFilter.length}</span>
+                        ) : null}
                       </button>
-                    ) : null}
+                    </PopoverTrigger>
+                    <PopoverContent className="w-48 p-2" align="start">
+                      <div className="space-y-1">
+                        {tagFilterOptions.slice(1).map((tag) => {
+                          const checked = tagFilter.includes(tag.value)
+                          return (
+                            <button
+                              key={tag.value}
+                              type="button"
+                              className={cn('flex w-full items-center justify-between rounded px-2 py-1.5 text-xs transition hover:bg-accent', checked && 'bg-accent')}
+                              onClick={() => {
+                                setTagFilter((prev) => checked ? prev.filter((item) => item !== tag.value) : [...prev, tag.value])
+                              }}
+                            >
+                              <span>{tag.label}</span>
+                              {checked ? <span className="text-primary">✓</span> : null}
+                            </button>
+                          )
+                        })}
+                        {tagFilter.length > 0 ? (
+                          <button type="button" className="w-full rounded px-2 py-1.5 text-left text-xs text-muted-foreground hover:bg-accent hover:text-foreground" onClick={() => setTagFilter([])}>
+                            {t('tasks.clearFilters')}
+                          </button>
+                        ) : null}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+
+                  <div className="w-[132px]">
+                    <ShadcnSelect value={sortMode} onValueChange={(value) => setSortMode(value as SortMode)}>
+                      <SelectTrigger className="h-9 rounded-md border-input bg-background/40 px-3 text-xs font-medium text-muted-foreground">
+                        <SelectValue placeholder={t('tasks.sortBy')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="importance">{t('tasks.sort.priority')}</SelectItem>
+                        <SelectItem value="time">{t('tasks.sort.created')}</SelectItem>
+                      </SelectContent>
+                    </ShadcnSelect>
                   </div>
-                </PopoverContent>
-              </Popover>
 
-              <div className="w-[132px]">
-                <ShadcnSelect value={sortMode} onValueChange={(value) => setSortMode(value as SortMode)}>
-                  <SelectTrigger className="h-9 rounded-md border-input bg-background/40 px-3 text-xs font-medium text-muted-foreground">
-                    <SelectValue placeholder="Priority" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="importance">Priority</SelectItem>
-                    <SelectItem value="time">Created</SelectItem>
-                  </SelectContent>
-                </ShadcnSelect>
-              </div>
-
-              <span className="text-xs tabular-nums text-muted-foreground">{filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''}</span>
+                  <span className="text-xs tabular-nums text-muted-foreground">{t('tasks.taskCount', { count: filteredTasks.length })}</span>
+                </>
+              )}
             </div>
 
             <div className="flex items-center gap-2">
-              {topView === 'board' && isKanbanMode && !asCard ? (
+              {topView === 'board' && isKanbanMode && !asCard && !onboardingMode ? (
                 bulkMode ? (
                   <div className="tasks-fg__bulk-bar flex items-center gap-1.5 rounded-md border border-[#3a3733]/10 bg-white px-2 py-1">
-                    <button type="button" aria-label="Select all visible tasks" className="tasks-fg__bulk-btn inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-[#3A3733]" onClick={toggleSelectAllVisible}>
+                    <button type="button" aria-label={t('tasks.selectAll')} className="tasks-fg__bulk-btn inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-[#3A3733]" onClick={toggleSelectAllVisible}>
                       {filteredTaskIds.length > 0 && filteredTaskIds.every((id) => selectedTaskIds.has(id)) ? <CheckSquare className="size-3.5" /> : <Square className="size-3.5" />}
-                      All
+                      全选
                     </button>
-                    <span className="px-1 text-xs text-muted-foreground">{selectedCount} selected</span>
+                    <span className="px-1 text-xs text-muted-foreground">{t('tasks.selected', { count: selectedCount })}</span>
                     <div className="h-4 w-px bg-border" />
                     <div className="inline-flex items-center gap-1">
                       <ShadcnSelect value={bulkTagDraft} onValueChange={setBulkTagDraft}>
-                        <SelectTrigger aria-label="Bulk tag selector" className="h-7 min-w-[108px] rounded border-[#3a3733]/12 bg-white px-2 text-xs">
-                          <SelectValue placeholder="Select tag" />
+                        <SelectTrigger aria-label={t('tasks.bulkTag')} className="h-7 min-w-[108px] rounded border-[#3a3733]/12 bg-white px-2 text-xs">
+                          <SelectValue placeholder={t('tasks.selectTag')} />
                         </SelectTrigger>
                         <SelectContent>
                           {bulkTagOptions.map((tag) => (
@@ -493,18 +558,18 @@ const TasksBoard = ({ asCard = true, className, topView = 'board' }: TasksBoardP
                           ))}
                         </SelectContent>
                       </ShadcnSelect>
-                      <button type="button" aria-label="Apply tag to selected tasks" className="tasks-fg__bulk-btn inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-[#3A3733]" onClick={() => void handleBulkAddTag()} disabled={selectedCount === 0 || !bulkTagDraft.trim()}>
+                      <button type="button" aria-label={t('tasks.applyTag')} className="tasks-fg__bulk-btn inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-[#3A3733]" onClick={() => void handleBulkAddTag()} disabled={selectedCount === 0 || !bulkTagDraft.trim()}>
                         <Plus className="size-3.5" />
                         <Tag className="size-3.5" />
                       </button>
                     </div>
-                    <button type="button" aria-label="Mark selected tasks done" className="tasks-fg__bulk-btn inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-[#3A3733]" onClick={() => void handleBulkMarkDone()} disabled={selectedCount === 0}>
+                    <button type="button" aria-label={t('tasks.markDone')} className="tasks-fg__bulk-btn inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-[#3A3733]" onClick={() => void handleBulkMarkDone()} disabled={selectedCount === 0}>
                       <CheckSquare className="size-3.5" />
-                      Done
+                      {t('tasks.markDone').split(' ').pop()}
                     </button>
-                    <button type="button" aria-label="Delete selected tasks" className="tasks-fg__bulk-btn inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-rose-600" onClick={() => void handleBulkDelete()} disabled={selectedCount === 0}>
+                    <button type="button" aria-label={t('tasks.delete')} className="tasks-fg__bulk-btn inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-rose-600" onClick={() => void handleBulkDelete()} disabled={selectedCount === 0}>
                       <Trash2 className="size-3.5" />
-                      Delete
+                      {t('tasks.delete')}
                     </button>
                     <button
                       type="button"
@@ -515,7 +580,7 @@ const TasksBoard = ({ asCard = true, className, topView = 'board' }: TasksBoardP
                         setBulkTagDraft('')
                       }}
                     >
-                      Cancel
+                      {t('tasks.cancel')}
                     </button>
                   </div>
                 ) : (
@@ -525,12 +590,12 @@ const TasksBoard = ({ asCard = true, className, topView = 'board' }: TasksBoardP
                     onClick={() => setBulkMode(true)}
                   >
                     <CheckSquare className="size-3.5" />
-                    Bulk edit
+                    {t('tasks.bulkEdit')}
                   </button>
                 )
               ) : null}
 
-              {!asCard ? (
+              {!asCard && !onboardingMode ? (
                 <div className="flex items-center gap-0.5 rounded-md bg-muted p-0.5">
                   <button
                     className={cn(
@@ -540,7 +605,7 @@ const TasksBoard = ({ asCard = true, className, topView = 'board' }: TasksBoardP
                     onClick={() => setBoardMode('kanban')}
                   >
                     <Columns3 className="size-3" />
-                    Kanban
+                    {t('tasks.kanban')}
                   </button>
                   <button
                     className={cn(
@@ -550,7 +615,7 @@ const TasksBoard = ({ asCard = true, className, topView = 'board' }: TasksBoardP
                     onClick={() => setBoardMode('calendar')}
                   >
                     <CalendarDays className="size-3" />
-                    Calendar
+                    {t('tasks.calendar')}
                   </button>
                 </div>
               ) : null}
@@ -559,11 +624,11 @@ const TasksBoard = ({ asCard = true, className, topView = 'board' }: TasksBoardP
         </div>
       ) : null}
 
-      <div className="relative min-h-0 flex-1 overflow-hidden pt-4">
+      <div className="relative min-h-0 flex-1 overflow-hidden pt-4" data-coachmark-anchor="tasks-entry">
         {boardContent}
       </div>
 
-      {topView === 'board' && isKanbanMode ? <TaskAddComposer onSubmit={handleAddTask} plain /> : null}
+      {topView === 'board' && isKanbanMode && !onboardingMode ? <TaskAddComposer onSubmit={handleAddTask} plain /> : null}
     </div>
   )
 
@@ -571,8 +636,8 @@ const TasksBoard = ({ asCard = true, className, topView = 'board' }: TasksBoardP
     <>
       {asCard ? (
         <Card
-          title="Tasks"
-          eyebrow="Kanban"
+          title={t('dashboard.widget.tasks')}
+          eyebrow={t('tasks.kanban')}
           className={className}
         >
           {plain}
@@ -581,20 +646,35 @@ const TasksBoard = ({ asCard = true, className, topView = 'board' }: TasksBoardP
         <section className={cn('tasks-board-surface h-full min-h-0', className)}>{plain}</section>
       )}
 
-      <TaskDrawer open={Boolean(activeTask)} task={activeTask} onClose={() => setActiveTask(null)} onUpdated={handleUpdateTask} onDeleted={(id) => setTasks((prev) => prev.filter((task) => task.id !== id))} onRequestDelete={setDeleteTarget} />
+      <TaskDrawer
+        open={Boolean(activeTask) || onboardingDrawerOpen}
+        task={activeTask}
+        mode={onboardingDrawerOpen ? 'onboarding' : 'normal'}
+        onClose={() => {
+          if (onboardingDrawerOpen) {
+            exitOnboarding()
+            return
+          }
+          setActiveTask(null)
+        }}
+        onUpdated={handleUpdateTask}
+        onDeleted={(id) => setTasks((prev) => prev.filter((task) => task.id !== id))}
+        onRequestDelete={setDeleteTarget}
+        onCreated={handleOnboardingCreated}
+      />
 
-      <Dialog open={Boolean(deleteTarget)} title="Delete task" onClose={() => setDeleteTarget(null)}>
+      <Dialog open={Boolean(deleteTarget)} title={t('tasks.deleteTitle')} onClose={() => setDeleteTarget(null)}>
         <div className="dialog__body">
-          <p>Delete "{deleteTarget?.title}"?</p>
+          <p>{t('tasks.deleteConfirm', { title: deleteTarget?.title ?? '' })}</p>
           <div className="dialog__actions">
             <Button variant="outline" type="button" onClick={() => setDeleteTarget(null)}>
-              Cancel
+              {t('tasks.cancel')}
             </Button>
             <Button variant="destructive" type="button" onClick={() => {
               if (!deleteTarget) return
               void handleDelete(deleteTarget.id)
             }}>
-              Delete
+              {t('tasks.delete')}
             </Button>
           </div>
         </div>

@@ -32,9 +32,9 @@ import { areTaskNoteBlocksEqual, normalizeTaskNoteBlocks } from '../../features/
 import { resolveTaskNoteRichText } from '../../features/tasks/model/taskNoteRichText'
 
 const statusLabelMap: Record<TaskStatus, string> = {
-  todo: 'Todo',
-  doing: 'Doing',
-  done: 'Done',
+  todo: '待办',
+  doing: '进行中',
+  done: '已完成',
 }
 
 const DEFAULT_NOTE_COLLECTION = 'all-notes' as const
@@ -252,7 +252,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
         {
           id: createId(),
           type: 'status' as const,
-          message: `Created in ${statusLabelMap[task.status]}`,
+          message: `创建于${statusLabelMap[task.status]}`,
           createdAt: now,
         },
       ]
@@ -281,7 +281,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
           {
             id: createId(),
             type: 'status' as const,
-            message: `Status changed to ${statusLabelMap[status]}`,
+              message: `状态变更为${statusLabelMap[status]}`,
             createdAt: now,
           },
         ],

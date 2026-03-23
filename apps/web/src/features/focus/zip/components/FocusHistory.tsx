@@ -22,11 +22,11 @@ export interface FocusSession {
 }
 
 const sessionTags = [
-  { id: "work", label: "Work", color: "#8BA4B8" },
-  { id: "study", label: "Study", color: "#C4A882" },
-  { id: "reading", label: "Reading", color: "#A3B8A0" },
-  { id: "creative", label: "Creative", color: "#9A8EAF" },
-  { id: "other", label: "Other", color: "#b0aa9e" },
+  { id: "work", label: "工作", color: "#8BA4B8" },
+  { id: "study", label: "学习", color: "#C4A882" },
+  { id: "reading", label: "阅读", color: "#A3B8A0" },
+  { id: "creative", label: "创作", color: "#9A8EAF" },
+  { id: "other", label: "其他", color: "#b0aa9e" },
 ];
 
 const mockSessions: FocusSession[] = [];
@@ -43,8 +43,8 @@ function formatDate(date: Date) {
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
-  if (date.toDateString() === today.toDateString()) return "Today";
-  if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
+  if (date.toDateString() === today.toDateString()) return "今天";
+  if (date.toDateString() === yesterday.toDateString()) return "昨天";
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
@@ -226,7 +226,7 @@ function StatsCard({ sessions }: { sessions: FocusSession[] }) {
           {todayMinutes}
         </p>
         <p className="text-[0.55rem] text-[#a09a90] uppercase tracking-[0.06em] mt-0.5">
-          min today
+          今日分钟
         </p>
       </div>
       <div
@@ -240,7 +240,7 @@ function StatsCard({ sessions }: { sessions: FocusSession[] }) {
           {completionRate}%
         </p>
         <p className="text-[0.55rem] text-[#a09a90] uppercase tracking-[0.06em] mt-0.5">
-          rate
+          完成率
         </p>
       </div>
       <div
@@ -257,7 +257,7 @@ function StatsCard({ sessions }: { sessions: FocusSession[] }) {
           </p>
         </div>
         <p className="text-[0.55rem] text-[#a09a90] uppercase tracking-[0.06em] mt-0.5">
-          streak
+          连续天数
         </p>
       </div>
     </div>
@@ -308,10 +308,10 @@ export function FocusHistory({ externalSessions }: { externalSessions?: FocusSes
           style={{ fontFamily: "'DM Serif Display', serif" }}
           className="text-[1.15rem] text-[#3a3733] tracking-[-0.01em]"
         >
-          Focus History
+          专注记录
         </h2>
         <p className="text-[0.7rem] text-[#a09a90] mt-0.5 tracking-wide">
-          {completedToday} session{completedToday !== 1 ? "s" : ""} · {totalMinutesToday}min today
+          {completedToday} 次 · 今日 {totalMinutesToday} 分钟
         </p>
       </div>
 
@@ -323,7 +323,7 @@ export function FocusHistory({ externalSessions }: { externalSessions?: FocusSes
         <div className="flex items-center gap-1.5 mb-2.5">
           <TrendingUp size={11} className="text-[#b0aa9e]" />
           <span className="text-[0.62rem] text-[#918b80] uppercase tracking-[0.08em]">
-            This Week
+            本周
           </span>
         </div>
         <div
@@ -345,7 +345,7 @@ export function FocusHistory({ externalSessions }: { externalSessions?: FocusSes
             color: !selectedTag ? "#5a5650" : "#b0aa9e",
           }}
         >
-          All
+          全部
         </motion.button>
         {sessionTags.map((tag) => (
           <motion.button
@@ -367,19 +367,19 @@ export function FocusHistory({ externalSessions }: { externalSessions?: FocusSes
       {/* Filters */}
       <div className="flex gap-1.5 mb-3">
         <FilterChip
-          label="Status"
+          label="状态"
           options={[
-            { value: "all", label: "All status" },
-            { value: "completed", label: "Completed" },
-            { value: "abandoned", label: "Abandoned" },
+            { value: "all", label: "全部状态" },
+            { value: "completed", label: "已完成" },
+            { value: "abandoned", label: "已放弃" },
           ]}
           value={statusFilter}
           onChange={setStatusFilter}
         />
         <FilterChip
-          label="Duration"
+          label="时长"
           options={[
-            { value: "all", label: "All durations" },
+            { value: "all", label: "全部时长" },
             { value: "short", label: "≤ 30 min" },
             { value: "long", label: "> 30 min" },
           ]}
@@ -444,7 +444,7 @@ export function FocusHistory({ externalSessions }: { externalSessions?: FocusSes
                               session.status === "completed" ? "#7A9A78" : "#B09870",
                           }}
                         >
-                          {session.status === "completed" ? "Completed" : "Abandoned"}
+                          {session.status === "completed" ? "已完成" : "已放弃"}
                         </span>
                         {tag && (
                           <span
@@ -474,9 +474,9 @@ export function FocusHistory({ externalSessions }: { externalSessions?: FocusSes
         {filtered.length === 0 && (
           <div className="flex flex-col items-center justify-center py-10 text-center">
             <Award size={22} className="text-[#d0cac0] mb-2.5" />
-            <p className="text-[0.76rem] text-[#b0aa9e]">No sessions found</p>
+            <p className="text-[0.76rem] text-[#b0aa9e]">暂无记录</p>
             <p className="text-[0.66rem] text-[#c8c2b8] mt-1">
-              Try adjusting your filters
+              尝试调整筛选条件
             </p>
           </div>
         )}

@@ -6,6 +6,55 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
 import type { TaskItem } from './tasks.types'
 
+const { mockT } = vi.hoisted(() => {
+  return {
+    mockT: (key: string, values?: Record<string, string | number>) => {
+      const msgs: Record<string, string> = {
+        'tasks.unpinned': 'Task unpinned',
+        'tasks.undo': 'Undo',
+        'tasks.clearFilters': 'Clear filters',
+        'tasks.sortBy': 'Sort by',
+        'tasks.sort.priority': 'Priority',
+        'tasks.sort.created': 'Created',
+        'tasks.taskCount': '{{count}} task(s)',
+        'tasks.selectAll': 'Select all visible tasks',
+        'tasks.selected': '{{count}} selected',
+        'tasks.bulkTag': 'Bulk tag selector',
+        'tasks.selectTag': 'Select tag',
+        'tasks.applyTag': 'Apply tag to selected tasks',
+        'tasks.markDone': 'Mark selected tasks done',
+        'tasks.delete': 'Delete',
+        'tasks.cancel': 'Cancel',
+        'tasks.bulkEdit': 'Bulk edit',
+        'tasks.kanban': 'Kanban',
+        'tasks.calendar': 'Calendar',
+        'tasks.deleteTitle': 'Delete task',
+        'tasks.deleteConfirm': 'Delete "{{title}}"?',
+        'tasks.status.todo': 'Todo',
+        'tasks.status.doing': 'Doing',
+        'tasks.status.done': 'Done',
+        'dashboard.widget.tasks': 'Tasks',
+      }
+      const msg = msgs[key]
+      if (!msg) return key
+      if (!values) return msg
+      return msg.replace(/\{\{\s*(\w+)\s*\}\}/g, (_: string, k: string) => String(values[k] ?? `{{${k}}}`))
+    }
+  }
+})
+
+vi.mock('../../shared/i18n/useI18n', () => ({
+  useI18n: () => ({ t: mockT, language: 'en' as const }),
+}))
+
+vi.mock('../../shared/ui/toast/toast', () => ({
+  useToast: () => ({ push: vi.fn() }),
+}))
+
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => vi.fn(),
+}))
+
 const listMock = vi.fn()
 const updateMock = vi.fn()
 const removeMock = vi.fn()
@@ -16,40 +65,28 @@ let tasksChangedHandler: (() => void) | null = null
 vi.mock('../../data/repositories/tasksRepo', () => ({
   tasksRepo: {
     list: (...args: unknown[]) => listMock(...args),
-    add: vi.fn(),
-    remove: (...args: unknown[]) => removeMock(...args),
     update: (...args: unknown[]) => updateMock(...args),
+    remove: (...args: unknown[]) => removeMock(...args),
     updateStatus: (...args: unknown[]) => updateStatusMock(...args),
     clearAllTags: vi.fn(),
+    add: vi.fn(),
   },
 }))
 
 vi.mock('./taskSync', () => ({
   emitTasksChanged: vi.fn(),
-  subscribeTasksChanged: (handler: () => void) => {
-    tasksChangedHandler = handler
-    subscribeTasksChangedMock(handler)
-    return () => {
-      tasksChangedHandler = null
-    }
+  subscribeTasksChanged: (callback: () => void) => {
+    tasksChangedHandler = callback
+    return subscribeTasksChangedMock(callback)
   },
 }))
-
-vi.mock('../../shared/ui/toast/toast', () => ({
-  useToast: () => ({ push: vi.fn() }),
-}))
-
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom')
-  return { ...actual, useNavigate: () => vi.fn() }
-})
 
 vi.mock('./components/TaskCalendarWidget', () => ({
   default: () => <div data-testid="task-calendar-widget" />,
 }))
 
 vi.mock('./TaskDrawer', () => ({
-  default: () => null,
+  default: ({ open, mode }: { open: boolean; mode?: string }) => (open ? <div data-testid="task-drawer">{mode ?? 'normal'}</div> : null),
 }))
 
 vi.mock('../../shared/ui/Dialog', () => ({
@@ -105,6 +142,7 @@ describe('TasksBoard sync', () => {
     removeMock.mockReset()
     updateStatusMock.mockReset()
     subscribeTasksChangedMock.mockReset()
+    subscribeTasksChangedMock.mockReturnValue(() => {})
     tasksChangedHandler = null
     window.localStorage.clear()
     window.localStorage.setItem('tasks_tags_select_v2_migrated', '1')
@@ -160,5 +198,15 @@ describe('TasksBoard sync', () => {
     await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1))
     expect(container.querySelector('.tasks-fg')).toBeInTheDocument()
     expect(container.querySelector('.tasks-fg--plain')).not.toBeInTheDocument()
+  })
+
+  it('opens onboarding drawer and hides composer in onboarding mode', async () => {
+    listMock.mockResolvedValueOnce([])
+
+    render(<TasksBoard asCard={false} onboardingMode />)
+
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1))
+    expect(screen.getByTestId('task-drawer')).toHaveTextContent('onboarding')
+    expect(screen.queryByPlaceholderText('Add a new task...')).not.toBeInTheDocument()
   })
 })

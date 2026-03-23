@@ -1,6 +1,8 @@
 import { useMemo } from 'react'
+import { usePreferences } from '../../shared/prefs/usePreferences'
+import type { LanguageCode } from '../../shared/i18n/types'
 
-export type LabsLang = 'en' | 'zh'
+export type LabsLang = LanguageCode
 
 type LabsMessages = {
   nav: {
@@ -123,13 +125,10 @@ const messages: Record<LabsLang, LabsMessages> = {
   },
 }
 
-const resolveLang = (): LabsLang => {
-  if (typeof navigator === 'undefined') return 'en'
-  const first = navigator.languages?.[0] ?? navigator.language
-  return String(first).toLowerCase().startsWith('zh') ? 'zh' : 'en'
-}
+const resolveLang = (language: LanguageCode): LabsLang => language
 
 export const useLabsI18n = () => {
-  const lang = resolveLang()
+  const { language } = usePreferences()
+  const lang = resolveLang(language)
   return useMemo(() => messages[lang], [lang])
 }

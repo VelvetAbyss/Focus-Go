@@ -28,14 +28,18 @@ import { emitTasksChanged } from './taskSync'
 import TaskNoteEditor from './components/TaskNoteEditor'
 import { createTaskNoteDoc, resolveTaskNoteRichText } from './model/taskNoteRichText'
 import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, formatTaskDateTime, getTaskTagTone } from './components/taskPresentation'
+import { useI18n } from '../../shared/i18n/useI18n'
 
 type TaskDrawerProps = {
   open: boolean
   task: TaskItem | null
+  mode?: 'normal' | 'onboarding'
+  draftTask?: Partial<TaskItem> | null
   onClose: () => void
   onUpdated: (task: TaskItem) => void
   onDeleted: (id: string) => void
   onRequestDelete?: (task: TaskItem) => void
+  onCreated?: (task: TaskItem) => void
 }
 
 const priorityOptions: TaskPriority[] = ['high', 'medium', 'low']
@@ -48,6 +52,7 @@ const TASK_DRAWER_MIN_LEFT_RATIO = 0.45
 const TASK_DRAWER_MAX_LEFT_RATIO = 0.75
 const TASK_DRAWER_TOGGLE_RATIO_A = 0.6
 const TASK_DRAWER_TOGGLE_RATIO_B = 0.7
+type SubtaskFilter = 'all' | 'todo' | 'done'
 
 const equalStringArrays = (a: string[], b: string[]) => {
   if (a.length !== b.length) return false
@@ -89,7 +94,28 @@ const combineReminderDateTime = (dateKey: string, time: string) => {
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max)
 
-const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete }: TaskDrawerProps) => {
+const localizeActivityMessage = (message: string) => {
+  if (message.startsWith('Created in Todo')) return '创建于待办'
+  if (message.startsWith('Created in Doing')) return '创建于进行中'
+  if (message.startsWith('Created in Done')) return '创建于已完成'
+  if (message.startsWith('Status changed to Todo')) return '状态变更为待办'
+  if (message.startsWith('Status changed to Doing')) return '状态变更为进行中'
+  if (message.startsWith('Status changed to Done')) return '状态变更为已完成'
+  return message
+}
+
+const TaskDrawer = ({
+  open,
+  task,
+  mode = 'normal',
+  draftTask,
+  onClose,
+  onUpdated,
+  onDeleted,
+  onRequestDelete,
+  onCreated,
+}: TaskDrawerProps) => {
+  const { t } = useI18n()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [priority, setPriority] = useState<TaskPriority | null>(null)
@@ -103,12 +129,14 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
   const [tagDraft, setTagDraft] = useState('')
   const [tagPickerOpen, setTagPickerOpen] = useState(false)
   const [subtasks, setSubtasks] = useState<TaskItem['subtasks']>([])
+  const [subtaskFilter, setSubtaskFilter] = useState<SubtaskFilter>('all')
   const [taskNoteContent, setTaskNoteContent] = useState<{ contentJson?: TaskItem['taskNoteContentJson']; contentMd?: TaskItem['taskNoteContentMd'] }>({
     contentJson: createTaskNoteDoc() as TaskItem['taskNoteContentJson'],
     contentMd: '',
   })
   const [lastId, setLastId] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [onboardingSubmitting, setOnboardingSubmitting] = useState(false)
   const toast = useToast()
   const taskSnapshotRef = useRef<TaskItem | null>(null)
   const bodyOverflowRef = useRef<string>('')
@@ -179,6 +207,7 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
     })
     setTagDraft('')
     setSubtasks(task.subtasks)
+    setSubtaskFilter('all')
     setTaskNoteContent(resolveTaskNoteRichText(task))
     baselineRef.current = {
       title: task.title,
@@ -194,6 +223,24 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
       taskNoteContentJson: task.taskNoteContentJson,
     }
   }, [task, lastId])
+
+  useEffect(() => {
+    if (!open || mode !== 'onboarding') return
+    setTitle(draftTask?.title ?? '')
+    setDescription(draftTask?.description ?? '')
+    setPriority(null)
+    setDueDate('')
+    setStartDate('')
+    setEndDate('')
+    setReminderDate('')
+    setReminderTime('')
+    setTags([])
+    setSubtasks([])
+    setTaskNoteContent({
+      contentJson: createTaskNoteDoc() as TaskItem['taskNoteContentJson'],
+      contentMd: '',
+    })
+  }, [draftTask?.description, draftTask?.title, mode, open])
 
   const draft = useMemo(() => {
     if (!task) return null
@@ -238,8 +285,8 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
       if (nextDraft.startDate && nextDraft.endDate && nextDraft.endDate < nextDraft.startDate) {
         toast.push({
           variant: 'error',
-          title: 'Invalid date range',
-          message: 'End date must be on or after start date.',
+          title: t('tasks.drawer.invalidDateRange'),
+          message: t('tasks.drawer.endDateError'),
         })
         return
       }
@@ -266,8 +313,8 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
       } catch {
         toast.push({
           variant: 'error',
-          title: 'Save failed',
-          message: 'Changes are kept and will retry on the next edit.',
+          title: t('tasks.drawer.saveFailed'),
+          message: t('tasks.drawer.saveFailedHint'),
         })
       } finally {
         isSavingRef.current = false
@@ -425,6 +472,36 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
     onClose()
   }
 
+  const handleCreateTask = async () => {
+    const nextTitle = title.trim()
+    if (!nextTitle || onboardingSubmitting) return
+    setOnboardingSubmitting(true)
+    try {
+      const created = await tasksRepo.add({
+        title: nextTitle,
+        description: description.trim() || undefined,
+        status: 'todo',
+        priority: null,
+        dueDate: undefined,
+        tags: [],
+        subtasks: [],
+        taskNoteBlocks: [],
+        taskNoteContentMd: '',
+        taskNoteContentJson: createTaskNoteDoc() as TaskItem['taskNoteContentJson'],
+      })
+      emitTasksChanged('task-drawer:create')
+      onCreated?.(created)
+    } catch {
+      toast.push({
+        variant: 'error',
+        title: t('tasks.drawer.saveFailed'),
+        message: t('tasks.drawer.retryHint'),
+      })
+    } finally {
+      setOnboardingSubmitting(false)
+    }
+  }
+
   const handleStatusChange = async (status: TaskItem['status']) => {
     if (!currentTask) return
     setIsSaving(true)
@@ -435,7 +512,7 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
         onUpdated(updated)
       }
     } catch {
-      toast.push({ variant: 'error', title: 'Update failed', message: 'Try again.' })
+      toast.push({ variant: 'error', title: t('tasks.drawer.updateFailed'), message: t('tasks.drawer.retryHint') })
     } finally {
       setIsSaving(false)
     }
@@ -462,6 +539,16 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
   })
 
   const activityLogs = useMemo(() => (currentTask?.activityLogs ?? []).slice().sort((a, b) => b.createdAt - a.createdAt), [currentTask?.activityLogs])
+  const sortedSubtasks = useMemo(() => subtasks.slice().sort((a, b) => Number(a.done) - Number(b.done)), [subtasks])
+  const visibleSubtasks = useMemo(
+    () =>
+      sortedSubtasks.filter((subtask) => {
+        if (subtaskFilter === 'todo') return !subtask.done
+        if (subtaskFilter === 'done') return subtask.done
+        return true
+      }),
+    [sortedSubtasks, subtaskFilter],
+  )
   const statusConfig = currentTask ? TASK_STATUS_CONFIG[currentTask.status] : TASK_STATUS_CONFIG.todo
   const priorityConfig = TASK_PRIORITY_CONFIG[priority ?? 'none']
   const reminderAtIso = useMemo(() => {
@@ -491,6 +578,69 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
     setTagDraft('')
   }
 
+  if (mode === 'onboarding') {
+    return (
+      <Dialog
+        open={open}
+        title=""
+        onClose={requestClose}
+        panelClassName="task-drawer-panel !h-auto rounded-[30px] border border-[#3A3733]/8 bg-[#F5F3F0] shadow-[0_30px_100px_rgba(58,55,51,0.16)]"
+        panelStyle={{ width: 'min(560px, calc(100vw - 48px))' }}
+        contentClassName="!p-0"
+      >
+        <div className="p-6 text-[#3A3733]">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#3A3733]/56">{t('tasks.drawer.startWithOneTask')}</p>
+              <h2 className="mt-3 text-[28px] font-semibold tracking-[-0.03em]">{t('tasks.onboarding.title')}</h2>
+              <p className="mt-3 text-sm leading-6 text-[#3A3733]/72">{t('tasks.drawer.onboardingHint')}</p>
+            </div>
+            <Button type="button" variant="ghost" size="icon" className="h-9 w-9 rounded-full text-[#3A3733]/56 hover:bg-[#3A3733]/8 hover:text-[#3A3733]" onClick={requestClose}>
+              <X className="size-4" />
+            </Button>
+          </div>
+
+          <div className="mt-6 space-y-4">
+            <label className="grid gap-2">
+              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#3A3733]/56">{t('tasks.drawer.title')}</span>
+              <Input
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                placeholder={t('tasks.drawer.title')}
+                className="h-12 rounded-[18px] border-[#3A3733]/10 bg-white text-[#3A3733] shadow-none"
+                autoFocus
+              />
+            </label>
+            <label className="grid gap-2">
+              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#3A3733]/56">{t('tasks.drawer.summary')}</span>
+              <Textarea
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                placeholder={t('tasks.drawer.summaryPlaceholder')}
+                className="min-h-[120px] rounded-[18px] border-[#3A3733]/10 bg-white text-[#3A3733] shadow-none"
+              />
+            </label>
+          </div>
+
+          <div className="mt-6 flex items-center justify-end gap-3">
+            <Button type="button" variant="outline" className="rounded-full border-[#3A3733]/12 text-[#3A3733]" onClick={requestClose}>
+              {t('tasks.onboarding.exit')}
+            </Button>
+            <Button
+              type="button"
+              className="rounded-full bg-[#3A3733] text-[#F5F3F0] hover:bg-[#3A3733]/90"
+              onClick={() => void handleCreateTask()}
+              disabled={!title.trim() || onboardingSubmitting}
+            >
+              {onboardingSubmitting ? <LoaderCircle className="mr-2 size-4 animate-spin" /> : null}
+              {t('tasks.drawer.createTask')}
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+    )
+  }
+
   return (
     <Dialog
       open={open}
@@ -513,7 +663,7 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
               </Badge>
               <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
                 {isSaving ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5 text-emerald-500" />}
-                {isSaving ? 'Saving...' : 'Saved'}
+                {isSaving ? t('modules.note.saveState.saving') : t('tasks.status.saved')}
               </span>
             </div>
 
@@ -522,18 +672,18 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
                 <>
                   <Button variant="outline" size="sm" className="h-8 rounded-full px-3 text-[11px] font-semibold" onClick={() => void handleStatusChange('doing')} disabled={isSaving}>
                     <Target className="mr-1.5 h-3.5 w-3.5" />
-                    Start
+                    {t('tasks.action.start')}
                   </Button>
                   <Button variant="outline" size="sm" className="h-8 rounded-full px-3 text-[11px] font-semibold" onClick={() => void handleStatusChange('done')} disabled={isSaving}>
                     <Check className="mr-1.5 h-3.5 w-3.5" />
-                    Done
+                    {t('tasks.action.done')}
                   </Button>
                 </>
               ) : null}
               {currentTask.status === 'doing' ? (
                 <Button variant="outline" size="sm" className="h-8 rounded-full px-3 text-[11px] font-semibold" onClick={() => void handleStatusChange('done')} disabled={isSaving}>
                   <Check className="mr-1.5 h-3.5 w-3.5" />
-                  Done
+                  {t('tasks.action.done')}
                 </Button>
               ) : null}
               {currentTask.status === 'done' ? (
@@ -561,24 +711,24 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
                         value={title}
                         onChange={(event) => setTitle(event.target.value)}
                         className="h-auto border-0 bg-transparent px-0 py-0 text-[28px] font-semibold tracking-[-0.03em] text-slate-950 shadow-none focus-visible:ring-0 md:text-[32px]"
-                        placeholder="Task title"
+                        placeholder={t('tasks.drawer.title')}
                       />
                       <div className="mt-4 flex flex-wrap items-center gap-2 text-[12px] text-slate-500">
                         <span className="inline-flex items-center gap-1">
                           <CalendarDays className="h-3.5 w-3.5" />
-                          Created {formatTaskDateTime(currentTask.createdAt)}
+                          {t('tasks.drawer.created')} {formatTaskDateTime(currentTask.createdAt)}
                         </span>
                         <span className="text-slate-300">•</span>
                         <span className="inline-flex items-center gap-1">
                           <Clock3 className="h-3.5 w-3.5" />
-                          Updated {formatTaskDateTime(currentTask.updatedAt)}
+                          {t('tasks.drawer.updated')} {formatTaskDateTime(currentTask.updatedAt)}
                         </span>
                         {currentTask.pinned ? (
                           <>
                             <span className="text-slate-300">•</span>
                             <span className="inline-flex items-center gap-1 text-amber-600">
                               <Pin className="h-3.5 w-3.5 fill-current" />
-                              Pinned
+                              {t('tasks.drawer.pinned')}
                             </span>
                           </>
                         ) : null}
@@ -587,10 +737,10 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
                     <div className="min-w-[120px]">
                       <ShadcnSelect value={priority ?? '__none'} onValueChange={(value) => setPriority(value === '__none' ? null : (value as TaskPriority))}>
                         <SelectTrigger className="h-9 rounded-[14px] border-[#3a3733]/8 bg-white/90 px-3 text-sm font-semibold">
-                          <SelectValue placeholder="None" />
+                          <SelectValue placeholder={t('tasks.drawer.none')} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="__none">None</SelectItem>
+                          <SelectItem value="__none">{t('tasks.drawer.none')}</SelectItem>
                           {priorityOptions.map((option) => (
                             <SelectItem key={option} value={option}>
                               {TASK_PRIORITY_CONFIG[option].label}
@@ -603,7 +753,7 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
 
                   <div className="mt-5 grid gap-3 md:grid-cols-3">
                     <div className="rounded-[20px] border border-[#3a3733]/6 bg-white/90 p-4">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Status</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('tasks.drawer.status')}</p>
                       <div className="mt-3">
                         <Badge variant="outline" className={cn('rounded-full border px-3 py-1 text-[11px] font-semibold', statusConfig.badge)}>
                           <span className={cn('mr-1.5 h-1.5 w-1.5 rounded-full', statusConfig.dot)} />
@@ -612,7 +762,7 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
                       </div>
                     </div>
                     <div className="rounded-[20px] border border-[#3a3733]/6 bg-white/90 p-4">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Priority</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('tasks.drawer.priority')}</p>
                       <div className="mt-3">
                         <Badge variant="secondary" className={cn('rounded-full px-3 py-1 text-[11px] font-semibold', priorityConfig.badge)}>
                           <span className={cn('mr-1.5 h-1.5 w-1.5 rounded-full', priorityConfig.dot)} />
@@ -621,7 +771,7 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
                       </div>
                     </div>
                     <div className="rounded-[20px] border border-[#3a3733]/6 bg-white/90 p-4">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Reminder timestamp</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('tasks.drawer.reminderTimestamp')}</p>
                       <p className="mt-3 text-[12px] font-medium text-slate-600">{reminderAtIso}</p>
                     </div>
                   </div>
@@ -630,19 +780,19 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
                 <section className="task-detail-card rounded-[26px] border border-[#3a3733]/6 bg-white/88 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="task-detail-kicker text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Details</p>
-                      <h2 className="task-detail-title mt-1 text-[18px] font-semibold tracking-[-0.02em] text-slate-950">Core task properties</h2>
+                      <p className="task-detail-kicker text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('tasks.drawer.details')}</p>
+                      <h2 className="task-detail-title mt-1 text-[18px] font-semibold tracking-[-0.02em] text-slate-950">{t('tasks.drawer.coreProperties')}</h2>
                     </div>
                   </div>
 
                   <div className="mt-5 grid gap-4 md:grid-cols-2">
                     <label className="grid gap-2">
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Due date</span>
-                      <DatePicker value={dueDate} onChange={(date) => setDueDate(date ?? '')} placeholder="Set due date" className="rounded-[14px]" />
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('tasks.drawer.dueDate')}</span>
+                      <DatePicker value={dueDate} onChange={(date) => setDueDate(date ?? '')} placeholder={t('tasks.drawer.setDate')} className="rounded-[14px]" />
                     </label>
 
                     <label className="grid gap-2">
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Reminder</span>
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('tasks.drawer.reminder')}</span>
                       <DateTimePicker
                         dateValue={reminderDate}
                         timeValue={reminderTime}
@@ -652,15 +802,15 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
                           if (!nextDate) setReminderTime('')
                         }}
                         onTimeChange={(time) => setReminderTime(time ?? '')}
-                        placeholder="Set reminder"
-                        ariaLabel="Reminder date"
+                        placeholder={t('tasks.drawer.setReminder')}
+                        ariaLabel={t('tasks.drawer.reminder')}
                         className="w-full"
                         triggerClassName="rounded-[14px]"
                       />
                     </label>
 
                     <label className="grid gap-2 md:col-span-2">
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Date range</span>
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('tasks.drawer.dateRange')}</span>
                       <DateRangePicker
                         value={{ startDate, endDate }}
                         className="rounded-[14px]"
@@ -672,12 +822,12 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
                     </label>
 
                     <label className="grid gap-2 md:col-span-2">
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Task summary</span>
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('tasks.drawer.summary')}</span>
                       <Textarea
                         value={description}
                         onChange={(event) => setDescription(event.target.value)}
                         className="min-h-[100px] rounded-[18px] border-[#3a3733]/8 bg-slate-50/80 text-[13px] leading-6 shadow-none"
-                        placeholder="Optional short summary for this task..."
+                        placeholder={t('tasks.drawer.summaryPlaceholder')}
                       />
                     </label>
                   </div>
@@ -686,14 +836,14 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
                 <section className="task-detail-card rounded-[26px] border border-[#3a3733]/6 bg-white/88 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <p className="task-detail-kicker text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Tags</p>
-                      <h2 className="task-detail-title mt-1 text-[18px] font-semibold tracking-[-0.02em] text-slate-950">Context and categorization</h2>
+                      <p className="task-detail-kicker text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('tasks.drawer.tags')}</p>
+                      <h2 className="task-detail-title mt-1 text-[18px] font-semibold tracking-[-0.02em] text-slate-950">{t('tasks.drawer.tagContext')}</h2>
                     </div>
                     <Popover open={tagPickerOpen} onOpenChange={setTagPickerOpen}>
                       <PopoverTrigger asChild>
                         <Button type="button" variant="outline" size="sm" className="h-9 rounded-full px-4 text-[11px] font-semibold">
                           <Plus className="mr-1.5 h-3.5 w-3.5" />
-                          New tag
+                          {t('tasks.drawer.newTag')}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-[280px] rounded-[22px] border border-[#3a3733]/8 p-3 shadow-[0_20px_50px_rgba(15,23,42,0.12)]" align="end" sideOffset={12}>
@@ -725,9 +875,9 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
                               addCustomTag()
                             }}
                           >
-                            <Input value={tagDraft} onChange={(event) => setTagDraft(event.target.value)} placeholder="Custom tag" className="h-10 rounded-[14px] border-[#3a3733]/8 bg-slate-50/80 text-[13px]" />
+                            <Input value={tagDraft} onChange={(event) => setTagDraft(event.target.value)} placeholder={t('tasks.drawer.customTag')} className="h-10 rounded-[14px] border-[#3a3733]/8 bg-slate-50/80 text-[13px]" />
                             <Button type="submit" size="sm" className="h-10 rounded-full px-4 text-[11px] font-semibold" disabled={!tagDraft.trim()}>
-                              Add
+                              {t('tasks.drawer.add')}
                             </Button>
                           </form>
                         </div>
@@ -746,22 +896,22 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
                         )
                       })
                     ) : (
-                      <p className="text-[13px] text-slate-500">No tags selected yet.</p>
+                      <p className="text-[13px] text-slate-500">{t('tasks.drawer.noTags')}</p>
                     )}
                   </div>
                 </section>
 
                 <section>
                   <div className="task-detail-card rounded-[26px] border border-[#3a3733]/6 bg-white/88 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
-                    <p className="task-detail-kicker text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Activity</p>
-                    <h2 className="task-detail-title mt-1 text-[18px] font-semibold tracking-[-0.02em] text-slate-950">System timeline</h2>
+                    <p className="task-detail-kicker text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('tasks.drawer.activity')}</p>
+                    <h2 className="task-detail-title mt-1 text-[18px] font-semibold tracking-[-0.02em] text-slate-950">{t('tasks.drawer.systemTimeline')}</h2>
                     <div className="mt-4 space-y-3">
                       {activityLogs.length === 0 ? (
-                        <p className="rounded-[18px] border border-dashed border-slate-200 bg-slate-50/80 px-4 py-6 text-[13px] text-slate-500">No activity recorded.</p>
+                        <p className="rounded-[18px] border border-dashed border-slate-200 bg-slate-50/80 px-4 py-6 text-[13px] text-slate-500">{t('tasks.drawer.noActivity')}</p>
                       ) : (
                         activityLogs.map((log) => (
                           <article key={log.id} className="rounded-[18px] border border-[#3a3733]/6 bg-slate-50/80 px-4 py-3">
-                            <p className="text-[13px] leading-6 text-slate-700">{log.message}</p>
+                            <p className="text-[13px] leading-6 text-slate-700">{localizeActivityMessage(log.message)}</p>
                             <p className="mt-2 text-[11px] font-medium text-slate-500">{formatTaskDateTime(log.createdAt)}</p>
                           </article>
                         ))
@@ -774,7 +924,7 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
 
             <button
               type="button"
-              aria-label="Resize columns"
+              aria-label={t('tasks.drawer.resizeColumns')}
               className="group relative h-full w-[10px] cursor-col-resize border-x border-[#3a3733]/6 bg-slate-100/70 transition-colors hover:bg-slate-200/80"
               onPointerDown={beginSplitResize}
               onDoubleClick={toggleSplitPreset}
@@ -786,43 +936,70 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
               <ScrollArea className="min-h-0 flex-1">
                 <div className="task-detail-column space-y-5 px-5 py-6">
                   <section className="task-detail-card task-detail-card--side rounded-[24px] border border-[#3a3733]/6 bg-white/92 p-4 shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
-                    <p className="task-detail-kicker text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Subtasks</p>
-                    <h2 className="task-detail-title mt-1 text-[17px] font-semibold tracking-[-0.02em] text-slate-950">Execution checklist</h2>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="task-detail-kicker text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('tasks.drawer.subtasks')}</p>
+                        <h2 className="task-detail-title mt-1 text-[17px] font-semibold tracking-[-0.02em] text-slate-950">{t('tasks.drawer.executionChecklist')}</h2>
+                      </div>
+                      <div className="inline-flex items-center gap-1 rounded-full border border-[#3a3733]/8 bg-slate-50/80 p-1">
+                        {([
+                          { key: 'all', label: t('tasks.drawer.subtaskFilterAll') },
+                          { key: 'todo', label: t('tasks.drawer.subtaskFilterTodo') },
+                          { key: 'done', label: t('tasks.drawer.subtaskFilterDone') },
+                        ] as const).map((option) => (
+                          <button
+                            key={option.key}
+                            type="button"
+                            onClick={() => setSubtaskFilter(option.key)}
+                            className={cn(
+                              'rounded-full px-2.5 py-1 text-[10px] font-semibold transition-colors',
+                              subtaskFilter === option.key
+                                ? 'bg-[#3a3733] text-[#f5f3f0]'
+                                : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700',
+                            )}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
                     <div className="mt-4 space-y-2">
-                      {subtasks.length > 0 ? (
-                        subtasks.map((subtask, index) => (
+                      {visibleSubtasks.length > 0 ? (
+                        visibleSubtasks.map((subtask) => (
                           <div key={subtask.id} className="rounded-[18px] border border-[#3a3733]/6 bg-slate-50/80 px-3 py-3">
                             <div className="task-popup-detail__subtask-checkbox-row flex items-center gap-3">
                               <AnimatedPlanCheckbox
                                 checked={subtask.done}
                                 className="shrink-0 self-center"
                                 onChange={(event) => {
-                                  const next = [...subtasks]
-                                  next[index] = { ...subtask, done: event.target.checked }
-                                  setSubtasks(next)
+                                  setSubtasks((prev) =>
+                                    prev.map((item) => (item.id === subtask.id ? { ...item, done: event.target.checked } : item)),
+                                  )
                                 }}
                               />
                               <div className="task-popup-detail__subtask-title min-w-0 flex-1">
                                 <input
                                   value={subtask.title}
                                   onChange={(event) => {
-                                    const next = [...subtasks]
-                                    next[index] = { ...subtask, title: event.target.value }
-                                    setSubtasks(next)
+                                    setSubtasks((prev) =>
+                                      prev.map((item) => (item.id === subtask.id ? { ...item, title: event.target.value } : item)),
+                                    )
                                   }}
-                                  placeholder="Subtask"
+                                  placeholder={t('tasks.drawer.subtaskPlaceholder')}
                                   className={cn('task-popup-detail__subtask-title-input', subtask.done && 'is-done')}
                                 />
                               </div>
                               <Button type="button" variant="ghost" size="sm" className="h-7 rounded-full px-2.5 text-[10px] font-semibold text-slate-400 hover:bg-rose-50 hover:text-rose-600" onClick={() => setSubtasks((prev) => prev.filter((item) => item.id !== subtask.id))}>
-                                Delete
+                                {t('tasks.delete')}
                               </Button>
                             </div>
                           </div>
                         ))
                       ) : (
-                        <p className="rounded-[18px] border border-dashed border-slate-200 bg-slate-50/80 px-4 py-6 text-[13px] text-slate-500">No subtasks yet.</p>
+                        <p className="rounded-[18px] border border-dashed border-slate-200 bg-slate-50/80 px-4 py-6 text-[13px] text-slate-500">
+                          {subtasks.length === 0 ? t('tasks.drawer.noSubtasks') : t('tasks.drawer.noSubtasksInFilter')}
+                        </p>
                       )}
                     </div>
 
@@ -839,17 +1016,17 @@ const TaskDrawer = ({ open, task, onClose, onUpdated, onDeleted, onRequestDelete
                         onChange={(event) => subtaskComposer.setValue(event.target.value)}
                         onAnimationEnd={subtaskComposer.clearShake}
                         className={cn('h-10 rounded-[14px] border-[#3a3733]/8 bg-slate-50/80 text-[13px]', subtaskComposer.isShaking && 'is-shaking')}
-                        placeholder="Add subtask"
+                        placeholder={t('tasks.drawer.addSubtask')}
                       />
                       <Button type="submit" className="h-10 rounded-full px-4 text-[11px] font-semibold" disabled={!subtaskComposer.canSubmit}>
-                        Add
+                        {t('tasks.drawer.add')}
                       </Button>
                     </form>
                   </section>
 
                   <section className="task-detail-card task-detail-card--side rounded-[24px] border border-[#3a3733]/6 bg-white/92 p-4 shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
-                    <p className="task-detail-kicker text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Note</p>
-                    <h2 className="task-detail-title mt-1 text-[17px] font-semibold tracking-[-0.02em] text-slate-950">Context and working notes</h2>
+                    <p className="task-detail-kicker text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('tasks.drawer.note')}</p>
+                    <h2 className="task-detail-title mt-1 text-[17px] font-semibold tracking-[-0.02em] text-slate-950">{t('tasks.drawer.noteContext')}</h2>
                     <div className="mt-4">
                       <TaskNoteEditor value={taskNoteContent} onChange={setTaskNoteContent} />
                     </div>

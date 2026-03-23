@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, type RefObject } from 'react'
 import { ChevronDown, Pin, PinOff, Plus, Search, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useI18n } from '../../../shared/i18n/useI18n'
 import type { NoteItem } from '../../../data/models/types'
 
 export type NoteSortOption = 'edited' | 'created' | 'title'
@@ -21,13 +22,13 @@ type Props = {
   search: string
   onSearchChange: (value: string) => void
   className?: string
-  scrollContainerRef?: RefObject<HTMLElement | null>
+  scrollContainerRef?: RefObject<HTMLDivElement | null>
 }
 
 const sortLabels: Record<NoteSortOption, string> = {
-  edited: 'Edited',
-  created: 'Created',
-  title: 'Title',
+  edited: '已编辑',
+  created: '创建时间',
+  title: '标题',
 }
 
 const formatTime = (time: number) => {
@@ -59,6 +60,7 @@ export default function NoteBrowser({
   className,
   scrollContainerRef,
 }: Props) {
+  const { t } = useI18n()
   const [showSortMenu, setShowSortMenu] = useState(false)
   const filtered = useMemo(
     () =>
@@ -75,9 +77,8 @@ export default function NoteBrowser({
 
   return (
     <section
-      ref={scrollContainerRef}
       className={cn(
-        'flex h-full w-[300px] min-w-[300px] flex-col overflow-y-auto overscroll-contain border-r border-[#e5e2dd] bg-[#faf9f7] dark:border-slate-700/40 dark:bg-[#3a3733]',
+        'flex h-full min-h-0 w-[300px] min-w-[300px] flex-col overflow-hidden border-r border-[#e5e2dd] bg-[#faf9f7] dark:border-slate-700/40 dark:bg-[#3a3733]',
         className,
       )}
     >
@@ -90,7 +91,7 @@ export default function NoteBrowser({
           type="button"
           onClick={onNewNote}
           className="rounded-lg p-1.5 text-[#3a3733] transition-colors hover:bg-[#f0eeeb] dark:text-slate-100 dark:hover:bg-slate-700/30"
-          title="New note"
+          title={t('modules.note.new')}
         >
           <Plus size={16} />
         </button>
@@ -132,14 +133,14 @@ export default function NoteBrowser({
           <input
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
-            placeholder="Search title, content, or tag"
+            placeholder={t('notes.searchPlaceholder')}
             className="w-full rounded-md border-0 bg-[#f0eeeb]/80 py-1 pl-7 pr-2 text-[0.75rem] outline-none placeholder:text-[#8d867f]/70 dark:bg-slate-700/35 dark:text-slate-200 dark:placeholder:text-slate-400"
           />
         </div>
       </div>
 
-      <div className="px-2 pb-4">
-        {pinnedNotes.length > 0 ? <SectionLabel>Pinned</SectionLabel> : null}
+      <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-4">
+        {pinnedNotes.length > 0 ? <SectionLabel>{t('notes.pinned')}</SectionLabel> : null}
         {pinnedNotes.map((note) => (
           <NoteCard
             key={note.id}
@@ -152,7 +153,7 @@ export default function NoteBrowser({
             onDelete={() => onDeleteNote?.(note.id)}
           />
         ))}
-        {otherNotes.length > 0 && pinnedNotes.length > 0 ? <SectionLabel>Recent</SectionLabel> : null}
+        {otherNotes.length > 0 && pinnedNotes.length > 0 ? <SectionLabel>{t('notes.recent')}</SectionLabel> : null}
         {otherNotes.map((note) => (
           <NoteCard
             key={note.id}
@@ -165,7 +166,7 @@ export default function NoteBrowser({
             onDelete={() => onDeleteNote?.(note.id)}
           />
         ))}
-        {filtered.length === 0 ? <div className="py-12 text-center text-[13px] text-muted-foreground">No notes found</div> : null}
+        {filtered.length === 0 ? <div className="py-12 text-center text-[13px] text-muted-foreground">{t('notes.noNotesFound')}</div> : null}
       </div>
     </section>
   )

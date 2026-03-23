@@ -88,10 +88,10 @@ const sortNotes = (notes: NoteItem[], sortBy: NoteSortOption) => {
 }
 
 const collectionLabelMap: Record<NoteSystemCollection, string> = {
-  notes: 'All Notes',
-  today: 'Today',
-  untagged: 'Untagged',
-  trash: 'Trash',
+  notes: '所有笔记',
+  today: '今天',
+  untagged: '未标记',
+  trash: '回收站',
 }
 
 const recomputeTagCounts = (tags: NoteTag[], activeNotes: NoteItem[]) => {
@@ -122,8 +122,8 @@ export default function NotePage() {
   const [isAppDark, setIsAppDark] = useState(() => document.documentElement.classList.contains('dark'))
   const pendingSaveRef = useRef<{ id: string; patch: Partial<NoteItem> } | null>(null)
   const saveTimerRef = useRef<number | null>(null)
-  const sidebarScrollRef = useRef<HTMLElement | null>(null)
-  const browserScrollRef = useRef<HTMLElement | null>(null)
+  const sidebarScrollRef = useRef<HTMLDivElement | null>(null)
+  const browserScrollRef = useRef<HTMLDivElement | null>(null)
   const editorSurfaceRef = useRef<HTMLDivElement | null>(null)
   const creatingFromBlankRef = useRef(false)
 

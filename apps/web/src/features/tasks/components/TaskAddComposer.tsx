@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useI18n } from '../../../shared/i18n/useI18n'
 
 type TaskAddComposerProps = {
   onSubmit: (title: string) => Promise<boolean> | boolean
@@ -10,6 +11,7 @@ type TaskAddComposerProps = {
 }
 
 const TaskAddComposer = ({ onSubmit, compact = false, plain = false }: TaskAddComposerProps) => {
+  const { t } = useI18n()
   const [title, setTitle] = useState('')
   const [inputShaking, setInputShaking] = useState(false)
   const [isFocused, setIsFocused] = useState(false)
@@ -77,7 +79,7 @@ const TaskAddComposer = ({ onSubmit, compact = false, plain = false }: TaskAddCo
           onAnimationEnd={() => setInputShaking(false)}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          placeholder="Add a new task..."
+          placeholder={t('modules.tasks.addPlaceholder')}
         />
         <Button
           type="submit"
@@ -89,7 +91,7 @@ const TaskAddComposer = ({ onSubmit, compact = false, plain = false }: TaskAddCo
           size="sm"
           disabled={title.trim().length === 0}
         >
-          Add
+          {t('modules.tasks.add')}
         </Button>
       </div>
     </form>

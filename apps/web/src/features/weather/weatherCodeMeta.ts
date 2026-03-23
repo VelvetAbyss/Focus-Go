@@ -26,7 +26,7 @@ const WEATHER_CODE_META: Record<number, WeatherCodeMeta> = {
   73: { label: 'Snow', tone: 'snow' },
   75: { label: 'Heavy snow', tone: 'snow' },
   77: { label: 'Snow grains', tone: 'snow' },
-  80: { label: 'Rain showers', tone: 'rain' },
+  80: { label: '阵雨', tone: 'rain' },
   81: { label: 'Heavy showers', tone: 'rain' },
   82: { label: 'Violent showers', tone: 'rain' },
   85: { label: 'Snow showers', tone: 'snow' },

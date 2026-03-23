@@ -5,6 +5,8 @@ import { AnimatePresence, motion } from 'motion/react'
 import Card from '../../shared/ui/Card'
 import { useSharedFocusTimer } from './useSharedFocusTimer'
 import { useSharedNoise } from './SharedNoiseProvider'
+import { useI18n } from '../../shared/i18n/useI18n'
+import type { TranslationKey } from '../../shared/i18n/types'
 
 const clampDuration = (value: number) => {
   if (!Number.isFinite(value)) return 25
@@ -13,10 +15,10 @@ const clampDuration = (value: number) => {
 }
 
 const FOCUS_MODES = [
-  { id: 'pomodoro', label: 'Pomodoro', minutes: 25, icon: Timer },
-  { id: 'deep-work', label: 'Deep Work', minutes: 50, icon: Brain },
-  { id: 'sprint', label: 'Sprint', minutes: 15, icon: Rocket },
-  { id: 'flow', label: 'Flow', minutes: 90, icon: Infinity },
+  { id: 'pomodoro', label: 'Pomodoro', labelKey: 'focus.pomodoro' as TranslationKey, minutes: 25, icon: Timer },
+  { id: 'deep-work', label: 'Deep Work', labelKey: 'focus.deepWork' as TranslationKey, minutes: 50, icon: Brain },
+  { id: 'sprint', label: 'Sprint', labelKey: 'focus.sprint' as TranslationKey, minutes: 15, icon: Rocket },
+  { id: 'flow', label: 'Flow', labelKey: 'focus.flow' as TranslationKey, minutes: 90, icon: Infinity },
 ] as const
 
 type FocusModeId = (typeof FOCUS_MODES)[number]['id']
@@ -114,6 +116,7 @@ function TimerDisplay({ timeText }: { timeText: string }) {
 }
 
 const FocusCard = () => {
+  const { t } = useI18n()
   const [activeMode, setActiveMode] = useState<FocusModeId>('pomodoro')
   const { noise, setNoiseMasterVolume, toggleNoisePlaying } = useSharedNoise()
   const { state: timerState, start, pause, resume, reset, setDuration } = useSharedFocusTimer({ defaultDurationMinutes: 25 })
@@ -171,13 +174,13 @@ const FocusCard = () => {
     })
   }
 
-  const primaryActionLabel = timerState.running ? 'Pause' : timerState.status === 'paused' ? 'Resume' : 'Start Focus'
+  const primaryActionLabel = timerState.running ? t('focus.pause') : timerState.status === 'paused' ? t('focus.resume') : t('focus.startFocus')
   const statusLabel =
     timerState.status === 'paused'
-      ? 'PAUSED'
+      ? t('focus.paused')
       : timerState.status === 'running'
-        ? 'FOCUSING'
-        : 'READY TO FOCUS'
+        ? t('focus.focusing')
+        : t('focus.readyToFocus')
 
   useEffect(() => {
     if (shouldReduceMotion()) return
@@ -202,11 +205,11 @@ const FocusCard = () => {
   const timerRingStyle = { '--focus-progress': `${progress}` } as CSSProperties
 
   return (
-    <Card className="focus-card-figma-shell" title="Focus Center" eyebrow="Pomodoro">
+    <Card className="focus-card-figma-shell" title={t('focus.center')} eyebrow={t('focus.pomodoro')}>
       <div className="focus-card-lite focus-card-lite--misted">
         <div className="focus-card-lite__body">
           <section className="focus-card-lite__modes-band">
-            <div className="focus-card-lite__modes" role="tablist" aria-label="Focus modes">
+            <div className="focus-card-lite__modes" role="tablist" aria-label={t('focus.modes')}>
               {FOCUS_MODES.map((mode) => (
                 <button
                   type="button"
@@ -217,7 +220,7 @@ const FocusCard = () => {
                   onClick={() => void handleModeChange(mode.id)}
                 >
                   <mode.icon size={12} className="focus-card-lite__mode-icon" aria-hidden />
-                  <span>{mode.label}</span>
+                  <span>{t(mode.labelKey)}</span>
                 </button>
               ))}
             </div>
@@ -247,7 +250,7 @@ const FocusCard = () => {
                 className="focus-card-lite__reset-raw"
                 onPointerDown={(event) => springPress(event.currentTarget)}
                 onClick={() => void reset()}
-                aria-label="Reset"
+                aria-label={t('focus.reset')}
               >
                 <RotateCcw size={15} />
               </button>
@@ -260,14 +263,14 @@ const FocusCard = () => {
                 className={`focus-card-lite__noise-play-raw ${noise.playing ? 'is-playing' : ''}`}
                 onPointerDown={(event) => springPress(event.currentTarget)}
                 onClick={toggleNoisePlaying}
-                aria-label={noise.playing ? 'Pause noise' : 'Play noise'}
+                aria-label={noise.playing ? t('focus.pauseNoise') : t('focus.playNoise')}
               >
                 {noise.playing ? <Pause size={14} /> : <Play size={14} />}
               </button>
 
               <div className="focus-card-lite__volume-raw">
                 <div className="focus-card-lite__volume-row-raw">
-                  <span>MASTER VOLUME</span>
+                  <span>{t('focus.masterVolume')}</span>
                   <span>{volumePercent}%</span>
                 </div>
                 <div

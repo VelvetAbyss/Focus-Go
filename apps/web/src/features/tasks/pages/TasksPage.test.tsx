@@ -8,17 +8,10 @@ vi.mock('../TasksBoard', () => ({
   default: () => <div data-testid="tasks-board" />,
 }))
 
-vi.mock('../../../shared/i18n/useI18n', () => ({
-  useI18n: () => ({
-    t: (key: string) =>
-      ({
-        'modules.tasks.title': 'Tasks',
-        'modules.tasks.board': 'Board',
-        'modules.tasks.analytics': 'Analytics',
-        'modules.tasks.viewAria': 'Tasks page view',
-      })[key] ?? key,
-  }),
-}))
+vi.mock('../../../shared/i18n/useI18n', async () => {
+  const { mockUseI18n } = await import('../../../shared/i18n/testMock')
+  return { useI18n: mockUseI18n }
+})
 
 import TasksPage from './TasksPage'
 

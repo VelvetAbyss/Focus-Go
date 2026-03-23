@@ -1,13 +1,20 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 import { GridLayout, useContainerWidth } from 'react-grid-layout'
+import { useIsBreakpoint } from '../../hooks/use-is-breakpoint'
 import Dialog from '../../shared/ui/Dialog'
 import { dashboardRepo } from '../../data/repositories/dashboardRepo'
 import { getDashboardCards } from './registry'
 import type { DashboardLayoutItem } from '../../data/models/types'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { syncDashboardLayout } from './layoutSyncAdapter'
 import DashboardHeader from './DashboardHeader'
+import { useI18n } from '../../shared/i18n/useI18n'
+import { ROUTES } from '../../app/routes/routes'
+import { useOnboardingFlow } from '../onboarding/useOnboardingFlow'
+import OnboardingModal from '../onboarding/OnboardingModal'
 import {
   DEFAULT_DASHBOARD_HIDDEN_CARD_IDS,
   DEFAULT_DASHBOARD_LAYOUT_ITEMS,
@@ -48,12 +55,17 @@ const writeLayoutLocked = (locked: boolean) => {
 }
 
 const DashboardPage = () => {
+  const { t } = useI18n()
+  const navigate = useNavigate()
+  const onboarding = useOnboardingFlow()
   const [layout, setLayout] = useState<DashboardLayoutItem[]>([])
   const [hiddenCardIds, setHiddenCardIds] = useState<string[]>([])
+  const isMobile = useIsBreakpoint('max', 768)
+  const columns = isMobile ? 4 : 12
   const { width, containerRef, mounted } = useContainerWidth({ initialWidth: window.innerWidth })
   const [searchParams, setSearchParams] = useSearchParams()
   const diaryOpen = searchParams.get('diary') === '1'
-  const layoutEdit = searchParams.get('layoutEdit') === '1'
+  const layoutEdit = searchParams.get('layoutEdit') === '1' && !isMobile
   const widgetsPanelOpen = searchParams.get('widgetsPanel') === '1'
   const [confirmHideCardId, setConfirmHideCardId] = useState<string | null>(null)
   const [hideSubmitting, setHideSubmitting] = useState(false)
@@ -64,7 +76,23 @@ const DashboardPage = () => {
     hiddenCardIds: [],
   })
   const pendingLayoutKeyRef = useRef('')
+
+  const responsiveLayout = useMemo(() => {
+    if (!isMobile) return layout
+    // Scale desktop layout (12 cols) to mobile layout (4 cols)
+    return layout.map((item) => {
+      const mobileW = Math.max(2, Math.round((item.w / 12) * 4))
+      const mobileX = Math.min(4 - mobileW, Math.round((item.x / 12) * 4))
+      return {
+        ...item,
+        w: mobileW,
+        x: mobileX,
+      }
+    })
+  }, [isMobile, layout])
+
   const toggleLayoutEdit = useCallback(() => {
+    if (isMobile) return
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev)
       if (layoutEdit) {
@@ -73,7 +101,7 @@ const DashboardPage = () => {
       } else next.set('layoutEdit', '1')
       return next
     })
-  }, [layoutEdit, setSearchParams])
+  }, [isMobile, layoutEdit, setSearchParams])
   const toggleWidgetsPanel = useCallback(() => {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev)
@@ -84,6 +112,7 @@ const DashboardPage = () => {
   }, [setSearchParams, widgetsPanelOpen])
   const setLayoutEdit = useCallback(
     (nextEdit: boolean) => {
+      if (isMobile) return
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev)
         if (nextEdit) next.set('layoutEdit', '1')
@@ -91,8 +120,14 @@ const DashboardPage = () => {
         return next
       })
     },
-    [setSearchParams]
+    [isMobile, setSearchParams]
   )
+
+  useEffect(() => {
+    if (isMobile && layoutEdit) {
+      setLayoutEdit(false)
+    }
+  }, [isMobile, layoutEdit, setLayoutEdit])
 
   useEffect(() => {
     writeLayoutLocked(!layoutEdit)
@@ -112,6 +147,12 @@ const DashboardPage = () => {
     if (searchParams.get('layoutEdit') !== null) return
     if (!readLayoutLocked()) setLayoutEdit(true)
   }, [searchParams, setLayoutEdit])
+
+  useEffect(() => {
+    if (onboarding.status === 'in_progress' && onboarding.currentStep === 'create_task') {
+      navigate(ROUTES.TASKS, { replace: true })
+    }
+  }, [navigate, onboarding.currentStep, onboarding.status])
 
   const openDiary = useCallback(
     (intent?: 'openToday') => {
@@ -320,31 +361,36 @@ const DashboardPage = () => {
   )
 
   return (
-    <div className="dashboard" ref={containerRef}>
+    <main className="dashboard" ref={containerRef} aria-label={t('dashboard.page')}>
         <DashboardHeader
           layoutEdit={layoutEdit}
           widgetsPanelOpen={widgetsPanelOpen}
           onToggleLayoutEdit={toggleLayoutEdit}
           onToggleWidgetsPanel={toggleWidgetsPanel}
+          showRestartOnboarding={onboarding.status !== 'in_progress'}
+          onRestartOnboarding={() => onboarding.restart()}
         />
-        {syncError && <p className="dashboard__sync-error">{syncError}</p>}
+        <div aria-live="polite" aria-atomic="true">
+          {syncError && <p className="dashboard__sync-error">{syncError}</p>}
+        </div>
         {layoutEdit && widgetsPanelOpen && (
-          <section className="dashboard-widgets" aria-label="Manage widgets visibility">
+          <section className="dashboard-widgets" aria-label={t('dashboard.manageVisibility')}>
             {cards.map((card) => {
               const visible = layout.some((item) => item.key === card.id)
               const disableHide = visible && layout.length <= 1
+              const switchId = `widget-toggle-${card.id}`
               return (
                 <div key={card.id} className="dashboard-widgets__row">
-                  <span className="dashboard-widgets__title">{card.title}</span>
-                  <label className="toggle">
-                    <input
-                      type="checkbox"
-                      checked={visible}
-                      disabled={disableHide}
-                      onChange={(event) => handleWidgetToggle(card.id, event.target.checked)}
-                    />
-                    <span className="toggle__track" />
-                  </label>
+                  <Label htmlFor={switchId} className="dashboard-widgets__title">
+                    {card.title}
+                  </Label>
+                  <Switch
+                    id={switchId}
+                    checked={visible}
+                    disabled={disableHide}
+                    onCheckedChange={(checked) => handleWidgetToggle(card.id, checked)}
+                    aria-label={t('dashboard.toggleVisibility', { name: card.title })}
+                  />
                 </div>
               )
             })}
@@ -354,18 +400,18 @@ const DashboardPage = () => {
         {mounted && (
           <GridLayout
             className="dashboard__grid"
-            layout={layout.map((item) => ({
+            layout={responsiveLayout.map((item) => ({
               i: item.key,
               x: item.x,
               y: item.y,
               w: item.w,
               h: item.h,
-              minW: 3,
+              minW: isMobile ? 2 : 3,
               minH: 2,
-              maxW: 12,
+              maxW: columns,
             }))}
             gridConfig={{
-              cols: 12,
+              cols: columns,
               rowHeight: 60,
               margin: [18, 18],
               containerPadding: [18, 18],
@@ -375,7 +421,7 @@ const DashboardPage = () => {
             resizeConfig={{ enabled: layoutEdit }}
             width={Math.max(width, 320)}
             onLayoutChange={(next: ReadonlyArray<{ i: string; x: number; y: number; w: number; h: number }>) => {
-              if (!layoutEdit) return
+              if (!layoutEdit || isMobile) return
               const allowed = new Set(cards.map((card) => card.id))
               const updated = next
                 .filter((item) => allowed.has(item.i))
@@ -402,8 +448,8 @@ const DashboardPage = () => {
               <div key={card.id} className={`dashboard__item ${layoutEdit ? 'is-layout-edit' : ''}`}>
                 {card.render()}
                 {layoutEdit ? (
-                  <div className="dashboard__edit-overlay" aria-label="Layout edit mode">
-                    <span>Layout edit mode</span>
+                  <div className="dashboard__edit-overlay" aria-label={t('dashboard.layoutEdit')}>
+                    <span>{t('dashboard.layoutEdit')}</span>
                   </div>
                 ) : null}
               </div>
@@ -430,9 +476,17 @@ const DashboardPage = () => {
             />
           </Suspense>
         ) : null}
+        <OnboardingModal
+          open={onboarding.status === 'not_started'}
+          onStart={() => {
+            onboarding.start()
+            navigate(ROUTES.TASKS, { replace: true })
+          }}
+          onSkip={() => onboarding.skip()}
+        />
         <Dialog
           open={Boolean(confirmHideCardId)}
-          title="Hide widget"
+          title={t('dashboard.hideWidget')}
           onClose={() => {
             if (hideSubmitting) return
             setConfirmHideCardId(null)
@@ -446,14 +500,14 @@ const DashboardPage = () => {
           </div>
           <div className="dialog__actions">
             <Button variant="outline" onClick={() => setConfirmHideCardId(null)} disabled={hideSubmitting}>
-              Cancel
+              {t('tasks.cancel')}
             </Button>
             <Button onClick={() => void hideCard()} disabled={hideSubmitting}>
-              Hide
+              {t('dashboard.hideWidget')}
             </Button>
           </div>
         </Dialog>
-    </div>
+    </main>
   )
 }
 

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Check, ChevronDown, Feather } from 'lucide-react'
+import { useI18n } from '../../../shared/i18n/useI18n'
 
 type ReviewDeckProps = {
   summary: string
@@ -69,10 +70,11 @@ const ReviewDeck = ({
   onSubmit,
   onRestart,
 }: ReviewDeckProps) => {
+  const { t } = useI18n()
   const [isOpen, setIsOpen] = useState(false)
   const currentHour = new Date().getHours()
   const greeting =
-    currentHour >= 17 ? 'Good evening' : currentHour >= 12 ? 'Good afternoon' : 'Good morning'
+    currentHour >= 17 ? t('review.goodEvening') : currentHour >= 12 ? t('review.goodAfternoon') : t('review.goodMorning')
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
@@ -98,7 +100,7 @@ const ReviewDeck = ({
                 textTransform: 'uppercase',
               }}
             >
-              Daily Review
+              {t('review.dailyReview')}
             </span>
           </div>
           <h1
@@ -111,7 +113,7 @@ const ReviewDeck = ({
             className="text-[#999]"
             style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.88rem', fontWeight: 300 }}
           >
-            {today} - take a quiet moment to look back.
+            {today} {t('review.subtitle')}
           </p>
         </div>
 
@@ -119,14 +121,14 @@ const ReviewDeck = ({
           <div className="space-y-5">
             <div className="space-y-2">
               <label htmlFor="review-summary" className="block pl-0.5 text-[#444]" style={fieldLabelStyle}>
-                One-line summary of today
+                {t('review.oneLineSummary')}
               </label>
               <input
                 id="review-summary"
                 type="text"
                 value={summary}
                 onChange={(event) => onSummaryChange(event.target.value)}
-                placeholder="How would you describe today in a few words?"
+                placeholder={t('review.summaryPlaceholder')}
                 disabled={disabled}
                 className={inputClassName}
                 style={{ fontFamily: "'Lora', 'Georgia', serif", fontSize: '1rem', fontWeight: 400 }}
@@ -135,14 +137,14 @@ const ReviewDeck = ({
 
             <div className="space-y-2">
               <label htmlFor="review-tomorrow" className="block pl-0.5 text-[#444]" style={fieldLabelStyle}>
-                Most important thing for tomorrow
+                {t('review.tomorrowImportant')}
               </label>
               <input
                 id="review-tomorrow"
                 type="text"
                 value={tomorrow}
                 onChange={(event) => onTomorrowChange(event.target.value)}
-                placeholder="Just one thing - no pressure"
+                placeholder={t('review.tomorrowPlaceholder')}
                 disabled={disabled}
                 className={inputClassName}
                 style={{ fontFamily: "'Lora', 'Georgia', serif", fontSize: '1rem', fontWeight: 400 }}
@@ -150,7 +152,7 @@ const ReviewDeck = ({
             </div>
 
             <p className="pt-1 text-center text-[#ccc]" style={{ ...helperTextStyle, fontStyle: 'italic' }}>
-              Even writing one sentence is enough.
+              {t('review.helperText')}
             </p>
           </div>
 
@@ -165,7 +167,7 @@ const ReviewDeck = ({
                   className="text-[#999] transition-colors duration-300 group-hover:text-[#666]"
                   style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.85rem', fontWeight: 400 }}
                 >
-                  {isOpen ? "That's enough for now" : 'Go a little deeper'}
+                  {isOpen ? t('review.enough') : t('review.deeper')}
                 </span>
                 <motion.div
                   animate={{ rotate: isOpen ? 180 : 0 }}
@@ -198,7 +200,7 @@ const ReviewDeck = ({
                             textTransform: 'uppercase',
                           }}
                         >
-                          optional reflections
+                          {t('review.optionalReflections')}
                         </span>
                         <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#e5e5e5] to-transparent" />
                       </div>
@@ -209,14 +211,14 @@ const ReviewDeck = ({
                           className="block pl-1 text-[#999]"
                           style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.8rem', fontWeight: 400 }}
                         >
-                          Inbox snapshot
+                          {t('review.inboxSnapshot')}
                         </label>
                         <input
                           id="review-inbox-snapshot"
                           type="text"
                           value={inboxSnapshot}
                           onChange={(event) => onInboxSnapshotChange(event.target.value)}
-                          placeholder="e.g. 12 unread, mostly newsletters"
+                          placeholder={t('review.inboxPlaceholder')}
                           disabled={disabled}
                           className={subtleInputClassName}
                           style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.9rem', fontWeight: 300 }}
@@ -251,7 +253,7 @@ const ReviewDeck = ({
                           className="text-[#999] transition-colors group-hover:text-[#666]"
                           style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.85rem', fontWeight: 400 }}
                         >
-                          Inbox cleared today
+                          {t('review.inboxCleared')}
                         </span>
                       </label>
 
@@ -260,7 +262,7 @@ const ReviewDeck = ({
                           className="block pl-1 text-[#999]"
                           style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.8rem', fontWeight: 400 }}
                         >
-                          How focused did you feel?
+                          {t('review.focusedLabel')}
                         </label>
                         <div className="flex items-center gap-2 px-1">
                           {[1, 2, 3, 4, 5].map((score) => (
@@ -279,7 +281,7 @@ const ReviewDeck = ({
                               <div>{score}</div>
                               {score === 1 || score === 3 || score === 5 ? (
                                 <div className="mt-0.5 text-[0.6rem] opacity-70">
-                                  {score === 1 ? 'Low' : score === 3 ? 'Okay' : 'Deep'}
+                                  {score === 1 ? t('review.low') : score === 3 ? t('review.okay') : t('review.deep')}
                                 </div>
                               ) : null}
                             </button>
@@ -292,9 +294,9 @@ const ReviewDeck = ({
                           className="block pl-1 text-[#999]"
                           style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.8rem', fontWeight: 400 }}
                         >
-                          Must-do tomorrow
+                          {t('review.mustDoTomorrow')}
                           <span className="ml-1.5 text-[#ccc]" style={{ fontSize: '0.7rem' }}>
-                            (up to 3)
+                            {t('review.upTo3')}
                           </span>
                         </label>
                         <div className="space-y-2">
@@ -314,7 +316,7 @@ const ReviewDeck = ({
                                 type="text"
                                 value={item.value}
                                 onChange={(event) => item.onChange(event.target.value)}
-                                placeholder={item.num === 1 ? 'The one thing that matters most' : ''}
+                                 placeholder={item.num === 1 ? t('review.mostImportant') : ''}
                                 disabled={disabled}
                                 className="flex-1 rounded-lg border border-[#f0f0f0] bg-[#fafafa] px-3.5 py-2 text-[#333] placeholder:text-[#d0d0d0] transition-all duration-300 focus:border-[#ccc] focus:bg-white focus:outline-none"
                                 style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.85rem', fontWeight: 300 }}
@@ -330,13 +332,13 @@ const ReviewDeck = ({
                           className="block pl-1 text-[#999]"
                           style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.8rem', fontWeight: 400 }}
                         >
-                          Anything else on your mind?
+                          {t('review.anythingElse')}
                         </label>
                         <textarea
                           id="review-longer-reflection"
                           value={longerReflection}
                           onChange={(event) => onLongerReflectionChange(event.target.value)}
-                          placeholder="This is just for you. Write whatever feels right..."
+                          placeholder={t('review.justForYou')}
                           rows={3}
                           disabled={disabled}
                           className="w-full resize-none rounded-lg border border-[#f0f0f0] bg-[#fafafa] px-4 py-3 text-[#333] placeholder:text-[#d0d0d0] transition-all duration-300 focus:border-[#ccc] focus:bg-white focus:outline-none"
@@ -374,14 +376,14 @@ const ReviewDeck = ({
                       className="text-[#555]"
                       style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.85rem', fontWeight: 400 }}
                     >
-                      Saved for today
+                      {t('review.savedToday')}
                     </span>
                   </div>
                   <p
                     className="text-[#bbb]"
                     style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.76rem', fontWeight: 300 }}
                   >
-                    Rest well tonight.
+                    {t('review.restWell')}
                   </p>
                   <button
                     type="button"
@@ -389,7 +391,7 @@ const ReviewDeck = ({
                     className="text-[#999] underline-offset-4 transition-colors hover:text-[#555] hover:underline"
                     style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.82rem', fontWeight: 400 }}
                   >
-                    Start a new reflection
+                    {t('review.newReflection')}
                   </button>
                 </motion.div>
               ) : (
@@ -408,7 +410,7 @@ const ReviewDeck = ({
                     letterSpacing: '0.02em',
                   }}
                 >
-                  {isSubmittingDiary ? "Saving today's review..." : "Save today's review"}
+                  {isSubmittingDiary ? t('review.saving') : t('review.saveToday')}
                 </motion.button>
               )}
             </AnimatePresence>

@@ -191,7 +191,7 @@ export const buildSampleMonthEvents = (anchorDate: Date): CalendarEvent[] => {
 }
 
 export const formatMonthLabel = (anchorDate: Date) =>
-  anchorDate.toLocaleDateString(undefined, {
+  anchorDate.toLocaleDateString('zh-CN', {
     year: 'numeric',
     month: 'long',
   })

@@ -5,6 +5,7 @@ import type { NoiseSettings, NoiseTrackId, NoiseTrackSettings } from '../../data
 import { Button } from '@/components/ui/button'
 import { useMotionPreference } from '../../shared/prefs/useMotionPreference'
 import NoiseControlPanel from './components/NoiseControlPanel'
+import { useI18n } from '../../shared/i18n/useI18n'
 
 type FocusSettingsDrawerProps = {
   open: boolean
@@ -41,6 +42,7 @@ const FocusSettingsDrawer = ({
   setNoiseTrack,
   setNoiseMasterVolume,
 }: FocusSettingsDrawerProps) => {
+  const { t } = useI18n()
   const [activeTimer, setActiveTimer] = useState<'focus' | 'break' | 'longBreak' | null>(null)
   const [noiseHint, setNoiseHint] = useState<string | null>(null)
   const noiseHintTimerRef = useRef<number | null>(null)
@@ -61,9 +63,9 @@ const FocusSettingsDrawer = ({
   }
 
   const timerRows: { key: 'focus' | 'break' | 'longBreak'; label: string; value: number }[] = [
-    { key: 'focus', label: 'Focus', value: focusMinutes },
-    { key: 'break', label: 'Break', value: breakMinutes },
-    { key: 'longBreak', label: 'Long Break', value: longBreakMinutes },
+    { key: 'focus', label: t('focus.pomodoro'), value: focusMinutes },
+    { key: 'break', label: t('focus.break'), value: breakMinutes },
+    { key: 'longBreak', label: t('focus.longBreak'), value: longBreakMinutes },
   ]
 
   const setNoiseTrackEnabled = useCallback(
@@ -82,7 +84,7 @@ const FocusSettingsDrawer = ({
     setNoise({ ...noise, playing: !noise.playing })
   }, [noise, setNoise])
   const handlePlayBlocked = useCallback(() => {
-    setNoiseHint('Enable at least one track')
+    setNoiseHint(t('focus.enableTrack'))
     if (noiseHintTimerRef.current) {
       window.clearTimeout(noiseHintTimerRef.current)
     }
@@ -124,18 +126,18 @@ const FocusSettingsDrawer = ({
   return (
     <Drawer
       open={open}
-      title="Focus Settings"
+      title={t('focus.settings')}
       onClose={handleClose}
       hideDefaultClose
       actions={
         <Button className="button button--ghost" onClick={handleClose}>
-          Done
+          {t('focus.done')}
         </Button>
       }
     >
       <motion.section layout transition={layoutTransition} className="focus-settings__panel">
         <div className="focus-settings__panelHeader">
-          <h4>Timer</h4>
+          <h4>{t('focus.timer')}</h4>
         </div>
         <motion.div layout className="focus-settings__timerList">
           {timerRows.map((timer) => {
@@ -171,7 +173,7 @@ const FocusSettingsDrawer = ({
                       >
                         -
                       </Button>
-                      <span className="focus-settings__stepperValue">{displayValue} min</span>
+                      <span className="focus-settings__stepperValue">{displayValue} {t('focus.minUnit')}</span>
                       <Button
                         className="button button--ghost focus-settings__stepperBtn"
                         onClick={() => updateTimer(timer.key, displayValue + 5)}

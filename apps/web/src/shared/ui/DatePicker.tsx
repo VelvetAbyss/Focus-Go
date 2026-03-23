@@ -27,7 +27,7 @@ export function DatePicker({
   const [open, setOpen] = React.useState(false)
   const selectedDate = React.useMemo(() => parseDateKeyToLocalDate(value), [value])
   void placeholder
-  const emptyLabel = 'Select date'
+  const emptyLabel = placeholder ?? '选择日期'
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

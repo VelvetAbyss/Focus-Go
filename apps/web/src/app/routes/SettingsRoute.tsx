@@ -23,7 +23,7 @@ import {
 import { dashboardRepo } from '../../data/repositories/dashboardRepo'
 import { db } from '../../data/db'
 import { DB_NAME, DB_VERSION, TABLES } from '../../data/db/schema'
-import { applyTheme, clearStoredThemePreference, resolveTheme, writeStoredThemePreference } from '../../shared/theme/theme'
+import { applyTheme, readStoredThemePreference, resolveTheme, writeStoredThemePreference } from '../../shared/theme/theme'
 import {
   applyThemePackPreview,
   clearThemePackPreview,
@@ -68,7 +68,7 @@ type OpenMeteoGeocodeResult = NonNullable<OpenMeteoGeocodeResponse['results']>[n
 const MIN_CITY_QUERY_LENGTH = 2
 const MAX_CITY_SUGGESTIONS = 8
 
-const SECTION_META: Array<{
+const SECTION_META_KEYS: Array<{
   key: SettingsSection
   titleKey:
     | 'settings.module.appearance.title'
@@ -81,12 +81,16 @@ const SECTION_META: Array<{
     | 'settings.module.weather.hint'
     | 'settings.module.data.hint'
   icon: typeof Brush
-  badge: string
+  badgeKey:
+    | 'settings.badge.visual'
+    | 'settings.badge.motion'
+    | 'settings.badge.widget'
+    | 'settings.badge.safety'
 }> = [
-  { key: 'appearance', titleKey: 'settings.module.appearance.title', hintKey: 'settings.module.appearance.hint', icon: Brush, badge: 'Visual' },
-  { key: 'experience', titleKey: 'settings.module.experience.title', hintKey: 'settings.module.experience.hint', icon: Sparkles, badge: 'Motion' },
-  { key: 'weather', titleKey: 'settings.module.weather.title', hintKey: 'settings.module.weather.hint', icon: SunMedium, badge: 'Widget' },
-  { key: 'data', titleKey: 'settings.module.data.title', hintKey: 'settings.module.data.hint', icon: Database, badge: 'Safety' },
+  { key: 'appearance', titleKey: 'settings.module.appearance.title', hintKey: 'settings.module.appearance.hint', icon: Brush, badgeKey: 'settings.badge.visual' },
+  { key: 'experience', titleKey: 'settings.module.experience.title', hintKey: 'settings.module.experience.hint', icon: Sparkles, badgeKey: 'settings.badge.motion' },
+  { key: 'weather', titleKey: 'settings.module.weather.title', hintKey: 'settings.module.weather.hint', icon: SunMedium, badgeKey: 'settings.badge.widget' },
+  { key: 'data', titleKey: 'settings.module.data.title', hintKey: 'settings.module.data.hint', icon: Database, badgeKey: 'settings.badge.safety' },
 ]
 
 const LOCAL_CITY_CANDIDATES: Array<{ label: string; tokens: string[] }> = [
@@ -305,7 +309,12 @@ const SettingsRoute = () => {
     dashboardRepo.get().then((stored) => {
       setDashboard(stored)
       const override = stored?.themeOverride
-      setTheme(override === 'light' || override === 'dark' ? override : 'system')
+      if (override === 'light' || override === 'dark') {
+        setTheme(override)
+        return
+      }
+      const storedPreference = readStoredThemePreference()
+      setTheme(storedPreference ?? 'system')
     })
   }, [])
 
@@ -322,9 +331,8 @@ const SettingsRoute = () => {
     const updated = await dashboardRepo.upsert({ items, themeOverride })
     setDashboard(updated)
 
-    if (themeOverride) writeStoredThemePreference(themeOverride)
-    else clearStoredThemePreference()
-    applyTheme(themeOverride ?? resolveTheme())
+    writeStoredThemePreference(next)
+    applyTheme(resolveTheme(next))
   }
 
   useEffect(() => {
@@ -526,7 +534,7 @@ const SettingsRoute = () => {
             </CardHeader>
             <CardContent className="pt-0">
               <TabsList className="h-auto w-full flex-col items-stretch gap-2 bg-transparent p-0">
-                {SECTION_META.map((section) => {
+                {SECTION_META_KEYS.map((section) => {
                   const Icon = section.icon
                   const active = activeSection === section.key
                   return (
@@ -542,7 +550,7 @@ const SettingsRoute = () => {
                             <div className="truncate text-xs text-muted-foreground">{t(section.hintKey)}</div>
                           </div>
                           <Badge variant={active ? 'default' : 'secondary'} className="h-6 px-2 text-[11px]">
-                            {section.badge}
+                            {t(section.badgeKey)}
                           </Badge>
                         </div>
                       </TabsTrigger>
@@ -699,16 +707,16 @@ const SettingsRoute = () => {
 
                           <SettingRow
                             icon={Bell}
-                            title="Task reminders"
-                            description="In-app reminder toast for tasks with reminder time."
+                            title={t('settings.taskReminders.title')}
+                            description={t('settings.taskReminders.description')}
                           >
                             <Switch checked={taskReminderEnabled} onCheckedChange={(checked) => setTaskReminderEnabled(checked)} />
                           </SettingRow>
 
                           <SettingRow
                             icon={AlertTriangle}
-                            title="Reminder lead time"
-                            description="How many minutes before reminder time the in-app toast should appear."
+                            title={t('settings.reminderLead.title')}
+                            description={t('settings.reminderLead.description')}
                           >
                             <Select
                               value={String(taskReminderLeadMinutes)}
@@ -718,10 +726,10 @@ const SettingsRoute = () => {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="5">5 minutes</SelectItem>
-                                <SelectItem value="10">10 minutes</SelectItem>
-                                <SelectItem value="15">15 minutes</SelectItem>
-                                <SelectItem value="30">30 minutes</SelectItem>
+                                <SelectItem value="5">{t('settings.reminderLead.5min')}</SelectItem>
+                                <SelectItem value="10">{t('settings.reminderLead.10min')}</SelectItem>
+                                <SelectItem value="15">{t('settings.reminderLead.15min')}</SelectItem>
+                                <SelectItem value="30">{t('settings.reminderLead.30min')}</SelectItem>
                               </SelectContent>
                             </Select>
                           </SettingRow>

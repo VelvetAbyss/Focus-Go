@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { diaryRepo } from '../../../data/repositories/diaryRepo'
 import { toDateKey } from '../../../shared/utils/time'
+import { useI18n } from '../../../shared/i18n/useI18n'
 import ReviewDeck from '../review/ReviewDeck'
 import ReviewHistoryPanel from '../review/ReviewHistoryPanel'
 import {
@@ -12,6 +13,7 @@ import { useReviewSessionStore } from '../review/reviewSessionStore'
 import '../review/review.css'
 
 const ReviewPage = () => {
+  const { t } = useI18n()
   const [isSubmittingDiary, setIsSubmittingDiary] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0)
@@ -48,14 +50,14 @@ const ReviewPage = () => {
       submitReview()
       setHistoryRefreshKey((current) => current + 1)
     } catch {
-      setSubmitError('Failed to save review snapshot to diary. Please try again.')
+      setSubmitError(t('review.saveFailed'))
     } finally {
       setIsSubmittingDiary(false)
     }
   }
 
   return (
-    <section className="review-page-shell review-page-shell--themed review-shadcn-scope flex flex-col">
+    <section className="review-page-shell review-page-shell--themed review-shadcn-scope flex flex-col" data-coachmark-anchor="review-page">
       <div className="review-page-shell__content mx-auto grid min-h-full w-full max-w-6xl flex-1 grid-cols-1 gap-4 px-3 py-4 sm:px-4 sm:py-5 md:grid-cols-3 md:gap-6 md:px-6 md:py-8">
         <div className="md:col-span-2" aria-label="Review workflow">
           {submitError ? <p className="mb-3 text-sm text-destructive">{submitError}</p> : null}
@@ -100,7 +102,7 @@ const ReviewPage = () => {
         <aside className="md:col-span-1 md:overflow-hidden" aria-label="Review history">
           <ReviewHistoryPanel
             className="h-full"
-            maxHeightClassName="md:max-h-[calc(100vh-220px)]"
+            maxHeightClassName="md:max-h-[calc(var(--shell-window-height,100vh)-220px)]"
             refreshKey={historyRefreshKey}
           />
         </aside>

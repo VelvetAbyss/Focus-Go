@@ -34,7 +34,7 @@ interface SoundPreset {
 const soundPresets: SoundPreset[] = [
   {
     id: "rainy-cafe",
-    name: "Rainy Cafe",
+    name: "雨天咖啡馆",
     emoji: "☕",
     tracks: {
       cafe: { enabled: true, volume: 0.5 },
@@ -47,7 +47,7 @@ const soundPresets: SoundPreset[] = [
   },
   {
     id: "stormy-night",
-    name: "Stormy Night",
+    name: "暴风雨之夜",
     emoji: "🌩",
     tracks: {
       cafe: { enabled: false, volume: 0.5 },
@@ -60,7 +60,7 @@ const soundPresets: SoundPreset[] = [
   },
   {
     id: "ocean-breeze",
-    name: "Ocean Breeze",
+    name: "海风",
     emoji: "🌊",
     tracks: {
       cafe: { enabled: false, volume: 0.5 },
@@ -73,7 +73,7 @@ const soundPresets: SoundPreset[] = [
   },
   {
     id: "cozy-fireside",
-    name: "Cozy Fireside",
+    name: "壁炉暖意",
     emoji: "🔥",
     tracks: {
       cafe: { enabled: false, volume: 0.5 },
@@ -87,12 +87,12 @@ const soundPresets: SoundPreset[] = [
 ];
 
 const defaultTracks: SoundTrack[] = [
-  { id: "cafe", name: "Cafe", icon: <Coffee size={15} />, enabled: true, volume: 0.6, color: "#C4A882" },
-  { id: "fireplace", name: "Fireplace", icon: <Flame size={15} />, enabled: true, volume: 0.4, color: "#D4956A" },
-  { id: "rain", name: "Rain", icon: <CloudRain size={15} />, enabled: true, volume: 0.7, color: "#8BA4B8" },
-  { id: "wind", name: "Wind", icon: <Wind size={15} />, enabled: false, volume: 0.5, color: "#A3B8A0" },
-  { id: "thunder", name: "Thunder", icon: <CloudLightning size={15} />, enabled: false, volume: 0.3, color: "#9A8EAF" },
-  { id: "ocean", name: "Ocean", icon: <Waves size={15} />, enabled: false, volume: 0.5, color: "#7BA5B5" },
+  { id: "cafe", name: "咖啡馆", icon: <Coffee size={15} />, enabled: true, volume: 0.6, color: "#C4A882" },
+  { id: "fireplace", name: "壁炉", icon: <Flame size={15} />, enabled: true, volume: 0.4, color: "#D4956A" },
+  { id: "rain", name: "雨声", icon: <CloudRain size={15} />, enabled: true, volume: 0.7, color: "#8BA4B8" },
+  { id: "wind", name: "风声", icon: <Wind size={15} />, enabled: false, volume: 0.5, color: "#A3B8A0" },
+  { id: "thunder", name: "雷声", icon: <CloudLightning size={15} />, enabled: false, volume: 0.3, color: "#9A8EAF" },
+  { id: "ocean", name: "海浪", icon: <Waves size={15} />, enabled: false, volume: 0.5, color: "#7BA5B5" },
 ];
 
 function SoundBarVisualizer({ tracks, isPlaying }: { tracks: SoundTrack[]; isPlaying: boolean }) {
@@ -387,10 +387,10 @@ export function WhiteNoise() {
             style={{ fontFamily: "'DM Serif Display', serif" }}
             className="text-[1.15rem] text-[#3a3733] tracking-[-0.01em]"
           >
-            White Noise
+            白噪音
           </h2>
           <p className="text-[0.7rem] text-[#a09a90] mt-0.5 tracking-wide">
-            {activeTracks} sound{activeTracks !== 1 ? "s" : ""} active
+            已启用 {activeTracks} 个声音
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -441,7 +441,7 @@ export function WhiteNoise() {
                   >
                     <div className="px-3 pt-2.5 pb-1">
                       <p className="text-[0.62rem] text-[#918b80] uppercase tracking-[0.08em]">
-                        Sleep Timer
+                         睡眠定时
                       </p>
                     </div>
                     {[15, 30, 45, 60, 90].map((m) => (
@@ -450,7 +450,7 @@ export function WhiteNoise() {
                         onClick={() => startSleepTimer(m)}
                         className="w-full text-left px-3.5 py-1.5 text-[0.72rem] text-[#5a5650] transition-colors cursor-pointer hover:bg-[#3a3733]/[0.03] whitespace-nowrap"
                       >
-                        {m} minutes
+                        {m} 分钟
                       </button>
                     ))}
                   </motion.div>
@@ -492,7 +492,7 @@ export function WhiteNoise() {
         <div className="flex items-center gap-1.5 mb-2.5">
           <Sparkles size={11} className="text-[#b0aa9e]" />
           <span className="text-[0.66rem] text-[#918b80] uppercase tracking-[0.08em]">
-            Scenes
+             场景
           </span>
         </div>
         <div className="grid grid-cols-2 gap-1.5">
@@ -532,7 +532,7 @@ export function WhiteNoise() {
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-[0.66rem] text-[#918b80] uppercase tracking-[0.08em]">
-            Master Volume
+            主音量
           </span>
           <span className="text-[0.66rem] text-[#b0aa9e] tabular-nums">
             {Math.round(masterVolume * 100)}%
@@ -622,14 +622,14 @@ export function WhiteNoise() {
             <div className="flex items-center gap-2">
               <Moon size={11} className="text-[#7A9A78]" />
               <span className="text-[0.66rem] text-[#7A9A78]">
-                Sleep in {Math.floor(sleepRemaining / 60)}:{String(sleepRemaining % 60).padStart(2, "0")}
+                 将于 {Math.floor(sleepRemaining / 60)}:{String(sleepRemaining % 60).padStart(2, "0")} 后停止
               </span>
             </div>
             <button
               onClick={cancelSleepTimer}
               className="text-[0.62rem] text-[#a09a90] cursor-pointer hover:text-[#7a7568] transition-colors"
             >
-              Cancel
+               取消
             </button>
           </motion.div>
         )}
