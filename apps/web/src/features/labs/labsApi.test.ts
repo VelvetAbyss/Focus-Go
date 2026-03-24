@@ -14,6 +14,7 @@ import {
 
 const getHabits = async () => (await getFeatureCatalog()).find((item) => item.featureKey === 'habit-tracker')
 const getAiDigest = async () => (await getFeatureCatalog()).find((item) => item.featureKey === 'ai-digest')
+const getMindMap = async () => (await getFeatureCatalog()).find((item) => item.featureKey === 'mind-map')
 
 describe('labsApi', () => {
   beforeEach(async () => {
@@ -27,11 +28,15 @@ describe('labsApi', () => {
     const subscription = await getSubscription()
     const habits = await getHabits()
     const aiDigest = await getAiDigest()
+    const mindMap = await getMindMap()
 
     expect(subscription.userId).toBe(CURRENT_USER_ID)
     expect(subscription.tier).toBe('free')
+    expect(subscription.role).toBe('admin')
     expect(habits?.state).toBe('available')
     expect(habits?.requiresPremium).toBe(true)
+    expect(mindMap?.state).toBe('available')
+    expect(mindMap?.requiresPremium).toBe(false)
     expect(aiDigest?.state).toBe('available')
     expect(aiDigest?.requiresPremium).toBe(false)
   })

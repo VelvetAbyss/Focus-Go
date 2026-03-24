@@ -3827,6 +3827,15 @@ html[data-theme='dark'] .app-shell {
     radial-gradient(circle at 20% 80%, color-mix(in srgb, var(--accent) 6%, transparent), transparent 58%);
 }
 
+html[data-theme='dark'] .card__title,
+html[data-theme='dark'] .dashboard-widgets__title {
+  color: #F5F3F0;
+}
+
+html[data-theme='dark'] .card__eyebrow {
+  color: color-mix(in srgb, #F5F3F0 62%, transparent);
+}
+
 .tab-motion-group {
   --tab-count: 1;
   --tab-active-index: 0;
@@ -5647,7 +5656,7 @@ html[data-motion='reduce'] .tasks-fg__list .task-card-shell {
 .tasks-page-shell__panel {
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
   display: flex;
   flex-direction: column;
 }
@@ -5655,7 +5664,7 @@ html[data-motion='reduce'] .tasks-fg__list .task-card-shell {
 .tasks-page-shell__panel-frame {
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
   display: flex;
   flex-direction: column;
   border-radius: 0;
@@ -5692,7 +5701,7 @@ html[data-motion='reduce'] .tasks-fg__list .task-card-shell {
   background: transparent;
   box-shadow: none;
   padding: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .tasks-board-surface__header {
@@ -8088,7 +8097,6 @@ textarea:focus-visible,
   min-height: calc(100vh - 40px);
   padding: 18px;
   will-change: opacity;
-  contain: paint;
   backface-visibility: hidden;
   transform: translateZ(0);
 }
@@ -10047,8 +10055,31 @@ html[data-theme='dark'] .focus-card-lite__eyebrow-dot {
 }
 
 html[data-theme='dark'] .focus-card-lite {
-  background: linear-gradient(180deg, rgba(36, 43, 49, 0.94) 0%, rgba(31, 37, 43, 0.94) 100%);
+  background: transparent;
   border-color: rgba(255, 255, 255, 0.09);
+}
+
+html[data-theme='dark'] .focus-card-figma-shell {
+  background: color-mix(in srgb, var(--bg-elevated) 94%, var(--color-ink));
+  box-shadow: var(--shadow-soft), 0 16px 32px rgba(0, 0, 0, 0.16);
+}
+
+html[data-theme='dark'] .focus-card-figma-shell .card__header {
+  background: color-mix(in srgb, var(--bg-elevated) 94%, var(--color-ink));
+}
+
+html[data-theme='dark'] .focus-card-figma-shell .card__title,
+html[data-theme='dark'] .focus-card-lite__timer-raw,
+html[data-theme='dark'] .focus-card-lite__volume-row-raw span {
+  color: #F5F3F0;
+}
+
+html[data-theme='dark'] .focus-card-lite__status {
+  color: color-mix(in srgb, #F5F3F0 64%, transparent);
+}
+
+html[data-theme='dark'] .focus-card-lite__status.is-running {
+  color: color-mix(in srgb, var(--accent) 72%, #F5F3F0);
 }
 
 html[data-theme='dark'] .focus-card-lite__mode-pill {
@@ -10064,6 +10095,44 @@ html[data-theme='dark'] .focus-card-lite__mode-pill.is-active {
 
 html[data-theme='dark'] .focus__time {
   color: #f2f0ec;
+}
+
+html[data-theme='dark'] .focus-card-lite__primary-raw,
+html[data-theme='dark'] .focus-card-lite__reset-raw {
+  background: color-mix(in srgb, var(--bg-muted) 88%, var(--color-ink));
+  color: #F5F3F0;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.22);
+}
+
+html[data-theme='dark'] .focus-card-lite__noise-play-raw {
+  background: color-mix(in srgb, var(--bg-muted) 90%, var(--color-ink));
+  color: color-mix(in srgb, #F5F3F0 78%, transparent);
+}
+
+html[data-theme='dark'] .focus-card-lite__noise-play-raw.is-playing {
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-muted));
+  color: #F5F3F0;
+}
+
+html[data-theme='dark'] .focus-card-lite__volume-track-raw {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+html[data-theme='dark'] .focus-card-lite__volume-fill-raw {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 62%, #d8c0a0) 0%, #F5F3F0 100%);
+}
+
+html[data-theme='dark'] .focus-card-lite__volume-thumb-raw {
+  background: #F5F3F0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.34);
+}
+
+html[data-theme='dark'] .focus-card-lite__sound-band {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme='dark'] .focus-card-lite__eq span {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 72%, #eed6b0) 0%, #F5F3F0 100%);
 }
 
 html[data-theme='dark'] .focus-card-lite__noise-title,
@@ -10162,6 +10231,51 @@ html[data-theme='dark'] .widget-todos__summary-copy {
   color: #c8c2b8 !important;
 }
 
+html[data-theme='dark'] .diary-launcher-card {
+  background: color-mix(in srgb, var(--bg-elevated) 94%, var(--color-ink));
+  box-shadow: var(--shadow-soft), 0 16px 32px rgba(0, 0, 0, 0.16);
+}
+
+html[data-theme='dark'] .diary-launcher-card__open,
+html[data-theme='dark'] .diary-launcher-card__chip,
+html[data-theme='dark'] .diary-launcher-card__snapshot {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--bg-muted) 88%, var(--color-ink));
+  color: #F5F3F0;
+}
+
+html[data-theme='dark'] .diary-launcher-card__date {
+  color: color-mix(in srgb, #F5F3F0 68%, transparent);
+}
+
+html[data-theme='dark'] .weather-widget__temp,
+html[data-theme='dark'] .weather-widget__condition,
+html[data-theme='dark'] .weather-widget__day-label,
+html[data-theme='dark'] .weather-widget__day-range {
+  color: #F5F3F0;
+}
+
+html[data-theme='dark'] .weather-widget__row {
+  background: color-mix(in srgb, var(--bg-muted) 88%, var(--color-ink));
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme='dark'] .weather-widget__row[data-active='true'],
+html[data-theme='dark'] .weather-widget__row:hover,
+html[data-theme='dark'] .weather-widget__row:focus-visible {
+  border-color: color-mix(in srgb, var(--accent) 26%, rgba(255, 255, 255, 0.12));
+  background: color-mix(in srgb, var(--bg-elevated) 90%, var(--bg-muted));
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.22);
+}
+
+html[data-theme='dark'] .weather-widget__timeline {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme='dark'] .weather-widget__timeline-progress {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 56%, #d9c3a0) 0%, #F5F3F0 100%);
+}
+
 html[data-theme='dark'] .focus-page--zip-bleed::before {
   background:
     radial-gradient(ellipse 120% 80% at 20% 10%, rgba(110, 138, 132, 0.18) 0%, transparent 60%),
@@ -10191,6 +10305,75 @@ html[data-theme='dark'] .task-drawer-shell button[data-slot='select-trigger'] {
   background: rgba(17, 21, 25, 0.72) !important;
   color: #f2f0ec !important;
   border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+html[data-theme='dark'] .task-detail-topbar {
+  background: color-mix(in srgb, var(--bg-elevated) 94%, var(--color-ink)) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+html[data-theme='dark'] .task-detail-card,
+html[data-theme='dark'] .task-detail-card--hero,
+html[data-theme='dark'] .task-detail-card--side,
+html[data-theme='dark'] .task-detail-aside,
+html[data-theme='dark'] .task-detail-layout > aside,
+html[data-theme='dark'] .task-detail-layout .rounded-\[28px\],
+html[data-theme='dark'] .task-detail-layout .rounded-\[26px\],
+html[data-theme='dark'] .task-detail-layout .rounded-\[24px\],
+html[data-theme='dark'] .task-detail-layout .rounded-\[20px\],
+html[data-theme='dark'] .task-detail-layout .rounded-\[18px\] {
+  background: color-mix(in srgb, var(--bg-muted) 88%, var(--color-ink)) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #F5F3F0 !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='dark'] .task-detail-layout .bg-\[linear-gradient\(180deg\,\#ffffff\,\#f8fafc\)\] {
+  background: color-mix(in srgb, var(--bg-elevated) 92%, var(--color-ink)) !important;
+}
+
+html[data-theme='dark'] .task-detail-layout .bg-white,
+html[data-theme='dark'] .task-detail-layout .bg-white\/88,
+html[data-theme='dark'] .task-detail-layout .bg-white\/90,
+html[data-theme='dark'] .task-detail-layout .bg-white\/92,
+html[data-theme='dark'] .task-detail-layout .bg-slate-50\/70,
+html[data-theme='dark'] .task-detail-layout .bg-slate-50\/80,
+html[data-theme='dark'] .task-detail-layout .bg-slate-100\/70,
+html[data-theme='dark'] .task-detail-layout .bg-slate-200\/80 {
+  background: color-mix(in srgb, var(--bg-muted) 88%, var(--color-ink)) !important;
+}
+
+html[data-theme='dark'] .task-detail-layout .text-slate-950,
+html[data-theme='dark'] .task-detail-layout .text-slate-700,
+html[data-theme='dark'] .task-detail-layout .text-slate-600,
+html[data-theme='dark'] .task-detail-layout .text-slate-500,
+html[data-theme='dark'] .task-detail-layout .text-slate-400,
+html[data-theme='dark'] .task-detail-layout .task-detail-title,
+html[data-theme='dark'] .task-detail-layout .task-detail-kicker,
+html[data-theme='dark'] .task-detail-layout p,
+html[data-theme='dark'] .task-detail-layout h2,
+html[data-theme='dark'] .task-detail-layout label,
+html[data-theme='dark'] .task-detail-layout span {
+  color: inherit;
+}
+
+html[data-theme='dark'] .task-detail-layout .text-slate-300 {
+  color: rgba(245, 243, 240, 0.26) !important;
+}
+
+html[data-theme='dark'] .task-detail-layout .hover\:bg-slate-100:hover,
+html[data-theme='dark'] .task-detail-layout .hover\:bg-slate-100\/70:hover,
+html[data-theme='dark'] .task-detail-layout .hover\:bg-slate-200\/80:hover,
+html[data-theme='dark'] .task-detail-layout .hover\:bg-rose-50:hover {
+  background: color-mix(in srgb, var(--bg-elevated) 92%, var(--color-ink)) !important;
+}
+
+html[data-theme='dark'] .task-detail-layout .hover\:text-slate-700:hover {
+  color: #F5F3F0 !important;
+}
+
+html[data-theme='dark'] .task-detail-layout .task-popup-detail__subtask-title-input {
+  color: #F5F3F0;
 }
 
 html[data-theme='dark'] .focus-zip-app.is-dark .focus-zip-timer,

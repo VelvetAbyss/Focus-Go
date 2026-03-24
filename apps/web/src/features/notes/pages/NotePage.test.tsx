@@ -6,8 +6,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { NoteAppearanceSettings, NoteItem, NoteTag } from '../../../data/models/types'
 import NotePage from './NotePage'
 
+const mockUseLabs = vi.fn()
+
 vi.mock('../../../shared/i18n/useI18n', () => ({
   useI18n: () => ({ t: (key: string) => key, language: 'en' as const }),
+}))
+
+vi.mock('../../labs/LabsContext', () => ({
+  useLabs: () => mockUseLabs(),
 }))
 
 const listMock = vi.fn<() => Promise<NoteItem[]>>()
@@ -60,17 +66,29 @@ vi.mock('../components/NoteEditor', () => ({
     onOpenAppearance,
     onExport,
     onChange,
+    onUpgradeMindMap,
+    onCreateMindMap,
   }: {
-    value: { title: string; contentMd: string; tags: string[] }
+    value: { title: string; contentMd: string; tags: string[]; editorMode: 'document' | 'mindmap'; mindMap?: Record<string, unknown> | null }
     isFullscreen?: boolean
     onToggleFullscreen?: () => void
     onOpenInfo?: () => void
     onOpenAppearance?: () => void
     onExport?: () => void
-    onChange: (value: { title: string; contentMd: string; tags: string[]; contentJson?: Record<string, unknown> | null }) => void
+    onUpgradeMindMap?: () => void
+    onCreateMindMap?: () => void
+    onChange: (value: {
+      title: string
+      contentMd: string
+      tags: string[]
+      contentJson?: Record<string, unknown> | null
+      editorMode: 'document' | 'mindmap'
+      mindMap?: Record<string, unknown> | null
+    }) => void
   }) => (
     <div data-testid="note-editor">
       <div>Editor:{value.title || 'Untitled'}</div>
+      <div>Mode:{value.editorMode}</div>
       <div>Fullscreen:{isFullscreen ? 'on' : 'off'}</div>
       <button type="button" onClick={onToggleFullscreen}>
         Toggle fullscreen
@@ -91,11 +109,19 @@ vi.mock('../components/NoteEditor', () => ({
             title: 'Updated title',
             contentMd: '# Heading\n\nBody copy',
             contentJson: null,
+            editorMode: 'document',
+            mindMap: null,
             tags: ['Research'],
           })
         }
       >
         Change note
+      </button>
+      <button type="button" onClick={onCreateMindMap}>
+        Create mindmap
+      </button>
+      <button type="button" onClick={onUpgradeMindMap}>
+        Open upgrade
       </button>
     </div>
   ),
@@ -108,6 +134,8 @@ const createNote = (overrides: Partial<NoteItem> = {}): NoteItem => ({
   title: overrides.title ?? '',
   contentMd: overrides.contentMd ?? '',
   contentJson: overrides.contentJson ?? null,
+  editorMode: overrides.editorMode ?? 'document',
+  mindMap: overrides.mindMap ?? null,
   collection: overrides.collection ?? 'all-notes',
   tags: overrides.tags ?? [],
   excerpt: overrides.excerpt ?? '',
@@ -153,6 +181,11 @@ describe('NotePage', () => {
 
   beforeEach(() => {
     vi.resetAllMocks()
+    mockUseLabs.mockReturnValue({
+      subscription: { tier: 'free' as const, role: 'member' as const },
+      mindMapState: 'available' as const,
+      canAccessMindMapFeature: false,
+    })
     listTagsMock.mockResolvedValue([createTag({ name: 'Research', pinned: true })])
     appearanceGetMock.mockResolvedValue(appearance)
     appearanceUpsertMock.mockResolvedValue(appearance)
@@ -189,6 +222,67 @@ describe('NotePage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Change note' }))
     await waitFor(() => expect(createMock).toHaveBeenCalledTimes(1))
     expect(await screen.findByText('Editor:Updated title')).toBeInTheDocument()
+  })
+
+  it('blocks mind map creation for non-admin accounts', async () => {
+    listMock.mockResolvedValue([
+      createNote({
+        id: 'map-1',
+        title: 'Existing map',
+        editorMode: 'mindmap',
+        mindMap: {
+          nodes: [{ id: 'root', position: { x: 0, y: 0 }, data: { label: 'Existing root' } }],
+          edges: [],
+          viewport: { x: 0, y: 0, zoom: 1 },
+        },
+      }),
+    ])
+    listTrashMock.mockResolvedValue([])
+    createMock.mockResolvedValue(createNote({ id: 'draft-2', title: 'New Mind Map', editorMode: 'mindmap' }))
+
+    render(<NotePage />)
+
+    expect(await screen.findByText('Editor:Untitled')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Create mindmap' }))
+
+    expect(createMock).not.toHaveBeenCalled()
+    expect(await screen.findByText('Mind Map is only visible to admin accounts right now.')).toBeInTheDocument()
+  })
+
+  it('creates a new mind map note from the editor toolbar action', async () => {
+    mockUseLabs.mockReturnValue({
+      subscription: { tier: 'free' as const, role: 'admin' as const },
+      mindMapState: 'available' as const,
+      canAccessMindMapFeature: true,
+    })
+    listMock.mockResolvedValue([createNote({ title: 'Design doc' })])
+    listTrashMock.mockResolvedValue([])
+    createMock.mockResolvedValue(
+      createNote({
+        id: 'mindmap-1',
+        title: 'New Mind Map',
+        editorMode: 'mindmap',
+        mindMap: {
+          nodes: [{ id: 'root', position: { x: 0, y: 0 }, data: { label: 'New Mind Map' } }],
+          edges: [],
+          viewport: { x: 0, y: 0, zoom: 1 },
+        },
+      }),
+    )
+
+    render(<NotePage />)
+
+    expect(await screen.findByText('Editor:Design doc')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Create mindmap' }))
+
+    await waitFor(() => expect(createMock).toHaveBeenCalledTimes(1))
+    expect(createMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        editorMode: 'mindmap',
+        title: 'New Mind Map',
+      }),
+    )
+    expect(await screen.findByText('Editor:New Mind Map')).toBeInTheDocument()
   })
 
   it('opens the info popover and shows statistics', async () => {

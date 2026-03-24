@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Play,
@@ -19,6 +19,7 @@ import {
   Keyboard,
 } from "lucide-react";
 import { useI18n } from "../../../../shared/i18n/useI18n";
+import { useSharedFocusTimer } from "../../useSharedFocusTimer";
 
 type TimerStatus = "idle" | "running" | "paused" | "completed";
 
@@ -31,7 +32,6 @@ interface FocusMode {
   duration: number;
   color: string;
   icon: React.ReactNode;
-  bgGradient: string;
 }
 
 const focusModes: FocusMode[] = [
@@ -363,72 +363,36 @@ function DailyGoalRing({
 }
 
 export function FocusTimer({
-  onSessionComplete,
   todayMinutes = 70,
   dailyGoal = 120,
   todaySessions = 2,
 }: {
-  onSessionComplete?: (session: {
-    startTime: Date;
-    endTime: Date;
-    status: "completed" | "abandoned";
-    durationMinutes: number;
-    mode: string;
-  }) => void;
   todayMinutes?: number;
   dailyGoal?: number;
   todaySessions?: number;
 }) {
   const { t } = useI18n()
+  const { state: timerState, start, pause, resume, reset, setDuration } = useSharedFocusTimer({ defaultDurationMinutes: 25 })
   const [selectedMode, setSelectedMode] = useState<FocusMode>(focusModes[0]);
-  const [duration, setDuration] = useState(25);
-  const [timeLeft, setTimeLeft] = useState(25 * 60);
-  const [status, setStatus] = useState<TimerStatus>("idle");
   const [completionSound, setCompletionSound] = useState(true);
   const [showDuration, setShowDuration] = useState(false);
   const [showBreathing, setShowBreathing] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [quoteIndex, setQuoteIndex] = useState(() => Math.floor(Math.random() * quotes.length));
-  const sessionStartRef = useRef<Date | null>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const duration = timerState.durationMinutes;
+  const timeLeft = timerState.remainingSeconds;
+  const status = timerState.status;
 
   const totalTime = duration * 60;
   const progress = status === "idle" ? 0 : 1 - timeLeft / totalTime;
 
-  const clearTimer = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  }, []);
-
   useEffect(() => {
-    if (status === "running") {
-      intervalRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            clearTimer();
-            setStatus("completed");
-            const endTime = new Date();
-            if (sessionStartRef.current && onSessionComplete) {
-              onSessionComplete({
-                startTime: sessionStartRef.current,
-                endTime,
-                status: "completed",
-                durationMinutes: duration,
-                mode: selectedMode.id,
-              });
-            }
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else {
-      clearTimer();
-    }
-    return clearTimer;
-  }, [status, clearTimer, duration, onSessionComplete, selectedMode.id]);
+    setSelectedMode(focusModes.reduce((best, current) => {
+      const currentDistance = Math.abs(current.duration - duration);
+      const bestDistance = Math.abs(best.duration - duration);
+      return currentDistance < bestDistance ? current : best;
+    }, focusModes[0]));
+  }, [duration]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -436,12 +400,12 @@ export function FocusTimer({
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.code === "Space") {
         e.preventDefault();
-        if (status === "idle" || status === "completed") handleStart();
-        else if (status === "running") handlePause();
-        else if (status === "paused") handleResume();
+        if (status === "idle" || status === "completed") void handleStart();
+        else if (status === "running") void handlePause();
+        else if (status === "paused") void handleResume();
       }
       if (e.code === "KeyR" && (status === "running" || status === "paused")) {
-        handleReset();
+        void handleReset();
       }
       if (e.code === "KeyB" && status === "idle") {
         setShowBreathing(true);
@@ -460,44 +424,32 @@ export function FocusTimer({
     return () => clearInterval(id);
   }, []);
 
-  const handleStart = () => {
+  const handleStart = async () => {
     if (status === "idle" || status === "completed") {
-      setTimeLeft(duration * 60);
-      sessionStartRef.current = new Date();
+      await start(duration);
+      return;
     }
-    setStatus("running");
-  };
-
-  const handlePause = () => setStatus("paused");
-  const handleResume = () => setStatus("running");
-
-  const handleReset = () => {
-    clearTimer();
-    if (status === "running" || status === "paused") {
-      if (sessionStartRef.current && onSessionComplete) {
-        onSessionComplete({
-          startTime: sessionStartRef.current,
-          endTime: new Date(),
-          status: "abandoned",
-          durationMinutes: duration,
-          mode: selectedMode.id,
-        });
-      }
+    if (status === "running") {
+      await pause();
+      return;
     }
-    setStatus("idle");
-    setTimeLeft(duration * 60);
-    sessionStartRef.current = null;
+    await resume();
   };
 
-  const handleDurationChange = (mins: number) => {
-    setDuration(mins);
-    if (status === "idle") setTimeLeft(mins * 60);
+  const handlePause = async () => pause();
+  const handleResume = async () => resume();
+
+  const handleReset = async () => {
+    await reset();
   };
 
-  const handleModeSelect = (mode: FocusMode) => {
+  const handleDurationChange = async (mins: number) => {
+    await setDuration(mins);
+  };
+
+  const handleModeSelect = async (mode: FocusMode) => {
     setSelectedMode(mode);
-    setDuration(mode.duration);
-    if (status === "idle") setTimeLeft(mode.duration * 60);
+    await setDuration(mode.duration);
   };
 
   const handleBreathingComplete = () => {
@@ -616,7 +568,7 @@ export function FocusTimer({
             <motion.button
               key={mode.id}
               whileTap={{ scale: 0.96 }}
-              onClick={() => handleModeSelect(mode)}
+              onClick={() => void handleModeSelect(mode)}
               disabled={status === "running" || status === "paused"}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl cursor-pointer transition-all"
               style={{
@@ -717,7 +669,7 @@ export function FocusTimer({
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.97 }}
-                onClick={handleStart}
+                onClick={() => void handleStart()}
                 className="px-7 py-2.5 rounded-2xl flex items-center gap-2.5 cursor-pointer"
                 style={{ background: "#3a3733", color: "#f5f3ef" }}
               >
@@ -730,7 +682,7 @@ export function FocusTimer({
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.97 }}
-                onClick={status === "running" ? handlePause : handleResume}
+                onClick={() => void (status === "running" ? handlePause() : handleResume())}
                 className="px-6 py-2.5 rounded-2xl flex items-center gap-2 cursor-pointer"
                 style={{ background: "#3a3733", color: "#f5f3ef" }}
               >
@@ -749,7 +701,7 @@ export function FocusTimer({
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={handleReset}
+                onClick={() => void handleReset()}
                 className="w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer"
                 style={{ background: "rgba(58, 55, 51, 0.04)" }}
               >
@@ -779,7 +731,7 @@ export function FocusTimer({
                   <div className="fixed inset-0 z-40" onClick={() => setShowDuration(false)} />
                   <DurationPicker
                     value={duration}
-                    onChange={handleDurationChange}
+                    onChange={(value) => void handleDurationChange(value)}
                     onClose={() => setShowDuration(false)}
                     customDurationLabel={t("focus.customDuration")}
                     minLabel={t("focus.minUnit")}

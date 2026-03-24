@@ -1,8 +1,9 @@
 import { db } from '../../data/db'
 import { deriveFeatureState, nextFeatureInstallations, type FeatureState } from './labsModel'
-import type { FeatureKey } from '../../data/models/types'
+import type { AccountRole, FeatureKey } from '../../data/models/types'
 
 export const CURRENT_USER_ID = 'local-user'
+export const CURRENT_ACCOUNT_ROLE: AccountRole = 'admin'
 
 export type SubscriptionTier = 'free' | 'premium'
 
@@ -23,6 +24,7 @@ export type UserSubscriptionRecord = {
   id: string
   userId: string
   tier: SubscriptionTier
+  role: AccountRole
   createdAt: number
   updatedAt: number
 }
@@ -49,9 +51,16 @@ const FEATURE_META: FeatureMeta[] = [
     premiumOnly: true,
     comingSoon: false,
   },
+  {
+    featureKey: 'mind-map',
+    title: 'Mind Map',
+    description: 'Visual note mapping with draggable nodes and connections.',
+    premiumOnly: false,
+    comingSoon: true,
+  },
 ]
 
-const upsertSubscription = async (tier: SubscriptionTier) => {
+const upsertSubscription = async (tier: SubscriptionTier, role: AccountRole = CURRENT_ACCOUNT_ROLE) => {
   const now = Date.now()
   const existing = await db.userSubscriptions.where('userId').equals(CURRENT_USER_ID).first()
   if (!existing) {
@@ -59,6 +68,7 @@ const upsertSubscription = async (tier: SubscriptionTier) => {
       id: `subscription:${CURRENT_USER_ID}`,
       userId: CURRENT_USER_ID,
       tier,
+      role,
       createdAt: now,
       updatedAt: now,
     }
@@ -69,6 +79,7 @@ const upsertSubscription = async (tier: SubscriptionTier) => {
   const next: UserSubscriptionRecord = {
     ...existing,
     tier,
+    role: existing.role ?? role,
     updatedAt: now,
   }
   await db.userSubscriptions.put(next)
@@ -93,6 +104,9 @@ export const getSubscription = async () => {
   const current = await db.userSubscriptions.where('userId').equals(CURRENT_USER_ID).first()
   if (!current) {
     return upsertSubscription('free')
+  }
+  if (!current.role) {
+    return upsertSubscription(current.tier, CURRENT_ACCOUNT_ROLE)
   }
   return current as UserSubscriptionRecord
 }

@@ -1,9 +1,14 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import NoteEditor from './NoteEditor'
+
+afterEach(() => {
+  cleanup()
+})
 
 vi.mock('../../../shared/i18n/useI18n', () => ({
   useI18n: () => ({ t: (key: string) => key, language: 'en' as const }),
@@ -20,6 +25,17 @@ const editorConfigRef: { current: Record<string, unknown> | null } = { current: 
 vi.mock('../model/richTextCodec', () => ({
   ensureRichDoc: () => ({ type: 'doc', content: [] }),
   richDocToMarkdown: () => '',
+}))
+
+vi.mock('./MindMapEditor', () => ({
+  default: ({ onChange }: { onChange: (value: unknown) => void }) => (
+    <div>
+      <div data-testid="mindmap-editor">mindmap</div>
+      <button type="button" onClick={() => onChange({ nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } })}>
+        change-map
+      </button>
+    </div>
+  ),
 }))
 
 vi.mock('@tiptap/react', () => ({
@@ -70,6 +86,8 @@ const value = {
   title: 'Untitled',
   contentMd: '',
   contentJson: null,
+  editorMode: 'document' as const,
+  mindMap: null,
   tags: [],
 }
 
@@ -89,7 +107,7 @@ describe('NoteEditor', () => {
 
   it('renders toolbar and action buttons in the same topbar', () => {
     useEditorMock.mockReturnValue(createEditor())
-    const { container } = render(<NoteEditor value={value} onChange={() => {}} />)
+    const { container } = render(<NoteEditor value={value} onChange={() => {}} hasMindMapFullAccess />)
 
     const topbar = container.querySelector('.note-editor__topbar')
     const toolbar = topbar?.querySelector('[role="toolbar"]')
@@ -99,6 +117,23 @@ describe('NoteEditor', () => {
     expect(screen.getByRole('button', { name: 'notes.info' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'notes.appearance' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'notes.export' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Mind Map' })).toBeInTheDocument()
+  })
+
+  it('creates a new mind map from the toolbar action', async () => {
+    useEditorMock.mockReturnValue(createEditor())
+    const onCreateMindMap = vi.fn()
+    render(<NoteEditor value={value} onChange={() => {}} onCreateMindMap={onCreateMindMap} hasMindMapFullAccess />)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Mind Map' }))
+    expect(onCreateMindMap).toHaveBeenCalledTimes(1)
+  })
+
+  it('hides mind map entry for non-admin accounts', () => {
+    useEditorMock.mockReturnValue(createEditor())
+    render(<NoteEditor value={value} onChange={() => {}} />)
+
+    expect(screen.queryByRole('button', { name: 'Mind Map' })).not.toBeInTheDocument()
   })
 
   it('uses full-width by default and shrinks with content width slider value', () => {

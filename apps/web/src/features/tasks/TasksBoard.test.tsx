@@ -200,6 +200,18 @@ describe('TasksBoard sync', () => {
     expect(container.querySelector('.tasks-fg--plain')).not.toBeInTheDocument()
   })
 
+  it('keeps the plain tasks page surface from clipping shadows', async () => {
+    listMock.mockResolvedValueOnce([makeTask('task-1', 'First task')])
+
+    const { container } = render(<TasksBoard asCard={false} />)
+
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1))
+    const surface = container.querySelector('.tasks-board-surface')
+
+    expect(surface).toBeInTheDocument()
+    expect(surface?.className).not.toContain('overflow-hidden')
+  })
+
   it('opens onboarding drawer and hides composer in onboarding mode', async () => {
     listMock.mockResolvedValueOnce([])
 

@@ -5,6 +5,104 @@ export type TaskTagTone = {
   badge: string
 }
 
+export type TaskDeadlineState = {
+  daysRemaining: number | null
+  label: string | null
+  shellClass: string
+  badgeClass: string
+  textClass: string
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+const toUtcDayStart = (value: number) => {
+  const date = new Date(value)
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
+}
+
+const parseDateOnlyToUtcDayStart = (value: string) => {
+  const parts = value.split('-').map((part) => Number.parseInt(part, 10))
+  if (parts.length !== 3 || parts.some((part) => Number.isNaN(part))) return null
+  const [year, month, day] = parts
+  return Date.UTC(year, month - 1, day)
+}
+
+const buildDeadlineState = (daysRemaining: number): TaskDeadlineState => {
+  if (daysRemaining < 0) {
+    return {
+      daysRemaining,
+      label: `${daysRemaining}d`,
+      shellClass: '!border-rose-300/70 !bg-rose-50/80',
+      badgeClass: 'border-rose-300 bg-rose-100 text-rose-700',
+      textClass: 'text-rose-700',
+    }
+  }
+
+  if (daysRemaining === 0) {
+    return {
+      daysRemaining,
+      label: '0d',
+      shellClass: '!border-rose-300/60 !bg-rose-50/70',
+      badgeClass: 'border-rose-300 bg-rose-100 text-rose-700',
+      textClass: 'text-rose-700',
+    }
+  }
+
+  if (daysRemaining <= 3) {
+    return {
+      daysRemaining,
+      label: `+${daysRemaining}d`,
+      shellClass: '!border-orange-300/60 !bg-orange-50/70',
+      badgeClass: 'border-orange-200 bg-orange-50 text-orange-700',
+      textClass: 'text-orange-700',
+    }
+  }
+
+  if (daysRemaining <= 7) {
+    return {
+      daysRemaining,
+      label: `+${daysRemaining}d`,
+      shellClass: '!border-amber-200/70 !bg-amber-50/70',
+      badgeClass: 'border-amber-200 bg-amber-50 text-amber-700',
+      textClass: 'text-amber-700',
+    }
+  }
+
+  return {
+    daysRemaining,
+    label: `+${daysRemaining}d`,
+    shellClass: '',
+    badgeClass: 'border-[#3A3733]/10 bg-white text-[#3A3733]/70',
+    textClass: 'text-muted-foreground',
+  }
+}
+
+export const getTaskDeadlineState = (task: Pick<TaskItem, 'dueDate' | 'status'>, now = Date.now()): TaskDeadlineState => {
+  if (!task.dueDate || task.status === 'done') {
+    return {
+      daysRemaining: null,
+      label: null,
+      shellClass: '',
+      badgeClass: 'border-[#3A3733]/10 bg-white text-[#3A3733]/70',
+      textClass: 'text-muted-foreground',
+    }
+  }
+
+  const dueDay = parseDateOnlyToUtcDayStart(task.dueDate)
+  if (dueDay == null) {
+    return {
+      daysRemaining: null,
+      label: null,
+      shellClass: '',
+      badgeClass: 'border-[#3A3733]/10 bg-white text-[#3A3733]/70',
+      textClass: 'text-muted-foreground',
+    }
+  }
+
+  const daysRemaining = Math.round((dueDay - toUtcDayStart(now)) / DAY_MS)
+  return buildDeadlineState(daysRemaining)
+}
+
 export const TASK_STATUS_CONFIG: Record<TaskStatus, { label: string; dot: string; badge: string }> = {
   todo: {
     label: '待办',

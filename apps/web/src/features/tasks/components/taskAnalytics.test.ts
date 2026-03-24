@@ -6,19 +6,19 @@ const createTask = (overrides: Partial<TaskItem> = {}): TaskItem => ({
   id: overrides.id ?? 'task-1',
   title: overrides.title ?? 'Task',
   description: '',
-  pinned: false,
+  pinned: overrides.pinned ?? false,
   status: overrides.status ?? 'todo',
-  priority: null,
-  dueDate: undefined,
-  startDate: undefined,
-  endDate: undefined,
-  reminderAt: undefined,
-  reminderFiredAt: undefined,
-  tags: [],
-  subtasks: [],
-  taskNoteBlocks: [],
-  taskNoteContentMd: '',
-  taskNoteContentJson: null,
+  priority: overrides.priority ?? null,
+  dueDate: overrides.dueDate,
+  startDate: overrides.startDate,
+  endDate: overrides.endDate,
+  reminderAt: overrides.reminderAt,
+  reminderFiredAt: overrides.reminderFiredAt,
+  tags: overrides.tags ?? [],
+  subtasks: overrides.subtasks ?? [],
+  taskNoteBlocks: overrides.taskNoteBlocks ?? [],
+  taskNoteContentMd: overrides.taskNoteContentMd ?? '',
+  taskNoteContentJson: overrides.taskNoteContentJson ?? null,
   activityLogs: overrides.activityLogs ?? [],
   createdAt: overrides.createdAt ?? Date.parse('2026-03-01T08:00:00Z'),
   updatedAt: overrides.updatedAt ?? overrides.createdAt ?? Date.parse('2026-03-01T08:00:00Z'),
@@ -100,5 +100,48 @@ describe('buildTaskAnalytics', () => {
     expect(analytics.summary.completionRate).toBe(0)
     expect(analytics.summary.streakDays).toBe(0)
     expect(analytics.summary.averageCompletions).toBe(0)
+  })
+
+  it('includes subtask and deadline summaries', () => {
+    const tasks = [
+      createTask({
+        id: 'task-open-high',
+        priority: 'high',
+        dueDate: '2026-03-14',
+        subtasks: [
+          { id: 'a', title: 'One', done: true },
+          { id: 'b', title: 'Two', done: false },
+        ],
+      }),
+      createTask({
+        id: 'task-open-medium',
+        status: 'doing',
+        priority: 'medium',
+        dueDate: '2026-03-11',
+        subtasks: [
+          { id: 'c', title: 'Three', done: true },
+          { id: 'd', title: 'Four', done: false },
+        ],
+      }),
+      createTask({
+        id: 'task-done',
+        status: 'done',
+        priority: null,
+        subtasks: [],
+      }),
+    ]
+
+    const analytics = buildTaskAnalytics(tasks, { now: Date.parse('2026-03-12T12:00:00Z'), granularity: 'day' })
+
+    expect(analytics.summary.totalTasks).toBe(3)
+    expect(analytics.summary.completedTasks).toBe(1)
+    expect(analytics.summary.activeTasks).toBe(2)
+    expect(analytics.summary.subtasksTotal).toBe(4)
+    expect(analytics.summary.subtasksCompleted).toBe(2)
+    expect(analytics.summary.subtaskCompletionRate).toBe(50)
+    expect(analytics.summary.overdueTasks).toBe(1)
+    expect(analytics.summary.dueSoonTasks).toBe(1)
+    expect(analytics.summary.statusCounts).toEqual({ todo: 1, doing: 1, done: 1 })
+    expect(analytics.summary.priorityCounts).toEqual({ high: 1, medium: 1, low: 0, none: 1 })
   })
 })

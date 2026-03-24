@@ -1,4 +1,4 @@
-import type { TaskItem } from '../tasks.types'
+import type { TaskItem, TaskPriority, TaskStatus } from '../tasks.types'
 
 export type AnalyticsGranularity = 'day' | 'week' | 'month'
 
@@ -9,6 +9,10 @@ export type AnalyticsBucket = {
   endAt: number
   completions: number
   created: number
+  subtasksCompleted: number
+  subtasksTotal: number
+  overdue: number
+  dueSoon: number
 }
 
 export type TaskAnalyticsSummary = {
@@ -16,6 +20,16 @@ export type TaskAnalyticsSummary = {
   completionRate: number
   streakDays: number
   averageCompletions: number
+  totalTasks: number
+  completedTasks: number
+  activeTasks: number
+  subtasksCompleted: number
+  subtasksTotal: number
+  subtaskCompletionRate: number
+  overdueTasks: number
+  dueSoonTasks: number
+  statusCounts: Record<TaskStatus, number>
+  priorityCounts: Record<TaskPriority | 'none', number>
 }
 
 export type TaskAnalyticsResult = {
@@ -30,6 +44,7 @@ type BuildTaskAnalyticsOptions = {
 
 const DONE_MESSAGE = 'status changed to done'
 const DAY_MS = 24 * 60 * 60 * 1000
+const DEADLINE_SOON_DAYS = 3
 
 const WINDOW_SIZE: Record<AnalyticsGranularity, number> = {
   day: 14,
@@ -118,8 +133,17 @@ const roundTo = (value: number, digits: number) => {
   return Math.round(value * factor) / factor
 }
 
+const parseDateOnlyToUtcDayStart = (value?: string) => {
+  if (!value) return null
+  const parts = value.split('-').map((part) => Number.parseInt(part, 10))
+  if (parts.length !== 3 || parts.some((part) => Number.isNaN(part))) return null
+  const [year, month, day] = parts
+  return Date.UTC(year, month - 1, day)
+}
+
 export const buildTaskAnalytics = (tasks: TaskItem[], { now = Date.now(), granularity }: BuildTaskAnalyticsOptions): TaskAnalyticsResult => {
   const currentRange = getBucketRange(now, granularity)
+  const nowDayStart = toUtcDayStart(now)
   const totalBuckets = WINDOW_SIZE[granularity]
   const firstBucketStart = shiftBucketStart(currentRange.startAt, granularity, -(totalBuckets - 1))
   const buckets: AnalyticsBucket[] = Array.from({ length: totalBuckets }, (_, index) => {
@@ -131,6 +155,10 @@ export const buildTaskAnalytics = (tasks: TaskItem[], { now = Date.now(), granul
       endAt: getBucketRange(startAt, granularity).endAt,
       completions: 0,
       created: 0,
+      subtasksCompleted: 0,
+      subtasksTotal: 0,
+      overdue: 0,
+      dueSoon: 0,
     }
   })
 
@@ -149,10 +177,48 @@ export const buildTaskAnalytics = (tasks: TaskItem[], { now = Date.now(), granul
     const index = bucketIndex.get(startAt)
     if (index == null) return
     buckets[index]!.created += 1
+
+    const subtaskCompleted = task.subtasks.filter((item) => item.done).length
+    buckets[index]!.subtasksCompleted += subtaskCompleted
+    buckets[index]!.subtasksTotal += task.subtasks.length
+
+    const dueDay = parseDateOnlyToUtcDayStart(task.dueDate)
+    if (dueDay != null && task.status !== 'done') {
+      const dueIndex = bucketIndex.get(getBucketRange(dueDay, granularity).startAt)
+      if (dueIndex != null) {
+        const daysRemaining = Math.round((dueDay - nowDayStart) / DAY_MS)
+        if (daysRemaining < 0) buckets[dueIndex]!.overdue += 1
+        if (daysRemaining >= 0 && daysRemaining <= DEADLINE_SOON_DAYS) buckets[dueIndex]!.dueSoon += 1
+      }
+    }
   })
 
   const completions = buckets.reduce((sum, bucket) => sum + bucket.completions, 0)
   const created = buckets.reduce((sum, bucket) => sum + bucket.created, 0)
+  const totalTasks = tasks.length
+  const completedTasks = tasks.filter((task) => task.status === 'done').length
+  const activeTasks = totalTasks - completedTasks
+  const subtasksCompleted = tasks.reduce((sum, task) => sum + task.subtasks.filter((item) => item.done).length, 0)
+  const subtasksTotal = tasks.reduce((sum, task) => sum + task.subtasks.length, 0)
+  const subtaskCompletionRate = subtasksTotal > 0 ? roundTo((subtasksCompleted / subtasksTotal) * 100, 0) : 0
+  const overdueTasks = tasks.filter((task) => {
+    const dueDay = parseDateOnlyToUtcDayStart(task.dueDate)
+    return dueDay != null && task.status !== 'done' && dueDay < nowDayStart
+  }).length
+  const dueSoonTasks = tasks.filter((task) => {
+    const dueDay = parseDateOnlyToUtcDayStart(task.dueDate)
+    if (dueDay == null || task.status === 'done') return false
+    const daysRemaining = Math.round((dueDay - nowDayStart) / DAY_MS)
+    return daysRemaining >= 0 && daysRemaining <= DEADLINE_SOON_DAYS
+  }).length
+  const statusCounts: Record<TaskStatus, number> = { todo: 0, doing: 0, done: 0 }
+  const priorityCounts: Record<TaskPriority | 'none', number> = { high: 0, medium: 0, low: 0, none: 0 }
+
+  tasks.forEach((task) => {
+    statusCounts[task.status] += 1
+    priorityCounts[task.priority ?? 'none'] += 1
+  })
+
   const completionRate = created > 0 ? roundTo((completions / created) * 100, 0) : 0
   const averageCompletions = buckets.length > 0 ? roundTo(buckets.reduce((sum, bucket) => sum + bucket.completions, 0) / buckets.length, 1) : 0
 
@@ -163,6 +229,16 @@ export const buildTaskAnalytics = (tasks: TaskItem[], { now = Date.now(), granul
       completionRate,
       streakDays: computeStreakDays(completionEvents, now),
       averageCompletions,
+      totalTasks,
+      completedTasks,
+      activeTasks,
+      subtasksCompleted,
+      subtasksTotal,
+      subtaskCompletionRate,
+      overdueTasks,
+      dueSoonTasks,
+      statusCounts,
+      priorityCounts,
     },
   }
 }

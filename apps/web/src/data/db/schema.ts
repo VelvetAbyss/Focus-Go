@@ -1,5 +1,5 @@
 export const DB_NAME = 'workbench-app'
-export const DB_VERSION = 25
+export const DB_VERSION = 26
 
 export const TABLES = {
   tasks: 'tasks',
@@ -131,4 +131,8 @@ export const schemaV24 = {
 
 export const schemaV25 = {
   ...schemaV24,
+} as const
+
+export const schemaV26 = {
+  ...schemaV25,
 } as const
