@@ -95,7 +95,7 @@ const TasksAnalyticsView = ({ tasks }: TasksAnalyticsViewProps) => {
     const total = analytics.summary.totalTasks || 1
     return {
       key: priority,
-      label: cfg.label,
+      label: t(cfg.labelKey),
       count,
       percent: Math.round((count / total) * 100),
       badge: cfg.badge,

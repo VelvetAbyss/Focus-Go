@@ -6,6 +6,7 @@ import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
+import { useI18n } from '../i18n/useI18n'
 import { normalizeTimeKey, parseDateKeyToLocalDate, toDateKey } from './datePicker/dateKey'
 
 export interface DateTimePickerProps {
@@ -38,18 +39,18 @@ export function DateTimePicker({
   ariaLabel,
   popoverClassName,
 }: DateTimePickerProps) {
+  const { t } = useI18n()
   const [dateOpen, setDateOpen] = React.useState(false)
   const [timeOpen, setTimeOpen] = React.useState(false)
-  void placeholder
   const selectedDate = React.useMemo(() => parseDateKeyToLocalDate(dateValue), [dateValue])
   const normalizedTime = normalizeTimeKey(timeValue)
-  const dateLabel = selectedDate ? format(selectedDate, 'PPP') : '选择日期...'
-  const timeLabel = normalizedTime ?? '选择时间'
+  const dateLabel = selectedDate ? format(selectedDate, 'PPP') : placeholder ?? t('tasks.drawer.selectDatePlaceholder')
+  const timeLabel = normalizedTime ?? t('tasks.drawer.selectTime')
 
   return (
     <FieldGroup className={cn('flex-row flex-wrap items-end gap-2', className)}>
       <Field className="min-w-0 flex-1 gap-1">
-        <FieldLabel>日期</FieldLabel>
+        <FieldLabel>{t('tasks.drawer.date')}</FieldLabel>
         <Popover open={dateOpen} onOpenChange={setDateOpen}>
           <PopoverTrigger asChild>
             <Button
@@ -87,14 +88,14 @@ export function DateTimePicker({
         </Popover>
       </Field>
       <Field className="w-[148px] min-w-[132px] shrink-0 gap-1">
-        <FieldLabel>时间</FieldLabel>
+        <FieldLabel>{t('tasks.drawer.time')}</FieldLabel>
         <Popover open={timeOpen} onOpenChange={setTimeOpen}>
           <PopoverTrigger asChild>
             <Button
               type="button"
               variant="outline"
               data-empty={!normalizedTime}
-              aria-label="时间"
+              aria-label={t('tasks.drawer.time')}
               className={cn(
                 'data-[empty=true]:text-muted-foreground w-full min-w-0 max-w-full justify-between text-left font-normal',
                 triggerClassName,
@@ -110,7 +111,7 @@ export function DateTimePicker({
             )}
             align="start"
           >
-            <div className="border-border border-b px-3 py-2 text-sm font-semibold">时间</div>
+            <div className="border-border border-b px-3 py-2 text-sm font-semibold">{t('tasks.drawer.time')}</div>
             <ScrollArea className="h-60">
               <div className="p-1">
                 {TIME_OPTIONS.map((time) => {
@@ -134,7 +135,7 @@ export function DateTimePicker({
                 })}
               </div>
             </ScrollArea>
-            <p className="text-muted-foreground border-border border-t px-3 py-2 text-xs">向下滚动查看更多</p>
+            <p className="text-muted-foreground border-border border-t px-3 py-2 text-xs">{t('tasks.drawer.scrollForMore')}</p>
           </PopoverContent>
         </Popover>
       </Field>

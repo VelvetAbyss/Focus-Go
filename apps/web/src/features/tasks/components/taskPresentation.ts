@@ -103,42 +103,42 @@ export const getTaskDeadlineState = (task: Pick<TaskItem, 'dueDate' | 'status'>,
   return buildDeadlineState(daysRemaining)
 }
 
-export const TASK_STATUS_CONFIG: Record<TaskStatus, { label: string; dot: string; badge: string }> = {
+export const TASK_STATUS_CONFIG: Record<TaskStatus, { labelKey: 'tasks.status.todo' | 'tasks.status.doing' | 'tasks.status.done'; dot: string; badge: string }> = {
   todo: {
-    label: '待办',
+    labelKey: 'tasks.status.todo',
     dot: 'bg-stone-400',
     badge: 'border-stone-300 bg-stone-100 text-stone-700',
   },
   doing: {
-    label: '进行中',
+    labelKey: 'tasks.status.doing',
     dot: 'bg-teal-500',
     badge: 'border-teal-200 bg-teal-50 text-teal-700',
   },
   done: {
-    label: '已完成',
+    labelKey: 'tasks.status.done',
     dot: 'bg-emerald-500',
     badge: 'border-emerald-200 bg-emerald-50 text-emerald-700',
   },
 }
 
-export const TASK_PRIORITY_CONFIG: Record<NonNullable<TaskPriority> | 'none', { label: string; dot: string; badge: string }> = {
+export const TASK_PRIORITY_CONFIG: Record<NonNullable<TaskPriority> | 'none', { labelKey: 'tasks.priority.high' | 'tasks.priority.medium' | 'tasks.priority.low' | 'tasks.priority.none'; dot: string; badge: string }> = {
   high: {
-    label: '高',
+    labelKey: 'tasks.priority.high',
     dot: 'bg-rose-500',
     badge: 'bg-rose-50 text-rose-700',
   },
   medium: {
-    label: '中',
+    labelKey: 'tasks.priority.medium',
     dot: 'bg-amber-500',
     badge: 'bg-amber-50 text-amber-700',
   },
   low: {
-    label: '低',
+    labelKey: 'tasks.priority.low',
     dot: 'bg-cyan-600',
     badge: 'bg-cyan-50 text-cyan-700',
   },
   none: {
-    label: '无',
+    labelKey: 'tasks.priority.none',
     dot: 'bg-stone-300',
     badge: 'bg-stone-100 text-stone-500',
   },

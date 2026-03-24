@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useI18n } from '../../../shared/i18n/useI18n'
 
 type TaskNoteValue = {
   contentJson?: Record<string, unknown> | null
@@ -11,6 +12,7 @@ type TaskNoteEditorProps = {
 }
 
 const TaskNoteEditor = ({ value, onChange }: TaskNoteEditorProps) => {
+  const { t } = useI18n()
   const [draft, setDraft] = useState(value.contentMd ?? '')
 
   useEffect(() => {
@@ -28,7 +30,7 @@ const TaskNoteEditor = ({ value, onChange }: TaskNoteEditorProps) => {
           setDraft(next)
           onChange({ contentMd: next, contentJson: null })
         }}
-        placeholder="在此输入任务详情"
+        placeholder={t('tasks.drawer.detailsPlaceholder')}
         rows={10}
       />
     </div>

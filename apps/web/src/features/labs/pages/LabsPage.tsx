@@ -39,8 +39,6 @@ const LabsPage = () => {
     toast.push({ variant: 'success', message: i18n.toast.upgraded })
   }
 
-  const isMindMapFeature = (feature: FeatureCatalogItem) => feature.featureKey === 'mind-map'
-
   return (
     <div className="labs-page">
       <header className="labs-page__header">
@@ -61,13 +59,11 @@ const LabsPage = () => {
                 <CardDescription>{feature.description}</CardDescription>
               </CardHeader>
               <CardContent>
-                {feature.comingSoon || isMindMapFeature(feature) ? <Badge variant="outline">{i18n.labs.comingSoon}</Badge> : null}
-                {feature.requiresPremium && !isMindMapFeature(feature) ? <Badge variant="outline">{i18n.labs.premiumLocked}</Badge> : null}
+                {feature.comingSoon ? <Badge variant="outline">{i18n.labs.comingSoon}</Badge> : null}
+                {feature.requiresPremium ? <Badge variant="outline">{i18n.labs.premiumLocked}</Badge> : null}
               </CardContent>
               <CardFooter className="labs-page__card-actions">
-                {isMindMapFeature(feature) ? (
-                  <Button disabled>{i18n.labs.comingSoon}</Button>
-                ) : feature.requiresPremium ? (
+                {feature.requiresPremium ? (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button>{i18n.labs.upgrade}</Button>
@@ -111,9 +107,7 @@ const LabsPage = () => {
                 <CardDescription>{feature.description}</CardDescription>
               </CardHeader>
               <CardFooter className="labs-page__card-actions">
-                {feature.featureKey === 'mind-map' ? (
-                  <Button disabled>{i18n.labs.comingSoon}</Button>
-                ) : feature.featureKey === 'habit-tracker' ? (
+                {feature.featureKey === 'habit-tracker' ? (
                   feature.requiresPremium ? (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
@@ -159,10 +153,8 @@ const LabsPage = () => {
                 <CardDescription>{feature.description}</CardDescription>
               </CardHeader>
               <CardFooter className="labs-page__card-actions">
-                {isMindMapFeature(feature) ? (
-                  <Button variant="secondary" disabled>
-                    {i18n.labs.comingSoon}
-                  </Button>
+                {feature.comingSoon ? (
+                  <Button variant="secondary" disabled>{i18n.labs.comingSoon}</Button>
                 ) : (
                   <Button
                     variant="secondary"

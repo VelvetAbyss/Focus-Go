@@ -159,38 +159,12 @@ const taskCreateInputSchema = z
   .strict()
 
 const widgetTodoScopeSchema = z.enum(['day', 'week', 'month'])
-const noteEditorModeSchema = z.enum(['document', 'mindmap'])
-const noteMindMapNodeSchema = z.object({
-  id: z.string(),
-  position: z.object({
-    x: z.number(),
-    y: z.number(),
-  }).strict(),
-  data: z.object({
-    label: z.string(),
-  }).strict(),
-}).strict()
-const noteMindMapEdgeSchema = z.object({
-  id: z.string(),
-  source: z.string(),
-  target: z.string(),
-}).strict()
-const noteMindMapViewportSchema = z.object({
-  x: z.number(),
-  y: z.number(),
-  zoom: z.number(),
-}).strict()
-const noteMindMapDocumentSchema = z.object({
-  nodes: z.array(noteMindMapNodeSchema),
-  edges: z.array(noteMindMapEdgeSchema),
-  viewport: noteMindMapViewportSchema.nullable().optional(),
-}).strict()
+const noteEditorModeSchema = z.literal('document')
 const noteItemSchema = baseEntitySchema.extend({
   title: z.string(),
   contentMd: z.string(),
   contentJson: z.record(z.string(), z.unknown()).nullable().optional(),
   editorMode: noteEditorModeSchema,
-  mindMap: noteMindMapDocumentSchema.nullable().optional(),
   collection: noteCollectionSchema,
   tags: z.array(z.string()),
   excerpt: z.string(),
@@ -211,7 +185,6 @@ const noteCreateInputSchema = z
     contentMd: z.string().optional(),
     contentJson: z.record(z.string(), z.unknown()).nullable().optional(),
     editorMode: noteEditorModeSchema.optional(),
-    mindMap: noteMindMapDocumentSchema.nullable().optional(),
     collection: noteCollectionSchema.optional(),
     tags: z.array(z.string()).optional(),
     pinned: z.boolean().optional(),
@@ -225,7 +198,6 @@ const noteUpdateInputSchema = z
     contentMd: z.string().optional(),
     contentJson: z.record(z.string(), z.unknown()).nullable().optional(),
     editorMode: noteEditorModeSchema.optional(),
-    mindMap: noteMindMapDocumentSchema.nullable().optional(),
     collection: noteCollectionSchema.optional(),
     tags: z.array(z.string()).optional(),
     excerpt: z.string().optional(),

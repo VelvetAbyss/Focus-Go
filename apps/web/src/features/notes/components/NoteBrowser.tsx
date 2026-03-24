@@ -26,12 +26,6 @@ type Props = {
   scrollContainerRef?: RefObject<HTMLDivElement | null>
 }
 
-const sortLabels: Record<NoteSortOption, string> = {
-  edited: '已编辑',
-  created: '创建时间',
-  title: '标题',
-}
-
 const formatTime = (time: number) => {
   const diff = Date.now() - time
   const minutes = Math.floor(diff / 60000)
@@ -62,7 +56,12 @@ export default function NoteBrowser({
   className,
   scrollContainerRef,
 }: Props) {
-  const { t } = useI18n()
+  const { language, t } = useI18n()
+  const sortLabels: Record<NoteSortOption, string> = {
+    edited: t('modules.note.sort.edited'),
+    created: t('tasks.sort.created'),
+    title: language === 'zh' ? '标题' : 'Title',
+  }
   const [showSortMenu, setShowSortMenu] = useState(false)
   const filtered = useMemo(
     () =>

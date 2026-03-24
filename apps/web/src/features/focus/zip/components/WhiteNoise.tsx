@@ -14,10 +14,10 @@ import {
 } from "lucide-react";
 import { useSharedNoise } from "../../SharedNoiseProvider";
 import type { NoiseTrackId } from "../../../../data/models/types";
+import { useI18n } from "../../../../shared/i18n/useI18n";
 
 interface SoundTrack {
   id: NoiseTrackId;
-  name: string;
   icon: ReactNode;
   enabled: boolean;
   volume: number;
@@ -26,7 +26,6 @@ interface SoundTrack {
 
 interface SoundPreset {
   id: string;
-  name: string;
   emoji: string;
   tracks: Record<NoiseTrackId, { enabled: boolean; volume: number }>;
 }
@@ -34,7 +33,6 @@ interface SoundPreset {
 const soundPresets: SoundPreset[] = [
   {
     id: "rainy-cafe",
-    name: "雨天咖啡馆",
     emoji: "☕",
     tracks: {
       cafe: { enabled: true, volume: 0.5 },
@@ -47,7 +45,6 @@ const soundPresets: SoundPreset[] = [
   },
   {
     id: "stormy-night",
-    name: "暴风雨之夜",
     emoji: "🌩",
     tracks: {
       cafe: { enabled: false, volume: 0.5 },
@@ -60,7 +57,6 @@ const soundPresets: SoundPreset[] = [
   },
   {
     id: "ocean-breeze",
-    name: "海风",
     emoji: "🌊",
     tracks: {
       cafe: { enabled: false, volume: 0.5 },
@@ -73,7 +69,6 @@ const soundPresets: SoundPreset[] = [
   },
   {
     id: "cozy-fireside",
-    name: "壁炉暖意",
     emoji: "🔥",
     tracks: {
       cafe: { enabled: false, volume: 0.5 },
@@ -87,12 +82,12 @@ const soundPresets: SoundPreset[] = [
 ];
 
 const defaultTracks: SoundTrack[] = [
-  { id: "cafe", name: "咖啡馆", icon: <Coffee size={15} />, enabled: true, volume: 0.6, color: "#C4A882" },
-  { id: "fireplace", name: "壁炉", icon: <Flame size={15} />, enabled: true, volume: 0.4, color: "#D4956A" },
-  { id: "rain", name: "雨声", icon: <CloudRain size={15} />, enabled: true, volume: 0.7, color: "#8BA4B8" },
-  { id: "wind", name: "风声", icon: <Wind size={15} />, enabled: false, volume: 0.5, color: "#A3B8A0" },
-  { id: "thunder", name: "雷声", icon: <CloudLightning size={15} />, enabled: false, volume: 0.3, color: "#9A8EAF" },
-  { id: "ocean", name: "海浪", icon: <Waves size={15} />, enabled: false, volume: 0.5, color: "#7BA5B5" },
+  { id: "cafe", icon: <Coffee size={15} />, enabled: true, volume: 0.6, color: "#C4A882" },
+  { id: "fireplace", icon: <Flame size={15} />, enabled: true, volume: 0.4, color: "#D4956A" },
+  { id: "rain", icon: <CloudRain size={15} />, enabled: true, volume: 0.7, color: "#8BA4B8" },
+  { id: "wind", icon: <Wind size={15} />, enabled: false, volume: 0.5, color: "#A3B8A0" },
+  { id: "thunder", icon: <CloudLightning size={15} />, enabled: false, volume: 0.3, color: "#9A8EAF" },
+  { id: "ocean", icon: <Waves size={15} />, enabled: false, volume: 0.5, color: "#7BA5B5" },
 ];
 
 function SoundBarVisualizer({ tracks, isPlaying }: { tracks: SoundTrack[]; isPlaying: boolean }) {
@@ -278,6 +273,7 @@ function PremiumSlider({
 }
 
 export function WhiteNoise() {
+  const { language, t } = useI18n();
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const [sleepRemaining, setSleepRemaining] = useState<number | null>(null);
   const [showSleepOptions, setShowSleepOptions] = useState(false);
@@ -370,6 +366,20 @@ export function WhiteNoise() {
   }, [noise.sleepEndsAt]);
 
   const activeTracks = tracks.filter((t) => t.enabled).length;
+  const presetNameMap: Record<string, string> = {
+    "rainy-cafe": t("focus.scene.rainyCafe"),
+    "stormy-night": t("focus.scene.stormyNight"),
+    "ocean-breeze": t("focus.scene.oceanBreeze"),
+    "cozy-fireside": t("focus.scene.cozyFireside"),
+  };
+  const trackNameMap: Record<NoiseTrackId, string> = {
+    cafe: language === "zh" ? "咖啡馆" : "Cafe",
+    fireplace: language === "zh" ? "壁炉" : "Fireplace",
+    rain: language === "zh" ? "雨声" : "Rain",
+    wind: language === "zh" ? "风声" : "Wind",
+    thunder: language === "zh" ? "雷声" : "Thunder",
+    ocean: language === "zh" ? "海浪" : "Ocean",
+  };
 
   const handlePlayPause = () => {
     if (!isPlaying && activeTracks === 0) {
@@ -387,10 +397,10 @@ export function WhiteNoise() {
             style={{ fontFamily: "'DM Serif Display', serif" }}
             className="text-[1.15rem] text-[#3a3733] tracking-[-0.01em]"
           >
-            白噪音
+            {t("focus.whiteNoise")}
           </h2>
           <p className="text-[0.7rem] text-[#a09a90] mt-0.5 tracking-wide">
-            已启用 {activeTracks} 个声音
+            {language === "zh" ? `已启用 ${activeTracks} 个声音` : `${activeTracks} sound${activeTracks === 1 ? "" : "s"} enabled`}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -441,7 +451,7 @@ export function WhiteNoise() {
                   >
                     <div className="px-3 pt-2.5 pb-1">
                       <p className="text-[0.62rem] text-[#918b80] uppercase tracking-[0.08em]">
-                         睡眠定时
+                         {language === "zh" ? "睡眠定时" : "Sleep timer"}
                       </p>
                     </div>
                     {[15, 30, 45, 60, 90].map((m) => (
@@ -450,7 +460,7 @@ export function WhiteNoise() {
                         onClick={() => startSleepTimer(m)}
                         className="w-full text-left px-3.5 py-1.5 text-[0.72rem] text-[#5a5650] transition-colors cursor-pointer hover:bg-[#3a3733]/[0.03] whitespace-nowrap"
                       >
-                        {m} 分钟
+                        {language === "zh" ? `${m} 分钟` : `${m} min`}
                       </button>
                     ))}
                   </motion.div>
@@ -492,7 +502,7 @@ export function WhiteNoise() {
         <div className="flex items-center gap-1.5 mb-2.5">
           <Sparkles size={11} className="text-[#b0aa9e]" />
           <span className="text-[0.66rem] text-[#918b80] uppercase tracking-[0.08em]">
-             场景
+             {t("focus.scenes")}
           </span>
         </div>
         <div className="grid grid-cols-2 gap-1.5">
@@ -521,7 +531,7 @@ export function WhiteNoise() {
                     activePreset === preset.id ? "#5a7a58" : "#8a8478",
                 }}
               >
-                {preset.name}
+                {presetNameMap[preset.id] ?? preset.id}
               </span>
             </motion.button>
           ))}
@@ -532,7 +542,7 @@ export function WhiteNoise() {
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-[0.66rem] text-[#918b80] uppercase tracking-[0.08em]">
-            主音量
+            {t("focus.masterVolume")}
           </span>
           <span className="text-[0.66rem] text-[#b0aa9e] tabular-nums">
             {Math.round(masterVolume * 100)}%
@@ -576,7 +586,7 @@ export function WhiteNoise() {
                 className="flex-1 text-[0.76rem] transition-colors"
                 style={{ color: track.enabled ? "#4a4640" : "#b0aa9e" }}
               >
-                {track.name}
+                {trackNameMap[track.id]}
               </span>
               <motion.button
                 whileTap={{ scale: 0.9 }}
@@ -622,14 +632,16 @@ export function WhiteNoise() {
             <div className="flex items-center gap-2">
               <Moon size={11} className="text-[#7A9A78]" />
               <span className="text-[0.66rem] text-[#7A9A78]">
-                 将于 {Math.floor(sleepRemaining / 60)}:{String(sleepRemaining % 60).padStart(2, "0")} 后停止
+                 {language === "zh"
+                   ? `将于 ${Math.floor(sleepRemaining / 60)}:${String(sleepRemaining % 60).padStart(2, "0")} 后停止`
+                   : `Stops in ${Math.floor(sleepRemaining / 60)}:${String(sleepRemaining % 60).padStart(2, "0")}`}
               </span>
             </div>
             <button
               onClick={cancelSleepTimer}
               className="text-[0.62rem] text-[#a09a90] cursor-pointer hover:text-[#7a7568] transition-colors"
             >
-               取消
+               {language === "zh" ? "取消" : "Cancel"}
             </button>
           </motion.div>
         )}
