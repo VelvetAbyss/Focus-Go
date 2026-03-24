@@ -10,6 +10,7 @@ import {
   TrendingUp,
   Award,
 } from "lucide-react";
+import { useI18n } from "../../../../shared/i18n/useI18n";
 
 export interface FocusSession {
   id: string;
@@ -22,11 +23,11 @@ export interface FocusSession {
 }
 
 const sessionTags = [
-  { id: "work", label: "工作", color: "#8BA4B8" },
-  { id: "study", label: "学习", color: "#C4A882" },
-  { id: "reading", label: "阅读", color: "#A3B8A0" },
-  { id: "creative", label: "创作", color: "#9A8EAF" },
-  { id: "other", label: "其他", color: "#b0aa9e" },
+  { id: "work", color: "#8BA4B8" },
+  { id: "study", color: "#C4A882" },
+  { id: "reading", color: "#A3B8A0" },
+  { id: "creative", color: "#9A8EAF" },
+  { id: "other", color: "#b0aa9e" },
 ];
 
 const mockSessions: FocusSession[] = [];
@@ -39,13 +40,13 @@ function formatTime(date: Date) {
   });
 }
 
-function formatDate(date: Date) {
+function formatDate(date: Date, language: "en" | "zh") {
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
-  if (date.toDateString() === today.toDateString()) return "今天";
-  if (date.toDateString() === yesterday.toDateString()) return "昨天";
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  if (date.toDateString() === today.toDateString()) return language === "zh" ? "今天" : "Today";
+  if (date.toDateString() === yesterday.toDateString()) return language === "zh" ? "昨天" : "Yesterday";
+  return date.toLocaleDateString(language === "zh" ? "zh-CN" : "en-US", { month: "short", day: "numeric" });
 }
 
 function FilterChip({
@@ -115,6 +116,7 @@ function FilterChip({
 }
 
 function WeeklyChart({ sessions }: { sessions: FocusSession[] }) {
+  const { language } = useI18n();
   const today = new Date();
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(today);
@@ -122,7 +124,7 @@ function WeeklyChart({ sessions }: { sessions: FocusSession[] }) {
     return d;
   });
 
-  const dayLabels = ["S", "M", "T", "W", "T", "F", "S"];
+  const dayLabels = language === "zh" ? ["日", "一", "二", "三", "四", "五", "六"] : ["S", "M", "T", "W", "T", "F", "S"];
 
   const dayData = days.map((day) => {
     const daySessions = sessions.filter(
@@ -188,6 +190,7 @@ function WeeklyChart({ sessions }: { sessions: FocusSession[] }) {
 }
 
 function StatsCard({ sessions }: { sessions: FocusSession[] }) {
+  const { t } = useI18n();
   const today = new Date();
   const todaySessions = sessions.filter(
     (s) => s.startTime.toDateString() === today.toDateString()
@@ -226,7 +229,7 @@ function StatsCard({ sessions }: { sessions: FocusSession[] }) {
           {todayMinutes}
         </p>
         <p className="text-[0.55rem] text-[#a09a90] uppercase tracking-[0.06em] mt-0.5">
-          今日分钟
+          {t("focus.stats.minToday")}
         </p>
       </div>
       <div
@@ -240,7 +243,7 @@ function StatsCard({ sessions }: { sessions: FocusSession[] }) {
           {completionRate}%
         </p>
         <p className="text-[0.55rem] text-[#a09a90] uppercase tracking-[0.06em] mt-0.5">
-          完成率
+          {t("focus.stats.rate")}
         </p>
       </div>
       <div
@@ -257,7 +260,7 @@ function StatsCard({ sessions }: { sessions: FocusSession[] }) {
           </p>
         </div>
         <p className="text-[0.55rem] text-[#a09a90] uppercase tracking-[0.06em] mt-0.5">
-          连续天数
+          {t("focus.stats.streak")}
         </p>
       </div>
     </div>
@@ -265,6 +268,7 @@ function StatsCard({ sessions }: { sessions: FocusSession[] }) {
 }
 
 export function FocusHistory({ externalSessions }: { externalSessions?: FocusSession[] }) {
+  const { language, t } = useI18n();
   const [statusFilter, setStatusFilter] = useState("all");
   const [durationFilter, setDurationFilter] = useState("all");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
@@ -285,7 +289,7 @@ export function FocusHistory({ externalSessions }: { externalSessions?: FocusSes
   // Group by date
   const grouped: Record<string, FocusSession[]> = {};
   filtered.forEach((s) => {
-    const key = formatDate(s.startTime);
+    const key = formatDate(s.startTime, language);
     if (!grouped[key]) grouped[key] = [];
     grouped[key].push(s);
   });
@@ -299,6 +303,13 @@ export function FocusHistory({ externalSessions }: { externalSessions?: FocusSes
       (s) => s.status === "completed" && s.startTime.toDateString() === new Date().toDateString()
     )
     .reduce((sum, s) => sum + s.durationMinutes, 0);
+  const sessionTagLabels: Record<string, string> = {
+    work: t("focus.filter.work"),
+    study: t("focus.filter.study"),
+    reading: t("focus.filter.reading"),
+    creative: t("focus.filter.creative"),
+    other: t("focus.filter.other"),
+  };
 
   return (
     <div className="focus-zip-history h-full flex flex-col">
@@ -308,10 +319,10 @@ export function FocusHistory({ externalSessions }: { externalSessions?: FocusSes
           style={{ fontFamily: "'DM Serif Display', serif" }}
           className="text-[1.15rem] text-[#3a3733] tracking-[-0.01em]"
         >
-          专注记录
+          {t("focus.history")}
         </h2>
         <p className="text-[0.7rem] text-[#a09a90] mt-0.5 tracking-wide">
-          {completedToday} 次 · 今日 {totalMinutesToday} 分钟
+          {language === "zh" ? `${completedToday} 次 · 今日 ${totalMinutesToday} 分钟` : `${completedToday} sessions today · ${totalMinutesToday} min`}
         </p>
       </div>
 
@@ -323,7 +334,7 @@ export function FocusHistory({ externalSessions }: { externalSessions?: FocusSes
         <div className="flex items-center gap-1.5 mb-2.5">
           <TrendingUp size={11} className="text-[#b0aa9e]" />
           <span className="text-[0.62rem] text-[#918b80] uppercase tracking-[0.08em]">
-            本周
+            {t("focus.stats.thisWeek")}
           </span>
         </div>
         <div
@@ -345,7 +356,7 @@ export function FocusHistory({ externalSessions }: { externalSessions?: FocusSes
             color: !selectedTag ? "#5a5650" : "#b0aa9e",
           }}
         >
-          全部
+          {t("focus.filter.all")}
         </motion.button>
         {sessionTags.map((tag) => (
           <motion.button
@@ -359,7 +370,7 @@ export function FocusHistory({ externalSessions }: { externalSessions?: FocusSes
               color: selectedTag === tag.id ? tag.color : "#b0aa9e",
             }}
           >
-            {tag.label}
+            {sessionTagLabels[tag.id] ?? tag.id}
           </motion.button>
         ))}
       </div>
@@ -367,19 +378,19 @@ export function FocusHistory({ externalSessions }: { externalSessions?: FocusSes
       {/* Filters */}
       <div className="flex gap-1.5 mb-3">
         <FilterChip
-          label="状态"
+          label={language === "zh" ? "状态" : "Status"}
           options={[
-            { value: "all", label: "全部状态" },
-            { value: "completed", label: "已完成" },
-            { value: "abandoned", label: "已放弃" },
+            { value: "all", label: t("focus.filter.allStatus") },
+            { value: "completed", label: t("tasks.status.done") },
+            { value: "abandoned", label: language === "zh" ? "已放弃" : "Abandoned" },
           ]}
           value={statusFilter}
           onChange={setStatusFilter}
         />
         <FilterChip
-          label="时长"
+          label={language === "zh" ? "时长" : "Duration"}
           options={[
-            { value: "all", label: "全部时长" },
+            { value: "all", label: t("focus.filter.allDurations") },
             { value: "short", label: "≤ 30 min" },
             { value: "long", label: "> 30 min" },
           ]}
@@ -444,7 +455,7 @@ export function FocusHistory({ externalSessions }: { externalSessions?: FocusSes
                               session.status === "completed" ? "#7A9A78" : "#B09870",
                           }}
                         >
-                          {session.status === "completed" ? "已完成" : "已放弃"}
+                          {session.status === "completed" ? t("tasks.status.done") : language === "zh" ? "已放弃" : "Abandoned"}
                         </span>
                         {tag && (
                           <span
@@ -454,7 +465,7 @@ export function FocusHistory({ externalSessions }: { externalSessions?: FocusSes
                               color: tag.color,
                             }}
                           >
-                            {tag.label}
+                            {sessionTagLabels[tag.id] ?? tag.id}
                           </span>
                         )}
                         {session.mode && (
@@ -474,9 +485,9 @@ export function FocusHistory({ externalSessions }: { externalSessions?: FocusSes
         {filtered.length === 0 && (
           <div className="flex flex-col items-center justify-center py-10 text-center">
             <Award size={22} className="text-[#d0cac0] mb-2.5" />
-            <p className="text-[0.76rem] text-[#b0aa9e]">暂无记录</p>
+            <p className="text-[0.76rem] text-[#b0aa9e]">{t("focus.empty.noSessions")}</p>
             <p className="text-[0.66rem] text-[#c8c2b8] mt-1">
-              尝试调整筛选条件
+              {t("focus.empty.adjustFilters")}
             </p>
           </div>
         )}

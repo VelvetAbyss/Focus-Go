@@ -94,13 +94,17 @@ const combineReminderDateTime = (dateKey: string, time: string) => {
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max)
 
-const localizeActivityMessage = (message: string) => {
-  if (message.startsWith('Created in Todo')) return '创建于待办'
-  if (message.startsWith('Created in Doing')) return '创建于进行中'
-  if (message.startsWith('Created in Done')) return '创建于已完成'
-  if (message.startsWith('Status changed to Todo')) return '状态变更为待办'
-  if (message.startsWith('Status changed to Doing')) return '状态变更为进行中'
-  if (message.startsWith('Status changed to Done')) return '状态变更为已完成'
+const localizeActivityMessage = (
+  message: string,
+  t: ReturnType<typeof useI18n>['t'],
+  language: ReturnType<typeof useI18n>['language'],
+) => {
+  if (message.startsWith('Created in Todo')) return t('tasks.drawer.createdIn', { scope: t('tasks.status.todo') })
+  if (message.startsWith('Created in Doing')) return t('tasks.drawer.createdIn', { scope: t('tasks.status.doing') })
+  if (message.startsWith('Created in Done')) return t('tasks.drawer.createdIn', { scope: t('tasks.status.done') })
+  if (message.startsWith('Status changed to Todo')) return language === 'zh' ? '状态变更为待办' : 'Status changed to Todo'
+  if (message.startsWith('Status changed to Doing')) return language === 'zh' ? '状态变更为进行中' : 'Status changed to Doing'
+  if (message.startsWith('Status changed to Done')) return language === 'zh' ? '状态变更为已完成' : 'Status changed to Done'
   return message
 }
 
@@ -115,7 +119,7 @@ const TaskDrawer = ({
   onRequestDelete,
   onCreated,
 }: TaskDrawerProps) => {
-  const { t } = useI18n()
+  const { language, t } = useI18n()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [priority, setPriority] = useState<TaskPriority | null>(null)
@@ -659,7 +663,7 @@ const TaskDrawer = ({
             <div className="task-detail-topbar__state flex min-w-0 items-center gap-3">
               <Badge variant="outline" className={cn('rounded-full border px-3 py-1 text-[11px] font-semibold', statusConfig.badge)}>
                 <span className={cn('mr-1.5 h-1.5 w-1.5 rounded-full', statusConfig.dot)} />
-                {statusConfig.label}
+                {t(statusConfig.labelKey)}
               </Badge>
               <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
                 {isSaving ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5 text-emerald-500" />}
@@ -689,7 +693,7 @@ const TaskDrawer = ({
               {currentTask.status === 'done' ? (
                 <Button variant="outline" size="sm" className="h-8 rounded-full px-3 text-[11px] font-semibold" onClick={() => void handleStatusChange('todo')} disabled={isSaving}>
                   <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-                  Reopen
+                    {language === 'zh' ? '重新打开' : 'Reopen'}
                 </Button>
               ) : null}
               <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-slate-400 hover:bg-rose-50 hover:text-rose-600" onClick={() => void handleDelete()} disabled={isSaving}>
@@ -743,7 +747,7 @@ const TaskDrawer = ({
                           <SelectItem value="__none">{t('tasks.drawer.none')}</SelectItem>
                           {priorityOptions.map((option) => (
                             <SelectItem key={option} value={option}>
-                              {TASK_PRIORITY_CONFIG[option].label}
+                              {t(TASK_PRIORITY_CONFIG[option].labelKey)}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -757,7 +761,7 @@ const TaskDrawer = ({
                       <div className="mt-3">
                         <Badge variant="outline" className={cn('rounded-full border px-3 py-1 text-[11px] font-semibold', statusConfig.badge)}>
                           <span className={cn('mr-1.5 h-1.5 w-1.5 rounded-full', statusConfig.dot)} />
-                          {statusConfig.label}
+                          {t(statusConfig.labelKey)}
                         </Badge>
                       </div>
                     </div>
@@ -766,7 +770,7 @@ const TaskDrawer = ({
                       <div className="mt-3">
                         <Badge variant="secondary" className={cn('rounded-full px-3 py-1 text-[11px] font-semibold', priorityConfig.badge)}>
                           <span className={cn('mr-1.5 h-1.5 w-1.5 rounded-full', priorityConfig.dot)} />
-                          {priorityConfig.label}
+                          {t(priorityConfig.labelKey)}
                         </Badge>
                       </div>
                     </div>
@@ -911,7 +915,7 @@ const TaskDrawer = ({
                       ) : (
                         activityLogs.map((log) => (
                           <article key={log.id} className="rounded-[18px] border border-[#3a3733]/6 bg-slate-50/80 px-4 py-3">
-                            <p className="text-[13px] leading-6 text-slate-700">{localizeActivityMessage(log.message)}</p>
+                            <p className="text-[13px] leading-6 text-slate-700">{localizeActivityMessage(log.message, t, language)}</p>
                             <p className="mt-2 text-[11px] font-medium text-slate-500">{formatTaskDateTime(log.createdAt)}</p>
                           </article>
                         ))

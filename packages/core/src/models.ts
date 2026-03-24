@@ -54,36 +54,7 @@ export type NoteTag = BaseEntity & {
 
 export type NoteThemeMode = 'paper' | 'graphite'
 export type NoteFontFamily = 'uiSans' | 'humanistSans' | 'cnSans' | 'serif' | 'cnSerif' | 'mono'
-export type NoteEditorMode = 'document' | 'mindmap'
-
-export type NoteMindMapNode = {
-  id: string
-  position: {
-    x: number
-    y: number
-  }
-  data: {
-    label: string
-  }
-}
-
-export type NoteMindMapEdge = {
-  id: string
-  source: string
-  target: string
-}
-
-export type NoteMindMapViewport = {
-  x: number
-  y: number
-  zoom: number
-}
-
-export type NoteMindMapDocument = {
-  nodes: NoteMindMapNode[]
-  edges: NoteMindMapEdge[]
-  viewport?: NoteMindMapViewport | null
-}
+export type NoteEditorMode = 'document'
 
 export type NoteAppearanceSettings = BaseEntity & {
   id: 'note_appearance'
@@ -100,7 +71,6 @@ export type NoteItem = BaseEntity & {
   contentMd: string
   contentJson?: Record<string, unknown> | null
   editorMode: NoteEditorMode
-  mindMap?: NoteMindMapDocument | null
   collection: NoteCollection
   tags: string[]
   excerpt: string

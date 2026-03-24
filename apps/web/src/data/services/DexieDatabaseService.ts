@@ -84,12 +84,6 @@ const buildNoteStats = (contentMd: string) => {
   }
 }
 
-const buildMindMapText = (mindMap?: NoteItem['mindMap'] | null) =>
-  mindMap?.nodes
-    .map((node) => node.data.label.trim())
-    .filter(Boolean)
-    .join('\n') ?? ''
-
 const buildNoteBacklinks = (note: Pick<NoteItem, 'id' | 'title'>, allNotes: NoteItem[]) =>
   allNotes
     .filter((candidate) => candidate.id !== note.id && candidate.contentMd.toLowerCase().includes(note.title.trim().toLowerCase()))
@@ -140,69 +134,34 @@ const normalizeNote = (note: NoteItem): NoteItem => ({
   title: typeof note.title === 'string' ? note.title : '',
   contentMd: typeof note.contentMd === 'string' ? note.contentMd : '',
   contentJson: note.contentJson && typeof note.contentJson === 'object' ? note.contentJson : null,
-  editorMode: note.editorMode === 'mindmap' ? 'mindmap' : 'document',
-  mindMap:
-    note.mindMap &&
-    typeof note.mindMap === 'object' &&
-    Array.isArray(note.mindMap.nodes) &&
-    Array.isArray(note.mindMap.edges)
-      ? {
-          nodes: note.mindMap.nodes
-            .filter((node) => node && typeof node === 'object')
-            .map((node) => ({
-              id: typeof node.id === 'string' ? node.id : crypto.randomUUID(),
-              position: {
-                x: typeof node.position?.x === 'number' ? node.position.x : 0,
-                y: typeof node.position?.y === 'number' ? node.position.y : 0,
-              },
-              data: {
-                label: typeof node.data?.label === 'string' ? node.data.label : '',
-              },
-            })),
-          edges: note.mindMap.edges
-            .filter((edge) => edge && typeof edge === 'object')
-            .map((edge) => ({
-              id: typeof edge.id === 'string' ? edge.id : crypto.randomUUID(),
-              source: typeof edge.source === 'string' ? edge.source : '',
-              target: typeof edge.target === 'string' ? edge.target : '',
-            }))
-            .filter((edge) => edge.source && edge.target),
-          viewport:
-            note.mindMap.viewport &&
-            typeof note.mindMap.viewport.x === 'number' &&
-            typeof note.mindMap.viewport.y === 'number' &&
-            typeof note.mindMap.viewport.zoom === 'number'
-              ? note.mindMap.viewport
-              : null,
-        }
-      : null,
+  editorMode: 'document',
   collection: note.collection ?? DEFAULT_NOTE_COLLECTION,
   tags: normalizeTags(note.tags),
   pinned: note.pinned === true,
   excerpt:
     typeof note.excerpt === 'string' && note.excerpt.trim().length > 0
       ? note.excerpt.trim()
-      : buildNoteExcerpt(note.editorMode === 'mindmap' ? buildMindMapText(note.mindMap) : (typeof note.contentMd === 'string' ? note.contentMd : '')),
+      : buildNoteExcerpt(typeof note.contentMd === 'string' ? note.contentMd : ''),
   wordCount:
     typeof note.wordCount === 'number'
       ? note.wordCount
-      : buildNoteStats(note.editorMode === 'mindmap' ? buildMindMapText(note.mindMap) : note.contentMd).wordCount,
+      : buildNoteStats(note.contentMd).wordCount,
   charCount:
     typeof note.charCount === 'number'
       ? note.charCount
-      : buildNoteStats(note.editorMode === 'mindmap' ? buildMindMapText(note.mindMap) : note.contentMd).charCount,
+      : buildNoteStats(note.contentMd).charCount,
   paragraphCount:
     typeof note.paragraphCount === 'number'
       ? note.paragraphCount
-      : buildNoteStats(note.editorMode === 'mindmap' ? buildMindMapText(note.mindMap) : note.contentMd).paragraphCount,
+      : buildNoteStats(note.contentMd).paragraphCount,
   imageCount:
     typeof note.imageCount === 'number'
       ? note.imageCount
-      : buildNoteStats(note.editorMode === 'mindmap' ? buildMindMapText(note.mindMap) : note.contentMd).imageCount,
+      : buildNoteStats(note.contentMd).imageCount,
   fileCount:
     typeof note.fileCount === 'number'
       ? note.fileCount
-      : buildNoteStats(note.editorMode === 'mindmap' ? buildMindMapText(note.mindMap) : note.contentMd).fileCount,
+      : buildNoteStats(note.contentMd).fileCount,
   headings: Array.isArray(note.headings) ? note.headings : buildNoteStats(note.contentMd).headings,
   backlinks: Array.isArray(note.backlinks) ? note.backlinks : [],
   deletedAt: typeof note.deletedAt === 'number' && Number.isFinite(note.deletedAt) ? note.deletedAt : null,
@@ -383,20 +342,19 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       return normalized.filter((note) => Boolean(note.deletedAt))
     },
     async create(data?: NoteCreateInput) {
-      const sourceText = data?.editorMode === 'mindmap' ? buildMindMapText(data.mindMap ?? null) : (data?.contentMd ?? '')
+      const sourceText = data?.contentMd ?? ''
       const stats = buildNoteStats(sourceText)
       const note: NoteItem = withBase({
         title: data?.title ?? '',
         contentMd: data?.contentMd ?? '',
         contentJson: data?.contentJson ?? null,
-        editorMode: data?.editorMode === 'mindmap' ? 'mindmap' : 'document',
-        mindMap: data?.mindMap ?? null,
+        editorMode: 'document',
         collection: data?.collection ?? DEFAULT_NOTE_COLLECTION,
         tags: data?.tags ?? [],
         pinned: data?.pinned === true,
         excerpt: buildNoteExcerpt(sourceText),
         ...stats,
-        headings: data?.editorMode === 'mindmap' ? [] : stats.headings,
+        headings: stats.headings,
         backlinks: data?.backlinks ?? [],
         deletedAt: null,
       })

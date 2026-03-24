@@ -65,7 +65,6 @@ import {
   type CalendarSubscription,
 } from '../calendar.model'
 
-const weekLabels = ['日', '一', '二', '三', '四', '五', '六']
 const calendarEventKindRank = { lunar: 0, holiday: 1, event: 2 } as const
 
 const STORAGE_SUBSCRIPTIONS_KEY = 'focusgo.calendar.subscriptions.v1'
@@ -129,6 +128,7 @@ const ColorPalettePopoverContent = ({
   inputId,
   onChange,
 }: ColorPalettePopoverContentProps) => {
+  const { language } = useI18n()
   const normalizedCurrent = normalizeHexColor(currentColor) ?? '#ef4444'
   const [draftHex, setDraftHex] = useState(normalizedCurrent.toUpperCase())
 
@@ -157,7 +157,7 @@ const ColorPalettePopoverContent = ({
           )
         })}
       </div>
-      <Label htmlFor={inputId} className="calendar-color-popover__label">自定义</Label>
+      <Label htmlFor={inputId} className="calendar-color-popover__label">{language === 'zh' ? '自定义' : 'Custom'}</Label>
       <div className="calendar-color-popover__spectrum" aria-hidden />
       <Input
         id={inputId}
@@ -176,8 +176,8 @@ const ColorPalettePopoverContent = ({
   )
 }
 
-const formatReminderLabel = (value?: number) => {
-  if (typeof value !== 'number') return '无提醒'
+const formatReminderLabel = (value: number | undefined, language: 'en' | 'zh') => {
+  if (typeof value !== 'number') return language === 'zh' ? '无提醒' : 'No reminder'
   return new Date(value).toLocaleString(undefined, {
     year: 'numeric',
     month: '2-digit',
@@ -236,12 +236,12 @@ const buildTaskCardDraft = (task: TaskItem): TaskCardDraft => ({
   priority: task.priority,
 })
 
-  const providerLabel: Record<CalendarProvider, string> = {
-  builtin: '内置',
-  ics: 'ICS/webcal',
-  google: 'Google',
-  apple: 'Apple',
-  outlook: 'Outlook',
+const getProviderLabel = (provider: CalendarProvider, language: 'en' | 'zh') => {
+  if (provider === 'builtin') return language === 'zh' ? '内置' : 'Built-in'
+  if (provider === 'ics') return 'ICS/webcal'
+  if (provider === 'google') return 'Google'
+  if (provider === 'apple') return 'Apple'
+  return 'Outlook'
 }
 
 const readStoredSubscriptions = () => {
@@ -273,6 +273,7 @@ const readStoredIcsEvents = () => {
 
 type SortableSubscriptionItemProps = {
   sub: CalendarSubscription
+  language: 'en' | 'zh'
   syncState?: SubscriptionSyncState
   onToggleSubscription: (subscriptionId: string) => void
   onUpdateColor: (subscriptionId: string, color: string) => void
@@ -282,6 +283,7 @@ type SortableSubscriptionItemProps = {
 
 const SortableSubscriptionItem = ({
   sub,
+  language,
   syncState,
   onToggleSubscription,
   onUpdateColor,
@@ -365,7 +367,7 @@ const SortableSubscriptionItem = ({
       <div className="calendar-subscriptions__meta">
         {sub.provider === 'google' ? (
           <Badge variant="outline" className="calendar-provider-badge">
-            {providerLabel[sub.provider]}
+            {getProviderLabel(sub.provider, language)}
           </Badge>
         ) : null}
         {syncState?.status === 'loading' ? <Badge variant="outline">Syncing</Badge> : null}
@@ -389,7 +391,8 @@ const SortableSubscriptionItem = ({
 }
 
 const CalendarPage = () => {
-  const { t } = useI18n()
+  const { language, t } = useI18n()
+  const weekLabels = [t('calendar.weekday.su'), t('calendar.weekday.mo'), t('calendar.weekday.tu'), t('calendar.weekday.we'), t('calendar.weekday.th'), t('calendar.weekday.fr'), t('calendar.weekday.sa')]
   const [anchorDate, setAnchorDate] = useState(() => new Date())
   const [selectedDateKey, setSelectedDateKey] = useState(() => toDateKey(new Date()))
   const [monthMotionDirection, setMonthMotionDirection] = useState<'forward' | 'back' | null>(null)
@@ -793,7 +796,7 @@ const CalendarPage = () => {
     if (savingTaskCardIds[task.id]) return
     const draft = nextDraft ?? taskCardDrafts[task.id] ?? buildTaskCardDraft(task)
     if (draft.startDate && draft.endDate && draft.endDate < draft.startDate) {
-      setTaskCardError('结束日期不能早于开始日期。')
+      setTaskCardError(t('tasks.drawer.endDateError'))
       return
     }
 
@@ -883,6 +886,7 @@ const CalendarPage = () => {
                       <SortableSubscriptionItem
                         key={sub.id}
                         sub={sub}
+                        language={language}
                         syncState={syncStateBySubscription[sub.id]}
                         onToggleSubscription={handleToggleSubscription}
                         onUpdateColor={handleUpdateSubscriptionColor}
@@ -1235,15 +1239,15 @@ const CalendarPage = () => {
                       </div>
                       <div className="calendar-task-card__meta-line calendar-task-card__meta-line--single">
                         <span className="calendar-task-card__meta-item">
-                          <strong>日期</strong> {formatTaskDateRange(task)}
+                          <strong>{t('tasks.drawer.date')}</strong> {formatTaskDateRange(task)}
                         </span>
                       </div>
                       <div className="calendar-task-card__meta-line">
                         <span className="calendar-task-card__meta-item">
-                          <strong>{t('calendar.reminder')}</strong> {formatReminderLabel(task.reminderAt)}
+                          <strong>{t('calendar.reminder')}</strong> {formatReminderLabel(task.reminderAt, language)}
                         </span>
                         <span className="calendar-task-card__meta-item">
-                          <strong>标签</strong>{' '}
+                          <strong>{t('tasks.drawer.tags')}</strong>{' '}
                           {taskTags.length > 0
                             ? `${taskTags.join(', ')}${hiddenTagCount > 0 ? ` +${hiddenTagCount}` : ''}`
                             : t('calendar.none')}
@@ -1408,8 +1412,8 @@ const CalendarPage = () => {
       <Dialog open={Boolean(createDateKey)} onOpenChange={(open) => (open ? null : setCreateDateKey(null))}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>创建任务</DialogTitle>
-            <DialogDescription>日期：{createDateKey}</DialogDescription>
+            <DialogTitle>{language === 'zh' ? '创建任务' : 'Create task'}</DialogTitle>
+            <DialogDescription>{t('tasks.drawer.date')}：{createDateKey}</DialogDescription>
           </DialogHeader>
           <div className="calendar-dialog__panel">
             <Label htmlFor="task-title">{t('calendar.title')}</Label>

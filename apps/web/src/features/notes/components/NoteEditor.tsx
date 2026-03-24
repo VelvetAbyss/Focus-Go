@@ -14,7 +14,7 @@ import { Typography } from '@tiptap/extension-typography'
 import { Underline } from '@tiptap/extension-underline'
 import { StarterKit } from '@tiptap/starter-kit'
 import { EditorContent, EditorContext, useEditor } from '@tiptap/react'
-import { Download, Expand, FileText, GitBranchPlus, Info, Minimize2, Palette } from 'lucide-react'
+import { Download, Expand, GitBranch, Info, Minimize2, Palette } from 'lucide-react'
 import type { CSSProperties, ReactNode, RefObject } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { HorizontalRule } from '@/components/tiptap-node/horizontal-rule-node/horizontal-rule-node-extension'
@@ -39,22 +39,19 @@ import { TextAlignButton } from '@/components/tiptap-ui/text-align-button'
 import { UndoRedoButton } from '@/components/tiptap-ui/undo-redo-button'
 import { Toolbar, ToolbarGroup, ToolbarSeparator } from '@/components/tiptap-ui-primitive/toolbar'
 import { MAX_FILE_SIZE } from '@/lib/tiptap-utils'
-import type { NoteFontFamily, NoteMindMapDocument } from '../../../data/models/types'
+import type { NoteFontFamily } from '../../../data/models/types'
 import { ensureRichDoc, richDocToMarkdown } from '../model/richTextCodec'
-import MindMapEditor from './MindMapEditor'
 import { ResizableImage } from '../model/resizableImage'
 
 type NoteEditorValue = {
   title: string
   contentMd: string
   contentJson?: Record<string, unknown> | null
-  editorMode: 'document' | 'mindmap'
-  mindMap?: NoteMindMapDocument | null
+  editorMode: 'document'
   tags: string[]
 }
 
 type NoteEditorProps = {
-  noteId?: string | null
   value: NoteEditorValue
   appearance?: {
     theme?: 'paper' | 'graphite'
@@ -67,15 +64,11 @@ type NoteEditorProps = {
   onOpenInfo?: () => void
   onOpenAppearance?: () => void
   onExport?: () => void
+  onOpenMindMap?: () => void
   onToggleFullscreen?: () => void
   onChange: (next: NoteEditorValue) => void
   isFullscreen?: boolean
   surfaceRef?: RefObject<HTMLDivElement | null>
-  mindMapLimitReached?: boolean
-  mindMapCount?: number
-  hasMindMapFullAccess?: boolean
-  onUpgradeMindMap?: () => void
-  onCreateMindMap?: () => void
 }
 
 type HeadingNavItem = {
@@ -204,19 +197,16 @@ const createTableNode = (rows: string[][]): JSONContent => ({
 })
 
 const NoteEditor = ({
-  noteId,
   value,
   appearance,
   onOpenInfo,
   onOpenAppearance,
   onExport,
+  onOpenMindMap,
   onToggleFullscreen,
   onChange,
   isFullscreen = false,
   surfaceRef,
-  mindMapLimitReached = false,
-  hasMindMapFullAccess = false,
-  onCreateMindMap,
 }: NoteEditorProps) => {
   const { t } = useI18n()
   const initialDoc = useMemo(() => ensureRichDoc(value.contentJson, value.contentMd), [value.contentJson, value.contentMd])
@@ -225,23 +215,12 @@ const NoteEditor = ({
   const contentWidthPercent = 100 - widthScale * 42
   const [headings, setHeadings] = useState<HeadingNavItem[]>([])
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null)
-  const [hoverHeadingId, setHoverHeadingId] = useState<string | null>(null)
   const [tocVersion, setTocVersion] = useState(0)
   const scrollSyncFrameRef = useRef<number | null>(null)
   const emitTimerRef = useRef<number | null>(null)
   const pendingDocRef = useRef<JSONContent | null | undefined>(undefined)
   const shouldSkipSyncRef = useRef(false)
   const changeMetaRef = useRef({ onChange, tags: value.tags })
-  const [localMindMap, setLocalMindMap] = useState<NoteMindMapDocument | null>(value.mindMap ?? null)
-  const noteIdentityRef = useRef<string>('initial')
-  const isMindMapNote = value.editorMode === 'mindmap'
-
-  useEffect(() => {
-    const nextIdentity = noteId ?? 'draft'
-    if (noteIdentityRef.current === nextIdentity) return
-    noteIdentityRef.current = nextIdentity
-    setLocalMindMap(value.mindMap ?? null)
-  }, [noteId, value.mindMap])
 
   useEffect(() => {
     changeMetaRef.current = { onChange, tags: value.tags }
@@ -262,7 +241,6 @@ const NoteEditor = ({
       contentMd,
       contentJson: (doc ?? null) as Record<string, unknown> | null,
       editorMode: 'document',
-      mindMap: localMindMap,
       tags,
     })
   }, [])
@@ -365,7 +343,6 @@ const NoteEditor = ({
 
   useEffect(() => {
     if (!editor) return
-    if (isMindMapNote) return
     if (shouldSkipSyncRef.current) {
       shouldSkipSyncRef.current = false
       return
@@ -374,7 +351,7 @@ const NoteEditor = ({
     const nextDoc = ensureRichDoc(value.contentJson, value.contentMd)
     editor.commands.setContent(nextDoc, { emitUpdate: false })
     setTocVersion((version) => version + 1)
-  }, [editor, flushEmitChange, isMindMapNote, value.contentJson, value.contentMd])
+  }, [editor, flushEmitChange, value.contentJson, value.contentMd])
 
   useEffect(() => {
     if (!editor) return
@@ -440,78 +417,47 @@ const NoteEditor = ({
     <div className="note-editor">
       <div className="note-editor__topbar">
         <div className="note-editor__toolbar-wrap">
-          {!isMindMapNote ? (
-            <EditorContext.Provider value={{ editor }}>
-              <Toolbar className="note-editor__toolbar-inline">
-                <ToolbarGroup>
-                  <UndoRedoButton action="undo" />
-                  <UndoRedoButton action="redo" />
-                </ToolbarGroup>
-                <ToolbarSeparator />
-                <ToolbarGroup>
-                  <HeadingDropdownMenu modal={false} levels={[1, 2, 3]} />
-                  <ListDropdownMenu modal={false} types={['bulletList', 'orderedList', 'taskList']} />
-                  <BlockquoteButton />
-                  <CodeBlockButton />
-                </ToolbarGroup>
-                <ToolbarSeparator />
-                <ToolbarGroup>
-                  <MarkButton type="bold" />
-                  <MarkButton type="italic" />
-                  <MarkButton type="strike" />
-                  <MarkButton type="code" />
-                  <MarkButton type="underline" />
-                  <ColorHighlightPopover />
-                  <LinkPopover />
-                </ToolbarGroup>
-                <ToolbarSeparator />
-                <ToolbarGroup>
-                  <MarkButton type="superscript" />
-                  <MarkButton type="subscript" />
-                </ToolbarGroup>
-                <ToolbarSeparator />
-                <ToolbarGroup>
-                  <TextAlignButton align="left" />
-                  <TextAlignButton align="center" />
-                  <TextAlignButton align="right" />
-                  <TextAlignButton align="justify" />
-                </ToolbarGroup>
-                <ToolbarSeparator />
-                <ToolbarGroup>
-                  <ImageUploadButton text={t('notes.add')} />
-                  {hasMindMapFullAccess ? (
-                    <button type="button" className="note-editor__toolbar-chip" onClick={onCreateMindMap}>
-                      <GitBranchPlus size={14} />
-                      <span>Mind Map</span>
-                    </button>
-                  ) : null}
-                </ToolbarGroup>
-              </Toolbar>
-            </EditorContext.Provider>
-          ) : (
-            <div className="flex items-center justify-between gap-3">
-              <div className="note-editor__mindmap-copy">
-                <span>{mindMapLimitReached && !hasMindMapFullAccess ? 'Trial limit reached. Upgrade to save another mind map.' : 'Build visual notes with draggable nodes and connections.'}</span>
-              </div>
-              <button
-                type="button"
-                className="note-editor__toolbar-chip shrink-0"
-                onClick={() =>
-                  onChange({
-                    title: value.title,
-                    contentMd: value.contentMd,
-                    contentJson: value.contentJson ?? null,
-                    editorMode: 'document',
-                    mindMap: localMindMap ?? value.mindMap,
-                    tags: value.tags,
-                  })
-                }
-              >
-                <FileText size={14} />
-                <span>退出导图</span>
-              </button>
-            </div>
-          )}
+          <EditorContext.Provider value={{ editor }}>
+            <Toolbar className="note-editor__toolbar-inline">
+              <ToolbarGroup>
+                <UndoRedoButton action="undo" />
+                <UndoRedoButton action="redo" />
+              </ToolbarGroup>
+              <ToolbarSeparator />
+              <ToolbarGroup>
+                <HeadingDropdownMenu modal={false} levels={[1, 2, 3]} />
+                <ListDropdownMenu modal={false} types={['bulletList', 'orderedList', 'taskList']} />
+                <BlockquoteButton />
+                <CodeBlockButton />
+              </ToolbarGroup>
+              <ToolbarSeparator />
+              <ToolbarGroup>
+                <MarkButton type="bold" />
+                <MarkButton type="italic" />
+                <MarkButton type="strike" />
+                <MarkButton type="code" />
+                <MarkButton type="underline" />
+                <ColorHighlightPopover />
+                <LinkPopover />
+              </ToolbarGroup>
+              <ToolbarSeparator />
+              <ToolbarGroup>
+                <MarkButton type="superscript" />
+                <MarkButton type="subscript" />
+              </ToolbarGroup>
+              <ToolbarSeparator />
+              <ToolbarGroup>
+                <TextAlignButton align="left" />
+                <TextAlignButton align="center" />
+                <TextAlignButton align="right" />
+                <TextAlignButton align="justify" />
+              </ToolbarGroup>
+              <ToolbarSeparator />
+              <ToolbarGroup>
+                <ImageUploadButton text={t('notes.add')} />
+              </ToolbarGroup>
+            </Toolbar>
+          </EditorContext.Provider>
         </div>
         <div className="note-editor__actions">
           <button
@@ -526,6 +472,16 @@ const NoteEditor = ({
           <ActionButton icon={<Info size={14} />} label={t('notes.info')} panelId="info" onClick={onOpenInfo} />
           <ActionButton icon={<Palette size={14} />} label={t('notes.appearance')} panelId="appearance" onClick={onOpenAppearance} />
           <ActionButton icon={<Download size={14} />} label={t('notes.export')} panelId="export" onClick={onExport} />
+          <button
+            type="button"
+            className="note-editor__action-button"
+            onClick={onOpenMindMap}
+            data-note-panel-trigger="mindmap"
+            title={t('notes.mindmap')}
+          >
+            <GitBranch size={14} />
+            <span>{t('notes.mindmap')}</span>
+          </button>
         </div>
       </div>
 
@@ -542,40 +498,18 @@ const NoteEditor = ({
             } as CSSProperties
           }
         >
-          {!isMindMapNote ? (
-            <EditorContext.Provider value={{ editor }}>
-              <EditorContent editor={editor} className="simple-editor-content" />
-            </EditorContext.Provider>
-          ) : (
-            <MindMapEditor
-              value={localMindMap ?? value.mindMap}
-              theme={appearance?.theme ?? 'paper'}
-              onChange={(nextMindMap) => {
-                setLocalMindMap(nextMindMap)
-                onChange({
-                  title: value.title,
-                  contentMd: value.contentMd,
-                  contentJson: value.contentJson ?? null,
-                  editorMode: 'mindmap',
-                  mindMap: nextMindMap,
-                  tags: value.tags,
-                })
-              }}
-            />
-          )}
+          <EditorContext.Provider value={{ editor }}>
+            <EditorContent editor={editor} className="simple-editor-content" />
+          </EditorContext.Provider>
         </div>
       </div>
-      {!isMindMapNote && headings.length > 0 && (
+      {headings.length > 0 && (
         <aside className="note-editor__heading-nav" aria-label={t('notes.tableOfContents')}>
           {headings.map((heading) => (
             <button
               key={heading.id}
               type="button"
-              className={`note-editor__heading-nav-item${activeHeadingId === heading.id ? ' is-active' : ''}${hoverHeadingId === heading.id ? ' is-hover' : ''}`}
-              onMouseEnter={() => setHoverHeadingId(heading.id)}
-              onMouseLeave={() => setHoverHeadingId((current) => (current === heading.id ? null : current))}
-              onFocus={() => setHoverHeadingId(heading.id)}
-              onBlur={() => setHoverHeadingId((current) => (current === heading.id ? null : current))}
+              className={`note-editor__heading-nav-item${activeHeadingId === heading.id ? ' is-active' : ''}`}
               onClick={() => handleHeadingJump(heading.id)}
               title={heading.text}
               aria-label={heading.text}

@@ -133,14 +133,7 @@ export class WorkbenchDb extends Dexie {
         if (noteRows.length === 0) return
         const migratedNotes = noteRows.map((row) => ({
           ...row,
-          editorMode: row.editorMode === 'mindmap' ? 'mindmap' : 'document',
-          mindMap:
-            row.mindMap &&
-            typeof row.mindMap === 'object' &&
-            Array.isArray((row.mindMap as { nodes?: unknown[] }).nodes) &&
-            Array.isArray((row.mindMap as { edges?: unknown[] }).edges)
-              ? row.mindMap
-              : null,
+          editorMode: 'document',
         }))
         await tx.table(TABLES.notes).bulkPut(migratedNotes as NoteItem[])
       })

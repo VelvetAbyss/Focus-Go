@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
+import { useI18n } from '../i18n/useI18n'
 import { parseDateKeyToLocalDate, toDateKey } from './datePicker/dateKey'
 
 export interface DatePickerProps {
@@ -24,10 +25,10 @@ export function DatePicker({
   ariaLabel,
   popoverClassName,
 }: DatePickerProps) {
+  const { t } = useI18n()
   const [open, setOpen] = React.useState(false)
   const selectedDate = React.useMemo(() => parseDateKeyToLocalDate(value), [value])
-  void placeholder
-  const emptyLabel = placeholder ?? '选择日期'
+  const emptyLabel = placeholder ?? t('tasks.drawer.selectDate')
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

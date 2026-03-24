@@ -17,7 +17,6 @@ import {
   Beaker,
   CalendarDays,
   Flame,
-  GitBranchPlus,
   House,
   ListTodo,
   Notebook,
@@ -106,20 +105,18 @@ const Sidebar = ({ collapsed, onToggle, theme, onToggleTheme }: SidebarProps) =>
     'habit-tracker': Flame,
     'ai-digest': Sparkles,
     automation: Bot,
-    'mind-map': GitBranchPlus,
   }
 
   const FEATURE_ROUTES: Record<FeatureKey, string> = {
     'habit-tracker': ROUTES.HABITS,
     'ai-digest': ROUTES.LABS,
     automation: ROUTES.LABS,
-    'mind-map': ROUTES.NOTE,
   }
 
   const navItems = BASE_NAV_ITEMS.map((item) => ({ key: item.key, to: item.to }))
 
   const featureItems = catalog
-    .filter((feature) => !feature.requiresPremium)
+    .filter((feature) => !feature.requiresPremium && feature.featureKey !== 'mind-map')
     .map((feature) => ({
       id: `feature:${feature.featureKey}`,
       enabled: feature.state === 'installed',

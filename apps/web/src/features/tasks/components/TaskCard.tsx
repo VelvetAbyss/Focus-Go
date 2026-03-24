@@ -3,6 +3,7 @@ import { Calendar, CircleCheck, Crosshair, Ellipsis, Pin, PinOff, Play, RotateCc
 import type { CSSProperties, HTMLAttributes } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useI18n } from '../../../shared/i18n/useI18n'
 import type { TaskItem } from '../tasks.types'
 import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, getTaskDeadlineState, getTaskPriorityKey, getTaskTagTone } from './taskPresentation'
 
@@ -57,6 +58,7 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
     },
     ref,
     ) => {
+    const { t } = useI18n()
     const [isHovered, setIsHovered] = useState(false)
     const [now, setNow] = useState(() => Date.now())
     const priorityKey = getTaskPriorityKey(task.priority)
@@ -125,7 +127,7 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
             {priorityKey !== 'none' ? (
               <span className={cn('inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-semibold', priorityCfg.badge)}>
                 <span className={cn('size-1.5 rounded-full', priorityCfg.dot)} />
-                {priorityCfg.label}
+                {t(priorityCfg.labelKey)}
               </span>
             ) : null}
             {task.dueDate ? (
@@ -136,7 +138,7 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
               </span>
             ) : null}
             <span className={cn('inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs font-semibold', statusCfg.badge)}>
-              {statusCfg.label}
+              {t(statusCfg.labelKey)}
             </span>
           </div>
 

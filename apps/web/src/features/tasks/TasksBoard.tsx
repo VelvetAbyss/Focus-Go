@@ -28,11 +28,7 @@ import { useI18n } from '../../shared/i18n/useI18n'
 import { completeOnboarding, markFeatureSeen, resetOnboarding, setPendingCoachmark } from '../onboarding/onboarding.runtime'
 import EmptyState from '../../shared/ui/EmptyState'
 
-const tabs: { key: TaskStatus; label: string }[] = [
-  { key: 'todo', label: '待办' },
-  { key: 'doing', label: '进行中' },
-  { key: 'done', label: '已完成' },
-]
+const tabs: { key: TaskStatus }[] = [{ key: 'todo' }, { key: 'doing' }, { key: 'done' }]
 
 type SortMode = 'importance' | 'time'
 type TagFilterMode = 'all' | 'work' | 'life' | 'health' | 'study' | 'finance' | 'family'
@@ -464,7 +460,7 @@ const TasksBoard = ({
                       onClick={() => setActiveStatus(status.key)}
                     >
                       <span className={cn('size-1.5 rounded-full', isActive ? cfg.dot : cfg.dot)} />
-                      {cfg.label}
+                      {t(cfg.labelKey)}
                       <span className={cn('min-w-[20px] rounded-full px-1.5 py-0.5 text-center text-xs tabular-nums', isActive ? 'bg-background text-foreground/80' : 'bg-muted text-muted-foreground')}>
                         {count}
                       </span>
@@ -485,7 +481,7 @@ const TasksBoard = ({
                     <PopoverTrigger asChild>
                       <button className="tasks-fg__filter-btn flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent">
                         <Tag className="size-3" />
-                        标签
+                        {t('tasks.selectTag')}
                         {tagFilter.length > 0 ? (
                           <span className="min-w-[16px] rounded-full bg-primary px-1 text-center text-[10px] text-primary-foreground">{tagFilter.length}</span>
                         ) : null}

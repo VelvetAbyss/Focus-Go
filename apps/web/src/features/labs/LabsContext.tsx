@@ -13,7 +13,7 @@ import {
   type UserSubscriptionRecord,
   upgradeToPremiumMock,
 } from './labsApi'
-import { canAccessHabitTracker, canAccessMindMapFeature } from './accessRules'
+import { canAccessHabitTracker } from './accessRules'
 import type { FeatureKey } from '../../data/models/types'
 
 type LabsContextValue = {
@@ -21,9 +21,7 @@ type LabsContextValue = {
   subscription: UserSubscriptionRecord | null
   catalog: FeatureCatalogItem[]
   canAccessHabitFeature: boolean
-  canAccessMindMapFeature: boolean
   habitState: 'available' | 'installed' | 'removed'
-  mindMapState: 'available' | 'installed' | 'removed'
   refresh: () => Promise<void>
   upgradeMock: () => Promise<void>
   downgradeMock: () => Promise<void>
@@ -54,7 +52,6 @@ export const LabsProvider = ({ children }: { children: React.ReactNode }) => {
   }, [])
 
   const habitState = (catalog.find((item) => item.featureKey === 'habit-tracker')?.state ?? defaultHabitState)
-  const mindMapState = (catalog.find((item) => item.featureKey === 'mind-map')?.state ?? defaultHabitState)
 
   const value = useMemo<LabsContextValue>(() => {
     return {
@@ -62,9 +59,7 @@ export const LabsProvider = ({ children }: { children: React.ReactNode }) => {
       subscription,
       catalog,
       canAccessHabitFeature: canAccessHabitTracker(subscription?.tier ?? 'free', habitState),
-      canAccessMindMapFeature: canAccessMindMapFeature(subscription?.role ?? 'member'),
       habitState,
-      mindMapState,
       refresh,
       upgradeMock: async () => {
         await upgradeToPremiumMock()
@@ -88,7 +83,7 @@ export const LabsProvider = ({ children }: { children: React.ReactNode }) => {
       },
       canAccessFeature: async (featureKey) => canAccessFeature(featureKey),
     }
-  }, [catalog, habitState, mindMapState, ready, subscription])
+  }, [catalog, habitState, ready, subscription])
 
   return <LabsContext.Provider value={value}>{children}</LabsContext.Provider>
 }

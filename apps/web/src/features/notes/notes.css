@@ -347,202 +347,6 @@
   gap: 10px;
 }
 
-.note-editor__toolbar-chip,
-.note-editor__upgrade-link,
-.mind-map-editor__toolbar-button,
-.note-premium-modal__button {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  color: inherit;
-}
-
-.note-editor__premium-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.note-editor__upgrade-link {
-  color: #3a3733;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.note-editor__mindmap-copy {
-  display: flex;
-  align-items: center;
-  min-height: 36px;
-  color: #8d867f;
-  font-size: 12px;
-}
-
-.mind-map-editor {
-  display: flex;
-  min-height: 100%;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.mind-map-editor__toolbar {
-  display: flex;
-  gap: 8px;
-}
-
-.mind-map-editor__toolbar-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 34px;
-  padding: 0 12px;
-  border-radius: 999px;
-  background: rgba(58, 55, 51, 0.06);
-  color: #3a3733;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.mind-map-editor__toolbar-button:disabled {
-  opacity: 0.45;
-}
-
-.mind-map-editor__canvas {
-  flex: 1;
-  min-height: 540px;
-  overflow: hidden;
-  border: 1px solid rgba(58, 55, 51, 0.08);
-  border-radius: 24px;
-  background: #f5f3f0;
-}
-
-.mind-map-editor--graphite .mind-map-editor__canvas {
-  background: #3a3733;
-}
-
-.mind-map-node {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 180px;
-  padding: 10px 12px;
-  border: 1px solid rgba(58, 55, 51, 0.12);
-  border-radius: 18px;
-  background: #f5f3f0;
-  box-shadow: 0 10px 30px rgba(58, 55, 51, 0.08);
-}
-
-.mind-map-node.is-selected {
-  border-color: rgba(58, 55, 51, 0.36);
-  box-shadow: 0 12px 34px rgba(58, 55, 51, 0.14);
-}
-
-.mind-map-node__input {
-  width: 100%;
-  min-width: 0;
-  border: 0;
-  outline: none;
-  background: transparent;
-  color: #3a3733;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.mind-map-node__add {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: 0;
-  border-radius: 999px;
-  background: rgba(58, 55, 51, 0.08);
-  color: #3a3733;
-}
-
-.mind-map-node__handle {
-  width: 10px;
-  height: 10px;
-  border: 2px solid #f5f3f0;
-  background: #3a3733;
-}
-
-.note-editor__toolbar-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 32px;
-  padding: 0 12px;
-  border-radius: 999px;
-  background: rgba(58, 55, 51, 0.06);
-  color: #3a3733;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.note-premium-modal {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  background: rgba(58, 55, 51, 0.18);
-  backdrop-filter: blur(8px);
-}
-
-.note-premium-modal__card {
-  width: min(440px, calc(100vw - 32px));
-  padding: 24px;
-  border: 1px solid rgba(58, 55, 51, 0.08);
-  border-radius: 24px;
-  background: #f5f3f0;
-  color: #3a3733;
-}
-
-.note-premium-modal__eyebrow {
-  margin: 0 0 8px;
-  color: #8d867f;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.note-premium-modal__card h2 {
-  margin: 0 0 8px;
-  font-size: 22px;
-  line-height: 1.2;
-}
-
-.note-premium-modal__card p {
-  margin: 0;
-  color: #66615b;
-}
-
-.note-premium-modal__actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 18px;
-}
-
-.note-premium-modal__button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 38px;
-  padding: 0 14px;
-  border-radius: 999px;
-  background: #3a3733;
-  color: #f5f3f0;
-  font-size: 13px;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.note-premium-modal__button--ghost {
-  background: rgba(58, 55, 51, 0.08);
-  color: #3a3733;
-}
-
 .note-page__browser-filter {
   display: inline-flex;
   align-items: center;
@@ -875,6 +679,7 @@
 }
 
 .note-editor__heading-nav-item.is-active .note-editor__heading-nav-bar,
+.note-editor__heading-nav-item:hover .note-editor__heading-nav-bar,
 .note-editor__heading-nav-item.is-hover .note-editor__heading-nav-bar {
   background: var(--note-foreground, #1f1b16);
   transform: scaleX(1.08);
@@ -902,6 +707,7 @@
   transition: opacity 120ms ease;
 }
 
+.note-editor__heading-nav-item:hover .note-editor__heading-nav-label,
 .note-editor__heading-nav-item.is-hover .note-editor__heading-nav-label,
 .note-editor__heading-nav-item:focus-visible .note-editor__heading-nav-label {
   opacity: 1;
