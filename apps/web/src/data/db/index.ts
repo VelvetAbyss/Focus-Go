@@ -26,7 +26,7 @@ import {
   schemaV17,
   schemaV23,
   schemaV24,
-  schemaV25,
+  schemaV26,
   schemaV2,
   schemaV3,
   schemaV4,
@@ -127,8 +127,23 @@ export class WorkbenchDb extends Dexie {
         }
       })
     this.version(DB_VERSION)
-      .stores(schemaV25)
-      .upgrade(async () => {})
+      .stores(schemaV26)
+      .upgrade(async (tx) => {
+        const noteRows = await tx.table(TABLES.notes).toArray()
+        if (noteRows.length === 0) return
+        const migratedNotes = noteRows.map((row) => ({
+          ...row,
+          editorMode: row.editorMode === 'mindmap' ? 'mindmap' : 'document',
+          mindMap:
+            row.mindMap &&
+            typeof row.mindMap === 'object' &&
+            Array.isArray((row.mindMap as { nodes?: unknown[] }).nodes) &&
+            Array.isArray((row.mindMap as { edges?: unknown[] }).edges)
+              ? row.mindMap
+              : null,
+        }))
+        await tx.table(TABLES.notes).bulkPut(migratedNotes as NoteItem[])
+      })
 
     this.tasks = this.table(TABLES.tasks)
     this.notes = this.table(TABLES.notes)

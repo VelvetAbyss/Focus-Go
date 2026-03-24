@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type RefObject } from 'react'
-import { ChevronDown, Pin, PinOff, Plus, Search, Trash2 } from 'lucide-react'
+import { ChevronDown, Pin, PinOff, Plus, RotateCcw, Search, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useI18n } from '../../../shared/i18n/useI18n'
 import type { NoteItem } from '../../../data/models/types'
@@ -16,6 +16,7 @@ type Props = {
   onNewNote: () => void
   onTogglePin: (id: string) => void
   onTrashNote: (id: string) => void
+  onRestoreNote?: (id: string) => void
   onDeleteNote?: (id: string) => void
   sortBy: NoteSortOption
   onSortChange: (value: NoteSortOption) => void
@@ -52,6 +53,7 @@ export default function NoteBrowser({
   onNewNote,
   onTogglePin,
   onTrashNote,
+  onRestoreNote,
   onDeleteNote,
   sortBy,
   onSortChange,
@@ -150,6 +152,7 @@ export default function NoteBrowser({
             onSelect={() => onSelectNote(note.id)}
             onTogglePin={() => onTogglePin(note.id)}
             onTrash={() => onTrashNote(note.id)}
+            onRestore={() => onRestoreNote?.(note.id)}
             onDelete={() => onDeleteNote?.(note.id)}
           />
         ))}
@@ -163,6 +166,7 @@ export default function NoteBrowser({
             onSelect={() => onSelectNote(note.id)}
             onTogglePin={() => onTogglePin(note.id)}
             onTrash={() => onTrashNote(note.id)}
+            onRestore={() => onRestoreNote?.(note.id)}
             onDelete={() => onDeleteNote?.(note.id)}
           />
         ))}
@@ -183,6 +187,7 @@ function NoteCard({
   onSelect,
   onTogglePin,
   onTrash,
+  onRestore,
   onDelete,
 }: {
   note: NoteItem
@@ -191,6 +196,7 @@ function NoteCard({
   onSelect: () => void
   onTogglePin: () => void
   onTrash: () => void
+  onRestore: () => void
   onDelete: () => void
 }) {
   const dragImageRef = useRef<HTMLElement | null>(null)
@@ -247,6 +253,19 @@ function NoteCard({
         {mode === 'notes' ? (
           <button type="button" onClick={(event) => { event.stopPropagation(); onTogglePin() }} className="rounded p-1 hover:bg-[#3a3733]/5 dark:hover:bg-white/10" title={note.pinned ? 'Unpin' : 'Pin'}>
             {note.pinned ? <PinOff size={12} /> : <Pin size={12} />}
+          </button>
+        ) : null}
+        {mode === 'trash' ? (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation()
+              onRestore()
+            }}
+            className="rounded p-1 text-[#3a3733] hover:bg-[#3a3733]/5 dark:text-slate-200 dark:hover:bg-white/10"
+            title="Restore"
+          >
+            <RotateCcw size={12} />
           </button>
         ) : null}
         <button

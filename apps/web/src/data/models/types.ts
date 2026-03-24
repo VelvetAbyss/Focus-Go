@@ -54,6 +54,36 @@ export type NoteTag = BaseEntity & {
 
 export type NoteThemeMode = 'paper' | 'graphite'
 export type NoteFontFamily = 'uiSans' | 'humanistSans' | 'cnSans' | 'serif' | 'cnSerif' | 'mono'
+export type NoteEditorMode = 'document' | 'mindmap'
+
+export type NoteMindMapNode = {
+  id: string
+  position: {
+    x: number
+    y: number
+  }
+  data: {
+    label: string
+  }
+}
+
+export type NoteMindMapEdge = {
+  id: string
+  source: string
+  target: string
+}
+
+export type NoteMindMapViewport = {
+  x: number
+  y: number
+  zoom: number
+}
+
+export type NoteMindMapDocument = {
+  nodes: NoteMindMapNode[]
+  edges: NoteMindMapEdge[]
+  viewport?: NoteMindMapViewport | null
+}
 
 export type NoteAppearanceSettings = BaseEntity & {
   id: 'note_appearance'
@@ -69,6 +99,8 @@ export type NoteItem = BaseEntity & {
   title: string
   contentMd: string
   contentJson?: Record<string, unknown> | null
+  editorMode: NoteEditorMode
+  mindMap?: NoteMindMapDocument | null
   collection: NoteCollection
   tags: string[]
   excerpt: string
@@ -211,13 +243,15 @@ export type DashboardLayout = BaseEntity & {
 }
 
 export type SubscriptionTier = 'free' | 'premium'
+export type AccountRole = 'member' | 'admin'
 
 export type UserSubscription = BaseEntity & {
   userId: string
   tier: SubscriptionTier
+  role: AccountRole
 }
 
-export type FeatureKey = 'ai-digest' | 'automation' | 'habit-tracker'
+export type FeatureKey = 'ai-digest' | 'automation' | 'habit-tracker' | 'mind-map'
 export type FeatureInstallState = 'installed' | 'removed'
 
 export type FeatureInstallation = BaseEntity & {

@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { NoteAppearanceSettings, NoteItem, NoteTag } from '../../../data/models/types'
+import type { NoteAppearanceSettings, NoteEditorMode, NoteItem, NoteMindMapDocument, NoteTag } from '../../../data/models/types'
+import { ROUTES } from '../../../app/routes/routes'
 import { noteAppearanceRepo } from '../../../data/repositories/noteAppearanceRepo'
 import { noteTagsRepo } from '../../../data/repositories/noteTagsRepo'
 import { notesRepo } from '../../../data/repositories/notesRepo'
+import { useLabs } from '../../labs/LabsContext'
 import AppearanceModal from '../components/AppearanceModal'
 import ExportModal from '../components/ExportModal'
 import InfoPopover from '../components/InfoPopover'
 import NoteBrowser, { type NoteSortOption } from '../components/NoteBrowser'
 import NoteEditor from '../components/NoteEditor'
 import NoteSidebar, { type NoteSystemCollection } from '../components/NoteSidebar'
+import { createInitialMindMap, getMindMapPrimaryLabel, mindMapToPlainText } from '../model/mindMap'
 import { countCharactersInMarkdown, countWordsInMarkdown } from '../model/noteStats'
 import '../notes.css'
 
@@ -105,8 +108,13 @@ const recomputeTagCounts = (tags: NoteTag[], activeNotes: NoteItem[]) => {
 }
 
 const containsTagName = (tags: string[], name: string) => tags.some((tag) => tag.toLowerCase() === name.toLowerCase())
+const FREE_MIND_MAP_LIMIT = 1
+
+const buildNoteTextForStats = (editorMode: NoteEditorMode, contentMd: string, mindMap?: NoteMindMapDocument | null) =>
+  editorMode === 'mindmap' ? mindMapToPlainText(mindMap) : contentMd
 
 export default function NotePage() {
+  const { subscription, canAccessMindMapFeature } = useLabs()
   const [notes, setNotes] = useState<NoteItem[]>([])
   const [trash, setTrash] = useState<NoteItem[]>([])
   const [tags, setTags] = useState<NoteTag[]>([])
@@ -118,6 +126,7 @@ export default function NotePage() {
   const [sortBy, setSortBy] = useState<NoteSortOption>('edited')
   const [openPanel, setOpenPanel] = useState<NotePanel>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [showMindMapUpgrade, setShowMindMapUpgrade] = useState(false)
   const [todayKey, setTodayKey] = useState(() => dateKey(Date.now()))
   const [isAppDark, setIsAppDark] = useState(() => document.documentElement.classList.contains('dark'))
   const pendingSaveRef = useRef<{ id: string; patch: Partial<NoteItem> } | null>(null)
@@ -234,7 +243,16 @@ export default function NotePage() {
     return () => observer.disconnect()
   }, [])
 
-  const sourceNotes = activeCollection === 'trash' ? trash : notes
+  const hasMindMapFullAccess = canAccessMindMapFeature
+  const visibleNotes = useMemo(
+    () => (hasMindMapFullAccess ? notes : notes.filter((note) => note.editorMode !== 'mindmap')),
+    [hasMindMapFullAccess, notes],
+  )
+  const visibleTrash = useMemo(
+    () => (hasMindMapFullAccess ? trash : trash.filter((note) => note.editorMode !== 'mindmap')),
+    [hasMindMapFullAccess, trash],
+  )
+  const sourceNotes = activeCollection === 'trash' ? visibleTrash : visibleNotes
   const tagNameById = useMemo(() => new Map(tags.map((tag) => [tag.id, tag.name])), [tags])
   const filteredNotes = useMemo(() => {
     const next = sourceNotes.filter((note) => {
@@ -247,25 +265,29 @@ export default function NotePage() {
   }, [activeCollection, activeTagId, tagNameById, sortBy, sourceNotes, todayKey])
 
   const activeNote = useMemo(() => filteredNotes.find((note) => note.id === selectedNoteId) ?? filteredNotes[0] ?? null, [filteredNotes, selectedNoteId])
+  const activeMindMapCount = useMemo(() => notes.filter((note) => note.editorMode === 'mindmap').length, [notes])
+  const mindMapLimitReached = !hasMindMapFullAccess && activeMindMapCount >= FREE_MIND_MAP_LIMIT
   const activeNoteValue = activeNote
     ? {
         title: activeNote.title,
         contentMd: activeNote.contentMd,
         contentJson: activeNote.contentJson ?? null,
+        editorMode: activeNote.editorMode,
+        mindMap: activeNote.mindMap ?? null,
         tags: activeNote.tags,
       }
-    : { title: '', contentMd: '', contentJson: null, tags: [] }
+    : { title: '', contentMd: '', contentJson: null, editorMode: 'document' as const, mindMap: null, tags: [] }
 
   const noteCounts = useMemo(
     () => ({
-      all: notes.length,
-      today: notes.filter((note) => dateKey(note.updatedAt) === todayKey).length,
-      untagged: notes.filter((note) => note.tags.length === 0).length,
-      trash: trash.length,
+      all: visibleNotes.length,
+      today: visibleNotes.filter((note) => dateKey(note.updatedAt) === todayKey).length,
+      untagged: visibleNotes.filter((note) => note.tags.length === 0).length,
+      trash: visibleTrash.length,
     }),
-    [notes, todayKey, trash],
+    [todayKey, visibleNotes, visibleTrash],
   )
-  const tagsWithCounts = useMemo(() => recomputeTagCounts(tags, notes), [notes, tags])
+  const tagsWithCounts = useMemo(() => recomputeTagCounts(tags, visibleNotes), [tags, visibleNotes])
 
   const effectiveTheme: 'paper' | 'graphite' = appearance.theme === 'graphite' || isAppDark ? 'graphite' : 'paper'
 
@@ -280,6 +302,27 @@ export default function NotePage() {
   const handleCreate = async () => {
     await flushPendingSave()
     const created = await notesRepo.create()
+    setNotes((current) => [created, ...current])
+    setActiveCollection('notes')
+    setActiveTagId(null)
+    setSelectedNoteId(created.id)
+    setSearch('')
+  }
+
+  const handleCreateMindMap = async () => {
+    await flushPendingSave()
+    if (!canPersistMindMap(null, 'mindmap')) {
+      setShowMindMapUpgrade(true)
+      return
+    }
+    const created = await notesRepo.create({
+      title: 'New Mind Map',
+      contentMd: '',
+      contentJson: null,
+      editorMode: 'mindmap',
+      mindMap: createInitialMindMap(),
+      tags: [],
+    })
     setNotes((current) => [created, ...current])
     setActiveCollection('notes')
     setActiveTagId(null)
@@ -313,18 +356,52 @@ export default function NotePage() {
     })
   }
 
-  const handleUpdateNote = (next: { title: string; contentMd: string; contentJson?: Record<string, unknown> | null; tags: string[] }) => {
+  const handleRestoreNote = async (id: string) => {
+    await flushPendingSave()
+    const restored = await notesRepo.restore(id)
+    if (!restored) return
+    setTrash((current) => current.filter((note) => note.id !== id))
+    setNotes((current) => [restored, ...current.filter((note) => note.id !== id)])
+    if (selectedNoteId === id) setSelectedNoteId(restored.id)
+  }
+
+  const canPersistMindMap = (target?: NoteItem | null, nextMode?: NoteEditorMode) => {
+    if (nextMode !== 'mindmap') return true
+    if (hasMindMapFullAccess) return true
+    if (target?.editorMode === 'mindmap') return true
+    return activeMindMapCount < FREE_MIND_MAP_LIMIT
+  }
+
+  const handleUpdateNote = (next: {
+    title: string
+    contentMd: string
+    contentJson?: Record<string, unknown> | null
+    editorMode: NoteEditorMode
+    mindMap?: NoteMindMapDocument | null
+    tags: string[]
+  }) => {
+    if (!canPersistMindMap(activeNote, next.editorMode)) {
+      setShowMindMapUpgrade(true)
+      return
+    }
     if (!activeNote) {
       if (activeCollection === 'trash') return
-      const hasContent = next.title.trim().length > 0 || next.contentMd.trim().length > 0 || next.tags.length > 0
+      const hasContent =
+        next.title.trim().length > 0 ||
+        next.contentMd.trim().length > 0 ||
+        next.tags.length > 0 ||
+        next.editorMode === 'mindmap'
       if (!hasContent || creatingFromBlankRef.current) return
       creatingFromBlankRef.current = true
       void (async () => {
         try {
+          const derivedTitle = next.title.trim() || getMindMapPrimaryLabel(next.mindMap)
           const created = await notesRepo.create({
-            title: next.title,
+            title: derivedTitle,
             contentMd: next.contentMd,
             contentJson: next.contentJson ?? null,
+            editorMode: next.editorMode,
+            mindMap: next.mindMap ?? (next.editorMode === 'mindmap' ? createInitialMindMap() : null),
             tags: next.tags,
           })
           setNotes((current) => [created, ...current])
@@ -337,19 +414,23 @@ export default function NotePage() {
       })()
       return
     }
-    const stats = buildNoteStats(next.contentMd)
+    const statsSource = buildNoteTextForStats(next.editorMode, next.contentMd, next.mindMap)
+    const stats = buildNoteStats(statsSource)
+    const nextTitle = next.title.trim() || (next.editorMode === 'mindmap' ? getMindMapPrimaryLabel(next.mindMap) : next.title)
     const patch: Partial<NoteItem> = {
-      title: next.title,
+      title: nextTitle,
       contentMd: next.contentMd,
       contentJson: next.contentJson ?? null,
+      editorMode: next.editorMode,
+      mindMap: next.mindMap ?? null,
       tags: next.tags,
-      excerpt: buildPreview(next.contentMd),
+      excerpt: buildPreview(statsSource),
       wordCount: stats.wordCount,
       charCount: stats.charCount,
       paragraphCount: stats.paragraphCount,
       imageCount: stats.imageCount,
       fileCount: stats.fileCount,
-      headings: stats.headings,
+      headings: next.editorMode === 'mindmap' ? [] : stats.headings,
     }
     setNotes((current) =>
       current.map((note) =>
@@ -357,7 +438,7 @@ export default function NotePage() {
           ? {
               ...note,
               ...patch,
-              excerpt: buildPreview(next.contentMd),
+              excerpt: buildPreview(statsSource),
             }
           : note,
       ),
@@ -647,6 +728,7 @@ export default function NotePage() {
           onNewNote={handleCreate}
           onTogglePin={handleTogglePinNote}
           onTrashNote={handleTrashNote}
+          onRestoreNote={handleRestoreNote}
           onDeleteNote={handleDeletePermanently}
           sortBy={sortBy}
           onSortChange={setSortBy}
@@ -656,6 +738,7 @@ export default function NotePage() {
         <div className="note-page-column note-page-column--editor relative flex min-w-0 flex-1">
           <>
             <NoteEditor
+              noteId={activeNote?.id ?? null}
               surfaceRef={editorSurfaceRef}
               value={activeNoteValue}
               appearance={appearance}
@@ -664,6 +747,11 @@ export default function NotePage() {
               onOpenInfo={() => setOpenPanel((current) => (current === 'info' ? null : 'info'))}
               onOpenAppearance={() => setOpenPanel((current) => (current === 'appearance' ? null : 'appearance'))}
               onExport={() => setOpenPanel((current) => (current === 'export' ? null : 'export'))}
+              hasMindMapFullAccess={hasMindMapFullAccess}
+              mindMapCount={activeMindMapCount}
+              mindMapLimitReached={mindMapLimitReached}
+              onUpgradeMindMap={() => setShowMindMapUpgrade(true)}
+              onCreateMindMap={handleCreateMindMap}
               onChange={handleUpdateNote}
             />
             <InfoPopover
@@ -683,6 +771,27 @@ export default function NotePage() {
           </>
         </div>
       </div>
+      {showMindMapUpgrade ? (
+        <div className="note-premium-modal" role="dialog" aria-modal="true" aria-label="Mind Map Access">
+          <div className="note-premium-modal__card">
+            <p className="note-premium-modal__eyebrow">Mind Map</p>
+            <h2>{subscription?.role === 'admin' ? 'Mind Map is still marked as in development in Labs.' : 'Mind Map is only visible to admin accounts right now.'}</h2>
+            <p>
+              {subscription?.role === 'admin'
+                ? 'You can continue using it directly in Notes while the Labs entry stays on development status.'
+                : 'Switch to an admin account if you need access to visual note mapping.'}
+            </p>
+            <div className="note-premium-modal__actions">
+              <button type="button" className="note-premium-modal__button note-premium-modal__button--ghost" onClick={() => setShowMindMapUpgrade(false)}>
+                Close
+              </button>
+              <a className="note-premium-modal__button" href={ROUTES.LABS} onClick={() => setShowMindMapUpgrade(false)}>
+                Open Labs
+              </a>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   )
 }

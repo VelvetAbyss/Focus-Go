@@ -624,7 +624,7 @@ const TasksBoard = ({
         </div>
       ) : null}
 
-      <div className="relative min-h-0 flex-1 overflow-hidden pt-4" data-coachmark-anchor="tasks-entry">
+      <div className="relative min-h-0 flex-1 overflow-visible pt-4" data-coachmark-anchor="tasks-entry">
         {boardContent}
       </div>
 

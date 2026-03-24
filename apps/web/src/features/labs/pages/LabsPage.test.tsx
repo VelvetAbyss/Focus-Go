@@ -105,7 +105,7 @@ describe('LabsPage', () => {
     mockUseLabs.mockReturnValue({
       ready: true,
       catalog: [makeFeature('available')],
-      subscription: { tier: 'premium' },
+      subscription: { tier: 'premium', role: 'admin' },
       install: mockInstall,
       remove: mockRemove,
       restore: mockRestore,
@@ -122,7 +122,7 @@ describe('LabsPage', () => {
     mockUseLabs.mockReturnValue({
       ready: true,
       catalog: [makeFeature('available', { requiresPremium: true })],
-      subscription: { tier: 'free' },
+      subscription: { tier: 'free', role: 'member' },
       install: mockInstall,
       remove: mockRemove,
       restore: mockRestore,
@@ -138,7 +138,7 @@ describe('LabsPage', () => {
     mockUseLabs.mockReturnValue({
       ready: true,
       catalog: [makeFeature('installed'), makeFeature('removed', { featureKey: 'ai-digest', title: 'AI Digest' })],
-      subscription: { tier: 'premium' },
+      subscription: { tier: 'premium', role: 'admin' },
       install: mockInstall,
       remove: mockRemove,
       restore: mockRestore,
@@ -156,5 +156,21 @@ describe('LabsPage', () => {
 
     await userEvent.click(screen.getByRole('button', { name: i18n.labs.restore }))
     await waitFor(() => expect(mockRestore).toHaveBeenCalledWith('ai-digest'))
+  })
+
+  it('shows mind map as coming soon', () => {
+    mockUseLabs.mockReturnValue({
+      ready: true,
+      catalog: [makeFeature('available', { featureKey: 'mind-map', title: 'Mind Map', premiumOnly: false, comingSoon: true })],
+      subscription: { tier: 'premium', role: 'admin' },
+      install: mockInstall,
+      remove: mockRemove,
+      restore: mockRestore,
+      upgradeMock: mockUpgrade,
+    })
+
+    renderPage()
+    expect(screen.getAllByText(i18n.labs.comingSoon).length).toBeGreaterThan(0)
+    expect(screen.getByRole('button', { name: i18n.labs.comingSoon })).toBeDisabled()
   })
 })

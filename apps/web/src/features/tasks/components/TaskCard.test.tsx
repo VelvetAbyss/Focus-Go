@@ -2,7 +2,7 @@
 
 import '@testing-library/jest-dom/vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import TaskCard from './TaskCard'
 import type { TaskItem } from '../tasks.types'
 
@@ -22,6 +22,10 @@ const task: TaskItem = {
 }
 
 describe('TaskCard', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   it('uses animated reveal classes for hover content', () => {
     render(
       <TaskCard
@@ -49,5 +53,28 @@ describe('TaskCard', () => {
 
     expect(screen.queryByRole('button', { name: /save/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+  })
+
+  it('highlights overdue deadlines with a stronger red treatment', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-03-12T00:00:00Z'))
+
+    const { container } = render(
+      <TaskCard
+        task={{
+          ...task,
+          dueDate: '2026-03-11',
+        }}
+        onSelect={vi.fn()}
+      />,
+    )
+
+    const card = container.querySelector('.task-card-shell')
+    const deadlineBadge = Array.from(container.querySelectorAll('span')).find((element) => element.textContent === '-1d')
+
+    expect(card?.className).toContain('!bg-rose-50/80')
+    expect(card?.className).toContain('!border-rose-300/70')
+    expect(deadlineBadge?.className).toContain('border-rose-300')
+    expect(deadlineBadge?.className).toContain('text-rose-700')
   })
 })

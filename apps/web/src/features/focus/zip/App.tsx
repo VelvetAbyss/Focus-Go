@@ -4,9 +4,26 @@ import { PanelLeft } from "lucide-react";
 import { WhiteNoise } from "./components/WhiteNoise";
 import { FocusTimer } from "./components/FocusTimer";
 import { FocusHistory, type FocusSession } from "./components/FocusHistory";
-import { db } from "../../../data/db";
+import { focusRepo } from "../../../data/repositories/focusRepo";
 
-const FOCUS_HISTORY_RESET_KEY = "focusgo.focus-history-reset-v1";
+const FOCUS_TIMER_EVENT = "focus:timer-updated";
+
+const getModeLabel = (plannedMinutes: number) => {
+  if (plannedMinutes === 25) return "番茄钟";
+  if (plannedMinutes === 50) return "深度工作";
+  if (plannedMinutes === 15) return "冲刺";
+  if (plannedMinutes === 90) return "心流";
+  return undefined;
+};
+
+const toHistorySession = (session: Awaited<ReturnType<typeof focusRepo.listSessions>>[number]): FocusSession => ({
+  id: session.id,
+  startTime: new Date(session.createdAt),
+  endTime: new Date(session.completedAt ?? session.updatedAt),
+  status: session.status === "completed" ? "completed" : "abandoned",
+  durationMinutes: session.actualMinutes ?? session.plannedMinutes,
+  mode: getModeLabel(session.plannedMinutes),
+});
 
 export default function App() {
   const [sessions, setSessions] = useState<FocusSession[]>([]);
@@ -26,36 +43,22 @@ export default function App() {
     return () => observer.disconnect();
   }, []);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (window.localStorage.getItem(FOCUS_HISTORY_RESET_KEY) === "1") return;
-
-    const clearFocusHistory = async () => {
-      await db.focusSessions.clear();
-      window.localStorage.setItem(FOCUS_HISTORY_RESET_KEY, "1");
-    };
-
-    void clearFocusHistory();
+  const loadSessions = useCallback(async () => {
+    const rows = await focusRepo.listSessions();
+    setSessions(rows.map(toHistorySession));
   }, []);
 
-  const handleSessionComplete = useCallback(
-    (session: {
-      startTime: Date;
-      endTime: Date;
-      status: "completed" | "abandoned";
-      durationMinutes: number;
-      mode: string;
-    }) => {
-      setSessions((prev) => [
-        {
-          id: `s-${Date.now()}`,
-          ...session,
-        },
-        ...prev,
-      ]);
-    },
-    []
-  );
+  useEffect(() => {
+    void loadSessions();
+  }, [loadSessions]);
+
+  useEffect(() => {
+    const onTimerUpdate = () => {
+      void loadSessions();
+    };
+    window.addEventListener(FOCUS_TIMER_EVENT, onTimerUpdate);
+    return () => window.removeEventListener(FOCUS_TIMER_EVENT, onTimerUpdate);
+  }, [loadSessions]);
 
   // Calculate today's stats from external sessions
   const todayStats = useMemo(() => {
@@ -191,7 +194,6 @@ export default function App() {
               }}
             />
             <FocusTimer
-              onSessionComplete={handleSessionComplete}
               todayMinutes={todayStats.minutes}
               todaySessions={todayStats.sessions}
               dailyGoal={120}

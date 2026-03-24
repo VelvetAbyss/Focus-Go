@@ -1,10 +1,10 @@
-import { forwardRef, useState } from 'react'
+import { forwardRef, useEffect, useState } from 'react'
 import { Calendar, CircleCheck, Crosshair, Ellipsis, Pin, PinOff, Play, RotateCcw, Trash2 } from 'lucide-react'
 import type { CSSProperties, HTMLAttributes } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { TaskItem } from '../tasks.types'
-import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, getTaskPriorityKey, getTaskTagTone } from './taskPresentation'
+import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, getTaskDeadlineState, getTaskPriorityKey, getTaskTagTone } from './taskPresentation'
 
 type TaskCardProps = {
   task: TaskItem
@@ -29,8 +29,6 @@ type TaskCardProps = {
   selected?: boolean
   selectionMode?: boolean
 }
-
-const TODAY = new Date('2026-03-12')
 
 const formatDate = (value: string) =>
   new Date(value).toLocaleDateString('en-US', {
@@ -58,14 +56,21 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
       selectionMode = false,
     },
     ref,
-  ) => {
+    ) => {
     const [isHovered, setIsHovered] = useState(false)
+    const [now, setNow] = useState(() => Date.now())
     const priorityKey = getTaskPriorityKey(task.priority)
     const priorityCfg = TASK_PRIORITY_CONFIG[priorityKey]
     const statusCfg = TASK_STATUS_CONFIG[task.status]
     const displayTags = task.tags.slice(0, 2)
     const extraTagCount = task.tags.length - 2
-    const isOverdue = task.dueDate != null && new Date(task.dueDate) < TODAY && task.status !== 'done'
+
+    useEffect(() => {
+      const timer = window.setInterval(() => setNow(Date.now()), 60_000)
+      return () => window.clearInterval(timer)
+    }, [])
+
+    const deadline = getTaskDeadlineState(task, now)
 
     return (
       <div
@@ -76,6 +81,7 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
           task.status === 'done' && 'opacity-75',
           compact && 'rounded-md',
           selected && 'ring-2 ring-[#3A3733]/35',
+          deadline.shellClass,
         )}
         style={style}
         {...(interactive ? dragAttributes : undefined)}
@@ -123,9 +129,10 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
               </span>
             ) : null}
             {task.dueDate ? (
-              <span className={cn('inline-flex items-center gap-1 text-xs text-muted-foreground', isOverdue && 'text-red-600')}>
+              <span className={cn('inline-flex items-center gap-1 text-xs', deadline.textClass)}>
                 <Calendar className="size-3" />
-                {formatDate(task.dueDate)}
+                <span>{formatDate(task.dueDate)}</span>
+                {deadline.label ? <span className={cn('rounded-full border px-1.5 py-0.5 text-[10px] font-semibold', deadline.badgeClass)}>{deadline.label}</span> : null}
               </span>
             ) : null}
             <span className={cn('inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs font-semibold', statusCfg.badge)}>

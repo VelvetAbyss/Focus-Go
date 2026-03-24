@@ -1,4 +1,4 @@
-import { type CSSProperties } from 'react'
+import { type CSSProperties, useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Link } from 'react-router-dom'
 import { LayoutGrid, Settings as SettingsIcon } from 'lucide-react'
@@ -6,6 +6,7 @@ import { ROUTES } from '../../app/routes/routes'
 import { useI18n } from '../../shared/i18n/useI18n'
 import { useIsBreakpoint } from '../../hooks/use-is-breakpoint'
 import LiveClock from './LiveClock'
+import { getDashboardQuote, getLocalDashboardQuote } from './quote/quoteService'
 
 type DashboardHeaderProps = {
   layoutEdit: boolean
@@ -91,6 +92,20 @@ const DashboardHeader = ({
   const weekday = new Intl.DateTimeFormat(language === 'zh' ? 'zh-CN' : 'en-US', { weekday: 'long' }).format(now)
   const gregorian = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`
   const headerLunar = `${t('dashboard.lunar')} ${formatLunar(now)}`
+  const fallbackQuote = useMemo(() => getLocalDashboardQuote(language), [language])
+  const [quote, setQuote] = useState(() => fallbackQuote)
+  const displayedQuote = quote.language === language ? quote : fallbackQuote
+
+  useEffect(() => {
+    const controller = new AbortController()
+    void getDashboardQuote(language, { signal: controller.signal })
+      .then((nextQuote) => {
+        if (!controller.signal.aborted) setQuote(nextQuote)
+      })
+      .catch(() => {})
+
+    return () => controller.abort()
+  }, [language])
 
   const getNodeStyle = (nodeId: HeaderInfoNodeId): CSSProperties => {
     const node = headerLayout[nodeId]
@@ -136,9 +151,13 @@ const DashboardHeader = ({
           className="app-shell__hero-item app-shell__hero-item--quote"
           style={isMobile ? { position: 'static', marginTop: '8px', padding: '0 24px', textAlign: 'center' } : undefined}
         >
-          <div className="app-shell__hero-quote-content" style={isMobile ? { width: 'auto', justifyContent: 'center', flexWrap: 'wrap' } : undefined}>
-            <p className="app-shell__hero-quote">"{language === 'zh' ? '千里之行，始于足下。' : 'Success is the sum of small efforts, repeated day in and day out.'}"</p>
-            <p className="app-shell__hero-quote-author">- {language === 'zh' ? '《道德经》' : 'Robert Collier'}</p>
+          <div
+            key={displayedQuote.content}
+            className="app-shell__hero-quote-content"
+            style={isMobile ? { width: 'auto', justifyContent: 'center', flexWrap: 'wrap' } : undefined}
+          >
+            <p className="app-shell__hero-quote">"{displayedQuote.content}"</p>
+            <p className="app-shell__hero-quote-author">- {displayedQuote.author}</p>
           </div>
         </div>
       </div>
