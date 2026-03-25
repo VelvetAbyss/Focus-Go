@@ -88,7 +88,7 @@ const LabsPage = () => {
                       })
                     }}
                   >
-                    {i18n.labs.install}
+                    {feature.comingSoon ? i18n.labs.comingSoon : i18n.labs.install}
                   </Button>
                 )}
               </CardFooter>
