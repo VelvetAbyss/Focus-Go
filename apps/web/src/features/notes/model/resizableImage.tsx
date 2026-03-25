@@ -15,6 +15,7 @@ const parseWidth = (value: unknown) => {
   return null
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const clampImageWidth = (width: number, maxWidth: number) => Math.round(Math.max(MIN_IMAGE_WIDTH, Math.min(width, Math.max(MIN_IMAGE_WIDTH, maxWidth))))
 
 export const ResizableImageView = ({ node, selected, updateAttributes }: Pick<NodeViewProps, 'node' | 'selected' | 'updateAttributes'>) => {

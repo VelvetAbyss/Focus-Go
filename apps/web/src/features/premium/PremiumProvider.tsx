@@ -117,6 +117,7 @@ export const PremiumProvider = ({ children }: { children: ReactNode }) => {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const usePremiumGate = () => {
   const ctx = useContext(PremiumGateContext)
   if (!ctx) throw new Error('usePremiumGate must be used within PremiumProvider')

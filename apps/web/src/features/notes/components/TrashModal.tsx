@@ -1,5 +1,6 @@
 import { RotateCcw, Trash2, X } from 'lucide-react'
 import { useI18n } from '../../../shared/i18n/useI18n'
+import type { TranslationKey } from '../../../shared/i18n/types'
 import type { NoteItem } from '../../../data/models/types'
 
 type Props = {
@@ -10,7 +11,7 @@ type Props = {
   onDeletePermanently: (id: string) => void
 }
 
-const formatTrashDate = (value?: number | null, t?: (key: any, values?: Record<string, string | number>) => string) => {
+const formatTrashDate = (value?: number | null, t?: (key: TranslationKey, values?: Record<string, string | number>) => string) => {
   if (!value || !t) return ''
   const diff = Math.floor((Date.now() - value) / 86400000)
   if (diff < 1) return t('notes.trash.today')
