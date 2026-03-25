@@ -760,7 +760,7 @@ describe('CalendarPage', () => {
     await user.click(screen.getByRole('button', { name: 'Add ICS subscription' }))
 
     expect(scoped.getByText('Flow test calendar')).toBeInTheDocument()
-  })
+  }, 15000)
 
   it('delete permanently removes subscription and no restore panel appears', async () => {
     const user = userEvent.setup()

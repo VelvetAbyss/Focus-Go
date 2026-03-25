@@ -77,7 +77,7 @@ describe('OnboardingProgressiveRuntime', () => {
     window.localStorage.clear()
     markFeatureSeen('focus')
     document.body.innerHTML = '<div data-coachmark-anchor="review-page" style="height:10px"></div>'
-    vi.setSystemTime(new Date('2026-03-23T18:30:00+08:00'))
+    vi.setSystemTime(new Date('2026-03-23T18:30:00Z'))
 
     render(
       <MemoryRouter initialEntries={['/review']}>
