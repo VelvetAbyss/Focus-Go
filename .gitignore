@@ -34,6 +34,9 @@ lerna-debug.log*
 # OS
 .DS_Store
 
+# Database files (runtime data, not committed)
+apps/web/focus-go-api/data/
+
 # Deployment / cache
 .vercel
 .sisyphus/

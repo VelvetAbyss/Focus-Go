@@ -1,44 +1,30 @@
 import { Router } from 'express'
 import { getUserInfo } from '../services/authing.js'
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
-import { join, dirname } from 'path'
-import { fileURLToPath } from 'url'
-
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const DB_PATH = join(__dirname, '../data/plans.json')
-
-const loadPlans = () => {
-  if (!existsSync(DB_PATH)) return {}
-  try {
-    return JSON.parse(readFileSync(DB_PATH, 'utf8'))
-  } catch {
-    return {}
-  }
-}
-
-const savePlans = (plans) => {
-  const dir = dirname(DB_PATH)
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-  writeFileSync(DB_PATH, JSON.stringify(plans, null, 2))
-}
+import db from '../db/init.js'
 
 const router = Router()
+
+// Upsert user on every authenticated request — keeps email in sync
+const upsertUser = (authingId, email) => {
+  db.prepare(`
+    INSERT INTO users (authing_id, email)
+    VALUES (?, ?)
+    ON CONFLICT(authing_id) DO UPDATE SET email = excluded.email
+  `).run(authingId, email ?? null)
+  return db.prepare('SELECT * FROM users WHERE authing_id = ?').get(authingId)
+}
 
 // GET /user/profile — validate Bearer token, return id + email + plan
 router.get('/profile', async (req, res) => {
   const authHeader = req.headers.authorization
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!authHeader?.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Missing Bearer token' })
   }
   const accessToken = authHeader.slice(7)
   try {
-    const user = await getUserInfo(accessToken)
-    const plans = loadPlans()
-    res.json({
-      id: user.sub,
-      email: user.email,
-      plan: plans[user.sub] ?? 'free',
-    })
+    const authingUser = await getUserInfo(accessToken)
+    const user = upsertUser(authingUser.sub, authingUser.email)
+    res.json({ id: user.id, email: user.email, plan: user.plan })
   } catch (err) {
     console.error(err)
     res.status(401).json({ error: err.message })
@@ -48,16 +34,19 @@ router.get('/profile', async (req, res) => {
 // POST /user/upgrade — upgrade user to premium
 router.post('/upgrade', async (req, res) => {
   const authHeader = req.headers.authorization
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!authHeader?.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Missing Bearer token' })
   }
   const accessToken = authHeader.slice(7)
   try {
-    const user = await getUserInfo(accessToken)
-    const plans = loadPlans()
-    plans[user.sub] = 'premium'
-    savePlans(plans)
-    res.json({ id: user.sub, plan: 'premium' })
+    const authingUser = await getUserInfo(accessToken)
+    const result = db.prepare(
+      "UPDATE users SET plan = 'premium' WHERE authing_id = ?"
+    ).run(authingUser.sub)
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'User not found' })
+    }
+    res.json({ plan: 'premium' })
   } catch (err) {
     console.error(err)
     res.status(401).json({ error: err.message })
