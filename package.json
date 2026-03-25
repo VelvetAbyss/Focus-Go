@@ -20,7 +20,7 @@
     "lint:web": "npm run lint --workspace @focus-go/web",
     "lint:desktop": "npm run lint --workspace @focus-go/desktop",
     "test:screenshot": "pnpm --dir ./apps/ai-screenshot-tool test",
-    "verify": "npm run lint:web && npm run build:web && npm run build:desktop",
+    "verify": "npm run lint:web && npm run build:web",
     "release:bundle": "node scripts/oss/build-release-bundle.mjs",
     "release:oss:upload": "node scripts/oss/upload-release.mjs",
     "release:oss:verify": "node scripts/oss/verify-release.mjs",

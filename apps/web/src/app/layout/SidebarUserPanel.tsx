@@ -39,10 +39,10 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
         dbService.diary.listActive().catch(() => []),
       ])
       if (cancelled) return
-      const tasksCompleted = tasks.filter((t: any) => t.status === 'done').length
+      const tasksCompleted = tasks.filter((t) => t.status === 'done').length
       const focusMinutes = sessions
-        .filter((s: any) => s.status === 'completed')
-        .reduce((sum: number, s: any) => sum + (s.actualMinutes || 0), 0)
+        .filter((s) => s.status === 'completed')
+        .reduce((sum, s) => sum + (s.actualMinutes ?? 0), 0)
       setStats({
         tasksCompleted,
         focusHours: Math.round((focusMinutes / 60) * 10) / 10,
