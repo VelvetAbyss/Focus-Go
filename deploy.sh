@@ -28,6 +28,12 @@ API_DIR="$REPO_DIR/apps/web/focus-go-api"
 
 echo "=== Deploy: $DEPLOY_ENV | branch: $BRANCH | port: $API_PORT ==="
 
+# ── 0. Pre-flight: verify API .env exists ─────────────────────────
+if [[ ! -f "$API_DIR/.env" ]]; then
+  echo "❌ Missing $API_DIR/.env — create it from .env.example before deploying"
+  exit 1
+fi
+
 # ── 1. Fetch code ─────────────────────────────────────────────────
 echo "=== [1/8] git fetch origin/$BRANCH ==="
 cd "$REPO_DIR"
