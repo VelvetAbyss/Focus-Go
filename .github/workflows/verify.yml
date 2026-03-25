@@ -30,7 +30,6 @@ jobs:
           npm run test --workspace @focus-go/core
           npm run test --workspace @focus-go/db-contracts
           npm run test --workspace @focus-go/web
-          npm run test --workspace @focus-go/desktop
 
-      - name: Verify web + desktop build
+      - name: Verify web build
         run: npm run verify

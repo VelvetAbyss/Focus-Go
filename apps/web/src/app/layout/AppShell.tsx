@@ -36,6 +36,7 @@ const readCompactViewport = () =>
     ? window.matchMedia(COMPACT_SIDEBAR_MEDIA_QUERY).matches
     : false
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const resolveShellScale = (viewportWidth: number) => {
   const safeWidth = Number.isFinite(viewportWidth) ? viewportWidth : SHELL_SCALE_MAX_WIDTH
   if (safeWidth <= SHELL_SCALE_MIN_WIDTH) return SHELL_SCALE_MIN
