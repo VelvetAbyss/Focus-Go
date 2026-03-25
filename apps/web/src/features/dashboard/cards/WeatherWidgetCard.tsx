@@ -67,7 +67,7 @@ const WeatherWidgetCard = () => {
         className={`weather-widget weather-widget--tone-${selectedMeta?.tone ?? 'cloud'}`}
         style={widgetStyle}
       >
-        {snapshot.status === 'error' ? (
+        {snapshot.status === 'error' && !snapshot.data ? (
           <p className="muted">{t('weather.error')}</p>
         ) : (
           <>

@@ -162,7 +162,7 @@ async function loadAndSchedule() {
     }
   } catch {
     if (currentConfig && sameConfig(configAtStart, currentConfig)) {
-      publish({ status: 'error', data: null })
+      publish({ status: 'error' })
       if (retryAttempts < MAX_RETRY_ATTEMPTS) {
         retryAttempts += 1
         scheduleRetry()
