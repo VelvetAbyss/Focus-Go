@@ -3,7 +3,8 @@ import { getTokenByCode, getUserInfo } from '../services/authing.js'
 
 const router = Router()
 
-router.post('/callback', async (req, res) => {
+// Check 1: code → Authing /oidc/token → return accessToken + user
+router.post('/exchange', async (req, res) => {
   const { code } = req.body
   if (!code) {
     return res.status(400).json({ error: 'code is required' })
@@ -15,6 +16,22 @@ router.post('/callback', async (req, res) => {
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: err.message })
+  }
+})
+
+// Check 2: Bearer token → Authing /oidc/me → return user
+router.get('/me', async (req, res) => {
+  const authHeader = req.headers.authorization
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Missing Bearer token' })
+  }
+  const accessToken = authHeader.slice(7)
+  try {
+    const user = await getUserInfo(accessToken)
+    res.json({ user })
+  } catch (err) {
+    console.error(err)
+    res.status(401).json({ error: err.message })
   }
 })
 

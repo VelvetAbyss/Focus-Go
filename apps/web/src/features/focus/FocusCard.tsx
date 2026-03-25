@@ -7,6 +7,7 @@ import { useSharedFocusTimer } from './useSharedFocusTimer'
 import { useSharedNoise } from './SharedNoiseProvider'
 import { useI18n } from '../../shared/i18n/useI18n'
 import type { TranslationKey } from '../../shared/i18n/types'
+import { usePremiumGate } from '../premium/PremiumProvider'
 
 const clampDuration = (value: number) => {
   if (!Number.isFinite(value)) return 25
@@ -117,6 +118,7 @@ function TimerDisplay({ timeText }: { timeText: string }) {
 
 const FocusCard = () => {
   const { t } = useI18n()
+  const { canUse, openUpgradeModal } = usePremiumGate()
   const [activeMode, setActiveMode] = useState<FocusModeId>('pomodoro')
   const { noise, setNoiseMasterVolume, toggleNoisePlaying } = useSharedNoise()
   const { state: timerState, start, pause, resume, reset, setDuration } = useSharedFocusTimer({ defaultDurationMinutes: 25 })
@@ -262,7 +264,13 @@ const FocusCard = () => {
               <button
                 className={`focus-card-lite__noise-play-raw ${noise.playing ? 'is-playing' : ''}`}
                 onPointerDown={(event) => springPress(event.currentTarget)}
-                onClick={toggleNoisePlaying}
+                onClick={() => {
+                  if (!canUse('focus.white-noise').allowed) {
+                    openUpgradeModal('button', 'focus.white-noise')
+                    return
+                  }
+                  toggleNoisePlaying()
+                }}
                 aria-label={noise.playing ? t('focus.pauseNoise') : t('focus.playNoise')}
               >
                 {noise.playing ? <Pause size={14} /> : <Play size={14} />}
@@ -277,6 +285,10 @@ const FocusCard = () => {
                   ref={sliderRef}
                   className="focus-card-lite__volume-track-raw"
                   onMouseDown={(event) => {
+                    if (!canUse('focus.white-noise').allowed) {
+                      openUpgradeModal('button', 'focus.white-noise')
+                      return
+                    }
                     draggingRef.current = true
                     if (!sliderRef.current) return
                     const rect = sliderRef.current.getBoundingClientRect()

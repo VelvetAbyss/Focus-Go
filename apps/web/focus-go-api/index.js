@@ -2,6 +2,7 @@ import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import authRouter from './routes/auth.js'
+import userRouter from './routes/user.js'
 
 const app = express()
 
@@ -13,6 +14,7 @@ app.get('/', (req, res) => {
 })
 
 app.use('/auth', authRouter)
+app.use('/user', userRouter)
 
 app.listen(3000, () => {
   console.log('Server running on http://localhost:3000')

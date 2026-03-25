@@ -10,15 +10,13 @@ import ReviewPage from '../../features/diary/pages/ReviewPage'
 import LabsPage from '../../features/labs/pages/LabsPage'
 import HabitTrackerPage from '../../features/habits/pages/HabitTrackerPage'
 import { useLabs } from '../../features/labs/LabsContext'
-import { useToast } from '../../shared/ui/toast/toast'
-import { useLabsI18n } from '../../features/labs/labsI18n'
+import { usePremiumGate } from '../../features/premium/PremiumProvider'
 
 const FocusPage = lazy(() => import('../../features/focus/pages/FocusPage'))
 
 const GuardedHabitsRoute = () => {
   const { ready, canAccessHabitFeature } = useLabs()
-  const toast = useToast()
-  const i18n = useLabsI18n()
+  const { openUpgradeModal } = usePremiumGate()
   const location = useLocation()
   const didNotifyRef = useRef(false)
 
@@ -26,13 +24,13 @@ const GuardedHabitsRoute = () => {
 
   useEffect(() => {
     if (denied && !didNotifyRef.current) {
-      toast.push({ variant: 'info', message: i18n.toast.habitAccessDenied })
+      openUpgradeModal('route', 'dashboard.extra-widgets')
       didNotifyRef.current = true
     }
     if (!denied) {
       didNotifyRef.current = false
     }
-  }, [denied, i18n.toast.habitAccessDenied, toast])
+  }, [denied, openUpgradeModal])
 
   if (!ready) return null
   if (denied) return <Navigate to={ROUTES.LABS} replace state={{ from: location.pathname }} />

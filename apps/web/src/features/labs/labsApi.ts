@@ -93,9 +93,20 @@ const removeLegacyRssInstallations = async () => {
   await db.featureInstallations.bulkDelete(rssRows.map((item) => item.id))
 }
 
+const readAuthPlan = (): SubscriptionTier => {
+  try {
+    const raw = localStorage.getItem('auth')
+    if (!raw) return 'free'
+    const plan = JSON.parse(raw).plan
+    return plan === 'premium' ? 'premium' : 'free'
+  } catch {
+    return 'free'
+  }
+}
+
 export const ensureLabsSeed = async () => {
   const existing = await db.userSubscriptions.where('userId').equals(CURRENT_USER_ID).first()
-  if (!existing) await upsertSubscription('free')
+  if (!existing) await upsertSubscription(readAuthPlan())
   await removeLegacyRssInstallations()
 }
 

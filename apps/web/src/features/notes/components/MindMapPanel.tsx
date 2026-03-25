@@ -224,7 +224,7 @@ const serializeEdges = (edges: Edge[]): SerializedEdge[] =>
 
 function MindMapNodeComponent({ id, data }: NodeProps) {
   const nodeData = data as MindMapNodeData
-  const { updateNodeData } = useReactFlow()
+  const { updateNodeData } = useReactFlow<Node<MindMapNodeData>, Edge>()
 
   const [editing, setEditing] = useState<boolean>(false)
   const [editLabel, setEditLabel] = useState(nodeData.label)
@@ -359,7 +359,7 @@ function MindMapInner({ open, noteId, onClose }: MindMapPanelProps) {
   const { t } = useI18n()
   // getNodes/getEdges read from the ReactFlow Zustand store — always current,
   // no stale-closure risk even inside callbacks.
-  const { fitView, getNodes, getEdges, getNodeConnections } = useReactFlow()
+  const { fitView, getNodes, getEdges, getNodeConnections } = useReactFlow<Node<MindMapNodeData>, Edge>()
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<MindMapNodeData>>([])
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])

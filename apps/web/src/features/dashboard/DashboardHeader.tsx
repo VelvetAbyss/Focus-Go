@@ -13,6 +13,8 @@ type DashboardHeaderProps = {
   widgetsPanelOpen: boolean
   onToggleLayoutEdit: () => void
   onToggleWidgetsPanel: () => void
+  layoutEditLocked?: boolean
+  widgetsLocked?: boolean
   onRestartOnboarding?: () => void
   showRestartOnboarding?: boolean
 }
@@ -81,6 +83,8 @@ const DashboardHeader = ({
   widgetsPanelOpen,
   onToggleLayoutEdit,
   onToggleWidgetsPanel,
+  layoutEditLocked = false,
+  widgetsLocked = false,
   onRestartOnboarding,
   showRestartOnboarding = false,
 }: DashboardHeaderProps) => {
@@ -182,6 +186,7 @@ const DashboardHeader = ({
             variant="outline"
             size="sm"
             onClick={onToggleWidgetsPanel}
+            data-locked={widgetsLocked ? 'true' : 'false'}
             aria-label={t('dashboard.manageVisibility')}
             aria-expanded={widgetsPanelOpen}
           >
@@ -194,6 +199,7 @@ const DashboardHeader = ({
           variant="outline"
           size="sm"
           onClick={onToggleLayoutEdit}
+          data-locked={layoutEditLocked ? 'true' : 'false'}
           aria-label={layoutEdit ? t('dashboard.layoutEdit') : t('dashboard.editLayout')}
           aria-expanded={layoutEdit}
         >
