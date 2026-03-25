@@ -62,7 +62,8 @@ systemctl reload nginx
 # ── 7. PM2 reload API ─────────────────────────────────────────────
 echo "=== [7/8] PM2 reload $PM2_APP_NAME ==="
 cd "$API_DIR"
-npm ci --omit=dev
+# Ensure AUTHING_REDIRECT_URI is always correct (git reset --hard may overwrite .env)
+sed -i 's|AUTHING_REDIRECT_URI=.*|AUTHING_REDIRECT_URI=https://app.nestflow.art|' .env
 PORT=$API_PORT NODE_ENV=$NODE_ENV pm2 reload "$PM2_APP_NAME" --update-env \
   || PORT=$API_PORT NODE_ENV=$NODE_ENV pm2 start index.js --name "$PM2_APP_NAME"
 
