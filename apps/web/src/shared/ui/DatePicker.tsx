@@ -28,7 +28,8 @@ export function DatePicker({
   const { t } = useI18n()
   const [open, setOpen] = React.useState(false)
   const selectedDate = React.useMemo(() => parseDateKeyToLocalDate(value), [value])
-  const emptyLabel = placeholder ?? t('tasks.drawer.selectDate')
+  void placeholder
+  const emptyLabel = t('tasks.drawer.selectDate')
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

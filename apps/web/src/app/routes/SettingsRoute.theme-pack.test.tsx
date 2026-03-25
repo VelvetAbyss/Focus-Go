@@ -44,10 +44,25 @@ vi.mock('../../shared/prefs/usePreferences', () => ({
   }),
 }))
 
-vi.mock('../../shared/i18n/useI18n', async () => {
-  const { mockUseI18n } = await import('../../shared/i18n/testMock')
-  return { useI18n: mockUseI18n }
-})
+vi.mock('../../shared/i18n/useI18n', () => ({
+  useI18n: () => ({
+    t: (key: string) => key,
+    language: 'en' as const,
+  }),
+}))
+
+vi.mock('../../features/premium/PremiumProvider', () => ({
+  usePremiumGate: () => ({
+    isPremium: false,
+    canUse: () => ({ allowed: true }),
+    openUpgradeModal: vi.fn(),
+    guard: vi.fn(async (_key: unknown, action: () => void) => { action(); return true }),
+  }),
+}))
+
+vi.mock('../../shared/ui/toast/toast', () => ({
+  useToast: () => ({ push: vi.fn() }),
+}))
 
 const renderRoute = () =>
   render(

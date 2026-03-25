@@ -3,6 +3,12 @@
 import '@testing-library/jest-dom/vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('../../../shared/i18n/useI18n', async () => {
+  const { mockUseI18n } = await import('../../../shared/i18n/testMock')
+  return { useI18n: mockUseI18n }
+})
+
 import TaskCard from './TaskCard'
 import type { TaskItem } from '../tasks.types'
 

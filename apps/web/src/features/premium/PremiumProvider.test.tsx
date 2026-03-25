@@ -5,9 +5,12 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PremiumProvider, usePremiumGate } from './PremiumProvider'
 
-const openMock = vi.fn()
+const upgradeMock = vi.fn().mockResolvedValue(true)
 
-vi.stubGlobal('open', openMock)
+vi.mock('../../store/auth', () => ({
+  useAuthPlan: () => 'free',
+  upgradeToPremium: (...args: unknown[]) => upgradeMock(...args),
+}))
 
 const Trigger = () => {
   const { openUpgradeModal } = usePremiumGate()
@@ -20,11 +23,12 @@ const Trigger = () => {
 
 describe('PremiumProvider', () => {
   beforeEach(() => {
-    openMock.mockReset()
+    upgradeMock.mockReset()
+    upgradeMock.mockResolvedValue(true)
     window.localStorage.clear()
   })
 
-  it('opens modal and jumps to payment url after confirmation', async () => {
+  it('opens modal and calls upgradeToPremium after confirmation', async () => {
     render(
       <PremiumProvider>
         <Trigger />
@@ -35,6 +39,6 @@ describe('PremiumProvider', () => {
     expect(await screen.findByText('Upgrade to Premium')).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'Upgrade now' }))
-    expect(openMock).toHaveBeenCalledWith('https://focus-go.app/premium', '_blank', 'noopener,noreferrer')
+    expect(upgradeMock).toHaveBeenCalled()
   })
 })

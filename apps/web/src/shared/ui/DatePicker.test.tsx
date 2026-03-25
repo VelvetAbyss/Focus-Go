@@ -5,6 +5,11 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DatePicker } from './DatePicker'
 
+vi.mock('../i18n/useI18n', async () => {
+  const { mockUseI18n } = await import('../i18n/testMock')
+  return { useI18n: mockUseI18n }
+})
+
 vi.mock('@/components/ui/calendar', () => ({
   Calendar: ({ mode, onSelect }: { mode?: string; onSelect?: (value: Date | undefined) => void }) => (
     <div data-testid={`calendar-${mode ?? 'single'}`}>
