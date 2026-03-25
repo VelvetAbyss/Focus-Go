@@ -10,6 +10,7 @@ import {
   parseDateKeyToLocalDate,
   toDateKey,
 } from './datePicker/dateKey'
+import { useI18n } from '../i18n/useI18n'
 
 type DateRangeValue = {
   startDate: string | null
@@ -38,6 +39,7 @@ export function DateRangePicker({
   popoverClassName,
   allowOpenEnd = true,
 }: DateRangePickerProps) {
+  const { t } = useI18n()
   const [open, setOpen] = React.useState(false)
   void placeholder
   void allowOpenEnd
@@ -65,7 +67,7 @@ export function DateRangePicker({
       ? `${format(committedSelection.from, 'LLL dd, y')} - ${format(committedSelection.to, 'LLL dd, y')}`
       : committedSelection?.from
         ? format(committedSelection.from, 'LLL dd, y')
-        : placeholder ?? '选择范围'
+        : t('tasks.drawer.selectRange')
 
   const handleSelect = React.useCallback(
     (next: DateRange | undefined) => {

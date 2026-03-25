@@ -4,6 +4,12 @@ import '@testing-library/jest-dom/vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
+
+vi.mock('../../../shared/i18n/useI18n', async () => {
+  const { mockUseI18n } = await import('../../../shared/i18n/testMock')
+  return { useI18n: mockUseI18n }
+})
+
 import TaskAddComposer from './TaskAddComposer'
 
 describe('TaskAddComposer', () => {

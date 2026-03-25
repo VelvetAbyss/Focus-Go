@@ -5,6 +5,11 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DateRangePicker } from './DateRangePicker'
 
+vi.mock('../i18n/useI18n', async () => {
+  const { mockUseI18n } = await import('../i18n/testMock')
+  return { useI18n: mockUseI18n }
+})
+
 const calendarPropsSpy = vi.fn()
 
 vi.mock('@/components/ui/calendar', () => ({

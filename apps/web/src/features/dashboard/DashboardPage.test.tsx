@@ -69,6 +69,15 @@ vi.mock('../diary/DiaryPanel', () => ({
   default: () => <div>Diary</div>,
 }))
 
+vi.mock('../premium/PremiumProvider', () => ({
+  usePremiumGate: () => ({
+    isPremium: false,
+    canUse: () => ({ allowed: true }),
+    openUpgradeModal: vi.fn(),
+    guard: vi.fn(async (_key: unknown, action: () => void) => { action(); return true }),
+  }),
+}))
+
 import DashboardPage from './DashboardPage'
 
 const renderDashboard = () =>

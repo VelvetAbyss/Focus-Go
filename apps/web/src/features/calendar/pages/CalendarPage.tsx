@@ -763,7 +763,7 @@ const CalendarPage = () => {
       emitTasksChanged('calendar:selected-day-delete')
       setTaskDeleteError(null)
     } catch {
-      setTaskDeleteError('删除任务失败，请重试。')
+      setTaskDeleteError(t('calendar.taskDeleteError'))
     } finally {
       setDeletingTaskIds((prev) => {
         const next = { ...prev }
@@ -1375,7 +1375,7 @@ const CalendarPage = () => {
                   placeholder={t('calendar.icsPlaceholder')}
                 />
                 <Button type="button" onClick={() => void addIcsSubscription()}>
-                  {t('calendar.addSubscription')}
+                  {t('calendar.addIcsSubscription')}
                 </Button>
               </div>
             )}
@@ -1391,11 +1391,11 @@ const CalendarPage = () => {
       <Dialog open={Boolean(pendingDeleteSubscriptionId)} onOpenChange={(open) => (open ? null : setPendingDeleteSubscriptionId(null))}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>移除日历？</DialogTitle>
+            <DialogTitle>{t('calendar.removeSubscriptionTitle')}</DialogTitle>
             <DialogDescription>
               {pendingDeleteSubscription
-                ? `确认永久删除“${pendingDeleteSubscription.name}”？该订阅将被移除。`
-                : '确认永久删除该订阅？该订阅将被移除。'}
+                ? t('calendar.removeSubscriptionDesc', { name: pendingDeleteSubscription.name })
+                : t('calendar.removeSubscriptionDescGeneric')}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -1403,7 +1403,7 @@ const CalendarPage = () => {
               {t('tasks.cancel')}
             </Button>
             <Button variant="destructive" onClick={confirmRemoveSubscription}>
-              {t('calendar.deleteTask')}
+              {t('calendar.removeSubscription')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1412,7 +1412,7 @@ const CalendarPage = () => {
       <Dialog open={Boolean(createDateKey)} onOpenChange={(open) => (open ? null : setCreateDateKey(null))}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{language === 'zh' ? '创建任务' : 'Create task'}</DialogTitle>
+            <DialogTitle>{t('calendar.createTaskTitle')}</DialogTitle>
             <DialogDescription>{t('tasks.drawer.date')}：{createDateKey}</DialogDescription>
           </DialogHeader>
           <div className="calendar-dialog__panel">
@@ -1434,7 +1434,7 @@ const CalendarPage = () => {
               {t('tasks.cancel')}
             </Button>
             <Button onClick={() => void createTaskFromGridDate()} disabled={creatingGridTask || !createTitle.trim()}>
-              创建
+              {t('calendar.create')}
             </Button>
           </DialogFooter>
         </DialogContent>

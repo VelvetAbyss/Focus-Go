@@ -6,6 +6,11 @@ import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DateTimePicker } from './DateTimePicker'
 
+vi.mock('../i18n/useI18n', async () => {
+  const { mockUseI18n } = await import('../i18n/testMock')
+  return { useI18n: mockUseI18n }
+})
+
 vi.mock('@/components/ui/calendar', () => ({
   Calendar: ({ onSelect }: { onSelect?: (value: Date | undefined) => void }) => (
     <div data-testid="calendar-single">

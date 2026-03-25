@@ -48,6 +48,15 @@ vi.mock('./taskSync', () => ({
   emitTasksChanged: vi.fn(),
 }))
 
+vi.mock('../premium/PremiumProvider', () => ({
+  usePremiumGate: () => ({
+    isPremium: false,
+    canUse: () => ({ allowed: true }),
+    openUpgradeModal: vi.fn(),
+    guard: vi.fn(async (_key: unknown, action: () => void) => { action(); return true }),
+  }),
+}))
+
 import TaskDrawer from './TaskDrawer'
 
 const createdTask: TaskItem = {
