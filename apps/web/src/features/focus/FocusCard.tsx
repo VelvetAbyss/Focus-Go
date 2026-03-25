@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 import { useEffect, useRef, useState } from 'react'
-import { Brain, Infinity, Pause, Play, Rocket, RotateCcw, Timer } from 'lucide-react'
+import { Brain, Infinity as InfinityIcon, Pause, Play, Rocket, RotateCcw, Timer } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import Card from '../../shared/ui/Card'
 import { useSharedFocusTimer } from './useSharedFocusTimer'
@@ -19,7 +19,7 @@ const FOCUS_MODES = [
   { id: 'pomodoro', label: 'Pomodoro', labelKey: 'focus.pomodoro' as TranslationKey, minutes: 25, icon: Timer },
   { id: 'deep-work', label: 'Deep Work', labelKey: 'focus.deepWork' as TranslationKey, minutes: 50, icon: Brain },
   { id: 'sprint', label: 'Sprint', labelKey: 'focus.sprint' as TranslationKey, minutes: 15, icon: Rocket },
-  { id: 'flow', label: 'Flow', labelKey: 'focus.flow' as TranslationKey, minutes: 90, icon: Infinity },
+  { id: 'flow', label: 'Flow', labelKey: 'focus.flow' as TranslationKey, minutes: 90, icon: InfinityIcon },
 ] as const
 
 type FocusModeId = (typeof FOCUS_MODES)[number]['id']

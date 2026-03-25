@@ -14,7 +14,7 @@ import {
   Zap,
   Brain,
   Rocket,
-  Infinity,
+  Infinity as InfinityIcon,
   Target,
   Keyboard,
 } from "lucide-react";
@@ -70,7 +70,7 @@ const focusModes: FocusMode[] = [
     name: "Flow",
     nameKey: "focus.flow",
     duration: 90,
-    icon: <Infinity size={14} />,
+    icon: <InfinityIcon size={14} />,
     description: "Long flow state",
     descriptionKey: "focus.flowDesc",
     color: "#8BA88A",
