@@ -35,6 +35,7 @@ import { usePreferences } from '../../shared/prefs/usePreferences'
 import { useI18n } from '../../shared/i18n/useI18n'
 import type { LanguageCode } from '../../shared/i18n/types'
 import { useToast } from '../../shared/ui/toast/toast'
+import { usePremiumGate } from '../../features/premium/PremiumProvider'
 import {
   createBackupDownload,
   createBrowserStorageAdapter,
@@ -255,6 +256,7 @@ const SettingRow = ({ icon: Icon, title, description, children }: SettingRowProp
 
 const SettingsRoute = () => {
   const { t } = useI18n()
+  const { canUse, openUpgradeModal } = usePremiumGate()
   const toast = useToast()
   const [activeSection, setActiveSection] = useState<SettingsSection>('appearance')
   const [layoutLocked, setLayoutLocked] = useState(() => readLayoutLocked())
@@ -883,6 +885,23 @@ const SettingsRoute = () => {
 
                       {activeSection === 'data' ? (
                         <>
+                          <SettingRow
+                            icon={Database}
+                            title="Cloud sync"
+                            description="Premium required to sync this workspace across devices."
+                          >
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                if (!canUse('system.cloud-sync').allowed) {
+                                  openUpgradeModal('button', 'system.cloud-sync')
+                                }
+                              }}
+                            >
+                              Connect
+                            </Button>
+                          </SettingRow>
+
                           <SettingRow
                             icon={Database}
                             title={t('settings.data.export.title')}

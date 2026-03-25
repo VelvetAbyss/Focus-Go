@@ -31,11 +31,13 @@ import {
 import { BASE_NAV_ITEMS, ROUTES, type RouteKey } from '../routes/routes'
 import ThemeToggle from '../../shared/theme/ThemeToggle'
 import type { ThemeMode } from '../../shared/theme/theme'
+import SidebarUserPanel from './SidebarUserPanel'
 import { useLabs } from '../../features/labs/LabsContext'
 import { useLabsI18n } from '../../features/labs/labsI18n'
 import { useI18n } from '../../shared/i18n/useI18n'
 import type { FeatureKey } from '../../data/models/types'
 import { mergeSidebarOrder, moveSidebarOrder, readSidebarOrder, writeSidebarOrder } from './sidebarOrder'
+import { useIsLoggedIn, useAuthPlan, upgradeToPremium } from '../../store/auth'
 
 type SidebarProps = {
   collapsed: boolean
@@ -100,17 +102,22 @@ const Sidebar = ({ collapsed, onToggle, theme, onToggleTheme }: SidebarProps) =>
   const i18n = useLabsI18n()
   const { t } = useI18n()
   const [savedOrder, setSavedOrder] = useState<string[]>(() => readSidebarOrder())
+  const isLoggedIn = useIsLoggedIn()
+  const plan = useAuthPlan()
+  const isPremium = plan === 'premium'
 
   const FEATURE_ICONS: Record<FeatureKey, LucideIcon> = {
     'habit-tracker': Flame,
     'ai-digest': Sparkles,
     automation: Bot,
+    'mind-map': Notebook,
   }
 
   const FEATURE_ROUTES: Record<FeatureKey, string> = {
     'habit-tracker': ROUTES.HABITS,
     'ai-digest': ROUTES.LABS,
     automation: ROUTES.LABS,
+    'mind-map': ROUTES.NOTE,
   }
 
   const navItems = BASE_NAV_ITEMS.map((item) => ({ key: item.key, to: item.to }))
@@ -216,6 +223,20 @@ const Sidebar = ({ collapsed, onToggle, theme, onToggleTheme }: SidebarProps) =>
       </DndContext>
 
       <div className="focus-sidebar__bottom">
+        {isLoggedIn && !isPremium && (
+          <button
+            type="button"
+            className="focus-sidebar__upgrade"
+            onClick={() => upgradeToPremium()}
+            aria-label={t('auth.upgradePlan')}
+          >
+            <Sparkles size={14} aria-hidden="true" />
+            {!collapsed && <span>{t('auth.upgradePlan')}</span>}
+          </button>
+        )}
+        <div className="focus-sidebar__user">
+          <SidebarUserPanel collapsed={collapsed} />
+        </div>
         <div className="focus-sidebar__theme-toggle">
           <ThemeToggle theme={theme} onToggle={onToggleTheme} />
         </div>

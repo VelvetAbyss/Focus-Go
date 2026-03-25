@@ -3,6 +3,7 @@ import '@testing-library/jest-dom/vitest'
 import { cleanup, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { PremiumProvider } from '../../features/premium/PremiumProvider'
 import { ToastProvider } from '../../shared/ui/toast/ToastProvider'
 import AppRoutes from './AppRoutes'
 
@@ -30,7 +31,9 @@ const renderRoutes = (path: string) =>
   render(
     <MemoryRouter initialEntries={[path]}>
       <ToastProvider>
-        <AppRoutes />
+        <PremiumProvider>
+          <AppRoutes />
+        </PremiumProvider>
       </ToastProvider>
     </MemoryRouter>,
   )
@@ -56,7 +59,7 @@ describe('AppRoutes guarded routes', () => {
     renderRoutes('/habits')
 
     expect(await screen.findByText('Labs Page')).toBeInTheDocument()
-    expect(await screen.findByText('Habits denied')).toBeInTheDocument()
+    expect(await screen.findByText('Upgrade to Premium')).toBeInTheDocument()
   })
 
   it('renders habits page when access is allowed', async () => {

@@ -20,6 +20,7 @@ import {
   DEFAULT_DASHBOARD_LAYOUT_ITEMS,
   DEFAULT_DASHBOARD_THEME_OVERRIDE,
 } from '../../data/defaultDashboardLayout'
+import { usePremiumGate } from '../premium/PremiumProvider'
 
 const LAYOUT_LOCK_KEY = 'workbench.dashboard.layoutLocked'
 const LAYOUT_PERSIST_DEBOUNCE_MS = 180
@@ -56,6 +57,7 @@ const writeLayoutLocked = (locked: boolean) => {
 
 const DashboardPage = () => {
   const { t } = useI18n()
+  const { canUse, openUpgradeModal } = usePremiumGate()
   const navigate = useNavigate()
   const onboarding = useOnboardingFlow()
   const [layout, setLayout] = useState<DashboardLayoutItem[]>([])
@@ -93,6 +95,10 @@ const DashboardPage = () => {
 
   const toggleLayoutEdit = useCallback(() => {
     if (isMobile) return
+    if (!canUse('dashboard.custom-layout').allowed) {
+      openUpgradeModal('button', 'dashboard.custom-layout')
+      return
+    }
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev)
       if (layoutEdit) {
@@ -101,15 +107,19 @@ const DashboardPage = () => {
       } else next.set('layoutEdit', '1')
       return next
     })
-  }, [isMobile, layoutEdit, setSearchParams])
+  }, [canUse, isMobile, layoutEdit, openUpgradeModal, setSearchParams])
   const toggleWidgetsPanel = useCallback(() => {
+    if (!canUse('dashboard.extra-widgets').allowed) {
+      openUpgradeModal('button', 'dashboard.extra-widgets')
+      return
+    }
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev)
       if (widgetsPanelOpen) next.delete('widgetsPanel')
       else next.set('widgetsPanel', '1')
       return next
     })
-  }, [setSearchParams, widgetsPanelOpen])
+  }, [canUse, openUpgradeModal, setSearchParams, widgetsPanelOpen])
   const setLayoutEdit = useCallback(
     (nextEdit: boolean) => {
       if (isMobile) return
@@ -352,12 +362,16 @@ const DashboardPage = () => {
   const handleWidgetToggle = useCallback(
     (cardId: string, visible: boolean) => {
       if (visible) {
+        if (!canUse('dashboard.extra-widgets').allowed) {
+          openUpgradeModal('button', 'dashboard.extra-widgets')
+          return
+        }
         void showCard(cardId)
         return
       }
       requestHideCard(cardId)
     },
-    [requestHideCard, showCard]
+    [canUse, openUpgradeModal, requestHideCard, showCard]
   )
 
   return (
@@ -367,6 +381,8 @@ const DashboardPage = () => {
           widgetsPanelOpen={widgetsPanelOpen}
           onToggleLayoutEdit={toggleLayoutEdit}
           onToggleWidgetsPanel={toggleWidgetsPanel}
+          layoutEditLocked={!canUse('dashboard.custom-layout').allowed}
+          widgetsLocked={!canUse('dashboard.extra-widgets').allowed}
           showRestartOnboarding={onboarding.status !== 'in_progress'}
           onRestartOnboarding={() => onboarding.restart()}
         />

@@ -7,6 +7,7 @@ import './styles/_keyframe-animations.scss'
 import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
 import App from './App.tsx'
+import { clearAuth, setAuth } from './store/auth'
 
 console.log('RAW URL:', window.location.href)
 
@@ -18,34 +19,69 @@ function mountApp() {
   )
 }
 
-const url = new URL(window.location.href)
-const code = url.searchParams.get('code')
+async function bootstrap() {
+  const url = new URL(window.location.href)
+  const code = url.searchParams.get('code')
 
-if (code) {
-  console.log('FOUND CODE:', code)
-  // replaceState 保留到成功后，失败时 code 留在 URL 供调试
+  // ── Fetch user profile (plan) using a valid access token ─────────────
+  const fetchProfile = async (accessToken: string) => {
+    try {
+      const res = await fetch('http://localhost:3000/user/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      if (!res.ok) return null
+      return await res.json() as { id: string; email: string; plan: string }
+    } catch {
+      return null
+    }
+  }
 
-  fetch('http://localhost:3000/auth/callback', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code }),
-  })
-    .then((res) => {
+  // ── Check 1: code exchange ────────────────────────────────────────────
+  if (code) {
+    console.log('FOUND CODE:', code)
+    window.history.replaceState({}, '', '/')  // clear immediately — codes are single-use
+
+    try {
+      const res = await fetch('http://localhost:3000/auth/exchange', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      return res.json()
-    })
-    .then((data) => {
+      const data = await res.json()
       console.log('AUTH RESPONSE:', data)
-      localStorage.setItem('auth', JSON.stringify(data))
-      window.history.replaceState({}, '', '/')  // 成功后才清 URL
-    })
-    .catch((err) => {
-      console.error('Auth callback failed:', err)
-      // 失败时 code 保留在 URL，方便手动 copy 调试
-    })
-    .finally(() => {
-      mountApp()
-    })
-} else {
+      const profile = await fetchProfile(data.accessToken)
+      setAuth({ ...data, plan: profile?.plan ?? 'free' })
+    } catch (err) {
+      console.error('Auth exchange failed:', err)
+    }
+
+    mountApp()
+    return
+  }
+
+  // ── Check 3: reuse stored access_token via /auth/me ──────────────────
+  const existing = localStorage.getItem('auth')
+  if (existing) {
+    const { accessToken } = JSON.parse(existing)
+    if (accessToken) {
+      try {
+        const res = await fetch('http://localhost:3000/auth/me', {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const { user } = await res.json()
+        const profile = await fetchProfile(accessToken)
+        setAuth({ accessToken, user, plan: profile?.plan ?? 'free' })
+        console.log('TOKEN REUSED — user refreshed:', user)
+      } catch (err) {
+        console.warn('Token validation failed, clearing auth:', err)
+        clearAuth()
+      }
+    }
+  }
+
   mountApp()
 }
+
+bootstrap()

@@ -4,9 +4,11 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { NoteAppearanceSettings, NoteItem, NoteTag } from '../../../data/models/types'
+import { PremiumProvider } from '../../premium/PremiumProvider'
 import NotePage from './NotePage'
 
 const mockUseLabs = vi.fn()
+const openMock = vi.fn()
 
 vi.mock('../../../shared/i18n/useI18n', () => ({
   useI18n: () => ({ t: (key: string) => key, language: 'en' as const }),
@@ -168,6 +170,7 @@ describe('NotePage', () => {
 
   beforeEach(() => {
     vi.resetAllMocks()
+    openMock.mockReset()
     mockUseLabs.mockReturnValue({
       subscription: { tier: 'free' as const, role: 'member' as const },
     })
@@ -178,6 +181,7 @@ describe('NotePage', () => {
       createObjectURL: createObjectURLMock,
       revokeObjectURL: revokeObjectURLMock,
     })
+    vi.stubGlobal('open', openMock)
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(anchorClickMock)
   })
 
@@ -186,11 +190,18 @@ describe('NotePage', () => {
     vi.unstubAllGlobals()
   })
 
+  const renderPage = () =>
+    render(
+      <PremiumProvider>
+        <NotePage />
+      </PremiumProvider>,
+    )
+
   it('does not auto create a blank note when the workspace is empty', async () => {
     listMock.mockResolvedValueOnce([])
     listTrashMock.mockResolvedValue([])
 
-    render(<NotePage />)
+    renderPage()
 
     await waitFor(() => expect(createMock).not.toHaveBeenCalled())
     expect(await screen.findByText('Editor:Untitled')).toBeInTheDocument()
@@ -202,7 +213,7 @@ describe('NotePage', () => {
     listTrashMock.mockResolvedValue([])
     createMock.mockResolvedValue(created)
 
-    render(<NotePage />)
+    renderPage()
 
     await userEvent.click(screen.getByRole('button', { name: 'Change note' }))
     await waitFor(() => expect(createMock).toHaveBeenCalledTimes(1))
@@ -221,7 +232,7 @@ describe('NotePage', () => {
     ])
     listTrashMock.mockResolvedValue([])
 
-    render(<NotePage />)
+    renderPage()
 
     expect(await screen.findByText('Editor:Design doc')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Open info' }))
@@ -235,7 +246,7 @@ describe('NotePage', () => {
     listMock.mockResolvedValue([createNote({ title: 'Design doc' })])
     listTrashMock.mockResolvedValue([])
 
-    const { container } = render(<NotePage />)
+    const { container } = renderPage()
 
     expect(await screen.findByText('Editor:Design doc')).toBeInTheDocument()
     expect(screen.getByText('Fullscreen:off')).toBeInTheDocument()
@@ -255,7 +266,7 @@ describe('NotePage', () => {
     listMock.mockResolvedValue([createNote({ title: 'Design doc', contentMd: '# Hello world' })])
     listTrashMock.mockResolvedValue([])
 
-    render(<NotePage />)
+    renderPage()
 
     expect(await screen.findByText('Editor:Design doc')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Export markdown' }))
@@ -270,7 +281,7 @@ describe('NotePage', () => {
     listTrashMock.mockResolvedValue([])
     appearanceUpsertMock.mockResolvedValue({ ...appearance, fontSize: 17 })
 
-    render(<NotePage />)
+    renderPage()
 
     expect(await screen.findByText('Editor:Design doc')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Open appearance' }))
@@ -286,7 +297,7 @@ describe('NotePage', () => {
     listTrashMock.mockResolvedValue([])
     appearanceUpsertMock.mockResolvedValue({ ...appearance, font: 'cnSans', lineHeight: 2 })
 
-    render(<NotePage />)
+    renderPage()
 
     expect(await screen.findByText('Editor:Design doc')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Open appearance' }))
@@ -310,7 +321,7 @@ describe('NotePage', () => {
     listTrashMock.mockResolvedValue([])
     listTagsMock.mockResolvedValue([createTag({ id: 'research', name: 'Research' }), createTag({ id: 'personal', name: 'Personal', sortOrder: 2 })])
 
-    render(<NotePage />)
+    renderPage()
 
     expect(await screen.findByText('Research note')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Research' }))
@@ -325,7 +336,7 @@ describe('NotePage', () => {
     listTrashMock.mockResolvedValue([])
     updateMock.mockResolvedValue(createNote({ ...note, title: 'Updated title', contentMd: '# Heading\n\nBody copy', tags: ['Research'], excerpt: '# Heading Body copy' }))
 
-    render(<NotePage />)
+    renderPage()
 
     expect(await screen.findByText('Editor:Draft')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Change note' }))
@@ -340,7 +351,7 @@ describe('NotePage', () => {
     listTrashMock.mockResolvedValue([])
     softDeleteMock.mockResolvedValue(trashed)
 
-    render(<NotePage />)
+    renderPage()
 
     expect(await screen.findByText('Trash me')).toBeInTheDocument()
     await userEvent.click((await screen.findAllByTitle('Move to trash'))[0]!)
@@ -349,5 +360,18 @@ describe('NotePage', () => {
     await userEvent.click(screen.getByRole('button', { name: /Trash/i }))
     await userEvent.click((await screen.findAllByTitle('Delete permanently'))[0]!)
     await waitFor(() => expect(hardDeleteMock).toHaveBeenCalledWith('trash-1'))
+  })
+
+  it('blocks creating the 21st note for free users', async () => {
+    listMock.mockResolvedValue(Array.from({ length: 20 }, (_, index) => createNote({ id: `note-${index + 1}`, title: `Note ${index + 1}` })))
+    listTrashMock.mockResolvedValue([])
+
+    renderPage()
+
+    expect(await screen.findByText('Editor:Note 1')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'modules.note.new' }))
+
+    expect(createMock).not.toHaveBeenCalled()
+    expect(await screen.findByText('Upgrade to Premium')).toBeInTheDocument()
   })
 })

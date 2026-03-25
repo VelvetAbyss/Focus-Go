@@ -15,6 +15,7 @@ import {
 } from './labsApi'
 import { canAccessHabitTracker } from './accessRules'
 import type { FeatureKey } from '../../data/models/types'
+import { subscribeAuth } from '../../store/auth'
 
 type LabsContextValue = {
   ready: boolean
@@ -50,6 +51,8 @@ export const LabsProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     void refresh().finally(() => setReady(true))
   }, [])
+
+  useEffect(() => subscribeAuth(() => void refresh()), [])
 
   const habitState = (catalog.find((item) => item.featureKey === 'habit-tracker')?.state ?? defaultHabitState)
 

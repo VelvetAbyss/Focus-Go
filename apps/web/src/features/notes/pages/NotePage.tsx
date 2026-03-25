@@ -12,6 +12,7 @@ import NoteEditor from '../components/NoteEditor'
 import NoteSidebar, { type NoteSystemCollection } from '../components/NoteSidebar'
 import { countCharactersInMarkdown, countWordsInMarkdown } from '../model/noteStats'
 import { useI18n } from '../../../shared/i18n/useI18n'
+import { usePremiumGate } from '../../premium/PremiumProvider'
 import '../notes.css'
 
 const DEFAULT_APPEARANCE: NoteAppearanceSettings = {
@@ -106,6 +107,7 @@ const buildNoteTextForStats = (contentMd: string) => contentMd
 
 export default function NotePage() {
   const { t } = useI18n()
+  const { canUse, openUpgradeModal } = usePremiumGate()
   const [notes, setNotes] = useState<NoteItem[]>([])
   const [trash, setTrash] = useState<NoteItem[]>([])
   const [tags, setTags] = useState<NoteTag[]>([])
@@ -288,6 +290,10 @@ export default function NotePage() {
 
   const handleCreate = async () => {
     await flushPendingSave()
+    if (!canUse('notes.max-count', { noteCount: notes.length + 1 }).allowed) {
+      openUpgradeModal('limit-reached', 'notes.max-count')
+      return
+    }
     const created = await notesRepo.create()
     setNotes((current) => [created, ...current])
     setActiveCollection('notes')
@@ -345,6 +351,10 @@ export default function NotePage() {
         next.contentMd.trim().length > 0 ||
         next.tags.length > 0
       if (!hasContent || creatingFromBlankRef.current) return
+      if (!canUse('notes.max-count', { noteCount: notes.length + 1 }).allowed) {
+        openUpgradeModal('limit-reached', 'notes.max-count')
+        return
+      }
       creatingFromBlankRef.current = true
       void (async () => {
         try {
@@ -697,7 +707,13 @@ export default function NotePage() {
               onOpenInfo={() => setOpenPanel((current) => (current === 'info' ? null : 'info'))}
               onOpenAppearance={() => setOpenPanel((current) => (current === 'appearance' ? null : 'appearance'))}
               onExport={() => setOpenPanel((current) => (current === 'export' ? null : 'export'))}
-              onOpenMindMap={() => setOpenPanel((current) => (current === 'mindmap' ? null : 'mindmap'))}
+              onOpenMindMap={() => {
+                if (!canUse('notes.mindmap').allowed) {
+                  openUpgradeModal('button', 'notes.mindmap')
+                  return
+                }
+                setOpenPanel((current) => (current === 'mindmap' ? null : 'mindmap'))
+              }}
               onChange={handleUpdateNote}
             />
             <InfoPopover

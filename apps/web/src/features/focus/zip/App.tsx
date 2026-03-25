@@ -28,7 +28,6 @@ const toHistorySession = (session: Awaited<ReturnType<typeof focusRepo.listSessi
 export default function App() {
   const [sessions, setSessions] = useState<FocusSession[]>([]);
   const [navExpanded, setNavExpanded] = useState(false);
-  const [entered] = useState(true);
   const [isDark, setIsDark] = useState(() =>
     typeof document !== "undefined" && document.documentElement.dataset.theme === "dark"
   );
@@ -109,8 +108,8 @@ export default function App() {
             top: "10%",
             left: "15%",
             background: isDark ? "radial-gradient(circle, rgba(110,138,132,0.14) 0%, transparent 70%)" : "radial-gradient(circle, rgba(200,198,190,0.12) 0%, transparent 70%)",
-            filter: entered ? "blur(40px)" : "none",
-            opacity: entered ? 1 : 0.3,
+            filter: "blur(40px)",
+            opacity: 1,
           }}
         />
         <div
@@ -119,8 +118,8 @@ export default function App() {
             bottom: "5%",
             right: "10%",
             background: isDark ? "radial-gradient(circle, rgba(88,108,124,0.14) 0%, transparent 70%)" : "radial-gradient(circle, rgba(190,200,195,0.1) 0%, transparent 70%)",
-            filter: entered ? "blur(40px)" : "none",
-            opacity: entered ? 1 : 0.3,
+            filter: "blur(40px)",
+            opacity: 1,
           }}
         />
       </div>
@@ -149,7 +148,7 @@ export default function App() {
           className="flex items-center gap-2 px-4 py-2 rounded-xl cursor-pointer transition-colors"
           style={{
             background: isDark ? "rgba(24,29,35,0.72)" : "rgba(255,255,255,0.6)",
-            backdropFilter: entered ? "blur(12px)" : "none",
+            backdropFilter: "blur(12px)",
             boxShadow: shellShadow,
           }}
         >
@@ -166,7 +165,7 @@ export default function App() {
             className="focus-zip-app__panel h-full rounded-2xl p-6 overflow-hidden"
             style={{
               background: panelBackground,
-              backdropFilter: entered ? "blur(18px)" : "none",
+              backdropFilter: "blur(18px)",
               boxShadow: shellShadow,
             }}
           >
@@ -180,7 +179,7 @@ export default function App() {
             className="focus-zip-app__panel h-full rounded-2xl overflow-hidden relative"
             style={{
               background: panelBackgroundStrong,
-              backdropFilter: entered ? "blur(18px)" : "none",
+              backdropFilter: "blur(18px)",
               boxShadow: shellShadow,
             }}
           >
@@ -207,7 +206,7 @@ export default function App() {
             className="focus-zip-app__panel h-full rounded-2xl p-6 overflow-hidden"
             style={{
               background: panelBackground,
-              backdropFilter: entered ? "blur(18px)" : "none",
+              backdropFilter: "blur(18px)",
               boxShadow: shellShadow,
             }}
           >
