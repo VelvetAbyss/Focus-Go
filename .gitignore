@@ -1,3 +1,17 @@
+# Dependencies
+node_modules
+.npm-cache/
+
+# Build output
+dist
+dist-ssr
+
+# Environment
+*.local
+.env
+.env.*
+!.env.example
+
 # Logs
 logs
 *.log
@@ -7,26 +21,56 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-archive
-*.local
-
-# Editor directories and files
+# Editor
 .vscode/*
 !.vscode/extensions.json
 .idea
-.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
 
-# Local tool/cache directories
-.npm-cache/
-.sisyphus/
-.vercel/
+# OS
+.DS_Store
+
+# Deployment / cache
 .vercel
+.sisyphus/
+archive/
+
+# Temporary / prototype files
+.tmp/
+
+# AI coding tool directories
+.agent/
+.agents/
 .artifacts/
+.claude/
+.commandcode/
+.factory/
+.goose/
+.kilocode/
+.kiro/
+.neovate/
+.opencode/
+.openhands/
+.pi/
+.qoder/
+.roo/
+.trae/
+.windsurf/
+.zencoder/
+.impeccable.md
+
+# AI skill files
+skills/
+skills-lock.json
+SKILL.md
+
+# Documentation / planning files (not product code)
+docs/
+findings.md
+progress.md
+task_plan.md
+CONTRIBUTING.md
