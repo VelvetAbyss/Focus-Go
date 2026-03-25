@@ -1,7 +1,7 @@
 export const AUTH_CONFIG = {
   clientId: '69c2527e136d5010dd81b681',
   domain: 'https://nestflow.authing.cn',
-  redirectUri: 'http://localhost:5174',
+  redirectUri: import.meta.env.VITE_REDIRECT_URI ?? 'http://localhost:5174',
   scope: 'openid profile email',
 }
 
