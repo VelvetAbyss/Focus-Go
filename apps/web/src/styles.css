@@ -2147,7 +2147,6 @@ html[data-motion='reduce'] .drawer--visible .drawer__panel {
   font-size: 13px;
   line-height: 1;
   font-weight: 600;
-  box-shadow: 0 8px 18px rgba(48, 41, 35, 0.2);
 }
 
 .focus-card-lite__primary-raw span {
@@ -2563,7 +2562,6 @@ html[data-motion='reduce'] .focus-card-lite__status {
   background: #f5f3f0;
   color: #4f4337;
   border-color: rgba(84, 67, 49, 0.2);
-  box-shadow: 0 6px 14px rgba(60, 45, 30, 0.12);
   min-width: 0;
 }
 
@@ -10066,7 +10064,6 @@ html[data-theme='dark'] .focus-card-lite__primary-raw,
 html[data-theme='dark'] .focus-card-lite__reset-raw {
   background: color-mix(in srgb, var(--bg-muted) 88%, var(--color-ink));
   color: #F5F3F0;
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.22);
 }
 
 html[data-theme='dark'] .focus-card-lite__noise-play-raw {
