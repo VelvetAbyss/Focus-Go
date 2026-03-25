@@ -37,6 +37,7 @@ git reset --hard "origin/$BRANCH"
 # ── 2. Dependencies ───────────────────────────────────────────────
 echo "=== [2/8] npm ci ==="
 npm ci
+cd "$API_DIR" && npm ci && cd "$REPO_DIR"
 
 # ── 3. Build ──────────────────────────────────────────────────────
 echo "=== [3/8] build:web (NODE_ENV=$NODE_ENV) ==="
