@@ -125,27 +125,84 @@ export async function reverseGeocodeLocation(latitude: number, longitude: number
   }
 }
 
+type WttrForecastResponse = {
+  weather?: Array<{
+    date?: string
+    maxtempC?: string
+    mintempC?: string
+    maxtempF?: string
+    mintempF?: string
+    weatherCode?: string
+  }>
+}
+
+function wttrCodeToWmoCode(code: number): number {
+  if (code <= 113) return 0
+  if (code <= 119) return 2
+  if (code <= 122) return 3
+  if (code <= 260) return 45
+  if (code <= 284) return 56
+  if (code <= 308) return 63
+  if (code <= 320) return 67
+  if (code <= 338) return 73
+  if (code <= 377) return 77
+  if (code <= 389) return 95
+  return 3
+}
+
+async function fetchThreeDayForecastFallback(
+  location: WeatherLocation,
+  unit: TemperatureUnit
+): Promise<WeatherDay[]> {
+  const response = await fetchJson<WttrForecastResponse>(
+    `https://wttr.in/${location.latitude},${location.longitude}?format=j1`
+  )
+  const days = response.weather ?? []
+  if (!days.length) throw new Error('wttr.in: empty response')
+  return days.slice(0, 3).map((day) => {
+    const weatherCode = wttrCodeToWmoCode(parseInt(day.weatherCode ?? '0', 10))
+    const tempMax = unit === 'fahrenheit'
+      ? parseInt(day.maxtempF ?? '0', 10)
+      : parseInt(day.maxtempC ?? '0', 10)
+    const tempMin = unit === 'fahrenheit'
+      ? parseInt(day.mintempF ?? '0', 10)
+      : parseInt(day.mintempC ?? '0', 10)
+    return {
+      date: day.date ?? '',
+      weatherCode,
+      condition: getWeatherCodeMeta(weatherCode).label,
+      tempMax,
+      tempMin,
+    }
+  })
+}
+
 export async function fetchThreeDayForecast(
   location: WeatherLocation,
   unit: TemperatureUnit
 ): Promise<WeatherDay[]> {
-  const response = await fetchJson<OpenMeteoForecastResponse>(
-    `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=3&timezone=auto&temperature_unit=${unit}`
-  )
-  const times = response.daily?.time ?? []
-  const codes = response.daily?.weather_code ?? []
-  const max = response.daily?.temperature_2m_max ?? []
-  const min = response.daily?.temperature_2m_min ?? []
+  try {
+    const response = await fetchJson<OpenMeteoForecastResponse>(
+      `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=3&timezone=auto&temperature_unit=${unit}`
+    )
+    const times = response.daily?.time ?? []
+    const codes = response.daily?.weather_code ?? []
+    const max = response.daily?.temperature_2m_max ?? []
+    const min = response.daily?.temperature_2m_min ?? []
 
-  const length = Math.min(times.length, codes.length, max.length, min.length)
-  return Array.from({ length }).map((_, index) => {
-    const weatherCode = codes[index] ?? 0
-    return {
-      date: times[index],
-      weatherCode,
-      condition: getWeatherCodeMeta(weatherCode).label,
-      tempMax: max[index] ?? 0,
-      tempMin: min[index] ?? 0,
-    }
-  })
+    const length = Math.min(times.length, codes.length, max.length, min.length)
+    if (!length) throw new Error('Open-Meteo: empty forecast')
+    return Array.from({ length }).map((_, index) => {
+      const weatherCode = codes[index] ?? 0
+      return {
+        date: times[index],
+        weatherCode,
+        condition: getWeatherCodeMeta(weatherCode).label,
+        tempMax: max[index] ?? 0,
+        tempMin: min[index] ?? 0,
+      }
+    })
+  } catch {
+    return fetchThreeDayForecastFallback(location, unit)
+  }
 }
