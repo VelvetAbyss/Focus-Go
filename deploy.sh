@@ -11,12 +11,14 @@ if [[ "$DEPLOY_ENV" == "staging" ]]; then
   PM2_APP_NAME="focus-go-api-staging"
   DEPLOY_ROOT="/var/www/focus-go-staging"
   NODE_ENV="staging"
+  VITE_API_BASE="https://api.nestflow.art"
 else
   BRANCH="main"
   API_PORT=3000
   PM2_APP_NAME="focus-go-api"
   DEPLOY_ROOT="/var/www/focus-go"
   NODE_ENV="production"
+  VITE_API_BASE="https://api.nestflow.art"
 fi
 
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -38,6 +40,7 @@ npm ci
 
 # ── 3. Build ──────────────────────────────────────────────────────
 echo "=== [3/8] build:web (NODE_ENV=$NODE_ENV) ==="
+echo "VITE_API_BASE=$VITE_API_BASE" > apps/web/.env.production
 NODE_ENV="$NODE_ENV" npm run build:web
 
 # ── 4. Create release dir ─────────────────────────────────────────

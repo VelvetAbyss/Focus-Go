@@ -42,7 +42,7 @@ export const upgradeToPremium = async (): Promise<boolean> => {
   const auth = getAuth()
   if (!auth?.accessToken) return false
   try {
-    const res = await fetch('http://localhost:3000/user/upgrade', {
+    const res = await fetch(`${import.meta.env.VITE_API_BASE}/user/upgrade`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${auth.accessToken}` },
     })

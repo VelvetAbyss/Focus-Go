@@ -26,7 +26,7 @@ async function bootstrap() {
   // ── Fetch user profile (plan) using a valid access token ─────────────
   const fetchProfile = async (accessToken: string) => {
     try {
-      const res = await fetch('http://localhost:3000/user/profile', {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE}/user/profile`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
       if (!res.ok) return null
@@ -42,7 +42,7 @@ async function bootstrap() {
     window.history.replaceState({}, '', '/')  // clear immediately — codes are single-use
 
     try {
-      const res = await fetch('http://localhost:3000/auth/exchange', {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE}/auth/exchange`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code }),
@@ -66,7 +66,7 @@ async function bootstrap() {
     const { accessToken } = JSON.parse(existing)
     if (accessToken) {
       try {
-        const res = await fetch('http://localhost:3000/auth/me', {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE}/auth/me`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         })
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
