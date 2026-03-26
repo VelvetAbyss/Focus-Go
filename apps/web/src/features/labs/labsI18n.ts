@@ -11,7 +11,7 @@ type LabsMessages = {
     note: string
     calendar: string
     focus: string
-    review: string
+    diary: string
     settings: string
     labs: string
   }
@@ -52,7 +52,7 @@ const messages: Record<LabsLang, LabsMessages> = {
       note: 'Note',
       calendar: 'Calendar',
       focus: 'Focus',
-      review: 'Review',
+      diary: 'Diary',
       settings: 'Settings',
       labs: 'Labs',
     },
@@ -91,7 +91,7 @@ const messages: Record<LabsLang, LabsMessages> = {
       note: '笔记',
       calendar: '日历',
       focus: '专注',
-      review: '复盘',
+      diary: '日记',
       settings: '设置',
       labs: 'Labs',
     },

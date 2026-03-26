@@ -69,6 +69,7 @@ const AppShell = ({ children }: AppShellProps) => {
   })
   useTaskReminderEngine()
   const isNoteRoute = location.pathname === ROUTES.NOTE
+  const isDiaryRoute = location.pathname === ROUTES.DIARY
 
   useEffect(() => {
     if (compactViewport) return
@@ -199,7 +200,7 @@ const AppShell = ({ children }: AppShellProps) => {
           onToggleTheme={toggleTheme}
         />
         <main className="focus-shell__main flex min-h-0 flex-1 flex-col">
-          <section className={`focus-shell__route-layer flex min-h-0 flex-1 flex-col ${isNoteRoute ? 'focus-shell__route-layer--full-bleed' : ''}`}>
+          <section className={`focus-shell__route-layer flex min-h-0 flex-1 flex-col ${isNoteRoute || isDiaryRoute ? 'focus-shell__route-layer--full-bleed' : ''}`}>
             {children}
           </section>
         </main>

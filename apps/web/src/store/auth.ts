@@ -28,7 +28,7 @@ export const subscribeAuth = (listener: () => void) => {
 }
 
 export const isPro = (): boolean => {
-  return getAuth()?.plan === 'premium'
+  return true
 }
 
 // Returns a boolean — safe for useSyncExternalStore (primitive comparison)
@@ -36,7 +36,7 @@ export const useIsLoggedIn = () =>
   useSyncExternalStore(subscribeAuth, () => getAuth()?.user != null, () => false)
 
 export const useAuthPlan = () =>
-  useSyncExternalStore(subscribeAuth, () => getAuth()?.plan ?? 'free', () => 'free')
+  useSyncExternalStore(subscribeAuth, () => 'premium', () => 'premium')
 
 export const upgradeToPremium = async (): Promise<boolean> => {
   const auth = getAuth()

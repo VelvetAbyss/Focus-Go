@@ -1,5 +1,5 @@
 export const DB_NAME = 'workbench-app'
-export const DB_VERSION = 26
+export const DB_VERSION = 27
 
 export const TABLES = {
   tasks: 'tasks',
@@ -135,4 +135,9 @@ export const schemaV25 = {
 
 export const schemaV26 = {
   ...schemaV25,
+} as const
+
+export const schemaV27 = {
+  ...schemaV26,
+  [TABLES.diaryEntries]: 'id, dateKey, entryAt, deletedAt, expiredAt, createdAt, updatedAt',
 } as const

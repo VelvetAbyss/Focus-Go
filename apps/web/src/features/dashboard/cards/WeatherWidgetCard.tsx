@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { RotateCcw } from 'lucide-react'
 import Card from '../../../shared/ui/Card'
 import { usePreferences } from '../../../shared/prefs/usePreferences'
 import { getWeatherIconMeta } from '../../weather/weatherIcons'
 import {
   getWeatherSnapshot,
+  refreshWeatherRuntime,
   startWeatherRuntime,
   subscribeWeatherRuntime,
   type WeatherSnapshot,
@@ -42,15 +44,23 @@ const WeatherWidgetCard = () => {
   const rows = useMemo(() => snapshot.data?.days.slice(0, 3) ?? [], [snapshot.data?.days])
   const selectedDay = rows[selectedIndex] ?? today
   const selectedMeta = selectedDay ? getWeatherIconMeta(selectedDay.weatherCode) : null
-  const progressWidth = rows.length > 1 ? `${(selectedIndex / (rows.length - 1)) * 100}%` : '0%'
-
   useEffect(() => {
     if (selectedIndex >= rows.length) setSelectedIndex(0)
   }, [rows.length, selectedIndex])
 
-  const widgetStyle = {
-    '--weather-progress': progressWidth,
-  } as CSSProperties
+  const refreshAction = (
+    <button
+      type="button"
+      className={`weather-widget__refresh${snapshot.status === 'loading' ? ' is-loading' : ''}`}
+      onClick={() => refreshWeatherRuntime()}
+      onPointerUp={(event) => event.currentTarget.blur()}
+      aria-label={t('weather.refresh')}
+      title={t('weather.refresh')}
+      aria-busy={snapshot.status === 'loading'}
+    >
+      <RotateCcw size={14} strokeWidth={2} />
+    </button>
+  )
 
   const selectDay = (index: number) => {
     const update = () => setSelectedIndex(index)
@@ -62,11 +72,13 @@ const WeatherWidgetCard = () => {
   }
 
   return (
-    <Card title={t('weather.cardTitle')} eyebrow={t('weather.today')} className="weather-widget-card">
-      <div
-        className={`weather-widget weather-widget--tone-${selectedMeta?.tone ?? 'cloud'}`}
-        style={widgetStyle}
-      >
+    <Card
+      title={t('weather.cardTitle')}
+      eyebrow={t('weather.today')}
+      actions={refreshAction}
+      className="weather-widget-card dashboard-widget-card--weather"
+    >
+      <div className={`weather-widget weather-widget--tone-${selectedMeta?.tone ?? 'cloud'}`}>
         {snapshot.status === 'error' && !snapshot.data ? (
           <p className="muted">{t('weather.error')}</p>
         ) : (
@@ -98,9 +110,6 @@ const WeatherWidgetCard = () => {
                   'Loading weather...'
                 )}
               </p>
-              <div className="weather-widget__timeline" aria-hidden>
-                <span className="weather-widget__timeline-progress" />
-              </div>
             </section>
 
             <section className="weather-widget__days" aria-label={t('weather.threeDayForecast')}>

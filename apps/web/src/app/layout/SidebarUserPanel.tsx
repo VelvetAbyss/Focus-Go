@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { User, LogOut, Crown, Zap, X, CheckSquare, Timer, FileText, BookOpen, Sparkles } from 'lucide-react'
+import { User, LogOut, Crown, Zap, X, CheckSquare, Timer, FileText, BookOpen, Sparkles, ArrowRight } from 'lucide-react'
 import { clearAuth, getAuth, useAuthPlan, useIsLoggedIn, upgradeToPremium } from '../../store/auth'
 import { useI18n } from '../../shared/i18n/useI18n'
 import LoginModal from './LoginModal'
@@ -172,7 +172,17 @@ const SidebarUserPanel = ({ collapsed }: SidebarUserPanelProps) => {
         <div className="sidebar-user-panel__icon">
           <User size={15} />
         </div>
-        {!collapsed && <span className="sidebar-user-panel__label">{t('auth.signIn')}</span>}
+        {!collapsed && (
+          <>
+            <span className="sidebar-user-panel__copy">
+              <span className="sidebar-user-panel__label">{t('auth.signIn')}</span>
+              <span className="sidebar-user-panel__hint">{t('auth.modal.sync.title')}</span>
+            </span>
+            <span className="sidebar-user-panel__cta" aria-hidden="true">
+              <ArrowRight size={14} />
+            </span>
+          </>
+        )}
       </button>
       {showLoginModal && <LoginModal onClose={() => setShowLoginModal(false)} />}
     </>

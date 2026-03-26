@@ -562,6 +562,10 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
     async getByDate(dateKey) {
       return db.diaryEntries.where('dateKey').equals(dateKey).first()
     },
+    async listByDate(dateKey) {
+      const entries = await db.diaryEntries.where('dateKey').equals(dateKey).toArray()
+      return entries.sort((a, b) => b.entryAt - a.entryAt)
+    },
     async listByRange(dateFrom, dateTo, options = {}) {
       const entries = await db.diaryEntries.where('dateKey').between(dateFrom, dateTo, true, true).toArray()
       const filtered = options.includeDeleted ? entries : entries.filter((entry) => !entry.deletedAt)
@@ -578,8 +582,22 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       await db.diaryEntries.put(next)
       return next
     },
+    async softDeleteById(id) {
+      const existing = await db.diaryEntries.get(id)
+      if (!existing) return null
+      const next = touch({ ...existing, deletedAt: Date.now(), expiredAt: null })
+      await db.diaryEntries.put(next)
+      return next
+    },
     async restoreByDate(dateKey) {
       const existing = await db.diaryEntries.where('dateKey').equals(dateKey).first()
+      if (!existing) return null
+      const next = touch({ ...existing, deletedAt: null, expiredAt: null })
+      await db.diaryEntries.put(next)
+      return next
+    },
+    async restoreById(id) {
+      const existing = await db.diaryEntries.get(id)
       if (!existing) return null
       const next = touch({ ...existing, deletedAt: null, expiredAt: null })
       await db.diaryEntries.put(next)
@@ -597,6 +615,9 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
     },
     async hardDeleteByDate(dateKey) {
       return db.diaryEntries.where('dateKey').equals(dateKey).delete()
+    },
+    async hardDeleteById(id) {
+      return db.diaryEntries.where('id').equals(id).delete()
     },
     async add(data) {
       const entry = withBase(data as Omit<DiaryEntry, 'id' | 'createdAt' | 'updatedAt'>)

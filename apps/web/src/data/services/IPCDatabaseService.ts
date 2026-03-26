@@ -181,6 +181,10 @@ export const createIPCDatabaseService = (api: ElectronDatabaseApi): IDatabaseSer
       const response = await invokeDb(api, 'db:diary:getByDate', { dateKey })
       return unwrapData(response)
     },
+    async listByDate(dateKey) {
+      const response = await invokeDb(api, 'db:diary:listByDate', { dateKey })
+      return unwrapData(response)
+    },
     async listByRange(dateFrom, dateTo, options = {}) {
       const response = await invokeDb(api, 'db:diary:listByRange', { dateFrom, dateTo, options })
       return unwrapData(response)
@@ -193,8 +197,16 @@ export const createIPCDatabaseService = (api: ElectronDatabaseApi): IDatabaseSer
       const response = await invokeDb(api, 'db:diary:softDeleteByDate', { dateKey })
       return unwrapData(response)
     },
+    async softDeleteById(id) {
+      const response = await invokeDb(api, 'db:diary:softDeleteById', { id })
+      return unwrapData(response)
+    },
     async restoreByDate(dateKey) {
       const response = await invokeDb(api, 'db:diary:restoreByDate', { dateKey })
+      return unwrapData(response)
+    },
+    async restoreById(id) {
+      const response = await invokeDb(api, 'db:diary:restoreById', { id })
       return unwrapData(response)
     },
     async markExpiredOlderThan(days) {
@@ -203,6 +215,10 @@ export const createIPCDatabaseService = (api: ElectronDatabaseApi): IDatabaseSer
     },
     async hardDeleteByDate(dateKey) {
       const response = await invokeDb(api, 'db:diary:hardDeleteByDate', { dateKey })
+      return unwrapData(response)
+    },
+    async hardDeleteById(id) {
+      const response = await invokeDb(api, 'db:diary:hardDeleteById', { id })
       return unwrapData(response)
     },
     async add(data) {

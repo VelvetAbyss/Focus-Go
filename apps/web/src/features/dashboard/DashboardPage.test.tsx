@@ -65,9 +65,6 @@ vi.mock('./registry', () => ({
   ],
 }))
 
-vi.mock('../diary/DiaryPanel', () => ({
-  default: () => <div>Diary</div>,
-}))
 
 vi.mock('../premium/PremiumProvider', () => ({
   usePremiumGate: () => ({

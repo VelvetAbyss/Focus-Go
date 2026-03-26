@@ -52,7 +52,7 @@ const ICONS: Record<RouteKey, LucideIcon> = {
   note: Notebook,
   calendar: CalendarDays,
   focus: Timer,
-  review: NotebookPen,
+  diary: NotebookPen,
   settings: Settings,
   labs: Beaker,
 }
@@ -200,6 +200,9 @@ const Sidebar = ({ collapsed, onToggle, theme, onToggleTheme }: SidebarProps) =>
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
     >
       <div className="focus-sidebar__top">
+        <div className="focus-sidebar__user focus-sidebar__user--top">
+          <SidebarUserPanel collapsed={collapsed} />
+        </div>
         <button
           type="button"
           className="focus-sidebar__toggle"
@@ -234,9 +237,6 @@ const Sidebar = ({ collapsed, onToggle, theme, onToggleTheme }: SidebarProps) =>
             {!collapsed && <span>{t('auth.upgradePlan')}</span>}
           </button>
         )}
-        <div className="focus-sidebar__user">
-          <SidebarUserPanel collapsed={collapsed} />
-        </div>
         <div className="focus-sidebar__theme-toggle">
           <ThemeToggle theme={theme} onToggle={onToggleTheme} />
         </div>

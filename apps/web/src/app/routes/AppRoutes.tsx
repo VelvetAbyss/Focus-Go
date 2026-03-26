@@ -6,7 +6,7 @@ import { LEGACY_ROUTES, ROUTES } from './routes'
 import TasksPage from '../../features/tasks/pages/TasksPage'
 import NotePage from '../../features/notes/pages/NotePage'
 import CalendarPage from '../../features/calendar/pages/CalendarPage'
-import ReviewPage from '../../features/diary/pages/ReviewPage'
+import DiaryPage from '../../features/diary/pages/DiaryPage'
 import LabsPage from '../../features/labs/pages/LabsPage'
 import HabitTrackerPage from '../../features/habits/pages/HabitTrackerPage'
 import { useLabs } from '../../features/labs/LabsContext'
@@ -54,7 +54,8 @@ const AppRoutes = () => {
           </Suspense>
         }
       />
-      <Route path={ROUTES.REVIEW} element={<ReviewPage />} />
+      <Route path={ROUTES.REVIEW} element={<Navigate to={ROUTES.DIARY} replace />} />
+      <Route path={ROUTES.DIARY} element={<DiaryPage />} />
       <Route path={ROUTES.SETTINGS} element={<SettingsRoute />} />
       <Route path={ROUTES.LABS} element={<LabsPage />} />
       <Route path={ROUTES.HABITS} element={<GuardedHabitsRoute />} />

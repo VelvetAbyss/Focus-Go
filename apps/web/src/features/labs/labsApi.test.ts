@@ -22,7 +22,7 @@ describe('labsApi', () => {
     await db.open()
   })
 
-  it('seeds free subscription and habits available by default', async () => {
+  it('seeds premium subscription and unlocks premium-only flags by default', async () => {
     await ensureLabsSeed()
 
     const subscription = await getSubscription()
@@ -31,10 +31,10 @@ describe('labsApi', () => {
     const mindMap = await getMindMap()
 
     expect(subscription.userId).toBe(CURRENT_USER_ID)
-    expect(subscription.tier).toBe('free')
+    expect(subscription.tier).toBe('premium')
     expect(subscription.role).toBe('admin')
     expect(habits?.state).toBe('available')
-    expect(habits?.requiresPremium).toBe(true)
+    expect(habits?.requiresPremium).toBe(false)
     expect(mindMap?.state).toBe('available')
     expect(mindMap?.requiresPremium).toBe(false)
     expect(aiDigest?.state).toBe('available')

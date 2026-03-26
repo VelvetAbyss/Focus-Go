@@ -23,7 +23,7 @@ vi.mock('../../features/tasks/pages/TasksPage', () => ({ default: () => <div>Tas
 vi.mock('../../features/notes/pages/NotePage', () => ({ default: () => <div>Note Page</div> }))
 vi.mock('../../features/focus/pages/FocusPage', () => ({ default: () => <div>Focus Page</div> }))
 vi.mock('../../features/calendar/pages/CalendarPage', () => ({ default: () => <div>Calendar Page</div> }))
-vi.mock('../../features/diary/pages/ReviewPage', () => ({ default: () => <div>Review Page</div> }))
+vi.mock('../../features/diary/pages/DiaryPage', () => ({ default: () => <div>Diary Page</div> }))
 vi.mock('../../features/labs/pages/LabsPage', () => ({ default: () => <div>Labs Page</div> }))
 vi.mock('../../features/habits/pages/HabitTrackerPage', () => ({ default: () => <div>Habits Page</div> }))
 

@@ -6,6 +6,7 @@ export const ROUTES = {
   CALENDAR: '/calendar',
   FOCUS: '/focus',
   REVIEW: '/review',
+  DIARY: '/diary',
   SETTINGS: '/workspace/settings',
   LABS: '/labs',
 } as const
@@ -14,7 +15,7 @@ export const LEGACY_ROUTES = {
   KNOWLEDGE: '/knowledge',
 } as const
 
-export type RouteKey = 'dashboard' | 'tasks' | 'note' | 'calendar' | 'focus' | 'review' | 'settings' | 'labs'
+export type RouteKey = 'dashboard' | 'tasks' | 'note' | 'calendar' | 'focus' | 'diary' | 'settings' | 'labs'
 
 export type NavItem = {
   key: RouteKey
@@ -28,7 +29,7 @@ export const NAV_ITEMS: NavItem[] = [
   { key: 'note', label: 'Note', to: ROUTES.NOTE },
   { key: 'calendar', label: 'Calendar', to: ROUTES.CALENDAR },
   { key: 'focus', label: 'Focus', to: ROUTES.FOCUS },
-  { key: 'review', label: 'Review', to: ROUTES.REVIEW },
+  { key: 'diary', label: 'Diary', to: ROUTES.DIARY },
   { key: 'settings', label: 'Settings', to: ROUTES.SETTINGS },
 ]
 
@@ -38,6 +39,6 @@ export const BASE_NAV_ITEMS: NavItem[] = [
   { key: 'note', label: 'Note', to: ROUTES.NOTE },
   { key: 'calendar', label: 'Calendar', to: ROUTES.CALENDAR },
   { key: 'focus', label: 'Focus', to: ROUTES.FOCUS },
-  { key: 'review', label: 'Review', to: ROUTES.REVIEW },
+  { key: 'diary', label: 'Diary', to: ROUTES.DIARY },
   { key: 'settings', label: 'Settings', to: ROUTES.SETTINGS },
 ]

@@ -202,6 +202,19 @@ export function startWeatherRuntime(config: WeatherConfig) {
   void loadAndSchedule()
 }
 
+export function refreshWeatherRuntime() {
+  if (!currentConfig) return
+  retryAttempts = 0
+  clearTimer()
+
+  if (inFlight) {
+    pendingReload = true
+    return
+  }
+
+  void loadAndSchedule()
+}
+
 export function subscribeWeatherRuntime(subscriber: WeatherSubscriber) {
   subscribers.add(subscriber)
   subscriber(snapshot)

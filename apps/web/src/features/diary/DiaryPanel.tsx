@@ -242,7 +242,9 @@ const DiaryPanel = ({ open, intent, onClose }: DiaryPanelProps) => {
       } else {
         const created = await diaryRepo.add({
           dateKey: activeDate,
+          entryAt: Date.now(),
           contentMd: todayContent,
+          contentJson: null,
           tags: [],
           deletedAt: null,
           expiredAt: null,
@@ -275,7 +277,9 @@ const DiaryPanel = ({ open, intent, onClose }: DiaryPanelProps) => {
       } else {
         const created = await diaryRepo.add({
           dateKey: selectedDateKey,
+          entryAt: Date.now(),
           contentMd: detailContent,
+          contentJson: null,
           tags: [],
           deletedAt: null,
           expiredAt: null,

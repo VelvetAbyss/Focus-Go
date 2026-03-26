@@ -27,6 +27,7 @@ import {
   schemaV23,
   schemaV24,
   schemaV26,
+  schemaV27,
   schemaV2,
   schemaV3,
   schemaV4,
@@ -126,7 +127,7 @@ export class WorkbenchDb extends Dexie {
           await tx.table(TABLES.notes).bulkPut(migratedNotes as NoteItem[])
         }
       })
-    this.version(DB_VERSION)
+    this.version(26)
       .stores(schemaV26)
       .upgrade(async (tx) => {
         const noteRows = await tx.table(TABLES.notes).toArray()
@@ -136,6 +137,19 @@ export class WorkbenchDb extends Dexie {
           editorMode: 'document',
         }))
         await tx.table(TABLES.notes).bulkPut(migratedNotes as NoteItem[])
+      })
+    this.version(DB_VERSION)
+      .stores(schemaV27)
+      .upgrade(async (tx) => {
+        const diaryRows = await tx.table(TABLES.diaryEntries).toArray()
+        if (diaryRows.length === 0) return
+        const migrated = diaryRows.map((row) => ({
+          ...row,
+          entryAt: (row as { entryAt?: number }).entryAt ?? row.updatedAt ?? row.createdAt ?? Date.now(),
+          contentJson: (row as { contentJson?: unknown }).contentJson ?? null,
+          weatherSnapshot: null,
+        }))
+        await tx.table(TABLES.diaryEntries).bulkPut(migrated as DiaryEntry[])
       })
 
     this.tasks = this.table(TABLES.tasks)

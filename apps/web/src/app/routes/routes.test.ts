@@ -19,7 +19,7 @@ describe('routes config', () => {
       'note',
       'calendar',
       'focus',
-      'review',
+      'diary',
       'settings',
     ])
     expect(LEGACY_ROUTES.KNOWLEDGE).toBe('/knowledge')

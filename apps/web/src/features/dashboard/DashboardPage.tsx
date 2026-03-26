@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
@@ -24,7 +24,6 @@ import { usePremiumGate } from '../premium/PremiumProvider'
 
 const LAYOUT_LOCK_KEY = 'workbench.dashboard.layoutLocked'
 const LAYOUT_PERSIST_DEBOUNCE_MS = 180
-const DiaryPanel = lazy(() => import('../diary/DiaryPanel'))
 
 const isSameLayout = (a: DashboardLayoutItem[], b: DashboardLayoutItem[]) => {
   if (a.length !== b.length) return false
@@ -66,7 +65,6 @@ const DashboardPage = () => {
   const columns = isMobile ? 4 : 12
   const { width, containerRef, mounted } = useContainerWidth({ initialWidth: window.innerWidth })
   const [searchParams, setSearchParams] = useSearchParams()
-  const diaryOpen = searchParams.get('diary') === '1'
   const layoutEdit = searchParams.get('layoutEdit') === '1' && !isMobile
   const widgetsPanelOpen = searchParams.get('widgetsPanel') === '1'
   const [confirmHideCardId, setConfirmHideCardId] = useState<string | null>(null)
@@ -164,23 +162,7 @@ const DashboardPage = () => {
     }
   }, [navigate, onboarding.currentStep, onboarding.status])
 
-  const openDiary = useCallback(
-    (intent?: 'openToday') => {
-      setSearchParams(
-        (prev) => {
-          const next = new URLSearchParams(prev)
-          next.set('diary', '1')
-          next.set('diaryTab', 'today')
-          next.delete('date')
-          if (intent === 'openToday') next.set('diaryTab', 'today')
-          return next
-        },
-        { replace: true }
-      )
-    },
-    [setSearchParams]
-  )
-  const cards = useMemo(() => getDashboardCards({ openDiary }), [openDiary])
+  const cards = useMemo(() => getDashboardCards(), [])
   const cardsById = useMemo(() => new Map(cards.map((card) => [card.id, card])), [cards])
   const visibleCards = useMemo(
     () => layout.map((item) => cardsById.get(item.key)).filter((card): card is NonNullable<typeof card> => Boolean(card)),
@@ -473,25 +455,6 @@ const DashboardPage = () => {
           </GridLayout>
         )}
 
-        {diaryOpen ? (
-          <Suspense fallback={null}>
-            <DiaryPanel
-              open={diaryOpen}
-              onClose={() =>
-                setSearchParams(
-                  (prev) => {
-                    const next = new URLSearchParams(prev)
-                    next.delete('diary')
-                    next.delete('diaryTab')
-                    next.delete('date')
-                    return next
-                  },
-                  { replace: true }
-                )
-              }
-            />
-          </Suspense>
-        ) : null}
         <OnboardingModal
           open={onboarding.status === 'not_started'}
           onStart={() => {

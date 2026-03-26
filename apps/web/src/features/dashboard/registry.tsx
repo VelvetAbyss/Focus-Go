@@ -14,11 +14,7 @@ export type DashboardCard = {
   render: () => ReactNode
 }
 
-export type DashboardCardHandlers = {
-  openDiary: (intent?: 'openToday') => void
-}
-
-export const getDashboardCards = ({ openDiary }: DashboardCardHandlers): DashboardCard[] => [
+export const getDashboardCards = (): DashboardCard[] => [
   {
     id: 'tasks',
     title: 'Tasks',
@@ -53,6 +49,6 @@ export const getDashboardCards = ({ openDiary }: DashboardCardHandlers): Dashboa
     id: 'diary',
     title: 'Diary',
     defaultSize: { w: 6, h: 3 },
-    render: () => <DiaryLauncherCard onOpen={openDiary} />,
+    render: () => <DiaryLauncherCard />,
   },
 ]
