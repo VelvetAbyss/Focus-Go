@@ -34,6 +34,9 @@ const { mockT } = vi.hoisted(() => {
         'tasks.status.doing': 'Doing',
         'tasks.status.done': 'Done',
         'dashboard.widget.tasks': 'Tasks',
+        'onboarding.empty.tasksTitle': 'Start by putting one real task on the board',
+        'onboarding.empty.tasksDescription': 'The dashboard will feel clearer once today has a concrete next step.',
+        'onboarding.empty.tasksAction': 'Create first task',
       }
       const msg = msgs[key]
       if (!msg) return key
@@ -218,6 +221,8 @@ describe('TasksBoard sync', () => {
     render(<TasksBoard asCard={false} onboardingMode />)
 
     await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1))
+    expect(screen.getByText('Start by putting one real task on the board')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Create first task' })).toBeInTheDocument()
     expect(screen.getByTestId('task-drawer')).toHaveTextContent('onboarding')
     expect(screen.queryByPlaceholderText('Add a new task...')).not.toBeInTheDocument()
   })

@@ -427,6 +427,8 @@ describe('CalendarPage', () => {
     const monthTitle = view.container.querySelectorAll('.calendar-main-title')
     expect(monthTitle.length).toBe(1)
     expect(view.container.querySelectorAll('.calendar-v2__left-header h2').length).toBe(0)
+    expect(monthTitle[0]?.textContent).not.toContain('年')
+    expect(monthTitle[0]?.textContent).not.toContain('月')
   })
 
   it('right panel does not render removed elements', () => {
@@ -618,6 +620,15 @@ describe('CalendarPage', () => {
     expect(addButton).toHaveClass('calendar-subscriptions__add')
   })
 
+  it('seeds China and US holiday subscriptions on first load', () => {
+    const view = renderCalendar()
+    const scoped = within(view.container)
+
+    expect(scoped.getByText('China Public Holidays')).toBeInTheDocument()
+    expect(scoped.getByText('US Federal Holidays')).toBeInTheDocument()
+    expect(scoped.queryByText('Google Calendar (M1 Read-Only)')).not.toBeInTheDocument()
+  })
+
   it('shows ics guide only in ics mode', async () => {
     const user = userEvent.setup()
     const view = renderCalendar()
@@ -630,7 +641,7 @@ describe('CalendarPage', () => {
     expect(screen.getByText('How to get an ICS subscription URL')).toBeInTheDocument()
   })
 
-  it('renders preset placeholder cards', async () => {
+  it('renders preset cards and adds preset subscription once', async () => {
     const user = userEvent.setup()
     const view = renderCalendar()
     const scoped = within(view.container)
@@ -639,14 +650,26 @@ describe('CalendarPage', () => {
     const presetSection = screen.getByLabelText('Preset subscriptions')
     expect(within(presetSection).getByText('Preset subscriptions')).toBeInTheDocument()
     expect(within(presetSection).getByText(/China Public Holidays/)).toBeInTheDocument()
+    expect(within(presetSection).getByText(/China Workdays/)).toBeInTheDocument()
     expect(within(presetSection).getByText(/US Federal Holidays/)).toBeInTheDocument()
+    expect(within(presetSection).getByText(/UK Bank Holidays/)).toBeInTheDocument()
+    expect(within(presetSection).getByText(/Japan Public Holidays/)).toBeInTheDocument()
+    expect(within(presetSection).getByText(/Singapore Public Holidays/)).toBeInTheDocument()
     expect(within(presetSection).getByText(/Moon Phases/)).toBeInTheDocument()
+    expect(within(presetSection).getByText(/24 Solar Terms/)).toBeInTheDocument()
 
     const addButtons = within(presetSection).getAllByRole('button', { name: 'Add' })
-    expect(addButtons.length).toBeGreaterThanOrEqual(3)
-    addButtons.forEach((button) => {
-      expect(button).toBeDisabled()
+    expect(addButtons.length).toBeGreaterThanOrEqual(8)
+    expect(addButtons[0]).toBeDisabled()
+    expect(addButtons[2]).toBeDisabled()
+    addButtons.slice(0, 8).forEach((button, index) => {
+      if (index === 0 || index === 2) return
+      expect(button).not.toBeDisabled()
     })
+
+    await user.click(addButtons[0])
+    expect(scoped.getByText('China Public Holidays')).toBeInTheDocument()
+    expect(within(presetSection).getAllByRole('button', { name: 'Add' })[0]).toBeDisabled()
   })
 
   it('drag handle reorders unified list and persists order', async () => {
@@ -712,8 +735,8 @@ describe('CalendarPage', () => {
       return (row as HTMLElement).querySelector('.calendar-subscriptions__dot-trigger') as HTMLElement
     }
 
-    await user.click(scoped.getByRole('button', { name: 'Open color picker for Google Calendar (M1 Read-Only)' }))
-    const accountSwatch = await screen.findByRole('button', { name: 'Set Google Calendar (M1 Read-Only) color to #f59e0b' })
+    await user.click(scoped.getByRole('button', { name: 'Open color picker for US Federal Holidays' }))
+    const accountSwatch = await screen.findByRole('button', { name: 'Set US Federal Holidays color to #f59e0b' })
     await user.click(accountSwatch)
 
     await user.click(scoped.getByRole('button', { name: 'Add subscription' }))
@@ -726,10 +749,10 @@ describe('CalendarPage', () => {
     const customSwatch = await screen.findByRole('button', { name: 'Set Team Public Calendar color to #10b981' })
     await user.click(customSwatch)
 
-    expect(getRowDot('Google Calendar (M1 Read-Only)')).toHaveStyle({ background: '#f59e0b' })
+    expect(getRowDot('US Federal Holidays')).toHaveStyle({ background: '#f59e0b' })
     expect(getRowDot('Team Public Calendar')).toHaveStyle({ background: '#10b981' })
 
-    const googleChip = view.container.querySelector('.calendar-chip[data-subscription-id="account-google"]')
+    const googleChip = view.container.querySelector('.calendar-chip[data-subscription-id="preset-us-holidays"]')
     expect(googleChip).not.toBeNull()
     expect(googleChip?.getAttribute('style')).toContain('#f59e0b')
   }, 15000)
@@ -739,13 +762,44 @@ describe('CalendarPage', () => {
     const view = renderCalendar()
     const scoped = within(view.container)
 
-    const toggle = scoped.getByRole('button', { name: 'Toggle visibility for Google Calendar (M1 Read-Only)' })
+    const toggle = scoped.getByRole('button', { name: 'Toggle visibility for China Public Holidays' })
     expect(toggle).toBeInTheDocument()
 
     await user.click(toggle)
-    const row = scoped.getByText('Google Calendar (M1 Read-Only)').closest('.calendar-subscriptions__item')
+    const row = scoped.getByText('China Public Holidays').closest('.calendar-subscriptions__item')
     expect(row).not.toBeNull()
     expect(row).toHaveClass('is-disabled')
+  })
+
+  it('renders syncing status below the subscription title', () => {
+    window.localStorage.setItem(
+      'focusgo.calendar.subscriptions.v1',
+      JSON.stringify([
+        {
+          id: 'custom-us-holidays',
+          provider: 'ics',
+          sourceType: 'custom',
+          name: 'US Federal Holidays',
+          description: '',
+          color: '#2563eb',
+          enabled: true,
+          order: 1,
+          url: 'https://example.com/us.ics',
+          syncPermission: 'read',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ])
+    )
+
+    const view = renderCalendar()
+    const row = within(view.container).getByText('US Federal Holidays').closest('.calendar-subscriptions__item')
+    expect(row).not.toBeNull()
+
+    const content = (row as HTMLElement).querySelector('.calendar-subscriptions__content')
+    expect(content).not.toBeNull()
+    expect(content?.querySelector('.calendar-subscriptions__name')?.textContent).toBe('US Federal Holidays')
+    expect(content?.querySelector('.calendar-subscriptions__meta')).not.toBeNull()
   })
 
   it('ics add flow still works with guide and presets present', async () => {
@@ -767,11 +821,11 @@ describe('CalendarPage', () => {
     const view = renderCalendar()
     const scoped = within(view.container)
 
-    await user.click(scoped.getByRole('button', { name: 'Remove Google Calendar (M1 Read-Only)' }))
+    await user.click(scoped.getByRole('button', { name: 'Remove China Public Holidays' }))
     const dialog = await screen.findByRole('dialog')
     await user.click(within(dialog).getByRole('button', { name: 'Remove' }))
 
-    expect(scoped.queryByText('Google Calendar (M1 Read-Only)')).not.toBeInTheDocument()
+    expect(scoped.queryByText('China Public Holidays')).not.toBeInTheDocument()
     expect(scoped.queryByText(/Manage deleted/i)).not.toBeInTheDocument()
     expect(scoped.queryByRole('button', { name: /Restore/i })).not.toBeInTheDocument()
   })

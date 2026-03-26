@@ -15,7 +15,7 @@ const TasksPage = () => {
   const { t } = useI18n()
   const onboarding = useOnboardingFlow()
   const viewportProfile = useTasksViewportProfile()
-  const onboardingMode = onboarding.status === 'in_progress' && onboarding.currentStep === 'create_task'
+  const onboardingMode = onboarding.status === 'in_progress' && onboarding.currentStep === 'tasks'
   const [viewMode, setViewMode] = useState<TasksPageViewMode>(() => {
     if (typeof window === 'undefined') return 'board'
     const stored = window.localStorage.getItem(STORAGE_VIEW_KEY)

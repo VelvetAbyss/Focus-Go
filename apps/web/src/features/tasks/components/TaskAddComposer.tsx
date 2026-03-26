@@ -37,10 +37,10 @@ const TaskAddComposer = ({ onSubmit, compact = false, plain = false, placeholder
   return (
     <form
       className={cn(
-        'tasks-fg__composer mt-4 rounded-[22px] border border-[#3a3733]/6 bg-white/88 p-3 shadow-[0_20px_50px_rgba(15,23,42,0.06)] backdrop-blur-sm transition',
-        compact ? 'mt-3 rounded-[18px] p-2.5 shadow-[0_14px_36px_rgba(15,23,42,0.06)]' : '',
+        'tasks-fg__composer mt-4 rounded-[22px] border border-[#3a3733]/6 bg-transparent p-3 shadow-none backdrop-blur-none transition',
+        compact ? 'mt-3 rounded-[18px] p-2.5' : '',
         plain ? 'mt-0 rounded-none border-x-0 border-b-0 border-t bg-transparent px-4 py-3 shadow-none backdrop-blur-none' : '',
-        isFocused && !plain && 'border-slate-300/80 shadow-[0_22px_60px_rgba(15,23,42,0.1)]',
+        isFocused && !plain && 'border-slate-300/80 shadow-none',
         isFocused && plain && 'border-t-primary/20 bg-transparent shadow-[0_-2px_8px_rgba(58, 55, 51, 0.04)]',
       )}
       onSubmit={(event) => {

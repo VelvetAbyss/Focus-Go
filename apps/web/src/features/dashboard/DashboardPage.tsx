@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { GridLayout, useContainerWidth } from 'react-grid-layout'
+import { absoluteStrategy } from 'react-grid-layout/core'
+import { ArrowRight, Focus, NotebookPen } from 'lucide-react'
 import { useIsBreakpoint } from '../../hooks/use-is-breakpoint'
 import Dialog from '../../shared/ui/Dialog'
 import { dashboardRepo } from '../../data/repositories/dashboardRepo'
@@ -65,7 +67,7 @@ const DashboardPage = () => {
   const columns = isMobile ? 4 : 12
   const { width, containerRef, mounted } = useContainerWidth({ initialWidth: window.innerWidth })
   const [searchParams, setSearchParams] = useSearchParams()
-  const layoutEdit = searchParams.get('layoutEdit') === '1' && !isMobile
+  const [layoutEdit, setLayoutEdit] = useState(() => !isMobile && !readLayoutLocked())
   const widgetsPanelOpen = searchParams.get('widgetsPanel') === '1'
   const [confirmHideCardId, setConfirmHideCardId] = useState<string | null>(null)
   const [hideSubmitting, setHideSubmitting] = useState(false)
@@ -97,15 +99,9 @@ const DashboardPage = () => {
       openUpgradeModal('button', 'dashboard.custom-layout')
       return
     }
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev)
-      if (layoutEdit) {
-        next.delete('layoutEdit')
-        next.delete('widgetsPanel')
-      } else next.set('layoutEdit', '1')
-      return next
-    })
-  }, [canUse, isMobile, layoutEdit, openUpgradeModal, setSearchParams])
+    setLayoutEdit((prev) => !prev)
+  }, [canUse, isMobile, openUpgradeModal])
+
   const toggleWidgetsPanel = useCallback(() => {
     if (!canUse('dashboard.extra-widgets').allowed) {
       openUpgradeModal('button', 'dashboard.extra-widgets')
@@ -118,28 +114,22 @@ const DashboardPage = () => {
       return next
     })
   }, [canUse, openUpgradeModal, setSearchParams, widgetsPanelOpen])
-  const setLayoutEdit = useCallback(
-    (nextEdit: boolean) => {
-      if (isMobile) return
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev)
-        if (nextEdit) next.set('layoutEdit', '1')
-        else next.delete('layoutEdit')
-        return next
-      })
-    },
-    [isMobile, setSearchParams]
-  )
 
   useEffect(() => {
-    if (isMobile && layoutEdit) {
-      setLayoutEdit(false)
-    }
-  }, [isMobile, layoutEdit, setLayoutEdit])
+    if (isMobile) setLayoutEdit(false)
+  }, [isMobile])
 
   useEffect(() => {
     writeLayoutLocked(!layoutEdit)
-  }, [layoutEdit])
+    if (!layoutEdit) {
+      setSearchParams((prev) => {
+        if (!prev.has('widgetsPanel')) return prev
+        const next = new URLSearchParams(prev)
+        next.delete('widgetsPanel')
+        return next
+      })
+    }
+  }, [layoutEdit, setSearchParams])
 
   useEffect(() => {
     layoutSnapshotRef.current = { layout, hiddenCardIds }
@@ -151,16 +141,11 @@ const DashboardPage = () => {
     }
   }, [])
 
-  useEffect(() => {
-    if (searchParams.get('layoutEdit') !== null) return
-    if (!readLayoutLocked()) setLayoutEdit(true)
-  }, [searchParams, setLayoutEdit])
 
   useEffect(() => {
-    if (onboarding.status === 'in_progress' && onboarding.currentStep === 'create_task') {
-      navigate(ROUTES.TASKS, { replace: true })
-    }
-  }, [navigate, onboarding.currentStep, onboarding.status])
+    if (onboarding.status !== 'in_progress' || onboarding.currentStep !== 'dashboard_overview' || onboarding.featureSeen.dashboard) return
+    onboarding.markFeatureSeen('dashboard')
+  }, [onboarding])
 
   const cards = useMemo(() => getDashboardCards(), [])
   const cardsById = useMemo(() => new Map(cards.map((card) => [card.id, card])), [cards])
@@ -356,6 +341,29 @@ const DashboardPage = () => {
     [canUse, openUpgradeModal, requestHideCard, showCard]
   )
 
+  const overviewVisible = onboarding.status === 'in_progress' && onboarding.currentStep === 'dashboard_overview'
+
+  const finishOverview = useCallback(() => {
+    onboarding.complete()
+  }, [onboarding])
+
+  const openTasksOnboarding = useCallback(() => {
+    onboarding.next('tasks')
+    navigate(ROUTES.TASKS)
+  }, [navigate, onboarding])
+
+  const openFocusFromOverview = useCallback(() => {
+    onboarding.complete()
+    onboarding.setPendingCoachmark('focus')
+    navigate(ROUTES.FOCUS)
+  }, [navigate, onboarding])
+
+  const openDiaryFromOverview = useCallback(() => {
+    onboarding.complete()
+    onboarding.markFeatureSeen('diary')
+    navigate(ROUTES.DIARY)
+  }, [navigate, onboarding])
+
   return (
     <main className="dashboard" ref={containerRef} aria-label={t('dashboard.page')}>
         <DashboardHeader
@@ -371,6 +379,56 @@ const DashboardPage = () => {
         <div aria-live="polite" aria-atomic="true">
           {syncError && <p className="dashboard__sync-error">{syncError}</p>}
         </div>
+        {overviewVisible ? (
+          <section className="mx-[18px] mb-2 rounded-[32px] border border-[#3A3733]/8 bg-[linear-gradient(135deg,rgba(245,243,240,0.96),rgba(255,255,255,0.84))] px-6 py-6 text-[#3A3733] shadow-[0_24px_80px_rgba(58,55,51,0.08)]">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+              <div className="max-w-2xl">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#3A3733]/56">{t('onboarding.dashboard.eyebrow')}</p>
+                <h2 className="mt-3 text-[30px] font-semibold tracking-[-0.04em]">{t('onboarding.dashboard.title')}</h2>
+                <p className="mt-3 max-w-xl text-sm leading-6 text-[#3A3733]/72">{t('onboarding.dashboard.description')}</p>
+              </div>
+              <Button type="button" variant="outline" className="self-start rounded-full border-[#3A3733]/12 bg-white/72 text-[#3A3733]" onClick={finishOverview}>
+                {t('onboarding.dashboard.dismiss')}
+              </Button>
+            </div>
+            <div className="mt-5 grid gap-3 lg:grid-cols-3">
+              <button
+                type="button"
+                className="group rounded-[24px] border border-[#3A3733]/8 bg-white/76 p-4 text-left transition hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(58,55,51,0.12)]"
+                onClick={openTasksOnboarding}
+              >
+                <p className="text-sm font-semibold">{t('onboarding.dashboard.tasksCta')}</p>
+                <p className="mt-2 text-sm leading-6 text-[#3A3733]/68">先把今天最重要的一件事放进系统，后面的模块才会围绕真实工作运转。</p>
+                <span className="mt-4 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#3A3733]/56">
+                  Plan
+                  <ArrowRight className="size-3.5 transition group-hover:translate-x-0.5" />
+                </span>
+              </button>
+              <button
+                type="button"
+                className="group rounded-[24px] border border-[#3A3733]/8 bg-white/76 p-4 text-left transition hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(58,55,51,0.12)]"
+                onClick={openFocusFromOverview}
+              >
+                <div className="inline-flex rounded-full bg-[#3A3733]/6 p-2 text-[#3A3733]">
+                  <Focus className="size-4" />
+                </div>
+                <p className="mt-3 text-sm font-semibold">{t('onboarding.dashboard.focusCta')}</p>
+                <p className="mt-2 text-sm leading-6 text-[#3A3733]/68">想先感受节奏时，可以直接进入 Focus；任务上下文之后再补上也可以。</p>
+              </button>
+              <button
+                type="button"
+                className="group rounded-[24px] border border-[#3A3733]/8 bg-white/76 p-4 text-left transition hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(58,55,51,0.12)]"
+                onClick={openDiaryFromOverview}
+              >
+                <div className="inline-flex rounded-full bg-[#3A3733]/6 p-2 text-[#3A3733]">
+                  <NotebookPen className="size-4" />
+                </div>
+                <p className="mt-3 text-sm font-semibold">{t('onboarding.dashboard.diaryCta')}</p>
+                <p className="mt-2 text-sm leading-6 text-[#3A3733]/68">如果你更习惯先记录，再慢慢建立自己的日常工作台，也可以从这里开始。</p>
+              </button>
+            </div>
+          </section>
+        ) : null}
         {layoutEdit && widgetsPanelOpen && (
           <section className="dashboard-widgets" aria-label={t('dashboard.manageVisibility')}>
             {cards.map((card) => {
@@ -415,8 +473,9 @@ const DashboardPage = () => {
               containerPadding: [18, 18],
               maxRows: 100,
             }}
-            dragConfig={{ enabled: layoutEdit }}
+            dragConfig={{ enabled: layoutEdit, threshold: 5 }}
             resizeConfig={{ enabled: layoutEdit }}
+            positionStrategy={layoutEdit ? absoluteStrategy : undefined}
             width={Math.max(width, 320)}
             onLayoutChange={(next: ReadonlyArray<{ i: string; x: number; y: number; w: number; h: number }>) => {
               if (!layoutEdit || isMobile) return
@@ -459,7 +518,6 @@ const DashboardPage = () => {
           open={onboarding.status === 'not_started'}
           onStart={() => {
             onboarding.start()
-            navigate(ROUTES.TASKS, { replace: true })
           }}
           onSkip={() => onboarding.skip()}
         />

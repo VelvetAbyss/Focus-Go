@@ -650,7 +650,7 @@ const TaskDrawer = ({
       open={open}
       title=""
       onClose={requestClose}
-      panelClassName="task-drawer-panel !h-[calc(100vh-40px)] !max-h-none rounded-[30px] border border-[#3a3733]/8 bg-white shadow-[0_30px_100px_rgba(15,23,42,0.18)]"
+      panelClassName="task-drawer-panel task-detail-theme !h-[calc(100vh-40px)] !max-h-none rounded-[30px] border border-[#3a3733]/8 shadow-[0_30px_100px_rgba(15,23,42,0.18)]"
       panelStyle={{ width: `${panelWidth}px`, maxWidth: 'calc(100vw - 48px)' }}
       contentClassName="!h-full !p-0"
     >
@@ -659,65 +659,67 @@ const TaskDrawer = ({
           <div className="absolute inset-y-0 left-0 z-20 w-3 cursor-ew-resize" onPointerDown={(event) => beginWidthResize(event, 'left')} />
           <div className="absolute inset-y-0 right-0 z-20 w-3 cursor-ew-resize" onPointerDown={(event) => beginWidthResize(event, 'right')} />
           <div className="absolute bottom-1 right-1 z-20 h-4 w-4 cursor-ew-resize" onPointerDown={(event) => beginWidthResize(event, 'right')} />
-          <div className="task-detail-topbar flex items-center justify-between gap-4 border-b border-[#3a3733]/6 bg-white px-6 py-4">
+          <div className="task-detail-topbar flex items-center justify-between gap-4 border-b border-[#3a3733]/6 px-6 py-4">
             <div className="task-detail-topbar__state flex min-w-0 items-center gap-3">
-              <Badge variant="outline" className={cn('rounded-full border px-3 py-1 text-[11px] font-semibold', statusConfig.badge)}>
+              <Badge variant="outline" className={cn('task-detail-status-badge rounded-full border px-3 py-1 text-[11px] font-semibold', statusConfig.badge)}>
                 <span className={cn('mr-1.5 h-1.5 w-1.5 rounded-full', statusConfig.dot)} />
                 {t(statusConfig.labelKey)}
               </Badge>
-              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[color:var(--text-secondary)]">
                 {isSaving ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5 text-emerald-500" />}
                 {isSaving ? t('modules.note.saveState.saving') : t('tasks.status.saved')}
               </span>
             </div>
 
             <div className="flex items-center gap-2">
-              {currentTask.status === 'todo' ? (
-                <>
-                  <Button variant="outline" size="sm" className="h-8 rounded-full px-3 text-[11px] font-semibold" onClick={() => void handleStatusChange('doing')} disabled={isSaving}>
-                    <Target className="mr-1.5 h-3.5 w-3.5" />
-                    {t('tasks.action.start')}
-                  </Button>
-                  <Button variant="outline" size="sm" className="h-8 rounded-full px-3 text-[11px] font-semibold" onClick={() => void handleStatusChange('done')} disabled={isSaving}>
+              <div className="task-detail-actions flex items-center gap-2">
+                {currentTask.status === 'todo' ? (
+                  <>
+                    <Button variant="outline" size="sm" className="task-detail-action-button h-8 rounded-full px-3 text-[11px] font-semibold" onClick={() => void handleStatusChange('doing')} disabled={isSaving}>
+                      <Target className="mr-1.5 h-3.5 w-3.5" />
+                      {t('tasks.action.start')}
+                    </Button>
+                    <Button variant="outline" size="sm" className="task-detail-action-button h-8 rounded-full px-3 text-[11px] font-semibold" onClick={() => void handleStatusChange('done')} disabled={isSaving}>
+                      <Check className="mr-1.5 h-3.5 w-3.5" />
+                      {t('tasks.action.done')}
+                    </Button>
+                  </>
+                ) : null}
+                {currentTask.status === 'doing' ? (
+                  <Button variant="outline" size="sm" className="task-detail-action-button h-8 rounded-full px-3 text-[11px] font-semibold" onClick={() => void handleStatusChange('done')} disabled={isSaving}>
                     <Check className="mr-1.5 h-3.5 w-3.5" />
                     {t('tasks.action.done')}
                   </Button>
-                </>
-              ) : null}
-              {currentTask.status === 'doing' ? (
-                <Button variant="outline" size="sm" className="h-8 rounded-full px-3 text-[11px] font-semibold" onClick={() => void handleStatusChange('done')} disabled={isSaving}>
-                  <Check className="mr-1.5 h-3.5 w-3.5" />
-                  {t('tasks.action.done')}
-                </Button>
-              ) : null}
-              {currentTask.status === 'done' ? (
-                <Button variant="outline" size="sm" className="h-8 rounded-full px-3 text-[11px] font-semibold" onClick={() => void handleStatusChange('todo')} disabled={isSaving}>
-                  <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+                ) : null}
+                {currentTask.status === 'done' ? (
+                  <Button variant="outline" size="sm" className="task-detail-action-button h-8 rounded-full px-3 text-[11px] font-semibold" onClick={() => void handleStatusChange('todo')} disabled={isSaving}>
+                    <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
                     {language === 'zh' ? '重新打开' : 'Reopen'}
-                </Button>
-              ) : null}
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-slate-400 hover:bg-rose-50 hover:text-rose-600" onClick={() => void handleDelete()} disabled={isSaving}>
+                  </Button>
+                ) : null}
+              </div>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-[color:var(--text-secondary)] hover:bg-[color:rgba(127,29,29,0.12)] hover:text-rose-500" onClick={() => void handleDelete()} disabled={isSaving}>
                 <Trash2 className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700" onClick={requestClose}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-hover)] hover:text-[color:var(--text-primary)]" onClick={requestClose}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
           </div>
 
           <div className="task-detail-layout grid min-h-0 flex-1" style={{ gridTemplateColumns: `${leftRatio}fr 10px ${1 - leftRatio}fr` }}>
-            <ScrollArea className="min-h-0">
+            <ScrollArea className="task-detail-pane task-detail-pane--left min-h-0">
               <div className="task-detail-column space-y-6 px-6 py-6">
-                <div className="task-detail-card task-detail-card--hero rounded-[28px] border border-[#3a3733]/6 bg-[linear-gradient(180deg,#ffffff,#f8fafc)] p-6 shadow-[0_24px_60px_rgba(15,23,42,0.05)]">
+                <div className="task-detail-card task-detail-card--hero rounded-[28px] border border-[#3a3733]/6 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.05)]">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       <Input
                         value={title}
                         onChange={(event) => setTitle(event.target.value)}
-                        className="h-auto border-0 bg-transparent px-0 py-0 text-[28px] font-semibold tracking-[-0.03em] text-slate-950 shadow-none focus-visible:ring-0 md:text-[32px]"
+                        className="task-detail-title-input h-auto border-0 bg-transparent px-0 py-0 text-[28px] font-semibold tracking-[-0.03em] text-[color:var(--text-primary)] shadow-none focus-visible:ring-0 md:text-[32px]"
                         placeholder={t('tasks.drawer.title')}
                       />
-                      <div className="mt-4 flex flex-wrap items-center gap-2 text-[12px] text-slate-500">
+                      <div className="mt-4 flex flex-wrap items-center gap-2 text-[12px] text-[color:var(--text-secondary)]">
                         <span className="inline-flex items-center gap-1">
                           <CalendarDays className="h-3.5 w-3.5" />
                           {t('tasks.drawer.created')} {formatTaskDateTime(currentTask.createdAt)}
@@ -740,7 +742,7 @@ const TaskDrawer = ({
                     </div>
                     <div className="min-w-[120px]">
                       <ShadcnSelect value={priority ?? '__none'} onValueChange={(value) => setPriority(value === '__none' ? null : (value as TaskPriority))}>
-                        <SelectTrigger className="h-9 rounded-[14px] border-[#3a3733]/8 bg-white/90 px-3 text-sm font-semibold">
+                        <SelectTrigger className="task-detail-select-trigger h-9 rounded-[14px] border-[#3a3733]/8 bg-[color:var(--surface)] px-3 text-sm font-semibold">
                           <SelectValue placeholder={t('tasks.drawer.none')} />
                         </SelectTrigger>
                         <SelectContent>
@@ -756,8 +758,8 @@ const TaskDrawer = ({
                   </div>
 
                   <div className="mt-5 grid gap-3 md:grid-cols-3">
-                    <div className="rounded-[20px] border border-[#3a3733]/6 bg-white/90 p-4">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('tasks.drawer.status')}</p>
+                    <div className="task-detail-card-inset rounded-[20px] border border-[#3a3733]/6 p-4">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">{t('tasks.drawer.status')}</p>
                       <div className="mt-3">
                         <Badge variant="outline" className={cn('rounded-full border px-3 py-1 text-[11px] font-semibold', statusConfig.badge)}>
                           <span className={cn('mr-1.5 h-1.5 w-1.5 rounded-full', statusConfig.dot)} />
@@ -765,8 +767,8 @@ const TaskDrawer = ({
                         </Badge>
                       </div>
                     </div>
-                    <div className="rounded-[20px] border border-[#3a3733]/6 bg-white/90 p-4">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('tasks.drawer.priority')}</p>
+                    <div className="task-detail-card-inset rounded-[20px] border border-[#3a3733]/6 p-4">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">{t('tasks.drawer.priority')}</p>
                       <div className="mt-3">
                         <Badge variant="secondary" className={cn('rounded-full px-3 py-1 text-[11px] font-semibold', priorityConfig.badge)}>
                           <span className={cn('mr-1.5 h-1.5 w-1.5 rounded-full', priorityConfig.dot)} />
@@ -774,29 +776,29 @@ const TaskDrawer = ({
                         </Badge>
                       </div>
                     </div>
-                    <div className="rounded-[20px] border border-[#3a3733]/6 bg-white/90 p-4">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('tasks.drawer.reminderTimestamp')}</p>
-                      <p className="mt-3 text-[12px] font-medium text-slate-600">{reminderAtIso}</p>
+                    <div className="task-detail-card-inset rounded-[20px] border border-[#3a3733]/6 p-4">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">{t('tasks.drawer.reminderTimestamp')}</p>
+                      <p className="mt-3 text-[12px] font-medium text-[color:var(--text-secondary)]">{reminderAtIso}</p>
                     </div>
                   </div>
                 </div>
 
-                <section className="task-detail-card rounded-[26px] border border-[#3a3733]/6 bg-white/88 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+                <section className="task-detail-card rounded-[26px] border border-[#3a3733]/6 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="task-detail-kicker text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('tasks.drawer.details')}</p>
-                      <h2 className="task-detail-title mt-1 text-[18px] font-semibold tracking-[-0.02em] text-slate-950">{t('tasks.drawer.coreProperties')}</h2>
+                      <p className="task-detail-kicker text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">{t('tasks.drawer.details')}</p>
+                      <h2 className="task-detail-title mt-1 text-[18px] font-semibold tracking-[-0.02em] text-[color:var(--text-primary)]">{t('tasks.drawer.coreProperties')}</h2>
                     </div>
                   </div>
 
                   <div className="mt-5 grid gap-4 md:grid-cols-2">
                     <label className="grid gap-2">
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('tasks.drawer.dueDate')}</span>
-                      <DatePicker value={dueDate} onChange={(date) => setDueDate(date ?? '')} placeholder={t('tasks.drawer.setDate')} className="rounded-[14px]" />
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">{t('tasks.drawer.dueDate')}</span>
+                      <DatePicker value={dueDate} onChange={(date) => setDueDate(date ?? '')} placeholder={t('tasks.drawer.setDate')} className="task-detail-picker rounded-[14px]" />
                     </label>
 
                     <label className="grid gap-2">
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('tasks.drawer.reminder')}</span>
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">{t('tasks.drawer.reminder')}</span>
                       <DateTimePicker
                         dateValue={reminderDate}
                         timeValue={reminderTime}
@@ -809,15 +811,15 @@ const TaskDrawer = ({
                         placeholder={t('tasks.drawer.setReminder')}
                         ariaLabel={t('tasks.drawer.reminder')}
                         className="w-full"
-                        triggerClassName="rounded-[14px]"
+                        triggerClassName="task-detail-picker rounded-[14px]"
                       />
                     </label>
 
                     <label className="grid gap-2 md:col-span-2">
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('tasks.drawer.dateRange')}</span>
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">{t('tasks.drawer.dateRange')}</span>
                       <DateRangePicker
                         value={{ startDate, endDate }}
-                        className="rounded-[14px]"
+                        className="task-detail-picker rounded-[14px]"
                         onChange={({ startDate: nextStartDate, endDate: nextEndDate }) => {
                           setStartDate(nextStartDate ?? '')
                           setEndDate(nextEndDate ?? '')
@@ -826,26 +828,26 @@ const TaskDrawer = ({
                     </label>
 
                     <label className="grid gap-2 md:col-span-2">
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('tasks.drawer.summary')}</span>
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">{t('tasks.drawer.summary')}</span>
                       <Textarea
                         value={description}
                         onChange={(event) => setDescription(event.target.value)}
-                        className="min-h-[100px] rounded-[18px] border-[#3a3733]/8 bg-slate-50/80 text-[13px] leading-6 shadow-none"
+                        className="min-h-[100px] rounded-[18px] border-[#3a3733]/8 bg-[color:var(--bg-muted)] text-[13px] leading-6 shadow-none"
                         placeholder={t('tasks.drawer.summaryPlaceholder')}
                       />
                     </label>
                   </div>
                 </section>
 
-                <section className="task-detail-card rounded-[26px] border border-[#3a3733]/6 bg-white/88 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+                <section className="task-detail-card rounded-[26px] border border-[#3a3733]/6 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <p className="task-detail-kicker text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('tasks.drawer.tags')}</p>
-                      <h2 className="task-detail-title mt-1 text-[18px] font-semibold tracking-[-0.02em] text-slate-950">{t('tasks.drawer.tagContext')}</h2>
+                      <p className="task-detail-kicker text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">{t('tasks.drawer.tags')}</p>
+                      <h2 className="task-detail-title mt-1 text-[18px] font-semibold tracking-[-0.02em] text-[color:var(--text-primary)]">{t('tasks.drawer.tagContext')}</h2>
                     </div>
                     <Popover open={tagPickerOpen} onOpenChange={setTagPickerOpen}>
                       <PopoverTrigger asChild>
-                        <Button type="button" variant="outline" size="sm" className="h-9 rounded-full px-4 text-[11px] font-semibold">
+                        <Button type="button" variant="outline" size="sm" className="task-detail-action-button h-9 rounded-full px-4 text-[11px] font-semibold">
                           <Plus className="mr-1.5 h-3.5 w-3.5" />
                           {t('tasks.drawer.newTag')}
                         </Button>
@@ -860,14 +862,14 @@ const TaskDrawer = ({
                                 <button
                                   key={tagName}
                                   type="button"
-                                  className={cn('flex items-center justify-between rounded-[16px] px-3 py-2 text-left transition', selected ? 'bg-slate-100' : 'hover:bg-slate-50')}
+                                  className={cn('flex items-center justify-between rounded-[16px] px-3 py-2 text-left transition', selected ? 'bg-[color:var(--surface-hover)]' : 'hover:bg-[color:var(--surface-hover)]')}
                                   onClick={() => toggleTag(tagName)}
                                 >
-                                  <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[11px] font-medium', tone.badge)}>
+                                  <span className={cn('task-detail-tag inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[11px] font-medium', tone.badge)}>
                                     <span className={cn('h-1.5 w-1.5 rounded-full', tone.dot)} />
                                     {tagName}
                                   </span>
-                                  {selected ? <Check className="h-3.5 w-3.5 text-slate-600" /> : null}
+                                  {selected ? <Check className="h-3.5 w-3.5 text-[color:var(--text-secondary)]" /> : null}
                                 </button>
                               )
                             })}
@@ -879,7 +881,7 @@ const TaskDrawer = ({
                               addCustomTag()
                             }}
                           >
-                            <Input value={tagDraft} onChange={(event) => setTagDraft(event.target.value)} placeholder={t('tasks.drawer.customTag')} className="h-10 rounded-[14px] border-[#3a3733]/8 bg-slate-50/80 text-[13px]" />
+                            <Input value={tagDraft} onChange={(event) => setTagDraft(event.target.value)} placeholder={t('tasks.drawer.customTag')} className="h-10 rounded-[14px] border-[#3a3733]/8 bg-[color:var(--bg-muted)] text-[13px]" />
                             <Button type="submit" size="sm" className="h-10 rounded-full px-4 text-[11px] font-semibold" disabled={!tagDraft.trim()}>
                               {t('tasks.drawer.add')}
                             </Button>
@@ -893,30 +895,30 @@ const TaskDrawer = ({
                       tags.map((tagName) => {
                         const tone = getTaskTagTone(tagName)
                         return (
-                          <span key={tagName} className={cn('inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium', tone.badge)}>
+                          <span key={tagName} className={cn('task-detail-tag inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium', tone.badge)}>
                             <span className={cn('h-1.5 w-1.5 rounded-full', tone.dot)} />
                             {tagName}
                           </span>
                         )
                       })
                     ) : (
-                      <p className="text-[13px] text-slate-500">{t('tasks.drawer.noTags')}</p>
+                      <p className="text-[13px] text-[color:var(--text-secondary)]">{t('tasks.drawer.noTags')}</p>
                     )}
                   </div>
                 </section>
 
-                <section>
-                  <div className="task-detail-card rounded-[26px] border border-[#3a3733]/6 bg-white/88 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
-                    <p className="task-detail-kicker text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('tasks.drawer.activity')}</p>
-                    <h2 className="task-detail-title mt-1 text-[18px] font-semibold tracking-[-0.02em] text-slate-950">{t('tasks.drawer.systemTimeline')}</h2>
+                <section className="task-detail-card-shell">
+                  <div className="task-detail-card rounded-[26px] border border-[#3a3733]/6 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+                    <p className="task-detail-kicker text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">{t('tasks.drawer.activity')}</p>
+                    <h2 className="task-detail-title mt-1 text-[18px] font-semibold tracking-[-0.02em] text-[color:var(--text-primary)]">{t('tasks.drawer.systemTimeline')}</h2>
                     <div className="mt-4 space-y-3">
                       {activityLogs.length === 0 ? (
-                        <p className="rounded-[18px] border border-dashed border-slate-200 bg-slate-50/80 px-4 py-6 text-[13px] text-slate-500">{t('tasks.drawer.noActivity')}</p>
+                        <p className="rounded-[18px] border border-dashed border-[#3a3733]/10 bg-[color:var(--bg-muted)] px-4 py-6 text-[13px] text-[color:var(--text-secondary)]">{t('tasks.drawer.noActivity')}</p>
                       ) : (
                         activityLogs.map((log) => (
-                          <article key={log.id} className="rounded-[18px] border border-[#3a3733]/6 bg-slate-50/80 px-4 py-3">
-                            <p className="text-[13px] leading-6 text-slate-700">{localizeActivityMessage(log.message, t, language)}</p>
-                            <p className="mt-2 text-[11px] font-medium text-slate-500">{formatTaskDateTime(log.createdAt)}</p>
+                          <article key={log.id} className="rounded-[18px] border border-[#3a3733]/6 bg-[color:var(--bg-muted)] px-4 py-3">
+                            <p className="text-[13px] leading-6 text-[color:var(--text-primary)]">{localizeActivityMessage(log.message, t, language)}</p>
+                            <p className="mt-2 text-[11px] font-medium text-[color:var(--text-secondary)]">{formatTaskDateTime(log.createdAt)}</p>
                           </article>
                         ))
                       )}
@@ -929,23 +931,23 @@ const TaskDrawer = ({
             <button
               type="button"
               aria-label={t('tasks.drawer.resizeColumns')}
-              className="group relative h-full w-[10px] cursor-col-resize border-x border-[#3a3733]/6 bg-slate-100/70 transition-colors hover:bg-slate-200/80"
+              className="group relative h-full w-[10px] cursor-col-resize border-x border-[#3a3733]/6 bg-[color:var(--bg-muted)] transition-colors hover:bg-[color:var(--surface-hover)]"
               onPointerDown={beginSplitResize}
               onDoubleClick={toggleSplitPreset}
             >
-              <span className="absolute left-1/2 top-1/2 h-14 w-[2px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-slate-300 transition-colors group-hover:bg-slate-400" />
+              <span className="absolute left-1/2 top-1/2 h-14 w-[2px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[color:var(--border)] transition-colors group-hover:bg-[color:var(--text-secondary)]" />
             </button>
 
-            <aside className="task-detail-aside flex min-h-0 flex-col bg-slate-50/70">
-              <ScrollArea className="min-h-0 flex-1">
+            <aside className="task-detail-aside flex min-h-0 flex-col">
+              <ScrollArea className="task-detail-pane task-detail-pane--right min-h-0 flex-1">
                 <div className="task-detail-column space-y-5 px-5 py-6">
-                  <section className="task-detail-card task-detail-card--side rounded-[24px] border border-[#3a3733]/6 bg-white/92 p-4 shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
+                  <section className="task-detail-card task-detail-card--side rounded-[24px] border border-[#3a3733]/6 p-4 shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="task-detail-kicker text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('tasks.drawer.subtasks')}</p>
-                        <h2 className="task-detail-title mt-1 text-[17px] font-semibold tracking-[-0.02em] text-slate-950">{t('tasks.drawer.executionChecklist')}</h2>
+                        <p className="task-detail-kicker text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">{t('tasks.drawer.subtasks')}</p>
+                        <h2 className="task-detail-title mt-1 text-[17px] font-semibold tracking-[-0.02em] text-[color:var(--text-primary)]">{t('tasks.drawer.executionChecklist')}</h2>
                       </div>
-                      <div className="inline-flex items-center gap-1 rounded-full border border-[#3a3733]/8 bg-slate-50/80 p-1">
+                      <div className="inline-flex items-center gap-1 rounded-full border border-[#3a3733]/8 bg-[color:var(--bg-muted)] p-1">
                         {([
                           { key: 'all', label: t('tasks.drawer.subtaskFilterAll') },
                           { key: 'todo', label: t('tasks.drawer.subtaskFilterTodo') },
@@ -959,7 +961,7 @@ const TaskDrawer = ({
                               'rounded-full px-2.5 py-1 text-[10px] font-semibold transition-colors',
                               subtaskFilter === option.key
                                 ? 'bg-[#3a3733] text-[#f5f3f0]'
-                                : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700',
+                                : 'text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-hover)] hover:text-[color:var(--text-primary)]',
                             )}
                           >
                             {option.label}
@@ -971,7 +973,7 @@ const TaskDrawer = ({
                     <div className="mt-4 space-y-2">
                       {visibleSubtasks.length > 0 ? (
                         visibleSubtasks.map((subtask) => (
-                          <div key={subtask.id} className="rounded-[18px] border border-[#3a3733]/6 bg-slate-50/80 px-3 py-3">
+                          <div key={subtask.id} className="rounded-[18px] border border-[#3a3733]/6 bg-[color:var(--bg-muted)] px-3 py-3">
                             <div className="task-popup-detail__subtask-checkbox-row flex items-center gap-3">
                               <AnimatedPlanCheckbox
                                 checked={subtask.done}
@@ -994,14 +996,14 @@ const TaskDrawer = ({
                                   className={cn('task-popup-detail__subtask-title-input', subtask.done && 'is-done')}
                                 />
                               </div>
-                              <Button type="button" variant="ghost" size="sm" className="h-7 rounded-full px-2.5 text-[10px] font-semibold text-slate-400 hover:bg-rose-50 hover:text-rose-600" onClick={() => setSubtasks((prev) => prev.filter((item) => item.id !== subtask.id))}>
+                              <Button type="button" variant="ghost" size="sm" className="h-7 rounded-full px-2.5 text-[10px] font-semibold text-[color:var(--text-secondary)] hover:bg-[color:rgba(127,29,29,0.12)] hover:text-rose-500" onClick={() => setSubtasks((prev) => prev.filter((item) => item.id !== subtask.id))}>
                                 {t('tasks.delete')}
                               </Button>
                             </div>
                           </div>
                         ))
                       ) : (
-                        <p className="rounded-[18px] border border-dashed border-slate-200 bg-slate-50/80 px-4 py-6 text-[13px] text-slate-500">
+                        <p className="rounded-[18px] border border-dashed border-[#3a3733]/10 bg-[color:var(--bg-muted)] px-4 py-6 text-[13px] text-[color:var(--text-secondary)]">
                           {subtasks.length === 0 ? t('tasks.drawer.noSubtasks') : t('tasks.drawer.noSubtasksInFilter')}
                         </p>
                       )}
@@ -1019,7 +1021,7 @@ const TaskDrawer = ({
                         value={subtaskComposer.value}
                         onChange={(event) => subtaskComposer.setValue(event.target.value)}
                         onAnimationEnd={subtaskComposer.clearShake}
-                        className={cn('h-10 rounded-[14px] border-[#3a3733]/8 bg-slate-50/80 text-[13px]', subtaskComposer.isShaking && 'is-shaking')}
+                        className={cn('h-10 rounded-[14px] border-[#3a3733]/8 bg-[color:var(--bg-muted)] text-[13px]', subtaskComposer.isShaking && 'is-shaking')}
                         placeholder={t('tasks.drawer.addSubtask')}
                       />
                       <Button type="submit" className="h-10 rounded-full px-4 text-[11px] font-semibold" disabled={!subtaskComposer.canSubmit}>
@@ -1028,9 +1030,9 @@ const TaskDrawer = ({
                     </form>
                   </section>
 
-                  <section className="task-detail-card task-detail-card--side rounded-[24px] border border-[#3a3733]/6 bg-white/92 p-4 shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
-                    <p className="task-detail-kicker text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('tasks.drawer.note')}</p>
-                    <h2 className="task-detail-title mt-1 text-[17px] font-semibold tracking-[-0.02em] text-slate-950">{t('tasks.drawer.noteContext')}</h2>
+                  <section className="task-detail-card task-detail-card--side rounded-[24px] border border-[#3a3733]/6 p-4 shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
+                    <p className="task-detail-kicker text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">{t('tasks.drawer.note')}</p>
+                    <h2 className="task-detail-title mt-1 text-[17px] font-semibold tracking-[-0.02em] text-[color:var(--text-primary)]">{t('tasks.drawer.noteContext')}</h2>
                     <div className="mt-4">
                       <TaskNoteEditor value={taskNoteContent} onChange={setTaskNoteContent} />
                     </div>

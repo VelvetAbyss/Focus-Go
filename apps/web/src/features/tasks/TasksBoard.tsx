@@ -596,7 +596,7 @@ const TasksBoard = ({
                   <button
                     className={cn(
                       'tasks-fg__mode-tab flex items-center gap-1.5 rounded px-2.5 py-1 text-xs transition-all',
-                      boardMode === 'kanban' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                      boardMode === 'kanban' ? 'tasks-fg__mode-tab--active bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
                     )}
                     onClick={() => setBoardMode('kanban')}
                   >
@@ -606,7 +606,7 @@ const TasksBoard = ({
                   <button
                     className={cn(
                       'tasks-fg__mode-tab flex items-center gap-1.5 rounded px-2.5 py-1 text-xs transition-all',
-                      boardMode === 'calendar' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                      boardMode === 'calendar' ? 'tasks-fg__mode-tab--active bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
                     )}
                     onClick={() => setBoardMode('calendar')}
                   >

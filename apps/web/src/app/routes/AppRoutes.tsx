@@ -14,6 +14,31 @@ import { usePremiumGate } from '../../features/premium/PremiumProvider'
 
 const FocusPage = lazy(() => import('../../features/focus/pages/FocusPage'))
 
+const FocusRouteFallback = () => (
+  <section
+    style={{
+      minHeight: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background:
+        'linear-gradient(175deg, rgba(245,243,240,0.96) 0%, rgba(245,243,240,0.88) 100%)',
+    }}
+  >
+    <div
+      style={{
+        padding: '16px 20px',
+        borderRadius: 18,
+        color: '#3A3733',
+        background: 'rgba(245,243,240,0.82)',
+        boxShadow: '0 8px 32px rgba(58,55,51,0.06)',
+      }}
+    >
+      正在进入 Focus...
+    </div>
+  </section>
+)
+
 const GuardedHabitsRoute = () => {
   const { ready, canAccessHabitFeature } = useLabs()
   const { openUpgradeModal } = usePremiumGate()
@@ -49,7 +74,7 @@ const AppRoutes = () => {
       <Route
         path={ROUTES.FOCUS}
         element={
-          <Suspense fallback={null}>
+          <Suspense fallback={<FocusRouteFallback />}>
             <FocusPage />
           </Suspense>
         }

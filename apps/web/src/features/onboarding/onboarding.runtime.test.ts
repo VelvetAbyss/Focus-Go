@@ -23,7 +23,7 @@ describe('onboarding runtime', () => {
     expect(getOnboardingState()).toEqual({
       status: 'not_started',
       step: 'welcome',
-      featureSeen: { tasks: false, focus: false, diary: false },
+      featureSeen: { dashboard: false, tasks: false, focus: false, diary: false },
       pendingCoachmark: null,
     })
   })
@@ -31,7 +31,7 @@ describe('onboarding runtime', () => {
   it('updates start skip complete and reset state', () => {
     startOnboarding()
     expect(getOnboardingState().status).toBe('in_progress')
-    expect(getOnboardingState().step).toBe('create_task')
+    expect(getOnboardingState().step).toBe('dashboard_overview')
 
     skipOnboarding()
     expect(getOnboardingState().status).toBe('skipped')

@@ -15,6 +15,7 @@ export const ONBOARDING_SESSION_KEY = 'focusgo.onboarding.session'
 export const ONBOARDING_RUNTIME_EVENT = 'focusgo:onboarding-runtime-change'
 
 const DEFAULT_FEATURE_SEEN: FeatureSeenState = {
+  dashboard: false,
   tasks: false,
   focus: false,
   diary: false,
@@ -56,7 +57,7 @@ const readStatus = (): OnboardingStatus => {
 const readStep = (): OnboardingStep => {
   if (typeof window === 'undefined') return 'welcome'
   const raw = window.localStorage.getItem(ONBOARDING_STEP_KEY)
-  return raw === 'welcome' || raw === 'create_task' || raw === 'done' ? raw : 'welcome'
+  return raw === 'welcome' || raw === 'dashboard_overview' || raw === 'tasks' || raw === 'done' ? raw : 'welcome'
 }
 
 export const getFeatureSeen = (): FeatureSeenState => ({
@@ -102,7 +103,7 @@ export const startOnboarding = () => {
   if (typeof window === 'undefined') return
   window.sessionStorage.setItem(ONBOARDING_SESSION_KEY, '1')
   setOnboardingStatus('in_progress')
-  setOnboardingStep('create_task')
+  setOnboardingStep('dashboard_overview')
 }
 
 export const completeOnboarding = () => {

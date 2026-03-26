@@ -28,7 +28,22 @@ vi.mock('../../shared/i18n/useI18n', () => ({
 }))
 
 vi.mock('../../shared/ui/Dialog', () => ({
-  default: ({ open, children }: { open: boolean; children: React.ReactNode }) => (open ? <div>{children}</div> : null),
+  default: ({
+    open,
+    children,
+    panelClassName,
+    contentClassName,
+  }: {
+    open: boolean
+    children: React.ReactNode
+    panelClassName?: string
+    contentClassName?: string
+  }) =>
+    open ? (
+      <div className={panelClassName} role="dialog">
+        <div className={contentClassName}>{children}</div>
+      </div>
+    ) : null,
 }))
 
 vi.mock('../../data/repositories/tasksRepo', () => ({
@@ -104,5 +119,30 @@ describe('TaskDrawer onboarding mode', () => {
 
     await waitFor(() => expect(addMock).toHaveBeenCalledTimes(1))
     expect(onCreated).toHaveBeenCalledWith(createdTask)
+  })
+
+  it('uses theme-aware surfaces in detail mode', async () => {
+    document.documentElement.dataset.theme = 'dark'
+
+    render(
+      <TaskDrawer
+        open
+        task={createdTask}
+        onClose={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+        onCreated={vi.fn()}
+      />,
+    )
+
+    await waitFor(() => {
+      const panel = document.body.querySelector('[role="dialog"]')
+      const topbar = document.body.querySelector('.task-detail-topbar')
+
+      expect(panel).not.toBeNull()
+      expect(topbar).not.toBeNull()
+      expect((panel as HTMLElement).className).not.toContain('bg-white')
+      expect((topbar as HTMLElement).className).not.toContain('bg-white')
+    })
   })
 })

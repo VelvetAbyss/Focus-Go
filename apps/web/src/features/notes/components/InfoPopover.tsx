@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 import type { NoteItem } from '../../../data/models/types'
 import { countCharactersInMarkdown, countCharactersNoSpacesInMarkdown, countWordsInMarkdown } from '../model/noteStats'
+import { useI18n } from '../../../shared/i18n/useI18n'
 
 type InfoTab = 'stats' | 'toc' | 'backlinks'
 
@@ -15,6 +16,7 @@ type Props = {
 }
 
 export default function InfoPopover({ open, note, onClose, onNavigateToHeading, onNavigateToNote }: Props) {
+  const { t, language } = useI18n()
   const [tab, setTab] = useState<InfoTab>('stats')
   const [rendered, setRendered] = useState(open)
   const [visible, setVisible] = useState(open)
@@ -42,16 +44,16 @@ export default function InfoPopover({ open, note, onClose, onNavigateToHeading, 
   return (
     <div data-note-floating-panel="info" data-state={visible ? 'open' : 'closed'} className="note-page__panel">
       <div className="flex items-center justify-between px-4 pb-2 pt-3">
-        <h3 className="text-[13px] font-semibold">Info</h3>
+        <h3 className="text-[13px] font-semibold">{t('notes.info')}</h3>
         <button type="button" onClick={onClose} className="rounded p-1 transition-colors hover:bg-accent">
           <X size={14} />
         </button>
       </div>
       <div className="flex gap-0.5 border-b border-border px-4">
         {([
-          { id: 'stats', label: 'Statistics' },
-          { id: 'toc', label: 'Contents' },
-          { id: 'backlinks', label: 'Backlinks' },
+          { id: 'stats', label: t('notes.infoPanel.statistics') },
+          { id: 'toc', label: t('notes.infoPanel.contents') },
+          { id: 'backlinks', label: t('notes.infoPanel.backlinks') },
         ] as const).map((item) => (
           <button
             key={item.id}
@@ -69,23 +71,23 @@ export default function InfoPopover({ open, note, onClose, onNavigateToHeading, 
       <div className="max-h-[300px] overflow-y-auto px-4 py-3">
         {tab === 'stats' ? (
           <div className="space-y-2">
-            <StatRow label="Words" value={words.toLocaleString()} />
-            <StatRow label="Characters" value={characterCount.toLocaleString()} />
-            <StatRow label="Chars (no spaces)" value={charsNoSpaces.toLocaleString()} />
-            <StatRow label="Paragraphs" value={paragraphs.length.toString()} />
-            <StatRow label="Read time" value={`${Math.max(1, Math.ceil(words / 200))} min`} />
+            <StatRow label={t('notes.infoPanel.words')} value={words.toLocaleString()} />
+            <StatRow label={t('notes.infoPanel.characters')} value={characterCount.toLocaleString()} />
+            <StatRow label={t('notes.infoPanel.charactersNoSpaces')} value={charsNoSpaces.toLocaleString()} />
+            <StatRow label={t('notes.infoPanel.paragraphs')} value={paragraphs.length.toString()} />
+            <StatRow label={t('notes.infoPanel.readTime')} value={`${Math.max(1, Math.ceil(words / 200))} min`} />
             <div className="my-2 border-t border-border" />
-            <StatRow label="Images" value={imageCount.toString()} icon={Image} />
-            <StatRow label="Files" value={fileCount.toString()} icon={Paperclip} />
+            <StatRow label={t('notes.infoPanel.images')} value={imageCount.toString()} icon={Image} />
+            <StatRow label={t('notes.infoPanel.files')} value={fileCount.toString()} icon={Paperclip} />
             <div className="my-2 border-t border-border" />
-            <StatRow label="Modified" value={new Date(note.updatedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })} icon={Clock} />
-            <StatRow label="Created" value={new Date(note.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} />
+            <StatRow label={t('notes.infoPanel.modified')} value={new Date(note.updatedAt).toLocaleString(language === 'zh' ? 'zh-CN' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })} icon={Clock} />
+            <StatRow label={t('notes.infoPanel.created')} value={new Date(note.createdAt).toLocaleDateString(language === 'zh' ? 'zh-CN' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })} />
           </div>
         ) : null}
 
         {tab === 'toc' ? (
           note.headings.length === 0 ? (
-            <p className="py-4 text-center text-[12px] text-muted-foreground">No headings found</p>
+            <p className="py-4 text-center text-[12px] text-muted-foreground">{t('notes.infoPanel.noHeadings')}</p>
           ) : (
             <div className="space-y-0.5">
               {note.headings.map((heading) => (
@@ -105,7 +107,7 @@ export default function InfoPopover({ open, note, onClose, onNavigateToHeading, 
 
         {tab === 'backlinks' ? (
           note.backlinks.length === 0 ? (
-            <p className="py-4 text-center text-[12px] text-muted-foreground">No backlinks yet</p>
+            <p className="py-4 text-center text-[12px] text-muted-foreground">{t('notes.infoPanel.noBacklinks')}</p>
           ) : (
             <div className="space-y-0.5">
               {note.backlinks.map((backlink) => (

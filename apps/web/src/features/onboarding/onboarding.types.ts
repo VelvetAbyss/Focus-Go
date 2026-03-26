@@ -1,8 +1,8 @@
 export type OnboardingStatus = 'not_started' | 'in_progress' | 'completed' | 'skipped'
 
-export type OnboardingStep = 'welcome' | 'create_task' | 'done'
+export type OnboardingStep = 'welcome' | 'dashboard_overview' | 'tasks' | 'done'
 
-export type FeatureSeenKey = 'tasks' | 'focus' | 'diary'
+export type FeatureSeenKey = 'dashboard' | 'tasks' | 'focus' | 'diary'
 
 export type PendingCoachmark = 'focus' | 'diary' | null
 

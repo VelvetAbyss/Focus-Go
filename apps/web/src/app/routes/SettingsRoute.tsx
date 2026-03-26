@@ -529,7 +529,7 @@ const SettingsRoute = () => {
         </motion.header>
 
         <Tabs value={activeSection} onValueChange={(value) => setActiveSection(value as SettingsSection)} className="grid flex-1 gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
-          <Card className="h-full bg-background/20 shadow-xl backdrop-blur">
+          <Card className="h-full bg-background/20 shadow-xl backdrop-blur dark:border-transparent">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">{t('settings.modulesTitle')}</CardTitle>
               <CardDescription>{t('settings.modulesDescription')}</CardDescription>
@@ -563,7 +563,7 @@ const SettingsRoute = () => {
             </CardContent>
           </Card>
 
-          <Card className="h-full bg-background/20 shadow-xl backdrop-blur">
+          <Card className="h-full bg-background/20 shadow-xl backdrop-blur dark:border-transparent">
             <CardContent className="h-full p-0">
               <ScrollArea className="max-h-[min(72vh,760px)] xl:max-h-[calc(100vh-240px)]">
                 <div className="p-5 md:p-6">
