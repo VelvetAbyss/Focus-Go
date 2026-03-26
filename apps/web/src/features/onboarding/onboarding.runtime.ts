@@ -13,6 +13,7 @@ export const ONBOARDING_FEATURE_SEEN_KEY = 'focusgo.onboarding.feature-seen'
 export const ONBOARDING_PENDING_COACHMARK_KEY = 'focusgo.onboarding.pending-coachmark'
 export const ONBOARDING_SESSION_KEY = 'focusgo.onboarding.session'
 export const ONBOARDING_RUNTIME_EVENT = 'focusgo:onboarding-runtime-change'
+const ONBOARDING_ENABLED = false
 
 const DEFAULT_FEATURE_SEEN: FeatureSeenState = {
   dashboard: false,
@@ -47,6 +48,7 @@ const writeJson = (key: string, value: unknown) => {
 }
 
 const readStatus = (): OnboardingStatus => {
+  if (!ONBOARDING_ENABLED) return 'completed'
   if (typeof window === 'undefined') return 'not_started'
   const raw = window.localStorage.getItem(ONBOARDING_STATUS_KEY)
   return raw === 'not_started' || raw === 'in_progress' || raw === 'completed' || raw === 'skipped'
@@ -55,6 +57,7 @@ const readStatus = (): OnboardingStatus => {
 }
 
 const readStep = (): OnboardingStep => {
+  if (!ONBOARDING_ENABLED) return 'done'
   if (typeof window === 'undefined') return 'welcome'
   const raw = window.localStorage.getItem(ONBOARDING_STEP_KEY)
   return raw === 'welcome' || raw === 'dashboard_overview' || raw === 'tasks' || raw === 'done' ? raw : 'welcome'
@@ -66,6 +69,7 @@ export const getFeatureSeen = (): FeatureSeenState => ({
 })
 
 export const getPendingCoachmark = (): PendingCoachmark => {
+  if (!ONBOARDING_ENABLED) return null
   if (typeof window === 'undefined') return null
   const raw = window.localStorage.getItem(ONBOARDING_PENDING_COACHMARK_KEY)
   return raw === 'focus' || raw === 'diary' ? raw : null
@@ -100,6 +104,10 @@ export const setOnboardingStep = (step: OnboardingStep) => {
 }
 
 export const startOnboarding = () => {
+  if (!ONBOARDING_ENABLED) {
+    completeOnboarding()
+    return
+  }
   if (typeof window === 'undefined') return
   window.sessionStorage.setItem(ONBOARDING_SESSION_KEY, '1')
   setOnboardingStatus('in_progress')
@@ -112,11 +120,20 @@ export const completeOnboarding = () => {
 }
 
 export const skipOnboarding = () => {
+  if (!ONBOARDING_ENABLED) {
+    completeOnboarding()
+    return
+  }
   setOnboardingStep('welcome')
   setOnboardingStatus('skipped')
 }
 
 export const resetOnboarding = () => {
+  if (!ONBOARDING_ENABLED) {
+    completeOnboarding()
+    clearPendingCoachmark()
+    return
+  }
   if (typeof window !== 'undefined') {
     window.sessionStorage.removeItem(ONBOARDING_SESSION_KEY)
   }
@@ -125,7 +142,7 @@ export const resetOnboarding = () => {
   clearPendingCoachmark()
 }
 
-export const isFirstRunEligible = () => getOnboardingState().status === 'not_started'
+export const isFirstRunEligible = () => ONBOARDING_ENABLED && getOnboardingState().status === 'not_started'
 
 export const markFeatureSeen = (feature: FeatureSeenKey, seen = true) => {
   writeJson(ONBOARDING_FEATURE_SEEN_KEY, {
@@ -135,6 +152,7 @@ export const markFeatureSeen = (feature: FeatureSeenKey, seen = true) => {
 }
 
 export const setPendingCoachmark = (coachmark: PendingCoachmark) => {
+  if (!ONBOARDING_ENABLED) return
   if (typeof window === 'undefined') return
   if (coachmark) window.localStorage.setItem(ONBOARDING_PENDING_COACHMARK_KEY, coachmark)
   else window.localStorage.removeItem(ONBOARDING_PENDING_COACHMARK_KEY)

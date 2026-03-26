@@ -998,6 +998,8 @@ html[data-motion='reduce'] .app-shell__status {
   justify-content: center;
   pointer-events: auto;
   overflow: hidden;
+  cursor: grab;
+  touch-action: none;
 }
 
 .dashboard__edit-overlay span {
@@ -1015,14 +1017,46 @@ html[data-motion='reduce'] .app-shell__status {
   color: var(--text-secondary);
 }
 
-.dashboard__item.is-layout-edit > :not(.dashboard__edit-overlay):not(.react-resizable-handle) {
+.dashboard__item.is-layout-edit > :not(.dashboard__edit-overlay):not(.dashboard__resize-handle) {
   pointer-events: none;
   user-select: none;
 }
 
-.dashboard__item.is-layout-edit .react-resizable-handle {
+/* ── resize handle (SE corner) ── */
+
+.dashboard__resize-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 24px;
+  height: 24px;
+  cursor: nwse-resize;
+  z-index: 8;
   pointer-events: auto;
-  z-index: 7;
+  touch-action: none;
+}
+
+.dashboard__resize-handle::before {
+  content: '';
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--text-secondary);
+  border-bottom: 2px solid var(--text-secondary);
+  opacity: 0.4;
+}
+
+/* ── active drag state ── */
+
+.dashboard__item.is-dragging {
+  z-index: 10 !important;
+  transition: none !important;
+}
+
+.dashboard__item.is-dragging .dashboard__edit-overlay {
+  cursor: grabbing;
 }
 
 .dashboard__sync-error {
