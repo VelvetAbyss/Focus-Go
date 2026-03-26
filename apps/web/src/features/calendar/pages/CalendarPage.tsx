@@ -71,21 +71,62 @@ const STORAGE_SUBSCRIPTIONS_KEY = 'focusgo.calendar.subscriptions.v1'
 const STORAGE_ICS_EVENTS_KEY = 'focusgo.calendar.icsEvents.v1'
 const STORAGE_TASK_COLORS_KEY = 'focusgo.calendar.taskColors.v1'
 const CALENDAR_PRESET_COLORS = ['#9ca3af', '#60a5fa', '#2563eb', '#22d3ee', '#34d399', '#10b981', '#22c55e', '#f59e0b', '#ef4444', '#fb7185', '#6b7280', '#0f766e']
-const CALENDAR_PRESET_SUBSCRIPTION_PLACEHOLDERS = [
+const CALENDAR_PRESET_SUBSCRIPTIONS = [
   {
     id: 'preset-cn-holidays',
     name: 'China Public Holidays',
-    description: 'Official public holiday calendar',
+    description: 'Mainland China public holidays',
+    color: '#ef4444',
+    url: 'https://ical.muhan.org/rest.ics',
+  },
+  {
+    id: 'preset-cn-workdays',
+    name: 'China Workdays',
+    description: 'Mainland China make-up workdays',
+    color: '#f59e0b',
+    url: 'https://ical.muhan.org/work.ics',
   },
   {
     id: 'preset-us-holidays',
     name: 'US Federal Holidays',
-    description: 'Federal holiday schedule',
+    description: 'US public holiday calendar',
+    color: '#2563eb',
+    url: 'https://calendar.google.com/calendar/ical/en.usa.official%23holiday%40group.v.calendar.google.com/public/basic.ics',
+  },
+  {
+    id: 'preset-uk-holidays',
+    name: 'UK Bank Holidays',
+    description: 'United Kingdom public holidays',
+    color: '#3b82f6',
+    url: 'https://calendar.google.com/calendar/ical/en.uk.official%23holiday%40group.v.calendar.google.com/public/basic.ics',
+  },
+  {
+    id: 'preset-jp-holidays',
+    name: 'Japan Public Holidays',
+    description: 'Japan national holiday calendar',
+    color: '#ec4899',
+    url: 'https://calendar.google.com/calendar/ical/en.japanese.official%23holiday%40group.v.calendar.google.com/public/basic.ics',
+  },
+  {
+    id: 'preset-sg-holidays',
+    name: 'Singapore Public Holidays',
+    description: 'Singapore holiday calendar',
+    color: '#14b8a6',
+    url: 'https://calendar.google.com/calendar/ical/en.singapore.official%23holiday%40group.v.calendar.google.com/public/basic.ics',
   },
   {
     id: 'preset-moon',
     name: 'Moon Phases',
-    description: '月相事件',
+    description: 'Quarter, full, and new moon events',
+    color: '#8b5cf6',
+    url: 'https://raw.githubusercontent.com/PanderMusubi/lunar-phase-calendar/master/GB/en/moon-phases.ics',
+  },
+  {
+    id: 'preset-solar-terms',
+    name: '24 Solar Terms',
+    description: '二十四节气',
+    color: '#10b981',
+    url: 'https://raw.githubusercontent.com/KaitoHH/24-jieqi-ics/master/23_solar_terms_2015-01-01_2050-12-31.ics',
   },
 ]
 
@@ -363,19 +404,21 @@ const SortableSubscriptionItem = ({
           />
         </PopoverContent>
       </Popover>
-      <span className="calendar-subscriptions__name">{sub.name}</span>
-      <div className="calendar-subscriptions__meta">
-        {sub.provider === 'google' ? (
-          <Badge variant="outline" className="calendar-provider-badge">
-            {getProviderLabel(sub.provider, language)}
-          </Badge>
-        ) : null}
-        {syncState?.status === 'loading' ? <Badge variant="outline">Syncing</Badge> : null}
-        {syncState?.status === 'error' ? (
-          <Badge variant="destructive" title={syncState.message} className="calendar-sync-error">
-            !
-          </Badge>
-        ) : null}
+      <div className="calendar-subscriptions__content">
+        <span className="calendar-subscriptions__name">{sub.name}</span>
+        <div className="calendar-subscriptions__meta">
+          {sub.provider === 'google' ? (
+            <Badge variant="outline" className="calendar-provider-badge">
+              {getProviderLabel(sub.provider, language)}
+            </Badge>
+          ) : null}
+          {syncState?.status === 'loading' ? <Badge variant="outline">Syncing</Badge> : null}
+          {syncState?.status === 'error' ? (
+            <Badge variant="destructive" title={syncState.message} className="calendar-sync-error">
+              !
+            </Badge>
+          ) : null}
+        </div>
       </div>
       <Button
         variant="ghost"
@@ -658,24 +701,46 @@ const CalendarPage = () => {
     const name = icsName.trim()
     const url = icsUrl.trim()
     if (!name || !url) return
-    const nextOrder = unifiedSubscriptions.length
+    setSubscriptions((prev) => {
+      if (prev.some((item) => item.url === url)) return prev
+      const nextOrder = sortSubscriptions(removeAllSystemSubscriptions(prev)).length
+      const next: CalendarSubscription = {
+        id: `custom-${Date.now()}`,
+        name,
+        sourceType: 'custom',
+        provider: 'ics',
+        color: '#0ea5e9',
+        enabled: true,
+        syncPermission: 'read',
+        order: nextOrder,
+        url,
+      }
 
-    const next: CalendarSubscription = {
-      id: `custom-${Date.now()}`,
-      name,
-      sourceType: 'custom',
-      provider: 'ics',
-      color: '#0ea5e9',
-      enabled: true,
-      syncPermission: 'read',
-      order: nextOrder,
-      url,
-    }
-
-    setSubscriptions((prev) => sortSubscriptions([...prev, next]))
+      return sortSubscriptions([...prev, next])
+    })
     setIcsName('')
     setIcsUrl('')
     setIsAccountDialogOpen(false)
+  }
+
+  const addPresetSubscription = (preset: (typeof CALENDAR_PRESET_SUBSCRIPTIONS)[number]) => {
+    setSubscriptions((prev) => {
+      if (prev.some((item) => item.url === preset.url)) return prev
+      const nextOrder = sortSubscriptions(removeAllSystemSubscriptions(prev)).length
+      const next: CalendarSubscription = {
+        id: `custom-${preset.id}`,
+        name: preset.name,
+        sourceType: 'custom',
+        provider: 'ics',
+        color: preset.color,
+        enabled: true,
+        syncPermission: 'read',
+        order: nextOrder,
+        url: preset.url,
+      }
+
+      return sortSubscriptions([...prev, next])
+    })
   }
 
   const addGoogleReadOnlyAccount = () => {
@@ -900,7 +965,7 @@ const CalendarPage = () => {
             </div>
           </ScrollArea>
 
-          <Button variant="outline" className="calendar-subscriptions__add" onClick={() => setIsAccountDialogOpen(true)}>
+          <Button variant="outline" className="calendar-subscriptions__add calendar-subscriptions__add--soft-dark" onClick={() => setIsAccountDialogOpen(true)}>
             <Plus />
             {t('calendar.addSubscription')}
           </Button>
@@ -956,7 +1021,7 @@ const CalendarPage = () => {
           </div>
         </header>
 
-        <h1 className="calendar-main-title">{formatMonthLabel(anchorDate)}</h1>
+        <h1 className="calendar-main-title">{formatMonthLabel(anchorDate, language)}</h1>
 
         <div className="calendar-month-grid" role="grid">
           {weekLabels.map((label) => (
@@ -1325,23 +1390,27 @@ const CalendarPage = () => {
             <section className="calendar-dialog__presets" aria-label={t('calendar.presetSubscriptions')}>
               <h4>{t('calendar.presetSubscriptions')}</h4>
               <div className="calendar-dialog__presets-list">
-                {CALENDAR_PRESET_SUBSCRIPTION_PLACEHOLDERS.map((preset) => (
-                  <article key={preset.id} className="calendar-dialog__preset-card">
-                    <div className="calendar-dialog__preset-meta">
-                      <p>{preset.name}</p>
-                      <small>{preset.description} · {t('calendar.comingSoon')}</small>
-                    </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="calendar-dialog__preset-add"
-                      disabled
-                    >
-                      {t('calendar.add')}
-                    </Button>
-                  </article>
-                ))}
+                {CALENDAR_PRESET_SUBSCRIPTIONS.map((preset) => {
+                  const exists = subscriptions.some((item) => item.url === preset.url)
+                  return (
+                    <article key={preset.id} className="calendar-dialog__preset-card">
+                      <div className="calendar-dialog__preset-meta">
+                        <p>{preset.name}</p>
+                        <small>{preset.description}</small>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="calendar-dialog__preset-add"
+                        disabled={exists}
+                        onClick={() => addPresetSubscription(preset)}
+                      >
+                        {t('calendar.add')}
+                      </Button>
+                    </article>
+                  )
+                })}
               </div>
             </section>
 

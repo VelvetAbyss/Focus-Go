@@ -412,6 +412,206 @@
   font-family: var(--diary-font-prose);
 }
 
+html[data-theme='dark'] .diary-page {
+  color: #f5f3f0;
+  background: color-mix(in srgb, var(--bg-elevated, #2b2722) 92%, #181512) !important;
+}
+
+html[data-theme='dark'] .diary-page::before {
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(38, 34, 29, 0.98) 0%, rgba(31, 28, 24, 0.98) 100%);
+}
+
+html[data-theme='dark'] .diary-page__atmosphere {
+  background:
+    radial-gradient(circle at 14% 18%, rgba(161, 132, 97, 0.12), transparent 24%),
+    radial-gradient(circle at 80% 14%, rgba(89, 116, 102, 0.1), transparent 22%),
+    radial-gradient(circle at 68% 72%, rgba(127, 103, 77, 0.08), transparent 26%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 22%);
+  opacity: 1;
+}
+
+html[data-theme='dark'] .diary-page__header,
+html[data-theme='dark'] .diary-page__rail,
+html[data-theme='dark'] .diary-page__editor-pane {
+  background: color-mix(in srgb, var(--bg-elevated, #2b2722) 94%, #181512) !important;
+}
+
+html[data-theme='dark'] .diary-page__header::after,
+html[data-theme='dark'] .diary-page__rail::after {
+  background: linear-gradient(90deg, rgba(245, 243, 240, 0.1), rgba(245, 243, 240, 0.04) 36%, transparent 100%);
+}
+
+html[data-theme='dark'] .diary-page__title,
+html[data-theme='dark'] .diary-page__period-label,
+html[data-theme='dark'] .diary-page__meta-date,
+html[data-theme='dark'] .diary-page__empty-copy,
+html[data-theme='dark'] .diary-page__timeline-preview,
+html[data-theme='dark'] .diary-page .simple-editor-content .tiptap.ProseMirror.simple-editor,
+html[data-theme='dark'] .diary-page .simple-editor-content .tiptap.ProseMirror.simple-editor h1,
+html[data-theme='dark'] .diary-page .simple-editor-content .tiptap.ProseMirror.simple-editor h2,
+html[data-theme='dark'] .diary-page .simple-editor-content .tiptap.ProseMirror.simple-editor h3 {
+  color: #f5f3f0 !important;
+}
+
+html[data-theme='dark'] .diary-page__eyebrow,
+html[data-theme='dark'] .diary-page__microcopy,
+html[data-theme='dark'] .diary-page__meta-subline,
+html[data-theme='dark'] .diary-page__meta-time,
+html[data-theme='dark'] .diary-page__empty-whisper,
+html[data-theme='dark'] .diary-page__timeline-weather,
+html[data-theme='dark'] .diary-page .note-editor__topbar,
+html[data-theme='dark'] .diary-page .note-editor__toolbar-inline {
+  color: rgba(245, 243, 240, 0.62) !important;
+}
+
+html[data-theme='dark'] .diary-page__meta-location-dot {
+  background: rgba(245, 243, 240, 0.5);
+}
+
+html[data-theme='dark'] .diary-page__timeline-node::before,
+html[data-theme='dark'] .diary-page .group .bg-border\/40,
+html[data-theme='dark'] .diary-page .group .border-border {
+  background: rgba(245, 243, 240, 0.12) !important;
+  border-color: rgba(245, 243, 240, 0.18) !important;
+}
+
+html[data-theme='dark'] .diary-page__header button,
+html[data-theme='dark'] .diary-page__rail button,
+html[data-theme='dark'] .diary-page__empty-state button,
+html[data-theme='dark'] .diary-page .note-editor__toolbar-inline button {
+  border-color: rgba(245, 243, 240, 0.08);
+}
+
+html[data-theme='dark'] .diary-page__empty-state button {
+  background: color-mix(in srgb, #3a3733 86%, #2a2723) !important;
+  color: #f5f3f0 !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='dark'] .diary-page__empty-state button:hover {
+  background: color-mix(in srgb, #3a3733 82%, #302c28) !important;
+}
+
+html[data-theme='dark'] .diary-page__period-empty-action {
+  background: color-mix(in srgb, #3a3733 86%, #2a2723) !important;
+  color: #f5f3f0 !important;
+  border: 1px solid rgba(245, 243, 240, 0.08) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='dark'] .diary-page__period-empty-action:hover {
+  background: color-mix(in srgb, #3a3733 82%, #302c28) !important;
+}
+
+html[data-theme='dark'] .diary-page .bg-muted\/50,
+html[data-theme='dark'] .diary-page .bg-background\/75,
+html[data-theme='dark'] .diary-page .bg-background\/72,
+html[data-theme='dark'] .diary-page .bg-background\/52,
+html[data-theme='dark'] .diary-page .bg-background\/50,
+html[data-theme='dark'] .diary-page .bg-\[color\:rgba\(245\,243\,240\,0\.84\)\],
+html[data-theme='dark'] .diary-page .bg-\[color\:rgba\(245\,243\,240\,0\.4\)\] {
+  background: color-mix(in srgb, var(--bg-muted, #332e28) 88%, #1b1815) !important;
+}
+
+html[data-theme='dark'] .diary-page .rounded-2xl.bg-\[color\:rgba\(245\,243\,240\,0\.7\)\] {
+  background: color-mix(in srgb, var(--bg-elevated, #2b2722) 88%, #181512) !important;
+  border: 1px solid rgba(245, 243, 240, 0.08);
+}
+
+html[data-theme='dark'] .diary-page .text-\[color\:\#3A3733\],
+html[data-theme='dark'] .diary-page__numeric {
+  color: #f5f3f0 !important;
+}
+
+html[data-theme='dark'] .diary-page .bg-\[color\:\#3A3733\] {
+  background: color-mix(in srgb, #3a3733 86%, #2a2723) !important;
+  border-color: rgba(245, 243, 240, 0.08) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='dark'] .diary-page .text-\[color\:\#F5F3F0\] {
+  color: #f5f3f0 !important;
+}
+
+html[data-theme='dark'] .diary-page .bg-background.text-foreground.shadow-sm,
+html[data-theme='dark'] .diary-page .bg-background.px-4.py-2,
+html[data-theme='dark'] .diary-page .bg-background\/75 > .rounded-xl {
+  background: color-mix(in srgb, #3a3733 86%, #2a2723) !important;
+  border: 1px solid rgba(245, 243, 240, 0.08) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='dark'] .diary-page .bg-background\/75 .text-muted-foreground {
+  color: rgba(245, 243, 240, 0.7) !important;
+}
+
+html[data-theme='dark'] .diary-page .diary-page__microcopy.text-\[10px\].font-semibold.uppercase.tracking-\[0\.18em\].text-muted-foreground {
+  color: rgba(245, 243, 240, 0.68) !important;
+}
+
+html[data-theme='dark'] .diary-page__entry-card,
+html[data-theme='dark'] .diary-page__entry-card.border-transparent,
+html[data-theme='dark'] .diary-page__entry-card.diary-page__entry-card--active {
+  border-color: rgba(245, 243, 240, 0.08) !important;
+  background: color-mix(in srgb, var(--bg-elevated, #2b2722) 90%, #181512) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='dark'] .diary-page__entry-card::before {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 56%);
+}
+
+html[data-theme='dark'] .diary-page__entry-card--active::after {
+  background: linear-gradient(180deg, rgba(245, 243, 240, 0.84), rgba(245, 243, 240, 0.2));
+}
+
+html[data-theme='dark'] .diary-page .hover\:bg-background\/70:hover,
+html[data-theme='dark'] .diary-page .hover\:bg-background:hover,
+html[data-theme='dark'] .diary-page .hover\:bg-muted:hover {
+  background: color-mix(in srgb, var(--bg-elevated, #2b2722) 88%, #181512) !important;
+}
+
+html[data-theme='dark'] .diary-page .text-foreground,
+html[data-theme='dark'] .diary-page .hover\:text-foreground:hover {
+  color: #f5f3f0 !important;
+}
+
+html[data-theme='dark'] .diary-page .text-muted-foreground,
+html[data-theme='dark'] .diary-page .text-muted-foreground\/80,
+html[data-theme='dark'] .diary-page .text-muted-foreground\/70,
+html[data-theme='dark'] .diary-page .text-muted-foreground\/50 {
+  color: rgba(245, 243, 240, 0.58) !important;
+}
+
+html[data-theme='dark'] .diary-page .note-editor__surface,
+html[data-theme='dark'] .diary-page .diary-editor__surface,
+html[data-theme='dark'] .diary-page .note-editor__toolbar-inline,
+html[data-theme='dark'] .diary-page .simple-editor-content .tiptap.ProseMirror.simple-editor,
+html[data-theme='dark'] .diary-page__meta-hero,
+html[data-theme='dark'] .diary-page__empty-state::before {
+  background: color-mix(in srgb, var(--bg-elevated, #2b2722) 90%, #181512) !important;
+}
+
+html[data-theme='dark'] .diary-page .note-editor__toolbar-inline,
+html[data-theme='dark'] .diary-page__meta-hero,
+html[data-theme='dark'] .diary-page .simple-editor-content .tiptap.ProseMirror.simple-editor {
+  border: 1px solid rgba(245, 243, 240, 0.08);
+  box-shadow: none;
+}
+
+html[data-theme='dark'] .diary-page .simple-editor-content .tiptap.ProseMirror.simple-editor::selection,
+html[data-theme='dark'] .diary-page .simple-editor-content .tiptap.ProseMirror.simple-editor *::selection {
+  background: rgba(245, 243, 240, 0.2);
+}
+
+html[data-theme='dark'] .diary-page .bg-\[color\:rgba\(241\,237\,231\,0\.72\)\],
+html[data-theme='dark'] .diary-page .bg-\[color\:rgba\(238\,233\,226\,0\.92\)\],
+html[data-theme='dark'] .diary-page .bg-\[color\:rgba\(237\,232\,225\,0\.96\)\] {
+  background: color-mix(in srgb, var(--bg-elevated, #2b2722) 90%, #181512) !important;
+}
+
 @keyframes diary-fade-up {
   from {
     opacity: 0;

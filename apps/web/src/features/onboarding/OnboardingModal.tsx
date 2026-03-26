@@ -17,6 +17,11 @@ const OnboardingModal = ({ open, onStart, onSkip }: OnboardingModalProps) => {
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#3A3733]/56">{t('onboarding.welcome.eyebrow')}</p>
         <h2 className="mt-3 text-[28px] font-semibold tracking-[-0.03em]">{t('onboarding.welcome.title')}</h2>
         <p className="mt-3 text-sm leading-6 text-[#3A3733]/72">{t('onboarding.welcome.description')}</p>
+        <div className="mt-5 flex flex-wrap gap-2 text-[11px] font-medium text-[#3A3733]/72">
+          {['计划', '专注', '复盘'].map((item) => (
+            <span key={item} className="rounded-full border border-[#3A3733]/10 bg-white/72 px-3 py-1">{item}</span>
+          ))}
+        </div>
         <div className="mt-6 flex items-center justify-end gap-3">
           <Button type="button" variant="outline" className="rounded-full border-[#3A3733]/12 text-[#3A3733]" onClick={onSkip}>
             {t('onboarding.welcome.skip')}

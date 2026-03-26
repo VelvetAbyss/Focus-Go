@@ -15,7 +15,8 @@
     "moduleDetection": "force",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@focus-go/db-contracts": ["../../packages/db-contracts/src/index.ts"]
     },
     "noEmit": true,
     "jsx": "react-jsx",

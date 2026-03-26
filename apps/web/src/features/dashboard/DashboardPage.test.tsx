@@ -17,10 +17,17 @@ vi.mock('../../shared/i18n/useI18n', () => ({
         'dashboard.hideWidget': 'Hide widget',
         'tasks.cancel': 'Cancel',
         'onboarding.welcome.eyebrow': 'First step',
-        'onboarding.welcome.title': 'Start with one task',
+        'onboarding.welcome.title': 'See how your day fits together',
         'onboarding.welcome.description': 'Description',
-        'onboarding.welcome.start': 'Start',
+        'onboarding.welcome.start': 'Open dashboard',
         'onboarding.welcome.skip': 'Skip',
+        'onboarding.dashboard.eyebrow': 'Your workspace',
+        'onboarding.dashboard.title': 'Everything for today, in one calm surface',
+        'onboarding.dashboard.description': 'Overview description',
+        'onboarding.dashboard.tasksCta': 'Create first task',
+        'onboarding.dashboard.focusCta': 'Open Focus',
+        'onboarding.dashboard.diaryCta': 'Open Diary',
+        'onboarding.dashboard.dismiss': 'Got it',
       }[key] ?? key),
   }),
 }))
@@ -103,24 +110,25 @@ describe('DashboardPage onboarding', () => {
     cleanup()
   })
 
-  it('shows welcome modal for not started state and starts onboarding', async () => {
+  it('shows welcome modal for not started state and starts dashboard onboarding', async () => {
     renderDashboard()
 
-    expect(screen.getByText('Start with one task')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Start' }))
+    expect(screen.getByText('See how your day fits together')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Open dashboard' }))
 
-    await waitFor(() => expect(screen.getByText('Tasks route')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Everything for today, in one calm surface')).toBeInTheDocument())
+    expect(screen.queryByText('Tasks route')).not.toBeInTheDocument()
     expect(window.localStorage.getItem(ONBOARDING_STATUS_KEY)).toBe('in_progress')
-    expect(window.localStorage.getItem(ONBOARDING_STEP_KEY)).toBe('create_task')
+    expect(window.localStorage.getItem(ONBOARDING_STEP_KEY)).toBe('dashboard_overview')
   })
 
-  it('redirects to tasks when onboarding is already in progress', async () => {
+  it('shows dashboard overview when onboarding is already in progress', async () => {
     window.localStorage.setItem(ONBOARDING_STATUS_KEY, 'in_progress')
-    window.localStorage.setItem(ONBOARDING_STEP_KEY, 'create_task')
+    window.localStorage.setItem(ONBOARDING_STEP_KEY, 'dashboard_overview')
 
     renderDashboard()
 
-    await waitFor(() => expect(screen.getAllByText('Tasks route').length).toBeGreaterThan(0))
+    await waitFor(() => expect(screen.getByText('Everything for today, in one calm surface')).toBeInTheDocument())
   })
 
   it('does not show welcome modal after skip', () => {
@@ -128,7 +136,7 @@ describe('DashboardPage onboarding', () => {
 
     renderDashboard()
 
-    expect(screen.queryByText('Start with one task')).not.toBeInTheDocument()
+    expect(screen.queryByText('See how your day fits together')).not.toBeInTheDocument()
     expect(screen.getByText('Header')).toBeInTheDocument()
   })
 })

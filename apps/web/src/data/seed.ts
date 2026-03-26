@@ -4,8 +4,6 @@ import { focusRepo } from './repositories/focusRepo'
 import { spendRepo } from './repositories/spendRepo'
 import { tasksRepo } from './repositories/tasksRepo'
 import { widgetTodoRepo } from './repositories/widgetTodoRepo'
-import type { TaskPriority } from './models/types'
-import { createId } from '../shared/utils/ids'
 import { toDateKey } from '../shared/utils/time'
 import { ensureLabsSeed } from '../features/labs/labsApi'
 import {
@@ -13,8 +11,6 @@ import {
   DEFAULT_DASHBOARD_LAYOUT_ITEMS,
   DEFAULT_DASHBOARD_THEME_OVERRIDE,
 } from './defaultDashboardLayout'
-
-const priorityCycle: TaskPriority[] = ['high', 'medium', 'low']
 
 export const seedDatabase = async () => {
   await ensureLabsSeed()
@@ -25,71 +21,40 @@ export const seedDatabase = async () => {
   const tomorrowKey = toDateKey(new Date(Date.now() + 24 * 60 * 60 * 1000))
 
   await tasksRepo.add({
-    title: 'Draft MVP onboarding flow',
+    title: 'Plan today around one meaningful task',
     status: 'todo',
     priority: 'high',
     dueDate: tomorrowKey,
-    tags: ['mvp', 'ux'],
-    subtasks: [
-      { id: createId(), title: 'Sketch entry states', done: false },
-      { id: createId(), title: 'Decide copy tone', done: false },
-    ],
+    tags: ['today'],
+    subtasks: [],
   })
 
-  await tasksRepo.add({
-    title: 'Focus Center animation polish',
-    status: 'doing',
+  await widgetTodoRepo.add({
+    scope: 'day',
+    title: 'Keep the dashboard light: one task, one session, one review.',
     priority: 'medium',
-    dueDate: todayKey,
-    tags: ['motion'],
-    subtasks: [],
+    dueDate: tomorrowKey,
+    done: false,
   })
-
-  await tasksRepo.add({
-    title: 'Prepare spend categories',
-    status: 'done',
-    priority: 'low',
-    tags: ['finance'],
-    subtasks: [],
-  })
-
-  await Promise.all(
-    ['day', 'week', 'month'].map((scope, index) =>
-      widgetTodoRepo.add({
-        scope: scope as 'day' | 'week' | 'month',
-        title: `Plan ${scope} rhythm`,
-        priority: priorityCycle[index],
-        dueDate: tomorrowKey,
-        done: false,
-      })
-    )
-  )
 
   await diaryRepo.add({
     dateKey: todayKey,
-    contentMd:
-      '## Today\n- Reviewed MVP structure\n- Defined Apple-minimal tone\n- Collected visual references',
+    entryAt: Date.now(),
+    contentMd: '## Today\n- Chose one thing worth finishing\n- Left room for a focused session later',
+    contentJson: null,
     tags: ['daily'],
+    weatherSnapshot: null,
+    deletedAt: null,
+    expiredAt: null,
   })
 
-  const [foodCategory, toolsCategory] = await Promise.all([
-    spendRepo.addCategory({ name: 'Food', icon: 'UtensilsCrossed' }),
-    spendRepo.addCategory({ name: 'Tools', icon: 'Toolbox' }),
-  ])
+  const lifeCategory = await spendRepo.addCategory({ name: 'Life', icon: 'WalletCards' })
 
   await spendRepo.addEntry({
-    amount: 38,
+    amount: 32,
     currency: 'CNY',
-    categoryId: foodCategory.id,
-    note: 'Team lunch',
-    dateKey: todayKey,
-  })
-
-  await spendRepo.addEntry({
-    amount: 12,
-    currency: 'USD',
-    categoryId: toolsCategory.id,
-    note: 'Design resource',
+    categoryId: lifeCategory.id,
+    note: 'Quick lunch between tasks',
     dateKey: todayKey,
   })
 

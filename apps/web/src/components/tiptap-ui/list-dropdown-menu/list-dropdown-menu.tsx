@@ -3,6 +3,7 @@ import { type Editor } from "@tiptap/react"
 
 // --- Hooks ---
 import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useI18n } from "@/shared/i18n/useI18n"
 
 // --- Icons ---
 import { ChevronDownIcon } from "@/components/tiptap-icons/chevron-down-icon"
@@ -55,6 +56,7 @@ export function ListDropdownMenu({
   modal = true,
   ...props
 }: ListDropdownMenuProps) {
+  const { t } = useI18n()
   const { editor } = useTiptapEditor(providedEditor)
   const [isOpen, setIsOpen] = useState(false)
 
@@ -88,8 +90,8 @@ export function ListDropdownMenu({
           tabIndex={-1}
           disabled={!canToggle}
           data-disabled={!canToggle}
-          aria-label="List options"
-          tooltip="List"
+          aria-label={t("notes.listDropdown.ariaLabel")}
+          tooltip={t("notes.listDropdown.tooltip")}
           {...props}
         >
           <Icon className="tiptap-button-icon" />
@@ -104,7 +106,7 @@ export function ListDropdownMenu({
               <ListButton
                 editor={editor}
                 type={option.type}
-                text={option.label}
+                text={t(option.label as "notes.listDropdown.bulletList" | "notes.listDropdown.orderedList" | "notes.listDropdown.taskList")}
                 showTooltip={false}
               />
             </DropdownMenuItem>

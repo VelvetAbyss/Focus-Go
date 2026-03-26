@@ -424,7 +424,7 @@ const DiaryPage = () => {
                 <p className="text-sm">{t('diary.noEntriesPeriod')}</p>
                 <button
                   type="button"
-                  className="flex items-center gap-2 rounded-full bg-background px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted"
+                  className="diary-page__period-empty-action flex items-center gap-2 rounded-full bg-background px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted"
                   onClick={handleNewEntry}
                 >
                   <Plus size={14} />
@@ -472,8 +472,8 @@ const DiaryPage = () => {
                       <div className={cn(
                         'relative mb-3 flex-1 rounded-[1.25rem] border transition-all',
                         isSelected
-                          ? 'diary-page__entry-card diary-page__entry-card--active border-[color:#3A3733]/10 bg-[color:rgba(245,243,240,0.94)] shadow-[0_14px_40px_rgba(58,55,51,0.10)]'
-                          : 'diary-page__entry-card border-transparent bg-transparent hover:bg-background/60',
+                          ? 'diary-page__entry-card diary-page__entry-card--active border-[color:#3A3733]/10 bg-[color:rgba(237,232,225,0.96)] shadow-[0_14px_40px_rgba(58,55,51,0.10)]'
+                          : 'diary-page__entry-card border-transparent bg-[color:rgba(241,237,231,0.72)] shadow-[0_10px_28px_rgba(58,55,51,0.08)] hover:bg-[color:rgba(238,233,226,0.92)] hover:shadow-[0_14px_34px_rgba(58,55,51,0.12)]',
                       )}>
                         <button
                           type="button"

@@ -274,7 +274,7 @@ const NoteEditor = ({
         },
       }),
       HorizontalRule,
-      Placeholder.configure({ placeholder: '开始写作...' }),
+      Placeholder.configure({ placeholder: t('notes.editorPlaceholder') }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       TaskList,
       TaskItem.configure({ nested: true }),

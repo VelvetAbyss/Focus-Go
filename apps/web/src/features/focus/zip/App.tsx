@@ -1,12 +1,14 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { lazy, startTransition, Suspense, useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "motion/react";
 import { PanelLeft } from "lucide-react";
-import { WhiteNoise } from "./components/WhiteNoise";
 import { FocusTimer } from "./components/FocusTimer";
-import { FocusHistory, type FocusSession } from "./components/FocusHistory";
+import type { FocusSession } from "./components/FocusHistory";
 import { focusRepo } from "../../../data/repositories/focusRepo";
 
 const FOCUS_TIMER_EVENT = "focus:timer-updated";
+const INITIAL_SESSIONS_LIMIT = 60;
+const WhiteNoise = lazy(() => import("./components/WhiteNoise").then((mod) => ({ default: mod.WhiteNoise })));
+const FocusHistory = lazy(() => import("./components/FocusHistory").then((mod) => ({ default: mod.FocusHistory })));
 
 const getModeLabel = (plannedMinutes: number) => {
   if (plannedMinutes === 25) return "番茄钟";
@@ -28,6 +30,7 @@ const toHistorySession = (session: Awaited<ReturnType<typeof focusRepo.listSessi
 export default function App() {
   const [sessions, setSessions] = useState<FocusSession[]>([]);
   const [navExpanded, setNavExpanded] = useState(false);
+  const [sidePanelsReady, setSidePanelsReady] = useState(false);
   const [isDark, setIsDark] = useState(() =>
     typeof document !== "undefined" && document.documentElement.dataset.theme === "dark"
   );
@@ -42,9 +45,33 @@ export default function App() {
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const run = () => setSidePanelsReady(true);
+    const idleWindow = window as Window &
+      typeof globalThis & {
+        requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
+        cancelIdleCallback?: (handle: number) => void;
+      };
+    if (idleWindow.requestIdleCallback) {
+      const idleId = idleWindow.requestIdleCallback(run, { timeout: 600 });
+      return () => idleWindow.cancelIdleCallback?.(idleId);
+    }
+    const timeoutId = globalThis.setTimeout(run, 180);
+    return () => globalThis.clearTimeout(timeoutId);
+  }, []);
+
   const loadSessions = useCallback(async () => {
-    const rows = await focusRepo.listSessions();
-    setSessions(rows.map(toHistorySession));
+    try {
+      const rows = await focusRepo.listSessions(INITIAL_SESSIONS_LIMIT);
+      startTransition(() => {
+        setSessions(rows.map(toHistorySession));
+      });
+    } catch {
+      startTransition(() => {
+        setSessions([]);
+      });
+    }
   }, []);
 
   useEffect(() => {
@@ -90,6 +117,14 @@ export default function App() {
   const shellShadow = isDark
     ? "0 18px 56px rgba(0, 0, 0, 0.28), 0 1px 4px rgba(0, 0, 0, 0.2)"
     : "0 4px 32px rgba(58, 55, 51, 0.03), 0 1px 4px rgba(58, 55, 51, 0.02)";
+  const panelFallback = (
+    <div
+      className="h-full rounded-2xl"
+      style={{
+        background: isDark ? "rgba(23, 29, 35, 0.26)" : "rgba(245, 243, 240, 0.72)",
+      }}
+    />
+  );
 
   return (
     <div className={`focus-zip-app w-full h-screen overflow-hidden relative ${isDark ? "is-dark" : ""}`} style={{ fontFamily: "'Inter', sans-serif" }}>
@@ -125,21 +160,7 @@ export default function App() {
       </div>
 
       {/* Top bar */}
-      <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-8 py-5">
-        {/* Brand */}
-        <div className="flex items-center gap-2">
-          <div
-            className="w-2 h-2 rounded-full"
-            style={{ background: isDark ? "rgba(126,219,199,0.72)" : "rgba(139,168,138,0.6)" }}
-          />
-          <span
-            className="text-[0.82rem] tracking-[0.06em]"
-            style={{ color: isDark ? "#d5d0c8" : "#8a8478", fontFamily: "'DM Serif Display', serif" }}
-          >
-            Focus&go
-          </span>
-        </div>
-
+      <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-end px-8 py-5">
         {/* Toggle Nav */}
         <motion.button
           whileHover={{ scale: 1.03 }}
@@ -169,7 +190,11 @@ export default function App() {
               boxShadow: shellShadow,
             }}
           >
-            <WhiteNoise />
+            {sidePanelsReady ? (
+              <Suspense fallback={panelFallback}>
+                <WhiteNoise />
+              </Suspense>
+            ) : panelFallback}
           </div>
         </div>
 
@@ -210,7 +235,11 @@ export default function App() {
               boxShadow: shellShadow,
             }}
           >
-            <FocusHistory externalSessions={sessions} />
+            {sidePanelsReady ? (
+              <Suspense fallback={panelFallback}>
+                <FocusHistory externalSessions={sessions} />
+              </Suspense>
+            ) : panelFallback}
           </div>
         </div>
       </div>

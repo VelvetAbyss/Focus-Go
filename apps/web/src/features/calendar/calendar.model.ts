@@ -47,14 +47,26 @@ export const sortSubscriptions = <T extends { sourceType: CalendarSourceType; or
 export const buildInitialCalendarSubscriptions = (): CalendarSubscription[] =>
   sortSubscriptions([
     {
-      id: 'account-google',
-      name: 'Google Calendar (M1 Read-Only)',
-      sourceType: 'account',
-      provider: 'google',
-      color: '#2563eb',
+      id: 'preset-cn-holidays',
+      name: 'China Public Holidays',
+      sourceType: 'custom',
+      provider: 'ics',
+      color: '#ef4444',
       enabled: true,
       syncPermission: 'read',
       order: 0,
+      url: 'https://ical.muhan.org/rest.ics',
+    },
+    {
+      id: 'preset-us-holidays',
+      name: 'US Federal Holidays',
+      sourceType: 'custom',
+      provider: 'ics',
+      color: '#2563eb',
+      enabled: true,
+      syncPermission: 'read',
+      order: 1,
+      url: 'https://calendar.google.com/calendar/ical/en.usa.official%23holiday%40group.v.calendar.google.com/public/basic.ics',
     },
   ])
 
@@ -157,16 +169,16 @@ export const buildSampleMonthEvents = (anchorDate: Date): CalendarEvent[] => {
   return [
     {
       id: `${monthKey}-holiday-1`,
-      subscriptionId: 'system-us-holidays',
-      title: 'Presidents Day',
+      subscriptionId: 'preset-cn-holidays',
+      title: '春节假期',
       dateKey: `${monthKey}-16`,
       timeLabel: 'All day',
       kind: 'holiday',
     },
     {
       id: `${monthKey}-holiday-2`,
-      subscriptionId: 'system-us-holidays',
-      title: 'Tax Reminder',
+      subscriptionId: 'preset-us-holidays',
+      title: 'Presidents Day',
       dateKey: `${monthKey}-20`,
       timeLabel: 'All day',
       kind: 'holiday',
@@ -190,8 +202,8 @@ export const buildSampleMonthEvents = (anchorDate: Date): CalendarEvent[] => {
   ]
 }
 
-export const formatMonthLabel = (anchorDate: Date) =>
-  anchorDate.toLocaleDateString('zh-CN', {
+export const formatMonthLabel = (anchorDate: Date, language: 'en' | 'zh' = 'zh') =>
+  anchorDate.toLocaleDateString(language === 'zh' ? 'zh-CN' : 'en-US', {
     year: 'numeric',
     month: 'long',
   })
