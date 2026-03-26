@@ -37,7 +37,7 @@ const OnboardingProgressiveRuntime = () => {
         return
       }
 
-      if (!featureSeen.diary && isEveningHour() && (location.pathname === ROUTES.DASHBOARD || location.pathname === ROUTES.REVIEW)) {
+      if (!featureSeen.diary && isEveningHour() && (location.pathname === ROUTES.DASHBOARD || location.pathname === ROUTES.DIARY)) {
         const anchor = findAnchor(FEATURE_COACHMARK_ANCHORS.diary)
         setVisibleCoachmark(anchor ? { key: 'diary', anchor } : null)
         return

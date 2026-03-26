@@ -634,7 +634,7 @@ const TasksBoard = ({
         <Card
           title={t('dashboard.widget.tasks')}
           eyebrow={t('tasks.kanban')}
-          className={className}
+          className={cn('dashboard-widget-card dashboard-widget-card--shadow-safe', className)}
         >
           {plain}
         </Card>

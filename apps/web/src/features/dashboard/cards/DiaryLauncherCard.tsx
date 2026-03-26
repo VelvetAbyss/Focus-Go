@@ -1,18 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import Card from '../../../shared/ui/Card'
 import { diaryRepo } from '../../../data/repositories/diaryRepo'
 import type { DiaryEntry } from '../../../data/models/types'
 import { toDateKey } from '../../../shared/utils/time'
-import { hasReviewBlock } from '../../diary/review/reviewDiaryBridge'
 import { useI18n } from '../../../shared/i18n/useI18n'
+import { ROUTES } from '../../../app/routes/routes'
 
-type DiaryLauncherCardProps = {
-  onOpen: (intent?: 'openToday') => void
-}
-
-const DiaryLauncherCard = ({ onOpen }: DiaryLauncherCardProps) => {
+const DiaryLauncherCard = () => {
   const { t } = useI18n()
+  const navigate = useNavigate()
   const [todayEntry, setTodayEntry] = useState<DiaryEntry | null>(null)
 
   useEffect(() => {
@@ -22,12 +20,7 @@ const DiaryLauncherCard = ({ onOpen }: DiaryLauncherCardProps) => {
 
   const hasContent = useMemo(() => Boolean(todayEntry?.contentMd && !todayEntry.deletedAt), [todayEntry])
 
-  const hasReviewSnapshot = useMemo(() => {
-    if (!hasContent || !todayEntry?.contentMd) return false
-    return hasReviewBlock(todayEntry.contentMd)
-  }, [hasContent, todayEntry])
-
-  const handleClick = () => onOpen('openToday')
+  const handleClick = () => navigate(ROUTES.DIARY)
 
   return (
     <Card
@@ -54,7 +47,6 @@ const DiaryLauncherCard = ({ onOpen }: DiaryLauncherCardProps) => {
         <p className="diary-launcher-card__date">{toDateKey()}</p>
         <span className="diary-launcher-card__chip">{hasContent ? t('diaryLauncher.updated') : t('diaryLauncher.new')}</span>
       </div>
-      {hasReviewSnapshot ? <p className="diary-launcher-card__snapshot">{t('diaryLauncher.snapshotIncluded')}</p> : null}
     </Card>
   )
 }

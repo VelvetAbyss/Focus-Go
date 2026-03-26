@@ -40,7 +40,9 @@ const ReviewPage = () => {
       } else {
         await diaryRepo.add({
           dateKey: todayKey,
+          entryAt: Date.now(),
           contentMd: nextContent,
+          contentJson: null,
           tags: [],
           deletedAt: null,
           expiredAt: null,

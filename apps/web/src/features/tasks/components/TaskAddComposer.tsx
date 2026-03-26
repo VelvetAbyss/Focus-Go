@@ -8,9 +8,10 @@ type TaskAddComposerProps = {
   onSubmit: (title: string) => Promise<boolean> | boolean
   compact?: boolean
   plain?: boolean
+  placeholder?: string
 }
 
-const TaskAddComposer = ({ onSubmit, compact = false, plain = false }: TaskAddComposerProps) => {
+const TaskAddComposer = ({ onSubmit, compact = false, plain = false, placeholder }: TaskAddComposerProps) => {
   const { t } = useI18n()
   const [title, setTitle] = useState('')
   const [inputShaking, setInputShaking] = useState(false)
@@ -79,7 +80,7 @@ const TaskAddComposer = ({ onSubmit, compact = false, plain = false }: TaskAddCo
           onAnimationEnd={() => setInputShaking(false)}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          placeholder={t('modules.tasks.addPlaceholder')}
+          placeholder={placeholder ?? t('modules.tasks.addPlaceholder')}
         />
         <Button
           type="submit"

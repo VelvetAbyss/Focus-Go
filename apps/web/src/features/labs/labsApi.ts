@@ -94,14 +94,7 @@ const removeLegacyRssInstallations = async () => {
 }
 
 const readAuthPlan = (): SubscriptionTier => {
-  try {
-    const raw = localStorage.getItem('auth')
-    if (!raw) return 'free'
-    const plan = JSON.parse(raw).plan
-    return plan === 'premium' ? 'premium' : 'free'
-  } catch {
-    return 'free'
-  }
+  return 'premium'
 }
 
 export const ensureLabsSeed = async () => {
@@ -114,10 +107,10 @@ export const getSubscription = async () => {
   await ensureLabsSeed()
   const current = await db.userSubscriptions.where('userId').equals(CURRENT_USER_ID).first()
   if (!current) {
-    return upsertSubscription('free')
+    return upsertSubscription('premium')
   }
-  if (!current.role) {
-    return upsertSubscription(current.tier, CURRENT_ACCOUNT_ROLE)
+  if (current.tier !== 'premium' || !current.role) {
+    return upsertSubscription('premium', CURRENT_ACCOUNT_ROLE)
   }
   return current as UserSubscriptionRecord
 }

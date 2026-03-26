@@ -76,11 +76,13 @@ describe('OnboardingProgressiveRuntime', () => {
   it('shows diary coachmark after 18:00 when unseen', () => {
     window.localStorage.clear()
     markFeatureSeen('focus')
-    document.body.innerHTML = '<div data-coachmark-anchor="review-page" style="height:10px"></div>'
-    vi.setSystemTime(new Date('2026-03-23T18:30:00Z'))
+    document.body.innerHTML = '<div data-coachmark-anchor="diary-page" style="height:10px"></div>'
+    const eveningTime = new Date()
+    eveningTime.setHours(19, 0, 0, 0)
+    vi.setSystemTime(eveningTime)
 
     render(
-      <MemoryRouter initialEntries={['/review']}>
+      <MemoryRouter initialEntries={['/diary']}>
         <OnboardingProgressiveRuntime />
       </MemoryRouter>,
     )

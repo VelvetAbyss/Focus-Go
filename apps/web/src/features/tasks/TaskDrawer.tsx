@@ -29,7 +29,6 @@ import TaskNoteEditor from './components/TaskNoteEditor'
 import { createTaskNoteDoc, resolveTaskNoteRichText } from './model/taskNoteRichText'
 import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, formatTaskDateTime, getTaskTagTone } from './components/taskPresentation'
 import { useI18n } from '../../shared/i18n/useI18n'
-import { usePremiumGate } from '../premium/PremiumProvider'
 
 type TaskDrawerProps = {
   open: boolean
@@ -121,7 +120,6 @@ const TaskDrawer = ({
   onCreated,
 }: TaskDrawerProps) => {
   const { language, t } = useI18n()
-  const { canUse, openUpgradeModal } = usePremiumGate()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [priority, setPriority] = useState<TaskPriority | null>(null)
@@ -540,10 +538,6 @@ const TaskDrawer = ({
 
   const subtaskComposer = useAddInputComposer({
     onSubmit: async (subtaskTitle) => {
-      if (!canUse('tasks.subtasks').allowed) {
-        openUpgradeModal('create-action', 'tasks.subtasks')
-        return
-      }
       setSubtasks((prev) => [...prev, { id: createId(), title: subtaskTitle, done: false }])
     },
   })

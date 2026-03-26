@@ -123,12 +123,16 @@ export interface IDiaryDataAccess {
   list(): Promise<DiaryEntry[]>
   listActive(): Promise<DiaryEntry[]>
   getByDate(dateKey: string): Promise<DiaryEntry | undefined>
+  listByDate(dateKey: string): Promise<DiaryEntry[]>
   listByRange(dateFrom: string, dateTo: string, options?: { includeDeleted?: boolean }): Promise<DiaryEntry[]>
   listTrash(): Promise<DiaryEntry[]>
   softDeleteByDate(dateKey: string): Promise<DiaryEntry | null>
+  softDeleteById(id: string): Promise<DiaryEntry | null>
   restoreByDate(dateKey: string): Promise<DiaryEntry | null>
+  restoreById(id: string): Promise<DiaryEntry | null>
   markExpiredOlderThan(days?: number): Promise<number>
   hardDeleteByDate(dateKey: string): Promise<number>
+  hardDeleteById(id: string): Promise<number>
   add(data: DiaryEntryCreateInput): Promise<DiaryEntry>
   update(entry: DiaryEntry): Promise<DiaryEntry>
 }

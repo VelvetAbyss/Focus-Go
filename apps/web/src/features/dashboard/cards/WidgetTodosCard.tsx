@@ -1,17 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
-import { Button } from '@/components/ui/button'
 import Card from '../../../shared/ui/Card'
 import { Trash2 } from 'lucide-react'
 import { widgetTodoRepo } from '../../../data/repositories/widgetTodoRepo'
 import type { WidgetTodo, WidgetTodoScope } from '../../../data/models/types'
 import AnimatedScrollList from '../../../shared/ui/AnimatedScrollList'
 import AnimatedPlanCheckbox from '../../../shared/ui/AnimatedPlanCheckbox'
-import { useAddInputComposer } from '../../../shared/hooks/useAddInputComposer'
 import { triggerTabGroupSwitchAnimation, triggerTabPressAnimation } from '../../../shared/ui/tabPressAnimation'
 import { useHabitTracker } from '../../habits/hooks/useHabitTracker'
 import { todayDateKey } from '../../habits/model/dateKey'
 import { useI18n } from '../../../shared/i18n/useI18n'
+import TaskAddComposer from '../../tasks/components/TaskAddComposer'
 import {
   readWidgetTodoResetBucket,
   shouldBootstrapResetWidgetTodos,
@@ -228,8 +227,7 @@ const WidgetTodosCard = () => {
     setItems((prev) => prev.filter((item) => item.id !== todo.id))
   }
 
-  const { inputRef, isShaking, value, setValue, clearShake, canSubmit, submit } = useAddInputComposer({
-    onSubmit: async (title) => {
+  const handleAdd = async (title: string) => {
       const linkedHabit =
         activeScope === 'day'
           ? await createHabit({
@@ -257,11 +255,16 @@ const WidgetTodosCard = () => {
         const listEl = listRefs.current[activeScope]
         if (listEl) listEl.scrollTo({ top: 0, behavior: 'auto' })
       })
-    },
-  })
+      return true
+    }
 
   return (
-    <Card title={t('todo.cardTitle')} eyebrow="WIDGET" actions={<span className="widget-todos__completed">{completionLabel}</span>}>
+    <Card
+      title={t('todo.cardTitle')}
+      eyebrow="WIDGET"
+      className="dashboard-widget-card dashboard-widget-card--shadow-safe dashboard-widget-card--todo"
+      actions={<span className="widget-todos__completed">{completionLabel}</span>}
+    >
       <div className="widget-todos-card">
         <div className="widget-todos__tabs tab-motion-group" role="tablist" aria-label={t('todo.scope')} style={tabMotionStyle}>
           {scopes.map((scope) => (
@@ -334,25 +337,7 @@ const WidgetTodosCard = () => {
           </div>
         </div>
 
-        <form
-          className="widget-todos__composer"
-          onSubmit={(event) => {
-            event.preventDefault()
-            void submit()
-          }}
-        >
-          <input
-            ref={inputRef}
-            className={`widget-todos__input ${isShaking ? 'is-shaking' : ''}`}
-            value={value}
-            onChange={(event) => setValue(event.target.value)}
-            onAnimationEnd={clearShake}
-            placeholder={activeScope === 'day' ? t('todo.addHabit') : t('todo.addTask')}
-          />
-          <Button type="submit" size="sm" className="widget-todos__add-btn" disabled={!canSubmit}>
-            {t('modules.tasks.add')}
-          </Button>
-        </form>
+        <TaskAddComposer onSubmit={handleAdd} plain placeholder={activeScope === 'day' ? t('todo.addHabit') : t('todo.addTask')} />
       </div>
     </Card>
   )

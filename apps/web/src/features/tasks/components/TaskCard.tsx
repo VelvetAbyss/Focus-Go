@@ -78,7 +78,7 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
       <div
         ref={ref}
         className={cn(
-          'task-card-shell group relative overflow-hidden cursor-pointer rounded-lg bg-card shadow-[0_3px_10px_rgba(58,55,51,0.1)]',
+          'task-card-shell group relative overflow-hidden cursor-pointer rounded-lg bg-card shadow-[0_2px_6px_rgba(58,55,51,0.08)]',
           'hover:-translate-y-[1px] hover:shadow-[0_8px_18px_rgba(58,55,51,0.13)]',
           task.status === 'done' && 'opacity-75',
           compact && 'rounded-md',

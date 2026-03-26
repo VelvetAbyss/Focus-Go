@@ -160,10 +160,22 @@ export type NoisePreset = {
   tracks: Record<NoiseTrackId, NoiseTrackSettings>
 }
 
+export type WeatherSnapshot = {
+  weatherCode: string
+  condition: string
+  temperatureMin?: number
+  temperatureMax?: number
+  locationName?: string
+  capturedAt: number
+}
+
 export type DiaryEntry = BaseEntity & {
   dateKey: string
+  entryAt: number
   contentMd: string
+  contentJson?: Record<string, unknown> | null
   tags: string[]
+  weatherSnapshot?: WeatherSnapshot | null
   deletedAt?: number | null
   expiredAt?: number | null
 }
