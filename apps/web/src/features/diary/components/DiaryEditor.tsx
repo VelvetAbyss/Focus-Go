@@ -158,38 +158,38 @@ const DiaryEditor = ({ value, placeholder, onChange, onFlush }: DiaryEditorProps
   return (
     <div className="note-editor diary-editor">
       <div className="note-editor__surface diary-editor__surface">
-        <div className="diary-editor__floating-toolbar">
-          <div className="note-editor__toolbar-wrap">
-            <EditorContext.Provider value={{ editor }}>
-              <Toolbar className="note-editor__toolbar-inline">
-                <ToolbarGroup>
-                  <UndoRedoButton action="undo" />
-                  <UndoRedoButton action="redo" />
-                </ToolbarGroup>
-                <ToolbarSeparator />
-                <ToolbarGroup>
-                  <HeadingDropdownMenu modal={false} levels={[1, 2, 3]} />
-                  <ListDropdownMenu modal={false} types={['bulletList', 'orderedList', 'taskList']} />
-                  <BlockquoteButton />
-                  <CodeBlockButton />
-                </ToolbarGroup>
-                <ToolbarSeparator />
-                <ToolbarGroup>
-                  <MarkButton type="bold" />
-                  <MarkButton type="italic" />
-                  <MarkButton type="strike" />
-                  <MarkButton type="code" />
-                  <MarkButton type="underline" />
-                  <ColorHighlightPopover />
-                  <LinkPopover />
-                </ToolbarGroup>
-              </Toolbar>
-            </EditorContext.Provider>
-          </div>
-        </div>
         <div className="note-editor__content">
           <EditorContext.Provider value={{ editor }}>
             <EditorContent editor={editor} className="simple-editor-content" />
+          </EditorContext.Provider>
+        </div>
+      </div>
+      <div className="diary-editor__floating-toolbar">
+        <div className="note-editor__toolbar-wrap">
+          <EditorContext.Provider value={{ editor }}>
+            <Toolbar className="note-editor__toolbar-inline">
+              <ToolbarGroup>
+                <UndoRedoButton action="undo" />
+                <UndoRedoButton action="redo" />
+              </ToolbarGroup>
+              <ToolbarSeparator />
+              <ToolbarGroup>
+                <HeadingDropdownMenu modal={false} levels={[1, 2, 3]} />
+                <ListDropdownMenu modal={false} types={['bulletList', 'orderedList', 'taskList']} />
+                <BlockquoteButton />
+                <CodeBlockButton />
+              </ToolbarGroup>
+              <ToolbarSeparator />
+              <ToolbarGroup>
+                <MarkButton type="bold" />
+                <MarkButton type="italic" />
+                <MarkButton type="strike" />
+                <MarkButton type="code" />
+                <MarkButton type="underline" />
+                <ColorHighlightPopover />
+                <LinkPopover />
+              </ToolbarGroup>
+            </Toolbar>
           </EditorContext.Provider>
         </div>
       </div>
