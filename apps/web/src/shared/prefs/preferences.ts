@@ -9,6 +9,34 @@ export const FOCUS_COMPLETION_SOUND_ENABLED_KEY = 'workbench.focus.completionSou
 export const TASK_REMINDER_ENABLED_KEY = 'focusgo.tasks.reminder.enabled.v1'
 export const TASK_REMINDER_LEAD_MINUTES_KEY = 'focusgo.tasks.reminder.leadMinutes.v1'
 export const LANGUAGE_KEY = 'workbench.ui.language'
+export const DIARY_FONT_KEY = 'focusgo.diary.font.v1'
+
+export type DiaryFontId =
+  | 'fraunces'
+  | 'lora'
+  | 'playfair'
+  | 'crimson'
+  | 'noto-serif-sc'
+  | 'zcool-xiaowei'
+  | 'ma-shan-zheng'
+  | 'liu-jian-mao-cao'
+  | 'zcool-kuaile'
+  | 'long-cang'
+
+const DIARY_FONT_IDS: DiaryFontId[] = [
+  'fraunces', 'lora', 'playfair', 'crimson', 'noto-serif-sc',
+  'zcool-xiaowei', 'ma-shan-zheng', 'liu-jian-mao-cao', 'zcool-kuaile', 'long-cang',
+]
+
+export function readDiaryFont(): DiaryFontId {
+  const raw = localStorage.getItem(DIARY_FONT_KEY)
+  if (raw && (DIARY_FONT_IDS as string[]).includes(raw)) return raw as DiaryFontId
+  return 'fraunces'
+}
+
+export function writeDiaryFont(id: DiaryFontId) {
+  localStorage.setItem(DIARY_FONT_KEY, id)
+}
 
 export type CurrencyCode = 'CNY' | 'USD'
 export type TemperatureUnit = 'celsius' | 'fahrenheit'
