@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { db } from '../db'
+import { SYNC_ENTITY_TABLES } from './constants'
 import { syncOutboxRepo, syncStateRepo } from './repository'
 
 describe('sync repository', () => {
@@ -58,5 +59,13 @@ describe('sync repository', () => {
     expect(next.status).toBe('blocked')
     expect(next.pendingLocalRecordCount).toBe(3)
     expect(next.pendingRemoteRecordCount).toBe(5)
+  })
+
+  it('uses actual Dexie store names for synced entity tables', async () => {
+    const actualStores = new Set(Array.from(db.tables, (table) => table.name))
+    expect(actualStores.has(SYNC_ENTITY_TABLES.noteTags)).toBe(true)
+    expect(actualStores.has(SYNC_ENTITY_TABLES.noteAppearance)).toBe(true)
+    expect(actualStores.has(SYNC_ENTITY_TABLES.widgetTodos)).toBe(true)
+    expect(actualStores.has(SYNC_ENTITY_TABLES.dashboardLayout)).toBe(true)
   })
 })
