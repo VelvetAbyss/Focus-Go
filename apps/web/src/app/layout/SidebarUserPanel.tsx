@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { User, LogOut, Crown, Zap, X, CheckSquare, Timer, FileText, BookOpen, Sparkles, ArrowRight } from 'lucide-react'
 import { clearAuth, getAuth, useAuthPlan, useIsLoggedIn, upgradeToPremium } from '../../store/auth'
+import { getLogoutUrl } from '../../config/auth'
 import { useI18n } from '../../shared/i18n/useI18n'
 import LoginModal from './LoginModal'
 import { dbService } from '../../data/services/dbService'
@@ -56,7 +57,7 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
 
   const handleLogout = () => {
     clearAuth()
-    window.location.reload()
+    window.location.href = getLogoutUrl()
   }
 
   const handleUpgrade = async () => {
