@@ -10,76 +10,8 @@ import DiaryEditor from '../components/DiaryEditor'
 import type { DiaryEditorValue } from '../components/DiaryEditor'
 import { ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { readDiaryFont, writeDiaryFont } from '../../../shared/prefs/preferences'
-import type { DiaryFontId } from '../../../shared/prefs/preferences'
+import { readDiaryFont } from '../../../shared/prefs/preferences'
 import './diary-page.css'
-
-// ── Font definitions ────────────────────────────────────────────────────────
-
-type DiaryFont = { id: DiaryFontId; label: string; labelZh: string; css: string; sample: string }
-
-const DIARY_FONTS: DiaryFont[] = [
-  { id: 'fraunces',        label: 'Fraunces',  labelZh: '优雅衬线', css: "'Fraunces', serif",                               sample: 'The quiet world' },
-  { id: 'lora',            label: 'Lora',      labelZh: '经典衬线', css: "'Lora', serif",                                   sample: 'The quiet world' },
-  { id: 'playfair',        label: 'Playfair',  labelZh: '时尚衬线', css: "'Playfair Display', serif",                       sample: 'The quiet world' },
-  { id: 'crimson',         label: 'Crimson',   labelZh: '文学体',   css: "'Crimson Pro', serif",                            sample: 'The quiet world' },
-  { id: 'noto-serif-sc',   label: 'Noto Serif', labelZh: '宋体',    css: "'Noto Serif SC', serif",                          sample: '此刻宁静' },
-  { id: 'zcool-xiaowei',   label: 'XiaoWei',   labelZh: '小薇体',   css: "'ZCOOL XiaoWei', 'Noto Serif SC', serif",         sample: '此刻宁静' },
-  { id: 'ma-shan-zheng',   label: 'Ma Shan',   labelZh: '马善政',   css: "'Ma Shan Zheng', 'Noto Serif SC', serif",         sample: '此刻宁静' },
-  { id: 'liu-jian-mao-cao', label: 'Liu Jian', labelZh: '流践体',   css: "'Liu Jian Mao Cao', 'Noto Serif SC', cursive",    sample: '此刻宁静' },
-  { id: 'zcool-kuaile',    label: 'KuaiLe',    labelZh: '快乐体',   css: "'ZCOOL KuaiLe', 'Noto Serif SC', sans-serif",     sample: '此刻宁静' },
-  { id: 'long-cang',       label: 'Long Cang', labelZh: '龙藏体',   css: "'Long Cang', 'Noto Serif SC', cursive",           sample: '此刻宁静' },
-]
-
-// ── FontPicker component ────────────────────────────────────────────────────
-
-type FontPickerProps = { value: DiaryFontId; onChange: (id: DiaryFontId) => void }
-
-const FontPicker = ({ value, onChange }: FontPickerProps) => {
-  const [open, setOpen] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const current = DIARY_FONTS.find((f) => f.id === value) ?? DIARY_FONTS[0]
-
-  useEffect(() => {
-    if (!open) return
-    const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
-
-  return (
-    <div className="diary-font-picker" ref={containerRef}>
-      <button
-        type="button"
-        className="diary-font-picker__btn"
-        onClick={() => setOpen((v) => !v)}
-        aria-label="选择字体 / Choose font"
-      >
-        <span style={{ fontFamily: current.css }}>Aa</span>
-        <span>{current.labelZh}</span>
-      </button>
-      {open && (
-        <div className="diary-font-picker__panel" role="listbox">
-          {DIARY_FONTS.map((font) => (
-            <button
-              key={font.id}
-              type="button"
-              role="option"
-              aria-selected={font.id === value}
-              className={cn('diary-font-picker__option', font.id === value && 'diary-font-picker__option--active')}
-              onClick={() => { onChange(font.id); setOpen(false) }}
-            >
-              <span className="diary-font-picker__sample" style={{ fontFamily: font.css }}>{font.sample}</span>
-              <span className="diary-font-picker__label">{font.labelZh} · {font.label}</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
 
 type ViewMode = 'day' | 'week' | 'month'
 
@@ -228,13 +160,9 @@ const DiaryPage = () => {
   const locale = t('diary.title') === '日记' ? 'zh' : 'en'
   const today = toDateKey()
   const [view, setView] = useState<ViewMode>('day')
-  const [diaryFont, setDiaryFont] = useState<DiaryFontId>(() => readDiaryFont())
+  const diaryFont = readDiaryFont()
 
-  const handleFontChange = useCallback((id: DiaryFontId) => {
-    setDiaryFont(id)
-    writeDiaryFont(id)
-  }, [])
-  const [selectedDateKey, setSelectedDateKey] = useState(today)
+const [selectedDateKey, setSelectedDateKey] = useState(today)
   const [entries, setEntries] = useState<DiaryEntry[]>([])
   const [allEntries, setAllEntries] = useState<DiaryEntry[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -648,7 +576,6 @@ const DiaryPage = () => {
                     <div className="diary-page__word-count diary-page__microcopy diary-page__numeric text-xs uppercase tracking-[0.14em] text-muted-foreground">
                       {calcWordCount(editorValue.contentMd)} {t('diary.words')}
                     </div>
-                    <FontPicker value={diaryFont} onChange={handleFontChange} />
                     <button
                       type="button"
                       className="rounded-full p-2 text-muted-foreground transition-all hover:bg-destructive/5 hover:text-destructive"
