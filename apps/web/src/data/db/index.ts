@@ -17,6 +17,7 @@ import type {
   UserSubscription,
   WidgetTodo,
 } from '../models/types'
+import type { SyncOutboxItem, SyncState } from '../sync/types'
 import {
   DB_NAME,
   DB_VERSION,
@@ -27,7 +28,7 @@ import {
   schemaV23,
   schemaV24,
   schemaV26,
-  schemaV27,
+  schemaV28,
   schemaV2,
   schemaV3,
   schemaV4,
@@ -55,6 +56,8 @@ export class WorkbenchDb extends Dexie {
   featureInstallations!: Table<FeatureInstallation, string>
   habits!: Table<Habit, string>
   habitLogs!: Table<HabitLog, string>
+  syncOutbox!: Table<SyncOutboxItem, string>
+  syncState!: Table<SyncState, string>
 
   constructor() {
     super(DB_NAME)
@@ -139,7 +142,7 @@ export class WorkbenchDb extends Dexie {
         await tx.table(TABLES.notes).bulkPut(migratedNotes as NoteItem[])
       })
     this.version(DB_VERSION)
-      .stores(schemaV27)
+      .stores(schemaV28)
       .upgrade(async (tx) => {
         const diaryRows = await tx.table(TABLES.diaryEntries).toArray()
         if (diaryRows.length === 0) return
@@ -167,6 +170,8 @@ export class WorkbenchDb extends Dexie {
     this.featureInstallations = this.table(TABLES.featureInstallations)
     this.habits = this.table(TABLES.habits)
     this.habitLogs = this.table(TABLES.habitLogs)
+    this.syncOutbox = this.table(TABLES.syncOutbox)
+    this.syncState = this.table(TABLES.syncState)
   }
 }
 

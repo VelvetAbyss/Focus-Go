@@ -49,7 +49,6 @@ import { usePreferences } from '../../shared/prefs/usePreferences'
 import { useI18n } from '../../shared/i18n/useI18n'
 import type { LanguageCode } from '../../shared/i18n/types'
 import { useToast } from '../../shared/ui/toast/toast'
-import { usePremiumGate } from '../../features/premium/PremiumProvider'
 import {
   createBackupDownload,
   createBrowserStorageAdapter,
@@ -58,6 +57,7 @@ import {
   importLocalBackup,
   type LocalBackupPayload,
 } from '../../shared/backup/localBackup'
+import { useSyncActions, useSyncStatus } from '../../data/sync/service'
 import { ROUTES } from './routes'
 
 const LAYOUT_LOCK_KEY = 'workbench.dashboard.layoutLocked'
@@ -599,8 +599,9 @@ const SettingsRoute = () => {
   const location = useLocation()
   const navigate = useNavigate()
   const { language, t } = useI18n()
-  const { canUse, openUpgradeModal } = usePremiumGate()
   const toast = useToast()
+  const syncState = useSyncStatus()
+  const { syncNow, resolveFirstSync } = useSyncActions()
   const [activeSection, setActiveSection] = useState<BaseSettingsSection>('appearance')
   const [layoutLocked, setLayoutLocked] = useState(() => readLayoutLocked())
   const [theme, setTheme] = useState<ThemeSelection>('system')
@@ -611,6 +612,7 @@ const SettingsRoute = () => {
   const [isResetting, setIsResetting] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
+  const [isResolvingFirstSync, setIsResolvingFirstSync] = useState(false)
   const [pendingImport, setPendingImport] = useState<{ fileName: string; payload: LocalBackupPayload } | null>(null)
   const importInputRef = useRef<HTMLInputElement | null>(null)
   const {
@@ -671,6 +673,10 @@ const SettingsRoute = () => {
   const isLegalSection = location.pathname === LEGAL_ROOT_PATH || legalDocumentKey !== null
   const resolvedSection: SettingsSection = isLegalSection ? 'legal' : activeSection
   const legalDocument = legalDocumentKey ? LEGAL_DOCUMENTS[language][legalDocumentKey] : null
+  const syncStatusLabel = syncState ? t(`settings.data.sync.status.${syncState.status}`) : t('settings.data.sync.status.idle')
+  const lastSyncedLabel = syncState?.lastPulledAt
+    ? t('settings.data.sync.lastSynced', { time: new Date(syncState.lastPulledAt).toLocaleString() })
+    : t('settings.data.sync.lastSynced.never')
 
   const openSection = (section: SettingsSection) => {
     if (section === 'legal') {
@@ -870,6 +876,18 @@ const SettingsRoute = () => {
       toast.push({ variant: 'error', message: message || fallback })
       setIsImporting(false)
       setPendingImport(null)
+    }
+  }
+
+  const handleResolveFirstSync = async (choice: 'upload-local' | 'pull-remote') => {
+    setIsResolvingFirstSync(true)
+    try {
+      await resolveFirstSync(choice)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Sync failed'
+      toast.push({ variant: 'error', message })
+    } finally {
+      setIsResolvingFirstSync(false)
     }
   }
 
@@ -1295,20 +1313,56 @@ const SettingsRoute = () => {
                         <>
                           <SettingRow
                             icon={Database}
-                            title="Cloud sync"
-                            description="Premium required to sync this workspace across devices."
+                            title={t('settings.data.sync.title')}
+                            description={t('settings.data.sync.description')}
                           >
-                            <Button
-                              variant="outline"
-                              onClick={() => {
-                                if (!canUse('system.cloud-sync').allowed) {
-                                  openUpgradeModal('button', 'system.cloud-sync')
-                                }
-                              }}
-                            >
-                              Connect
-                            </Button>
+                            <div className="flex w-full flex-col gap-3 sm:items-end">
+                              <div className="text-sm text-muted-foreground">{syncStatusLabel}</div>
+                              <div className="text-xs text-muted-foreground">{lastSyncedLabel}</div>
+                              {syncState?.lastError ? (
+                                <div className="max-w-[360px] text-right text-xs text-destructive">
+                                  {t('settings.data.sync.error', { message: syncState.lastError })}
+                                </div>
+                              ) : null}
+                              <Button variant="outline" disabled={syncState?.status === 'syncing'} onClick={() => void syncNow()}>
+                                {t('settings.data.sync.action')}
+                              </Button>
+                            </div>
                           </SettingRow>
+
+                          {syncState?.pendingFirstSync ? (
+                            <motion.div
+                              className="space-y-4 rounded-xl bg-background/40 p-4 shadow-sm"
+                              initial={{ opacity: 0, y: 16 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.35, delay: 0.04, ease: [0.22, 1, 0.36, 1] }}
+                            >
+                              <div className="space-y-1">
+                                <h3 className="text-sm font-semibold text-foreground">{t('settings.data.sync.first.title')}</h3>
+                                <p className="text-sm text-muted-foreground">{t('settings.data.sync.first.description')}</p>
+                              </div>
+                              <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                                <span>{t('settings.data.sync.first.localCount', { count: syncState.pendingLocalRecordCount })}</span>
+                                <span>{t('settings.data.sync.first.remoteCount', { count: syncState.pendingRemoteRecordCount })}</span>
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                <Button
+                                  variant="outline"
+                                  disabled={isResolvingFirstSync}
+                                  onClick={() => void handleResolveFirstSync('upload-local')}
+                                >
+                                  {t('settings.data.sync.first.upload')}
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  disabled={isResolvingFirstSync}
+                                  onClick={() => void handleResolveFirstSync('pull-remote')}
+                                >
+                                  {t('settings.data.sync.first.pull')}
+                                </Button>
+                              </div>
+                            </motion.div>
+                          ) : null}
 
                           <SettingRow
                             icon={Database}

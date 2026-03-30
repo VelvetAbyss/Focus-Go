@@ -1,4 +1,5 @@
 import { db } from '../../data/db'
+import { enqueueSyncOperation } from '../../data/sync/repository'
 import { deriveFeatureState, nextFeatureInstallations, type FeatureState } from './labsModel'
 import type { AccountRole, FeatureKey } from '../../data/models/types'
 
@@ -73,6 +74,7 @@ const upsertSubscription = async (tier: SubscriptionTier, role: AccountRole = CU
       updatedAt: now,
     }
     await db.userSubscriptions.put(created)
+    await enqueueSyncOperation('userSubscriptions', 'upsert', created)
     return created
   }
 
@@ -83,6 +85,7 @@ const upsertSubscription = async (tier: SubscriptionTier, role: AccountRole = CU
     updatedAt: now,
   }
   await db.userSubscriptions.put(next)
+  await enqueueSyncOperation('userSubscriptions', 'upsert', next)
   return next
 }
 
@@ -91,6 +94,17 @@ const removeLegacyRssInstallations = async () => {
   const rssRows = rows.filter((item) => (item as { featureKey: string }).featureKey === 'rss')
   if (rssRows.length === 0) return
   await db.featureInstallations.bulkDelete(rssRows.map((item) => item.id))
+  const deletedAt = Date.now()
+  await Promise.all(
+    rssRows.map((item) =>
+      enqueueSyncOperation(
+        'featureInstallations',
+        'delete',
+        { id: item.id, updatedAt: deletedAt, featureKey: item.featureKey },
+        deletedAt,
+      ),
+    ),
+  )
 }
 
 const readAuthPlan = (): SubscriptionTier => {
@@ -170,6 +184,7 @@ const mutateFeature = async (featureKey: FeatureKey, action: 'install' | 'remove
   }))
 
   await db.featureInstallations.bulkPut(next)
+  await Promise.all(next.map((item) => enqueueSyncOperation('featureInstallations', 'upsert', item)))
   return getFeatureCatalog()
 }
 

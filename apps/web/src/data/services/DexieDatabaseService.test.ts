@@ -148,4 +148,23 @@ describe('DexieDatabaseService', () => {
     expect(appearance.theme).toBe('graphite')
     expect((await service.noteAppearance.get())?.font).toBe('serif')
   })
+
+  it('enqueues sync outbox items after writes', async () => {
+    await db.delete({ disableAutoOpen: false })
+    await db.open()
+    const service = createDexieDatabaseService()
+
+    const task = await service.tasks.add({
+      title: 'Sync me',
+      status: 'todo',
+      priority: null,
+    })
+    await service.tasks.remove(task.id)
+
+    const outbox = await db.syncOutbox.toArray()
+    expect(outbox).toHaveLength(1)
+    expect(outbox[0].entityType).toBe('tasks')
+    expect(outbox[0].op).toBe('delete')
+    expect(outbox[0].entityId).toBe(task.id)
+  })
 })

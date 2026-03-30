@@ -2,6 +2,7 @@ import Database from 'better-sqlite3'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { mkdirSync } from 'fs'
+import { ensureSyncTables } from '../sync/store.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const DATA_DIR = join(__dirname, '../data')
@@ -24,5 +25,7 @@ db.exec(`
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
   )
 `)
+
+ensureSyncTables(db)
 
 export default db
