@@ -7,5 +7,11 @@ export const AUTH_CONFIG = {
 
 export const getAuthUrl = () => {
   const { clientId, domain, redirectUri, scope } = AUTH_CONFIG
-  return `${domain}/oidc/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}`
+  return `${domain}/oidc/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&prompt=login`
+}
+
+export const getLogoutUrl = () => {
+  const { clientId, domain } = AUTH_CONFIG
+  const returnTo = `${window.location.origin}/`
+  return `${domain}/oidc/session/end?id_token_hint=&post_logout_redirect_uri=${encodeURIComponent(returnTo)}&client_id=${clientId}`
 }
