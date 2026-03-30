@@ -11,7 +11,6 @@ import TableHeader from '@tiptap/extension-table-header'
 import TableRow from '@tiptap/extension-table-row'
 import { TextAlign } from '@tiptap/extension-text-align'
 import { Typography } from '@tiptap/extension-typography'
-import Underline from '@tiptap/extension-underline'
 import StarterKit from '@tiptap/starter-kit'
 import { ResizableImage } from './resizableImage'
 
@@ -25,7 +24,6 @@ export const createRichTextExtensions = (placeholder?: string): AnyExtension[] =
         enableClickSelection: true,
       },
     }),
-    Underline,
     HorizontalRule,
     TextAlign.configure({ types: ['heading', 'paragraph'] }),
     TaskList,
@@ -33,6 +31,7 @@ export const createRichTextExtensions = (placeholder?: string): AnyExtension[] =
     Highlight.configure({ multicolor: true }),
     ResizableImage,
     Typography,
+
     Superscript,
     Subscript,
     Table.configure({ resizable: false }),

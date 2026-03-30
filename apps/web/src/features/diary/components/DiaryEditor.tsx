@@ -6,7 +6,6 @@ import { TaskItem, TaskList } from '@tiptap/extension-list'
 import { Subscript } from '@tiptap/extension-subscript'
 import { Superscript } from '@tiptap/extension-superscript'
 import { Typography } from '@tiptap/extension-typography'
-import { Underline } from '@tiptap/extension-underline'
 import { StarterKit } from '@tiptap/starter-kit'
 import { EditorContent, EditorContext, useEditor } from '@tiptap/react'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
@@ -114,7 +113,6 @@ const DiaryEditor = ({ value, placeholder, onChange, onFlush }: DiaryEditorProps
       TaskItem.configure({ nested: true }),
       Highlight.configure({ multicolor: true }),
       ResizableImage,
-      Underline,
       Typography,
       Superscript,
       Subscript,
