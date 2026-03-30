@@ -7,7 +7,5 @@ export type DashboardLayoutSyncPayload = {
 
 export async function syncDashboardLayout(payload: DashboardLayoutSyncPayload): Promise<void> {
   void payload
-  // Placeholder adapter for future cloud sync integration.
-  // Current behavior: local-only success path.
   return Promise.resolve()
 }

@@ -9,6 +9,7 @@ import { ToastProvider } from './shared/ui/toast/ToastProvider'
 import { LabsProvider } from './features/labs/LabsContext'
 import { SharedNoiseProvider } from './features/focus/SharedNoiseProvider'
 import { PremiumProvider } from './features/premium/PremiumProvider'
+import { SyncProvider } from './data/sync/service'
 
 const App = () => {
   useEffect(() => {
@@ -21,15 +22,17 @@ const App = () => {
     <BrowserRouter>
       <PreferencesProvider>
         <ToastProvider>
-          <PremiumProvider>
-            <LabsProvider>
-              <SharedNoiseProvider>
-                <AppShell>
-                  <AppRoutes />
-                </AppShell>
-              </SharedNoiseProvider>
-            </LabsProvider>
-          </PremiumProvider>
+          <SyncProvider>
+            <PremiumProvider>
+              <LabsProvider>
+                <SharedNoiseProvider>
+                  <AppShell>
+                    <AppRoutes />
+                  </AppShell>
+                </SharedNoiseProvider>
+              </LabsProvider>
+            </PremiumProvider>
+          </SyncProvider>
         </ToastProvider>
       </PreferencesProvider>
     </BrowserRouter>

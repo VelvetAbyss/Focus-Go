@@ -30,6 +30,7 @@ import { touch, withBase } from '../repositories/base'
 import { createId } from '../../shared/utils/ids'
 import { areTaskNoteBlocksEqual, normalizeTaskNoteBlocks } from '../../features/tasks/model/taskNote'
 import { resolveTaskNoteRichText } from '../../features/tasks/model/taskNoteRichText'
+import { enqueueSyncOperation } from '../sync/repository'
 
 const statusLabelMap: Record<TaskStatus, string> = {
   todo: '待办',
@@ -213,6 +214,38 @@ const moveDateKey = (dateKey: string, offset: number) => {
   return toDateKey(next)
 }
 
+const enqueueUpsert = async <
+  T extends
+    | 'tasks'
+    | 'notes'
+    | 'noteTags'
+    | 'noteAppearance'
+    | 'widgetTodos'
+    | 'focusSettings'
+    | 'focusSessions'
+    | 'diaryEntries'
+    | 'spends'
+    | 'spendCategories'
+    | 'dashboardLayout'
+    | 'habits'
+    | 'habitLogs'
+>(entityType: T, payload: { id: string; updatedAt: number } & Record<string, unknown>) => {
+  await enqueueSyncOperation(entityType, 'upsert', payload)
+}
+
+const enqueueDelete = async <
+  T extends
+    | 'tasks'
+    | 'notes'
+    | 'noteTags'
+    | 'widgetTodos'
+    | 'diaryEntries'
+    | 'spends'
+    | 'habitLogs'
+>(entityType: T, payload: { id: string; updatedAt: number } & Record<string, unknown>, deletedAt = payload.updatedAt) => {
+  await enqueueSyncOperation(entityType, 'delete', { ...payload, deletedAt }, deletedAt)
+}
+
 export const createDexieDatabaseService = (): IDatabaseService => ({
   tasks: {
     async list() {
@@ -273,15 +306,21 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
         },
       ]
       await db.tasks.add(task)
+      await enqueueUpsert('tasks', task)
       return task
     },
     async update(task) {
       const next = touch(normalizeTask(task as TaskItem))
       await db.tasks.put(next)
+      await enqueueUpsert('tasks', next)
       return next
     },
     async remove(id) {
+      const existing = await db.tasks.get(id)
+      if (!existing) return
+      const deletedAt = Date.now()
       await db.tasks.delete(id)
+      await enqueueDelete('tasks', { id, updatedAt: deletedAt, title: existing.title }, deletedAt)
     },
     async updateStatus(id, status) {
       const task = await db.tasks.get(id)
@@ -303,13 +342,16 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
         ],
       })
       await db.tasks.put(next)
+      await enqueueUpsert('tasks', next)
       return next
     },
     async clearAllTags() {
       const tasks = await db.tasks.toArray()
       const tagged = tasks.map((task) => normalizeTask(task)).filter((task) => task.tags.length > 0)
       if (tagged.length === 0) return
-      await db.tasks.bulkPut(tagged.map((task) => touch({ ...task, tags: [] })))
+      const nextRows = tagged.map((task) => touch({ ...task, tags: [] }))
+      await db.tasks.bulkPut(nextRows)
+      await Promise.all(nextRows.map((row) => enqueueUpsert('tasks', row)))
     },
   },
   notes: {
@@ -359,6 +401,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
         deletedAt: null,
       })
       await db.notes.add(note)
+      await enqueueUpsert('notes', note)
       return normalizeNote(note)
     },
     async update(id: string, patch: NoteUpdateInput) {
@@ -382,6 +425,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
         }),
       )
       await db.notes.put(next)
+      await enqueueUpsert('notes', next)
       return next
     },
     async softDelete(id: string) {
@@ -392,6 +436,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
         deletedAt: Date.now(),
       })
       await db.notes.put(next)
+      await enqueueUpsert('notes', next)
       return next
     },
     async restore(id: string) {
@@ -402,10 +447,15 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
         deletedAt: null,
       })
       await db.notes.put(next)
+      await enqueueUpsert('notes', next)
       return next
     },
     async hardDelete(id: string) {
+      const existing = await db.notes.get(id)
+      if (!existing) return
+      const deletedAt = Date.now()
       await db.notes.delete(id)
+      await enqueueDelete('notes', { id, updatedAt: deletedAt, title: existing.title }, deletedAt)
     },
   },
   noteTags: {
@@ -436,6 +486,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
         sortOrder: data.sortOrder ?? 0,
       } satisfies Omit<NoteTag, 'id' | 'createdAt' | 'updatedAt'>)
       await db.noteTags.add(tag)
+      await enqueueUpsert('noteTags', tag)
       return normalizeNoteTag(tag)
     },
     async update(id: string, patch: NoteTagUpdateInput) {
@@ -449,10 +500,15 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
         } as NoteTag),
       )
       await db.noteTags.put(next)
+      await enqueueUpsert('noteTags', next)
       return next
     },
     async remove(id: string) {
+      const existing = await db.noteTags.get(id)
+      if (!existing) return
+      const deletedAt = Date.now()
       await db.noteTags.delete(id)
+      await enqueueDelete('noteTags', { id, updatedAt: deletedAt, name: existing.name }, deletedAt)
     },
   },
   noteAppearance: {
@@ -465,6 +521,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       if (!current) {
         const created = normalizeNoteAppearance(data)
         await db.noteAppearance.put(created)
+        await enqueueUpsert('noteAppearance', created)
         return created
       }
       const next = touch({
@@ -473,6 +530,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
         id: NOTE_APPEARANCE_ID,
       })
       await db.noteAppearance.put(next)
+      await enqueueUpsert('noteAppearance', next)
       return next
     },
   },
@@ -484,11 +542,13 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
     async add(data) {
       const item = withBase(data as Omit<WidgetTodo, 'id' | 'createdAt' | 'updatedAt'>)
       await db.widgetTodos.add(item)
+      await enqueueUpsert('widgetTodos', item)
       return item
     },
     async update(item) {
       const next = touch(item as WidgetTodo)
       await db.widgetTodos.put(next)
+      await enqueueUpsert('widgetTodos', next)
       return next
     },
     async resetDone(scope) {
@@ -496,10 +556,15 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       if (rows.length === 0) return []
       const reset = rows.map((item) => ({ ...item, done: false }))
       await db.widgetTodos.bulkPut(reset)
+      await Promise.all(reset.map((row) => enqueueUpsert('widgetTodos', row)))
       return reset
     },
     async remove(id) {
+      const existing = await db.widgetTodos.get(id)
+      if (!existing) return
+      const deletedAt = Date.now()
       await db.widgetTodos.delete(id)
+      await enqueueDelete('widgetTodos', { id, updatedAt: deletedAt, title: existing.title }, deletedAt)
     },
   },
   focus: {
@@ -512,10 +577,12 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       if (!existing) {
         const next = withBase({ ...(data as Omit<FocusSettings, 'id' | 'createdAt' | 'updatedAt'>), id: 'focus_settings' })
         await db.focusSettings.put(next)
+        await enqueueUpsert('focusSettings', next)
         return next
       }
       const next = touch({ ...existing, ...(data as Partial<FocusSettings>) })
       await db.focusSettings.put(next)
+      await enqueueUpsert('focusSettings', next)
       return next
     },
   },
@@ -533,6 +600,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
         goal: data.goal?.trim() || undefined,
       })
       await db.focusSessions.add(session)
+      await enqueueUpsert('focusSessions', session)
       return session
     },
     async complete(id, data) {
@@ -548,6 +616,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
         completedAt,
       })
       await db.focusSessions.put(next)
+      await enqueueUpsert('focusSessions', next)
       return next
     },
   },
@@ -580,6 +649,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       if (!existing) return null
       const next = touch({ ...existing, deletedAt: Date.now(), expiredAt: null })
       await db.diaryEntries.put(next)
+      await enqueueUpsert('diaryEntries', next)
       return next
     },
     async softDeleteById(id) {
@@ -587,6 +657,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       if (!existing) return null
       const next = touch({ ...existing, deletedAt: Date.now(), expiredAt: null })
       await db.diaryEntries.put(next)
+      await enqueueUpsert('diaryEntries', next)
       return next
     },
     async restoreByDate(dateKey) {
@@ -594,6 +665,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       if (!existing) return null
       const next = touch({ ...existing, deletedAt: null, expiredAt: null })
       await db.diaryEntries.put(next)
+      await enqueueUpsert('diaryEntries', next)
       return next
     },
     async restoreById(id) {
@@ -601,6 +673,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       if (!existing) return null
       const next = touch({ ...existing, deletedAt: null, expiredAt: null })
       await db.diaryEntries.put(next)
+      await enqueueUpsert('diaryEntries', next)
       return next
     },
     async markExpiredOlderThan(days = 30) {
@@ -611,22 +684,33 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       const now = Date.now()
       const updated = targets.map((entry) => touch({ ...entry, expiredAt: now }))
       await db.diaryEntries.bulkPut(updated)
+      await Promise.all(updated.map((row) => enqueueUpsert('diaryEntries', row)))
       return updated.length
     },
     async hardDeleteByDate(dateKey) {
-      return db.diaryEntries.where('dateKey').equals(dateKey).delete()
+      const rows = await db.diaryEntries.where('dateKey').equals(dateKey).toArray()
+      const deletedAt = Date.now()
+      const count = await db.diaryEntries.where('dateKey').equals(dateKey).delete()
+      await Promise.all(rows.map((row) => enqueueDelete('diaryEntries', { id: row.id, updatedAt: deletedAt, dateKey }, deletedAt)))
+      return count
     },
     async hardDeleteById(id) {
-      return db.diaryEntries.where('id').equals(id).delete()
+      const existing = await db.diaryEntries.get(id)
+      const deletedAt = Date.now()
+      const count = await db.diaryEntries.where('id').equals(id).delete()
+      if (existing) await enqueueDelete('diaryEntries', { id, updatedAt: deletedAt, dateKey: existing.dateKey }, deletedAt)
+      return count
     },
     async add(data) {
       const entry = withBase(data as Omit<DiaryEntry, 'id' | 'createdAt' | 'updatedAt'>)
       await db.diaryEntries.add(entry)
+      await enqueueUpsert('diaryEntries', entry)
       return entry
     },
     async update(entry) {
       const next = touch(entry as DiaryEntry)
       await db.diaryEntries.put(next)
+      await enqueueUpsert('diaryEntries', next)
       return next
     },
   },
@@ -637,14 +721,20 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
     async addEntry(data) {
       const entry = withBase(data as Omit<SpendEntry, 'id' | 'createdAt' | 'updatedAt'>)
       await db.spends.add(entry)
+      await enqueueUpsert('spends', entry)
       return entry
     },
     async deleteEntry(id) {
+      const existing = await db.spends.get(id)
+      if (!existing) return
+      const deletedAt = Date.now()
       await db.spends.delete(id)
+      await enqueueDelete('spends', { id, updatedAt: deletedAt, categoryId: existing.categoryId }, deletedAt)
     },
     async updateEntry(entry) {
       const next = touch(entry as SpendEntry)
       await db.spends.put(next)
+      await enqueueUpsert('spends', next)
       return next
     },
     async listCategories() {
@@ -653,11 +743,13 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
     async addCategory(data) {
       const category = withBase(data as Omit<SpendCategory, 'id' | 'createdAt' | 'updatedAt'>)
       await db.spendCategories.add(category)
+      await enqueueUpsert('spendCategories', category)
       return category
     },
     async updateCategory(category) {
       const next = touch(category as SpendCategory)
       await db.spendCategories.put(next)
+      await enqueueUpsert('spendCategories', next)
       return next
     },
   },
@@ -676,6 +768,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
         sortOrder: typeof data.sortOrder === 'number' ? data.sortOrder : maxOrder + 1,
       })
       await db.habits.add(habit)
+      await enqueueUpsert('habits', habit)
       return habit
     },
     async updateHabit(id, patch) {
@@ -683,6 +776,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       if (!existing) return undefined
       const next = touch({ ...existing, ...(patch as Partial<Habit>) })
       await db.habits.put(next)
+      await enqueueUpsert('habits', next)
       return next
     },
     async archiveHabit(id) {
@@ -690,6 +784,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       if (!existing) return undefined
       const next = touch({ ...existing, archived: true })
       await db.habits.put(next)
+      await enqueueUpsert('habits', next)
       return next
     },
     async restoreHabit(id) {
@@ -697,6 +792,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       if (!existing) return undefined
       const next = touch({ ...existing, archived: false })
       await db.habits.put(next)
+      await enqueueUpsert('habits', next)
       return next
     },
     async reorderHabits(userId, ids) {
@@ -711,7 +807,10 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
           return { ...existing, sortOrder: index, updatedAt: now }
         })
         .filter((item): item is Habit => Boolean(item))
-      if (updated.length) await db.habits.bulkPut(updated)
+      if (updated.length) {
+        await db.habits.bulkPut(updated)
+        await Promise.all(updated.map((row) => enqueueUpsert('habits', row)))
+      }
     },
     async recordHabitCompletion(habitId, dateKey, value) {
       const habit = await db.habits.get(habitId)
@@ -738,12 +837,14 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       }
 
       await db.habitLogs.put(log)
+      await enqueueUpsert('habitLogs', log)
       return log
     },
     async undoHabitCompletion(habitId, dateKey) {
       const existing = await db.habitLogs.where('[habitId+dateKey]').equals([habitId, dateKey]).first()
       if (!existing) return
       await db.habitLogs.delete(existing.id)
+      await enqueueDelete('habitLogs', { id: existing.id, updatedAt: Date.now(), habitId, dateKey }, Date.now())
     },
     async listHabitLogs(habitId) {
       const rows = await db.habitLogs.where('habitId').equals(habitId).toArray()
@@ -834,10 +935,12 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       if (!existing) {
         const next = withBase({ ...(data as Omit<DashboardLayout, 'id' | 'createdAt' | 'updatedAt'>), id: 'dashboard_layout' })
         await db.dashboardLayout.put(next)
+        await enqueueUpsert('dashboardLayout', next)
         return next
       }
       const next = touch({ ...existing, ...(data as Partial<DashboardLayout>) })
       await db.dashboardLayout.put(next)
+      await enqueueUpsert('dashboardLayout', next)
       return next
     },
   },
