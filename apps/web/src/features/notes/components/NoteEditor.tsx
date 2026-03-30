@@ -11,7 +11,6 @@ import TableHeader from '@tiptap/extension-table-header'
 import TableRow from '@tiptap/extension-table-row'
 import { TextAlign } from '@tiptap/extension-text-align'
 import { Typography } from '@tiptap/extension-typography'
-import { Underline } from '@tiptap/extension-underline'
 import { StarterKit } from '@tiptap/starter-kit'
 import { EditorContent, EditorContext, useEditor } from '@tiptap/react'
 import { Download, Expand, GitBranch, Info, Minimize2, Palette } from 'lucide-react'
@@ -279,7 +278,6 @@ const NoteEditor = ({
       TaskList,
       TaskItem.configure({ nested: true }),
       Highlight.configure({ multicolor: true }),
-      Underline,
       ResizableImage,
       Typography,
       Superscript,
