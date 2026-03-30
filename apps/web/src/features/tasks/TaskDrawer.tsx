@@ -698,10 +698,10 @@ const TaskDrawer = ({
                   </Button>
                 ) : null}
               </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-[color:var(--text-secondary)] hover:bg-[color:rgba(127,29,29,0.12)] hover:text-rose-500" onClick={() => void handleDelete()} disabled={isSaving}>
+              <Button aria-label="Delete task" variant="ghost" size="icon" className="h-8 w-8 rounded-full text-[color:var(--text-secondary)] hover:bg-[color:rgba(127,29,29,0.12)] hover:text-rose-500" onClick={() => void handleDelete()} disabled={isSaving}>
                 <Trash2 className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-hover)] hover:text-[color:var(--text-primary)]" onClick={requestClose}>
+              <Button aria-label="Close task detail" variant="ghost" size="icon" className="h-8 w-8 rounded-full text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-hover)] hover:text-[color:var(--text-primary)]" onClick={requestClose}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
