@@ -82,6 +82,7 @@ describe('DiaryPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Streak')).toBeInTheDocument()
       expect(screen.getByText('Entries')).toBeInTheDocument()
+      expect(screen.queryByText('Weekly Words')).not.toBeInTheDocument()
     })
   })
 
@@ -139,5 +140,34 @@ describe('DiaryPage', () => {
     const call = diaryRepoMock.add.mock.calls[0][0] as { dateKey: string; entryAt: number }
     expect(call.dateKey).toBe(todayKey)
     expect(typeof call.entryAt).toBe('number')
+  })
+
+  it('keeps fixed layout slot for word count', async () => {
+    diaryRepoMock.listByRange.mockResolvedValueOnce([
+      {
+        id: 'e1',
+        dateKey: todayKey,
+        entryAt: now,
+        contentMd: 'Hello world',
+        contentJson: null,
+        tags: [],
+        deletedAt: null,
+        expiredAt: null,
+        createdAt: now,
+        updatedAt: now,
+        weatherSnapshot: null,
+      },
+    ])
+    const { container } = renderPage()
+
+    await waitFor(() => {
+      expect(screen.getByText(/Hello world/i)).toBeInTheDocument()
+    })
+
+    screen.getByText(/Hello world/i).click()
+
+    await waitFor(() => {
+      expect(container.querySelector('.diary-page__word-count')).toBeInTheDocument()
+    })
   })
 })

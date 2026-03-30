@@ -239,7 +239,7 @@ const DiaryPage = () => {
   const [allEntries, setAllEntries] = useState<DiaryEntry[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [editorValue, setEditorValue] = useState<DiaryEditorValue>({ contentMd: '', contentJson: null })
-  const [saving, setSaving] = useState(false)
+  const [, setSaving] = useState(false)
   const pendingSaveRef = useRef<DiaryEditorValue | null>(null)
   const selectedIdRef = useRef<string | null>(null)
   const selectedEntryRef = useRef<DiaryEntry | null>(null)
@@ -381,17 +381,6 @@ const DiaryPage = () => {
 
   const isAtToday = selectedDateKey >= today && view === 'day'
 
-  // Weekly word chart data (last 7 days from current week start)
-  const weeklyWordData = useMemo(() => {
-    const weekStart = startOfWeek(today)
-    return Array.from({ length: 7 }, (_, i) => {
-      const day = addDays(weekStart, i)
-      const dayEntries = allEntries.filter((e) => !e.deletedAt && e.dateKey === day)
-      return { day, words: dayEntries.reduce((sum, e) => sum + calcWordCount(e.contentMd), 0) }
-    })
-  }, [allEntries, today])
-
-  const maxWords = Math.max(1, ...weeklyWordData.map((d) => d.words))
   const diaryMoment = useMemo(() => getDiaryMoment(), [])
 
   const topStats = [
@@ -443,10 +432,7 @@ const DiaryPage = () => {
                 </div>
               ))}
             </div>
-            <div className="flex items-center justify-end gap-3">
-              {saving && (
-                <span className="text-xs text-muted-foreground">{t('diary.saving')}</span>
-              )}
+            <div className="flex items-center justify-end">
               <button
                 type="button"
                 className="flex items-center justify-center gap-2 rounded-full bg-[color:#3A3733] px-4 py-2.5 text-sm font-semibold text-[color:#F5F3F0] shadow-sm transition-all hover:opacity-95 active:scale-95"
@@ -609,28 +595,6 @@ const DiaryPage = () => {
             )}
           </div>
 
-          {/* Weekly words chart */}
-          <div className="shrink-0 bg-[color:rgba(245,243,240,0.84)] px-4 py-4 md:px-5">
-            <div className="mb-3 flex items-end justify-between">
-              <h4 className="diary-page__microcopy text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">{t('diary.weeklyWords')}</h4>
-              <span className="diary-page__microcopy diary-page__numeric text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{stats.thisWeek} {t('diary.thisWeekShort')}</span>
-            </div>
-            <div className="flex h-12 w-full items-end gap-1.5">
-              {weeklyWordData.map(({ day, words }) => (
-                <div
-                  key={day}
-                  className={cn(
-                    'flex-1 rounded-t-md transition-all',
-                    day === selectedDateKey && view === 'day'
-                      ? 'bg-[color:#3A3733]'
-                      : 'bg-[color:#3A3733]/18',
-                  )}
-                  style={{ height: `${Math.max(4, (words / maxWords) * 100)}%` }}
-                  title={`${day}: ${words}w`}
-                />
-              ))}
-            </div>
-          </div>
         </section>
 
         {/* Right: Editor */}
@@ -638,8 +602,8 @@ const DiaryPage = () => {
           {selectedEntry ? (
             <>
               {/* Metadata bar */}
-              <div className="diary-page__meta-bar shrink-0 bg-background/50 px-4 py-4 md:px-8">
-                <div className="mx-auto flex max-w-5xl flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="diary-page__meta-bar shrink-0 bg-background/50 py-4">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                   <div className="flex flex-wrap items-start gap-3 md:gap-4">
                     <div className="diary-page__meta-hero rounded-2xl bg-background/72 px-4 py-3">
                       <p className="diary-page__meta-date text-foreground">{formatHeadlineDate(selectedEntry.dateKey, locale)}</p>
@@ -681,7 +645,7 @@ const DiaryPage = () => {
                     </div>
                   </div>
                   <div className="flex items-center justify-between gap-3 lg:justify-end">
-                    <div className="diary-page__microcopy diary-page__numeric text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                    <div className="diary-page__word-count diary-page__microcopy diary-page__numeric text-xs uppercase tracking-[0.14em] text-muted-foreground">
                       {calcWordCount(editorValue.contentMd)} {t('diary.words')}
                     </div>
                     <FontPicker value={diaryFont} onChange={handleFontChange} />

@@ -81,7 +81,7 @@ const AppRoutes = () => {
       />
       <Route path={ROUTES.REVIEW} element={<Navigate to={ROUTES.DIARY} replace />} />
       <Route path={ROUTES.DIARY} element={<DiaryPage />} />
-      <Route path={ROUTES.SETTINGS} element={<SettingsRoute />} />
+      <Route path={`${ROUTES.SETTINGS}/*`} element={<SettingsRoute />} />
       <Route path={ROUTES.LABS} element={<LabsPage />} />
       <Route path={ROUTES.HABITS} element={<GuardedHabitsRoute />} />
     </Routes>
