@@ -1,6 +1,4 @@
 import { lazy, startTransition, Suspense, useState, useEffect, useCallback, useMemo } from "react";
-import { motion } from "motion/react";
-import { PanelLeft } from "lucide-react";
 import { FocusTimer } from "./components/FocusTimer";
 import type { FocusSession } from "./components/FocusHistory";
 import { focusRepo } from "../../../data/repositories/focusRepo";
@@ -29,7 +27,6 @@ const toHistorySession = (session: Awaited<ReturnType<typeof focusRepo.listSessi
 
 export default function App() {
   const [sessions, setSessions] = useState<FocusSession[]>([]);
-  const [navExpanded, setNavExpanded] = useState(false);
   const [sidePanelsReady, setSidePanelsReady] = useState(false);
   const [isDark, setIsDark] = useState(() =>
     typeof document !== "undefined" && document.documentElement.dataset.theme === "dark"
@@ -159,27 +156,8 @@ export default function App() {
         />
       </div>
 
-      {/* Top bar */}
-      <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-end px-8 py-5">
-        {/* Toggle Nav */}
-        <motion.button
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={() => setNavExpanded(!navExpanded)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl cursor-pointer transition-colors"
-          style={{
-            background: isDark ? "rgba(24,29,35,0.72)" : "rgba(255,255,255,0.6)",
-            backdropFilter: "blur(12px)",
-            boxShadow: shellShadow,
-          }}
-        >
-          <PanelLeft size={15} className={isDark ? "text-[#d5d0c8]" : "text-[#918b80]"} />
-          <span className={`text-[0.72rem] ${isDark ? "text-[#d5d0c8]" : "text-[#918b80]"}`}>Toggle Nav</span>
-        </motion.button>
-      </div>
-
       {/* Main 3-column layout */}
-      <div className="h-full pt-16 pb-6 px-6 flex gap-5">
+      <div className="h-full pt-6 pb-6 px-6 flex gap-5">
         {/* Left Column - White Noise */}
         <div className="focus-zip-app__column focus-zip-app__column--left w-[300px] min-w-[280px] flex-shrink-0">
           <div

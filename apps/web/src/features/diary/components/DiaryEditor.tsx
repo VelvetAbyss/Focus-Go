@@ -9,7 +9,7 @@ import { Typography } from '@tiptap/extension-typography'
 import { Underline } from '@tiptap/extension-underline'
 import { StarterKit } from '@tiptap/starter-kit'
 import { EditorContent, EditorContext, useEditor } from '@tiptap/react'
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { HorizontalRule } from '@/components/tiptap-node/horizontal-rule-node/horizontal-rule-node-extension'
 import '@/components/tiptap-node/blockquote-node/blockquote-node.scss'
 import '@/components/tiptap-node/code-block-node/code-block-node.scss'
@@ -27,6 +27,8 @@ import { UndoRedoButton } from '@/components/tiptap-ui/undo-redo-button'
 import { Toolbar, ToolbarGroup, ToolbarSeparator } from '@/components/tiptap-ui-primitive/toolbar'
 import { ResizableImage } from '../../notes/model/resizableImage'
 import { ensureRichDoc, richDocToMarkdown } from '../../notes/model/richTextCodec'
+import { DiaryInlineFont } from '@/components/tiptap-extension/diary-inline-font'
+import { DiaryFontControls } from './DiaryFontControls'
 
 export type DiaryEditorValue = {
   contentMd: string
@@ -42,6 +44,15 @@ type DiaryEditorProps = {
 
 const DEBOUNCE_MS = 600
 const MAX_PASTED_IMAGE_SIZE = 10 * 1024 * 1024
+const STORAGE_KEY_FONT = 'diary.globalFont'
+const STORAGE_KEY_SIZE = 'diary.fontSize'
+const DEFAULT_FONT = "'Noto Serif SC', serif"
+const DEFAULT_SIZE = 17
+const HEADING_SCALE = {
+  h1: 1.88,
+  h2: 1.5,
+  h3: 1.24,
+} as const
 
 const uploadImageAsDataUrl = async (file: File): Promise<string> => {
   if (file.size > MAX_PASTED_IMAGE_SIZE) {
@@ -68,9 +79,27 @@ const DiaryEditor = ({ value, placeholder, onChange, onFlush }: DiaryEditorProps
   const changeMetaRef = useRef({ onChange })
   const shouldSkipSyncRef = useRef(false)
 
+  // ── Font state ───────────────────────────────────────────────────────────
+  const [globalFont, setGlobalFont] = useState<string>(
+    () => localStorage.getItem(STORAGE_KEY_FONT) ?? DEFAULT_FONT,
+  )
+  const [fontSize, setFontSize] = useState<number>(
+    () => Number(localStorage.getItem(STORAGE_KEY_SIZE) ?? DEFAULT_SIZE),
+  )
+
   useEffect(() => {
     changeMetaRef.current = { onChange }
   }, [onChange])
+
+  const handleGlobalFontChange = useCallback((family: string) => {
+    setGlobalFont(family)
+    localStorage.setItem(STORAGE_KEY_FONT, family)
+  }, [])
+
+  const handleFontSizeChange = useCallback((size: number) => {
+    setFontSize(size)
+    localStorage.setItem(STORAGE_KEY_SIZE, String(size))
+  }, [])
 
   const flushEmit = useCallback(() => {
     const doc = pendingDocRef.current
@@ -119,6 +148,7 @@ const DiaryEditor = ({ value, placeholder, onChange, onFlush }: DiaryEditorProps
       Superscript,
       Subscript,
       Selection,
+      DiaryInlineFont,
     ],
     editorProps: {
       attributes: { class: 'note-editor__body simple-editor' },
@@ -155,8 +185,58 @@ const DiaryEditor = ({ value, placeholder, onChange, onFlush }: DiaryEditorProps
     editor.commands.setContent(nextDoc, { emitUpdate: false })
   }, [editor, flushEmit, value.contentJson, value.contentMd])
 
+  const shellStyle = {
+    '--diary-font-prose': globalFont,
+    '--diary-font-size': `${fontSize}px`,
+    '--diary-heading-size-h1': `${Math.round(fontSize * HEADING_SCALE.h1 * 100) / 100}px`,
+    '--diary-heading-size-h2': `${Math.round(fontSize * HEADING_SCALE.h2 * 100) / 100}px`,
+    '--diary-heading-size-h3': `${Math.round(fontSize * HEADING_SCALE.h3 * 100) / 100}px`,
+  } as CSSProperties
+
   return (
-    <div className="note-editor diary-editor">
+    <div className="note-editor diary-editor" style={shellStyle}>
+      {/* Floating toolbar — absolutely positioned, does NOT occupy flex height */}
+      <div className="diary-editor__floating-toolbar">
+        <div className="note-editor__toolbar-wrap">
+          <EditorContext.Provider value={{ editor }}>
+            <Toolbar className="note-editor__toolbar-inline">
+              <ToolbarGroup>
+                <UndoRedoButton action="undo" />
+                <UndoRedoButton action="redo" />
+              </ToolbarGroup>
+              <ToolbarSeparator />
+              <ToolbarGroup>
+                <HeadingDropdownMenu modal={false} levels={[1, 2, 3]} />
+                <ListDropdownMenu modal={false} types={['bulletList', 'orderedList', 'taskList']} />
+                <BlockquoteButton />
+                <CodeBlockButton />
+              </ToolbarGroup>
+              <ToolbarSeparator />
+              <ToolbarGroup>
+                <MarkButton type="bold" />
+                <MarkButton type="italic" />
+                <MarkButton type="strike" />
+                <MarkButton type="code" />
+                <MarkButton type="underline" />
+                <ColorHighlightPopover />
+                <LinkPopover />
+              </ToolbarGroup>
+              <ToolbarSeparator />
+              <ToolbarGroup>
+                <DiaryFontControls
+                  editor={editor}
+                  globalFont={globalFont}
+                  fontSize={fontSize}
+                  onGlobalFontChange={handleGlobalFontChange}
+                  onGlobalFontSizeChange={handleFontSizeChange}
+                />
+              </ToolbarGroup>
+            </Toolbar>
+          </EditorContext.Provider>
+        </div>
+      </div>
+
+      {/* Scrollable surface — now fills full diary-editor height */}
       <div className="note-editor__surface diary-editor__surface">
         <div className="note-editor__content">
           <EditorContext.Provider value={{ editor }}>

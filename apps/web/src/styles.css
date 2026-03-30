@@ -8451,8 +8451,13 @@ textarea:focus-visible,
     flex-direction: column;
   }
 
+  .focus-shell__scale-wrap {
+    flex-direction: column;
+  }
+
   .focus-shell__main {
     min-height: auto;
+    flex: 1 1 auto;
   }
 
   .focus-shell__route-layer {
@@ -8461,7 +8466,9 @@ textarea:focus-visible,
   }
 
   .focus-sidebar {
-    min-height: auto;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
     width: 100% !important;
   }
 

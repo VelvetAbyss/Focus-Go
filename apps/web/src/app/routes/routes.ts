@@ -8,6 +8,8 @@ export const ROUTES = {
   REVIEW: '/review',
   DIARY: '/diary',
   SETTINGS: '/workspace/settings',
+  SETTINGS_LEGAL_PRIVACY: '/workspace/settings/legal/privacy-policy',
+  SETTINGS_LEGAL_TERMS: '/workspace/settings/legal/terms-of-service',
   LABS: '/labs',
 } as const
 
