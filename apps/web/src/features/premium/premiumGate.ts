@@ -1,3 +1,5 @@
+import { isLocalhostRuntime } from '../../shared/env/localhost'
+
 export type PremiumGateKey =
   | 'dashboard.custom-layout'
   | 'dashboard.extra-widgets'
@@ -74,7 +76,7 @@ export const canUsePremiumFeature = (
   gateKey: PremiumGateKey,
   payload: { isPremium: boolean; noteCount?: number },
 ): GateCheckResult => {
-  if (payload.isPremium) return { allowed: true, reason: null }
+  if (payload.isPremium || isLocalhostRuntime()) return { allowed: true, reason: null }
 
   if (gateKey === 'notes.max-count') {
     const limit = PREMIUM_GATES[gateKey].limit ?? 20

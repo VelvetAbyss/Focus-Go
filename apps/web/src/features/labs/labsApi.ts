@@ -2,6 +2,8 @@ import { db } from '../../data/db'
 import { enqueueSyncOperation } from '../../data/sync/repository'
 import { deriveFeatureState, nextFeatureInstallations, type FeatureState } from './labsModel'
 import type { AccountRole, FeatureKey } from '../../data/models/types'
+import { getAuth } from '../../store/auth'
+import { isLocalhostRuntime } from '../../shared/env/localhost'
 
 export const CURRENT_USER_ID = 'local-user'
 export const CURRENT_ACCOUNT_ROLE: AccountRole = 'admin'
@@ -108,7 +110,8 @@ const removeLegacyRssInstallations = async () => {
 }
 
 const readAuthPlan = (): SubscriptionTier => {
-  return 'premium'
+  if (isLocalhostRuntime()) return 'premium'
+  return getAuth()?.plan === 'premium' ? 'premium' : 'free'
 }
 
 export const ensureLabsSeed = async () => {
@@ -121,10 +124,11 @@ export const getSubscription = async () => {
   await ensureLabsSeed()
   const current = await db.userSubscriptions.where('userId').equals(CURRENT_USER_ID).first()
   if (!current) {
-    return upsertSubscription('premium')
+    return upsertSubscription(readAuthPlan())
   }
-  if (current.tier !== 'premium' || !current.role) {
-    return upsertSubscription('premium', CURRENT_ACCOUNT_ROLE)
+  const tier = readAuthPlan()
+  if (current.tier !== tier || !current.role) {
+    return upsertSubscription(tier, CURRENT_ACCOUNT_ROLE)
   }
   return current as UserSubscriptionRecord
 }
