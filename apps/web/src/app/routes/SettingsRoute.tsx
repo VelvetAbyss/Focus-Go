@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   Bell,
   Brush,
+  Crown,
   Database,
   LayoutGrid,
   LocateFixed,
@@ -59,6 +60,7 @@ import {
 } from '../../shared/backup/localBackup'
 import { useSyncActions, useSyncStatus } from '../../data/sync/service'
 import { ROUTES } from './routes'
+import { useUpgradeModal } from '../../features/labs/UpgradeModalContext'
 
 const LAYOUT_LOCK_KEY = 'workbench.dashboard.layoutLocked'
 
@@ -599,6 +601,7 @@ const SettingsRoute = () => {
   const location = useLocation()
   const navigate = useNavigate()
   const { language, t } = useI18n()
+  const { openModal: openUpgradeModal } = useUpgradeModal()
   const toast = useToast()
   const syncState = useSyncStatus()
   const { syncNow, resolveFirstSync } = useSyncActions()
@@ -939,6 +942,18 @@ const SettingsRoute = () => {
                   )
                 })}
               </TabsList>
+
+              <button
+                type="button"
+                className="mt-2 flex w-full items-center gap-3 rounded-xl border border-dashed border-[var(--accent)] bg-[var(--accent-soft)] px-3 py-3 text-left transition-opacity hover:opacity-80"
+                onClick={() => openUpgradeModal()}
+              >
+                <Crown className="h-4 w-4 shrink-0 text-[var(--accent)]" />
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-semibold text-[var(--accent)]">{t('settings.subscription.title')}</div>
+                  <div className="truncate text-xs text-muted-foreground">{t('settings.subscription.hint')}</div>
+                </div>
+              </button>
             </CardContent>
           </Card>
 

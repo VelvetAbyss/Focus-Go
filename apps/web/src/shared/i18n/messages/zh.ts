@@ -697,4 +697,6 @@ export const zhMessages: TranslationMessages = {
   'auth.stats.focus': '专注时长',
   'auth.stats.notes': '笔记',
   'auth.stats.diary': '日记天数',
+  'settings.subscription.title': '了解 Premium',
+  'settings.subscription.hint': '方案、定价与功能对比',
 }
