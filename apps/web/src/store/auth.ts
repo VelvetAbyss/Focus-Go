@@ -1,23 +1,28 @@
 import { useSyncExternalStore } from 'react'
+import { isLocalhostRuntime } from '../shared/env/localhost'
 
 export const AUTH_CHANGED_EVENT = 'focusgo:auth-changed'
 
 export const getAuth = () => {
+  if (typeof localStorage === 'undefined') return null
   const raw = localStorage.getItem('auth')
   return raw ? JSON.parse(raw) : null
 }
 
 export const setAuth = (value: unknown) => {
+  if (typeof localStorage === 'undefined' || typeof window === 'undefined') return
   localStorage.setItem('auth', JSON.stringify(value))
   window.dispatchEvent(new Event(AUTH_CHANGED_EVENT))
 }
 
 export const clearAuth = () => {
+  if (typeof localStorage === 'undefined' || typeof window === 'undefined') return
   localStorage.removeItem('auth')
   window.dispatchEvent(new Event(AUTH_CHANGED_EVENT))
 }
 
 export const subscribeAuth = (listener: () => void) => {
+  if (typeof window === 'undefined') return () => {}
   const handle = () => listener()
   window.addEventListener(AUTH_CHANGED_EVENT, handle)
   window.addEventListener('storage', handle)
@@ -28,7 +33,7 @@ export const subscribeAuth = (listener: () => void) => {
 }
 
 export const isPro = (): boolean => {
-  return true
+  return isLocalhostRuntime() || getAuth()?.plan === 'premium'
 }
 
 // Returns a boolean — safe for useSyncExternalStore (primitive comparison)
@@ -36,7 +41,7 @@ export const useIsLoggedIn = () =>
   useSyncExternalStore(subscribeAuth, () => getAuth()?.user != null, () => false)
 
 export const useAuthPlan = () =>
-  useSyncExternalStore(subscribeAuth, () => 'premium', () => 'premium')
+  useSyncExternalStore(subscribeAuth, () => (isLocalhostRuntime() ? 'premium' : (getAuth()?.plan ?? 'free')), () => 'free')
 
 export const upgradeToPremium = async (): Promise<boolean> => {
   const auth = getAuth()
