@@ -13,6 +13,8 @@ import { THEME_BEFORE_MODE_TOGGLE_EVENT } from '../../shared/theme/themePack'
 import Sidebar from './Sidebar'
 import { useTaskReminderEngine } from '../../features/tasks/useTaskReminderEngine'
 import OnboardingProgressiveRuntime from '../../features/onboarding/OnboardingProgressiveRuntime'
+import { UpgradeModalProvider } from '../../features/labs/UpgradeModalContext'
+import UpgradeModal from '../../features/labs/components/UpgradeModal'
 
 type AppShellProps = {
   children: ReactNode
@@ -195,22 +197,25 @@ const AppShell = ({ children }: AppShellProps) => {
   } as CSSProperties
 
   return (
-    <div className={`focus-shell ${sidebarDimmed ? 'focus-shell--sidebar-dimmed' : ''}`} style={shellStyle}>
-      <div className="focus-shell__scale-wrap">
-        <Sidebar
-          collapsed={sidebarCollapsed}
-          onToggle={() => setSidebarCollapsed((prev) => !prev)}
-          theme={theme}
-          onToggleTheme={toggleTheme}
-        />
-        <main className={`focus-shell__main flex min-h-0 flex-1 flex-col ${isFullBleedRoute ? 'focus-shell__main--surface-less' : ''}`}>
-          <section className={`focus-shell__route-layer flex min-h-0 flex-1 flex-col ${isFullBleedRoute ? 'focus-shell__route-layer--full-bleed' : ''}`}>
-            {children}
-          </section>
-        </main>
-        <OnboardingProgressiveRuntime />
+    <UpgradeModalProvider>
+      <div className={`focus-shell ${sidebarDimmed ? 'focus-shell--sidebar-dimmed' : ''}`} style={shellStyle}>
+        <div className="focus-shell__scale-wrap">
+          <Sidebar
+            collapsed={sidebarCollapsed}
+            onToggle={() => setSidebarCollapsed((prev) => !prev)}
+            theme={theme}
+            onToggleTheme={toggleTheme}
+          />
+          <main className={`focus-shell__main flex min-h-0 flex-1 flex-col ${isFullBleedRoute ? 'focus-shell__main--surface-less' : ''}`}>
+            <section className={`focus-shell__route-layer flex min-h-0 flex-1 flex-col ${isFullBleedRoute ? 'focus-shell__route-layer--full-bleed' : ''}`}>
+              {children}
+            </section>
+          </main>
+          <OnboardingProgressiveRuntime />
+        </div>
       </div>
-    </div>
+      <UpgradeModal />
+    </UpgradeModalProvider>
   )
 }
 
