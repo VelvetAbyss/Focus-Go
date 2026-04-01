@@ -694,6 +694,8 @@ export type TranslationKey =
   | 'auth.userInfo'
   | 'auth.upgradePlan'
   | 'auth.stats.tasks'
+  | 'settings.subscription.title'
+  | 'settings.subscription.hint'
   | 'auth.stats.focus'
   | 'auth.stats.notes'
   | 'auth.stats.diary'

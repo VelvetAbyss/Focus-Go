@@ -697,4 +697,6 @@ export const enMessages: TranslationMessages = {
   'auth.stats.focus': 'Focus Hours',
   'auth.stats.notes': 'Notes',
   'auth.stats.diary': 'Diary Days',
+  'settings.subscription.title': 'About Premium',
+  'settings.subscription.hint': 'Plans, pricing & features',
 }
