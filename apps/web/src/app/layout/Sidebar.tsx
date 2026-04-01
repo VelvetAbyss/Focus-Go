@@ -37,7 +37,8 @@ import { useLabsI18n } from '../../features/labs/labsI18n'
 import { useI18n } from '../../shared/i18n/useI18n'
 import type { FeatureKey } from '../../data/models/types'
 import { mergeSidebarOrder, moveSidebarOrder, readSidebarOrder, writeSidebarOrder } from './sidebarOrder'
-import { useIsLoggedIn, useAuthPlan, upgradeToPremium } from '../../store/auth'
+import { useIsLoggedIn, useAuthPlan } from '../../store/auth'
+import { useUpgradeModal } from '../../features/labs/UpgradeModalContext'
 
 type SidebarProps = {
   collapsed: boolean
@@ -105,6 +106,7 @@ const Sidebar = ({ collapsed, onToggle, theme, onToggleTheme }: SidebarProps) =>
   const isLoggedIn = useIsLoggedIn()
   const plan = useAuthPlan()
   const isPremium = plan === 'premium'
+  const { openModal: openUpgradeModal } = useUpgradeModal()
 
   const FEATURE_ICONS: Record<FeatureKey, LucideIcon> = {
     'habit-tracker': Flame,
@@ -230,7 +232,7 @@ const Sidebar = ({ collapsed, onToggle, theme, onToggleTheme }: SidebarProps) =>
           <button
             type="button"
             className="focus-sidebar__upgrade"
-            onClick={() => upgradeToPremium()}
+            onClick={() => openUpgradeModal()}
             aria-label={t('auth.upgradePlan')}
           >
             <Sparkles size={14} aria-hidden="true" />
