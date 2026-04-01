@@ -317,6 +317,13 @@ const NoteEditor = ({
 
         const html = event.clipboardData?.getData('text/html') ?? ''
         const text = event.clipboardData?.getData('text/plain') ?? ''
+
+        // If HTML contains mixed content (table + paragraphs/headings/lists), let
+        // Tiptap's native HTML paste handle it so all content is preserved.
+        const hasHtmlTable = html.includes('<table')
+        const hasNonTableBlocks = /<p[\s>]|<h[1-6][\s>]|<ul[\s>]|<ol[\s>]|<blockquote[\s>]|<pre[\s>]/i.test(html)
+        if (hasHtmlTable && hasNonTableBlocks) return false
+
         const rows = parseHtmlTable(html) ?? parseTextTable(text)
         if (!rows) return false
 
