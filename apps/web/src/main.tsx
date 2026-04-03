@@ -7,6 +7,7 @@ import './styles/_keyframe-animations.scss'
 import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
 import App from './App.tsx'
+import { AUTH_CONFIG } from './config/auth'
 import { clearAuth, fetchAuthProfile, setAuth } from './store/auth'
 import { consumePendingCheckout, startPremiumCheckout } from './features/payments/paymentFlow'
 
@@ -44,7 +45,7 @@ async function bootstrap() {
       const res = await fetch(`${import.meta.env.VITE_API_BASE}/auth/exchange`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, codeVerifier: pkceVerifier }),
+        body: JSON.stringify({ code, codeVerifier: pkceVerifier, redirectUri: AUTH_CONFIG.redirectUri }),
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
