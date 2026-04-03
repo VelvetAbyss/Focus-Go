@@ -1,0 +1,18 @@
+# Environment — never commit real env files
+.env
+.env.*
+!.env.example
+
+# Build output
+dist/
+dist-ssr/
+
+# Dependencies
+node_modules/
+
+# Editor
+.DS_Store
+*.local
+
+# gstack — security reports and session data stay local
+.gstack/
