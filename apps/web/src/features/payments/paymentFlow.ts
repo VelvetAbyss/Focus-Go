@@ -1,21 +1,33 @@
 import { prepareAuthSession } from '../../config/auth'
 import { getAuth } from '../../store/auth'
-import { createZpayOrder, type PayType } from './paymentApi'
+import { createZpayOrder, type CreateZpayOrderResponse, type PayType } from './paymentApi'
 
 const PENDING_CHECKOUT_KEY = 'focusgo.pendingCheckout'
 
-export const startPremiumCheckout = async (payType: PayType) => {
+/**
+ * Starts the premium checkout flow.
+ * - If unauthenticated: saves pending checkout and redirects to login. Returns null.
+ * - If authenticated + qrcode available: returns order data so the caller can show a QR modal.
+ * - If authenticated + only payUrl: navigates directly to the payment URL and returns null.
+ */
+export const startPremiumCheckout = async (payType: PayType): Promise<CreateZpayOrderResponse | null> => {
   const auth = getAuth()
   if (!auth?.accessToken) {
     sessionStorage.setItem(PENDING_CHECKOUT_KEY, payType)
     window.location.href = await prepareAuthSession()
-    return
+    return null
   }
 
   const order = await createZpayOrder(payType)
-  const target = order.payUrl ?? order.qrcode ?? order.img
+
+  // Desktop: show QR code modal so user can scan instead of landing on WAP page
+  if (order.qrcode) return order
+
+  // Mobile fallback: redirect to WAP payment URL
+  const target = order.payUrl ?? order.img
   if (!target) throw new Error('missing payment target')
   window.location.assign(target)
+  return null
 }
 
 export const consumePendingCheckout = (): PayType | null => {
