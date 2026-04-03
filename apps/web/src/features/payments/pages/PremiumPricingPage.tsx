@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, CheckCircle2, CreditCard, LoaderCircle, ShieldCheck, X } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
+import QRCode from 'react-qr-code'
 import { Button } from '@/components/ui/button'
 import { ROUTES } from '../../../app/routes/routes'
 import { startPremiumCheckout } from '../paymentFlow'
@@ -66,12 +67,8 @@ const QrModal = ({
         <h2 className="mt-1 text-2xl font-semibold tracking-[-0.03em]">{label} · ¥0.01</h2>
         <p className="mt-1 text-sm text-[#3A3733]/64">用 {label} 扫描下方二维码完成支付</p>
 
-        <div className="mt-5 flex items-center justify-center rounded-[20px] border border-[#3A3733]/10 bg-white p-4">
-          <img
-            src={order.qrcode}
-            alt="支付二维码"
-            className="h-48 w-48 rounded-lg object-contain"
-          />
+        <div className="mt-5 flex items-center justify-center rounded-[20px] border border-[#3A3733]/10 bg-white p-5">
+          <QRCode value={order.qrcode!} size={176} />
         </div>
 
         <div className="mt-4 flex items-center gap-2 text-sm text-[#3A3733]/60">
