@@ -4,7 +4,7 @@ export const ZPAY_API_URL = 'https://zpayz.cn/mapi.php'
 
 const PREMIUM_MONTH_SKU = {
   sku: 'premium-month',
-  amount: '9.90',
+  amount: '0.01',
   months: 1,
   name: 'FocusGo Pro Membership',
 }
