@@ -1,12 +1,13 @@
 const { AUTHING_DOMAIN, AUTHING_CLIENT_ID, AUTHING_CLIENT_SECRET, AUTHING_REDIRECT_URI } = process.env
 
-export async function getTokenByCode(code) {
+export async function getTokenByCode(code, codeVerifier) {
   const res = await fetch(`${AUTHING_DOMAIN}/oidc/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       grant_type: 'authorization_code',
       code,
+      code_verifier: codeVerifier,
       client_id: AUTHING_CLIENT_ID,
       client_secret: AUTHING_CLIENT_SECRET,
       redirect_uri: AUTHING_REDIRECT_URI,
