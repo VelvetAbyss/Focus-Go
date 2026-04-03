@@ -49,7 +49,7 @@ router.post('/zpay/create-order', requireAuth, async (req, res) => {
       name: product.name,
     })
     const zpay = await requestZPayOrder(params)
-    console.log(`[payment] zpay response out_trade_no=${order.outTradeNo} payurl=${zpay.payurl ?? zpay.url ?? 'none'} code=${zpay.code}`)
+    console.log(`[payment] zpay raw response:`, JSON.stringify(zpay))
 
     res.json({
       outTradeNo: order.outTradeNo,
