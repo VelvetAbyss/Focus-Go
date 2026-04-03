@@ -1,5 +1,5 @@
 import { X, Cloud, FolderInput, Sparkles, LogIn } from 'lucide-react'
-import { getAuthUrl } from '../../config/auth'
+import { prepareAuthSession } from '../../config/auth'
 import { useI18n } from '../../shared/i18n/useI18n'
 
 type LoginModalProps = {
@@ -9,8 +9,8 @@ type LoginModalProps = {
 const LoginModal = ({ onClose }: LoginModalProps) => {
   const { t } = useI18n()
 
-  const handleLogin = () => {
-    window.location.href = getAuthUrl()
+  const handleLogin = async () => {
+    window.location.href = await prepareAuthSession()
   }
 
   return (

@@ -9,8 +9,6 @@ import 'react-resizable/css/styles.css'
 import App from './App.tsx'
 import { clearAuth, setAuth } from './store/auth'
 
-console.log('RAW URL:', window.location.href)
-
 function mountApp() {
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
@@ -38,18 +36,29 @@ async function bootstrap() {
 
   // ── Check 1: code exchange ────────────────────────────────────────────
   if (code) {
-    console.log('FOUND CODE:', code)
     window.history.replaceState({}, '', '/')  // clear immediately — codes are single-use
+
+    // Verify OAuth state nonce to prevent Login CSRF
+    const returnedState = url.searchParams.get('state')
+    const expectedState = sessionStorage.getItem('oauth_state')
+    const pkceVerifier = sessionStorage.getItem('pkce_verifier')
+    sessionStorage.removeItem('oauth_state')
+    sessionStorage.removeItem('pkce_verifier')
+
+    if (!returnedState || returnedState !== expectedState) {
+      console.error('Auth exchange aborted: OAuth state mismatch')
+      mountApp()
+      return
+    }
 
     try {
       const res = await fetch(`${import.meta.env.VITE_API_BASE}/auth/exchange`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ code, codeVerifier: pkceVerifier }),
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
-      console.log('AUTH RESPONSE:', data)
       const profile = await fetchProfile(data.accessToken)
       setAuth({ ...data, plan: profile?.plan ?? 'free' })
     } catch (err) {
@@ -73,7 +82,6 @@ async function bootstrap() {
         const { user } = await res.json()
         const profile = await fetchProfile(accessToken)
         setAuth({ accessToken, user, plan: profile?.plan ?? 'free' })
-        console.log('TOKEN REUSED — user refreshed:', user)
       } catch (err) {
         console.warn('Token validation failed, clearing auth:', err)
         clearAuth()
