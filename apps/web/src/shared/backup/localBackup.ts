@@ -1,5 +1,6 @@
 export const LOCAL_BACKUP_FORMAT = 'focus-go-local-backup'
 export const LOCAL_BACKUP_SCHEMA_VERSION = 1
+export const PROTECTED_STORAGE_KEYS = new Set(['auth', 'oauth_state', 'pkce_verifier'])
 
 type SerializablePrimitive = string | number | boolean | null
 type SerializedBlob = {
@@ -176,7 +177,9 @@ export const exportLocalBackup = async ({
       version: dbVersion,
       tables: Object.fromEntries(serializedEntries),
     },
-    localStorage: storage.readAll(),
+    localStorage: Object.fromEntries(
+      Object.entries(storage.readAll()).filter(([key]) => !PROTECTED_STORAGE_KEYS.has(key)),
+    ),
   }
 }
 
@@ -192,10 +195,18 @@ export const importLocalBackup = async (payload: unknown, { db, storage, tableNa
 
   await db.replaceTables(restoredTables)
 
-  const storageEntries = Object.fromEntries(
-    Object.entries(backup.localStorage).filter(([, value]) => typeof value === 'string'),
+  const currentStorageEntries = storage.readAll()
+  const protectedStorageEntries = Object.fromEntries(
+    Object.entries(currentStorageEntries).filter(([key, value]) => PROTECTED_STORAGE_KEYS.has(key) && typeof value === 'string'),
   ) as Record<string, string>
-  storage.replaceAll(storageEntries)
+  const storageEntries = Object.fromEntries(
+    Object.entries(backup.localStorage).filter(([key, value]) => !PROTECTED_STORAGE_KEYS.has(key) && typeof value === 'string'),
+  ) as Record<string, string>
+  const nextStorageEntries = {
+    ...storageEntries,
+    ...protectedStorageEntries,
+  }
+  storage.replaceAll(nextStorageEntries)
 }
 
 export const createBackupDownload = (payload: LocalBackupPayload) => {

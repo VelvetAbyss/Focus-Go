@@ -56,6 +56,65 @@ describe('localBackup', () => {
     })
   })
 
+  it('excludes protected auth keys from backup export and preserves current auth on restore', async () => {
+    const db = createDbAdapter({
+      tasks: [{ id: 'task-1', title: 'Keep auth' }],
+    })
+    const storage = createStorageAdapter({
+      auth: '{"accessToken":"current-token"}',
+      oauth_state: 'state-1',
+      pkce_verifier: 'verifier-1',
+      'workbench.ui.language': 'zh',
+    })
+
+    const backup = await exportLocalBackup({
+      db,
+      storage,
+      tableNames: ['tasks'],
+      dbName: 'workbench-app',
+      dbVersion: 17,
+      createdAt: 1,
+    })
+
+    expect(backup.localStorage).toEqual({
+      'workbench.ui.language': 'zh',
+    })
+
+    await importLocalBackup(
+      {
+        format: 'focus-go-local-backup',
+        schemaVersion: 1,
+        createdAt: 2,
+        db: {
+          name: 'workbench-app',
+          version: 17,
+          tables: {
+            tasks: [{ id: 'task-2', title: 'Restored task' }],
+          },
+        },
+        localStorage: {
+          'workbench.ui.language': 'en',
+          auth: '{"accessToken":"stale-token"}',
+          oauth_state: 'state-2',
+          pkce_verifier: 'verifier-2',
+        },
+      },
+      {
+        db,
+        storage,
+        tableNames: ['tasks'],
+      },
+    )
+
+    expect(db.tables.tasks).toEqual([{ id: 'task-2', title: 'Restored task' }])
+    expect(storage.entries).toEqual({
+      auth: '{"accessToken":"current-token"}',
+      oauth_state: 'state-1',
+      pkce_verifier: 'verifier-1',
+      'workbench.ui.language': 'en',
+    })
+  })
+
   it('replaces current local state with supported backup content and ignores unknown tables', async () => {
     const db = createDbAdapter({
       tasks: [{ id: 'stale-task', title: 'Old' }],
