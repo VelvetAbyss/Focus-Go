@@ -8,6 +8,7 @@ import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
 import App from './App.tsx'
 import { clearAuth, fetchAuthProfile, setAuth } from './store/auth'
+import { consumePendingCheckout, startPremiumCheckout } from './features/payments/paymentFlow'
 
 function mountApp() {
   createRoot(document.getElementById('root')!).render(
@@ -49,6 +50,11 @@ async function bootstrap() {
       const data = await res.json()
       const profile = await fetchAuthProfile(data.accessToken)
       setAuth({ ...data, plan: profile?.plan ?? 'free', expiresAt: profile?.expiresAt ?? null })
+      const pendingCheckout = consumePendingCheckout()
+      if (pendingCheckout) {
+        await startPremiumCheckout(pendingCheckout)
+        return
+      }
     } catch (err) {
       console.error('Auth exchange failed:', err)
     }
@@ -70,6 +76,11 @@ async function bootstrap() {
         const { user } = await res.json()
         const profile = await fetchAuthProfile(accessToken)
         setAuth({ accessToken, user, plan: profile?.plan ?? 'free', expiresAt: profile?.expiresAt ?? null })
+        const pendingCheckout = consumePendingCheckout()
+        if (pendingCheckout) {
+          await startPremiumCheckout(pendingCheckout)
+          return
+        }
       } catch (err) {
         console.warn('Token validation failed, clearing auth:', err)
         clearAuth()
