@@ -47,7 +47,7 @@ cd "$API_DIR" && npm ci && cd "$REPO_DIR"
 
 # ── 3. Build ──────────────────────────────────────────────────────
 echo "=== [3/8] build:web (NODE_ENV=$NODE_ENV) ==="
-printf "VITE_API_BASE=%s\nVITE_REDIRECT_URI=https://app.nestflow.art\n" "$VITE_API_BASE" > apps/web/.env.production
+printf "VITE_API_BASE=%s\nVITE_REDIRECT_URI=https://app.nestflow.art/\n" "$VITE_API_BASE" > apps/web/.env.production
 NODE_ENV="$NODE_ENV" npm run build:web
 
 # ── 4. Create release dir ─────────────────────────────────────────

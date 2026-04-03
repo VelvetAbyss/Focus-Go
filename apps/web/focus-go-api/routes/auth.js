@@ -5,12 +5,12 @@ const router = Router()
 
 // Check 1: code → Authing /oidc/token → return accessToken + user
 router.post('/exchange', async (req, res) => {
-  const { code } = req.body
-  if (!code) {
-    return res.status(400).json({ error: 'code is required' })
+  const { code, codeVerifier } = req.body
+  if (!code || !codeVerifier) {
+    return res.status(400).json({ error: 'code and codeVerifier are required' })
   }
   try {
-    const tokenData = await getTokenByCode(code)
+    const tokenData = await getTokenByCode(code, codeVerifier)
     const user = await getUserInfo(tokenData.access_token)
     res.json({ accessToken: tokenData.access_token, user })
   } catch (err) {
