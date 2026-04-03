@@ -224,6 +224,29 @@ export type DashboardLayout = BaseEntity & {
   themeOverride?: 'light' | 'dark' | null
 }
 
+// Life feature types (schema only — no UI connection yet)
+export type BookStatus = 'reading' | 'finished' | 'want-to-read'
+export type MediaStatus = 'watching' | 'completed' | 'want-to-watch'
+export type SubscriptionCycle = 'monthly' | 'yearly'
+
+export type BookItem = BaseEntity & {
+  title: string
+  status: BookStatus
+  progress: number
+}
+
+export type MediaItem = BaseEntity & {
+  title: string
+  status: MediaStatus
+  progress: number
+}
+
+export type LifeSubscription = BaseEntity & {
+  name: string
+  amount: number
+  cycle: SubscriptionCycle
+}
+
 export type SubscriptionTier = 'free' | 'premium'
 export type AccountRole = 'member' | 'admin'
 

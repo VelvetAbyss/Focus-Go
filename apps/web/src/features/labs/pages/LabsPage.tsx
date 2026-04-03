@@ -19,6 +19,7 @@ import { useLabs } from '../LabsContext'
 import { useLabsI18n } from '../labsI18n'
 import type { FeatureCatalogItem } from '../labsApi'
 import { useToast } from '../../../shared/ui/toast/toast'
+import { startPremiumCheckout } from '../../payments/paymentFlow'
 
 const FEATURE_ICONS: Record<string, React.ElementType> = {
   'ai-digest': Brain,
@@ -30,7 +31,7 @@ const FEATURE_ICONS: Record<string, React.ElementType> = {
 const LabsPage = () => {
   const i18n = useLabsI18n()
   const toast = useToast()
-  const { ready, catalog, subscription, install, remove, restore, upgradeMock } = useLabs()
+  const { ready, catalog, subscription, install, remove, restore } = useLabs()
   const [removingFeature, setRemovingFeature] = useState<FeatureCatalogItem | null>(null)
 
   if (!ready) {
@@ -41,9 +42,8 @@ const LabsPage = () => {
   const installed = catalog.filter((item) => item.state === 'installed')
   const removed = catalog.filter((item) => item.state === 'removed')
 
-  const handleUpgrade = async () => {
-    await upgradeMock()
-    toast.push({ variant: 'success', message: i18n.toast.upgraded })
+  const handleUpgrade = async (payType: 'alipay' | 'wxpay') => {
+    await startPremiumCheckout(payType)
   }
 
   const UpgradeDialog = ({ trigger }: { trigger: React.ReactNode }) => (
@@ -56,7 +56,8 @@ const LabsPage = () => {
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>{i18n.labs.cancel}</AlertDialogCancel>
-          <AlertDialogAction onClick={() => void handleUpgrade()}>{i18n.labs.upgradeConfirm}</AlertDialogAction>
+          <AlertDialogAction onClick={() => void handleUpgrade('alipay')}>Alipay</AlertDialogAction>
+          <AlertDialogAction onClick={() => void handleUpgrade('wxpay')}>WeChat Pay</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

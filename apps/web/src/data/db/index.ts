@@ -1,11 +1,14 @@
 import Dexie from 'dexie'
 import type { Table } from 'dexie'
 import type {
+  BookItem,
   DashboardLayout,
   DiaryEntry,
   FeatureInstallation,
   FocusSession,
   FocusSettings,
+  LifeSubscription,
+  MediaItem,
   NoteAppearanceSettings,
   Habit,
   HabitLog,
@@ -29,6 +32,7 @@ import {
   schemaV24,
   schemaV26,
   schemaV28,
+  schemaV29,
   schemaV2,
   schemaV3,
   schemaV4,
@@ -58,6 +62,9 @@ export class WorkbenchDb extends Dexie {
   habitLogs!: Table<HabitLog, string>
   syncOutbox!: Table<SyncOutboxItem, string>
   syncState!: Table<SyncState, string>
+  books!: Table<BookItem, string>
+  media!: Table<MediaItem, string>
+  lifeSubscriptions!: Table<LifeSubscription, string>
 
   constructor() {
     super(DB_NAME)
@@ -141,7 +148,7 @@ export class WorkbenchDb extends Dexie {
         }))
         await tx.table(TABLES.notes).bulkPut(migratedNotes as NoteItem[])
       })
-    this.version(DB_VERSION)
+    this.version(28)
       .stores(schemaV28)
       .upgrade(async (tx) => {
         const diaryRows = await tx.table(TABLES.diaryEntries).toArray()
@@ -154,6 +161,8 @@ export class WorkbenchDb extends Dexie {
         }))
         await tx.table(TABLES.diaryEntries).bulkPut(migrated as DiaryEntry[])
       })
+
+    this.version(DB_VERSION).stores(schemaV29)
 
     this.tasks = this.table(TABLES.tasks)
     this.notes = this.table(TABLES.notes)
@@ -172,6 +181,9 @@ export class WorkbenchDb extends Dexie {
     this.habitLogs = this.table(TABLES.habitLogs)
     this.syncOutbox = this.table(TABLES.syncOutbox)
     this.syncState = this.table(TABLES.syncState)
+    this.books = this.table(TABLES.books)
+    this.media = this.table(TABLES.media)
+    this.lifeSubscriptions = this.table(TABLES.lifeSubscriptions)
   }
 }
 

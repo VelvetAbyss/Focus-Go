@@ -5,6 +5,9 @@ import SpendCard from '../spend/SpendCard'
 import WidgetTodosCard from './cards/WidgetTodosCard'
 import DiaryLauncherCard from './cards/DiaryLauncherCard'
 import WeatherWidgetCard from './cards/WeatherWidgetCard'
+import BooksCard from '../life/cards/BooksCard'
+import MediaCard from '../life/cards/MediaCard'
+import SubscriptionsCard from '../life/cards/SubscriptionsCard'
 
 export type DashboardCard = {
   id: string
@@ -50,5 +53,26 @@ export const getDashboardCards = (): DashboardCard[] => [
     title: 'Diary',
     defaultSize: { w: 6, h: 3 },
     render: () => <DiaryLauncherCard />,
+  },
+]
+
+export const getLifeCards = (): DashboardCard[] => [
+  {
+    id: 'books_card',
+    title: 'Books',
+    defaultSize: { w: 4, h: 3 },
+    render: () => <BooksCard />,
+  },
+  {
+    id: 'media_card',
+    title: 'Media',
+    defaultSize: { w: 4, h: 3 },
+    render: () => <MediaCard />,
+  },
+  {
+    id: 'subscriptions_card',
+    title: 'Subscriptions',
+    defaultSize: { w: 8, h: 2 },
+    render: () => <SubscriptionsCard />,
   },
 ]

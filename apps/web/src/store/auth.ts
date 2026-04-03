@@ -3,6 +3,15 @@ import { isLocalhostRuntime } from '../shared/env/localhost'
 
 export const AUTH_CHANGED_EVENT = 'focusgo:auth-changed'
 
+export type AuthPlan = 'free' | 'premium'
+
+export type AuthProfile = {
+  id: string
+  email: string | null
+  plan: AuthPlan
+  expiresAt: string | null
+}
+
 export const getAuth = () => {
   if (typeof localStorage === 'undefined') return null
   const raw = localStorage.getItem('auth')
@@ -43,18 +52,33 @@ export const useIsLoggedIn = () =>
 export const useAuthPlan = () =>
   useSyncExternalStore(subscribeAuth, () => (isLocalhostRuntime() ? 'premium' : (getAuth()?.plan ?? 'free')), () => 'free')
 
-export const upgradeToPremium = async (): Promise<boolean> => {
-  const auth = getAuth()
-  if (!auth?.accessToken) return false
+export const fetchAuthProfile = async (accessToken: string): Promise<AuthProfile | null> => {
   try {
-    const res = await fetch(`${import.meta.env.VITE_API_BASE}/user/upgrade`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${auth.accessToken}` },
+    const res = await fetch(`${import.meta.env.VITE_API_BASE}/user/profile`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
     })
-    if (!res.ok) return false
-    setAuth({ ...auth, plan: 'premium' })
-    return true
+    if (!res.ok) return null
+    return await res.json() as AuthProfile
   } catch {
-    return false
+    return null
   }
+}
+
+export const refreshAuthProfile = async () => {
+  const auth = getAuth()
+  if (!auth?.accessToken) return null
+  try {
+    const profile = await fetchAuthProfile(auth.accessToken)
+    if (!profile) return null
+    setAuth({ ...auth, plan: profile.plan, expiresAt: profile.expiresAt })
+    return profile
+  } catch {
+    return null
+  }
+}
+
+export const upgradeToPremium = async (): Promise<boolean> => {
+  if (typeof window === 'undefined') return false
+  window.location.assign('/premium')
+  return true
 }

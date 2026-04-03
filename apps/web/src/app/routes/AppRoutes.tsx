@@ -11,6 +11,8 @@ import LabsPage from '../../features/labs/pages/LabsPage'
 import HabitTrackerPage from '../../features/habits/pages/HabitTrackerPage'
 import { useLabs } from '../../features/labs/LabsContext'
 import { usePremiumGate } from '../../features/premium/PremiumProvider'
+import PremiumPricingPage from '../../features/payments/pages/PremiumPricingPage'
+import PaymentSuccessPage from '../../features/payments/pages/PaymentSuccessPage'
 
 const FocusPage = lazy(() => import('../../features/focus/pages/FocusPage'))
 
@@ -83,6 +85,8 @@ const AppRoutes = () => {
       <Route path={ROUTES.DIARY} element={<DiaryPage />} />
       <Route path={`${ROUTES.SETTINGS}/*`} element={<SettingsRoute />} />
       <Route path={ROUTES.LABS} element={<LabsPage />} />
+      <Route path={ROUTES.PREMIUM} element={<PremiumPricingPage />} />
+      <Route path={ROUTES.PREMIUM_SUCCESS} element={<PaymentSuccessPage />} />
       <Route path={ROUTES.HABITS} element={<GuardedHabitsRoute />} />
     </Routes>
   )
