@@ -35,6 +35,17 @@ Available gstack skills:
 - `/unfreeze` — unfreeze a branch or deployment
 - `/gstack-upgrade` — upgrade gstack to the latest version
 
+## Protected files — do not touch without explicit instruction
+
+The following are off-limits unless the user explicitly asks to change them:
+
+- `src/config/auth.ts` — OAuth redirectUri, PKCE helpers, Authing config
+- `src/main.tsx` — bootstrap auth exchange flow (code/state/PKCE check, `/auth/exchange` call)
+- `.env.development` / `.env.production` — `VITE_REDIRECT_URI` values
+- Any Authing callback URL configuration
+
+Do NOT modify these files as part of refactoring, cleanup, bug fixes in other areas, or any task that doesn't explicitly target the auth callback chain.
+
 ## Skill routing
 
 When the user's request matches an available skill, ALWAYS invoke it using the Skill
