@@ -28,15 +28,15 @@ const PremiumPricingPage = () => {
             </Link>
             <div className="space-y-2">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#3A3733]/56">Premium</p>
-              <h1 className="text-4xl font-semibold tracking-[-0.04em]">测试价月付</h1>
+              <h1 className="text-4xl font-semibold tracking-[-0.04em]">Pro 月付会员</h1>
               <p className="max-w-2xl text-sm leading-7 text-[#3A3733]/72">
-                第一版先打通 Z-Pay 支付链路。支付成功后立即延长 1 个月会员。
+                支付成功后立即开通 Pro 会员，解锁全部高级功能，有效期 1 个月。
               </p>
             </div>
           </div>
           <div className="rounded-[28px] border border-[#3A3733]/10 bg-white/70 px-5 py-4 text-right shadow-[0_18px_60px_rgba(58,55,51,0.08)]">
-            <div className="text-xs uppercase tracking-[0.16em] text-[#3A3733]/56">当前测试价</div>
-            <div className="mt-2 text-4xl font-semibold tracking-[-0.05em]">¥0.01</div>
+            <div className="text-xs uppercase tracking-[0.16em] text-[#3A3733]/56">月付</div>
+            <div className="mt-2 text-4xl font-semibold tracking-[-0.05em]">¥9.90</div>
             <div className="text-sm text-[#3A3733]/68">/ 月</div>
           </div>
         </div>

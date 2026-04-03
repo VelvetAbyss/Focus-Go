@@ -29,7 +29,7 @@ export const createZpayOrder = async (payType: PayType): Promise<CreateZpayOrder
       Authorization: `Bearer ${getAccessToken()}`,
     },
     body: JSON.stringify({
-      sku: 'premium-month-test',
+      sku: 'premium-month',
       payType,
     }),
   })
