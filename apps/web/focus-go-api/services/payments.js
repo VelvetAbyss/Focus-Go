@@ -3,10 +3,10 @@ import crypto from 'node:crypto'
 export const ZPAY_API_URL = 'https://zpayz.cn/mapi.php'
 
 const PREMIUM_MONTH_SKU = {
-  sku: 'premium-month-test',
-  amount: '0.01',
+  sku: 'premium-month',
+  amount: '9.90',
   months: 1,
-  name: 'Focus&go Premium Monthly Test',
+  name: 'FocusGo Pro Membership',
 }
 
 const addMonths = (timestamp, months) => {
@@ -59,7 +59,8 @@ export const verifyZPaySignature = (params, key) => {
 }
 
 export const getPremiumSku = (sku = PREMIUM_MONTH_SKU.sku) => {
-  if (sku !== PREMIUM_MONTH_SKU.sku) throw new Error('unsupported sku')
+  // Support legacy test SKU for backward compatibility
+  if (sku !== PREMIUM_MONTH_SKU.sku && sku !== 'premium-month-test') throw new Error('unsupported sku')
   return PREMIUM_MONTH_SKU
 }
 
