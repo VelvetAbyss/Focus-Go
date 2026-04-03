@@ -3,23 +3,13 @@ import { useState } from 'react'
 import { Archive, LayoutGrid, Sparkles, Brain, Zap, Target, Share2, RotateCcw } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { ROUTES } from '../../../app/routes/routes'
 import { useLabs } from '../LabsContext'
 import { useLabsI18n } from '../labsI18n'
 import type { FeatureCatalogItem } from '../labsApi'
 import { useToast } from '../../../shared/ui/toast/toast'
-import { startPremiumCheckout } from '../../payments/paymentFlow'
+import { useUpgradeModal } from '../UpgradeModalContext'
 
 const FEATURE_ICONS: Record<string, React.ElementType> = {
   'ai-digest': Brain,
@@ -32,6 +22,7 @@ const LabsPage = () => {
   const i18n = useLabsI18n()
   const toast = useToast()
   const { ready, catalog, subscription, install, remove, restore } = useLabs()
+  const { openModal: openUpgradeModal } = useUpgradeModal()
   const [removingFeature, setRemovingFeature] = useState<FeatureCatalogItem | null>(null)
 
   if (!ready) {
@@ -41,27 +32,6 @@ const LabsPage = () => {
   const available = catalog.filter((item) => item.state === 'available')
   const installed = catalog.filter((item) => item.state === 'installed')
   const removed = catalog.filter((item) => item.state === 'removed')
-
-  const handleUpgrade = async (payType: 'alipay' | 'wxpay') => {
-    await startPremiumCheckout(payType)
-  }
-
-  const UpgradeDialog = ({ trigger }: { trigger: React.ReactNode }) => (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{i18n.labs.upgradeTitle}</AlertDialogTitle>
-          <AlertDialogDescription>{i18n.labs.upgradeDesc}</AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>{i18n.labs.cancel}</AlertDialogCancel>
-          <AlertDialogAction onClick={() => void handleUpgrade('alipay')}>Alipay</AlertDialogAction>
-          <AlertDialogAction onClick={() => void handleUpgrade('wxpay')}>WeChat Pay</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  )
 
   return (
     <div className="labs-page">
@@ -131,7 +101,9 @@ const LabsPage = () => {
                   </div>
                   <div className="labs-card__foot">
                     {feature.requiresPremium ? (
-                      <UpgradeDialog trigger={<Button size="sm">{i18n.labs.upgrade}</Button>} />
+                      <Button size="sm" onClick={() => openUpgradeModal(feature.title)}>
+                        {i18n.labs.upgrade}
+                      </Button>
                     ) : (
                       <Button
                         size="sm"
@@ -178,7 +150,9 @@ const LabsPage = () => {
                   <div className="labs-row__actions">
                     {feature.featureKey === 'habit-tracker' ? (
                       feature.requiresPremium ? (
-                        <UpgradeDialog trigger={<Button size="sm">{i18n.labs.upgrade}</Button>} />
+                        <Button size="sm" onClick={() => openUpgradeModal(feature.title)}>
+                          {i18n.labs.upgrade}
+                        </Button>
                       ) : (
                         <Button size="sm" asChild>
                           <Link to={ROUTES.HABITS}>{i18n.labs.openHabits}</Link>

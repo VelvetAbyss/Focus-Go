@@ -11,7 +11,7 @@ const mockPushToast = vi.fn()
 const mockInstall = vi.fn(async () => undefined)
 const mockRemove = vi.fn(async () => undefined)
 const mockRestore = vi.fn(async () => undefined)
-const mockStartCheckout = vi.fn(async (_payType: 'alipay' | 'wxpay') => undefined)
+const mockOpenUpgradeModal = vi.fn()
 
 const mockUseLabs = vi.fn()
 
@@ -23,8 +23,8 @@ vi.mock('../../../shared/ui/toast/toast', () => ({
   useToast: () => ({ push: mockPushToast }),
 }))
 
-vi.mock('../../payments/paymentFlow', () => ({
-  startPremiumCheckout: (payType: 'alipay' | 'wxpay') => mockStartCheckout(payType),
+vi.mock('../UpgradeModalContext', () => ({
+  useUpgradeModal: () => ({ openModal: mockOpenUpgradeModal }),
 }))
 
 const i18n = {
@@ -98,7 +98,7 @@ describe('LabsPage', () => {
     mockInstall.mockClear()
     mockRemove.mockClear()
     mockRestore.mockClear()
-    mockStartCheckout.mockClear()
+    mockOpenUpgradeModal.mockClear()
   })
 
   afterEach(() => {
@@ -133,9 +133,7 @@ describe('LabsPage', () => {
 
     renderPage()
     await userEvent.click(screen.getByRole('button', { name: i18n.labs.upgrade }))
-    expect(await screen.findByText(i18n.labs.upgradeTitle)).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: /Alipay/i }))
-    await waitFor(() => expect(mockStartCheckout).toHaveBeenCalledWith('alipay'))
+    expect(mockOpenUpgradeModal).toHaveBeenCalledWith('Habit Tracker')
   })
 
   it('removes and restores features with confirm flow', async () => {

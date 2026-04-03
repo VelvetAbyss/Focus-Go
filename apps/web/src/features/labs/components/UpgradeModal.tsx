@@ -1,5 +1,6 @@
 import { Fragment, useState } from 'react'
 import { Check, X, Lock, Sparkles, Globe } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import './UpgradeModal.css'
 import {
   Dialog,
@@ -9,6 +10,7 @@ import {
 } from '../../../components/ui/dialog'
 import { useUpgradeModal } from '../UpgradeModalContext'
 import { useUpgradeModalI18n, PRICING, type PricingRegion } from '../upgradeModalI18n'
+import { ROUTES } from '../../../app/routes/routes'
 
 // ─── Cell renderer ──────────────────────────────────────────────────────────
 
@@ -35,8 +37,13 @@ const TableCell = ({ value }: { value: 'check' | 'cross' | string }) => {
 const UpgradeModal = () => {
   const { open, lockedFeature, closeModal } = useUpgradeModal()
   const i18n = useUpgradeModalI18n()
+  const navigate = useNavigate()
   const [region, setRegion] = useState<PricingRegion>('cn')
   const pricing = PRICING[region]
+  const handleCheckoutEntry = () => {
+    closeModal()
+    navigate(ROUTES.PREMIUM)
+  }
 
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next) closeModal() }}>
@@ -145,14 +152,14 @@ const UpgradeModal = () => {
               <button
                 type="button"
                 className="upgrade-modal__cta upgrade-modal__cta--primary"
-                onClick={() => { /* TODO: wire payment */ }}
+                onClick={handleCheckoutEntry}
               >
                 {i18n.premiumCtaMonthly}
               </button>
               <button
                 type="button"
                 className="upgrade-modal__cta upgrade-modal__cta--primary-outline"
-                onClick={() => { /* TODO: wire payment */ }}
+                onClick={handleCheckoutEntry}
               >
                 {i18n.premiumCtaYearly}
               </button>
@@ -184,7 +191,7 @@ const UpgradeModal = () => {
               <button
                 type="button"
                 className="upgrade-modal__cta upgrade-modal__cta--secondary"
-                onClick={() => { /* TODO: wire payment */ }}
+                onClick={handleCheckoutEntry}
               >
                 {i18n.lifetimeCta}
               </button>
