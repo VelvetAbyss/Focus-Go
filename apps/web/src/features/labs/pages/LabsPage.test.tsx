@@ -11,7 +11,7 @@ const mockPushToast = vi.fn()
 const mockInstall = vi.fn(async () => undefined)
 const mockRemove = vi.fn(async () => undefined)
 const mockRestore = vi.fn(async () => undefined)
-const mockUpgrade = vi.fn(async () => undefined)
+const mockStartCheckout = vi.fn(async (_payType: 'alipay' | 'wxpay') => undefined)
 
 const mockUseLabs = vi.fn()
 
@@ -21,6 +21,10 @@ vi.mock('../LabsContext', () => ({
 
 vi.mock('../../../shared/ui/toast/toast', () => ({
   useToast: () => ({ push: mockPushToast }),
+}))
+
+vi.mock('../../payments/paymentFlow', () => ({
+  startPremiumCheckout: (payType: 'alipay' | 'wxpay') => mockStartCheckout(payType),
 }))
 
 const i18n = {
@@ -94,7 +98,7 @@ describe('LabsPage', () => {
     mockInstall.mockClear()
     mockRemove.mockClear()
     mockRestore.mockClear()
-    mockUpgrade.mockClear()
+    mockStartCheckout.mockClear()
   })
 
   afterEach(() => {
@@ -109,7 +113,6 @@ describe('LabsPage', () => {
       install: mockInstall,
       remove: mockRemove,
       restore: mockRestore,
-      upgradeMock: mockUpgrade,
     })
 
     renderPage()
@@ -126,12 +129,13 @@ describe('LabsPage', () => {
       install: mockInstall,
       remove: mockRemove,
       restore: mockRestore,
-      upgradeMock: mockUpgrade,
     })
 
     renderPage()
     await userEvent.click(screen.getByRole('button', { name: i18n.labs.upgrade }))
     expect(await screen.findByText(i18n.labs.upgradeTitle)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /Alipay/i }))
+    await waitFor(() => expect(mockStartCheckout).toHaveBeenCalledWith('alipay'))
   })
 
   it('removes and restores features with confirm flow', async () => {
@@ -142,7 +146,6 @@ describe('LabsPage', () => {
       install: mockInstall,
       remove: mockRemove,
       restore: mockRestore,
-      upgradeMock: mockUpgrade,
     })
 
     renderPage()
@@ -166,7 +169,6 @@ describe('LabsPage', () => {
       install: mockInstall,
       remove: mockRemove,
       restore: mockRestore,
-      upgradeMock: mockUpgrade,
     })
 
     renderPage()

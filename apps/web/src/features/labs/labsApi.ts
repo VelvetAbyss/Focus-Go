@@ -28,6 +28,7 @@ export type UserSubscriptionRecord = {
   userId: string
   tier: SubscriptionTier
   role: AccountRole
+  expiresAt?: number | null
   createdAt: number
   updatedAt: number
 }
@@ -72,6 +73,7 @@ const upsertSubscription = async (tier: SubscriptionTier, role: AccountRole = CU
       userId: CURRENT_USER_ID,
       tier,
       role,
+      expiresAt: getAuth()?.expiresAt ? Date.parse(getAuth()?.expiresAt as string) : null,
       createdAt: now,
       updatedAt: now,
     }
@@ -84,6 +86,7 @@ const upsertSubscription = async (tier: SubscriptionTier, role: AccountRole = CU
     ...existing,
     tier,
     role: existing.role ?? role,
+    expiresAt: getAuth()?.expiresAt ? Date.parse(getAuth()?.expiresAt as string) : null,
     updatedAt: now,
   }
   await db.userSubscriptions.put(next)
@@ -132,10 +135,6 @@ export const getSubscription = async () => {
   }
   return current as UserSubscriptionRecord
 }
-
-export const upgradeToPremiumMock = async () => upsertSubscription('premium')
-
-export const downgradeToFreeMock = async () => upsertSubscription('free')
 
 export const getFeatureCatalog = async (): Promise<FeatureCatalogItem[]> => {
   await ensureLabsSeed()

@@ -2,7 +2,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import {
   canAccessFeature,
-  downgradeToFreeMock,
   ensureLabsSeed,
   getFeatureCatalog,
   getSubscription,
@@ -11,7 +10,6 @@ import {
   restoreFeature,
   type FeatureCatalogItem,
   type UserSubscriptionRecord,
-  upgradeToPremiumMock,
 } from './labsApi'
 import { canAccessHabitTracker } from './accessRules'
 import type { FeatureKey } from '../../data/models/types'
@@ -24,8 +22,6 @@ type LabsContextValue = {
   canAccessHabitFeature: boolean
   habitState: 'available' | 'installed' | 'removed'
   refresh: () => Promise<void>
-  upgradeMock: () => Promise<void>
-  downgradeMock: () => Promise<void>
   install: (featureKey: FeatureKey) => Promise<void>
   remove: (featureKey: FeatureKey) => Promise<void>
   restore: (featureKey: FeatureKey) => Promise<void>
@@ -64,14 +60,6 @@ export const LabsProvider = ({ children }: { children: React.ReactNode }) => {
       canAccessHabitFeature: canAccessHabitTracker(subscription?.tier ?? 'free', habitState),
       habitState,
       refresh,
-      upgradeMock: async () => {
-        await upgradeToPremiumMock()
-        await refresh()
-      },
-      downgradeMock: async () => {
-        await downgradeToFreeMock()
-        await refresh()
-      },
       install: async (featureKey) => {
         await installFeature(featureKey)
         await refresh()

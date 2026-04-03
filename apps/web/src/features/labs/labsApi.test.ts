@@ -9,7 +9,6 @@ import {
   installFeature,
   removeFeature,
   restoreFeature,
-  upgradeToPremiumMock,
 } from './labsApi'
 import * as localhost from '../../shared/env/localhost'
 
@@ -61,13 +60,15 @@ describe('labsApi', () => {
 
   it('upgrades to premium mock', async () => {
     await ensureLabsSeed()
-    const next = await upgradeToPremiumMock()
+    localStorage.setItem('auth', JSON.stringify({ plan: 'premium' }))
+    const next = await getSubscription()
     expect(next.tier).toBe('premium')
   })
 
   it('runs install/remove/restore transitions', async () => {
     await ensureLabsSeed()
-    await upgradeToPremiumMock()
+    localStorage.setItem('auth', JSON.stringify({ plan: 'premium' }))
+    await getSubscription()
 
     await installFeature('habit-tracker')
     expect((await getHabits())?.state).toBe('installed')

@@ -20,6 +20,7 @@ import {
   DEFAULT_DASHBOARD_THEME_OVERRIDE,
 } from '../../data/defaultDashboardLayout'
 import { usePremiumGate } from '../premium/PremiumProvider'
+import LifeDashboard from '../life/LifeDashboard'
 
 const LAYOUT_LOCK_KEY = 'workbench.dashboard.layoutLocked'
 
@@ -36,6 +37,7 @@ const writeLayoutLocked = (locked: boolean) => {
 const DashboardPage = () => {
   const { t } = useI18n()
   const { canUse, openUpgradeModal } = usePremiumGate()
+  const [page, setPage] = useState<'main' | 'life'>('main')
   const [layout, setLayout] = useState<DashboardLayoutItem[]>([])
   const [hiddenCardIds, setHiddenCardIds] = useState<string[]>([])
   const isMobile = useIsBreakpoint('max', 768)
@@ -329,11 +331,19 @@ const DashboardPage = () => {
           onToggleWidgetsPanel={toggleWidgetsPanel}
           layoutEditLocked={!canUse('dashboard.custom-layout').allowed}
           widgetsLocked={!canUse('dashboard.extra-widgets').allowed}
+          page={page}
+          onSetPage={setPage}
         />
+
         <div aria-live="polite" aria-atomic="true">
           {syncError && <p className="dashboard__sync-error">{syncError}</p>}
         </div>
-        {layoutEdit && widgetsPanelOpen && (
+
+        {/* Life page */}
+        {page === 'life' && <LifeDashboard />}
+
+        {/* Main dashboard */}
+        {page === 'main' && layoutEdit && widgetsPanelOpen && (
           <section className="dashboard-widgets" aria-label={t('dashboard.manageVisibility')}>
             {cards.map((card) => {
               const visible = layout.some((item) => item.key === card.id)
@@ -357,7 +367,7 @@ const DashboardPage = () => {
           </section>
         )}
 
-        {mounted && (
+        {page === 'main' && mounted && (
           <GridLayout
             className="dashboard__grid"
             layout={responsiveLayout.map((item) => ({

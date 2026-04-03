@@ -7,7 +7,7 @@ import './styles/_keyframe-animations.scss'
 import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
 import App from './App.tsx'
-import { clearAuth, setAuth } from './store/auth'
+import { clearAuth, fetchAuthProfile, setAuth } from './store/auth'
 
 function mountApp() {
   createRoot(document.getElementById('root')!).render(
@@ -22,18 +22,6 @@ async function bootstrap() {
   const code = url.searchParams.get('code')
 
   // ── Fetch user profile (plan) using a valid access token ─────────────
-  const fetchProfile = async (accessToken: string) => {
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE}/user/profile`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      })
-      if (!res.ok) return null
-      return await res.json() as { id: string; email: string; plan: string }
-    } catch {
-      return null
-    }
-  }
-
   // ── Check 1: code exchange ────────────────────────────────────────────
   if (code) {
     window.history.replaceState({}, '', '/')  // clear immediately — codes are single-use
@@ -59,8 +47,8 @@ async function bootstrap() {
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
-      const profile = await fetchProfile(data.accessToken)
-      setAuth({ ...data, plan: profile?.plan ?? 'free' })
+      const profile = await fetchAuthProfile(data.accessToken)
+      setAuth({ ...data, plan: profile?.plan ?? 'free', expiresAt: profile?.expiresAt ?? null })
     } catch (err) {
       console.error('Auth exchange failed:', err)
     }
@@ -80,8 +68,8 @@ async function bootstrap() {
         })
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const { user } = await res.json()
-        const profile = await fetchProfile(accessToken)
-        setAuth({ accessToken, user, plan: profile?.plan ?? 'free' })
+        const profile = await fetchAuthProfile(accessToken)
+        setAuth({ accessToken, user, plan: profile?.plan ?? 'free', expiresAt: profile?.expiresAt ?? null })
       } catch (err) {
         console.warn('Token validation failed, clearing auth:', err)
         clearAuth()

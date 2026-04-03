@@ -2,11 +2,15 @@ import { type CSSProperties, useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Link } from 'react-router-dom'
 import { LayoutGrid, Settings as SettingsIcon } from 'lucide-react'
+import { motion } from 'motion/react'
 import { ROUTES } from '../../app/routes/routes'
 import { useI18n } from '../../shared/i18n/useI18n'
 import { useIsBreakpoint } from '../../hooks/use-is-breakpoint'
 import LiveClock from './LiveClock'
 import { getDashboardQuote, getLocalDashboardQuote } from './quote/quoteService'
+import '../life/life.css'
+
+type DashboardPage = 'main' | 'life'
 
 type DashboardHeaderProps = {
   layoutEdit: boolean
@@ -17,6 +21,8 @@ type DashboardHeaderProps = {
   widgetsLocked?: boolean
   onRestartOnboarding?: () => void
   showRestartOnboarding?: boolean
+  page?: DashboardPage
+  onSetPage?: (page: DashboardPage) => void
 }
 
 type HeaderInfoNodeId = 'date' | 'lunar' | 'clock'
@@ -87,6 +93,8 @@ const DashboardHeader = ({
   widgetsLocked = false,
   onRestartOnboarding,
   showRestartOnboarding = false,
+  page = 'main',
+  onSetPage,
 }: DashboardHeaderProps) => {
   const { language, t } = useI18n()
   const isMobile = useIsBreakpoint('max', 768)
@@ -166,6 +174,27 @@ const DashboardHeader = ({
         </div>
       </div>
       <div className="app-shell__status">
+        {/* Focus ↔ Life toggle */}
+        {onSetPage && (
+          <div className="life-page-toggle" role="tablist" aria-label="Dashboard view">
+            <motion.span
+              className="life-page-toggle__pill"
+              animate={{ x: page === 'main' ? 0 : '100%' }}
+              transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+            />
+            {(['main', 'life'] as const).map((tab) => (
+              <button
+                key={tab}
+                role="tab"
+                aria-selected={page === tab}
+                className={`life-page-toggle__btn${page === tab ? ' is-active' : ''}`}
+                onClick={() => onSetPage(tab)}
+              >
+                {tab === 'main' ? 'Focus' : 'Life'}
+              </button>
+            ))}
+          </div>
+        )}
         {showProjectBadges && !layoutEdit ? <span className="pill">{t('dashboard.quote.localFirst')}</span> : null}
         {showProjectBadges && !layoutEdit ? <span className="pill pill--soft">{t('dashboard.quote.mvp')}</span> : null}
         {!layoutEdit && showRestartOnboarding && onRestartOnboarding ? (

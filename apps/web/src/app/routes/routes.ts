@@ -11,6 +11,8 @@ export const ROUTES = {
   SETTINGS_LEGAL_PRIVACY: '/workspace/settings/legal/privacy-policy',
   SETTINGS_LEGAL_TERMS: '/workspace/settings/legal/terms-of-service',
   LABS: '/labs',
+  PREMIUM: '/premium',
+  PREMIUM_SUCCESS: '/premium/success',
 } as const
 
 export const LEGACY_ROUTES = {

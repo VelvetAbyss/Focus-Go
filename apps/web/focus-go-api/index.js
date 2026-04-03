@@ -4,36 +4,44 @@ import cors from 'cors'
 import authRouter from './routes/auth.js'
 import userRouter from './routes/user.js'
 import syncRouter from './routes/sync.js'
+import paymentsRouter from './routes/payments.js'
 
-const app = express()
-const PORT = process.env.PORT || 3000
+export const createApp = () => {
+  const app = express()
 
-app.use(cors({
-  origin: [
-    'https://app.nestflow.art',
-    'http://localhost:5173',
-    'http://localhost:5174',
-  ],
-  credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}))
-app.use(express.json())
+  app.use(cors({
+    origin: [
+      'https://app.nestflow.art',
+      'http://localhost:5173',
+      'http://localhost:5174',
+    ],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  }))
+  app.use(express.json())
 
-app.get('/', (req, res) => {
-  res.json({ status: 'ok' })
-})
-
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    uptime: Math.floor(process.uptime()),
+  app.get('/', (req, res) => {
+    res.json({ status: 'ok' })
   })
-})
 
-app.use('/auth', authRouter)
-app.use('/user', userRouter)
-app.use('/sync', syncRouter)
+  app.get('/health', (req, res) => {
+    res.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: Math.floor(process.uptime()),
+    })
+  })
+
+  app.use('/auth', authRouter)
+  app.use('/user', userRouter)
+  app.use('/sync', syncRouter)
+  app.use('/payments', paymentsRouter)
+
+  return app
+}
+
+const PORT = process.env.PORT || 3000
+const app = createApp()
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)
