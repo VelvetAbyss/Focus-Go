@@ -12,6 +12,7 @@ if [[ "$DEPLOY_ENV" == "staging" ]]; then
   DEPLOY_ROOT="/var/www/focus-go-staging"
   NODE_ENV="staging"
   VITE_API_BASE="https://api.nestflow.art"
+  APP_REDIRECT_URI="https://app.nestflow.art/"
 else
   BRANCH="main"
   API_PORT=3000
@@ -19,6 +20,7 @@ else
   DEPLOY_ROOT="/var/www/focus-go"
   NODE_ENV="production"
   VITE_API_BASE="https://api.nestflow.art"
+  APP_REDIRECT_URI="https://app.nestflow.art/"
 fi
 
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -34,6 +36,14 @@ if [[ ! -f "$API_DIR/.env" ]]; then
   exit 1
 fi
 
+# ── 0.1. Enforce auth redirect URI consistency ────────────────────
+if grep -q '^AUTHING_REDIRECT_URI=' "$API_DIR/.env"; then
+  sed -i.bak "s|^AUTHING_REDIRECT_URI=.*|AUTHING_REDIRECT_URI=$APP_REDIRECT_URI|" "$API_DIR/.env"
+else
+  printf "\nAUTHING_REDIRECT_URI=%s\n" "$APP_REDIRECT_URI" >> "$API_DIR/.env"
+fi
+rm -f "$API_DIR/.env.bak"
+
 # ── 1. Fetch code ─────────────────────────────────────────────────
 echo "=== [1/8] git fetch origin/$BRANCH ==="
 cd "$REPO_DIR"
@@ -47,7 +57,7 @@ cd "$API_DIR" && npm ci && cd "$REPO_DIR"
 
 # ── 3. Build ──────────────────────────────────────────────────────
 echo "=== [3/8] build:web (NODE_ENV=$NODE_ENV) ==="
-printf "VITE_API_BASE=%s\nVITE_REDIRECT_URI=https://app.nestflow.art/\n" "$VITE_API_BASE" > apps/web/.env.production
+printf "VITE_API_BASE=%s\nVITE_REDIRECT_URI=%s\n" "$VITE_API_BASE" "$APP_REDIRECT_URI" > apps/web/.env.production
 NODE_ENV="$NODE_ENV" npm run build:web
 
 # ── 4. Create release dir ─────────────────────────────────────────
