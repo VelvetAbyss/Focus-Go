@@ -15,6 +15,33 @@ export default defineConfig({
     },
   },
   build: {
-    chunkSizeWarningLimit: 2500,
+    chunkSizeWarningLimit: 500,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/') || id.includes('node_modules/react-router')) {
+            return 'vendor-react'
+          }
+          if (id.includes('node_modules/dexie')) {
+            return 'vendor-dexie'
+          }
+          if (id.includes('node_modules/@radix-ui')) {
+            return 'vendor-ui'
+          }
+          if (id.includes('node_modules/date-fns')) {
+            return 'vendor-date-fns'
+          }
+          if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) {
+            return 'vendor-recharts'
+          }
+          if (id.includes('node_modules/motion') || id.includes('node_modules/framer-motion')) {
+            return 'vendor-motion'
+          }
+          if (id.includes('node_modules/@tiptap') || id.includes('node_modules/prosemirror') || id.includes('node_modules/@tiptap/pm')) {
+            return 'vendor-editor'
+          }
+        },
+      },
+    },
   },
 })

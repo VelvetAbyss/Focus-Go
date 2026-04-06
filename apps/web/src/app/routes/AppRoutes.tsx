@@ -1,44 +1,30 @@
 import { lazy, Suspense, useEffect, useRef } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import DashboardRoute from './DashboardRoute'
-import SettingsRoute from './SettingsRoute'
 import { LEGACY_ROUTES, ROUTES } from './routes'
-import TasksPage from '../../features/tasks/pages/TasksPage'
-import NotePage from '../../features/notes/pages/NotePage'
-import CalendarPage from '../../features/calendar/pages/CalendarPage'
-import DiaryPage from '../../features/diary/pages/DiaryPage'
-import LabsPage from '../../features/labs/pages/LabsPage'
-import HabitTrackerPage from '../../features/habits/pages/HabitTrackerPage'
 import { useLabs } from '../../features/labs/LabsContext'
 import { usePremiumGate } from '../../features/premium/PremiumProvider'
-import PremiumPricingPage from '../../features/payments/pages/PremiumPricingPage'
-import PaymentSuccessPage from '../../features/payments/pages/PaymentSuccessPage'
 
+const TasksPage = lazy(() => import('../../features/tasks/pages/TasksPage'))
+const NotePage = lazy(() => import('../../features/notes/pages/NotePage'))
+const CalendarPage = lazy(() => import('../../features/calendar/pages/CalendarPage'))
 const FocusPage = lazy(() => import('../../features/focus/pages/FocusPage'))
+const DiaryPage = lazy(() => import('../../features/diary/pages/DiaryPage'))
+const SettingsRoute = lazy(() => import('./SettingsRoute'))
+const LabsPage = lazy(() => import('../../features/labs/pages/LabsPage'))
+const HabitTrackerPage = lazy(() => import('../../features/habits/pages/HabitTrackerPage'))
+const PremiumPricingPage = lazy(() => import('../../features/payments/pages/PremiumPricingPage'))
+const PaymentSuccessPage = lazy(() => import('../../features/payments/pages/PaymentSuccessPage'))
 
-const FocusRouteFallback = () => (
+const RouteFallback = () => (
   <section
     style={{
       minHeight: '100%',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background:
-        'linear-gradient(175deg, rgba(245,243,240,0.96) 0%, rgba(245,243,240,0.88) 100%)',
     }}
-  >
-    <div
-      style={{
-        padding: '16px 20px',
-        borderRadius: 18,
-        color: '#3A3733',
-        background: 'rgba(245,243,240,0.82)',
-        boxShadow: '0 8px 32px rgba(58,55,51,0.06)',
-      }}
-    >
-      正在进入 Focus...
-    </div>
-  </section>
+  />
 )
 
 const GuardedHabitsRoute = () => {
@@ -61,7 +47,7 @@ const GuardedHabitsRoute = () => {
 
   if (!ready) return null
   if (denied) return <Navigate to={ROUTES.LABS} replace state={{ from: location.pathname }} />
-  return <HabitTrackerPage />
+  return <Suspense fallback={<RouteFallback />}><HabitTrackerPage /></Suspense>
 }
 
 const AppRoutes = () => {
@@ -70,23 +56,16 @@ const AppRoutes = () => {
       <Route path={LEGACY_ROUTES.KNOWLEDGE} element={<Navigate to={ROUTES.DASHBOARD} replace />} />
       <Route path="/rss" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
       <Route path={ROUTES.DASHBOARD} element={<DashboardRoute />} />
-      <Route path={ROUTES.TASKS} element={<TasksPage />} />
-      <Route path={ROUTES.NOTE} element={<NotePage />} />
-      <Route path={ROUTES.CALENDAR} element={<CalendarPage />} />
-      <Route
-        path={ROUTES.FOCUS}
-        element={
-          <Suspense fallback={<FocusRouteFallback />}>
-            <FocusPage />
-          </Suspense>
-        }
-      />
+      <Route path={ROUTES.TASKS} element={<Suspense fallback={<RouteFallback />}><TasksPage /></Suspense>} />
+      <Route path={ROUTES.NOTE} element={<Suspense fallback={<RouteFallback />}><NotePage /></Suspense>} />
+      <Route path={ROUTES.CALENDAR} element={<Suspense fallback={<RouteFallback />}><CalendarPage /></Suspense>} />
+      <Route path={ROUTES.FOCUS} element={<Suspense fallback={<RouteFallback />}><FocusPage /></Suspense>} />
       <Route path={ROUTES.REVIEW} element={<Navigate to={ROUTES.DIARY} replace />} />
-      <Route path={ROUTES.DIARY} element={<DiaryPage />} />
-      <Route path={`${ROUTES.SETTINGS}/*`} element={<SettingsRoute />} />
-      <Route path={ROUTES.LABS} element={<LabsPage />} />
-      <Route path={ROUTES.PREMIUM} element={<PremiumPricingPage />} />
-      <Route path={ROUTES.PREMIUM_SUCCESS} element={<PaymentSuccessPage />} />
+      <Route path={ROUTES.DIARY} element={<Suspense fallback={<RouteFallback />}><DiaryPage /></Suspense>} />
+      <Route path={`${ROUTES.SETTINGS}/*`} element={<Suspense fallback={<RouteFallback />}><SettingsRoute /></Suspense>} />
+      <Route path={ROUTES.LABS} element={<Suspense fallback={<RouteFallback />}><LabsPage /></Suspense>} />
+      <Route path={ROUTES.PREMIUM} element={<Suspense fallback={<RouteFallback />}><PremiumPricingPage /></Suspense>} />
+      <Route path={ROUTES.PREMIUM_SUCCESS} element={<Suspense fallback={<RouteFallback />}><PaymentSuccessPage /></Suspense>} />
       <Route path={ROUTES.HABITS} element={<GuardedHabitsRoute />} />
     </Routes>
   )
