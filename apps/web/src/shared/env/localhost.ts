@@ -4,5 +4,6 @@ export const isLocalhostHost = (hostname: string | null | undefined) => LOCALHOS
 
 export const isLocalhostRuntime = () => {
   if (typeof window === 'undefined') return false
+  if (typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'test') return false
   return isLocalhostHost(window.location.hostname)
 }

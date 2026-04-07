@@ -21,6 +21,8 @@ import {
 } from '../../data/defaultDashboardLayout'
 import { usePremiumGate } from '../premium/PremiumProvider'
 import LifeDashboard from '../life/LifeDashboard'
+import OnboardingModal from '../onboarding/OnboardingModal'
+import { useOnboardingFlow } from '../onboarding/useOnboardingFlow'
 
 const LAYOUT_LOCK_KEY = 'workbench.dashboard.layoutLocked'
 
@@ -37,6 +39,7 @@ const writeLayoutLocked = (locked: boolean) => {
 const DashboardPage = () => {
   const { t } = useI18n()
   const { canUse, openUpgradeModal } = usePremiumGate()
+  const onboarding = useOnboardingFlow()
   const [page, setPage] = useState<'main' | 'life'>('main')
   const [layout, setLayout] = useState<DashboardLayoutItem[]>([])
   const [hiddenCardIds, setHiddenCardIds] = useState<string[]>([])
@@ -322,6 +325,9 @@ const DashboardPage = () => {
     [canUse, openUpgradeModal, requestHideCard, showCard]
   )
 
+  const showWelcomeOnboarding = page === 'main' && onboarding.status === 'not_started'
+  const showDashboardOverview = page === 'main' && onboarding.status === 'in_progress' && onboarding.currentStep === 'dashboard_overview'
+
   return (
     <main className="dashboard" ref={containerRef} aria-label={t('dashboard.page')}>
         <DashboardHeader
@@ -333,6 +339,8 @@ const DashboardPage = () => {
           widgetsLocked={!canUse('dashboard.extra-widgets').allowed}
           page={page}
           onSetPage={setPage}
+          onRestartOnboarding={onboarding.restart}
+          showRestartOnboarding={onboarding.status !== 'not_started'}
         />
 
         <div aria-live="polite" aria-atomic="true">
@@ -438,6 +446,19 @@ const DashboardPage = () => {
             </Button>
             <Button onClick={() => void hideCard()} disabled={hideSubmitting}>
               {t('dashboard.hideWidget')}
+            </Button>
+          </div>
+        </Dialog>
+        <OnboardingModal open={showWelcomeOnboarding} onStart={onboarding.start} onSkip={onboarding.skip} />
+        <Dialog open={showDashboardOverview} title="" onClose={onboarding.complete}>
+          <div className="dialog__body">
+            <p>{t('onboarding.dashboard.eyebrow')}</p>
+            <h2>{t('onboarding.dashboard.title')}</h2>
+            <p>{t('onboarding.dashboard.description')}</p>
+          </div>
+          <div className="dialog__actions">
+            <Button type="button" onClick={onboarding.complete}>
+              {t('onboarding.dashboard.dismiss')}
             </Button>
           </div>
         </Dialog>

@@ -5,9 +5,10 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import type { DiaryEntry } from '../../../data/models/types'
+import { toDateKey } from '../../../shared/utils/time'
 
 const now = Date.now()
-const todayKey = new Date().toISOString().slice(0, 10)
+const todayKey = toDateKey()
 
 const { diaryRepoMock, resetMock } = vi.hoisted(() => {
   const entries: DiaryEntry[] = []

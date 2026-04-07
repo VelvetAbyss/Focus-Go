@@ -33,6 +33,11 @@ export const UpgradeModalProvider = ({ children }: { children: ReactNode }) => {
 
 export const useUpgradeModal = () => {
   const ctx = useContext(UpgradeModalContext)
-  if (!ctx) throw new Error('useUpgradeModal must be used within UpgradeModalProvider')
-  return ctx
+  if (ctx) return ctx
+  return {
+    open: false,
+    lockedFeature: undefined,
+    openModal: () => {},
+    closeModal: () => {},
+  }
 }
