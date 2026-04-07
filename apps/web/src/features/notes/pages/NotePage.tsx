@@ -241,7 +241,7 @@ export default function NotePage() {
     return () => observer.disconnect()
   }, [])
 
-  const sourceNotes = activeCollection === 'trash' ? trash : notes
+  const sourceNotes = (activeCollection === 'trash' ? trash : notes).filter(Boolean)
   const tagNameById = useMemo(() => new Map(tags.map((tag) => [tag.id, tag.name])), [tags])
   const filteredNotes = useMemo(() => {
     const next = sourceNotes.filter((note) => {
@@ -268,15 +268,15 @@ export default function NotePage() {
     () => {
       let today = 0
       let untagged = 0
-      for (const note of notes) {
+      for (const note of notes.filter(Boolean)) {
         if (dateKey(note.updatedAt) === todayKey) today++
         if (note.tags.length === 0) untagged++
       }
-      return { all: notes.length, today, untagged, trash: trash.length }
+      return { all: notes.filter(Boolean).length, today, untagged, trash: trash.filter(Boolean).length }
     },
     [todayKey, notes, trash],
   )
-  const tagsWithCounts = useMemo(() => recomputeTagCounts(tags, notes), [tags, notes])
+  const tagsWithCounts = useMemo(() => recomputeTagCounts(tags, notes.filter(Boolean)), [tags, notes])
 
   const effectiveTheme: 'paper' | 'graphite' = appearance.theme === 'graphite' || isAppDark ? 'graphite' : 'paper'
 

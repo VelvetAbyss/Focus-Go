@@ -18,7 +18,9 @@ const readLifeLayout = (): DashboardLayoutItem[] => {
   try {
     const raw = localStorage.getItem(LIFE_LAYOUT_KEY)
     if (raw) return JSON.parse(raw) as DashboardLayoutItem[]
-  } catch {}
+  } catch {
+    return DEFAULT_LIFE_LAYOUT
+  }
   return DEFAULT_LIFE_LAYOUT
 }
 

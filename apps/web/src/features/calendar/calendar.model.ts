@@ -47,6 +47,16 @@ export const sortSubscriptions = <T extends { sourceType: CalendarSourceType; or
 export const buildInitialCalendarSubscriptions = (): CalendarSubscription[] =>
   sortSubscriptions([
     {
+      id: 'account-google',
+      name: 'Google Calendar',
+      sourceType: 'account',
+      provider: 'google',
+      color: '#34a853',
+      enabled: true,
+      syncPermission: 'read',
+      order: 0,
+    },
+    {
       id: 'preset-cn-holidays',
       name: 'China Public Holidays',
       sourceType: 'custom',
@@ -54,7 +64,7 @@ export const buildInitialCalendarSubscriptions = (): CalendarSubscription[] =>
       color: '#ef4444',
       enabled: true,
       syncPermission: 'read',
-      order: 0,
+      order: 1,
       url: 'https://ical.muhan.org/rest.ics',
     },
     {
@@ -65,7 +75,7 @@ export const buildInitialCalendarSubscriptions = (): CalendarSubscription[] =>
       color: '#2563eb',
       enabled: true,
       syncPermission: 'read',
-      order: 1,
+      order: 2,
       url: 'https://calendar.google.com/calendar/ical/en.usa.official%23holiday%40group.v.calendar.google.com/public/basic.ics',
     },
   ])

@@ -113,11 +113,11 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
 
     if (choice === 'pull-remote') {
       await replaceLocalWithRemote(bootstrap.tables)
-      await syncStateRepo.markChoice(choice)
+      await syncStateRepo.markChoice()
       await syncStateRepo.patch({ lastPulledAt: bootstrap.serverTime })
     } else {
       await seedOutboxFromSnapshot()
-      await syncStateRepo.markChoice(choice)
+      await syncStateRepo.markChoice()
     }
 
     await refreshState()
@@ -164,15 +164,21 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
   return <SyncContext.Provider value={value}>{children}</SyncContext.Provider>
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useSyncStatus = () => {
   const context = useContext(SyncContext)
-  if (!context) throw new Error('useSyncStatus must be used within SyncProvider')
-  return context.state
+  return context?.state ?? null
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useSyncActions = () => {
   const context = useContext(SyncContext)
-  if (!context) throw new Error('useSyncActions must be used within SyncProvider')
+  if (!context) {
+    return {
+      syncNow: async () => {},
+      resolveFirstSync: async () => {},
+    }
+  }
   return {
     syncNow: context.syncNow,
     resolveFirstSync: context.resolveFirstSync,

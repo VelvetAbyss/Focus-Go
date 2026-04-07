@@ -6,7 +6,10 @@ import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import PremiumPricingPage from './PremiumPricingPage'
 
-const mockStartCheckout = vi.fn(async (_payType: 'alipay' | 'wxpay') => undefined)
+const mockStartCheckout = vi.fn(async (payType: 'alipay' | 'wxpay') => {
+  void payType
+  return undefined
+})
 
 vi.mock('../paymentFlow', () => ({
   startPremiumCheckout: (payType: 'alipay' | 'wxpay') => mockStartCheckout(payType),

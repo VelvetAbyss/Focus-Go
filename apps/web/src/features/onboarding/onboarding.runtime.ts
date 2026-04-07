@@ -13,7 +13,7 @@ export const ONBOARDING_FEATURE_SEEN_KEY = 'focusgo.onboarding.feature-seen'
 export const ONBOARDING_PENDING_COACHMARK_KEY = 'focusgo.onboarding.pending-coachmark'
 export const ONBOARDING_SESSION_KEY = 'focusgo.onboarding.session'
 export const ONBOARDING_RUNTIME_EVENT = 'focusgo:onboarding-runtime-change'
-const ONBOARDING_ENABLED = false
+const ONBOARDING_ENABLED = true
 
 const DEFAULT_FEATURE_SEEN: FeatureSeenState = {
   dashboard: false,

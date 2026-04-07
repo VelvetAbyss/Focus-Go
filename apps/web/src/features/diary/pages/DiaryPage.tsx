@@ -99,7 +99,7 @@ function calcStreak(entries: DiaryEntry[], today: string): number {
 }
 
 function calcWordCount(contentMd: string): number {
-  const text = contentMd.replace(/[#*`>\-_~\[\]()]/g, ' ').trim()
+  const text = contentMd.replace(/[#*`>_~[\]() -]/g, ' ').trim()
   if (!text) return 0
   const isCjk = /[\u3400-\u9fff]/.test(text)
   if (isCjk) return text.replace(/\s+/g, '').length
@@ -437,7 +437,7 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
                     : ''
                   const preview = entry.contentMd
                     .replace(/^#{1,6}\s+/gm, '')
-                    .replace(/[*_`~>\[\]()]/g, '')
+                    .replace(/[*_`~>[()\]]/g, '')
                     .trim()
                     .slice(0, 100)
                   return (

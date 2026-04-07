@@ -35,7 +35,7 @@ const readSidebarCollapsed = () => {
 
 const readCompactViewport = () =>
   typeof window !== 'undefined' && typeof window.matchMedia === 'function'
-    ? window.matchMedia(COMPACT_SIDEBAR_MEDIA_QUERY).matches
+    ? Boolean(window.matchMedia(COMPACT_SIDEBAR_MEDIA_QUERY)?.matches)
     : false
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -50,7 +50,7 @@ export const resolveShellScale = (viewportWidth: number) => {
 
 const readShellScale = () => {
   if (typeof window === 'undefined') return SHELL_SCALE_MAX
-  if (typeof window.matchMedia === 'function' && !window.matchMedia(TABLET_AND_UP_MEDIA_QUERY).matches) return SHELL_SCALE_MAX
+  if (typeof window.matchMedia === 'function' && window.matchMedia(TABLET_AND_UP_MEDIA_QUERY)?.matches === false) return SHELL_SCALE_MAX
   return resolveShellScale(window.innerWidth)
 }
 

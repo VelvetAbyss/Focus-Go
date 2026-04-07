@@ -1,6 +1,6 @@
 import { db } from '../db'
 import { SYNC_ENTITY_TABLES, SYNC_OUTBOX_CHANGED_EVENT, SYNC_STATE_ID, SYNC_STATUS_CHANGED_EVENT } from './constants'
-import type { FirstSyncChoice, SyncBootstrapResponse, SyncEntityType, SyncOutboxItem, SyncPayload, SyncRemoteRow, SyncState, SyncStatus } from './types'
+import type { SyncBootstrapResponse, SyncEntityType, SyncOutboxItem, SyncPayload, SyncRemoteRow, SyncState, SyncStatus } from './types'
 
 const now = () => Date.now()
 
@@ -64,7 +64,7 @@ export const syncStateRepo = {
       status: 'idle',
     })
   },
-  async markChoice(_choice: FirstSyncChoice) {
+  async markChoice() {
     return this.resolveFirstSync()
   },
   async markStatus(status: SyncStatus, lastError: string | null = null) {

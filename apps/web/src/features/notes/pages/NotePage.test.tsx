@@ -11,7 +11,15 @@ const mockUseLabs = vi.fn()
 const openMock = vi.fn()
 
 vi.mock('../../../shared/i18n/useI18n', () => ({
-  useI18n: () => ({ t: (key: string) => key, language: 'en' as const }),
+  useI18n: () => ({
+    t: (key: string) =>
+      ({
+        'notes.infoPanel.statistics': 'Statistics',
+        'notes.infoPanel.words': 'Words',
+        'notes.appearancePanel.font.cnSans': 'CN Sans',
+      }[key] ?? key),
+    language: 'en' as const,
+  }),
 }))
 
 vi.mock('../../labs/LabsContext', () => ({
