@@ -1,5 +1,11 @@
 import type {
+  TripCreateInput,
+  TripUpdateInput,
+  MediaCreateInput,
+  MediaUpdateInput,
   IDatabaseService,
+  LifeSubscriptionCreateInput,
+  LifeSubscriptionUpdateInput,
   NoteAppearanceUpsertInput,
   NoteCreateInput,
   NoteTagCreateInput,
@@ -9,6 +15,7 @@ import type {
 } from '@focus-go/core'
 import { db } from '../db'
 import type {
+  BookItem,
   DashboardLayout,
   DiaryEntry,
   FocusSession,
@@ -16,13 +23,18 @@ import type {
   Habit,
   HabitLog,
   HabitStatus,
+  LifeDashboardLayout,
+  LifeSubscription,
+  MediaItem,
   NoteAppearanceSettings,
   NoteItem,
   NoteTag,
   SpendCategory,
   SpendEntry,
+  StockItem,
   TaskItem,
   TaskStatus,
+  TripRecord,
   WidgetTodo,
   WidgetTodoScope,
 } from '../models/types'
@@ -41,6 +53,7 @@ const statusLabelMap: Record<TaskStatus, string> = {
 const DEFAULT_NOTE_COLLECTION = 'all-notes' as const
 const NOTE_APPEARANCE_ID = 'note_appearance' as const
 const NOTE_TRASH_RETENTION_MS = 7 * 24 * 60 * 60 * 1000
+const LIFE_DASHBOARD_ID = 'life_dashboard_layout' as const
 const normalizeTags = (value: unknown) =>
   Array.isArray(value)
     ? value.filter((item): item is string => typeof item === 'string').map((item) => item.trim()).filter(Boolean)
@@ -177,8 +190,10 @@ const normalizeTask = (task: TaskItem): TaskItem => {
 
   return {
     ...task,
+    title: typeof task.title === 'string' ? task.title.trim() : '',
     description: typeof task.description === 'string' ? task.description : '',
     pinned: task.pinned === true,
+    isToday: task.isToday === true,
     dueDate: typeof task.dueDate === 'string' && task.dueDate ? task.dueDate : undefined,
     startDate: typeof task.startDate === 'string' && task.startDate ? task.startDate : undefined,
     endDate: typeof task.endDate === 'string' && task.endDate ? task.endDate : undefined,
@@ -186,13 +201,115 @@ const normalizeTask = (task: TaskItem): TaskItem => {
     reminderFiredAt:
       typeof task.reminderFiredAt === 'number' && Number.isFinite(task.reminderFiredAt) ? task.reminderFiredAt : undefined,
     tags: Array.isArray(task.tags) ? task.tags : [],
-    subtasks: Array.isArray(task.subtasks) ? task.subtasks : [],
+    subtasks: Array.isArray(task.subtasks)
+      ? task.subtasks.map((subtask) => ({
+          ...subtask,
+          title: typeof subtask.title === 'string' ? subtask.title.trim() : '',
+          done: subtask.done === true,
+        }))
+      : [],
     taskNoteBlocks: [],
     taskNoteContentMd: taskNote.contentMd,
     taskNoteContentJson: taskNote.contentJson as TaskItem['taskNoteContentJson'],
     activityLogs: Array.isArray(task.activityLogs) ? task.activityLogs : [],
   }
 }
+
+const normalizeBook = (book: BookItem): BookItem => ({
+  ...book,
+  source: book.source ?? 'manual',
+  sourceId: typeof book.sourceId === 'string' && book.sourceId ? book.sourceId : book.id,
+  title: typeof book.title === 'string' ? book.title : '',
+  authors: Array.isArray(book.authors) ? book.authors.filter((item): item is string => typeof item === 'string' && item.trim().length > 0) : [],
+  status: book.status ?? 'want-to-read',
+  progress: typeof book.progress === 'number' ? Math.max(0, Math.min(100, book.progress)) : 0,
+  subjects: Array.isArray(book.subjects) ? book.subjects.filter((item): item is string => typeof item === 'string' && item.trim().length > 0) : [],
+  outline: Array.isArray(book.outline) ? book.outline.filter((item): item is string => typeof item === 'string' && item.trim().length > 0) : undefined,
+})
+
+const normalizeMedia = (media: MediaItem): MediaItem => ({
+  ...media,
+  source: 'tmdb',
+  sourceId: typeof media.sourceId === 'string' && media.sourceId ? media.sourceId : String(media.tmdbId ?? media.id),
+  tmdbId: typeof media.tmdbId === 'number' && Number.isFinite(media.tmdbId) ? media.tmdbId : Number(media.sourceId ?? 0),
+  mediaType: media.mediaType === 'tv' ? 'tv' : 'movie',
+  title: typeof media.title === 'string' ? media.title : '',
+  originalTitle: typeof media.originalTitle === 'string' && media.originalTitle.trim().length > 0 ? media.originalTitle : undefined,
+  status: media.status ?? 'want-to-watch',
+  progress: typeof media.progress === 'number' ? Math.max(0, Math.min(100, media.progress)) : 0,
+  posterUrl: typeof media.posterUrl === 'string' && media.posterUrl ? media.posterUrl : undefined,
+  backdropUrl: typeof media.backdropUrl === 'string' && media.backdropUrl ? media.backdropUrl : undefined,
+  overview: typeof media.overview === 'string' && media.overview.trim().length > 0 ? media.overview : undefined,
+  releaseDate: typeof media.releaseDate === 'string' && media.releaseDate ? media.releaseDate : undefined,
+  director: typeof media.director === 'string' && media.director.trim().length > 0 ? media.director : undefined,
+  creator: typeof media.creator === 'string' && media.creator.trim().length > 0 ? media.creator : undefined,
+  cast: Array.isArray(media.cast) ? media.cast.filter((item): item is string => typeof item === 'string' && item.trim().length > 0).slice(0, 10) : [],
+  genres: Array.isArray(media.genres) ? media.genres.filter((item): item is string => typeof item === 'string' && item.trim().length > 0).slice(0, 8) : [],
+  duration: typeof media.duration === 'string' && media.duration.trim().length > 0 ? media.duration : undefined,
+  seasons: typeof media.seasons === 'number' && Number.isFinite(media.seasons) ? Math.max(0, Math.round(media.seasons)) : undefined,
+  episodes: typeof media.episodes === 'number' && Number.isFinite(media.episodes) ? Math.max(0, Math.round(media.episodes)) : undefined,
+  country: typeof media.country === 'string' && media.country.trim().length > 0 ? media.country : undefined,
+  language: typeof media.language === 'string' && media.language.trim().length > 0 ? media.language : undefined,
+  rating: typeof media.rating === 'string' && media.rating.trim().length > 0 ? media.rating : undefined,
+  watchedEpisodes:
+    typeof media.watchedEpisodes === 'number' && Number.isFinite(media.watchedEpisodes)
+      ? Math.max(0, Math.round(media.watchedEpisodes))
+      : undefined,
+  reflection: typeof media.reflection === 'string' ? media.reflection : undefined,
+  voteAverage: typeof media.voteAverage === 'number' && Number.isFinite(media.voteAverage) ? media.voteAverage : undefined,
+  lastSyncedAt: typeof media.lastSyncedAt === 'number' && Number.isFinite(media.lastSyncedAt) ? media.lastSyncedAt : undefined,
+})
+
+const normalizeStock = (stock: StockItem): StockItem => ({
+  ...stock,
+  symbol: typeof stock.symbol === 'string' ? stock.symbol.toUpperCase() : '',
+  name: typeof stock.name === 'string' ? stock.name : '',
+  currency: typeof stock.currency === 'string' && stock.currency ? stock.currency : 'USD',
+  pinned: stock.pinned === true,
+  chartPoints: Array.isArray(stock.chartPoints) ? stock.chartPoints.filter((item): item is number => typeof item === 'number' && Number.isFinite(item)) : undefined,
+})
+
+const normalizeLifeSubscription = (subscription: LifeSubscription): LifeSubscription => ({
+  ...subscription,
+  name: typeof subscription.name === 'string' ? subscription.name.trim() : '',
+  amount: typeof subscription.amount === 'number' && Number.isFinite(subscription.amount) ? Math.max(0, subscription.amount) : 0,
+  currency: subscription.currency === 'CNY' ? 'CNY' : 'USD',
+  cycle: subscription.cycle === 'yearly' ? 'yearly' : 'monthly',
+  color: typeof subscription.color === 'string' && subscription.color.trim().length > 0 ? subscription.color : undefined,
+  category: typeof subscription.category === 'string' && subscription.category.trim().length > 0 ? subscription.category : undefined,
+  billingDay:
+    typeof subscription.billingDay === 'number' && Number.isFinite(subscription.billingDay)
+      ? Math.min(31, Math.max(1, Math.round(subscription.billingDay)))
+      : undefined,
+  billingMonth:
+    typeof subscription.billingMonth === 'number' && Number.isFinite(subscription.billingMonth)
+      ? Math.min(12, Math.max(1, Math.round(subscription.billingMonth)))
+      : undefined,
+  emoji: typeof subscription.emoji === 'string' && subscription.emoji.trim().length > 0 ? subscription.emoji.slice(0, 4) : undefined,
+  reminder: subscription.reminder === true,
+  paymentStatus: subscription.paymentStatus === 'paid' ? 'paid' : subscription.paymentStatus === 'unpaid' ? 'unpaid' : undefined,
+})
+
+const normalizeTrip = (trip: TripRecord): TripRecord => ({
+  ...trip,
+  title: typeof trip.title === 'string' ? trip.title.trim() : '',
+  destination: typeof trip.destination === 'string' ? trip.destination.trim() : '',
+  startDate: typeof trip.startDate === 'string' ? trip.startDate : '',
+  endDate: typeof trip.endDate === 'string' ? trip.endDate : '',
+  status: trip.status ?? 'Planning',
+  travelers: typeof trip.travelers === 'number' && Number.isFinite(trip.travelers) ? Math.max(1, Math.round(trip.travelers)) : 1,
+  budgetPlanned: typeof trip.budgetPlanned === 'number' && Number.isFinite(trip.budgetPlanned) ? trip.budgetPlanned : 0,
+  budgetCurrency: typeof trip.budgetCurrency === 'string' && trip.budgetCurrency ? trip.budgetCurrency : 'USD',
+  heroImage: typeof trip.heroImage === 'string' ? trip.heroImage : '',
+  coverEmoji: typeof trip.coverEmoji === 'string' ? trip.coverEmoji : '',
+  itinerary: Array.isArray(trip.itinerary) ? trip.itinerary : [],
+  transport: Array.isArray(trip.transport) ? trip.transport : [],
+  stays: Array.isArray(trip.stays) ? trip.stays : [],
+  food: Array.isArray(trip.food) ? trip.food : [],
+  budget: Array.isArray(trip.budget) ? trip.budget : [],
+  checklist: Array.isArray(trip.checklist) ? trip.checklist : [],
+  notes: typeof trip.notes === 'string' ? trip.notes : '',
+})
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000
 
@@ -256,6 +373,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
         return (
           task.description !== next.description ||
           task.pinned !== next.pinned ||
+          task.isToday !== next.isToday ||
           task.dueDate !== next.dueDate ||
           task.startDate !== next.startDate ||
           task.endDate !== next.endDate ||
@@ -282,6 +400,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
         title: data.title,
         description: data.description ?? '',
         pinned: data.pinned === true,
+        isToday: data.isToday === true,
         status: data.status,
         priority: data.priority ?? null,
         dueDate: data.dueDate,
@@ -942,6 +1061,137 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       await db.dashboardLayout.put(next)
       await enqueueUpsert('dashboardLayout', next)
       return next
+    },
+  },
+  lifeDashboard: {
+    async get() {
+      const layout = await db.lifeDashboardLayout.get(LIFE_DASHBOARD_ID)
+      return layout ?? null
+    },
+    async upsert(data) {
+      const existing = await db.lifeDashboardLayout.get(LIFE_DASHBOARD_ID)
+      if (!existing) {
+        const next = withBase({ ...(data as Omit<LifeDashboardLayout, 'id' | 'createdAt' | 'updatedAt'>), id: LIFE_DASHBOARD_ID })
+        await db.lifeDashboardLayout.put(next)
+        return next
+      }
+      const next = touch({ ...existing, ...(data as Partial<LifeDashboardLayout>) })
+      await db.lifeDashboardLayout.put(next)
+      return next
+    },
+  },
+  books: {
+    async list() {
+      const rows = await db.books.toArray()
+      return rows.map((row) => normalizeBook(row)).sort((left, right) => right.updatedAt - left.updatedAt)
+    },
+    async create(data) {
+      const next = normalizeBook(withBase(data as Omit<BookItem, 'id' | 'createdAt' | 'updatedAt'>))
+      await db.books.put(next)
+      return next
+    },
+    async update(id, patch) {
+      const existing = await db.books.get(id)
+      if (!existing) return undefined
+      const next = touch(normalizeBook({ ...existing, ...(patch as Partial<BookItem>) }))
+      await db.books.put(next)
+      return next
+    },
+    async remove(id) {
+      await db.books.delete(id)
+    },
+  },
+  media: {
+    async list() {
+      const rows = await db.media.toArray()
+      return rows
+        .map((row) => normalizeMedia(row))
+        .sort((left, right) => Number(right.status === 'watching') - Number(left.status === 'watching') || right.updatedAt - left.updatedAt)
+    },
+    async create(data: MediaCreateInput) {
+      const next = normalizeMedia(withBase(data as Omit<MediaItem, 'id' | 'createdAt' | 'updatedAt'>))
+      await db.media.put(next)
+      return next
+    },
+    async update(id: string, patch: MediaUpdateInput) {
+      const existing = await db.media.get(id)
+      if (!existing) return undefined
+      const next = touch(normalizeMedia({ ...existing, ...(patch as Partial<MediaItem>) }))
+      await db.media.put(next)
+      return next
+    },
+    async remove(id: string) {
+      await db.media.delete(id)
+    },
+  },
+  stocks: {
+    async list() {
+      const rows = await db.stocks.toArray()
+      return rows
+        .map((row) => normalizeStock(row))
+        .sort((left, right) => Number(right.pinned) - Number(left.pinned) || right.updatedAt - left.updatedAt)
+    },
+    async create(data) {
+      const next = normalizeStock(
+        withBase({
+          ...(data as Omit<StockItem, 'id' | 'createdAt' | 'updatedAt'>),
+          pinned: (data as Omit<StockItem, 'id' | 'createdAt' | 'updatedAt'>).pinned ?? false,
+        }),
+      )
+      await db.stocks.put(next)
+      return next
+    },
+    async update(id, patch) {
+      const existing = await db.stocks.get(id)
+      if (!existing) return undefined
+      const next = touch(normalizeStock({ ...existing, ...(patch as Partial<StockItem>) }))
+      await db.stocks.put(next)
+      return next
+    },
+    async remove(id) {
+      await db.stocks.delete(id)
+    },
+  },
+  lifeSubscriptions: {
+    async list() {
+      const rows = await db.lifeSubscriptions.toArray()
+      return rows.map((row) => normalizeLifeSubscription(row)).sort((left, right) => right.updatedAt - left.updatedAt)
+    },
+    async create(data: LifeSubscriptionCreateInput) {
+      const next = normalizeLifeSubscription(withBase(data as Omit<LifeSubscription, 'id' | 'createdAt' | 'updatedAt'>))
+      await db.lifeSubscriptions.put(next)
+      return next
+    },
+    async update(id: string, patch: LifeSubscriptionUpdateInput) {
+      const existing = await db.lifeSubscriptions.get(id)
+      if (!existing) return undefined
+      const next = touch(normalizeLifeSubscription({ ...existing, ...(patch as Partial<LifeSubscription>) }))
+      await db.lifeSubscriptions.put(next)
+      return next
+    },
+    async remove(id: string) {
+      await db.lifeSubscriptions.delete(id)
+    },
+  },
+  trips: {
+    async list() {
+      const rows = await db.trips.toArray()
+      return rows.map((row) => normalizeTrip(row)).sort((left, right) => left.startDate.localeCompare(right.startDate) || right.updatedAt - left.updatedAt)
+    },
+    async create(data: TripCreateInput) {
+      const next = normalizeTrip(withBase(data as Omit<TripRecord, 'id' | 'createdAt' | 'updatedAt'>))
+      await db.trips.put(next)
+      return next
+    },
+    async update(id: string, patch: TripUpdateInput) {
+      const existing = await db.trips.get(id)
+      if (!existing) return undefined
+      const next = touch(normalizeTrip({ ...existing, ...(patch as Partial<TripRecord>) }))
+      await db.trips.put(next)
+      return next
+    },
+    async remove(id: string) {
+      await db.trips.delete(id)
     },
   },
 })

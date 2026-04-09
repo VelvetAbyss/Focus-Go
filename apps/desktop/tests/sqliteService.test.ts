@@ -61,6 +61,11 @@ describe('sqlite bundle (mocked)', () => {
     expect(typeof bundle.service.diary.list).toBe('function')
     expect(typeof bundle.service.spend.listEntries).toBe('function')
     expect(typeof bundle.service.dashboard.get).toBe('function')
+    expect(typeof bundle.service.lifeDashboard.get).toBe('function')
+    expect(typeof bundle.service.books.list).toBe('function')
+    expect(typeof bundle.service.media.list).toBe('function')
+    expect(typeof bundle.service.stocks.list).toBe('function')
+    expect(typeof bundle.service.lifeSubscriptions.list).toBe('function')
     expect(typeof bundle.service.habits.listHabits).toBe('function')
 
     bundle.close()
@@ -91,6 +96,42 @@ describe('sqlite bundle (mocked)', () => {
     const bundle = createSqliteBundle(dbPath)
 
     expect(() => bundle.importFromDexieJson('{invalid-json')).toThrow()
+
+    bundle.close()
+  })
+
+  it('routes life subscription create update remove through sqlite statements', async () => {
+    const baseDir = await fs.mkdtemp(path.join(os.tmpdir(), 'focusgo-sqlite-'))
+    const dbPath = path.join(baseDir, 'focus-go.sqlite3')
+    const bundle = createSqliteBundle(dbPath)
+
+    getMock.mockReturnValueOnce(undefined).mockReturnValueOnce({
+      id: 'sub-1',
+      name: 'Spotify',
+      amount: 12,
+      cycle: 'monthly',
+      createdAt: 1,
+      updatedAt: 1,
+      userId: null,
+      workspaceId: null,
+    })
+
+    const created = await bundle.service.lifeSubscriptions.create({
+      name: 'Spotify',
+      amount: 12,
+      cycle: 'monthly',
+    })
+    const updated = await bundle.service.lifeSubscriptions.update('sub-1', {
+      cycle: 'yearly',
+      amount: 120,
+    })
+    await bundle.service.lifeSubscriptions.remove('sub-1')
+
+    const payloads = runMock.mock.calls.map(([arg]) => arg).filter(Boolean)
+    expect(created.name).toBe('Spotify')
+    expect(updated?.cycle).toBe('yearly')
+    expect(payloads).toContainEqual(expect.objectContaining({ name: 'Spotify', amount: 12, cycle: 'monthly' }))
+    expect(payloads).toContainEqual(expect.objectContaining({ id: 'sub-1', amount: 120, cycle: 'yearly' }))
 
     bundle.close()
   })

@@ -915,6 +915,49 @@ html[data-motion='reduce'] .theme-switch__circle-container {
   position: relative;
 }
 
+.route-loader {
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.route-loader__mark {
+  width: 40px;
+  height: 14px;
+  border-radius: 999px;
+  background: rgba(58, 55, 51, 0.14);
+  position: relative;
+  transform-origin: center;
+  animation: route-loader-mark 1.15s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.route-loader__mark::before,
+.route-loader__mark::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  border-radius: 999px;
+  background: #3A3733;
+  transform: translateY(-50%);
+}
+
+.route-loader__mark::before {
+  left: 5px;
+  width: 10px;
+  height: 10px;
+  opacity: 0.92;
+}
+
+.route-loader__mark::after {
+  right: 5px;
+  width: 8px;
+  height: 8px;
+  opacity: 0.34;
+}
+
 @keyframes app-shell-hero-enter {
   from {
     opacity: 0;
@@ -937,9 +980,35 @@ html[data-motion='reduce'] .theme-switch__circle-container {
   }
 }
 
+@keyframes route-loader-mark {
+  0%,
+  100% {
+    opacity: 0.72;
+    transform: translateY(0) scaleX(0.96);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-3px) scaleX(1);
+  }
+}
+
 html[data-motion='reduce'] .app-shell__hero-date,
-html[data-motion='reduce'] .app-shell__status {
+html[data-motion='reduce'] .app-shell__status,
+html[data-motion='reduce'] .route-loader__mark {
   animation: none;
+}
+
+html[data-motion='reduce'] .route-loader__mark {
+  opacity: 0.88;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-loader__mark {
+    animation: none;
+    opacity: 0.88;
+    transform: none;
+  }
 }
 
 .pill {

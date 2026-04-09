@@ -5,6 +5,7 @@ type TaskCreateInput = {
   title: string
   description?: string
   pinned?: boolean
+  isToday?: boolean
   status: TaskStatus
   priority: TaskItem['priority']
   dueDate?: string

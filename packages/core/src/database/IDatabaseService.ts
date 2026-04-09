@@ -1,16 +1,22 @@
 import type {
+  BookItem,
   DashboardLayout,
   DiaryEntry,
   FocusSession,
   FocusSettings,
+  LifeSubscription,
+  MediaItem,
   NoteAppearanceSettings,
+  LifeDashboardLayout,
   Habit,
   HabitLog,
   NoteItem,
   NoteTag,
   SpendCategory,
   SpendEntry,
+  StockItem,
   TaskItem,
+  TripRecord,
   TaskStatus,
   WidgetTodo,
   WidgetTodoScope,
@@ -20,6 +26,7 @@ export type TaskCreateInput = {
   title: string
   description?: string
   pinned?: boolean
+  isToday?: boolean
   status: TaskStatus
   priority: TaskItem['priority']
   dueDate?: string
@@ -62,12 +69,23 @@ export type FocusSessionCompleteInput = {
   completedAt?: number
 }
 export type DashboardLayoutUpsertInput = Omit<DashboardLayout, 'id' | 'createdAt' | 'updatedAt'>
+export type LifeDashboardLayoutUpsertInput = Omit<LifeDashboardLayout, 'id' | 'createdAt' | 'updatedAt'>
 export type DiaryEntryCreateInput = Omit<DiaryEntry, 'id' | 'createdAt' | 'updatedAt'>
 export type HabitCreateInput = Omit<Habit, 'id' | 'createdAt' | 'updatedAt'>
 export type HabitUpdateInput = Partial<Omit<Habit, 'id' | 'createdAt' | 'updatedAt' | 'userId'>>
 export type HabitListOptions = { archived?: boolean }
 export type HabitHeatmapCell = { dateKey: string; completed: number; total: number }
 export type HabitDailyProgress = { completed: number; total: number; percent: number }
+export type BookCreateInput = Omit<BookItem, 'id' | 'createdAt' | 'updatedAt'>
+export type BookUpdateInput = Partial<Omit<BookItem, 'id' | 'createdAt' | 'updatedAt'>>
+export type MediaCreateInput = Omit<MediaItem, 'id' | 'createdAt' | 'updatedAt'>
+export type MediaUpdateInput = Partial<Omit<MediaItem, 'id' | 'createdAt' | 'updatedAt'>>
+export type StockCreateInput = Omit<StockItem, 'id' | 'createdAt' | 'updatedAt'>
+export type StockUpdateInput = Partial<Omit<StockItem, 'id' | 'createdAt' | 'updatedAt'>>
+export type LifeSubscriptionCreateInput = Omit<LifeSubscription, 'id' | 'createdAt' | 'updatedAt'>
+export type LifeSubscriptionUpdateInput = Partial<Omit<LifeSubscription, 'id' | 'createdAt' | 'updatedAt'>>
+export type TripCreateInput = Omit<TripRecord, 'id' | 'createdAt' | 'updatedAt'>
+export type TripUpdateInput = Partial<Omit<TripRecord, 'id' | 'createdAt' | 'updatedAt'>>
 
 export interface ITaskDataAccess {
   list(): Promise<TaskItem[]>
@@ -152,6 +170,46 @@ export interface IDashboardDataAccess {
   upsert(data: DashboardLayoutUpsertInput): Promise<DashboardLayout>
 }
 
+export interface ILifeDashboardDataAccess {
+  get(): Promise<LifeDashboardLayout | null>
+  upsert(data: LifeDashboardLayoutUpsertInput): Promise<LifeDashboardLayout>
+}
+
+export interface IBookDataAccess {
+  list(): Promise<BookItem[]>
+  create(data: BookCreateInput): Promise<BookItem>
+  update(id: string, patch: BookUpdateInput): Promise<BookItem | undefined>
+  remove(id: string): Promise<void>
+}
+
+export interface IMediaDataAccess {
+  list(): Promise<MediaItem[]>
+  create(data: MediaCreateInput): Promise<MediaItem>
+  update(id: string, patch: MediaUpdateInput): Promise<MediaItem | undefined>
+  remove(id: string): Promise<void>
+}
+
+export interface IStockDataAccess {
+  list(): Promise<StockItem[]>
+  create(data: StockCreateInput): Promise<StockItem>
+  update(id: string, patch: StockUpdateInput): Promise<StockItem | undefined>
+  remove(id: string): Promise<void>
+}
+
+export interface ILifeSubscriptionDataAccess {
+  list(): Promise<LifeSubscription[]>
+  create(data: LifeSubscriptionCreateInput): Promise<LifeSubscription>
+  update(id: string, patch: LifeSubscriptionUpdateInput): Promise<LifeSubscription | undefined>
+  remove(id: string): Promise<void>
+}
+
+export interface ITripDataAccess {
+  list(): Promise<TripRecord[]>
+  create(data: TripCreateInput): Promise<TripRecord>
+  update(id: string, patch: TripUpdateInput): Promise<TripRecord | undefined>
+  remove(id: string): Promise<void>
+}
+
 export interface IHabitDataAccess {
   listHabits(userId: string, options?: HabitListOptions): Promise<Habit[]>
   createHabit(data: HabitCreateInput): Promise<Habit>
@@ -178,5 +236,11 @@ export interface IDatabaseService {
   diary: IDiaryDataAccess
   spend: ISpendDataAccess
   dashboard: IDashboardDataAccess
+  lifeDashboard: ILifeDashboardDataAccess
+  books: IBookDataAccess
+  media: IMediaDataAccess
+  stocks: IStockDataAccess
+  lifeSubscriptions: ILifeSubscriptionDataAccess
+  trips: ITripDataAccess
   habits: IHabitDataAccess
 }

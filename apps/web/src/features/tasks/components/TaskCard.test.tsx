@@ -19,6 +19,7 @@ const task: TaskItem = {
   title: 'Write hover animation',
   description: '',
   pinned: false,
+  isToday: false,
   status: 'todo',
   priority: 'high',
   tags: [],

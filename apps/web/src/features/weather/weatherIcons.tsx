@@ -35,6 +35,7 @@ export function getWeatherIconMeta(code: number) {
   return {
     tone: meta.tone,
     label: meta.label,
+    labelZh: meta.labelZh,
     Icon: ICON_BY_TONE[meta.tone],
     className: CLASS_BY_TONE[meta.tone],
   }

@@ -4,6 +4,8 @@ export const ROUTES = {
   TASKS: '/tasks',
   NOTE: '/note',
   CALENDAR: '/calendar',
+  TRIPS: '/trips',
+  TRIP_DETAIL: '/trips/:tripId',
   FOCUS: '/focus',
   REVIEW: '/review',
   DIARY: '/diary',
@@ -15,11 +17,13 @@ export const ROUTES = {
   PREMIUM_SUCCESS: '/premium/success',
 } as const
 
+export const buildTripDetailRoute = (tripId: string) => `${ROUTES.TRIPS}/${tripId}`
+
 export const LEGACY_ROUTES = {
   KNOWLEDGE: '/knowledge',
 } as const
 
-export type RouteKey = 'dashboard' | 'tasks' | 'note' | 'calendar' | 'focus' | 'diary' | 'settings' | 'labs'
+export type RouteKey = 'dashboard' | 'tasks' | 'note' | 'calendar' | 'trips' | 'focus' | 'diary' | 'settings' | 'labs'
 
 export type NavItem = {
   key: RouteKey
@@ -32,6 +36,7 @@ export const NAV_ITEMS: NavItem[] = [
   { key: 'tasks', label: 'Tasks', to: ROUTES.TASKS },
   { key: 'note', label: 'Note', to: ROUTES.NOTE },
   { key: 'calendar', label: 'Calendar', to: ROUTES.CALENDAR },
+  { key: 'trips', label: 'Trips', to: ROUTES.TRIPS },
   { key: 'focus', label: 'Focus', to: ROUTES.FOCUS },
   { key: 'diary', label: 'Diary', to: ROUTES.DIARY },
   { key: 'settings', label: 'Settings', to: ROUTES.SETTINGS },
@@ -42,6 +47,7 @@ export const BASE_NAV_ITEMS: NavItem[] = [
   { key: 'tasks', label: 'Tasks', to: ROUTES.TASKS },
   { key: 'note', label: 'Note', to: ROUTES.NOTE },
   { key: 'calendar', label: 'Calendar', to: ROUTES.CALENDAR },
+  { key: 'trips', label: 'Trips', to: ROUTES.TRIPS },
   { key: 'focus', label: 'Focus', to: ROUTES.FOCUS },
   { key: 'diary', label: 'Diary', to: ROUTES.DIARY },
   { key: 'settings', label: 'Settings', to: ROUTES.SETTINGS },

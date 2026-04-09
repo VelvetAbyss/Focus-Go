@@ -270,6 +270,106 @@ export const createIPCDatabaseService = (api: ElectronDatabaseApi): IDatabaseSer
       return unwrapData(response)
     },
   },
+  lifeDashboard: {
+    async get() {
+      const response = await invokeDb(api, 'db:lifeDashboard:get', {})
+      return unwrapData(response)
+    },
+    async upsert(data) {
+      const response = await invokeDb(api, 'db:lifeDashboard:upsert', data)
+      return unwrapData(response)
+    },
+  },
+  books: {
+    async list() {
+      const response = await invokeDb(api, 'db:books:list', {})
+      return unwrapData(response)
+    },
+    async create(data) {
+      const response = await invokeDb(api, 'db:books:create', data)
+      return unwrapData(response)
+    },
+    async update(id, patch) {
+      const response = await invokeDb(api, 'db:books:update', { id, patch })
+      return unwrapData(response)
+    },
+    async remove(id) {
+      const response = await invokeDb(api, 'db:books:remove', { id })
+      unwrapData(response)
+    },
+  },
+  media: {
+    async list() {
+      const response = await invokeDb(api, 'db:media:list', {})
+      return unwrapData(response)
+    },
+    async create(data) {
+      const response = await invokeDb(api, 'db:media:create', data)
+      return unwrapData(response)
+    },
+    async update(id, patch) {
+      const response = await invokeDb(api, 'db:media:update', { id, patch })
+      return unwrapData(response)
+    },
+    async remove(id) {
+      const response = await invokeDb(api, 'db:media:remove', { id })
+      unwrapData(response)
+    },
+  },
+  stocks: {
+    async list() {
+      const response = await invokeDb(api, 'db:stocks:list', {})
+      return unwrapData(response)
+    },
+    async create(data) {
+      const response = await invokeDb(api, 'db:stocks:create', data)
+      return unwrapData(response)
+    },
+    async update(id, patch) {
+      const response = await invokeDb(api, 'db:stocks:update', { id, patch })
+      return unwrapData(response)
+    },
+    async remove(id) {
+      const response = await invokeDb(api, 'db:stocks:remove', { id })
+      unwrapData(response)
+    },
+  },
+  lifeSubscriptions: {
+    async list() {
+      const response = await invokeDb(api, 'db:lifeSubscriptions:list', {})
+      return unwrapData(response)
+    },
+    async create(data) {
+      const response = await invokeDb(api, 'db:lifeSubscriptions:create', data)
+      return unwrapData(response)
+    },
+    async update(id, patch) {
+      const response = await invokeDb(api, 'db:lifeSubscriptions:update', { id, patch })
+      return unwrapData(response)
+    },
+    async remove(id) {
+      const response = await invokeDb(api, 'db:lifeSubscriptions:remove', { id })
+      unwrapData(response)
+    },
+  },
+  trips: {
+    async list() {
+      const response = await invokeDb(api, 'db:trips:list', {})
+      return unwrapData(response)
+    },
+    async create(data) {
+      const response = await invokeDb(api, 'db:trips:create', data)
+      return unwrapData(response)
+    },
+    async update(id, patch) {
+      const response = await invokeDb(api, 'db:trips:update', { id, patch })
+      return unwrapData(response)
+    },
+    async remove(id) {
+      const response = await invokeDb(api, 'db:trips:remove', { id })
+      unwrapData(response)
+    },
+  },
   habits: {
     async listHabits(userId, options) {
       const response = await invokeDb(api, 'db:habits:list', { userId, options })

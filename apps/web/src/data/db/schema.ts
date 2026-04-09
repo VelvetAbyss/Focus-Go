@@ -1,5 +1,5 @@
 export const DB_NAME = 'workbench-app'
-export const DB_VERSION = 29
+export const DB_VERSION = 33
 
 export const TABLES = {
   tasks: 'tasks',
@@ -13,6 +13,7 @@ export const TABLES = {
   spends: 'spends',
   spendCategories: 'spend_categories',
   dashboardLayout: 'dashboard_layout',
+  lifeDashboardLayout: 'life_dashboard_layout',
   userSubscriptions: 'user_subscriptions',
   featureInstallations: 'feature_installations',
   habits: 'habits',
@@ -20,8 +21,10 @@ export const TABLES = {
   syncOutbox: 'sync_outbox',
   syncState: 'sync_state',
   books: 'books',
+  stocks: 'stocks',
   media: 'media',
   lifeSubscriptions: 'life_subscriptions',
+  trips: 'trips',
 } as const
 
 export const schemaV2 = {
@@ -158,4 +161,27 @@ export const schemaV29 = {
   [TABLES.books]: 'id, title, status, progress, createdAt, updatedAt',
   [TABLES.media]: 'id, title, status, progress, createdAt, updatedAt',
   [TABLES.lifeSubscriptions]: 'id, name, amount, cycle, createdAt, updatedAt',
+} as const
+
+export const schemaV30 = {
+  ...schemaV29,
+  [TABLES.books]: 'id, source, sourceId, title, status, progress, isbn13, updatedAt, createdAt',
+  [TABLES.lifeDashboardLayout]: 'id, createdAt, updatedAt',
+  [TABLES.stocks]: 'id, symbol, name, pinned, updatedAt, createdAt',
+} as const
+
+export const schemaV31 = {
+  ...schemaV30,
+  [TABLES.media]: 'id, source, sourceId, tmdbId, mediaType, title, status, progress, releaseDate, updatedAt, createdAt',
+} as const
+
+export const schemaV32 = {
+  ...schemaV31,
+  [TABLES.tasks]:
+    'id, pinned, isToday, status, priority, dueDate, startDate, endDate, reminderAt, reminderFiredAt, createdAt, updatedAt',
+} as const
+
+export const schemaV33 = {
+  ...schemaV32,
+  [TABLES.trips]: 'id, destination, status, startDate, endDate, updatedAt, createdAt',
 } as const

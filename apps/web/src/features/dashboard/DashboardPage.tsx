@@ -117,7 +117,7 @@ const DashboardPage = () => {
     margin: [18, 18] as [number, number],
     padding: [18, 18] as [number, number],
     width: Math.max(width, 320),
-    minW: isMobile ? 2 : 3,
+    minW: isMobile ? 2 : 2,
     minH: 2,
     onUpdate: setLayout,
     onCommit: (finalLayout) => {
@@ -348,7 +348,7 @@ const DashboardPage = () => {
         </div>
 
         {/* Life page */}
-        {page === 'life' && <LifeDashboard />}
+        {page === 'life' && <LifeDashboard layoutEdit={layoutEdit} widgetsPanelOpen={widgetsPanelOpen} />}
 
         {/* Main dashboard */}
         {page === 'main' && layoutEdit && widgetsPanelOpen && (
@@ -384,7 +384,7 @@ const DashboardPage = () => {
               y: item.y,
               w: item.w,
               h: item.h,
-              minW: isMobile ? 2 : 3,
+              minW: isMobile ? 2 : 2,
               minH: 2,
               maxW: columns,
             }))}

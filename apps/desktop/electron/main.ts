@@ -172,6 +172,48 @@ app.whenReady().then(() => {
     'db:spend:updateCategory': async (payload) => sqliteBundle.service.spend.updateCategory((payload as { category: never }).category),
     'db:dashboard:get': async () => sqliteBundle.service.dashboard.get(),
     'db:dashboard:upsert': async (payload) => sqliteBundle.service.dashboard.upsert(payload as never),
+    'db:lifeDashboard:get': async () => sqliteBundle.service.lifeDashboard.get(),
+    'db:lifeDashboard:upsert': async (payload) => sqliteBundle.service.lifeDashboard.upsert(payload as never),
+    'db:books:list': async () => sqliteBundle.service.books.list(),
+    'db:books:create': async (payload) => sqliteBundle.service.books.create(payload as never),
+    'db:books:update': async (payload) => {
+      const typed = payload as { id: string; patch: never }
+      return sqliteBundle.service.books.update(typed.id, typed.patch)
+    },
+    'db:books:remove': async (payload) => {
+      await sqliteBundle.service.books.remove((payload as { id: string }).id)
+      return null
+    },
+    'db:media:list': async () => sqliteBundle.service.media.list(),
+    'db:media:create': async (payload) => sqliteBundle.service.media.create(payload as never),
+    'db:media:update': async (payload) => {
+      const typed = payload as { id: string; patch: never }
+      return sqliteBundle.service.media.update(typed.id, typed.patch)
+    },
+    'db:media:remove': async (payload) => {
+      await sqliteBundle.service.media.remove((payload as { id: string }).id)
+      return null
+    },
+    'db:stocks:list': async () => sqliteBundle.service.stocks.list(),
+    'db:stocks:create': async (payload) => sqliteBundle.service.stocks.create(payload as never),
+    'db:stocks:update': async (payload) => {
+      const typed = payload as { id: string; patch: never }
+      return sqliteBundle.service.stocks.update(typed.id, typed.patch)
+    },
+    'db:stocks:remove': async (payload) => {
+      await sqliteBundle.service.stocks.remove((payload as { id: string }).id)
+      return null
+    },
+    'db:lifeSubscriptions:list': async () => sqliteBundle.service.lifeSubscriptions.list(),
+    'db:lifeSubscriptions:create': async (payload) => sqliteBundle.service.lifeSubscriptions.create(payload as never),
+    'db:lifeSubscriptions:update': async (payload) => {
+      const typed = payload as { id: string; patch: never }
+      return sqliteBundle.service.lifeSubscriptions.update(typed.id, typed.patch)
+    },
+    'db:lifeSubscriptions:remove': async (payload) => {
+      await sqliteBundle.service.lifeSubscriptions.remove((payload as { id: string }).id)
+      return null
+    },
     'db:habits:list': async (payload) => {
       const typed = payload as { userId: string; options?: { archived?: boolean } }
       return sqliteBundle.service.habits.listHabits(typed.userId, typed.options)

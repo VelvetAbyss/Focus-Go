@@ -3,6 +3,7 @@ import { CalendarDays, Check, Clock3, LoaderCircle, Pin, Plus, RotateCcw, Target
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
 import {
   Select as ShadcnSelect,
   SelectContent,
@@ -123,6 +124,7 @@ const TaskDrawer = ({
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [priority, setPriority] = useState<TaskPriority | null>(null)
+  const [isToday, setIsToday] = useState(false)
   const [dueDate, setDueDate] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
@@ -170,6 +172,7 @@ const TaskDrawer = ({
     title: string
     description: string
     priority: TaskPriority | null
+    isToday: boolean
     dueDate: string
     startDate: string
     endDate: string
@@ -196,6 +199,7 @@ const TaskDrawer = ({
     setTitle(task.title)
     setDescription(task.description ?? '')
     setPriority(task.priority ?? null)
+    setIsToday(task.isToday === true)
     setDueDate(task.dueDate ?? '')
     setStartDate(task.startDate ?? '')
     setEndDate(task.endDate ?? '')
@@ -217,6 +221,7 @@ const TaskDrawer = ({
       title: task.title,
       description: task.description ?? '',
       priority: task.priority,
+      isToday: task.isToday === true,
       dueDate: task.dueDate ?? '',
       startDate: task.startDate ?? '',
       endDate: task.endDate ?? '',
@@ -233,6 +238,7 @@ const TaskDrawer = ({
     setTitle(draftTask?.title ?? '')
     setDescription(draftTask?.description ?? '')
     setPriority(null)
+    setIsToday(false)
     setDueDate('')
     setStartDate('')
     setEndDate('')
@@ -253,6 +259,7 @@ const TaskDrawer = ({
       title,
       description,
       priority,
+      isToday,
       dueDate: dueDate || undefined,
       startDate: startDate || undefined,
       endDate: endDate || undefined,
@@ -263,7 +270,7 @@ const TaskDrawer = ({
       taskNoteContentMd: taskNoteContent.contentMd,
       taskNoteContentJson: taskNoteContent.contentJson,
     }
-  }, [task, title, description, priority, dueDate, startDate, endDate, reminderDate, reminderTime, tags, subtasks, taskNoteContent])
+  }, [task, title, description, priority, isToday, dueDate, startDate, endDate, reminderDate, reminderTime, tags, subtasks, taskNoteContent])
 
   draftRef.current = draft
 
@@ -273,6 +280,7 @@ const TaskDrawer = ({
     if (nextDraft.title !== baseline.title) return true
     if ((nextDraft.description ?? '') !== baseline.description) return true
     if (nextDraft.priority !== baseline.priority) return true
+    if (nextDraft.isToday !== baseline.isToday) return true
     if ((nextDraft.dueDate ?? '') !== (baseline.dueDate ?? '')) return true
     if ((nextDraft.startDate ?? '') !== (baseline.startDate ?? '')) return true
     if ((nextDraft.endDate ?? '') !== (baseline.endDate ?? '')) return true
@@ -305,6 +313,7 @@ const TaskDrawer = ({
           title: next.title,
           description: next.description ?? '',
           priority: next.priority,
+          isToday: next.isToday === true,
           dueDate: next.dueDate ?? '',
           startDate: next.startDate ?? '',
           endDate: next.endDate ?? '',
@@ -377,7 +386,7 @@ const TaskDrawer = ({
         saveTimerRef.current = null
       }
     }
-  }, [open, title, description, priority, dueDate, startDate, endDate, reminderDate, reminderTime, tags, subtasks, taskNoteContent, lastId, isDraftDirty, saveDraft, task])
+  }, [open, title, description, priority, isToday, dueDate, startDate, endDate, reminderDate, reminderTime, tags, subtasks, taskNoteContent, lastId, isDraftDirty, saveDraft, task])
 
   useEffect(() => {
     return () => {
@@ -484,6 +493,7 @@ const TaskDrawer = ({
       const created = await tasksRepo.add({
         title: nextTitle,
         description: description.trim() || undefined,
+        isToday: false,
         status: 'todo',
         priority: null,
         dueDate: undefined,
@@ -792,6 +802,16 @@ const TaskDrawer = ({
                   </div>
 
                   <div className="mt-5 grid gap-4 md:grid-cols-2">
+                    <div className="rounded-[18px] border border-[#3a3733]/6 bg-[color:var(--bg-muted)] px-4 py-3 md:col-span-2">
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">{t('tasks.today.title')}</p>
+                          <p className="mt-1 text-[13px] text-[color:var(--text-secondary)]">{t('tasks.today.switchHint')}</p>
+                        </div>
+                        <Switch checked={isToday} onCheckedChange={setIsToday} aria-label={t('tasks.today.title')} />
+                      </div>
+                    </div>
+
                     <label className="grid gap-2">
                       <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">{t('tasks.drawer.dueDate')}</span>
                       <DatePicker value={dueDate} onChange={(date) => setDueDate(date ?? '')} placeholder={t('tasks.drawer.setDate')} className="task-detail-picker rounded-[14px]" />
