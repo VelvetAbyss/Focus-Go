@@ -10,6 +10,7 @@ type LabsMessages = {
     tasks: string
     note: string
     calendar: string
+    trips: string
     focus: string
     diary: string
     settings: string
@@ -51,6 +52,7 @@ const messages: Record<LabsLang, LabsMessages> = {
       tasks: 'Tasks',
       note: 'Note',
       calendar: 'Calendar',
+      trips: 'Trips',
       focus: 'Focus',
       diary: 'Diary',
       settings: 'Settings',
@@ -90,6 +92,7 @@ const messages: Record<LabsLang, LabsMessages> = {
       tasks: '任务',
       note: '笔记',
       calendar: '日历',
+      trips: '旅行',
       focus: '专注',
       diary: '日记',
       settings: '设置',

@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useState } from 'react'
-import { Calendar, CircleCheck, Crosshair, Ellipsis, Pin, PinOff, Play, RotateCcw, Trash2 } from 'lucide-react'
+import { Calendar, CircleCheck, Crosshair, Ellipsis, Pin, PinOff, Play, RotateCcw, SunMedium, Trash2 } from 'lucide-react'
 import type { CSSProperties, HTMLAttributes } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -12,6 +12,7 @@ type TaskCardProps = {
   onSelect: (task: TaskItem) => void
   onDelete?: (task: TaskItem) => void
   onTogglePin?: (task: TaskItem) => void
+  onToggleToday?: (task: TaskItem) => void
   statusActions?: {
     key: string
     label: string
@@ -44,6 +45,7 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
       onSelect,
       onDelete,
       onTogglePin,
+      onToggleToday,
       statusActions,
       dragAttributes,
       dragListeners,
@@ -191,6 +193,21 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
                   {onFocusStart ? (
                     <Button variant="ghost" size="icon" className="task-card__action-btn size-7 text-muted-foreground hover:text-foreground" onClick={() => onFocusStart(task)}>
                       <Crosshair className="size-3.5" />
+                    </Button>
+                  ) : null}
+
+                  {onToggleToday ? (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={task.isToday ? t('tasks.today.remove') : t('tasks.today.add')}
+                      className={cn(
+                        'task-card__action-btn size-7 hover:text-foreground',
+                        task.isToday ? 'text-amber-600' : 'text-muted-foreground',
+                      )}
+                      onClick={() => onToggleToday(task)}
+                    >
+                      <SunMedium className="size-3.5" />
                     </Button>
                   ) : null}
 

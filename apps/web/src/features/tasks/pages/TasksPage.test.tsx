@@ -47,6 +47,7 @@ describe('TasksPage viewport adaptation', () => {
 
     const switcher = screen.getByRole('tablist', { name: 'Tasks page view' })
     expect(within(switcher).getByRole('tab', { name: 'Board' })).toBeInTheDocument()
+    expect(within(switcher).getByRole('tab', { name: 'Today' })).toBeInTheDocument()
     expect(within(switcher).getByRole('tab', { name: 'Analytics' })).toBeInTheDocument()
     expect(within(switcher).queryByRole('tab', { name: 'List' })).not.toBeInTheDocument()
   })

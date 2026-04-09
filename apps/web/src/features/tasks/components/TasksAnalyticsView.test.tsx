@@ -17,6 +17,7 @@ const createTask = (overrides: Partial<TaskItem> = {}): TaskItem => ({
   title: overrides.title ?? 'Task',
   description: '',
   pinned: false,
+  isToday: overrides.isToday ?? false,
   status: overrides.status ?? 'todo',
   priority: null,
   tags: [],

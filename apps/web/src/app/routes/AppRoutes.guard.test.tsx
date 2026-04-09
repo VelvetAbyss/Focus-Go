@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PremiumProvider } from '../../features/premium/PremiumProvider'
 import { ToastProvider } from '../../shared/ui/toast/ToastProvider'
-import AppRoutes from './AppRoutes'
+import AppRoutes, { RouteFallback } from './AppRoutes'
 
 const mockUseLabs = vi.fn()
 
@@ -74,5 +74,11 @@ describe('AppRoutes guarded routes', () => {
     renderRoutes('/note')
 
     expect(await screen.findByText('Note Page')).toBeInTheDocument()
+  })
+
+  it('renders a stable route fallback loader', () => {
+    render(<RouteFallback />)
+
+    expect(screen.getByTestId('route-loader')).toBeInTheDocument()
   })
 })

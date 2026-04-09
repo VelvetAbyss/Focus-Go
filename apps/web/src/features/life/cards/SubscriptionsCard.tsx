@@ -1,88 +1,58 @@
-import { useEffect, useState } from 'react'
-import { motion } from 'motion/react'
-import Card from '../../../shared/ui/Card'
-import { AppNumber, AppNumberGroup } from '../../../shared/ui/AppNumber'
+import { useEffect, useMemo, useState } from 'react'
+import type { LifeSubscription } from '../../../data/models/types'
+import { subscriptionsRepo } from '../../../data/repositories/subscriptionsRepo'
+import { SubscriptionCardSurface } from '../components/SubscriptionCardSurface'
+import { buildSubscriptionPresentationModel } from './lifeDesignAdapters'
 
-const MOCK_SUBS = {
-  monthlyTotal: 127,
-  activeCount: 7,
-  dots: [
-    { label: 'Netflix', color: '#e50914' },
-    { label: 'Spotify', color: '#1db954' },
-    { label: 'Claude', color: '#d97706' },
-    { label: 'iCloud', color: '#147efb' },
-    { label: 'YouTube', color: '#ff0000' },
-    { label: 'Figma', color: '#a259ff' },
-    { label: 'GitHub', color: '#6e5494' },
-  ],
-}
+export type SubscriptionDraft = Omit<LifeSubscription, 'id' | 'createdAt' | 'updatedAt'>
 
 const SubscriptionsCard = () => {
-  const [mounted, setMounted] = useState(false)
+  const [open, setOpen] = useState(false)
+  const [subscriptions, setSubscriptions] = useState<LifeSubscription[]>([])
+  const [loading, setLoading] = useState(false)
+
+  const designModel = useMemo(() => buildSubscriptionPresentationModel(subscriptions), [subscriptions])
 
   useEffect(() => {
-    const t = setTimeout(() => setMounted(true), 80)
-    return () => clearTimeout(t)
+    const loadSubscriptions = async () => {
+      setLoading(true)
+      const rows = await subscriptionsRepo.list()
+      setSubscriptions(rows)
+      setLoading(false)
+    }
+    void loadSubscriptions()
   }, [])
 
+  const handleCreate = async (draft: SubscriptionDraft) => {
+    const created = await subscriptionsRepo.create(draft)
+    setSubscriptions((current) => [created, ...current.filter((item) => item.id !== created.id)])
+    return created
+  }
+
+  const handlePatch = async (id: string, patch: Partial<LifeSubscription>) => {
+    const updated = await subscriptionsRepo.update(id, patch)
+    if (!updated) return
+    setSubscriptions((current) => [updated, ...current.filter((item) => item.id !== updated.id)])
+    return updated
+  }
+
+  const handleRemove = async (id: string) => {
+    await subscriptionsRepo.remove(id)
+    setSubscriptions((current) => current.filter((item) => item.id !== id))
+  }
+
   return (
-    <Card
-      eyebrow="Monthly"
-      title="Subscriptions"
-      className="life-card life-card--subs"
-      onClick={() => console.log('open full page')}
-      style={{ cursor: 'pointer' }}
-    >
-      <div className="life-card__body life-card__body--subs">
-        {/* Big number */}
-        <motion.div
-          className="life-subs__total"
-          initial={{ opacity: 0, y: 6 }}
-          animate={mounted ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.36, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <AppNumberGroup>
-            <span className="life-subs__currency">$</span>
-            <AppNumber
-              value={MOCK_SUBS.monthlyTotal}
-              animated
-              className="life-subs__amount"
-            />
-            <span className="life-subs__period">/mo</span>
-          </AppNumberGroup>
-        </motion.div>
-
-        {/* Service dots */}
-        <div className="life-subs__dots" aria-label={`${MOCK_SUBS.activeCount} active subscriptions`}>
-          {MOCK_SUBS.dots.map((dot, i) => (
-            <motion.span
-              key={dot.label}
-              className="life-subs__dot"
-              style={{ background: dot.color }}
-              title={dot.label}
-              initial={{ scale: 0, opacity: 0 }}
-              animate={mounted ? { scale: 1, opacity: 1 } : {}}
-              transition={{
-                type: 'spring',
-                stiffness: 380,
-                damping: 24,
-                delay: 0.12 + i * 0.04,
-              }}
-            />
-          ))}
-        </div>
-
-        {/* Stat */}
-        <div className="life-card__stats life-card__stats--inline">
-          <div className="life-stat">
-            <span className="life-stat__value">
-              <AppNumber value={MOCK_SUBS.activeCount} animated />
-            </span>
-            <span className="life-stat__label">active services</span>
-          </div>
-        </div>
-      </div>
-    </Card>
+    <SubscriptionCardSurface
+      model={designModel}
+      subscriptions={subscriptions}
+      open={open}
+      loading={loading}
+      onOpen={() => setOpen(true)}
+      onClose={() => setOpen(false)}
+      onCreateSubscription={(draft) => handleCreate(draft)}
+      onPatchSubscription={(id, patch) => handlePatch(id, patch)}
+      onRemoveSubscription={(id) => void handleRemove(id)}
+    />
   )
 }
 

@@ -8,6 +8,8 @@ import { usePremiumGate } from '../../features/premium/PremiumProvider'
 const TasksPage = lazy(() => import('../../features/tasks/pages/TasksPage'))
 const NotePage = lazy(() => import('../../features/notes/pages/NotePage'))
 const CalendarPage = lazy(() => import('../../features/calendar/pages/CalendarPage'))
+const TripsPage = lazy(() => import('../../features/trips/TripsPage'))
+const TripDetailPage = lazy(() => import('../../features/trips/TripDetailPage'))
 const FocusPage = lazy(() => import('../../features/focus/pages/FocusPage'))
 const DiaryPage = lazy(() => import('../../features/diary/pages/DiaryPage'))
 const SettingsRoute = lazy(() => import('./SettingsRoute'))
@@ -16,15 +18,11 @@ const HabitTrackerPage = lazy(() => import('../../features/habits/pages/HabitTra
 const PremiumPricingPage = lazy(() => import('../../features/payments/pages/PremiumPricingPage'))
 const PaymentSuccessPage = lazy(() => import('../../features/payments/pages/PaymentSuccessPage'))
 
-const RouteFallback = () => (
-  <section
-    style={{
-      minHeight: '100%',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    }}
-  />
+export const RouteFallback = () => (
+  <section className="route-loader" data-testid="route-loader" aria-live="polite" aria-busy="true">
+    <span className="route-loader__mark" aria-hidden="true" />
+    <span className="sr-only">Loading page</span>
+  </section>
 )
 
 const GuardedHabitsRoute = () => {
@@ -59,6 +57,8 @@ const AppRoutes = () => {
       <Route path={ROUTES.TASKS} element={<Suspense fallback={<RouteFallback />}><TasksPage /></Suspense>} />
       <Route path={ROUTES.NOTE} element={<Suspense fallback={<RouteFallback />}><NotePage /></Suspense>} />
       <Route path={ROUTES.CALENDAR} element={<Suspense fallback={<RouteFallback />}><CalendarPage /></Suspense>} />
+      <Route path={ROUTES.TRIPS} element={<Suspense fallback={<RouteFallback />}><TripsPage /></Suspense>} />
+      <Route path={ROUTES.TRIP_DETAIL} element={<Suspense fallback={<RouteFallback />}><TripDetailPage /></Suspense>} />
       <Route path={ROUTES.FOCUS} element={<Suspense fallback={<RouteFallback />}><FocusPage /></Suspense>} />
       <Route path={ROUTES.REVIEW} element={<Navigate to={ROUTES.DIARY} replace />} />
       <Route path={ROUTES.DIARY} element={<Suspense fallback={<RouteFallback />}><DiaryPage /></Suspense>} />

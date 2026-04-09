@@ -7,6 +7,7 @@ import type {
   FeatureInstallation,
   FocusSession,
   FocusSettings,
+  LifeDashboardLayout,
   LifeSubscription,
   MediaItem,
   NoteAppearanceSettings,
@@ -16,7 +17,9 @@ import type {
   NoteTag,
   SpendCategory,
   SpendEntry,
+  StockItem,
   TaskItem,
+  TripRecord,
   UserSubscription,
   WidgetTodo,
 } from '../models/types'
@@ -32,7 +35,8 @@ import {
   schemaV24,
   schemaV26,
   schemaV28,
-  schemaV29,
+  schemaV32,
+  schemaV33,
   schemaV2,
   schemaV3,
   schemaV4,
@@ -56,6 +60,7 @@ export class WorkbenchDb extends Dexie {
   spends!: Table<SpendEntry, string>
   spendCategories!: Table<SpendCategory, string>
   dashboardLayout!: Table<DashboardLayout, string>
+  lifeDashboardLayout!: Table<LifeDashboardLayout, string>
   userSubscriptions!: Table<UserSubscription, string>
   featureInstallations!: Table<FeatureInstallation, string>
   habits!: Table<Habit, string>
@@ -63,8 +68,10 @@ export class WorkbenchDb extends Dexie {
   syncOutbox!: Table<SyncOutboxItem, string>
   syncState!: Table<SyncState, string>
   books!: Table<BookItem, string>
+  stocks!: Table<StockItem, string>
   media!: Table<MediaItem, string>
   lifeSubscriptions!: Table<LifeSubscription, string>
+  trips!: Table<TripRecord, string>
 
   constructor() {
     super(DB_NAME)
@@ -162,7 +169,23 @@ export class WorkbenchDb extends Dexie {
         await tx.table(TABLES.diaryEntries).bulkPut(migrated as DiaryEntry[])
       })
 
-    this.version(DB_VERSION).stores(schemaV29)
+    this.version(32)
+      .stores(schemaV32)
+      .upgrade(async (tx) => {
+        const taskRows = await tx.table(TABLES.tasks).toArray()
+        if (taskRows.length === 0) return
+        const migratedTasks = taskRows.map((row) => ({
+          ...row,
+          isToday: row.isToday === true,
+        }))
+        await tx.table(TABLES.tasks).bulkPut(migratedTasks as TaskItem[])
+      })
+
+    this.version(33)
+      .stores(schemaV33)
+      .upgrade(async () => {})
+
+    this.version(DB_VERSION).stores(schemaV33)
 
     this.tasks = this.table(TABLES.tasks)
     this.notes = this.table(TABLES.notes)
@@ -175,6 +198,7 @@ export class WorkbenchDb extends Dexie {
     this.spends = this.table(TABLES.spends)
     this.spendCategories = this.table(TABLES.spendCategories)
     this.dashboardLayout = this.table(TABLES.dashboardLayout)
+    this.lifeDashboardLayout = this.table(TABLES.lifeDashboardLayout)
     this.userSubscriptions = this.table(TABLES.userSubscriptions)
     this.featureInstallations = this.table(TABLES.featureInstallations)
     this.habits = this.table(TABLES.habits)
@@ -182,8 +206,10 @@ export class WorkbenchDb extends Dexie {
     this.syncOutbox = this.table(TABLES.syncOutbox)
     this.syncState = this.table(TABLES.syncState)
     this.books = this.table(TABLES.books)
+    this.stocks = this.table(TABLES.stocks)
     this.media = this.table(TABLES.media)
     this.lifeSubscriptions = this.table(TABLES.lifeSubscriptions)
+    this.trips = this.table(TABLES.trips)
   }
 }
 

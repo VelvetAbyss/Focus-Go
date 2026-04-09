@@ -33,7 +33,7 @@ const tabs: { key: TaskStatus }[] = [{ key: 'todo' }, { key: 'doing' }, { key: '
 type SortMode = 'importance' | 'time'
 type TagFilterMode = 'all' | 'work' | 'life' | 'health' | 'study' | 'finance' | 'family'
 type BoardMode = 'kanban' | 'calendar'
-type TopView = 'board' | 'analytics'
+type TopView = 'board' | 'today' | 'analytics'
 
 const STORAGE_TAB_KEY = 'tasks_active_tab'
 const STORAGE_SORT_KEY = 'tasks_sort_mode'
@@ -169,18 +169,22 @@ const TasksBoard = ({
   }, [tasks])
 
   const filteredTasks = useMemo(() => {
-    let result = tasks.filter((task) => task.status === activeStatus)
+    let result = topView === 'today'
+      ? tasks.filter((task) => task.isToday)
+      : tasks.filter((task) => task.status === activeStatus)
     if (tagFilter.length > 0) {
       result = result.filter((task) => tagFilter.some((tag) => task.tags.some((item) => item.toLowerCase() === tag)))
     }
     const ordered = result.slice()
     ordered.sort((a, b) => {
+      if (topView === 'today' && a.status === 'done' && b.status !== 'done') return 1
+      if (topView === 'today' && a.status !== 'done' && b.status === 'done') return -1
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1
       if (sortMode === 'time') return sortByTime(a, b)
       return sortByImportance(a, b)
     })
     return ordered
-  }, [tasks, activeStatus, tagFilter, sortMode])
+  }, [tasks, topView, activeStatus, tagFilter, sortMode])
   const filteredTaskIds = useMemo(() => filteredTasks.map((task) => task.id), [filteredTasks])
   const selectedCount = selectedTaskIds.size
 
@@ -263,7 +267,8 @@ const TasksBoard = ({
   const handleAddTask = useCallback(async (title: string) => {
     const created = await tasksRepo.add({
       title,
-      status: activeStatus,
+      status: topView === 'today' ? 'todo' : activeStatus,
+      isToday: topView === 'today',
       priority: null,
       dueDate: undefined,
       tags: [],
@@ -272,7 +277,16 @@ const TasksBoard = ({
     emitTasksChanged('tasks-board:create')
     setTasks((prev) => [created, ...prev])
     return true
-  }, [activeStatus])
+  }, [activeStatus, topView])
+
+  const handleToggleToday = useCallback(async (taskId: string) => {
+    const task = tasks.find((item) => item.id === taskId)
+    if (!task) return
+    const updated = await tasksRepo.update({ ...task, isToday: !task.isToday })
+    setTasks((prev) => prev.map((item) => (item.id === taskId ? updated : item)))
+    setActiveTask((prev) => (prev?.id === taskId ? updated : prev))
+    emitTasksChanged('tasks-board:toggle-today')
+  }, [tasks])
 
   const handleOnboardingCreated = useCallback(
     (task: TaskItem) => {
@@ -362,7 +376,7 @@ const TasksBoard = ({
   }, [bulkTagDraft, selectedTaskIds, tasks])
 
   const isKanbanMode = asCard || boardMode === 'kanban'
-  const showTasksEmptyState = filteredTasks.length === 0 && topView === 'board' && isKanbanMode
+  const showTasksEmptyState = filteredTasks.length === 0 && topView !== 'analytics' && isKanbanMode
   const tasksEmptyState = onboardingMode ? (
     <EmptyState
       icon={<LayoutGrid className="size-6" />}
@@ -376,13 +390,13 @@ const TasksBoard = ({
   ) : (
     <EmptyState
       icon={<LayoutGrid className="size-6" />}
-      title="该状态下暂无任务"
-      description="在下方创建新任务开始使用"
+      title={topView === 'today' ? t('tasks.today.emptyTitle') : '该状态下暂无任务'}
+      description={topView === 'today' ? t('tasks.today.emptyDescription') : '在下方创建新任务开始使用'}
       className="mx-auto my-10 max-w-xl"
     />
   )
 
-  const boardContent = topView === 'board'
+  const boardContent = topView !== 'analytics'
     ? isKanbanMode
       ? (
         <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
@@ -411,6 +425,9 @@ const TasksBoard = ({
                     }}
                     onFocusStart={(nextTask) => {
                       navigate(`${ROUTES.FOCUS}?taskId=${encodeURIComponent(nextTask.id)}&autostart=1`)
+                    }}
+                    onToggleToday={(nextTask) => {
+                      void handleToggleToday(nextTask.id)
                     }}
                     statusActions={
                       task.status === 'todo'
@@ -445,29 +462,35 @@ const TasksBoard = ({
         <div className="mb-0 border-b pb-3">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-0.5">
-                {tabs.map((status) => {
-                  const cfg = TASK_STATUS_CONFIG[status.key]
-                  const count = statusCounts[status.key]
-                  const isActive = activeStatus === status.key
-                  return (
-                    <button
-                      key={status.key}
-                      className={cn(
-                        'tasks-fg__status-tab flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-all',
-                        isActive ? 'bg-muted text-foreground shadow-sm' : 'text-muted-foreground hover:bg-accent/70 hover:text-foreground',
-                      )}
-                      onClick={() => setActiveStatus(status.key)}
-                    >
-                      <span className={cn('size-1.5 rounded-full', isActive ? cfg.dot : cfg.dot)} />
-                      {t(cfg.labelKey)}
-                      <span className={cn('min-w-[20px] rounded-full px-1.5 py-0.5 text-center text-xs tabular-nums', isActive ? 'bg-background text-foreground/80' : 'bg-muted text-muted-foreground')}>
-                        {count}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
+              {topView === 'board' ? (
+                <div className="flex items-center gap-0.5">
+                  {tabs.map((status) => {
+                    const cfg = TASK_STATUS_CONFIG[status.key]
+                    const count = statusCounts[status.key]
+                    const isActive = activeStatus === status.key
+                    return (
+                      <button
+                        key={status.key}
+                        className={cn(
+                          'tasks-fg__status-tab flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-all',
+                          isActive ? 'bg-muted text-foreground shadow-sm' : 'text-muted-foreground hover:bg-accent/70 hover:text-foreground',
+                        )}
+                        onClick={() => setActiveStatus(status.key)}
+                      >
+                        <span className={cn('size-1.5 rounded-full', cfg.dot)} />
+                        {t(cfg.labelKey)}
+                        <span className={cn('min-w-[20px] rounded-full px-1.5 py-0.5 text-center text-xs tabular-nums', isActive ? 'bg-background text-foreground/80' : 'bg-muted text-muted-foreground')}>
+                          {count}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-full border border-[#3A3733]/10 bg-[#F5F3F0] px-3 py-1.5 text-xs text-[#3A3733]/72">
+                  {t('tasks.today.badge')}
+                </div>
+              )}
 
               <div className="h-5 w-px bg-border" />
 
@@ -532,7 +555,7 @@ const TasksBoard = ({
             </div>
 
             <div className="flex items-center gap-2">
-              {topView === 'board' && isKanbanMode && !asCard && !onboardingMode ? (
+              {isKanbanMode && !asCard && !onboardingMode ? (
                 bulkMode ? (
                   <div className="tasks-fg__bulk-bar flex items-center gap-1.5 rounded-md border border-[#3a3733]/10 bg-white px-2 py-1">
                     <button type="button" aria-label={t('tasks.selectAll')} className="tasks-fg__bulk-btn inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-[#3A3733]" onClick={toggleSelectAllVisible}>
@@ -591,7 +614,7 @@ const TasksBoard = ({
                 )
               ) : null}
 
-              {!asCard && !onboardingMode ? (
+              {!asCard && !onboardingMode && topView === 'board' ? (
                 <div className="flex items-center gap-0.5 rounded-md bg-muted p-0.5">
                   <button
                     className={cn(
@@ -624,7 +647,9 @@ const TasksBoard = ({
         {boardContent}
       </div>
 
-      {topView === 'board' && isKanbanMode && !onboardingMode ? <TaskAddComposer onSubmit={handleAddTask} plain /> : null}
+      {topView !== 'analytics' && isKanbanMode && !onboardingMode ? (
+        <TaskAddComposer onSubmit={handleAddTask} plain placeholder={topView === 'today' ? t('tasks.today.addPlaceholder') : undefined} />
+      ) : null}
     </div>
   )
 

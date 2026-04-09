@@ -20,7 +20,154 @@ describe('DexieDatabaseService', () => {
     expect(typeof service.diary.listTrash).toBe('function')
     expect(typeof service.spend.listCategories).toBe('function')
     expect(typeof service.dashboard.get).toBe('function')
+    expect(typeof service.lifeDashboard.get).toBe('function')
+    expect(typeof service.books.list).toBe('function')
+    expect(typeof service.media.list).toBe('function')
+    expect(typeof service.stocks.list).toBe('function')
+    expect(typeof service.lifeSubscriptions.list).toBe('function')
     expect(typeof service.habits.listHabits).toBe('function')
+  })
+
+  it('persists life dashboard layout independently from main dashboard', async () => {
+    await db.delete({ disableAutoOpen: false })
+    await db.open()
+    const service = createDexieDatabaseService()
+
+    await service.dashboard.upsert({
+      items: [{ key: 'tasks', x: 0, y: 0, w: 4, h: 4 }],
+      hiddenCardIds: ['weather'],
+      themeOverride: null,
+    })
+
+    const life = await service.lifeDashboard.upsert({
+      items: [{ key: 'library', x: 0, y: 0, w: 4, h: 4 }],
+      hiddenCardIds: ['stocks'],
+    })
+
+    expect(life.items[0]?.key).toBe('library')
+    expect(life.hiddenCardIds).toEqual(['stocks'])
+    expect((await service.dashboard.get())?.items[0]?.key).toBe('tasks')
+    expect((await service.lifeDashboard.get())?.items[0]?.key).toBe('library')
+  })
+
+  it('stores book records with reading progress and reflection', async () => {
+    await db.delete({ disableAutoOpen: false })
+    await db.open()
+    const service = createDexieDatabaseService()
+
+    const created = await service.books.create({
+      source: 'open-library',
+      sourceId: 'OL123W',
+      title: 'Atomic Habits',
+      authors: ['James Clear'],
+      status: 'reading',
+      progress: 42,
+      reflection: 'Useful notes',
+      coverUrl: 'https://covers.openlibrary.org/b/id/1-M.jpg',
+      summary: 'Build better habits.',
+      subjects: ['Habits'],
+      isbn13: '9780735211292',
+    })
+
+    const updated = await service.books.update(created.id, {
+      progress: 60,
+      reflection: 'Updated reflection',
+    })
+
+    expect(created.title).toBe('Atomic Habits')
+    expect(updated?.progress).toBe(60)
+    expect(updated?.reflection).toBe('Updated reflection')
+    expect((await service.books.list())[0]?.isbn13).toBe('9780735211292')
+  })
+
+  it('stores stocks watch items and quote snapshots', async () => {
+    await db.delete({ disableAutoOpen: false })
+    await db.open()
+    const service = createDexieDatabaseService()
+
+    const created = await service.stocks.create({
+      symbol: 'AAPL',
+      name: 'Apple Inc.',
+      exchange: 'NASDAQ',
+      currency: 'USD',
+      lastPrice: 189.52,
+      change: 1.2,
+      changePercent: 0.64,
+      note: 'Core watchlist',
+      pinned: true,
+    })
+
+    const updated = await service.stocks.update(created.id, {
+      lastPrice: 190.11,
+      note: 'Updated note',
+    })
+
+    expect(created.symbol).toBe('AAPL')
+    expect(updated?.lastPrice).toBe(190.11)
+    expect(updated?.note).toBe('Updated note')
+    expect((await service.stocks.list())[0]?.pinned).toBe(true)
+  })
+
+  it('stores media watch items with tmdb metadata', async () => {
+    await db.delete({ disableAutoOpen: false })
+    await db.open()
+    const service = createDexieDatabaseService()
+
+    const created = await service.media.create({
+      source: 'tmdb',
+      sourceId: '110492',
+      tmdbId: 110492,
+      mediaType: 'tv',
+      title: 'Shogun',
+      status: 'watching',
+      progress: 50,
+      director: 'Frederick E.O. Toye',
+      cast: ['Hiroyuki Sanada', 'Anna Sawai'],
+      genres: ['Drama'],
+      releaseDate: '2024-02-27',
+      posterUrl: 'https://image.tmdb.org/t/p/w342/test.jpg',
+    })
+
+    const updated = await service.media.update(created.id, {
+      progress: 75,
+      cast: ['Hiroyuki Sanada', 'Anna Sawai', 'Cosmo Jarvis'],
+    })
+
+    expect(created.tmdbId).toBe(110492)
+    expect(updated?.progress).toBe(75)
+    expect(updated?.cast).toContain('Cosmo Jarvis')
+  })
+
+  it('stores life subscriptions and keeps yearly totals available for callers', async () => {
+    await db.delete({ disableAutoOpen: false })
+    await db.open()
+    const service = createDexieDatabaseService()
+
+    const monthly = await service.lifeSubscriptions.create({
+      name: 'Spotify',
+      amount: 12,
+      currency: 'USD',
+      cycle: 'monthly',
+    })
+    const yearly = await service.lifeSubscriptions.create({
+      name: 'Figma',
+      amount: 120,
+      currency: 'CNY',
+      cycle: 'yearly',
+    })
+
+    const updated = await service.lifeSubscriptions.update(yearly.id, {
+      amount: 144,
+    })
+    const listed = await service.lifeSubscriptions.list()
+
+    expect(monthly.name).toBe('Spotify')
+    expect(updated?.amount).toBe(144)
+    expect(listed).toHaveLength(2)
+    expect(Number((listed.reduce((sum, item) => sum + (item.cycle === 'yearly' ? item.amount / 12 : item.amount), 0)).toFixed(2))).toBe(24)
+
+    await service.lifeSubscriptions.remove(monthly.id)
+    expect(await service.lifeSubscriptions.list()).toHaveLength(1)
   })
 
   it('hydrates rich task note fields from legacy blocks when listing tasks', async () => {

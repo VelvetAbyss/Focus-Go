@@ -98,6 +98,19 @@
 ───────────────────────────────────────── */
 
 .life-card {
+  background: var(--bg-elevated);
+  border-color: transparent;
+  box-shadow: 0 12px 28px rgba(58, 55, 51, 0.08);
+  --life-type-overline: 0.66rem;
+  --life-type-label: 0.72rem;
+  --life-type-meta: 0.78rem;
+  --life-type-body: 0.92rem;
+  --life-type-title: 1rem;
+  --life-type-metric: clamp(1.36rem, 1.2rem + 0.8vw, 1.8rem);
+  --life-type-display: clamp(2.15rem, 1.8rem + 1.2vw, 2.8rem);
+  --life-lh-tight: 1.08;
+  --life-lh-copy: 1.45;
+  font-kerning: normal;
   transition:
     transform var(--motion-duration-base) var(--ease-emphasized),
     box-shadow var(--motion-duration-base) var(--ease-standard);
@@ -105,18 +118,27 @@
 
 .life-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-lift);
+  box-shadow: 0 16px 36px rgba(58, 55, 51, 0.12);
 }
 
 .life-card .card__eyebrow {
-  font-size: 0.68rem;
-  letter-spacing: 0.18em;
+  font-size: var(--life-type-overline);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.life-card .card__title {
+  font-family: var(--font-display);
+  font-size: clamp(1.02rem, 0.98rem + 0.28vw, 1.18rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: var(--life-lh-tight);
 }
 
 .life-card__body {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
   flex: 1;
   padding-bottom: 4px;
 }
@@ -135,7 +157,7 @@
 .life-stat {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 3px;
 }
 
 .life-stat--muted .life-stat__value {
@@ -143,19 +165,68 @@
 }
 
 .life-stat__value {
-  font-size: 1.55rem;
+  font-size: var(--life-type-metric);
   font-weight: 700;
   font-family: var(--font-display);
   letter-spacing: -0.03em;
-  line-height: 1;
+  line-height: var(--life-lh-tight);
   color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
 }
 
 .life-stat__label {
-  font-size: 0.72rem;
-  font-weight: 500;
+  font-size: var(--life-type-label);
+  font-weight: 600;
   color: var(--text-secondary);
-  letter-spacing: 0.01em;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.life-card--daily-review {
+  --life-accent: #3A3733;
+}
+
+.life-card--daily-review .card__eyebrow {
+  color: var(--life-accent);
+}
+
+.life-daily-review__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.life-daily-review__metric,
+.life-daily-review__summary-card {
+  border: 1px solid rgba(58, 55, 51, 0.08);
+  background: rgba(245, 243, 240, 0.78);
+  border-radius: 18px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.life-daily-review__metric-label,
+.life-daily-review__summary-label {
+  font-size: var(--life-type-label);
+  font-weight: 600;
+  color: rgba(58, 55, 51, 0.7);
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.life-daily-review__metric-value,
+.life-daily-review__summary-value {
+  font-size: clamp(1.18rem, 1.06rem + 0.5vw, 1.46rem);
+  font-weight: 700;
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  color: #3A3733;
+  letter-spacing: -0.025em;
+  line-height: var(--life-lh-tight);
 }
 
 /* ─────────────────────────────────────────
@@ -170,35 +241,115 @@
   color: var(--life-accent);
 }
 
-.life-books__spines {
+/* Shelf list on card */
+.life-library__shelf {
   display: flex;
-  align-items: flex-end;
-  gap: 6px;
-  padding: 0 2px;
-  height: 96px;
+  flex-direction: column;
+  gap: 0;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 
-.life-books__spine {
-  flex: 1;
-  min-width: 18px;
-  max-width: 28px;
-  border-radius: 4px 4px 2px 2px;
-  transform-origin: bottom;
-  background: var(--life-accent);
-  opacity: 0.85;
+.life-library__row {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(58, 55, 51, 0.06);
 }
 
-.life-books__spine--ghost {
-  background: var(--bg-muted);
+.life-library__row:last-child {
+  border-bottom: none;
+}
+
+.life-library__cover {
+  width: 36px;
   height: 50px;
-  border: 1.5px dashed var(--border);
-  opacity: 1;
+  border-radius: 6px;
+  object-fit: cover;
+  background: #e7dfd5;
+  flex-shrink: 0;
 }
 
-html[data-theme='dark'] .life-books__spine--ghost {
-  border-color: var(--border);
-  background: var(--bg-muted);
+.life-library__cover--empty {
+  background: linear-gradient(145deg, #e7dfd5 0%, #d9cfc4 100%);
+}
+
+.life-library__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.life-library__title {
+  margin: 0;
+  font-size: var(--life-type-body);
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.28;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.01em;
+}
+
+.life-library__author {
+  margin: 0;
+  font-size: var(--life-type-meta);
+  color: var(--text-secondary);
+  line-height: 1.32;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.life-library__progress {
+  position: relative;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(58, 55, 51, 0.06);
+  overflow: hidden;
+  grid-column: 1 / -1;
+  margin-top: -2px;
+}
+
+.life-library__progress span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--life-accent);
+  border-radius: 999px;
+  transition: width 0.4s var(--ease-standard);
+}
+
+/* Empty state */
+.life-library__empty,
+.life-stocks__empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  padding: 16px 0;
+}
+
+.life-library__empty-icon,
+.life-stocks__empty-icon {
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+.life-library__empty-text,
+.life-stocks__empty-text {
+  margin: 0;
+  font-size: var(--life-type-meta);
+  color: var(--text-secondary);
+  letter-spacing: 0.01em;
+  line-height: var(--life-lh-copy);
 }
 
 /* ─────────────────────────────────────────
@@ -206,46 +357,143 @@ html[data-theme='dark'] .life-books__spine--ghost {
 ───────────────────────────────────────── */
 
 .life-card--media {
-  --life-accent: #7ab8ff;
+  --life-accent: #8ea9c7;
 }
 
 .life-card--media .card__eyebrow {
   color: var(--life-accent);
 }
 
-.life-media__frames {
+.life-media__list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   flex: 1;
 }
 
-.life-media__frame {
+.life-media__row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.life-media__poster,
+.life-media__hero-poster {
+  width: 54px;
+  height: 78px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: rgba(58, 55, 51, 0.08);
+  border: 1px solid rgba(58, 55, 51, 0.08);
+  flex-shrink: 0;
+}
+
+.life-media__poster--empty,
+.life-media__hero-poster {
+  display: grid;
+  place-items: center;
+  color: rgba(58, 55, 51, 0.55);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.life-media__meta,
+.life-media__hero-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.life-media__title {
+  margin: 0 0 4px;
+  font-size: 0.98rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  color: #3A3733;
+  letter-spacing: -0.015em;
+  line-height: 1.22;
+}
+
+.life-media__subline {
+  margin: 0 0 4px;
+  font-size: var(--life-type-meta);
+  color: rgba(58, 55, 51, 0.72);
+  line-height: 1.38;
+}
+
+.life-media__hero {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  flex: 1;
+}
+
+.life-media__facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.life-media__fact {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(58, 55, 51, 0.04);
+  border: 1px solid rgba(58, 55, 51, 0.08);
 }
 
-.life-media__frame-bar {
-  height: 4px;
-  border-radius: 999px;
-  background: var(--bg-muted);
-  overflow: hidden;
-  position: relative;
+.life-media__fact span {
+  font-size: var(--life-type-label);
+  font-weight: 600;
+  color: rgba(58, 55, 51, 0.68);
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  text-transform: uppercase;
 }
 
-.life-media__frame-progress {
-  position: absolute;
-  inset: 0;
-  border-radius: 999px;
-  background: var(--life-accent);
-  transform-origin: left;
+.life-media__fact strong {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #3A3733;
+  line-height: 1.25;
 }
 
-.life-media__frame-label {
-  font-size: 0.72rem;
-  font-weight: 500;
-  color: var(--text-secondary);
+.life-media__overview {
+  margin: 0;
+  font-size: var(--life-type-body);
+  line-height: 1.62;
+  color: rgba(58, 55, 51, 0.8);
+}
+
+.life-media__range {
+  width: 100%;
+  accent-color: #3A3733;
+}
+
+.life-modal__media-hero-copy {
+  flex: 1;
+}
+
+.life-results__media {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.life-results__poster {
+  width: 38px;
+  height: 54px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: rgba(58, 55, 51, 0.08);
+  flex-shrink: 0;
+}
+
+.life-results__poster--empty {
+  border: 1px dashed rgba(58, 55, 51, 0.12);
 }
 
 /* ─────────────────────────────────────────
@@ -260,11 +508,226 @@ html[data-theme='dark'] .life-books__spine--ghost {
   color: var(--accent);
 }
 
-.life-card__body--subs {
+.life-card--stocks {
+  --life-accent: #3A3733;
+}
+
+.life-card--stocks .card__eyebrow {
+  color: var(--text-secondary);
+}
+
+/* Ticker list on card */
+.life-stocks__ticker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.life-stocks__ticker-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(58, 55, 51, 0.06);
+}
+
+.life-stocks__ticker-row:last-child {
+  border-bottom: none;
+}
+
+.life-stocks__ticker-sym {
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+  color: var(--text-primary);
+  min-width: 48px;
+}
+
+.life-stocks__ticker-line {
+  flex: 1;
+  height: 1px;
+  background: rgba(58, 55, 51, 0.08);
+}
+
+.life-stocks__ticker-price {
+  font-size: var(--life-type-meta);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  line-height: 1.2;
+}
+
+.life-stocks__ticker-price.is-up { color: #2c7a5b; }
+.life-stocks__ticker-price.is-down { color: #b74b45; }
+
+.life-drawer {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.life-drawer__section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.life-search {
+  display: flex;
+  gap: 10px;
+}
+
+.life-search__input,
+.life-field select,
+.life-field__textarea {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid rgba(58, 55, 51, 0.14);
+  background: #F5F3F0;
+  color: #3A3733;
+  padding: 12px 14px;
+  font: inherit;
+}
+
+.life-field__textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.life-search__hint,
+.life-library-detail__text,
+.life-library-detail__tags {
+  margin: 0;
+  font-size: var(--life-type-body);
+  color: rgba(58, 55, 51, 0.72);
+  line-height: 1.58;
+}
+
+.life-results,
+.life-library-panel__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.life-results__item,
+.life-library-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(58, 55, 51, 0.1);
+  background: rgba(255, 255, 255, 0.52);
+  color: #3A3733;
+  padding: 12px 14px;
+  text-align: left;
+}
+
+.life-results__item.is-loading {
+  opacity: 0.72;
+}
+
+.life-results__item strong,
+.life-library-item strong {
+  display: block;
+}
+
+.life-results__item p,
+.life-library-item p,
+.life-library-detail__header p {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  color: rgba(58, 55, 51, 0.68);
+}
+
+.life-library-item.is-active {
+  border-color: rgba(58, 55, 51, 0.28);
+  box-shadow: 0 8px 24px rgba(58, 55, 51, 0.08);
+}
+
+.life-library-panel {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+  gap: 18px;
+}
+
+.life-library-panel__detail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.life-library-detail__header {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.life-library-detail__header h3 {
+  margin: 0;
+  color: #3A3733;
+}
+
+.life-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: #3A3733;
+  font-size: var(--life-type-body);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.life-field--inline {
   flex-direction: row;
   align-items: center;
+  justify-content: space-between;
+}
+
+.life-stock-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  min-height: 96px;
+  padding: 4px 0;
+}
+
+.life-stock-chart__bar {
+  flex: 1;
+  border-radius: 999px 999px 4px 4px;
+  background: linear-gradient(180deg, rgba(58, 55, 51, 0.25), #3A3733);
+  transform-origin: bottom;
+}
+
+.life-card__body--subs {
+  flex-direction: row;
+  align-items: stretch;
   gap: 20px;
+  justify-content: space-between;
   flex-wrap: wrap;
+}
+
+.life-subs__summary {
+  display: flex;
+  flex: 1;
+  min-width: 240px;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.life-subs__meta {
+  display: flex;
+  min-width: 140px;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 18px;
+  align-items: flex-start;
 }
 
 .life-subs__total {
@@ -275,29 +738,32 @@ html[data-theme='dark'] .life-books__spine--ghost {
 }
 
 .life-subs__currency {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 700;
   font-family: var(--font-display);
   color: var(--text-secondary);
   letter-spacing: -0.01em;
+  line-height: 1;
 }
 
 .life-subs__amount {
-  font-size: 2.4rem;
+  font-size: var(--life-type-display);
   font-weight: 800;
   font-family: var(--font-display);
   letter-spacing: -0.04em;
   color: var(--text-primary);
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .life-subs__period {
-  font-size: 0.82rem;
+  font-size: var(--life-type-meta);
   font-weight: 600;
   color: var(--text-secondary);
-  letter-spacing: 0.01em;
+  letter-spacing: 0.08em;
   align-self: flex-end;
   margin-bottom: 3px;
+  text-transform: uppercase;
 }
 
 .life-subs__dots {
@@ -316,10 +782,707 @@ html[data-theme='dark'] .life-books__spine--ghost {
   flex-shrink: 0;
 }
 
+.life-subs__preview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.life-subs__preview-row {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.life-subs__preview-dot,
+.life-subs__sidebar-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.life-subs__preview-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--life-type-body);
+  font-weight: 600;
+  color: #3A3733;
+  line-height: 1.3;
+}
+
+.life-subs__preview-amount {
+  font-size: var(--life-type-meta);
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.life-subs__empty {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.life-subs__empty-title,
+.life-subs__empty-copy {
+  margin: 0;
+}
+
+.life-subs__empty-title {
+  font-size: 0.98rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  color: #3A3733;
+  letter-spacing: -0.015em;
+  line-height: 1.24;
+}
+
+.life-subs__empty-copy {
+  font-size: var(--life-type-meta);
+  color: var(--text-secondary);
+  line-height: var(--life-lh-copy);
+}
+
+/* ─────────────────────────────────────────
+   Life Modal (Library & Stocks)
+───────────────────────────────────────── */
+
+.life-modal__panel.dialog__panel {
+  width: min(920px, 94vw);
+  max-height: min(86vh, 860px);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.life-modal__content.dialog__content {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Header */
+.life-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 24px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.life-modal__eyebrow {
+  margin: 0 0 2px;
+  font-size: 0.67rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--text-secondary);
+}
+
+.life-modal__title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.life-modal__close {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--motion-duration-base) var(--ease-standard),
+              color var(--motion-duration-base) var(--ease-standard);
+}
+
+.life-modal__close:hover {
+  background: var(--bg-muted);
+  color: var(--text-primary);
+}
+
+/* Search bar */
+.life-modal__search-bar {
+  display: flex;
+  gap: 10px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.life-modal__search-bar .btn {
+  border: 1px solid rgba(58, 55, 51, 0.12);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(245, 243, 240, 0.98) 100%);
+  color: #3A3733;
+  padding: 0 18px;
+  font: inherit;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.life-modal__search-bar .btn:not(:disabled):hover {
+  border-color: rgba(58, 55, 51, 0.22);
+  background: linear-gradient(180deg, #FFFFFF 0%, rgba(245, 243, 240, 1) 100%);
+  box-shadow: 0 8px 20px rgba(58, 55, 51, 0.08);
+}
+
+.life-modal__search-bar .btn:not(:disabled):active {
+  background: rgba(239, 235, 229, 0.98);
+}
+
+.life-modal__search-bar .btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(58, 55, 51, 0.12);
+}
+
+.life-modal__search-bar--summary {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.life-subs__modal-total {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.life-subs__modal-total-label {
+  font-size: var(--life-type-label);
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.life-subs__modal-total strong {
+  font-size: 1.45rem;
+  line-height: 1;
+  font-family: var(--font-display);
+  color: #3A3733;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.life-subs__select {
+  appearance: none;
+}
+
+/* Search results (overlay strip) */
+.life-modal__results {
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.life-results__add {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 0 4px;
+}
+
+/* Body: sidebar + detail */
+.life-modal__body {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.life-daily-review__tabs {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.life-daily-review__tab {
+  border: 1px solid rgba(58, 55, 51, 0.08);
+  background: rgba(245, 243, 240, 0.9);
+  color: #3A3733;
+  border-radius: 999px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+.life-daily-review__tab.is-active {
+  background: #3A3733;
+  color: #F5F3F0;
+}
+
+.life-daily-review__detail {
+  padding: 20px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  overflow-y: auto;
+}
+
+.life-daily-review__summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.life-daily-review__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.life-daily-review__tasks-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.life-daily-review__tasks-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.18;
+  color: #3A3733;
+}
+
+.life-daily-review__tasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.life-daily-review__task-item {
+  border: 1px solid rgba(58, 55, 51, 0.08);
+  border-radius: 18px;
+  background: rgba(245, 243, 240, 0.62);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.life-daily-review__task-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #3A3733;
+}
+
+.life-daily-review__task-head strong {
+  font-size: var(--life-type-body);
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+.life-daily-review__task-head span {
+  font-size: var(--life-type-meta);
+  color: rgba(58, 55, 51, 0.62);
+  line-height: 1.2;
+}
+
+.life-daily-review__subtasks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.life-daily-review__subtask {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #3A3733;
+  font-size: var(--life-type-meta);
+  line-height: 1.38;
+}
+
+.life-daily-review__subtask.is-done {
+  color: rgba(58, 55, 51, 0.72);
+}
+
+.life-daily-review__subtask-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #3A3733;
+  flex-shrink: 0;
+}
+
+.life-daily-review__empty-copy {
+  margin: 0;
+  font-size: var(--life-type-meta);
+  color: rgba(58, 55, 51, 0.68);
+  line-height: var(--life-lh-copy);
+}
+
+/* Sidebar list */
+.life-modal__sidebar {
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+}
+
+.life-modal__list-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--motion-duration-base) var(--ease-standard);
+  width: 100%;
+}
+
+.life-modal__list-item:hover {
+  background: var(--bg-muted);
+}
+
+.life-modal__list-item.is-active {
+  background: var(--bg-muted);
+  border-color: var(--border);
+}
+
+.life-modal__list-cover {
+  width: 36px;
+  height: 50px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: #e7dfd5;
+  flex-shrink: 0;
+}
+
+.life-modal__list-cover--empty {
+  background: #e7dfd5;
+}
+
+.life-modal__list-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.life-modal__list-meta strong {
+  display: block;
+  font-size: 0.84rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.life-modal__list-meta p {
+  margin: 2px 0 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.life-modal__list-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+/* Stocks-specific sidebar */
+.life-modal__stock-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.life-modal__stock-symbol {
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.life-modal__stock-price {
+  font-size: 0.78rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.life-modal__stock-price.is-up { color: #2c7a5b; }
+.life-modal__stock-price.is-down { color: #b74b45; }
+
+/* Detail pane */
+.life-modal__detail {
+  overflow-y: auto;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.life-modal__detail-hero {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.life-modal__detail-cover {
+  width: 72px;
+  height: 100px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: #e7dfd5;
+  border: 1px solid rgba(58, 55, 51, 0.08);
+  flex-shrink: 0;
+}
+
+.life-modal__detail-cover--empty {
+  display: grid;
+  place-items: center;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: rgba(58, 55, 51, 0.4);
+}
+
+.life-modal__detail-title {
+  margin: 0 0 4px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.life-modal__detail-author {
+  margin: 0 0 2px;
+  font-size: 0.84rem;
+  color: var(--text-secondary);
+}
+
+.life-modal__detail-meta {
+  margin: 0 0 6px;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.life-modal__detail-tags {
+  margin: 4px 0 0;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.01em;
+}
+
+/* Stocks detail hero layout */
+.life-modal__stocks-hero-text { flex: 1; }
+
+.life-modal__stocks-price {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.life-modal__stocks-price strong {
+  font-size: 1.6rem;
+  font-weight: 800;
+  font-family: var(--font-display);
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.life-modal__stocks-price span {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.life-modal__stocks-price .is-up { color: #2c7a5b; }
+.life-modal__stocks-price .is-down { color: #b74b45; }
+
+/* Custom progress track */
+.life-progress-track {
+  position: relative;
+  height: 28px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.life-progress-track::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 6px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: rgba(58, 55, 51, 0.08);
+}
+
+.life-progress-track__fill {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 6px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: #3A3733;
+  pointer-events: none;
+}
+
+.life-progress-track__thumb {
+  position: absolute;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #3A3733;
+  border: 2.5px solid var(--bg-elevated);
+  box-shadow: 0 1px 4px rgba(58, 55, 51, 0.2);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: transform 0.12s var(--ease-standard);
+}
+
+.life-progress-track:hover .life-progress-track__thumb,
+.life-progress-track:active .life-progress-track__thumb {
+  transform: translate(-50%, -50%) scale(1.2);
+}
+
+/* Detail actions */
+.life-modal__detail-actions {
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.life-modal__loading {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.life-modal__loading-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.life-modal__loading-line {
+  display: block;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(58, 55, 51, 0.08);
+  animation: life-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes life-shimmer {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.life-modal__loading-line--lg {
+  width: 100%;
+}
+
+.life-modal__loading-line--sm {
+  width: 42%;
+}
+
+/* Empty state */
+.life-modal__empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+  text-align: center;
+  padding: 40px;
+}
+
+@media (max-width: 680px) {
+  .life-modal__body {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+  .life-modal__sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    max-height: 200px;
+  }
+  .life-modal__search-bar {
+    flex-direction: column;
+  }
+  .life-daily-review__grid,
+  .life-daily-review__summary-grid {
+    grid-template-columns: 1fr;
+  }
+  .life-daily-review__task-head,
+  .life-daily-review__tasks-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .life-media__facts {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ─────────────────────────────────────────
    Reduced motion
 ───────────────────────────────────────── */
 
 html[data-motion='reduce'] .life-card {
   transition: none;
+}
+
+@media (max-width: 900px) {
+  .life-daily-review__summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .life-library-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .life-search {
+    flex-direction: column;
+  }
 }

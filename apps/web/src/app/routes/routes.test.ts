@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { BASE_NAV_ITEMS, LEGACY_ROUTES, ROUTES } from './routes'
+import { BASE_NAV_ITEMS, LEGACY_ROUTES, ROUTES, buildTripDetailRoute } from './routes'
 
 describe('routes config', () => {
   it('defines note, labs, and habits routes', () => {
@@ -18,10 +18,16 @@ describe('routes config', () => {
       'tasks',
       'note',
       'calendar',
+      'trips',
       'focus',
       'diary',
       'settings',
     ])
     expect(LEGACY_ROUTES.KNOWLEDGE).toBe('/knowledge')
+  })
+
+  it('builds a trip detail route from a trip id', () => {
+    expect(ROUTES.TRIP_DETAIL).toBe('/trips/:tripId')
+    expect(buildTripDetailRoute('trip_123')).toBe('/trips/trip_123')
   })
 })

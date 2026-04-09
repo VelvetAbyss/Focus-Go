@@ -421,6 +421,206 @@ const spendEntryCreateInputSchema = z
   })
   .strict()
 
+const subscriptionCycleSchema = z.enum(['monthly', 'yearly'])
+const subscriptionCurrencySchema = z.enum(['USD', 'CNY'])
+const subscriptionPaymentStatusSchema = z.enum(['paid', 'unpaid'])
+
+const lifeSubscriptionSchema = baseEntitySchema.extend({
+  name: z.string(),
+  amount: z.number(),
+  currency: subscriptionCurrencySchema,
+  cycle: subscriptionCycleSchema,
+  color: z.string().optional(),
+  category: z.string().optional(),
+  billingDay: z.number().int().min(1).max(31).optional(),
+  billingMonth: z.number().int().min(1).max(12).optional(),
+  emoji: z.string().optional(),
+  reminder: z.boolean().optional(),
+  paymentStatus: subscriptionPaymentStatusSchema.optional(),
+})
+
+const lifeSubscriptionCreateInputSchema = z
+  .object({
+    name: z.string(),
+    amount: z.number(),
+    currency: subscriptionCurrencySchema,
+    cycle: subscriptionCycleSchema,
+    color: z.string().optional(),
+    category: z.string().optional(),
+    billingDay: z.number().int().min(1).max(31).optional(),
+    billingMonth: z.number().int().min(1).max(12).optional(),
+    emoji: z.string().optional(),
+    reminder: z.boolean().optional(),
+    paymentStatus: subscriptionPaymentStatusSchema.optional(),
+    userId: z.string().optional(),
+    workspaceId: z.string().optional(),
+  })
+  .strict()
+
+const lifeSubscriptionUpdateInputSchema = z
+  .object({
+    name: z.string().optional(),
+    amount: z.number().optional(),
+    currency: subscriptionCurrencySchema.optional(),
+    cycle: subscriptionCycleSchema.optional(),
+    color: z.string().optional(),
+    category: z.string().optional(),
+    billingDay: z.number().int().min(1).max(31).optional(),
+    billingMonth: z.number().int().min(1).max(12).optional(),
+    emoji: z.string().optional(),
+    reminder: z.boolean().optional(),
+    paymentStatus: subscriptionPaymentStatusSchema.optional(),
+    userId: z.string().optional(),
+    workspaceId: z.string().optional(),
+  })
+  .strict()
+
+const tripStatusSchema = z.enum(['Planning', 'Booked', 'Ready', 'Ongoing', 'Done'])
+const transportMethodSchema = z.enum(['Flight', 'Train', 'Bus', 'Taxi', 'Subway', 'Walk', 'Car'])
+const transportCategorySchema = z.enum(['intercity', 'local'])
+const bookingStatusSchema = z.enum(['Confirmed', 'Pending', 'Not booked'])
+const foodStatusSchema = z.enum(['Saved', 'Planned', 'Visited'])
+const itineraryTypeSchema = z.enum(['spot', 'food', 'transport', 'hotel'])
+
+const tripItineraryItemSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  time: z.string(),
+  location: z.string(),
+  type: itineraryTypeSchema,
+  notes: z.string().optional(),
+}).strict()
+
+const tripItineraryDaySchema = z.object({
+  day: z.number(),
+  date: z.string(),
+  label: z.string(),
+  items: z.array(tripItineraryItemSchema),
+}).strict()
+
+const tripTransportItemSchema = z.object({
+  id: z.string(),
+  category: transportCategorySchema,
+  method: transportMethodSchema,
+  from: z.string(),
+  to: z.string(),
+  departTime: z.string(),
+  arriveTime: z.string(),
+  date: z.string(),
+  status: bookingStatusSchema,
+  cost: z.number(),
+  currency: z.string(),
+  notes: z.string().optional(),
+}).strict()
+
+const tripStayItemSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  address: z.string(),
+  checkIn: z.string(),
+  checkOut: z.string(),
+  nights: z.number(),
+  status: bookingStatusSchema,
+  cost: z.number(),
+  currency: z.string(),
+  notes: z.string().optional(),
+}).strict()
+
+const tripFoodItemSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  area: z.string(),
+  cuisine: z.string(),
+  status: foodStatusSchema,
+  priceRange: z.enum(['¥', '¥¥', '¥¥¥']),
+  notes: z.string().optional(),
+}).strict()
+
+const tripBudgetCategorySchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  emoji: z.string(),
+  planned: z.number(),
+  actual: z.number(),
+}).strict()
+
+const tripChecklistItemSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  done: z.boolean(),
+}).strict()
+
+const tripChecklistGroupSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  emoji: z.string(),
+  items: z.array(tripChecklistItemSchema),
+}).strict()
+
+const tripRecordSchema = baseEntitySchema.extend({
+  title: z.string(),
+  destination: z.string(),
+  startDate: z.string(),
+  endDate: z.string(),
+  status: tripStatusSchema,
+  travelers: z.number(),
+  budgetPlanned: z.number(),
+  budgetCurrency: z.string(),
+  heroImage: z.string(),
+  coverEmoji: z.string(),
+  itinerary: z.array(tripItineraryDaySchema),
+  transport: z.array(tripTransportItemSchema),
+  stays: z.array(tripStayItemSchema),
+  food: z.array(tripFoodItemSchema),
+  budget: z.array(tripBudgetCategorySchema),
+  checklist: z.array(tripChecklistGroupSchema),
+  notes: z.string(),
+})
+
+const tripCreateInputSchema = z.object({
+  title: z.string(),
+  destination: z.string(),
+  startDate: z.string(),
+  endDate: z.string(),
+  status: tripStatusSchema,
+  travelers: z.number(),
+  budgetPlanned: z.number(),
+  budgetCurrency: z.string(),
+  heroImage: z.string(),
+  coverEmoji: z.string(),
+  itinerary: z.array(tripItineraryDaySchema),
+  transport: z.array(tripTransportItemSchema),
+  stays: z.array(tripStayItemSchema),
+  food: z.array(tripFoodItemSchema),
+  budget: z.array(tripBudgetCategorySchema),
+  checklist: z.array(tripChecklistGroupSchema),
+  notes: z.string(),
+  userId: z.string().optional(),
+  workspaceId: z.string().optional(),
+}).strict()
+
+const tripUpdateInputSchema = z.object({
+  title: z.string().optional(),
+  destination: z.string().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  status: tripStatusSchema.optional(),
+  travelers: z.number().optional(),
+  budgetPlanned: z.number().optional(),
+  budgetCurrency: z.string().optional(),
+  heroImage: z.string().optional(),
+  coverEmoji: z.string().optional(),
+  itinerary: z.array(tripItineraryDaySchema).optional(),
+  transport: z.array(tripTransportItemSchema).optional(),
+  stays: z.array(tripStayItemSchema).optional(),
+  food: z.array(tripFoodItemSchema).optional(),
+  budget: z.array(tripBudgetCategorySchema).optional(),
+  checklist: z.array(tripChecklistGroupSchema).optional(),
+  notes: z.string().optional(),
+  userId: z.string().optional(),
+  workspaceId: z.string().optional(),
+}).strict()
+
 const spendCategorySchema = baseEntitySchema.extend({
   name: z.string(),
   icon: z.string().optional(),
@@ -456,6 +656,248 @@ const dashboardLayoutUpsertInputSchema = z
     items: z.array(dashboardLayoutItemSchema),
     hiddenCardIds: z.array(z.string()).optional(),
     themeOverride: z.enum(['light', 'dark']).nullable().optional(),
+    userId: z.string().optional(),
+    workspaceId: z.string().optional(),
+  })
+  .strict()
+
+const lifeDashboardLayoutSchema = baseEntitySchema.extend({
+  items: z.array(dashboardLayoutItemSchema),
+  hiddenCardIds: z.array(z.string()).optional(),
+})
+
+const lifeDashboardLayoutUpsertInputSchema = z
+  .object({
+    items: z.array(dashboardLayoutItemSchema),
+    hiddenCardIds: z.array(z.string()).optional(),
+    userId: z.string().optional(),
+    workspaceId: z.string().optional(),
+  })
+  .strict()
+
+const bookSourceSchema = z.enum(['manual', 'open-library', 'google-books', 'crossref', 'gutendex'])
+const bookStatusSchema = z.enum(['reading', 'finished', 'want-to-read'])
+
+const bookItemSchema = baseEntitySchema.extend({
+  source: bookSourceSchema,
+  sourceId: z.string(),
+  title: z.string(),
+  authors: z.array(z.string()),
+  status: bookStatusSchema,
+  progress: z.number(),
+  coverUrl: z.string().optional(),
+  description: z.string().optional(),
+  publisher: z.string().optional(),
+  publishedDate: z.string().optional(),
+  subjects: z.array(z.string()),
+  summary: z.string().optional(),
+  outline: z.array(z.string()).optional(),
+  reflection: z.string().optional(),
+  isbn10: z.string().optional(),
+  isbn13: z.string().optional(),
+  openLibraryKey: z.string().optional(),
+  googleBooksId: z.string().optional(),
+  doi: z.string().optional(),
+  lastSyncedAt: z.number().optional(),
+})
+
+const mediaTypeSchema = z.enum(['movie', 'tv'])
+const mediaStatusSchema = z.enum(['watching', 'completed', 'want-to-watch'])
+
+const mediaItemSchema = baseEntitySchema.extend({
+  source: z.literal('tmdb'),
+  sourceId: z.string().min(1),
+  tmdbId: z.number(),
+  mediaType: mediaTypeSchema,
+  title: z.string(),
+  originalTitle: z.string().optional(),
+  status: mediaStatusSchema,
+  progress: z.number(),
+  posterUrl: z.string().optional(),
+  backdropUrl: z.string().optional(),
+  overview: z.string().optional(),
+  releaseDate: z.string().optional(),
+  director: z.string().optional(),
+  creator: z.string().optional(),
+  cast: z.array(z.string()),
+  genres: z.array(z.string()),
+  duration: z.string().optional(),
+  seasons: z.number().optional(),
+  episodes: z.number().optional(),
+  country: z.string().optional(),
+  language: z.string().optional(),
+  rating: z.string().optional(),
+  watchedEpisodes: z.number().optional(),
+  reflection: z.string().optional(),
+  voteAverage: z.number().optional(),
+  lastSyncedAt: z.number().optional(),
+})
+
+const mediaCreateInputSchema = z
+  .object({
+    source: z.literal('tmdb'),
+    sourceId: z.string().min(1),
+    tmdbId: z.number(),
+    mediaType: mediaTypeSchema,
+    title: z.string(),
+    originalTitle: z.string().optional(),
+    status: mediaStatusSchema,
+    progress: z.number(),
+    posterUrl: z.string().optional(),
+    backdropUrl: z.string().optional(),
+    overview: z.string().optional(),
+    releaseDate: z.string().optional(),
+    director: z.string().optional(),
+    creator: z.string().optional(),
+    cast: z.array(z.string()),
+    genres: z.array(z.string()),
+    duration: z.string().optional(),
+    seasons: z.number().optional(),
+    episodes: z.number().optional(),
+    country: z.string().optional(),
+    language: z.string().optional(),
+    rating: z.string().optional(),
+    watchedEpisodes: z.number().optional(),
+    reflection: z.string().optional(),
+    voteAverage: z.number().optional(),
+    lastSyncedAt: z.number().optional(),
+    userId: z.string().optional(),
+    workspaceId: z.string().optional(),
+  })
+  .strict()
+
+const mediaUpdateInputSchema = z
+  .object({
+    source: z.literal('tmdb').optional(),
+    sourceId: z.string().min(1).optional(),
+    tmdbId: z.number().optional(),
+    mediaType: mediaTypeSchema.optional(),
+    title: z.string().optional(),
+    originalTitle: z.string().optional(),
+    status: mediaStatusSchema.optional(),
+    progress: z.number().optional(),
+    posterUrl: z.string().optional(),
+    backdropUrl: z.string().optional(),
+    overview: z.string().optional(),
+    releaseDate: z.string().optional(),
+    director: z.string().optional(),
+    creator: z.string().optional(),
+    cast: z.array(z.string()).optional(),
+    genres: z.array(z.string()).optional(),
+    duration: z.string().optional(),
+    seasons: z.number().optional(),
+    episodes: z.number().optional(),
+    country: z.string().optional(),
+    language: z.string().optional(),
+    rating: z.string().optional(),
+    watchedEpisodes: z.number().optional(),
+    reflection: z.string().optional(),
+    voteAverage: z.number().optional(),
+    lastSyncedAt: z.number().optional(),
+    userId: z.string().optional(),
+    workspaceId: z.string().optional(),
+  })
+  .strict()
+
+const bookCreateInputSchema = z
+  .object({
+    source: bookSourceSchema,
+    sourceId: z.string(),
+    title: z.string(),
+    authors: z.array(z.string()),
+    status: bookStatusSchema,
+    progress: z.number(),
+    coverUrl: z.string().optional(),
+    description: z.string().optional(),
+    publisher: z.string().optional(),
+    publishedDate: z.string().optional(),
+    subjects: z.array(z.string()).optional(),
+    summary: z.string().optional(),
+    outline: z.array(z.string()).optional(),
+    reflection: z.string().optional(),
+    isbn10: z.string().optional(),
+    isbn13: z.string().optional(),
+    openLibraryKey: z.string().optional(),
+    googleBooksId: z.string().optional(),
+    doi: z.string().optional(),
+    lastSyncedAt: z.number().optional(),
+    userId: z.string().optional(),
+    workspaceId: z.string().optional(),
+  })
+  .strict()
+
+const bookUpdateInputSchema = z
+  .object({
+    source: bookSourceSchema.optional(),
+    sourceId: z.string().optional(),
+    title: z.string().optional(),
+    authors: z.array(z.string()).optional(),
+    status: bookStatusSchema.optional(),
+    progress: z.number().optional(),
+    coverUrl: z.string().optional(),
+    description: z.string().optional(),
+    publisher: z.string().optional(),
+    publishedDate: z.string().optional(),
+    subjects: z.array(z.string()).optional(),
+    summary: z.string().optional(),
+    outline: z.array(z.string()).optional(),
+    reflection: z.string().optional(),
+    isbn10: z.string().optional(),
+    isbn13: z.string().optional(),
+    openLibraryKey: z.string().optional(),
+    googleBooksId: z.string().optional(),
+    doi: z.string().optional(),
+    lastSyncedAt: z.number().optional(),
+    userId: z.string().optional(),
+    workspaceId: z.string().optional(),
+  })
+  .strict()
+
+const stockItemSchema = baseEntitySchema.extend({
+  symbol: z.string(),
+  name: z.string(),
+  exchange: z.string().optional(),
+  currency: z.string(),
+  lastPrice: z.number().optional(),
+  change: z.number().optional(),
+  changePercent: z.number().optional(),
+  chartPoints: z.array(z.number()).optional(),
+  note: z.string().optional(),
+  pinned: z.boolean(),
+  lastSyncedAt: z.number().optional(),
+})
+
+const stockCreateInputSchema = z
+  .object({
+    symbol: z.string(),
+    name: z.string(),
+    exchange: z.string().optional(),
+    currency: z.string(),
+    lastPrice: z.number().optional(),
+    change: z.number().optional(),
+    changePercent: z.number().optional(),
+    chartPoints: z.array(z.number()).optional(),
+    note: z.string().optional(),
+    pinned: z.boolean().optional(),
+    lastSyncedAt: z.number().optional(),
+    userId: z.string().optional(),
+    workspaceId: z.string().optional(),
+  })
+  .strict()
+
+const stockUpdateInputSchema = z
+  .object({
+    symbol: z.string().optional(),
+    name: z.string().optional(),
+    exchange: z.string().optional(),
+    currency: z.string().optional(),
+    lastPrice: z.number().optional(),
+    change: z.number().optional(),
+    changePercent: z.number().optional(),
+    chartPoints: z.array(z.number()).optional(),
+    note: z.string().optional(),
+    pinned: z.boolean().optional(),
+    lastSyncedAt: z.number().optional(),
     userId: z.string().optional(),
     workspaceId: z.string().optional(),
   })
@@ -521,6 +963,28 @@ export const ipcRequestSchemas = {
   'db:spend:updateCategory': z.object({ category: spendCategorySchema }).strict(),
   'db:dashboard:get': emptySchema,
   'db:dashboard:upsert': dashboardLayoutUpsertInputSchema,
+  'db:lifeDashboard:get': emptySchema,
+  'db:lifeDashboard:upsert': lifeDashboardLayoutUpsertInputSchema,
+  'db:books:list': emptySchema,
+  'db:books:create': bookCreateInputSchema,
+  'db:books:update': z.object({ id: z.string().min(1), patch: bookUpdateInputSchema }).strict(),
+  'db:books:remove': idSchema,
+  'db:media:list': emptySchema,
+  'db:media:create': mediaCreateInputSchema,
+  'db:media:update': z.object({ id: z.string().min(1), patch: mediaUpdateInputSchema }).strict(),
+  'db:media:remove': idSchema,
+  'db:stocks:list': emptySchema,
+  'db:stocks:create': stockCreateInputSchema,
+  'db:stocks:update': z.object({ id: z.string().min(1), patch: stockUpdateInputSchema }).strict(),
+  'db:stocks:remove': idSchema,
+  'db:lifeSubscriptions:list': emptySchema,
+  'db:lifeSubscriptions:create': lifeSubscriptionCreateInputSchema,
+  'db:lifeSubscriptions:update': z.object({ id: z.string().min(1), patch: lifeSubscriptionUpdateInputSchema }).strict(),
+  'db:lifeSubscriptions:remove': idSchema,
+  'db:trips:list': emptySchema,
+  'db:trips:create': tripCreateInputSchema,
+  'db:trips:update': z.object({ id: z.string().min(1), patch: tripUpdateInputSchema }).strict(),
+  'db:trips:remove': idSchema,
   'db:habits:list': z.object({ userId: z.string().min(1), options: habitListOptionsSchema.optional() }).strict(),
   'db:habits:create': habitCreateInputSchema,
   'db:habits:update': z.object({ id: z.string().min(1), patch: habitUpdateInputSchema }).strict(),
@@ -597,6 +1061,28 @@ export const ipcResponseSchemas = {
   'db:spend:updateCategory': responseSchema(spendCategorySchema),
   'db:dashboard:get': responseSchema(dashboardLayoutSchema.nullable()),
   'db:dashboard:upsert': responseSchema(dashboardLayoutSchema),
+  'db:lifeDashboard:get': responseSchema(lifeDashboardLayoutSchema.nullable()),
+  'db:lifeDashboard:upsert': responseSchema(lifeDashboardLayoutSchema),
+  'db:books:list': responseSchema(z.array(bookItemSchema)),
+  'db:books:create': responseSchema(bookItemSchema),
+  'db:books:update': responseSchema(bookItemSchema.nullable()),
+  'db:books:remove': responseSchema(z.null()),
+  'db:media:list': responseSchema(z.array(mediaItemSchema)),
+  'db:media:create': responseSchema(mediaItemSchema),
+  'db:media:update': responseSchema(mediaItemSchema.nullable()),
+  'db:media:remove': responseSchema(z.null()),
+  'db:stocks:list': responseSchema(z.array(stockItemSchema)),
+  'db:stocks:create': responseSchema(stockItemSchema),
+  'db:stocks:update': responseSchema(stockItemSchema.nullable()),
+  'db:stocks:remove': responseSchema(z.null()),
+  'db:lifeSubscriptions:list': responseSchema(z.array(lifeSubscriptionSchema)),
+  'db:lifeSubscriptions:create': responseSchema(lifeSubscriptionSchema),
+  'db:lifeSubscriptions:update': responseSchema(lifeSubscriptionSchema.nullable()),
+  'db:lifeSubscriptions:remove': responseSchema(z.null()),
+  'db:trips:list': responseSchema(z.array(tripRecordSchema)),
+  'db:trips:create': responseSchema(tripRecordSchema),
+  'db:trips:update': responseSchema(tripRecordSchema.nullable()),
+  'db:trips:remove': responseSchema(z.null()),
   'db:habits:list': responseSchema(z.array(habitSchema)),
   'db:habits:create': responseSchema(habitSchema),
   'db:habits:update': responseSchema(habitSchema.nullable()),

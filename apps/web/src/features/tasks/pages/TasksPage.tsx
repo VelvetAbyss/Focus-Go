@@ -7,7 +7,7 @@ import { useI18n } from '../../../shared/i18n/useI18n'
 import { useTasksViewportProfile } from './tasksViewport'
 import { useOnboardingFlow } from '../../onboarding/useOnboardingFlow'
 
-type TasksPageViewMode = 'board' | 'analytics'
+type TasksPageViewMode = 'board' | 'today' | 'analytics'
 
 const STORAGE_VIEW_KEY = 'tasks_page_view_mode'
 
@@ -23,7 +23,7 @@ const TasksPage = () => {
       window.localStorage.setItem(STORAGE_VIEW_KEY, 'analytics')
       return 'analytics'
     }
-    return stored === 'analytics' || stored === 'board' ? stored : 'board'
+    return stored === 'analytics' || stored === 'board' || stored === 'today' ? stored : 'board'
   })
 
   const switchView = (nextView: TasksPageViewMode) => {
@@ -58,6 +58,18 @@ const TasksPage = () => {
             >
               <LayoutGrid className="size-3.5" />
               {t('modules.tasks.board')}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={viewMode === 'today'}
+              className={cn(
+                'tasks-page-shell__tab flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-all',
+                viewMode === 'today' ? 'is-active' : 'text-muted-foreground hover:text-foreground',
+              )}
+              onClick={() => switchView('today')}
+            >
+              {t('modules.tasks.today')}
             </button>
             <button
               type="button"

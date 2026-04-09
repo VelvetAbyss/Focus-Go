@@ -1,76 +1,157 @@
-import { useEffect, useState } from 'react'
-import { motion } from 'motion/react'
-import Card from '../../../shared/ui/Card'
-import { AppNumber } from '../../../shared/ui/AppNumber'
+import { useEffect, useMemo, useState } from 'react'
+import type { BookItem } from '../../../data/models/types'
+import { booksRepo } from '../../../data/repositories/booksRepo'
+import { LibraryCardSurface } from '../components/LibraryCardSurface'
+import { dedupeBookMatch, hydrateRemoteBookCandidate, searchRemoteBooks, type RemoteBookCandidate } from '../booksApi'
+import { buildLibraryPresentationModel } from './lifeDesignAdapters'
 
-const MOCK_BOOKS = {
-  currentlyReading: 3,
-  finishedThisMonth: 2,
-  spines: [
-    { color: '#c8a97e', height: 72 },
-    { color: '#a67c52', height: 88 },
-    { color: '#d4b896', height: 64 },
-  ],
+const toCreatePayload = (candidate: RemoteBookCandidate) => ({
+  ...candidate,
+  status: 'want-to-read' as const,
+  progress: 0,
+  subjects: candidate.subjects ?? [],
+  lastSyncedAt: Date.now(),
+})
+
+const normalizeBookPatch = (patch: Partial<BookItem>): Partial<BookItem> => {
+  if (typeof patch.progress !== 'number') return patch
+  if (patch.progress >= 100) return { ...patch, progress: 100, status: 'finished' }
+  if (patch.progress > 0) return { ...patch, status: 'reading' }
+  return patch
 }
 
 const BooksCard = () => {
-  const [mounted, setMounted] = useState(false)
+  const [open, setOpen] = useState(false)
+  const [books, setBooks] = useState<BookItem[]>([])
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<RemoteBookCandidate[]>([])
+  const [selectedBookId, setSelectedBookId] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [searching, setSearching] = useState(false)
+  const [addingCandidateId, setAddingCandidateId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const selectedBook = useMemo(() => books.find((item) => item.id === selectedBookId) ?? null, [books, selectedBookId])
+  const designModel = useMemo(() => buildLibraryPresentationModel(books), [books])
 
   useEffect(() => {
-    const t = setTimeout(() => setMounted(true), 60)
-    return () => clearTimeout(t)
+    const loadBooks = async () => {
+      setLoading(true)
+      const rows = await booksRepo.list()
+      setBooks(rows)
+      setSelectedBookId((current) => current ?? rows[0]?.id ?? null)
+      setLoading(false)
+    }
+    void loadBooks()
   }, [])
 
-  return (
-    <Card
-      eyebrow="Reading"
-      title="Books"
-      className="life-card life-card--books"
-      onClick={() => console.log('open full page')}
-      style={{ cursor: 'pointer' }}
-    >
-      <div className="life-card__body">
-        {/* Book spine visual */}
-        <div className="life-books__spines" aria-hidden="true">
-          {MOCK_BOOKS.spines.map((spine, i) => (
-            <motion.div
-              key={i}
-              className="life-books__spine"
-              style={{ background: spine.color, height: spine.height }}
-              initial={{ scaleY: 0, opacity: 0 }}
-              animate={mounted ? { scaleY: 1, opacity: 1 } : {}}
-              transition={{
-                duration: 0.38,
-                delay: 0.08 + i * 0.06,
-                ease: [0.22, 1, 0.36, 1],
-              }}
-            />
-          ))}
-          <motion.div
-            className="life-books__spine life-books__spine--ghost"
-            initial={{ scaleY: 0, opacity: 0 }}
-            animate={mounted ? { scaleY: 1, opacity: 1 } : {}}
-            transition={{ duration: 0.38, delay: 0.26, ease: [0.22, 1, 0.36, 1] }}
-          />
-        </div>
+  const handleSearch = async () => {
+    const nextQuery = query.trim()
+    if (!nextQuery) return
+    setSearching(true)
+    setError(null)
+    try {
+      setResults(await searchRemoteBooks(nextQuery))
+    } catch {
+      setError('Search failed. Try another title or author.')
+    } finally {
+      setSearching(false)
+    }
+  }
 
-        {/* Stats */}
-        <div className="life-card__stats">
-          <div className="life-stat">
-            <span className="life-stat__value">
-              <AppNumber value={MOCK_BOOKS.currentlyReading} animated />
-            </span>
-            <span className="life-stat__label">currently reading</span>
-          </div>
-          <div className="life-stat life-stat--muted">
-            <span className="life-stat__value">
-              <AppNumber value={MOCK_BOOKS.finishedThisMonth} animated />
-            </span>
-            <span className="life-stat__label">finished this month</span>
-          </div>
-        </div>
-      </div>
-    </Card>
+  const handleAddBook = async (candidateId: string) => {
+    const candidate = results.find((item) => `${item.source}-${item.sourceId}` === candidateId)
+    if (!candidate) return
+    setAddingCandidateId(candidateId)
+    try {
+      const hydrated = await hydrateRemoteBookCandidate(candidate)
+      const matched = dedupeBookMatch(
+        books.map((item) => ({
+          source: item.source,
+          sourceId: item.sourceId,
+          title: item.title,
+          authors: item.authors,
+          coverUrl: item.coverUrl,
+          description: item.description,
+          publisher: item.publisher,
+          publishedDate: item.publishedDate,
+          subjects: item.subjects,
+          summary: item.summary,
+          outline: item.outline,
+          reflection: item.reflection,
+          isbn10: item.isbn10,
+          isbn13: item.isbn13,
+          openLibraryKey: item.openLibraryKey,
+          googleBooksId: item.googleBooksId,
+          doi: item.doi,
+        })),
+        hydrated,
+      )
+
+      if (matched) {
+        const existing = books.find((item) => item.isbn13 === matched.isbn13 || item.isbn10 === matched.isbn10 || item.title === matched.title)
+        if (!existing) return
+        const updated = await booksRepo.update(existing.id, {
+          ...hydrated,
+          subjects: hydrated.subjects ?? [],
+          lastSyncedAt: Date.now(),
+        })
+        if (!updated) return
+        setBooks((current) => [updated, ...current.filter((item) => item.id !== updated.id)])
+        setSelectedBookId(updated.id)
+        return
+      }
+
+      const created = await booksRepo.create(toCreatePayload(hydrated))
+      setBooks((current) => [created, ...current.filter((item) => item.id !== created.id)])
+      setSelectedBookId(created.id)
+    } finally {
+      setAddingCandidateId(null)
+    }
+  }
+
+  const handleBookPatch = async (patch: Partial<BookItem>) => {
+    if (!selectedBook) return
+    const updated = await booksRepo.update(selectedBook.id, normalizeBookPatch(patch))
+    if (!updated) return
+    setBooks((current) => [updated, ...current.filter((item) => item.id !== updated.id)])
+    setSelectedBookId(updated.id)
+  }
+
+  const handleRemove = async (id: string) => {
+    await booksRepo.remove(id)
+    const next = books.filter((item) => item.id !== id)
+    setBooks(next)
+    setSelectedBookId(next[0]?.id ?? null)
+  }
+
+  return (
+    <LibraryCardSurface
+      model={designModel}
+      books={books}
+      selectedBook={selectedBook}
+      selectedBookId={selectedBookId}
+      open={open}
+      loading={loading}
+      query={query}
+      searching={searching}
+      error={error}
+      results={results.map((item) => ({
+        id: `${item.source}-${item.sourceId}`,
+        title: item.title,
+        authors: item.authors,
+        coverUrl: item.coverUrl,
+      }))}
+      addingCandidateId={addingCandidateId}
+      onOpen={() => setOpen(true)}
+      onClose={() => setOpen(false)}
+      onQueryChange={setQuery}
+      onSearch={() => void handleSearch()}
+      onSelectBook={setSelectedBookId}
+      onAddBook={(id) => void handleAddBook(id)}
+      onPatchBook={(patch) => void handleBookPatch(patch)}
+      onRemoveBook={(id) => void handleRemove(id)}
+    />
   )
 }
 

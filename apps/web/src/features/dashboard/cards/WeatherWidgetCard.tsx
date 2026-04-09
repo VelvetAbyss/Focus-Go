@@ -21,7 +21,7 @@ const dayLabel = (index: number) => {
 const roundTemp = (value: number) => Math.round(value)
 
 const WeatherWidgetCard = () => {
-  const { t } = useI18n()
+  const { t, language } = useI18n()
   const { weatherAutoLocationEnabled, weatherManualCity, weatherTemperatureUnit } = usePreferences()
   const [snapshot, setSnapshot] = useState<WeatherSnapshot>(() => getWeatherSnapshot())
   const [selectedIndex, setSelectedIndex] = useState(0)
@@ -104,7 +104,7 @@ const WeatherWidgetCard = () => {
                     <span className={`weather-icon ${selectedMeta.className}`} title={selectedMeta.label}>
                       <selectedMeta.Icon size={16} strokeWidth={2.1} />
                     </span>
-                    <span key={selectedMeta.label}>{selectedMeta.label}</span>
+                    <span key={selectedMeta.label}>{language === 'zh' ? selectedMeta.labelZh : selectedMeta.label}</span>
                   </>
                 ) : (
                   'Loading weather...'

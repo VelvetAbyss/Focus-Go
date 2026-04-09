@@ -33,6 +33,10 @@ const { mockT } = vi.hoisted(() => {
         'tasks.status.todo': 'Todo',
         'tasks.status.doing': 'Doing',
         'tasks.status.done': 'Done',
+        'tasks.today.badge': 'Focus the tasks that matter today',
+        'tasks.today.emptyTitle': 'No tasks lined up for today',
+        'tasks.today.emptyDescription': 'Put the tasks you actually want to finish today here.',
+        'tasks.today.addPlaceholder': 'Add a task for today...',
         'dashboard.widget.tasks': 'Tasks',
         'onboarding.empty.tasksTitle': 'Start by putting one real task on the board',
         'onboarding.empty.tasksDescription': 'The dashboard will feel clearer once today has a concrete next step.',
@@ -123,10 +127,11 @@ import TasksBoard from './TasksBoard'
 
 const makeTask = (id: string, title: string): TaskItem => ({
   id,
-  title,
-  description: '',
-  pinned: false,
-  status: 'todo',
+    title,
+    description: '',
+    pinned: false,
+    isToday: false,
+    status: 'todo',
   priority: null,
   dueDate: undefined,
   tags: [],
@@ -191,6 +196,19 @@ describe('TasksBoard sync', () => {
 
     await waitFor(() => expect(listMock).toHaveBeenCalledTimes(2))
     expect(screen.getByText('Synced task')).toBeInTheDocument()
+  })
+
+  it('shows only today-marked tasks in today view', async () => {
+    listMock.mockResolvedValueOnce([
+      { ...makeTask('task-1', 'Today task'), isToday: true },
+      makeTask('task-2', 'Backlog task'),
+    ])
+
+    render(<TasksBoard asCard={false} topView="today" />)
+
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1))
+    expect(screen.getByText('Today task')).toBeInTheDocument()
+    expect(screen.queryByText('Backlog task')).not.toBeInTheDocument()
   })
 
   it('keeps dashboard card layout separate from the plain tasks page layout', async () => {

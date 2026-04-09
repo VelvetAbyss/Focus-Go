@@ -1,84 +1,149 @@
-import { useEffect, useState } from 'react'
-import { motion } from 'motion/react'
-import Card from '../../../shared/ui/Card'
-import { AppNumber } from '../../../shared/ui/AppNumber'
+import { useEffect, useMemo, useState } from 'react'
+import type { MediaItem } from '../../../data/models/types'
+import { mediaRepo } from '../../../data/repositories/mediaRepo'
+import { MediaCardSurface } from '../components/MediaCardSurface'
+import { dedupeMediaMatch, hasTmdbKey, hydrateRemoteMediaCandidate, searchRemoteMedia, type RemoteMediaCandidate } from '../mediaApi'
+import { buildMediaPresentationModel } from './lifeDesignAdapters'
 
-const MOCK_MEDIA = {
-  watching: 2,
-  completed: 18,
-  frames: [
-    { label: 'Severance', progress: 0.6 },
-    { label: 'Dune', progress: 1 },
-    { label: 'Shōgun', progress: 0.3 },
-  ],
+const toCreatePayload = (candidate: RemoteMediaCandidate) => ({
+  ...candidate,
+  status: 'want-to-watch' as const,
+  progress: 0,
+  cast: candidate.cast ?? [],
+  genres: candidate.genres ?? [],
+  watchedEpisodes: 0,
+  reflection: '',
+  lastSyncedAt: Date.now(),
+})
+
+const normalizeMediaPatch = (patch: Partial<MediaItem>): Partial<MediaItem> => {
+  const next = { ...patch }
+  if (typeof next.watchedEpisodes === 'number' && typeof next.episodes === 'number' && next.episodes > 0) {
+    next.progress = Math.round((next.watchedEpisodes / next.episodes) * 100)
+  }
+  if (typeof next.progress !== 'number') return next
+  if (next.progress >= 100) return { ...next, progress: 100, status: 'completed' }
+  if (next.progress > 0) return { ...next, status: 'watching' }
+  return next
 }
 
 const MediaCard = () => {
-  const [mounted, setMounted] = useState(false)
+  const [open, setOpen] = useState(false)
+  const [media, setMedia] = useState<MediaItem[]>([])
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<RemoteMediaCandidate[]>([])
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [searching, setSearching] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [addingCandidateId, setAddingCandidateId] = useState<string | null>(null)
+  const [hint, setHint] = useState<string | null>(null)
+
+  const selected = useMemo(() => media.find((item) => item.id === selectedId) ?? null, [media, selectedId])
+  const designModel = useMemo(() => buildMediaPresentationModel(media), [media])
 
   useEffect(() => {
-    const t = setTimeout(() => setMounted(true), 60)
-    return () => clearTimeout(t)
+    const loadMedia = async () => {
+      setLoading(true)
+      const rows = await mediaRepo.list()
+      setMedia(rows)
+      setSelectedId((current) => current ?? rows[0]?.id ?? null)
+      setLoading(false)
+    }
+    void loadMedia()
   }, [])
 
-  return (
-    <Card
-      eyebrow="Watching"
-      title="Media"
-      className="life-card life-card--media"
-      onClick={() => console.log('open full page')}
-      style={{ cursor: 'pointer' }}
-    >
-      <div className="life-card__body">
-        {/* Film frames visual */}
-        <div className="life-media__frames" aria-hidden="true">
-          {MOCK_MEDIA.frames.map((frame, i) => (
-            <motion.div
-              key={i}
-              className="life-media__frame"
-              initial={{ opacity: 0, x: -8 }}
-              animate={mounted ? { opacity: 1, x: 0 } : {}}
-              transition={{
-                duration: 0.32,
-                delay: 0.06 + i * 0.07,
-                ease: [0.22, 1, 0.36, 1],
-              }}
-            >
-              <div className="life-media__frame-bar">
-                <motion.div
-                  className="life-media__frame-progress"
-                  initial={{ scaleX: 0 }}
-                  animate={mounted ? { scaleX: frame.progress } : {}}
-                  transition={{
-                    duration: 0.5,
-                    delay: 0.2 + i * 0.07,
-                    ease: [0.22, 1, 0.36, 1],
-                  }}
-                  style={{ transformOrigin: 'left' }}
-                />
-              </div>
-              <span className="life-media__frame-label">{frame.label}</span>
-            </motion.div>
-          ))}
-        </div>
+  const handleSearch = async () => {
+    if (!hasTmdbKey()) {
+      setHint('Set VITE_TMDB_API_KEY to enable TMDb search.')
+      return
+    }
+    const nextQuery = query.trim()
+    if (!nextQuery) return
+    setSearching(true)
+    setHint(null)
+    try {
+      setResults(await searchRemoteMedia(nextQuery))
+    } catch {
+      setHint('Media search failed. Try another title.')
+    } finally {
+      setSearching(false)
+    }
+  }
 
-        {/* Stats */}
-        <div className="life-card__stats">
-          <div className="life-stat">
-            <span className="life-stat__value">
-              <AppNumber value={MOCK_MEDIA.watching} animated />
-            </span>
-            <span className="life-stat__label">watching now</span>
-          </div>
-          <div className="life-stat life-stat--muted">
-            <span className="life-stat__value">
-              <AppNumber value={MOCK_MEDIA.completed} animated />
-            </span>
-            <span className="life-stat__label">completed</span>
-          </div>
-        </div>
-      </div>
-    </Card>
+  const handleDismissSearch = () => {
+    setResults([])
+  }
+
+  const handleAdd = async (candidateId: string) => {
+    const candidate = results.find((item) => `${item.mediaType}-${item.tmdbId}` === candidateId)
+    if (!candidate) return
+    setAddingCandidateId(candidateId)
+    try {
+      const hydrated = await hydrateRemoteMediaCandidate(candidate)
+      const matched = dedupeMediaMatch(media.map((item) => ({ tmdbId: item.tmdbId, mediaType: item.mediaType })), hydrated)
+
+      if (matched) {
+        const existing = media.find((item) => item.tmdbId === hydrated.tmdbId && item.mediaType === hydrated.mediaType)
+        if (!existing) return
+        const updated = await mediaRepo.update(existing.id, { ...hydrated, lastSyncedAt: Date.now() })
+        if (!updated) return
+        setMedia((current) => [updated, ...current.filter((item) => item.id !== updated.id)])
+        setSelectedId(updated.id)
+        return
+      }
+
+      const created = await mediaRepo.create(toCreatePayload(hydrated))
+      setMedia((current) => [created, ...current.filter((item) => item.id !== created.id)])
+      setSelectedId(created.id)
+    } finally {
+      setAddingCandidateId(null)
+    }
+  }
+
+  const handlePatch = async (patch: Partial<MediaItem>) => {
+    if (!selected) return
+    const updated = await mediaRepo.update(selected.id, normalizeMediaPatch(patch))
+    if (!updated) return
+    setMedia((current) => [updated, ...current.filter((item) => item.id !== updated.id)])
+    setSelectedId(updated.id)
+  }
+
+  const handleRemove = async (id: string) => {
+    await mediaRepo.remove(id)
+    const next = media.filter((item) => item.id !== id)
+    setMedia(next)
+    setSelectedId(next[0]?.id ?? null)
+  }
+
+  return (
+    <MediaCardSurface
+      model={designModel}
+      items={media}
+      selected={selected}
+      selectedId={selectedId}
+      open={open}
+      loading={loading}
+      query={query}
+      searching={searching}
+      hint={hint}
+      results={results.map((item) => ({
+        id: `${item.mediaType}-${item.tmdbId}`,
+        title: item.title,
+        mediaType: item.mediaType,
+        releaseDate: item.releaseDate,
+        posterUrl: item.posterUrl,
+      }))}
+      addingCandidateId={addingCandidateId}
+      onOpen={() => setOpen(true)}
+      onClose={() => setOpen(false)}
+      onQueryChange={setQuery}
+      onSearch={() => void handleSearch()}
+      onDismissSearch={handleDismissSearch}
+      onSelectItem={setSelectedId}
+      onAddItem={(id) => void handleAdd(id)}
+      onPatchItem={(patch) => void handlePatch(patch)}
+      onRemoveItem={(id) => void handleRemove(id)}
+    />
   )
 }
 

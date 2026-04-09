@@ -3,6 +3,8 @@ import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 import Database from 'better-sqlite3'
 import type {
+  BookCreateInput,
+  BookItem,
   DashboardLayout,
   DiaryEntry,
   FocusSession,
@@ -11,6 +13,14 @@ import type {
   HabitLog,
   HabitStatus,
   IDatabaseService,
+  LifeDashboardLayout,
+  LifeDashboardLayoutUpsertInput,
+  LifeSubscription,
+  LifeSubscriptionCreateInput,
+  LifeSubscriptionUpdateInput,
+  MediaCreateInput,
+  MediaItem,
+  MediaUpdateInput,
   NoteAppearanceSettings,
   NoteAppearanceUpsertInput,
   NoteCreateInput,
@@ -21,15 +31,22 @@ import type {
   NoteUpdateInput,
   SpendCategory,
   SpendEntry,
+  StockCreateInput,
+  StockItem,
+  StockUpdateInput,
   TaskCreateInput,
   TaskItem,
   TaskStatus,
+  TripCreateInput,
+  TripRecord,
+  TripUpdateInput,
   WidgetTodo,
   WidgetTodoScope,
 } from '@focus-go/core'
 
 const FOCUS_SETTINGS_ID = 'focus_settings'
 const DASHBOARD_LAYOUT_ID = 'dashboard_layout'
+const LIFE_DASHBOARD_LAYOUT_ID = 'life_dashboard_layout'
 const NOTE_APPEARANCE_ID = 'note_appearance'
 const MS_PER_DAY = 24 * 60 * 60 * 1000
 
@@ -105,6 +122,7 @@ const toTaskItem = (row: Record<string, unknown>): TaskItem => ({
   title: String(row.title ?? ''),
   description: String(row.description ?? ''),
   pinned: Number(row.pinned ?? 0) === 1,
+  isToday: Number(row.isToday ?? 0) === 1,
   status: String(row.status) as TaskStatus,
   priority: (row.priority as TaskItem['priority']) ?? null,
   dueDate: row.dueDate ? String(row.dueDate) : undefined,
@@ -299,6 +317,141 @@ const toDashboardLayout = (row: Record<string, unknown>): DashboardLayout => ({
   themeOverride: (row.themeOverride as DashboardLayout['themeOverride']) ?? null,
 })
 
+const toLifeDashboardLayout = (row: Record<string, unknown>): LifeDashboardLayout => ({
+  id: String(row.id),
+  createdAt: Number(row.createdAt),
+  updatedAt: Number(row.updatedAt),
+  userId: row.userId ? String(row.userId) : undefined,
+  workspaceId: row.workspaceId ? String(row.workspaceId) : undefined,
+  items: parseJson(row.items as string, [] as LifeDashboardLayout['items']),
+  hiddenCardIds: parseJson(row.hiddenCardIds as string, undefined),
+})
+
+const toBookItem = (row: Record<string, unknown>): BookItem => ({
+  id: String(row.id),
+  createdAt: Number(row.createdAt),
+  updatedAt: Number(row.updatedAt),
+  userId: row.userId ? String(row.userId) : undefined,
+  workspaceId: row.workspaceId ? String(row.workspaceId) : undefined,
+  source: String(row.source ?? 'manual') as BookItem['source'],
+  sourceId: String(row.sourceId ?? row.id),
+  title: String(row.title ?? ''),
+  authors: parseJson(row.authors as string, [] as string[]),
+  status: String(row.status ?? 'want-to-read') as BookItem['status'],
+  progress: Number(row.progress ?? 0),
+  coverUrl: row.coverUrl ? String(row.coverUrl) : undefined,
+  description: row.description ? String(row.description) : undefined,
+  publisher: row.publisher ? String(row.publisher) : undefined,
+  publishedDate: row.publishedDate ? String(row.publishedDate) : undefined,
+  subjects: parseJson(row.subjects as string, [] as string[]),
+  summary: row.summary ? String(row.summary) : undefined,
+  outline: parseJson(row.outline as string, undefined),
+  reflection: row.reflection ? String(row.reflection) : undefined,
+  isbn10: row.isbn10 ? String(row.isbn10) : undefined,
+  isbn13: row.isbn13 ? String(row.isbn13) : undefined,
+  openLibraryKey: row.openLibraryKey ? String(row.openLibraryKey) : undefined,
+  googleBooksId: row.googleBooksId ? String(row.googleBooksId) : undefined,
+  doi: row.doi ? String(row.doi) : undefined,
+  lastSyncedAt: row.lastSyncedAt === null || row.lastSyncedAt === undefined ? undefined : Number(row.lastSyncedAt),
+})
+
+const toStockItem = (row: Record<string, unknown>): StockItem => ({
+  id: String(row.id),
+  createdAt: Number(row.createdAt),
+  updatedAt: Number(row.updatedAt),
+  userId: row.userId ? String(row.userId) : undefined,
+  workspaceId: row.workspaceId ? String(row.workspaceId) : undefined,
+  symbol: String(row.symbol ?? ''),
+  name: String(row.name ?? ''),
+  exchange: row.exchange ? String(row.exchange) : undefined,
+  currency: String(row.currency ?? 'USD'),
+  lastPrice: row.lastPrice === null || row.lastPrice === undefined ? undefined : Number(row.lastPrice),
+  change: row.change === null || row.change === undefined ? undefined : Number(row.change),
+  changePercent: row.changePercent === null || row.changePercent === undefined ? undefined : Number(row.changePercent),
+  chartPoints: parseJson(row.chartPoints as string, undefined),
+  note: row.note ? String(row.note) : undefined,
+  pinned: Number(row.pinned ?? 0) === 1,
+  lastSyncedAt: row.lastSyncedAt === null || row.lastSyncedAt === undefined ? undefined : Number(row.lastSyncedAt),
+})
+
+const toMediaItem = (row: Record<string, unknown>): MediaItem => ({
+  id: String(row.id),
+  createdAt: Number(row.createdAt),
+  updatedAt: Number(row.updatedAt),
+  userId: row.userId ? String(row.userId) : undefined,
+  workspaceId: row.workspaceId ? String(row.workspaceId) : undefined,
+  source: 'tmdb',
+  sourceId: String(row.sourceId ?? row.tmdbId ?? row.id),
+  tmdbId: Number(row.tmdbId ?? 0),
+  mediaType: String(row.mediaType ?? 'movie') === 'tv' ? 'tv' : 'movie',
+  title: String(row.title ?? ''),
+  originalTitle: row.originalTitle ? String(row.originalTitle) : undefined,
+  status: String(row.status ?? 'want-to-watch') as MediaItem['status'],
+  progress: Number(row.progress ?? 0),
+  posterUrl: row.posterUrl ? String(row.posterUrl) : undefined,
+  backdropUrl: row.backdropUrl ? String(row.backdropUrl) : undefined,
+  overview: row.overview ? String(row.overview) : undefined,
+  releaseDate: row.releaseDate ? String(row.releaseDate) : undefined,
+  director: row.director ? String(row.director) : undefined,
+  creator: row.creator ? String(row.creator) : undefined,
+  cast: parseJson(row.cast as string, [] as string[]),
+  genres: parseJson(row.genres as string, [] as string[]),
+  duration: row.duration ? String(row.duration) : undefined,
+  seasons: row.seasons === null || row.seasons === undefined ? undefined : Number(row.seasons),
+  episodes: row.episodes === null || row.episodes === undefined ? undefined : Number(row.episodes),
+  country: row.country ? String(row.country) : undefined,
+  language: row.language ? String(row.language) : undefined,
+  rating: row.rating ? String(row.rating) : undefined,
+  watchedEpisodes: row.watchedEpisodes === null || row.watchedEpisodes === undefined ? undefined : Number(row.watchedEpisodes),
+  reflection: row.reflection ? String(row.reflection) : undefined,
+  voteAverage: row.voteAverage === null || row.voteAverage === undefined ? undefined : Number(row.voteAverage),
+  lastSyncedAt: row.lastSyncedAt === null || row.lastSyncedAt === undefined ? undefined : Number(row.lastSyncedAt),
+})
+
+const toLifeSubscription = (row: Record<string, unknown>): LifeSubscription => ({
+  id: String(row.id),
+  createdAt: Number(row.createdAt),
+  updatedAt: Number(row.updatedAt),
+  userId: row.userId ? String(row.userId) : undefined,
+  workspaceId: row.workspaceId ? String(row.workspaceId) : undefined,
+  name: String(row.name ?? ''),
+  amount: Number(row.amount ?? 0),
+  currency: String(row.currency ?? 'USD') === 'CNY' ? 'CNY' : 'USD',
+  cycle: String(row.cycle ?? 'monthly') === 'yearly' ? 'yearly' : 'monthly',
+  color: row.color ? String(row.color) : undefined,
+  category: row.category ? String(row.category) : undefined,
+  billingDay: row.billingDay === null || row.billingDay === undefined ? undefined : Number(row.billingDay),
+  billingMonth: row.billingMonth === null || row.billingMonth === undefined ? undefined : Number(row.billingMonth),
+  emoji: row.emoji ? String(row.emoji) : undefined,
+  reminder: Number(row.reminder ?? 0) === 1,
+  paymentStatus: String(row.paymentStatus ?? '') === 'paid' ? 'paid' : String(row.paymentStatus ?? '') === 'unpaid' ? 'unpaid' : undefined,
+})
+
+const toTripRecord = (row: Record<string, unknown>): TripRecord => ({
+  id: String(row.id),
+  createdAt: Number(row.createdAt),
+  updatedAt: Number(row.updatedAt),
+  userId: row.userId ? String(row.userId) : undefined,
+  workspaceId: row.workspaceId ? String(row.workspaceId) : undefined,
+  title: String(row.title ?? ''),
+  destination: String(row.destination ?? ''),
+  startDate: String(row.startDate ?? ''),
+  endDate: String(row.endDate ?? ''),
+  status: String(row.status ?? 'Planning') as TripRecord['status'],
+  travelers: Number(row.travelers ?? 1),
+  budgetPlanned: Number(row.budgetPlanned ?? 0),
+  budgetCurrency: String(row.budgetCurrency ?? 'USD'),
+  heroImage: String(row.heroImage ?? ''),
+  coverEmoji: String(row.coverEmoji ?? ''),
+  itinerary: parseJson(row.itinerary as string, [] as TripRecord['itinerary']),
+  transport: parseJson(row.transport as string, [] as TripRecord['transport']),
+  stays: parseJson(row.stays as string, [] as TripRecord['stays']),
+  food: parseJson(row.food as string, [] as TripRecord['food']),
+  budget: parseJson(row.budget as string, [] as TripRecord['budget']),
+  checklist: parseJson(row.checklist as string, [] as TripRecord['checklist']),
+  notes: String(row.notes ?? ''),
+})
+
 const ensureSchema = (database: Database.Database) => {
   database.pragma('journal_mode = WAL')
 
@@ -312,6 +465,7 @@ const ensureSchema = (database: Database.Database) => {
       title TEXT NOT NULL,
       description TEXT NOT NULL,
       pinned INTEGER NOT NULL DEFAULT 0,
+      isToday INTEGER NOT NULL DEFAULT 0,
       status TEXT NOT NULL,
       priority TEXT,
       dueDate TEXT,
@@ -475,6 +629,141 @@ const ensureSchema = (database: Database.Database) => {
       workspaceId TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS life_dashboard_layout (
+      id TEXT PRIMARY KEY,
+      items TEXT NOT NULL,
+      hiddenCardIds TEXT,
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL,
+      userId TEXT,
+      workspaceId TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS books (
+      id TEXT PRIMARY KEY,
+      source TEXT NOT NULL,
+      sourceId TEXT NOT NULL,
+      title TEXT NOT NULL,
+      authors TEXT NOT NULL,
+      status TEXT NOT NULL,
+      progress REAL NOT NULL,
+      coverUrl TEXT,
+      description TEXT,
+      publisher TEXT,
+      publishedDate TEXT,
+      subjects TEXT NOT NULL,
+      summary TEXT,
+      outline TEXT,
+      reflection TEXT,
+      isbn10 TEXT,
+      isbn13 TEXT,
+      openLibraryKey TEXT,
+      googleBooksId TEXT,
+      doi TEXT,
+      lastSyncedAt INTEGER,
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL,
+      userId TEXT,
+      workspaceId TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS media (
+      id TEXT PRIMARY KEY,
+      source TEXT NOT NULL,
+      sourceId TEXT NOT NULL,
+      tmdbId INTEGER NOT NULL,
+      mediaType TEXT NOT NULL,
+      title TEXT NOT NULL,
+      originalTitle TEXT,
+      status TEXT NOT NULL,
+      progress REAL NOT NULL,
+      posterUrl TEXT,
+      backdropUrl TEXT,
+      overview TEXT,
+      releaseDate TEXT,
+      director TEXT,
+      creator TEXT,
+      cast TEXT NOT NULL,
+      genres TEXT NOT NULL,
+      duration TEXT,
+      seasons INTEGER,
+      episodes INTEGER,
+      country TEXT,
+      language TEXT,
+      rating TEXT,
+      watchedEpisodes INTEGER,
+      reflection TEXT,
+      voteAverage REAL,
+      lastSyncedAt INTEGER,
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL,
+      userId TEXT,
+      workspaceId TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS stocks (
+      id TEXT PRIMARY KEY,
+      symbol TEXT NOT NULL,
+      name TEXT NOT NULL,
+      exchange TEXT,
+      currency TEXT NOT NULL,
+      lastPrice REAL,
+      change REAL,
+      changePercent REAL,
+      chartPoints TEXT,
+      note TEXT,
+      pinned INTEGER NOT NULL DEFAULT 0,
+      lastSyncedAt INTEGER,
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL,
+      userId TEXT,
+      workspaceId TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS life_subscriptions (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      amount REAL NOT NULL,
+      currency TEXT NOT NULL DEFAULT 'USD',
+      cycle TEXT NOT NULL,
+      color TEXT,
+      category TEXT,
+      billingDay INTEGER,
+      billingMonth INTEGER,
+      emoji TEXT,
+      reminder INTEGER NOT NULL DEFAULT 0,
+      paymentStatus TEXT,
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL,
+      userId TEXT,
+      workspaceId TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS trips (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      destination TEXT NOT NULL,
+      startDate TEXT NOT NULL,
+      endDate TEXT NOT NULL,
+      status TEXT NOT NULL,
+      travelers INTEGER NOT NULL,
+      budgetPlanned REAL NOT NULL,
+      budgetCurrency TEXT NOT NULL,
+      heroImage TEXT NOT NULL,
+      coverEmoji TEXT NOT NULL,
+      itinerary TEXT NOT NULL,
+      transport TEXT NOT NULL,
+      stays TEXT NOT NULL,
+      food TEXT NOT NULL,
+      budget TEXT NOT NULL,
+      checklist TEXT NOT NULL,
+      notes TEXT NOT NULL,
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL,
+      userId TEXT,
+      workspaceId TEXT
+    );
+
     CREATE TABLE IF NOT EXISTS note_tags (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -511,6 +800,7 @@ const ensureSchema = (database: Database.Database) => {
   }
 
   ensureColumn('tasks', 'pinned', 'INTEGER NOT NULL DEFAULT 0')
+  ensureColumn('tasks', 'isToday', 'INTEGER NOT NULL DEFAULT 0')
   ensureColumn('tasks', 'startDate', 'TEXT')
   ensureColumn('tasks', 'endDate', 'TEXT')
   ensureColumn('tasks', 'reminderAt', 'INTEGER')
@@ -528,6 +818,23 @@ const ensureSchema = (database: Database.Database) => {
   ensureColumn('notes', 'headings', `TEXT NOT NULL DEFAULT '[]'`)
   ensureColumn('notes', 'backlinks', `TEXT NOT NULL DEFAULT '[]'`)
   ensureColumn('widget_todos', 'linkedHabitId', 'TEXT')
+  ensureColumn('media', 'creator', 'TEXT')
+  ensureColumn('media', 'duration', 'TEXT')
+  ensureColumn('media', 'seasons', 'INTEGER')
+  ensureColumn('media', 'episodes', 'INTEGER')
+  ensureColumn('media', 'country', 'TEXT')
+  ensureColumn('media', 'language', 'TEXT')
+  ensureColumn('media', 'rating', 'TEXT')
+  ensureColumn('media', 'watchedEpisodes', 'INTEGER')
+  ensureColumn('media', 'reflection', 'TEXT')
+  ensureColumn('life_subscriptions', 'currency', `TEXT NOT NULL DEFAULT 'USD'`)
+  ensureColumn('life_subscriptions', 'color', 'TEXT')
+  ensureColumn('life_subscriptions', 'category', 'TEXT')
+  ensureColumn('life_subscriptions', 'billingDay', 'INTEGER')
+  ensureColumn('life_subscriptions', 'billingMonth', 'INTEGER')
+  ensureColumn('life_subscriptions', 'emoji', 'TEXT')
+  ensureColumn('life_subscriptions', 'reminder', 'INTEGER NOT NULL DEFAULT 0')
+  ensureColumn('life_subscriptions', 'paymentStatus', 'TEXT')
 
   const versionRow = database.prepare('SELECT version FROM schema_version LIMIT 1').get() as { version: number } | undefined
   if (!versionRow) {
@@ -581,6 +888,7 @@ export const createSqliteBundle = (dbPath: string): SqliteBundle => {
           title: data.title,
           description: data.description ?? '',
           pinned: data.pinned === true,
+          isToday: data.isToday === true,
           status: data.status,
           priority: data.priority,
           dueDate: data.dueDate,
@@ -607,13 +915,14 @@ export const createSqliteBundle = (dbPath: string): SqliteBundle => {
         database
           .prepare(
             `INSERT INTO tasks
-              (id, title, description, pinned, status, priority, dueDate, startDate, endDate, reminderAt, reminderFiredAt, tags, subtasks, taskNoteBlocks, taskNoteContentMd, taskNoteContentJson, progressLogs, activityLogs, createdAt, updatedAt, userId, workspaceId)
+              (id, title, description, pinned, isToday, status, priority, dueDate, startDate, endDate, reminderAt, reminderFiredAt, tags, subtasks, taskNoteBlocks, taskNoteContentMd, taskNoteContentJson, progressLogs, activityLogs, createdAt, updatedAt, userId, workspaceId)
              VALUES
-              (@id, @title, @description, @pinned, @status, @priority, @dueDate, @startDate, @endDate, @reminderAt, @reminderFiredAt, @tags, @subtasks, @taskNoteBlocks, @taskNoteContentMd, @taskNoteContentJson, @progressLogs, @activityLogs, @createdAt, @updatedAt, @userId, @workspaceId)`
+              (@id, @title, @description, @pinned, @isToday, @status, @priority, @dueDate, @startDate, @endDate, @reminderAt, @reminderFiredAt, @tags, @subtasks, @taskNoteBlocks, @taskNoteContentMd, @taskNoteContentJson, @progressLogs, @activityLogs, @createdAt, @updatedAt, @userId, @workspaceId)`
           )
           .run({
             ...entity,
             pinned: entity.pinned ? 1 : 0,
+            isToday: entity.isToday ? 1 : 0,
             tags: serializeJson(entity.tags),
             subtasks: serializeJson(entity.subtasks),
             taskNoteBlocks: serializeJson(entity.taskNoteBlocks),
@@ -640,6 +949,7 @@ export const createSqliteBundle = (dbPath: string): SqliteBundle => {
                title=@title,
                description=@description,
                pinned=@pinned,
+               isToday=@isToday,
                status=@status,
                priority=@priority,
                dueDate=@dueDate,
@@ -662,6 +972,7 @@ export const createSqliteBundle = (dbPath: string): SqliteBundle => {
           .run({
             ...next,
             pinned: next.pinned ? 1 : 0,
+            isToday: next.isToday ? 1 : 0,
             dueDate: next.dueDate ?? null,
             startDate: next.startDate ?? null,
             endDate: next.endDate ?? null,
@@ -1696,6 +2007,381 @@ export const createSqliteBundle = (dbPath: string): SqliteBundle => {
             workspaceId: next.workspaceId ?? null,
           })
         return next
+      },
+    },
+    lifeDashboard: {
+      async get() {
+        const row = database.prepare('SELECT * FROM life_dashboard_layout WHERE id = ? LIMIT 1').get(LIFE_DASHBOARD_LAYOUT_ID) as
+          | Record<string, unknown>
+          | undefined
+        return row ? toLifeDashboardLayout(row) : null
+      },
+      async upsert(data: LifeDashboardLayoutUpsertInput) {
+        const existing = await service.lifeDashboard.get()
+        if (!existing) {
+          const entity: LifeDashboardLayout = { id: LIFE_DASHBOARD_LAYOUT_ID, createdAt: now(), updatedAt: now(), ...data }
+          database
+            .prepare(
+              `INSERT INTO life_dashboard_layout
+               (id, items, hiddenCardIds, createdAt, updatedAt, userId, workspaceId)
+               VALUES (@id, @items, @hiddenCardIds, @createdAt, @updatedAt, @userId, @workspaceId)`,
+            )
+            .run({
+              ...entity,
+              items: serializeJson(entity.items),
+              hiddenCardIds: entity.hiddenCardIds ? serializeJson(entity.hiddenCardIds) : null,
+              userId: entity.userId ?? null,
+              workspaceId: entity.workspaceId ?? null,
+            })
+          return entity
+        }
+        const next: LifeDashboardLayout = { ...existing, ...data, updatedAt: now() }
+        database
+          .prepare(
+            `UPDATE life_dashboard_layout SET
+               items=@items,
+               hiddenCardIds=@hiddenCardIds,
+               updatedAt=@updatedAt,
+               userId=@userId,
+               workspaceId=@workspaceId
+             WHERE id=@id`,
+          )
+          .run({
+            ...next,
+            items: serializeJson(next.items),
+            hiddenCardIds: next.hiddenCardIds ? serializeJson(next.hiddenCardIds) : null,
+            userId: next.userId ?? null,
+            workspaceId: next.workspaceId ?? null,
+          })
+        return next
+      },
+    },
+    books: {
+      async list() {
+        const rows = database.prepare('SELECT * FROM books ORDER BY updatedAt DESC').all() as Record<string, unknown>[]
+        return rows.map(toBookItem)
+      },
+      async create(data: BookCreateInput) {
+        const entity: BookItem = { id: createId(), createdAt: now(), updatedAt: now(), ...data }
+        database
+          .prepare(
+            `INSERT INTO books
+             (id, source, sourceId, title, authors, status, progress, coverUrl, description, publisher, publishedDate, subjects, summary, outline, reflection, isbn10, isbn13, openLibraryKey, googleBooksId, doi, lastSyncedAt, createdAt, updatedAt, userId, workspaceId)
+             VALUES (@id, @source, @sourceId, @title, @authors, @status, @progress, @coverUrl, @description, @publisher, @publishedDate, @subjects, @summary, @outline, @reflection, @isbn10, @isbn13, @openLibraryKey, @googleBooksId, @doi, @lastSyncedAt, @createdAt, @updatedAt, @userId, @workspaceId)`,
+          )
+          .run({
+            ...entity,
+            authors: serializeJson(entity.authors),
+            subjects: serializeJson(entity.subjects),
+            outline: entity.outline ? serializeJson(entity.outline) : null,
+            userId: entity.userId ?? null,
+            workspaceId: entity.workspaceId ?? null,
+          })
+        return entity
+      },
+      async update(id: string, patch) {
+        const row = database.prepare('SELECT * FROM books WHERE id = ? LIMIT 1').get(id) as Record<string, unknown> | undefined
+        if (!row) return undefined
+        const next: BookItem = { ...toBookItem(row), ...patch, id, updatedAt: now() }
+        database
+          .prepare(
+            `UPDATE books SET
+               source=@source,
+               sourceId=@sourceId,
+               title=@title,
+               authors=@authors,
+               status=@status,
+               progress=@progress,
+               coverUrl=@coverUrl,
+               description=@description,
+               publisher=@publisher,
+               publishedDate=@publishedDate,
+               subjects=@subjects,
+               summary=@summary,
+               outline=@outline,
+               reflection=@reflection,
+               isbn10=@isbn10,
+               isbn13=@isbn13,
+               openLibraryKey=@openLibraryKey,
+               googleBooksId=@googleBooksId,
+               doi=@doi,
+               lastSyncedAt=@lastSyncedAt,
+               updatedAt=@updatedAt,
+               userId=@userId,
+               workspaceId=@workspaceId
+             WHERE id=@id`,
+          )
+          .run({
+            ...next,
+            authors: serializeJson(next.authors),
+            subjects: serializeJson(next.subjects),
+            outline: next.outline ? serializeJson(next.outline) : null,
+            userId: next.userId ?? null,
+            workspaceId: next.workspaceId ?? null,
+          })
+        return next
+      },
+      async remove(id: string) {
+        database.prepare('DELETE FROM books WHERE id = ?').run(id)
+      },
+    },
+    media: {
+      async list() {
+        const rows = database.prepare('SELECT * FROM media ORDER BY CASE WHEN status = \'watching\' THEN 0 ELSE 1 END, updatedAt DESC').all() as Record<string, unknown>[]
+        return rows.map(toMediaItem)
+      },
+      async create(data: MediaCreateInput) {
+        const entity: MediaItem = { id: createId(), createdAt: now(), updatedAt: now(), ...data }
+        database
+          .prepare(
+            `INSERT INTO media
+             (id, source, sourceId, tmdbId, mediaType, title, originalTitle, status, progress, posterUrl, backdropUrl, overview, releaseDate, director, creator, cast, genres, duration, seasons, episodes, country, language, rating, watchedEpisodes, reflection, voteAverage, lastSyncedAt, createdAt, updatedAt, userId, workspaceId)
+             VALUES (@id, @source, @sourceId, @tmdbId, @mediaType, @title, @originalTitle, @status, @progress, @posterUrl, @backdropUrl, @overview, @releaseDate, @director, @creator, @cast, @genres, @duration, @seasons, @episodes, @country, @language, @rating, @watchedEpisodes, @reflection, @voteAverage, @lastSyncedAt, @createdAt, @updatedAt, @userId, @workspaceId)`,
+          )
+          .run({
+            ...entity,
+            cast: serializeJson(entity.cast),
+            genres: serializeJson(entity.genres),
+            userId: entity.userId ?? null,
+            workspaceId: entity.workspaceId ?? null,
+          })
+        return entity
+      },
+      async update(id: string, patch: MediaUpdateInput) {
+        const row = database.prepare('SELECT * FROM media WHERE id = ? LIMIT 1').get(id) as Record<string, unknown> | undefined
+        if (!row) return undefined
+        const next: MediaItem = { ...toMediaItem(row), ...patch, id, updatedAt: now() }
+        database
+          .prepare(
+            `UPDATE media SET
+               source=@source,
+               sourceId=@sourceId,
+               tmdbId=@tmdbId,
+               mediaType=@mediaType,
+               title=@title,
+               originalTitle=@originalTitle,
+               status=@status,
+               progress=@progress,
+               posterUrl=@posterUrl,
+               backdropUrl=@backdropUrl,
+               overview=@overview,
+               releaseDate=@releaseDate,
+               director=@director,
+               creator=@creator,
+               cast=@cast,
+               genres=@genres,
+               duration=@duration,
+               seasons=@seasons,
+               episodes=@episodes,
+               country=@country,
+               language=@language,
+               rating=@rating,
+               watchedEpisodes=@watchedEpisodes,
+               reflection=@reflection,
+               voteAverage=@voteAverage,
+               lastSyncedAt=@lastSyncedAt,
+               updatedAt=@updatedAt,
+               userId=@userId,
+               workspaceId=@workspaceId
+             WHERE id=@id`,
+          )
+          .run({
+            ...next,
+            cast: serializeJson(next.cast),
+            genres: serializeJson(next.genres),
+            userId: next.userId ?? null,
+            workspaceId: next.workspaceId ?? null,
+          })
+        return next
+      },
+      async remove(id: string) {
+        database.prepare('DELETE FROM media WHERE id = ?').run(id)
+      },
+    },
+    stocks: {
+      async list() {
+        const rows = database.prepare('SELECT * FROM stocks ORDER BY pinned DESC, updatedAt DESC').all() as Record<string, unknown>[]
+        return rows.map(toStockItem)
+      },
+      async create(data: StockCreateInput) {
+        const entity: StockItem = { id: createId(), createdAt: now(), updatedAt: now(), ...data }
+        database
+          .prepare(
+            `INSERT INTO stocks
+             (id, symbol, name, exchange, currency, lastPrice, change, changePercent, chartPoints, note, pinned, lastSyncedAt, createdAt, updatedAt, userId, workspaceId)
+             VALUES (@id, @symbol, @name, @exchange, @currency, @lastPrice, @change, @changePercent, @chartPoints, @note, @pinned, @lastSyncedAt, @createdAt, @updatedAt, @userId, @workspaceId)`,
+          )
+          .run({
+            ...entity,
+            chartPoints: entity.chartPoints ? serializeJson(entity.chartPoints) : null,
+            pinned: entity.pinned ? 1 : 0,
+            userId: entity.userId ?? null,
+            workspaceId: entity.workspaceId ?? null,
+          })
+        return entity
+      },
+      async update(id: string, patch: StockUpdateInput) {
+        const row = database.prepare('SELECT * FROM stocks WHERE id = ? LIMIT 1').get(id) as Record<string, unknown> | undefined
+        if (!row) return undefined
+        const next: StockItem = { ...toStockItem(row), ...patch, id, updatedAt: now() }
+        database
+          .prepare(
+            `UPDATE stocks SET
+               symbol=@symbol,
+               name=@name,
+               exchange=@exchange,
+               currency=@currency,
+               lastPrice=@lastPrice,
+               change=@change,
+               changePercent=@changePercent,
+               chartPoints=@chartPoints,
+               note=@note,
+               pinned=@pinned,
+               lastSyncedAt=@lastSyncedAt,
+               updatedAt=@updatedAt,
+               userId=@userId,
+               workspaceId=@workspaceId
+             WHERE id=@id`,
+          )
+          .run({
+            ...next,
+            chartPoints: next.chartPoints ? serializeJson(next.chartPoints) : null,
+            pinned: next.pinned ? 1 : 0,
+            userId: next.userId ?? null,
+            workspaceId: next.workspaceId ?? null,
+          })
+        return next
+      },
+      async remove(id: string) {
+        database.prepare('DELETE FROM stocks WHERE id = ?').run(id)
+      },
+    },
+    lifeSubscriptions: {
+      async list() {
+        const rows = database.prepare('SELECT * FROM life_subscriptions ORDER BY updatedAt DESC').all() as Record<string, unknown>[]
+        return rows.map(toLifeSubscription)
+      },
+      async create(data: LifeSubscriptionCreateInput) {
+        const entity: LifeSubscription = { id: createId(), createdAt: now(), updatedAt: now(), ...data }
+        database
+          .prepare(
+            `INSERT INTO life_subscriptions
+             (id, name, amount, currency, cycle, color, category, billingDay, billingMonth, emoji, reminder, paymentStatus, createdAt, updatedAt, userId, workspaceId)
+             VALUES (@id, @name, @amount, @currency, @cycle, @color, @category, @billingDay, @billingMonth, @emoji, @reminder, @paymentStatus, @createdAt, @updatedAt, @userId, @workspaceId)`,
+          )
+          .run({
+            ...entity,
+            reminder: entity.reminder ? 1 : 0,
+            userId: entity.userId ?? null,
+            workspaceId: entity.workspaceId ?? null,
+          })
+        return entity
+      },
+      async update(id: string, patch: LifeSubscriptionUpdateInput) {
+        const row = database.prepare('SELECT * FROM life_subscriptions WHERE id = ? LIMIT 1').get(id) as Record<string, unknown> | undefined
+        if (!row) return undefined
+        const next: LifeSubscription = { ...toLifeSubscription(row), ...patch, id, updatedAt: now() }
+        database
+          .prepare(
+            `UPDATE life_subscriptions SET
+               name=@name,
+               amount=@amount,
+               currency=@currency,
+               cycle=@cycle,
+               color=@color,
+               category=@category,
+               billingDay=@billingDay,
+               billingMonth=@billingMonth,
+               emoji=@emoji,
+               reminder=@reminder,
+               paymentStatus=@paymentStatus,
+               updatedAt=@updatedAt,
+               userId=@userId,
+               workspaceId=@workspaceId
+             WHERE id=@id`,
+          )
+          .run({
+            ...next,
+            reminder: next.reminder ? 1 : 0,
+            userId: next.userId ?? null,
+            workspaceId: next.workspaceId ?? null,
+          })
+        return next
+      },
+      async remove(id: string) {
+        database.prepare('DELETE FROM life_subscriptions WHERE id = ?').run(id)
+      },
+    },
+    trips: {
+      async list() {
+        const rows = database.prepare('SELECT * FROM trips ORDER BY startDate ASC, updatedAt DESC').all() as Record<string, unknown>[]
+        return rows.map(toTripRecord)
+      },
+      async create(data: TripCreateInput) {
+        const entity: TripRecord = { id: createId(), createdAt: now(), updatedAt: now(), ...data }
+        database
+          .prepare(
+            `INSERT INTO trips
+             (id, title, destination, startDate, endDate, status, travelers, budgetPlanned, budgetCurrency, heroImage, coverEmoji, itinerary, transport, stays, food, budget, checklist, notes, createdAt, updatedAt, userId, workspaceId)
+             VALUES (@id, @title, @destination, @startDate, @endDate, @status, @travelers, @budgetPlanned, @budgetCurrency, @heroImage, @coverEmoji, @itinerary, @transport, @stays, @food, @budget, @checklist, @notes, @createdAt, @updatedAt, @userId, @workspaceId)`,
+          )
+          .run({
+            ...entity,
+            itinerary: serializeJson(entity.itinerary),
+            transport: serializeJson(entity.transport),
+            stays: serializeJson(entity.stays),
+            food: serializeJson(entity.food),
+            budget: serializeJson(entity.budget),
+            checklist: serializeJson(entity.checklist),
+            userId: entity.userId ?? null,
+            workspaceId: entity.workspaceId ?? null,
+          })
+        return entity
+      },
+      async update(id: string, patch: TripUpdateInput) {
+        const row = database.prepare('SELECT * FROM trips WHERE id = ? LIMIT 1').get(id) as Record<string, unknown> | undefined
+        if (!row) return undefined
+        const next: TripRecord = { ...toTripRecord(row), ...patch, id, updatedAt: now() }
+        database
+          .prepare(
+            `UPDATE trips SET
+               title=@title,
+               destination=@destination,
+               startDate=@startDate,
+               endDate=@endDate,
+               status=@status,
+               travelers=@travelers,
+               budgetPlanned=@budgetPlanned,
+               budgetCurrency=@budgetCurrency,
+               heroImage=@heroImage,
+               coverEmoji=@coverEmoji,
+               itinerary=@itinerary,
+               transport=@transport,
+               stays=@stays,
+               food=@food,
+               budget=@budget,
+               checklist=@checklist,
+               notes=@notes,
+               updatedAt=@updatedAt,
+               userId=@userId,
+               workspaceId=@workspaceId
+             WHERE id=@id`,
+          )
+          .run({
+            ...next,
+            itinerary: serializeJson(next.itinerary),
+            transport: serializeJson(next.transport),
+            stays: serializeJson(next.stays),
+            food: serializeJson(next.food),
+            budget: serializeJson(next.budget),
+            checklist: serializeJson(next.checklist),
+            userId: next.userId ?? null,
+            workspaceId: next.workspaceId ?? null,
+          })
+        return next
+      },
+      async remove(id: string) {
+        database.prepare('DELETE FROM trips WHERE id = ?').run(id)
       },
     },
   }
