@@ -73,6 +73,32 @@ const inputStyle: CSSProperties = { width: '100%', borderRadius: 12, border: `1p
 const textareaStyle: CSSProperties = { ...inputStyle, minHeight: 88, resize: 'vertical' }
 const numberStyle: CSSProperties = { ...inputStyle }
 
+const skeletonBlock = (style?: CSSProperties): CSSProperties => ({
+  borderRadius: 18,
+  background: 'linear-gradient(90deg, rgba(58,55,51,0.05) 0%, rgba(58,55,51,0.11) 50%, rgba(58,55,51,0.05) 100%)',
+  backgroundSize: '200% 100%',
+  animation: 'life-loader-shimmer 1.35s ease-in-out infinite',
+  ...style,
+})
+
+const TripDetailSkeleton = () => (
+  <div style={{ display: 'grid', gap: 18 }}>
+    <div style={{ display: 'grid', gap: 10, maxWidth: 540 }}>
+      <div style={skeletonBlock({ width: 120, height: 12, borderRadius: 999 })} />
+      <div style={skeletonBlock({ width: 260, height: 42 })} />
+      <div style={skeletonBlock({ width: '100%', height: 14, borderRadius: 999 })} />
+    </div>
+    <div style={{ display: 'grid', gridTemplateColumns: '280px minmax(0, 1fr)', gap: 18 }}>
+      <div style={{ ...skeletonBlock({ minHeight: 520 }), border: `1px solid ${subtleBorder}`, background: cardBg }} />
+      <div style={{ display: 'grid', gap: 18 }}>
+        <div style={{ ...skeletonBlock({ minHeight: 220 }), border: `1px solid ${subtleBorder}`, background: cardBg }} />
+        <div style={{ ...skeletonBlock({ minHeight: 160 }), border: `1px solid ${subtleBorder}`, background: cardBg }} />
+        <div style={{ ...skeletonBlock({ minHeight: 160 }), border: `1px solid ${subtleBorder}`, background: cardBg }} />
+      </div>
+    </div>
+  </div>
+)
+
 const sections: Array<{ id: SectionId; label: string; icon: ReactNode }> = [
   { id: 'overview', label: 'Overview', icon: <LayoutGrid size={14} /> },
   { id: 'itinerary', label: 'Itinerary', icon: <Calendar size={14} /> },
@@ -122,6 +148,46 @@ const ActionButton = ({ children, onClick, danger = false }: { children: ReactNo
   </button>
 )
 
+// ─── List-mutation helpers ────────────────────────────────────────────────────
+
+/** Patch one item by id in an array. */
+function patchIn<T extends { id: string }>(list: T[], id: string, patch: Partial<T>): T[] {
+  return list.map((item) => (item.id === id ? { ...item, ...patch } : item))
+}
+
+/** Remove one item by id from an array. */
+function removeFrom<T extends { id: string }>(list: T[], id: string): T[] {
+  return list.filter((item) => item.id !== id)
+}
+
+/** Patch top-level fields on an itinerary day. */
+function patchDay(days: TripItineraryDay[], dayNum: number, patch: Partial<TripItineraryDay>): TripItineraryDay[] {
+  return days.map((d) => (d.day === dayNum ? { ...d, ...patch } : d))
+}
+
+/** Patch one activity inside a specific itinerary day. */
+function patchDayItem(days: TripItineraryDay[], dayNum: number, itemId: string, patch: Partial<TripItineraryItem>): TripItineraryDay[] {
+  return days.map((d) =>
+    d.day === dayNum
+      ? { ...d, items: d.items.map((it) => (it.id === itemId ? { ...it, ...patch } : it)) }
+      : d,
+  )
+}
+
+/** Patch one item inside a checklist group. */
+function patchGroupItem(
+  checklist: TripChecklistGroup[],
+  groupId: string,
+  itemId: string,
+  patch: Partial<TripChecklistGroup['items'][number]>,
+): TripChecklistGroup[] {
+  return checklist.map((g) =>
+    g.id === groupId
+      ? { ...g, items: g.items.map((it) => (it.id === itemId ? { ...it, ...patch } : it)) }
+      : g,
+  )
+}
+
 const normalizeDays = (days: TripItineraryDay[]) =>
   days.map((day, index) => ({
     ...day,
@@ -147,9 +213,11 @@ const TripDetailPage = () => {
     notes: null,
   })
   const [active, setActive] = useState<SectionId>('overview')
+  const containerRef = useRef<HTMLDivElement>(null)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const savedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingPatchRef = useRef<TripUpdateInput>({})
+
 
   useEffect(() => {
     const load = async () => {
@@ -172,20 +240,17 @@ const TripDetailPage = () => {
   }, [])
 
   useEffect(() => {
+    const root = containerRef.current ?? null
     const observer = new IntersectionObserver(
       (entries) => {
-        const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]
+        const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]
         if (!visible) return
         const id = visible.target.getAttribute('data-section') as SectionId | null
         if (id) setActive(id)
       },
-      { rootMargin: '-18% 0px -60% 0px', threshold: [0.1, 0.25, 0.5] },
+      { root, rootMargin: '-10% 0px -60% 0px', threshold: [0.1, 0.25, 0.5] },
     )
-
-    Object.values(sectionRefs.current).forEach((node) => {
-      if (node) observer.observe(node)
-    })
-
+    Object.values(sectionRefs.current).forEach((node) => { if (node) observer.observe(node) })
     return () => observer.disconnect()
   }, [trip?.id])
 
@@ -248,13 +313,21 @@ const TripDetailPage = () => {
     ].filter(Boolean) as string[]
   }, [trip])
 
+  const pageWrapper: CSSProperties = {
+    margin: -18,
+    height: 'calc(100vh - 40px)',
+    overflowY: 'auto',
+    background: paper,
+    padding: 46,
+  }
+
   if (loading) {
-    return <div style={{ margin: -18, minHeight: '100%', flexGrow: 1, background: paper, backgroundAttachment: 'fixed', padding: 46, ...tx(13, 400, muted) }}>Loading trip…</div>
+    return <div ref={containerRef} style={pageWrapper}><TripDetailSkeleton /></div>
   }
 
   if (!trip) {
     return (
-      <div style={{ margin: -18, minHeight: '100%', flexGrow: 1, background: paper, backgroundAttachment: 'fixed', padding: 46 }}>
+      <div ref={containerRef} style={pageWrapper}>
         <Card style={{ maxWidth: 620, margin: '80px auto 0', padding: 28 }}>
           <h1 style={pf(28, 500)}>Trip not found</h1>
           <p style={{ ...tx(13, 400, muted), marginTop: 10 }}>This trip was removed or the link is no longer valid.</p>
@@ -270,9 +343,9 @@ const TripDetailPage = () => {
   }
 
   return (
-    <div style={{ margin: -18, minHeight: '100%', flexGrow: 1, background: paper, backgroundAttachment: 'fixed', padding: 46 }}>
+    <div ref={containerRef} style={pageWrapper}>
       <div style={{ display: 'grid', gridTemplateColumns: '220px minmax(0, 1fr)', gap: 24, maxWidth: 1480, margin: '0 auto' }}>
-        <aside style={{ position: 'sticky', top: 24, alignSelf: 'start', background: '#FCF8F4', border: `1px solid ${subtleBorder}`, borderRadius: 18, padding: 18 }}>
+        <aside style={{ position: 'sticky', top: 24, alignSelf: 'start', background: paper, borderRadius: 18, padding: 18 }}>
           <button type="button" onClick={() => navigate(ROUTES.TRIPS)} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18, border: 'none', background: 'transparent', cursor: 'pointer', ...tx(12, 500, muted) }}>
             <ArrowLeft size={14} /> All Trips
           </button>
@@ -309,7 +382,7 @@ const TripDetailPage = () => {
         </aside>
 
         <main style={{ display: 'grid', gap: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, background: '#FCF8F4', border: `1px solid ${subtleBorder}`, borderRadius: 22, padding: '18px 22px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, background: cardBg, border: `1px solid ${subtleBorder}`, borderRadius: 22, padding: '18px 22px', boxShadow: '0 1px 6px rgba(58,55,51,0.05)' }}>
             <div>
               <p style={{ ...tx(10, 600, 'rgba(58,55,51,0.38)'), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 6 }}>Trip planner</p>
               <h2 style={{ ...pf(22, 500) }}>{trip.title}</h2>
@@ -384,12 +457,22 @@ const TripDetailPage = () => {
             <SectionHeading title="Itinerary" meta={`${trip.itinerary.length} days · ${trip.itinerary.reduce((sum, day) => sum + day.items.length, 0)} activities`} action={<ActionButton onClick={() => updateItinerary([...trip.itinerary, createItineraryDay(trip.itinerary.length + 1)])}><Plus size={14} /> Add Day</ActionButton>} />
             {trip.itinerary.map((day) => {
               const isCollapsed = collapsedDays.includes(day.day)
+              const patchD = (p: Partial<TripItineraryDay>) => updateItinerary(patchDay(trip.itinerary, day.day, p))
+              const patchItem = (itemId: string, p: Partial<TripItineraryItem>) =>
+                updateItinerary(patchDayItem(trip.itinerary, day.day, itemId, p))
               return (
                 <Card key={day.day}>
-                  <button type="button" onClick={() => setCollapsedDays((current) => current.includes(day.day) ? current.filter((value) => value !== day.day) : [...current, day.day])} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', border: 'none', background: 'transparent', cursor: 'pointer' }}>
+                  <button
+                    type="button"
+                    onClick={() => setCollapsedDays((c) => c.includes(day.day) ? c.filter((v) => v !== day.day) : [...c, day.day])}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', border: 'none', background: 'transparent', cursor: 'pointer' }}
+                  >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <div style={{ width: 32, height: 32, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(58,55,51,0.07)', ...tx(11, 600) }}>{day.day}</div>
-                      <div style={{ textAlign: 'left' }}><p style={pf(15, 500)}>{day.label}</p><p style={tx(11, 400, 'rgba(58,55,51,0.40)')}>{day.date || 'Date pending'} · {day.items.length} items</p></div>
+                      <div style={{ textAlign: 'left' }}>
+                        <p style={pf(15, 500)}>{day.label}</p>
+                        <p style={tx(11, 400, 'rgba(58,55,51,0.40)')}>{day.date || 'Date pending'} · {day.items.length} items</p>
+                      </div>
                     </div>
                     {isCollapsed ? <ChevronDown size={15} color={muted} /> : <ChevronUp size={15} color={muted} />}
                   </button>
@@ -398,9 +481,9 @@ const TripDetailPage = () => {
                       <Hairline />
                       <div style={{ padding: 20, display: 'grid', gap: 14 }}>
                         <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr auto', gap: 12 }}>
-                          <input value={day.date} onChange={(event) => updateItinerary(trip.itinerary.map((entry) => entry.day === day.day ? { ...entry, date: event.target.value } : entry))} style={inputStyle} placeholder="Apr 18" />
-                          <input value={day.label} onChange={(event) => updateItinerary(trip.itinerary.map((entry) => entry.day === day.day ? { ...entry, label: event.target.value } : entry))} style={inputStyle} placeholder="Day label" />
-                          <ActionButton danger onClick={() => updateItinerary(trip.itinerary.filter((entry) => entry.day !== day.day))}><Trash2 size={14} /> Remove Day</ActionButton>
+                          <input value={day.date} onChange={(e) => patchD({ date: e.target.value })} style={inputStyle} placeholder="Apr 18" />
+                          <input value={day.label} onChange={(e) => patchD({ label: e.target.value })} style={inputStyle} placeholder="Day label" />
+                          <ActionButton danger onClick={() => updateItinerary(normalizeDays(trip.itinerary.filter((d) => d.day !== day.day)))}><Trash2 size={14} /> Remove Day</ActionButton>
                         </div>
                         {day.items.map((item) => {
                           const badge = itineraryTypeStyle(item.type)
@@ -408,19 +491,19 @@ const TripDetailPage = () => {
                             <Card key={item.id} style={{ padding: 14 }}>
                               <div style={{ display: 'grid', gap: 10 }}>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 120px 120px auto', gap: 10 }}>
-                                  <input value={item.title} onChange={(event) => updateItinerary(trip.itinerary.map((entry) => entry.day === day.day ? { ...entry, items: entry.items.map((entryItem) => entryItem.id === item.id ? { ...entryItem, title: event.target.value } : entryItem) } : entry))} style={inputStyle} placeholder="Activity" />
-                                  <input value={item.time} onChange={(event) => updateItinerary(trip.itinerary.map((entry) => entry.day === day.day ? { ...entry, items: entry.items.map((entryItem) => entryItem.id === item.id ? { ...entryItem, time: event.target.value } : entryItem) } : entry))} style={inputStyle} placeholder="09:00" />
-                                  <select value={item.type} onChange={(event) => updateItinerary(trip.itinerary.map((entry) => entry.day === day.day ? { ...entry, items: entry.items.map((entryItem) => entryItem.id === item.id ? { ...entryItem, type: event.target.value as TripItineraryItem['type'] } : entryItem) } : entry))} style={inputStyle}>{itineraryTypeOptions.map((type) => <option key={type} value={type}>{type}</option>)}</select>
-                                  <ActionButton danger onClick={() => updateItinerary(trip.itinerary.map((entry) => entry.day === day.day ? { ...entry, items: entry.items.filter((entryItem) => entryItem.id !== item.id) } : entry))}><Trash2 size={14} /> Remove</ActionButton>
+                                  <input value={item.title} onChange={(e) => patchItem(item.id, { title: e.target.value })} style={inputStyle} placeholder="Activity" />
+                                  <input value={item.time} onChange={(e) => patchItem(item.id, { time: e.target.value })} style={inputStyle} placeholder="09:00" />
+                                  <select value={item.type} onChange={(e) => patchItem(item.id, { type: e.target.value as TripItineraryItem['type'] })} style={inputStyle}>{itineraryTypeOptions.map((t) => <option key={t} value={t}>{t}</option>)}</select>
+                                  <ActionButton danger onClick={() => patchD({ items: day.items.filter((it) => it.id !== item.id) })}><Trash2 size={14} /> Remove</ActionButton>
                                 </div>
-                                <input value={item.location} onChange={(event) => updateItinerary(trip.itinerary.map((entry) => entry.day === day.day ? { ...entry, items: entry.items.map((entryItem) => entryItem.id === item.id ? { ...entryItem, location: event.target.value } : entryItem) } : entry))} style={inputStyle} placeholder="Location" />
-                                <textarea value={item.notes ?? ''} onChange={(event) => updateItinerary(trip.itinerary.map((entry) => entry.day === day.day ? { ...entry, items: entry.items.map((entryItem) => entryItem.id === item.id ? { ...entryItem, notes: event.target.value } : entryItem) } : entry))} style={textareaStyle} placeholder="Notes" />
+                                <input value={item.location} onChange={(e) => patchItem(item.id, { location: e.target.value })} style={inputStyle} placeholder="Location" />
+                                <textarea value={item.notes ?? ''} onChange={(e) => patchItem(item.id, { notes: e.target.value })} style={textareaStyle} placeholder="Notes" />
                                 <span style={{ ...tx(10, 600, badge.text), background: badge.bg, borderRadius: 999, padding: '4px 8px', alignSelf: 'start', textTransform: 'capitalize', letterSpacing: '0.05em' }}>{item.type}</span>
                               </div>
                             </Card>
                           )
                         })}
-                        <div><ActionButton onClick={() => updateItinerary(trip.itinerary.map((entry) => entry.day === day.day ? { ...entry, items: [...entry.items, createItineraryItem()] } : entry))}><Plus size={14} /> Add Activity</ActionButton></div>
+                        <div><ActionButton onClick={() => patchD({ items: [...day.items, createItineraryItem()] })}><Plus size={14} /> Add Activity</ActionButton></div>
                       </div>
                     </>
                   ) : null}
@@ -433,27 +516,26 @@ const TripDetailPage = () => {
             <SectionHeading title="Transport" meta={`${trip.transport.length} routes`} action={<ActionButton onClick={() => updateTransport([...trip.transport, createTransportItem()])}><Plus size={14} /> Add Route</ActionButton>} />
             {trip.transport.map((item) => {
               const sc = bookingStatusColor(item.status)
+              const patch = (p: Partial<TripTransportItem>) => updateTransport(patchIn(trip.transport, item.id, p))
               return (
                 <Card key={item.id} style={{ padding: 20, display: 'grid', gap: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={tx(11, 500, sc.text)}>{item.status}</span>
-                    </div>
-                    <ActionButton danger onClick={() => updateTransport(trip.transport.filter((entry) => entry.id !== item.id))}><Trash2 size={14} /> Remove</ActionButton>
+                    <span style={tx(11, 500, sc.text)}>{item.status}</span>
+                    <ActionButton danger onClick={() => updateTransport(removeFrom(trip.transport, item.id))}><Trash2 size={14} /> Remove</ActionButton>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 140px', gap: 12 }}>
-                    <input value={item.from} onChange={(event) => updateTransport(trip.transport.map((entry) => entry.id === item.id ? { ...entry, from: event.target.value } : entry))} style={inputStyle} placeholder="From" />
-                    <input value={item.to} onChange={(event) => updateTransport(trip.transport.map((entry) => entry.id === item.id ? { ...entry, to: event.target.value } : entry))} style={inputStyle} placeholder="To" />
-                    <select value={item.method} onChange={(event) => updateTransport(trip.transport.map((entry) => entry.id === item.id ? { ...entry, method: event.target.value as TripTransportItem['method'] } : entry))} style={inputStyle}>{transportMethodOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select>
-                    <select value={item.category} onChange={(event) => updateTransport(trip.transport.map((entry) => entry.id === item.id ? { ...entry, category: event.target.value as TripTransportItem['category'] } : entry))} style={inputStyle}>{transportCategoryOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select>
-                    <input value={item.date} onChange={(event) => updateTransport(trip.transport.map((entry) => entry.id === item.id ? { ...entry, date: event.target.value } : entry))} style={inputStyle} placeholder="Apr 18" />
-                    <input value={item.departTime} onChange={(event) => updateTransport(trip.transport.map((entry) => entry.id === item.id ? { ...entry, departTime: event.target.value } : entry))} style={inputStyle} placeholder="Depart" />
-                    <input value={item.arriveTime} onChange={(event) => updateTransport(trip.transport.map((entry) => entry.id === item.id ? { ...entry, arriveTime: event.target.value } : entry))} style={inputStyle} placeholder="Arrive" />
-                    <select value={item.status} onChange={(event) => updateTransport(trip.transport.map((entry) => entry.id === item.id ? { ...entry, status: event.target.value as TripTransportItem['status'] } : entry))} style={inputStyle}>{bookingStatusOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select>
-                    <input value={item.currency} onChange={(event) => updateTransport(trip.transport.map((entry) => entry.id === item.id ? { ...entry, currency: event.target.value } : entry))} style={inputStyle} placeholder="USD" />
-                    <input type="number" min={0} value={item.cost} onChange={(event) => updateTransport(trip.transport.map((entry) => entry.id === item.id ? { ...entry, cost: Math.max(0, Number(event.target.value) || 0) } : entry))} style={numberStyle} placeholder="Cost" />
+                    <input value={item.from} onChange={(e) => patch({ from: e.target.value })} style={inputStyle} placeholder="From" />
+                    <input value={item.to} onChange={(e) => patch({ to: e.target.value })} style={inputStyle} placeholder="To" />
+                    <select value={item.method} onChange={(e) => patch({ method: e.target.value as TripTransportItem['method'] })} style={inputStyle}>{transportMethodOptions.map((o) => <option key={o} value={o}>{o}</option>)}</select>
+                    <select value={item.category} onChange={(e) => patch({ category: e.target.value as TripTransportItem['category'] })} style={inputStyle}>{transportCategoryOptions.map((o) => <option key={o} value={o}>{o}</option>)}</select>
+                    <input value={item.date} onChange={(e) => patch({ date: e.target.value })} style={inputStyle} placeholder="Apr 18" />
+                    <input value={item.departTime} onChange={(e) => patch({ departTime: e.target.value })} style={inputStyle} placeholder="Depart" />
+                    <input value={item.arriveTime} onChange={(e) => patch({ arriveTime: e.target.value })} style={inputStyle} placeholder="Arrive" />
+                    <select value={item.status} onChange={(e) => patch({ status: e.target.value as TripTransportItem['status'] })} style={inputStyle}>{bookingStatusOptions.map((o) => <option key={o} value={o}>{o}</option>)}</select>
+                    <input value={item.currency} onChange={(e) => patch({ currency: e.target.value })} style={inputStyle} placeholder="USD" />
+                    <input type="number" min={0} value={item.cost} onChange={(e) => patch({ cost: Math.max(0, Number(e.target.value) || 0) })} style={numberStyle} placeholder="Cost" />
                   </div>
-                  <textarea value={item.notes ?? ''} onChange={(event) => updateTransport(trip.transport.map((entry) => entry.id === item.id ? { ...entry, notes: event.target.value } : entry))} style={textareaStyle} placeholder="Notes" />
+                  <textarea value={item.notes ?? ''} onChange={(e) => patch({ notes: e.target.value })} style={textareaStyle} placeholder="Notes" />
                 </Card>
               )
             })}
@@ -463,23 +545,24 @@ const TripDetailPage = () => {
             <SectionHeading title="Stay" meta={`${trip.stays.length} accommodation`} action={<ActionButton onClick={() => updateStays([...trip.stays, createStayItem()])}><Plus size={14} /> Add Stay</ActionButton>} />
             {trip.stays.map((stay) => {
               const sc = bookingStatusColor(stay.status)
+              const patch = (p: Partial<TripStayItem>) => updateStays(patchIn(trip.stays, stay.id, p))
               return (
                 <Card key={stay.id} style={{ padding: 20, display: 'grid', gap: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                     <span style={tx(11, 500, sc.text)}>{stay.status}</span>
-                    <ActionButton danger onClick={() => updateStays(trip.stays.filter((entry) => entry.id !== stay.id))}><Trash2 size={14} /> Remove</ActionButton>
+                    <ActionButton danger onClick={() => updateStays(removeFrom(trip.stays, stay.id))}><Trash2 size={14} /> Remove</ActionButton>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px 140px 120px 140px', gap: 12 }}>
-                    <input value={stay.name} onChange={(event) => updateStays(trip.stays.map((entry) => entry.id === stay.id ? { ...entry, name: event.target.value } : entry))} style={inputStyle} placeholder="Stay name" />
-                    <input value={stay.checkIn} onChange={(event) => updateStays(trip.stays.map((entry) => entry.id === stay.id ? { ...entry, checkIn: event.target.value } : entry))} style={inputStyle} placeholder="Check-in" />
-                    <input value={stay.checkOut} onChange={(event) => updateStays(trip.stays.map((entry) => entry.id === stay.id ? { ...entry, checkOut: event.target.value } : entry))} style={inputStyle} placeholder="Check-out" />
-                    <input type="number" min={1} value={stay.nights} onChange={(event) => updateStays(trip.stays.map((entry) => entry.id === stay.id ? { ...entry, nights: Math.max(1, Number(event.target.value) || 1) } : entry))} style={numberStyle} />
-                    <select value={stay.status} onChange={(event) => updateStays(trip.stays.map((entry) => entry.id === stay.id ? { ...entry, status: event.target.value as TripStayItem['status'] } : entry))} style={inputStyle}>{bookingStatusOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select>
-                    <input value={stay.address} onChange={(event) => updateStays(trip.stays.map((entry) => entry.id === stay.id ? { ...entry, address: event.target.value } : entry))} style={{ ...inputStyle, gridColumn: 'span 3' }} placeholder="Address" />
-                    <input value={stay.currency} onChange={(event) => updateStays(trip.stays.map((entry) => entry.id === stay.id ? { ...entry, currency: event.target.value } : entry))} style={inputStyle} placeholder="USD" />
-                    <input type="number" min={0} value={stay.cost} onChange={(event) => updateStays(trip.stays.map((entry) => entry.id === stay.id ? { ...entry, cost: Math.max(0, Number(event.target.value) || 0) } : entry))} style={numberStyle} />
+                    <input value={stay.name} onChange={(e) => patch({ name: e.target.value })} style={inputStyle} placeholder="Stay name" />
+                    <input value={stay.checkIn} onChange={(e) => patch({ checkIn: e.target.value })} style={inputStyle} placeholder="Check-in" />
+                    <input value={stay.checkOut} onChange={(e) => patch({ checkOut: e.target.value })} style={inputStyle} placeholder="Check-out" />
+                    <input type="number" min={1} value={stay.nights} onChange={(e) => patch({ nights: Math.max(1, Number(e.target.value) || 1) })} style={numberStyle} />
+                    <select value={stay.status} onChange={(e) => patch({ status: e.target.value as TripStayItem['status'] })} style={inputStyle}>{bookingStatusOptions.map((o) => <option key={o} value={o}>{o}</option>)}</select>
+                    <input value={stay.address} onChange={(e) => patch({ address: e.target.value })} style={{ ...inputStyle, gridColumn: 'span 3' }} placeholder="Address" />
+                    <input value={stay.currency} onChange={(e) => patch({ currency: e.target.value })} style={inputStyle} placeholder="USD" />
+                    <input type="number" min={0} value={stay.cost} onChange={(e) => patch({ cost: Math.max(0, Number(e.target.value) || 0) })} style={numberStyle} />
                   </div>
-                  <textarea value={stay.notes ?? ''} onChange={(event) => updateStays(trip.stays.map((entry) => entry.id === stay.id ? { ...entry, notes: event.target.value } : entry))} style={textareaStyle} placeholder="Notes" />
+                  <textarea value={stay.notes ?? ''} onChange={(e) => patch({ notes: e.target.value })} style={textareaStyle} placeholder="Notes" />
                 </Card>
               )
             })}
@@ -489,20 +572,21 @@ const TripDetailPage = () => {
             <SectionHeading title="Food" meta={`${trip.food.length} places`} action={<ActionButton onClick={() => updateFood([...trip.food, createFoodItem()])}><Plus size={14} /> Add Place</ActionButton>} />
             {trip.food.map((item) => {
               const sc = foodStatusColor(item.status)
+              const patch = (p: Partial<TripFoodItem>) => updateFood(patchIn(trip.food, item.id, p))
               return (
                 <Card key={item.id} style={{ padding: 20, display: 'grid', gap: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                     <span style={{ ...tx(10, 600, sc.text), background: sc.bg, borderRadius: 999, padding: '4px 8px' }}>{item.status}</span>
-                    <ActionButton danger onClick={() => updateFood(trip.food.filter((entry) => entry.id !== item.id))}><Trash2 size={14} /> Remove</ActionButton>
+                    <ActionButton danger onClick={() => updateFood(removeFrom(trip.food, item.id))}><Trash2 size={14} /> Remove</ActionButton>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 120px 120px', gap: 12 }}>
-                    <input value={item.name} onChange={(event) => updateFood(trip.food.map((entry) => entry.id === item.id ? { ...entry, name: event.target.value } : entry))} style={inputStyle} placeholder="Place" />
-                    <input value={item.area} onChange={(event) => updateFood(trip.food.map((entry) => entry.id === item.id ? { ...entry, area: event.target.value } : entry))} style={inputStyle} placeholder="Area" />
-                    <input value={item.cuisine} onChange={(event) => updateFood(trip.food.map((entry) => entry.id === item.id ? { ...entry, cuisine: event.target.value } : entry))} style={inputStyle} placeholder="Cuisine" />
-                    <select value={item.priceRange} onChange={(event) => updateFood(trip.food.map((entry) => entry.id === item.id ? { ...entry, priceRange: event.target.value as TripFoodItem['priceRange'] } : entry))} style={inputStyle}>{priceRangeOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select>
-                    <select value={item.status} onChange={(event) => updateFood(trip.food.map((entry) => entry.id === item.id ? { ...entry, status: event.target.value as TripFoodItem['status'] } : entry))} style={inputStyle}>{foodStatusOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select>
+                    <input value={item.name} onChange={(e) => patch({ name: e.target.value })} style={inputStyle} placeholder="Place" />
+                    <input value={item.area} onChange={(e) => patch({ area: e.target.value })} style={inputStyle} placeholder="Area" />
+                    <input value={item.cuisine} onChange={(e) => patch({ cuisine: e.target.value })} style={inputStyle} placeholder="Cuisine" />
+                    <select value={item.priceRange} onChange={(e) => patch({ priceRange: e.target.value as TripFoodItem['priceRange'] })} style={inputStyle}>{priceRangeOptions.map((o) => <option key={o} value={o}>{o}</option>)}</select>
+                    <select value={item.status} onChange={(e) => patch({ status: e.target.value as TripFoodItem['status'] })} style={inputStyle}>{foodStatusOptions.map((o) => <option key={o} value={o}>{o}</option>)}</select>
                   </div>
-                  <textarea value={item.notes ?? ''} onChange={(event) => updateFood(trip.food.map((entry) => entry.id === item.id ? { ...entry, notes: event.target.value } : entry))} style={textareaStyle} placeholder="Notes" />
+                  <textarea value={item.notes ?? ''} onChange={(e) => patch({ notes: e.target.value })} style={textareaStyle} placeholder="Notes" />
                 </Card>
               )
             })}
@@ -523,20 +607,23 @@ const TripDetailPage = () => {
                 </Card>
               ))}
             </div>
-            {trip.budget.map((item) => (
-              <Card key={item.id} style={{ padding: 20, display: 'grid', gap: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                  <span style={tx(12, 500)}>{item.label || 'New budget item'}</span>
-                  <ActionButton danger onClick={() => updateBudget(trip.budget.filter((entry) => entry.id !== item.id))}><Trash2 size={14} /> Remove</ActionButton>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '72px 1fr 160px 160px', gap: 12 }}>
-                  <input value={item.emoji} onChange={(event) => updateBudget(trip.budget.map((entry) => entry.id === item.id ? { ...entry, emoji: event.target.value } : entry))} style={inputStyle} placeholder="💸" />
-                  <input value={item.label} onChange={(event) => updateBudget(trip.budget.map((entry) => entry.id === item.id ? { ...entry, label: event.target.value } : entry))} style={inputStyle} placeholder="Label" />
-                  <input type="number" min={0} value={item.planned} onChange={(event) => updateBudget(trip.budget.map((entry) => entry.id === item.id ? { ...entry, planned: Math.max(0, Number(event.target.value) || 0) } : entry))} style={numberStyle} placeholder="Planned" />
-                  <input type="number" min={0} value={item.actual} onChange={(event) => updateBudget(trip.budget.map((entry) => entry.id === item.id ? { ...entry, actual: Math.max(0, Number(event.target.value) || 0) } : entry))} style={numberStyle} placeholder="Actual" />
-                </div>
-              </Card>
-            ))}
+            {trip.budget.map((item) => {
+              const patch = (p: Partial<TripBudgetCategory>) => updateBudget(patchIn(trip.budget, item.id, p))
+              return (
+                <Card key={item.id} style={{ padding: 20, display: 'grid', gap: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                    <span style={tx(12, 500)}>{item.label || 'New budget item'}</span>
+                    <ActionButton danger onClick={() => updateBudget(removeFrom(trip.budget, item.id))}><Trash2 size={14} /> Remove</ActionButton>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '72px 1fr 160px 160px', gap: 12 }}>
+                    <input value={item.emoji} onChange={(e) => patch({ emoji: e.target.value })} style={inputStyle} placeholder="💸" />
+                    <input value={item.label} onChange={(e) => patch({ label: e.target.value })} style={inputStyle} placeholder="Label" />
+                    <input type="number" min={0} value={item.planned} onChange={(e) => patch({ planned: Math.max(0, Number(e.target.value) || 0) })} style={numberStyle} placeholder="Planned" />
+                    <input type="number" min={0} value={item.actual} onChange={(e) => patch({ actual: Math.max(0, Number(e.target.value) || 0) })} style={numberStyle} placeholder="Actual" />
+                  </div>
+                </Card>
+              )
+            })}
           </section>
 
           <section ref={(node) => { sectionRefs.current.checklist = node }} data-section="checklist" style={{ display: 'grid', gap: 14 }}>
@@ -550,22 +637,23 @@ const TripDetailPage = () => {
             </Card>
             {trip.checklist.map((group) => {
               const groupDone = group.items.filter((item) => item.done).length
+              const patchG = (p: Partial<TripChecklistGroup>) => updateChecklist(patchIn(trip.checklist, group.id, p))
               return (
                 <Card key={group.id} style={{ padding: 20, display: 'grid', gap: 12 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '72px 1fr auto auto', gap: 12, alignItems: 'center' }}>
-                    <input value={group.emoji} onChange={(event) => updateChecklist(trip.checklist.map((entry) => entry.id === group.id ? { ...entry, emoji: event.target.value } : entry))} style={inputStyle} />
-                    <input value={group.label} onChange={(event) => updateChecklist(trip.checklist.map((entry) => entry.id === group.id ? { ...entry, label: event.target.value } : entry))} style={inputStyle} />
+                    <input value={group.emoji} onChange={(e) => patchG({ emoji: e.target.value })} style={inputStyle} />
+                    <input value={group.label} onChange={(e) => patchG({ label: e.target.value })} style={inputStyle} />
                     <span style={{ ...tx(10, 500, groupDone === group.items.length ? '#3D7A4E' : muted), background: groupDone === group.items.length ? 'rgba(110,171,122,0.12)' : 'rgba(58,55,51,0.06)', borderRadius: 999, padding: '4px 8px' }}>{groupDone}/{group.items.length}</span>
-                    <ActionButton danger onClick={() => updateChecklist(trip.checklist.filter((entry) => entry.id !== group.id))}><Trash2 size={14} /> Remove</ActionButton>
+                    <ActionButton danger onClick={() => updateChecklist(removeFrom(trip.checklist, group.id))}><Trash2 size={14} /> Remove</ActionButton>
                   </div>
                   {group.items.map((item) => (
                     <div key={item.id} style={{ display: 'grid', gridTemplateColumns: '24px 1fr auto', gap: 12, alignItems: 'center' }}>
-                      <input type="checkbox" checked={item.done} onChange={(event) => updateChecklist(trip.checklist.map((entry) => entry.id === group.id ? { ...entry, items: entry.items.map((entryItem) => entryItem.id === item.id ? { ...entryItem, done: event.target.checked } : entryItem) } : entry))} />
-                      <input value={item.label} onChange={(event) => updateChecklist(trip.checklist.map((entry) => entry.id === group.id ? { ...entry, items: entry.items.map((entryItem) => entryItem.id === item.id ? { ...entryItem, label: event.target.value } : entryItem) } : entry))} style={inputStyle} placeholder="Checklist item" />
-                      <ActionButton danger onClick={() => updateChecklist(trip.checklist.map((entry) => entry.id === group.id ? { ...entry, items: entry.items.filter((entryItem) => entryItem.id !== item.id) } : entry))}><Trash2 size={14} /> Remove</ActionButton>
+                      <input type="checkbox" checked={item.done} onChange={(e) => updateChecklist(patchGroupItem(trip.checklist, group.id, item.id, { done: e.target.checked }))} />
+                      <input value={item.label} onChange={(e) => updateChecklist(patchGroupItem(trip.checklist, group.id, item.id, { label: e.target.value }))} style={inputStyle} placeholder="Checklist item" />
+                      <ActionButton danger onClick={() => patchG({ items: group.items.filter((it) => it.id !== item.id) })}><Trash2 size={14} /> Remove</ActionButton>
                     </div>
                   ))}
-                  <div><ActionButton onClick={() => updateChecklist(trip.checklist.map((entry) => entry.id === group.id ? { ...entry, items: [...entry.items, createChecklistItem()] } : entry))}><Plus size={14} /> Add Item</ActionButton></div>
+                  <div><ActionButton onClick={() => patchG({ items: [...group.items, createChecklistItem()] })}><Plus size={14} /> Add Item</ActionButton></div>
                 </Card>
               )
             })}

@@ -1,4 +1,4 @@
-import type { BookItem, LifeSubscription, MediaItem } from '../../../data/models/types'
+import type { BookItem, LifePerson, LifePodcast, LifeSubscription, MediaItem } from '../../../data/models/types'
 import type { DailyReviewAnalytics } from './dailyReviewAnalytics'
 
 const INK = '#3A3733'
@@ -106,6 +106,37 @@ export type SubscriptionPresentationModel = {
     dueSoonLabel: string | null
   }>
   stats: { activeServices: number; reminders: number; dueSoon: number }
+}
+
+export type PodcastPresentationModel = {
+  nowPlaying: {
+    title: string
+    podcastName: string
+    duration?: string
+    isPlaying: boolean
+    coverColor: string
+    coverEmoji: string
+  } | null
+  recentEpisodes: Array<{
+    id: string
+    title: string
+    duration?: string
+    coverEmoji: string
+  }>
+  statsLabel: string
+}
+
+export type PeoplePresentationModel = {
+  preview: Array<{
+    id: string
+    name: string
+    group: LifePerson['group']
+    avatarInitials: string
+    avatarColor: string
+    secondary: string
+    birthdaySoon: boolean
+  }>
+  statsLabel: string
 }
 
 export const buildLibraryPresentationModel = (books: readonly BookItem[]): LibraryPresentationModel => ({
@@ -246,6 +277,86 @@ export const buildSubscriptionPresentationModel = (items: readonly LifeSubscript
         return days !== null && days <= 7
       }).length,
     },
+  }
+}
+
+const groupColorMap: Record<LifePerson['group'], string> = {
+  Family: '#E7C2B8',
+  Friends: '#D5C7E8',
+  Work: '#BDD3E4',
+  Community: '#CBE0C3',
+  Other: '#D8CFC7',
+}
+
+const daysUntilBirthday = (value?: string) => {
+  if (!value) return null
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!match) return null
+  const month = Number(match[2])
+  const day = Number(match[3])
+  const today = new Date()
+  const next = new Date(today.getFullYear(), month - 1, day)
+  if (next < new Date(today.getFullYear(), today.getMonth(), today.getDate())) next.setFullYear(today.getFullYear() + 1)
+  return Math.round((next.getTime() - new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()) / (24 * 60 * 60 * 1000))
+}
+
+export const buildPodcastPresentationModel = (items: readonly LifePodcast[]): PodcastPresentationModel => {
+  const sorted = [...items].sort((left, right) => right.updatedAt - left.updatedAt)
+  const active = sorted.find((item) => item.selectedEpisodeId || item.isPlaying) ?? sorted[0] ?? null
+  const activeEpisode = active?.episodes.find((episode) => episode.id === active.selectedEpisodeId) ?? active?.episodes[0] ?? null
+  const recentEpisodes = sorted.flatMap((podcast) =>
+    podcast.episodes.slice(0, 2).map((episode) => ({
+      id: `${podcast.id}:${episode.id}`,
+      title: episode.title,
+      duration: episode.duration,
+      coverEmoji: podcast.coverEmoji ?? '🎙',
+    })),
+  ).slice(0, 3)
+
+  return {
+    nowPlaying: active && activeEpisode
+      ? {
+          title: activeEpisode.title,
+          podcastName: active.name,
+          duration: activeEpisode.duration,
+          isPlaying: active.isPlaying === true,
+          coverColor: active.coverColor ?? '#D8C2A6',
+          coverEmoji: active.coverEmoji ?? '🎙',
+        }
+      : null,
+    recentEpisodes,
+    statsLabel: `${items.length} podcasts · ${items.reduce((sum, item) => sum + item.episodes.length, 0)} episodes`,
+  }
+}
+
+export const buildPeoplePresentationModel = (items: readonly LifePerson[]): PeoplePresentationModel => {
+  const preview = [...items]
+    .sort((left, right) => {
+      const leftBirthday = daysUntilBirthday(left.birthday) ?? 999
+      const rightBirthday = daysUntilBirthday(right.birthday) ?? 999
+      if (leftBirthday !== rightBirthday) return leftBirthday - rightBirthday
+      return (right.lastInteraction ?? '').localeCompare(left.lastInteraction ?? '')
+    })
+    .slice(0, 3)
+    .map((person) => {
+      const birthdayDelta = daysUntilBirthday(person.birthday)
+      const locationLine = [person.role, person.city].filter(Boolean).join(' · ')
+      return {
+        id: person.id,
+        name: person.name,
+        group: person.group,
+        avatarInitials: person.avatarInitials,
+        avatarColor: person.avatarColor ?? groupColorMap[person.group],
+        secondary: birthdayDelta !== null && birthdayDelta <= 14
+          ? birthdayDelta === 0 ? 'Birthday today' : `Birthday in ${birthdayDelta} days`
+          : locationLine || (person.lastInteraction ? `Last contact ${person.lastInteraction}` : 'No recent notes'),
+        birthdaySoon: birthdayDelta !== null && birthdayDelta <= 14,
+      }
+    })
+
+  return {
+    preview,
+    statsLabel: `${items.length} people`,
   }
 }
 

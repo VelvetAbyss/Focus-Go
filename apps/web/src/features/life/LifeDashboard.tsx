@@ -17,13 +17,16 @@ type LifeDashboardProps = {
 }
 
 const DEFAULT_LIFE_LAYOUT: DashboardLayoutItem[] = [
-  { key: 'daily_review', x: 0, y: 0, w: 14, h: 8 },
-  { key: 'library', x: 14, y: 0, w: 10, h: 8 },
-  { key: 'stocks', x: 0, y: 8, w: 8, h: 8 },
-  { key: 'media_card', x: 8, y: 8, w: 8, h: 8 },
-  { key: 'trips_card', x: 16, y: 8, w: 8, h: 8 },
-  { key: 'subscriptions_card', x: 0, y: 16, w: 24, h: 4 },
+  { key: 'library', x: 5, y: 3, w: 6, h: 8 },
+  { key: 'media_card', x: 5, y: 17, w: 6, h: 7 },
+  { key: 'subscriptions_card', x: 18, y: 24, w: 6, h: 7 },
+  { key: 'daily_review', x: 11, y: 32, w: 7, h: 7 },
+  { key: 'trips_card', x: 18, y: 7, w: 6, h: 8 },
+  { key: 'podcast_card', x: 0, y: 24, w: 5, h: 15 },
+  { key: 'people_card', x: 11, y: 39, w: 7, h: 8 },
 ]
+
+const DEFAULT_LIFE_HIDDEN_CARD_IDS = ['stocks']
 
 const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => {
   const isMobile = useIsBreakpoint('max', 768)
@@ -85,7 +88,7 @@ const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => 
   useEffect(() => {
     const allowed = new Set(cards.map((card) => card.id))
     void lifeDashboardRepo.get().then((stored) => {
-      const hidden = (stored?.hiddenCardIds ?? []).filter((id) => allowed.has(id))
+      const hidden = (stored?.hiddenCardIds ?? DEFAULT_LIFE_HIDDEN_CARD_IDS).filter((id) => allowed.has(id))
       const hiddenSet = new Set(hidden)
       const baseLayout = stored?.items?.length ? stored.items : DEFAULT_LIFE_LAYOUT
       const next = baseLayout.filter((item) => allowed.has(item.key) && !hiddenSet.has(item.key))
@@ -113,7 +116,6 @@ const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => 
     () => layout.map((item) => item.key).filter((id) => cardsById.has(id)),
     [layout, cardsById],
   )
-  const visibleCardIdsKey = useMemo(() => visibleCardIds.join('|'), [visibleCardIds])
   const renderedCards = useMemo(
     () =>
       visibleCardIds.reduce<Array<{ id: string; node: ReactNode }>>((result, id) => {
@@ -121,7 +123,7 @@ const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => 
         if (card) result.push({ id, node: card.render() })
         return result
       }, []),
-    [cardsById, visibleCardIdsKey],
+    [cardsById, visibleCardIds],
   )
 
   const handleWidgetToggle = useCallback((cardId: string, visible: boolean) => {
@@ -132,6 +134,22 @@ const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => 
     if (layout.length <= 1) return
     void persistLayout(layout.filter((item) => item.key !== cardId), hiddenCardIds.includes(cardId) ? hiddenCardIds : [...hiddenCardIds, cardId])
   }, [appendCardToEnd, hiddenCardIds, layout, persistLayout])
+
+  if (!mounted || layout.length === 0) {
+    return (
+      <div className="life-dashboard" ref={containerRef}>
+        <div className="life-dashboard__skeleton" data-testid="life-dashboard-loader" aria-hidden="true">
+          <div className="life-dashboard__skeleton-line" />
+          <div className="life-dashboard__skeleton-card life-dashboard__skeleton-card--wide" />
+          <div className="life-dashboard__skeleton-card life-dashboard__skeleton-card--medium" />
+          <div className="life-dashboard__skeleton-card life-dashboard__skeleton-card--medium" />
+          <div className="life-dashboard__skeleton-card life-dashboard__skeleton-card--medium" />
+          <div className="life-dashboard__skeleton-card life-dashboard__skeleton-card--medium" />
+          <div className="life-dashboard__skeleton-card life-dashboard__skeleton-card--full" />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="life-dashboard" ref={containerRef}>
@@ -149,9 +167,7 @@ const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => 
           })}
         </section>
       ) : null}
-
-      {mounted && (
-        <GridLayout
+      <GridLayout
           className="life-dashboard__grid"
           layout={responsiveLayout.map((item) => ({
             i: item.key,
@@ -189,7 +205,6 @@ const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => 
             </div>
           ))}
         </GridLayout>
-      )}
     </div>
   )
 }

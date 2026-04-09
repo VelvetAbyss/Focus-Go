@@ -11,12 +11,79 @@ const months = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep
 const TripsCard = () => {
   const navigate = useNavigate()
   const [trip, setTrip] = useState<TripRecord | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    void tripsRepo.getDashboardTrip().then(setTrip)
+    const loadTrip = async () => {
+      setLoading(true)
+      try {
+        setTrip(await tripsRepo.getDashboardTrip())
+      } finally {
+        setLoading(false)
+      }
+    }
+    void loadTrip()
   }, [])
 
-  if (!trip) return null
+  if (loading) {
+    return (
+      <div
+        className="life-card"
+        style={{
+          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          borderRadius: 24,
+          background: '#ffffff',
+          border: '1px solid transparent',
+          boxShadow: '0 12px 28px rgba(58, 55, 51, 0.08)',
+          height: '100%',
+          padding: 20,
+        }}
+      >
+        <div className="life-card-loader" data-testid="life-card-loader" aria-hidden="true">
+          <div className="life-card-loader__hero" />
+          <div className="life-card-loader__lines">
+            <span className="life-card-loader__line" />
+            <span className="life-card-loader__line" style={{ width: '74%' }} />
+            <span className="life-card-loader__line" style={{ width: '52%' }} />
+          </div>
+          <div className="life-card-loader__stats">
+            <span className="life-card-loader__pill" />
+            <span className="life-card-loader__pill life-card-loader__pill--short" />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!trip) {
+    return (
+      <div
+        style={{
+          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          gap: 10,
+          overflow: 'hidden',
+          borderRadius: 24,
+          cursor: 'pointer',
+          background: '#ffffff',
+          border: '1px solid transparent',
+          boxShadow: '0 12px 28px rgba(58, 55, 51, 0.08)',
+          height: '100%',
+          padding: 24,
+        }}
+        onClick={() => navigate(ROUTES.TRIPS)}
+      >
+        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: 'rgba(58,55,51,0.38)' }}>Trips</span>
+        <h3 style={{ fontFamily: 'Playfair Display, serif', fontSize: 20, fontWeight: 500, color: '#3A3733', lineHeight: 1.2 }}>Plan your next trip</h3>
+        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: 'rgba(58,55,51,0.52)', lineHeight: 1.6 }}>Open the trips workspace to create an itinerary, budget, and checklist.</p>
+      </div>
+    )
+  }
 
   const sc = statusColor(trip.status)
   const { done, total } = checklistProgress(trip)
@@ -35,9 +102,9 @@ const TripsCard = () => {
         overflow: 'hidden',
         borderRadius: 24,
         cursor: 'pointer',
-        background: '#FDFAF7',
-        border: '1px solid rgba(58,55,51,0.10)',
-        boxShadow: '0 2px 16px rgba(58,55,51,0.07), 0 1px 4px rgba(58,55,51,0.05)',
+        background: '#ffffff',
+        border: '1px solid transparent',
+        boxShadow: '0 12px 28px rgba(58, 55, 51, 0.08)',
         height: '100%',
       }}
       onClick={() => navigate(trip ? buildTripDetailRoute(trip.id) : ROUTES.TRIPS)}

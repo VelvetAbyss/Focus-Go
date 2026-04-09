@@ -20,14 +20,18 @@ import {
 
 const DEFAULT_HABIT_COLOR = '#3a3733'
 const DEFAULT_HABIT_ICON = '🎯'
+const WIDGET_SCOPES: WidgetTodoScope[] = ['day', 'week', 'month']
 
 const WidgetTodosCard = () => {
   const { t } = useI18n()
-  const scopes: { key: WidgetTodoScope; label: string }[] = [
-    { key: 'day', label: t('todo.daily') },
-    { key: 'week', label: t('todo.weekly') },
-    { key: 'month', label: t('todo.monthly') },
-  ]
+  const scopes = useMemo(
+    () => [
+      { key: 'day' as const, label: t('todo.daily') },
+      { key: 'week' as const, label: t('todo.weekly') },
+      { key: 'month' as const, label: t('todo.monthly') },
+    ],
+    [t],
+  )
   const [items, setItems] = useState<WidgetTodo[]>([])
   const [loaded, setLoaded] = useState(false)
   const {
@@ -56,17 +60,17 @@ const WidgetTodosCard = () => {
       const now = Date.now()
       const itemsById = new Map(loadedItems.map((item) => [item.id, item]))
 
-      for (const scope of scopes) {
-        const storedBucket = readWidgetTodoResetBucket(scope.key)
-        const { shouldReset, currentBucket } = shouldResetWidgetTodos(scope.key, storedBucket, now)
-        const needsBootstrapReset = storedBucket === null && shouldBootstrapResetWidgetTodos(loadedItems, scope.key, now)
+      for (const scopeKey of WIDGET_SCOPES) {
+        const storedBucket = readWidgetTodoResetBucket(scopeKey)
+        const { shouldReset, currentBucket } = shouldResetWidgetTodos(scopeKey, storedBucket, now)
+        const needsBootstrapReset = storedBucket === null && shouldBootstrapResetWidgetTodos(loadedItems, scopeKey, now)
 
         if (shouldReset || needsBootstrapReset) {
-          const reset = await widgetTodoRepo.resetDone(scope.key)
+          const reset = await widgetTodoRepo.resetDone(scopeKey)
           for (const item of reset) itemsById.set(item.id, item)
         }
 
-        writeWidgetTodoResetBucket(scope.key, currentBucket)
+        writeWidgetTodoResetBucket(scopeKey, currentBucket)
       }
 
       if (cancelled) return
@@ -186,14 +190,14 @@ const WidgetTodosCard = () => {
   const activeIndex = useMemo(() => {
     const next = scopes.findIndex((scope) => scope.key === activeScope)
     return next < 0 ? 0 : next
-  }, [activeScope])
+  }, [activeScope, scopes])
   const tabMotionStyle = useMemo(
     () =>
       ({
         '--tab-count': `${scopes.length}`,
         '--tab-active-index': `${activeIndex}`,
       }) as CSSProperties,
-    [activeIndex],
+    [activeIndex, scopes.length],
   )
 
   const completionLabel = useMemo(() => {

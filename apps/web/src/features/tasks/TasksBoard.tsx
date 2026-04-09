@@ -257,7 +257,7 @@ const TasksBoard = ({
         },
       })
     }
-  }, [tasks, toast])
+  }, [t, tasks, toast])
 
   const handleUpdateTask = useCallback((updated: TaskItem) => {
     setTasks((prev) => prev.map((item) => (item.id === updated.id ? updated : item)))

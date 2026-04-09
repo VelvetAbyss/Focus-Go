@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import type { BookItem, LifeSubscription, MediaItem } from '../../../data/models/types'
+import type { BookItem, LifePerson, LifePodcast, LifeSubscription, MediaItem } from '../../../data/models/types'
 import type { DailyReviewAnalytics } from './dailyReviewAnalytics'
 import {
   buildDailyReviewPresentationModel,
   buildLibraryPresentationModel,
   buildMediaPresentationModel,
+  buildPeoplePresentationModel,
+  buildPodcastPresentationModel,
   buildSubscriptionPresentationModel,
 } from './lifeDesignAdapters'
 
@@ -65,6 +67,37 @@ const makeSubscription = (overrides: Partial<LifeSubscription> = {}): LifeSubscr
   amount: overrides.amount ?? 12,
   currency: overrides.currency ?? 'USD',
   cycle: overrides.cycle ?? 'monthly',
+})
+
+const makePodcast = (overrides: Partial<LifePodcast> = {}): LifePodcast => ({
+  id: overrides.id ?? 'podcast-1',
+  createdAt: 1,
+  updatedAt: overrides.updatedAt ?? 1,
+  source: 'itunes',
+  sourceId: overrides.sourceId ?? '1',
+  collectionId: overrides.collectionId ?? 1,
+  name: overrides.name ?? 'Acquired',
+  author: overrides.author ?? 'Ben & David',
+  episodes: overrides.episodes ?? [{ id: 'ep-1', title: 'Nintendo', duration: '1 hr 20 min' }],
+  selectedEpisodeId: overrides.selectedEpisodeId ?? 'ep-1',
+  isPlaying: overrides.isPlaying ?? false,
+  coverEmoji: overrides.coverEmoji,
+  coverColor: overrides.coverColor,
+})
+
+const makePerson = (overrides: Partial<LifePerson> = {}): LifePerson => ({
+  id: overrides.id ?? 'person-1',
+  createdAt: 1,
+  updatedAt: overrides.updatedAt ?? 1,
+  name: overrides.name ?? 'Ada Lovelace',
+  group: overrides.group ?? 'Work',
+  avatarInitials: overrides.avatarInitials ?? 'AL',
+  avatarColor: overrides.avatarColor,
+  role: overrides.role,
+  city: overrides.city,
+  birthday: overrides.birthday,
+  lastInteraction: overrides.lastInteraction,
+  notes: overrides.notes,
 })
 
 describe('lifeDesignAdapters', () => {
@@ -159,5 +192,30 @@ describe('lifeDesignAdapters', () => {
     expect(model.monthlyTotalLabel).toContain('¥')
     expect(model.previewRows).toHaveLength(3)
     expect(model.stats.activeServices).toBe(3)
+  })
+
+  it('maps podcasts into now-playing and recent episode summaries', () => {
+    const model = buildPodcastPresentationModel([
+      makePodcast({ id: 'p1', name: 'Acquired', isPlaying: true }),
+      makePodcast({ id: 'p2', updatedAt: 2, name: 'Decoder', episodes: [{ id: 'ep-2', title: 'AI', duration: '58 min' }] }),
+    ])
+
+    expect(model.nowPlaying?.podcastName).toBe('Decoder')
+    expect(model.recentEpisodes.length).toBeGreaterThan(0)
+    expect(model.statsLabel).toContain('podcasts')
+  })
+
+  it('prioritizes upcoming birthdays in people previews', () => {
+    const today = new Date()
+    const soon = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2).toISOString().slice(0, 10)
+    const later = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 20).toISOString().slice(0, 10)
+
+    const model = buildPeoplePresentationModel([
+      makePerson({ id: 'p1', name: 'Later Person', birthday: later, group: 'Friends' }),
+      makePerson({ id: 'p2', name: 'Soon Person', birthday: soon, group: 'Family' }),
+    ])
+
+    expect(model.preview[0]?.name).toBe('Soon Person')
+    expect(model.preview[0]?.birthdaySoon).toBe(true)
   })
 })

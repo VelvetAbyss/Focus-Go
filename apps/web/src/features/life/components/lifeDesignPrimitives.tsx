@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import type { CSSProperties, ReactNode } from 'react'
 
 export const paper = '#F5F3F0'
@@ -139,4 +140,37 @@ export const Field = ({ label, children }: { label: string; children: ReactNode 
     <span style={{ ...inter(10, 600, mutedText), letterSpacing: '0.08em', textTransform: 'uppercase' }}>{label}</span>
     {children}
   </label>
+)
+
+export const LifeCardLoader = ({ lines = 3, compact = false }: { lines?: number; compact?: boolean }) => (
+  <div className={`life-card-loader${compact ? ' life-card-loader--compact' : ''}`} data-testid="life-card-loader" aria-hidden="true">
+    <div className="life-card-loader__hero" />
+    <div className="life-card-loader__lines">
+      {Array.from({ length: lines }, (_, index) => (
+        <span
+          key={index}
+          className="life-card-loader__line"
+          style={{ width: index === lines - 1 ? '58%' : index % 2 === 0 ? '100%' : '82%' }}
+        />
+      ))}
+    </div>
+    <div className="life-card-loader__stats">
+      <span className="life-card-loader__pill" />
+      <span className="life-card-loader__pill life-card-loader__pill--short" />
+    </div>
+  </div>
+)
+
+export const LifePanelLoader = ({ rows = 4 }: { rows?: number }) => (
+  <div className="life-panel-loader" data-testid="life-panel-loader" aria-hidden="true">
+    {Array.from({ length: rows }, (_, index) => (
+      <div key={index} className="life-panel-loader__row">
+        <span className="life-panel-loader__cover" />
+        <div className="life-panel-loader__body">
+          <span className="life-panel-loader__line" style={{ width: index % 2 === 0 ? '78%' : '66%' }} />
+          <span className="life-panel-loader__line life-panel-loader__line--muted" style={{ width: index % 2 === 0 ? '54%' : '42%' }} />
+        </div>
+      </div>
+    ))}
+  </div>
 )

@@ -8,6 +8,8 @@ import WeatherWidgetCard from './cards/WeatherWidgetCard'
 import BooksCard from '../life/cards/BooksCard'
 import DailyReviewCard from '../life/cards/DailyReviewCard'
 import MediaCard from '../life/cards/MediaCard'
+import PeopleCard from '../life/cards/PeopleCard'
+import PodcastCard from '../life/cards/PodcastCard'
 import SubscriptionsCard from '../life/cards/SubscriptionsCard'
 import StocksCard from '../life/cards/StocksCard'
 import TripsCard from '../life/cards/TripsCard'
@@ -101,6 +103,20 @@ export const getLifeCards = (): DashboardCard[] => [
     defaultSize: { w: 24, h: 4 },
     pageScope: 'life',
     render: () => <SubscriptionsCard />,
+  },
+  {
+    id: 'podcast_card',
+    title: 'Podcast',
+    defaultSize: { w: 10, h: 8 },
+    pageScope: 'life',
+    render: () => <PodcastCard />,
+  },
+  {
+    id: 'people_card',
+    title: 'People',
+    defaultSize: { w: 10, h: 8 },
+    pageScope: 'life',
+    render: () => <PeopleCard />,
   },
   {
     id: 'stocks',

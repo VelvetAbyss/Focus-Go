@@ -1,5 +1,5 @@
 export const DB_NAME = 'workbench-app'
-export const DB_VERSION = 33
+export const DB_VERSION = 34
 
 export const TABLES = {
   tasks: 'tasks',
@@ -24,6 +24,8 @@ export const TABLES = {
   stocks: 'stocks',
   media: 'media',
   lifeSubscriptions: 'life_subscriptions',
+  lifePodcasts: 'life_podcasts',
+  lifePeople: 'life_people',
   trips: 'trips',
 } as const
 
@@ -184,4 +186,10 @@ export const schemaV32 = {
 export const schemaV33 = {
   ...schemaV32,
   [TABLES.trips]: 'id, destination, status, startDate, endDate, updatedAt, createdAt',
+} as const
+
+export const schemaV34 = {
+  ...schemaV33,
+  [TABLES.lifePodcasts]: 'id, source, sourceId, collectionId, name, author, updatedAt, createdAt',
+  [TABLES.lifePeople]: 'id, name, group, birthday, lastInteraction, updatedAt, createdAt',
 } as const

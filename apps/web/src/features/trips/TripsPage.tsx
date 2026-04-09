@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { ArrowLeft, Calendar, MapPin, Plus, Trash2, Users, Wallet } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -16,11 +16,36 @@ const subtleBorder = 'rgba(58,55,51,0.09)'
 const tx = (size = 13, weight = 400, color = ink): CSSProperties => ({ fontFamily: 'Inter, sans-serif', fontSize: size, fontWeight: weight, color })
 const pf = (size = 16, weight = 500, color = ink): CSSProperties => ({ fontFamily: 'Playfair Display, serif', fontSize: size, fontWeight: weight, color })
 
+const skeletonBlock = (style?: CSSProperties): CSSProperties => ({
+  borderRadius: 18,
+  background: 'linear-gradient(90deg, rgba(58,55,51,0.05) 0%, rgba(58,55,51,0.11) 50%, rgba(58,55,51,0.05) 100%)',
+  backgroundSize: '200% 100%',
+  animation: 'life-loader-shimmer 1.35s ease-in-out infinite',
+  ...style,
+})
+
+const TripsPageSkeleton = () => (
+  <div style={{ display: 'grid', gap: 18 }}>
+    <div style={{ display: 'grid', gap: 10, maxWidth: 420 }}>
+      <div style={skeletonBlock({ width: 110, height: 12, borderRadius: 999 })} />
+      <div style={skeletonBlock({ width: 180, height: 34 })} />
+      <div style={skeletonBlock({ width: '100%', height: 14, borderRadius: 999 })} />
+    </div>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: 18 }}>
+      {Array.from({ length: 3 }, (_, index) => (
+        <div key={index} style={{ ...skeletonBlock({ height: 340 }), border: `1px solid ${subtleBorder}`, background: cardBg }} />
+      ))}
+    </div>
+  </div>
+)
+
 const TripsPage = () => {
   const navigate = useNavigate()
   const [trips, setTrips] = useState<TripRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
 
   const loadTrips = async () => {
     setLoading(true)
@@ -52,7 +77,7 @@ const TripsPage = () => {
   }
 
   return (
-    <div style={{ margin: -18, minHeight: '100%', flexGrow: 1, background: paper, backgroundAttachment: 'fixed', padding: 46 }}>
+    <div ref={containerRef} style={{ margin: -18, height: 'calc(100vh - 40px)', overflowY: 'auto', background: paper, padding: 46 }}>
       <div style={{ maxWidth: 1280, margin: '0 auto', display: 'grid', gap: 22 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
           <div>
@@ -73,7 +98,7 @@ const TripsPage = () => {
           </button>
         </div>
 
-        {loading ? <div style={{ ...tx(13, 400, muted), padding: '24px 4px' }}>Loading trips…</div> : null}
+        {loading ? <TripsPageSkeleton /> : null}
 
         {!loading && trips.length === 0 ? (
           <div style={{ background: cardBg, border: `1px solid ${subtleBorder}`, borderRadius: 24, padding: 28, display: 'grid', gap: 12 }}>

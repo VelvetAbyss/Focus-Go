@@ -8,7 +8,6 @@ import { clearPendingCoachmark, getFeatureSeen, getPendingCoachmark, markFeature
 
 type VisibleCoachmark =
   | { key: 'focus-entry'; anchor: string }
-  | { key: 'focus-timer'; anchor: string }
   | { key: 'diary'; anchor: string }
   | null
 
@@ -24,12 +23,6 @@ const OnboardingProgressiveRuntime = () => {
     const syncCoachmark = () => {
       const featureSeen = getFeatureSeen()
       const pendingCoachmark = getPendingCoachmark()
-
-      if (!featureSeen.focus && location.pathname === ROUTES.FOCUS) {
-        const anchor = findAnchor([FEATURE_COACHMARK_ANCHORS.focus[1]])
-        setVisibleCoachmark(anchor ? { key: 'focus-timer', anchor } : null)
-        return
-      }
 
       if (pendingCoachmark === 'focus' && !featureSeen.focus && location.pathname === ROUTES.TASKS) {
         const anchor = findAnchor([FEATURE_COACHMARK_ANCHORS.focus[0]])
@@ -66,18 +59,6 @@ const OnboardingProgressiveRuntime = () => {
         onDismiss: () => clearPendingCoachmark(),
       }
     }
-    if (visibleCoachmark.key === 'focus-timer') {
-      return {
-        title: t('coachmark.focus.timerTitle'),
-        description: t('coachmark.focus.timerDescription'),
-        onCta: undefined,
-        ctaLabel: undefined,
-        onDismiss: () => {
-          markFeatureSeen('focus')
-          clearPendingCoachmark()
-        },
-      }
-    }
     return {
       title: t('coachmark.diary.title'),
       description: t('coachmark.diary.description'),
@@ -88,7 +69,7 @@ const OnboardingProgressiveRuntime = () => {
       },
       onDismiss: () => markFeatureSeen('diary'),
     }
-  }, [location.pathname, navigate, t, visibleCoachmark])
+  }, [navigate, t, visibleCoachmark])
 
   if (!visibleCoachmark || !coachmarkProps) return null
 

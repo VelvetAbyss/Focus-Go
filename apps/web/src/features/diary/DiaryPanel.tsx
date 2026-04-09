@@ -47,11 +47,14 @@ const buildPastDateKeys = (days: number, baseDate: Date = new Date()) => {
 
 const DiaryPanel = ({ open, intent, onClose }: DiaryPanelProps) => {
   const { t } = useI18n()
-  const tabs: { key: ViewMode; label: string }[] = [
-    { key: 'today', label: t('diary.today') },
-    { key: 'history', label: t('diary.history') },
-    { key: 'trash', label: t('diary.trash') },
-  ]
+  const tabs = useMemo(
+    () => [
+      { key: 'today' as const, label: t('diary.today') },
+      { key: 'history' as const, label: t('diary.history') },
+      { key: 'trash' as const, label: t('diary.trash') },
+    ],
+    [t],
+  )
   const [searchParams, setSearchParams] = useSearchParams()
   const [now, setNow] = useState(() => new Date())
   const todayKey = useMemo(() => toDateKey(now), [now])
@@ -441,14 +444,14 @@ const DiaryPanel = ({ open, intent, onClose }: DiaryPanelProps) => {
   const activeViewIndex = useMemo(() => {
     const next = tabs.findIndex((tab) => tab.key === view)
     return next < 0 ? 0 : next
-  }, [view])
+  }, [tabs, view])
   const tabMotionStyle = useMemo(
     () =>
       ({
         '--tab-count': `${tabs.length}`,
         '--tab-active-index': `${activeViewIndex}`,
       }) as CSSProperties,
-    [activeViewIndex]
+    [activeViewIndex, tabs.length]
   )
   const historyEntryMap = useMemo(() => {
     const map = new Map<string, DiaryEntry>()

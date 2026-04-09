@@ -1,6 +1,10 @@
 import type {
   TripCreateInput,
   TripUpdateInput,
+  LifePodcastCreateInput,
+  LifePodcastUpdateInput,
+  LifePersonCreateInput,
+  LifePersonUpdateInput,
   MediaCreateInput,
   MediaUpdateInput,
   IDatabaseService,
@@ -24,6 +28,8 @@ import type {
   HabitLog,
   HabitStatus,
   LifeDashboardLayout,
+  LifePodcast,
+  LifePerson,
   LifeSubscription,
   MediaItem,
   NoteAppearanceSettings,
@@ -288,6 +294,50 @@ const normalizeLifeSubscription = (subscription: LifeSubscription): LifeSubscrip
   emoji: typeof subscription.emoji === 'string' && subscription.emoji.trim().length > 0 ? subscription.emoji.slice(0, 4) : undefined,
   reminder: subscription.reminder === true,
   paymentStatus: subscription.paymentStatus === 'paid' ? 'paid' : subscription.paymentStatus === 'unpaid' ? 'unpaid' : undefined,
+})
+
+const normalizeLifePodcast = (podcast: LifePodcast): LifePodcast => ({
+  ...podcast,
+  source: 'itunes',
+  sourceId: typeof podcast.sourceId === 'string' && podcast.sourceId ? podcast.sourceId : String(podcast.collectionId ?? podcast.id),
+  collectionId: typeof podcast.collectionId === 'number' && Number.isFinite(podcast.collectionId) ? podcast.collectionId : Number(podcast.sourceId ?? 0),
+  name: typeof podcast.name === 'string' ? podcast.name.trim() : '',
+  author: typeof podcast.author === 'string' ? podcast.author.trim() : '',
+  artworkUrl: typeof podcast.artworkUrl === 'string' && podcast.artworkUrl ? podcast.artworkUrl : undefined,
+  feedUrl: typeof podcast.feedUrl === 'string' && podcast.feedUrl ? podcast.feedUrl : undefined,
+  primaryGenre: typeof podcast.primaryGenre === 'string' && podcast.primaryGenre.trim().length > 0 ? podcast.primaryGenre : undefined,
+  releaseDate: typeof podcast.releaseDate === 'string' && podcast.releaseDate ? podcast.releaseDate : undefined,
+  country: typeof podcast.country === 'string' && podcast.country.trim().length > 0 ? podcast.country : undefined,
+  coverColor: typeof podcast.coverColor === 'string' && podcast.coverColor ? podcast.coverColor : undefined,
+  coverEmoji: typeof podcast.coverEmoji === 'string' && podcast.coverEmoji ? podcast.coverEmoji : undefined,
+  selectedEpisodeId: typeof podcast.selectedEpisodeId === 'string' && podcast.selectedEpisodeId ? podcast.selectedEpisodeId : undefined,
+  isPlaying: podcast.isPlaying === true,
+  lastSyncedAt: typeof podcast.lastSyncedAt === 'number' && Number.isFinite(podcast.lastSyncedAt) ? podcast.lastSyncedAt : undefined,
+  episodes: Array.isArray(podcast.episodes)
+    ? podcast.episodes
+        .filter((episode): episode is LifePodcast['episodes'][number] => Boolean(episode) && typeof episode.id === 'string')
+        .map((episode) => ({
+          id: episode.id,
+          title: typeof episode.title === 'string' ? episode.title.trim() : '',
+          description: typeof episode.description === 'string' && episode.description.trim().length > 0 ? episode.description : undefined,
+          duration: typeof episode.duration === 'string' && episode.duration.trim().length > 0 ? episode.duration : undefined,
+          releaseDate: typeof episode.releaseDate === 'string' && episode.releaseDate ? episode.releaseDate : undefined,
+          audioUrl: typeof episode.audioUrl === 'string' && episode.audioUrl ? episode.audioUrl : undefined,
+        }))
+    : [],
+})
+
+const normalizeLifePerson = (person: LifePerson): LifePerson => ({
+  ...person,
+  name: typeof person.name === 'string' ? person.name.trim() : '',
+  group: ['Family', 'Friends', 'Work', 'Community'].includes(person.group) ? person.group : 'Other',
+  role: typeof person.role === 'string' && person.role.trim().length > 0 ? person.role : undefined,
+  city: typeof person.city === 'string' && person.city.trim().length > 0 ? person.city : undefined,
+  notes: typeof person.notes === 'string' ? person.notes : undefined,
+  birthday: typeof person.birthday === 'string' && person.birthday ? person.birthday : undefined,
+  lastInteraction: typeof person.lastInteraction === 'string' && person.lastInteraction ? person.lastInteraction : undefined,
+  avatarInitials: typeof person.avatarInitials === 'string' && person.avatarInitials.trim().length > 0 ? person.avatarInitials.slice(0, 3).toUpperCase() : '',
+  avatarColor: typeof person.avatarColor === 'string' && person.avatarColor ? person.avatarColor : undefined,
 })
 
 const normalizeTrip = (trip: TripRecord): TripRecord => ({
@@ -1171,6 +1221,48 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
     },
     async remove(id: string) {
       await db.lifeSubscriptions.delete(id)
+    },
+  },
+  lifePodcasts: {
+    async list() {
+      const rows = await db.lifePodcasts.toArray()
+      return rows.map((row) => normalizeLifePodcast(row)).sort((left, right) => right.updatedAt - left.updatedAt)
+    },
+    async create(data: LifePodcastCreateInput) {
+      const next = normalizeLifePodcast(withBase(data as Omit<LifePodcast, 'id' | 'createdAt' | 'updatedAt'>))
+      await db.lifePodcasts.put(next)
+      return next
+    },
+    async update(id: string, patch: LifePodcastUpdateInput) {
+      const existing = await db.lifePodcasts.get(id)
+      if (!existing) return undefined
+      const next = touch(normalizeLifePodcast({ ...existing, ...(patch as Partial<LifePodcast>) }))
+      await db.lifePodcasts.put(next)
+      return next
+    },
+    async remove(id: string) {
+      await db.lifePodcasts.delete(id)
+    },
+  },
+  lifePeople: {
+    async list() {
+      const rows = await db.lifePeople.toArray()
+      return rows.map((row) => normalizeLifePerson(row)).sort((left, right) => right.updatedAt - left.updatedAt)
+    },
+    async create(data: LifePersonCreateInput) {
+      const next = normalizeLifePerson(withBase(data as Omit<LifePerson, 'id' | 'createdAt' | 'updatedAt'>))
+      await db.lifePeople.put(next)
+      return next
+    },
+    async update(id: string, patch: LifePersonUpdateInput) {
+      const existing = await db.lifePeople.get(id)
+      if (!existing) return undefined
+      const next = touch(normalizeLifePerson({ ...existing, ...(patch as Partial<LifePerson>) }))
+      await db.lifePeople.put(next)
+      return next
+    },
+    async remove(id: string) {
+      await db.lifePeople.delete(id)
     },
   },
   trips: {

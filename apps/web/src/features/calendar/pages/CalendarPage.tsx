@@ -894,7 +894,9 @@ const CalendarPage = () => {
     selectedDayTaskComposer.setValue('')
     setTaskDeleteError(null)
     setTaskCardError(null)
-  }, [selectedDateKey])
+  // selectedDayTaskComposer is intentionally omitted.
+  // Re-running on composer identity change clears the current draft.
+  }, [selectedDateKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <section

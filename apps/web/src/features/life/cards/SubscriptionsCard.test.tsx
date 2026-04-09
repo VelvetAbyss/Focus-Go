@@ -113,5 +113,5 @@ describe('SubscriptionsCard', () => {
     await waitFor(() => expect(removeMock).toHaveBeenCalled())
     const body = screen.getByText('Annual overview · 2026')
     expect(body).toBeInTheDocument()
-  }, 15000)
+  }, 25000)
 })

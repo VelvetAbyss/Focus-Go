@@ -213,6 +213,48 @@ export type LifeDashboardLayout = BaseEntity & {
   hiddenCardIds?: string[]
 }
 
+export type LifePodcastEpisode = {
+  id: string
+  title: string
+  description?: string
+  duration?: string
+  releaseDate?: string
+  audioUrl?: string
+}
+
+export type LifePodcast = BaseEntity & {
+  source: 'itunes'
+  sourceId: string
+  collectionId: number
+  name: string
+  author: string
+  artworkUrl?: string
+  feedUrl?: string
+  primaryGenre?: string
+  releaseDate?: string
+  country?: string
+  coverColor?: string
+  coverEmoji?: string
+  episodes: LifePodcastEpisode[]
+  selectedEpisodeId?: string
+  isPlaying?: boolean
+  lastSyncedAt?: number
+}
+
+export type PersonGroup = 'Family' | 'Friends' | 'Work' | 'Community' | 'Other'
+
+export type LifePerson = BaseEntity & {
+  name: string
+  group: PersonGroup
+  role?: string
+  city?: string
+  notes?: string
+  birthday?: string
+  lastInteraction?: string
+  avatarInitials: string
+  avatarColor?: string
+}
+
 export type TripStatus = 'Planning' | 'Booked' | 'Ready' | 'Ongoing' | 'Done'
 export type TransportMethod = 'Flight' | 'Train' | 'Bus' | 'Taxi' | 'Subway' | 'Walk' | 'Car'
 export type TransportCategory = 'intercity' | 'local'

@@ -5,6 +5,7 @@ import { AppNumber } from '../../../shared/ui/AppNumber'
 import type { BookItem } from '../../../data/models/types'
 import type { LibraryPresentationModel } from '../cards/lifeDesignAdapters'
 import ProgressTrack from '../ProgressTrack'
+import { LifeCardLoader, LifePanelLoader } from './lifeDesignPrimitives'
 
 type SearchBook = {
   id: string
@@ -213,7 +214,9 @@ export const LibraryCardSurface = ({
         </div>
 
         <div style={{ flex: 1, padding: '0 20px' }}>
-          {books.length === 0 ? (
+          {loading ? (
+            <LifeCardLoader />
+          ) : books.length === 0 ? (
             <div style={{ display: 'flex', flex: 1, minHeight: 180, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', textAlign: 'center' }}>
               <div style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, borderRadius: 999, background: 'rgba(58,55,51,0.06)' }}>
                 <BookOpen size={20} color="rgba(58,55,51,0.35)" />
@@ -259,7 +262,7 @@ export const LibraryCardSurface = ({
           )}
         </div>
 
-        {books.length > 0 ? (
+        {!loading && books.length > 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 20, padding: '16px 20px', marginTop: 'auto', borderTop: '1px solid rgba(58,55,51,0.07)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ width: 6, height: 6, borderRadius: 999, background: statusConfig.reading.color }} />
@@ -376,8 +379,9 @@ export const LibraryCardSurface = ({
               </div>
 
               <div style={{ minHeight: 0, flex: 1, overflowY: 'auto', padding: '0 12px 16px' }}>
-                {loading ? <p style={{ ...inter(12, 400, mutedText), padding: '8px 8px 0' }}>Loading…</p> : null}
-                {!loading && filteredBooks.length === 0 ? (
+                {loading ? (
+                  <LifePanelLoader />
+                ) : filteredBooks.length === 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 24px', textAlign: 'center' }}>
                     <div style={{ width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, borderRadius: 999, background: 'rgba(58,55,51,0.05)' }}>
                       <BookOpen size={20} color="rgba(58,55,51,0.25)" />

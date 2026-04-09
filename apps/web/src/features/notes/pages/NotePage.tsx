@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { NoteAppearanceSettings, NoteItem, NoteTag } from '../../../data/models/types'
 import { noteAppearanceRepo } from '../../../data/repositories/noteAppearanceRepo'
 import { noteTagsRepo } from '../../../data/repositories/noteTagsRepo'
@@ -133,8 +133,13 @@ export default function NotePage() {
   const browserScrollRef = useRef<HTMLDivElement | null>(null)
   const editorSurfaceRef = useRef<HTMLDivElement | null>(null)
   const creatingFromBlankRef = useRef(false)
+  const activeCollectionRef = useRef<NoteSystemCollection>('notes')
 
-  const refresh = async () => {
+  useEffect(() => {
+    activeCollectionRef.current = activeCollection
+  }, [activeCollection])
+
+  const refresh = useCallback(async () => {
     const [activeNotes, trashedNotes, storedTags, storedAppearance] = await Promise.all([
       notesRepo.list(),
       notesRepo.listTrash(),
@@ -194,11 +199,11 @@ export default function NotePage() {
     setTrash(trashedOnly)
 
     setSelectedNoteId((current) => {
-      const source = activeCollection === 'trash' ? trashedOnly : visibleNotes
+      const source = activeCollectionRef.current === 'trash' ? trashedOnly : visibleNotes
       if (current && [...visibleNotes, ...trashedOnly].some((note) => note.id === current)) return current
       return source[0]?.id ?? null
     })
-  }
+  }, [])
 
   const flushPendingSave = async () => {
     const pending = pendingSaveRef.current
@@ -223,7 +228,7 @@ export default function NotePage() {
       window.clearTimeout(bootTimer)
       void flushPendingSave()
     }
-  }, [])
+  }, [refresh])
 
   useEffect(() => {
     const timer = window.setInterval(() => {

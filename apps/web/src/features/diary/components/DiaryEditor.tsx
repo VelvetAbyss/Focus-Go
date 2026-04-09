@@ -61,7 +61,7 @@ const getPastedImageFiles = (event: ClipboardEvent) =>
     .filter((file): file is File => Boolean(file))
 
 const DiaryEditor = ({ value, placeholder, onChange, onFlush }: DiaryEditorProps) => {
-  const initialDoc = useMemo(() => ensureRichDoc(value.contentJson, value.contentMd), [])
+  const initialDoc = useMemo(() => ensureRichDoc(value.contentJson, value.contentMd), [value.contentJson, value.contentMd])
   const pendingDocRef = useRef<JSONContent | null | undefined>(undefined)
   const emitTimerRef = useRef<number | null>(null)
   const changeMetaRef = useRef({ onChange })

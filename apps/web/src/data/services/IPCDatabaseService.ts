@@ -352,6 +352,42 @@ export const createIPCDatabaseService = (api: ElectronDatabaseApi): IDatabaseSer
       unwrapData(response)
     },
   },
+  lifePodcasts: {
+    async list() {
+      const response = await invokeDb(api, 'db:lifePodcasts:list', {})
+      return unwrapData(response)
+    },
+    async create(data) {
+      const response = await invokeDb(api, 'db:lifePodcasts:create', data)
+      return unwrapData(response)
+    },
+    async update(id, patch) {
+      const response = await invokeDb(api, 'db:lifePodcasts:update', { id, patch })
+      return unwrapData(response)
+    },
+    async remove(id) {
+      const response = await invokeDb(api, 'db:lifePodcasts:remove', { id })
+      unwrapData(response)
+    },
+  },
+  lifePeople: {
+    async list() {
+      const response = await invokeDb(api, 'db:lifePeople:list', {})
+      return unwrapData(response)
+    },
+    async create(data) {
+      const response = await invokeDb(api, 'db:lifePeople:create', data)
+      return unwrapData(response)
+    },
+    async update(id, patch) {
+      const response = await invokeDb(api, 'db:lifePeople:update', { id, patch })
+      return unwrapData(response)
+    },
+    async remove(id) {
+      const response = await invokeDb(api, 'db:lifePeople:remove', { id })
+      unwrapData(response)
+    },
+  },
   trips: {
     async list() {
       const response = await invokeDb(api, 'db:trips:list', {})
