@@ -15,6 +15,12 @@ import type {
   IDatabaseService,
   LifeDashboardLayout,
   LifeDashboardLayoutUpsertInput,
+  LifePodcast,
+  LifePodcastCreateInput,
+  LifePodcastUpdateInput,
+  LifePerson,
+  LifePersonCreateInput,
+  LifePersonUpdateInput,
   LifeSubscription,
   LifeSubscriptionCreateInput,
   LifeSubscriptionUpdateInput,
@@ -427,6 +433,47 @@ const toLifeSubscription = (row: Record<string, unknown>): LifeSubscription => (
   paymentStatus: String(row.paymentStatus ?? '') === 'paid' ? 'paid' : String(row.paymentStatus ?? '') === 'unpaid' ? 'unpaid' : undefined,
 })
 
+const toLifePodcast = (row: Record<string, unknown>): LifePodcast => ({
+  id: String(row.id),
+  createdAt: Number(row.createdAt),
+  updatedAt: Number(row.updatedAt),
+  userId: row.userId ? String(row.userId) : undefined,
+  workspaceId: row.workspaceId ? String(row.workspaceId) : undefined,
+  source: 'itunes',
+  sourceId: String(row.sourceId ?? row.collectionId ?? row.id),
+  collectionId: Number(row.collectionId ?? 0),
+  name: String(row.name ?? ''),
+  author: String(row.author ?? ''),
+  artworkUrl: row.artworkUrl ? String(row.artworkUrl) : undefined,
+  feedUrl: row.feedUrl ? String(row.feedUrl) : undefined,
+  primaryGenre: row.primaryGenre ? String(row.primaryGenre) : undefined,
+  releaseDate: row.releaseDate ? String(row.releaseDate) : undefined,
+  country: row.country ? String(row.country) : undefined,
+  coverColor: row.coverColor ? String(row.coverColor) : undefined,
+  coverEmoji: row.coverEmoji ? String(row.coverEmoji) : undefined,
+  episodes: parseJson(row.episodes as string, [] as LifePodcast['episodes']),
+  selectedEpisodeId: row.selectedEpisodeId ? String(row.selectedEpisodeId) : undefined,
+  isPlaying: Number(row.isPlaying ?? 0) === 1,
+  lastSyncedAt: row.lastSyncedAt === null || row.lastSyncedAt === undefined ? undefined : Number(row.lastSyncedAt),
+})
+
+const toLifePerson = (row: Record<string, unknown>): LifePerson => ({
+  id: String(row.id),
+  createdAt: Number(row.createdAt),
+  updatedAt: Number(row.updatedAt),
+  userId: row.userId ? String(row.userId) : undefined,
+  workspaceId: row.workspaceId ? String(row.workspaceId) : undefined,
+  name: String(row.name ?? ''),
+  group: String(row.group ?? 'Other') as LifePerson['group'],
+  role: row.role ? String(row.role) : undefined,
+  city: row.city ? String(row.city) : undefined,
+  notes: row.notes ? String(row.notes) : undefined,
+  birthday: row.birthday ? String(row.birthday) : undefined,
+  lastInteraction: row.lastInteraction ? String(row.lastInteraction) : undefined,
+  avatarInitials: String(row.avatarInitials ?? ''),
+  avatarColor: row.avatarColor ? String(row.avatarColor) : undefined,
+})
+
 const toTripRecord = (row: Record<string, unknown>): TripRecord => ({
   id: String(row.id),
   createdAt: Number(row.createdAt),
@@ -739,6 +786,46 @@ const ensureSchema = (database: Database.Database) => {
       workspaceId TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS life_podcasts (
+      id TEXT PRIMARY KEY,
+      sourceId TEXT NOT NULL,
+      collectionId INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      author TEXT NOT NULL,
+      artworkUrl TEXT,
+      feedUrl TEXT,
+      primaryGenre TEXT,
+      releaseDate TEXT,
+      country TEXT,
+      coverColor TEXT,
+      coverEmoji TEXT,
+      episodes TEXT NOT NULL,
+      selectedEpisodeId TEXT,
+      isPlaying INTEGER NOT NULL DEFAULT 0,
+      lastSyncedAt INTEGER,
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL,
+      userId TEXT,
+      workspaceId TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS life_people (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      "group" TEXT NOT NULL,
+      role TEXT,
+      city TEXT,
+      notes TEXT,
+      birthday TEXT,
+      lastInteraction TEXT,
+      avatarInitials TEXT NOT NULL,
+      avatarColor TEXT,
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL,
+      userId TEXT,
+      workspaceId TEXT
+    );
+
     CREATE TABLE IF NOT EXISTS trips (
       id TEXT PRIMARY KEY,
       title TEXT NOT NULL,
@@ -835,6 +922,11 @@ const ensureSchema = (database: Database.Database) => {
   ensureColumn('life_subscriptions', 'emoji', 'TEXT')
   ensureColumn('life_subscriptions', 'reminder', 'INTEGER NOT NULL DEFAULT 0')
   ensureColumn('life_subscriptions', 'paymentStatus', 'TEXT')
+  ensureColumn('life_podcasts', 'coverColor', 'TEXT')
+  ensureColumn('life_podcasts', 'coverEmoji', 'TEXT')
+  ensureColumn('life_podcasts', 'selectedEpisodeId', 'TEXT')
+  ensureColumn('life_podcasts', 'isPlaying', 'INTEGER NOT NULL DEFAULT 0')
+  ensureColumn('life_podcasts', 'lastSyncedAt', 'INTEGER')
 
   const versionRow = database.prepare('SELECT version FROM schema_version LIMIT 1').get() as { version: number } | undefined
   if (!versionRow) {
@@ -2310,6 +2402,120 @@ export const createSqliteBundle = (dbPath: string): SqliteBundle => {
       },
       async remove(id: string) {
         database.prepare('DELETE FROM life_subscriptions WHERE id = ?').run(id)
+      },
+    },
+    lifePodcasts: {
+      async list() {
+        const rows = database.prepare('SELECT * FROM life_podcasts ORDER BY updatedAt DESC').all() as Record<string, unknown>[]
+        return rows.map(toLifePodcast)
+      },
+      async create(data: LifePodcastCreateInput) {
+        const entity: LifePodcast = { id: createId(), createdAt: now(), updatedAt: now(), ...data }
+        database
+          .prepare(
+            `INSERT INTO life_podcasts
+             (id, sourceId, collectionId, name, author, artworkUrl, feedUrl, primaryGenre, releaseDate, country, coverColor, coverEmoji, episodes, selectedEpisodeId, isPlaying, lastSyncedAt, createdAt, updatedAt, userId, workspaceId)
+             VALUES (@id, @sourceId, @collectionId, @name, @author, @artworkUrl, @feedUrl, @primaryGenre, @releaseDate, @country, @coverColor, @coverEmoji, @episodes, @selectedEpisodeId, @isPlaying, @lastSyncedAt, @createdAt, @updatedAt, @userId, @workspaceId)`,
+          )
+          .run({
+            ...entity,
+            episodes: serializeJson(entity.episodes ?? []),
+            isPlaying: entity.isPlaying ? 1 : 0,
+            userId: entity.userId ?? null,
+            workspaceId: entity.workspaceId ?? null,
+          })
+        return entity
+      },
+      async update(id: string, patch: LifePodcastUpdateInput) {
+        const row = database.prepare('SELECT * FROM life_podcasts WHERE id = ? LIMIT 1').get(id) as Record<string, unknown> | undefined
+        if (!row) return undefined
+        const next: LifePodcast = { ...toLifePodcast(row), ...patch, id, updatedAt: now() }
+        database
+          .prepare(
+            `UPDATE life_podcasts SET
+               sourceId=@sourceId,
+               collectionId=@collectionId,
+               name=@name,
+               author=@author,
+               artworkUrl=@artworkUrl,
+               feedUrl=@feedUrl,
+               primaryGenre=@primaryGenre,
+               releaseDate=@releaseDate,
+               country=@country,
+               coverColor=@coverColor,
+               coverEmoji=@coverEmoji,
+               episodes=@episodes,
+               selectedEpisodeId=@selectedEpisodeId,
+               isPlaying=@isPlaying,
+               lastSyncedAt=@lastSyncedAt,
+               updatedAt=@updatedAt,
+               userId=@userId,
+               workspaceId=@workspaceId
+             WHERE id=@id`,
+          )
+          .run({
+            ...next,
+            episodes: serializeJson(next.episodes ?? []),
+            isPlaying: next.isPlaying ? 1 : 0,
+            userId: next.userId ?? null,
+            workspaceId: next.workspaceId ?? null,
+          })
+        return next
+      },
+      async remove(id: string) {
+        database.prepare('DELETE FROM life_podcasts WHERE id = ?').run(id)
+      },
+    },
+    lifePeople: {
+      async list() {
+        const rows = database.prepare('SELECT * FROM life_people ORDER BY updatedAt DESC').all() as Record<string, unknown>[]
+        return rows.map(toLifePerson)
+      },
+      async create(data: LifePersonCreateInput) {
+        const entity: LifePerson = { id: createId(), createdAt: now(), updatedAt: now(), ...data }
+        database
+          .prepare(
+            `INSERT INTO life_people
+             (id, name, "group", role, city, notes, birthday, lastInteraction, avatarInitials, avatarColor, createdAt, updatedAt, userId, workspaceId)
+             VALUES (@id, @name, @group, @role, @city, @notes, @birthday, @lastInteraction, @avatarInitials, @avatarColor, @createdAt, @updatedAt, @userId, @workspaceId)`,
+          )
+          .run({
+            ...entity,
+            userId: entity.userId ?? null,
+            workspaceId: entity.workspaceId ?? null,
+          })
+        return entity
+      },
+      async update(id: string, patch: LifePersonUpdateInput) {
+        const row = database.prepare('SELECT * FROM life_people WHERE id = ? LIMIT 1').get(id) as Record<string, unknown> | undefined
+        if (!row) return undefined
+        const next: LifePerson = { ...toLifePerson(row), ...patch, id, updatedAt: now() }
+        database
+          .prepare(
+            `UPDATE life_people SET
+               name=@name,
+               "group"=@group,
+               role=@role,
+               city=@city,
+               notes=@notes,
+               birthday=@birthday,
+               lastInteraction=@lastInteraction,
+               avatarInitials=@avatarInitials,
+               avatarColor=@avatarColor,
+               updatedAt=@updatedAt,
+               userId=@userId,
+               workspaceId=@workspaceId
+             WHERE id=@id`,
+          )
+          .run({
+            ...next,
+            userId: next.userId ?? null,
+            workspaceId: next.workspaceId ?? null,
+          })
+        return next
+      },
+      async remove(id: string) {
+        database.prepare('DELETE FROM life_people WHERE id = ?').run(id)
       },
     },
     trips: {

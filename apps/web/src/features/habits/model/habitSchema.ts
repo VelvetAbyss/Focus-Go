@@ -14,7 +14,7 @@ export type HabitDraft = {
 }
 
 export const HABIT_COLORS = [
-  '#3a3733',
+  '#44413d',
   '#374151',
   '#4b5563',
   '#6b7280',

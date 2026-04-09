@@ -5,6 +5,8 @@ import type {
   FocusSession,
   FocusSettings,
   LifeSubscription,
+  LifePodcast,
+  LifePerson,
   MediaItem,
   NoteAppearanceSettings,
   LifeDashboardLayout,
@@ -84,6 +86,10 @@ export type StockCreateInput = Omit<StockItem, 'id' | 'createdAt' | 'updatedAt'>
 export type StockUpdateInput = Partial<Omit<StockItem, 'id' | 'createdAt' | 'updatedAt'>>
 export type LifeSubscriptionCreateInput = Omit<LifeSubscription, 'id' | 'createdAt' | 'updatedAt'>
 export type LifeSubscriptionUpdateInput = Partial<Omit<LifeSubscription, 'id' | 'createdAt' | 'updatedAt'>>
+export type LifePodcastCreateInput = Omit<LifePodcast, 'id' | 'createdAt' | 'updatedAt'>
+export type LifePodcastUpdateInput = Partial<Omit<LifePodcast, 'id' | 'createdAt' | 'updatedAt'>>
+export type LifePersonCreateInput = Omit<LifePerson, 'id' | 'createdAt' | 'updatedAt'>
+export type LifePersonUpdateInput = Partial<Omit<LifePerson, 'id' | 'createdAt' | 'updatedAt'>>
 export type TripCreateInput = Omit<TripRecord, 'id' | 'createdAt' | 'updatedAt'>
 export type TripUpdateInput = Partial<Omit<TripRecord, 'id' | 'createdAt' | 'updatedAt'>>
 
@@ -203,6 +209,20 @@ export interface ILifeSubscriptionDataAccess {
   remove(id: string): Promise<void>
 }
 
+export interface ILifePodcastDataAccess {
+  list(): Promise<LifePodcast[]>
+  create(data: LifePodcastCreateInput): Promise<LifePodcast>
+  update(id: string, patch: LifePodcastUpdateInput): Promise<LifePodcast | undefined>
+  remove(id: string): Promise<void>
+}
+
+export interface ILifePersonDataAccess {
+  list(): Promise<LifePerson[]>
+  create(data: LifePersonCreateInput): Promise<LifePerson>
+  update(id: string, patch: LifePersonUpdateInput): Promise<LifePerson | undefined>
+  remove(id: string): Promise<void>
+}
+
 export interface ITripDataAccess {
   list(): Promise<TripRecord[]>
   create(data: TripCreateInput): Promise<TripRecord>
@@ -241,6 +261,8 @@ export interface IDatabaseService {
   media: IMediaDataAccess
   stocks: IStockDataAccess
   lifeSubscriptions: ILifeSubscriptionDataAccess
+  lifePodcasts: ILifePodcastDataAccess
+  lifePeople: ILifePersonDataAccess
   trips: ITripDataAccess
   habits: IHabitDataAccess
 }

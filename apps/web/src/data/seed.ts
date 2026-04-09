@@ -1,6 +1,7 @@
 import { dashboardRepo } from './repositories/dashboardRepo'
 import { diaryRepo } from './repositories/diaryRepo'
 import { focusRepo } from './repositories/focusRepo'
+import { lifeDashboardRepo } from './repositories/lifeDashboardRepo'
 import { spendRepo } from './repositories/spendRepo'
 import { tasksRepo } from './repositories/tasksRepo'
 import { widgetTodoRepo } from './repositories/widgetTodoRepo'
@@ -11,6 +12,18 @@ import {
   DEFAULT_DASHBOARD_LAYOUT_ITEMS,
   DEFAULT_DASHBOARD_THEME_OVERRIDE,
 } from './defaultDashboardLayout'
+
+const DEFAULT_LIFE_LAYOUT_ITEMS = [
+  { key: 'library', x: 5, y: 3, w: 6, h: 8 },
+  { key: 'media_card', x: 5, y: 17, w: 6, h: 7 },
+  { key: 'subscriptions_card', x: 18, y: 24, w: 6, h: 7 },
+  { key: 'daily_review', x: 11, y: 32, w: 7, h: 7 },
+  { key: 'trips_card', x: 18, y: 7, w: 6, h: 8 },
+  { key: 'podcast_card', x: 0, y: 24, w: 5, h: 15 },
+  { key: 'people_card', x: 11, y: 39, w: 7, h: 8 },
+]
+
+const DEFAULT_LIFE_HIDDEN_CARD_IDS = ['stocks']
 
 export const seedDatabase = async () => {
   await ensureLabsSeed()
@@ -96,5 +109,10 @@ export const seedDatabase = async () => {
     items: DEFAULT_DASHBOARD_LAYOUT_ITEMS,
     hiddenCardIds: DEFAULT_DASHBOARD_HIDDEN_CARD_IDS,
     themeOverride: DEFAULT_DASHBOARD_THEME_OVERRIDE,
+  })
+
+  await lifeDashboardRepo.upsert({
+    items: DEFAULT_LIFE_LAYOUT_ITEMS,
+    hiddenCardIds: DEFAULT_LIFE_HIDDEN_CARD_IDS,
   })
 }

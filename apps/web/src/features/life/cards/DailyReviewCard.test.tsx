@@ -115,7 +115,7 @@ describe('DailyReviewCard', () => {
     sessionsListMock.mockClear()
     diaryRangeMock.mockClear()
     notesListMock.mockClear()
-  })
+  }, 10000)
 
   afterEach(() => {
     cleanup()

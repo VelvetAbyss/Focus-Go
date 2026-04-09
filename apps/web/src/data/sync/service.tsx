@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useIsLoggedIn } from '../../store/auth'
 import { SYNC_OUTBOX_CHANGED_EVENT, SYNC_STATUS_CHANGED_EVENT } from './constants'
 import { syncApi } from './client'
@@ -32,26 +32,26 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
   const flushTimerRef = useRef<number | null>(null)
   const runningRef = useRef(false)
 
-  const refreshState = async () => {
+  const refreshState = useCallback(async () => {
     await readSyncState(setState)
-  }
+  }, [])
 
-  const flushOutbox = async () => {
+  const flushOutbox = useCallback(async () => {
     const operations = await syncOutboxRepo.listReady()
     if (!operations.length) return
     const result = await syncApi.push(operations)
     await syncOutboxRepo.remove(operations.map((item) => item.id))
     await syncStateRepo.patch({ lastPushedAt: result.serverTime, status: 'idle', lastError: null })
-  }
+  }, [])
 
-  const pullChanges = async () => {
+  const pullChanges = useCallback(async () => {
     const current = await syncStateRepo.get()
     const response = await syncApi.pull(current.lastPulledAt ?? 0)
     await applyRemoteTables(response.tables)
     await syncStateRepo.patch({ lastPulledAt: response.serverTime, status: 'idle', lastError: null })
-  }
+  }, [])
 
-  const syncNow = async () => {
+  const syncNow = useCallback(async () => {
     if (!isLoggedIn || runningRef.current) return
     const current = await syncStateRepo.get()
     if (current.pendingFirstSync) return
@@ -70,9 +70,9 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
       runningRef.current = false
       await refreshState()
     }
-  }
+  }, [flushOutbox, isLoggedIn, pullChanges, refreshState])
 
-  const initialize = async () => {
+  const initialize = useCallback(async () => {
     if (!isLoggedIn || runningRef.current) return
     runningRef.current = true
     await syncStateRepo.markStatus('syncing')
@@ -105,9 +105,9 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
     }
 
     await syncNow()
-  }
+  }, [isLoggedIn, refreshState, syncNow])
 
-  const resolveFirstSync = async (choice: FirstSyncChoice) => {
+  const resolveFirstSync = useCallback(async (choice: FirstSyncChoice) => {
     const bootstrap = bootstrapRef.current ?? (await syncApi.bootstrap())
     await syncStateRepo.markStatus('syncing')
 
@@ -122,16 +122,16 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
 
     await refreshState()
     await syncNow()
-  }
+  }, [refreshState, syncNow])
 
   useEffect(() => {
     void refreshState()
-  }, [])
+  }, [refreshState])
 
   useEffect(() => {
     if (!isLoggedIn) return
     void initialize()
-  }, [isLoggedIn])
+  }, [initialize, isLoggedIn])
 
   useEffect(() => {
     const listener = () => {
@@ -150,7 +150,7 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
       window.removeEventListener(SYNC_STATUS_CHANGED_EVENT, statusListener)
       if (flushTimerRef.current) window.clearTimeout(flushTimerRef.current)
     }
-  }, [isLoggedIn])
+  }, [isLoggedIn, refreshState, syncNow])
 
   const value = useMemo<SyncContextValue>(
     () => ({
@@ -158,7 +158,7 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
       syncNow,
       resolveFirstSync,
     }),
-    [state],
+    [resolveFirstSync, state, syncNow],
   )
 
   return <SyncContext.Provider value={value}>{children}</SyncContext.Provider>

@@ -20,10 +20,14 @@ type SpendView = 'today' | 'trend'
 
 const SpendCard = () => {
   const { t } = useI18n()
-  const tabs = [
-    { key: 'today' as const, label: t('spend.today') },
-    { key: 'trend' as const, label: t('spend.trend') },
-  ] as const
+  const tabs = useMemo(
+    () =>
+      [
+        { key: 'today' as const, label: t('spend.today') },
+        { key: 'trend' as const, label: t('spend.trend') },
+      ] as const,
+    [t],
+  )
   const [now, setNow] = useState(() => new Date())
   const [entries, setEntries] = useState<SpendEntry[]>([])
   const [categories, setCategories] = useState<SpendCategory[]>([])
@@ -105,14 +109,14 @@ const SpendCard = () => {
   const activeIndex = useMemo(() => {
     const next = tabs.findIndex((tab) => tab.key === view)
     return next < 0 ? 0 : next
-  }, [view])
+  }, [tabs, view])
   const tabMotionStyle = useMemo(
     () =>
       ({
         '--tab-count': `${tabs.length}`,
         '--tab-active-index': `${activeIndex}`,
       }) as CSSProperties,
-    [activeIndex]
+    [activeIndex, tabs.length]
   )
   const resolvedActiveEntryId = useMemo(() => {
     if (!activeEntryId) return null

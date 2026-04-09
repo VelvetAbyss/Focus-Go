@@ -25,6 +25,8 @@ describe('DexieDatabaseService', () => {
     expect(typeof service.media.list).toBe('function')
     expect(typeof service.stocks.list).toBe('function')
     expect(typeof service.lifeSubscriptions.list).toBe('function')
+    expect(typeof service.lifePodcasts.list).toBe('function')
+    expect(typeof service.lifePeople.list).toBe('function')
     expect(typeof service.habits.listHabits).toBe('function')
   })
 
@@ -168,6 +170,55 @@ describe('DexieDatabaseService', () => {
 
     await service.lifeSubscriptions.remove(monthly.id)
     expect(await service.lifeSubscriptions.list()).toHaveLength(1)
+  })
+
+  it('stores podcasts with nested episodes and play state', async () => {
+    await db.delete({ disableAutoOpen: false })
+    await db.open()
+    const service = createDexieDatabaseService()
+
+    const created = await service.lifePodcasts.create({
+      source: 'itunes',
+      sourceId: '1',
+      collectionId: 1,
+      name: 'Acquired',
+      author: 'Ben & David',
+      episodes: [{ id: 'ep-1', title: 'Nintendo', duration: '1 hr 20 min' }],
+      selectedEpisodeId: 'ep-1',
+      isPlaying: true,
+    })
+
+    const updated = await service.lifePodcasts.update(created.id, {
+      episodes: [...created.episodes, { id: 'ep-2', title: 'Apple', duration: '2 hr' }],
+      isPlaying: false,
+    })
+
+    expect(created.episodes).toHaveLength(1)
+    expect(updated?.episodes).toHaveLength(2)
+    expect(updated?.isPlaying).toBe(false)
+  })
+
+  it('stores people rows and preserves birthday metadata', async () => {
+    await db.delete({ disableAutoOpen: false })
+    await db.open()
+    const service = createDexieDatabaseService()
+
+    const created = await service.lifePeople.create({
+      name: 'Ada Lovelace',
+      group: 'Work',
+      avatarInitials: 'AL',
+      birthday: '1990-12-10',
+      lastInteraction: '2026-04-01',
+    })
+
+    const updated = await service.lifePeople.update(created.id, {
+      group: 'Friends',
+      city: 'London',
+    })
+
+    expect(created.avatarInitials).toBe('AL')
+    expect(updated?.group).toBe('Friends')
+    expect(updated?.city).toBe('London')
   })
 
   it('hydrates rich task note fields from legacy blocks when listing tasks', async () => {

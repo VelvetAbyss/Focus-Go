@@ -475,6 +475,118 @@ const lifeSubscriptionUpdateInputSchema = z
   })
   .strict()
 
+const lifePodcastEpisodeSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string().optional(),
+  duration: z.string().optional(),
+  releaseDate: z.string().optional(),
+  audioUrl: z.string().optional(),
+}).strict()
+
+const lifePodcastSchema = baseEntitySchema.extend({
+  source: z.literal('itunes'),
+  sourceId: z.string(),
+  collectionId: z.number(),
+  name: z.string(),
+  author: z.string(),
+  artworkUrl: z.string().optional(),
+  feedUrl: z.string().optional(),
+  primaryGenre: z.string().optional(),
+  releaseDate: z.string().optional(),
+  country: z.string().optional(),
+  coverColor: z.string().optional(),
+  coverEmoji: z.string().optional(),
+  episodes: z.array(lifePodcastEpisodeSchema),
+  selectedEpisodeId: z.string().optional(),
+  isPlaying: z.boolean().optional(),
+  lastSyncedAt: z.number().optional(),
+})
+
+const lifePodcastCreateInputSchema = z.object({
+  source: z.literal('itunes'),
+  sourceId: z.string(),
+  collectionId: z.number(),
+  name: z.string(),
+  author: z.string(),
+  artworkUrl: z.string().optional(),
+  feedUrl: z.string().optional(),
+  primaryGenre: z.string().optional(),
+  releaseDate: z.string().optional(),
+  country: z.string().optional(),
+  coverColor: z.string().optional(),
+  coverEmoji: z.string().optional(),
+  episodes: z.array(lifePodcastEpisodeSchema),
+  selectedEpisodeId: z.string().optional(),
+  isPlaying: z.boolean().optional(),
+  lastSyncedAt: z.number().optional(),
+  userId: z.string().optional(),
+  workspaceId: z.string().optional(),
+}).strict()
+
+const lifePodcastUpdateInputSchema = z.object({
+  source: z.literal('itunes').optional(),
+  sourceId: z.string().optional(),
+  collectionId: z.number().optional(),
+  name: z.string().optional(),
+  author: z.string().optional(),
+  artworkUrl: z.string().optional(),
+  feedUrl: z.string().optional(),
+  primaryGenre: z.string().optional(),
+  releaseDate: z.string().optional(),
+  country: z.string().optional(),
+  coverColor: z.string().optional(),
+  coverEmoji: z.string().optional(),
+  episodes: z.array(lifePodcastEpisodeSchema).optional(),
+  selectedEpisodeId: z.string().optional(),
+  isPlaying: z.boolean().optional(),
+  lastSyncedAt: z.number().optional(),
+  userId: z.string().optional(),
+  workspaceId: z.string().optional(),
+}).strict()
+
+const personGroupSchema = z.enum(['Family', 'Friends', 'Work', 'Community', 'Other'])
+
+const lifePersonSchema = baseEntitySchema.extend({
+  name: z.string(),
+  group: personGroupSchema,
+  role: z.string().optional(),
+  city: z.string().optional(),
+  notes: z.string().optional(),
+  birthday: z.string().optional(),
+  lastInteraction: z.string().optional(),
+  avatarInitials: z.string(),
+  avatarColor: z.string().optional(),
+})
+
+const lifePersonCreateInputSchema = z.object({
+  name: z.string(),
+  group: personGroupSchema,
+  role: z.string().optional(),
+  city: z.string().optional(),
+  notes: z.string().optional(),
+  birthday: z.string().optional(),
+  lastInteraction: z.string().optional(),
+  avatarInitials: z.string(),
+  avatarColor: z.string().optional(),
+  userId: z.string().optional(),
+  workspaceId: z.string().optional(),
+}).strict()
+
+const lifePersonUpdateInputSchema = z.object({
+  name: z.string().optional(),
+  group: personGroupSchema.optional(),
+  role: z.string().optional(),
+  city: z.string().optional(),
+  notes: z.string().optional(),
+  birthday: z.string().optional(),
+  lastInteraction: z.string().optional(),
+  avatarInitials: z.string().optional(),
+  avatarColor: z.string().optional(),
+  userId: z.string().optional(),
+  workspaceId: z.string().optional(),
+}).strict()
+
 const tripStatusSchema = z.enum(['Planning', 'Booked', 'Ready', 'Ongoing', 'Done'])
 const transportMethodSchema = z.enum(['Flight', 'Train', 'Bus', 'Taxi', 'Subway', 'Walk', 'Car'])
 const transportCategorySchema = z.enum(['intercity', 'local'])
@@ -981,6 +1093,14 @@ export const ipcRequestSchemas = {
   'db:lifeSubscriptions:create': lifeSubscriptionCreateInputSchema,
   'db:lifeSubscriptions:update': z.object({ id: z.string().min(1), patch: lifeSubscriptionUpdateInputSchema }).strict(),
   'db:lifeSubscriptions:remove': idSchema,
+  'db:lifePodcasts:list': emptySchema,
+  'db:lifePodcasts:create': lifePodcastCreateInputSchema,
+  'db:lifePodcasts:update': z.object({ id: z.string().min(1), patch: lifePodcastUpdateInputSchema }).strict(),
+  'db:lifePodcasts:remove': idSchema,
+  'db:lifePeople:list': emptySchema,
+  'db:lifePeople:create': lifePersonCreateInputSchema,
+  'db:lifePeople:update': z.object({ id: z.string().min(1), patch: lifePersonUpdateInputSchema }).strict(),
+  'db:lifePeople:remove': idSchema,
   'db:trips:list': emptySchema,
   'db:trips:create': tripCreateInputSchema,
   'db:trips:update': z.object({ id: z.string().min(1), patch: tripUpdateInputSchema }).strict(),
@@ -1079,6 +1199,14 @@ export const ipcResponseSchemas = {
   'db:lifeSubscriptions:create': responseSchema(lifeSubscriptionSchema),
   'db:lifeSubscriptions:update': responseSchema(lifeSubscriptionSchema.nullable()),
   'db:lifeSubscriptions:remove': responseSchema(z.null()),
+  'db:lifePodcasts:list': responseSchema(z.array(lifePodcastSchema)),
+  'db:lifePodcasts:create': responseSchema(lifePodcastSchema),
+  'db:lifePodcasts:update': responseSchema(lifePodcastSchema.nullable()),
+  'db:lifePodcasts:remove': responseSchema(z.null()),
+  'db:lifePeople:list': responseSchema(z.array(lifePersonSchema)),
+  'db:lifePeople:create': responseSchema(lifePersonSchema),
+  'db:lifePeople:update': responseSchema(lifePersonSchema.nullable()),
+  'db:lifePeople:remove': responseSchema(z.null()),
   'db:trips:list': responseSchema(z.array(tripRecordSchema)),
   'db:trips:create': responseSchema(tripRecordSchema),
   'db:trips:update': responseSchema(tripRecordSchema.nullable()),

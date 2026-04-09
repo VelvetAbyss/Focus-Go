@@ -149,6 +149,155 @@
   margin-top: auto;
 }
 
+.life-card-loader {
+  display: flex;
+  min-height: 180px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px 0 20px;
+}
+
+.life-card-loader--compact {
+  min-height: 132px;
+  padding: 12px 0;
+}
+
+.life-card-loader__hero,
+.life-card-loader__line,
+.life-card-loader__pill,
+.life-panel-loader__cover,
+.life-panel-loader__line,
+.life-dashboard__skeleton-card,
+.life-dashboard__skeleton-line {
+  background: linear-gradient(90deg, rgba(58, 55, 51, 0.06) 0%, rgba(58, 55, 51, 0.11) 50%, rgba(58, 55, 51, 0.06) 100%);
+  background-size: 200% 100%;
+  animation: life-loader-shimmer 1.35s ease-in-out infinite;
+}
+
+.life-card-loader__hero {
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+}
+
+.life-card-loader__lines {
+  display: grid;
+  gap: 10px;
+}
+
+.life-card-loader__line {
+  display: block;
+  height: 12px;
+  border-radius: 999px;
+}
+
+.life-card-loader__stats {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.life-card-loader__pill {
+  width: 88px;
+  height: 28px;
+  border-radius: 999px;
+}
+
+.life-card-loader__pill--short {
+  width: 62px;
+}
+
+.life-panel-loader {
+  display: grid;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.life-panel-loader__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 8px;
+  border-radius: 14px;
+}
+
+.life-panel-loader__cover {
+  width: 36px;
+  height: 48px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.life-panel-loader__body {
+  flex: 1;
+  display: grid;
+  gap: 8px;
+}
+
+.life-panel-loader__line {
+  display: block;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.life-panel-loader__line--muted {
+  height: 8px;
+  opacity: 0.8;
+}
+
+.life-dashboard__skeleton {
+  display: grid;
+  grid-template-columns: repeat(24, minmax(0, 1fr));
+  gap: 18px;
+  padding: 18px;
+}
+
+.life-dashboard__skeleton-card {
+  min-height: 210px;
+  border-radius: 24px;
+}
+
+.life-dashboard__skeleton-card--wide {
+  grid-column: span 14;
+}
+
+.life-dashboard__skeleton-card--medium {
+  grid-column: span 10;
+}
+
+.life-dashboard__skeleton-card--full {
+  grid-column: span 24;
+  min-height: 140px;
+}
+
+.life-dashboard__skeleton-line {
+  grid-column: 1 / -1;
+  height: 12px;
+  border-radius: 999px;
+  opacity: 0.7;
+}
+
+@keyframes life-loader-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+html[data-motion='reduce'] .life-card-loader__hero,
+html[data-motion='reduce'] .life-card-loader__line,
+html[data-motion='reduce'] .life-card-loader__pill,
+html[data-motion='reduce'] .life-panel-loader__cover,
+html[data-motion='reduce'] .life-panel-loader__line,
+html[data-motion='reduce'] .life-dashboard__skeleton-card,
+html[data-motion='reduce'] .life-dashboard__skeleton-line {
+  animation: none;
+  background: rgba(58, 55, 51, 0.08);
+}
+
 .life-card__stats--inline {
   flex-direction: row;
   align-items: center;

@@ -1,0 +1,1 @@
+{"root":["./src/index.ts","./src/models.ts","./src/database/idatabaseservice.ts","./src/integration/iecosystemadapters.ts","./tests/ecosystem-adapters.test.ts","./tests/idatabase-service.test.ts"],"errors":true,"version":"5.9.3"}

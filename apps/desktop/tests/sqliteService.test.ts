@@ -66,6 +66,8 @@ describe('sqlite bundle (mocked)', () => {
     expect(typeof bundle.service.media.list).toBe('function')
     expect(typeof bundle.service.stocks.list).toBe('function')
     expect(typeof bundle.service.lifeSubscriptions.list).toBe('function')
+    expect(typeof bundle.service.lifePodcasts.list).toBe('function')
+    expect(typeof bundle.service.lifePeople.list).toBe('function')
     expect(typeof bundle.service.habits.listHabits).toBe('function')
 
     bundle.close()

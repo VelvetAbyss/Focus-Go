@@ -92,7 +92,7 @@ const FocusSettingsDrawer = ({
       setNoiseHint(null)
       noiseHintTimerRef.current = null
     }, 2000)
-  }, [])
+  }, [t])
 
   const handleClose = () => {
     setActiveTimer(null)

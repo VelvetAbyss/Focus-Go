@@ -5,7 +5,7 @@ import { AppNumber } from '../../../shared/ui/AppNumber'
 import type { MediaItem } from '../../../data/models/types'
 import type { MediaPresentationModel } from '../cards/lifeDesignAdapters'
 import ProgressTrack from '../ProgressTrack'
-import { detailPaneStyle, iconButtonStyle, inputStyle, inter, modalHeaderStyle, modalLayoutStyle, mutedText, playfair, sectionBorder, sidebarStyle, smallButtonStyle, subtleBorder, textareaStyle } from './lifeDesignPrimitives'
+import { detailPaneStyle, iconButtonStyle, inputStyle, inter, LifeCardLoader, LifePanelLoader, modalHeaderStyle, modalLayoutStyle, mutedText, playfair, sectionBorder, sidebarStyle, smallButtonStyle, subtleBorder, textareaStyle } from './lifeDesignPrimitives'
 
 type SearchMedia = {
   id: string
@@ -82,7 +82,6 @@ export const MediaCardSurface = ({
   onSelectItem,
   onAddItem,
   onPatchItem,
-  onRemoveItem: _onRemoveItem,
 }: Props) => {
   const searchAreaRef = useRef<HTMLDivElement | null>(null)
 
@@ -138,7 +137,9 @@ export const MediaCardSurface = ({
       </div>
 
       <div style={{ flex: 1, padding: '0 20px' }}>
-        {model.previewRows.length === 0 ? (
+        {loading ? (
+          <LifeCardLoader />
+        ) : model.previewRows.length === 0 ? (
           <div style={{ display: 'flex', minHeight: 172, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 16px', textAlign: 'center' }}>
             <div style={{ width: 48, height: 48, marginBottom: 16, borderRadius: 999, background: 'rgba(58,55,51,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Film size={20} color="rgba(58,55,51,0.35)" />
@@ -174,7 +175,7 @@ export const MediaCardSurface = ({
         )}
       </div>
 
-      {model.previewRows.length > 0 ? (
+      {!loading && model.previewRows.length > 0 ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 20, padding: '16px 20px', marginTop: 'auto', borderTop: `1px solid ${sectionBorder}` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ width: 6, height: 6, borderRadius: 999, background: '#7A6A9E' }} />
@@ -265,10 +266,10 @@ export const MediaCardSurface = ({
               </div>
             ) : null}
             </div>
-            {loading ? <p style={inter(12, 400, mutedText)}>Loading…</p> : null}
+            {loading ? <LifePanelLoader /> : null}
             {!loading && items.length === 0 ? <p style={inter(12, 400, mutedText)}>No media yet.</p> : null}
             <div style={{ display: 'grid', gap: 10, marginTop: 16 }}>
-              {items.map((item) => (
+              {!loading && items.map((item) => (
                 <button
                   key={item.id}
                   type="button"

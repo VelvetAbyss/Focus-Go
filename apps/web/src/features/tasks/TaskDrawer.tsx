@@ -340,7 +340,7 @@ const TaskDrawer = ({
         }
       }
     },
-    [isDraftDirty, onUpdated, toast],
+    [isDraftDirty, onUpdated, t, toast],
   )
 
   const flushSave = useCallback(() => {

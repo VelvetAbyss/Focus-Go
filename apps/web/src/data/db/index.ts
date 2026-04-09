@@ -8,6 +8,8 @@ import type {
   FocusSession,
   FocusSettings,
   LifeDashboardLayout,
+  LifePodcast,
+  LifePerson,
   LifeSubscription,
   MediaItem,
   NoteAppearanceSettings,
@@ -37,6 +39,7 @@ import {
   schemaV28,
   schemaV32,
   schemaV33,
+  schemaV34,
   schemaV2,
   schemaV3,
   schemaV4,
@@ -71,6 +74,8 @@ export class WorkbenchDb extends Dexie {
   stocks!: Table<StockItem, string>
   media!: Table<MediaItem, string>
   lifeSubscriptions!: Table<LifeSubscription, string>
+  lifePodcasts!: Table<LifePodcast, string>
+  lifePeople!: Table<LifePerson, string>
   trips!: Table<TripRecord, string>
 
   constructor() {
@@ -185,7 +190,11 @@ export class WorkbenchDb extends Dexie {
       .stores(schemaV33)
       .upgrade(async () => {})
 
-    this.version(DB_VERSION).stores(schemaV33)
+    this.version(34)
+      .stores(schemaV34)
+      .upgrade(async () => {})
+
+    this.version(DB_VERSION).stores(schemaV34)
 
     this.tasks = this.table(TABLES.tasks)
     this.notes = this.table(TABLES.notes)
@@ -209,6 +218,8 @@ export class WorkbenchDb extends Dexie {
     this.stocks = this.table(TABLES.stocks)
     this.media = this.table(TABLES.media)
     this.lifeSubscriptions = this.table(TABLES.lifeSubscriptions)
+    this.lifePodcasts = this.table(TABLES.lifePodcasts)
+    this.lifePeople = this.table(TABLES.lifePeople)
     this.trips = this.table(TABLES.trips)
   }
 }

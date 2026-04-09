@@ -214,6 +214,26 @@ app.whenReady().then(() => {
       await sqliteBundle.service.lifeSubscriptions.remove((payload as { id: string }).id)
       return null
     },
+    'db:lifePodcasts:list': async () => sqliteBundle.service.lifePodcasts.list(),
+    'db:lifePodcasts:create': async (payload) => sqliteBundle.service.lifePodcasts.create(payload as never),
+    'db:lifePodcasts:update': async (payload) => {
+      const typed = payload as { id: string; patch: never }
+      return sqliteBundle.service.lifePodcasts.update(typed.id, typed.patch)
+    },
+    'db:lifePodcasts:remove': async (payload) => {
+      await sqliteBundle.service.lifePodcasts.remove((payload as { id: string }).id)
+      return null
+    },
+    'db:lifePeople:list': async () => sqliteBundle.service.lifePeople.list(),
+    'db:lifePeople:create': async (payload) => sqliteBundle.service.lifePeople.create(payload as never),
+    'db:lifePeople:update': async (payload) => {
+      const typed = payload as { id: string; patch: never }
+      return sqliteBundle.service.lifePeople.update(typed.id, typed.patch)
+    },
+    'db:lifePeople:remove': async (payload) => {
+      await sqliteBundle.service.lifePeople.remove((payload as { id: string }).id)
+      return null
+    },
     'db:habits:list': async (payload) => {
       const typed = payload as { userId: string; options?: { archived?: boolean } }
       return sqliteBundle.service.habits.listHabits(typed.userId, typed.options)
