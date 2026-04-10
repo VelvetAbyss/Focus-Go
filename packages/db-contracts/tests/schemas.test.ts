@@ -14,6 +14,19 @@ describe('IPC channel contract', () => {
     expect(() => ipcRequestSchemas['db:tasks:add'].parse({ title: 'A', status: 'invalid', priority: null })).toThrow()
   })
 
+  it('accepts netease podcast payloads', () => {
+    expect(() =>
+      ipcRequestSchemas['db:lifePodcasts:create'].parse({
+        source: 'netease',
+        sourceId: '796756498',
+        collectionId: 796756498,
+        name: 'Just Some Collections',
+        author: '我最爱吃螺蛳粉',
+        episodes: [{ id: '2539083386', title: 'alice cullen 【playlist】', audioUrl: 'https://example.com/audio.mp3' }],
+      }),
+    ).not.toThrow()
+  })
+
   it('rejects unknown channel in whitelist guard', () => {
     expect(isWhitelistedChannel('db:tasks:list')).toBe(true)
     expect(isWhitelistedChannel('db:unknown')).toBe(false)

@@ -198,6 +198,26 @@ describe('DexieDatabaseService', () => {
     expect(updated?.isPlaying).toBe(false)
   })
 
+  it('stores netease podcasts with remote audio urls', async () => {
+    await db.delete({ disableAutoOpen: false })
+    await db.open()
+    const service = createDexieDatabaseService()
+
+    const created = await service.lifePodcasts.create({
+      source: 'netease',
+      sourceId: '796756498',
+      collectionId: 796756498,
+      name: 'Just Some Collections',
+      author: '我最爱吃螺蛳粉',
+      episodes: [{ id: '2539083386', title: 'alice cullen 【playlist】', audioUrl: 'https://example.com/audio.mp3' }],
+      selectedEpisodeId: '2539083386',
+      isPlaying: false,
+    })
+
+    expect(created.source).toBe('netease')
+    expect(created.episodes[0]?.audioUrl).toBe('https://example.com/audio.mp3')
+  })
+
   it('stores people rows and preserves birthday metadata', async () => {
     await db.delete({ disableAutoOpen: false })
     await db.open()

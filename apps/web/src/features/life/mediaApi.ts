@@ -74,8 +74,9 @@ export type RemoteMediaCandidate = {
 }
 
 const IMAGE_BASE = 'https://image.tmdb.org/t/p'
+const DEFAULT_TMDB_API_KEY = '96bcf581fb874f8aa80bf5675dc00cd9'
 
-const getTmdbKey = () => import.meta.env.VITE_TMDB_API_KEY?.trim()
+const getTmdbKey = () => import.meta.env.VITE_TMDB_API_KEY?.trim() || DEFAULT_TMDB_API_KEY
 
 export const hasTmdbKey = () => Boolean(getTmdbKey())
 

@@ -439,7 +439,7 @@ const toLifePodcast = (row: Record<string, unknown>): LifePodcast => ({
   updatedAt: Number(row.updatedAt),
   userId: row.userId ? String(row.userId) : undefined,
   workspaceId: row.workspaceId ? String(row.workspaceId) : undefined,
-  source: 'itunes',
+  source: String(row.source ?? '') === 'netease' ? 'netease' : 'itunes',
   sourceId: String(row.sourceId ?? row.collectionId ?? row.id),
   collectionId: Number(row.collectionId ?? 0),
   name: String(row.name ?? ''),
@@ -788,6 +788,7 @@ const ensureSchema = (database: Database.Database) => {
 
     CREATE TABLE IF NOT EXISTS life_podcasts (
       id TEXT PRIMARY KEY,
+      source TEXT NOT NULL DEFAULT 'itunes',
       sourceId TEXT NOT NULL,
       collectionId INTEGER NOT NULL,
       name TEXT NOT NULL,
@@ -924,6 +925,7 @@ const ensureSchema = (database: Database.Database) => {
   ensureColumn('life_subscriptions', 'paymentStatus', 'TEXT')
   ensureColumn('life_podcasts', 'coverColor', 'TEXT')
   ensureColumn('life_podcasts', 'coverEmoji', 'TEXT')
+  ensureColumn('life_podcasts', 'source', `TEXT NOT NULL DEFAULT 'itunes'`)
   ensureColumn('life_podcasts', 'selectedEpisodeId', 'TEXT')
   ensureColumn('life_podcasts', 'isPlaying', 'INTEGER NOT NULL DEFAULT 0')
   ensureColumn('life_podcasts', 'lastSyncedAt', 'INTEGER')
@@ -2414,8 +2416,8 @@ export const createSqliteBundle = (dbPath: string): SqliteBundle => {
         database
           .prepare(
             `INSERT INTO life_podcasts
-             (id, sourceId, collectionId, name, author, artworkUrl, feedUrl, primaryGenre, releaseDate, country, coverColor, coverEmoji, episodes, selectedEpisodeId, isPlaying, lastSyncedAt, createdAt, updatedAt, userId, workspaceId)
-             VALUES (@id, @sourceId, @collectionId, @name, @author, @artworkUrl, @feedUrl, @primaryGenre, @releaseDate, @country, @coverColor, @coverEmoji, @episodes, @selectedEpisodeId, @isPlaying, @lastSyncedAt, @createdAt, @updatedAt, @userId, @workspaceId)`,
+             (id, source, sourceId, collectionId, name, author, artworkUrl, feedUrl, primaryGenre, releaseDate, country, coverColor, coverEmoji, episodes, selectedEpisodeId, isPlaying, lastSyncedAt, createdAt, updatedAt, userId, workspaceId)
+             VALUES (@id, @source, @sourceId, @collectionId, @name, @author, @artworkUrl, @feedUrl, @primaryGenre, @releaseDate, @country, @coverColor, @coverEmoji, @episodes, @selectedEpisodeId, @isPlaying, @lastSyncedAt, @createdAt, @updatedAt, @userId, @workspaceId)`,
           )
           .run({
             ...entity,
@@ -2433,6 +2435,7 @@ export const createSqliteBundle = (dbPath: string): SqliteBundle => {
         database
           .prepare(
             `UPDATE life_podcasts SET
+               source=@source,
                sourceId=@sourceId,
                collectionId=@collectionId,
                name=@name,

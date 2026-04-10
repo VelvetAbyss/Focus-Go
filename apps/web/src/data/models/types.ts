@@ -240,7 +240,7 @@ export type LifePodcastEpisode = {
 }
 
 export type LifePodcast = BaseEntity & {
-  source: 'itunes'
+  source: 'itunes' | 'netease'
   sourceId: string
   collectionId: number
   name: string
