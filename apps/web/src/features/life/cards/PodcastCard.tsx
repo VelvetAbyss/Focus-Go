@@ -14,7 +14,6 @@ import {
   type RemotePodcastCandidate,
 } from '../podcastsApi'
 import {
-  isNeteaseExperimentalPlaybackEnabled,
   pausePodcastPlayback,
   playPodcastEpisode,
   stopNeteasePlaybackIfDisabled,

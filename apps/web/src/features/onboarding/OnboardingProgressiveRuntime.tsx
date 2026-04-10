@@ -8,6 +8,7 @@ import { clearPendingCoachmark, getFeatureSeen, getPendingCoachmark, markFeature
 
 type VisibleCoachmark =
   | { key: 'focus-entry'; anchor: string }
+  | { key: 'focus-timer'; anchor: string }
   | { key: 'diary'; anchor: string }
   | null
 
@@ -27,6 +28,12 @@ const OnboardingProgressiveRuntime = () => {
       if (pendingCoachmark === 'focus' && !featureSeen.focus && location.pathname === ROUTES.TASKS) {
         const anchor = findAnchor([FEATURE_COACHMARK_ANCHORS.focus[0]])
         setVisibleCoachmark(anchor ? { key: 'focus-entry', anchor } : null)
+        return
+      }
+
+      if (!featureSeen.focus && location.pathname === ROUTES.FOCUS) {
+        const anchor = findAnchor([FEATURE_COACHMARK_ANCHORS.focus[1]])
+        setVisibleCoachmark(anchor ? { key: 'focus-timer', anchor } : null)
         return
       }
 
@@ -57,6 +64,13 @@ const OnboardingProgressiveRuntime = () => {
         ctaLabel: t('coachmark.focus.cta'),
         onCta: () => navigate(ROUTES.FOCUS),
         onDismiss: () => clearPendingCoachmark(),
+      }
+    }
+    if (visibleCoachmark.key === 'focus-timer') {
+      return {
+        title: t('coachmark.focus.timerTitle'),
+        description: t('coachmark.focus.timerDescription'),
+        onDismiss: () => markFeatureSeen('focus'),
       }
     }
     return {

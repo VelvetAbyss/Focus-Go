@@ -39,4 +39,11 @@ export const tasksRepo = {
   async clearAllTags() {
     await dbService.tasks.clearAllTags()
   },
+  /** On a new day, remove completed tasks from the today list while keeping incomplete ones. */
+  async clearDoneToday() {
+    const all = await dbService.tasks.list()
+    const toReset = all.filter((t) => t.isToday && t.status === 'done')
+    if (toReset.length === 0) return
+    await Promise.all(toReset.map((t) => dbService.tasks.update({ ...t, isToday: false })))
+  },
 }
