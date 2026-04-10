@@ -45,6 +45,7 @@ describe('LibraryCardSurface', () => {
           onAddBook={() => {}}
           onPatchBook={() => {}}
           onRemoveBook={() => {}}
+          onClearResults={() => {}}
         />
       </PreferencesProvider>,
     )
@@ -76,6 +77,7 @@ describe('LibraryCardSurface', () => {
           onAddBook={() => {}}
           onPatchBook={() => {}}
           onRemoveBook={() => {}}
+          onClearResults={() => {}}
         />
       </PreferencesProvider>,
     )

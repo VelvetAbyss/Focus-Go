@@ -9,6 +9,7 @@ const spendAddCategoryMock = vi.fn()
 const spendAddEntryMock = vi.fn()
 const focusUpsertMock = vi.fn()
 const dashboardUpsertMock = vi.fn()
+const lifeDashboardUpsertMock = vi.fn()
 
 vi.mock('./repositories/tasksRepo', () => ({
   tasksRepo: {
@@ -48,6 +49,12 @@ vi.mock('./repositories/dashboardRepo', () => ({
   },
 }))
 
+vi.mock('./repositories/lifeDashboardRepo', () => ({
+  lifeDashboardRepo: {
+    upsert: (...args: unknown[]) => lifeDashboardUpsertMock(...args),
+  },
+}))
+
 vi.mock('../features/labs/labsApi', () => ({
   ensureLabsSeed: (...args: unknown[]) => ensureLabsSeedMock(...args),
 }))
@@ -65,6 +72,7 @@ describe('seedDatabase', () => {
     spendAddEntryMock.mockReset()
     focusUpsertMock.mockReset()
     dashboardUpsertMock.mockReset()
+    lifeDashboardUpsertMock.mockReset()
 
     tasksListMock.mockResolvedValue([])
     spendAddCategoryMock

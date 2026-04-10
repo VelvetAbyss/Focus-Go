@@ -23,6 +23,7 @@ import TasksAnalyticsView from './components/TasksAnalyticsView'
 import { useToast } from '../../shared/ui/toast/toast'
 import { ROUTES } from '../../app/routes/routes'
 import { emitTasksChanged, subscribeTasksChanged } from './taskSync'
+import { readTaskTodayBucket, shouldClearTodayDoneTasks, writeTaskTodayBucket } from './taskTodayRefresh'
 import { TASK_STATUS_CONFIG } from './components/taskPresentation'
 import { useI18n } from '../../shared/i18n/useI18n'
 import { completeOnboarding, markFeatureSeen, resetOnboarding, setPendingCoachmark } from '../onboarding/onboarding.runtime'
@@ -130,6 +131,12 @@ const TasksBoard = ({
         await tasksRepo.clearAllTags()
         window.localStorage.setItem(STORAGE_TAGS_MIGRATION_KEY, '1')
       }
+      // Daily refresh: clear completed tasks from today list when a new day starts.
+      // Incomplete today-tasks are kept so nothing gets lost.
+      const storedBucket = readTaskTodayBucket()
+      const { shouldClear, currentBucket } = shouldClearTodayDoneTasks(storedBucket)
+      if (shouldClear) await tasksRepo.clearDoneToday()
+      writeTaskTodayBucket(currentBucket)
       await loadTasks()
     }
     void bootstrap()
