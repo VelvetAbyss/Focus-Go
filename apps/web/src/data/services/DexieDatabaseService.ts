@@ -305,6 +305,7 @@ const normalizeLifePodcast = (podcast: LifePodcast): LifePodcast => ({
   author: typeof podcast.author === 'string' ? podcast.author.trim() : '',
   artworkUrl: typeof podcast.artworkUrl === 'string' && podcast.artworkUrl ? podcast.artworkUrl : undefined,
   feedUrl: typeof podcast.feedUrl === 'string' && podcast.feedUrl ? podcast.feedUrl : undefined,
+  externalUrl: typeof podcast.externalUrl === 'string' && podcast.externalUrl ? podcast.externalUrl : undefined,
   primaryGenre: typeof podcast.primaryGenre === 'string' && podcast.primaryGenre.trim().length > 0 ? podcast.primaryGenre : undefined,
   releaseDate: typeof podcast.releaseDate === 'string' && podcast.releaseDate ? podcast.releaseDate : undefined,
   country: typeof podcast.country === 'string' && podcast.country.trim().length > 0 ? podcast.country : undefined,
@@ -323,6 +324,7 @@ const normalizeLifePodcast = (podcast: LifePodcast): LifePodcast => ({
           duration: typeof episode.duration === 'string' && episode.duration.trim().length > 0 ? episode.duration : undefined,
           releaseDate: typeof episode.releaseDate === 'string' && episode.releaseDate ? episode.releaseDate : undefined,
           audioUrl: typeof episode.audioUrl === 'string' && episode.audioUrl ? episode.audioUrl : undefined,
+          externalUrl: typeof episode.externalUrl === 'string' && episode.externalUrl ? episode.externalUrl : undefined,
         }))
     : [],
 })

@@ -299,10 +299,10 @@ export default function NotePage() {
       openUpgradeModal('limit-reached', 'notes.max-count')
       return
     }
-    const created = await notesRepo.create()
+    const activeTagName = activeTagId ? tagNameById.get(activeTagId) : undefined
+    const created = await notesRepo.create(activeTagName ? { tags: [activeTagName] } : undefined)
     setNotes((current) => [created, ...current])
     setActiveCollection('notes')
-    setActiveTagId(null)
     setSelectedNoteId(created.id)
     setSearch('')
   }

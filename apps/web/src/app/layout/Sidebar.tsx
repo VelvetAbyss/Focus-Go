@@ -40,6 +40,7 @@ import type { FeatureKey } from '../../data/models/types'
 import { mergeSidebarOrder, moveSidebarOrder, readSidebarOrder, writeSidebarOrder } from './sidebarOrder'
 import { useIsLoggedIn, useAuthPlan } from '../../store/auth'
 import { useUpgradeModal } from '../../features/labs/UpgradeModalContext'
+import SidebarPodcastPlayer from './SidebarPodcastPlayer'
 
 type SidebarProps = {
   collapsed: boolean
@@ -228,6 +229,8 @@ const Sidebar = ({ collapsed, onToggle, theme, onToggleTheme }: SidebarProps) =>
           </SortableContext>
         </nav>
       </DndContext>
+
+      <SidebarPodcastPlayer collapsed={collapsed} />
 
       <div className="focus-sidebar__bottom">
         {isLoggedIn && !isPremium && (

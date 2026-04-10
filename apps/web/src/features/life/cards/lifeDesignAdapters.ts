@@ -114,8 +114,10 @@ export type PodcastPresentationModel = {
     podcastName: string
     duration?: string
     isPlaying: boolean
+    source: LifePodcast['source']
     coverColor: string
     coverEmoji: string
+    artworkUrl?: string
   } | null
   recentEpisodes: Array<{
     id: string
@@ -305,13 +307,13 @@ export const buildPodcastPresentationModel = (items: readonly LifePodcast[]): Po
   const active = sorted.find((item) => item.selectedEpisodeId || item.isPlaying) ?? sorted[0] ?? null
   const activeEpisode = active?.episodes.find((episode) => episode.id === active.selectedEpisodeId) ?? active?.episodes[0] ?? null
   const recentEpisodes = sorted.flatMap((podcast) =>
-    podcast.episodes.slice(0, 2).map((episode) => ({
+    podcast.episodes.slice(0, 5).map((episode) => ({
       id: `${podcast.id}:${episode.id}`,
       title: episode.title,
       duration: episode.duration,
       coverEmoji: podcast.coverEmoji ?? '🎙',
     })),
-  ).slice(0, 3)
+  ).slice(0, 30)
 
   return {
     nowPlaying: active && activeEpisode
@@ -320,8 +322,10 @@ export const buildPodcastPresentationModel = (items: readonly LifePodcast[]): Po
           podcastName: active.name,
           duration: activeEpisode.duration,
           isPlaying: active.isPlaying === true,
+          source: active.source,
           coverColor: active.coverColor ?? '#D8C2A6',
           coverEmoji: active.coverEmoji ?? '🎙',
+          artworkUrl: active.artworkUrl,
         }
       : null,
     recentEpisodes,

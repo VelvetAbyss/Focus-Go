@@ -41,6 +41,14 @@ vi.mock('../../shared/prefs/usePreferences', () => ({
     setWeatherTemperatureUnit: vi.fn(),
     focusCompletionSoundEnabled: true,
     setFocusCompletionSoundEnabled: vi.fn(),
+    neteaseExperimentalPlaybackEnabled: false,
+    setNeteaseExperimentalPlaybackEnabled: vi.fn(),
+    neteaseExperimentalPlaybackConfirmed: false,
+    setNeteaseExperimentalPlaybackConfirmed: vi.fn(),
+    taskReminderEnabled: true,
+    setTaskReminderEnabled: vi.fn(),
+    taskReminderLeadMinutes: 10,
+    setTaskReminderLeadMinutes: vi.fn(),
   }),
 }))
 

@@ -634,6 +634,10 @@ const SettingsRoute = () => {
     setWeatherTemperatureUnit,
     focusCompletionSoundEnabled,
     setFocusCompletionSoundEnabled,
+    neteaseExperimentalPlaybackConfirmed,
+    neteaseExperimentalPlaybackEnabled,
+    setNeteaseExperimentalPlaybackConfirmed,
+    setNeteaseExperimentalPlaybackEnabled,
     taskReminderEnabled,
     setTaskReminderEnabled,
     taskReminderLeadMinutes,
@@ -641,6 +645,7 @@ const SettingsRoute = () => {
   } = usePreferences()
 
   const [manualCityInput, setManualCityInput] = useState(weatherManualCity)
+  const [pendingNeteaseExperimentalToggle, setPendingNeteaseExperimentalToggle] = useState(false)
   const [manualCityOpen, setManualCityOpen] = useState(false)
   const [manualCityHasPendingSelection, setManualCityHasPendingSelection] = useState(false)
   const [manualCityRemoteSearch, setManualCityRemoteSearch] = useState<{ query: string; suggestions: CitySuggestion[] }>({
@@ -1149,12 +1154,52 @@ const SettingsRoute = () => {
                           </SettingRow>
 
                           <SettingRow
+                            icon={AlertTriangle}
+                            title={t('settings.experience.neteaseExperimentalPlayback.title')}
+                            description={t('settings.experience.neteaseExperimentalPlayback.description')}
+                          >
+                            <Switch
+                              checked={neteaseExperimentalPlaybackEnabled}
+                              onCheckedChange={(checked) => {
+                                if (checked && !neteaseExperimentalPlaybackConfirmed) {
+                                  setPendingNeteaseExperimentalToggle(true)
+                                  return
+                                }
+                                setNeteaseExperimentalPlaybackEnabled(checked)
+                              }}
+                            />
+                          </SettingRow>
+
+                          <SettingRow
                             icon={Bell}
                             title={t('settings.taskReminders.title')}
                             description={t('settings.taskReminders.description')}
                           >
                             <Switch checked={taskReminderEnabled} onCheckedChange={(checked) => setTaskReminderEnabled(checked)} />
                           </SettingRow>
+
+                          <AlertDialog open={pendingNeteaseExperimentalToggle} onOpenChange={setPendingNeteaseExperimentalToggle}>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>{t('settings.experience.neteaseExperimentalPlayback.confirmTitle')}</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  {t('settings.experience.neteaseExperimentalPlayback.confirmDescription')}
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>{t('settings.data.import.confirmCancel')}</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => {
+                                    setNeteaseExperimentalPlaybackConfirmed(true)
+                                    setNeteaseExperimentalPlaybackEnabled(true)
+                                    setPendingNeteaseExperimentalToggle(false)
+                                  }}
+                                >
+                                  {t('settings.experience.neteaseExperimentalPlayback.confirmAction')}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
 
                           <SettingRow
                             icon={AlertTriangle}

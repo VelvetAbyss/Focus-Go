@@ -7,6 +7,21 @@ import type { NoteItem } from '../../../data/models/types'
 export type NoteSortOption = 'edited' | 'created' | 'title'
 export type NoteBrowserMode = 'notes' | 'trash'
 
+const stripMarkdown = (text: string): string =>
+  text
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/\*\*(.+?)\*\*/gs, '$1')
+    .replace(/__(.+?)__/gs, '$1')
+    .replace(/\*(.+?)\*/gs, '$1')
+    .replace(/_(.+?)_/gs, '$1')
+    .replace(/~~(.+?)~~/gs, '$1')
+    .replace(/`(.+?)`/gs, '$1')
+    .replace(/!\[.*?\]\(.*?\)/g, '')
+    .replace(/\[(.+?)\]\(.*?\)/g, '$1')
+    .replace(/^>\s*/gm, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+
 type Props = {
   notes: NoteItem[]
   selectedNoteId: string | null
@@ -242,10 +257,10 @@ function NoteCard({
       <div className="flex items-start justify-between gap-2">
         <h4 className="flex-1 truncate text-[0.875rem] leading-[1.45] tracking-[-0.01em] text-foreground" style={{ fontWeight: 500 }}>
           {note.pinned ? <Pin size={10} className="mr-1 inline text-muted-foreground" /> : null}
-          {note.title.trim() || 'Untitled'}
+          {stripMarkdown(note.title) || 'Untitled'}
         </h4>
       </div>
-      <p className="mt-0.5 line-clamp-2 text-[0.8125rem] leading-[1.55] text-[#7a7570] dark:text-slate-300/80">{note.excerpt || 'This note does not have a preview yet.'}</p>
+      <p className="mt-0.5 line-clamp-2 text-[0.8125rem] leading-[1.55] text-[#7a7570] dark:text-slate-300/80">{note.excerpt ? stripMarkdown(note.excerpt) : 'This note does not have a preview yet.'}</p>
       <span className="absolute bottom-2 right-3 text-[0.6875rem] tabular-nums text-[#8d867f] dark:text-slate-400">{formatTime(note.updatedAt)}</span>
 
       <div className="absolute right-2 top-2 flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">

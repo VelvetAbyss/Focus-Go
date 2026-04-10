@@ -10,6 +10,8 @@ export const TASK_REMINDER_ENABLED_KEY = 'focusgo.tasks.reminder.enabled.v1'
 export const TASK_REMINDER_LEAD_MINUTES_KEY = 'focusgo.tasks.reminder.leadMinutes.v1'
 export const LANGUAGE_KEY = 'workbench.ui.language'
 export const DIARY_FONT_KEY = 'focusgo.diary.font.v1'
+export const NETEASE_EXPERIMENTAL_PLAYBACK_ENABLED_KEY = 'focusgo.podcast.neteaseExperimentalPlayback.enabled'
+export const NETEASE_EXPERIMENTAL_PLAYBACK_CONFIRMED_KEY = 'focusgo.podcast.neteaseExperimentalPlayback.confirmed'
 
 export type DiaryFontId =
   | 'fraunces'
@@ -143,6 +145,22 @@ export function readTaskReminderLeadMinutes(): number {
 export function writeTaskReminderLeadMinutes(minutes: number) {
   const safe = Math.max(1, Math.floor(minutes))
   localStorage.setItem(TASK_REMINDER_LEAD_MINUTES_KEY, String(safe))
+}
+
+export function readNeteaseExperimentalPlaybackEnabled(): boolean {
+  return localStorage.getItem(NETEASE_EXPERIMENTAL_PLAYBACK_ENABLED_KEY) === 'true'
+}
+
+export function writeNeteaseExperimentalPlaybackEnabled(enabled: boolean) {
+  localStorage.setItem(NETEASE_EXPERIMENTAL_PLAYBACK_ENABLED_KEY, enabled ? 'true' : 'false')
+}
+
+export function readNeteaseExperimentalPlaybackConfirmed(): boolean {
+  return localStorage.getItem(NETEASE_EXPERIMENTAL_PLAYBACK_CONFIRMED_KEY) === 'true'
+}
+
+export function writeNeteaseExperimentalPlaybackConfirmed(confirmed: boolean) {
+  localStorage.setItem(NETEASE_EXPERIMENTAL_PLAYBACK_CONFIRMED_KEY, confirmed ? 'true' : 'false')
 }
 
 export function readLanguage(): LanguageCode {

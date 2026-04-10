@@ -4,6 +4,7 @@ const NETEASE_HEADERS = {
   referer: `${NETEASE_BASE}/`,
 }
 const MAX_EPISODES = 36
+const MAX_NETEASE_PODCASTS_PER_USER = 3
 const SYNC_INTERVAL_MS = 30 * 60 * 1000
 
 const fallbackEmojis = ['🎙', '🎧', '📻', '🗣']
@@ -106,6 +107,7 @@ const fetchProgram = async (programId) => {
     duration: toDuration(data.duration ?? data.mainSong?.duration),
     releaseDate: toIsoDate(data.createTime ?? data.scheduledPublishTime),
     audioUrl,
+    externalUrl: `${NETEASE_BASE}/program?id=${encodeURIComponent(String(data.id ?? programId))}`,
   }
 }
 
@@ -139,6 +141,7 @@ const fetchRadio = async (input) => {
     author: typeof radio.dj?.nickname === 'string' && radio.dj.nickname.trim() ? radio.dj.nickname.trim() : '网易云音乐',
     artworkUrl: normalizeImageUrl(radio.picUrl ?? radio.intervenePicUrl),
     feedUrl: undefined,
+    externalUrl: `${NETEASE_BASE}/djradio?id=${encodeURIComponent(String(radio.id ?? radioId))}`,
     primaryGenre: typeof radio.category === 'string' ? radio.category : undefined,
     releaseDate: toIsoDate(radio.lastProgramCreateTime ?? radio.createTime),
     country: 'CN',
@@ -196,6 +199,11 @@ export const ensureNeteasePodcastTables = (db) => {
 
 export const importNeteasePodcast = async (db, userId, input) => {
   const podcast = await fetchRadio(input)
+  const countRow = db.prepare('SELECT COUNT(*) AS count FROM netease_podcast_sources WHERE user_id = ? AND source_id != ?').get(String(userId), podcast.sourceId)
+  const currentCount = Number(countRow?.count ?? 0)
+  if (currentCount >= MAX_NETEASE_PODCASTS_PER_USER) {
+    throw new Error(`NETEASE_PODCAST_LIMIT:${MAX_NETEASE_PODCASTS_PER_USER}`)
+  }
   upsertCachedPodcast(db, userId, input, podcast)
   return podcast
 }

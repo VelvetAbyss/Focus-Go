@@ -7,6 +7,8 @@ import {
   UI_ANIMATIONS_ENABLED_KEY,
   WEATHER_AUTO_LOCATION_KEY,
   FOCUS_COMPLETION_SOUND_ENABLED_KEY,
+  NETEASE_EXPERIMENTAL_PLAYBACK_CONFIRMED_KEY,
+  NETEASE_EXPERIMENTAL_PLAYBACK_ENABLED_KEY,
   TASK_REMINDER_ENABLED_KEY,
   TASK_REMINDER_LEAD_MINUTES_KEY,
   WEATHER_MANUAL_CITY_KEY,
@@ -18,6 +20,8 @@ import {
   readLanguage,
   readNumberAnimationsEnabled,
   readFocusCompletionSoundEnabled,
+  readNeteaseExperimentalPlaybackConfirmed,
+  readNeteaseExperimentalPlaybackEnabled,
   readTaskReminderEnabled,
   readTaskReminderLeadMinutes,
   readUiAnimationsEnabled,
@@ -28,6 +32,8 @@ import {
   writeLanguage,
   writeNumberAnimationsEnabled,
   writeFocusCompletionSoundEnabled,
+  writeNeteaseExperimentalPlaybackConfirmed,
+  writeNeteaseExperimentalPlaybackEnabled,
   writeTaskReminderEnabled,
   writeTaskReminderLeadMinutes,
   writeUiAnimationsEnabled,
@@ -55,6 +61,8 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
   const [focusCompletionSoundEnabled, setFocusCompletionSoundEnabledState] = useState(() => readFocusCompletionSoundEnabled())
   const [taskReminderEnabled, setTaskReminderEnabledState] = useState(() => readTaskReminderEnabled())
   const [taskReminderLeadMinutes, setTaskReminderLeadMinutesState] = useState(() => readTaskReminderLeadMinutes())
+  const [neteaseExperimentalPlaybackEnabled, setNeteaseExperimentalPlaybackEnabledState] = useState(() => readNeteaseExperimentalPlaybackEnabled())
+  const [neteaseExperimentalPlaybackConfirmed, setNeteaseExperimentalPlaybackConfirmedState] = useState(() => readNeteaseExperimentalPlaybackConfirmed())
 
   useEffect(() => {
     const handleStorage = (event: StorageEvent) => {
@@ -66,8 +74,11 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
         setWeatherAutoLocationEnabledState(readWeatherAutoLocation())
         setWeatherManualCityState(readWeatherManualCity())
         setWeatherTemperatureUnitState(readWeatherTemperatureUnit())
+        setFocusCompletionSoundEnabledState(readFocusCompletionSoundEnabled())
         setTaskReminderEnabledState(readTaskReminderEnabled())
         setTaskReminderLeadMinutesState(readTaskReminderLeadMinutes())
+        setNeteaseExperimentalPlaybackEnabledState(readNeteaseExperimentalPlaybackEnabled())
+        setNeteaseExperimentalPlaybackConfirmedState(readNeteaseExperimentalPlaybackConfirmed())
         return
       }
 
@@ -118,6 +129,16 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
 
       if (event.key === TASK_REMINDER_LEAD_MINUTES_KEY) {
         setTaskReminderLeadMinutesState(readTaskReminderLeadMinutes())
+        return
+      }
+
+      if (event.key === NETEASE_EXPERIMENTAL_PLAYBACK_ENABLED_KEY) {
+        setNeteaseExperimentalPlaybackEnabledState(readNeteaseExperimentalPlaybackEnabled())
+        return
+      }
+
+      if (event.key === NETEASE_EXPERIMENTAL_PLAYBACK_CONFIRMED_KEY) {
+        setNeteaseExperimentalPlaybackConfirmedState(readNeteaseExperimentalPlaybackConfirmed())
       }
     }
     window.addEventListener('storage', handleStorage)
@@ -184,6 +205,16 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
         writeTaskReminderLeadMinutes(minutes)
         setTaskReminderLeadMinutesState(Math.max(1, Math.floor(minutes)))
       },
+      neteaseExperimentalPlaybackEnabled,
+      setNeteaseExperimentalPlaybackEnabled: (enabled: boolean) => {
+        writeNeteaseExperimentalPlaybackEnabled(enabled)
+        setNeteaseExperimentalPlaybackEnabledState(enabled)
+      },
+      neteaseExperimentalPlaybackConfirmed,
+      setNeteaseExperimentalPlaybackConfirmed: (confirmed: boolean) => {
+        writeNeteaseExperimentalPlaybackConfirmed(confirmed)
+        setNeteaseExperimentalPlaybackConfirmedState(confirmed)
+      },
     }
   }, [
     language,
@@ -191,6 +222,8 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
     focusCompletionSoundEnabled,
     taskReminderEnabled,
     taskReminderLeadMinutes,
+    neteaseExperimentalPlaybackConfirmed,
+    neteaseExperimentalPlaybackEnabled,
     numberAnimationsEnabled,
     uiAnimationsEnabled,
     weatherAutoLocationEnabled,

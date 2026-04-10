@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Check, ChevronRight, Circle, Film, Play, Plus, Search, Star, Tv, X } from 'lucide-react'
 import Dialog from '../../../shared/ui/Dialog'
+import ImeTextarea from '../../../shared/ui/ImeTextarea'
 import { AppNumber } from '../../../shared/ui/AppNumber'
 import type { MediaItem } from '../../../data/models/types'
 import type { MediaPresentationModel } from '../cards/lifeDesignAdapters'
@@ -251,7 +252,7 @@ export const MediaCardSurface = ({
                     type="button"
                     onClick={() => onAddItem(item.id)}
                     disabled={Boolean(addingCandidateId)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 10, borderRadius: 14, textAlign: 'left', border: `1px solid ${subtleBorder}`, background: '#FDFAF7' }}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: 10, borderRadius: 14, textAlign: 'left', border: `1px solid ${subtleBorder}`, background: '#FDFAF7' }}
                   >
                     <div style={{ width: 28, height: 38, borderRadius: 4, overflow: 'hidden', flexShrink: 0, background: 'rgba(58,55,51,0.08)' }}>
                       {item.posterUrl ? <img src={item.posterUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
@@ -312,13 +313,13 @@ export const MediaCardSurface = ({
                   style={{
                     position: 'relative',
                     display: 'flex',
-                    gap: 32,
-                    padding: '34px 40px 30px',
+                    gap: 24,
+                    padding: '24px 40px 20px',
                     borderBottom: `1px solid ${sectionBorder}`,
                     background: 'radial-gradient(circle at 18% 14%, rgba(198,177,135,0.20), transparent 24%), radial-gradient(circle at 64% 12%, rgba(255,255,255,0.84), transparent 28%), linear-gradient(180deg, rgba(255,255,255,0.42), rgba(255,255,255,0.16))',
                   }}
                 >
-                  <div style={{ width: 112, height: 158, borderRadius: 6, overflow: 'hidden', flexShrink: 0, background: 'rgba(58,55,51,0.08)', boxShadow: '0 14px 28px rgba(58,55,51,0.14)' }}>
+                  <div style={{ width: 88, height: 124, borderRadius: 6, overflow: 'hidden', flexShrink: 0, background: 'rgba(58,55,51,0.08)', boxShadow: '0 10px 20px rgba(58,55,51,0.12)' }}>
                     {selected.posterUrl ? <img src={selected.posterUrl} alt={selected.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
                   </div>
                   <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
@@ -331,19 +332,19 @@ export const MediaCardSurface = ({
                         <span style={inter(10, 700, statusTone[selected.status].color)}>{statusTone[selected.status].label.toUpperCase()}</span>
                       </div>
                     </div>
-                    <h3 style={{ ...playfair(28, 500), lineHeight: 1.08 }}>{selected.title}</h3>
-                    <p style={{ ...inter(14, 400, 'rgba(58,55,51,0.58)'), marginTop: 6 }}>{itemMetaLine(selected)}</p>
+                    <h3 style={{ ...playfair(22, 500), lineHeight: 1.15, marginTop: 6 }}>{selected.title}</h3>
+                    <p style={{ ...inter(13, 400, 'rgba(58,55,51,0.58)'), marginTop: 4 }}>{itemMetaLine(selected)}</p>
                     {ratingLine(selected) ? (
-                      <p style={{ ...inter(13, 500, 'rgba(58,55,51,0.42)'), marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <p style={{ ...inter(12, 500, 'rgba(58,55,51,0.42)'), marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
                         {selected.rating ? <Star size={12} color="#D39B37" fill="#D39B37" /> : null}
                         {selected.rating ? <span style={{ color: '#D39B37', fontWeight: 600 }}>{selected.rating} / 10</span> : null}
                         {[selected.country, selected.language].filter(Boolean).join(' · ')}
                       </p>
                     ) : null}
                     {selected.genres.length ? (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
                         {selected.genres.slice(0, 3).map((genre) => (
-                          <span key={genre} style={{ ...inter(11, 400, 'rgba(58,55,51,0.42)'), padding: '5px 10px', borderRadius: 999, background: 'rgba(255,255,255,0.48)', border: '1px solid rgba(58,55,51,0.08)' }}>
+                          <span key={genre} style={{ ...inter(10, 400, 'rgba(58,55,51,0.42)'), padding: '3px 8px', borderRadius: 999, background: 'rgba(255,255,255,0.48)', border: '1px solid rgba(58,55,51,0.08)' }}>
                             {genre}
                           </span>
                         ))}
@@ -353,10 +354,10 @@ export const MediaCardSurface = ({
                 </div>
 
                 <div style={{ display: 'grid', gap: 0 }}>
-                  <div style={{ display: 'grid', gap: 22, padding: '24px 40px 20px', borderBottom: `1px solid ${sectionBorder}` }}>
+                  <div style={{ display: 'grid', gap: 16, padding: '20px 40px 16px', borderBottom: `1px solid ${sectionBorder}` }}>
                     <div>
-                      <div style={{ ...inter(12, 600, 'rgba(58,55,51,0.38)'), letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 14 }}>Status</div>
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <div style={{ ...inter(11, 500, 'rgba(58,55,51,0.38)'), letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 10 }}>Status</div>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         {([
                           ['want-to-watch', Circle, 'Want to Watch'],
                           ['watching', Play, 'Watching'],
@@ -371,25 +372,26 @@ export const MediaCardSurface = ({
                               style={{
                                 display: 'inline-flex',
                                 alignItems: 'center',
-                                gap: 8,
+                                gap: 6,
                                 borderRadius: 999,
-                                border: `1px solid ${active ? 'rgba(90,122,98,0.20)' : 'rgba(58,55,51,0.10)'}`,
-                                background: active ? 'rgba(90,122,98,0.10)' : 'rgba(255,255,255,0.54)',
-                                padding: '8px 14px',
+                                border: `1px solid ${active ? 'rgba(90,122,98,0.20)' : 'rgba(58,55,51,0.08)'}`,
+                                background: active ? 'rgba(90,122,98,0.10)' : 'transparent',
+                                padding: '6px 12px',
                                 color: active ? '#5A7A62' : 'rgba(58,55,51,0.46)',
+                                cursor: 'pointer',
                               }}
                             >
-                              <Icon size={12} />
-                              <span style={inter(12, active ? 600 : 500, active ? '#5A7A62' : 'rgba(58,55,51,0.48)')}>{label}</span>
+                              <Icon size={11} />
+                              <span style={inter(11, active ? 500 : 400, active ? '#5A7A62' : 'rgba(58,55,51,0.48)')}>{label}</span>
                             </button>
                           )
                         })}
                       </div>
                     </div>
                     <div>
-                      <div style={{ ...inter(12, 600, 'rgba(58,55,51,0.38)'), letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12 }}>Progress</div>
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 6 }}>
-                        <span style={inter(14, 700, '#3A3733')}>{selected.progress}%</span>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <div style={{ ...inter(11, 500, 'rgba(58,55,51,0.38)'), letterSpacing: '0.07em', textTransform: 'uppercase' }}>Progress</div>
+                        <span style={inter(12, 600, '#3A3733')}>{selected.progress}%</span>
                       </div>
                       <ProgressTrack
                         value={selected.progress}
@@ -398,31 +400,31 @@ export const MediaCardSurface = ({
                         showLabel={false}
                         color="#6F8F77"
                       />
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-                        <span style={inter(11, 400, 'rgba(58,55,51,0.26)')}>0%</span>
-                        <span style={inter(11, 400, 'rgba(58,55,51,0.26)')}>50%</span>
-                        <span style={inter(11, 400, 'rgba(58,55,51,0.26)')}>100%</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                        <span style={inter(10, 400, 'rgba(58,55,51,0.26)')}>0%</span>
+                        <span style={inter(10, 400, 'rgba(58,55,51,0.26)')}>50%</span>
+                        <span style={inter(10, 400, 'rgba(58,55,51,0.26)')}>100%</span>
                       </div>
                     </div>
                   </div>
 
-                  <div style={{ padding: '28px 40px 30px', borderBottom: `1px solid ${sectionBorder}` }}>
-                    <div style={{ ...inter(12, 600, 'rgba(58,55,51,0.38)'), letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12 }}>My Notes</div>
-                    <textarea
+                  <div style={{ padding: '20px 40px', borderBottom: `1px solid ${sectionBorder}` }}>
+                    <div style={{ ...inter(11, 500, 'rgba(58,55,51,0.38)'), letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 8 }}>My Notes</div>
+                    <ImeTextarea
                       value={noteValue(selected)}
-                      onChange={(event) => onPatchItem({ reflection: event.target.value })}
+                      onChange={(val) => onPatchItem({ reflection: val })}
                       placeholder="Write a personal note..."
-                      style={{ ...textareaStyle, minHeight: 118, padding: '18px 16px', borderRadius: 14, background: 'rgba(255,255,255,0.44)', fontFamily: '"Playfair Display", serif', fontSize: 18, lineHeight: 1.55, fontStyle: 'italic', color: '#3A3733' }}
+                      style={{ ...textareaStyle, minHeight: 80, padding: '14px 16px', borderRadius: 10, background: 'rgba(58,55,51,0.025)', fontFamily: '"Playfair Display", serif', fontSize: 13, lineHeight: 1.75, fontStyle: 'italic', color: '#3A3733' }}
                     />
                   </div>
 
-                  <div style={{ padding: '24px 40px 36px' }}>
-                    <div style={{ ...inter(12, 600, 'rgba(58,55,51,0.38)'), letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 14 }}>Synopsis</div>
+                  <div style={{ padding: '20px 40px 28px' }}>
+                    <div style={{ ...inter(11, 500, 'rgba(58,55,51,0.38)'), letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 10 }}>Synopsis</div>
                     <textarea
                       value={synopsisValue(selected)}
                       onChange={(event) => onPatchItem({ overview: event.target.value })}
                       placeholder="Synopsis"
-                      style={{ ...textareaStyle, minHeight: 120, padding: 0, border: 'none', background: 'transparent', borderRadius: 0, resize: 'none', ...inter(15, 400, 'rgba(58,55,51,0.62)'), lineHeight: 1.8 }}
+                      style={{ ...textareaStyle, minHeight: 100, padding: 0, border: 'none', background: 'transparent', borderRadius: 0, resize: 'none', ...inter(13, 400, 'rgba(58,55,51,0.62)'), lineHeight: 1.8 }}
                     />
                   </div>
                 </div>

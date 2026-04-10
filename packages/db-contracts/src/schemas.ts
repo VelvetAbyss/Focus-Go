@@ -482,6 +482,7 @@ const lifePodcastEpisodeSchema = z.object({
   duration: z.string().optional(),
   releaseDate: z.string().optional(),
   audioUrl: z.string().optional(),
+  externalUrl: z.string().optional(),
 }).strict()
 
 const lifePodcastSchema = baseEntitySchema.extend({
@@ -492,6 +493,7 @@ const lifePodcastSchema = baseEntitySchema.extend({
   author: z.string(),
   artworkUrl: z.string().optional(),
   feedUrl: z.string().optional(),
+  externalUrl: z.string().optional(),
   primaryGenre: z.string().optional(),
   releaseDate: z.string().optional(),
   country: z.string().optional(),
@@ -511,6 +513,7 @@ const lifePodcastCreateInputSchema = z.object({
   author: z.string(),
   artworkUrl: z.string().optional(),
   feedUrl: z.string().optional(),
+  externalUrl: z.string().optional(),
   primaryGenre: z.string().optional(),
   releaseDate: z.string().optional(),
   country: z.string().optional(),
@@ -532,6 +535,7 @@ const lifePodcastUpdateInputSchema = z.object({
   author: z.string().optional(),
   artworkUrl: z.string().optional(),
   feedUrl: z.string().optional(),
+  externalUrl: z.string().optional(),
   primaryGenre: z.string().optional(),
   releaseDate: z.string().optional(),
   country: z.string().optional(),

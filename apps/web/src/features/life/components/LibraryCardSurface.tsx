@@ -1,6 +1,7 @@
 import { BookMarked, BookOpen, CheckCheck, ChevronRight, Clock, Plus, Search, Trash2, X } from 'lucide-react'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import Dialog from '../../../shared/ui/Dialog'
+import ImeTextarea from '../../../shared/ui/ImeTextarea'
 import { AppNumber } from '../../../shared/ui/AppNumber'
 import type { BookItem } from '../../../data/models/types'
 import type { LibraryPresentationModel } from '../cards/lifeDesignAdapters'
@@ -30,6 +31,7 @@ type Props = {
   onClose: () => void
   onQueryChange: (value: string) => void
   onSearch: () => void
+  onClearResults: () => void
   onSelectBook: (id: string) => void
   onAddBook: (id: string) => void
   onPatchBook: (patch: Partial<BookItem>) => void
@@ -169,11 +171,25 @@ export const LibraryCardSurface = ({
   onClose,
   onQueryChange,
   onSearch,
+  onClearResults,
   onSelectBook,
   onAddBook,
   onPatchBook,
   onRemoveBook,
 }: Props) => {
+  const sidebarRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open || results.length === 0) return
+    const handler = (event: MouseEvent) => {
+      if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
+        onClearResults()
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open, results.length, onClearResults])
+
   const readingCount = books.filter((book) => book.status === 'reading').length
   const finishedCount = books.filter((book) => book.status === 'finished').length
   const wantToReadCount = books.filter((book) => book.status === 'want-to-read').length
@@ -294,7 +310,7 @@ export const LibraryCardSurface = ({
           </div>
 
           <div style={{ display: 'flex', minHeight: 0, flex: 1 }}>
-            <div style={{ width: 300, display: 'flex', flexDirection: 'column', flexShrink: 0, borderRight: `1px solid ${subtleBorder}`, background: '#FAF8F5' }}>
+            <div ref={sidebarRef} style={{ width: 300, display: 'flex', flexDirection: 'column', flexShrink: 0, borderRight: `1px solid ${subtleBorder}`, background: '#FAF8F5' }}>
               <div style={{ padding: '20px 16px 12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, height: 38, borderRadius: 12, padding: '0 12px', background: 'rgba(58,55,51,0.06)', border: '1px solid rgba(58,55,51,0.09)' }}>
                   <Search size={13} color="rgba(58,55,51,0.35)" />
@@ -318,7 +334,7 @@ export const LibraryCardSurface = ({
               {results.length > 0 ? (
                 <div style={{ padding: '0 16px 12px', borderBottom: `1px solid ${subtleBorder}` }}>
                   <p style={{ ...inter(10, 500, 'rgba(58,55,51,0.38)'), letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8, paddingLeft: 4 }}>Search Results</p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto' }}>
                     {results.map((book) => (
                       <div key={book.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, borderRadius: 12, background: cardBg, border: `1px solid ${subtleBorder}` }}>
                         <div style={{ width: 32, height: 44, flexShrink: 0, overflow: 'hidden', borderRadius: 3, background: 'rgba(58,55,51,0.08)' }}>
@@ -490,9 +506,9 @@ export const LibraryCardSurface = ({
                       <span style={{ color: mutedText }}><BookMarked size={13} /></span>
                       <p style={{ ...inter(11, 500, mutedText), letterSpacing: '0.07em', textTransform: 'uppercase' }}>My Reflection</p>
                     </div>
-                    <textarea
+                    <ImeTextarea
                       value={selectedBook.reflection ?? ''}
-                      onChange={(event) => onPatchBook({ reflection: event.target.value })}
+                      onChange={(val) => onPatchBook({ reflection: val })}
                       placeholder="What stayed with you? A passage, a thought, a question this book left open..."
                       rows={5}
                       style={{
