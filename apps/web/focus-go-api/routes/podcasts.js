@@ -6,15 +6,7 @@ import { importNeteasePodcast, resolveNeteaseProgramAudioUrl, syncNeteasePodcast
 
 const router = Router()
 
-const getApiOrigin = (req) => `${req.protocol}://${req.get('host')}`
-
-const serializePodcast = (req, podcast) => ({
-  ...podcast,
-  episodes: podcast.episodes.map((episode) => ({
-    ...episode,
-    audioUrl: `${getApiOrigin(req)}/podcasts/netease/stream?programId=${encodeURIComponent(episode.id)}`,
-  })),
-})
+const serializePodcast = (_req, podcast) => podcast
 
 router.get('/netease/stream', async (req, res) => {
   const programId = typeof req.query?.programId === 'string' ? req.query.programId : ''
@@ -80,6 +72,9 @@ router.post('/netease/import', async (req, res) => {
     return res.json({ podcast: serializePodcast(req, podcast) })
   } catch (error) {
     console.error(error)
+    if (String(error?.message ?? '').startsWith('NETEASE_PODCAST_LIMIT:')) {
+      return res.status(400).json({ error: error.message })
+    }
     return res.status(500).json({ error: error.message })
   }
 })

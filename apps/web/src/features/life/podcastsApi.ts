@@ -8,6 +8,7 @@ type ItunesSearchResult = {
   artistName?: string
   artworkUrl100?: string
   feedUrl?: string
+  collectionViewUrl?: string
   primaryGenreName?: string
   releaseDate?: string
   country?: string
@@ -22,6 +23,7 @@ type ItunesEpisodeResult = {
   releaseDate?: string
   trackTimeMillis?: number
   collectionId?: number
+  trackViewUrl?: string
 }
 
 type ItunesLookupResult = ItunesSearchResult & ItunesEpisodeResult & { wrapperType?: string; kind?: string }
@@ -44,6 +46,8 @@ export const buildNeteaseStreamUrl = (programId: string, cacheBust?: number) => 
 
 const fallbackEmojis = ['🎙', '🎧', '📻', '🗣']
 const fallbackColors = ['#D8C2A6', '#B7CCB0', '#CBB5D9', '#E3BCA4', '#A9C8D8']
+const ITUNES_SEARCH_CACHE_TTL_MS = 60_000
+const itunesSearchCache = new Map<string, { expiresAt: number; results: RemotePodcastCandidate[] }>()
 
 const fetchJson = async <T,>(url: string, signal?: AbortSignal): Promise<T> => {
   const response = await fetch(url, { signal })
@@ -129,6 +133,7 @@ const mapSearchResult = (item: ItunesSearchResult): RemotePodcastCandidate | nul
     author: item.artistName ?? 'Unknown',
     artworkUrl: item.artworkUrl100?.replace('100x100bb', '600x600bb'),
     feedUrl: item.feedUrl,
+    externalUrl: item.collectionViewUrl,
     primaryGenre: item.primaryGenreName,
     releaseDate: item.releaseDate,
     country: item.country,
@@ -145,6 +150,9 @@ export const dedupePodcastMatch = (
   rows.find((item) => item.collectionId === candidate.collectionId && item.source === candidate.source)
 
 export const searchRemotePodcasts = async (query: string, signal?: AbortSignal): Promise<RemotePodcastCandidate[]> => {
+  const cacheKey = query.trim().toLowerCase()
+  const cached = itunesSearchCache.get(cacheKey)
+  if (cached && cached.expiresAt > Date.now()) return cached.results
   const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=podcast&limit=10`
   const payload = await fetchJson<{ results?: ItunesSearchResult[] }>(url, signal)
   const merged: RemotePodcastCandidate[] = []
@@ -153,6 +161,7 @@ export const searchRemotePodcasts = async (query: string, signal?: AbortSignal):
     if (!candidate || dedupePodcastMatch(merged, candidate)) continue
     merged.push(candidate)
   }
+  itunesSearchCache.set(cacheKey, { expiresAt: Date.now() + ITUNES_SEARCH_CACHE_TTL_MS, results: merged })
   return merged
 }
 
@@ -170,6 +179,7 @@ export const hydrateRemotePodcastCandidate = async (candidate: RemotePodcastCand
         duration: toDuration(item.trackTimeMillis),
         releaseDate: item.releaseDate,
         audioUrl: item.episodeUrl,
+        externalUrl: item.trackViewUrl,
       })),
   )
   return {

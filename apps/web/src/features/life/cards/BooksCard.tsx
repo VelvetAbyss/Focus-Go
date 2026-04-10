@@ -147,6 +147,7 @@ const BooksCard = () => {
       onClose={() => setOpen(false)}
       onQueryChange={setQuery}
       onSearch={() => void handleSearch()}
+      onClearResults={() => setResults([])}
       onSelectBook={setSelectedBookId}
       onAddBook={(id) => void handleAddBook(id)}
       onPatchBook={(patch) => void handleBookPatch(patch)}

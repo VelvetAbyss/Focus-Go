@@ -21,6 +21,10 @@ export type PreferencesContextValue = {
   setTaskReminderEnabled: (enabled: boolean) => void
   taskReminderLeadMinutes: number
   setTaskReminderLeadMinutes: (minutes: number) => void
+  neteaseExperimentalPlaybackEnabled: boolean
+  setNeteaseExperimentalPlaybackEnabled: (enabled: boolean) => void
+  neteaseExperimentalPlaybackConfirmed: boolean
+  setNeteaseExperimentalPlaybackConfirmed: (confirmed: boolean) => void
 }
 
 export const PreferencesContext = createContext<PreferencesContextValue | null>(null)

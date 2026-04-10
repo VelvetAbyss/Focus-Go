@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, InputHTMLAttributes, ReactNode } from 'react'
-import { createPortal } from 'react-dom'
+import Dialog from '../../../shared/ui/Dialog'
 import { Bell, BellOff, CalendarDays, CheckCheck, ChevronRight, CreditCard, LayoutGrid, Plus, Trash2, X } from 'lucide-react'
 import type { LifeSubscription } from '../../../data/models/types'
 import type { SubscriptionDraft } from '../cards/SubscriptionsCard'
@@ -479,16 +479,6 @@ export const SubscriptionCardSurface = ({ model, subscriptions, open, loading, o
     setShowingOverview(false)
   }
   const update = useCallback((id: string, form: FormState) => { void onPatchSubscription(id, toDraft(form)) }, [onPatchSubscription])
-  const modal =
-    open && typeof document !== 'undefined' ? (
-      <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(58,55,51,0.45)', backdropFilter: 'blur(6px)', zIndex: 9999 }} onClick={(event) => { if (event.target === event.currentTarget) onClose() }}>
-        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: paper, borderRadius: 20, width: '90vw', maxWidth: 1320, height: '88vh', maxHeight: 800, boxShadow: '0 32px 80px rgba(58,55,51,0.22), 0 8px 24px rgba(58,55,51,0.10)', border: '1px solid rgba(58,55,51,0.10)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 32px', borderBottom: `1px solid ${subtleBorder}` }}><div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><CreditCard size={16} color="rgba(58,55,51,0.38)" /><div><p style={{ ...inter(10, 600, 'rgba(58,55,51,0.38)'), marginBottom: 2, textTransform: 'uppercase', letterSpacing: '0.10em' }}>Monthly</p><h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: 22, fontWeight: 500, color: ink }}>Subscriptions</h1></div><span style={{ marginLeft: 4, padding: '4px 10px', borderRadius: 999, background: 'rgba(58,55,51,0.07)', ...inter(11, 500, mutedInk) }}>{subscriptions.length} service{subscriptions.length !== 1 ? 's' : ''}</span></div><button type="button" onClick={onClose} aria-label="Close" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 999, border: 'none', background: 'transparent', color: 'rgba(58,55,51,0.40)', cursor: 'pointer' }}><X size={16} /></button></div>
-          <div style={{ display: 'flex', flex: 1, minHeight: 0 }}><div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0, width: 370, borderRight: `1px solid ${subtleBorder}`, background: '#FAF8F5' }}><SummaryBar subs={subscriptions} onOverview={handleOverview} showingOverview={showingOverview && !isAdding} /><div style={{ padding: '12px 16px', borderBottom: `1px solid ${subtleBorder}` }}><button type="button" onClick={handleStartAdding} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 0', borderRadius: 18, cursor: 'pointer', border: `1px solid ${isAdding ? 'transparent' : 'rgba(58,55,51,0.10)'}`, background: isAdding ? '#3A3733' : 'rgba(58,55,51,0.07)', ...inter(12, 500, isAdding ? '#F5F3F0' : ink) }}><Plus size={13} /><span>Add subscription</span></button></div>{subscriptions.length ? <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '12px 16px', borderBottom: `1px solid ${subtleBorder}` }}>{([{ key: 'all', label: `All ${subscriptions.length}` }, { key: 'unpaid', label: `Unpaid ${unpaidCount}` }, { key: 'paid', label: `Paid ${paidCount}` }] as Array<{ key: StatusFilter; label: string }>).map((item) => <button key={item.key} type="button" onClick={() => setStatusFilter(item.key)} style={{ padding: '6px 12px', borderRadius: 999, border: 'none', background: statusFilter === item.key ? 'rgba(58,55,51,0.08)' : 'transparent', cursor: 'pointer', ...inter(10, statusFilter === item.key ? 500 : 400, statusFilter === item.key ? ink : mutedInk), letterSpacing: '0.01em' }}>{item.label}</button>)}</div> : null}<div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>{loading ? <LifePanelLoader /> : null}{!loading && !subscriptions.length ? <EmptyList onAdd={handleStartAdding} /> : null}{!loading && subscriptions.length && !filtered.length ? <p style={{ ...inter(12, 400, 'rgba(58,55,51,0.38)'), textAlign: 'center', padding: '32px 0' }}>No {statusFilter} subscriptions</p> : null}{!loading && filtered.length ? <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>{filtered.map((item) => <SubListItem key={item.id} sub={item} selected={!isAdding && selectedId === item.id} onClick={() => handleSelectSubscription(item.id)} />)}</div> : null}</div>{subscriptions.length ? <div style={{ padding: '12px 20px', borderTop: `1px solid ${subtleBorder}` }}><p style={{ ...inter(10, 400, 'rgba(58,55,51,0.30)'), lineHeight: 1.65 }}>Yearly prices shown as estimated monthly. Currencies listed separately.</p></div> : null}</div><div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>{isAdding ? <SubForm key="new" initial={freshForm(subscriptions)} isNew={true} onSave={(form) => void create(form)} onCancel={() => { setIsAdding(false); setShowingOverview(true) }} /> : selected && !showingOverview ? <SubForm key={selected.id} initial={toFormState(selected)} isNew={false} onSave={(form) => update(selected.id, form)} onRemove={() => { onRemoveSubscription(selected.id); setSelectedId(null); setShowingOverview(true) }} /> : <AnnualOverviewPanel subs={subscriptions} usdToCny={usdToCny} onUsdToCnyChange={setUsdToCny} />}</div></div>
-        </div>
-      </div>
-    ) : null
-
   return (
     <>
       <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', width: '100%', height: '100%', minHeight: model.previewRows.length === 0 ? 280 : 0, overflow: 'hidden', borderRadius: 24, cursor: 'pointer', background: '#ffffff', border: '1px solid transparent', boxShadow: '0 12px 28px rgba(58, 55, 51, 0.08)' }} onClick={onOpen} aria-label={`${model.stats.activeServices} active subscriptions`}>
@@ -499,7 +489,46 @@ export const SubscriptionCardSurface = ({ model, subscriptions, open, loading, o
         {model.previewRows.length > 0 ? <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', marginTop: 'auto', borderTop: '1px solid rgba(58,55,51,0.07)' }}><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>{subscriptions.slice(0, 7).map((item) => <div key={item.id} style={{ width: 7, height: 7, borderRadius: 999, background: item.color ?? '#D4A06A' }} />)}{subscriptions.length > 7 ? <span style={inter(9, 400, 'rgba(58,55,51,0.38)')}>+{subscriptions.length - 7}</span> : null}</div><span style={inter(11, 400, 'rgba(58,55,51,0.50)')}><span style={inter(11, 600, '#3A3733')}>{paidCount}</span>/{subscriptions.length} paid</span></div><div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>{model.stats.dueSoon > 0 ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, borderRadius: 999, border: '1px solid rgba(232,168,95,0.25)', background: 'rgba(232,168,95,0.15)', padding: '3px 8px', ...inter(10, 500, '#B87830') }}><Bell size={9} />{model.stats.dueSoon} due soon</span> : null}<button type="button" onClick={(event) => { event.stopPropagation(); onOpen() }} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, border: 'none', background: 'transparent', color: '#3A3733', cursor: 'pointer', padding: 0, ...inter(11, 400) }}><Plus size={11} /><span>Manage</span></button></div></div> : null}
       </div>
 
-      {modal ? createPortal(modal, document.body) : null}
+      <Dialog
+        open={open}
+        onClose={onClose}
+        panelClassName="life-modal__panel"
+        contentClassName="life-modal__content"
+        panelStyle={{ width: 'min(1320px, 90vw)', maxHeight: 'min(800px, 88vh)', background: paper }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 32px', borderBottom: `1px solid ${subtleBorder}`, flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <CreditCard size={16} color="rgba(58,55,51,0.38)" />
+              <div>
+                <p style={{ ...inter(10, 600, 'rgba(58,55,51,0.38)'), marginBottom: 2, textTransform: 'uppercase', letterSpacing: '0.10em' }}>Monthly</p>
+                <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: 22, fontWeight: 500, color: ink }}>Subscriptions</h1>
+              </div>
+              <span style={{ marginLeft: 4, padding: '4px 10px', borderRadius: 999, background: 'rgba(58,55,51,0.07)', ...inter(11, 500, mutedInk) }}>{subscriptions.length} service{subscriptions.length !== 1 ? 's' : ''}</span>
+            </div>
+            <button type="button" onClick={onClose} aria-label="Close" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 999, border: 'none', background: 'transparent', color: 'rgba(58,55,51,0.40)', cursor: 'pointer' }}><X size={16} /></button>
+          </div>
+          <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0, width: 370, borderRight: `1px solid ${subtleBorder}`, background: '#FAF8F5' }}>
+              <SummaryBar subs={subscriptions} onOverview={handleOverview} showingOverview={showingOverview && !isAdding} />
+              <div style={{ padding: '12px 16px', borderBottom: `1px solid ${subtleBorder}` }}>
+                <button type="button" onClick={handleStartAdding} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 0', borderRadius: 18, cursor: 'pointer', border: `1px solid ${isAdding ? 'transparent' : 'rgba(58,55,51,0.10)'}`, background: isAdding ? '#3A3733' : 'rgba(58,55,51,0.07)', ...inter(12, 500, isAdding ? '#F5F3F0' : ink) }}><Plus size={13} /><span>Add subscription</span></button>
+              </div>
+              {subscriptions.length ? <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '12px 16px', borderBottom: `1px solid ${subtleBorder}` }}>{([{ key: 'all', label: `All ${subscriptions.length}` }, { key: 'unpaid', label: `Unpaid ${unpaidCount}` }, { key: 'paid', label: `Paid ${paidCount}` }] as Array<{ key: StatusFilter; label: string }>).map((item) => <button key={item.key} type="button" onClick={() => setStatusFilter(item.key)} style={{ padding: '6px 12px', borderRadius: 999, border: 'none', background: statusFilter === item.key ? 'rgba(58,55,51,0.08)' : 'transparent', cursor: 'pointer', ...inter(10, statusFilter === item.key ? 500 : 400, statusFilter === item.key ? ink : mutedInk), letterSpacing: '0.01em' }}>{item.label}</button>)}</div> : null}
+              <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
+                {loading ? <LifePanelLoader /> : null}
+                {!loading && !subscriptions.length ? <EmptyList onAdd={handleStartAdding} /> : null}
+                {!loading && subscriptions.length && !filtered.length ? <p style={{ ...inter(12, 400, 'rgba(58,55,51,0.38)'), textAlign: 'center', padding: '32px 0' }}>No {statusFilter} subscriptions</p> : null}
+                {!loading && filtered.length ? <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>{filtered.map((item) => <SubListItem key={item.id} sub={item} selected={!isAdding && selectedId === item.id} onClick={() => handleSelectSubscription(item.id)} />)}</div> : null}
+              </div>
+              {subscriptions.length ? <div style={{ padding: '12px 20px', borderTop: `1px solid ${subtleBorder}` }}><p style={{ ...inter(10, 400, 'rgba(58,55,51,0.30)'), lineHeight: 1.65 }}>Yearly prices shown as estimated monthly. Currencies listed separately.</p></div> : null}
+            </div>
+            <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+              {isAdding ? <SubForm key="new" initial={freshForm(subscriptions)} isNew={true} onSave={(form) => void create(form)} onCancel={() => { setIsAdding(false); setShowingOverview(true) }} /> : selected && !showingOverview ? <SubForm key={selected.id} initial={toFormState(selected)} isNew={false} onSave={(form) => update(selected.id, form)} onRemove={() => { onRemoveSubscription(selected.id); setSelectedId(null); setShowingOverview(true) }} /> : <AnnualOverviewPanel subs={subscriptions} usdToCny={usdToCny} onUsdToCnyChange={setUsdToCny} />}
+            </div>
+          </div>
+        </div>
+      </Dialog>
     </>
   )
 }

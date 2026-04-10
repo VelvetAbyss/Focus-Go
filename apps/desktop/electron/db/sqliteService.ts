@@ -446,6 +446,7 @@ const toLifePodcast = (row: Record<string, unknown>): LifePodcast => ({
   author: String(row.author ?? ''),
   artworkUrl: row.artworkUrl ? String(row.artworkUrl) : undefined,
   feedUrl: row.feedUrl ? String(row.feedUrl) : undefined,
+  externalUrl: row.externalUrl ? String(row.externalUrl) : undefined,
   primaryGenre: row.primaryGenre ? String(row.primaryGenre) : undefined,
   releaseDate: row.releaseDate ? String(row.releaseDate) : undefined,
   country: row.country ? String(row.country) : undefined,
@@ -795,6 +796,7 @@ const ensureSchema = (database: Database.Database) => {
       author TEXT NOT NULL,
       artworkUrl TEXT,
       feedUrl TEXT,
+      externalUrl TEXT,
       primaryGenre TEXT,
       releaseDate TEXT,
       country TEXT,
@@ -926,6 +928,7 @@ const ensureSchema = (database: Database.Database) => {
   ensureColumn('life_podcasts', 'coverColor', 'TEXT')
   ensureColumn('life_podcasts', 'coverEmoji', 'TEXT')
   ensureColumn('life_podcasts', 'source', `TEXT NOT NULL DEFAULT 'itunes'`)
+  ensureColumn('life_podcasts', 'externalUrl', 'TEXT')
   ensureColumn('life_podcasts', 'selectedEpisodeId', 'TEXT')
   ensureColumn('life_podcasts', 'isPlaying', 'INTEGER NOT NULL DEFAULT 0')
   ensureColumn('life_podcasts', 'lastSyncedAt', 'INTEGER')
@@ -2416,8 +2419,8 @@ export const createSqliteBundle = (dbPath: string): SqliteBundle => {
         database
           .prepare(
             `INSERT INTO life_podcasts
-             (id, source, sourceId, collectionId, name, author, artworkUrl, feedUrl, primaryGenre, releaseDate, country, coverColor, coverEmoji, episodes, selectedEpisodeId, isPlaying, lastSyncedAt, createdAt, updatedAt, userId, workspaceId)
-             VALUES (@id, @source, @sourceId, @collectionId, @name, @author, @artworkUrl, @feedUrl, @primaryGenre, @releaseDate, @country, @coverColor, @coverEmoji, @episodes, @selectedEpisodeId, @isPlaying, @lastSyncedAt, @createdAt, @updatedAt, @userId, @workspaceId)`,
+             (id, source, sourceId, collectionId, name, author, artworkUrl, feedUrl, externalUrl, primaryGenre, releaseDate, country, coverColor, coverEmoji, episodes, selectedEpisodeId, isPlaying, lastSyncedAt, createdAt, updatedAt, userId, workspaceId)
+             VALUES (@id, @source, @sourceId, @collectionId, @name, @author, @artworkUrl, @feedUrl, @externalUrl, @primaryGenre, @releaseDate, @country, @coverColor, @coverEmoji, @episodes, @selectedEpisodeId, @isPlaying, @lastSyncedAt, @createdAt, @updatedAt, @userId, @workspaceId)`,
           )
           .run({
             ...entity,
@@ -2442,6 +2445,7 @@ export const createSqliteBundle = (dbPath: string): SqliteBundle => {
                author=@author,
                artworkUrl=@artworkUrl,
                feedUrl=@feedUrl,
+               externalUrl=@externalUrl,
                primaryGenre=@primaryGenre,
                releaseDate=@releaseDate,
                country=@country,

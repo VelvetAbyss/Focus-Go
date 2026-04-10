@@ -90,10 +90,13 @@ export const iconButtonStyle: CSSProperties = {
 
 export const sidebarStyle: CSSProperties = {
   width: 292,
+  minWidth: 292,
+  maxWidth: 292,
   flexShrink: 0,
   padding: 16,
   borderRight: `1px solid ${sectionBorder}`,
   overflowY: 'auto',
+  overflowX: 'hidden',
 }
 
 export const detailPaneStyle: CSSProperties = {

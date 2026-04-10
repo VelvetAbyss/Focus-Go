@@ -220,6 +220,7 @@ export type LifePodcastEpisode = {
   duration?: string
   releaseDate?: string
   audioUrl?: string
+  externalUrl?: string
 }
 
 export type LifePodcast = BaseEntity & {
@@ -230,6 +231,7 @@ export type LifePodcast = BaseEntity & {
   author: string
   artworkUrl?: string
   feedUrl?: string
+  externalUrl?: string
   primaryGenre?: string
   releaseDate?: string
   country?: string

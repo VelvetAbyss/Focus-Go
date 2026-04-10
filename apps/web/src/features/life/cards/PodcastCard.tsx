@@ -13,7 +13,16 @@ import {
   syncNeteasePodcasts,
   type RemotePodcastCandidate,
 } from '../podcastsApi'
-import { pausePodcastPlayback, playPodcastEpisode, subscribePodcastPlayback } from '../podcastPlayback'
+import {
+  isNeteaseExperimentalPlaybackEnabled,
+  pausePodcastPlayback,
+  playPodcastEpisode,
+  stopNeteasePlaybackIfDisabled,
+  subscribePodcastPlayback,
+} from '../podcastPlayback'
+import { usePreferences } from '../../../shared/prefs/usePreferences'
+
+const NETEASE_LIMIT = 3
 
 const mergeEpisodes = (current: LifePodcast['episodes'], incoming: LifePodcast['episodes']) => {
   const merged = new Map<string, LifePodcast['episodes'][number]>()
@@ -29,6 +38,7 @@ const toImportErrorMessage = (error: unknown) => {
   if (message.includes('Missing auth token')) return 'Netease import requires login first.'
   if (message.includes('404')) return 'Netease import API is not deployed yet. Start or deploy focus-go-api first.'
   if (message.includes('401')) return 'Netease import requires a valid login session.'
+  if (message.includes('NETEASE_PODCAST_LIMIT:3')) return 'You can add up to 3 Netease channels. Remove one to continue.'
   return 'Netease podcast import failed. Check the channel link.'
 }
 
@@ -40,6 +50,9 @@ const toRefreshErrorMessage = (error: unknown) => {
 }
 
 const PodcastCard = () => {
+  const {
+    neteaseExperimentalPlaybackEnabled,
+  } = usePreferences()
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState<LifePodcast[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -84,6 +97,10 @@ const PodcastCard = () => {
     [],
   )
 
+  useEffect(() => {
+    if (!neteaseExperimentalPlaybackEnabled) void stopNeteasePlaybackIfDisabled()
+  }, [neteaseExperimentalPlaybackEnabled])
+
   const applyPodcastUpdate = (updated: LifePodcast) => {
     setItems((current) => [updated, ...current.filter((item) => item.id !== updated.id)])
     setSelectedId(updated.id)
@@ -96,6 +113,19 @@ const PodcastCard = () => {
     if (message.includes('play() failed')) return 'Playback was blocked by the browser.'
     return message || 'Podcast playback failed.'
   }
+
+  const openExternal = (url?: string) => {
+    if (!url || typeof window === 'undefined') return
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
+
+  const neteaseEpisodeUrl = (episodeId: string) =>
+    `https://music.163.com/program?id=${encodeURIComponent(episodeId)}`
+  const neteaseChannelUrl = (sourceId: string) =>
+    `https://music.163.com/djradio?id=${encodeURIComponent(sourceId)}`
+
+  const isNeteaseDefaultMode = (podcast: LifePodcast) =>
+    podcast.source === 'netease' && !neteaseExperimentalPlaybackEnabled
 
   const playSelection = async (podcast: LifePodcast, episodeId?: string) => {
     const episode = podcast.episodes.find((item) => item.id === (episodeId ?? podcast.selectedEpisodeId)) ?? podcast.episodes[0]
@@ -145,6 +175,10 @@ const PodcastCard = () => {
     const nextQuery = query.trim()
     if (!nextQuery) return
     if (isNeteasePodcastUrl(nextQuery)) {
+      if (items.filter((item) => item.source === 'netease').length >= NETEASE_LIMIT) {
+        setError(`You can add up to ${NETEASE_LIMIT} Netease channels. Remove one to continue.`)
+        return
+      }
       setAddingCandidateId(`netease:${extractNeteaseRadioId(nextQuery) ?? nextQuery}`)
       setError(null)
       try {
@@ -185,6 +219,10 @@ const PodcastCard = () => {
   const handleImportChannel = async (input: string, key: string) => {
     const nextInput = input.trim()
     if (!nextInput) return
+    if (items.filter((item) => item.source === 'netease').length >= NETEASE_LIMIT) {
+      setError(`You can add up to ${NETEASE_LIMIT} Netease channels. Remove one to continue.`)
+      return
+    }
     setAddingCandidateId(key)
     setError(null)
     try {
@@ -226,16 +264,29 @@ const PodcastCard = () => {
   }
 
   const handleSelectEpisode = async (podcastId: string, episodeId: string) => {
-    const updated = await podcastsRepo.update(podcastId, { selectedEpisodeId: episodeId, isPlaying: true })
+    const item = items.find((entry) => entry.id === podcastId)
+    if (!item) return
+    const patch = { selectedEpisodeId: episodeId, isPlaying: isNeteaseDefaultMode(item) ? false : true }
+    const updated = await podcastsRepo.update(podcastId, patch)
     if (!updated) return
     applyPodcastUpdate(updated)
     setError(null)
+    const episode = updated.episodes.find((entry) => entry.id === episodeId)
+    if (isNeteaseDefaultMode(updated)) {
+      openExternal(episode?.externalUrl ?? (episode ? neteaseEpisodeUrl(episode.id) : undefined) ?? updated.externalUrl ?? neteaseChannelUrl(updated.sourceId))
+      return
+    }
     await playSelection(updated, episodeId)
   }
 
   const handleTogglePlaying = async (podcastId: string) => {
     const item = items.find((entry) => entry.id === podcastId)
     if (!item) return
+    if (isNeteaseDefaultMode(item)) {
+      const episode = item.episodes.find((entry) => entry.id === item.selectedEpisodeId) ?? item.episodes[0]
+      openExternal(episode?.externalUrl ?? (episode ? neteaseEpisodeUrl(episode.id) : undefined) ?? item.externalUrl ?? neteaseChannelUrl(item.sourceId))
+      return
+    }
     const updated = await podcastsRepo.update(podcastId, { isPlaying: !item.isPlaying })
     if (!updated) return
     applyPodcastUpdate(updated)
@@ -270,10 +321,12 @@ const PodcastCard = () => {
         author: item.author,
         artworkUrl: item.artworkUrl,
         genre: item.primaryGenre,
+        externalUrl: item.externalUrl,
       }))}
       presetChannels={presetChannels}
       addingCandidateId={addingCandidateId}
       refreshingPodcastId={refreshingPodcastId}
+      neteaseExperimentalPlaybackEnabled={neteaseExperimentalPlaybackEnabled}
       onOpen={() => setOpen(true)}
       onClose={() => setOpen(false)}
       onQueryChange={setQuery}
@@ -285,6 +338,8 @@ const PodcastCard = () => {
       onAddItem={(id) => void handleAdd(id)}
       onSelectEpisode={(podcastId, episodeId) => void handleSelectEpisode(podcastId, episodeId)}
       onTogglePlaying={(podcastId) => void handleTogglePlaying(podcastId)}
+      onOpenExternal={(url) => openExternal(url)}
+      onClearResults={() => setResults([])}
       onRefreshItem={(id) => void handleRefresh(id)}
       onRemoveItem={(id) => void handleRemove(id)}
     />

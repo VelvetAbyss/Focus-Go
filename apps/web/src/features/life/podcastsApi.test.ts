@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { extractNeteaseRadioId, importNeteasePodcast, isNeteasePodcastUrl, NETEASE_CHANNEL_PRESETS } from './podcastsApi'
+import {
+  extractNeteaseRadioId,
+  hydrateRemotePodcastCandidate,
+  importNeteasePodcast,
+  isNeteasePodcastUrl,
+  NETEASE_CHANNEL_PRESETS,
+  searchRemotePodcasts,
+} from './podcastsApi'
 
 vi.mock('../../store/auth', () => ({
   getAuth: () => ({ accessToken: 'token-123' }),
@@ -27,7 +34,13 @@ describe('podcastsApi', () => {
             collectionId: 796756498,
             name: 'Just Some Collections',
             author: '我最爱吃螺蛳粉',
-            episodes: [{ id: '2539083386', title: 'alice cullen 【playlist】', audioUrl: 'https://example.com/audio.mp3' }],
+            externalUrl: 'https://music.163.com/djradio?id=796756498',
+            episodes: [{
+              id: '2539083386',
+              title: 'alice cullen 【playlist】',
+              audioUrl: 'https://example.com/audio.mp3',
+              externalUrl: 'https://music.163.com/program?id=2539083386',
+            }],
           },
         }),
       }) as Response,
@@ -39,7 +52,8 @@ describe('podcastsApi', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(podcast.source).toBe('netease')
-    expect(podcast.episodes[0]?.audioUrl).toContain('audio.mp3')
+    expect(podcast.externalUrl).toBe('https://music.163.com/djradio?id=796756498')
+    expect(podcast.episodes[0]?.externalUrl).toBe('https://music.163.com/program?id=2539083386')
   })
 
   it('surfaces backend status details when import fails', async () => {
@@ -58,5 +72,40 @@ describe('podcastsApi', () => {
     await expect(importNeteasePodcast('https://music.163.com/djradio?id=796756498')).rejects.toThrow(
       'Podcast request failed: 404 Cannot POST /podcasts/netease/import',
     )
+  })
+
+  it('maps apple external urls on search and lookup', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          results: [{
+            collectionId: 11,
+            collectionName: 'Search Pod',
+            artistName: 'Host',
+            collectionViewUrl: 'https://podcasts.apple.com/podcast/id11',
+          }],
+        }),
+      } satisfies Partial<Response>)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          results: [{
+            kind: 'podcast-episode',
+            trackId: 22,
+            trackName: 'Ep 1',
+            episodeUrl: 'https://cdn.example.com/ep1.mp3',
+            trackViewUrl: 'https://podcasts.apple.com/episode/id22',
+          }],
+        }),
+      } satisfies Partial<Response>)
+    vi.stubGlobal('fetch', fetchMock as unknown as typeof fetch)
+
+    const [candidate] = await searchRemotePodcasts('search pod')
+    const hydrated = await hydrateRemotePodcastCandidate(candidate!)
+
+    expect(candidate?.externalUrl).toBe('https://podcasts.apple.com/podcast/id11')
+    expect(hydrated.episodes[0]?.externalUrl).toBe('https://podcasts.apple.com/episode/id22')
   })
 })

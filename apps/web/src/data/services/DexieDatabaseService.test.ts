@@ -209,13 +209,21 @@ describe('DexieDatabaseService', () => {
       collectionId: 796756498,
       name: 'Just Some Collections',
       author: '我最爱吃螺蛳粉',
-      episodes: [{ id: '2539083386', title: 'alice cullen 【playlist】', audioUrl: 'https://example.com/audio.mp3' }],
+      externalUrl: 'https://music.163.com/djradio?id=796756498',
+      episodes: [{
+        id: '2539083386',
+        title: 'alice cullen 【playlist】',
+        audioUrl: 'https://example.com/audio.mp3',
+        externalUrl: 'https://music.163.com/program?id=2539083386',
+      }],
       selectedEpisodeId: '2539083386',
       isPlaying: false,
     })
 
     expect(created.source).toBe('netease')
     expect(created.episodes[0]?.audioUrl).toBe('https://example.com/audio.mp3')
+    expect(created.externalUrl).toBe('https://music.163.com/djradio?id=796756498')
+    expect(created.episodes[0]?.externalUrl).toBe('https://music.163.com/program?id=2539083386')
   })
 
   it('stores people rows and preserves birthday metadata', async () => {
