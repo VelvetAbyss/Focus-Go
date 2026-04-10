@@ -1,4 +1,6 @@
 import type { LifePodcastCreateInput } from '@focus-go/core'
+import { getAuth } from '../../store/auth'
+import { isLocalhostRuntime } from '../../shared/env/localhost'
 
 type ItunesSearchResult = {
   collectionId?: number
@@ -28,12 +30,52 @@ export type RemotePodcastCandidate = Omit<LifePodcastCreateInput, 'episodes' | '
   episodes: NonNullable<LifePodcastCreateInput['episodes']>
 }
 
+export const NETEASE_CHANNEL_PRESETS = [
+  { id: '796756498', title: 'Just Some Collections', url: 'https://music.163.com/djradio?id=796756498' },
+  { id: '795087630', title: 'ChilL 2 DiE', url: 'https://music.163.com/djradio?id=795087630' },
+] as const
+
+export const buildNeteaseStreamUrl = (programId: string, cacheBust?: number) => {
+  const url = new URL(`${import.meta.env.VITE_API_BASE}/podcasts/netease/stream`)
+  url.searchParams.set('programId', programId)
+  if (cacheBust) url.searchParams.set('t', String(cacheBust))
+  return url.toString()
+}
+
 const fallbackEmojis = ['🎙', '🎧', '📻', '🗣']
 const fallbackColors = ['#D8C2A6', '#B7CCB0', '#CBB5D9', '#E3BCA4', '#A9C8D8']
 
 const fetchJson = async <T,>(url: string, signal?: AbortSignal): Promise<T> => {
   const response = await fetch(url, { signal })
   if (!response.ok) throw new Error(`Request failed: ${response.status}`)
+  return response.json() as Promise<T>
+}
+
+const getAuthHeaders = () => {
+  const auth = getAuth()
+  if (!auth?.accessToken) {
+    if (isLocalhostRuntime()) return { 'Content-Type': 'application/json' }
+    throw new Error('Missing auth token')
+  }
+  return {
+    Authorization: `Bearer ${auth.accessToken}`,
+    'Content-Type': 'application/json',
+  }
+}
+
+const fetchAuthedJson = async <T,>(path: string, init?: RequestInit): Promise<T> => {
+  const headers: HeadersInit = {
+    ...(getAuthHeaders() as Record<string, string>),
+    ...((init?.headers ?? {}) as Record<string, string>),
+  }
+  const response = await fetch(`${import.meta.env.VITE_API_BASE}${path}`, {
+    ...init,
+    headers,
+  })
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '')
+    throw new Error(`Podcast request failed: ${response.status}${detail ? ` ${detail}` : ''}`)
+  }
   return response.json() as Promise<T>
 }
 
@@ -49,6 +91,23 @@ const toDuration = (value?: number) => {
 const hashValue = (value: string) => value.split('').reduce((sum, char) => sum * 31 + char.charCodeAt(0), 7)
 const pickColor = (value: string) => fallbackColors[Math.abs(hashValue(value)) % fallbackColors.length]
 const pickEmoji = (value: string) => fallbackEmojis[Math.abs(hashValue(value)) % fallbackEmojis.length]
+
+export const extractNeteaseRadioId = (value: string) => {
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  if (/^\d+$/.test(trimmed)) return trimmed
+  try {
+    const normalized = trimmed.includes('://') ? trimmed : `https://${trimmed}`
+    const url = new URL(normalized)
+    if (!/music\.163\.com$/.test(url.hostname)) return null
+    const hashQuery = url.hash.includes('?') ? new URLSearchParams(url.hash.slice(url.hash.indexOf('?') + 1)) : null
+    return url.searchParams.get('id') ?? hashQuery?.get('id') ?? null
+  } catch {
+    return null
+  }
+}
+
+export const isNeteasePodcastUrl = (value: string) => extractNeteaseRadioId(value) !== null
 
 const dedupeEpisodes = (rows: RemotePodcastCandidate['episodes']) => {
   const seen = new Set<string>()
@@ -79,8 +138,11 @@ const mapSearchResult = (item: ItunesSearchResult): RemotePodcastCandidate | nul
   }
 }
 
-export const dedupePodcastMatch = (rows: Array<Pick<RemotePodcastCandidate, 'collectionId'>>, candidate: Pick<RemotePodcastCandidate, 'collectionId'>) =>
-  rows.find((item) => item.collectionId === candidate.collectionId)
+export const dedupePodcastMatch = (
+  rows: Array<Pick<RemotePodcastCandidate, 'source' | 'collectionId'>>,
+  candidate: Pick<RemotePodcastCandidate, 'source' | 'collectionId'>,
+) =>
+  rows.find((item) => item.collectionId === candidate.collectionId && item.source === candidate.source)
 
 export const searchRemotePodcasts = async (query: string, signal?: AbortSignal): Promise<RemotePodcastCandidate[]> => {
   const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=podcast&limit=10`
@@ -95,6 +157,7 @@ export const searchRemotePodcasts = async (query: string, signal?: AbortSignal):
 }
 
 export const hydrateRemotePodcastCandidate = async (candidate: RemotePodcastCandidate, signal?: AbortSignal): Promise<RemotePodcastCandidate> => {
+  if (candidate.source === 'netease') return candidate
   const url = `https://itunes.apple.com/lookup?id=${encodeURIComponent(String(candidate.collectionId))}&entity=podcastEpisode&limit=8`
   const payload = await fetchJson<{ results?: ItunesLookupResult[] }>(url, signal).catch(() => ({ results: [] }))
   const episodes = dedupeEpisodes(
@@ -113,4 +176,20 @@ export const hydrateRemotePodcastCandidate = async (candidate: RemotePodcastCand
     ...candidate,
     episodes,
   }
+}
+
+export const importNeteasePodcast = async (input: string): Promise<RemotePodcastCandidate> => {
+  const payload = await fetchAuthedJson<{ podcast: RemotePodcastCandidate }>('/podcasts/netease/import', {
+    method: 'POST',
+    body: JSON.stringify({ input }),
+  })
+  return payload.podcast
+}
+
+export const syncNeteasePodcasts = async (sourceIds: string[]): Promise<RemotePodcastCandidate[]> => {
+  const payload = await fetchAuthedJson<{ podcasts: RemotePodcastCandidate[] }>('/podcasts/netease/sync', {
+    method: 'POST',
+    body: JSON.stringify({ sourceIds }),
+  })
+  return payload.podcasts
 }

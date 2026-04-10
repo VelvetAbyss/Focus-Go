@@ -485,7 +485,7 @@ const lifePodcastEpisodeSchema = z.object({
 }).strict()
 
 const lifePodcastSchema = baseEntitySchema.extend({
-  source: z.literal('itunes'),
+  source: z.enum(['itunes', 'netease']),
   sourceId: z.string(),
   collectionId: z.number(),
   name: z.string(),
@@ -504,7 +504,7 @@ const lifePodcastSchema = baseEntitySchema.extend({
 })
 
 const lifePodcastCreateInputSchema = z.object({
-  source: z.literal('itunes'),
+  source: z.enum(['itunes', 'netease']),
   sourceId: z.string(),
   collectionId: z.number(),
   name: z.string(),
@@ -525,7 +525,7 @@ const lifePodcastCreateInputSchema = z.object({
 }).strict()
 
 const lifePodcastUpdateInputSchema = z.object({
-  source: z.literal('itunes').optional(),
+  source: z.enum(['itunes', 'netease']).optional(),
   sourceId: z.string().optional(),
   collectionId: z.number().optional(),
   name: z.string().optional(),

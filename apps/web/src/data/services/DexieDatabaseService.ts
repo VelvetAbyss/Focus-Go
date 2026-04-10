@@ -298,7 +298,7 @@ const normalizeLifeSubscription = (subscription: LifeSubscription): LifeSubscrip
 
 const normalizeLifePodcast = (podcast: LifePodcast): LifePodcast => ({
   ...podcast,
-  source: 'itunes',
+  source: podcast.source === 'netease' ? 'netease' : 'itunes',
   sourceId: typeof podcast.sourceId === 'string' && podcast.sourceId ? podcast.sourceId : String(podcast.collectionId ?? podcast.id),
   collectionId: typeof podcast.collectionId === 'number' && Number.isFinite(podcast.collectionId) ? podcast.collectionId : Number(podcast.sourceId ?? 0),
   name: typeof podcast.name === 'string' ? podcast.name.trim() : '',

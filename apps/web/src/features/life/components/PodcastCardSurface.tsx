@@ -42,18 +42,25 @@ type Props = {
   open: boolean
   loading: boolean
   query: string
+  channelUrl: string
   searching: boolean
   error: string | null
   results: SearchResult[]
+  presetChannels: Array<{ id: string; title: string; url: string }>
   addingCandidateId: string | null
+  refreshingPodcastId: string | null
   onOpen: () => void
   onClose: () => void
   onQueryChange: (value: string) => void
+  onChannelUrlChange: (value: string) => void
   onSearch: () => void
+  onImportChannel: (value: string) => void
+  onImportPreset: (url: string, id: string) => void
   onSelectItem: (id: string) => void
   onAddItem: (id: string) => void
   onSelectEpisode: (podcastId: string, episodeId: string) => void
   onTogglePlaying: (podcastId: string) => void
+  onRefreshItem: (id: string) => void
   onRemoveItem: (id: string) => void
 }
 
@@ -65,18 +72,25 @@ export const PodcastCardSurface = ({
   open,
   loading,
   query,
+  channelUrl,
   searching,
   error,
   results,
+  presetChannels,
   addingCandidateId,
+  refreshingPodcastId,
   onOpen,
   onClose,
   onQueryChange,
+  onChannelUrlChange,
   onSearch,
+  onImportChannel,
+  onImportPreset,
   onSelectItem,
   onAddItem,
   onSelectEpisode,
   onTogglePlaying,
+  onRefreshItem,
   onRemoveItem,
 }: Props) => {
   const selectedEpisode = useMemo(
@@ -173,7 +187,7 @@ export const PodcastCardSurface = ({
                 <Headphones size={20} color="rgba(58,55,51,0.30)" />
               </div>
               <p style={{ ...playfair(14, 500), marginBottom: 6 }}>Your podcast shelf is empty</p>
-              <p style={{ ...inter(12, 400, mutedText), lineHeight: 1.6, marginBottom: 18 }}>Search for a podcast and import recent episodes.</p>
+              <p style={{ ...inter(12, 400, mutedText), lineHeight: 1.6, marginBottom: 18 }}>Search podcasts or import a Netease channel link.</p>
               <button type="button" onClick={(event) => { event.stopPropagation(); onOpen() }} style={{ ...smallButtonStyle, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 <Search size={11} />
                 <span>Find podcast</span>
@@ -205,10 +219,44 @@ export const PodcastCardSurface = ({
               <div style={{ display: 'grid', gap: 10 }}>
                 <Field label="Search">
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <input value={query} onChange={(event) => onQueryChange(event.target.value)} placeholder="Search podcast" style={inputStyle} />
+                    <input value={query} onChange={(event) => onQueryChange(event.target.value)} placeholder="Search podcast or paste a Netease link" style={inputStyle} />
                     <button type="button" onClick={onSearch} style={smallButtonStyle}>{searching ? '...' : 'Go'}</button>
                   </div>
                 </Field>
+                <Field label="Netease channel">
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input value={channelUrl} onChange={(event) => onChannelUrlChange(event.target.value)} placeholder="https://music.163.com/djradio?id=..." style={inputStyle} />
+                    <button type="button" onClick={() => onImportChannel(channelUrl)} style={smallButtonStyle}>
+                      {addingCandidateId?.startsWith('channel:') ? '...' : 'Import'}
+                    </button>
+                  </div>
+                </Field>
+                <div style={{ display: 'grid', gap: 8 }}>
+                  {presetChannels.map((channel) => (
+                    <button
+                      key={channel.id}
+                      type="button"
+                      onClick={() => onImportPreset(channel.url, channel.id)}
+                      style={{
+                        width: '100%',
+                        textAlign: 'left',
+                        padding: '12px 14px',
+                        borderRadius: 16,
+                        border: `1px solid ${subtleBorder}`,
+                        background: '#fff',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                        <div style={{ minWidth: 0 }}>
+                          <p style={{ ...inter(12, 500), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{channel.title}</p>
+                          <p style={{ ...inter(10, 400, mutedText), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Preset Netease channel</p>
+                        </div>
+                        <span style={{ ...inter(11, 500, ink) }}>{addingCandidateId === `preset:${channel.id}` ? '...' : 'Import'}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
                 {error ? <p style={{ ...inter(11, 400, '#9D4C4C') }}>{error}</p> : null}
                 {results.length ? (
                   <div style={{ display: 'grid', gap: 8 }}>
@@ -243,7 +291,9 @@ export const PodcastCardSurface = ({
                       }}
                     >
                       <p style={{ ...inter(12, 500), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</p>
-                      <p style={{ ...inter(10, 400, mutedText), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.author}</p>
+                      <p style={{ ...inter(10, 400, mutedText), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {item.author}{item.source === 'netease' ? ' · Netease' : ' · iTunes'}
+                      </p>
                     </button>
                   ))}
                 </div>
@@ -264,6 +314,11 @@ export const PodcastCardSurface = ({
                           {selected.isPlaying ? <Pause size={11} /> : <Play size={11} />}
                           <span>{selected.isPlaying ? 'Pause' : 'Play'}</span>
                         </button>
+                        {selected.source === 'netease' ? (
+                          <button type="button" onClick={() => onRefreshItem(selected.id)} style={smallButtonStyle}>
+                            {refreshingPodcastId === selected.id ? '...' : 'Refresh'}
+                          </button>
+                        ) : null}
                         <button type="button" onClick={() => onRemoveItem(selected.id)} style={{ ...smallButtonStyle, color: '#9D4C4C' }}>Remove</button>
                       </div>
                     </div>
