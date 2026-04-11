@@ -28,18 +28,21 @@ jobs:
           VITE_API_BASE: https://api.nestflow.art
           VITE_REDIRECT_URI: https://app.nestflow.art/
 
-      # ── 3. Upload built dist/ to server ─────────────────────────
+      # ── 3. Pack dist into a single tarball (1 file >> 100 files over SCP) ──
+      - name: Package dist
+        run: tar czf /tmp/dist-${{ github.sha }}.tar.gz -C apps/web/dist .
+
+      # ── 4. Upload single tarball to server ──────────────────────
       - name: Upload dist to server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: apps/web/dist/
-          target: /tmp/focus-go-dist-${{ github.sha }}
-          strip_components: 2
+          source: /tmp/dist-${{ github.sha }}.tar.gz
+          target: /tmp/
 
-      # ── 4. Symlink + reload (lightweight SSH, < 30s) ────────────
+      # ── 5. Unpack + symlink + reload (lightweight SSH, < 30s) ───
       - name: Deploy on server
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -47,4 +50,8 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 5m
-          script: bash /root/focus-go/deploy.sh production /tmp/focus-go-dist-${{ github.sha }}
+          script: |
+            mkdir -p /tmp/focus-go-dist-${{ github.sha }}
+            tar xzf /tmp/dist-${{ github.sha }}.tar.gz -C /tmp/focus-go-dist-${{ github.sha }}
+            rm -f /tmp/dist-${{ github.sha }}.tar.gz
+            bash /root/focus-go/deploy.sh production /tmp/focus-go-dist-${{ github.sha }}
