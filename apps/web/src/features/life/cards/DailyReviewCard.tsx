@@ -8,6 +8,7 @@ import { DailyReviewCardSurface } from '../components/DailyReviewCardSurface'
 import { buildDailyReviewAnalytics, type DailyReviewAnalytics } from './dailyReviewAnalytics'
 import { buildDailyReviewPresentationModel } from './lifeDesignAdapters'
 import { subscribeTasksChanged } from '../../tasks/taskSync'
+import { SYNC_DATA_UPDATED_EVENT } from '../../../data/sync/constants'
 
 type RangeKey = 'week' | 'month'
 
@@ -46,9 +47,13 @@ const DailyReviewCard = () => {
       setMonthAnalytics(buildDailyReviewAnalytics({ ...input, granularity: 'month' }))
     }
     void load()
-    return subscribeTasksChanged(() => {
-      void load()
-    })
+    const unsubTasks = subscribeTasksChanged(() => void load())
+    const handleSyncUpdate = () => void load()
+    window.addEventListener(SYNC_DATA_UPDATED_EVENT, handleSyncUpdate)
+    return () => {
+      unsubTasks()
+      window.removeEventListener(SYNC_DATA_UPDATED_EVENT, handleSyncUpdate)
+    }
   }, [])
 
   const designModel = useMemo(

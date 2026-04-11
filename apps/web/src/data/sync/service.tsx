@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useIsLoggedIn } from '../../store/auth'
-import { SYNC_OUTBOX_CHANGED_EVENT, SYNC_STATUS_CHANGED_EVENT } from './constants'
+import { SYNC_DATA_UPDATED_EVENT, SYNC_OUTBOX_CHANGED_EVENT, SYNC_STATUS_CHANGED_EVENT } from './constants'
 import { syncApi } from './client'
 import {
   applyRemoteTables,
@@ -60,11 +60,11 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
     try {
       await flushOutbox()
       await pullChanges()
+      window.dispatchEvent(new Event(SYNC_DATA_UPDATED_EVENT))
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Sync failed'
       const operations = await syncOutboxRepo.listReady()
-      const nextAttempt = Math.max(1, ...operations.map((item) => item.attemptCount + 1))
-      await syncOutboxRepo.markRetry(operations.map((item) => item.id), nextAttempt)
+      await syncOutboxRepo.markRetry(operations.map((item) => item.id))
       await syncStateRepo.markStatus('error', message)
     } finally {
       runningRef.current = false
@@ -152,6 +152,32 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [isLoggedIn, refreshState, syncNow])
 
+  // Poll for remote changes every 30s so that edits made on another device
+  // are reflected even when the local device has no outbox activity.
+  useEffect(() => {
+    if (!isLoggedIn) return
+    const intervalId = window.setInterval(() => {
+      void syncNow()
+    }, 30_000)
+    return () => window.clearInterval(intervalId)
+  }, [isLoggedIn, syncNow])
+
+  // Sync immediately when the user switches back to this tab or regains network.
+  // This ensures changes from another device appear within seconds, not up to 30s.
+  useEffect(() => {
+    if (!isLoggedIn) return
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') void syncNow()
+    }
+    const handleOnline = () => void syncNow()
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('online', handleOnline)
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('online', handleOnline)
+    }
+  }, [isLoggedIn, syncNow])
+
   const value = useMemo<SyncContextValue>(
     () => ({
       state,
@@ -162,6 +188,15 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
   )
 
   return <SyncContext.Provider value={value}>{children}</SyncContext.Provider>
+}
+
+// eslint-disable-next-line react-refresh/only-export-components
+export const useSyncDataRefresh = (callback: () => void) => {
+  useEffect(() => {
+    const handler = () => callback()
+    window.addEventListener(SYNC_DATA_UPDATED_EVENT, handler)
+    return () => window.removeEventListener(SYNC_DATA_UPDATED_EVENT, handler)
+  }, [callback])
 }
 
 // eslint-disable-next-line react-refresh/only-export-components

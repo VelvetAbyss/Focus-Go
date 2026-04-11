@@ -13,6 +13,7 @@ const getAuthHeaders = () => {
 const fetchJson = async <T>(path: string, init?: RequestInit): Promise<T> => {
   const response = await fetch(`${import.meta.env.VITE_API_BASE}${path}`, init)
   if (!response.ok) {
+    if (response.status === 401) throw new Error('Sync failed: session expired, please log in again')
     throw new Error(`Sync request failed: ${response.status}`)
   }
   return response.json() as Promise<T>

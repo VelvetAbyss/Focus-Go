@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useSyncDataRefresh } from '../../data/sync/service'
 import type { CSSProperties } from 'react'
 import { Button } from '@/components/ui/button'
 import { BookText, Calendar, Trash2, X } from 'lucide-react'
@@ -114,6 +115,8 @@ const DiaryPanel = ({ open, intent, onClose }: DiaryPanelProps) => {
     const list = await diaryRepo.listTrash()
     setTrashEntries(list)
   }, [])
+
+  useSyncDataRefresh(loadHistory)
 
   useEffect(() => {
     if (!open) return
