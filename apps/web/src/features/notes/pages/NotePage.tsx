@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useSyncDataRefresh } from '../../../data/sync/service'
 import type { NoteAppearanceSettings, NoteItem, NoteTag } from '../../../data/models/types'
 import { noteAppearanceRepo } from '../../../data/repositories/noteAppearanceRepo'
 import { noteTagsRepo } from '../../../data/repositories/noteTagsRepo'
@@ -219,6 +220,8 @@ export default function NotePage() {
       setTrash((current) => current.map((note) => (note.id === updated.id ? updated : note)))
     }
   }
+
+  useSyncDataRefresh(refresh)
 
   useEffect(() => {
     const bootTimer = window.setTimeout(() => {

@@ -45,6 +45,7 @@ import { DateTimePicker } from '../../../shared/ui/DateTimePicker'
 import { useAddInputComposer } from '../../../shared/hooks/useAddInputComposer'
 import { tasksRepo } from '../../../data/repositories/tasksRepo'
 import { emitTasksChanged, subscribeTasksChanged } from '../../tasks/taskSync'
+import { useSyncDataRefresh } from '../../../data/sync/service'
 import type { TaskItem } from '../../tasks/tasks.types'
 import { formatTaskDateRange, taskCoversDate } from '../../tasks/taskDates'
 import { fetchIcsEventsWithFallback, filterEventsInMonth } from '../calendar.ics'
@@ -534,6 +535,8 @@ const CalendarPage = () => {
     if (tasksLoadRequestRef.current !== requestId) return
     setAllTasks(items)
   }, [])
+
+  useSyncDataRefresh(loadTasks)
 
   useEffect(() => {
     void loadTasks()

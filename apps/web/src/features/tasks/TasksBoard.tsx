@@ -23,6 +23,7 @@ import TasksAnalyticsView from './components/TasksAnalyticsView'
 import { useToast } from '../../shared/ui/toast/toast'
 import { ROUTES } from '../../app/routes/routes'
 import { emitTasksChanged, subscribeTasksChanged } from './taskSync'
+import { useSyncDataRefresh } from '../../data/sync/service'
 import { readTaskTodayBucket, shouldClearTodayDoneTasks, writeTaskTodayBucket } from './taskTodayRefresh'
 import { TASK_STATUS_CONFIG } from './components/taskPresentation'
 import { useI18n } from '../../shared/i18n/useI18n'
@@ -124,6 +125,8 @@ const TasksBoard = ({
     setActiveTask((prev) => (prev ? items.find((item) => item.id === prev.id) ?? null : prev))
     setDeleteTarget((prev) => (prev ? items.find((item) => item.id === prev.id) ?? null : prev))
   }, [])
+
+  useSyncDataRefresh(loadTasks)
 
   useEffect(() => {
     const bootstrap = async () => {

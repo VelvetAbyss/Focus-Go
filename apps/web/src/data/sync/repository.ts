@@ -102,17 +102,20 @@ export const syncOutboxRepo = {
     await db.syncOutbox.bulkDelete(ids)
     emitWindowEvent(SYNC_OUTBOX_CHANGED_EVENT)
   },
-  async markRetry(ids: string[], attemptCount: number) {
+  async markRetry(ids: string[]) {
     if (!ids.length) return
     const rows = await db.syncOutbox.bulkGet(ids)
-    const delay = Math.min(60_000, attemptCount * 5_000)
     const timestamp = now()
     await db.syncOutbox.bulkPut(
-      rows.filter((item): item is SyncOutboxItem => Boolean(item)).map((item) => ({
-        ...item,
-        attemptCount,
-        nextRetryAt: timestamp + delay,
-      })),
+      rows.filter((item): item is SyncOutboxItem => Boolean(item)).map((item) => {
+        const nextAttempt = item.attemptCount + 1
+        const delay = Math.min(60_000, nextAttempt * 5_000)
+        return {
+          ...item,
+          attemptCount: nextAttempt,
+          nextRetryAt: timestamp + delay,
+        }
+      }),
     )
     emitWindowEvent(SYNC_OUTBOX_CHANGED_EVENT)
   },
@@ -146,16 +149,19 @@ const shouldReplace = (current: { updatedAt?: number; deletedAt?: number | null 
 }
 
 export const applyRemoteTables = async (tables: SyncBootstrapResponse['tables']) => {
-  for (const [entityType, tableName] of Object.entries(SYNC_ENTITY_TABLES) as Array<[SyncEntityType, string]>) {
-    const table = db.table(tableName)
-    const rows = tables[entityType] ?? []
-    for (const row of rows) {
-      const current = await table.get(row.id)
-      if (!shouldReplace(current as { updatedAt?: number; deletedAt?: number | null } | undefined, row)) continue
-      if (row.deletedAt) await table.delete(row.id)
-      else await table.put(row.payload)
+  const tableObjects = Object.values(SYNC_ENTITY_TABLES).map((name) => db.table(name))
+  await db.transaction('rw', tableObjects, async () => {
+    for (const [entityType, tableName] of Object.entries(SYNC_ENTITY_TABLES) as Array<[SyncEntityType, string]>) {
+      const table = db.table(tableName)
+      const rows = tables[entityType] ?? []
+      for (const row of rows) {
+        const current = await table.get(row.id)
+        if (!shouldReplace(current as { updatedAt?: number; deletedAt?: number | null } | undefined, row)) continue
+        if (row.deletedAt) await table.delete(row.id)
+        else await table.put(row.payload)
+      }
     }
-  }
+  })
 }
 
 export const replaceLocalWithRemote = async (tables: SyncBootstrapResponse['tables']) => {

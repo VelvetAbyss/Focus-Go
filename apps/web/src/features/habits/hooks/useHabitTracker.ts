@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSyncDataRefresh } from '../../../data/sync/service'
 import type { Habit, HabitLog } from '../../../data/models/types'
 import {
   archiveHabit,
@@ -96,6 +97,8 @@ export const useHabitTracker = () => {
   useEffect(() => subscribeHabitsChanged(() => {
     void refresh()
   }), [refresh])
+
+  useSyncDataRefresh(refresh)
 
   const completedHabitIds = useMemo(() => {
     return new Set(
