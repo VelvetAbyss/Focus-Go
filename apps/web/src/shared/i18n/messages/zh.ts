@@ -239,6 +239,8 @@ export const zhMessages: TranslationMessages = {
   'tasks.today.switchHint': '把这项任务加入今天要完成的清单',
   'tasks.today.emptyTitle': '今天还没有安排任务',
   'tasks.today.emptyDescription': '把真正想在今天完成的任务放进这里。',
+  'tasks.board.emptyTitle': '该状态下暂无任务',
+  'tasks.board.emptyDescription': '在下方创建新任务开始使用',
   'tasks.today.addPlaceholder': '添加今日任务...',
   'tasks.action.start': '开始',
   'tasks.action.done': '完成',

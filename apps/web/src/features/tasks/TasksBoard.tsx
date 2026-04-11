@@ -400,8 +400,8 @@ const TasksBoard = ({
   ) : (
     <EmptyState
       icon={<LayoutGrid className="size-6" />}
-      title={topView === 'today' ? t('tasks.today.emptyTitle') : '该状态下暂无任务'}
-      description={topView === 'today' ? t('tasks.today.emptyDescription') : '在下方创建新任务开始使用'}
+      title={topView === 'today' ? t('tasks.today.emptyTitle') : t('tasks.board.emptyTitle')}
+      description={topView === 'today' ? t('tasks.today.emptyDescription') : t('tasks.board.emptyDescription')}
       className="mx-auto my-10 max-w-xl"
     />
   )
