@@ -51,11 +51,13 @@ jobs:
 
       # ── 5. Configure SSH ────────────────────────────────────────
       - name: Setup SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
           mkdir -p ~/.ssh
-          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H "${{ secrets.SERVER_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+          # StrictHostKeyChecking=no in ssh command, so no keyscan needed
           echo "SSH configured"
 
       # ── 6. Deploy on server (native ssh → real-time output) ─────
