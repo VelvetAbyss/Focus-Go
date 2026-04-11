@@ -50,10 +50,27 @@ cd "$REPO_DIR"
 git fetch origin "$BRANCH"
 git reset --hard "origin/$BRANCH"
 
-# ── 2. Dependencies ───────────────────────────────────────────────
-echo "=== [2/8] npm ci ==="
-npm ci
-cd "$API_DIR" && npm ci && cd "$REPO_DIR"
+# ── 2. Dependencies (cached — only reinstall when lock file changes) ──
+LOCK_HASH=$(sha256sum package-lock.json | cut -d' ' -f1)
+LOCK_HASH_FILE="$REPO_DIR/.deploy-lock-hash"
+API_LOCK_HASH=$(sha256sum "$API_DIR/package-lock.json" | cut -d' ' -f1)
+API_LOCK_HASH_FILE="$API_DIR/.deploy-lock-hash"
+
+if [[ -f "$LOCK_HASH_FILE" && "$(cat "$LOCK_HASH_FILE")" == "$LOCK_HASH" && -d "node_modules" ]]; then
+  echo "=== [2/8] npm ci (skipped — lock unchanged) ==="
+else
+  echo "=== [2/8] npm ci (lock changed or first deploy) ==="
+  npm ci
+  echo "$LOCK_HASH" > "$LOCK_HASH_FILE"
+fi
+
+if [[ -f "$API_LOCK_HASH_FILE" && "$(cat "$API_LOCK_HASH_FILE")" == "$API_LOCK_HASH" && -d "$API_DIR/node_modules" ]]; then
+  echo "=== [2/8] api npm ci (skipped — lock unchanged) ==="
+else
+  echo "=== [2/8] api npm ci (lock changed or first deploy) ==="
+  cd "$API_DIR" && npm ci && cd "$REPO_DIR"
+  echo "$API_LOCK_HASH" > "$API_LOCK_HASH_FILE"
+fi
 
 # ── 3. Build ──────────────────────────────────────────────────────
 echo "=== [3/8] build:web (NODE_ENV=$NODE_ENV) ==="
