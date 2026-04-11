@@ -32,9 +32,9 @@ jobs:
       - name: Package dist
         run: tar czf dist.tar.gz -C apps/web/dist .
 
-      # ── 4. Upload tarball to Alibaba OSS (CI → OSS) ─────────────
-      # Transfer to OSS is fast; server then pulls from OSS (same HK
-      # region), avoiding the slow US GitHub → HK server SCP path.
+      # ── 4. Upload tarball to Alibaba OSS ────────────────────────
+      # CI uploads to OSS; server downloads from OSS (same HK region).
+      # Avoids the slow GitHub US → HK server SCP path entirely.
       - name: Install rclone
         run: sudo apt-get install -y rclone
 
@@ -44,35 +44,59 @@ jobs:
           RCLONE_CONFIG_ALIYUNOSS_PROVIDER: Alibaba
           RCLONE_CONFIG_ALIYUNOSS_ACCESS_KEY_ID: ${{ secrets.OSS_ACCESS_KEY_ID }}
           RCLONE_CONFIG_ALIYUNOSS_SECRET_ACCESS_KEY: ${{ secrets.OSS_ACCESS_KEY_SECRET }}
-          RCLONE_CONFIG_ALIYUNOSS_ENDPOINT: ${{ secrets.OSS_ENDPOINT }}
+          # Hardcoded to HK endpoint — must match the server's rclone config
+          RCLONE_CONFIG_ALIYUNOSS_ENDPOINT: oss-cn-hongkong.aliyuncs.com
         run: |
           rclone copyto dist.tar.gz \
             aliyunoss:${{ secrets.OSS_BUCKET }}/deploys/dist-${{ github.sha }}.tar.gz \
             --no-check-dest
 
-      # ── 5. Server pulls from OSS + symlink + reload ─────────────
+      # ── 5. SSH deploy using native ssh (streams output in real-time) ─
+      # appleboy/ssh-action buffers all output until script completes,
+      # making it look hung. Native ssh streams immediately.
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.SERVER_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+          echo "SSH key configured"
+
       - name: Deploy on server
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          command_timeout: 20m
-          script_stop: true
-          script: |
-            echo "=== [0] kill any stale deploy processes ==="
-            pkill -f "deploy.sh" || true
-            pkill -f "npm ci" || true
-            sleep 2
-            echo "=== [1] pull dist from OSS ==="
-            rclone copyto \
-              aliyunoss:${{ secrets.OSS_BUCKET }}/deploys/dist-${{ github.sha }}.tar.gz \
-              /tmp/dist-${{ github.sha }}.tar.gz \
-              --timeout 120s --contimeout 30s
-            echo "=== [2] unpack dist ==="
-            mkdir -p /tmp/focus-go-dist-${{ github.sha }}
-            tar xzf /tmp/dist-${{ github.sha }}.tar.gz -C /tmp/focus-go-dist-${{ github.sha }}
-            rm -f /tmp/dist-${{ github.sha }}.tar.gz
-            rclone delete aliyunoss:${{ secrets.OSS_BUCKET }}/deploys/dist-${{ github.sha }}.tar.gz || true
-            echo "=== [3] run deploy script ==="
-            bash /root/focus-go/deploy.sh production /tmp/focus-go-dist-${{ github.sha }}
+        timeout-minutes: 20
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          OSS_BUCKET: ${{ secrets.OSS_BUCKET }}
+          GIT_SHA: ${{ github.sha }}
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+            -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=6 \
+            -o ConnectTimeout=30 \
+            "$SERVER_USER@$SERVER_HOST" \
+            "OSS_BUCKET='$OSS_BUCKET' GIT_SHA='$GIT_SHA' bash -s" << 'DEPLOY'
+          set -euo pipefail
+          echo "=== [0/4] kill any stale deploy processes ==="
+          pkill -f "deploy.sh" 2>/dev/null || true
+          pkill -f "npm ci" 2>/dev/null || true
+          sleep 2
+
+          echo "=== [1/4] pull dist from OSS (HK → HK, should be fast) ==="
+          rclone copyto \
+            "aliyunoss:${OSS_BUCKET}/deploys/dist-${GIT_SHA}.tar.gz" \
+            "/tmp/dist-${GIT_SHA}.tar.gz" \
+            --timeout 120s --contimeout 30s --stats-one-line --stats 10s
+
+          echo "=== [2/4] unpack dist ==="
+          mkdir -p "/tmp/focus-go-dist-${GIT_SHA}"
+          tar xzf "/tmp/dist-${GIT_SHA}.tar.gz" -C "/tmp/focus-go-dist-${GIT_SHA}"
+          rm -f "/tmp/dist-${GIT_SHA}.tar.gz"
+          rclone delete "aliyunoss:${OSS_BUCKET}/deploys/dist-${GIT_SHA}.tar.gz" 2>/dev/null || true
+
+          echo "=== [3/4] run deploy.sh ==="
+          bash /root/focus-go/deploy.sh production "/tmp/focus-go-dist-${GIT_SHA}"
+
+          echo "=== [4/4] deploy complete ==="
+          DEPLOY
