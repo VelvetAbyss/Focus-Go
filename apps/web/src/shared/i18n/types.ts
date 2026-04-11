@@ -240,6 +240,8 @@ export type TranslationKey =
   | 'tasks.today.emptyTitle'
   | 'tasks.today.emptyDescription'
   | 'tasks.today.addPlaceholder'
+  | 'tasks.board.emptyTitle'
+  | 'tasks.board.emptyDescription'
   | 'tasks.action.start'
   | 'tasks.action.done'
   | 'tasks.priority.high'

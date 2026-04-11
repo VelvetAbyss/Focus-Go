@@ -239,6 +239,8 @@ export const enMessages: TranslationMessages = {
   'tasks.today.switchHint': 'Add this task to today\'s execution list',
   'tasks.today.emptyTitle': 'No tasks lined up for today',
   'tasks.today.emptyDescription': 'Put the tasks you actually want to finish today here.',
+  'tasks.board.emptyTitle': 'No tasks in this status',
+  'tasks.board.emptyDescription': 'Create a new task below to get started.',
   'tasks.today.addPlaceholder': 'Add a task for today...',
   'tasks.action.start': 'Start',
   'tasks.action.done': 'Done',
