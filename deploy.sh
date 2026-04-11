@@ -27,6 +27,8 @@ TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 RELEASE_DIR="$DEPLOY_ROOT/releases/$TIMESTAMP"
 CURRENT_LINK="$DEPLOY_ROOT/current"
 API_DIR="$REPO_DIR/apps/web/focus-go-api"
+# Pre-built dist dir uploaded by CI (2nd arg); falls back to building locally
+DIST_SRC="${2:-}"
 
 echo "=== Deploy: $DEPLOY_ENV | branch: $BRANCH | port: $API_PORT ==="
 
@@ -44,43 +46,39 @@ else
 fi
 rm -f "$API_DIR/.env.bak"
 
-# ── 1. Fetch code ─────────────────────────────────────────────────
+# ── 1. Fetch code (for API + config; web already built on CI) ─────
 echo "=== [1/8] git fetch origin/$BRANCH ==="
 cd "$REPO_DIR"
 git fetch origin "$BRANCH"
 git reset --hard "origin/$BRANCH"
 
-# ── 2. Dependencies (cached — only reinstall when lock file changes) ──
-LOCK_HASH=$(sha256sum package-lock.json | cut -d' ' -f1)
-LOCK_HASH_FILE="$REPO_DIR/.deploy-lock-hash"
+# ── 2. API dependencies (cached by lock hash) ─────────────────────
 API_LOCK_HASH=$(sha256sum "$API_DIR/package-lock.json" | cut -d' ' -f1)
 API_LOCK_HASH_FILE="$API_DIR/.deploy-lock-hash"
-
-if [[ -f "$LOCK_HASH_FILE" && "$(cat "$LOCK_HASH_FILE")" == "$LOCK_HASH" && -d "node_modules" ]]; then
-  echo "=== [2/8] npm ci (skipped — lock unchanged) ==="
-else
-  echo "=== [2/8] npm ci (lock changed or first deploy) ==="
-  npm ci
-  echo "$LOCK_HASH" > "$LOCK_HASH_FILE"
-fi
-
 if [[ -f "$API_LOCK_HASH_FILE" && "$(cat "$API_LOCK_HASH_FILE")" == "$API_LOCK_HASH" && -d "$API_DIR/node_modules" ]]; then
   echo "=== [2/8] api npm ci (skipped — lock unchanged) ==="
 else
-  echo "=== [2/8] api npm ci (lock changed or first deploy) ==="
+  echo "=== [2/8] api npm ci ==="
   cd "$API_DIR" && npm ci && cd "$REPO_DIR"
   echo "$API_LOCK_HASH" > "$API_LOCK_HASH_FILE"
 fi
 
-# ── 3. Build ──────────────────────────────────────────────────────
-echo "=== [3/8] build:web (NODE_ENV=$NODE_ENV) ==="
-printf "VITE_API_BASE=%s\nVITE_REDIRECT_URI=%s\n" "$VITE_API_BASE" "$APP_REDIRECT_URI" > apps/web/.env.production
-NODE_ENV="$NODE_ENV" npm run build:web
+# ── 3. Use pre-built dist (built on CI) ───────────────────────────
+if [[ -n "$DIST_SRC" && -d "$DIST_SRC" ]]; then
+  echo "=== [3/8] using pre-built dist from CI: $DIST_SRC ==="
+else
+  echo "=== [3/8] no CI dist provided — building locally ==="
+  printf "VITE_API_BASE=%s\nVITE_REDIRECT_URI=%s\n" "$VITE_API_BASE" "$APP_REDIRECT_URI" > apps/web/.env.production
+  NODE_ENV="$NODE_ENV" npm run build:web
+  DIST_SRC="$REPO_DIR/apps/web/dist"
+fi
 
 # ── 4. Create release dir ─────────────────────────────────────────
 echo "=== [4/8] create release $TIMESTAMP ==="
 mkdir -p "$RELEASE_DIR"
-cp -r apps/web/dist/. "$RELEASE_DIR/"
+cp -r "$DIST_SRC"/. "$RELEASE_DIR/"
+# Clean up uploaded temp dir
+[[ "$DIST_SRC" == /tmp/* ]] && rm -rf "$DIST_SRC" || true
 
 # ── 5. Switch symlink ─────────────────────────────────────────────
 echo "=== [5/8] symlink → $RELEASE_DIR ==="
