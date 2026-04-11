@@ -15,16 +15,16 @@ export type TaskDeadlineState = {
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
-const toUtcDayStart = (value: number) => {
+const toLocalDayStart = (value: number) => {
   const date = new Date(value)
-  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
 }
 
-const parseDateOnlyToUtcDayStart = (value: string) => {
+const parseDateOnlyToLocalDayStart = (value: string) => {
   const parts = value.split('-').map((part) => Number.parseInt(part, 10))
   if (parts.length !== 3 || parts.some((part) => Number.isNaN(part))) return null
   const [year, month, day] = parts
-  return Date.UTC(year, month - 1, day)
+  return new Date(year, month - 1, day).getTime()
 }
 
 const buildDeadlineState = (daysRemaining: number): TaskDeadlineState => {
@@ -88,7 +88,7 @@ export const getTaskDeadlineState = (task: Pick<TaskItem, 'dueDate' | 'status'>,
     }
   }
 
-  const dueDay = parseDateOnlyToUtcDayStart(task.dueDate)
+  const dueDay = parseDateOnlyToLocalDayStart(task.dueDate)
   if (dueDay == null) {
     return {
       daysRemaining: null,
@@ -99,7 +99,7 @@ export const getTaskDeadlineState = (task: Pick<TaskItem, 'dueDate' | 'status'>,
     }
   }
 
-  const daysRemaining = Math.round((dueDay - toUtcDayStart(now)) / DAY_MS)
+  const daysRemaining = Math.round((dueDay - toLocalDayStart(now)) / DAY_MS)
   return buildDeadlineState(daysRemaining)
 }
 
