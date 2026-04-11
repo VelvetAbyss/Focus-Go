@@ -29,8 +29,9 @@ jobs:
           VITE_REDIRECT_URI: https://app.nestflow.art/
 
       # ── 3. Pack dist into a single tarball (1 file >> 100 files over SCP) ──
+      # Must write to workspace dir — scp-action runs in Docker, /tmp is not mounted
       - name: Package dist
-        run: tar czf /tmp/dist-${{ github.sha }}.tar.gz -C apps/web/dist .
+        run: tar czf dist.tar.gz -C apps/web/dist .
 
       # ── 4. Upload single tarball to server ──────────────────────
       - name: Upload dist to server
@@ -39,7 +40,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: /tmp/dist-${{ github.sha }}.tar.gz
+          source: dist.tar.gz
           target: /tmp/
 
       # ── 5. Unpack + symlink + reload (lightweight SSH, < 30s) ───
@@ -52,6 +53,6 @@ jobs:
           command_timeout: 5m
           script: |
             mkdir -p /tmp/focus-go-dist-${{ github.sha }}
-            tar xzf /tmp/dist-${{ github.sha }}.tar.gz -C /tmp/focus-go-dist-${{ github.sha }}
-            rm -f /tmp/dist-${{ github.sha }}.tar.gz
+            tar xzf /tmp/dist.tar.gz -C /tmp/focus-go-dist-${{ github.sha }}
+            rm -f /tmp/dist.tar.gz
             bash /root/focus-go/deploy.sh production /tmp/focus-go-dist-${{ github.sha }}
