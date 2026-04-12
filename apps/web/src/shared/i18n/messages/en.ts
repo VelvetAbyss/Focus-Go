@@ -97,6 +97,7 @@ export const enMessages: TranslationMessages = {
   'settings.data.sync.lastSynced.never': 'Last synced: Never',
   'settings.data.sync.error': 'Latest error: {{message}}',
   'settings.data.sync.action': 'Sync now',
+  'settings.data.sync.pendingFirstSync.hint': 'Please choose a first sync direction below before syncing.',
   'settings.data.sync.first.title': 'Choose first sync direction',
   'settings.data.sync.first.description': 'This account already has local data on this device. Choose whether to upload local records into cloud sync or replace local records with the remote snapshot.',
   'settings.data.sync.first.localCount': 'Local records: {{count}}',

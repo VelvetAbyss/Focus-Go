@@ -97,6 +97,7 @@ export type TranslationKey =
   | 'settings.data.sync.lastSynced.never'
   | 'settings.data.sync.error'
   | 'settings.data.sync.action'
+  | 'settings.data.sync.pendingFirstSync.hint'
   | 'settings.data.sync.first.title'
   | 'settings.data.sync.first.description'
   | 'settings.data.sync.first.localCount'

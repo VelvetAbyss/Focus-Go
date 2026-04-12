@@ -1384,9 +1384,14 @@ const SettingsRoute = () => {
                                   {t('settings.data.sync.error', { message: syncState.lastError })}
                                 </div>
                               ) : null}
-                              <Button variant="outline" disabled={syncState?.status === 'syncing'} onClick={() => void syncNow()}>
+                              <Button variant="outline" disabled={syncState?.status === 'syncing' || syncState?.pendingFirstSync === true} onClick={() => void syncNow()}>
                                 {t('settings.data.sync.action')}
                               </Button>
+                              {syncState?.pendingFirstSync ? (
+                                <div className="max-w-[360px] text-right text-xs text-muted-foreground">
+                                  {t('settings.data.sync.pendingFirstSync.hint')}
+                                </div>
+                              ) : null}
                             </div>
                           </SettingRow>
 
