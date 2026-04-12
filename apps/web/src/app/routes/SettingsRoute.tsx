@@ -877,6 +877,26 @@ const SettingsRoute = () => {
         storage: createBrowserStorageAdapter(window.localStorage),
         tableNames: backupTableNames,
       })
+      // Reset sync state so restored data is treated as a fresh first-sync.
+      // Without this, initialize() would see firstSyncResolved:true from the
+      // backup's sync_state and immediately overwrite restored data with
+      // whatever is on the server (applyRemoteTables). By clearing it, the
+      // first-sync conflict dialog appears and the user can choose to upload.
+      const now = Date.now()
+      await db.syncState.put({
+        id: 'cloud-sync',
+        status: 'idle',
+        lastPulledAt: null,
+        lastPushedAt: null,
+        lastError: null,
+        firstSyncResolved: false,
+        pendingFirstSync: false,
+        pendingLocalRecordCount: 0,
+        pendingRemoteRecordCount: 0,
+        createdAt: now,
+        updatedAt: now,
+      })
+      await db.syncOutbox.clear()
       window.location.reload()
     } catch (error) {
       const fallback = t('settings.data.import.failed')
