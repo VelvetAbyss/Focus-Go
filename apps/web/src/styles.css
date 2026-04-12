@@ -12209,8 +12209,8 @@ html[data-theme='dark'] .user-modal__badge--premium {
 /* ─── Account Center (UserModal redesign) ────────────────────────────────── */
 
 .user-modal--account-center {
-  width: 420px;
-  max-height: 86vh;
+  width: 560px;
+  max-height: 90vh;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 0;
@@ -12610,6 +12610,333 @@ html[data-theme='dark'] .acct-streak-line {
   background: color-mix(in srgb, #ef4444 9%, transparent);
   color: #ef4444;
   opacity: 1;
+}
+
+/* ─── Account Center: Sub-panels ─────────────────────────────────────────── */
+
+/* Sub-panel header */
+.acct-subpanel-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg-elevated);
+  z-index: 1;
+}
+
+.acct-subpanel-back {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  padding: 5px 8px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  transition: background var(--transition-base);
+  white-space: nowrap;
+}
+
+.acct-subpanel-back:hover {
+  background: var(--bg-muted);
+}
+
+.acct-subpanel-title {
+  flex: 1;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.acct-subpanel-close {
+  position: static !important;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* Sub-panel body */
+.acct-subpanel-body {
+  padding: 20px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.acct-subpanel-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.acct-subpanel-hint--sm {
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+/* Info card (read-only data rows) */
+.acct-info-card {
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.acct-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 14px;
+}
+
+.acct-info-row:not(:last-child) {
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+}
+
+.acct-info-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.acct-info-value {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: right;
+  word-break: break-all;
+}
+
+.acct-info-value--mono {
+  font-family: ui-monospace, 'SFMono-Regular', monospace;
+  font-size: 11.5px;
+}
+
+/* Form fields */
+.acct-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.acct-field-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.acct-field-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: var(--bg-muted);
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  color: var(--text-primary);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+  box-sizing: border-box;
+}
+
+.acct-field-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.acct-field-input--danger:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #ef4444 14%, transparent);
+}
+
+.acct-field-readonly {
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: color-mix(in srgb, var(--bg-muted) 60%, transparent);
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  user-select: none;
+}
+
+/* Save button */
+.acct-save-btn {
+  height: 42px;
+  border-radius: 11px;
+  border: none;
+  background: var(--accent);
+  color: rgba(255, 255, 255, 0.95);
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  cursor: pointer;
+  transition: opacity var(--transition-base), transform 100ms var(--ease-standard), background var(--transition-base);
+}
+
+.acct-save-btn:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+.acct-save-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.acct-save-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.acct-save-btn--saved {
+  background: #22c55e;
+}
+
+/* Portal link */
+.acct-portal-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+  padding: 8px 0;
+  transition: opacity var(--transition-base);
+}
+
+.acct-portal-link:hover {
+  opacity: 0.7;
+}
+
+/* Help & Feedback actions */
+.acct-help-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.acct-help-btn {
+  flex: 1;
+  height: 38px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background var(--transition-base), color var(--transition-base), border-color var(--transition-base);
+}
+
+.acct-help-btn:hover {
+  background: var(--bg-muted);
+  color: var(--text-primary);
+  border-color: color-mix(in srgb, var(--border) 80%, var(--accent));
+}
+
+.acct-help-btn--primary {
+  background: var(--accent);
+  color: rgba(255, 255, 255, 0.95);
+  border-color: transparent;
+}
+
+.acct-help-btn--primary:hover {
+  opacity: 0.85;
+  background: var(--accent);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* Delete account panel */
+.acct-delete-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: color-mix(in srgb, #ef4444 10%, transparent);
+  border: 1px solid color-mix(in srgb, #ef4444 25%, transparent);
+  border-radius: 10px;
+  color: #dc2626;
+}
+
+html[data-theme='dark'] .acct-delete-warning {
+  background: color-mix(in srgb, #ef4444 14%, transparent);
+  color: #f87171;
+  border-color: color-mix(in srgb, #ef4444 30%, transparent);
+}
+
+.acct-delete-warning svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.acct-delete-warning p {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.acct-delete-btn {
+  height: 42px;
+  border-radius: 11px;
+  border: none;
+  background: #ef4444;
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  cursor: pointer;
+  width: 100%;
+  transition: opacity var(--transition-base), transform 100ms var(--ease-standard);
+}
+
+.acct-delete-btn:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+.acct-delete-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.acct-delete-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Spinner animation */
+@keyframes acct-spin {
+  to { transform: rotate(360deg); }
+}
+
+.acct-spin {
+  animation: acct-spin 700ms linear infinite;
 }
 
 /* ─── Login Modal ────────────────────────────────────────────────────────── */
