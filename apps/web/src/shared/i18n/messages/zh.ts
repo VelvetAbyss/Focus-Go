@@ -97,6 +97,7 @@ export const zhMessages: TranslationMessages = {
   'settings.data.sync.lastSynced.never': '上次同步：从未',
   'settings.data.sync.error': '最近错误：{{message}}',
   'settings.data.sync.action': '立即同步',
+  'settings.data.sync.pendingFirstSync.hint': '请先在下方选择首次同步方向，再进行同步。',
   'settings.data.sync.first.title': '选择首次同步方向',
   'settings.data.sync.first.description': '当前设备已有本地数据。请选择把本地记录上传并合并到云端，或直接使用远端快照覆盖本地。',
   'settings.data.sync.first.localCount': '本地记录：{{count}}',
