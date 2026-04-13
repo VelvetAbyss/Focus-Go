@@ -59,6 +59,7 @@ import {
   type LocalBackupPayload,
 } from '../../shared/backup/localBackup'
 import { useSyncActions, useSyncStatus } from '../../data/sync/service'
+import { seedOutboxFromSnapshot } from '../../data/sync/repository'
 import { ROUTES } from './routes'
 import { useUpgradeModal } from '../../features/labs/UpgradeModalContext'
 
@@ -877,11 +878,13 @@ const SettingsRoute = () => {
         storage: createBrowserStorageAdapter(window.localStorage),
         tableNames: backupTableNames,
       })
-      // Reset sync state so restored data is treated as a fresh first-sync.
-      // Without this, initialize() would see firstSyncResolved:true from the
-      // backup's sync_state and immediately overwrite restored data with
-      // whatever is on the server (applyRemoteTables). By clearing it, the
-      // first-sync conflict dialog appears and the user can choose to upload.
+      // Seed outbox with all restored data so it auto-uploads on next sync.
+      // Clear any stale outbox entries from the backup first, then enqueue
+      // every restored entity. Set firstSyncResolved:true so initialize()
+      // takes the applyRemoteTables (merge) path instead of showing the
+      // conflict dialog — the outbox push will propagate the restored data.
+      await db.syncOutbox.clear()
+      await seedOutboxFromSnapshot()
       const now = Date.now()
       await db.syncState.put({
         id: 'cloud-sync',
@@ -889,14 +892,13 @@ const SettingsRoute = () => {
         lastPulledAt: null,
         lastPushedAt: null,
         lastError: null,
-        firstSyncResolved: false,
+        firstSyncResolved: true,
         pendingFirstSync: false,
         pendingLocalRecordCount: 0,
         pendingRemoteRecordCount: 0,
         createdAt: now,
         updatedAt: now,
       })
-      await db.syncOutbox.clear()
       window.location.reload()
     } catch (error) {
       const fallback = t('settings.data.import.failed')

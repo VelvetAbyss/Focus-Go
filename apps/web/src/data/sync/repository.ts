@@ -186,3 +186,19 @@ export const seedOutboxFromSnapshot = async () => {
     }
   }
 }
+
+/**
+ * Wipes all local user data from IndexedDB: every entity table, the sync
+ * outbox, and the sync state. Call this on logout so the next login starts
+ * with a clean slate and pulls fresh data from the cloud.
+ */
+export const clearLocalUserData = async () => {
+  const entityTableObjects = Object.values(SYNC_ENTITY_TABLES).map((name) => db.table(name))
+  await db.transaction('rw', [...entityTableObjects, db.syncOutbox, db.syncState], async () => {
+    for (const tableName of Object.values(SYNC_ENTITY_TABLES)) {
+      await db.table(tableName).clear()
+    }
+    await db.syncOutbox.clear()
+    await db.syncState.clear()
+  })
+}

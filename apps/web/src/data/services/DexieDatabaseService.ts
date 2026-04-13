@@ -221,6 +221,67 @@ const normalizeTask = (task: TaskItem): TaskItem => {
   }
 }
 
+const equalTaskTags = (left: TaskItem['tags'], right: TaskItem['tags']) => {
+  if (left.length !== right.length) return false
+  for (let i = 0; i < left.length; i += 1) {
+    if (left[i] !== right[i]) return false
+  }
+  return true
+}
+
+const equalTaskSubtasks = (left: TaskItem['subtasks'], right: TaskItem['subtasks']) => {
+  if (left.length !== right.length) return false
+  for (let i = 0; i < left.length; i += 1) {
+    const a = left[i]
+    const b = right[i]
+    if (!a || !b) return false
+    if (a.id !== b.id || a.title !== b.title || a.done !== b.done) return false
+  }
+  return true
+}
+
+const equalTaskActivityLogs = (left: TaskItem['activityLogs'], right: TaskItem['activityLogs']) => {
+  if (left.length !== right.length) return false
+  for (let i = 0; i < left.length; i += 1) {
+    const a = left[i]
+    const b = right[i]
+    if (!a || !b) return false
+    if (a.id !== b.id || a.type !== b.type || a.message !== b.message || a.createdAt !== b.createdAt) return false
+  }
+  return true
+}
+
+const getStoredTaskNoteBlocksForComparison = (task: TaskItem) => {
+  const rawBlocks = (task as { taskNoteBlocks?: unknown }).taskNoteBlocks
+  if (Array.isArray(rawBlocks) && rawBlocks.length > 0) {
+    return normalizeTaskNoteBlocks(rawBlocks)
+  }
+  const legacyText = (task as { note?: unknown }).note
+  if (typeof legacyText === 'string' && legacyText.trim().length > 0) {
+    return normalizeTaskNoteBlocks(undefined, legacyText)
+  }
+  return []
+}
+
+const shouldPersistNormalizedTask = (task: TaskItem, next: TaskItem) =>
+  task.title !== next.title ||
+  task.description !== next.description ||
+  task.status !== next.status ||
+  task.priority !== next.priority ||
+  task.pinned !== next.pinned ||
+  task.isToday !== next.isToday ||
+  task.dueDate !== next.dueDate ||
+  task.startDate !== next.startDate ||
+  task.endDate !== next.endDate ||
+  task.reminderAt !== next.reminderAt ||
+  task.reminderFiredAt !== next.reminderFiredAt ||
+  !equalTaskTags(Array.isArray(task.tags) ? task.tags : [], next.tags) ||
+  !equalTaskSubtasks(Array.isArray(task.subtasks) ? task.subtasks : [], next.subtasks) ||
+  !areTaskNoteBlocksEqual(getStoredTaskNoteBlocksForComparison(task), next.taskNoteBlocks) ||
+  JSON.stringify(task.taskNoteContentJson ?? null) !== JSON.stringify(next.taskNoteContentJson ?? null) ||
+  task.taskNoteContentMd !== next.taskNoteContentMd ||
+  !equalTaskActivityLogs(Array.isArray(task.activityLogs) ? task.activityLogs : [], next.activityLogs)
+
 const normalizeBook = (book: BookItem): BookItem => ({
   ...book,
   source: book.source ?? 'manual',
@@ -435,25 +496,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
     async list() {
       const tasks = await db.tasks.toArray()
       const normalized = tasks.map((task) => normalizeTask(task))
-      const changed = tasks.some((task, index) => {
-        const next = normalized[index]
-        return (
-          task.description !== next.description ||
-          task.pinned !== next.pinned ||
-          task.isToday !== next.isToday ||
-          task.dueDate !== next.dueDate ||
-          task.startDate !== next.startDate ||
-          task.endDate !== next.endDate ||
-          task.reminderAt !== next.reminderAt ||
-          task.reminderFiredAt !== next.reminderFiredAt ||
-          task.tags !== next.tags ||
-          task.subtasks !== next.subtasks ||
-          !areTaskNoteBlocksEqual(normalizeTaskNoteBlocks((task as { taskNoteBlocks?: unknown }).taskNoteBlocks), next.taskNoteBlocks) ||
-          JSON.stringify(task.taskNoteContentJson ?? null) !== JSON.stringify(next.taskNoteContentJson ?? null) ||
-          task.taskNoteContentMd !== next.taskNoteContentMd ||
-          task.activityLogs !== next.activityLogs
-        )
-      })
+      const changed = tasks.some((task, index) => shouldPersistNormalizedTask(task, normalized[index] as TaskItem))
       if (changed) await db.tasks.bulkPut(normalized)
       return normalized
     },
