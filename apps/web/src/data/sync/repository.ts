@@ -165,34 +165,17 @@ export const applyRemoteTables = async (tables: SyncBootstrapResponse['tables'])
 }
 
 export const replaceLocalWithRemote = async (tables: SyncBootstrapResponse['tables']) => {
-  await db.transaction(
-    'rw',
-    [
-      db.tasks,
-      db.notes,
-      db.noteTags,
-      db.noteAppearance,
-      db.widgetTodos,
-      db.focusSettings,
-      db.focusSessions,
-      db.diaryEntries,
-      db.spends,
-      db.spendCategories,
-      db.dashboardLayout,
-      db.userSubscriptions,
-      db.featureInstallations,
-      db.habits,
-      db.habitLogs,
-    ],
-    async () => {
-      for (const [entityType, tableName] of Object.entries(SYNC_ENTITY_TABLES) as Array<[SyncEntityType, string]>) {
-        const table = db.table(tableName)
-        await table.clear()
-        const rows = tables[entityType].filter((row) => !row.deletedAt).map((row) => row.payload)
-        if (rows.length) await table.bulkPut(rows)
-      }
-    },
-  )
+  // Build table list dynamically so any new entity type added to SYNC_ENTITY_TABLES
+  // is automatically included in the transaction without manual updates here.
+  const tableObjects = Object.values(SYNC_ENTITY_TABLES).map((name) => db.table(name))
+  await db.transaction('rw', tableObjects, async () => {
+    for (const [entityType, tableName] of Object.entries(SYNC_ENTITY_TABLES) as Array<[SyncEntityType, string]>) {
+      const table = db.table(tableName)
+      await table.clear()
+      const rows = tables[entityType].filter((row) => !row.deletedAt).map((row) => row.payload)
+      if (rows.length) await table.bulkPut(rows)
+    }
+  })
 }
 
 export const seedOutboxFromSnapshot = async () => {

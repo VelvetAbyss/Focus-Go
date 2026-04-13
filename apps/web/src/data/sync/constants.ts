@@ -22,4 +22,13 @@ export const SYNC_ENTITY_TABLES: Record<SyncEntityType, string> = {
   featureInstallations: TABLES.featureInstallations,
   habits: TABLES.habits,
   habitLogs: TABLES.habitLogs,
+  // Life feature tables
+  books: TABLES.books,
+  stocks: TABLES.stocks,
+  media: TABLES.media,
+  lifeSubscriptions: TABLES.lifeSubscriptions,
+  lifePodcasts: TABLES.lifePodcasts,
+  lifePeople: TABLES.lifePeople,
+  trips: TABLES.trips,
+  lifeDashboardLayout: TABLES.lifeDashboardLayout,
 }

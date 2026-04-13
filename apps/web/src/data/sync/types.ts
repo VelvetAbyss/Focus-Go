@@ -1,4 +1,5 @@
 import type {
+  BookItem,
   DashboardLayout,
   DiaryEntry,
   FeatureInstallation,
@@ -6,12 +7,19 @@ import type {
   FocusSettings,
   Habit,
   HabitLog,
+  LifeDashboardLayout,
+  LifePerson,
+  LifePodcast,
+  LifeSubscription,
+  MediaItem,
   NoteAppearanceSettings,
   NoteItem,
   NoteTag,
   SpendCategory,
   SpendEntry,
+  StockItem,
   TaskItem,
+  TripRecord,
   UserSubscription,
   WidgetTodo,
 } from '../models/types'
@@ -32,6 +40,15 @@ export const SYNC_ENTITY_TYPES = [
   'featureInstallations',
   'habits',
   'habitLogs',
+  // Life feature tables (previously local-only)
+  'books',
+  'stocks',
+  'media',
+  'lifeSubscriptions',
+  'lifePodcasts',
+  'lifePeople',
+  'trips',
+  'lifeDashboardLayout',
 ] as const
 
 export type SyncEntityType = (typeof SYNC_ENTITY_TYPES)[number]
@@ -55,6 +72,14 @@ export type SyncEntityMap = {
   featureInstallations: FeatureInstallation
   habits: Habit
   habitLogs: HabitLog
+  books: BookItem
+  stocks: StockItem
+  media: MediaItem
+  lifeSubscriptions: LifeSubscription
+  lifePodcasts: LifePodcast
+  lifePeople: LifePerson
+  trips: TripRecord
+  lifeDashboardLayout: LifeDashboardLayout
 }
 
 export type SyncPayload<T extends SyncEntityType = SyncEntityType> = SyncEntityMap[T] | ({ id: string; updatedAt: number } & Record<string, unknown>)
