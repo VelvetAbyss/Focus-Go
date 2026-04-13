@@ -20,6 +20,7 @@ import {
   subscribePodcastPlayback,
 } from '../podcastPlayback'
 import { usePreferences } from '../../../shared/prefs/usePreferences'
+import { useLifeI18n, type LifeTranslate } from '../lifeI18n'
 
 const NETEASE_LIMIT = 3
 
@@ -32,23 +33,24 @@ const mergeEpisodes = (current: LifePodcast['episodes'], incoming: LifePodcast['
   return [...merged.values()].sort((left, right) => `${right.releaseDate ?? ''}`.localeCompare(`${left.releaseDate ?? ''}`))
 }
 
-const toImportErrorMessage = (error: unknown) => {
+const toImportErrorMessage = (error: unknown, t: LifeTranslate) => {
   const message = error instanceof Error ? error.message : String(error ?? '')
-  if (message.includes('Missing auth token')) return 'Netease import requires login first.'
-  if (message.includes('404')) return 'Netease import API is not deployed yet. Start or deploy focus-go-api first.'
-  if (message.includes('401')) return 'Netease import requires a valid login session.'
-  if (message.includes('NETEASE_PODCAST_LIMIT:3')) return 'You can add up to 3 Netease channels. Remove one to continue.'
-  return 'Netease podcast import failed. Check the channel link.'
+  if (message.includes('Missing auth token')) return t('life.podcast.error.import.login')
+  if (message.includes('404')) return t('life.podcast.error.import.notDeployed')
+  if (message.includes('401')) return t('life.podcast.error.import.invalidSession')
+  if (message.includes('NETEASE_PODCAST_LIMIT:3')) return t('life.podcast.error.import.limit', { limit: 3 })
+  return t('life.podcast.error.import.failed')
 }
 
-const toRefreshErrorMessage = (error: unknown) => {
+const toRefreshErrorMessage = (error: unknown, t: LifeTranslate) => {
   const message = error instanceof Error ? error.message : String(error ?? '')
-  if (message.includes('404')) return 'Netease sync API is not deployed yet. Start or deploy focus-go-api first.'
-  if (message.includes('401')) return 'Netease sync requires a valid login session.'
-  return 'Podcast refresh failed. Try again later.'
+  if (message.includes('404')) return t('life.podcast.error.refresh.notDeployed')
+  if (message.includes('401')) return t('life.podcast.error.refresh.invalidSession')
+  return t('life.podcast.error.refresh.failed')
 }
 
 const PodcastCard = () => {
+  const { t } = useLifeI18n()
   const {
     neteaseExperimentalPlaybackEnabled,
   } = usePreferences()
@@ -65,7 +67,7 @@ const PodcastCard = () => {
   const [error, setError] = useState<string | null>(null)
 
   const selected = useMemo(() => items.find((item) => item.id === selectedId) ?? null, [items, selectedId])
-  const model = useMemo(() => buildPodcastPresentationModel(items), [items])
+  const model = useMemo(() => buildPodcastPresentationModel(items, t), [items, t])
   const presetChannels = useMemo(
     () =>
       NETEASE_CHANNEL_PRESETS.filter(
@@ -108,9 +110,9 @@ const PodcastCard = () => {
 
   const toPlaybackErrorMessage = (playbackError: unknown) => {
     const message = playbackError instanceof Error ? playbackError.message : String(playbackError ?? '')
-    if (message.includes('supported sources')) return 'This episode source is unavailable right now.'
-    if (message.includes('play() failed')) return 'Playback was blocked by the browser.'
-    return message || 'Podcast playback failed.'
+    if (message.includes('supported sources')) return t('life.podcast.error.sourceUnavailable')
+    if (message.includes('play() failed')) return t('life.podcast.error.playbackBlocked')
+    return message || t('life.podcast.error.playbackFailed')
   }
 
   const openExternal = (url?: string) => {
@@ -129,7 +131,7 @@ const PodcastCard = () => {
   const playSelection = async (podcast: LifePodcast, episodeId?: string) => {
     const episode = podcast.episodes.find((item) => item.id === (episodeId ?? podcast.selectedEpisodeId)) ?? podcast.episodes[0]
     if (!episode) {
-      setError('This episode has no playable audio URL yet.')
+      setError(t('life.podcast.error.noPlayable'))
       return
     }
     try {
@@ -175,7 +177,7 @@ const PodcastCard = () => {
     if (!nextQuery) return
     if (isNeteasePodcastUrl(nextQuery)) {
       if (items.filter((item) => item.source === 'netease').length >= NETEASE_LIMIT) {
-        setError(`You can add up to ${NETEASE_LIMIT} Netease channels. Remove one to continue.`)
+        setError(t('life.podcast.error.import.limit', { limit: NETEASE_LIMIT }))
         return
       }
       setAddingCandidateId(`netease:${extractNeteaseRadioId(nextQuery) ?? nextQuery}`)
@@ -185,7 +187,7 @@ const PodcastCard = () => {
         setChannelUrl(nextQuery)
         setResults([])
       } catch (error) {
-        setError(toImportErrorMessage(error))
+        setError(toImportErrorMessage(error, t))
       } finally {
         setAddingCandidateId(null)
       }
@@ -196,7 +198,7 @@ const PodcastCard = () => {
     try {
       setResults(await searchRemotePodcasts(nextQuery))
     } catch {
-      setError('Podcast search failed. Try another title.')
+      setError(t('life.podcast.error.searchFailed'))
     } finally {
       setSearching(false)
     }
@@ -209,7 +211,7 @@ const PodcastCard = () => {
     try {
       await upsertPodcast(candidate)
     } catch (error) {
-      setError(error instanceof Error && error.message.includes('Netease') ? toImportErrorMessage(error) : 'Podcast import failed. Try another show.')
+      setError(error instanceof Error && error.message.includes('Netease') ? toImportErrorMessage(error, t) : t('life.podcast.error.searchFailed'))
     } finally {
       setAddingCandidateId(null)
     }
@@ -219,7 +221,7 @@ const PodcastCard = () => {
     const nextInput = input.trim()
     if (!nextInput) return
     if (items.filter((item) => item.source === 'netease').length >= NETEASE_LIMIT) {
-      setError(`You can add up to ${NETEASE_LIMIT} Netease channels. Remove one to continue.`)
+      setError(t('life.podcast.error.import.limit', { limit: NETEASE_LIMIT }))
       return
     }
     setAddingCandidateId(key)
@@ -228,7 +230,7 @@ const PodcastCard = () => {
       await upsertPodcast(await importNeteasePodcast(nextInput))
       setChannelUrl(nextInput)
     } catch (error) {
-      setError(toImportErrorMessage(error))
+      setError(toImportErrorMessage(error, t))
     } finally {
       setAddingCandidateId(null)
     }
@@ -256,7 +258,7 @@ const PodcastCard = () => {
       if (!updated) return
       applyPodcastUpdate(updated)
     } catch (error) {
-      setError(toRefreshErrorMessage(error))
+      setError(toRefreshErrorMessage(error, t))
     } finally {
       setRefreshingPodcastId(null)
     }

@@ -9,6 +9,7 @@ import { getLifeCards, type DashboardCard } from '../dashboard/registry'
 import type { DashboardLayoutItem } from '../../data/models/types'
 import { useDashboardGridEdit } from '../dashboard/useDashboardGridEdit'
 import { lifeDashboardRepo } from '../../data/repositories/lifeDashboardRepo'
+import { useLifeI18n } from './lifeI18n'
 import './life.css'
 
 type LifeDashboardProps = {
@@ -29,6 +30,7 @@ const DEFAULT_LIFE_LAYOUT: DashboardLayoutItem[] = [
 const DEFAULT_LIFE_HIDDEN_CARD_IDS = ['stocks']
 
 const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => {
+  const { t } = useLifeI18n()
   const isMobile = useIsBreakpoint('max', 768)
   const columns = isMobile ? 8 : 24
   const { width, containerRef, mounted } = useContainerWidth({ initialWidth: window.innerWidth })
@@ -36,7 +38,7 @@ const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => 
   const [hiddenCardIds, setHiddenCardIds] = useState<string[]>([])
   const layoutSnapshotRef = useRef<{ layout: DashboardLayoutItem[]; hiddenCardIds: string[] }>({ layout: [], hiddenCardIds: [] })
 
-  const cards = useMemo(() => getLifeCards(), [])
+  const cards = useMemo(() => getLifeCards(t), [t])
   const cardsById = useMemo(() => new Map<string, DashboardCard>(cards.map((c) => [c.id, c])), [cards])
 
   const responsiveLayout = useMemo(() => {
@@ -154,7 +156,7 @@ const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => 
   return (
     <div className="life-dashboard" ref={containerRef}>
       {layoutEdit && widgetsPanelOpen ? (
-        <section className="dashboard-widgets" aria-label="Manage life widgets">
+        <section className="dashboard-widgets" aria-label={t('life.dashboard.manageWidgets')}>
           {cards.map((card) => {
             const visible = layout.some((item) => item.key === card.id)
             const switchId = `life-widget-toggle-${card.id}`
@@ -196,8 +198,8 @@ const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => 
               {card.node}
               {layoutEdit ? (
                 <>
-                  <div className="dashboard__edit-overlay" {...gridEdit.dragProps(card.id)} aria-label="Edit layout">
-                    <span>Edit layout</span>
+                  <div className="dashboard__edit-overlay" {...gridEdit.dragProps(card.id)} aria-label={t('life.dashboard.editLayout')}>
+                    <span>{t('life.dashboard.editLayout')}</span>
                   </div>
                   <div className="dashboard__resize-handle" {...gridEdit.resizeProps(card.id)} />
                 </>

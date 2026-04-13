@@ -783,7 +783,7 @@ export const zhMessages: TranslationMessages = {
   'auth.account.deleteWarning': '此操作将永久停用你的账号，所有本地数据将被清除。',
   'auth.account.deleteConfirmLabel': '输入邮箱以确认：',
   'auth.account.deleteConfirmBtn': '删除我的账号',
-  'auth.account.deleteNote': '数据删除最多需要 30 天。如有疑问请联系 support@focus-go.app。',
+  'auth.account.deleteNote': '数据删除最多需要 30 天。如有疑问请联系 support@nestflow.art。',
   'auth.account.exportDataDesc': '下载所有任务、笔记、日记和专注记录的完整 JSON 备份。',
   'auth.account.exportingData': '导出中…',
   'auth.account.exportDone': '下载成功！',

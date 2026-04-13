@@ -31,6 +31,10 @@ vi.mock('../../features/tasks/useTaskReminderEngine', () => ({
   useTaskReminderEngine: vi.fn(),
 }))
 
+vi.mock('../../features/onboarding/ModuleGuideRuntime', () => ({
+  default: () => null,
+}))
+
 vi.mock('./Sidebar', () => ({
   default: ({ onToggleTheme }: { onToggleTheme: () => void }) => (
     <button type="button" onClick={onToggleTheme}>

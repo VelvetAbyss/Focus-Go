@@ -92,6 +92,12 @@ export type TaskItem = BaseEntity & {
   isToday: boolean
   status: TaskStatus
   priority: TaskPriority | null
+  projectId?: string
+  ownerId?: string
+  collaboratorIds?: string[]
+  dependencyTaskIds?: string[]
+  blockedByTaskIds?: string[]
+  isBlocked?: boolean
   dueDate?: string
   startDate?: string
   endDate?: string
@@ -466,6 +472,9 @@ export type StockItem = BaseEntity & {
 
 export type SubscriptionTier = 'free' | 'premium'
 export type AccountRole = 'member' | 'admin'
+export type ProjectStatus = 'planning' | 'active' | 'blocked' | 'done' | 'archived'
+export type ProjectHealth = 'on-track' | 'at-risk' | 'blocked'
+export type ProjectRoleType = 'owner' | 'collaborator' | 'reviewer' | 'external'
 
 export type UserSubscription = BaseEntity & {
   userId: string
@@ -473,7 +482,37 @@ export type UserSubscription = BaseEntity & {
   role: AccountRole
 }
 
-export type FeatureKey = 'ai-digest' | 'automation' | 'habit-tracker' | 'mind-map'
+export type ProjectItem = BaseEntity & {
+  title: string
+  description: string
+  goal: string
+  status: ProjectStatus
+  priority: TaskPriority | null
+  ownerId?: string
+  startDate?: string
+  dueDate?: string
+  health: ProjectHealth
+  progress: number
+  nextAction?: string
+  riskSummary?: string
+}
+
+export type ProjectPerson = BaseEntity & {
+  projectId: string
+  name: string
+  roleType: ProjectRoleType
+  phone?: string
+  email?: string
+  note?: string
+}
+
+export type ProjectNoteLink = BaseEntity & {
+  projectId: string
+  noteId: string
+  tagName: string
+}
+
+export type FeatureKey = 'ai-digest' | 'automation' | 'habit-tracker' | 'mind-map' | 'project-workspace'
 export type FeatureInstallState = 'installed' | 'removed'
 
 export type FeatureInstallation = BaseEntity & {

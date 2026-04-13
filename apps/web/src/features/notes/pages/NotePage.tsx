@@ -665,7 +665,7 @@ export default function NotePage() {
   }, [isFullscreen])
 
   return (
-    <section className="note-page-shell flex h-full max-h-full min-h-0" data-note-theme={effectiveTheme}>
+    <section className="note-page-shell flex h-full max-h-full min-h-0" data-note-theme={effectiveTheme} data-guide-anchor="notes">
       <div className="note-page-shell__content note-page" data-fullscreen={isFullscreen ? 'true' : 'false'}>
         <NoteSidebar
           className="note-page-column note-page-column--sidebar"

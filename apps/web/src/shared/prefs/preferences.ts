@@ -5,6 +5,7 @@ export const WEATHER_AUTO_LOCATION_KEY = 'workbench.weather.autoLocation'
 export const WEATHER_MANUAL_CITY_KEY = 'workbench.weather.manualCity'
 export const WEATHER_TEMP_UNIT_KEY = 'workbench.weather.temperatureUnit'
 export const WEATHER_LAST_LOCATION_KEY = 'workbench.weather.lastLocation'
+export const WORLD_CLOCK_ITEMS_KEY = 'workbench.dashboard.worldClockItems'
 export const FOCUS_COMPLETION_SOUND_ENABLED_KEY = 'workbench.focus.completionSound.enabled'
 export const TASK_REMINDER_ENABLED_KEY = 'focusgo.tasks.reminder.enabled.v1'
 export const TASK_REMINDER_LEAD_MINUTES_KEY = 'focusgo.tasks.reminder.leadMinutes.v1'
@@ -47,6 +48,15 @@ export type WeatherStoredLocation = {
   name: string
   latitude: number
   longitude: number
+}
+
+export type WorldClockItem = {
+  id: string
+  label: string
+  searchValue: string
+  latitude: number
+  longitude: number
+  timeZone: string
 }
 
 export function detectBrowserLanguage(raw: string | string[]): LanguageCode {
@@ -196,4 +206,41 @@ export function readWeatherLastLocation(): WeatherStoredLocation | null {
 
 export function writeWeatherLastLocation(location: WeatherStoredLocation) {
   localStorage.setItem(WEATHER_LAST_LOCATION_KEY, JSON.stringify(location))
+}
+
+export function readWorldClockItems(): WorldClockItem[] {
+  const raw = localStorage.getItem(WORLD_CLOCK_ITEMS_KEY)
+  if (!raw) return []
+  try {
+    const parsed = JSON.parse(raw) as WorldClockItem[]
+    if (!Array.isArray(parsed)) return []
+    return parsed
+      .filter(
+        (item): item is WorldClockItem =>
+          typeof item?.id === 'string' &&
+          typeof item?.label === 'string' &&
+          typeof item?.searchValue === 'string' &&
+          typeof item?.latitude === 'number' &&
+          typeof item?.longitude === 'number' &&
+          typeof item?.timeZone === 'string'
+      )
+      .slice(0, 4)
+  } catch {
+    return []
+  }
+}
+
+export function writeWorldClockItems(items: WorldClockItem[]) {
+  const safeItems = items
+    .filter(
+      (item): item is WorldClockItem =>
+        typeof item?.id === 'string' &&
+        typeof item?.label === 'string' &&
+        typeof item?.searchValue === 'string' &&
+        typeof item?.latitude === 'number' &&
+        typeof item?.longitude === 'number' &&
+        typeof item?.timeZone === 'string'
+    )
+    .slice(0, 4)
+  localStorage.setItem(WORLD_CLOCK_ITEMS_KEY, JSON.stringify(safeItems))
 }

@@ -8,6 +8,12 @@ type TaskCreateInput = {
   isToday?: boolean
   status: TaskStatus
   priority: TaskItem['priority']
+  projectId?: string
+  ownerId?: string
+  collaboratorIds?: string[]
+  dependencyTaskIds?: string[]
+  blockedByTaskIds?: string[]
+  isBlocked?: boolean
   dueDate?: string
   startDate?: string
   endDate?: string

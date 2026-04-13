@@ -3,8 +3,8 @@ import TasksBoard from '../tasks/TasksBoard'
 import FocusCard from '../focus/FocusCard'
 import SpendCard from '../spend/SpendCard'
 import WidgetTodosCard from './cards/WidgetTodosCard'
-import DiaryLauncherCard from './cards/DiaryLauncherCard'
 import WeatherWidgetCard from './cards/WeatherWidgetCard'
+import WorldClockCard from '../life/cards/WorldClockCard'
 import BooksCard from '../life/cards/BooksCard'
 import DailyReviewCard from '../life/cards/DailyReviewCard'
 import MediaCard from '../life/cards/MediaCard'
@@ -13,6 +13,7 @@ import PodcastCard from '../life/cards/PodcastCard'
 import SubscriptionsCard from '../life/cards/SubscriptionsCard'
 import StocksCard from '../life/cards/StocksCard'
 import TripsCard from '../life/cards/TripsCard'
+import type { LifeTranslate } from '../life/lifeI18n'
 
 export type DashboardCard = {
   id: string
@@ -60,60 +61,60 @@ export const getDashboardCards = (): DashboardCard[] => [
     render: () => <WidgetTodosCard />,
   },
   {
-    id: 'diary',
-    title: 'Diary',
-    defaultSize: { w: 6, h: 3 },
+    id: 'world_clock',
+    title: 'World Clock',
+    defaultSize: { w: 3, h: 4 },
     pageScope: 'main',
-    render: () => <DiaryLauncherCard />,
+    render: () => <WorldClockCard />,
   },
 ]
 
-export const getLifeCards = (): DashboardCard[] => [
+export const getLifeCards = (t: LifeTranslate): DashboardCard[] => [
   {
     id: 'daily_review',
-    title: 'Daily Review',
+    title: t('life.card.dailyReview'),
     defaultSize: { w: 14, h: 8 },
     pageScope: 'life',
     render: () => <DailyReviewCard />,
   },
   {
     id: 'library',
-    title: 'Library',
+    title: t('life.card.library'),
     defaultSize: { w: 10, h: 8 },
     pageScope: 'life',
     render: () => <BooksCard />,
   },
   {
     id: 'media_card',
-    title: 'Media',
+    title: t('life.card.media'),
     defaultSize: { w: 10, h: 8 },
     pageScope: 'life',
     render: () => <MediaCard />,
   },
   {
     id: 'trips_card',
-    title: 'Trips',
+    title: t('life.card.trips'),
     defaultSize: { w: 8, h: 8 },
     pageScope: 'life',
     render: () => <TripsCard />,
   },
   {
     id: 'subscriptions_card',
-    title: 'Subscriptions',
+    title: t('life.card.subscriptions'),
     defaultSize: { w: 24, h: 4 },
     pageScope: 'life',
     render: () => <SubscriptionsCard />,
   },
   {
     id: 'podcast_card',
-    title: 'Podcast',
+    title: t('life.card.podcast'),
     defaultSize: { w: 10, h: 8 },
     pageScope: 'life',
     render: () => <PodcastCard />,
   },
   {
     id: 'people_card',
-    title: 'People',
+    title: t('life.card.people'),
     defaultSize: { w: 10, h: 8 },
     pageScope: 'life',
     render: () => <PeopleCard />,

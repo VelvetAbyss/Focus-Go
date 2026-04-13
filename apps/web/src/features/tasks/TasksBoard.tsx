@@ -28,6 +28,7 @@ import { readTaskTodayBucket, shouldClearTodayDoneTasks, writeTaskTodayBucket } 
 import { TASK_STATUS_CONFIG } from './components/taskPresentation'
 import { useI18n } from '../../shared/i18n/useI18n'
 import { completeOnboarding, markFeatureSeen, resetOnboarding, setPendingCoachmark } from '../onboarding/onboarding.runtime'
+import { useAuthGate } from '../auth/AuthGateContext'
 import EmptyState from '../../shared/ui/EmptyState'
 
 const tabs: { key: TaskStatus }[] = [{ key: 'todo' }, { key: 'doing' }, { key: 'done' }]
@@ -88,6 +89,7 @@ const TasksBoard = ({
   onOnboardingTaskCreated,
 }: TasksBoardProps) => {
   const { t } = useI18n()
+  const { requireAuth } = useAuthGate()
   const [tasks, setTasks] = useState<TaskItem[]>([])
   const [activeTask, setActiveTask] = useState<TaskItem | null>(null)
   const [onboardingDrawerOpen, setOnboardingDrawerOpen] = useState(false)
@@ -658,7 +660,7 @@ const TasksBoard = ({
       </div>
 
       {topView !== 'analytics' && isKanbanMode && !onboardingMode ? (
-        <TaskAddComposer onSubmit={handleAddTask} plain placeholder={topView === 'today' ? t('tasks.today.addPlaceholder') : undefined} />
+        <TaskAddComposer onSubmit={(title) => { requireAuth(() => { void handleAddTask(title) }); return Promise.resolve(true) }} plain placeholder={topView === 'today' ? t('tasks.today.addPlaceholder') : undefined} />
       ) : null}
     </div>
   )

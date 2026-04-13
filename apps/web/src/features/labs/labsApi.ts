@@ -62,6 +62,13 @@ const FEATURE_META: FeatureMeta[] = [
     premiumOnly: false,
     comingSoon: true,
   },
+  {
+    featureKey: 'project-workspace',
+    title: 'Project',
+    description: 'Dedicated workspace for complex projects with clear goals and timelines.',
+    premiumOnly: true,
+    comingSoon: false,
+  },
 ]
 
 const upsertSubscription = async (tier: SubscriptionTier, role: AccountRole = CURRENT_ACCOUNT_ROLE) => {

@@ -5,7 +5,7 @@ import { NOISE_SOURCES, NOISE_TRACKS } from './noise'
 const clamp01 = (value: number) => Math.max(0, Math.min(1, value))
 
 export const useNoiseMixer = (noise: NoiseSettings, onPlaybackBlocked?: () => void) => {
-  const audiosRef = useRef<Record<NoiseTrackId, HTMLAudioElement> | null>(null)
+  const audiosRef = useRef<Partial<Record<NoiseTrackId, HTMLAudioElement>> | null>(null)
   const blockedReportedRef = useRef(false)
   const fadeRafRef = useRef<Record<NoiseTrackId, number | null>>({
     cafe: null,
@@ -50,21 +50,27 @@ export const useNoiseMixer = (noise: NoiseSettings, onPlaybackBlocked?: () => vo
     [cancelFade]
   )
 
-  useEffect(() => {
-    const audios = {} as Record<NoiseTrackId, HTMLAudioElement>
-    for (const track of NOISE_TRACKS) {
-      const audio = new Audio(NOISE_SOURCES[track.id])
-      audio.loop = true
-      audio.preload = 'auto'
-      audio.volume = 0
-      audios[track.id] = audio
-    }
+  const ensureAudio = useCallback((trackId: NoiseTrackId) => {
+    const audios = audiosRef.current
+    if (!audios) return null
+    const existing = audios[trackId]
+    if (existing) return existing
 
-    audiosRef.current = audios
+    const audio = new Audio(NOISE_SOURCES[trackId])
+    audio.loop = true
+    audio.preload = 'none'
+    audio.volume = 0
+    audios[trackId] = audio
+    return audio
+  }, [])
+
+  useEffect(() => {
+    audiosRef.current = {}
 
     return () => {
       for (const track of NOISE_TRACKS) {
-        const audio = audios[track.id]
+        const audio = audiosRef.current?.[track.id]
+        if (!audio) continue
         cancelFade(track.id)
         audio.pause()
       }
@@ -81,10 +87,11 @@ export const useNoiseMixer = (noise: NoiseSettings, onPlaybackBlocked?: () => vo
 
     for (const track of NOISE_TRACKS) {
       const settings = noise.tracks[track.id]
-      const audio = audios[track.id]
-      audio.loop = noise.loop ?? true
       const targetVolume = clamp01((noise.masterVolume ?? 1) * settings.volume)
       const shouldPlay = noise.playing && settings.enabled
+      const audio = shouldPlay ? ensureAudio(track.id) : audios[track.id]
+      if (!audio) continue
+      audio.loop = noise.loop ?? true
       if (shouldPlay) {
         if (audio.paused) {
           audio.volume = 0
@@ -113,5 +120,5 @@ export const useNoiseMixer = (noise: NoiseSettings, onPlaybackBlocked?: () => vo
         }
       }
     }
-  }, [fadeTo, noise, onPlaybackBlocked])
+  }, [ensureAudio, fadeTo, noise, onPlaybackBlocked])
 }

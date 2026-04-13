@@ -23,6 +23,7 @@ import {
   smallButtonStyle,
   textareaStyle,
 } from './lifeDesignPrimitives'
+import { useLifeI18n } from '../lifeI18n'
 
 type PersonDraft = {
   name: string
@@ -77,6 +78,7 @@ export const PeopleCardSurface = ({
   onSaveItem,
   onRemoveItem,
 }: Props) => {
+  const { t } = useLifeI18n()
   const [draft, setDraft] = useState<PersonDraft>(toDraft(selected))
   const [editingId, setEditingId] = useState<string | null>(selectedId)
 
@@ -92,9 +94,9 @@ export const PeopleCardSurface = ({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
               <Users size={13} color="rgba(58,55,51,0.38)" />
-              <span style={{ ...inter(10, 600, 'rgba(58,55,51,0.38)'), letterSpacing: '0.10em', textTransform: 'uppercase' }}>People</span>
+              <span style={{ ...inter(10, 600, 'rgba(58,55,51,0.38)'), letterSpacing: '0.10em', textTransform: 'uppercase' }}>{t('life.card.people')}</span>
             </div>
-            <h3 style={{ ...playfair(18, 500), lineHeight: 1.2 }}>People</h3>
+            <h3 style={{ ...playfair(18, 500), lineHeight: 1.2 }}>{t('life.card.people')}</h3>
           </div>
           <div style={cardArrowStyle}><ChevronRight size={15} /></div>
         </div>
@@ -124,11 +126,11 @@ export const PeopleCardSurface = ({
               <div style={{ width: 48, height: 48, marginBottom: 16, borderRadius: 999, background: 'rgba(58,55,51,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Users size={20} color="rgba(58,55,51,0.30)" />
               </div>
-              <p style={{ ...playfair(14, 500), marginBottom: 6 }}>Keep your people close</p>
-              <p style={{ ...inter(12, 400, mutedText), lineHeight: 1.6, marginBottom: 18 }}>Add important people and track birthdays or recent contact.</p>
+              <p style={{ ...playfair(14, 500), marginBottom: 6 }}>{t('life.people.emptyTitle')}</p>
+              <p style={{ ...inter(12, 400, mutedText), lineHeight: 1.6, marginBottom: 18 }}>{t('life.people.emptyDescription')}</p>
               <button type="button" onClick={(event) => { event.stopPropagation(); onOpen() }} style={{ ...smallButtonStyle, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 <Plus size={11} />
-                <span>Add person</span>
+                <span>{t('life.people.addPerson')}</span>
               </button>
             </div>
           )}
@@ -136,7 +138,7 @@ export const PeopleCardSurface = ({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderTop: `1px solid ${sectionBorder}` }}>
           <button type="button" onClick={(event) => { event.stopPropagation(); onOpen() }} style={{ ...inter(12, 400, mutedText), display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', border: 'none', cursor: 'pointer' }}>
             <Plus size={12} />
-            <span>Add person</span>
+            <span>{t('life.people.addPerson')}</span>
           </button>
           <p style={{ ...inter(11, 400, 'rgba(58,55,51,0.38)') }}>{model.statsLabel}</p>
         </div>

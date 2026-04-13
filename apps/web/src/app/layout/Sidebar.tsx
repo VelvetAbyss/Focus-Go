@@ -24,6 +24,7 @@ import {
   NotebookPen,
   PanelLeftClose,
   PanelLeftOpen,
+  PanelsTopLeft,
   Settings,
   Sparkles,
   Timer,
@@ -51,6 +52,7 @@ type SidebarProps = {
 
 const ICONS: Record<RouteKey, LucideIcon> = {
   dashboard: House,
+  projects: PanelsTopLeft,
   tasks: ListTodo,
   note: Notebook,
   calendar: CalendarDays,
@@ -116,6 +118,7 @@ const Sidebar = ({ collapsed, onToggle, theme, onToggleTheme }: SidebarProps) =>
     'ai-digest': Sparkles,
     automation: Bot,
     'mind-map': Notebook,
+    'project-workspace': PanelsTopLeft,
   }
 
   const FEATURE_ROUTES: Record<FeatureKey, string> = {
@@ -123,6 +126,7 @@ const Sidebar = ({ collapsed, onToggle, theme, onToggleTheme }: SidebarProps) =>
     'ai-digest': ROUTES.LABS,
     automation: ROUTES.LABS,
     'mind-map': ROUTES.NOTE,
+    'project-workspace': ROUTES.PROJECTS,
   }
 
   const navItems = BASE_NAV_ITEMS.map((item) => ({ key: item.key, to: item.to }))

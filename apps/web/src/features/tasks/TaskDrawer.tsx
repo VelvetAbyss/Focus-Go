@@ -30,6 +30,7 @@ import TaskNoteEditor from './components/TaskNoteEditor'
 import { createTaskNoteDoc, resolveTaskNoteRichText } from './model/taskNoteRichText'
 import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, formatTaskDateTime, getTaskTagTone } from './components/taskPresentation'
 import { useI18n } from '../../shared/i18n/useI18n'
+import { useAuthGate } from '../auth/AuthGateContext'
 
 type TaskDrawerProps = {
   open: boolean
@@ -54,6 +55,10 @@ const TASK_DRAWER_MAX_LEFT_RATIO = 0.75
 const TASK_DRAWER_TOGGLE_RATIO_A = 0.6
 const TASK_DRAWER_TOGGLE_RATIO_B = 0.7
 type SubtaskFilter = 'all' | 'todo' | 'done'
+type TaskNoteValue = {
+  contentJson?: TaskItem['taskNoteContentJson']
+  contentMd?: TaskItem['taskNoteContentMd']
+}
 
 const equalStringArrays = (a: string[], b: string[]) => {
   if (a.length !== b.length) return false
@@ -121,6 +126,7 @@ const TaskDrawer = ({
   onCreated,
 }: TaskDrawerProps) => {
   const { language, t } = useI18n()
+  const { requireAuth, isGated } = useAuthGate()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [priority, setPriority] = useState<TaskPriority | null>(null)
@@ -135,8 +141,8 @@ const TaskDrawer = ({
   const [tagDraft, setTagDraft] = useState('')
   const [tagPickerOpen, setTagPickerOpen] = useState(false)
   const [subtasks, setSubtasks] = useState<TaskItem['subtasks']>([])
-  const [subtaskFilter, setSubtaskFilter] = useState<SubtaskFilter>('all')
-  const [taskNoteContent, setTaskNoteContent] = useState<{ contentJson?: TaskItem['taskNoteContentJson']; contentMd?: TaskItem['taskNoteContentMd'] }>({
+  const [subtaskFilter, setSubtaskFilter] = useState<SubtaskFilter>('todo')
+  const [taskNoteSeed, setTaskNoteSeed] = useState<TaskNoteValue>({
     contentJson: createTaskNoteDoc() as TaskItem['taskNoteContentJson'],
     contentMd: '',
   })
@@ -188,13 +194,25 @@ const TaskDrawer = ({
   const queuedDraftRef = useRef<TaskItem | null>(null)
   const isSavingRef = useRef(false)
   const draftRef = useRef<TaskItem | null>(null)
+  const taskNoteRef = useRef<TaskNoteValue>(taskNoteSeed)
 
   useEffect(() => {
     isSavingRef.current = isSaving
   }, [isSaving])
 
   useEffect(() => {
-    if (!task || task.id === lastId) return
+    if (open) return
+    setLastId(null)
+  }, [open])
+
+  useEffect(() => {
+    if (!open || !task || task.id === lastId) return
+    if (saveTimerRef.current) {
+      window.clearTimeout(saveTimerRef.current)
+      saveTimerRef.current = null
+    }
+    pendingSaveRef.current = false
+    queuedDraftRef.current = null
     setLastId(task.id)
     setTitle(task.title)
     setDescription(task.description ?? '')
@@ -215,8 +233,10 @@ const TaskDrawer = ({
     })
     setTagDraft('')
     setSubtasks(task.subtasks)
-    setSubtaskFilter('all')
-    setTaskNoteContent(resolveTaskNoteRichText(task))
+    setSubtaskFilter('todo')
+    const nextTaskNote = resolveTaskNoteRichText(task)
+    taskNoteRef.current = nextTaskNote
+    setTaskNoteSeed(nextTaskNote)
     baselineRef.current = {
       title: task.title,
       description: task.description ?? '',
@@ -231,7 +251,7 @@ const TaskDrawer = ({
       taskNoteContentMd: task.taskNoteContentMd,
       taskNoteContentJson: task.taskNoteContentJson,
     }
-  }, [task, lastId])
+  }, [open, task, lastId])
 
   useEffect(() => {
     if (!open || mode !== 'onboarding') return
@@ -246,16 +266,18 @@ const TaskDrawer = ({
     setReminderTime('')
     setTags([])
     setSubtasks([])
-    setTaskNoteContent({
+    const nextTaskNote = {
       contentJson: createTaskNoteDoc() as TaskItem['taskNoteContentJson'],
       contentMd: '',
-    })
+    }
+    taskNoteRef.current = nextTaskNote
+    setTaskNoteSeed(nextTaskNote)
   }, [draftTask?.description, draftTask?.title, mode, open])
 
-  const draft = useMemo(() => {
-    if (!task) return null
+  const buildDraft = useCallback((sourceTask: TaskItem | null) => {
+    if (!sourceTask) return null
     return {
-      ...task,
+      ...sourceTask,
       title,
       description,
       priority,
@@ -267,12 +289,10 @@ const TaskDrawer = ({
       tags,
       subtasks,
       taskNoteBlocks: [],
-      taskNoteContentMd: taskNoteContent.contentMd,
-      taskNoteContentJson: taskNoteContent.contentJson,
+      taskNoteContentMd: taskNoteRef.current.contentMd,
+      taskNoteContentJson: taskNoteRef.current.contentJson,
     }
-  }, [task, title, description, priority, isToday, dueDate, startDate, endDate, reminderDate, reminderTime, tags, subtasks, taskNoteContent])
-
-  draftRef.current = draft
+  }, [description, dueDate, endDate, isToday, priority, reminderDate, reminderTime, startDate, subtasks, tags, title])
 
   const isDraftDirty = useCallback((nextDraft: TaskItem) => {
     const baseline = baselineRef.current
@@ -294,6 +314,7 @@ const TaskDrawer = ({
 
   const saveDraft = useCallback(
     async (nextDraft: TaskItem) => {
+      if (isGated) return
       if (nextDraft.startDate && nextDraft.endDate && nextDraft.endDate < nextDraft.startDate) {
         toast.push({
           variant: 'error',
@@ -323,6 +344,10 @@ const TaskDrawer = ({
           taskNoteContentMd: next.taskNoteContentMd,
           taskNoteContentJson: next.taskNoteContentJson,
         }
+        taskNoteRef.current = {
+          contentMd: next.taskNoteContentMd,
+          contentJson: next.taskNoteContentJson,
+        }
       } catch {
         toast.push({
           variant: 'error',
@@ -340,7 +365,7 @@ const TaskDrawer = ({
         }
       }
     },
-    [isDraftDirty, onUpdated, t, toast],
+    [isDraftDirty, isGated, onUpdated, t, toast],
   )
 
   const flushSave = useCallback(() => {
@@ -348,7 +373,7 @@ const TaskDrawer = ({
       window.clearTimeout(saveTimerRef.current)
       saveTimerRef.current = null
     }
-    const nextDraft = draftRef.current
+    const nextDraft = draftRef.current ?? buildDraft(task)
     if (!task || task.id !== lastId || !nextDraft || !isDraftDirty(nextDraft)) return
     if (isSavingRef.current) {
       pendingSaveRef.current = true
@@ -356,12 +381,11 @@ const TaskDrawer = ({
       return
     }
     void saveDraft(nextDraft)
-  }, [isDraftDirty, lastId, saveDraft, task])
+  }, [buildDraft, isDraftDirty, lastId, saveDraft, task])
 
-  useEffect(() => {
-    if (!open || !task || task.id !== lastId) return
-    const nextDraft = draftRef.current
-    if (!nextDraft || !isDraftDirty(nextDraft)) return
+  const scheduleSave = useCallback((nextDraft: TaskItem | null) => {
+    draftRef.current = nextDraft
+    if (!open || !task || task.id !== lastId || !nextDraft || !isDraftDirty(nextDraft)) return
     if (isSavingRef.current) {
       pendingSaveRef.current = true
       queuedDraftRef.current = nextDraft
@@ -370,7 +394,7 @@ const TaskDrawer = ({
     if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current)
     saveTimerRef.current = window.setTimeout(() => {
       saveTimerRef.current = null
-      const latestDraft = draftRef.current
+      const latestDraft = queuedDraftRef.current ?? draftRef.current
       if (!latestDraft || !isDraftDirty(latestDraft)) return
       if (isSavingRef.current) {
         pendingSaveRef.current = true
@@ -378,21 +402,23 @@ const TaskDrawer = ({
         return
       }
       void saveDraft(latestDraft)
-    }, 300)
+    }, 180)
+  }, [isDraftDirty, lastId, open, saveDraft, task])
 
-    return () => {
-      if (saveTimerRef.current) {
-        window.clearTimeout(saveTimerRef.current)
-        saveTimerRef.current = null
-      }
-    }
-  }, [open, title, description, priority, isToday, dueDate, startDate, endDate, reminderDate, reminderTime, tags, subtasks, taskNoteContent, lastId, isDraftDirty, saveDraft, task])
+  useEffect(() => {
+    scheduleSave(buildDraft(task))
+  }, [buildDraft, scheduleSave, task])
 
   useEffect(() => {
     return () => {
       flushSave()
     }
   }, [flushSave])
+
+  const handleTaskNoteChange = useCallback((next: TaskNoteValue) => {
+    taskNoteRef.current = next
+    scheduleSave(buildDraft(task))
+  }, [buildDraft, scheduleSave, task])
 
   useEffect(() => {
     if (!open) return
@@ -643,7 +669,7 @@ const TaskDrawer = ({
             <Button
               type="button"
               className="rounded-full bg-[#3A3733] text-[#F5F3F0] hover:bg-[#3A3733]/90"
-              onClick={() => void handleCreateTask()}
+              onClick={() => requireAuth(() => { void handleCreateTask() })}
               disabled={!title.trim() || onboardingSubmitting}
             >
               {onboardingSubmitting ? <LoaderCircle className="mr-2 size-4 animate-spin" /> : null}
@@ -708,7 +734,7 @@ const TaskDrawer = ({
                   </Button>
                 ) : null}
               </div>
-              <Button aria-label="Delete task" variant="ghost" size="icon" className="h-8 w-8 rounded-full text-[color:var(--text-secondary)] hover:bg-[color:rgba(127,29,29,0.12)] hover:text-rose-500" onClick={() => void handleDelete()} disabled={isSaving}>
+              <Button aria-label="Delete task" variant="ghost" size="icon" className="h-8 w-8 rounded-full text-[color:var(--text-secondary)] hover:bg-[color:rgba(127,29,29,0.12)] hover:text-rose-500" onClick={() => requireAuth(() => { void handleDelete() })} disabled={isSaving}>
                 <Trash2 className="h-4 w-4" />
               </Button>
               <Button aria-label="Close task detail" variant="ghost" size="icon" className="h-8 w-8 rounded-full text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-hover)] hover:text-[color:var(--text-primary)]" onClick={requestClose}>
@@ -1054,7 +1080,7 @@ const TaskDrawer = ({
                     <p className="task-detail-kicker text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">{t('tasks.drawer.note')}</p>
                     <h2 className="task-detail-title mt-1 text-[17px] font-semibold tracking-[-0.02em] text-[color:var(--text-primary)]">{t('tasks.drawer.noteContext')}</h2>
                     <div className="mt-4">
-                      <TaskNoteEditor value={taskNoteContent} onChange={setTaskNoteContent} />
+                      <TaskNoteEditor key={currentTask.id} value={taskNoteSeed} onChange={handleTaskNoteChange} />
                     </div>
                   </section>
                 </div>

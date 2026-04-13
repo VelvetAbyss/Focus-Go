@@ -15,6 +15,7 @@ import {
 import { useSharedNoise } from "../../SharedNoiseProvider";
 import type { NoiseTrackId } from "../../../../data/models/types";
 import { useI18n } from "../../../../shared/i18n/useI18n";
+import { useAuthGate } from "../../../auth/AuthGateContext";
 
 interface SoundTrack {
   id: NoiseTrackId;
@@ -274,6 +275,7 @@ function PremiumSlider({
 
 export function WhiteNoise() {
   const { language, t } = useI18n();
+  const { requireAuth } = useAuthGate();
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const [sleepRemaining, setSleepRemaining] = useState<number | null>(null);
   const [showSleepOptions, setShowSleepOptions] = useState(false);
@@ -315,8 +317,10 @@ export function WhiteNoise() {
   }, [noise.tracks]);
 
   const toggleTrack = (id: NoiseTrackId) => {
-    setActivePreset(null);
-    setNoiseTrackEnabled(id, !noise.tracks[id].enabled);
+    requireAuth(() => {
+      setActivePreset(null);
+      setNoiseTrackEnabled(id, !noise.tracks[id].enabled);
+    });
   };
 
   const setTrackVolume = (id: NoiseTrackId, volume: number) => {
@@ -385,7 +389,7 @@ export function WhiteNoise() {
     if (!isPlaying && activeTracks === 0) {
       return;
     }
-    toggleNoisePlaying();
+    requireAuth(() => toggleNoisePlaying());
   };
 
   return (

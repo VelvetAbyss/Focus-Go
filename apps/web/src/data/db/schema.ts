@@ -1,5 +1,5 @@
 export const DB_NAME = 'workbench-app'
-export const DB_VERSION = 34
+export const DB_VERSION = 35
 
 export const TABLES = {
   tasks: 'tasks',
@@ -16,6 +16,9 @@ export const TABLES = {
   lifeDashboardLayout: 'life_dashboard_layout',
   userSubscriptions: 'user_subscriptions',
   featureInstallations: 'feature_installations',
+  projects: 'projects',
+  projectPeople: 'project_people',
+  projectNoteLinks: 'project_note_links',
   habits: 'habits',
   habitLogs: 'habit_logs',
   syncOutbox: 'sync_outbox',
@@ -192,4 +195,13 @@ export const schemaV34 = {
   ...schemaV33,
   [TABLES.lifePodcasts]: 'id, source, sourceId, collectionId, name, author, updatedAt, createdAt',
   [TABLES.lifePeople]: 'id, name, group, birthday, lastInteraction, updatedAt, createdAt',
+} as const
+
+export const schemaV35 = {
+  ...schemaV34,
+  [TABLES.projects]: 'id, status, priority, health, ownerId, dueDate, updatedAt, createdAt',
+  [TABLES.projectPeople]: 'id, projectId, roleType, updatedAt, createdAt',
+  [TABLES.projectNoteLinks]: 'id, projectId, noteId, [projectId+noteId], updatedAt, createdAt',
+  [TABLES.tasks]:
+    'id, pinned, isToday, status, priority, projectId, ownerId, dueDate, startDate, endDate, reminderAt, reminderFiredAt, createdAt, updatedAt',
 } as const

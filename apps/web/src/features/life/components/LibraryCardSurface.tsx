@@ -7,6 +7,7 @@ import type { BookItem } from '../../../data/models/types'
 import type { LibraryPresentationModel } from '../cards/lifeDesignAdapters'
 import ProgressTrack from '../ProgressTrack'
 import { LifeCardLoader, LifePanelLoader } from './lifeDesignPrimitives'
+import { useLifeI18n } from '../lifeI18n'
 
 type SearchBook = {
   id: string
@@ -177,6 +178,7 @@ export const LibraryCardSurface = ({
   onPatchBook,
   onRemoveBook,
 }: Props) => {
+  const { t } = useLifeI18n()
   const sidebarRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -237,8 +239,8 @@ export const LibraryCardSurface = ({
               <div style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, borderRadius: 999, background: 'rgba(58,55,51,0.06)' }}>
                 <BookOpen size={20} color="rgba(58,55,51,0.35)" />
               </div>
-              <p style={{ ...playfair(14, 500), marginBottom: 6 }}>Your shelf is empty</p>
-              <p style={{ ...inter(12, 400, mutedText), lineHeight: 1.5, marginBottom: 16 }}>Search for books by title,<br />author, or ISBN to begin.</p>
+              <p style={{ ...playfair(14, 500), marginBottom: 6 }}>{t('life.library.emptyTitle')}</p>
+              <p style={{ ...inter(12, 400, mutedText), lineHeight: 1.5, marginBottom: 16 }}>{t('life.library.emptyDescription')}</p>
               <button
                 type="button"
                 onClick={(event) => {
@@ -258,7 +260,7 @@ export const LibraryCardSurface = ({
                 }}
               >
                 <Search size={11} />
-                <span>Browse Library</span>
+                <span>{t('life.library.browse')}</span>
               </button>
             </div>
           ) : (
@@ -282,12 +284,12 @@ export const LibraryCardSurface = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: 20, padding: '16px 20px', marginTop: 'auto', borderTop: '1px solid rgba(58,55,51,0.07)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ width: 6, height: 6, borderRadius: 999, background: statusConfig.reading.color }} />
-              <span style={{ ...inter(11, 500, mutedText) }}>Reading</span>
+              <span style={{ ...inter(11, 500, mutedText) }}>{t('life.library.reading')}</span>
               <span style={{ ...inter(12, 600), marginLeft: 2 }}><AppNumber value={readingCount} animated /></span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ width: 6, height: 6, borderRadius: 999, background: statusConfig.finished.color }} />
-              <span style={{ ...inter(11, 500, mutedText) }}>Finished</span>
+              <span style={{ ...inter(11, 500, mutedText) }}>{t('life.library.finished')}</span>
               <span style={{ ...inter(12, 600), marginLeft: 2 }}><AppNumber value={finishedCount} animated /></span>
             </div>
           </div>

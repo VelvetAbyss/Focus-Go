@@ -7,6 +7,7 @@ export type PremiumGateKey =
   | 'notes.max-count'
   | 'notes.mindmap'
   | 'focus.white-noise'
+  | 'project.workspace'
   | 'system.cloud-sync'
 
 export type GateCheckResult = {
@@ -63,6 +64,12 @@ export const PREMIUM_GATES: Record<PremiumGateKey, PremiumGateDefinition> = {
     kind: 'feature',
     title: 'White noise',
     description: 'Play ambient sound while focusing.',
+  },
+  'project.workspace': {
+    key: 'project.workspace',
+    kind: 'feature',
+    title: 'Project workspace',
+    description: 'Unlock the project workspace for large goals, timelines, people, and notes.',
   },
   'system.cloud-sync': {
     key: 'system.cloud-sync',

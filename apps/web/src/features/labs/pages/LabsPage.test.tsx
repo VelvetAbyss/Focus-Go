@@ -30,6 +30,7 @@ vi.mock('../UpgradeModalContext', () => ({
 const i18n = {
   nav: {
     dashboard: 'Dashboard',
+    projects: 'Project',
     tasks: 'Tasks',
     note: 'Note',
     calendar: 'Calendar',

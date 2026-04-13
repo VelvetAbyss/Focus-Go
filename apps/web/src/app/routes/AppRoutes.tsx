@@ -6,6 +6,8 @@ import { useLabs } from '../../features/labs/LabsContext'
 import { usePremiumGate } from '../../features/premium/PremiumProvider'
 
 const TasksPage = lazy(() => import('../../features/tasks/pages/TasksPage'))
+const ProjectsPage = lazy(() => import('../../features/projects/pages/ProjectsPage'))
+const ProjectDetailPage = lazy(() => import('../../features/projects/pages/ProjectDetailPage'))
 const NotePage = lazy(() => import('../../features/notes/pages/NotePage'))
 const CalendarPage = lazy(() => import('../../features/calendar/pages/CalendarPage'))
 const TripsPage = lazy(() => import('../../features/trips/TripsPage'))
@@ -48,12 +50,38 @@ const GuardedHabitsRoute = () => {
   return <Suspense fallback={<RouteFallback />}><HabitTrackerPage /></Suspense>
 }
 
+const GuardedProjectsRoute = ({ detail = false }: { detail?: boolean }) => {
+  const { ready, catalog } = useLabs()
+  const { openUpgradeModal } = usePremiumGate()
+  const location = useLocation()
+  const didNotifyRef = useRef(false)
+  const projectFeature = catalog.find((item) => item.featureKey === 'project-workspace')
+  const denied = ready && (!projectFeature || projectFeature.requiresPremium || projectFeature.state !== 'installed')
+
+  useEffect(() => {
+    if (denied && !didNotifyRef.current) {
+      openUpgradeModal('route', 'project.workspace')
+      didNotifyRef.current = true
+    }
+    if (!denied) {
+      didNotifyRef.current = false
+    }
+  }, [denied, openUpgradeModal])
+
+  if (!ready) return null
+  if (denied) return <Navigate to={ROUTES.LABS} replace state={{ from: location.pathname }} />
+  if (detail) return <Suspense fallback={<RouteFallback />}><ProjectDetailPage /></Suspense>
+  return <Suspense fallback={<RouteFallback />}><ProjectsPage /></Suspense>
+}
+
 const AppRoutes = () => {
   return (
     <Routes>
       <Route path={LEGACY_ROUTES.KNOWLEDGE} element={<Navigate to={ROUTES.DASHBOARD} replace />} />
       <Route path="/rss" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
       <Route path={ROUTES.DASHBOARD} element={<DashboardRoute />} />
+      <Route path={ROUTES.PROJECTS} element={<GuardedProjectsRoute />} />
+      <Route path={ROUTES.PROJECT_DETAIL} element={<GuardedProjectsRoute detail />} />
       <Route path={ROUTES.TASKS} element={<Suspense fallback={<RouteFallback />}><TasksPage /></Suspense>} />
       <Route path={ROUTES.NOTE} element={<Suspense fallback={<RouteFallback />}><NotePage /></Suspense>} />
       <Route path={ROUTES.CALENDAR} element={<Suspense fallback={<RouteFallback />}><CalendarPage /></Suspense>} />

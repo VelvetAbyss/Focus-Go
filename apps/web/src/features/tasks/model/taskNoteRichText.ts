@@ -20,6 +20,25 @@ export const createTaskNoteDoc = (content: JSONContent[] = [{ type: 'paragraph' 
   content,
 })
 
+const markdownToTaskNoteDoc = (markdown?: string) => {
+  const source = typeof markdown === 'string' ? markdown : ''
+  const normalized = source.replace(/\r\n/g, '\n')
+  if (!normalized.trim()) return createTaskNoteDoc()
+  const paragraphs = normalized.split(/\n{2,}/).map((block) => block.trimEnd())
+  return createTaskNoteDoc(
+    paragraphs.map((paragraph) => ({
+      type: 'paragraph',
+      content: paragraph
+        ? paragraph.split('\n').flatMap((line, index, lines) => {
+            const nodes: JSONContent[] = line ? [{ type: 'text', text: line }] : []
+            if (index < lines.length - 1) nodes.push({ type: 'hardBreak' })
+            return nodes
+          })
+        : [],
+    })),
+  )
+}
+
 export const taskNoteDocToMarkdown = (doc: JSONContent | null | undefined): string => {
   if (!doc || doc.type !== 'doc' || !Array.isArray(doc.content)) return ''
 
@@ -50,6 +69,13 @@ export const resolveTaskNoteRichText = (task: TaskNoteRichTextFields) => {
     return {
       contentJson: task.taskNoteContentJson,
       contentMd: typeof task.taskNoteContentMd === 'string' ? task.taskNoteContentMd : '',
+    }
+  }
+
+  if (typeof task.taskNoteContentMd === 'string' && task.taskNoteContentMd.trim().length > 0) {
+    return {
+      contentJson: markdownToTaskNoteDoc(task.taskNoteContentMd),
+      contentMd: task.taskNoteContentMd,
     }
   }
 

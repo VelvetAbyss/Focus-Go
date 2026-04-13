@@ -214,6 +214,18 @@ const NoteEditor = ({
   const contentWidthPercent = 100 - widthScale * 42
   const [headings, setHeadings] = useState<HeadingNavItem[]>([])
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null)
+  const MAX_NAV_ITEMS = 12
+  const navCollapsed = headings.length > MAX_NAV_ITEMS
+  const navItems = navCollapsed ? headings.filter((h) => h.level === 1) : headings
+  const resolvedActiveId = useMemo(() => {
+    if (!navCollapsed || !activeHeadingId) return activeHeadingId
+    const activeIndex = headings.findIndex((h) => h.id === activeHeadingId)
+    if (activeIndex === -1) return activeHeadingId
+    for (let i = activeIndex; i >= 0; i--) {
+      if (headings[i].level === 1) return headings[i].id
+    }
+    return navItems[0]?.id ?? activeHeadingId
+  }, [navCollapsed, activeHeadingId, headings, navItems])
   const [tocVersion, setTocVersion] = useState(0)
   const scrollSyncFrameRef = useRef<number | null>(null)
   const emitTimerRef = useRef<number | null>(null)
@@ -510,14 +522,15 @@ const NoteEditor = ({
       </div>
       {headings.length > 0 && (
         <aside className="note-editor__heading-nav" aria-label={t('notes.tableOfContents')}>
-          {headings.map((heading) => (
+          {navItems.map((heading) => (
             <button
               key={heading.id}
               type="button"
-              className={`note-editor__heading-nav-item${activeHeadingId === heading.id ? ' is-active' : ''}`}
+              className={`note-editor__heading-nav-item${resolvedActiveId === heading.id ? ' is-active' : ''}`}
               onClick={() => handleHeadingJump(heading.id)}
               title={heading.text}
               aria-label={heading.text}
+              data-level={heading.level}
             >
               <span className="note-editor__heading-nav-bar" />
               <span className="note-editor__heading-nav-label">{heading.text}</span>
