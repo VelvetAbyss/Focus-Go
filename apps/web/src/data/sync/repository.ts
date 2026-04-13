@@ -172,7 +172,7 @@ export const replaceLocalWithRemote = async (tables: SyncBootstrapResponse['tabl
     for (const [entityType, tableName] of Object.entries(SYNC_ENTITY_TABLES) as Array<[SyncEntityType, string]>) {
       const table = db.table(tableName)
       await table.clear()
-      const rows = tables[entityType].filter((row) => !row.deletedAt).map((row) => row.payload)
+      const rows = (tables[entityType] ?? []).filter((row) => !row.deletedAt).map((row) => row.payload)
       if (rows.length) await table.bulkPut(rows)
     }
   })
