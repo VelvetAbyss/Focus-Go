@@ -113,6 +113,10 @@ export const PodcastCardSurface = ({
   const sidebarRef = useRef<HTMLElement>(null)
   const [episodesEl, setEpisodesEl] = useState<HTMLDivElement | null>(null)
   const [progress, setProgress] = useState<{ currentTime: number; duration: number } | null>(null)
+  const [episodeSearch, setEpisodeSearch] = useState('')
+  const [showEpisodeSearch, setShowEpisodeSearch] = useState(false)
+  const [episodeSort, setEpisodeSort] = useState<'newest' | 'oldest'>('newest')
+  const episodeSearchRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const update = () => setProgress(getPlaybackProgress())
@@ -140,10 +144,24 @@ export const PodcastCardSurface = ({
     return () => document.removeEventListener('mousedown', handler)
   }, [onClearResults])
 
+  // Reset episode search/sort when switching podcasts
+  useEffect(() => {
+    setEpisodeSearch('')
+    setShowEpisodeSearch(false)
+  }, [selectedId])
+
   const selectedEpisode = useMemo(
     () => selected?.episodes.find((episode) => episode.id === selected.selectedEpisodeId) ?? selected?.episodes[0] ?? null,
     [selected],
   )
+
+  const filteredEpisodes = useMemo(() => {
+    const episodes = selected?.episodes ?? []
+    const sorted = episodeSort === 'oldest' ? [...episodes].reverse() : episodes
+    const q = episodeSearch.trim().toLowerCase()
+    return q ? sorted.filter((ep) => ep.title.toLowerCase().includes(q)) : sorted
+  }, [selected?.episodes, episodeSort, episodeSearch])
+
   const selectedSourceLabel = selected?.source === 'netease' ? 'Netease (Open Original)' : 'Apple Podcasts'
   const isNeteaseDefaultMode = selected?.source === 'netease' && !neteaseExperimentalPlaybackEnabled
   const cardActionLabel = model.nowPlaying?.source === 'netease' && !neteaseExperimentalPlaybackEnabled ? 'Open Original' : model.nowPlaying?.isPlaying ? 'Pause' : 'Open Player'
@@ -412,12 +430,13 @@ export const PodcastCardSurface = ({
                 </div>
               </div>
             </aside>
-            <div style={{ ...detailPaneStyle, background: paper, overflowY: 'auto' }}>
+            <div style={{ ...detailPaneStyle, background: paper, display: 'flex', flexDirection: 'column' }}>
               {selected ? (
                 <>
                   <div
                     style={{
-                      position: 'sticky', top: 0, zIndex: 1, background: paper,
+                      flexShrink: 0, background: paper,
+                      position: 'relative',
                       padding: '20px 20px 16px', borderBottom: `1px solid ${sectionBorder}`,
                       overflow: 'hidden',
                       '--pod-color': selected.coverColor ?? 'rgba(58,55,51,0.15)',
@@ -498,14 +517,65 @@ export const PodcastCardSurface = ({
                       </div>
                     </div>
                   </div>
-                  <div style={{ padding: '16px 20px 20px', display: 'grid', gap: 16 }}>
-                    <div>
+                  {/* Episodes section: sticky header bar + scrollable list */}
+                  <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                    {/* Fixed header bar — does not scroll */}
+                    <div style={{ flexShrink: 0, padding: '10px 20px 8px', borderBottom: `1px solid ${sectionBorder}`, background: paper }}>
                       {selected.source === 'itunes' ? (
-                        <p style={{ ...inter(10, 400, mutedText), marginBottom: 10 }}>Metadata courtesy of Apple Podcasts</p>
+                        <p style={{ ...inter(10, 400, mutedText), marginBottom: 6 }}>Metadata courtesy of Apple Podcasts</p>
                       ) : null}
-                      <p style={{ ...inter(10, 600, 'rgba(58,55,51,0.35)'), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 10 }}>Episodes</p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <p style={{ ...inter(10, 600, 'rgba(58,55,51,0.35)'), letterSpacing: '0.10em', textTransform: 'uppercase', flex: 1, margin: 0 }}>
+                          Episodes{selected.episodes.length > 0 ? ` · ${filteredEpisodes.length}${filteredEpisodes.length < selected.episodes.length ? `/${selected.episodes.length}` : ''}` : ''}
+                        </p>
+                        {/* Search toggle */}
+                        <button
+                          type="button"
+                          title={showEpisodeSearch ? 'Clear search' : 'Search episodes'}
+                          onClick={() => {
+                            const next = !showEpisodeSearch
+                            setShowEpisodeSearch(next)
+                            if (!next) setEpisodeSearch('')
+                            else setTimeout(() => episodeSearchRef.current?.focus(), 0)
+                          }}
+                          style={{ background: 'none', border: 'none', padding: '2px 4px', cursor: 'pointer', display: 'flex', alignItems: 'center', opacity: showEpisodeSearch ? 0.7 : 0.35, transition: 'opacity 0.15s' }}
+                        >
+                          {showEpisodeSearch ? <X size={11} color={ink} /> : <Search size={11} color={ink} />}
+                        </button>
+                        {/* Sort toggle */}
+                        <button
+                          type="button"
+                          title={episodeSort === 'newest' ? 'Showing newest first — click for oldest first' : 'Showing oldest first — click for newest first'}
+                          onClick={() => setEpisodeSort((s) => s === 'newest' ? 'oldest' : 'newest')}
+                          style={{ background: 'none', border: 'none', padding: '2px 4px', cursor: 'pointer', display: 'flex', alignItems: 'center', opacity: episodeSort === 'oldest' ? 0.7 : 0.35, transition: 'opacity 0.15s', gap: 2 }}
+                        >
+                          <span style={{ ...inter(9, 600, ink), letterSpacing: '0.02em', lineHeight: 1 }}>
+                            {episodeSort === 'newest' ? '↓' : '↑'}
+                          </span>
+                        </button>
+                      </div>
+                      {showEpisodeSearch ? (
+                        <input
+                          ref={episodeSearchRef}
+                          type="text"
+                          placeholder="Search episodes…"
+                          value={episodeSearch}
+                          onChange={(e) => setEpisodeSearch(e.target.value)}
+                          style={{
+                            ...inputStyle,
+                            marginTop: 8,
+                            width: '100%',
+                            boxSizing: 'border-box',
+                            fontSize: 12,
+                            padding: '6px 10px',
+                          }}
+                        />
+                      ) : null}
+                    </div>
+                    {/* Scrollable episodes list */}
+                    <div style={{ flex: 1, overflowY: 'auto', padding: '10px 20px 20px' }}>
                       <div style={{ display: 'grid', gap: 8 }}>
-                        {selected.episodes.map((episode) => (
+                        {filteredEpisodes.map((episode) => (
                           <div
                             key={episode.id}
                             style={{
@@ -536,13 +606,18 @@ export const PodcastCardSurface = ({
                             </div>
                           </div>
                         ))}
+                        {filteredEpisodes.length === 0 && episodeSearch ? (
+                          <p style={{ ...inter(12, 400, mutedText), padding: '12px 0' }}>No episodes match "{episodeSearch}"</p>
+                        ) : null}
                       </div>
+                      {selectedEpisode?.description ? (
+                        <div style={{ marginTop: 16 }}>
+                          <Field label="Description">
+                            <textarea readOnly value={selectedEpisode.description} style={textareaStyle} />
+                          </Field>
+                        </div>
+                      ) : null}
                     </div>
-                    {selectedEpisode?.description ? (
-                      <Field label="Description">
-                        <textarea readOnly value={selectedEpisode.description} style={textareaStyle} />
-                      </Field>
-                    ) : null}
                   </div>
                 </>
               ) : (

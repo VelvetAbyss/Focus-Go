@@ -167,7 +167,7 @@ export const searchRemotePodcasts = async (query: string, signal?: AbortSignal):
 
 export const hydrateRemotePodcastCandidate = async (candidate: RemotePodcastCandidate, signal?: AbortSignal): Promise<RemotePodcastCandidate> => {
   if (candidate.source === 'netease') return candidate
-  const url = `https://itunes.apple.com/lookup?id=${encodeURIComponent(String(candidate.collectionId))}&entity=podcastEpisode&limit=8`
+  const url = `https://itunes.apple.com/lookup?id=${encodeURIComponent(String(candidate.collectionId))}&entity=podcastEpisode&limit=200`
   const payload = await fetchJson<{ results?: ItunesLookupResult[] }>(url, signal).catch(() => ({ results: [] }))
   const episodes = dedupeEpisodes(
     (payload.results ?? [])
