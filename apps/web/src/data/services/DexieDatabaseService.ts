@@ -398,6 +398,14 @@ const enqueueUpsert = async <
     | 'dashboardLayout'
     | 'habits'
     | 'habitLogs'
+    | 'books'
+    | 'stocks'
+    | 'media'
+    | 'lifeSubscriptions'
+    | 'lifePodcasts'
+    | 'lifePeople'
+    | 'trips'
+    | 'lifeDashboardLayout'
 >(entityType: T, payload: { id: string; updatedAt: number } & Record<string, unknown>) => {
   await enqueueSyncOperation(entityType, 'upsert', payload)
 }
@@ -411,6 +419,13 @@ const enqueueDelete = async <
     | 'diaryEntries'
     | 'spends'
     | 'habitLogs'
+    | 'books'
+    | 'stocks'
+    | 'media'
+    | 'lifeSubscriptions'
+    | 'lifePodcasts'
+    | 'lifePeople'
+    | 'trips'
 >(entityType: T, payload: { id: string; updatedAt: number } & Record<string, unknown>, deletedAt = payload.updatedAt) => {
   await enqueueSyncOperation(entityType, 'delete', { ...payload, deletedAt }, deletedAt)
 }
@@ -1125,10 +1140,12 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       if (!existing) {
         const next = withBase({ ...(data as Omit<LifeDashboardLayout, 'id' | 'createdAt' | 'updatedAt'>), id: LIFE_DASHBOARD_ID })
         await db.lifeDashboardLayout.put(next)
+        await enqueueUpsert('lifeDashboardLayout', next)
         return next
       }
       const next = touch({ ...existing, ...(data as Partial<LifeDashboardLayout>) })
       await db.lifeDashboardLayout.put(next)
+      await enqueueUpsert('lifeDashboardLayout', next)
       return next
     },
   },
@@ -1140,6 +1157,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
     async create(data) {
       const next = normalizeBook(withBase(data as Omit<BookItem, 'id' | 'createdAt' | 'updatedAt'>))
       await db.books.put(next)
+      await enqueueUpsert('books', next)
       return next
     },
     async update(id, patch) {
@@ -1147,10 +1165,13 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       if (!existing) return undefined
       const next = touch(normalizeBook({ ...existing, ...(patch as Partial<BookItem>) }))
       await db.books.put(next)
+      await enqueueUpsert('books', next)
       return next
     },
     async remove(id) {
+      const existing = await db.books.get(id)
       await db.books.delete(id)
+      if (existing) await enqueueDelete('books', existing)
     },
   },
   media: {
@@ -1163,6 +1184,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
     async create(data: MediaCreateInput) {
       const next = normalizeMedia(withBase(data as Omit<MediaItem, 'id' | 'createdAt' | 'updatedAt'>))
       await db.media.put(next)
+      await enqueueUpsert('media', next)
       return next
     },
     async update(id: string, patch: MediaUpdateInput) {
@@ -1170,10 +1192,13 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       if (!existing) return undefined
       const next = touch(normalizeMedia({ ...existing, ...(patch as Partial<MediaItem>) }))
       await db.media.put(next)
+      await enqueueUpsert('media', next)
       return next
     },
     async remove(id: string) {
+      const existing = await db.media.get(id)
       await db.media.delete(id)
+      if (existing) await enqueueDelete('media', existing)
     },
   },
   stocks: {
@@ -1191,6 +1216,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
         }),
       )
       await db.stocks.put(next)
+      await enqueueUpsert('stocks', next)
       return next
     },
     async update(id, patch) {
@@ -1198,10 +1224,13 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       if (!existing) return undefined
       const next = touch(normalizeStock({ ...existing, ...(patch as Partial<StockItem>) }))
       await db.stocks.put(next)
+      await enqueueUpsert('stocks', next)
       return next
     },
     async remove(id) {
+      const existing = await db.stocks.get(id)
       await db.stocks.delete(id)
+      if (existing) await enqueueDelete('stocks', existing)
     },
   },
   lifeSubscriptions: {
@@ -1212,6 +1241,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
     async create(data: LifeSubscriptionCreateInput) {
       const next = normalizeLifeSubscription(withBase(data as Omit<LifeSubscription, 'id' | 'createdAt' | 'updatedAt'>))
       await db.lifeSubscriptions.put(next)
+      await enqueueUpsert('lifeSubscriptions', next)
       return next
     },
     async update(id: string, patch: LifeSubscriptionUpdateInput) {
@@ -1219,10 +1249,13 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       if (!existing) return undefined
       const next = touch(normalizeLifeSubscription({ ...existing, ...(patch as Partial<LifeSubscription>) }))
       await db.lifeSubscriptions.put(next)
+      await enqueueUpsert('lifeSubscriptions', next)
       return next
     },
     async remove(id: string) {
+      const existing = await db.lifeSubscriptions.get(id)
       await db.lifeSubscriptions.delete(id)
+      if (existing) await enqueueDelete('lifeSubscriptions', existing)
     },
   },
   lifePodcasts: {
@@ -1233,6 +1266,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
     async create(data: LifePodcastCreateInput) {
       const next = normalizeLifePodcast(withBase(data as Omit<LifePodcast, 'id' | 'createdAt' | 'updatedAt'>))
       await db.lifePodcasts.put(next)
+      await enqueueUpsert('lifePodcasts', next)
       return next
     },
     async update(id: string, patch: LifePodcastUpdateInput) {
@@ -1240,10 +1274,13 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       if (!existing) return undefined
       const next = touch(normalizeLifePodcast({ ...existing, ...(patch as Partial<LifePodcast>) }))
       await db.lifePodcasts.put(next)
+      await enqueueUpsert('lifePodcasts', next)
       return next
     },
     async remove(id: string) {
+      const existing = await db.lifePodcasts.get(id)
       await db.lifePodcasts.delete(id)
+      if (existing) await enqueueDelete('lifePodcasts', existing)
     },
   },
   lifePeople: {
@@ -1254,6 +1291,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
     async create(data: LifePersonCreateInput) {
       const next = normalizeLifePerson(withBase(data as Omit<LifePerson, 'id' | 'createdAt' | 'updatedAt'>))
       await db.lifePeople.put(next)
+      await enqueueUpsert('lifePeople', next)
       return next
     },
     async update(id: string, patch: LifePersonUpdateInput) {
@@ -1261,10 +1299,13 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       if (!existing) return undefined
       const next = touch(normalizeLifePerson({ ...existing, ...(patch as Partial<LifePerson>) }))
       await db.lifePeople.put(next)
+      await enqueueUpsert('lifePeople', next)
       return next
     },
     async remove(id: string) {
+      const existing = await db.lifePeople.get(id)
       await db.lifePeople.delete(id)
+      if (existing) await enqueueDelete('lifePeople', existing)
     },
   },
   trips: {
@@ -1275,6 +1316,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
     async create(data: TripCreateInput) {
       const next = normalizeTrip(withBase(data as Omit<TripRecord, 'id' | 'createdAt' | 'updatedAt'>))
       await db.trips.put(next)
+      await enqueueUpsert('trips', next)
       return next
     },
     async update(id: string, patch: TripUpdateInput) {
@@ -1282,10 +1324,13 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       if (!existing) return undefined
       const next = touch(normalizeTrip({ ...existing, ...(patch as Partial<TripRecord>) }))
       await db.trips.put(next)
+      await enqueueUpsert('trips', next)
       return next
     },
     async remove(id: string) {
+      const existing = await db.trips.get(id)
       await db.trips.delete(id)
+      if (existing) await enqueueDelete('trips', existing)
     },
   },
 })
