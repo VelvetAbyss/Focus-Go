@@ -783,7 +783,7 @@ export const enMessages: TranslationMessages = {
   'auth.account.deleteWarning': 'This will permanently deactivate your account. All local data will be cleared.',
   'auth.account.deleteConfirmLabel': 'Type your email to confirm:',
   'auth.account.deleteConfirmBtn': 'Delete My Account',
-  'auth.account.deleteNote': 'Data removal may take up to 30 days. Contact support@focus-go.app for questions.',
+  'auth.account.deleteNote': 'Data removal may take up to 30 days. Contact support@nestflow.art for questions.',
   'auth.account.exportDataDesc': 'Download a complete JSON backup of all your tasks, notes, diary, and focus sessions.',
   'auth.account.exportingData': 'Exporting…',
   'auth.account.exportDone': 'Downloaded!',

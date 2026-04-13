@@ -9,6 +9,7 @@ import {
   clearAuth, getAuth, setAuth, useAuthPlan, useIsLoggedIn, upgradeToPremium,
 } from '../../store/auth'
 import { getLogoutUrl, prepareAuthSession } from '../../config/auth'
+import { clearLocalUserData } from '../../data/sync/repository'
 import { useI18n } from '../../shared/i18n/useI18n'
 import LoginModal from './LoginModal'
 import { dbService } from '../../data/services/dbService'
@@ -196,7 +197,7 @@ const SecurityPanel = () => {
 
 const HelpFeedbackPanel = () => {
   const { t } = useI18n()
-  const supportEmail = 'support@focus-go.app'
+  const supportEmail = 'support@nestflow.art'
   const [copied, setCopied] = useState(false)
 
   const handleCopy = async () => {
@@ -247,6 +248,7 @@ const DeleteAccountPanel = ({ email }: { email: string }) => {
     if (!confirmed || deleting) return
     setDeleting(true)
     // No backend deletion API yet — clear auth and log out
+    await clearLocalUserData()
     clearAuth()
     window.location.href = getLogoutUrl()
   }
@@ -347,7 +349,8 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
     return () => { cancelled = true }
   }, [])
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await clearLocalUserData()
     clearAuth()
     window.location.href = getLogoutUrl()
   }
@@ -390,6 +393,7 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
   }
 
   const handleSwitchAccount = async () => {
+    await clearLocalUserData()
     clearAuth()
     const authUrl = await prepareAuthSession()
     window.location.href = authUrl

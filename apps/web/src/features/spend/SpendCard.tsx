@@ -7,7 +7,6 @@ import { spendRepo } from '../../data/repositories/spendRepo'
 import type { SpendCategory, SpendEntry } from '../../data/models/types'
 import { toDateKey } from '../../shared/utils/time'
 import { AppNumber } from '../../shared/ui/AppNumber'
-import SpendChart from './SpendChart'
 import { useI18n } from '../../shared/i18n/useI18n'
 import { convertToBase, currencyToSymbol } from '../../lib/currency'
 import { usePreferences } from '../../shared/prefs/usePreferences'
@@ -17,6 +16,7 @@ import AnimatedScrollList from '../../shared/ui/AnimatedScrollList'
 import { triggerTabGroupSwitchAnimation, triggerTabPressAnimation } from '../../shared/ui/tabPressAnimation'
 import EmptyState from '../../shared/ui/EmptyState'
 type SpendView = 'today' | 'trend'
+type SpendChartComponentType = typeof import('./SpendChart')['default']
 
 const SpendCard = () => {
   const { t } = useI18n()
@@ -35,6 +35,7 @@ const SpendCard = () => {
   const [currency, setCurrency] = useState('CNY')
   const [categoryId, setCategoryId] = useState('')
   const [view, setView] = useState<SpendView>('today')
+  const [SpendChartComponent, setSpendChartComponent] = useState<SpendChartComponentType | null>(null)
   const [activeEntryId, setActiveEntryId] = useState<string | null>(null)
   const { defaultCurrency } = usePreferences()
   const amountRef = useRef<HTMLInputElement | null>(null)
@@ -83,6 +84,13 @@ const SpendCard = () => {
       if (timeoutId) window.clearTimeout(timeoutId)
     }
   }, [])
+
+  useEffect(() => {
+    if (view !== 'trend' || SpendChartComponent) return
+    void import('./SpendChart').then((mod) => {
+      setSpendChartComponent(() => mod.default)
+    })
+  }, [SpendChartComponent, view])
 
   const todayKey = useMemo(() => toDateKey(now), [now])
   const totalTodayBase = useMemo(() => {
@@ -288,7 +296,9 @@ const SpendCard = () => {
 
             <section className="spend-fg__panel" role="tabpanel" aria-label={t('spend.trend')}>
               <div className="spend__trend">
-                <SpendChart />
+                {view === 'trend' ? (
+                  SpendChartComponent ? <SpendChartComponent /> : <div className="min-h-[160px] sm:min-h-[200px]" aria-hidden="true" />
+                ) : null}
               </div>
             </section>
           </div>

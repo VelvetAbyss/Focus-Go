@@ -62,6 +62,15 @@ import { useSyncActions, useSyncStatus } from '../../data/sync/service'
 import { seedOutboxFromSnapshot } from '../../data/sync/repository'
 import { ROUTES } from './routes'
 import { useUpgradeModal } from '../../features/labs/UpgradeModalContext'
+import { useAuthGate } from '../../features/auth/AuthGateContext'
+import {
+  buildLocalSuggestions,
+  MAX_CITY_SUGGESTIONS,
+  MIN_CITY_QUERY_LENGTH,
+  normalizeQuery,
+  searchRemoteCitySuggestions,
+  type CitySuggestion,
+} from '../../shared/location/citySuggestions'
 
 const LAYOUT_LOCK_KEY = 'workbench.dashboard.layoutLocked'
 
@@ -69,25 +78,6 @@ type ThemeSelection = 'system' | 'light' | 'dark'
 type SettingsSection = 'appearance' | 'experience' | 'weather' | 'data' | 'legal'
 type BaseSettingsSection = Exclude<SettingsSection, 'legal'>
 type LegalDocumentKey = 'privacy-policy' | 'terms-of-service'
-type CitySuggestion = {
-  id: string
-  label: string
-  searchValue: string
-  score: number
-  source: 'local' | 'remote'
-}
-type OpenMeteoGeocodeResponse = {
-  results?: Array<{
-    id?: number
-    name?: string
-    country?: string
-    admin1?: string
-  }>
-}
-type OpenMeteoGeocodeResult = NonNullable<OpenMeteoGeocodeResponse['results']>[number]
-
-const MIN_CITY_QUERY_LENGTH = 2
-const MAX_CITY_SUGGESTIONS = 8
 
 const SECTION_META_KEYS: Array<{
   key: SettingsSection
@@ -177,7 +167,7 @@ const LEGAL_DOCUMENTS: Record<LanguageCode, Record<LegalDocumentKey, LegalDocume
         {
           heading: 'Contact',
           paragraphs: [
-            'If you have privacy questions or requests, contact us at support@focus-go.app.',
+            'If you have privacy questions or requests, contact us at support@nestflow.art.',
           ],
         },
       ],
@@ -232,7 +222,7 @@ const LEGAL_DOCUMENTS: Record<LanguageCode, Record<LegalDocumentKey, LegalDocume
         {
           heading: 'Contact',
           paragraphs: [
-            'Questions about these terms can be sent to support@focus-go.app.',
+            'Questions about these terms can be sent to support@nestflow.art.',
           ],
         },
       ],
@@ -282,7 +272,7 @@ const LEGAL_DOCUMENTS: Record<LanguageCode, Record<LegalDocumentKey, LegalDocume
         {
           heading: '联系我们',
           paragraphs: [
-            '如果你有任何隐私相关的问题或请求，请联系 support@focus-go.app。',
+            '如果你有任何隐私相关的问题或请求，请联系 support@nestflow.art。',
           ],
         },
       ],
@@ -337,36 +327,13 @@ const LEGAL_DOCUMENTS: Record<LanguageCode, Record<LegalDocumentKey, LegalDocume
         {
           heading: '联系我们',
           paragraphs: [
-            '如果你对这些条款有任何问题，请发送邮件至 support@focus-go.app。',
+            '如果你对这些条款有任何问题，请发送邮件至 support@nestflow.art。',
           ],
         },
       ],
     },
   },
 }
-
-const LOCAL_CITY_CANDIDATES: Array<{ label: string; tokens: string[] }> = [
-  { label: 'Hangzhou, China', tokens: ['hangzhou', 'hang zhou', 'hz', '杭州'] },
-  { label: 'Beijing, China', tokens: ['beijing', 'peking', '北京'] },
-  { label: 'Shanghai, China', tokens: ['shanghai', '上海'] },
-  { label: 'Shenzhen, China', tokens: ['shenzhen', '深圳'] },
-  { label: 'Guangzhou, China', tokens: ['guangzhou', 'guang zhou', '广州'] },
-  { label: 'Chengdu, China', tokens: ['chengdu', 'cheng du', '成都'] },
-  { label: 'Wuhan, China', tokens: ['wuhan', '武汉'] },
-  { label: 'Nanjing, China', tokens: ['nanjing', '南京'] },
-  { label: "Xi'an, China", tokens: ['xian', "xi'an", '西安'] },
-  { label: 'Tokyo, Japan', tokens: ['tokyo'] },
-  { label: 'Seoul, South Korea', tokens: ['seoul'] },
-  { label: 'Singapore, Singapore', tokens: ['singapore'] },
-  { label: 'London, United Kingdom', tokens: ['london'] },
-  { label: 'Paris, France', tokens: ['paris'] },
-  { label: 'Berlin, Germany', tokens: ['berlin'] },
-  { label: 'Sydney, Australia', tokens: ['sydney'] },
-  { label: 'New York, United States', tokens: ['new york', 'nyc'] },
-  { label: 'Los Angeles, United States', tokens: ['los angeles', 'la'] },
-  { label: 'San Francisco, United States', tokens: ['san francisco', 'sf'] },
-  { label: 'Chicago, United States', tokens: ['chicago'] },
-]
 
 const readLayoutLocked = () => {
   const raw = localStorage.getItem(LAYOUT_LOCK_KEY)
@@ -376,104 +343,6 @@ const readLayoutLocked = () => {
 
 const writeLayoutLocked = (locked: boolean) => {
   localStorage.setItem(LAYOUT_LOCK_KEY, locked ? 'true' : 'false')
-}
-
-const normalizeQuery = (value: string) =>
-  value
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-
-const CJK_CHAR_RE = /[\u3400-\u9fff]/u
-const hasCjkChar = (value: string) => CJK_CHAR_RE.test(value)
-
-const getSubsequenceScore = (query: string, target: string) => {
-  let queryIndex = 0
-  let penalty = 0
-  for (let targetIndex = 0; targetIndex < target.length && queryIndex < query.length; targetIndex += 1) {
-    if (target[targetIndex] === query[queryIndex]) {
-      queryIndex += 1
-    } else {
-      penalty += 1
-    }
-  }
-  if (queryIndex !== query.length) return -1
-  return 420 - penalty
-}
-
-const getTokenMatchScore = (query: string, token: string) => {
-  if (!query || !token) return -1
-  if (token.startsWith(query)) return 1200 - (token.length - query.length)
-
-  const containsIndex = token.indexOf(query)
-  if (containsIndex >= 0) return 800 - containsIndex * 2 - (token.length - query.length)
-
-  return getSubsequenceScore(query, token)
-}
-
-const buildLocalSuggestions = (query: string): CitySuggestion[] => {
-  const normalizedQuery = normalizeQuery(query)
-  if (normalizedQuery.length < MIN_CITY_QUERY_LENGTH) return []
-
-  return LOCAL_CITY_CANDIDATES.map((candidate) => {
-    const tokens = [candidate.label, ...candidate.tokens].map((token) => normalizeQuery(token))
-    const score = Math.max(...tokens.map((token) => getTokenMatchScore(normalizedQuery, token)))
-    return {
-      id: `local:${candidate.label}`,
-      label: candidate.label,
-      searchValue: candidate.label,
-      score,
-      source: 'local' as const,
-    }
-  })
-    .filter((candidate) => candidate.score >= 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, MAX_CITY_SUGGESTIONS)
-}
-
-const searchRemoteCitySuggestions = async (query: string, signal: AbortSignal): Promise<CitySuggestion[]> => {
-  const normalizedQuery = normalizeQuery(query)
-  if (normalizedQuery.length < MIN_CITY_QUERY_LENGTH) return []
-
-  const languages: Array<'en' | 'zh'> = hasCjkChar(query) ? ['zh', 'en'] : ['en', 'zh']
-  const resultsByLang = await Promise.all(
-    languages.map(async (language) => {
-      const response = await fetch(
-        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=${MAX_CITY_SUGGESTIONS}&language=${language}&format=json`,
-        { signal }
-      )
-      if (!response.ok) return [] as OpenMeteoGeocodeResult[]
-      const payload = (await response.json()) as OpenMeteoGeocodeResponse
-      return payload.results ?? []
-    })
-  )
-
-  return resultsByLang
-    .flat()
-    .reduce<CitySuggestion[]>((acc, result, index) => {
-      const name = result?.name?.trim()
-      if (!name) return acc
-
-      const suffix = [result.admin1, result.country].filter(Boolean).join(', ')
-      const label = suffix ? `${name}, ${suffix}` : name
-      const score = Math.max(
-        getTokenMatchScore(normalizedQuery, normalizeQuery(name)),
-        getTokenMatchScore(normalizedQuery, normalizeQuery(label))
-      )
-      if (score < 0) return acc
-
-      acc.push({
-        id: `remote:${result.id ?? `${label}:${index}`}`,
-        label,
-        searchValue: label,
-        score,
-        source: 'remote' as const,
-      })
-      return acc
-    }, [])
-    .sort((a, b) => b.score - a.score)
-    .slice(0, MAX_CITY_SUGGESTIONS)
 }
 
 type SettingRowProps = {
@@ -602,6 +471,7 @@ const SettingsRoute = () => {
   const location = useLocation()
   const navigate = useNavigate()
   const { language, t } = useI18n()
+  const { requireAuth, isGated } = useAuthGate()
   const { openModal: openUpgradeModal } = useUpgradeModal()
   const toast = useToast()
   const syncState = useSyncStatus()
@@ -1468,7 +1338,7 @@ const SettingsRoute = () => {
                             title={t('settings.data.import.title')}
                             description={t('settings.data.import.description')}
                           >
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
                               <input
                                 ref={importInputRef}
                                 hidden
@@ -1479,10 +1349,15 @@ const SettingsRoute = () => {
                               <Button
                                 variant="outline"
                                 disabled={isExporting || isImporting}
-                                onClick={() => importInputRef.current?.click()}
+                                onClick={() => requireAuth(() => importInputRef.current?.click())}
                               >
                                 {t('settings.data.import.action')}
                               </Button>
+                              {isGated && (
+                                <span className="text-xs text-muted-foreground">
+                                  {language === 'zh' ? '需要登录' : 'Sign in required'}
+                                </span>
+                              )}
                             </div>
                           </SettingRow>
 

@@ -7,6 +7,7 @@ import type { MediaItem } from '../../../data/models/types'
 import type { MediaPresentationModel } from '../cards/lifeDesignAdapters'
 import ProgressTrack from '../ProgressTrack'
 import { detailPaneStyle, iconButtonStyle, inputStyle, inter, LifeCardLoader, LifePanelLoader, modalHeaderStyle, modalLayoutStyle, mutedText, playfair, sectionBorder, sidebarStyle, smallButtonStyle, subtleBorder, textareaStyle } from './lifeDesignPrimitives'
+import { useLifeI18n } from '../lifeI18n'
 
 type SearchMedia = {
   id: string
@@ -84,6 +85,7 @@ export const MediaCardSurface = ({
   onAddItem,
   onPatchItem,
 }: Props) => {
+  const { t } = useLifeI18n()
   const searchAreaRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -145,8 +147,8 @@ export const MediaCardSurface = ({
             <div style={{ width: 48, height: 48, marginBottom: 16, borderRadius: 999, background: 'rgba(58,55,51,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Film size={20} color="rgba(58,55,51,0.35)" />
             </div>
-            <p style={{ ...playfair(14, 500), marginBottom: 6 }}>Your watchlist is empty</p>
-            <p style={{ ...inter(12, 400, mutedText), lineHeight: 1.5 }}>Search for movies or TV shows to start your collection.</p>
+            <p style={{ ...playfair(14, 500), marginBottom: 6 }}>{t('life.media.emptyTitle')}</p>
+            <p style={{ ...inter(12, 400, mutedText), lineHeight: 1.5 }}>{t('life.media.emptyDescription')}</p>
           </div>
         ) : (
           <div>
@@ -180,12 +182,12 @@ export const MediaCardSurface = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: 20, padding: '16px 20px', marginTop: 'auto', borderTop: `1px solid ${sectionBorder}` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ width: 6, height: 6, borderRadius: 999, background: '#7A6A9E' }} />
-            <span style={{ ...inter(11, 500, mutedText) }}>Watching</span>
+            <span style={{ ...inter(11, 500, mutedText) }}>{t('life.media.watching')}</span>
             <span style={{ ...inter(12, 600), marginLeft: 2 }}><AppNumber value={model.stats.watchingNow} animated /></span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ width: 6, height: 6, borderRadius: 999, background: '#5A7A62' }} />
-            <span style={{ ...inter(11, 500, mutedText) }}>Finished</span>
+            <span style={{ ...inter(11, 500, mutedText) }}>{t('life.media.finished')}</span>
             <span style={{ ...inter(12, 600), marginLeft: 2 }}><AppNumber value={model.stats.completed} animated /></span>
           </div>
         </div>
@@ -224,7 +226,7 @@ export const MediaCardSurface = ({
                 onKeyDown={(event) => {
                   if (event.key === 'Enter') onSearch()
                 }}
-                placeholder="Movie, series, director..."
+                placeholder={t('life.media.searchPlaceholder')}
                 style={{ ...inputStyle, height: 38, padding: '0 14px 0 36px', borderRadius: 15, background: 'rgba(58,55,51,0.035)' }}
               />
               {searching ? (
@@ -234,14 +236,14 @@ export const MediaCardSurface = ({
               ) : null}
             </div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 16, flexWrap: 'wrap' }}>
-              <span style={chipStyle(true)}>All {items.length}</span>
-              <span style={chipStyle(false)}>Watching {formatStatusCount(items, 'watching')}</span>
-              <span style={chipStyle(false)}>Finished {formatStatusCount(items, 'completed')}</span>
-              <span style={chipStyle(false)}>Queued {formatStatusCount(items, 'want-to-watch')}</span>
+              <span style={chipStyle(true)}>{t('life.media.all', { count: items.length })}</span>
+              <span style={chipStyle(false)}>{t('life.media.watching')} {formatStatusCount(items, 'watching')}</span>
+              <span style={chipStyle(false)}>{t('life.media.finished')} {formatStatusCount(items, 'completed')}</span>
+              <span style={chipStyle(false)}>{t('life.media.queued')} {formatStatusCount(items, 'want-to-watch')}</span>
             </div>
             <div style={{ display: 'flex', gap: 18, marginTop: 10 }}>
-              <span style={inter(11, 400, 'rgba(58,55,51,0.34)')}>Movies {items.filter((item) => item.mediaType === 'movie').length}</span>
-              <span style={inter(11, 400, 'rgba(58,55,51,0.34)')}>TV {items.filter((item) => item.mediaType === 'tv').length}</span>
+              <span style={inter(11, 400, 'rgba(58,55,51,0.34)')}>{t('life.media.movies', { count: items.filter((item) => item.mediaType === 'movie').length })}</span>
+              <span style={inter(11, 400, 'rgba(58,55,51,0.34)')}>{t('life.media.tv', { count: items.filter((item) => item.mediaType === 'tv').length })}</span>
             </div>
             {hint ? <p style={{ ...inter(12, 400, mutedText), marginTop: 12 }}>{hint}</p> : null}
             {results.length > 0 ? (

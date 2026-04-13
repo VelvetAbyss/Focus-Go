@@ -5,13 +5,24 @@ import { buildTripDetailRoute, ROUTES } from '../../../app/routes/routes'
 import type { TripRecord } from '../../../data/models/types'
 import { tripsRepo } from '../../trips/tripsRepo'
 import { checklistProgress, fmtUSD, statusColor, tripDuration } from '../../trips/tripData'
+import { useLifeI18n } from '../lifeI18n'
 
 const months = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 const TripsCard = () => {
+  const { t } = useLifeI18n()
   const navigate = useNavigate()
   const [trip, setTrip] = useState<TripRecord | null>(null)
   const [loading, setLoading] = useState(true)
+
+  const tripStatusLabel = (status: TripRecord['status']) =>
+    status === 'Planning'
+      ? t('life.trips.status.planning')
+      : status === 'Booked' || status === 'Ready'
+        ? t('life.trips.status.booked')
+        : status === 'Ongoing'
+          ? t('life.trips.status.active')
+          : t('life.trips.status.completed')
 
   useEffect(() => {
     const loadTrip = async () => {
@@ -78,9 +89,9 @@ const TripsCard = () => {
         }}
         onClick={() => navigate(ROUTES.TRIPS)}
       >
-        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: 'rgba(58,55,51,0.38)' }}>Trips</span>
-        <h3 style={{ fontFamily: 'Playfair Display, serif', fontSize: 20, fontWeight: 500, color: '#3A3733', lineHeight: 1.2 }}>Plan your next trip</h3>
-        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: 'rgba(58,55,51,0.52)', lineHeight: 1.6 }}>Open the trips workspace to create an itinerary, budget, and checklist.</p>
+        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: 'rgba(58,55,51,0.38)' }}>{t('life.card.trips')}</span>
+        <h3 style={{ fontFamily: 'Playfair Display, serif', fontSize: 20, fontWeight: 500, color: '#3A3733', lineHeight: 1.2 }}>{t('life.trips.planNext')}</h3>
+        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: 'rgba(58,55,51,0.52)', lineHeight: 1.6 }}>{t('life.trips.emptyDescription')}</p>
       </div>
     )
   }
@@ -118,7 +129,7 @@ const TripsCard = () => {
         </div>
         <div style={{ position: 'absolute', top: 12, right: 12 }}>
           <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 600, letterSpacing: '0.06em', color: sc.text, background: 'rgba(253,250,247,0.90)', border: `1px solid ${sc.border}`, borderRadius: 999, padding: '3px 8px', backdropFilter: 'blur(4px)' }}>
-            {trip.status.toUpperCase()}
+            {tripStatusLabel(trip.status)}
           </span>
         </div>
       </div>
@@ -127,7 +138,7 @@ const TripsCard = () => {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
             <span style={{ fontSize: 13 }}>{trip.coverEmoji}</span>
-            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: 'rgba(58,55,51,0.38)' }}>Trips</span>
+            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: 'rgba(58,55,51,0.38)' }}>{t('life.card.trips')}</span>
           </div>
           <h3 style={{ fontFamily: 'Playfair Display, serif', fontSize: 18, fontWeight: 500, color: '#3A3733', lineHeight: 1.2 }}>{trip.title}</h3>
         </div>
@@ -142,12 +153,12 @@ const TripsCard = () => {
             <Calendar size={11} color="rgba(58,55,51,0.35)" />
             <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: 'rgba(58,55,51,0.60)' }}>{`${startMonth} ${startDay} – ${endDay}`}</span>
           </div>
-          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: 'rgba(58,55,51,0.40)' }}>{duration} days</span>
+          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: 'rgba(58,55,51,0.40)' }}>{t('life.trips.days', { count: duration })}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Users size={11} color="rgba(58,55,51,0.35)" />
-            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: 'rgba(58,55,51,0.60)' }}>{trip.travelers} travelers</span>
+            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: 'rgba(58,55,51,0.60)' }}>{t('life.trips.travelers', { count: trip.travelers })}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Wallet size={10} color="rgba(58,55,51,0.35)" />
@@ -158,7 +169,7 @@ const TripsCard = () => {
 
       <div style={{ padding: '14px 20px', borderTop: '1px solid rgba(58,55,51,0.07)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 500, color: 'rgba(58,55,51,0.40)', letterSpacing: '0.04em' }}>Checklist</span>
+          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 500, color: 'rgba(58,55,51,0.40)', letterSpacing: '0.04em' }}>{t('life.trips.checklist')}</span>
           <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: 'rgba(58,55,51,0.40)' }}>{done}/{total}</span>
         </div>
         <div style={{ height: 3, borderRadius: 999, overflow: 'hidden', background: 'rgba(58,55,51,0.08)' }}>

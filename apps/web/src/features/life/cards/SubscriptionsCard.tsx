@@ -3,15 +3,17 @@ import type { LifeSubscription } from '../../../data/models/types'
 import { subscriptionsRepo } from '../../../data/repositories/subscriptionsRepo'
 import { SubscriptionCardSurface } from '../components/SubscriptionCardSurface'
 import { buildSubscriptionPresentationModel } from './lifeDesignAdapters'
+import { useLifeI18n } from '../lifeI18n'
 
 export type SubscriptionDraft = Omit<LifeSubscription, 'id' | 'createdAt' | 'updatedAt'>
 
 const SubscriptionsCard = () => {
+  const { t } = useLifeI18n()
   const [open, setOpen] = useState(false)
   const [subscriptions, setSubscriptions] = useState<LifeSubscription[]>([])
   const [loading, setLoading] = useState(false)
 
-  const designModel = useMemo(() => buildSubscriptionPresentationModel(subscriptions), [subscriptions])
+  const designModel = useMemo(() => buildSubscriptionPresentationModel(subscriptions, t), [subscriptions, t])
 
   useEffect(() => {
     const loadSubscriptions = async () => {

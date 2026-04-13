@@ -905,6 +905,7 @@ const CalendarPage = () => {
     <section
       className={`calendar-v2${leftSidebarOpen ? ' is-left-open' : ''}${rightSidebarOpen ? ' is-right-open' : ''}${monthMotionDirection ? ` calendar-v2--month-${monthMotionDirection}` : ''}`}
       aria-label={t('calendar.page')}
+      data-guide-anchor="calendar"
     >
       <aside className="calendar-v2__left calendar-v2__drawer" aria-label={t('calendar.sidebar')}>
         <div className="calendar-v2__drawer-header">

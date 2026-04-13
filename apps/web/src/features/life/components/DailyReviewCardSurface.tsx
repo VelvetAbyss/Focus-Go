@@ -4,6 +4,7 @@ import Dialog from '../../../shared/ui/Dialog'
 import { AppNumber } from '../../../shared/ui/AppNumber'
 import type { DailyReviewPresentationModel } from '../cards/lifeDesignAdapters'
 import { iconButtonStyle, inter, modalHeaderStyle, modalLayoutStyle, mutedText, playfair, sectionBorder } from './lifeDesignPrimitives'
+import { useLifeI18n } from '../lifeI18n'
 
 type RangeKey = 'week' | 'month'
 
@@ -26,6 +27,7 @@ const iconMap = {
 } as const
 
 export const DailyReviewCardSurface = ({ model, open, activeRange, onOpen, onClose, onRangeChange }: Props) => {
+  const { t } = useLifeI18n()
   const detail = model.detailRanges[activeRange]
   const [expandedTaskIds, setExpandedTaskIds] = useState<Record<string, boolean>>({})
 
@@ -80,10 +82,10 @@ export const DailyReviewCardSurface = ({ model, open, activeRange, onOpen, onClo
           <div style={{ height: 1, background: 'rgba(58,55,51,0.06)', marginBottom: 16 }} />
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <p style={{ ...inter(11, 400, 'rgba(58,55,51,0.38)'), letterSpacing: '0.02em' }}>
-              {activeRange === 'week' ? 'Last 7 days' : 'Last 30 days'}
+              {activeRange === 'week' ? t('life.daily.last7Days') : t('life.daily.last30Days')}
             </p>
             <p style={{ ...inter(10, 500, 'rgba(58,55,51,0.28)'), letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-              View review
+              {t('life.daily.viewReview')}
             </p>
           </div>
         </div>
@@ -93,7 +95,7 @@ export const DailyReviewCardSurface = ({ model, open, activeRange, onOpen, onClo
         <div style={modalLayoutStyle}>
           <div style={modalHeaderStyle}>
             <div>
-              <p style={{ ...inter(10, 600, 'rgba(58,55,51,0.40)'), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 4 }}>Review</p>
+              <p style={{ ...inter(10, 600, 'rgba(58,55,51,0.40)'), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 4 }}>{t('life.daily.review')}</p>
               <h2 style={playfair(26, 500)}>{model.header.title}</h2>
             </div>
             <button type="button" onClick={onClose} aria-label="Close" style={iconButtonStyle}>
@@ -117,7 +119,7 @@ export const DailyReviewCardSurface = ({ model, open, activeRange, onOpen, onClo
                     cursor: 'pointer',
                   }}
                 >
-                  {range === 'week' ? 'Week' : 'Month'}
+                  {range === 'week' ? t('life.daily.week') : t('life.daily.month')}
                 </button>
               ))}
             </div>
@@ -126,7 +128,7 @@ export const DailyReviewCardSurface = ({ model, open, activeRange, onOpen, onClo
           <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', minHeight: 0, flex: 1, marginTop: 16, borderTop: `1px solid ${sectionBorder}` }}>
             <div style={{ borderRight: `1px solid ${sectionBorder}`, padding: 24, overflowY: 'auto' }}>
               <p style={{ ...inter(10, 500, 'rgba(58,55,51,0.30)'), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 16 }}>
-                {activeRange === 'week' ? '7 days summary' : '30 days summary'}
+                {activeRange === 'week' ? t('life.daily.summary7days') : t('life.daily.summary30days')}
               </p>
               <div style={{ display: 'grid' }}>
                 {detail.summary.map((item) => {
@@ -154,8 +156,8 @@ export const DailyReviewCardSurface = ({ model, open, activeRange, onOpen, onClo
             <div style={{ display: 'flex', minHeight: 0, flexDirection: 'column', overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px 28px 20px', borderBottom: `1px solid ${sectionBorder}` }}>
                 <div>
-                  <p style={{ ...inter(10, 600, 'rgba(58,55,51,0.40)'), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 4 }}>Completed</p>
-                  <h3 style={playfair(20, 500)}>Completed Tasks</h3>
+                  <p style={{ ...inter(10, 600, 'rgba(58,55,51,0.40)'), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 4 }}>{t('life.daily.completed')}</p>
+                  <h3 style={playfair(20, 500)}>{t('life.daily.completedTasks')}</h3>
                 </div>
                 <span style={{ ...inter(11, 500, mutedText), background: 'rgba(58,55,51,0.07)', borderRadius: 999, padding: '4px 10px' }}>{detail.tasks.length}</span>
               </div>
@@ -169,8 +171,8 @@ export const DailyReviewCardSurface = ({ model, open, activeRange, onOpen, onClo
                     <div style={{ width: 48, height: 48, marginBottom: 16, borderRadius: 999, background: 'rgba(58,55,51,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <CheckSquare size={18} color="rgba(58,55,51,0.22)" />
                     </div>
-                    <p style={{ ...playfair(15, 500, 'rgba(58,55,51,0.45)'), marginBottom: 6 }}>No completed tasks</p>
-                    <p style={inter(12, 400, 'rgba(58,55,51,0.35)')}>No completed tasks in this range.</p>
+                    <p style={{ ...playfair(15, 500, 'rgba(58,55,51,0.45)'), marginBottom: 6 }}>{t('life.daily.noCompletedTasks')}</p>
+                    <p style={inter(12, 400, 'rgba(58,55,51,0.35)')}>{t('life.daily.noCompletedTasksInRange')}</p>
                   </div>
                 ) : (
                   detail.tasks.map((task) => (
@@ -187,12 +189,12 @@ export const DailyReviewCardSurface = ({ model, open, activeRange, onOpen, onClo
                             </div>
                             <p style={{ ...playfair(14, 500) }}>{task.title}</p>
                           </div>
-                          <p style={inter(11, 400, mutedText)}>{task.completedLabel}{task.subtasks.length ? ` · ${task.subtasks.length} subtasks` : ''}</p>
+                          <p style={inter(11, 400, mutedText)}>{task.completedLabel}{task.subtasks.length ? ` · ${t('life.daily.subtasksCount', { count: task.subtasks.length })}` : ''}</p>
                         </div>
                         {task.subtasks.length > 0 ? ((expandedTaskIds[task.id] ?? true) ? <ChevronUp size={14} color="rgba(58,55,51,0.30)" /> : <ChevronDown size={14} color="rgba(58,55,51,0.30)" />) : null}
                       </button>
                       {(expandedTaskIds[task.id] ?? true) ? <div style={{ padding: '14px 18px', display: 'grid', gap: 10, borderTop: `1px solid ${sectionBorder}` }}>
-                        {task.subtasks.length === 0 ? <p style={inter(12, 400, mutedText)}>No subtasks</p> : task.subtasks.map((subtask) => (
+                        {task.subtasks.length === 0 ? <p style={inter(12, 400, mutedText)}>{t('life.daily.noSubtasks')}</p> : task.subtasks.map((subtask) => (
                           <div key={subtask.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                             <div style={{ width: 14, height: 14, borderRadius: 4, background: subtask.done ? 'rgba(110,171,122,0.15)' : 'rgba(58,55,51,0.06)', border: `1px solid ${subtask.done ? 'rgba(110,171,122,0.25)' : 'rgba(58,55,51,0.08)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               {subtask.done ? <CheckSquare size={7} color="#6EAB7A" strokeWidth={2.5} /> : null}

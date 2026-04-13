@@ -3,6 +3,7 @@ import type { LifePerson } from '../../../data/models/types'
 import { peopleRepo } from '../../../data/repositories/peopleRepo'
 import { PeopleCardSurface } from '../components/PeopleCardSurface'
 import { buildPeoplePresentationModel } from './lifeDesignAdapters'
+import { useLifeI18n } from '../lifeI18n'
 
 const deriveInitials = (name: string) =>
   name
@@ -13,13 +14,14 @@ const deriveInitials = (name: string) =>
     .join('')
 
 const PeopleCard = () => {
+  const { t } = useLifeI18n()
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState<LifePerson[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   const selected = useMemo(() => items.find((item) => item.id === selectedId) ?? null, [items, selectedId])
-  const model = useMemo(() => buildPeoplePresentationModel(items), [items])
+  const model = useMemo(() => buildPeoplePresentationModel(items, t), [items, t])
 
   useEffect(() => {
     const load = async () => {

@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useI18n } from "../../../../shared/i18n/useI18n";
 import { useSharedFocusTimer } from "../../useSharedFocusTimer";
+import { useAuthGate } from "../../../auth/AuthGateContext";
 
 type TimerStatus = "idle" | "running" | "paused" | "completed";
 
@@ -372,6 +373,7 @@ export function FocusTimer({
   todaySessions?: number;
 }) {
   const { t } = useI18n()
+  const { requireAuth } = useAuthGate()
   const { state: timerState, start, pause, resume, reset, setDuration } = useSharedFocusTimer({ defaultDurationMinutes: 25 })
   const [selectedMode, setSelectedMode] = useState<FocusMode>(focusModes[0]);
   const [completionSound, setCompletionSound] = useState(true);
@@ -426,7 +428,7 @@ export function FocusTimer({
 
   const handleStart = async () => {
     if (status === "idle" || status === "completed") {
-      await start(duration);
+      requireAuth(() => { void start(duration) });
       return;
     }
     if (status === "running") {

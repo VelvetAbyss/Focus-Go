@@ -35,6 +35,7 @@ import {
   textareaStyle,
   inputStyle,
 } from './lifeDesignPrimitives'
+import { useLifeI18n } from '../lifeI18n'
 
 type SearchResult = {
   id: string
@@ -110,6 +111,7 @@ export const PodcastCardSurface = ({
   onRefreshItem,
   onRemoveItem,
 }: Props) => {
+  const { t } = useLifeI18n()
   const sidebarRef = useRef<HTMLElement>(null)
   const [episodesEl, setEpisodesEl] = useState<HTMLDivElement | null>(null)
   const [progress, setProgress] = useState<{ currentTime: number; duration: number } | null>(null)
@@ -162,9 +164,9 @@ export const PodcastCardSurface = ({
     return q ? sorted.filter((ep) => ep.title.toLowerCase().includes(q)) : sorted
   }, [selected?.episodes, episodeSort, episodeSearch])
 
-  const selectedSourceLabel = selected?.source === 'netease' ? 'Netease (Open Original)' : 'Apple Podcasts'
+  const selectedSourceLabel = selected?.source === 'netease' ? t('life.podcast.netease') : t('life.podcast.apple')
   const isNeteaseDefaultMode = selected?.source === 'netease' && !neteaseExperimentalPlaybackEnabled
-  const cardActionLabel = model.nowPlaying?.source === 'netease' && !neteaseExperimentalPlaybackEnabled ? 'Open Original' : model.nowPlaying?.isPlaying ? 'Pause' : 'Open Player'
+  const cardActionLabel = model.nowPlaying?.source === 'netease' && !neteaseExperimentalPlaybackEnabled ? t('life.podcast.openOriginal') : model.nowPlaying?.isPlaying ? t('life.podcast.pause') : t('life.podcast.openPlayer')
 
   return (
     <>
@@ -173,9 +175,9 @@ export const PodcastCardSurface = ({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
               <Headphones size={13} color="rgba(58,55,51,0.38)" />
-              <span style={{ ...inter(10, 600, 'rgba(58,55,51,0.38)'), letterSpacing: '0.10em', textTransform: 'uppercase' }}>Podcast</span>
+              <span style={{ ...inter(10, 600, 'rgba(58,55,51,0.38)'), letterSpacing: '0.10em', textTransform: 'uppercase' }}>{t('life.card.podcast')}</span>
             </div>
-            <h3 style={{ ...playfair(18, 500), lineHeight: 1.2 }}>Podcast</h3>
+            <h3 style={{ ...playfair(18, 500), lineHeight: 1.2 }}>{t('life.card.podcast')}</h3>
           </div>
           <div style={cardArrowStyle}><ChevronRight size={15} /></div>
         </div>
@@ -216,7 +218,7 @@ export const PodcastCardSurface = ({
                       letterSpacing: '0.05em',
                     }}
                   >
-                    {model.nowPlaying.isPlaying ? 'PLAYING' : 'LAST PLAYED'}
+                    {model.nowPlaying.isPlaying ? t('life.podcast.playing') : t('life.podcast.lastPlayed')}
                   </span>
                   <p style={{ ...playfair(13, 500), lineHeight: 1.3, marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{model.nowPlaying.title}</p>
                   <p style={{ ...inter(11, 400, 'rgba(58,55,51,0.50)'), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -252,7 +254,7 @@ export const PodcastCardSurface = ({
               )}
 
               <div style={{ marginTop: 14, borderTop: `1px solid ${sectionBorder}`, paddingTop: 14, flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                <p style={{ ...inter(10, 600, 'rgba(58,55,51,0.35)'), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 10, flexShrink: 0 }}>Recent Episodes</p>
+                <p style={{ ...inter(10, 600, 'rgba(58,55,51,0.35)'), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 10, flexShrink: 0 }}>{t('life.podcast.recentEpisodes')}</p>
                 <div ref={setEpisodesEl} style={{ flex: 1, overflow: 'hidden' }}>
                   {model.recentEpisodes.slice(0, visibleEpisodeCount).map((episode, index) => (
                     <div key={episode.id}>

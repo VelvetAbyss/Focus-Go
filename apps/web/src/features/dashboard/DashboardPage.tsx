@@ -329,7 +329,7 @@ const DashboardPage = () => {
   const showDashboardOverview = page === 'main' && onboarding.status === 'in_progress' && onboarding.currentStep === 'dashboard_overview'
 
   return (
-    <main className="dashboard" ref={containerRef} aria-label={t('dashboard.page')}>
+    <main className="dashboard" ref={containerRef} aria-label={t('dashboard.page')} data-guide-anchor="dashboard">
         <DashboardHeader
           layoutEdit={layoutEdit}
           widgetsPanelOpen={widgetsPanelOpen}

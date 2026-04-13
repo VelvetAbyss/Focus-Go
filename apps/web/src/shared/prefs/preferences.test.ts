@@ -1,42 +1,44 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { LANGUAGE_KEY, detectBrowserLanguage, readLanguage, writeLanguage } from './preferences'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { readWorldClockItems, writeWorldClockItems, WORLD_CLOCK_ITEMS_KEY, type WorldClockItem } from './preferences'
 
-const createStorage = () => {
-  const store = new Map<string, string>()
-  return {
-    getItem: (key: string) => store.get(key) ?? null,
-    setItem: (key: string, value: string) => void store.set(key, value),
-    removeItem: (key: string) => void store.delete(key),
-    clear: () => void store.clear(),
-  }
-}
+const makeItem = (index: number): WorldClockItem => ({
+  id: `item-${index}`,
+  label: `City ${index}`,
+  searchValue: `City ${index}`,
+  latitude: index,
+  longitude: index,
+  timeZone: 'UTC',
+})
 
-describe('preferences language', () => {
+describe('world clock preferences', () => {
   beforeEach(() => {
-    vi.unstubAllGlobals()
-    vi.stubGlobal('localStorage', createStorage())
-    vi.stubGlobal('navigator', { languages: ['en-US'], language: 'en-US' })
+    const store = new Map<string, string>()
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: (key: string, value: string) => void store.set(key, value),
+      removeItem: (key: string) => void store.delete(key),
+      clear: () => void store.clear(),
+    })
+  })
+
+  beforeEach(() => {
     localStorage.clear()
   })
 
-  it('detectBrowserLanguage normalizes language variants', () => {
-    expect(detectBrowserLanguage('zh-CN')).toBe('zh')
-    expect(detectBrowserLanguage(['en-US', 'zh-HK'])).toBe('en')
-    expect(detectBrowserLanguage('en-US')).toBe('en')
+  afterEach(() => {
+    vi.unstubAllGlobals()
   })
 
-  it('readLanguage prefers persisted value', () => {
-    localStorage.setItem(LANGUAGE_KEY, 'zh')
-    expect(readLanguage()).toBe('zh')
+  it('returns an empty array for invalid storage data', () => {
+    localStorage.setItem(WORLD_CLOCK_ITEMS_KEY, '{bad json')
+    expect(readWorldClockItems()).toEqual([])
   })
 
-  it('readLanguage falls back to browser languages when no persisted value', () => {
-    vi.stubGlobal('navigator', { languages: ['zh-CN'], language: 'zh-CN' })
-    expect(readLanguage()).toBe('zh')
-  })
+  it('persists up to four valid items', () => {
+    writeWorldClockItems([0, 1, 2, 3, 4].map(makeItem))
 
-  it('writeLanguage persists language', () => {
-    writeLanguage('en')
-    expect(localStorage.getItem(LANGUAGE_KEY)).toBe('en')
+    expect(readWorldClockItems()).toHaveLength(4)
+    expect(readWorldClockItems()[0]?.label).toBe('City 0')
+    expect(readWorldClockItems()[3]?.label).toBe('City 3')
   })
 })

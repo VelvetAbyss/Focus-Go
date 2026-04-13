@@ -6,6 +6,7 @@ describe('routes config', () => {
     expect(ROUTES.NOTE).toBe('/note')
     expect(ROUTES.LABS).toBe('/labs')
     expect(ROUTES.HABITS).toBe('/habits')
+    expect(ROUTES.PROJECTS).toBe('/projects')
   })
 
   it('keeps dashboard first in base nav', () => {

@@ -7,6 +7,7 @@ export type LabsLang = LanguageCode
 type LabsMessages = {
   nav: {
     dashboard: string
+    projects: string
     tasks: string
     note: string
     calendar: string
@@ -49,6 +50,7 @@ const messages: Record<LabsLang, LabsMessages> = {
   en: {
     nav: {
       dashboard: 'Dashboard',
+      projects: 'Project',
       tasks: 'Tasks',
       note: 'Note',
       calendar: 'Calendar',
@@ -89,6 +91,7 @@ const messages: Record<LabsLang, LabsMessages> = {
   zh: {
     nav: {
       dashboard: '仪表盘',
+      projects: '项目',
       tasks: '任务',
       note: '笔记',
       calendar: '日历',

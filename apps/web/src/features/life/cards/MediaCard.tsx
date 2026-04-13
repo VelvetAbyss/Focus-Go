@@ -4,6 +4,7 @@ import { mediaRepo } from '../../../data/repositories/mediaRepo'
 import { MediaCardSurface } from '../components/MediaCardSurface'
 import { dedupeMediaMatch, hasTmdbKey, hydrateRemoteMediaCandidate, searchRemoteMedia, type RemoteMediaCandidate } from '../mediaApi'
 import { buildMediaPresentationModel } from './lifeDesignAdapters'
+import { useLifeI18n } from '../lifeI18n'
 
 const toCreatePayload = (candidate: RemoteMediaCandidate) => ({
   ...candidate,
@@ -28,6 +29,7 @@ const normalizeMediaPatch = (patch: Partial<MediaItem>): Partial<MediaItem> => {
 }
 
 const MediaCard = () => {
+  const { t } = useLifeI18n()
   const [open, setOpen] = useState(false)
   const [media, setMedia] = useState<MediaItem[]>([])
   const [query, setQuery] = useState('')
@@ -39,7 +41,7 @@ const MediaCard = () => {
   const [hint, setHint] = useState<string | null>(null)
 
   const selected = useMemo(() => media.find((item) => item.id === selectedId) ?? null, [media, selectedId])
-  const designModel = useMemo(() => buildMediaPresentationModel(media), [media])
+  const designModel = useMemo(() => buildMediaPresentationModel(media, t), [media, t])
 
   useEffect(() => {
     const loadMedia = async () => {
@@ -54,7 +56,7 @@ const MediaCard = () => {
 
   const handleSearch = async () => {
     if (!hasTmdbKey()) {
-      setHint('Set VITE_TMDB_API_KEY to enable TMDb search.')
+      setHint(t('life.media.hint.tmdbMissing'))
       return
     }
     const nextQuery = query.trim()
@@ -64,7 +66,7 @@ const MediaCard = () => {
     try {
       setResults(await searchRemoteMedia(nextQuery))
     } catch {
-      setHint('Media search failed. Try another title.')
+      setHint(t('life.media.hint.searchFailed'))
     } finally {
       setSearching(false)
     }

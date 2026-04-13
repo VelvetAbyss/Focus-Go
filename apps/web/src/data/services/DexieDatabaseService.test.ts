@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { IDatabaseService } from '@focus-go/core'
 import { createDexieDatabaseService } from './DexieDatabaseService'
 import { db } from '../db'
@@ -310,6 +310,66 @@ describe('DexieDatabaseService', () => {
     const stored = await db.tasks.get(created.id)
     expect(stored?.taskNoteBlocks).toEqual([])
     expect(stored?.taskNoteContentMd).toBe('Fresh text')
+  })
+
+  it('persists markdown-only task note updates', async () => {
+    await db.tasks.clear()
+    const service = createDexieDatabaseService()
+    const created = await service.tasks.add({
+      title: 'Markdown task',
+      status: 'todo',
+      priority: null,
+    })
+
+    const updated = await service.tasks.update({
+      ...created,
+      taskNoteBlocks: [],
+      taskNoteContentMd: 'Line 1\n\nLine 2',
+      taskNoteContentJson: null,
+    })
+
+    expect(updated.taskNoteContentMd).toBe('Line 1\n\nLine 2')
+    expect(updated.taskNoteContentJson).toEqual({
+      type: 'doc',
+      content: [
+        {
+          type: 'paragraph',
+          content: [{ type: 'text', text: 'Line 1' }],
+        },
+        {
+          type: 'paragraph',
+          content: [{ type: 'text', text: 'Line 2' }],
+        },
+      ],
+    })
+
+    const stored = await db.tasks.get(created.id)
+    expect(stored?.taskNoteContentMd).toBe('Line 1\n\nLine 2')
+    expect(stored?.taskNoteContentJson).toEqual(updated.taskNoteContentJson)
+  })
+
+  it('does not bulk rewrite normalized tasks on repeated list calls', async () => {
+    await db.tasks.clear()
+    const service = createDexieDatabaseService()
+    await service.tasks.add({
+      title: 'Stable task',
+      status: 'todo',
+      priority: null,
+      tags: ['work'],
+      subtasks: [{ id: 'sub-1', title: 'Keep stable', done: false }],
+      taskNoteContentMd: 'Stable note',
+      taskNoteContentJson: {
+        type: 'doc',
+        content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Stable note' }] }],
+      },
+    })
+
+    const bulkPutSpy = vi.spyOn(db.tasks, 'bulkPut')
+
+    await service.tasks.list()
+    await service.tasks.list()
+
+    expect(bulkPutSpy).not.toHaveBeenCalled()
   })
 
   it('creates a blank note and lists it as active', async () => {

@@ -9,6 +9,7 @@ import { buildDailyReviewAnalytics, type DailyReviewAnalytics } from './dailyRev
 import { buildDailyReviewPresentationModel } from './lifeDesignAdapters'
 import { subscribeTasksChanged } from '../../tasks/taskSync'
 import { SYNC_DATA_UPDATED_EVENT } from '../../../data/sync/constants'
+import { useLifeI18n } from '../lifeI18n'
 
 type RangeKey = 'week' | 'month'
 
@@ -25,6 +26,7 @@ const emptyAnalytics: DailyReviewAnalytics = {
 }
 
 const DailyReviewCard = () => {
+  const { t } = useLifeI18n()
   const [open, setOpen] = useState(false)
   const [activeRange, setActiveRange] = useState<RangeKey>('week')
   const [todayAnalytics, setTodayAnalytics] = useState<DailyReviewAnalytics>(emptyAnalytics)
@@ -57,8 +59,8 @@ const DailyReviewCard = () => {
   }, [])
 
   const designModel = useMemo(
-    () => buildDailyReviewPresentationModel(todayAnalytics, weekAnalytics, monthAnalytics),
-    [monthAnalytics, todayAnalytics, weekAnalytics],
+    () => buildDailyReviewPresentationModel(todayAnalytics, weekAnalytics, monthAnalytics, t),
+    [monthAnalytics, t, todayAnalytics, weekAnalytics],
   )
 
   return (

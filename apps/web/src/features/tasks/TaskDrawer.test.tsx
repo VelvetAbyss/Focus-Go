@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { TaskItem } from './tasks.types'
 
 const addMock = vi.fn()
+const updateMock = vi.fn()
 const pushMock = vi.fn()
 const onCreated = vi.fn()
 
@@ -25,6 +26,11 @@ vi.mock('../../shared/i18n/useI18n', () => ({
         'tasks.drawer.createTask': 'Create task',
         'tasks.drawer.saveFailed': 'Save failed',
         'tasks.drawer.retryHint': 'Try again.',
+        'tasks.drawer.subtasks': '子任务',
+        'tasks.drawer.executionChecklist': '执行清单',
+        'tasks.drawer.subtaskFilterAll': '全部',
+        'tasks.drawer.subtaskFilterTodo': '未完成',
+        'tasks.drawer.subtaskFilterDone': '已完成',
       }[key] ?? key),
   }),
 }))
@@ -51,7 +57,7 @@ vi.mock('../../shared/ui/Dialog', () => ({
 vi.mock('../../data/repositories/tasksRepo', () => ({
   tasksRepo: {
     add: (...args: unknown[]) => addMock(...args),
-    update: vi.fn(),
+    update: (...args: unknown[]) => updateMock(...args),
     remove: vi.fn(),
     updateStatus: vi.fn(),
   },
@@ -96,8 +102,14 @@ const createdTask: TaskItem = {
 describe('TaskDrawer onboarding mode', () => {
   beforeEach(() => {
     addMock.mockReset()
+    updateMock.mockReset()
     pushMock.mockReset()
     onCreated.mockReset()
+  })
+
+  afterEach(() => {
+    cleanup()
+    vi.useRealTimers()
   })
 
   it('blocks empty submit and creates a task', async () => {
@@ -147,5 +159,112 @@ describe('TaskDrawer onboarding mode', () => {
       expect((panel as HTMLElement).className).not.toContain('bg-white')
       expect((topbar as HTMLElement).className).not.toContain('bg-white')
     })
+  })
+
+  it('autosaves the latest note content after rapid edits', async () => {
+    vi.useFakeTimers()
+    updateMock.mockImplementation(async (task: TaskItem) => ({
+      ...task,
+      updatedAt: task.updatedAt + 1,
+    }))
+
+    render(
+      <TaskDrawer
+        open
+        task={createdTask}
+        onClose={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+        onCreated={vi.fn()}
+      />,
+    )
+
+    const textarea = screen.getByLabelText('任务备注编辑器')
+    fireEvent.change(textarea, { target: { value: 'first' } })
+    fireEvent.change(textarea, { target: { value: 'second' } })
+    fireEvent.change(textarea, { target: { value: 'final note body' } })
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(179)
+    })
+    expect(updateMock).not.toHaveBeenCalled()
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1)
+    })
+    expect(updateMock).toHaveBeenCalledTimes(1)
+    expect(updateMock.mock.calls[0]?.[0]).toMatchObject({
+      id: createdTask.id,
+      taskNoteContentMd: 'final note body',
+    })
+  })
+
+  it('rehydrates note content when reopening the same task', async () => {
+    const { rerender } = render(
+      <TaskDrawer
+        open
+        task={createdTask}
+        onClose={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+        onCreated={vi.fn()}
+      />,
+    )
+
+    const nextTask = {
+      ...createdTask,
+      taskNoteContentMd: 'persisted note',
+      taskNoteContentJson: {
+        type: 'doc',
+        content: [{ type: 'paragraph', content: [{ type: 'text', text: 'persisted note' }] }],
+      },
+    }
+
+    rerender(
+      <TaskDrawer
+        open={false}
+        task={null}
+        onClose={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+        onCreated={vi.fn()}
+      />,
+    )
+
+    rerender(
+      <TaskDrawer
+        open
+        task={nextTask}
+        onClose={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+        onCreated={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByLabelText('任务备注编辑器')).toHaveValue('persisted note')
+  })
+
+  it('defaults subtask filter to todo when opening a task', async () => {
+    render(
+      <TaskDrawer
+        open
+        task={{
+          ...createdTask,
+          subtasks: [
+            { id: 'sub-1', title: 'Todo item', done: false },
+            { id: 'sub-2', title: 'Done item', done: true },
+          ],
+        }}
+        onClose={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+        onCreated={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: '未完成' })).toHaveClass('bg-[#3a3733]')
+    expect(screen.getByDisplayValue('Todo item')).toBeInTheDocument()
+    expect(screen.queryByDisplayValue('Done item')).not.toBeInTheDocument()
   })
 })

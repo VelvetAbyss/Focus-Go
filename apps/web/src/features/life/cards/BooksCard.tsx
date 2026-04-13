@@ -4,6 +4,7 @@ import { booksRepo } from '../../../data/repositories/booksRepo'
 import { LibraryCardSurface } from '../components/LibraryCardSurface'
 import { dedupeBookMatch, hydrateRemoteBookCandidate, searchRemoteBooks, type RemoteBookCandidate } from '../booksApi'
 import { buildLibraryPresentationModel } from './lifeDesignAdapters'
+import { useLifeI18n } from '../lifeI18n'
 
 const toCreatePayload = (candidate: RemoteBookCandidate) => ({
   ...candidate,
@@ -21,6 +22,7 @@ const normalizeBookPatch = (patch: Partial<BookItem>): Partial<BookItem> => {
 }
 
 const BooksCard = () => {
+  const { t } = useLifeI18n()
   const [open, setOpen] = useState(false)
   const [books, setBooks] = useState<BookItem[]>([])
   const [query, setQuery] = useState('')
@@ -32,7 +34,7 @@ const BooksCard = () => {
   const [error, setError] = useState<string | null>(null)
 
   const selectedBook = useMemo(() => books.find((item) => item.id === selectedBookId) ?? null, [books, selectedBookId])
-  const designModel = useMemo(() => buildLibraryPresentationModel(books), [books])
+  const designModel = useMemo(() => buildLibraryPresentationModel(books, t), [books, t])
 
   useEffect(() => {
     const loadBooks = async () => {

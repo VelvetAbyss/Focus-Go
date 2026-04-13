@@ -92,6 +92,12 @@ export type TaskItem = BaseEntity & {
   isToday: boolean
   status: TaskStatus
   priority: TaskPriority | null
+  projectId?: string
+  ownerId?: string
+  collaboratorIds?: string[]
+  dependencyTaskIds?: string[]
+  blockedByTaskIds?: string[]
+  isBlocked?: boolean
   dueDate?: string
   startDate?: string
   endDate?: string

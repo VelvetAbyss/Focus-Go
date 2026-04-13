@@ -1,7 +1,9 @@
 import type { BookItem, LifePerson, LifePodcast, LifeSubscription, MediaItem } from '../../../data/models/types'
 import type { DailyReviewAnalytics } from './dailyReviewAnalytics'
+import { lifeT, type LifeTranslate } from '../lifeI18n'
 
 const INK = '#3A3733'
+const defaultT: LifeTranslate = (key, values) => lifeT('en', key, values)
 
 const bookStatusConfig = {
   reading: { label: 'Reading', color: '#A0673A', bg: 'rgba(160, 103, 58, 0.10)' },
@@ -141,12 +143,12 @@ export type PeoplePresentationModel = {
   statsLabel: string
 }
 
-export const buildLibraryPresentationModel = (books: readonly BookItem[]): LibraryPresentationModel => ({
-  header: { eyebrow: 'Library', title: 'Library', subTitle: 'Your Shelf' },
+export const buildLibraryPresentationModel = (books: readonly BookItem[], t: LifeTranslate = defaultT): LibraryPresentationModel => ({
+  header: { eyebrow: t('life.card.library'), title: t('life.card.library'), subTitle: t('life.card.library') },
   previewRows: books.slice(0, 3).map((book) => ({
     id: book.id,
     title: book.title,
-    authorLine: book.authors.join(', ') || 'Unknown author',
+    authorLine: book.authors.join(', ') || t('life.library.unknownAuthor'),
     coverUrl: book.coverUrl,
     progress: book.progress,
     statusLabel: bookStatusConfig[book.status].label,
@@ -159,14 +161,14 @@ export const buildLibraryPresentationModel = (books: readonly BookItem[]): Libra
   },
 })
 
-export const buildMediaPresentationModel = (items: readonly MediaItem[]): MediaPresentationModel => ({
-  header: { eyebrow: 'Media', title: 'Media', subTitle: 'Watchlist' },
+export const buildMediaPresentationModel = (items: readonly MediaItem[], t: LifeTranslate = defaultT): MediaPresentationModel => ({
+  header: { eyebrow: t('life.card.media'), title: t('life.card.media'), subTitle: t('life.card.media') },
   previewRows: items.slice(0, 3).map((item) => ({
     id: item.id,
     title: item.title,
     posterUrl: item.posterUrl,
     type: item.mediaType,
-    metaLine: `${item.director ?? item.cast[0] ?? 'Unknown'} · ${yearFromDate(item.releaseDate)}`,
+    metaLine: `${item.director ?? item.cast[0] ?? t('life.media.unknown')} · ${yearFromDate(item.releaseDate)}`,
     progress: item.progress,
     statusLabel: mediaStatusConfig[item.status].label,
     statusColor: mediaStatusConfig[item.status].color,
@@ -178,13 +180,13 @@ export const buildMediaPresentationModel = (items: readonly MediaItem[]): MediaP
   },
 })
 
-const summaryToMetrics = (analytics: DailyReviewAnalytics) => [
-  { key: 'tasks', label: 'Tasks', value: analytics.summary.completedTasks },
-  { key: 'subtasks', label: 'Subtasks', value: analytics.summary.completedSubtasks },
-  { key: 'focus', label: 'Focus min', value: analytics.summary.focusMinutes },
-  { key: 'diary', label: 'Diary', value: analytics.summary.diaryWritten ? 'Yes' : 'No' },
-  { key: 'notes', label: 'Note chars', value: analytics.summary.noteChars },
-  { key: 'stay', label: 'Focus stay', value: `${analytics.summary.focusPresenceMinutes}m` },
+const summaryToMetrics = (analytics: DailyReviewAnalytics, t: LifeTranslate) => [
+  { key: 'tasks', label: t('life.daily.tasks'), value: analytics.summary.completedTasks },
+  { key: 'subtasks', label: t('life.daily.subtasks'), value: analytics.summary.completedSubtasks },
+  { key: 'focus', label: t('life.daily.focusMin'), value: analytics.summary.focusMinutes },
+  { key: 'diary', label: t('life.daily.diary'), value: analytics.summary.diaryWritten ? t('life.daily.yes') : t('life.daily.no') },
+  { key: 'notes', label: t('life.daily.noteChars'), value: analytics.summary.noteChars },
+  { key: 'stay', label: t('life.daily.focusStay'), value: `${analytics.summary.focusPresenceMinutes}m` },
 ] as const
 
 const toDailyTasks = (analytics: DailyReviewAnalytics) =>
@@ -199,36 +201,37 @@ export const buildDailyReviewPresentationModel = (
   today: DailyReviewAnalytics,
   week: DailyReviewAnalytics,
   month: DailyReviewAnalytics,
+  t: LifeTranslate = defaultT,
 ): DailyReviewPresentationModel => ({
-  header: { eyebrow: 'Today', title: 'Daily Review', subTitle: 'Review' },
-  todayMetrics: [...summaryToMetrics(today)],
+  header: { eyebrow: t('life.daily.today'), title: t('life.card.dailyReview'), subTitle: t('life.daily.review') },
+  todayMetrics: [...summaryToMetrics(today, t)],
   detailRanges: {
     week: {
       summary: [
-        { key: 'tasks', label: 'Tasks', value: week.summary.completedTasks },
-        { key: 'subtasks', label: 'Subtasks', value: week.summary.completedSubtasks },
-        { key: 'focus', label: 'Focus Minutes', value: week.summary.focusMinutes },
-        { key: 'diary', label: 'Diary Days', value: week.summary.diaryWritten ? 1 : 0, sub: 'Last 7 days' },
-        { key: 'notes', label: 'Notes', value: week.summary.noteChars },
-        { key: 'stay', label: 'Focus Stay', value: `${average([week.summary.focusPresenceMinutes])}%`, sub: 'Avg.' },
+        { key: 'tasks', label: t('life.daily.tasks'), value: week.summary.completedTasks },
+        { key: 'subtasks', label: t('life.daily.subtasks'), value: week.summary.completedSubtasks },
+        { key: 'focus', label: t('life.daily.focusMinutes'), value: week.summary.focusMinutes },
+        { key: 'diary', label: t('life.daily.diaryDays'), value: week.summary.diaryWritten ? 1 : 0, sub: t('life.daily.last7Days') },
+        { key: 'notes', label: t('life.daily.notes'), value: week.summary.noteChars },
+        { key: 'stay', label: t('life.daily.focusStay'), value: `${average([week.summary.focusPresenceMinutes])}%`, sub: t('life.daily.avg') },
       ],
       tasks: toDailyTasks(week),
     },
     month: {
       summary: [
-        { key: 'tasks', label: 'Tasks', value: month.summary.completedTasks },
-        { key: 'subtasks', label: 'Subtasks', value: month.summary.completedSubtasks },
-        { key: 'focus', label: 'Focus Minutes', value: month.summary.focusMinutes },
-        { key: 'diary', label: 'Diary Days', value: month.summary.diaryWritten ? 1 : 0, sub: 'Last 30 days' },
-        { key: 'notes', label: 'Notes', value: month.summary.noteChars },
-        { key: 'stay', label: 'Focus Stay', value: `${average([month.summary.focusPresenceMinutes])}%`, sub: 'Avg.' },
+        { key: 'tasks', label: t('life.daily.tasks'), value: month.summary.completedTasks },
+        { key: 'subtasks', label: t('life.daily.subtasks'), value: month.summary.completedSubtasks },
+        { key: 'focus', label: t('life.daily.focusMinutes'), value: month.summary.focusMinutes },
+        { key: 'diary', label: t('life.daily.diaryDays'), value: month.summary.diaryWritten ? 1 : 0, sub: t('life.daily.last30Days') },
+        { key: 'notes', label: t('life.daily.notes'), value: month.summary.noteChars },
+        { key: 'stay', label: t('life.daily.focusStay'), value: `${average([month.summary.focusPresenceMinutes])}%`, sub: t('life.daily.avg') },
       ],
       tasks: toDailyTasks(month),
     },
   },
 })
 
-export const buildSubscriptionPresentationModel = (items: readonly LifeSubscription[]): SubscriptionPresentationModel => {
+export const buildSubscriptionPresentationModel = (items: readonly LifeSubscription[], t: LifeTranslate = defaultT): SubscriptionPresentationModel => {
   const monthlyTotals = items.reduce<Record<'USD' | 'CNY', number>>(
     (sum, item) => {
       sum[item.currency] += yearlyToMonthly(item)
@@ -258,7 +261,7 @@ export const buildSubscriptionPresentationModel = (items: readonly LifeSubscript
       name: item.name,
       color: item.color ?? pickColor(item.name),
       emoji: item.emoji ?? category?.emoji ?? '•',
-      categoryLabel: item.category ?? category?.label ?? 'Other',
+      categoryLabel: item.category ?? category?.label ?? t('life.subscriptions.other'),
       priceLabel: `${currencySymbol(item.currency)}${formatMoney(item.amount)}/${item.cycle === 'yearly' ? 'yr' : 'mo'}`,
       monthlyLabel: `${currencySymbol(item.currency)}${formatMoney(yearlyToMonthly(item))}/mo`,
       isPaid: item.paymentStatus === 'paid',
@@ -267,7 +270,7 @@ export const buildSubscriptionPresentationModel = (items: readonly LifeSubscript
   })
 
   return {
-    header: { eyebrow: 'Monthly', title: 'Subscriptions', subTitle: 'Subscriptions' },
+    header: { eyebrow: t('life.subscriptions.monthly'), title: t('life.card.subscriptions'), subTitle: t('life.card.subscriptions') },
     monthlyTotalLabel: items.length ? formatTotals(monthlyTotals, ' /mo') : '$0 /mo',
     annualTotalLabel: items.length ? formatTotals(annualTotals, ' /yr') : '$0 /yr',
     previewRows,
@@ -302,7 +305,7 @@ const daysUntilBirthday = (value?: string) => {
   return Math.round((next.getTime() - new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()) / (24 * 60 * 60 * 1000))
 }
 
-export const buildPodcastPresentationModel = (items: readonly LifePodcast[]): PodcastPresentationModel => {
+export const buildPodcastPresentationModel = (items: readonly LifePodcast[], t: LifeTranslate = defaultT): PodcastPresentationModel => {
   const sorted = [...items].sort((left, right) => right.updatedAt - left.updatedAt)
   const active = sorted.find((item) => item.selectedEpisodeId || item.isPlaying) ?? sorted[0] ?? null
   const activeEpisode = active?.episodes.find((episode) => episode.id === active.selectedEpisodeId) ?? active?.episodes[0] ?? null
@@ -329,11 +332,14 @@ export const buildPodcastPresentationModel = (items: readonly LifePodcast[]): Po
         }
       : null,
     recentEpisodes,
-    statsLabel: `${items.length} podcasts · ${items.reduce((sum, item) => sum + item.episodes.length, 0)} episodes`,
+    statsLabel: t('life.podcast.stats', {
+      podcasts: items.length,
+      episodes: items.reduce((sum, item) => sum + item.episodes.length, 0),
+    }),
   }
 }
 
-export const buildPeoplePresentationModel = (items: readonly LifePerson[]): PeoplePresentationModel => {
+export const buildPeoplePresentationModel = (items: readonly LifePerson[], t: LifeTranslate = defaultT): PeoplePresentationModel => {
   const preview = [...items]
     .sort((left, right) => {
       const leftBirthday = daysUntilBirthday(left.birthday) ?? 999
@@ -352,15 +358,15 @@ export const buildPeoplePresentationModel = (items: readonly LifePerson[]): Peop
         avatarInitials: person.avatarInitials,
         avatarColor: person.avatarColor ?? groupColorMap[person.group],
         secondary: birthdayDelta !== null && birthdayDelta <= 14
-          ? birthdayDelta === 0 ? 'Birthday today' : `Birthday in ${birthdayDelta} days`
-          : locationLine || (person.lastInteraction ? `Last contact ${person.lastInteraction}` : 'No recent notes'),
+          ? birthdayDelta === 0 ? t('life.people.birthdayToday') : t('life.people.birthdayInDays', { days: birthdayDelta })
+          : locationLine || (person.lastInteraction ? t('life.people.lastContact', { date: person.lastInteraction }) : t('life.people.noRecentNotes')),
         birthdaySoon: birthdayDelta !== null && birthdayDelta <= 14,
       }
     })
 
   return {
     preview,
-    statsLabel: `${items.length} people`,
+    statsLabel: t('life.people.count', { count: items.length }),
   }
 }
 

@@ -18,6 +18,7 @@ export default defineConfig({
     },
   },
   build: {
+    modulePreload: false,
     chunkSizeWarningLimit: 500,
     rollupOptions: {
       output: {
@@ -33,9 +34,6 @@ export default defineConfig({
           }
           if (id.includes('node_modules/date-fns')) {
             return 'vendor-date-fns'
-          }
-          if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) {
-            return 'vendor-recharts'
           }
           if (id.includes('node_modules/motion') || id.includes('node_modules/framer-motion')) {
             return 'vendor-motion'

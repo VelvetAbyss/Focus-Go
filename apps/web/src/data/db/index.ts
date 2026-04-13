@@ -21,6 +21,9 @@ import type {
   SpendEntry,
   StockItem,
   TaskItem,
+  ProjectItem,
+  ProjectNoteLink,
+  ProjectPerson,
   TripRecord,
   UserSubscription,
   WidgetTodo,
@@ -40,6 +43,7 @@ import {
   schemaV32,
   schemaV33,
   schemaV34,
+  schemaV35,
   schemaV2,
   schemaV3,
   schemaV4,
@@ -66,6 +70,9 @@ export class WorkbenchDb extends Dexie {
   lifeDashboardLayout!: Table<LifeDashboardLayout, string>
   userSubscriptions!: Table<UserSubscription, string>
   featureInstallations!: Table<FeatureInstallation, string>
+  projects!: Table<ProjectItem, string>
+  projectPeople!: Table<ProjectPerson, string>
+  projectNoteLinks!: Table<ProjectNoteLink, string>
   habits!: Table<Habit, string>
   habitLogs!: Table<HabitLog, string>
   syncOutbox!: Table<SyncOutboxItem, string>
@@ -194,7 +201,11 @@ export class WorkbenchDb extends Dexie {
       .stores(schemaV34)
       .upgrade(async () => {})
 
-    this.version(DB_VERSION).stores(schemaV34)
+    this.version(35)
+      .stores(schemaV35)
+      .upgrade(async () => {})
+
+    this.version(DB_VERSION).stores(schemaV35)
 
     this.tasks = this.table(TABLES.tasks)
     this.notes = this.table(TABLES.notes)
@@ -210,6 +221,9 @@ export class WorkbenchDb extends Dexie {
     this.lifeDashboardLayout = this.table(TABLES.lifeDashboardLayout)
     this.userSubscriptions = this.table(TABLES.userSubscriptions)
     this.featureInstallations = this.table(TABLES.featureInstallations)
+    this.projects = this.table(TABLES.projects)
+    this.projectPeople = this.table(TABLES.projectPeople)
+    this.projectNoteLinks = this.table(TABLES.projectNoteLinks)
     this.habits = this.table(TABLES.habits)
     this.habitLogs = this.table(TABLES.habitLogs)
     this.syncOutbox = this.table(TABLES.syncOutbox)

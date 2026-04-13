@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
-import { Archive, LayoutGrid, Sparkles, Brain, Zap, Target, Share2, RotateCcw } from 'lucide-react'
+import { Archive, LayoutGrid, Sparkles, Brain, Zap, Target, Share2, RotateCcw, PanelsTopLeft } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
@@ -16,6 +16,7 @@ const FEATURE_ICONS: Record<string, React.ElementType> = {
   'automation': Zap,
   'habit-tracker': Target,
   'mind-map': Share2,
+  'project-workspace': PanelsTopLeft,
 }
 
 const LabsPage = () => {
@@ -156,6 +157,16 @@ const LabsPage = () => {
                       ) : (
                         <Button size="sm" asChild>
                           <Link to={ROUTES.HABITS}>{i18n.labs.openHabits}</Link>
+                        </Button>
+                      )
+                    ) : feature.featureKey === 'project-workspace' ? (
+                      feature.requiresPremium ? (
+                        <Button size="sm" onClick={() => openUpgradeModal(feature.title)}>
+                          {i18n.labs.upgrade}
+                        </Button>
+                      ) : (
+                        <Button size="sm" asChild>
+                          <Link to={ROUTES.PROJECTS}>Open Project</Link>
                         </Button>
                       )
                     ) : (
