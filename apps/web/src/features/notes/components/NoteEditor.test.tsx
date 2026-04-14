@@ -241,7 +241,7 @@ describe('NoteEditor', () => {
     useEditorMock.mockReturnValue(createEditor())
     render(<NoteEditor value={value} onChange={() => {}} />)
 
-    const editorProps = editorConfigRef.current?.editorProps as { clipboardTextSerializer?: (slice: { content: { textBetween: typeof vi.fn } }) => string }
+    const editorProps = editorConfigRef.current?.editorProps as { clipboardTextSerializer?: (slice: { content: { textBetween: (...args: unknown[]) => unknown } }) => string }
     const textBetween = vi.fn(() => '第一行\n\n\n第二行\r\n第三行   \n')
 
     const result = editorProps.clipboardTextSerializer?.({
