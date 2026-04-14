@@ -4,6 +4,7 @@ import { Pause, Play, SkipBack, SkipForward } from 'lucide-react'
 import { podcastsRepo } from '../../data/repositories/podcastsRepo'
 import type { LifePodcast } from '../../data/models/types'
 import {
+  dispatchOpenPodcastPlayer,
   getPlaybackProgress,
   isNeteaseExperimentalPlaybackEnabled,
   pausePodcastPlayback,
@@ -77,6 +78,10 @@ const SidebarPodcastPlayer = ({ collapsed }: Props) => {
     }
   }
 
+  const handleOpenDetail = () => {
+    dispatchOpenPodcastPlayer()
+  }
+
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect()
     seekTo((e.clientX - rect.left) / rect.width)
@@ -110,7 +115,13 @@ const SidebarPodcastPlayer = ({ collapsed }: Props) => {
       className={`sidebar-podcast-player${isPlaying ? ' is-playing' : ''}${collapsed ? ' is-collapsed' : ''}`}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
     >
-      <motion.div layout="position" className="sidebar-podcast-player__cover">
+      <motion.div
+        layout="position"
+        className="sidebar-podcast-player__cover"
+        onClick={handleOpenDetail}
+        title="Open podcast player"
+        style={{ cursor: 'pointer' }}
+      >
         {podcast.artworkUrl
           ? <img src={podcast.artworkUrl} alt={podcast.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit', display: 'block' }} />
           : <span className="sidebar-podcast-player__emoji">{podcast.coverEmoji ?? '🎙'}</span>}
@@ -125,6 +136,8 @@ const SidebarPodcastPlayer = ({ collapsed }: Props) => {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -8 }}
             transition={{ duration: 0.16, ease: [0.2, 0, 0, 1] }}
+            onClick={handleOpenDetail}
+            style={{ cursor: 'pointer' }}
           >
             <p className="sidebar-podcast-player__title">{activeEpisode?.title ?? podcast.name}</p>
             <p className="sidebar-podcast-player__podcast-name">{podcast.name}</p>

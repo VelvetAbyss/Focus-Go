@@ -33,6 +33,7 @@ const iconMap = {
 
 type SidebarProps = {
   tags: NoteTag[]
+  tagLabelMap?: Map<string, string>
   activeCollection: NoteSystemCollection | null
   activeTagId: string | null
   noteCounts: { all: number; today: number; untagged: number; trash: number }
@@ -66,6 +67,7 @@ const buildTree = (tags: NoteTag[]) => {
 
 export default function NoteSidebar({
   tags,
+  tagLabelMap,
   activeCollection,
   activeTagId,
   noteCounts,
@@ -115,6 +117,7 @@ export default function NoteSidebar({
             <TagRow
               key={`pin-${tag.id}`}
               tag={{ ...tag, children: [] }}
+              tagLabelMap={tagLabelMap}
               depth={0}
               activeTagId={activeTagId}
               onSelect={onSelectTag}
@@ -159,6 +162,7 @@ export default function NoteSidebar({
             <TagRow
               key={tag.id}
               tag={tag}
+              tagLabelMap={tagLabelMap}
               depth={0}
               activeTagId={activeTagId}
               onSelect={onSelectTag}
@@ -213,6 +217,7 @@ function CollectionButton({
 
 function TagRow({
   tag,
+  tagLabelMap,
   depth,
   activeTagId,
   onSelect,
@@ -224,6 +229,7 @@ function TagRow({
   enableTagDnd,
 }: {
   tag: TreeTag
+  tagLabelMap?: Map<string, string>
   depth: number
   activeTagId: string | null
   onSelect: (id: string) => void
@@ -243,6 +249,7 @@ function TagRow({
   const hasChildren = tag.children.length > 0
   const isActive = activeTagId === tag.id
   const Icon = tag.icon ? iconMap[tag.icon as keyof typeof iconMap] ?? TagIcon : TagIcon
+  const tagLabel = tagLabelMap?.get(tag.name) ?? tag.name
   useEffect(() => {
     if (!isRenaming) setDraftName(tag.name)
   }, [isRenaming, tag.name])
@@ -343,7 +350,7 @@ function TagRow({
         style={{ paddingLeft: `${10 + depth * 16}px`, paddingRight: '8px' }}
         role="button"
         tabIndex={0}
-        aria-label={tag.name}
+        aria-label={tagLabel}
         onClick={() => onSelect(tag.id)}
       >
         {hasChildren ? (
@@ -391,7 +398,7 @@ function TagRow({
               setIsRenaming(true)
             }}
           >
-            {tag.name}
+            {tagLabel}
           </span>
         )}
         {dragPlacement === 'before' ? <span className="pointer-events-none absolute left-2 right-2 top-0 h-[2px] rounded-full bg-[#3a3733]/45" /> : null}
@@ -430,6 +437,7 @@ function TagRow({
             <TagRow
               key={child.id}
               tag={child}
+              tagLabelMap={tagLabelMap}
               depth={depth + 1}
               activeTagId={activeTagId}
               onSelect={onSelect}

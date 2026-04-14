@@ -1,13 +1,13 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSyncDataRefresh } from '../../../data/sync/service'
 import type { NoteAppearanceSettings, NoteItem, NoteTag } from '../../../data/models/types'
 import { noteAppearanceRepo } from '../../../data/repositories/noteAppearanceRepo'
 import { noteTagsRepo } from '../../../data/repositories/noteTagsRepo'
 import { notesRepo } from '../../../data/repositories/notesRepo'
+import { projectsRepo } from '../../../data/repositories/projectsRepo'
 import AppearanceModal from '../components/AppearanceModal'
 import ExportModal from '../components/ExportModal'
 import InfoPopover from '../components/InfoPopover'
-const MindMapPanel = lazy(() => import('../components/MindMapPanel').then((m) => ({ default: m.MindMapPanel })))
 import NoteBrowser, { type NoteSortOption } from '../components/NoteBrowser'
 import NoteEditor from '../components/NoteEditor'
 import NoteSidebar, { type NoteSystemCollection } from '../components/NoteSidebar'
@@ -36,7 +36,7 @@ const DEFAULT_TAGS: Array<Pick<NoteTag, 'name' | 'icon' | 'pinned' | 'sortOrder'
   { name: 'Ideas', icon: 'lightbulb', pinned: false, sortOrder: 5 },
 ]
 
-type NotePanel = 'info' | 'appearance' | 'export' | 'mindmap' | null
+type NotePanel = 'info' | 'appearance' | 'export' | null
 
 const buildPreview = (content: string) => {
   const compact = content.replace(/\s+/g, ' ').trim()
@@ -112,6 +112,7 @@ export default function NotePage() {
   const [notes, setNotes] = useState<NoteItem[]>([])
   const [trash, setTrash] = useState<NoteItem[]>([])
   const [tags, setTags] = useState<NoteTag[]>([])
+  const [projectTagLabels, setProjectTagLabels] = useState<Map<string, string>>(new Map())
   const [appearance, setAppearance] = useState<NoteAppearanceSettings>(DEFAULT_APPEARANCE)
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
   const [activeCollection, setActiveCollection] = useState<NoteSystemCollection>('notes')
@@ -141,11 +142,12 @@ export default function NotePage() {
   }, [activeCollection])
 
   const refresh = useCallback(async () => {
-    const [activeNotes, trashedNotes, storedTags, storedAppearance] = await Promise.all([
+    const [activeNotes, trashedNotes, storedTags, storedAppearance, projects] = await Promise.all([
       notesRepo.list(),
       notesRepo.listTrash(),
       noteTagsRepo.list(),
       noteAppearanceRepo.get(),
+      projectsRepo.list(),
     ])
 
     let resolvedTags: NoteTag[] = storedTags
@@ -196,6 +198,7 @@ export default function NotePage() {
     const trashedOnly = trashedNotes.filter((note) => Boolean(note.deletedAt))
 
     setTags(recomputeTagCounts(resolvedTags, visibleNotes))
+    setProjectTagLabels(new Map(projects.map((project) => [`project:${project.id}`, project.title] as const)))
     setNotes(visibleNotes)
     setTrash(trashedOnly)
 
@@ -671,6 +674,7 @@ export default function NotePage() {
           className="note-page-column note-page-column--sidebar"
           scrollContainerRef={sidebarScrollRef}
           tags={tagsWithCounts}
+          tagLabelMap={projectTagLabels}
           activeCollection={activeCollection}
           activeTagId={activeTagId}
           noteCounts={noteCounts}
@@ -715,13 +719,6 @@ export default function NotePage() {
               onOpenInfo={() => setOpenPanel((current) => (current === 'info' ? null : 'info'))}
               onOpenAppearance={() => setOpenPanel((current) => (current === 'appearance' ? null : 'appearance'))}
               onExport={() => setOpenPanel((current) => (current === 'export' ? null : 'export'))}
-              onOpenMindMap={() => {
-                if (!canUse('notes.mindmap').allowed) {
-                  openUpgradeModal('button', 'notes.mindmap')
-                  return
-                }
-                setOpenPanel((current) => (current === 'mindmap' ? null : 'mindmap'))
-              }}
               onChange={handleUpdateNote}
             />
             <InfoPopover
@@ -738,13 +735,6 @@ export default function NotePage() {
               onClose={() => setOpenPanel(null)}
               onExportMarkdown={handleExportMarkdown}
             />
-            <Suspense fallback={null}>
-              <MindMapPanel
-                open={openPanel === 'mindmap'}
-                noteId={activeNote?.id ?? null}
-                onClose={() => setOpenPanel(null)}
-              />
-            </Suspense>
           </>
         </div>
       </div>

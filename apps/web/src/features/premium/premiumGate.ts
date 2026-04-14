@@ -5,7 +5,6 @@ export type PremiumGateKey =
   | 'dashboard.extra-widgets'
   | 'tasks.subtasks'
   | 'notes.max-count'
-  | 'notes.mindmap'
   | 'focus.white-noise'
   | 'project.workspace'
   | 'system.cloud-sync'
@@ -52,12 +51,6 @@ export const PREMIUM_GATES: Record<PremiumGateKey, PremiumGateDefinition> = {
     title: 'Unlimited notes',
     description: 'Free plan includes up to 20 notes.',
     limit: 20,
-  },
-  'notes.mindmap': {
-    key: 'notes.mindmap',
-    kind: 'feature',
-    title: 'Mind map',
-    description: 'Visualize notes as connected maps.',
   },
   'focus.white-noise': {
     key: 'focus.white-noise',

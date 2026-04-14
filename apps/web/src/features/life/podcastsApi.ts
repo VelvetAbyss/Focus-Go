@@ -12,6 +12,7 @@ type ItunesSearchResult = {
   primaryGenreName?: string
   releaseDate?: string
   country?: string
+  trackCount?: number
 }
 
 type ItunesEpisodeResult = {
@@ -123,7 +124,7 @@ const dedupeEpisodes = (rows: RemotePodcastCandidate['episodes']) => {
   })
 }
 
-const mapSearchResult = (item: ItunesSearchResult): RemotePodcastCandidate | null => {
+const mapSearchResult = (item: ItunesSearchResult): RemotePodcastCandidate & { trackCount?: number } | null => {
   if (typeof item.collectionId !== 'number' || !item.collectionName) return null
   return {
     source: 'itunes',
@@ -140,6 +141,7 @@ const mapSearchResult = (item: ItunesSearchResult): RemotePodcastCandidate | nul
     coverColor: pickColor(item.collectionName),
     coverEmoji: pickEmoji(item.collectionName),
     episodes: [],
+    trackCount: item.trackCount,
   }
 }
 
@@ -149,13 +151,15 @@ export const dedupePodcastMatch = (
 ) =>
   rows.find((item) => item.collectionId === candidate.collectionId && item.source === candidate.source)
 
-export const searchRemotePodcasts = async (query: string, signal?: AbortSignal): Promise<RemotePodcastCandidate[]> => {
+export type RemotePodcastSearchResult = RemotePodcastCandidate & { trackCount?: number }
+
+export const searchRemotePodcasts = async (query: string, signal?: AbortSignal): Promise<RemotePodcastSearchResult[]> => {
   const cacheKey = query.trim().toLowerCase()
   const cached = itunesSearchCache.get(cacheKey)
   if (cached && cached.expiresAt > Date.now()) return cached.results
   const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=podcast&limit=10`
   const payload = await fetchJson<{ results?: ItunesSearchResult[] }>(url, signal)
-  const merged: RemotePodcastCandidate[] = []
+  const merged: RemotePodcastSearchResult[] = []
   for (const result of payload.results ?? []) {
     const candidate = mapSearchResult(result)
     if (!candidate || dedupePodcastMatch(merged, candidate)) continue

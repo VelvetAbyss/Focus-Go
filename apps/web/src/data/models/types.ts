@@ -244,6 +244,7 @@ export type LifePodcastEpisode = {
   releaseDate?: string
   audioUrl?: string
   externalUrl?: string
+  savedPosition?: number
 }
 
 export type LifePodcast = BaseEntity & {
@@ -271,13 +272,18 @@ export type PersonGroup = 'Family' | 'Friends' | 'Work' | 'Community' | 'Other'
 export type LifePerson = BaseEntity & {
   name: string
   group: PersonGroup
+  category?: string
   role?: string
   city?: string
   notes?: string
+  email?: string
+  phone?: string
   birthday?: string
   lastInteraction?: string
   avatarInitials: string
   avatarColor?: string
+  sourceProjectId?: string
+  sourceProjectPersonId?: string
 }
 
 export type TripStatus = 'Planning' | 'Booked' | 'Ready' | 'Ongoing' | 'Done'
@@ -512,7 +518,7 @@ export type ProjectNoteLink = BaseEntity & {
   tagName: string
 }
 
-export type FeatureKey = 'ai-digest' | 'automation' | 'habit-tracker' | 'mind-map' | 'project-workspace'
+export type FeatureKey = 'ai-digest' | 'automation' | 'habit-tracker' | 'project-workspace'
 export type FeatureInstallState = 'installed' | 'removed'
 
 export type FeatureInstallation = BaseEntity & {

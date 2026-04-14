@@ -13,7 +13,7 @@ import { TextAlign } from '@tiptap/extension-text-align'
 import { Typography } from '@tiptap/extension-typography'
 import { StarterKit } from '@tiptap/starter-kit'
 import { EditorContent, EditorContext, useEditor } from '@tiptap/react'
-import { Download, Expand, GitBranch, Info, Minimize2, Palette } from 'lucide-react'
+import { Download, Expand, Info, Minimize2, Palette } from 'lucide-react'
 import type { CSSProperties, ReactNode, RefObject } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { HorizontalRule } from '@/components/tiptap-node/horizontal-rule-node/horizontal-rule-node-extension'
@@ -63,7 +63,6 @@ type NoteEditorProps = {
   onOpenInfo?: () => void
   onOpenAppearance?: () => void
   onExport?: () => void
-  onOpenMindMap?: () => void
   onToggleFullscreen?: () => void
   onChange: (next: NoteEditorValue) => void
   isFullscreen?: boolean
@@ -120,14 +119,36 @@ const getPastedImageFiles = (event: ClipboardEvent) =>
     .map((item) => item.getAsFile())
     .filter((file): file is File => Boolean(file))
 
+const hasStructuredTableShape = (rows: string[][]) => {
+  const maxCols = rows.reduce((max, row) => Math.max(max, row.length), 0)
+  if (maxCols < 2 || rows.length < 2) return false
+
+  const columnNonEmptyCounts = Array.from({ length: maxCols }, () => 0)
+  let rowsWithMultipleNonEmptyCells = 0
+
+  for (const row of rows) {
+    let nonEmptyCells = 0
+    for (let index = 0; index < maxCols; index += 1) {
+      if ((row[index] ?? '').trim().length === 0) continue
+      nonEmptyCells += 1
+      columnNonEmptyCounts[index] += 1
+    }
+    if (nonEmptyCells >= 2) rowsWithMultipleNonEmptyCells += 1
+  }
+
+  const columnsWithAnyContent = columnNonEmptyCounts.filter((count) => count > 0).length
+  return rowsWithMultipleNonEmptyCells >= 1 && columnsWithAnyContent >= 2
+}
+
 const normalizeTableRows = (rows: string[][]) => {
   const maxCols = rows.reduce((max, row) => Math.max(max, row.length), 0)
   if (maxCols < 2 || rows.length < 2) return null
-  return rows.map((row) => {
+  const normalized = rows.map((row) => {
     const padded = [...row]
     while (padded.length < maxCols) padded.push('')
     return padded
   })
+  return hasStructuredTableShape(normalized) ? normalized : null
 }
 
 const parseHtmlTable = (html: string) => {
@@ -142,32 +163,6 @@ const parseHtmlTable = (html: string) => {
   return normalizeTableRows(rows.filter((row) => row.length > 0))
 }
 
-const parseCsvLine = (line: string) => {
-  const result: string[] = []
-  let current = ''
-  let inQuotes = false
-  for (let i = 0; i < line.length; i += 1) {
-    const char = line[i]
-    if (char === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        current += '"'
-        i += 1
-      } else {
-        inQuotes = !inQuotes
-      }
-      continue
-    }
-    if (char === ',' && !inQuotes) {
-      result.push(current.trim())
-      current = ''
-      continue
-    }
-    current += char
-  }
-  result.push(current.trim())
-  return result
-}
-
 const parseTextTable = (text: string) => {
   if (!text) return null
   const lines = text
@@ -178,11 +173,16 @@ const parseTextTable = (text: string) => {
   if (lines.some((line) => line.includes('\t'))) {
     return normalizeTableRows(lines.map((line) => line.split('\t').map((cell) => cell.trim())))
   }
-  if (lines.some((line) => line.includes(','))) {
-    return normalizeTableRows(lines.map((line) => parseCsvLine(line)))
-  }
   return null
 }
+
+const normalizeClipboardText = (text: string) =>
+  text
+    .replace(/\r\n?/g, '\n')
+    .replace(/\u2028|\u2029/g, '\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{2,}/g, '\n')
+    .trimEnd()
 
 const createTableNode = (rows: string[][]): JSONContent => ({
   type: 'table',
@@ -201,7 +201,6 @@ const NoteEditor = ({
   onOpenInfo,
   onOpenAppearance,
   onExport,
-  onOpenMindMap,
   onToggleFullscreen,
   onChange,
   isFullscreen = false,
@@ -313,6 +312,7 @@ const NoteEditor = ({
       attributes: {
         class: 'note-editor__body simple-editor',
       },
+      clipboardTextSerializer: (slice) => normalizeClipboardText(slice.content.textBetween(0, slice.content.size, '\n', '\n')),
       handlePaste: (_view, event) => {
         const imageFiles = getPastedImageFiles(event)
         if (imageFiles.length > 0) {
@@ -489,16 +489,6 @@ const NoteEditor = ({
           <ActionButton icon={<Info size={14} />} label={t('notes.info')} panelId="info" onClick={onOpenInfo} />
           <ActionButton icon={<Palette size={14} />} label={t('notes.appearance')} panelId="appearance" onClick={onOpenAppearance} />
           <ActionButton icon={<Download size={14} />} label={t('notes.export')} panelId="export" onClick={onExport} />
-          <button
-            type="button"
-            className="note-editor__action-button"
-            onClick={onOpenMindMap}
-            data-note-panel-trigger="mindmap"
-            title={t('notes.mindmap')}
-          >
-            <GitBranch size={14} />
-            <span>{t('notes.mindmap')}</span>
-          </button>
         </div>
       </div>
 

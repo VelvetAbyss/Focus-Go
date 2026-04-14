@@ -56,13 +56,6 @@ const FEATURE_META: FeatureMeta[] = [
     comingSoon: false,
   },
   {
-    featureKey: 'mind-map',
-    title: 'Mind Map',
-    description: 'Visual note mapping with draggable nodes and connections.',
-    premiumOnly: false,
-    comingSoon: true,
-  },
-  {
     featureKey: 'project-workspace',
     title: 'Project',
     description: 'Dedicated workspace for complex projects with clear goals and timelines.',

@@ -5,6 +5,16 @@ import { getPlaybackProgress, seekTo, subscribePlaybackProgress } from '../podca
 
 const EPISODE_ROW_HEIGHT = 34 // 8px padding-top + ~16px content + 8px padding-bottom + 1px divider
 
+const fmtDate = (iso?: string) => {
+  if (!iso) return null
+  try {
+    const d = new Date(iso)
+    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short' })
+  } catch {
+    return null
+  }
+}
+
 const fmt = (s: number) => {
   if (!isFinite(s) || s <= 0) return '0:00'
   const m = Math.floor(s / 60)
@@ -44,6 +54,8 @@ type SearchResult = {
   artworkUrl?: string
   genre?: string
   externalUrl?: string
+  releaseDate?: string
+  trackCount?: number
 }
 
 type Props = {
@@ -62,6 +74,7 @@ type Props = {
   addingCandidateId: string | null
   refreshingPodcastId: string | null
   neteaseExperimentalPlaybackEnabled: boolean
+  standalone?: boolean
   onOpen: () => void
   onClose: () => void
   onQueryChange: (value: string) => void
@@ -95,6 +108,7 @@ export const PodcastCardSurface = ({
   addingCandidateId,
   refreshingPodcastId,
   neteaseExperimentalPlaybackEnabled,
+  standalone,
   onOpen,
   onClose,
   onQueryChange,
@@ -170,7 +184,7 @@ export const PodcastCardSurface = ({
 
   return (
     <>
-      <div onClick={onOpen} style={cardShellStyle}>
+      {!standalone && (<div onClick={onOpen} style={cardShellStyle}>
         <div style={cardHeaderStyle}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
@@ -291,7 +305,7 @@ export const PodcastCardSurface = ({
             <ChevronRight size={11} />
           </div>
         </div>
-      </div>
+      </div>)}
 
       <Dialog open={open} onClose={onClose} panelClassName="life-modal__panel" contentClassName="life-modal__content">
         <div style={modalLayoutStyle}>
@@ -390,21 +404,56 @@ export const PodcastCardSurface = ({
                 {error ? <p style={{ ...inter(11, 400, '#9D4C4C') }}>{error}</p> : null}
                 {results.length ? (
                   <div style={{ display: 'grid', gap: 8, gridTemplateColumns: '1fr', minWidth: 0 }}>
-                    {results.map((result) => (
-                      <div key={result.id} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: 12, borderRadius: 16, border: `1px solid ${subtleBorder}`, background: '#fff', minWidth: 0, width: '100%' }}>
-                        <div style={{ width: 38, height: 38, borderRadius: 12, overflow: 'hidden', background: 'rgba(58,55,51,0.06)', flexShrink: 0 }}>
-                          {result.artworkUrl ? <img src={result.artworkUrl} alt={result.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
+                    {results.map((result) => {
+                      const formattedDate = fmtDate(result.releaseDate)
+                      return (
+                        <div key={result.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 12px', borderRadius: 16, border: `1px solid ${subtleBorder}`, background: '#fff', minWidth: 0, width: '100%' }}>
+                          <div style={{ width: 44, height: 44, borderRadius: 12, overflow: 'hidden', background: 'rgba(58,55,51,0.06)', flexShrink: 0, marginTop: 1 }}>
+                            {result.artworkUrl ? <img src={result.artworkUrl} alt={result.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ ...inter(12, 500), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 2 }}>{result.title}</p>
+                            <p style={{ ...inter(10, 400, mutedText), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 4 }}>{result.author}{result.genre ? ` · ${result.genre}` : ''}</p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              {result.trackCount != null && (
+                                <span style={{ ...inter(9, 500, 'rgba(58,55,51,0.50)'), background: 'rgba(58,55,51,0.06)', borderRadius: 5, padding: '2px 6px' }}>
+                                  {result.trackCount} 期
+                                </span>
+                              )}
+                              {formattedDate && (
+                                <span style={{ ...inter(9, 400, 'rgba(58,55,51,0.40)') }}>
+                                  最新 {formattedDate}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => onAddItem(result.id)}
+                            title="Add"
+                            style={{
+                              flexShrink: 0,
+                              width: 28,
+                              height: 28,
+                              borderRadius: '50%',
+                              border: '1px solid rgba(58,55,51,0.12)',
+                              background: 'rgba(58,55,51,0.06)',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: 18,
+                              lineHeight: 1,
+                              color: 'rgba(58,55,51,0.55)',
+                              padding: 0,
+                              alignSelf: 'center',
+                            }}
+                          >
+                            {addingCandidateId === result.id ? '·' : '+'}
+                          </button>
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ ...inter(12, 500), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{result.title}</p>
-                          <p style={{ ...inter(10, 400, mutedText), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{result.author}{result.genre ? ` · ${result.genre}` : ''} · Apple Podcasts</p>
-                        </div>
-                        {result.externalUrl ? (
-                          <button type="button" onClick={() => onOpenExternal(result.externalUrl)} style={smallButtonStyle}>Open in Apple Podcasts</button>
-                        ) : null}
-                        <button type="button" onClick={() => onAddItem(result.id)} style={smallButtonStyle}>{addingCandidateId === result.id ? '...' : 'Add'}</button>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 ) : null}
                 <div style={{ display: 'grid', gap: 6, paddingTop: 6, gridTemplateColumns: '1fr', minWidth: 0 }}>

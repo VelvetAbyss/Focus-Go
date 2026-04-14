@@ -38,8 +38,11 @@ const PeopleCard = () => {
     draft: {
       name: string
       group: LifePerson['group']
+      category: string
       role: string
       city: string
+      email: string
+      phone: string
       birthday: string
       lastInteraction: string
       notes: string
@@ -51,8 +54,11 @@ const PeopleCard = () => {
     const payload = {
       name: draft.name.trim(),
       group: draft.group,
+      category: draft.category.trim() || undefined,
       role: draft.role.trim() || undefined,
       city: draft.city.trim() || undefined,
+      email: draft.email.trim() || undefined,
+      phone: draft.phone.trim() || undefined,
       birthday: draft.birthday || undefined,
       lastInteraction: draft.lastInteraction || undefined,
       notes: draft.notes || undefined,

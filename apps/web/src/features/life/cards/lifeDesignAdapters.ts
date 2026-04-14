@@ -131,10 +131,11 @@ export type PodcastPresentationModel = {
 }
 
 export type PeoplePresentationModel = {
-  preview: Array<{
+  rows: Array<{
     id: string
     name: string
     group: LifePerson['group']
+    category?: string
     avatarInitials: string
     avatarColor: string
     secondary: string
@@ -340,14 +341,13 @@ export const buildPodcastPresentationModel = (items: readonly LifePodcast[], t: 
 }
 
 export const buildPeoplePresentationModel = (items: readonly LifePerson[], t: LifeTranslate = defaultT): PeoplePresentationModel => {
-  const preview = [...items]
+  const rows = [...items]
     .sort((left, right) => {
       const leftBirthday = daysUntilBirthday(left.birthday) ?? 999
       const rightBirthday = daysUntilBirthday(right.birthday) ?? 999
       if (leftBirthday !== rightBirthday) return leftBirthday - rightBirthday
       return (right.lastInteraction ?? '').localeCompare(left.lastInteraction ?? '')
     })
-    .slice(0, 3)
     .map((person) => {
       const birthdayDelta = daysUntilBirthday(person.birthday)
       const locationLine = [person.role, person.city].filter(Boolean).join(' · ')
@@ -355,6 +355,7 @@ export const buildPeoplePresentationModel = (items: readonly LifePerson[], t: Li
         id: person.id,
         name: person.name,
         group: person.group,
+        category: person.category,
         avatarInitials: person.avatarInitials,
         avatarColor: person.avatarColor ?? groupColorMap[person.group],
         secondary: birthdayDelta !== null && birthdayDelta <= 14
@@ -365,7 +366,7 @@ export const buildPeoplePresentationModel = (items: readonly LifePerson[], t: Li
     })
 
   return {
-    preview,
+    rows,
     statsLabel: t('life.people.count', { count: items.length }),
   }
 }

@@ -160,18 +160,4 @@ describe('LabsPage', () => {
     await waitFor(() => expect(mockRestore).toHaveBeenCalledWith('ai-digest'))
   })
 
-  it('shows mind map as coming soon', () => {
-    mockUseLabs.mockReturnValue({
-      ready: true,
-      catalog: [makeFeature('available', { featureKey: 'mind-map', title: 'Mind Map', premiumOnly: false, comingSoon: true })],
-      subscription: { tier: 'premium', role: 'admin' },
-      install: mockInstall,
-      remove: mockRemove,
-      restore: mockRestore,
-    })
-
-    renderPage()
-    expect(screen.getAllByText(i18n.labs.comingSoon).length).toBeGreaterThan(0)
-    expect(screen.getByRole('button', { name: i18n.labs.comingSoon })).toBeDisabled()
-  })
 })
