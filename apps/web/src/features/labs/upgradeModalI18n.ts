@@ -104,7 +104,6 @@ const messages: Record<LanguageCode, UpgradeModalMessages> = {
     premiumPerks: [
       'Cloud Sync across devices',
       'Unlimited Notes',
-      'Mind Map',
       'White Noise library',
       'Custom Dashboard & extra widgets',
     ],
@@ -128,7 +127,6 @@ const messages: Record<LanguageCode, UpgradeModalMessages> = {
           rows: [
             { label: 'Basic Notes', free: 'check', premium: 'check', lifetime: 'check' },
             { label: 'Unlimited Notes', free: 'cross', premium: 'check', lifetime: 'check' },
-            { label: 'Mind Map', free: 'cross', premium: 'check', lifetime: 'check' },
           ],
         },
         {
@@ -183,7 +181,6 @@ const messages: Record<LanguageCode, UpgradeModalMessages> = {
     premiumPerks: [
       '跨设备云同步',
       '无限笔记',
-      '思维导图',
       '白噪音音效库',
       '自定义仪表盘与更多 Widgets',
     ],
@@ -207,7 +204,6 @@ const messages: Record<LanguageCode, UpgradeModalMessages> = {
           rows: [
             { label: '基础笔记', free: 'check', premium: 'check', lifetime: 'check' },
             { label: '无限笔记', free: 'cross', premium: 'check', lifetime: 'check' },
-            { label: '思维导图', free: 'cross', premium: 'check', lifetime: 'check' },
           ],
         },
         {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { motion, AnimatePresence } from 'motion/react'
 import { ArrowRight, Plus, Search, SlidersHorizontal } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
@@ -23,11 +24,36 @@ const priorityClass: Record<string, string> = {
 
 const labelHealth = (health: ProjectHealth) => (health === 'on-track' ? 'On Track' : health === 'at-risk' ? 'At Risk' : 'Blocked')
 
+const EASE = [0.16, 1, 0.3, 1] as [number, number, number, number]
+
+const listStagger = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.07, delayChildren: 0.1 } },
+}
+
+const cardVariant = {
+  hidden: { opacity: 0, y: 18 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: EASE } },
+}
+
+const heroVariant = {
+  hidden: { opacity: 0, y: -10 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE } },
+}
+
+const toolbarVariant = {
+  hidden: { opacity: 0, y: 8 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: EASE, delay: 0.12 } },
+}
+
+let hasAnimatedProjectsList = false
+let projectsListCache: { projects: ProjectItem[]; people: ProjectPerson[] } | null = null
+
 const ProjectsPage = () => {
   const navigate = useNavigate()
-  const [projects, setProjects] = useState<ProjectItem[]>([])
-  const [people, setPeople] = useState<ProjectPerson[]>([])
-  const [loading, setLoading] = useState(true)
+  const [projects, setProjects] = useState<ProjectItem[]>(() => projectsListCache?.projects ?? [])
+  const [people, setPeople] = useState<ProjectPerson[]>(() => projectsListCache?.people ?? [])
+  const [loading, setLoading] = useState(() => !projectsListCache)
   const [search, setSearch] = useState('')
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [statusFilter, setStatusFilter] = useState<'all' | ProjectItem['status']>('all')
@@ -37,8 +63,9 @@ const ProjectsPage = () => {
   const [editingProject, setEditingProject] = useState<ProjectItem | null>(null)
 
   const load = async () => {
-    setLoading(true)
+    setLoading((prev) => prev && !projectsListCache)
     const [nextProjects, nextPeople] = await Promise.all([projectsRepo.list(), db.projectPeople.toArray()])
+    projectsListCache = { projects: nextProjects, people: nextPeople }
     setProjects(nextProjects)
     setPeople(nextPeople)
     setLoading(false)
@@ -61,12 +88,24 @@ const ProjectsPage = () => {
     })
   }, [healthFilter, priorityFilter, projects, search, statusFilter])
 
+  const shouldAnimateIn = !hasAnimatedProjectsList
+
+  useEffect(() => {
+    hasAnimatedProjectsList = true
+  }, [])
+
   return (
     <section className="project-page">
-      <div className="project-page__hero">
+      {/* Hero */}
+      <motion.div
+        className="project-page__hero"
+        variants={heroVariant}
+        initial={shouldAnimateIn ? 'hidden' : false}
+        animate="show"
+      >
         <div>
           <div className="project-page__heading-row">
-            <h1 className="project-page__title">Project</h1>
+            <h1 className="project-page__title">Projects</h1>
             <span className="project-page__labs-pill">LABS</span>
           </div>
           <p className="project-page__subtitle">Dedicated workspace for complex projects with clear goals and timelines</p>
@@ -75,9 +114,15 @@ const ProjectsPage = () => {
           <Plus size={16} />
           New Project
         </Button>
-      </div>
+      </motion.div>
 
-      <div className="project-list-toolbar">
+      {/* Toolbar */}
+      <motion.div
+        className="project-list-toolbar"
+        variants={toolbarVariant}
+        initial={shouldAnimateIn ? 'hidden' : false}
+        animate="show"
+      >
         <div className="project-list-toolbar__search">
           <Search size={18} />
           <Input
@@ -87,65 +132,88 @@ const ProjectsPage = () => {
             placeholder="Search projects..."
           />
         </div>
-        <Button variant="outline" className="project-button project-button--secondary" onClick={() => setFiltersOpen((value) => !value)}>
+        <Button
+          variant="outline"
+          className={`project-button project-button--secondary${filtersOpen ? ' project-button--secondary-active' : ''}`}
+          onClick={() => setFiltersOpen((value) => !value)}
+        >
           <SlidersHorizontal size={16} />
           Filter
         </Button>
-      </div>
+      </motion.div>
 
-      {filtersOpen ? (
-        <div className="project-filter-panel">
-          <label>
-            <span>Status</span>
-            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}>
-              <option value="all">All</option>
-              <option value="planning">Planning</option>
-              <option value="active">Active</option>
-              <option value="blocked">Blocked</option>
-              <option value="done">Done</option>
-              <option value="archived">Archived</option>
-            </select>
-          </label>
-          <label>
-            <span>Priority</span>
-            <select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value as typeof priorityFilter)}>
-              <option value="all">All</option>
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
-            </select>
-          </label>
-          <label>
-            <span>Health</span>
-            <select value={healthFilter} onChange={(event) => setHealthFilter(event.target.value as typeof healthFilter)}>
-              <option value="all">All</option>
-              <option value="on-track">On Track</option>
-              <option value="at-risk">At Risk</option>
-              <option value="blocked">Blocked</option>
-            </select>
-          </label>
-        </div>
-      ) : null}
+      <AnimatePresence>
+        {filtersOpen ? (
+          <motion.div
+            className="project-filter-panel"
+            initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+            animate={{ opacity: 1, height: 'auto', marginBottom: 18 }}
+            exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+            transition={{ duration: 0.28, ease: EASE }}
+          >
+            <label>
+              <span>Status</span>
+              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}>
+                <option value="all">All</option>
+                <option value="planning">Planning</option>
+                <option value="active">Active</option>
+                <option value="blocked">Blocked</option>
+                <option value="done">Done</option>
+                <option value="archived">Archived</option>
+              </select>
+            </label>
+            <label>
+              <span>Priority</span>
+              <select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value as typeof priorityFilter)}>
+                <option value="all">All</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </label>
+            <label>
+              <span>Health</span>
+              <select value={healthFilter} onChange={(event) => setHealthFilter(event.target.value as typeof healthFilter)}>
+                <option value="all">All</option>
+                <option value="on-track">On Track</option>
+                <option value="at-risk">At Risk</option>
+                <option value="blocked">Blocked</option>
+              </select>
+            </label>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
 
       {loading ? <div className="project-empty-state">Loading projects…</div> : null}
 
       {!loading && filtered.length === 0 ? (
-        <div className="project-empty-state">
+        <motion.div
+          className="project-empty-state"
+          initial={{ opacity: 0, scale: 0.97 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.35, ease: EASE }}
+        >
           <h2>No projects yet</h2>
           <p>Create your first project workspace to organize tasks, people, timelines, and notes in one place.</p>
           <Button className="project-button project-button--primary" onClick={() => { setEditingProject(null); setDialogOpen(true) }}>
             <Plus size={16} />
             Create First Project
           </Button>
-        </div>
+        </motion.div>
       ) : null}
 
-      <div className="project-card-list">
+      <motion.div
+        className="project-card-list"
+        variants={listStagger}
+        initial={shouldAnimateIn ? 'hidden' : false}
+        animate="show"
+      >
         {filtered.map((project) => (
-          <button
+          <motion.button
             key={project.id}
             type="button"
             className="project-card"
+            variants={cardVariant}
             onClick={() => navigate(`/projects/${project.id}`)}
           >
             <div className="project-card__header">
@@ -167,12 +235,18 @@ const ProjectsPage = () => {
               </div>
               <div>
                 <p className="project-card__label">Timeline</p>
-                <p className="project-card__value">{project.startDate ?? 'TBD'} - {project.dueDate ?? 'TBD'}</p>
+                <p className="project-card__value">{project.startDate ?? 'TBD'} – {project.dueDate ?? 'TBD'}</p>
               </div>
               <div>
                 <p className="project-card__label">Progress</p>
                 <div className="project-card__progress-row">
-                  <div className="project-progress-bar"><span style={{ width: `${project.progress}%` }} /></div>
+                  <div className="project-progress-bar">
+                    <motion.span
+                      initial={shouldAnimateIn ? { width: '0%' } : false}
+                      animate={{ width: `${project.progress}%` }}
+                      transition={shouldAnimateIn ? { duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.3 } : { duration: 0.28, ease: EASE }}
+                    />
+                  </div>
                   <strong>{project.progress}%</strong>
                 </div>
               </div>
@@ -184,11 +258,18 @@ const ProjectsPage = () => {
 
             <div className="project-card__footer">
               <span>{project.goal || project.description || 'Open project workspace'}</span>
-              <ArrowRight size={16} />
+              <motion.span
+                className="project-card__arrow"
+                initial={false}
+                whileHover={{ x: 3 }}
+                transition={{ duration: 0.15 }}
+              >
+                <ArrowRight size={16} />
+              </motion.span>
             </div>
-          </button>
+          </motion.button>
         ))}
-      </div>
+      </motion.div>
 
       <ProjectFormDialog
         open={dialogOpen}

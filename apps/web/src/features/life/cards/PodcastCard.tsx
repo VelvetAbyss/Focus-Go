@@ -12,12 +12,14 @@ import {
   searchRemotePodcasts,
   syncNeteasePodcasts,
   type RemotePodcastCandidate,
+  type RemotePodcastSearchResult,
 } from '../podcastsApi'
 import {
   pausePodcastPlayback,
   playPodcastEpisode,
   stopNeteasePlaybackIfDisabled,
   subscribePodcastPlayback,
+  subscribeOpenPodcastPlayer,
 } from '../podcastPlayback'
 import { usePreferences } from '../../../shared/prefs/usePreferences'
 import { useLifeI18n, type LifeTranslate } from '../lifeI18n'
@@ -49,7 +51,7 @@ const toRefreshErrorMessage = (error: unknown, t: LifeTranslate) => {
   return t('life.podcast.error.refresh.failed')
 }
 
-const PodcastCard = () => {
+const PodcastCard = ({ standalone }: { standalone?: boolean } = {}) => {
   const { t } = useLifeI18n()
   const {
     neteaseExperimentalPlaybackEnabled,
@@ -60,7 +62,7 @@ const PodcastCard = () => {
   const [loading, setLoading] = useState(false)
   const [query, setQuery] = useState('')
   const [searching, setSearching] = useState(false)
-  const [results, setResults] = useState<RemotePodcastCandidate[]>([])
+  const [results, setResults] = useState<RemotePodcastSearchResult[]>([])
   const [addingCandidateId, setAddingCandidateId] = useState<string | null>(null)
   const [channelUrl, setChannelUrl] = useState('')
   const [refreshingPodcastId, setRefreshingPodcastId] = useState<string | null>(null)
@@ -101,6 +103,12 @@ const PodcastCard = () => {
   useEffect(() => {
     if (!neteaseExperimentalPlaybackEnabled) void stopNeteasePlaybackIfDisabled()
   }, [neteaseExperimentalPlaybackEnabled])
+
+  // standalone instances always open via the global event; dashboard card opens directly via onOpen
+  useEffect(() => {
+    if (!standalone) return
+    return subscribeOpenPodcastPlayer(() => setOpen(true))
+  }, [standalone])
 
   const applyPodcastUpdate = (updated: LifePodcast) => {
     setItems((current) => [updated, ...current.filter((item) => item.id !== updated.id)])
@@ -323,11 +331,14 @@ const PodcastCard = () => {
         artworkUrl: item.artworkUrl,
         genre: item.primaryGenre,
         externalUrl: item.externalUrl,
+        releaseDate: item.releaseDate,
+        trackCount: item.trackCount,
       }))}
       presetChannels={presetChannels}
       addingCandidateId={addingCandidateId}
       refreshingPodcastId={refreshingPodcastId}
       neteaseExperimentalPlaybackEnabled={neteaseExperimentalPlaybackEnabled}
+      standalone={standalone}
       onOpen={() => setOpen(true)}
       onClose={() => setOpen(false)}
       onQueryChange={setQuery}

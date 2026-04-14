@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import Dialog from '../../../shared/ui/Dialog'
-import type { ProjectItem, ProjectPerson } from '../../../data/models/types'
+import type { ProjectItem, ProjectPerson, TaskItem } from '../../../data/models/types'
 
 type ProjectFormDialogProps = {
   open: boolean
@@ -296,6 +296,7 @@ export const PersonFormDialog = ({ open, person, onClose, onSubmit }: PersonForm
 
 type ProjectTaskDialogProps = {
   open: boolean
+  task?: TaskItem | null
   people: ProjectPerson[]
   onClose: () => void
   onSubmit: (payload: {
@@ -309,7 +310,7 @@ type ProjectTaskDialogProps = {
   }) => Promise<void> | void
 }
 
-export const ProjectTaskDialog = ({ open, people, onClose, onSubmit }: ProjectTaskDialogProps) => {
+export const ProjectTaskDialog = ({ open, task, people, onClose, onSubmit }: ProjectTaskDialogProps) => {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [status, setStatus] = useState<'todo' | 'doing' | 'done'>('todo')
@@ -320,14 +321,14 @@ export const ProjectTaskDialog = ({ open, people, onClose, onSubmit }: ProjectTa
 
   useEffect(() => {
     if (!open) return
-    setTitle('')
-    setDescription('')
-    setStatus('todo')
-    setPriority('medium')
-    setOwnerId('unassigned')
-    setStartDate('')
-    setDueDate('')
-  }, [open])
+    setTitle(task?.title ?? '')
+    setDescription(task?.description ?? '')
+    setStatus(task?.status ?? 'todo')
+    setPriority(task?.priority ?? 'medium')
+    setOwnerId(task?.ownerId ?? 'unassigned')
+    setStartDate(task?.startDate ?? '')
+    setDueDate(task?.dueDate ?? '')
+  }, [open, task])
 
   return (
     <Dialog
@@ -340,7 +341,7 @@ export const ProjectTaskDialog = ({ open, people, onClose, onSubmit }: ProjectTa
         <div className="project-dialog__header">
           <div>
             <p className="project-dialog__eyebrow">Tasks</p>
-            <h2 className="project-dialog__title">Add Task</h2>
+            <h2 className="project-dialog__title">{task ? 'Edit Task' : 'Add Task'}</h2>
           </div>
         </div>
         <div className="project-dialog__body">
@@ -423,7 +424,7 @@ export const ProjectTaskDialog = ({ open, people, onClose, onSubmit }: ProjectTa
               dueDate: dueDate || undefined,
             })}
           >
-            Add Task
+            {task ? 'Save Task' : 'Add Task'}
           </Button>
         </div>
       </div>

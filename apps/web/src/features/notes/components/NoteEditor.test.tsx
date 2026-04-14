@@ -7,6 +7,7 @@ import NoteEditor from './NoteEditor'
 
 afterEach(() => {
   cleanup()
+  vi.clearAllMocks()
 })
 
 vi.mock('../../../shared/i18n/useI18n', () => ({
@@ -209,5 +210,45 @@ describe('NoteEditor', () => {
         },
       ],
     })
+  })
+
+  it('does not coerce comma-separated prose into a table', () => {
+    useEditorMock.mockReturnValue(createEditor())
+    render(<NoteEditor value={value} onChange={() => {}} />)
+
+    const handlePaste = editorConfigRef.current?.editorProps as { handlePaste?: (...args: unknown[]) => unknown }
+    const preventDefault = vi.fn()
+    const event = {
+      clipboardData: {
+        items: [],
+        getData: (type: string) => {
+          if (type === 'text/html') return ''
+          if (type === 'text/plain') return '这份 SOP 适用于 Domestic Stock Vendor, 不适用于 SOS\n核心依据是 Lowe’s 2025 TRRM, 各州 DCC guide'
+          return ''
+        },
+      },
+      preventDefault,
+    }
+
+    const handled = handlePaste.handlePaste?.({}, event, undefined)
+
+    expect(handled).toBe(false)
+    expect(preventDefault).not.toHaveBeenCalled()
+    expect(insertContentMock).not.toHaveBeenCalled()
+  })
+
+  it('normalizes copied plain text to single newlines', () => {
+    useEditorMock.mockReturnValue(createEditor())
+    render(<NoteEditor value={value} onChange={() => {}} />)
+
+    const editorProps = editorConfigRef.current?.editorProps as { clipboardTextSerializer?: (slice: { content: { textBetween: typeof vi.fn } }) => string }
+    const textBetween = vi.fn(() => '第一行\n\n\n第二行\r\n第三行   \n')
+
+    const result = editorProps.clipboardTextSerializer?.({
+      content: { textBetween },
+    })
+
+    expect(result).toBe('第一行\n第二行\n第三行')
+    expect(textBetween).toHaveBeenCalledWith(0, undefined, '\n', '\n')
   })
 })

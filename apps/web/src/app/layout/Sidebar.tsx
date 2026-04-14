@@ -42,6 +42,7 @@ import { mergeSidebarOrder, moveSidebarOrder, readSidebarOrder, writeSidebarOrde
 import { useIsLoggedIn, useAuthPlan } from '../../store/auth'
 import { useUpgradeModal } from '../../features/labs/UpgradeModalContext'
 import SidebarPodcastPlayer from './SidebarPodcastPlayer'
+import PodcastCard from '../../features/life/cards/PodcastCard'
 
 type SidebarProps = {
   collapsed: boolean
@@ -117,7 +118,6 @@ const Sidebar = ({ collapsed, onToggle, theme, onToggleTheme }: SidebarProps) =>
     'habit-tracker': Flame,
     'ai-digest': Sparkles,
     automation: Bot,
-    'mind-map': Notebook,
     'project-workspace': PanelsTopLeft,
   }
 
@@ -125,14 +125,13 @@ const Sidebar = ({ collapsed, onToggle, theme, onToggleTheme }: SidebarProps) =>
     'habit-tracker': ROUTES.HABITS,
     'ai-digest': ROUTES.LABS,
     automation: ROUTES.LABS,
-    'mind-map': ROUTES.NOTE,
     'project-workspace': ROUTES.PROJECTS,
   }
 
   const navItems = BASE_NAV_ITEMS.map((item) => ({ key: item.key, to: item.to }))
 
   const featureItems = catalog
-    .filter((feature) => !feature.requiresPremium && feature.featureKey !== 'mind-map')
+    .filter((feature) => !feature.requiresPremium)
     .map((feature) => ({
       id: `feature:${feature.featureKey}`,
       enabled: feature.state === 'installed',
@@ -235,6 +234,7 @@ const Sidebar = ({ collapsed, onToggle, theme, onToggleTheme }: SidebarProps) =>
       </DndContext>
 
       <SidebarPodcastPlayer collapsed={collapsed} />
+      <PodcastCard standalone />
 
       <div className="focus-sidebar__bottom">
         {isLoggedIn && !isPremium && (

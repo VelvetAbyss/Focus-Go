@@ -400,13 +400,18 @@ const normalizeLifePerson = (person: LifePerson): LifePerson => ({
   ...person,
   name: typeof person.name === 'string' ? person.name.trim() : '',
   group: ['Family', 'Friends', 'Work', 'Community'].includes(person.group) ? person.group : 'Other',
+  category: typeof person.category === 'string' && person.category.trim().length > 0 ? person.category.trim() : undefined,
   role: typeof person.role === 'string' && person.role.trim().length > 0 ? person.role : undefined,
   city: typeof person.city === 'string' && person.city.trim().length > 0 ? person.city : undefined,
   notes: typeof person.notes === 'string' ? person.notes : undefined,
+  email: typeof person.email === 'string' && person.email.trim().length > 0 ? person.email.trim() : undefined,
+  phone: typeof person.phone === 'string' && person.phone.trim().length > 0 ? person.phone.trim() : undefined,
   birthday: typeof person.birthday === 'string' && person.birthday ? person.birthday : undefined,
   lastInteraction: typeof person.lastInteraction === 'string' && person.lastInteraction ? person.lastInteraction : undefined,
   avatarInitials: typeof person.avatarInitials === 'string' && person.avatarInitials.trim().length > 0 ? person.avatarInitials.slice(0, 3).toUpperCase() : '',
   avatarColor: typeof person.avatarColor === 'string' && person.avatarColor ? person.avatarColor : undefined,
+  sourceProjectId: typeof person.sourceProjectId === 'string' && person.sourceProjectId ? person.sourceProjectId : undefined,
+  sourceProjectPersonId: typeof person.sourceProjectPersonId === 'string' && person.sourceProjectPersonId ? person.sourceProjectPersonId : undefined,
 })
 
 const normalizeTrip = (trip: TripRecord): TripRecord => ({

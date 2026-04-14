@@ -215,7 +215,7 @@ describe('lifeDesignAdapters', () => {
       makePerson({ id: 'p2', name: 'Soon Person', birthday: soon, group: 'Family' }),
     ])
 
-    expect(model.preview[0]?.name).toBe('Soon Person')
-    expect(model.preview[0]?.birthdaySoon).toBe(true)
+    expect(model.rows[0]?.name).toBe('Soon Person')
+    expect(model.rows[0]?.birthdaySoon).toBe(true)
   })
 })

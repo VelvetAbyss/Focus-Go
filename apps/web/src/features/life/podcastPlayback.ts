@@ -5,6 +5,18 @@ import { NETEASE_EXPERIMENTAL_PLAYBACK_ENABLED_KEY } from '../../shared/prefs/pr
 
 export const PODCAST_PLAYBACK_CHANGED_EVENT = 'focusgo:podcast-playback-changed'
 export const PODCAST_PROGRESS_EVENT = 'focusgo:podcast-progress'
+export const PODCAST_OPEN_PLAYER_EVENT = 'focusgo:podcast-open-player'
+
+export const dispatchOpenPodcastPlayer = () => {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new Event(PODCAST_OPEN_PLAYER_EVENT))
+}
+
+export const subscribeOpenPodcastPlayer = (listener: () => void) => {
+  if (typeof window === 'undefined') return () => {}
+  window.addEventListener(PODCAST_OPEN_PLAYER_EVENT, listener)
+  return () => window.removeEventListener(PODCAST_OPEN_PLAYER_EVENT, listener)
+}
 
 type PlaybackState = {
   podcastId: string
@@ -14,6 +26,18 @@ type PlaybackState = {
 let sharedAudio: HTMLAudioElement | null = null
 let activePlayback: PlaybackState | null = null
 let pausedPlayback: (PlaybackState & { currentTime: number }) | null = null
+let lastPositionSavedAt = 0
+const POSITION_SAVE_INTERVAL_MS = 5000
+
+const saveEpisodePosition = async (podcastId: string, episodeId: string, currentTime: number) => {
+  const podcasts = await podcastsRepo.list()
+  const podcast = podcasts.find((p) => p.id === podcastId)
+  if (!podcast) return
+  const episodes = podcast.episodes.map((ep) =>
+    ep.id === episodeId ? { ...ep, savedPosition: currentTime } : ep,
+  )
+  await podcastsRepo.update(podcastId, { episodes })
+}
 
 export const isNeteaseExperimentalPlaybackEnabled = () =>
   typeof window !== 'undefined' && window.localStorage.getItem(NETEASE_EXPERIMENTAL_PLAYBACK_ENABLED_KEY) === 'true'
@@ -29,9 +53,17 @@ const getAudio = () => {
     sharedAudio.preload = 'none'
     sharedAudio.ontimeupdate = () => {
       if (typeof window !== 'undefined') window.dispatchEvent(new Event(PODCAST_PROGRESS_EVENT))
+      if (activePlayback && sharedAudio) {
+        const now = Date.now()
+        if (now - lastPositionSavedAt >= POSITION_SAVE_INTERVAL_MS) {
+          lastPositionSavedAt = now
+          saveEpisodePosition(activePlayback.podcastId, activePlayback.episodeId, sharedAudio.currentTime)
+        }
+      }
     }
     sharedAudio.onended = async () => {
       if (!activePlayback) return
+      await saveEpisodePosition(activePlayback.podcastId, activePlayback.episodeId, 0)
       await podcastsRepo.update(activePlayback.podcastId, { isPlaying: false })
       activePlayback = null
       dispatchPlaybackChange()
@@ -64,7 +96,7 @@ export const playPodcastEpisode = async (podcast: LifePodcast, episode: LifePodc
     }
     audio.pause()
     audio.src = sourceUrl
-    audio.currentTime = 0
+    audio.currentTime = episode.savedPosition && episode.savedPosition > 0 ? episode.savedPosition : 0
     pausedPlayback = null
   } else {
     audio.currentTime = pausedPlayback!.currentTime
@@ -88,6 +120,7 @@ export const pausePodcastPlayback = async (podcastId?: string) => {
   const audio = getAudio()
   if (activePlayback) {
     pausedPlayback = { ...activePlayback, currentTime: audio.currentTime }
+    await saveEpisodePosition(activePlayback.podcastId, activePlayback.episodeId, audio.currentTime)
   }
   audio.pause()
   if (podcastId) {

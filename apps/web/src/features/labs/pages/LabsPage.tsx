@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
-import { Archive, LayoutGrid, Sparkles, Brain, Zap, Target, Share2, RotateCcw, PanelsTopLeft } from 'lucide-react'
+import { Archive, LayoutGrid, Sparkles, Brain, Zap, Target, RotateCcw, PanelsTopLeft } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
@@ -15,7 +15,6 @@ const FEATURE_ICONS: Record<string, React.ElementType> = {
   'ai-digest': Brain,
   'automation': Zap,
   'habit-tracker': Target,
-  'mind-map': Share2,
   'project-workspace': PanelsTopLeft,
 }
 
