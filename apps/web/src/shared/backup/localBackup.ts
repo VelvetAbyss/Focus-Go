@@ -52,6 +52,11 @@ export type LocalBackupPayload = {
 }
 
 export type ParsedLocalBackup = LocalBackupPayload | LegacyLocalBackupPayload
+export type BackupDownload = {
+  blob: Blob
+  url: string
+  fileName: string
+}
 
 export type LocalBackupDatabaseAdapter = {
   exportTables: (tableNames: string[]) => Promise<Record<string, unknown[]>>
@@ -338,14 +343,14 @@ export const importLocalBackup = async (payload: ParsedLocalBackup, { db, storag
   })
 }
 
-export const createBackupDownload = async (payload: LocalBackupPayload) => {
+export const createBackupDownload = async (payload: LocalBackupPayload): Promise<BackupDownload> => {
   const zip = new JSZip()
   zip.file('manifest.json', JSON.stringify(payload.manifest, null, 2))
   zip.file('localStorage/settings.json', JSON.stringify(payload.localStorage, null, 2))
   for (const blob of Object.values(payload.blobs)) {
     zip.file(`blobs/${blob.hash}.bin`, await encodeBackupBlobBytes(blob))
   }
-  const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 9 } })
+  const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE', streamFiles: true })
   const url = URL.createObjectURL(blob)
   const stamp = new Date(payload.manifest.createdAt).toISOString().replace(/[:.]/g, '-')
   return {
@@ -353,6 +358,14 @@ export const createBackupDownload = async (payload: LocalBackupPayload) => {
     url,
     fileName: `focus-go-backup-${stamp}.zip`,
   }
+}
+
+export const downloadBackupFile = (download: BackupDownload) => {
+  const link = document.createElement('a')
+  link.href = download.url
+  link.download = download.fileName
+  link.click()
+  window.setTimeout(() => URL.revokeObjectURL(download.url), 60000)
 }
 
 export const createTableDatabaseAdapter = (

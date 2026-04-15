@@ -1,5 +1,6 @@
+import JSZip from 'jszip'
 import { describe, expect, it } from 'vitest'
-import { exportLocalBackup, importLocalBackup, type LocalBackupDatabaseAdapter, type LocalBackupStorageAdapter } from './localBackup'
+import { createBackupDownload, exportLocalBackup, importLocalBackup, type LocalBackupDatabaseAdapter, type LocalBackupStorageAdapter } from './localBackup'
 
 const createDbAdapter = (tables: Record<string, unknown[]> = {}): LocalBackupDatabaseAdapter & { tables: Record<string, unknown[]> } => ({
   tables,
@@ -177,5 +178,27 @@ describe('localBackup', () => {
         },
       ),
     ).rejects.toThrow('Invalid backup file')
+  })
+
+  it('creates a non-empty zip backup archive', async () => {
+    const backup = await exportLocalBackup({
+      db: createDbAdapter({
+        tasks: [{ id: 'task-1', title: 'Ship backup' }],
+      }),
+      storage: createStorageAdapter({
+        'workbench.ui.language': 'zh',
+      }),
+      tableNames: ['tasks'],
+      dbName: 'workbench-app',
+      dbVersion: 17,
+      createdAt: 1,
+    })
+
+    const download = await createBackupDownload(backup)
+    expect(download.blob.size).toBeGreaterThan(0)
+
+    const zip = await JSZip.loadAsync(await download.blob.arrayBuffer())
+    expect(await zip.file('manifest.json')?.async('string')).toContain('focus-go-local-backup-v2')
+    expect(await zip.file('localStorage/settings.json')?.async('string')).toContain('workbench.ui.language')
   })
 })

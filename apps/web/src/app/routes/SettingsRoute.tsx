@@ -54,6 +54,7 @@ import {
   createBackupDownload,
   createBrowserStorageAdapter,
   createTableDatabaseAdapter,
+  downloadBackupFile,
   exportLocalBackup,
   importLocalBackup,
   readBackupFile,
@@ -707,12 +708,7 @@ const SettingsRoute = () => {
         dbName: DB_NAME,
         dbVersion: DB_VERSION,
       })
-      const download = await createBackupDownload(payload)
-      const link = document.createElement('a')
-      link.href = download.url
-      link.download = download.fileName
-      link.click()
-      URL.revokeObjectURL(download.url)
+      downloadBackupFile(await createBackupDownload(payload))
       toast.push({ variant: 'success', message: t('settings.data.export.success') })
     } catch (error) {
       const message = error instanceof Error ? error.message : t('settings.data.export.failed')

@@ -48,21 +48,13 @@ const stableStringify = (value: unknown): string => {
 }
 
 const gzipBytes = async (bytes: Uint8Array) => {
-  const stream = new CompressionStream('gzip')
-  const writer = stream.writable.getWriter()
-  await writer.write(bytes as unknown as BufferSource)
-  await writer.close()
-  const compressed = await new Response(stream.readable).arrayBuffer()
-  return new Uint8Array(compressed)
+  const compressed = new Blob([bytes.buffer as ArrayBuffer]).stream().pipeThrough(new CompressionStream('gzip'))
+  return new Uint8Array(await new Response(compressed).arrayBuffer())
 }
 
 const gunzipBytes = async (bytes: Uint8Array) => {
-  const stream = new DecompressionStream('gzip')
-  const writer = stream.writable.getWriter()
-  await writer.write(bytes as unknown as BufferSource)
-  await writer.close()
-  const decompressed = await new Response(stream.readable).arrayBuffer()
-  return new Uint8Array(decompressed)
+  const decompressed = new Blob([bytes.buffer as ArrayBuffer]).stream().pipeThrough(new DecompressionStream('gzip'))
+  return new Uint8Array(await new Response(decompressed).arrayBuffer())
 }
 
 const sha256Hex = async (value: string) => {
