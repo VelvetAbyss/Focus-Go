@@ -15,7 +15,6 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@focus-go/db-contracts': fileURLToPath(new URL('../../packages/db-contracts/src/index.ts', import.meta.url)),
-      dexie: fileURLToPath(new URL('./node_modules/rxdb/node_modules/dexie/import-wrapper.mjs', import.meta.url)),
     },
   },
   build: {
