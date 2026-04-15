@@ -19,6 +19,15 @@ const now = () => Date.now()
 const getCollectionName = (entityType: SyncEntityType) => `sync${entityType.toLowerCase()}`
 const getDatabaseName = (entityType: SyncEntityType) => `${RXDB_SYNC_DB_NAME}-${entityType.toLowerCase()}`
 
+export const extractSyncErrorMessage = (error: unknown) => {
+  const nestedErrors = (error as { parameters?: { errors?: Array<{ message?: string }> } })?.parameters?.errors
+  const nestedMessage = nestedErrors?.find((item) => typeof item?.message === 'string' && item.message.trim())?.message?.trim()
+  if (nestedMessage) return nestedMessage
+  if (error instanceof Error && error.message.trim()) return error.message
+  if (typeof error === 'string' && error.trim()) return error.trim()
+  return 'Sync failed'
+}
+
 const runQueued = async <T>(task: () => Promise<T>) => {
   const next = rxdbQueue.then(task, task)
   rxdbQueue = next.then(
@@ -231,7 +240,7 @@ const syncEntity = async (entityType: SyncEntityType) =>
     })
     const errorSub = replication.error$.subscribe({
       next: (error) => {
-        const message = error instanceof Error ? error.message : 'Sync failed'
+        const message = extractSyncErrorMessage(error)
         void setStatus('error', message)
       },
     })
@@ -261,7 +270,7 @@ export const runRxdbSyncCycle = async () =>
       }
       await setStatus('idle')
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Sync failed'
+      const message = extractSyncErrorMessage(error)
       await setStatus('error', message)
       throw error
     }
