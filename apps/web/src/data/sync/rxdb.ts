@@ -101,7 +101,7 @@ const withCollection = async <T>(entityType: SyncEntityType, task: (collection: 
   try {
     return await task(collection)
   } finally {
-    await database.destroy()
+    await (database as any).destroy()
   }
 }
 
