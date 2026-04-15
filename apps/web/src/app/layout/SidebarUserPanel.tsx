@@ -15,7 +15,7 @@ import LoginModal from './LoginModal'
 import { dbService } from '../../data/services/dbService'
 import type { FocusSession } from '../../data/models/types'
 import { ROUTES } from '../routes/routes'
-import { db } from '../../data/db'
+import { db, requestCrossTabDbReset } from '../../data/db'
 import { DB_NAME, DB_VERSION, TABLES } from '../../data/db/schema'
 import {
   createBackupDownload,
@@ -48,6 +48,22 @@ type ExtendedUserStats = {
   level: number
   levelProgress: number
   sessionsToNextLevel: number
+}
+
+const ACCOUNT_ACTION_TIMEOUT_MS = 1200
+
+const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms))
+
+const clearLocalUserDataBestEffort = async () => {
+  requestCrossTabDbReset()
+  try {
+    await Promise.race([
+      clearLocalUserData(),
+      wait(ACCOUNT_ACTION_TIMEOUT_MS),
+    ])
+  } catch {
+    // ignore and continue auth transition
+  }
 }
 
 function computeStreak(sessions: FocusSession[]): number {
@@ -299,6 +315,7 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
   const [upgrading, setUpgrading] = useState(false)
   const [activePanel, setActivePanel] = useState<ActivePanel>(null)
   const [exportState, setExportState] = useState<'idle' | 'exporting' | 'done'>('idle')
+  const [accountAction, setAccountAction] = useState<'logout' | 'switch' | null>(null)
 
   const displayName = user?.name || user?.nickname || user?.email?.split('@')[0] || 'U'
   const email = user?.email || ''
@@ -351,8 +368,11 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
   }, [])
 
   const handleLogout = async () => {
-    await clearLocalUserData()
+    if (accountAction) return
+    setAccountAction('logout')
     clearAuth()
+    onClose()
+    await clearLocalUserDataBestEffort()
     window.location.href = getLogoutUrl()
   }
 
@@ -389,8 +409,11 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
   }
 
   const handleSwitchAccount = async () => {
-    await clearLocalUserData()
+    if (accountAction) return
+    setAccountAction('switch')
     clearAuth()
+    onClose()
+    await clearLocalUserDataBestEffort()
     const authUrl = await prepareAuthSession()
     window.location.href = authUrl
   }
@@ -591,12 +614,12 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
             {/* Section 5: Footer */}
             <div className="acct-section acct-section--footer">
               <div className="acct-footer-actions">
-                <button type="button" className="acct-footer-btn" onClick={handleSwitchAccount}>
-                  {t('auth.account.switchAccount')}
+                <button type="button" className="acct-footer-btn" onClick={handleSwitchAccount} disabled={accountAction !== null}>
+                  {accountAction === 'switch' ? '…' : t('auth.account.switchAccount')}
                 </button>
-                <button type="button" className="acct-footer-btn acct-footer-btn--logout" onClick={handleLogout}>
+                <button type="button" className="acct-footer-btn acct-footer-btn--logout" onClick={handleLogout} disabled={accountAction !== null}>
                   <LogOut size={13} />
-                  {t('auth.signOut')}
+                  {accountAction === 'logout' ? '…' : t('auth.signOut')}
                 </button>
                 <button type="button" className="acct-footer-btn acct-footer-btn--danger"
                   onClick={() => setActivePanel('deleteAccount')}>
