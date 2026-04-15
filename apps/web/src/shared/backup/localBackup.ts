@@ -175,7 +175,7 @@ const deserializeValue = (value: unknown): unknown => {
   return value
 }
 
-const transientTables = new Set(['sync_outbox', 'sync_state', 'sync_blob_cache'])
+const transientTables = new Set(['sync_state', 'sync_blob_cache'])
 const tableToEntityType = new Map<string, SyncEntityType>(
   Object.entries(SYNC_ENTITY_TABLES).map(([entityType, tableName]) => [tableName, entityType as SyncEntityType]),
 )

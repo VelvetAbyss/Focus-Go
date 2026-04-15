@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import Database from 'better-sqlite3'
-import { applySyncOperation, ensureSyncTables, getBootstrapState, getChangesSince, upsertSyncBlob } from './store.js'
+import { ensureSyncTables, getRxdbPullState, pushRxdbRows, upsertSyncBlob } from './store.js'
 
 const createDb = () => {
   const db = new Database(':memory:')
@@ -9,74 +9,49 @@ const createDb = () => {
   return db
 }
 
-test('applySyncOperation stores a newer record and ignores an older one', () => {
+test('pushRxdbRows stores a newer record and reports older writes as conflicts', () => {
   const db = createDb()
 
-  assert.equal(
-    applySyncOperation(db, 'user-1', {
-      entityType: 'tasks',
-      entityId: 'task-1',
-      op: 'upsert',
-      payload: { id: 'task-1', title: 'First', updatedAt: 10 },
-      updatedAt: 10,
-    }),
-    true,
-  )
+  let result = pushRxdbRows(db, 'user-1', 'tasks', [{
+    newDocumentState: { id: 'task-1', title: 'First', updatedAt: 10, _deleted: false },
+    assumedMasterState: null,
+  }])
+  assert.equal(result.conflicts.length, 0)
 
-  assert.equal(
-    applySyncOperation(db, 'user-1', {
-      entityType: 'tasks',
-      entityId: 'task-1',
-      op: 'upsert',
-      payload: { id: 'task-1', title: 'Older', updatedAt: 9 },
-      updatedAt: 9,
-    }),
-    false,
-  )
-
-  const state = getBootstrapState(db, 'user-1')
-  assert.equal(state.tables.tasks[0].payload.title, 'First')
+  result = pushRxdbRows(db, 'user-1', 'tasks', [{
+    newDocumentState: { id: 'task-1', title: 'Older', updatedAt: 9, _deleted: false },
+    assumedMasterState: null,
+  }])
+  assert.equal(result.conflicts.length, 1)
+  assert.equal(result.conflicts[0].title, 'First')
 })
 
-test('applySyncOperation writes tombstones for deletes', () => {
+test('pushRxdbRows writes tombstones for deletes', () => {
   const db = createDb()
 
-  applySyncOperation(db, 'user-1', {
-    entityType: 'notes',
-    entityId: 'note-1',
-    op: 'delete',
-    payload: { id: 'note-1', deletedAt: 20 },
-    updatedAt: 20,
-  })
+  pushRxdbRows(db, 'user-1', 'notes', [{
+    newDocumentState: { id: 'note-1', updatedAt: 20, _deleted: true },
+    assumedMasterState: null,
+  }])
 
-  const state = getBootstrapState(db, 'user-1')
-  assert.equal(state.tables.notes[0].deletedAt, 20)
+  const state = getRxdbPullState(db, 'user-1', 'notes', null, 10)
+  assert.equal(state.documents[0]._deleted, true)
 })
 
-test('getChangesSince returns only rows newer than the marker', () => {
+test('getRxdbPullState returns rows after checkpoint in stable order', () => {
   const db = createDb()
 
-  applySyncOperation(db, 'user-1', {
-    entityType: 'habits',
-    entityId: 'habit-1',
-    op: 'upsert',
-    payload: { id: 'habit-1', title: 'A' },
-    updatedAt: 10,
-  })
-  applySyncOperation(db, 'user-1', {
-    entityType: 'habits',
-    entityId: 'habit-2',
-    op: 'upsert',
-    payload: { id: 'habit-2', title: 'B' },
-    updatedAt: 30,
-  })
+  pushRxdbRows(db, 'user-1', 'habits', [
+    { newDocumentState: { id: 'habit-1', title: 'A', updatedAt: 10, _deleted: false }, assumedMasterState: null },
+    { newDocumentState: { id: 'habit-2', title: 'B', updatedAt: 30, _deleted: false }, assumedMasterState: null },
+  ])
 
-  const changes = getChangesSince(db, 'user-1', 15)
-  assert.equal(changes.tables.habits.length, 1)
-  assert.equal(changes.tables.habits[0].id, 'habit-2')
+  const changes = getRxdbPullState(db, 'user-1', 'habits', { updatedAt: 15, id: 'habit-1' }, 10)
+  assert.equal(changes.documents.length, 1)
+  assert.equal(changes.documents[0].id, 'habit-2')
 })
 
-test('getBootstrapState only returns requested blobs through wantBlobs', () => {
+test('getRxdbPullState returns blobs referenced by pulled documents', () => {
   const db = createDb()
   upsertSyncBlob(db, {
     hash: 'blob-1',
@@ -87,19 +62,12 @@ test('getBootstrapState only returns requested blobs through wantBlobs', () => {
     dataBase64: 'eA==',
   })
 
-  applySyncOperation(db, 'user-1', {
-    entityType: 'notes',
-    entityId: 'note-1',
-    op: 'upsert',
-    payload: { id: 'note-1', title: 'A', bodyRefs: { contentMd: 'blob-1' } },
-    updatedAt: 10,
-  })
+  pushRxdbRows(db, 'user-1', 'notes', [{
+    newDocumentState: { id: 'note-1', title: 'A', bodyRefs: { contentMd: 'blob-1' }, updatedAt: 10, _deleted: false },
+    assumedMasterState: null,
+  }])
 
-  const withoutBlobs = getBootstrapState(db, 'user-1')
-  assert.equal(withoutBlobs.blobs.length, 0)
-  assert.deepEqual(withoutBlobs.missingBlobs, ['blob-1'])
-
-  const withBlobs = getBootstrapState(db, 'user-1', ['blob-1'])
-  assert.equal(withBlobs.blobs.length, 1)
-  assert.deepEqual(withBlobs.missingBlobs, [])
+  const result = getRxdbPullState(db, 'user-1', 'notes', null, 10)
+  assert.equal(result.blobs.length, 1)
+  assert.equal(result.blobs[0].hash, 'blob-1')
 })
