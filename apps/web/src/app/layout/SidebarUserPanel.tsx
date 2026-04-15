@@ -21,6 +21,7 @@ import {
   createBackupDownload,
   createBrowserStorageAdapter,
   createTableDatabaseAdapter,
+  downloadBackupFile,
   exportLocalBackup,
 } from '../../shared/backup/localBackup'
 
@@ -379,12 +380,7 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
         dbName: DB_NAME,
         dbVersion: DB_VERSION,
       })
-      const download = await createBackupDownload(payload)
-      const link = document.createElement('a')
-      link.href = download.url
-      link.download = download.fileName
-      link.click()
-      URL.revokeObjectURL(download.url)
+      downloadBackupFile(await createBackupDownload(payload))
       setExportState('done')
       setTimeout(() => setExportState('idle'), 3000)
     } catch {
