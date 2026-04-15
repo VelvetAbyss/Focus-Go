@@ -1,5 +1,5 @@
 import { SYNC_TABLES } from './config.js'
-import { collectBlobRefs, normalizePayloadForWire } from './protocol.js'
+import { collectBlobRefs } from './protocol.js'
 
 const isNumber = (value) => typeof value === 'number' && Number.isFinite(value)
 
@@ -86,71 +86,107 @@ const getSyncBlobs = (db, hashes) => {
   }))
 }
 
-export const applySyncOperation = (db, userId, operation) => {
-  const tableName = getTableName(operation.entityType)
-  const current = db
-    .prepare(`SELECT id, user_id, payload, updated_at, deleted_at FROM ${tableName} WHERE user_id = ? AND id = ?`)
-    .get(userId, operation.entityId)
-
-  const currentUpdatedAt = current?.updated_at ?? -1
-  if (current && currentUpdatedAt >= operation.updatedAt) {
-    return false
-  }
-
-  const deletedAt =
-    operation.op === 'delete'
-      ? (isNumber(operation.deletedAt) ? operation.deletedAt : operation.updatedAt)
-      : null
-
-  db.prepare(`
-    INSERT INTO ${tableName} (id, user_id, payload, updated_at, deleted_at)
-    VALUES (?, ?, ?, ?, ?)
-    ON CONFLICT(user_id, id) DO UPDATE SET
-      payload = excluded.payload,
-      updated_at = excluded.updated_at,
-      deleted_at = excluded.deleted_at
-  `).run(
-    operation.entityId,
-    userId,
-    JSON.stringify(operation.payload ?? {}),
-    operation.updatedAt,
-    deletedAt,
-  )
-
-  return true
-}
-
-const buildWireTables = (db, userId, since = null, wantBlobs = []) => {
-  const tables = {}
-  const requiredBlobs = new Set()
-  for (const [entityType, tableName] of Object.entries(SYNC_TABLES)) {
-    const rows = db
+const getRowsForEntityType = (db, userId, entityType, checkpoint, limit) => {
+  const tableName = getTableName(entityType)
+  if (!checkpoint || !isNumber(checkpoint.updatedAt) || typeof checkpoint.id !== 'string') {
+    return db
       .prepare(
-        since === null
-          ? `SELECT id, user_id, payload, updated_at, deleted_at FROM ${tableName} WHERE user_id = ? ORDER BY updated_at ASC`
-          : `SELECT id, user_id, payload, updated_at, deleted_at FROM ${tableName} WHERE user_id = ? AND updated_at > ? ORDER BY updated_at ASC`,
+        `SELECT id, user_id, payload, updated_at, deleted_at
+         FROM ${tableName}
+         WHERE user_id = ?
+         ORDER BY updated_at ASC, id ASC
+         LIMIT ?`,
       )
-      .all(...(since === null ? [userId] : [userId, since]))
-    tables[entityType] = rows.map((row) => {
-      const normalized = normalizeRow(row)
-      const wire = normalizePayloadForWire(entityType, normalized.payload)
-      for (const hash of collectBlobRefs(entityType, wire.payload)) requiredBlobs.add(hash)
-      return {
-        ...normalized,
-        payload: wire.payload,
-      }
-    })
+      .all(userId, limit)
   }
-  const wanted = wantBlobs.filter((hash) => requiredBlobs.has(hash))
-  const storedBlobs = getSyncBlobs(db, wanted)
-  const available = new Set(storedBlobs.map((blob) => blob.hash))
+  return db
+    .prepare(
+      `SELECT id, user_id, payload, updated_at, deleted_at
+       FROM ${tableName}
+       WHERE user_id = ?
+         AND (updated_at > ? OR (updated_at = ? AND id > ?))
+       ORDER BY updated_at ASC, id ASC
+       LIMIT ?`,
+    )
+    .all(userId, checkpoint.updatedAt, checkpoint.updatedAt, checkpoint.id, limit)
+}
+
+const collectBlobsForPayloads = (db, entityType, rows) => {
+  const hashes = new Set()
+  for (const row of rows) {
+    if (!row || !row.payload) continue
+    for (const hash of collectBlobRefs(entityType, row.payload)) hashes.add(hash)
+  }
+  return getSyncBlobs(db, Array.from(hashes))
+}
+
+export const getRxdbPullState = (db, userId, entityType, checkpoint, limit = 100) => {
+  const rows = getRowsForEntityType(db, userId, entityType, checkpoint, Math.max(1, Math.min(500, limit)))
+  const documents = rows.map((row) => {
+    const normalized = normalizeRow(row)
+    return {
+      ...normalized.payload,
+      _deleted: Boolean(normalized.deletedAt),
+    }
+  })
+  const last = rows.at(-1)
   return {
-    tables,
-    blobs: storedBlobs,
-    missingBlobs: Array.from(requiredBlobs).filter((hash) => !available.has(hash)),
+    documents,
+    checkpoint: last
+      ? {
+          updatedAt: last.updated_at,
+          id: last.id,
+        }
+      : checkpoint ?? null,
+    blobs: collectBlobsForPayloads(db, entityType, rows.map(normalizeRow)),
   }
 }
 
-export const getBootstrapState = (db, userId, wantBlobs = []) => buildWireTables(db, userId, null, wantBlobs)
+export const pushRxdbRows = (db, userId, entityType, rows) => {
+  const tableName = getTableName(entityType)
+  const conflicts = []
 
-export const getChangesSince = (db, userId, since, wantBlobs = []) => buildWireTables(db, userId, since, wantBlobs)
+  for (const row of rows) {
+    const next = row?.newDocumentState
+    if (!next || typeof next.id !== 'string' || !isNumber(next.updatedAt)) continue
+    const current = db
+      .prepare(`SELECT id, user_id, payload, updated_at, deleted_at FROM ${tableName} WHERE user_id = ? AND id = ?`)
+      .get(userId, next.id)
+
+    if (current && current.updated_at >= next.updatedAt) {
+      const normalized = normalizeRow(current)
+      conflicts.push({
+        ...normalized.payload,
+        _deleted: Boolean(normalized.deletedAt),
+      })
+      continue
+    }
+
+    const deletedAt = next._deleted === true ? next.updatedAt : null
+    const payload = { ...next }
+    delete payload._deleted
+    db.prepare(`
+      INSERT INTO ${tableName} (id, user_id, payload, updated_at, deleted_at)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(user_id, id) DO UPDATE SET
+        payload = excluded.payload,
+        updated_at = excluded.updated_at,
+        deleted_at = excluded.deleted_at
+    `).run(next.id, userId, JSON.stringify(payload), next.updatedAt, deletedAt)
+  }
+
+  return {
+    conflicts,
+    blobs: collectBlobsForPayloads(
+      db,
+      entityType,
+      conflicts.map((document) => ({
+        id: document.id,
+        userId,
+        payload: document,
+        updatedAt: document.updatedAt,
+        deletedAt: document._deleted ? document.updatedAt : null,
+      })),
+    ),
+  }
+}

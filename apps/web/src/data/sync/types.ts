@@ -60,7 +60,6 @@ export const SYNC_ENTITY_TYPES = [
 export type SyncEntityType = (typeof SYNC_ENTITY_TYPES)[number]
 export type SyncOp = 'upsert' | 'delete'
 export type SyncStatus = 'idle' | 'syncing' | 'error' | 'blocked'
-export type FirstSyncChoice = 'upload-local' | 'pull-remote'
 
 export type SyncEntityMap = {
   tasks: TaskItem
@@ -93,19 +92,6 @@ export type SyncEntityMap = {
 
 export type SyncPayload<T extends SyncEntityType = SyncEntityType> = SyncEntityMap[T] | ({ id: string; updatedAt: number } & Record<string, unknown>)
 
-export type SyncOutboxItem<T extends SyncEntityType = SyncEntityType> = {
-  id: string
-  entityType: T
-  entityId: string
-  op: SyncOp
-  payload: SyncPayload<T>
-  updatedAt: number
-  deletedAt?: number | null
-  attemptCount: number
-  nextRetryAt: number
-  createdAt: number
-}
-
 export type SyncState = {
   id: 'cloud-sync'
   status: SyncStatus
@@ -125,23 +111,6 @@ export type SyncState = {
   updatedAt: number
 }
 
-export type SyncRemoteRow<T extends SyncEntityType = SyncEntityType> = {
-  id: string
-  userId: string
-  payload: SyncPayload<T>
-  updatedAt: number
-  deletedAt?: number | null
-}
-
-export type SyncTablesPayload = {
-  [K in SyncEntityType]: Array<SyncRemoteRow<K>>
-}
-
-export type SyncBootstrapResponse = {
-  serverTime: number
-  tables: SyncTablesPayload
-}
-
 export type SyncWireBlob = {
   hash: string
   contentType: 'text/plain' | 'application/json'
@@ -156,20 +125,39 @@ export type SyncBlobCacheEntry = SyncWireBlob & {
   updatedAt: number
 }
 
-export type SyncPushRequest = {
-  entities: SyncOutboxItem[]
+export type RxdbCheckpoint = {
+  updatedAt: number
+  id: string
+}
+
+export type RxdbPullRequest = {
+  entityType: SyncEntityType
+  checkpoint: RxdbCheckpoint | null
+  limit: number
+}
+
+export type RxdbPullDocument<T extends SyncEntityType = SyncEntityType> = SyncPayload<T> & {
+  _deleted?: boolean
+}
+
+export type RxdbPullResponse<T extends SyncEntityType = SyncEntityType> = {
+  documents: Array<RxdbPullDocument<T>>
+  checkpoint: RxdbCheckpoint | null
   blobs: SyncWireBlob[]
 }
 
-export type SyncPushResponse = {
-  applied: number
-  serverTime: number
-  missingBlobs: string[]
+export type RxdbPushRow<T extends SyncEntityType = SyncEntityType> = {
+  newDocumentState: RxdbPullDocument<T>
+  assumedMasterState: RxdbPullDocument<T> | null
 }
 
-export type SyncWireResponse = {
-  serverTime: number
-  tables: SyncTablesPayload
+export type RxdbPushRequest<T extends SyncEntityType = SyncEntityType> = {
+  entityType: T
+  rows: Array<RxdbPushRow<T>>
   blobs: SyncWireBlob[]
-  missingBlobs: string[]
+}
+
+export type RxdbPushResponse<T extends SyncEntityType = SyncEntityType> = {
+  conflicts: Array<RxdbPullDocument<T>>
+  blobs: SyncWireBlob[]
 }

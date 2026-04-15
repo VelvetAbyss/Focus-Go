@@ -435,7 +435,7 @@ describe('DexieDatabaseService', () => {
     expect((await service.noteAppearance.get())?.font).toBe('serif')
   })
 
-  it('enqueues sync outbox items after writes', async () => {
+  it('keeps task writes working after removing legacy sync outbox storage', async () => {
     await db.delete({ disableAutoOpen: false })
     await db.open()
     const service = createDexieDatabaseService()
@@ -447,10 +447,7 @@ describe('DexieDatabaseService', () => {
     })
     await service.tasks.remove(task.id)
 
-    const outbox = await db.syncOutbox.toArray()
-    expect(outbox).toHaveLength(1)
-    expect(outbox[0].entityType).toBe('tasks')
-    expect(outbox[0].op).toBe('delete')
-    expect(outbox[0].entityId).toBe(task.id)
+    expect(await service.tasks.list()).toHaveLength(0)
+    expect(db.tables.some((table) => table.name === 'sync_outbox')).toBe(false)
   })
 })

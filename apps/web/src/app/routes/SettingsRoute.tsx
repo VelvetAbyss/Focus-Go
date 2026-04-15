@@ -61,7 +61,8 @@ import {
   type ParsedLocalBackup,
 } from '../../shared/backup/localBackup'
 import { useSyncActions, useSyncStatus } from '../../data/sync/service'
-import { restampLocalSnapshotForRestore, seedOutboxFromSnapshot } from '../../data/sync/repository'
+import { restampLocalSnapshotForRestore } from '../../data/sync/repository'
+import { resetRxdbSyncDatabase } from '../../data/sync/rxdb'
 import { ROUTES } from './routes'
 import { useUpgradeModal } from '../../features/labs/UpgradeModalContext'
 import { useAuthGate } from '../../features/auth/AuthGateContext'
@@ -477,7 +478,7 @@ const SettingsRoute = () => {
   const { openModal: openUpgradeModal } = useUpgradeModal()
   const toast = useToast()
   const syncState = useSyncStatus()
-  const { syncNow, resolveFirstSync } = useSyncActions()
+  const { syncNow } = useSyncActions()
   const [activeSection, setActiveSection] = useState<BaseSettingsSection>('appearance')
   const [layoutLocked, setLayoutLocked] = useState(() => readLayoutLocked())
   const [theme, setTheme] = useState<ThemeSelection>('system')
@@ -488,7 +489,6 @@ const SettingsRoute = () => {
   const [isResetting, setIsResetting] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
-  const [isResolvingFirstSync, setIsResolvingFirstSync] = useState(false)
   const [pendingImport, setPendingImport] = useState<{ fileName: string; payload: ParsedLocalBackup } | null>(null)
   const importInputRef = useRef<HTMLInputElement | null>(null)
   const {
@@ -687,6 +687,7 @@ const SettingsRoute = () => {
   const resetApp = async () => {
     setIsResetting(true)
     try {
+      await resetRxdbSyncDatabase()
       await db.delete()
       localStorage.clear()
       sessionStorage.clear()
@@ -743,12 +744,7 @@ const SettingsRoute = () => {
         tableNames: backupTableNames,
       })
       await restampLocalSnapshotForRestore()
-      // Seed outbox with all restored data so it auto-uploads on next sync.
-      // Clear any stale outbox entries from the backup first, enqueue every
-      // restored entity, then skip the next bootstrap merge so the restored
-      // snapshot pushes before any remote rows can overwrite it locally.
-      await db.syncOutbox.clear()
-      await seedOutboxFromSnapshot()
+      await resetRxdbSyncDatabase()
       // Repopulate blob cache from the backup so the client-side fallback works
       // when the server reports blobs as missing during the next pull.
       // replaceTables() clears every table including sync_blob_cache; this restores it.
@@ -770,11 +766,11 @@ const SettingsRoute = () => {
         lastError: null,
         firstSyncResolved: true,
         pendingFirstSync: false,
-        pendingEntityPush: true,
-        pendingBlobPush: true,
+        pendingEntityPush: false,
+        pendingBlobPush: false,
         missingBlobPull: false,
-        migrationVersion: 2,
-        restoreIntegrityStatus: 'verifying',
+        migrationVersion: 3,
+        restoreIntegrityStatus: 'ready',
         pendingLocalRecordCount: 0,
         pendingRemoteRecordCount: 0,
         createdAt: now,
@@ -787,18 +783,6 @@ const SettingsRoute = () => {
       toast.push({ variant: 'error', message: message || fallback })
       setIsImporting(false)
       setPendingImport(null)
-    }
-  }
-
-  const handleResolveFirstSync = async (choice: 'upload-local' | 'pull-remote') => {
-    setIsResolvingFirstSync(true)
-    try {
-      await resolveFirstSync(choice)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Sync failed'
-      toast.push({ variant: 'error', message })
-    } finally {
-      setIsResolvingFirstSync(false)
     }
   }
 
@@ -1287,50 +1271,11 @@ const SettingsRoute = () => {
                                   {t('settings.data.sync.error', { message: syncState.lastError })}
                                 </div>
                               ) : null}
-                              <Button variant="outline" disabled={syncState?.status === 'syncing' || syncState?.pendingFirstSync === true} onClick={() => void syncNow()}>
+                              <Button variant="outline" disabled={syncState?.status === 'syncing'} onClick={() => void syncNow()}>
                                 {t('settings.data.sync.action')}
                               </Button>
-                              {syncState?.pendingFirstSync ? (
-                                <div className="max-w-[360px] text-right text-xs text-muted-foreground">
-                                  {t('settings.data.sync.pendingFirstSync.hint')}
-                                </div>
-                              ) : null}
                             </div>
                           </SettingRow>
-
-                          {syncState?.pendingFirstSync ? (
-                            <motion.div
-                              className="space-y-4 rounded-xl bg-background/40 p-4 shadow-sm"
-                              initial={{ opacity: 0, y: 16 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ duration: 0.35, delay: 0.04, ease: [0.22, 1, 0.36, 1] }}
-                            >
-                              <div className="space-y-1">
-                                <h3 className="text-sm font-semibold text-foreground">{t('settings.data.sync.first.title')}</h3>
-                                <p className="text-sm text-muted-foreground">{t('settings.data.sync.first.description')}</p>
-                              </div>
-                              <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                                <span>{t('settings.data.sync.first.localCount', { count: syncState.pendingLocalRecordCount })}</span>
-                                <span>{t('settings.data.sync.first.remoteCount', { count: syncState.pendingRemoteRecordCount })}</span>
-                              </div>
-                              <div className="flex flex-wrap gap-2">
-                                <Button
-                                  variant="outline"
-                                  disabled={isResolvingFirstSync}
-                                  onClick={() => void handleResolveFirstSync('upload-local')}
-                                >
-                                  {t('settings.data.sync.first.upload')}
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  disabled={isResolvingFirstSync}
-                                  onClick={() => void handleResolveFirstSync('pull-remote')}
-                                >
-                                  {t('settings.data.sync.first.pull')}
-                                </Button>
-                              </div>
-                            </motion.div>
-                          ) : null}
 
                           <SettingRow
                             icon={Database}

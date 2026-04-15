@@ -2,7 +2,6 @@ import { TABLES } from '../db/schema'
 import type { SyncEntityType } from './types'
 
 export const SYNC_STATE_ID = 'cloud-sync' as const
-export const SYNC_OUTBOX_CHANGED_EVENT = 'focusgo:sync-outbox-changed'
 export const SYNC_STATUS_CHANGED_EVENT = 'focusgo:sync-status-changed'
 // Fired after a successful pull so every component can reload data from IndexedDB.
 export const SYNC_DATA_UPDATED_EVENT = 'focusgo:sync-data-updated'
