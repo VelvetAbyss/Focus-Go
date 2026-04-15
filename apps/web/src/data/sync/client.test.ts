@@ -65,4 +65,14 @@ describe('syncApi rxdb endpoints', () => {
     expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/sync/rxdb/push')
     expect(await db.syncBlobCache.get('blob-2')).toBeTruthy()
   })
+
+  it('maps network fetch failures to a sync server error', async () => {
+    fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+
+    await expect(syncApi.rxdbPull({
+      entityType: 'notes',
+      checkpoint: null,
+      limit: 100,
+    })).rejects.toThrow(/Sync server unreachable/)
+  })
 })
