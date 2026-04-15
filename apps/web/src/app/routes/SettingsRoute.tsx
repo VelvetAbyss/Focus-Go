@@ -56,10 +56,11 @@ import {
   createTableDatabaseAdapter,
   exportLocalBackup,
   importLocalBackup,
-  type LocalBackupPayload,
+  readBackupFile,
+  type ParsedLocalBackup,
 } from '../../shared/backup/localBackup'
 import { useSyncActions, useSyncStatus } from '../../data/sync/service'
-import { seedOutboxFromSnapshot } from '../../data/sync/repository'
+import { restampLocalSnapshotForRestore, seedOutboxFromSnapshot } from '../../data/sync/repository'
 import { ROUTES } from './routes'
 import { useUpgradeModal } from '../../features/labs/UpgradeModalContext'
 import { useAuthGate } from '../../features/auth/AuthGateContext'
@@ -487,7 +488,7 @@ const SettingsRoute = () => {
   const [isExporting, setIsExporting] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [isResolvingFirstSync, setIsResolvingFirstSync] = useState(false)
-  const [pendingImport, setPendingImport] = useState<{ fileName: string; payload: LocalBackupPayload } | null>(null)
+  const [pendingImport, setPendingImport] = useState<{ fileName: string; payload: ParsedLocalBackup } | null>(null)
   const importInputRef = useRef<HTMLInputElement | null>(null)
   const {
     setLanguage,
@@ -706,7 +707,7 @@ const SettingsRoute = () => {
         dbName: DB_NAME,
         dbVersion: DB_VERSION,
       })
-      const download = createBackupDownload(payload)
+      const download = await createBackupDownload(payload)
       const link = document.createElement('a')
       link.href = download.url
       link.download = download.fileName
@@ -727,11 +728,8 @@ const SettingsRoute = () => {
     if (!file) return
 
     try {
-      const raw = JSON.parse(await file.text()) as LocalBackupPayload
-      if (raw?.format !== 'focus-go-local-backup') {
-        throw new Error(t('settings.data.import.invalidFile'))
-      }
-      setPendingImport({ fileName: file.name, payload: raw })
+      const backup = await readBackupFile(file)
+      setPendingImport({ fileName: file.name, payload: backup })
     } catch (error) {
       const message = error instanceof Error ? error.message : t('settings.data.import.invalidFile')
       toast.push({ variant: 'error', message })
@@ -748,11 +746,11 @@ const SettingsRoute = () => {
         storage: createBrowserStorageAdapter(window.localStorage),
         tableNames: backupTableNames,
       })
+      await restampLocalSnapshotForRestore()
       // Seed outbox with all restored data so it auto-uploads on next sync.
-      // Clear any stale outbox entries from the backup first, then enqueue
-      // every restored entity. Set firstSyncResolved:true so initialize()
-      // takes the applyRemoteTables (merge) path instead of showing the
-      // conflict dialog — the outbox push will propagate the restored data.
+      // Clear any stale outbox entries from the backup first, enqueue every
+      // restored entity, then skip the next bootstrap merge so the restored
+      // snapshot pushes before any remote rows can overwrite it locally.
       await db.syncOutbox.clear()
       await seedOutboxFromSnapshot()
       const now = Date.now()
@@ -764,6 +762,11 @@ const SettingsRoute = () => {
         lastError: null,
         firstSyncResolved: true,
         pendingFirstSync: false,
+        pendingEntityPush: true,
+        pendingBlobPush: true,
+        missingBlobPull: false,
+        migrationVersion: 2,
+        restoreIntegrityStatus: 'verifying',
         pendingLocalRecordCount: 0,
         pendingRemoteRecordCount: 0,
         createdAt: now,
@@ -1343,7 +1346,7 @@ const SettingsRoute = () => {
                                 ref={importInputRef}
                                 hidden
                                 type="file"
-                                accept="application/json,.json"
+                                accept="application/json,.json,application/zip,.zip"
                                 onChange={(event) => void onImportFileChange(event)}
                               />
                               <Button

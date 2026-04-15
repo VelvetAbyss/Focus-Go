@@ -1,5 +1,6 @@
 import { db } from '../db'
 import type { NoteItem, ProjectNoteLink } from '../models/types'
+import { enqueueSyncOperation } from '../sync/repository'
 import { withBase } from './base'
 import { projectTagName } from './projectsRepo'
 
@@ -23,7 +24,10 @@ export const projectNoteLinksRepo = {
         } satisfies Omit<ProjectNoteLink, 'id' | 'createdAt' | 'updatedAt'>),
         id: buildLinkId(projectId, note.id),
       }))
-    if (next.length > 0) await db.projectNoteLinks.bulkPut(next)
+    if (next.length > 0) {
+      await db.projectNoteLinks.bulkPut(next)
+      await Promise.all(next.map((row) => enqueueSyncOperation('projectNoteLinks', 'upsert', row)))
+    }
   },
   async listByProject(projectId: string) {
     await this.syncProjectLinks(projectId)
@@ -42,6 +46,9 @@ export const projectNoteLinksRepo = {
       .sort((left, right) => right.note.updatedAt - left.note.updatedAt)
   },
   async remove(projectId: string, noteId: string) {
-    await db.projectNoteLinks.delete(buildLinkId(projectId, noteId))
+    const id = buildLinkId(projectId, noteId)
+    const deletedAt = Date.now()
+    await db.projectNoteLinks.delete(id)
+    await enqueueSyncOperation('projectNoteLinks', 'delete', { id, updatedAt: deletedAt, projectId, noteId }, deletedAt)
   },
 }

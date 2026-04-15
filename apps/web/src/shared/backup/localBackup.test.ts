@@ -41,11 +41,11 @@ describe('localBackup', () => {
       createdAt: 1,
     })
 
-    expect(backup.format).toBe('focus-go-local-backup')
-    expect(backup.schemaVersion).toBe(1)
+    expect(backup.manifest.format).toBe('focus-go-local-backup-v2')
+    expect(backup.manifest.schemaVersion).toBe(2)
     expect(backup.localStorage['workbench.ui.language']).toBe('zh')
-    expect(backup.db.tables.tasks).toEqual([{ id: 'task-1', title: 'Ship backup' }])
-    expect(backup.db.tables.binary_cache[0]).toMatchObject({
+    expect(backup.manifest.db.tables.tasks).toEqual([{ id: 'task-1', title: 'Ship backup', taskNoteBlocks: [] }])
+    expect(backup.manifest.db.tables.binary_cache[0]).toMatchObject({
       id: 'asset-1',
       storage: 'blob',
       blob: {
@@ -169,9 +169,7 @@ describe('localBackup', () => {
 
     await expect(
       importLocalBackup(
-        {
-          hello: 'world',
-        },
+        { hello: 'world' } as never,
         {
           db,
           storage,

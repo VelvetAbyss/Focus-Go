@@ -15,6 +15,9 @@ import type {
   NoteAppearanceSettings,
   NoteItem,
   NoteTag,
+  ProjectItem,
+  ProjectNoteLink,
+  ProjectPerson,
   SpendCategory,
   SpendEntry,
   StockItem,
@@ -38,6 +41,9 @@ export const SYNC_ENTITY_TYPES = [
   'dashboardLayout',
   'userSubscriptions',
   'featureInstallations',
+  'projects',
+  'projectPeople',
+  'projectNoteLinks',
   'habits',
   'habitLogs',
   // Life feature tables (previously local-only)
@@ -70,6 +76,9 @@ export type SyncEntityMap = {
   dashboardLayout: DashboardLayout
   userSubscriptions: UserSubscription
   featureInstallations: FeatureInstallation
+  projects: ProjectItem
+  projectPeople: ProjectPerson
+  projectNoteLinks: ProjectNoteLink
   habits: Habit
   habitLogs: HabitLog
   books: BookItem
@@ -105,6 +114,11 @@ export type SyncState = {
   lastError: string | null
   firstSyncResolved: boolean
   pendingFirstSync: boolean
+  pendingEntityPush: boolean
+  pendingBlobPush: boolean
+  missingBlobPull: boolean
+  migrationVersion: number
+  restoreIntegrityStatus: 'idle' | 'verifying' | 'ready' | 'error'
   pendingLocalRecordCount: number
   pendingRemoteRecordCount: number
   createdAt: number
@@ -126,4 +140,36 @@ export type SyncTablesPayload = {
 export type SyncBootstrapResponse = {
   serverTime: number
   tables: SyncTablesPayload
+}
+
+export type SyncWireBlob = {
+  hash: string
+  contentType: 'text/plain' | 'application/json'
+  compression: 'gzip'
+  rawByteLength: number
+  byteLength: number
+  dataBase64: string
+}
+
+export type SyncBlobCacheEntry = SyncWireBlob & {
+  createdAt: number
+  updatedAt: number
+}
+
+export type SyncPushRequest = {
+  entities: SyncOutboxItem[]
+  blobs: SyncWireBlob[]
+}
+
+export type SyncPushResponse = {
+  applied: number
+  serverTime: number
+  missingBlobs: string[]
+}
+
+export type SyncWireResponse = {
+  serverTime: number
+  tables: SyncTablesPayload
+  blobs: SyncWireBlob[]
+  missingBlobs: string[]
 }

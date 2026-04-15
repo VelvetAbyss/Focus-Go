@@ -1,6 +1,7 @@
 import { db } from '../db'
+import { createBlobMap, decodeSyncPayload } from './content'
 import { SYNC_ENTITY_TABLES, SYNC_OUTBOX_CHANGED_EVENT, SYNC_STATE_ID, SYNC_STATUS_CHANGED_EVENT } from './constants'
-import type { SyncBootstrapResponse, SyncEntityType, SyncOutboxItem, SyncPayload, SyncRemoteRow, SyncState, SyncStatus } from './types'
+import type { SyncEntityType, SyncOutboxItem, SyncPayload, SyncRemoteRow, SyncState, SyncStatus, SyncWireResponse } from './types'
 
 const now = () => Date.now()
 
@@ -19,6 +20,11 @@ const buildInitialState = (): SyncState => {
     lastError: null,
     firstSyncResolved: false,
     pendingFirstSync: false,
+    pendingEntityPush: false,
+    pendingBlobPush: false,
+    missingBlobPull: false,
+    migrationVersion: 2,
+    restoreIntegrityStatus: 'idle',
     pendingLocalRecordCount: 0,
     pendingRemoteRecordCount: 0,
     createdAt: timestamp,
@@ -59,6 +65,10 @@ export const syncStateRepo = {
     return this.patch({
       firstSyncResolved: true,
       pendingFirstSync: false,
+      pendingEntityPush: false,
+      pendingBlobPush: false,
+      missingBlobPull: false,
+      restoreIntegrityStatus: 'ready',
       pendingLocalRecordCount: 0,
       pendingRemoteRecordCount: 0,
       status: 'idle',
@@ -128,7 +138,7 @@ export const getLocalEntityCount = async () => {
   return counts.reduce((sum, count) => sum + count, 0)
 }
 
-export const getRemoteEntityCount = (bootstrap: SyncBootstrapResponse) =>
+export const getRemoteEntityCount = (bootstrap: SyncWireResponse) =>
   Object.values(bootstrap.tables).reduce((sum, rows) => sum + rows.length, 0)
 
 export const collectLocalSnapshot = async () => {
@@ -148,8 +158,9 @@ const shouldReplace = (current: { updatedAt?: number; deletedAt?: number | null 
   return (incoming.deletedAt ?? 0) > (current?.deletedAt ?? 0)
 }
 
-export const applyRemoteTables = async (tables: SyncBootstrapResponse['tables']) => {
+export const applyRemoteTables = async (tables: SyncWireResponse['tables'], blobs: SyncWireResponse['blobs']) => {
   const tableObjects = Object.values(SYNC_ENTITY_TABLES).map((name) => db.table(name))
+  const blobMap = createBlobMap(blobs)
   await db.transaction('rw', tableObjects, async () => {
     for (const [entityType, tableName] of Object.entries(SYNC_ENTITY_TABLES) as Array<[SyncEntityType, string]>) {
       const table = db.table(tableName)
@@ -158,21 +169,26 @@ export const applyRemoteTables = async (tables: SyncBootstrapResponse['tables'])
         const current = await table.get(row.id)
         if (!shouldReplace(current as { updatedAt?: number; deletedAt?: number | null } | undefined, row)) continue
         if (row.deletedAt) await table.delete(row.id)
-        else await table.put(row.payload)
+        else await table.put(await decodeSyncPayload(entityType, row.payload, blobMap))
       }
     }
   })
 }
 
-export const replaceLocalWithRemote = async (tables: SyncBootstrapResponse['tables']) => {
+export const replaceLocalWithRemote = async (tables: SyncWireResponse['tables'], blobs: SyncWireResponse['blobs']) => {
   // Build table list dynamically so any new entity type added to SYNC_ENTITY_TABLES
   // is automatically included in the transaction without manual updates here.
   const tableObjects = Object.values(SYNC_ENTITY_TABLES).map((name) => db.table(name))
+  const blobMap = createBlobMap(blobs)
   await db.transaction('rw', tableObjects, async () => {
     for (const [entityType, tableName] of Object.entries(SYNC_ENTITY_TABLES) as Array<[SyncEntityType, string]>) {
       const table = db.table(tableName)
       await table.clear()
-      const rows = (tables[entityType] ?? []).filter((row) => !row.deletedAt).map((row) => row.payload)
+      const rows = await Promise.all(
+        (tables[entityType] ?? [])
+          .filter((row) => !row.deletedAt)
+          .map((row) => decodeSyncPayload(entityType, row.payload, blobMap)),
+      )
       if (rows.length) await table.bulkPut(rows)
     }
   })
@@ -187,6 +203,23 @@ export const seedOutboxFromSnapshot = async () => {
   }
 }
 
+export const restampLocalSnapshotForRestore = async () => {
+  const tableObjects = Object.values(SYNC_ENTITY_TABLES).map((name) => db.table(name))
+  let timestamp = Date.now()
+  await db.transaction('rw', tableObjects, async () => {
+    for (const tableName of Object.values(SYNC_ENTITY_TABLES)) {
+      const table = db.table(tableName)
+      const rows = await table.toArray()
+      if (rows.length === 0) continue
+      const nextRows = rows.map((row) => ({
+        ...(row as Record<string, unknown>),
+        updatedAt: ++timestamp,
+      }))
+      await table.bulkPut(nextRows)
+    }
+  })
+}
+
 /**
  * Wipes all local user data from IndexedDB: every entity table, the sync
  * outbox, and the sync state. Call this on logout so the next login starts
@@ -194,11 +227,12 @@ export const seedOutboxFromSnapshot = async () => {
  */
 export const clearLocalUserData = async () => {
   const entityTableObjects = Object.values(SYNC_ENTITY_TABLES).map((name) => db.table(name))
-  await db.transaction('rw', [...entityTableObjects, db.syncOutbox, db.syncState], async () => {
+  await db.transaction('rw', [...entityTableObjects, db.syncOutbox, db.syncState, db.syncBlobCache], async () => {
     for (const tableName of Object.values(SYNC_ENTITY_TABLES)) {
       await db.table(tableName).clear()
     }
     await db.syncOutbox.clear()
     await db.syncState.clear()
+    await db.syncBlobCache.clear()
   })
 }
