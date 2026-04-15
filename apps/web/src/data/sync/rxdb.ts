@@ -96,12 +96,18 @@ const openCollection = async (entityType: SyncEntityType) => {
   }
 }
 
+const closeDatabase = async (database: unknown) => {
+  if (database && typeof (database as { close?: () => Promise<void> }).close === 'function') {
+    await (database as { close: () => Promise<void> }).close()
+  }
+}
+
 const withCollection = async <T>(entityType: SyncEntityType, task: (collection: RxCollection<SyncDocument>) => Promise<T>) => {
   const { database, collection } = await openCollection(entityType)
   try {
     return await task(collection)
   } finally {
-    await (database as any).destroy()
+    await closeDatabase(database)
   }
 }
 
