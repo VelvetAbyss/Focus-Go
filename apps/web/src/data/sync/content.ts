@@ -24,6 +24,13 @@ type TasksSyncPayload = Omit<TaskItem, 'taskNoteBlocks' | 'taskNoteContentMd' | 
 const encoder = new TextEncoder()
 const decoder = new TextDecoder()
 
+const sanitizeOptionalId = (value: unknown) => {
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  if (!trimmed || trimmed === 'undefined' || trimmed === 'null') return undefined
+  return trimmed
+}
+
 const isPlainObject = (value: unknown): value is PlainObject =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
@@ -82,12 +89,12 @@ const buildBlob = async (
 const restoreBlobText = async (blob: SyncWireBlob) => decoder.decode(await gunzipBytes(base64ToBytes(blob.dataBase64)))
 
 const buildNotePayload = async (payload: NoteItem): Promise<{ payload: NotesSyncPayload; blobs: SyncWireBlob[] }> => {
+  const userId = sanitizeOptionalId(payload.userId)
+  const workspaceId = sanitizeOptionalId(payload.workspaceId)
   const next: NotesSyncPayload = {
     id: payload.id,
     createdAt: payload.createdAt,
     updatedAt: payload.updatedAt,
-    userId: payload.userId,
-    workspaceId: payload.workspaceId,
     title: payload.title,
     editorMode: payload.editorMode,
     collection: payload.collection,
@@ -95,6 +102,8 @@ const buildNotePayload = async (payload: NoteItem): Promise<{ payload: NotesSync
     pinned: payload.pinned,
     deletedAt: payload.deletedAt ?? null,
   }
+  if (userId) next.userId = userId
+  if (workspaceId) next.workspaceId = workspaceId
   const blobs: SyncWireBlob[] = []
   if (payload.contentMd) {
     const blob = await buildBlob('note:contentMd', 'text/plain', payload.contentMd)
@@ -110,18 +119,23 @@ const buildNotePayload = async (payload: NoteItem): Promise<{ payload: NotesSync
 }
 
 const buildTaskPayload = async (payload: TaskItem): Promise<{ payload: TasksSyncPayload; blobs: SyncWireBlob[] }> => {
+  const { taskNoteContentMd, taskNoteContentJson, userId: rawUserId, workspaceId: rawWorkspaceId, ...rest } = payload
+  const userId = sanitizeOptionalId(rawUserId)
+  const workspaceId = sanitizeOptionalId(rawWorkspaceId)
   const next: TasksSyncPayload = {
-    ...payload,
+    ...rest,
     taskNoteBlocks: [],
   }
+  if (userId) next.userId = userId
+  if (workspaceId) next.workspaceId = workspaceId
   const blobs: SyncWireBlob[] = []
-  if (payload.taskNoteContentMd) {
-    const blob = await buildBlob('task:contentMd', 'text/plain', payload.taskNoteContentMd)
+  if (taskNoteContentMd) {
+    const blob = await buildBlob('task:contentMd', 'text/plain', taskNoteContentMd)
     blobs.push(blob)
     next.bodyRefs = { ...(next.bodyRefs ?? {}), taskNoteContentMd: blob.hash }
   }
-  if (payload.taskNoteContentJson !== undefined && payload.taskNoteContentJson !== null) {
-    const blob = await buildBlob('task:contentJson', 'application/json', stableStringify(payload.taskNoteContentJson))
+  if (taskNoteContentJson !== undefined && taskNoteContentJson !== null) {
+    const blob = await buildBlob('task:contentJson', 'application/json', stableStringify(taskNoteContentJson))
     blobs.push(blob)
     next.bodyRefs = { ...(next.bodyRefs ?? {}), taskNoteContentJson: blob.hash }
   }
