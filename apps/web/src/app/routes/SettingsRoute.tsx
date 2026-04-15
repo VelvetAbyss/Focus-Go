@@ -36,7 +36,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { dashboardRepo } from '../../data/repositories/dashboardRepo'
-import { db } from '../../data/db'
+import { db, requestCrossTabDbReset } from '../../data/db'
 import { DB_NAME, DB_VERSION, TABLES } from '../../data/db/schema'
 import { applyTheme, readStoredThemePreference, resolveTheme, writeStoredThemePreference } from '../../shared/theme/theme'
 import {
@@ -76,6 +76,7 @@ import {
 } from '../../shared/location/citySuggestions'
 
 const LAYOUT_LOCK_KEY = 'workbench.dashboard.layoutLocked'
+const RESET_TIMEOUT_MS = 4_000
 
 type ThemeSelection = 'system' | 'light' | 'dark'
 type SettingsSection = 'appearance' | 'experience' | 'weather' | 'data' | 'legal'
@@ -687,11 +688,34 @@ const SettingsRoute = () => {
   const resetApp = async () => {
     setIsResetting(true)
     try {
-      await resetRxdbSyncDatabase()
-      await db.delete()
+      requestCrossTabDbReset()
+      await new Promise((resolve) => window.setTimeout(resolve, 150))
+      await Promise.race([
+        resetRxdbSyncDatabase(),
+        new Promise((_, reject) => window.setTimeout(() => reject(new Error(
+          language === 'zh'
+            ? '重置被其他 Focus&go 标签页阻塞，请关闭其他标签页后重试。'
+            : 'Reset is blocked by another Focus&go tab. Close the other tabs and try again.'
+        )), RESET_TIMEOUT_MS)),
+      ])
+      await Promise.race([
+        db.delete({ disableAutoOpen: false }),
+        new Promise((_, reject) => window.setTimeout(() => reject(new Error(
+          language === 'zh'
+            ? '本地数据库仍被占用，请关闭其他 Focus&go 标签页后重试。'
+            : 'Local database is still in use. Close the other Focus&go tabs and try again.'
+        )), RESET_TIMEOUT_MS)),
+      ])
       localStorage.clear()
       sessionStorage.clear()
       window.location.reload()
+    } catch (error) {
+      toast.push({
+        variant: 'error',
+        message: error instanceof Error
+          ? error.message
+          : (language === 'zh' ? '重置失败，请稍后重试。' : 'Reset failed. Please try again.'),
+      })
     } finally {
       setIsResetting(false)
     }

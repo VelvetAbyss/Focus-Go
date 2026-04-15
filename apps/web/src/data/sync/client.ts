@@ -18,8 +18,21 @@ const getAuthHeaders = () => {
   }
 }
 
+export const normalizeSyncFetchError = (error: unknown) => {
+  if (error instanceof Error && error.name === 'TypeError') {
+    return new Error(`Sync server unreachable: ${import.meta.env.VITE_API_BASE}`)
+  }
+  if (error instanceof Error) return error
+  return new Error('Sync request failed')
+}
+
 const fetchJson = async <T>(path: string, init?: RequestInit): Promise<T> => {
-  const response = await fetch(`${import.meta.env.VITE_API_BASE}${path}`, init)
+  let response: Response
+  try {
+    response = await fetch(`${import.meta.env.VITE_API_BASE}${path}`, init)
+  } catch (error) {
+    throw normalizeSyncFetchError(error)
+  }
   if (!response.ok) {
     if (response.status === 401) throw new Error('Sync failed: session expired, please log in again')
     throw new Error(`Sync request failed: ${response.status}`)

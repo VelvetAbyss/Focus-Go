@@ -254,3 +254,24 @@ export class WorkbenchDb extends Dexie {
 }
 
 export const db = new WorkbenchDb()
+
+const DB_RESET_SIGNAL_KEY = 'focusgo:db-reset-requested'
+const DB_RESET_SIGNAL_EVENT = 'focusgo:db-reset-requested'
+
+const handleDbResetSignal = () => {
+  db.close()
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if (event.key === DB_RESET_SIGNAL_KEY) handleDbResetSignal()
+  })
+  window.addEventListener(DB_RESET_SIGNAL_EVENT, handleDbResetSignal)
+}
+
+export const requestCrossTabDbReset = () => {
+  handleDbResetSignal()
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new Event(DB_RESET_SIGNAL_EVENT))
+  window.localStorage.setItem(DB_RESET_SIGNAL_KEY, String(Date.now()))
+}
