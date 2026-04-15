@@ -379,7 +379,7 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
         dbName: DB_NAME,
         dbVersion: DB_VERSION,
       })
-      const download = createBackupDownload(payload)
+      const download = await createBackupDownload(payload)
       const link = document.createElement('a')
       link.href = download.url
       link.download = download.fileName

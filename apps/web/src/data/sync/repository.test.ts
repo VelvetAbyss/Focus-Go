@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { db } from '../db'
 import { SYNC_ENTITY_TABLES } from './constants'
-import { syncOutboxRepo, syncStateRepo } from './repository'
+import { restampLocalSnapshotForRestore, syncOutboxRepo, syncStateRepo } from './repository'
 
 describe('sync repository', () => {
   beforeEach(async () => {
@@ -54,6 +54,9 @@ describe('sync repository', () => {
     const initial = await syncStateRepo.get()
     expect(initial.status).toBe('idle')
     expect(initial.firstSyncResolved).toBe(false)
+    expect(initial.pendingEntityPush).toBe(false)
+    expect(initial.pendingBlobPush).toBe(false)
+    expect(initial.restoreIntegrityStatus).toBe('idle')
 
     const next = await syncStateRepo.markPendingFirstSync(3, 5)
     expect(next.status).toBe('blocked')
@@ -67,5 +70,31 @@ describe('sync repository', () => {
     expect(actualStores.has(SYNC_ENTITY_TABLES.noteAppearance)).toBe(true)
     expect(actualStores.has(SYNC_ENTITY_TABLES.widgetTodos)).toBe(true)
     expect(actualStores.has(SYNC_ENTITY_TABLES.dashboardLayout)).toBe(true)
+    expect(actualStores.has(SYNC_ENTITY_TABLES.projects)).toBe(true)
+    expect(actualStores.has(SYNC_ENTITY_TABLES.lifeDashboardLayout)).toBe(true)
+  })
+
+  it('restamps synced rows before restore upload so restored snapshot wins the next push', async () => {
+    await db.tasks.put({
+      id: 'task-1',
+      title: 'Restored',
+      description: '',
+      pinned: false,
+      isToday: false,
+      status: 'todo',
+      priority: null,
+      tags: [],
+      subtasks: [],
+      taskNoteBlocks: [],
+      taskNoteContentMd: '',
+      taskNoteContentJson: null,
+      activityLogs: [],
+      createdAt: 1,
+      updatedAt: 1,
+    })
+
+    await restampLocalSnapshotForRestore()
+
+    expect((await db.tasks.get('task-1'))?.updatedAt).toBeGreaterThan(1)
   })
 })

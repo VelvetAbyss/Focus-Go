@@ -1,6 +1,7 @@
 import type { LifePersonCreateInput, LifePersonUpdateInput } from '@focus-go/core'
 import { db } from '../db'
-import type { LifePerson } from '../models/types'
+import type { LifePerson, ProjectPerson } from '../models/types'
+import { enqueueSyncOperation } from '../sync/repository'
 import { dbService } from '../services/dbService'
 import { touch } from './base'
 
@@ -20,6 +21,15 @@ const projectRoleToLifeGroup = (roleType: 'owner' | 'collaborator' | 'reviewer' 
 
 const projectRoleLabel = (roleType: 'owner' | 'collaborator' | 'reviewer' | 'external') =>
   roleType.charAt(0).toUpperCase() + roleType.slice(1)
+
+const toProjectRoleType = (role?: string): ProjectPerson['roleType'] =>
+  role?.toLowerCase() === 'owner'
+    ? 'owner'
+    : role?.toLowerCase() === 'external'
+      ? 'external'
+      : role?.toLowerCase() === 'reviewer'
+        ? 'reviewer'
+        : 'collaborator'
 
 const syncProjectPeopleBackfill = async () => {
   const [projectPeople, projects, lifePeople] = await Promise.all([
@@ -43,7 +53,13 @@ const syncProjectPeopleBackfill = async () => {
       linkedMap.set(item.sourceProjectPersonId, item)
     }
   }
-  if (duplicateIds.length) await db.lifePeople.bulkDelete(duplicateIds)
+  if (duplicateIds.length) {
+    const deletedAt = Date.now()
+    await db.lifePeople.bulkDelete(duplicateIds)
+    await Promise.all(
+      duplicateIds.map((id) => enqueueSyncOperation('lifePeople', 'delete', { id, updatedAt: deletedAt }, deletedAt)),
+    )
+  }
   const writes = projectPeople.map((person) => {
     const current = linkedMap.get(person.id)
     const next = {
@@ -60,7 +76,10 @@ const syncProjectPeopleBackfill = async () => {
     } satisfies Omit<LifePerson, 'id' | 'createdAt' | 'updatedAt'>
     return current ? touch({ ...current, ...next }) : { ...next, id: crypto.randomUUID(), createdAt: Date.now(), updatedAt: Date.now() }
   })
-  if (writes.length) await db.lifePeople.bulkPut(writes)
+  if (writes.length) {
+    await db.lifePeople.bulkPut(writes)
+    await Promise.all(writes.map((row) => enqueueSyncOperation('lifePeople', 'upsert', row)))
+  }
 }
 
 export const peopleRepo = {
@@ -81,20 +100,16 @@ export const peopleRepo = {
     if (updated.sourceProjectPersonId) {
       const current = await db.projectPeople.get(updated.sourceProjectPersonId)
       if (current) {
-        await db.projectPeople.put(touch({
+        const nextProjectPerson = touch({
           ...current,
           name: updated.name,
-          roleType: updated.role?.toLowerCase() === 'owner'
-            ? 'owner'
-            : updated.role?.toLowerCase() === 'external'
-              ? 'external'
-              : updated.role?.toLowerCase() === 'reviewer'
-                ? 'reviewer'
-                : 'collaborator',
+          roleType: toProjectRoleType(updated.role),
           phone: updated.phone ?? '',
           email: updated.email ?? '',
           note: updated.notes ?? '',
-        }))
+        })
+        await db.projectPeople.put(nextProjectPerson)
+        await enqueueSyncOperation('projectPeople', 'upsert', nextProjectPerson)
       }
     }
     cache = cache ? [updated, ...cache.filter((item) => item.id !== id)] : null
@@ -104,6 +119,12 @@ export const peopleRepo = {
     const current = await db.lifePeople.get(id)
     if (current?.sourceProjectPersonId) {
       await db.projectPeople.delete(current.sourceProjectPersonId)
+      await enqueueSyncOperation(
+        'projectPeople',
+        'delete',
+        { id: current.sourceProjectPersonId, updatedAt: Date.now(), projectId: current.sourceProjectId ?? '' },
+        Date.now(),
+      )
     }
     await dbService.lifePeople.remove(id)
     cache = cache?.filter((item) => item.id !== id) ?? null

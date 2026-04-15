@@ -28,7 +28,7 @@ import type {
   UserSubscription,
   WidgetTodo,
 } from '../models/types'
-import type { SyncOutboxItem, SyncState } from '../sync/types'
+import type { SyncBlobCacheEntry, SyncOutboxItem, SyncState } from '../sync/types'
 import {
   DB_NAME,
   DB_VERSION,
@@ -45,6 +45,7 @@ import {
   schemaV34,
   schemaV35,
   schemaV36,
+  schemaV37,
   schemaV2,
   schemaV3,
   schemaV4,
@@ -78,6 +79,7 @@ export class WorkbenchDb extends Dexie {
   habitLogs!: Table<HabitLog, string>
   syncOutbox!: Table<SyncOutboxItem, string>
   syncState!: Table<SyncState, string>
+  syncBlobCache!: Table<SyncBlobCacheEntry, string>
   books!: Table<BookItem, string>
   stocks!: Table<StockItem, string>
   media!: Table<MediaItem, string>
@@ -210,7 +212,11 @@ export class WorkbenchDb extends Dexie {
       .stores(schemaV36)
       .upgrade(async () => {})
 
-    this.version(DB_VERSION).stores(schemaV36)
+    this.version(37)
+      .stores(schemaV37)
+      .upgrade(async () => {})
+
+    this.version(DB_VERSION).stores(schemaV37)
 
     this.tasks = this.table(TABLES.tasks)
     this.notes = this.table(TABLES.notes)
@@ -233,6 +239,7 @@ export class WorkbenchDb extends Dexie {
     this.habitLogs = this.table(TABLES.habitLogs)
     this.syncOutbox = this.table(TABLES.syncOutbox)
     this.syncState = this.table(TABLES.syncState)
+    this.syncBlobCache = this.table(TABLES.syncBlobCache)
     this.books = this.table(TABLES.books)
     this.stocks = this.table(TABLES.stocks)
     this.media = this.table(TABLES.media)

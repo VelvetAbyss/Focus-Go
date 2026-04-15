@@ -1,4 +1,5 @@
 import { SYNC_TABLES } from './config.js'
+import { collectBlobRefs, normalizePayloadForWire } from './protocol.js'
 
 const isNumber = (value) => typeof value === 'number' && Number.isFinite(value)
 
@@ -19,6 +20,18 @@ const getTableName = (entityType) => {
 }
 
 export const ensureSyncTables = (db) => {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS sync_blobs (
+      hash TEXT PRIMARY KEY,
+      content_type TEXT NOT NULL,
+      compression TEXT NOT NULL,
+      raw_byte_length INTEGER NOT NULL,
+      byte_length INTEGER NOT NULL,
+      data_base64 TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    )
+  `)
   for (const tableName of Object.values(SYNC_TABLES)) {
     db.exec(`
       CREATE TABLE IF NOT EXISTS ${tableName} (
@@ -32,6 +45,45 @@ export const ensureSyncTables = (db) => {
     `)
     db.exec(`CREATE INDEX IF NOT EXISTS idx_${tableName}_updated_at ON ${tableName} (user_id, updated_at)`)
   }
+}
+
+export const upsertSyncBlob = (db, blob) => {
+  const timestamp = Date.now()
+  db.prepare(`
+    INSERT INTO sync_blobs (hash, content_type, compression, raw_byte_length, byte_length, data_base64, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(hash) DO UPDATE SET
+      content_type = excluded.content_type,
+      compression = excluded.compression,
+      raw_byte_length = excluded.raw_byte_length,
+      byte_length = excluded.byte_length,
+      data_base64 = excluded.data_base64,
+      updated_at = excluded.updated_at
+  `).run(
+    blob.hash,
+    blob.contentType,
+    blob.compression,
+    blob.rawByteLength,
+    blob.byteLength,
+    blob.dataBase64,
+    timestamp,
+    timestamp,
+  )
+}
+
+const getSyncBlobs = (db, hashes) => {
+  if (hashes.length === 0) return []
+  const stmt = db.prepare(
+    `SELECT hash, content_type, compression, raw_byte_length, byte_length, data_base64 FROM sync_blobs WHERE hash IN (${hashes.map(() => '?').join(',')})`,
+  )
+  return stmt.all(...hashes).map((row) => ({
+    hash: row.hash,
+    contentType: row.content_type,
+    compression: row.compression,
+    rawByteLength: row.raw_byte_length,
+    byteLength: row.byte_length,
+    dataBase64: row.data_base64,
+  }))
 }
 
 export const applySyncOperation = (db, userId, operation) => {
@@ -68,26 +120,37 @@ export const applySyncOperation = (db, userId, operation) => {
   return true
 }
 
-export const getBootstrapState = (db, userId) => {
+const buildWireTables = (db, userId, since = null, wantBlobs = []) => {
   const tables = {}
-  for (const [entityType, tableName] of Object.entries(SYNC_TABLES)) {
-    const rows = db
-      .prepare(`SELECT id, user_id, payload, updated_at, deleted_at FROM ${tableName} WHERE user_id = ? ORDER BY updated_at ASC`)
-      .all(userId)
-    tables[entityType] = rows.map(normalizeRow)
-  }
-  return tables
-}
-
-export const getChangesSince = (db, userId, since) => {
-  const tables = {}
+  const requiredBlobs = new Set()
   for (const [entityType, tableName] of Object.entries(SYNC_TABLES)) {
     const rows = db
       .prepare(
-        `SELECT id, user_id, payload, updated_at, deleted_at FROM ${tableName} WHERE user_id = ? AND updated_at > ? ORDER BY updated_at ASC`,
+        since === null
+          ? `SELECT id, user_id, payload, updated_at, deleted_at FROM ${tableName} WHERE user_id = ? ORDER BY updated_at ASC`
+          : `SELECT id, user_id, payload, updated_at, deleted_at FROM ${tableName} WHERE user_id = ? AND updated_at > ? ORDER BY updated_at ASC`,
       )
-      .all(userId, since)
-    tables[entityType] = rows.map(normalizeRow)
+      .all(...(since === null ? [userId] : [userId, since]))
+    tables[entityType] = rows.map((row) => {
+      const normalized = normalizeRow(row)
+      const wire = normalizePayloadForWire(entityType, normalized.payload)
+      for (const hash of collectBlobRefs(entityType, wire.payload)) requiredBlobs.add(hash)
+      return {
+        ...normalized,
+        payload: wire.payload,
+      }
+    })
   }
-  return tables
+  const wanted = wantBlobs.filter((hash) => requiredBlobs.has(hash))
+  const storedBlobs = getSyncBlobs(db, wanted)
+  const available = new Set(storedBlobs.map((blob) => blob.hash))
+  return {
+    tables,
+    blobs: storedBlobs,
+    missingBlobs: Array.from(requiredBlobs).filter((hash) => !available.has(hash)),
+  }
 }
+
+export const getBootstrapState = (db, userId, wantBlobs = []) => buildWireTables(db, userId, null, wantBlobs)
+
+export const getChangesSince = (db, userId, since, wantBlobs = []) => buildWireTables(db, userId, since, wantBlobs)

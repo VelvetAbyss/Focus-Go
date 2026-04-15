@@ -12,8 +12,19 @@ export const SYNC_TABLES = {
   dashboardLayout: 'sync_dashboard_layout',
   userSubscriptions: 'sync_user_subscriptions',
   featureInstallations: 'sync_feature_installations',
+  projects: 'sync_projects',
+  projectPeople: 'sync_project_people',
+  projectNoteLinks: 'sync_project_note_links',
   habits: 'sync_habits',
   habitLogs: 'sync_habit_logs',
+  books: 'sync_books',
+  stocks: 'sync_stocks',
+  media: 'sync_media',
+  lifeSubscriptions: 'sync_life_subscriptions',
+  lifePodcasts: 'sync_life_podcasts',
+  lifePeople: 'sync_life_people',
+  trips: 'sync_trips',
+  lifeDashboardLayout: 'sync_life_dashboard_layout',
 }
 
 export const SYNC_ENTITY_TYPES = Object.keys(SYNC_TABLES)

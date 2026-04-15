@@ -1,5 +1,6 @@
 import { db } from '../db'
 import type { ProjectHealth, ProjectItem, ProjectStatus, TaskItem } from '../models/types'
+import { enqueueSyncOperation } from '../sync/repository'
 import { touch, withBase } from './base'
 import { noteTagsRepo } from './noteTagsRepo'
 
@@ -97,6 +98,7 @@ export const projectsRepo = {
       riskSummary: data.riskSummary?.trim() ?? '',
     } satisfies Omit<ProjectItem, 'id' | 'createdAt' | 'updatedAt'>)
     await db.projects.add(project)
+    await enqueueSyncOperation('projects', 'upsert', project)
     const existingTags = await noteTagsRepo.list()
     const tagName = toProjectTag(project.id)
     if (!existingTags.find((tag) => tag.name === tagName)) {
@@ -122,6 +124,7 @@ export const projectsRepo = {
       riskSummary: typeof patch.riskSummary === 'string' ? patch.riskSummary.trim() : current.riskSummary,
     })
     await db.projects.put(next)
+    await enqueueSyncOperation('projects', 'upsert', next)
     return next
   },
   async archive(id: string) {

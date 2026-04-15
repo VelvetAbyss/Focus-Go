@@ -11,7 +11,7 @@ import {
   syncOutboxRepo,
   syncStateRepo,
 } from './repository'
-import type { FirstSyncChoice, SyncBootstrapResponse, SyncState } from './types'
+import type { FirstSyncChoice, SyncState, SyncWireResponse } from './types'
 
 type SyncContextValue = {
   state: SyncState | null
@@ -28,7 +28,7 @@ const readSyncState = async (setState: (value: SyncState) => void) => {
 export const SyncProvider = ({ children }: { children: ReactNode }) => {
   const isLoggedIn = useIsLoggedIn()
   const [state, setState] = useState<SyncState | null>(null)
-  const bootstrapRef = useRef<SyncBootstrapResponse | null>(null)
+  const bootstrapRef = useRef<SyncWireResponse | null>(null)
   const flushTimerRef = useRef<number | null>(null)
   const runningRef = useRef(false)
 
@@ -41,14 +41,26 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
     if (!operations.length) return
     const result = await syncApi.push(operations)
     await syncOutboxRepo.remove(operations.map((item) => item.id))
-    await syncStateRepo.patch({ lastPushedAt: result.serverTime, status: 'idle', lastError: null })
+    await syncStateRepo.patch({
+      lastPushedAt: result.serverTime,
+      status: 'idle',
+      lastError: null,
+      pendingEntityPush: false,
+      pendingBlobPush: false,
+      restoreIntegrityStatus: 'ready',
+    })
   }, [])
 
   const pullChanges = useCallback(async () => {
     const current = await syncStateRepo.get()
     const response = await syncApi.pull(current.lastPulledAt ?? 0)
-    await applyRemoteTables(response.tables)
-    await syncStateRepo.patch({ lastPulledAt: response.serverTime, status: 'idle', lastError: null })
+    await applyRemoteTables(response.tables, response.blobs)
+    await syncStateRepo.patch({
+      lastPulledAt: response.serverTime,
+      status: 'idle',
+      lastError: null,
+      missingBlobPull: response.missingBlobs.length > 0,
+    })
   }, [])
 
   const syncNow = useCallback(async () => {
@@ -78,23 +90,34 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
     await syncStateRepo.markStatus('syncing')
     try {
       const current = await syncStateRepo.get()
-      const bootstrap = await syncApi.bootstrap()
-      bootstrapRef.current = bootstrap
-      const localCount = await getLocalEntityCount()
-      const remoteCount = getRemoteEntityCount(bootstrap)
-
-      if (!current.firstSyncResolved) {
-        if (localCount === 0) {
-          await replaceLocalWithRemote(bootstrap.tables)
-          await syncStateRepo.resolveFirstSync()
-          await syncStateRepo.patch({ lastPulledAt: bootstrap.serverTime })
-        } else {
-          await syncStateRepo.markPendingFirstSync(localCount, remoteCount)
-          return
-        }
+      if (current.pendingEntityPush || current.pendingBlobPush) {
+        await syncStateRepo.patch({ status: 'idle' })
       } else {
-        await applyRemoteTables(bootstrap.tables)
-        await syncStateRepo.patch({ lastPulledAt: bootstrap.serverTime, status: 'idle' })
+        const bootstrap = await syncApi.bootstrap()
+        bootstrapRef.current = bootstrap
+        const localCount = await getLocalEntityCount()
+        const remoteCount = getRemoteEntityCount(bootstrap)
+
+        if (!current.firstSyncResolved) {
+          if (localCount === 0) {
+            await replaceLocalWithRemote(bootstrap.tables, bootstrap.blobs)
+            await syncStateRepo.resolveFirstSync()
+            await syncStateRepo.patch({
+              lastPulledAt: bootstrap.serverTime,
+              missingBlobPull: bootstrap.missingBlobs.length > 0,
+            })
+          } else {
+            await syncStateRepo.markPendingFirstSync(localCount, remoteCount)
+            return
+          }
+        } else {
+          await applyRemoteTables(bootstrap.tables, bootstrap.blobs)
+          await syncStateRepo.patch({
+            lastPulledAt: bootstrap.serverTime,
+            status: 'idle',
+            missingBlobPull: bootstrap.missingBlobs.length > 0,
+          })
+        }
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Sync failed'
@@ -112,12 +135,23 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
     await syncStateRepo.markStatus('syncing')
 
     if (choice === 'pull-remote') {
-      await replaceLocalWithRemote(bootstrap.tables)
+      await replaceLocalWithRemote(bootstrap.tables, bootstrap.blobs)
       await syncStateRepo.markChoice()
-      await syncStateRepo.patch({ lastPulledAt: bootstrap.serverTime })
+      await syncStateRepo.patch({
+        lastPulledAt: bootstrap.serverTime,
+        missingBlobPull: bootstrap.missingBlobs.length > 0,
+      })
     } else {
       await seedOutboxFromSnapshot()
-      await syncStateRepo.markChoice()
+      await syncStateRepo.patch({
+        firstSyncResolved: true,
+        pendingFirstSync: false,
+        pendingEntityPush: true,
+        pendingBlobPush: true,
+        pendingLocalRecordCount: 0,
+        pendingRemoteRecordCount: 0,
+        restoreIntegrityStatus: 'verifying',
+      })
     }
 
     await refreshState()

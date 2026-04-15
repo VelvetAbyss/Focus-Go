@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import Database from 'better-sqlite3'
-import { applySyncOperation, ensureSyncTables, getBootstrapState, getChangesSince } from './store.js'
+import { applySyncOperation, ensureSyncTables, getBootstrapState, getChangesSince, upsertSyncBlob } from './store.js'
 
 const createDb = () => {
   const db = new Database(':memory:')
@@ -35,7 +35,7 @@ test('applySyncOperation stores a newer record and ignores an older one', () => 
   )
 
   const state = getBootstrapState(db, 'user-1')
-  assert.equal(state.tasks[0].payload.title, 'First')
+  assert.equal(state.tables.tasks[0].payload.title, 'First')
 })
 
 test('applySyncOperation writes tombstones for deletes', () => {
@@ -50,7 +50,7 @@ test('applySyncOperation writes tombstones for deletes', () => {
   })
 
   const state = getBootstrapState(db, 'user-1')
-  assert.equal(state.notes[0].deletedAt, 20)
+  assert.equal(state.tables.notes[0].deletedAt, 20)
 })
 
 test('getChangesSince returns only rows newer than the marker', () => {
@@ -72,6 +72,34 @@ test('getChangesSince returns only rows newer than the marker', () => {
   })
 
   const changes = getChangesSince(db, 'user-1', 15)
-  assert.equal(changes.habits.length, 1)
-  assert.equal(changes.habits[0].id, 'habit-2')
+  assert.equal(changes.tables.habits.length, 1)
+  assert.equal(changes.tables.habits[0].id, 'habit-2')
+})
+
+test('getBootstrapState only returns requested blobs through wantBlobs', () => {
+  const db = createDb()
+  upsertSyncBlob(db, {
+    hash: 'blob-1',
+    contentType: 'text/plain',
+    compression: 'gzip',
+    rawByteLength: 5,
+    byteLength: 5,
+    dataBase64: 'eA==',
+  })
+
+  applySyncOperation(db, 'user-1', {
+    entityType: 'notes',
+    entityId: 'note-1',
+    op: 'upsert',
+    payload: { id: 'note-1', title: 'A', bodyRefs: { contentMd: 'blob-1' } },
+    updatedAt: 10,
+  })
+
+  const withoutBlobs = getBootstrapState(db, 'user-1')
+  assert.equal(withoutBlobs.blobs.length, 0)
+  assert.deepEqual(withoutBlobs.missingBlobs, ['blob-1'])
+
+  const withBlobs = getBootstrapState(db, 'user-1', ['blob-1'])
+  assert.equal(withBlobs.blobs.length, 1)
+  assert.deepEqual(withBlobs.missingBlobs, [])
 })
