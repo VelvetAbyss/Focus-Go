@@ -158,25 +158,45 @@ const shouldReplace = (current: { updatedAt?: number; deletedAt?: number | null 
   return (incoming.deletedAt ?? 0) > (current?.deletedAt ?? 0)
 }
 
+// decodeSyncPayload uses native Web Crypto / DecompressionStream (non-Dexie async).
+// Awaiting these inside a Dexie transaction causes "Transaction committed too early"
+// because the IDB transaction auto-commits while the native promise is in-flight.
+// Both functions below resolve this by doing all decoding BEFORE entering the
+// transaction, then performing only pure IDB reads/writes inside.
+
+type PendingWrite = { id: string; deleted: true } | { id: string; deleted: false; row: SyncPayload }
+
 export const applyRemoteTables = async (tables: SyncWireResponse['tables'], blobs: SyncWireResponse['blobs']) => {
   const tableObjects = Object.values(SYNC_ENTITY_TABLES).map((name) => db.table(name))
   const blobMap = createBlobMap(blobs)
+
+  // Phase 1: read current rows and decode remote payloads — outside the transaction.
+  const pendingByTable = new Map<string, PendingWrite[]>()
+  for (const [entityType, tableName] of Object.entries(SYNC_ENTITY_TABLES) as Array<[SyncEntityType, string]>) {
+    const pending: PendingWrite[] = []
+    for (const row of tables[entityType] ?? []) {
+      const current = await db.table(tableName).get(row.id)
+      if (!shouldReplace(current as { updatedAt?: number; deletedAt?: number | null } | undefined, row)) continue
+      if (row.deletedAt) { pending.push({ id: row.id, deleted: true }); continue }
+      try {
+        pending.push({ id: row.id, deleted: false, row: await decodeSyncPayload(entityType, row.payload, blobMap) })
+      } catch (err) {
+        // If blob data is unavailable (server purged or never uploaded), preserve
+        // the current local version rather than crashing the entire sync cycle.
+        if (err instanceof Error && err.message.startsWith('Missing blob payload:')) continue
+        throw err
+      }
+    }
+    pendingByTable.set(tableName, pending)
+  }
+
+  // Phase 2: apply writes atomically — only IDB operations inside the transaction.
   await db.transaction('rw', tableObjects, async () => {
-    for (const [entityType, tableName] of Object.entries(SYNC_ENTITY_TABLES) as Array<[SyncEntityType, string]>) {
+    for (const tableName of Object.values(SYNC_ENTITY_TABLES)) {
       const table = db.table(tableName)
-      const rows = tables[entityType] ?? []
-      for (const row of rows) {
-        const current = await table.get(row.id)
-        if (!shouldReplace(current as { updatedAt?: number; deletedAt?: number | null } | undefined, row)) continue
-        if (row.deletedAt) { await table.delete(row.id); continue }
-        try {
-          await table.put(await decodeSyncPayload(entityType, row.payload, blobMap))
-        } catch (err) {
-          // If blob data is unavailable (server purged or never uploaded), preserve
-          // the current local version rather than crashing the entire sync cycle.
-          if (err instanceof Error && err.message.startsWith('Missing blob payload:')) continue
-          throw err
-        }
+      for (const write of pendingByTable.get(tableName) ?? []) {
+        if (write.deleted) await table.delete(write.id)
+        else await table.put(write.row)
       }
     }
   })
@@ -187,19 +207,28 @@ export const replaceLocalWithRemote = async (tables: SyncWireResponse['tables'],
   // is automatically included in the transaction without manual updates here.
   const tableObjects = Object.values(SYNC_ENTITY_TABLES).map((name) => db.table(name))
   const blobMap = createBlobMap(blobs)
+
+  // Phase 1: decode all remote payloads outside the transaction.
+  const decodedByTable = new Map<string, SyncPayload[]>()
+  for (const [entityType, tableName] of Object.entries(SYNC_ENTITY_TABLES) as Array<[SyncEntityType, string]>) {
+    const decoded: SyncPayload[] = []
+    for (const row of (tables[entityType] ?? []).filter((r) => !r.deletedAt)) {
+      try {
+        decoded.push(await decodeSyncPayload(entityType, row.payload, blobMap))
+      } catch (err) {
+        if (err instanceof Error && err.message.startsWith('Missing blob payload:')) continue
+        throw err
+      }
+    }
+    decodedByTable.set(tableName, decoded)
+  }
+
+  // Phase 2: clear and repopulate inside a single atomic transaction.
   await db.transaction('rw', tableObjects, async () => {
-    for (const [entityType, tableName] of Object.entries(SYNC_ENTITY_TABLES) as Array<[SyncEntityType, string]>) {
+    for (const tableName of Object.values(SYNC_ENTITY_TABLES)) {
       const table = db.table(tableName)
       await table.clear()
-      const rows: Awaited<ReturnType<typeof decodeSyncPayload>>[] = []
-      for (const row of (tables[entityType] ?? []).filter((r) => !r.deletedAt)) {
-        try {
-          rows.push(await decodeSyncPayload(entityType, row.payload, blobMap))
-        } catch (err) {
-          if (err instanceof Error && err.message.startsWith('Missing blob payload:')) continue
-          throw err
-        }
-      }
+      const rows = decodedByTable.get(tableName) ?? []
       if (rows.length) await table.bulkPut(rows)
     }
   })
