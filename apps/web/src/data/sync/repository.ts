@@ -168,8 +168,15 @@ export const applyRemoteTables = async (tables: SyncWireResponse['tables'], blob
       for (const row of rows) {
         const current = await table.get(row.id)
         if (!shouldReplace(current as { updatedAt?: number; deletedAt?: number | null } | undefined, row)) continue
-        if (row.deletedAt) await table.delete(row.id)
-        else await table.put(await decodeSyncPayload(entityType, row.payload, blobMap))
+        if (row.deletedAt) { await table.delete(row.id); continue }
+        try {
+          await table.put(await decodeSyncPayload(entityType, row.payload, blobMap))
+        } catch (err) {
+          // If blob data is unavailable (server purged or never uploaded), preserve
+          // the current local version rather than crashing the entire sync cycle.
+          if (err instanceof Error && err.message.startsWith('Missing blob payload:')) continue
+          throw err
+        }
       }
     }
   })
@@ -184,11 +191,15 @@ export const replaceLocalWithRemote = async (tables: SyncWireResponse['tables'],
     for (const [entityType, tableName] of Object.entries(SYNC_ENTITY_TABLES) as Array<[SyncEntityType, string]>) {
       const table = db.table(tableName)
       await table.clear()
-      const rows = await Promise.all(
-        (tables[entityType] ?? [])
-          .filter((row) => !row.deletedAt)
-          .map((row) => decodeSyncPayload(entityType, row.payload, blobMap)),
-      )
+      const rows: Awaited<ReturnType<typeof decodeSyncPayload>>[] = []
+      for (const row of (tables[entityType] ?? []).filter((r) => !r.deletedAt)) {
+        try {
+          rows.push(await decodeSyncPayload(entityType, row.payload, blobMap))
+        } catch (err) {
+          if (err instanceof Error && err.message.startsWith('Missing blob payload:')) continue
+          throw err
+        }
+      }
       if (rows.length) await table.bulkPut(rows)
     }
   })

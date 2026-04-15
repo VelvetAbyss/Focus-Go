@@ -749,6 +749,18 @@ const SettingsRoute = () => {
       // snapshot pushes before any remote rows can overwrite it locally.
       await db.syncOutbox.clear()
       await seedOutboxFromSnapshot()
+      // Repopulate blob cache from the backup so the client-side fallback works
+      // when the server reports blobs as missing during the next pull.
+      // replaceTables() clears every table including sync_blob_cache; this restores it.
+      if ('blobs' in pendingImport.payload) {
+        const blobCacheTimestamp = Date.now()
+        const blobEntries = Object.values(pendingImport.payload.blobs).map((blob) => ({
+          ...blob,
+          createdAt: blobCacheTimestamp,
+          updatedAt: blobCacheTimestamp,
+        }))
+        if (blobEntries.length > 0) await db.syncBlobCache.bulkPut(blobEntries)
+      }
       const now = Date.now()
       await db.syncState.put({
         id: 'cloud-sync',
