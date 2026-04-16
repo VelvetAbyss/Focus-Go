@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { PreferencesContext } from './PreferencesContext'
+import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../data/repositories/syncedPreferencesRepo'
 import {
   DEFAULT_CURRENCY_KEY,
   LANGUAGE_KEY,
@@ -64,21 +65,25 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
   const [neteaseExperimentalPlaybackEnabled, setNeteaseExperimentalPlaybackEnabledState] = useState(() => readNeteaseExperimentalPlaybackEnabled())
   const [neteaseExperimentalPlaybackConfirmed, setNeteaseExperimentalPlaybackConfirmedState] = useState(() => readNeteaseExperimentalPlaybackConfirmed())
 
+  const refreshFromStorage = () => {
+    setLanguageState(readLanguage())
+    setUiAnimationsEnabledState(readUiAnimationsEnabled())
+    setNumberAnimationsEnabledState(readNumberAnimationsEnabled())
+    setDefaultCurrencyState(readDefaultCurrency())
+    setWeatherAutoLocationEnabledState(readWeatherAutoLocation())
+    setWeatherManualCityState(readWeatherManualCity())
+    setWeatherTemperatureUnitState(readWeatherTemperatureUnit())
+    setFocusCompletionSoundEnabledState(readFocusCompletionSoundEnabled())
+    setTaskReminderEnabledState(readTaskReminderEnabled())
+    setTaskReminderLeadMinutesState(readTaskReminderLeadMinutes())
+    setNeteaseExperimentalPlaybackEnabledState(readNeteaseExperimentalPlaybackEnabled())
+    setNeteaseExperimentalPlaybackConfirmedState(readNeteaseExperimentalPlaybackConfirmed())
+  }
+
   useEffect(() => {
     const handleStorage = (event: StorageEvent) => {
       if (event.key === null) {
-        setLanguageState(readLanguage())
-        setUiAnimationsEnabledState(readUiAnimationsEnabled())
-        setNumberAnimationsEnabledState(readNumberAnimationsEnabled())
-        setDefaultCurrencyState(readDefaultCurrency())
-        setWeatherAutoLocationEnabledState(readWeatherAutoLocation())
-        setWeatherManualCityState(readWeatherManualCity())
-        setWeatherTemperatureUnitState(readWeatherTemperatureUnit())
-        setFocusCompletionSoundEnabledState(readFocusCompletionSoundEnabled())
-        setTaskReminderEnabledState(readTaskReminderEnabled())
-        setTaskReminderLeadMinutesState(readTaskReminderLeadMinutes())
-        setNeteaseExperimentalPlaybackEnabledState(readNeteaseExperimentalPlaybackEnabled())
-        setNeteaseExperimentalPlaybackConfirmedState(readNeteaseExperimentalPlaybackConfirmed())
+        refreshFromStorage()
         return
       }
 
@@ -141,8 +146,13 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
         setNeteaseExperimentalPlaybackConfirmedState(readNeteaseExperimentalPlaybackConfirmed())
       }
     }
+    const handleSyncedPreferencesUpdated = () => refreshFromStorage()
     window.addEventListener('storage', handleStorage)
-    return () => window.removeEventListener('storage', handleStorage)
+    window.addEventListener(SYNCED_PREFERENCES_UPDATED_EVENT, handleSyncedPreferencesUpdated)
+    return () => {
+      window.removeEventListener('storage', handleStorage)
+      window.removeEventListener(SYNCED_PREFERENCES_UPDATED_EVENT, handleSyncedPreferencesUpdated)
+    }
   }, [])
 
   useEffect(() => {
@@ -159,61 +169,73 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
       setLanguage: (nextLanguage: LanguageCode) => {
         writeLanguage(nextLanguage)
         setLanguageState(nextLanguage)
+        void syncedPreferencesRepo.persistFromLocal()
       },
       uiAnimationsEnabled,
       setUiAnimationsEnabled: (enabled: boolean) => {
         writeUiAnimationsEnabled(enabled)
         setUiAnimationsEnabledState(enabled)
+        void syncedPreferencesRepo.persistFromLocal()
       },
       numberAnimationsEnabled,
       setNumberAnimationsEnabled: (enabled: boolean) => {
         writeNumberAnimationsEnabled(enabled)
         setNumberAnimationsEnabledState(enabled)
+        void syncedPreferencesRepo.persistFromLocal()
       },
       defaultCurrency,
       setDefaultCurrency: (currency: CurrencyCode) => {
         writeDefaultCurrency(currency)
         setDefaultCurrencyState(currency)
+        void syncedPreferencesRepo.persistFromLocal()
       },
       weatherAutoLocationEnabled,
       setWeatherAutoLocationEnabled: (enabled: boolean) => {
         writeWeatherAutoLocation(enabled)
         setWeatherAutoLocationEnabledState(enabled)
+        void syncedPreferencesRepo.persistFromLocal()
       },
       weatherManualCity,
       setWeatherManualCity: (city: string) => {
         writeWeatherManualCity(city)
         setWeatherManualCityState(city.trim())
+        void syncedPreferencesRepo.persistFromLocal()
       },
       weatherTemperatureUnit,
       setWeatherTemperatureUnit: (unit: TemperatureUnit) => {
         writeWeatherTemperatureUnit(unit)
         setWeatherTemperatureUnitState(unit)
+        void syncedPreferencesRepo.persistFromLocal()
       },
       focusCompletionSoundEnabled,
       setFocusCompletionSoundEnabled: (enabled: boolean) => {
         writeFocusCompletionSoundEnabled(enabled)
         setFocusCompletionSoundEnabledState(enabled)
+        void syncedPreferencesRepo.persistFromLocal()
       },
       taskReminderEnabled,
       setTaskReminderEnabled: (enabled: boolean) => {
         writeTaskReminderEnabled(enabled)
         setTaskReminderEnabledState(enabled)
+        void syncedPreferencesRepo.persistFromLocal()
       },
       taskReminderLeadMinutes,
       setTaskReminderLeadMinutes: (minutes: number) => {
         writeTaskReminderLeadMinutes(minutes)
         setTaskReminderLeadMinutesState(Math.max(1, Math.floor(minutes)))
+        void syncedPreferencesRepo.persistFromLocal()
       },
       neteaseExperimentalPlaybackEnabled,
       setNeteaseExperimentalPlaybackEnabled: (enabled: boolean) => {
         writeNeteaseExperimentalPlaybackEnabled(enabled)
         setNeteaseExperimentalPlaybackEnabledState(enabled)
+        void syncedPreferencesRepo.persistFromLocal()
       },
       neteaseExperimentalPlaybackConfirmed,
       setNeteaseExperimentalPlaybackConfirmed: (confirmed: boolean) => {
         writeNeteaseExperimentalPlaybackConfirmed(confirmed)
         setNeteaseExperimentalPlaybackConfirmedState(confirmed)
+        void syncedPreferencesRepo.persistFromLocal()
       },
     }
   }, [

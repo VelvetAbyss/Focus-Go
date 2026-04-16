@@ -11,14 +11,27 @@ import { SharedNoiseProvider } from './features/focus/SharedNoiseProvider'
 import { PremiumProvider } from './features/premium/PremiumProvider'
 import { SyncProvider } from './data/sync/service'
 import { useIsLoggedIn } from './store/auth'
+import { SYNC_DATA_UPDATED_EVENT } from './data/sync/constants'
+import { syncedPreferencesRepo } from './data/repositories/syncedPreferencesRepo'
 
 const App = () => {
   const isLoggedIn = useIsLoggedIn()
 
   useEffect(() => {
-    seedDatabase().then(() => {
+    seedDatabase().then(async () => {
+      await syncedPreferencesRepo.hydrateLocalFromDb()
       applyTheme(resolveInitialTheme())
     })
+  }, [])
+
+  useEffect(() => {
+    const handleSyncDataUpdated = () => {
+      void syncedPreferencesRepo.hydrateLocalFromDb().then(() => {
+        applyTheme(resolveInitialTheme())
+      })
+    }
+    window.addEventListener(SYNC_DATA_UPDATED_EVENT, handleSyncDataUpdated)
+    return () => window.removeEventListener(SYNC_DATA_UPDATED_EVENT, handleSyncDataUpdated)
   }, [])
 
   return (

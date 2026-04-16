@@ -467,7 +467,6 @@ const enqueueUpsert = async <
     | 'diaryEntries'
     | 'spends'
     | 'spendCategories'
-    | 'dashboardLayout'
     | 'habits'
     | 'habitLogs'
     | 'books'
@@ -477,7 +476,6 @@ const enqueueUpsert = async <
     | 'lifePodcasts'
     | 'lifePeople'
     | 'trips'
-    | 'lifeDashboardLayout'
 >(entityType: T, payload: { id: string; updatedAt: number } & Record<string, unknown>) => {
   await enqueueSyncOperation(entityType, 'upsert', payload)
 }
@@ -1181,12 +1179,10 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       if (!existing) {
         const next = withBase({ ...(data as Omit<DashboardLayout, 'id' | 'createdAt' | 'updatedAt'>), id: 'dashboard_layout' })
         await db.dashboardLayout.put(next)
-        await enqueueUpsert('dashboardLayout', next)
         return next
       }
       const next = touch({ ...existing, ...(data as Partial<DashboardLayout>) })
       await db.dashboardLayout.put(next)
-      await enqueueUpsert('dashboardLayout', next)
       return next
     },
   },
@@ -1200,12 +1196,10 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       if (!existing) {
         const next = withBase({ ...(data as Omit<LifeDashboardLayout, 'id' | 'createdAt' | 'updatedAt'>), id: LIFE_DASHBOARD_ID })
         await db.lifeDashboardLayout.put(next)
-        await enqueueUpsert('lifeDashboardLayout', next)
         return next
       }
       const next = touch({ ...existing, ...(data as Partial<LifeDashboardLayout>) })
       await db.lifeDashboardLayout.put(next)
-      await enqueueUpsert('lifeDashboardLayout', next)
       return next
     },
   },

@@ -1,3 +1,7 @@
+import type { CalendarSubscription } from '../../features/calendar/calendar.model'
+import type { DiaryFontId, LanguageCode, TemperatureUnit, WorldClockItem } from '../../shared/prefs/preferences'
+import type { ThemeSelection } from '../../shared/theme/theme'
+
 export type BaseEntity = {
   id: string
   createdAt: number
@@ -551,4 +555,26 @@ export type HabitLog = BaseEntity & {
   dateKey: string
   value?: number
   status: HabitStatus
+}
+
+export type SyncedPreferences = BaseEntity & {
+  id: 'synced_preferences'
+  language: LanguageCode
+  uiAnimationsEnabled: boolean
+  numberAnimationsEnabled: boolean
+  defaultCurrency: 'CNY' | 'USD'
+  weatherAutoLocationEnabled: boolean
+  weatherManualCity: string
+  weatherTemperatureUnit: TemperatureUnit
+  worldClockItems: WorldClockItem[]
+  focusCompletionSoundEnabled: boolean
+  taskReminderEnabled: boolean
+  taskReminderLeadMinutes: number
+  diaryFont: DiaryFontId
+  neteaseExperimentalPlaybackEnabled: boolean
+  neteaseExperimentalPlaybackConfirmed: boolean
+  sidebarOrder: string[]
+  themeSelection: ThemeSelection
+  dashboardLayoutLocked: boolean
+  calendarSubscriptions: CalendarSubscription[]
 }

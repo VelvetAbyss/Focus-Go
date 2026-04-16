@@ -16,6 +16,7 @@ import ModuleGuideRuntime from '../../features/onboarding/ModuleGuideRuntime'
 import { UpgradeModalProvider } from '../../features/labs/UpgradeModalContext'
 import UpgradeModal from '../../features/labs/components/UpgradeModal'
 import { AuthGateProvider } from '../../features/auth/AuthGateContext'
+import { syncedPreferencesRepo } from '../../data/repositories/syncedPreferencesRepo'
 
 type AppShellProps = {
   children: ReactNode
@@ -192,6 +193,7 @@ const AppShell = ({ children }: AppShellProps) => {
     setTheme(nextTheme)
     writeStoredThemePreference(nextTheme)
     applyTheme(nextTheme)
+    void syncedPreferencesRepo.persistFromLocal()
   }
 
   const shellStyle = {

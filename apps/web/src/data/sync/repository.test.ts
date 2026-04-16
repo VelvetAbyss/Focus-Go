@@ -25,9 +25,8 @@ describe('sync repository', () => {
     expect(actualStores.has(SYNC_ENTITY_TABLES.noteTags)).toBe(true)
     expect(actualStores.has(SYNC_ENTITY_TABLES.noteAppearance)).toBe(true)
     expect(actualStores.has(SYNC_ENTITY_TABLES.widgetTodos)).toBe(true)
-    expect(actualStores.has(SYNC_ENTITY_TABLES.dashboardLayout)).toBe(true)
     expect(actualStores.has(SYNC_ENTITY_TABLES.projects)).toBe(true)
-    expect(actualStores.has(SYNC_ENTITY_TABLES.lifeDashboardLayout)).toBe(true)
+    expect(actualStores.has(SYNC_ENTITY_TABLES.syncedPreferences)).toBe(true)
   })
 
   it('restamps synced rows before restore upload so restored snapshot wins the next push', async () => {

@@ -11,7 +11,6 @@ import { getDashboardCards } from './registry'
 import { useDashboardGridEdit } from './useDashboardGridEdit'
 import type { DashboardLayoutItem } from '../../data/models/types'
 import { useSearchParams } from 'react-router-dom'
-import { syncDashboardLayout } from './layoutSyncAdapter'
 import DashboardHeader from './DashboardHeader'
 import { useI18n } from '../../shared/i18n/useI18n'
 import {
@@ -23,18 +22,8 @@ import { usePremiumGate } from '../premium/PremiumProvider'
 import LifeDashboard from '../life/LifeDashboard'
 import OnboardingModal from '../onboarding/OnboardingModal'
 import { useOnboardingFlow } from '../onboarding/useOnboardingFlow'
-
-const LAYOUT_LOCK_KEY = 'workbench.dashboard.layoutLocked'
-
-const readLayoutLocked = () => {
-  const raw = localStorage.getItem(LAYOUT_LOCK_KEY)
-  if (raw === null) return true
-  return raw !== 'false'
-}
-
-const writeLayoutLocked = (locked: boolean) => {
-  localStorage.setItem(LAYOUT_LOCK_KEY, locked ? 'true' : 'false')
-}
+import { readLayoutLocked, writeLayoutLocked } from '../../shared/prefs/dashboardLayoutLock'
+import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../data/repositories/syncedPreferencesRepo'
 
 const DashboardPage = () => {
   const { t } = useI18n()
@@ -51,7 +40,7 @@ const DashboardPage = () => {
   const widgetsPanelOpen = searchParams.get('widgetsPanel') === '1'
   const [confirmHideCardId, setConfirmHideCardId] = useState<string | null>(null)
   const [hideSubmitting, setHideSubmitting] = useState(false)
-  const [syncError, setSyncError] = useState<string | null>(null)
+  const layoutLockHydratedRef = useRef(false)
   const layoutSnapshotRef = useRef<{ layout: DashboardLayoutItem[]; hiddenCardIds: string[] }>({
     layout: [],
     hiddenCardIds: [],
@@ -99,6 +88,11 @@ const DashboardPage = () => {
 
   useEffect(() => {
     writeLayoutLocked(!layoutEdit)
+    if (layoutLockHydratedRef.current) {
+      void syncedPreferencesRepo.persistFromLocal()
+    } else {
+      layoutLockHydratedRef.current = true
+    }
     if (!layoutEdit) {
       setSearchParams((prev) => {
         if (!prev.has('widgetsPanel')) return prev
@@ -108,6 +102,18 @@ const DashboardPage = () => {
       })
     }
   }, [layoutEdit, setSearchParams])
+
+  useEffect(() => {
+    const handleSyncedPreferencesUpdated = () => {
+      if (isMobile) {
+        setLayoutEdit(false)
+        return
+      }
+      setLayoutEdit(!readLayoutLocked())
+    }
+    window.addEventListener(SYNCED_PREFERENCES_UPDATED_EVENT, handleSyncedPreferencesUpdated)
+    return () => window.removeEventListener(SYNCED_PREFERENCES_UPDATED_EVENT, handleSyncedPreferencesUpdated)
+  }, [isMobile])
 
   const gridEdit = useDashboardGridEdit({
     layout: responsiveLayout,
@@ -121,8 +127,7 @@ const DashboardPage = () => {
     minH: 2,
     onUpdate: setLayout,
     onCommit: (finalLayout) => {
-      const rollbackState = layoutSnapshotRef.current
-      void persistLayout(finalLayout, hiddenCardIds, rollbackState)
+      void persistLayout(finalLayout, hiddenCardIds)
     },
   })
 
@@ -139,15 +144,9 @@ const DashboardPage = () => {
   )
 
   const persistLayout = useCallback(
-    async (
-      nextLayout: DashboardLayoutItem[],
-      nextHiddenCardIds: string[],
-      rollbackState?: { layout: DashboardLayoutItem[]; hiddenCardIds: string[] }
-    ) => {
+    async (nextLayout: DashboardLayoutItem[], nextHiddenCardIds: string[]) => {
       setLayout(nextLayout)
       setHiddenCardIds(nextHiddenCardIds)
-      setSyncError(null)
-
       const stored = await dashboardRepo.get()
       const themeOverride = stored?.themeOverride ?? null
       await dashboardRepo.upsert({
@@ -155,20 +154,6 @@ const DashboardPage = () => {
         hiddenCardIds: nextHiddenCardIds,
         themeOverride,
       })
-
-      try {
-        await syncDashboardLayout({ items: nextLayout, hiddenCardIds: nextHiddenCardIds })
-      } catch {
-        if (!rollbackState) return
-        setLayout(rollbackState.layout)
-        setHiddenCardIds(rollbackState.hiddenCardIds)
-        await dashboardRepo.upsert({
-          items: rollbackState.layout,
-          hiddenCardIds: rollbackState.hiddenCardIds,
-          themeOverride,
-        })
-        setSyncError('Cloud sync failed. Changes were rolled back.')
-      }
     },
     []
   )
@@ -277,10 +262,7 @@ const DashboardPage = () => {
 
   const requestHideCard = useCallback(
     (cardId: string) => {
-      if (layout.length <= 1) {
-        setSyncError('At least one widget must remain visible.')
-        return
-      }
+      if (layout.length <= 1) return
       setConfirmHideCardId(cardId)
     },
     [layout.length]
@@ -288,24 +270,22 @@ const DashboardPage = () => {
 
   const hideCard = useCallback(async () => {
     if (!confirmHideCardId) return
-    const previous = { layout, hiddenCardIds }
     const nextLayout = layout.filter((item) => item.key !== confirmHideCardId)
     const nextHidden = hiddenCardIds.includes(confirmHideCardId)
       ? hiddenCardIds
       : [...hiddenCardIds, confirmHideCardId]
 
     setHideSubmitting(true)
-    await persistLayout(nextLayout, nextHidden, previous)
+    await persistLayout(nextLayout, nextHidden)
     setHideSubmitting(false)
     setConfirmHideCardId(null)
   }, [confirmHideCardId, hiddenCardIds, layout, persistLayout])
 
   const showCard = useCallback(
     async (cardId: string) => {
-      const previous = { layout, hiddenCardIds }
       const nextLayout = appendCardToEnd(cardId, layout)
       const nextHidden = hiddenCardIds.filter((id) => id !== cardId)
-      await persistLayout(nextLayout, nextHidden, previous)
+      await persistLayout(nextLayout, nextHidden)
     },
     [appendCardToEnd, hiddenCardIds, layout, persistLayout]
   )
@@ -344,7 +324,6 @@ const DashboardPage = () => {
         />
 
         <div aria-live="polite" aria-atomic="true">
-          {syncError && <p className="dashboard__sync-error">{syncError}</p>}
         </div>
 
         {/* Life page */}

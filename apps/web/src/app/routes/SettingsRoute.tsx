@@ -74,8 +74,8 @@ import {
   searchRemoteCitySuggestions,
   type CitySuggestion,
 } from '../../shared/location/citySuggestions'
-
-const LAYOUT_LOCK_KEY = 'workbench.dashboard.layoutLocked'
+import { readLayoutLocked, writeLayoutLocked } from '../../shared/prefs/dashboardLayoutLock'
+import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../data/repositories/syncedPreferencesRepo'
 const RESET_TIMEOUT_MS = 4_000
 
 type ThemeSelection = 'system' | 'light' | 'dark'
@@ -339,16 +339,6 @@ const LEGAL_DOCUMENTS: Record<LanguageCode, Record<LegalDocumentKey, LegalDocume
   },
 }
 
-const readLayoutLocked = () => {
-  const raw = localStorage.getItem(LAYOUT_LOCK_KEY)
-  if (raw === null) return true
-  return raw !== 'false'
-}
-
-const writeLayoutLocked = (locked: boolean) => {
-  localStorage.setItem(LAYOUT_LOCK_KEY, locked ? 'true' : 'false')
-}
-
 type SettingRowProps = {
   icon: typeof Brush
   title: string
@@ -584,7 +574,18 @@ const SettingsRoute = () => {
 
     writeStoredThemePreference(next)
     applyTheme(resolveTheme(next))
+    void syncedPreferencesRepo.persistFromLocal()
   }
+
+  useEffect(() => {
+    const handleSyncedPreferencesUpdated = () => {
+      setLayoutLocked(readLayoutLocked())
+      const storedPreference = readStoredThemePreference()
+      setTheme(storedPreference ?? 'system')
+    }
+    window.addEventListener(SYNCED_PREFERENCES_UPDATED_EVENT, handleSyncedPreferencesUpdated)
+    return () => window.removeEventListener(SYNCED_PREFERENCES_UPDATED_EVENT, handleSyncedPreferencesUpdated)
+  }, [])
 
   useEffect(() => {
     if (!themePackPreview) {
@@ -1016,6 +1017,7 @@ const SettingsRoute = () => {
                               onCheckedChange={(checked) => {
                                 setLayoutLocked(checked)
                                 writeLayoutLocked(checked)
+                                void syncedPreferencesRepo.persistFromLocal()
                               }}
                             />
                           </SettingRow>

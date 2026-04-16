@@ -50,8 +50,8 @@ import type { TaskItem } from '../../tasks/tasks.types'
 import { formatTaskDateRange, taskCoversDate } from '../../tasks/taskDates'
 import { fetchIcsEventsWithFallback, filterEventsInMonth } from '../calendar.ics'
 import {
-  buildInitialCalendarSubscriptions,
   buildSampleMonthEvents,
+  type CalendarEvent,
   formatMonthLabel,
   getMonthGridDateKeys,
   isDateInMonth,
@@ -61,16 +61,18 @@ import {
   sortSubscriptions,
   toggleSubscriptionEnabled,
   updateSubscriptionColor,
-  type CalendarEvent,
   type CalendarProvider,
   type CalendarSubscription,
 } from '../calendar.model'
+import {
+  readStoredSubscriptions,
+  STORAGE_ICS_EVENTS_KEY,
+  STORAGE_TASK_COLORS_KEY,
+  writeStoredSubscriptions,
+} from '../calendarStorage'
+import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../../data/repositories/syncedPreferencesRepo'
 
 const calendarEventKindRank = { lunar: 0, holiday: 1, event: 2 } as const
-
-const STORAGE_SUBSCRIPTIONS_KEY = 'focusgo.calendar.subscriptions.v1'
-const STORAGE_ICS_EVENTS_KEY = 'focusgo.calendar.icsEvents.v1'
-const STORAGE_TASK_COLORS_KEY = 'focusgo.calendar.taskColors.v1'
 const CALENDAR_PRESET_COLORS = ['#9ca3af', '#60a5fa', '#2563eb', '#22d3ee', '#34d399', '#10b981', '#22c55e', '#f59e0b', '#ef4444', '#fb7185', '#6b7280', '#0f766e']
 const CALENDAR_PRESET_SUBSCRIPTIONS = [
   {
@@ -286,20 +288,6 @@ const getProviderLabel = (provider: CalendarProvider, language: 'en' | 'zh') => 
   return 'Outlook'
 }
 
-const readStoredSubscriptions = () => {
-  if (typeof window === 'undefined') return buildInitialCalendarSubscriptions()
-
-  try {
-    const raw = window.localStorage.getItem(STORAGE_SUBSCRIPTIONS_KEY)
-    if (!raw) return buildInitialCalendarSubscriptions()
-    const parsed = JSON.parse(raw) as CalendarSubscription[]
-    if (!Array.isArray(parsed) || parsed.length === 0) return buildInitialCalendarSubscriptions()
-    return sortSubscriptions(removeAllSystemSubscriptions(parsed))
-  } catch {
-    return buildInitialCalendarSubscriptions()
-  }
-}
-
 const readStoredIcsEvents = () => {
   if (typeof window === 'undefined') return {} as Record<string, CalendarEvent[]>
 
@@ -465,6 +453,7 @@ const CalendarPage = () => {
   const [creatingGridTask, setCreatingGridTask] = useState(false)
   const tasksLoadRequestRef = useRef(0)
   const syncedSubscriptionSignatureRef = useRef<Record<string, string>>({})
+  const subscriptionsHydratedRef = useRef(false)
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 5 },
@@ -499,7 +488,12 @@ const CalendarPage = () => {
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    window.localStorage.setItem(STORAGE_SUBSCRIPTIONS_KEY, JSON.stringify(subscriptions))
+    writeStoredSubscriptions(subscriptions)
+    if (!subscriptionsHydratedRef.current) {
+      subscriptionsHydratedRef.current = true
+      return
+    }
+    void syncedPreferencesRepo.persistFromLocal()
   }, [subscriptions])
 
   useEffect(() => {
@@ -537,6 +531,14 @@ const CalendarPage = () => {
   }, [])
 
   useSyncDataRefresh(loadTasks)
+
+  useEffect(() => {
+    const handleSyncedPreferencesUpdated = () => {
+      setSubscriptions(readStoredSubscriptions())
+    }
+    window.addEventListener(SYNCED_PREFERENCES_UPDATED_EVENT, handleSyncedPreferencesUpdated)
+    return () => window.removeEventListener(SYNCED_PREFERENCES_UPDATED_EVENT, handleSyncedPreferencesUpdated)
+  }, [])
 
   useEffect(() => {
     void loadTasks()

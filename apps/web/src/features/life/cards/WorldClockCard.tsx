@@ -20,6 +20,7 @@ import {
   type WorldClockItem,
 } from '../../../shared/prefs/preferences'
 import { repairWorldClockItems, resolveWorldClockItemFromSuggestion } from '../../dashboard/worldClock'
+import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../../data/repositories/syncedPreferencesRepo'
 
 const MAX_WORLD_CLOCK_ITEMS = 6
 
@@ -46,8 +47,13 @@ const WorldClockCard = () => {
         setItems(readWorldClockItems())
       }
     }
+    const handleSyncedPreferencesUpdated = () => setItems(readWorldClockItems())
     window.addEventListener('storage', handleStorage)
-    return () => window.removeEventListener('storage', handleStorage)
+    window.addEventListener(SYNCED_PREFERENCES_UPDATED_EVENT, handleSyncedPreferencesUpdated)
+    return () => {
+      window.removeEventListener('storage', handleStorage)
+      window.removeEventListener(SYNCED_PREFERENCES_UPDATED_EVENT, handleSyncedPreferencesUpdated)
+    }
   }, [])
 
   useEffect(() => {
@@ -64,6 +70,7 @@ const WorldClockCard = () => {
       if (!changed) return
       writeWorldClockItems(nextItems)
       setItems(nextItems)
+      void syncedPreferencesRepo.persistFromLocal()
     })
     return () => { cancelled = true }
   }, [items])
@@ -117,6 +124,7 @@ const WorldClockCard = () => {
       const nextItems = [...items, nextItem].slice(0, MAX_WORLD_CLOCK_ITEMS)
       writeWorldClockItems(nextItems)
       setItems(nextItems)
+      void syncedPreferencesRepo.persistFromLocal()
       closeComposer()
     } finally {
       setPending(false)
@@ -127,6 +135,7 @@ const WorldClockCard = () => {
     const nextItems = items.filter((item) => item.id !== id)
     writeWorldClockItems(nextItems)
     setItems(nextItems)
+    void syncedPreferencesRepo.persistFromLocal()
   }
 
   const locale = language === 'zh' ? 'zh-CN' : 'en-US'
