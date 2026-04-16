@@ -93,3 +93,50 @@ test('sync route push/pull chain stores blobs and returns hydrated rows', async 
     await ctx.close()
   }
 })
+
+test('sync route supports syncedPreferences entity', async () => {
+  const ctx = await createServer()
+
+  try {
+    const pushResponse = await fetch(`${ctx.baseUrl}/sync/rxdb/push`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'syncedPreferences',
+        rows: [{
+          newDocumentState: {
+            id: 'synced_preferences',
+            language: 'zh',
+            defaultCurrency: 'CNY',
+            themeSelection: 'dark',
+            updatedAt: 10,
+            _deleted: false,
+          },
+          assumedMasterState: null,
+        }],
+        blobs: [],
+      }),
+    })
+
+    assert.equal(pushResponse.status, 200)
+
+    const pullResponse = await fetch(`${ctx.baseUrl}/sync/rxdb/pull`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'syncedPreferences',
+        checkpoint: null,
+        limit: 100,
+      }),
+    })
+
+    assert.equal(pullResponse.status, 200)
+    const pullJson = await pullResponse.json()
+    assert.equal(pullJson.documents.length, 1)
+    assert.equal(pullJson.documents[0].id, 'synced_preferences')
+    assert.equal(pullJson.documents[0].language, 'zh')
+    assert.equal(pullJson.documents[0].themeSelection, 'dark')
+  } finally {
+    await ctx.close()
+  }
+})

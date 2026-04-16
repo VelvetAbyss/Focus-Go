@@ -25,6 +25,7 @@ export const SYNC_TABLES = {
   lifePeople: 'sync_life_people',
   trips: 'sync_trips',
   lifeDashboardLayout: 'sync_life_dashboard_layout',
+  syncedPreferences: 'sync_synced_preferences',
 }
 
 export const SYNC_ENTITY_TYPES = Object.keys(SYNC_TABLES)
