@@ -6,6 +6,7 @@
   "outputDirectory": "apps/web/dist",
   "devCommand": "npm run dev:web",
   "rewrites": [
+    { "source": "/api/:match*", "destination": "https://api.nestflow.art/:match*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { isLocalhostRuntime } from '../shared/env/localhost'
+import { buildApiUrl } from '../shared/apiBase'
 
 export const AUTH_CHANGED_EVENT = 'focusgo:auth-changed'
 
@@ -54,7 +55,7 @@ export const useAuthPlan = () =>
 
 export const fetchAuthProfile = async (accessToken: string): Promise<AuthProfile | null> => {
   try {
-    const res = await fetch(`${import.meta.env.VITE_API_BASE}/user/profile`, {
+    const res = await fetch(buildApiUrl('/user/profile'), {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
     if (!res.ok) return null

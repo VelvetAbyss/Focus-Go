@@ -10,6 +10,7 @@ import App from './App.tsx'
 import { AUTH_CONFIG } from './config/auth'
 import { clearAuth, fetchAuthProfile, setAuth } from './store/auth'
 import { consumePendingCheckout, startPremiumCheckout } from './features/payments/paymentFlow'
+import { buildApiUrl } from './shared/apiBase'
 
 function mountApp() {
   createRoot(document.getElementById('root')!).render(
@@ -42,7 +43,7 @@ async function bootstrap() {
     }
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE}/auth/exchange`, {
+      const res = await fetch(buildApiUrl('/auth/exchange'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code, codeVerifier: pkceVerifier, redirectUri: AUTH_CONFIG.redirectUri }),
@@ -70,7 +71,7 @@ async function bootstrap() {
     const { accessToken } = JSON.parse(existing)
     if (accessToken) {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_BASE}/auth/me`, {
+        const res = await fetch(buildApiUrl('/auth/me'), {
           headers: { Authorization: `Bearer ${accessToken}` },
         })
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
