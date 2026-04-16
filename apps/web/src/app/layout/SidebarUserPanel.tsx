@@ -370,9 +370,9 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
   const handleLogout = async () => {
     if (accountAction) return
     setAccountAction('logout')
+    await clearLocalUserDataBestEffort()
     clearAuth()
     onClose()
-    await clearLocalUserDataBestEffort()
     window.location.href = getLogoutUrl()
   }
 
@@ -411,9 +411,9 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
   const handleSwitchAccount = async () => {
     if (accountAction) return
     setAccountAction('switch')
+    await clearLocalUserDataBestEffort()
     clearAuth()
     onClose()
-    await clearLocalUserDataBestEffort()
     const authUrl = await prepareAuthSession()
     window.location.href = authUrl
   }

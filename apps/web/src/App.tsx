@@ -10,8 +10,11 @@ import { LabsProvider } from './features/labs/LabsContext'
 import { SharedNoiseProvider } from './features/focus/SharedNoiseProvider'
 import { PremiumProvider } from './features/premium/PremiumProvider'
 import { SyncProvider } from './data/sync/service'
+import { useIsLoggedIn } from './store/auth'
 
 const App = () => {
+  const isLoggedIn = useIsLoggedIn()
+
   useEffect(() => {
     seedDatabase().then(() => {
       applyTheme(resolveInitialTheme())
@@ -27,7 +30,7 @@ const App = () => {
               <LabsProvider>
                 <SharedNoiseProvider>
                   <AppShell>
-                    <AppRoutes />
+                    <AppRoutes key={isLoggedIn ? 'authenticated' : 'guest'} />
                   </AppShell>
                 </SharedNoiseProvider>
               </LabsProvider>
