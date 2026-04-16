@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useSyncDataRefresh } from '../../../data/sync/service'
+import { useSyncDataRefresh, useSyncStatus } from '../../../data/sync/service'
+import { useIsLoggedIn } from '../../../store/auth'
 import type { NoteAppearanceSettings, NoteItem, NoteTag } from '../../../data/models/types'
 import { noteAppearanceRepo } from '../../../data/repositories/noteAppearanceRepo'
 import { noteTagsRepo } from '../../../data/repositories/noteTagsRepo'
@@ -109,6 +110,8 @@ const buildNoteTextForStats = (contentMd: string) => contentMd
 export default function NotePage() {
   const { t } = useI18n()
   const { canUse, openUpgradeModal } = usePremiumGate()
+  const isLoggedIn = useIsLoggedIn()
+  const syncStatus = useSyncStatus()
   const [notes, setNotes] = useState<NoteItem[]>([])
   const [trash, setTrash] = useState<NoteItem[]>([])
   const [tags, setTags] = useState<NoteTag[]>([])
@@ -136,10 +139,22 @@ export default function NotePage() {
   const editorSurfaceRef = useRef<HTMLDivElement | null>(null)
   const creatingFromBlankRef = useRef(false)
   const activeCollectionRef = useRef<NoteSystemCollection>('notes')
+  // Guards default-tag creation against racing with the first sync pull.
+  // When the user is logged in we must wait for the first sync cycle to
+  // complete before deciding to seed defaults — otherwise local tags created
+  // here get a new random ID while the server already has tags with different
+  // IDs, producing duplicates after the pull lands.
+  const isLoggedInRef = useRef(isLoggedIn)
+  const hasSyncedOnceRef = useRef(false)
+  const prevSyncStatusRef = useRef<string | null>(null)
 
   useEffect(() => {
     activeCollectionRef.current = activeCollection
   }, [activeCollection])
+
+  useEffect(() => {
+    isLoggedInRef.current = isLoggedIn
+  }, [isLoggedIn])
 
   const refresh = useCallback(async () => {
     const [activeNotes, trashedNotes, storedTags, storedAppearance, projects] = await Promise.all([
@@ -153,20 +168,29 @@ export default function NotePage() {
     let resolvedTags: NoteTag[] = storedTags
 
     if (storedTags.length === 0) {
-      const createdTags: NoteTag[] = []
-      const byName = new Map<string, NoteTag>()
-      for (const tag of DEFAULT_TAGS) {
-        const created = await noteTagsRepo.create({
-          name: tag.name,
-          icon: tag.icon,
-          pinned: tag.pinned,
-          parentId: tag.parentName ? byName.get(tag.parentName)?.id ?? null : null,
-          sortOrder: tag.sortOrder,
-        })
-        createdTags.push(created)
-        byName.set(created.name, created)
+      // For logged-in users, wait for the first sync cycle to complete before
+      // seeding defaults. If we create tags now with fresh random IDs, they
+      // will duplicate any tags the server already holds (different IDs, same
+      // names). The sync-completion effect below re-fires refresh once the
+      // cycle finishes and hasSyncedOnceRef is set to true.
+      if (isLoggedInRef.current && !hasSyncedOnceRef.current) {
+        resolvedTags = []
+      } else {
+        const createdTags: NoteTag[] = []
+        const byName = new Map<string, NoteTag>()
+        for (const tag of DEFAULT_TAGS) {
+          const created = await noteTagsRepo.create({
+            name: tag.name,
+            icon: tag.icon,
+            pinned: tag.pinned,
+            parentId: tag.parentName ? byName.get(tag.parentName)?.id ?? null : null,
+            sortOrder: tag.sortOrder,
+          })
+          createdTags.push(created)
+          byName.set(created.name, created)
+        }
+        resolvedTags = createdTags
       }
-      resolvedTags = createdTags
     } else {
       const shouldRelinkDefaults = storedTags.every((tag) => DEFAULT_TAGS.some((seed) => seed.name === tag.name)) && storedTags.every((tag) => !tag.parentId)
       if (shouldRelinkDefaults) {
@@ -225,6 +249,19 @@ export default function NotePage() {
   }
 
   useSyncDataRefresh(refresh)
+
+  // Re-run refresh once the first sync cycle finishes ('syncing' → 'idle').
+  // At that point hasSyncedOnceRef is true, so refresh will create defaults
+  // only if the server confirmed there are none.
+  useEffect(() => {
+    const prev = prevSyncStatusRef.current
+    const current = syncStatus?.status ?? null
+    prevSyncStatusRef.current = current
+    if (prev === 'syncing' && current === 'idle') {
+      hasSyncedOnceRef.current = true
+      void refresh()
+    }
+  }, [syncStatus?.status, refresh])
 
   useEffect(() => {
     const bootTimer = window.setTimeout(() => {
