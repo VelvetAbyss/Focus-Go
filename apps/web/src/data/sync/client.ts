@@ -35,7 +35,7 @@ const runSyncConnectivityDiagnosis = async () => {
       body: JSON.stringify({ entityType: 'notes', checkpoint: null, limit: 1 }),
     })
     if (syncProbe.status === 401) {
-      return new Error(`Authenticated sync request blocked in browser: ${base}`)
+      return new Error('Sync auth token invalid or expired — please log in again')
     }
   } catch {
     return new Error(`Sync request blocked by browser or network: ${base}`)

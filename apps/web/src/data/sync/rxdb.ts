@@ -9,7 +9,7 @@ import type { RxdbCheckpoint, SyncEntityType, SyncPayload, SyncState, SyncStatus
 
 const RXDB_SYNC_DB_NAME = 'focusgo-sync-rxdb'
 const RXDB_SYNC_BATCH_SIZE = 100
-const RXDB_SYNC_TIMEOUT_MS = 1_500
+const RXDB_SYNC_TIMEOUT_MS = 8_000
 const SYNC_ENTITY_TYPES = Object.keys(SYNC_ENTITY_TABLES) as SyncEntityType[]
 
 type SyncDocument = SyncPayload & { _deleted?: boolean }
@@ -228,10 +228,11 @@ const syncEntity = async (entityType: SyncEntityType) =>
       },
     } as never)
 
+    const pendingWrites: Promise<unknown>[] = []
     const receivedSub = replication.received$.subscribe({
       next: (document) => {
-        void writeDexieEntity(entityType, document as SyncDocument)
-        void buildStatePatch({ lastPulledAt: now(), missingBlobPull: false })
+        pendingWrites.push(writeDexieEntity(entityType, document as SyncDocument))
+        pendingWrites.push(buildStatePatch({ lastPulledAt: now(), missingBlobPull: false }))
       },
     })
     const sentSub = replication.sent$.subscribe({
@@ -245,13 +246,12 @@ const syncEntity = async (entityType: SyncEntityType) =>
     })
     const errorSub = replication.error$.subscribe({
       next: (error) => {
-        const message = extractSyncErrorMessage(error)
-        void setStatus('error', message)
         rejectSync?.(error)
       },
     })
+    let timeoutId: ReturnType<typeof globalThis.setTimeout> | null = null
     const timeoutPromise = new Promise<never>((_, reject) => {
-      globalThis.setTimeout(() => reject(new Error(`Sync timed out for ${entityType}`)), RXDB_SYNC_TIMEOUT_MS)
+      timeoutId = globalThis.setTimeout(() => reject(new Error(`Sync timed out for ${entityType}`)), RXDB_SYNC_TIMEOUT_MS)
     })
 
     try {
@@ -261,9 +261,11 @@ const syncEntity = async (entityType: SyncEntityType) =>
         timeoutPromise,
       ])
     } finally {
+      if (timeoutId) globalThis.clearTimeout(timeoutId)
       receivedSub.unsubscribe()
       sentSub.unsubscribe()
       errorSub.unsubscribe()
+      await Promise.allSettled(pendingWrites)
       await replication.cancel()
     }
   })
@@ -277,16 +279,20 @@ export const runRxdbSyncCycle = async () =>
   runQueued(async () => {
     await ensureSyncStateReady()
     await setStatus('syncing')
-    try {
-      for (const entityType of SYNC_ENTITY_TYPES) {
+    const entityErrors: string[] = []
+    for (const entityType of SYNC_ENTITY_TYPES) {
+      try {
         await syncEntity(entityType)
+      } catch (error) {
+        entityErrors.push(`${entityType}: ${extractSyncErrorMessage(error)}`)
       }
-      await setStatus('idle')
-    } catch (error) {
-      const message = extractSyncErrorMessage(error)
-      await setStatus('error', message)
-      throw error
     }
+    if (entityErrors.length > 0) {
+      const message = entityErrors.join('; ')
+      await setStatus('error', message)
+      throw new Error(message)
+    }
+    await setStatus('idle')
   })
 
 export const enqueueRxdbSyncChange = async <T extends SyncEntityType>(
