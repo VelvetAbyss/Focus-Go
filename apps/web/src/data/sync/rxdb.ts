@@ -5,6 +5,7 @@ import { db } from '../db'
 import { createBlobMap, decodeSyncPayload, encodeSyncPayload } from './content'
 import { SYNC_DATA_UPDATED_EVENT, SYNC_ENTITY_TABLES, SYNC_STATUS_CHANGED_EVENT } from './constants'
 import { syncApi } from './client'
+import { getAuth } from '../../store/auth'
 import type { RxdbCheckpoint, SyncEntityType, SyncPayload, SyncState, SyncStatus } from './types'
 
 const RXDB_SYNC_DB_NAME = 'focusgo-sync-rxdb'
@@ -281,6 +282,11 @@ export const runRxdbSyncCycle = async () =>
     await setStatus('syncing')
     const entityErrors: string[] = []
     for (const entityType of SYNC_ENTITY_TYPES) {
+      if (!getAuth()?.accessToken) {
+        const message = 'Sync failed: session expired, please log in again'
+        await setStatus('error', message)
+        throw new Error(message)
+      }
       try {
         await syncEntity(entityType)
       } catch (error) {
