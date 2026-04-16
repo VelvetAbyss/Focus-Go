@@ -1,6 +1,6 @@
 import { getAuth } from '../../store/auth'
 import { db } from '../db'
-import { buildApiUrl } from '../../shared/apiBase'
+import { buildApiUrl, fetchApi } from '../../shared/apiBase'
 import type {
   RxdbPullRequest,
   RxdbPullResponse,
@@ -22,14 +22,14 @@ const getAuthHeaders = () => {
 const runSyncConnectivityDiagnosis = async () => {
   const base = buildApiUrl('')
   try {
-    const health = await fetch(buildApiUrl('/health'))
+    const health = await fetchApi('/health')
     if (!health.ok) return null
   } catch {
     return new Error(`Sync request blocked by browser or network: ${base}`)
   }
 
   try {
-    const syncProbe = await fetch(buildApiUrl('/sync/rxdb/pull'), {
+    const syncProbe = await fetchApi('/sync/rxdb/pull', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ entityType: 'notes', checkpoint: null, limit: 1 }),
@@ -55,7 +55,7 @@ export const normalizeSyncFetchError = async (error: unknown) => {
 const fetchJson = async <T>(path: string, init?: RequestInit): Promise<T> => {
   let response: Response
   try {
-    response = await fetch(buildApiUrl(path), init)
+    response = await fetchApi(path, init)
   } catch (error) {
     throw await normalizeSyncFetchError(error)
   }

@@ -1,6 +1,6 @@
 import type { LifePodcastCreateInput } from '@focus-go/core'
 import { getAuth } from '../../store/auth'
-import { buildAbsoluteApiUrl, buildApiUrl } from '../../shared/apiBase'
+import { buildAbsoluteApiUrl, fetchApi } from '../../shared/apiBase'
 import { isLocalhostRuntime } from '../../shared/env/localhost'
 
 type ItunesSearchResult = {
@@ -74,7 +74,7 @@ const fetchAuthedJson = async <T,>(path: string, init?: RequestInit): Promise<T>
     ...(getAuthHeaders() as Record<string, string>),
     ...((init?.headers ?? {}) as Record<string, string>),
   }
-  const response = await fetch(buildApiUrl(path), {
+  const response = await fetchApi(path, {
     ...init,
     headers,
   })
