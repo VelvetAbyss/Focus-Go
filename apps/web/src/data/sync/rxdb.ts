@@ -230,10 +230,11 @@ const syncEntity = async (entityType: SyncEntityType) =>
     } as never)
 
     const pendingWrites: Promise<unknown>[] = []
+    let receivedDocumentCount = 0
     const receivedSub = replication.received$.subscribe({
       next: (document) => {
+        receivedDocumentCount++
         pendingWrites.push(writeDexieEntity(entityType, document as SyncDocument))
-        pendingWrites.push(buildStatePatch({ lastPulledAt: now(), missingBlobPull: false }))
       },
     })
     const sentSub = replication.sent$.subscribe({
@@ -266,7 +267,14 @@ const syncEntity = async (entityType: SyncEntityType) =>
       receivedSub.unsubscribe()
       sentSub.unsubscribe()
       errorSub.unsubscribe()
-      await Promise.allSettled(pendingWrites)
+      // Flush Dexie writes with a safety timeout — guards against db.close() leaving ops hanging
+      await Promise.race([
+        Promise.allSettled(pendingWrites),
+        new Promise<void>(resolve => globalThis.setTimeout(resolve, 5_000)),
+      ])
+      if (receivedDocumentCount > 0) {
+        await buildStatePatch({ lastPulledAt: now(), missingBlobPull: false }).catch(() => {})
+      }
       await replication.cancel()
     }
   })
