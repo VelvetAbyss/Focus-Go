@@ -11,6 +11,7 @@ import type { RxdbCheckpoint, SyncEntityType, SyncPayload, SyncState, SyncStatus
 const RXDB_SYNC_DB_NAME = 'focusgo-sync-rxdb'
 const RXDB_SYNC_BATCH_SIZE = 100
 const RXDB_SYNC_TIMEOUT_MS = 8_000
+const RXDB_SYNC_PARALLEL_LIMIT = 6
 const SYNC_ENTITY_TYPES = Object.keys(SYNC_ENTITY_TABLES) as SyncEntityType[]
 
 type SyncDocument = SyncPayload & { _deleted?: boolean }
@@ -219,6 +220,18 @@ const syncEntity = async (entityType: SyncEntityType) =>
       live: false,
       waitForLeadership: false,
       retryTime: 3_000,
+      // Last-write-wins: whichever side has the more recent updatedAt timestamp wins.
+      conflictHandler: async (input: { newDocumentState: SyncDocument; realMasterState: SyncDocument }) => {
+        const local = input.newDocumentState
+        const remote = input.realMasterState
+        if (local.updatedAt === remote.updatedAt) {
+          return { isEqual: true, documentData: local }
+        }
+        return {
+          isEqual: false,
+          documentData: local.updatedAt > remote.updatedAt ? local : remote,
+        }
+      },
       pull: {
         batchSize: RXDB_SYNC_BATCH_SIZE,
         handler: (checkpoint: RxdbCheckpoint | undefined, batchSize: number) => pullHandler(entityType, checkpoint, batchSize),
@@ -287,20 +300,37 @@ export const ensureRxdbSyncReady = async () =>
 export const runRxdbSyncCycle = async () =>
   runQueued(async () => {
     await ensureSyncStateReady()
+
+    if (!getAuth()?.accessToken) {
+      const message = 'Sync failed: session expired, please log in again'
+      await setStatus('error', message)
+      throw new Error(message)
+    }
+
     await setStatus('syncing')
     const entityErrors: string[] = []
-    for (const entityType of SYNC_ENTITY_TYPES) {
-      if (!getAuth()?.accessToken) {
-        const message = 'Sync failed: session expired, please log in again'
-        await setStatus('error', message)
-        throw new Error(message)
-      }
-      try {
-        await syncEntity(entityType)
-      } catch (error) {
-        entityErrors.push(`${entityType}: ${extractSyncErrorMessage(error)}`)
+
+    // Process entities in parallel using a bounded worker pool.
+    // Each worker pulls from the shared queue until it is empty, so we never
+    // open more than RXDB_SYNC_PARALLEL_LIMIT databases at once while still
+    // keeping all workers busy.
+    const queue = [...SYNC_ENTITY_TYPES]
+    const runWorker = async () => {
+      while (queue.length > 0) {
+        const entityType = queue.shift()
+        if (!entityType) return
+        try {
+          await syncEntity(entityType)
+        } catch (error) {
+          entityErrors.push(`${entityType}: ${extractSyncErrorMessage(error)}`)
+        }
       }
     }
+
+    await Promise.all(
+      Array.from({ length: Math.min(RXDB_SYNC_PARALLEL_LIMIT, SYNC_ENTITY_TYPES.length) }, runWorker),
+    )
+
     if (entityErrors.length > 0) {
       const message = entityErrors.join('; ')
       await setStatus('error', message)
