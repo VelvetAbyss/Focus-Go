@@ -1,3 +1,4 @@
+import { db } from '../db'
 import type { NoteItem, TaskItem } from '../models/types'
 import type { SyncEntityType, SyncPayload, SyncWireBlob } from './types'
 
@@ -161,7 +162,7 @@ export const encodeSyncPayload = async (entityType: SyncEntityType, payload: Syn
 }
 
 const ensureBlob = async (blobMap: Map<string, SyncWireBlob>, hash: string) => {
-  const blob = blobMap.get(hash)
+  const blob = blobMap.get(hash) ?? (await db.syncBlobCache.get(hash)) ?? null
   if (!blob) throw new Error(`Missing blob payload: ${hash}`)
   return restoreBlobText(blob)
 }
