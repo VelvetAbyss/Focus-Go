@@ -1,13 +1,11 @@
 import type {
   BookItem,
-  DashboardLayout,
   DiaryEntry,
   FeatureInstallation,
   FocusSession,
   FocusSettings,
   Habit,
   HabitLog,
-  LifeDashboardLayout,
   LifePerson,
   LifePodcast,
   LifeSubscription,
@@ -21,6 +19,7 @@ import type {
   SpendCategory,
   SpendEntry,
   StockItem,
+  SyncedPreferences,
   TaskItem,
   TripRecord,
   UserSubscription,
@@ -38,7 +37,6 @@ export const SYNC_ENTITY_TYPES = [
   'diaryEntries',
   'spends',
   'spendCategories',
-  'dashboardLayout',
   'userSubscriptions',
   'featureInstallations',
   'projects',
@@ -54,7 +52,7 @@ export const SYNC_ENTITY_TYPES = [
   'lifePodcasts',
   'lifePeople',
   'trips',
-  'lifeDashboardLayout',
+  'syncedPreferences',
 ] as const
 
 export type SyncEntityType = (typeof SYNC_ENTITY_TYPES)[number]
@@ -72,7 +70,6 @@ export type SyncEntityMap = {
   diaryEntries: DiaryEntry
   spends: SpendEntry
   spendCategories: SpendCategory
-  dashboardLayout: DashboardLayout
   userSubscriptions: UserSubscription
   featureInstallations: FeatureInstallation
   projects: ProjectItem
@@ -87,7 +84,7 @@ export type SyncEntityMap = {
   lifePodcasts: LifePodcast
   lifePeople: LifePerson
   trips: TripRecord
-  lifeDashboardLayout: LifeDashboardLayout
+  syncedPreferences: SyncedPreferences
 }
 
 export type SyncPayload<T extends SyncEntityType = SyncEntityType> = SyncEntityMap[T] | ({ id: string; updatedAt: number } & Record<string, unknown>)

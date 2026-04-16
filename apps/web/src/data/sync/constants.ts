@@ -16,7 +16,6 @@ export const SYNC_ENTITY_TABLES: Record<SyncEntityType, string> = {
   diaryEntries: TABLES.diaryEntries,
   spends: TABLES.spends,
   spendCategories: TABLES.spendCategories,
-  dashboardLayout: TABLES.dashboardLayout,
   userSubscriptions: TABLES.userSubscriptions,
   featureInstallations: TABLES.featureInstallations,
   projects: TABLES.projects,
@@ -32,5 +31,5 @@ export const SYNC_ENTITY_TABLES: Record<SyncEntityType, string> = {
   lifePodcasts: TABLES.lifePodcasts,
   lifePeople: TABLES.lifePeople,
   trips: TABLES.trips,
-  lifeDashboardLayout: TABLES.lifeDashboardLayout,
+  syncedPreferences: TABLES.syncedPreferences,
 }

@@ -20,6 +20,7 @@ import type {
   SpendCategory,
   SpendEntry,
   StockItem,
+  SyncedPreferences,
   TaskItem,
   ProjectItem,
   ProjectNoteLink,
@@ -47,6 +48,7 @@ import {
   schemaV36,
   schemaV37,
   schemaV38,
+  schemaV39,
   schemaV2,
   schemaV3,
   schemaV4,
@@ -87,6 +89,7 @@ export class WorkbenchDb extends Dexie {
   lifePodcasts!: Table<LifePodcast, string>
   lifePeople!: Table<LifePerson, string>
   trips!: Table<TripRecord, string>
+  syncedPreferences!: Table<SyncedPreferences, string>
 
   constructor() {
     super(DB_NAME)
@@ -220,7 +223,11 @@ export class WorkbenchDb extends Dexie {
       .stores(schemaV38)
       .upgrade(async () => {})
 
-    this.version(DB_VERSION).stores(schemaV38)
+    this.version(39)
+      .stores(schemaV39)
+      .upgrade(async () => {})
+
+    this.version(DB_VERSION).stores(schemaV39)
 
     this.tasks = this.table(TABLES.tasks)
     this.notes = this.table(TABLES.notes)
@@ -250,6 +257,7 @@ export class WorkbenchDb extends Dexie {
     this.lifePodcasts = this.table(TABLES.lifePodcasts)
     this.lifePeople = this.table(TABLES.lifePeople)
     this.trips = this.table(TABLES.trips)
+    this.syncedPreferences = this.table(TABLES.syncedPreferences)
   }
 }
 

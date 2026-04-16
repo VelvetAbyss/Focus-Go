@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'motion/react'
 import {
   closestCenter,
@@ -43,6 +43,7 @@ import { useIsLoggedIn, useAuthPlan } from '../../store/auth'
 import { useUpgradeModal } from '../../features/labs/UpgradeModalContext'
 import SidebarPodcastPlayer from './SidebarPodcastPlayer'
 import PodcastCard from '../../features/life/cards/PodcastCard'
+import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../data/repositories/syncedPreferencesRepo'
 
 type SidebarProps = {
   collapsed: boolean
@@ -199,7 +200,14 @@ const Sidebar = ({ collapsed, onToggle, theme, onToggleTheme }: SidebarProps) =>
     const nextOrder = moveSidebarOrder(mergedOrder, String(active.id), String(over.id))
     setSavedOrder(nextOrder)
     writeSidebarOrder(nextOrder)
+    void syncedPreferencesRepo.persistFromLocal()
   }
+
+  useEffect(() => {
+    const refreshSavedOrder = () => setSavedOrder(readSidebarOrder())
+    window.addEventListener(SYNCED_PREFERENCES_UPDATED_EVENT, refreshSavedOrder)
+    return () => window.removeEventListener(SYNCED_PREFERENCES_UPDATED_EVENT, refreshSavedOrder)
+  }, [])
 
   return (
     <motion.aside
