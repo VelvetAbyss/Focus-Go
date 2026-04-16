@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import Card from '../../../shared/ui/Card'
 import { Trash2 } from 'lucide-react'
 import { widgetTodoRepo } from '../../../data/repositories/widgetTodoRepo'
 import type { WidgetTodo, WidgetTodoScope } from '../../../data/models/types'
+import { useSyncDataRefresh } from '../../../data/sync/service'
 import AnimatedScrollList from '../../../shared/ui/AnimatedScrollList'
 import AnimatedPlanCheckbox from '../../../shared/ui/AnimatedPlanCheckbox'
 import { triggerTabGroupSwitchAnimation, triggerTabPressAnimation } from '../../../shared/ui/tabPressAnimation'
@@ -52,29 +53,34 @@ const WidgetTodosCard = () => {
   })
   const today = todayDateKey()
 
+  const loadItems = useCallback(async () => {
+    const loadedItems = await widgetTodoRepo.list()
+    const now = Date.now()
+    const itemsById = new Map(loadedItems.map((item) => [item.id, item]))
+
+    for (const scopeKey of WIDGET_SCOPES) {
+      const storedBucket = readWidgetTodoResetBucket(scopeKey)
+      const { shouldReset, currentBucket } = shouldResetWidgetTodos(scopeKey, storedBucket, now)
+      const needsBootstrapReset = storedBucket === null && shouldBootstrapResetWidgetTodos(loadedItems, scopeKey, now)
+
+      if (shouldReset || needsBootstrapReset) {
+        const reset = await widgetTodoRepo.resetDone(scopeKey)
+        for (const item of reset) itemsById.set(item.id, item)
+      }
+
+      writeWidgetTodoResetBucket(scopeKey, currentBucket)
+    }
+
+    return [...itemsById.values()]
+  }, [])
+
   useEffect(() => {
     let cancelled = false
 
     const load = async () => {
-      const loadedItems = await widgetTodoRepo.list()
-      const now = Date.now()
-      const itemsById = new Map(loadedItems.map((item) => [item.id, item]))
-
-      for (const scopeKey of WIDGET_SCOPES) {
-        const storedBucket = readWidgetTodoResetBucket(scopeKey)
-        const { shouldReset, currentBucket } = shouldResetWidgetTodos(scopeKey, storedBucket, now)
-        const needsBootstrapReset = storedBucket === null && shouldBootstrapResetWidgetTodos(loadedItems, scopeKey, now)
-
-        if (shouldReset || needsBootstrapReset) {
-          const reset = await widgetTodoRepo.resetDone(scopeKey)
-          for (const item of reset) itemsById.set(item.id, item)
-        }
-
-        writeWidgetTodoResetBucket(scopeKey, currentBucket)
-      }
-
       if (cancelled) return
-      const merged = [...itemsById.values()]
+      const merged = await loadItems()
+      if (cancelled) return
       setItems(merged)
       setSortAnchorTime(merged.reduce((max, item) => (item.updatedAt > max ? item.updatedAt : max), 0))
       setLoaded(true)
@@ -84,7 +90,15 @@ const WidgetTodosCard = () => {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [loadItems])
+
+  useSyncDataRefresh(() => {
+    void loadItems().then((nextItems) => {
+      setItems(nextItems)
+      setSortAnchorTime(nextItems.reduce((max, item) => (item.updatedAt > max ? item.updatedAt : max), 0))
+      setLoaded(true)
+    })
+  })
 
   useEffect(() => {
     if (!loaded) return

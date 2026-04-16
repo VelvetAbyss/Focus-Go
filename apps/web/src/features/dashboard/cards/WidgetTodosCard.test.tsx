@@ -4,7 +4,7 @@ import '@testing-library/jest-dom/vitest'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import type { Habit, WidgetTodo } from '../../../data/models/types'
 
 const createHabitMock = vi.fn()
@@ -14,6 +14,7 @@ const listMock = vi.fn()
 const addMock = vi.fn()
 const updateMock = vi.fn()
 const removeMock = vi.fn()
+let syncRefreshCallback: (() => void) | null = null
 
 vi.mock('../../habits/hooks/useHabitTracker', () => ({
   useHabitTracker: () => ({
@@ -54,6 +55,12 @@ vi.mock('../../../data/repositories/widgetTodoRepo', () => ({
   },
 }))
 
+vi.mock('../../../data/sync/service', () => ({
+  useSyncDataRefresh: (callback: () => void) => {
+    syncRefreshCallback = callback
+  },
+}))
+
 vi.mock('../model/widgetTodoRefresh', () => ({
   readWidgetTodoResetBucket: vi.fn(() => '2026-03-19'),
   shouldBootstrapResetWidgetTodos: vi.fn(() => false),
@@ -65,6 +72,28 @@ vi.mock('../../../shared/ui/AnimatedScrollList', () => ({
   default: ({ items, renderItem }: { items: WidgetTodo[]; renderItem: (item: WidgetTodo) => ReactNode }) => (
     <div>{items.map((item) => <div key={item.id}>{renderItem(item)}</div>)}</div>
   ),
+}))
+
+vi.mock('../../../shared/ui/AnimatedPlanCheckbox', () => ({
+  default: (props: Record<string, unknown>) => <input type="checkbox" {...props} />,
+}))
+
+vi.mock('../../tasks/components/TaskAddComposer', () => ({
+  default: ({ placeholder, onSubmit }: { placeholder: string; onSubmit: (value: string) => Promise<boolean> }) => {
+    const [value, setValue] = useState('')
+    return (
+      <form
+        onSubmit={async (event: React.FormEvent<HTMLFormElement>) => {
+          event.preventDefault()
+          await onSubmit(value)
+          setValue('')
+        }}
+        >
+          <input aria-label={placeholder} placeholder={placeholder} value={value} onChange={(event) => setValue(event.target.value)} />
+        <button type="submit">Add</button>
+      </form>
+    )
+  },
 }))
 
 vi.mock('../../../shared/ui/tabPressAnimation', () => ({
@@ -89,6 +118,7 @@ describe('WidgetTodosCard', () => {
     addMock.mockReset()
     updateMock.mockReset()
     removeMock.mockReset()
+    syncRefreshCallback = null
     listMock.mockResolvedValue([
       {
         id: 'todo-day-1',
@@ -168,5 +198,37 @@ describe('WidgetTodosCard', () => {
         title: 'Read 10 pages',
       }),
     )
+  })
+
+  it('reloads widget todos after a sync refresh event', async () => {
+    render(<WidgetTodosCard />)
+
+    await waitFor(() => expect(screen.getByText('Plan day rhythm')).toBeInTheDocument())
+
+    listMock.mockResolvedValueOnce([
+      {
+        id: 'todo-day-1',
+        createdAt: 1,
+        updatedAt: 9,
+        scope: 'day',
+        title: 'Plan day rhythm',
+        priority: 'medium',
+        done: true,
+        linkedHabitId: 'habit-1',
+      },
+      {
+        id: 'todo-day-2',
+        createdAt: 8,
+        updatedAt: 10,
+        scope: 'day',
+        title: 'Synced item',
+        priority: 'medium',
+        done: false,
+      },
+    ])
+
+    await syncRefreshCallback?.()
+
+    await waitFor(() => expect(screen.getByText('Synced item')).toBeInTheDocument())
   })
 })
