@@ -9,6 +9,7 @@ import type { RxdbCheckpoint, SyncEntityType, SyncPayload, SyncState, SyncStatus
 
 const RXDB_SYNC_DB_NAME = 'focusgo-sync-rxdb'
 const RXDB_SYNC_BATCH_SIZE = 100
+const RXDB_SYNC_TIMEOUT_MS = 1_500
 const SYNC_ENTITY_TYPES = Object.keys(SYNC_ENTITY_TABLES) as SyncEntityType[]
 
 type SyncDocument = SyncPayload & { _deleted?: boolean }
@@ -238,15 +239,27 @@ const syncEntity = async (entityType: SyncEntityType) =>
         void buildStatePatch({ lastPushedAt: now() })
       },
     })
+    let rejectSync: ((reason?: unknown) => void) | null = null
+    const errorPromise = new Promise<never>((_, reject) => {
+      rejectSync = reject
+    })
     const errorSub = replication.error$.subscribe({
       next: (error) => {
         const message = extractSyncErrorMessage(error)
         void setStatus('error', message)
+        rejectSync?.(error)
       },
+    })
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      globalThis.setTimeout(() => reject(new Error(`Sync timed out for ${entityType}`)), RXDB_SYNC_TIMEOUT_MS)
     })
 
     try {
-      await replication.awaitInSync()
+      await Promise.race([
+        replication.awaitInSync(),
+        errorPromise,
+        timeoutPromise,
+      ])
     } finally {
       receivedSub.unsubscribe()
       sentSub.unsubscribe()

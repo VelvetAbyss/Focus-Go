@@ -1,5 +1,6 @@
 import type { LifePodcastCreateInput } from '@focus-go/core'
 import { getAuth } from '../../store/auth'
+import { buildAbsoluteApiUrl, buildApiUrl } from '../../shared/apiBase'
 import { isLocalhostRuntime } from '../../shared/env/localhost'
 
 type ItunesSearchResult = {
@@ -39,7 +40,7 @@ export const NETEASE_CHANNEL_PRESETS = [
 ] as const
 
 export const buildNeteaseStreamUrl = (programId: string, cacheBust?: number) => {
-  const url = new URL(`${import.meta.env.VITE_API_BASE}/podcasts/netease/stream`)
+  const url = buildAbsoluteApiUrl('/podcasts/netease/stream')
   url.searchParams.set('programId', programId)
   if (cacheBust) url.searchParams.set('t', String(cacheBust))
   return url.toString()
@@ -73,7 +74,7 @@ const fetchAuthedJson = async <T,>(path: string, init?: RequestInit): Promise<T>
     ...(getAuthHeaders() as Record<string, string>),
     ...((init?.headers ?? {}) as Record<string, string>),
   }
-  const response = await fetch(`${import.meta.env.VITE_API_BASE}${path}`, {
+  const response = await fetch(buildApiUrl(path), {
     ...init,
     headers,
   })

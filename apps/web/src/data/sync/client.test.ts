@@ -67,12 +67,23 @@ describe('syncApi rxdb endpoints', () => {
   })
 
   it('maps network fetch failures to a sync server error', async () => {
-    fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    fetchMock
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ status: 'ok' }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        json: async () => ({ error: 'Missing Bearer token' }),
+      } as Response)
 
     await expect(syncApi.rxdbPull({
       entityType: 'notes',
       checkpoint: null,
       limit: 100,
-    })).rejects.toThrow(/Sync server unreachable/)
+    })).rejects.toThrow(/Authenticated sync request blocked in browser/)
   })
 })

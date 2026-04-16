@@ -1,5 +1,6 @@
 import { getAuth } from '../../store/auth'
 import { db } from '../db'
+import { buildApiUrl } from '../../shared/apiBase'
 import type {
   RxdbPullRequest,
   RxdbPullResponse,
@@ -18,9 +19,34 @@ const getAuthHeaders = () => {
   }
 }
 
-export const normalizeSyncFetchError = (error: unknown) => {
+const runSyncConnectivityDiagnosis = async () => {
+  const base = buildApiUrl('')
+  try {
+    const health = await fetch(buildApiUrl('/health'))
+    if (!health.ok) return null
+  } catch {
+    return new Error(`Sync request blocked by browser or network: ${base}`)
+  }
+
+  try {
+    const syncProbe = await fetch(buildApiUrl('/sync/rxdb/pull'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entityType: 'notes', checkpoint: null, limit: 1 }),
+    })
+    if (syncProbe.status === 401) {
+      return new Error(`Authenticated sync request blocked in browser: ${base}`)
+    }
+  } catch {
+    return new Error(`Sync request blocked by browser or network: ${base}`)
+  }
+
+  return new Error(`Sync request failed before reaching authenticated API flow: ${base}`)
+}
+
+export const normalizeSyncFetchError = async (error: unknown) => {
   if (error instanceof Error && error.name === 'TypeError') {
-    return new Error(`Sync server unreachable: ${import.meta.env.VITE_API_BASE}`)
+    return (await runSyncConnectivityDiagnosis()) ?? new Error(`Sync request blocked by browser or network: ${buildApiUrl('')}`)
   }
   if (error instanceof Error) return error
   return new Error('Sync request failed')
@@ -29,9 +55,9 @@ export const normalizeSyncFetchError = (error: unknown) => {
 const fetchJson = async <T>(path: string, init?: RequestInit): Promise<T> => {
   let response: Response
   try {
-    response = await fetch(`${import.meta.env.VITE_API_BASE}${path}`, init)
+    response = await fetch(buildApiUrl(path), init)
   } catch (error) {
-    throw normalizeSyncFetchError(error)
+    throw await normalizeSyncFetchError(error)
   }
   if (!response.ok) {
     if (response.status === 401) throw new Error('Sync failed: session expired, please log in again')
