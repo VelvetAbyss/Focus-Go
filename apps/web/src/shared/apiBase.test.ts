@@ -1,9 +1,17 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('api base helpers', () => {
+  const fetchMock = vi.fn<typeof fetch>()
+
+  beforeEach(() => {
+    vi.stubGlobal('fetch', fetchMock)
+  })
+
   afterEach(() => {
     vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
+    fetchMock.mockReset()
     vi.resetModules()
   })
 
@@ -19,5 +27,17 @@ describe('api base helpers', () => {
     vi.stubEnv('VITE_API_BASE', 'http://localhost:3000')
     const { buildApiUrl } = await import('./apiBase')
     expect(buildApiUrl('/auth/me')).toBe('http://localhost:3000/auth/me')
+  })
+
+  it('falls back to direct api when production proxy returns 404', async () => {
+    vi.stubEnv('MODE', 'production')
+    vi.stubEnv('VITE_API_BASE', 'https://api.nestflow.art')
+    fetchMock
+      .mockResolvedValueOnce({ status: 404 } as Response)
+      .mockResolvedValueOnce({ status: 200, ok: true } as Response)
+    const { fetchApi } = await import('./apiBase')
+    await fetchApi('/auth/me', { headers: { Authorization: 'Bearer token' } })
+    expect(String(fetchMock.mock.calls[0]?.[0])).toBe('/api/auth/me')
+    expect(String(fetchMock.mock.calls[1]?.[0])).toBe('https://api.nestflow.art/auth/me')
   })
 })

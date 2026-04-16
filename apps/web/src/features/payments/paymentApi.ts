@@ -1,5 +1,5 @@
 import { getAuth } from '../../store/auth'
-import { buildApiUrl } from '../../shared/apiBase'
+import { fetchApi } from '../../shared/apiBase'
 
 export type PayType = 'alipay' | 'wxpay'
 
@@ -23,7 +23,7 @@ const getAccessToken = () => {
 }
 
 export const createZpayOrder = async (payType: PayType): Promise<CreateZpayOrderResponse> => {
-  const response = await fetch(buildApiUrl('/payments/zpay/create-order'), {
+  const response = await fetchApi('/payments/zpay/create-order', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -39,7 +39,7 @@ export const createZpayOrder = async (payType: PayType): Promise<CreateZpayOrder
 }
 
 export const fetchPaymentOrderStatus = async (outTradeNo: string): Promise<PaymentOrderStatus> => {
-  const response = await fetch(buildApiUrl(`/payments/zpay/order/${outTradeNo}`), {
+  const response = await fetchApi(`/payments/zpay/order/${outTradeNo}`, {
     headers: {
       Authorization: `Bearer ${getAccessToken()}`,
     },
