@@ -35,6 +35,12 @@ vi.mock('../../features/onboarding/ModuleGuideRuntime', () => ({
   default: () => null,
 }))
 
+vi.mock('../../data/repositories/syncedPreferencesRepo', () => ({
+  syncedPreferencesRepo: {
+    persistFromLocal: vi.fn(),
+  },
+}))
+
 vi.mock('./Sidebar', () => ({
   default: ({ onToggleTheme }: { onToggleTheme: () => void }) => (
     <button type="button" onClick={onToggleTheme}>

@@ -42,6 +42,11 @@ const i18n = {
   labs: {
     title: 'Labs',
     subtitle: 'subtitle',
+    loading: 'Loading',
+    eyebrow: 'Labs',
+    eyebrowPremium: 'Premium Labs',
+    tierFree: 'Free',
+    tierPremium: 'Premium',
     available: 'Available',
     installed: 'Installed',
     removed: 'Removed',
@@ -65,6 +70,14 @@ const i18n = {
     installed: 'installed',
     removed: 'removed',
     restored: 'restored',
+  },
+  featureTitles: {
+    'habit-tracker': 'Habit Tracker',
+    'ai-digest': 'AI Digest',
+  },
+  featureDescriptions: {
+    'habit-tracker': 'desc',
+    'ai-digest': 'desc',
   },
 }
 

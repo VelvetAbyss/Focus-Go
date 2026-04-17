@@ -5,10 +5,8 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { TaskItem } from './tasks.types'
 
-const addMock = vi.fn()
 const updateMock = vi.fn()
 const pushMock = vi.fn()
-const onCreated = vi.fn()
 
 vi.mock('../../shared/i18n/useI18n', () => ({
   useI18n: () => ({
@@ -22,10 +20,40 @@ vi.mock('../../shared/i18n/useI18n', () => ({
         'tasks.drawer.summaryPlaceholder': 'Summary',
         'tasks.today.title': 'Today',
         'tasks.today.switchHint': 'Add this task to today',
-        'tasks.onboarding.exit': 'Back',
-        'tasks.drawer.createTask': 'Create task',
         'tasks.drawer.saveFailed': 'Save failed',
+        'tasks.drawer.saveFailedHint': 'Try again.',
         'tasks.drawer.retryHint': 'Try again.',
+        'tasks.drawer.invalidDateRange': 'Invalid date range',
+        'tasks.drawer.endDateError': 'End date must be after start date',
+        'tasks.drawer.updateFailed': 'Update failed',
+        'tasks.status.saved': 'Saved',
+        'tasks.action.start': 'Start',
+        'tasks.action.done': 'Done',
+        'tasks.status.reopen': 'Reopen',
+        'tasks.drawer.created': 'Created',
+        'tasks.drawer.updated': 'Updated',
+        'tasks.drawer.pinned': 'Pinned',
+        'tasks.drawer.none': 'None',
+        'tasks.drawer.status': 'Status',
+        'tasks.drawer.priority': 'Priority',
+        'tasks.drawer.reminderTimestamp': 'Reminder timestamp',
+        'tasks.drawer.details': 'Details',
+        'tasks.drawer.coreProperties': 'Core properties',
+        'tasks.drawer.dueDate': 'Due date',
+        'tasks.drawer.setDate': 'Set date',
+        'tasks.drawer.reminder': 'Reminder',
+        'tasks.drawer.setReminder': 'Set reminder',
+        'tasks.drawer.dateRange': 'Date range',
+        'tasks.drawer.tags': 'Tags',
+        'tasks.drawer.tagContext': 'Tag context',
+        'tasks.drawer.newTag': 'New tag',
+        'tasks.drawer.customTag': 'Custom tag',
+        'tasks.drawer.add': 'Add',
+        'tasks.drawer.noTags': 'No tags',
+        'tasks.drawer.activity': 'Activity',
+        'tasks.drawer.systemTimeline': 'System timeline',
+        'tasks.drawer.noActivity': 'No activity',
+        'tasks.drawer.resizeColumns': 'Resize columns',
         'tasks.drawer.subtasks': '子任务',
         'tasks.drawer.executionChecklist': '执行清单',
         'tasks.drawer.subtaskFilterAll': '全部',
@@ -56,7 +84,6 @@ vi.mock('../../shared/ui/Dialog', () => ({
 
 vi.mock('../../data/repositories/tasksRepo', () => ({
   tasksRepo: {
-    add: (...args: unknown[]) => addMock(...args),
     update: (...args: unknown[]) => updateMock(...args),
     remove: vi.fn(),
     updateStatus: vi.fn(),
@@ -101,39 +128,13 @@ const createdTask: TaskItem = {
 
 describe('TaskDrawer onboarding mode', () => {
   beforeEach(() => {
-    addMock.mockReset()
     updateMock.mockReset()
     pushMock.mockReset()
-    onCreated.mockReset()
   })
 
   afterEach(() => {
     cleanup()
     vi.useRealTimers()
-  })
-
-  it('blocks empty submit and creates a task', async () => {
-    addMock.mockResolvedValue(createdTask)
-
-    render(
-      <TaskDrawer
-        open
-        task={null}
-        mode="onboarding"
-        onClose={vi.fn()}
-        onUpdated={vi.fn()}
-        onDeleted={vi.fn()}
-        onCreated={onCreated}
-      />,
-    )
-
-    expect(screen.getByRole('button', { name: 'Create task' })).toBeDisabled()
-
-    fireEvent.change(screen.getByPlaceholderText('Task title'), { target: { value: 'First task' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Create task' }))
-
-    await waitFor(() => expect(addMock).toHaveBeenCalledTimes(1))
-    expect(onCreated).toHaveBeenCalledWith(createdTask)
   })
 
   it('uses theme-aware surfaces in detail mode', async () => {
@@ -146,7 +147,6 @@ describe('TaskDrawer onboarding mode', () => {
         onClose={vi.fn()}
         onUpdated={vi.fn()}
         onDeleted={vi.fn()}
-        onCreated={vi.fn()}
       />,
     )
 
@@ -175,7 +175,6 @@ describe('TaskDrawer onboarding mode', () => {
         onClose={vi.fn()}
         onUpdated={vi.fn()}
         onDeleted={vi.fn()}
-        onCreated={vi.fn()}
       />,
     )
 
@@ -207,7 +206,6 @@ describe('TaskDrawer onboarding mode', () => {
         onClose={vi.fn()}
         onUpdated={vi.fn()}
         onDeleted={vi.fn()}
-        onCreated={vi.fn()}
       />,
     )
 
@@ -227,7 +225,6 @@ describe('TaskDrawer onboarding mode', () => {
         onClose={vi.fn()}
         onUpdated={vi.fn()}
         onDeleted={vi.fn()}
-        onCreated={vi.fn()}
       />,
     )
 
@@ -238,7 +235,6 @@ describe('TaskDrawer onboarding mode', () => {
         onClose={vi.fn()}
         onUpdated={vi.fn()}
         onDeleted={vi.fn()}
-        onCreated={vi.fn()}
       />,
     )
 
@@ -259,7 +255,6 @@ describe('TaskDrawer onboarding mode', () => {
         onClose={vi.fn()}
         onUpdated={vi.fn()}
         onDeleted={vi.fn()}
-        onCreated={vi.fn()}
       />,
     )
 

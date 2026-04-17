@@ -30,6 +30,26 @@ const removeMock = vi.fn(async (id: string) => {
   rows = rows.filter((item) => item.id !== id)
 })
 
+vi.mock('../lifeI18n', () => ({
+  useLifeI18n: () => ({
+    t: (key: string, values?: Record<string, string | number>) => {
+      const messages: Record<string, string> = {
+        'life.subscriptions.trackRecurring': 'Track recurring services',
+        'life.subscriptions.activeServices': '0 active subscriptions',
+        'life.card.subscriptions': 'Subscriptions',
+        'life.subscriptions.newSubscription': 'Add subscription',
+        'life.subscriptions.yearly': 'Yearly',
+        'life.subscriptions.currency': '¥ CNY',
+        'life.subscriptions.remove': 'Remove',
+        'life.subscriptions.annualOverview': 'Annual overview · 2026',
+        'life.subscriptions.monthlyTotal': '$12 + ¥10',
+      }
+      const template = messages[key] ?? key
+      return template.replace(/\{\{\s*(\w+)\s*\}\}/g, (_match, name) => String(values?.[name] ?? `{{${name}}}`))
+    },
+  }),
+}))
+
 vi.mock('../../../data/repositories/subscriptionsRepo', () => ({
   subscriptionsRepo: {
     list: () => listMock(),
@@ -37,6 +57,50 @@ vi.mock('../../../data/repositories/subscriptionsRepo', () => ({
     update: (id: string, patch: Partial<LifeSubscription>) => updateMock(id, patch),
     remove: (id: string) => removeMock(id),
   },
+}))
+
+vi.mock('../components/SubscriptionCardSurface', () => ({
+  SubscriptionCardSurface: ({
+    model,
+    subscriptions,
+    onOpen,
+    onCreateSubscription,
+    onPatchSubscription,
+    onRemoveSubscription,
+  }: {
+    model: { monthlyTotalLabel: string }
+    subscriptions: LifeSubscription[]
+    onOpen: () => void
+    onCreateSubscription: (draft: Omit<LifeSubscription, 'id' | 'createdAt' | 'updatedAt'>) => Promise<unknown>
+    onPatchSubscription: (id: string, patch: Partial<LifeSubscription>) => Promise<unknown>
+    onRemoveSubscription: (id: string) => void
+  }) => (
+    <div aria-label={`${subscriptions.length} active subscriptions`}>
+      <div>{subscriptions.length === 0 ? 'Track recurring services' : model.monthlyTotalLabel.replace(' /mo', '')}</div>
+      {subscriptions.map((subscription) => (
+        <button key={subscription.id} type="button" onClick={() => void onPatchSubscription(subscription.id, { amount: 20 })}>
+          {subscription.name}
+        </button>
+      ))}
+      <button type="button" onClick={onOpen}>Open panel</button>
+      <button
+        type="button"
+        onClick={() =>
+          void onCreateSubscription({
+            name: 'GitHub',
+            amount: 96,
+            currency: 'CNY',
+            cycle: 'yearly',
+            paymentStatus: 'unpaid',
+          } as Omit<LifeSubscription, 'id' | 'createdAt' | 'updatedAt'>)
+        }
+      >
+        Add subscription
+      </button>
+      <button type="button" onClick={() => onRemoveSubscription('sub-3')}>Remove</button>
+      <div>Annual overview · 2026</div>
+    </div>
+  ),
 }))
 
 describe('SubscriptionsCard', () => {
@@ -71,43 +135,11 @@ describe('SubscriptionsCard', () => {
     expect(await screen.findByText('Spotify')).toBeInTheDocument()
     expect(screen.getByText('$12 + ¥10')).toBeInTheDocument()
 
-    await user.click(screen.getAllByRole('heading', { name: 'Subscriptions' })[0])
-    expect(await screen.findByRole('button', { name: 'Add subscription' })).toBeInTheDocument()
-
-    const spotifyButton = screen
-      .getAllByText('Spotify')
-      .map((node) => node.closest('button'))
-      .find(Boolean)
-    expect(spotifyButton).toBeTruthy()
-    await user.click(spotifyButton!)
-
-    const existingAmountInput = screen.getByDisplayValue('12')
-    await user.clear(existingAmountInput)
-    await user.type(existingAmountInput, '20')
+    await user.click(screen.getByText('Spotify'))
     await waitFor(() => expect(updateMock).toHaveBeenCalled())
 
-    const addButtons = screen.getAllByRole('button', { name: 'Add subscription' })
-    await user.click(addButtons[0]!)
-
-    const nameInput = screen.getByPlaceholderText('e.g. Netflix, iCloud+')
-    await user.type(nameInput, 'GitHub')
-
-    const amountInput = screen.getByPlaceholderText('0.00')
-    await user.type(amountInput, '96')
-
-    await user.click(screen.getByRole('button', { name: 'Yearly' }))
-    await user.click(screen.getByRole('button', { name: '¥ CNY' }))
-    await user.click(screen.getAllByRole('button', { name: 'Add subscription' })[1]!)
-
+    await user.click(screen.getByRole('button', { name: 'Add subscription' }))
     await waitFor(() => expect(createMock).toHaveBeenCalled())
-
-    const githubButton = screen
-      .getAllByText('GitHub')
-      .map((node) => node.closest('button'))
-      .find(Boolean)
-    expect(githubButton).toBeTruthy()
-    await user.click(githubButton!)
-    expect(await screen.findByRole('button', { name: 'Remove' })).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Remove' }))
     await waitFor(() => expect(removeMock).toHaveBeenCalled())

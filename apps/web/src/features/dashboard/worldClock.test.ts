@@ -26,9 +26,9 @@ describe('formatWorldClockDisplay', () => {
     const now = new Date('2026-04-13T16:30:00.000Z')
     const display = formatWorldClockDisplay(shanghai, 'zh', now)
 
-    expect(display.date).toBe('2026/04/14')
+    expect(display.date).toBe('04/14')
     expect(display.time).toBe('00:30')
-    expect(display.weekday).toContain('星期')
+    expect(display.weekday).toBe('周二')
   })
 
   it('uses the supplied location label', () => {
