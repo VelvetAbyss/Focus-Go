@@ -4,7 +4,6 @@ import '@testing-library/jest-dom/vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { ONBOARDING_STATUS_KEY, ONBOARDING_STEP_KEY } from '../onboarding/onboarding.runtime'
 
 const getMock = vi.fn()
 
@@ -14,20 +13,12 @@ vi.mock('../../shared/i18n/useI18n', () => ({
       ({
         'dashboard.page': 'Dashboard',
         'dashboard.manageVisibility': 'Manage widgets visibility',
+        'dashboard.manageWidgets': 'Manage widgets',
         'dashboard.hideWidget': 'Hide widget',
+        'dashboard.toggleVisibility': 'Toggle {{name}}',
+        'dashboard.editLayout': 'Edit layout',
+        'dashboard.done': 'Done',
         'tasks.cancel': 'Cancel',
-        'onboarding.welcome.eyebrow': 'First step',
-        'onboarding.welcome.title': 'See how your day fits together',
-        'onboarding.welcome.description': 'Description',
-        'onboarding.welcome.start': 'Open dashboard',
-        'onboarding.welcome.skip': 'Skip',
-        'onboarding.dashboard.eyebrow': 'Your workspace',
-        'onboarding.dashboard.title': 'Everything for today, in one calm surface',
-        'onboarding.dashboard.description': 'Overview description',
-        'onboarding.dashboard.tasksCta': 'Create first task',
-        'onboarding.dashboard.focusCta': 'Open Focus',
-        'onboarding.dashboard.diaryCta': 'Open Diary',
-        'onboarding.dashboard.dismiss': 'Got it',
       }[key] ?? key),
   }),
 }))
@@ -46,7 +37,18 @@ vi.mock('../../shared/ui/Dialog', () => ({
 }))
 
 vi.mock('./DashboardHeader', () => ({
-  default: () => <div>Header</div>,
+  default: ({
+    onToggleLayoutEdit,
+    onToggleWidgetsPanel,
+  }: {
+    onToggleLayoutEdit: () => void
+    onToggleWidgetsPanel: () => void
+  }) => (
+    <div>
+      <button type="button" onClick={onToggleLayoutEdit}>Edit layout</button>
+      <button type="button" onClick={onToggleWidgetsPanel}>Manage widgets</button>
+    </div>
+  ),
 }))
 
 vi.mock('./layoutSyncAdapter', () => ({
@@ -57,6 +59,13 @@ vi.mock('../../data/repositories/dashboardRepo', () => ({
   dashboardRepo: {
     get: (...args: unknown[]) => getMock(...args),
     upsert: vi.fn(),
+  },
+}))
+
+vi.mock('../../data/repositories/syncedPreferencesRepo', () => ({
+  SYNCED_PREFERENCES_UPDATED_EVENT: 'synced-preferences-updated',
+  syncedPreferencesRepo: {
+    persistFromLocal: vi.fn(),
   },
 }))
 
@@ -84,9 +93,9 @@ vi.mock('../premium/PremiumProvider', () => ({
 
 import DashboardPage from './DashboardPage'
 
-const renderDashboard = () =>
+const renderDashboard = (initialEntries = ['/']) =>
   render(
-    <MemoryRouter initialEntries={['/']}>
+    <MemoryRouter initialEntries={initialEntries}>
       <Routes>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/tasks" element={<div>Tasks route</div>} />
@@ -110,33 +119,32 @@ describe('DashboardPage onboarding', () => {
     cleanup()
   })
 
-  it('shows welcome modal for not started state and starts dashboard onboarding', async () => {
+  it('renders stored dashboard cards', async () => {
     renderDashboard()
 
-    expect(screen.getByText('See how your day fits together')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Open dashboard' }))
-
-    await waitFor(() => expect(screen.getByText('Everything for today, in one calm surface')).toBeInTheDocument())
-    expect(screen.queryByText('Tasks route')).not.toBeInTheDocument()
-    expect(window.localStorage.getItem(ONBOARDING_STATUS_KEY)).toBe('in_progress')
-    expect(window.localStorage.getItem(ONBOARDING_STEP_KEY)).toBe('dashboard_overview')
+    await waitFor(() => expect(screen.getByText('Tasks card')).toBeInTheDocument())
+    expect(screen.getByRole('main', { name: 'Dashboard' })).toBeInTheDocument()
   })
 
-  it('shows dashboard overview when onboarding is already in progress', async () => {
-    window.localStorage.setItem(ONBOARDING_STATUS_KEY, 'in_progress')
-    window.localStorage.setItem(ONBOARDING_STEP_KEY, 'dashboard_overview')
-
+  it('shows widget visibility panel when widgets panel is enabled in layout edit mode', async () => {
     renderDashboard()
 
-    await waitFor(() => expect(screen.getByText('Everything for today, in one calm surface')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Tasks card')).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: 'Edit layout' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Manage widgets' }))
+    expect(screen.getByLabelText('Manage widgets visibility')).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: 'Toggle {{name}}' })).toBeInTheDocument()
   })
 
-  it('does not show welcome modal after skip', () => {
-    window.localStorage.setItem(ONBOARDING_STATUS_KEY, 'skipped')
-
+  it('hides the widgets panel when layout edit is turned off', async () => {
     renderDashboard()
 
-    expect(screen.queryByText('See how your day fits together')).not.toBeInTheDocument()
-    expect(screen.getByText('Header')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText('Tasks card')).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: 'Edit layout' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Manage widgets' }))
+    await waitFor(() => expect(screen.getByLabelText('Manage widgets visibility')).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: 'Edit layout' }))
+
+    await waitFor(() => expect(screen.queryByLabelText('Manage widgets visibility')).not.toBeInTheDocument())
   })
 })

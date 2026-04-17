@@ -20,6 +20,42 @@ const diaryRangeMock = vi.fn(async (...args: [string?, string?]) => {
 })
 const notesListMock = vi.fn(async () => notes)
 
+vi.mock('../lifeI18n', () => ({
+  useLifeI18n: () => ({
+    t: (key: string) =>
+      ({
+        'life.daily.today': 'Today',
+        'life.card.dailyReview': 'Daily Review',
+        'life.daily.review': 'Review',
+        'life.daily.tasks': 'Tasks',
+        'life.daily.subtasks': 'Subtasks',
+        'life.daily.focusMin': 'Focus',
+        'life.daily.diary': 'Diary',
+        'life.daily.noteChars': 'Notes',
+        'life.daily.focusStay': 'Stay',
+        'life.daily.yes': 'Yes',
+        'life.daily.no': 'No',
+        'life.daily.focusMinutes': 'Focus Minutes',
+        'life.daily.diaryDays': 'Diary Days',
+        'life.daily.notes': 'Notes',
+        'life.daily.avg': 'Avg',
+        'life.daily.last7Days': 'Last 7 days',
+        'life.daily.last30Days': 'Last 30 days',
+        'life.daily.viewReview': 'View Review',
+        'life.daily.completed': 'Completed',
+        'life.daily.completedTasks': 'Completed tasks',
+        'life.daily.noCompletedTasks': 'No completed tasks',
+        'life.daily.noCompletedTasksInRange': 'No completed tasks in range',
+        'life.daily.week': 'Week',
+        'life.daily.month': 'Month',
+        'life.daily.summary7days': '7 days summary',
+        'life.daily.summary30days': '30 days summary',
+        'life.daily.noSubtasks': 'No subtasks',
+        'life.daily.subtasksCount': 'Subtasks',
+      }[key] ?? key),
+  }),
+}))
+
 vi.mock('../../../data/repositories/tasksRepo', () => ({
   tasksRepo: { list: () => tasksListMock() },
 }))

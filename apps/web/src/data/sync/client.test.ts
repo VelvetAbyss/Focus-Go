@@ -84,6 +84,6 @@ describe('syncApi rxdb endpoints', () => {
       entityType: 'notes',
       checkpoint: null,
       limit: 100,
-    })).rejects.toThrow(/Authenticated sync request blocked in browser/)
+    })).rejects.toThrow(/Sync auth token invalid or expired/)
   })
 })

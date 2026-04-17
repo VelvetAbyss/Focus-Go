@@ -37,10 +37,11 @@ const { mockT } = vi.hoisted(() => {
         'tasks.today.emptyTitle': 'No tasks lined up for today',
         'tasks.today.emptyDescription': 'Put the tasks you actually want to finish today here.',
         'tasks.today.addPlaceholder': 'Add a task for today...',
+        'tasks.board.emptyTitle': 'No tasks yet',
+        'tasks.board.emptyDescription': 'Create a task to get started.',
         'dashboard.widget.tasks': 'Tasks',
-        'onboarding.empty.tasksTitle': 'Start by putting one real task on the board',
-        'onboarding.empty.tasksDescription': 'The dashboard will feel clearer once today has a concrete next step.',
-        'onboarding.empty.tasksAction': 'Create first task',
+        'modules.tasks.addPlaceholder': 'Add a new task...',
+        'modules.tasks.add': 'Add',
       }
       const msg = msgs[key]
       if (!msg) return key
@@ -93,7 +94,7 @@ vi.mock('./components/TaskCalendarWidget', () => ({
 }))
 
 vi.mock('./TaskDrawer', () => ({
-  default: ({ open, mode }: { open: boolean; mode?: string }) => (open ? <div data-testid="task-drawer">{mode ?? 'normal'}</div> : null),
+  default: ({ open }: { open: boolean }) => (open ? <div data-testid="task-drawer">detail</div> : null),
 }))
 
 vi.mock('../../shared/ui/Dialog', () => ({
@@ -233,15 +234,15 @@ describe('TasksBoard sync', () => {
     expect(surface?.className).not.toContain('overflow-hidden')
   })
 
-  it('opens onboarding drawer and hides composer in onboarding mode', async () => {
+  it('shows the empty state and keeps the composer available when there are no tasks', async () => {
     listMock.mockResolvedValueOnce([])
 
-    render(<TasksBoard asCard={false} onboardingMode />)
+    render(<TasksBoard asCard={false} />)
 
     await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1))
-    expect(screen.getByText('Start by putting one real task on the board')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Create first task' })).toBeInTheDocument()
-    expect(screen.getByTestId('task-drawer')).toHaveTextContent('onboarding')
-    expect(screen.queryByPlaceholderText('Add a new task...')).not.toBeInTheDocument()
+    expect(screen.getByText('No tasks yet')).toBeInTheDocument()
+    expect(screen.getByText('Create a task to get started.')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Add a new task...')).toBeInTheDocument()
+    expect(screen.queryByTestId('task-drawer')).not.toBeInTheDocument()
   })
 })

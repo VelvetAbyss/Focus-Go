@@ -83,9 +83,19 @@ vi.mock('../../../data/repositories/tasksRepo', () => ({
   },
 }))
 
+vi.mock('../../../data/repositories/peopleRepo', () => ({
+  peopleRepo: {
+    list: vi.fn(async () => []),
+  },
+}))
+
 vi.mock('../../tasks/taskSync', () => ({
   emitTasksChanged: (...args: unknown[]) => emitTasksChangedMock(...args),
   subscribeTasksChanged: () => () => undefined,
+}))
+
+vi.mock('../../../data/sync/service', () => ({
+  useSyncDataRefresh: vi.fn(),
 }))
 
 vi.mock('../../../shared/prefs/useMotionPreference', () => ({
@@ -96,6 +106,13 @@ vi.mock('../../../shared/i18n/useI18n', async () => {
   const { mockUseI18n } = await import('../../../shared/i18n/testMock')
   return { useI18n: mockUseI18n }
 })
+
+vi.mock('../../../data/repositories/syncedPreferencesRepo', () => ({
+  SYNCED_PREFERENCES_UPDATED_EVENT: 'synced-preferences-updated',
+  syncedPreferencesRepo: {
+    persistFromLocal: vi.fn(),
+  },
+}))
 
 import { tasksRepo } from '../../../data/repositories/tasksRepo'
 import CalendarPage from './CalendarPage'

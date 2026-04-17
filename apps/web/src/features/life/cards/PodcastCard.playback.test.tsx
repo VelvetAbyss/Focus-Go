@@ -11,6 +11,33 @@ const updateMock = vi.fn()
 const removeMock = vi.fn()
 let openMock: ReturnType<typeof vi.fn>
 
+vi.mock('../lifeI18n', () => ({
+  useLifeI18n: () => ({
+    t: (key: string, values?: Record<string, string | number>) => {
+      const messages: Record<string, string> = {
+        'life.podcast.stats': '{{podcasts}} podcasts · {{episodes}} episodes',
+        'life.podcast.error.noPlayable': 'No playable episode',
+        'life.podcast.error.sourceUnavailable': 'Source unavailable',
+        'life.podcast.error.playbackBlocked': 'Playback blocked',
+        'life.podcast.error.playbackFailed': 'Playback failed',
+        'life.podcast.error.import.login': 'Login required',
+        'life.podcast.error.import.notDeployed': 'Not deployed',
+        'life.podcast.error.import.invalidSession': 'Invalid session',
+        'life.podcast.error.import.limit': 'Limit {{limit}}',
+        'life.podcast.error.import.failed': 'Import failed',
+        'life.podcast.error.refresh.notDeployed': 'Not deployed',
+        'life.podcast.error.refresh.invalidSession': 'Invalid session',
+        'life.podcast.error.refresh.failed': 'Refresh failed',
+        'life.podcast.error.searchFailed': 'Search failed',
+        'life.podcast.netease': 'Netease',
+        'life.podcast.apple': 'Apple',
+      }
+      const template = messages[key] ?? key
+      return template.replace(/\{\{\s*(\w+)\s*\}\}/g, (_match, name) => String(values?.[name] ?? `{{${name}}}`))
+    },
+  }),
+}))
+
 vi.mock('../../../data/repositories/podcastsRepo', () => ({
   podcastsRepo: {
     list: () => listMock(),

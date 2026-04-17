@@ -38,6 +38,7 @@ const createTagMock = vi.fn<(data: unknown) => Promise<NoteTag>>()
 const updateTagMock = vi.fn<(id: string, patch: unknown) => Promise<NoteTag | undefined>>()
 const appearanceGetMock = vi.fn<() => Promise<NoteAppearanceSettings | null>>()
 const appearanceUpsertMock = vi.fn<(patch: unknown) => Promise<NoteAppearanceSettings>>()
+const projectsListMock = vi.fn<() => Promise<Array<{ id: string; title: string }>>>()
 
 vi.mock('../../../data/repositories/notesRepo', () => ({
   notesRepo: {
@@ -65,6 +66,23 @@ vi.mock('../../../data/repositories/noteAppearanceRepo', () => ({
     get: () => appearanceGetMock(),
     upsert: (patch: unknown) => appearanceUpsertMock(patch),
   },
+}))
+
+vi.mock('../../../data/repositories/projectsRepo', () => ({
+  projectsRepo: {
+    list: () => projectsListMock(),
+  },
+}))
+
+vi.mock('../../../data/sync/service', () => ({
+  useSyncDataRefresh: vi.fn(),
+  useSyncStatus: () => null,
+}))
+
+vi.mock('../../../store/auth', () => ({
+  useIsLoggedIn: () => false,
+  useAuthPlan: () => 'free',
+  upgradeToPremium: vi.fn(async () => true),
 }))
 
 vi.mock('../components/NoteEditor', () => ({
@@ -182,6 +200,7 @@ describe('NotePage', () => {
     mockUseLabs.mockReturnValue({
       subscription: { tier: 'free' as const, role: 'member' as const },
     })
+    projectsListMock.mockResolvedValue([])
     listTagsMock.mockResolvedValue([createTag({ name: 'Research', pinned: true })])
     appearanceGetMock.mockResolvedValue(appearance)
     appearanceUpsertMock.mockResolvedValue(appearance)
@@ -376,7 +395,7 @@ describe('NotePage', () => {
 
     renderPage()
 
-    expect(await screen.findByText('Editor:Note 1')).toBeInTheDocument()
+    expect(await screen.findByText('Note 1')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'modules.note.new' }))
 
     expect(createMock).not.toHaveBeenCalled()
