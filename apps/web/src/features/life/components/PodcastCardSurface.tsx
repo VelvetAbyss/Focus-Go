@@ -288,11 +288,11 @@ export const PodcastCardSurface = ({
               <div style={{ width: 48, height: 48, marginBottom: 16, borderRadius: 999, background: 'rgba(58,55,51,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Headphones size={20} color="rgba(58,55,51,0.30)" />
               </div>
-              <p style={{ ...playfair(14, 500), marginBottom: 6 }}>Your podcast shelf is empty</p>
-              <p style={{ ...inter(12, 400, mutedText), lineHeight: 1.6, marginBottom: 18 }}>Search podcasts or import a Netease channel link.</p>
+              <p style={{ ...playfair(14, 500), marginBottom: 6 }}>{t('life.podcast.emptyTitle')}</p>
+              <p style={{ ...inter(12, 400, mutedText), lineHeight: 1.6, marginBottom: 18 }}>{t('life.podcast.emptyDescription')}</p>
               <button type="button" onClick={(event) => { event.stopPropagation(); onOpen() }} style={{ ...smallButtonStyle, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 <Search size={11} />
-                <span>Find podcast</span>
+                <span>{t('life.podcast.findPodcast')}</span>
               </button>
             </div>
           )}
@@ -301,31 +301,31 @@ export const PodcastCardSurface = ({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderTop: `1px solid ${sectionBorder}` }}>
           <p style={{ ...inter(11, 400, 'rgba(58,55,51,0.38)') }}>{model.statsLabel}</p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, ...inter(11, 500) }}>
-            <span>{model.nowPlaying?.source === 'netease' && !neteaseExperimentalPlaybackEnabled ? 'Open Original' : 'Open Player'}</span>
+            <span>{model.nowPlaying?.source === 'netease' && !neteaseExperimentalPlaybackEnabled ? t('life.podcast.openOriginal') : t('life.podcast.openPlayer')}</span>
             <ChevronRight size={11} />
           </div>
         </div>
       </div>)}
 
-      <Dialog open={open} onClose={onClose} panelClassName="life-modal__panel" contentClassName="life-modal__content">
+      {open ? <Dialog open={open} onClose={onClose} panelClassName="life-modal__panel" contentClassName="life-modal__content">
         <div style={modalLayoutStyle}>
           <div style={modalHeaderStyle}>
             <div>
-              <p style={{ ...inter(10, 600, 'rgba(58,55,51,0.38)'), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 4 }}>Podcast</p>
-              <h2 style={{ ...playfair(22, 500) }}>Podcast</h2>
+              <p style={{ ...inter(10, 600, 'rgba(58,55,51,0.38)'), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 4 }}>{t('life.card.podcast')}</p>
+              <h2 style={{ ...playfair(22, 500) }}>{t('life.card.podcast')}</h2>
             </div>
             <button type="button" onClick={onClose} style={iconButtonStyle}><X size={18} /></button>
           </div>
           <div style={{ display: 'flex', minHeight: 0, flex: 1 }}>
             <aside ref={sidebarRef} style={sidebarStyle}>
               <div style={{ display: 'grid', gap: 10, gridTemplateColumns: '1fr', minWidth: 0 }}>
-                <Field label="Search">
+                <Field label={t('life.podcast.search')}>
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                     <input
                       value={query}
                       onChange={(event) => onQueryChange(event.target.value)}
                       onKeyDown={(event) => { if (event.key === 'Enter') onSearch() }}
-                      placeholder="Search podcast or paste a Netease link"
+                      placeholder={t('life.podcast.searchPlaceholder')}
                       style={{ ...inputStyle, paddingRight: 56 }}
                     />
                     <button
@@ -343,11 +343,11 @@ export const PodcastCardSurface = ({
                         flexShrink: 0,
                       }}
                     >
-                      {searching ? '···' : 'Go'}
+                      {searching ? '···' : t('life.podcast.search')}
                     </button>
                   </div>
                 </Field>
-                <Field label="Netease channel">
+                <Field label={t('life.podcast.neteaseChannel')}>
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                     <input
                       value={channelUrl}
@@ -371,7 +371,7 @@ export const PodcastCardSurface = ({
                         flexShrink: 0,
                       }}
                     >
-                      {addingCandidateId?.startsWith('channel:') ? '···' : 'Import'}
+                      {addingCandidateId?.startsWith('channel:') ? '···' : t('life.podcast.import')}
                     </button>
                   </div>
                 </Field>
@@ -394,9 +394,9 @@ export const PodcastCardSurface = ({
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                         <div style={{ minWidth: 0 }}>
                           <p style={{ ...inter(12, 500), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{channel.title}</p>
-                          <p style={{ ...inter(10, 400, mutedText), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Preset Netease channel</p>
+                          <p style={{ ...inter(10, 400, mutedText), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('life.podcast.presetChannel')}</p>
                         </div>
-                        <span style={{ ...inter(11, 500, ink) }}>{addingCandidateId === `preset:${channel.id}` ? '...' : 'Import'}</span>
+                        <span style={{ ...inter(11, 500, ink) }}>{addingCandidateId === `preset:${channel.id}` ? '...' : t('life.podcast.import')}</span>
                       </div>
                     </button>
                   ))}
@@ -474,7 +474,7 @@ export const PodcastCardSurface = ({
                     >
                       <p style={{ ...inter(12, 500), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</p>
                       <p style={{ ...inter(10, 400, mutedText), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {item.author}{item.source === 'netease' ? ' · Netease (Open Original)' : ' · Apple Podcasts'}
+                        {item.author}{item.source === 'netease' ? ` · ${t('life.podcast.netease')}` : ` · ${t('life.podcast.apple')}`}
                       </p>
                     </button>
                   ))}
@@ -523,7 +523,7 @@ export const PodcastCardSurface = ({
                               <span className="podcast-eq__bar" />
                               <span className="podcast-eq__bar" />
                             </span>
-                            <span style={{ ...inter(9, 700, '#3D7A4E'), letterSpacing: '0.12em', textTransform: 'uppercase' }}>Now Playing</span>
+                            <span style={{ ...inter(9, 700, '#3D7A4E'), letterSpacing: '0.12em', textTransform: 'uppercase' }}>{t('life.podcast.nowPlaying')}</span>
                           </div>
                         ) : null}
                         <h3 style={{ ...playfair(24, 500), marginBottom: 4 }}>{selected.name}</h3>
@@ -532,20 +532,20 @@ export const PodcastCardSurface = ({
                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                           <button type="button" onClick={() => onTogglePlaying(selected.id)} style={{ ...smallButtonStyle, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                             {selected.isPlaying && !isNeteaseDefaultMode ? <Pause size={11} /> : <Play size={11} />}
-                            <span>{isNeteaseDefaultMode ? 'Open Original' : selected.isPlaying ? 'Pause' : 'Play'}</span>
+                            <span>{isNeteaseDefaultMode ? t('life.podcast.openOriginal') : selected.isPlaying ? t('life.podcast.pause') : t('life.podcast.play')}</span>
                           </button>
                           {selected.source === 'itunes' ? (
-                            <button type="button" onClick={() => onOpenExternal(selected.externalUrl ?? `https://podcasts.apple.com/podcast/id${selected.collectionId}`)} style={smallButtonStyle}>View on Apple Podcasts</button>
+                            <button type="button" onClick={() => onOpenExternal(selected.externalUrl ?? `https://podcasts.apple.com/podcast/id${selected.collectionId}`)} style={smallButtonStyle}>{t('life.podcast.viewOnApple')}</button>
                           ) : null}
                           {selected.source === 'netease' ? (
-                            <button type="button" onClick={() => onOpenExternal(selected.externalUrl ?? `https://music.163.com/djradio?id=${encodeURIComponent(selected.sourceId)}`)} style={smallButtonStyle}>Open Channel</button>
+                            <button type="button" onClick={() => onOpenExternal(selected.externalUrl ?? `https://music.163.com/djradio?id=${encodeURIComponent(selected.sourceId)}`)} style={smallButtonStyle}>{t('life.podcast.openChannel')}</button>
                           ) : null}
                           {selected.source === 'netease' ? (
                             <button type="button" onClick={() => onRefreshItem(selected.id)} style={smallButtonStyle}>
-                              {refreshingPodcastId === selected.id ? '...' : 'Refresh'}
+                              {refreshingPodcastId === selected.id ? '...' : t('life.podcast.refresh')}
                             </button>
                           ) : null}
-                          <button type="button" onClick={() => onRemoveItem(selected.id)} style={{ ...smallButtonStyle, color: '#9D4C4C' }}>Remove</button>
+                          <button type="button" onClick={() => onRemoveItem(selected.id)} style={{ ...smallButtonStyle, color: '#9D4C4C' }}>{t('life.podcast.remove')}</button>
                         </div>
                         {/* Seekable progress bar in modal header */}
                         {progress && progress.duration > 0 && (
@@ -573,11 +573,11 @@ export const PodcastCardSurface = ({
                     {/* Fixed header bar — does not scroll */}
                     <div style={{ flexShrink: 0, padding: '10px 20px 8px', borderBottom: `1px solid ${sectionBorder}`, background: paper }}>
                       {selected.source === 'itunes' ? (
-                        <p style={{ ...inter(10, 400, mutedText), marginBottom: 6 }}>Metadata courtesy of Apple Podcasts</p>
+                        <p style={{ ...inter(10, 400, mutedText), marginBottom: 6 }}>{t('life.podcast.metadataApple')}</p>
                       ) : null}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <p style={{ ...inter(10, 600, 'rgba(58,55,51,0.35)'), letterSpacing: '0.10em', textTransform: 'uppercase', flex: 1, margin: 0 }}>
-                          Episodes{selected.episodes.length > 0 ? ` · ${filteredEpisodes.length}${filteredEpisodes.length < selected.episodes.length ? `/${selected.episodes.length}` : ''}` : ''}
+                          {t('life.podcast.episodes')}{selected.episodes.length > 0 ? ` · ${filteredEpisodes.length}${filteredEpisodes.length < selected.episodes.length ? `/${selected.episodes.length}` : ''}` : ''}
                         </p>
                         {/* Search toggle */}
                         <button
@@ -647,11 +647,11 @@ export const PodcastCardSurface = ({
                               style={{ minWidth: 0, flex: 1, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}
                             >
                               <p style={{ ...inter(12, 500), marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{episode.title}</p>
-                              <p style={{ ...inter(10, 400, mutedText), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{episode.releaseDate ?? 'No date'}{episode.duration ? ` · ${episode.duration}` : ''}</p>
+                              <p style={{ ...inter(10, 400, mutedText), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{episode.releaseDate ?? t('life.podcast.noDate')}{episode.duration ? ` · ${episode.duration}` : ''}</p>
                             </button>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                               {selected.source === 'itunes' && episode.externalUrl ? (
-                                <button type="button" onClick={() => onOpenExternal(episode.externalUrl)} style={smallButtonStyle}>Open in Apple Podcasts</button>
+                                <button type="button" onClick={() => onOpenExternal(episode.externalUrl)} style={smallButtonStyle}>{t('life.podcast.openInApple')}</button>
                               ) : null}
                               {selected.selectedEpisodeId === episode.id ? <Play size={12} color={ink} /> : null}
                             </div>
@@ -672,12 +672,12 @@ export const PodcastCardSurface = ({
                   </div>
                 </>
               ) : (
-                <div style={{ padding: 20, ...inter(13, 400, mutedText) }}>Search and add a podcast to start.</div>
+                <div style={{ padding: 20, ...inter(13, 400, mutedText) }}>{t('life.podcast.searchStart')}</div>
               )}
             </div>
           </div>
         </div>
-      </Dialog>
+      </Dialog> : null}
     </>
   )
 }

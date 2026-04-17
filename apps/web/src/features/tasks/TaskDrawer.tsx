@@ -35,13 +35,10 @@ import { useAuthGate } from '../auth/AuthGateContext'
 type TaskDrawerProps = {
   open: boolean
   task: TaskItem | null
-  mode?: 'normal' | 'onboarding'
-  draftTask?: Partial<TaskItem> | null
   onClose: () => void
   onUpdated: (task: TaskItem) => void
   onDeleted: (id: string) => void
   onRequestDelete?: (task: TaskItem) => void
-  onCreated?: (task: TaskItem) => void
 }
 
 const priorityOptions: TaskPriority[] = ['high', 'medium', 'low']
@@ -103,29 +100,25 @@ const clamp = (value: number, min: number, max: number) => Math.min(Math.max(val
 const localizeActivityMessage = (
   message: string,
   t: ReturnType<typeof useI18n>['t'],
-  language: ReturnType<typeof useI18n>['language'],
 ) => {
   if (message.startsWith('Created in Todo')) return t('tasks.drawer.createdIn', { scope: t('tasks.status.todo') })
   if (message.startsWith('Created in Doing')) return t('tasks.drawer.createdIn', { scope: t('tasks.status.doing') })
   if (message.startsWith('Created in Done')) return t('tasks.drawer.createdIn', { scope: t('tasks.status.done') })
-  if (message.startsWith('Status changed to Todo')) return language === 'zh' ? '状态变更为待办' : 'Status changed to Todo'
-  if (message.startsWith('Status changed to Doing')) return language === 'zh' ? '状态变更为进行中' : 'Status changed to Doing'
-  if (message.startsWith('Status changed to Done')) return language === 'zh' ? '状态变更为已完成' : 'Status changed to Done'
+  if (message.startsWith('Status changed to Todo')) return t('tasks.drawer.statusChangedToTodo')
+  if (message.startsWith('Status changed to Doing')) return t('tasks.drawer.statusChangedToDoing')
+  if (message.startsWith('Status changed to Done')) return t('tasks.drawer.statusChangedToDone')
   return message
 }
 
 const TaskDrawer = ({
   open,
   task,
-  mode = 'normal',
-  draftTask,
   onClose,
   onUpdated,
   onDeleted,
   onRequestDelete,
-  onCreated,
 }: TaskDrawerProps) => {
-  const { language, t } = useI18n()
+  const { t } = useI18n()
   const { requireAuth, isGated } = useAuthGate()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -148,7 +141,6 @@ const TaskDrawer = ({
   })
   const [lastId, setLastId] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
-  const [onboardingSubmitting, setOnboardingSubmitting] = useState(false)
   const toast = useToast()
   const taskSnapshotRef = useRef<TaskItem | null>(null)
   const bodyOverflowRef = useRef<string>('')
@@ -252,27 +244,6 @@ const TaskDrawer = ({
       taskNoteContentJson: task.taskNoteContentJson,
     }
   }, [open, task, lastId])
-
-  useEffect(() => {
-    if (!open || mode !== 'onboarding') return
-    setTitle(draftTask?.title ?? '')
-    setDescription(draftTask?.description ?? '')
-    setPriority(null)
-    setIsToday(false)
-    setDueDate('')
-    setStartDate('')
-    setEndDate('')
-    setReminderDate('')
-    setReminderTime('')
-    setTags([])
-    setSubtasks([])
-    const nextTaskNote = {
-      contentJson: createTaskNoteDoc() as TaskItem['taskNoteContentJson'],
-      contentMd: '',
-    }
-    taskNoteRef.current = nextTaskNote
-    setTaskNoteSeed(nextTaskNote)
-  }, [draftTask?.description, draftTask?.title, mode, open])
 
   const buildDraft = useCallback((sourceTask: TaskItem | null) => {
     if (!sourceTask) return null
@@ -511,37 +482,6 @@ const TaskDrawer = ({
     onClose()
   }
 
-  const handleCreateTask = async () => {
-    const nextTitle = title.trim()
-    if (!nextTitle || onboardingSubmitting) return
-    setOnboardingSubmitting(true)
-    try {
-      const created = await tasksRepo.add({
-        title: nextTitle,
-        description: description.trim() || undefined,
-        isToday: false,
-        status: 'todo',
-        priority: null,
-        dueDate: undefined,
-        tags: [],
-        subtasks: [],
-        taskNoteBlocks: [],
-        taskNoteContentMd: '',
-        taskNoteContentJson: createTaskNoteDoc() as TaskItem['taskNoteContentJson'],
-      })
-      emitTasksChanged('task-drawer:create')
-      onCreated?.(created)
-    } catch {
-      toast.push({
-        variant: 'error',
-        title: t('tasks.drawer.saveFailed'),
-        message: t('tasks.drawer.retryHint'),
-      })
-    } finally {
-      setOnboardingSubmitting(false)
-    }
-  }
-
   const handleStatusChange = async (status: TaskItem['status']) => {
     if (!currentTask) return
     setIsSaving(true)
@@ -618,69 +558,6 @@ const TaskDrawer = ({
     setTagDraft('')
   }
 
-  if (mode === 'onboarding') {
-    return (
-      <Dialog
-        open={open}
-        title=""
-        onClose={requestClose}
-        panelClassName="task-drawer-panel !h-auto rounded-[30px] border border-[#3A3733]/8 bg-[#F5F3F0] shadow-[0_30px_100px_rgba(58,55,51,0.16)]"
-        panelStyle={{ width: 'min(560px, calc(100vw - 48px))' }}
-        contentClassName="!p-0"
-      >
-        <div className="p-6 text-[#3A3733]">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#3A3733]/56">{t('tasks.drawer.startWithOneTask')}</p>
-              <h2 className="mt-3 text-[28px] font-semibold tracking-[-0.03em]">{t('tasks.onboarding.title')}</h2>
-              <p className="mt-3 text-sm leading-6 text-[#3A3733]/72">{t('tasks.drawer.onboardingHint')}</p>
-            </div>
-            <Button type="button" variant="ghost" size="icon" className="h-9 w-9 rounded-full text-[#3A3733]/56 hover:bg-[#3A3733]/8 hover:text-[#3A3733]" onClick={requestClose}>
-              <X className="size-4" />
-            </Button>
-          </div>
-
-          <div className="mt-6 space-y-4">
-            <label className="grid gap-2">
-              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#3A3733]/56">{t('tasks.drawer.title')}</span>
-              <Input
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                placeholder={t('tasks.drawer.title')}
-                className="h-12 rounded-[18px] border-[#3A3733]/10 bg-white text-[#3A3733] shadow-none"
-                autoFocus
-              />
-            </label>
-            <label className="grid gap-2">
-              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#3A3733]/56">{t('tasks.drawer.summary')}</span>
-              <Textarea
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-                placeholder={t('tasks.drawer.summaryPlaceholder')}
-                className="min-h-[120px] rounded-[18px] border-[#3A3733]/10 bg-white text-[#3A3733] shadow-none"
-              />
-            </label>
-          </div>
-
-          <div className="mt-6 flex items-center justify-end gap-3">
-            <Button type="button" variant="outline" className="rounded-full border-[#3A3733]/12 text-[#3A3733]" onClick={requestClose}>
-              {t('tasks.onboarding.exit')}
-            </Button>
-            <Button
-              type="button"
-              className="rounded-full bg-[#3A3733] text-[#F5F3F0] hover:bg-[#3A3733]/90"
-              onClick={() => requireAuth(() => { void handleCreateTask() })}
-              disabled={!title.trim() || onboardingSubmitting}
-            >
-              {onboardingSubmitting ? <LoaderCircle className="mr-2 size-4 animate-spin" /> : null}
-              {t('tasks.drawer.createTask')}
-            </Button>
-          </div>
-        </div>
-      </Dialog>
-    )
-  }
-
   return (
     <Dialog
       open={open}
@@ -730,7 +607,7 @@ const TaskDrawer = ({
                 {currentTask.status === 'done' ? (
                   <Button variant="outline" size="sm" className="task-detail-action-button h-8 rounded-full px-3 text-[11px] font-semibold" onClick={() => void handleStatusChange('todo')} disabled={isSaving}>
                     <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-                    {language === 'zh' ? '重新打开' : 'Reopen'}
+                    {t('tasks.status.reopen')}
                   </Button>
                 ) : null}
               </div>
@@ -963,7 +840,7 @@ const TaskDrawer = ({
                       ) : (
                         activityLogs.map((log) => (
                           <article key={log.id} className="rounded-[18px] border border-[#3a3733]/6 bg-[color:var(--bg-muted)] px-4 py-3">
-                            <p className="text-[13px] leading-6 text-[color:var(--text-primary)]">{localizeActivityMessage(log.message, t, language)}</p>
+                            <p className="text-[13px] leading-6 text-[color:var(--text-primary)]">{localizeActivityMessage(log.message, t)}</p>
                             <p className="mt-2 text-[11px] font-medium text-[color:var(--text-secondary)]">{formatTaskDateTime(log.createdAt)}</p>
                           </article>
                         ))

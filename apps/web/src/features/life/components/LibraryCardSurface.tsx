@@ -273,7 +273,7 @@ export const LibraryCardSurface = ({
               ))}
               {books.length > 3 ? (
                 <div style={{ ...inter(11, 400, 'rgba(58,55,51,0.38)'), padding: '8px 0', textAlign: 'center', borderTop: '1px solid rgba(58,55,51,0.06)' }}>
-                  +{books.length - 3} more {books.length - 3 === 1 ? 'book' : 'books'} on your shelf
+                  {t('life.library.moreBooks', { count: books.length - 3 })}
                 </div>
               ) : null}
             </div>
@@ -296,14 +296,14 @@ export const LibraryCardSurface = ({
         ) : null}
       </div>
 
-      <Dialog open={open} onClose={onClose} panelClassName="life-modal__panel" contentClassName="life-modal__content">
+      {open ? <Dialog open={open} onClose={onClose} panelClassName="life-modal__panel" contentClassName="life-modal__content">
         <div style={{ display: 'flex', flex: 1, minHeight: 0, flexDirection: 'column', background: paper }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 32px', borderBottom: `1px solid ${subtleBorder}` }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <BookOpen size={16} color="rgba(58,55,51,0.40)" />
-              <h1 style={{ ...playfair(22, 500) }}>Library</h1>
+              <h1 style={{ ...playfair(22, 500) }}>{t('life.library.title')}</h1>
               <span style={{ ...inter(11, 500, mutedText), marginLeft: 4, padding: '2px 8px', borderRadius: 999, background: 'rgba(58,55,51,0.07)' }}>
-                {books.length} {books.length === 1 ? 'book' : 'books'}
+                {t('life.library.bookCount', { count: books.length })}
               </span>
             </div>
             <button type="button" onClick={onClose} aria-label="Close" style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: 999, background: 'transparent', color: 'rgba(58,55,51,0.40)', cursor: 'pointer' }}>
@@ -322,7 +322,7 @@ export const LibraryCardSurface = ({
                     onKeyDown={(event) => {
                       if (event.key === 'Enter') onSearch()
                     }}
-                    placeholder="Title, author, or ISBN..."
+                    placeholder={t('life.library.searchPlaceholder')}
                     style={{ ...inter(13, 400), flex: 1, border: 'none', outline: 'none', background: 'transparent' }}
                   />
                   {query ? (
@@ -335,7 +335,7 @@ export const LibraryCardSurface = ({
 
               {results.length > 0 ? (
                 <div style={{ padding: '0 16px 12px', borderBottom: `1px solid ${subtleBorder}` }}>
-                  <p style={{ ...inter(10, 500, 'rgba(58,55,51,0.38)'), letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8, paddingLeft: 4 }}>Search Results</p>
+                  <p style={{ ...inter(10, 500, 'rgba(58,55,51,0.38)'), letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8, paddingLeft: 4 }}>{t('life.library.searchResults')}</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto' }}>
                     {results.map((book) => (
                       <div key={book.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, borderRadius: 12, background: cardBg, border: `1px solid ${subtleBorder}` }}>
@@ -362,7 +362,7 @@ export const LibraryCardSurface = ({
                           }}
                         >
                           {addingCandidateId === book.id ? <CheckCheck size={11} /> : <Plus size={11} />}
-                          <span>{addingCandidateId === book.id ? 'Added' : 'Add'}</span>
+                          <span>{addingCandidateId === book.id ? t('life.library.added') : t('life.library.add')}</span>
                         </button>
                       </div>
                     ))}
@@ -375,10 +375,10 @@ export const LibraryCardSurface = ({
               <div style={{ padding: '0 16px 12px' }}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {[
-                    { key: 'all', label: 'All', count: books.length },
-                    { key: 'reading', label: 'Reading', count: readingCount },
-                    { key: 'finished', label: 'Finished', count: finishedCount },
-                    { key: 'want-to-read', label: 'Want to Read', count: wantToReadCount },
+                    { key: 'all', label: t('life.library.all'), count: books.length },
+                    { key: 'reading', label: t('life.library.reading'), count: readingCount },
+                    { key: 'finished', label: t('life.library.finished'), count: finishedCount },
+                    { key: 'want-to-read', label: t('life.library.wantToRead'), count: wantToReadCount },
                   ].map((item, index) => (
                     <div
                       key={item.key}
@@ -404,11 +404,11 @@ export const LibraryCardSurface = ({
                     <div style={{ width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, borderRadius: 999, background: 'rgba(58,55,51,0.05)' }}>
                       <BookOpen size={20} color="rgba(58,55,51,0.25)" />
                     </div>
-                    <p style={{ ...playfair(16, 500, 'rgba(58,55,51,0.60)'), marginBottom: 6 }}>Nothing on your shelf yet</p>
-                    <p style={{ ...inter(12, 400, 'rgba(58,55,51,0.38)'), lineHeight: 1.65, marginBottom: 16 }}>Use the search above to find books and add them to your personal library.</p>
+                    <p style={{ ...playfair(16, 500, 'rgba(58,55,51,0.60)'), marginBottom: 6 }}>{t('life.library.shelfEmpty')}</p>
+                    <p style={{ ...inter(12, 400, 'rgba(58,55,51,0.38)'), lineHeight: 1.65, marginBottom: 16 }}>{t('life.library.searchAbove')}</p>
                     <button type="button" onClick={onSearch} style={{ ...inter(12, 500), display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 999, background: 'rgba(58,55,51,0.07)', border: '1px solid rgba(58,55,51,0.12)', cursor: 'pointer' }}>
                       <Search size={12} />
-                      <span>Search for books</span>
+                      <span>{t('life.library.searchForBooks')}</span>
                     </button>
                   </div>
                 ) : (
@@ -436,7 +436,7 @@ export const LibraryCardSurface = ({
                       <h2 style={{ ...playfair(22, 500), lineHeight: 1.25, marginTop: 8, marginBottom: 4 }}>{selectedBook.title}</h2>
                       <p style={{ ...inter(14, 400, 'rgba(58,55,51,0.60)'), marginBottom: 12 }}>{selectedBook.authors.join(' & ')}</p>
                       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                        {selectedBook.publisher ? <span style={inter(11, 400, mutedText)}><span style={{ opacity: 0.6 }}>Published by </span>{selectedBook.publisher}</span> : null}
+                        {selectedBook.publisher ? <span style={inter(11, 400, mutedText)}><span style={{ opacity: 0.6 }}>{t('life.library.publishedBy')}</span>{selectedBook.publisher}</span> : null}
                         {selectedBook.publisher && selectedBook.publishedDate ? <span style={{ color: 'rgba(58,55,51,0.20)' }}>·</span> : null}
                         {selectedBook.publishedDate ? <span style={inter(11, 400, mutedText)}>{selectedBook.publishedDate}</span> : null}
                       </div>
@@ -454,7 +454,7 @@ export const LibraryCardSurface = ({
 
                   <div style={{ padding: '24px 40px', borderBottom: `1px solid ${subtleBorder}` }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-                      <p style={{ ...inter(11, 500, mutedText), marginRight: 8, letterSpacing: '0.07em', textTransform: 'uppercase' }}>Status</p>
+                      <p style={{ ...inter(11, 500, mutedText), marginRight: 8, letterSpacing: '0.07em', textTransform: 'uppercase' }}>{t('life.library.status')}</p>
                       {(['want-to-read', 'reading', 'finished'] as BookItem['status'][]).map((status) => {
                         const cfg = statusConfig[status]
                         const active = selectedBook.status === status
@@ -485,7 +485,7 @@ export const LibraryCardSurface = ({
 
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <p style={{ ...inter(11, 500, mutedText), letterSpacing: '0.07em', textTransform: 'uppercase' }}>Reading Progress</p>
+                        <p style={{ ...inter(11, 500, mutedText), letterSpacing: '0.07em', textTransform: 'uppercase' }}>{t('life.library.readingProgress')}</p>
                         <span style={inter(12, 600)}>{selectedBook.progress}%</span>
                       </div>
                       <ProgressTrack
@@ -506,7 +506,7 @@ export const LibraryCardSurface = ({
                   <div style={{ padding: '24px 40px', borderBottom: `1px solid ${subtleBorder}` }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                       <span style={{ color: mutedText }}><BookMarked size={13} /></span>
-                      <p style={{ ...inter(11, 500, mutedText), letterSpacing: '0.07em', textTransform: 'uppercase' }}>My Reflection</p>
+                      <p style={{ ...inter(11, 500, mutedText), letterSpacing: '0.07em', textTransform: 'uppercase' }}>{t('life.library.myReflection')}</p>
                     </div>
                     <ImeTextarea
                       value={selectedBook.reflection ?? ''}
@@ -532,7 +532,7 @@ export const LibraryCardSurface = ({
 
                   {(selectedBook.description || selectedBook.summary) ? (
                     <div style={{ padding: '24px 40px', borderBottom: `1px solid ${subtleBorder}` }}>
-                      <p style={{ ...inter(11, 500, mutedText), letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 12 }}>About this Book</p>
+                      <p style={{ ...inter(11, 500, mutedText), letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 12 }}>{t('life.library.aboutBook')}</p>
                       {selectedBook.summary ? <p style={{ ...playfair(14, 400, 'rgba(58,55,51,0.75)'), fontStyle: 'italic', lineHeight: 1.65, marginBottom: 12 }}>"{selectedBook.summary}"</p> : null}
                       {selectedBook.description ? <p style={{ ...inter(13, 400, 'rgba(58,55,51,0.60)'), lineHeight: 1.75 }}>{selectedBook.description}</p> : null}
                     </div>
@@ -564,7 +564,7 @@ export const LibraryCardSurface = ({
                       }}
                     >
                       <Trash2 size={12} />
-                      <span>Remove from Library</span>
+                      <span>{t('life.library.removeFromLibrary')}</span>
                     </button>
                   </div>
                 </div>
@@ -573,14 +573,14 @@ export const LibraryCardSurface = ({
                   <div style={{ width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24, borderRadius: 18, background: 'rgba(58,55,51,0.05)', border: `1px solid ${subtleBorder}` }}>
                     <BookMarked size={22} color="rgba(58,55,51,0.25)" />
                   </div>
-                  <p style={{ ...playfair(18, 500, 'rgba(58,55,51,0.55)'), marginBottom: 8 }}>Select a book to explore</p>
-                  <p style={{ ...inter(13, 400, 'rgba(58,55,51,0.35)'), lineHeight: 1.65, maxWidth: 280 }}>Choose a title from your collection to view details, track your progress, and write a reflection.</p>
+                  <p style={{ ...playfair(18, 500, 'rgba(58,55,51,0.55)'), marginBottom: 8 }}>{t('life.library.selectBook')}</p>
+                  <p style={{ ...inter(13, 400, 'rgba(58,55,51,0.35)'), lineHeight: 1.65, maxWidth: 280 }}>{t('life.library.selectBookDesc')}</p>
                 </div>
               )}
             </div>
           </div>
         </div>
-      </Dialog>
+      </Dialog> : null}
     </>
   )
 }

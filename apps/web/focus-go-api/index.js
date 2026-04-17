@@ -6,6 +6,7 @@ import userRouter from './routes/user.js'
 import syncRouter from './routes/sync.js'
 import paymentsRouter from './routes/payments.js'
 import podcastsRouter from './routes/podcasts.js'
+import adminRouter from './routes/admin.js'
 import db from './db/init.js'
 import { startNeteasePodcastSyncJob } from './services/podcasts.js'
 
@@ -40,6 +41,7 @@ export const createApp = () => {
   app.use('/sync', syncRouter)
   app.use('/payments', paymentsRouter)
   app.use('/podcasts', podcastsRouter)
+  app.use('/admin', adminRouter)
 
   return app
 }

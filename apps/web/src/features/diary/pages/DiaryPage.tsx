@@ -318,7 +318,7 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
   ]
 
   return (
-    <div className="diary-page flex h-full flex-col overflow-hidden bg-[color:var(--app-bg,#F5F3F0)]" data-coachmark-anchor="diary-page" data-diary-font={diaryFont}>
+    <div className="diary-page flex h-full flex-col overflow-hidden bg-[color:var(--app-bg,#F5F3F0)]" data-diary-font={diaryFont}>
       <div className="diary-page__atmosphere" aria-hidden="true" />
       {/* Header */}
       <header className="diary-page__header z-10 shrink-0 bg-background/72 px-4 py-5 backdrop-blur md:px-6 md:py-6">

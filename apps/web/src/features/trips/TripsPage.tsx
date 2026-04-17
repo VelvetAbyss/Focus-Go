@@ -6,6 +6,7 @@ import { buildTripDetailRoute, ROUTES } from '../../app/routes/routes'
 import type { TripRecord } from '../../data/models/types'
 import { checklistProgress, fmtUSD, statusColor, tripDuration } from './tripData'
 import { tripsRepo } from './tripsRepo'
+import { useLifeI18n } from '../life/lifeI18n'
 
 const paper = '#F5F3F0'
 const cardBg = '#FDFAF7'
@@ -41,10 +42,21 @@ const TripsPageSkeleton = () => (
 
 const TripsPage = () => {
   const navigate = useNavigate()
+  const { t } = useLifeI18n()
   const [trips, setTrips] = useState<TripRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  const statusLabel = (s: TripRecord['status']) => {
+    const map: Record<string, string> = {
+      Planning: t('life.trips.status.planning'),
+      Booked: t('life.trips.status.booked'),
+      Active: t('life.trips.status.active'),
+      Completed: t('life.trips.status.completed'),
+    }
+    return map[s] ?? s
+  }
 
 
   const loadTrips = async () => {
@@ -71,7 +83,7 @@ const TripsPage = () => {
   }
 
   const handleDelete = async (tripId: string) => {
-    if (!window.confirm('Delete this trip?')) return
+    if (!window.confirm(t('life.trips.deleteConfirm'))) return
     await tripsRepo.remove(tripId)
     await loadTrips()
   }
@@ -82,10 +94,10 @@ const TripsPage = () => {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
           <div>
             <button type="button" onClick={() => navigate(ROUTES.DASHBOARD)} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 10, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, ...tx(12, 500, muted) }}>
-              <ArrowLeft size={14} /> Dashboard
+              <ArrowLeft size={14} /> {t('life.trips.dashboard')}
             </button>
-            <h1 style={{ ...pf(34, 500), lineHeight: 1.05 }}>Trips</h1>
-            <p style={{ ...tx(13, 400, muted), marginTop: 8 }}>Build trips, open a detail workspace, and keep plans updated automatically.</p>
+            <h1 style={{ ...pf(34, 500), lineHeight: 1.05 }}>{t('life.trips.title')}</h1>
+            <p style={{ ...tx(13, 400, muted), marginTop: 8 }}>{t('life.trips.description')}</p>
           </div>
           <button
             type="button"
@@ -94,7 +106,7 @@ const TripsPage = () => {
             style={{ display: 'inline-flex', alignItems: 'center', gap: 10, border: `1px solid ${subtleBorder}`, borderRadius: 999, background: cardBg, padding: '12px 16px', cursor: 'pointer', ...tx(13, 600) }}
           >
             <Plus size={15} />
-            {creating ? 'Creating…' : 'New Trip'}
+            {creating ? t('life.trips.creating') : t('life.trips.newTrip')}
           </button>
         </div>
 
@@ -102,12 +114,12 @@ const TripsPage = () => {
 
         {!loading && trips.length === 0 ? (
           <div style={{ background: cardBg, border: `1px solid ${subtleBorder}`, borderRadius: 24, padding: 28, display: 'grid', gap: 12 }}>
-            <h2 style={pf(24, 500)}>No trips yet</h2>
-            <p style={tx(13, 400, muted)}>Create the first trip to open the planning workspace.</p>
+            <h2 style={pf(24, 500)}>{t('life.trips.noTrips')}</h2>
+            <p style={tx(13, 400, muted)}>{t('life.trips.noTripsDesc')}</p>
             <div>
               <button type="button" onClick={handleCreate} disabled={creating} style={{ display: 'inline-flex', alignItems: 'center', gap: 10, border: 'none', borderRadius: 999, background: ink, color: paper, padding: '12px 16px', cursor: 'pointer', ...tx(13, 600, paper) }}>
                 <Plus size={15} />
-                {creating ? 'Creating…' : 'Create Trip'}
+                {creating ? t('life.trips.creating') : t('life.trips.createTrip')}
               </button>
             </div>
           </div>
@@ -125,7 +137,7 @@ const TripsPage = () => {
                     <img src={trip.heroImage} alt={trip.destination || trip.title} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.84) saturate(0.76)' }} />
                     <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(58,55,51,0.12), rgba(58,55,51,0.6))' }} />
                     <div style={{ position: 'absolute', left: 16, right: 16, top: 16, display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                      <span style={{ ...tx(10, 600, status.text), background: 'rgba(253,250,247,0.92)', border: `1px solid ${status.border}`, borderRadius: 999, padding: '4px 8px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{trip.status}</span>
+                      <span style={{ ...tx(10, 600, status.text), background: 'rgba(253,250,247,0.92)', border: `1px solid ${status.border}`, borderRadius: 999, padding: '4px 8px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{statusLabel(trip.status)}</span>
                       <button
                         type="button"
                         onClick={(event) => {
@@ -140,7 +152,7 @@ const TripsPage = () => {
                     <div style={{ position: 'absolute', left: 16, right: 16, bottom: 16 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                         <span style={{ fontSize: 16 }}>{trip.coverEmoji}</span>
-                        <span style={tx(11, 600, 'rgba(255,255,255,0.78)')}>{trip.destination || 'Destination pending'}</span>
+                        <span style={tx(11, 600, 'rgba(255,255,255,0.78)')}>{trip.destination || t('life.trips.destinationPending')}</span>
                       </div>
                       <h2 style={{ ...pf(24, 500, paper), lineHeight: 1.1 }}>{trip.title}</h2>
                     </div>
@@ -148,15 +160,15 @@ const TripsPage = () => {
 
                   <div style={{ padding: 18, display: 'grid', gap: 12 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                      <span style={{ ...tx(12, 400, muted), display: 'inline-flex', alignItems: 'center', gap: 7 }}><Calendar size={12} /> {trip.startDate} to {trip.endDate}</span>
-                      <span style={tx(12, 500)}>{tripDuration(trip)} days</span>
+                      <span style={{ ...tx(12, 400, muted), display: 'inline-flex', alignItems: 'center', gap: 7 }}><Calendar size={12} /> {trip.startDate}{t('life.trips.dateTo')}{trip.endDate}</span>
+                      <span style={tx(12, 500)}>{t('life.trips.daysCount', { count: tripDuration(trip) })}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                      <span style={{ ...tx(12, 400, muted), display: 'inline-flex', alignItems: 'center', gap: 7 }}><Users size={12} /> {trip.travelers} travelers</span>
+                      <span style={{ ...tx(12, 400, muted), display: 'inline-flex', alignItems: 'center', gap: 7 }}><Users size={12} /> {t('life.trips.travelersCount', { count: trip.travelers })}</span>
                       <span style={{ ...tx(12, 500), display: 'inline-flex', alignItems: 'center', gap: 6 }}><Wallet size={12} /> {fmtUSD(trip.budgetPlanned)}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                      <span style={{ ...tx(12, 400, muted), display: 'inline-flex', alignItems: 'center', gap: 7 }}><MapPin size={12} /> {trip.destination || 'Destination pending'}</span>
+                      <span style={{ ...tx(12, 400, muted), display: 'inline-flex', alignItems: 'center', gap: 7 }}><MapPin size={12} /> {trip.destination || t('life.trips.destinationPending')}</span>
                       <span style={tx(12, 500)}>{progress.done}/{progress.total || 0}</span>
                     </div>
                     <div style={{ height: 5, borderRadius: 999, background: 'rgba(58,55,51,0.08)', overflow: 'hidden' }}>

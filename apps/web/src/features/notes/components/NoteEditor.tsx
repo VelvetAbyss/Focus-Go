@@ -184,6 +184,8 @@ const normalizeClipboardText = (text: string) =>
     .replace(/\n{2,}/g, '\n')
     .trimEnd()
 
+const serializeDoc = (doc: JSONContent | null | undefined) => JSON.stringify(doc ?? null)
+
 const createTableNode = (rows: string[][]): JSONContent => ({
   type: 'table',
   content: rows.map((row) => ({
@@ -230,6 +232,8 @@ const NoteEditor = ({
   const emitTimerRef = useRef<number | null>(null)
   const pendingDocRef = useRef<JSONContent | null | undefined>(undefined)
   const shouldSkipSyncRef = useRef(false)
+  const lastEditorDocRef = useRef(serializeDoc(initialDoc))
+  const lastAppliedExternalDocRef = useRef(serializeDoc(initialDoc))
   const changeMetaRef = useRef({ onChange, tags: value.tags })
 
   useEffect(() => {
@@ -258,6 +262,7 @@ const NoteEditor = ({
   const scheduleEmitChange = useCallback(
     (doc: JSONContent | null | undefined) => {
       pendingDocRef.current = doc
+      lastEditorDocRef.current = serializeDoc(doc)
       if (emitTimerRef.current) window.clearTimeout(emitTimerRef.current)
       emitTimerRef.current = window.setTimeout(() => {
         flushEmitChange()
@@ -353,20 +358,34 @@ const NoteEditor = ({
     content: initialDoc,
     onUpdate: ({ editor }) => {
       shouldSkipSyncRef.current = true
-      scheduleEmitChange(editor.getJSON())
+      const nextDoc = editor.getJSON()
+      lastEditorDocRef.current = serializeDoc(nextDoc)
+      scheduleEmitChange(nextDoc)
       setTocVersion((version) => version + 1)
     },
   })
 
   useEffect(() => {
     if (!editor) return
+    const nextDoc = ensureRichDoc(value.contentJson, value.contentMd)
+    const nextDocKey = serializeDoc(nextDoc)
     if (shouldSkipSyncRef.current) {
       shouldSkipSyncRef.current = false
+      lastAppliedExternalDocRef.current = nextDocKey
       return
     }
+    if (nextDocKey === lastAppliedExternalDocRef.current) return
+    if (nextDocKey === lastEditorDocRef.current) {
+      lastAppliedExternalDocRef.current = nextDocKey
+      return
+    }
+    const composing = Boolean(editor.view?.composing)
+    const focused = editor.isFocused ?? document.activeElement === editor.view?.dom
+    if (focused && (composing || pendingDocRef.current !== undefined)) return
     flushEmitChange()
-    const nextDoc = ensureRichDoc(value.contentJson, value.contentMd)
     editor.commands.setContent(nextDoc, { emitUpdate: false })
+    lastEditorDocRef.current = nextDocKey
+    lastAppliedExternalDocRef.current = nextDocKey
     setTocVersion((version) => version + 1)
   }, [editor, flushEmitChange, value.contentJson, value.contentMd])
 

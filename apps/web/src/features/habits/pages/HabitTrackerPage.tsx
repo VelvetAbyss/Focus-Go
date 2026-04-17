@@ -30,7 +30,7 @@ const HabitTrackerPage = () => {
   const today = todayDateKey()
 
   return (
-    <section className="habits-page-design" data-guide-anchor="habits">
+    <section className="habits-page-design">
       <div className="habits-page-design__container">
         <div className="habits-page-design__header">
           <h1 className="habits-page-design__title">{i18n.title}</h1>

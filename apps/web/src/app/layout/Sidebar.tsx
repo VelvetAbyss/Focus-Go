@@ -28,6 +28,7 @@ import {
   Settings,
   Sparkles,
   Timer,
+  ShieldCheck,
   type LucideIcon,
 } from 'lucide-react'
 import { BASE_NAV_ITEMS, ROUTES, type RouteKey } from '../routes/routes'
@@ -39,7 +40,7 @@ import { useLabsI18n } from '../../features/labs/labsI18n'
 import { useI18n } from '../../shared/i18n/useI18n'
 import type { FeatureKey } from '../../data/models/types'
 import { mergeSidebarOrder, moveSidebarOrder, readSidebarOrder, writeSidebarOrder } from './sidebarOrder'
-import { useIsLoggedIn, useAuthPlan } from '../../store/auth'
+import { useIsLoggedIn, useAuthPlan, useIsAdmin } from '../../store/auth'
 import { useUpgradeModal } from '../../features/labs/UpgradeModalContext'
 import SidebarPodcastPlayer from './SidebarPodcastPlayer'
 import PodcastCard from '../../features/life/cards/PodcastCard'
@@ -63,6 +64,7 @@ const ICONS: Record<RouteKey, LucideIcon> = {
   diary: NotebookPen,
   settings: Settings,
   labs: Beaker,
+  admin: ShieldCheck,
 }
 
 type SidebarNavItem = {
@@ -113,6 +115,7 @@ const Sidebar = ({ collapsed, onToggle, theme, onToggleTheme }: SidebarProps) =>
   const isLoggedIn = useIsLoggedIn()
   const plan = useAuthPlan()
   const isPremium = plan === 'premium'
+  const isAdmin = useIsAdmin()
   const { openModal: openUpgradeModal } = useUpgradeModal()
 
   const FEATURE_ICONS: Record<FeatureKey, LucideIcon> = {
@@ -137,7 +140,7 @@ const Sidebar = ({ collapsed, onToggle, theme, onToggleTheme }: SidebarProps) =>
       id: `feature:${feature.featureKey}`,
       enabled: feature.state === 'installed',
       to: FEATURE_ROUTES[feature.featureKey],
-      label: feature.title,
+      label: i18n.featureTitles[feature.featureKey] ?? feature.title,
       Icon: FEATURE_ICONS[feature.featureKey],
     }))
 
@@ -163,19 +166,35 @@ const Sidebar = ({ collapsed, onToggle, theme, onToggleTheme }: SidebarProps) =>
     [i18n.nav.labs],
   )
 
+  const adminItem = useMemo<SidebarNavItem>(
+    () => ({
+      id: 'route:admin',
+      to: ROUTES.ADMIN,
+      label: i18n.nav.admin,
+      Icon: ShieldCheck,
+    }),
+    [i18n.nav.admin],
+  )
+
   const visibleItemMap = useMemo(
     () =>
       new Map<string, SidebarNavItem>([
         ...routeNavItems.map((item) => [item.id, item] as const),
         ...featureItems.filter((item) => item.enabled).map((item) => [item.id, item] as const),
         [labsItem.id, labsItem],
+        ...(isAdmin ? [[adminItem.id, adminItem] as const] : []),
       ]),
-    [featureItems, labsItem, routeNavItems],
+    [adminItem, featureItems, isAdmin, labsItem, routeNavItems],
   )
 
   const allKnownIds = useMemo(
-    () => [...BASE_NAV_ITEMS.map((item) => `route:${item.key}`), ...featureItems.map((item) => item.id), 'route:labs'],
-    [featureItems],
+    () => [
+      ...BASE_NAV_ITEMS.map((item) => `route:${item.key}`),
+      ...featureItems.map((item) => item.id),
+      'route:labs',
+      ...(isAdmin ? ['route:admin'] : []),
+    ],
+    [featureItems, isAdmin],
   )
   const mergedOrder = useMemo(() => mergeSidebarOrder(savedOrder, allKnownIds), [allKnownIds, savedOrder])
   const orderedVisibleItems = useMemo(

@@ -61,10 +61,10 @@ const TasksAnalyticsView = ({ tasks }: TasksAnalyticsViewProps) => {
   const trendPeak = Math.max(maxCompletion, 1)
   const trendAverage = analytics.summary.averageCompletions
   const trendHighlights = [
-    { label: '峰值', value: maxCompletion },
-    { label: '平均', value: trendAverage },
-    { label: '总完成', value: analytics.summary.completions },
-  ] as const
+    { label: t('modules.tasks.analytics.peak'), value: maxCompletion },
+    { label: t('modules.tasks.analytics.average'), value: trendAverage },
+    { label: t('modules.tasks.analytics.totalCompletions'), value: analytics.summary.completions },
+  ]
 
   const summaryCards = [
     { key: 'totalTasks', label: t('modules.tasks.analytics.totalTasks'), value: analytics.summary.totalTasks },

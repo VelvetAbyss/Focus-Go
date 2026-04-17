@@ -194,7 +194,7 @@ export const MediaCardSurface = ({
       ) : null}
     </div>
 
-    <Dialog
+    {open ? <Dialog
       open={open}
       onClose={onClose}
       panelClassName="life-modal__panel"
@@ -270,7 +270,7 @@ export const MediaCardSurface = ({
             ) : null}
             </div>
             {loading ? <LifePanelLoader /> : null}
-            {!loading && items.length === 0 ? <p style={inter(12, 400, mutedText)}>No media yet.</p> : null}
+            {!loading && items.length === 0 ? <p style={inter(12, 400, mutedText)}>{t('life.media.noMedia')}</p> : null}
             <div style={{ display: 'grid', gap: 10, marginTop: 16 }}>
               {!loading && items.map((item) => (
                 <button
@@ -358,13 +358,13 @@ export const MediaCardSurface = ({
                 <div style={{ display: 'grid', gap: 0 }}>
                   <div style={{ display: 'grid', gap: 16, padding: '20px 40px 16px', borderBottom: `1px solid ${sectionBorder}` }}>
                     <div>
-                      <div style={{ ...inter(11, 500, 'rgba(58,55,51,0.38)'), letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 10 }}>Status</div>
+                      <div style={{ ...inter(11, 500, 'rgba(58,55,51,0.38)'), letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 10 }}>{t('life.media.status')}</div>
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         {([
-                          ['want-to-watch', Circle, 'Want to Watch'],
-                          ['watching', Play, 'Watching'],
-                          ['completed', Check, 'Finished'],
-                        ] as const).map(([value, Icon, label]) => {
+                          ['want-to-watch', Circle, t('life.media.wantToWatch')],
+                          ['watching', Play, t('life.media.watching')],
+                          ['completed', Check, t('life.media.finished')],
+                        ] as [MediaItem['status'], typeof Circle, string][]).map(([value, Icon, label]) => {
                           const active = selected.status === value
                           return (
                             <button
@@ -392,7 +392,7 @@ export const MediaCardSurface = ({
                     </div>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <div style={{ ...inter(11, 500, 'rgba(58,55,51,0.38)'), letterSpacing: '0.07em', textTransform: 'uppercase' }}>Progress</div>
+                        <div style={{ ...inter(11, 500, 'rgba(58,55,51,0.38)'), letterSpacing: '0.07em', textTransform: 'uppercase' }}>{t('life.media.progress')}</div>
                         <span style={inter(12, 600, '#3A3733')}>{selected.progress}%</span>
                       </div>
                       <ProgressTrack
@@ -411,7 +411,7 @@ export const MediaCardSurface = ({
                   </div>
 
                   <div style={{ padding: '20px 40px', borderBottom: `1px solid ${sectionBorder}` }}>
-                    <div style={{ ...inter(11, 500, 'rgba(58,55,51,0.38)'), letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 8 }}>My Notes</div>
+                    <div style={{ ...inter(11, 500, 'rgba(58,55,51,0.38)'), letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 8 }}>{t('life.media.myNotes')}</div>
                     <ImeTextarea
                       value={noteValue(selected)}
                       onChange={(val) => onPatchItem({ reflection: val })}
@@ -421,7 +421,7 @@ export const MediaCardSurface = ({
                   </div>
 
                   <div style={{ padding: '20px 40px 28px' }}>
-                    <div style={{ ...inter(11, 500, 'rgba(58,55,51,0.38)'), letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 10 }}>Synopsis</div>
+                    <div style={{ ...inter(11, 500, 'rgba(58,55,51,0.38)'), letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 10 }}>{t('life.media.synopsis')}</div>
                     <textarea
                       value={synopsisValue(selected)}
                       onChange={(event) => onPatchItem({ overview: event.target.value })}
@@ -433,13 +433,13 @@ export const MediaCardSurface = ({
               </div>
             ) : (
               <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
-                <p style={inter(13, 400, mutedText)}>Select a title to inspect details.</p>
+                <p style={inter(13, 400, mutedText)}>{t('life.media.selectTitle')}</p>
               </div>
             )}
           </div>
         </div>
       </div>
-    </Dialog>
-    </>
-  )
+    </Dialog> : null}
+  </>
+)
 }

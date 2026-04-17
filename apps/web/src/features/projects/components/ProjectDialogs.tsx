@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Check, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -10,7 +11,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import Dialog from '../../../shared/ui/Dialog'
-import type { ProjectItem, ProjectPerson, TaskItem } from '../../../data/models/types'
+import type { LifePerson, ProjectItem, ProjectPerson, TaskItem } from '../../../data/models/types'
+import { peopleRepo } from '../../../data/repositories/peopleRepo'
+import { useProjectsI18n } from '../projectsI18n'
 
 type ProjectFormDialogProps = {
   open: boolean
@@ -47,7 +50,16 @@ type PersonFormDialogProps = {
 const inputClassName = 'h-11 rounded-2xl border-[#3A3733]/12 bg-white text-[#3A3733] shadow-none'
 const textareaClassName = 'min-h-[112px] rounded-3xl border-[#3A3733]/12 bg-white text-[#3A3733] shadow-none'
 
+const GROUP_COLORS: Record<string, string> = {
+  Family: '#f59e0b',
+  Friends: '#10b981',
+  Work: '#3b82f6',
+  Community: '#8b5cf6',
+  Other: '#9ca3af',
+}
+
 export const ProjectFormDialog = ({ open, project, people, onClose, onSubmit }: ProjectFormDialogProps) => {
+  const i18n = useProjectsI18n()
   const [title, setTitle] = useState('')
   const [goal, setGoal] = useState('')
   const [description, setDescription] = useState('')
@@ -85,56 +97,56 @@ export const ProjectFormDialog = ({ open, project, people, onClose, onSubmit }: 
       <div className="project-dialog">
         <div className="project-dialog__header">
           <div>
-            <p className="project-dialog__eyebrow">Project</p>
-            <h2 className="project-dialog__title">{project ? 'Edit Project' : 'New Project'}</h2>
+            <p className="project-dialog__eyebrow">{i18n.dialog.projectEyebrow}</p>
+            <h2 className="project-dialog__title">{project ? i18n.dialog.editProject : i18n.dialog.newProject}</h2>
           </div>
         </div>
 
         <div className="project-dialog__body">
           <div className="project-dialog__grid project-dialog__grid--single">
             <label className="project-dialog__field">
-              <span>Title</span>
-              <Input value={title} onChange={(event) => setTitle(event.target.value)} className={inputClassName} placeholder="Focus&go v2 Launch" />
+              <span>{i18n.dialog.fieldTitle}</span>
+              <Input value={title} onChange={(event) => setTitle(event.target.value)} className={inputClassName} placeholder={i18n.dialog.titlePlaceholder} />
             </label>
           </div>
 
           <div className="project-dialog__grid project-dialog__grid--single">
             <label className="project-dialog__field">
-              <span>Goal</span>
-              <Input value={goal} onChange={(event) => setGoal(event.target.value)} className={inputClassName} placeholder="Launch the next major version smoothly" />
+              <span>{i18n.dialog.fieldGoal}</span>
+              <Input value={goal} onChange={(event) => setGoal(event.target.value)} className={inputClassName} placeholder={i18n.dialog.goalPlaceholder} />
             </label>
           </div>
 
           <div className="project-dialog__grid project-dialog__grid--single">
             <label className="project-dialog__field">
-              <span>Description</span>
-              <Textarea value={description} onChange={(event) => setDescription(event.target.value)} className={textareaClassName} placeholder="Describe the project and what success looks like." />
+              <span>{i18n.dialog.fieldDescription}</span>
+              <Textarea value={description} onChange={(event) => setDescription(event.target.value)} className={textareaClassName} placeholder={i18n.dialog.descPlaceholder} />
             </label>
           </div>
 
           <div className="project-dialog__grid">
             <label className="project-dialog__field">
-              <span>Status</span>
+              <span>{i18n.dialog.fieldStatus}</span>
               <Select value={status} onValueChange={(value: ProjectItem['status']) => setStatus(value)}>
                 <SelectTrigger className={inputClassName}><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="planning">Planning</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="blocked">Blocked</SelectItem>
-                  <SelectItem value="done">Done</SelectItem>
-                  <SelectItem value="archived">Archived</SelectItem>
+                  <SelectItem value="planning">{i18n.dialog.statusPlanning}</SelectItem>
+                  <SelectItem value="active">{i18n.dialog.statusActive}</SelectItem>
+                  <SelectItem value="blocked">{i18n.dialog.statusBlocked}</SelectItem>
+                  <SelectItem value="done">{i18n.dialog.statusDone}</SelectItem>
+                  <SelectItem value="archived">{i18n.dialog.statusArchived}</SelectItem>
                 </SelectContent>
               </Select>
             </label>
 
             <label className="project-dialog__field">
-              <span>Priority</span>
+              <span>{i18n.dialog.fieldPriority}</span>
               <Select value={priority ?? 'medium'} onValueChange={(value: 'high' | 'medium' | 'low') => setPriority(value)}>
                 <SelectTrigger className={inputClassName}><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="high">{i18n.dialog.priorityHigh}</SelectItem>
+                  <SelectItem value="medium">{i18n.dialog.priorityMedium}</SelectItem>
+                  <SelectItem value="low">{i18n.dialog.priorityLow}</SelectItem>
                 </SelectContent>
               </Select>
             </label>
@@ -142,11 +154,11 @@ export const ProjectFormDialog = ({ open, project, people, onClose, onSubmit }: 
 
           <div className="project-dialog__grid">
             <label className="project-dialog__field">
-              <span>Owner</span>
+              <span>{i18n.dialog.fieldOwner}</span>
               <Select value={ownerId} onValueChange={setOwnerId}>
-                <SelectTrigger className={inputClassName}><SelectValue placeholder="Unassigned" /></SelectTrigger>
+                <SelectTrigger className={inputClassName}><SelectValue placeholder={i18n.dialog.unassigned} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                  <SelectItem value="unassigned">{i18n.dialog.unassigned}</SelectItem>
                   {people.map((person) => (
                     <SelectItem key={person.id} value={person.id}>{person.name}</SelectItem>
                   ))}
@@ -155,33 +167,33 @@ export const ProjectFormDialog = ({ open, project, people, onClose, onSubmit }: 
             </label>
 
             <div className="project-dialog__field">
-              <span>Start Date</span>
+              <span>{i18n.dialog.fieldStartDate}</span>
               <Input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} className={inputClassName} />
             </div>
           </div>
 
           <div className="project-dialog__grid">
             <div className="project-dialog__field">
-              <span>Due Date</span>
+              <span>{i18n.dialog.fieldDueDate}</span>
               <Input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} className={inputClassName} />
             </div>
             <label className="project-dialog__field">
-              <span>Next Action</span>
-              <Input value={nextAction} onChange={(event) => setNextAction(event.target.value)} className={inputClassName} placeholder="Complete API integration testing" />
+              <span>{i18n.dialog.fieldNextAction}</span>
+              <Input value={nextAction} onChange={(event) => setNextAction(event.target.value)} className={inputClassName} placeholder={i18n.dialog.nextActionPlaceholder} />
             </label>
           </div>
 
           <div className="project-dialog__grid project-dialog__grid--single">
             <label className="project-dialog__field">
-              <span>Risk Summary</span>
-              <Textarea value={riskSummary} onChange={(event) => setRiskSummary(event.target.value)} className={textareaClassName} placeholder="Timeline may be tight for final user testing." />
+              <span>{i18n.dialog.fieldRiskSummary}</span>
+              <Textarea value={riskSummary} onChange={(event) => setRiskSummary(event.target.value)} className={textareaClassName} placeholder={i18n.dialog.riskPlaceholder} />
             </label>
           </div>
         </div>
 
         <div className="project-dialog__footer">
           <Button type="button" variant="outline" className="project-button project-button--secondary" onClick={onClose}>
-            Cancel
+            {i18n.dialog.cancel}
           </Button>
           <Button
             type="button"
@@ -200,7 +212,7 @@ export const ProjectFormDialog = ({ open, project, people, onClose, onSubmit }: 
               riskSummary: riskSummary || undefined,
             })}
           >
-            {project ? 'Save Changes' : 'Create Project'}
+            {project ? i18n.dialog.saveChanges : i18n.dialog.createProject}
           </Button>
         </div>
       </div>
@@ -209,11 +221,16 @@ export const ProjectFormDialog = ({ open, project, people, onClose, onSubmit }: 
 }
 
 export const PersonFormDialog = ({ open, person, onClose, onSubmit }: PersonFormDialogProps) => {
+  const i18n = useProjectsI18n()
   const [name, setName] = useState('')
   const [roleType, setRoleType] = useState<ProjectPerson['roleType']>('collaborator')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [note, setNote] = useState('')
+
+  const [contacts, setContacts] = useState<LifePerson[]>([])
+  const [contactQuery, setContactQuery] = useState('')
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -222,9 +239,45 @@ export const PersonFormDialog = ({ open, person, onClose, onSubmit }: PersonForm
     setPhone(person?.phone ?? '')
     setEmail(person?.email ?? '')
     setNote(person?.note ?? '')
+    setContactQuery('')
+    setSelectedContactId(null)
   }, [open, person])
 
-  const title = useMemo(() => (person ? 'Edit Person' : 'Add Person'), [person])
+  useEffect(() => {
+    if (!open || person) return
+    void peopleRepo.list().then(setContacts)
+  }, [open, person])
+
+  const filteredContacts = useMemo(() => {
+    const q = contactQuery.trim().toLowerCase()
+    const list = q
+      ? contacts.filter(
+          (c) =>
+            c.name.toLowerCase().includes(q) ||
+            c.email?.toLowerCase().includes(q) ||
+            c.role?.toLowerCase().includes(q)
+        )
+      : contacts
+    return list.slice(0, 20)
+  }, [contacts, contactQuery])
+
+  const handleSelectContact = (contact: LifePerson) => {
+    if (selectedContactId === contact.id) {
+      setSelectedContactId(null)
+      setName('')
+      setPhone('')
+      setEmail('')
+      setNote('')
+    } else {
+      setSelectedContactId(contact.id)
+      setName(contact.name)
+      setPhone(contact.phone ?? '')
+      setEmail(contact.email ?? '')
+      setNote(contact.notes ?? '')
+    }
+  }
+
+  const dialogTitle = useMemo(() => (person ? i18n.dialog.editPerson : i18n.dialog.addPerson), [person, i18n])
 
   return (
     <Dialog
@@ -236,49 +289,100 @@ export const PersonFormDialog = ({ open, person, onClose, onSubmit }: PersonForm
       <div className="project-dialog">
         <div className="project-dialog__header">
           <div>
-            <p className="project-dialog__eyebrow">People</p>
-            <h2 className="project-dialog__title">{title}</h2>
+            <p className="project-dialog__eyebrow">{i18n.dialog.peopleEyebrow}</p>
+            <h2 className="project-dialog__title">{dialogTitle}</h2>
           </div>
         </div>
         <div className="project-dialog__body">
+          {!person && contacts.length > 0 ? (
+            <div className="pd-contact-picker">
+              <p className="pd-contact-picker__label">{i18n.dialog.fromContacts}</p>
+              <div className="pd-contact-picker__search-wrap">
+                <Search className="pd-contact-picker__search-icon" size={14} />
+                <input
+                  className="pd-contact-picker__search"
+                  placeholder={i18n.dialog.searchContacts}
+                  value={contactQuery}
+                  onChange={(e) => setContactQuery(e.target.value)}
+                />
+              </div>
+              <div className="pd-contact-picker__list">
+                {filteredContacts.length === 0 ? (
+                  <p className="pd-contact-picker__empty">{i18n.dialog.noContactsMatch}</p>
+                ) : (
+                  filteredContacts.map((contact) => {
+                    const isSelected = selectedContactId === contact.id
+                    const color = GROUP_COLORS[contact.group] ?? '#9ca3af'
+                    return (
+                      <button
+                        key={contact.id}
+                        type="button"
+                        className={`pd-contact-item${isSelected ? ' is-selected' : ''}`}
+                        onClick={() => handleSelectContact(contact)}
+                      >
+                        <span
+                          className="pd-contact-item__avatar"
+                          style={{ background: color + '22', color }}
+                        >
+                          {contact.avatarInitials || contact.name.slice(0, 2).toUpperCase()}
+                        </span>
+                        <span className="pd-contact-item__info">
+                          <span className="pd-contact-item__name">{contact.name}</span>
+                          {contact.role || contact.group ? (
+                            <span className="pd-contact-item__meta">{contact.role || contact.group}</span>
+                          ) : null}
+                        </span>
+                        {isSelected ? (
+                          <Check className="pd-contact-item__check" size={14} />
+                        ) : null}
+                      </button>
+                    )
+                  })
+                )}
+              </div>
+              <div className="pd-contact-picker__divider">
+                <span>{i18n.dialog.orFillManually}</span>
+              </div>
+            </div>
+          ) : null}
           <div className="project-dialog__grid project-dialog__grid--single">
             <label className="project-dialog__field">
-              <span>Name</span>
-              <Input value={name} onChange={(event) => setName(event.target.value)} className={inputClassName} placeholder="Sarah Chen" />
+              <span>{i18n.dialog.fieldName}</span>
+              <Input value={name} onChange={(event) => setName(event.target.value)} className={inputClassName} placeholder={i18n.dialog.namePlaceholder} />
             </label>
           </div>
           <div className="project-dialog__grid">
             <label className="project-dialog__field">
-              <span>Role</span>
+              <span>{i18n.dialog.fieldRole}</span>
               <Select value={roleType} onValueChange={(value: ProjectPerson['roleType']) => setRoleType(value)}>
                 <SelectTrigger className={inputClassName}><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="owner">Owner</SelectItem>
-                  <SelectItem value="collaborator">Collaborator</SelectItem>
-                  <SelectItem value="reviewer">Reviewer</SelectItem>
-                  <SelectItem value="external">External</SelectItem>
+                  <SelectItem value="owner">{i18n.dialog.roleOwner}</SelectItem>
+                  <SelectItem value="collaborator">{i18n.dialog.roleCollaborator}</SelectItem>
+                  <SelectItem value="reviewer">{i18n.dialog.roleReviewer}</SelectItem>
+                  <SelectItem value="external">{i18n.dialog.roleExternal}</SelectItem>
                 </SelectContent>
               </Select>
             </label>
             <label className="project-dialog__field">
-              <span>Phone</span>
-              <Input value={phone} onChange={(event) => setPhone(event.target.value)} className={inputClassName} placeholder="+1 (555) 123-4567" />
+              <span>{i18n.dialog.fieldPhone}</span>
+              <Input value={phone} onChange={(event) => setPhone(event.target.value)} className={inputClassName} placeholder={i18n.dialog.phonePlaceholder} />
             </label>
           </div>
           <div className="project-dialog__grid">
             <label className="project-dialog__field">
-              <span>Email</span>
-              <Input value={email} onChange={(event) => setEmail(event.target.value)} className={inputClassName} placeholder="sarah@focusgo.com" />
+              <span>{i18n.dialog.fieldEmail}</span>
+              <Input value={email} onChange={(event) => setEmail(event.target.value)} className={inputClassName} placeholder={i18n.dialog.emailPlaceholder} />
             </label>
             <label className="project-dialog__field">
-              <span>Note</span>
-              <Input value={note} onChange={(event) => setNote(event.target.value)} className={inputClassName} placeholder="Owns launch decisions" />
+              <span>{i18n.dialog.fieldNote}</span>
+              <Input value={note} onChange={(event) => setNote(event.target.value)} className={inputClassName} placeholder={i18n.dialog.notePlaceholder} />
             </label>
           </div>
         </div>
         <div className="project-dialog__footer">
           <Button type="button" variant="outline" className="project-button project-button--secondary" onClick={onClose}>
-            Cancel
+            {i18n.dialog.cancel}
           </Button>
           <Button
             type="button"
@@ -286,7 +390,7 @@ export const PersonFormDialog = ({ open, person, onClose, onSubmit }: PersonForm
             disabled={name.trim().length === 0}
             onClick={() => void onSubmit({ name, roleType, phone: phone || undefined, email: email || undefined, note: note || undefined })}
           >
-            {person ? 'Save Person' : 'Add Person'}
+            {person ? i18n.dialog.savePerson : i18n.dialog.addPerson}
           </Button>
         </div>
       </div>
@@ -311,6 +415,7 @@ type ProjectTaskDialogProps = {
 }
 
 export const ProjectTaskDialog = ({ open, task, people, onClose, onSubmit }: ProjectTaskDialogProps) => {
+  const i18n = useProjectsI18n()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [status, setStatus] = useState<'todo' | 'doing' | 'done'>('todo')
@@ -340,54 +445,54 @@ export const ProjectTaskDialog = ({ open, task, people, onClose, onSubmit }: Pro
       <div className="project-dialog">
         <div className="project-dialog__header">
           <div>
-            <p className="project-dialog__eyebrow">Tasks</p>
-            <h2 className="project-dialog__title">{task ? 'Edit Task' : 'Add Task'}</h2>
+            <p className="project-dialog__eyebrow">{i18n.dialog.tasksEyebrow}</p>
+            <h2 className="project-dialog__title">{task ? i18n.dialog.editTask : i18n.dialog.addTask}</h2>
           </div>
         </div>
         <div className="project-dialog__body">
           <div className="project-dialog__grid project-dialog__grid--single">
             <label className="project-dialog__field">
-              <span>Title</span>
-              <Input value={title} onChange={(event) => setTitle(event.target.value)} className={inputClassName} placeholder="Complete API integration testing" />
+              <span>{i18n.dialog.fieldTitle}</span>
+              <Input value={title} onChange={(event) => setTitle(event.target.value)} className={inputClassName} placeholder={i18n.dialog.taskTitlePlaceholder} />
             </label>
           </div>
           <div className="project-dialog__grid project-dialog__grid--single">
             <label className="project-dialog__field">
-              <span>Description</span>
-              <Textarea value={description} onChange={(event) => setDescription(event.target.value)} className={textareaClassName} placeholder="Describe what needs to happen next." />
+              <span>{i18n.dialog.fieldDescription}</span>
+              <Textarea value={description} onChange={(event) => setDescription(event.target.value)} className={textareaClassName} placeholder={i18n.dialog.taskDescPlaceholder} />
             </label>
           </div>
           <div className="project-dialog__grid">
             <label className="project-dialog__field">
-              <span>Status</span>
+              <span>{i18n.dialog.fieldStatus}</span>
               <Select value={status} onValueChange={(value: 'todo' | 'doing' | 'done') => setStatus(value)}>
                 <SelectTrigger className={inputClassName}><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="todo">Todo</SelectItem>
-                  <SelectItem value="doing">In Progress</SelectItem>
-                  <SelectItem value="done">Done</SelectItem>
+                  <SelectItem value="todo">{i18n.dialog.taskStatusTodo}</SelectItem>
+                  <SelectItem value="doing">{i18n.dialog.taskStatusInProgress}</SelectItem>
+                  <SelectItem value="done">{i18n.dialog.taskStatusDone}</SelectItem>
                 </SelectContent>
               </Select>
             </label>
             <label className="project-dialog__field">
-              <span>Priority</span>
+              <span>{i18n.dialog.fieldPriority}</span>
               <Select value={priority} onValueChange={(value: 'high' | 'medium' | 'low') => setPriority(value)}>
                 <SelectTrigger className={inputClassName}><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="high">{i18n.dialog.priorityHigh}</SelectItem>
+                  <SelectItem value="medium">{i18n.dialog.priorityMedium}</SelectItem>
+                  <SelectItem value="low">{i18n.dialog.priorityLow}</SelectItem>
                 </SelectContent>
               </Select>
             </label>
           </div>
           <div className="project-dialog__grid">
             <label className="project-dialog__field">
-              <span>Owner</span>
+              <span>{i18n.dialog.fieldOwner}</span>
               <Select value={ownerId} onValueChange={setOwnerId}>
                 <SelectTrigger className={inputClassName}><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                  <SelectItem value="unassigned">{i18n.dialog.unassigned}</SelectItem>
                   {people.map((person) => (
                     <SelectItem key={person.id} value={person.id}>{person.name}</SelectItem>
                   ))}
@@ -395,20 +500,20 @@ export const ProjectTaskDialog = ({ open, task, people, onClose, onSubmit }: Pro
               </Select>
             </label>
             <label className="project-dialog__field">
-              <span>Start Date</span>
+              <span>{i18n.dialog.fieldStartDate}</span>
               <Input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} className={inputClassName} />
             </label>
           </div>
           <div className="project-dialog__grid project-dialog__grid--single">
             <label className="project-dialog__field">
-              <span>Due Date</span>
+              <span>{i18n.dialog.fieldDueDate}</span>
               <Input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} className={inputClassName} />
             </label>
           </div>
         </div>
         <div className="project-dialog__footer">
           <Button type="button" variant="outline" className="project-button project-button--secondary" onClick={onClose}>
-            Cancel
+            {i18n.dialog.cancel}
           </Button>
           <Button
             type="button"
@@ -424,7 +529,7 @@ export const ProjectTaskDialog = ({ open, task, people, onClose, onSubmit }: Pro
               dueDate: dueDate || undefined,
             })}
           >
-            {task ? 'Save Task' : 'Add Task'}
+            {task ? i18n.dialog.saveTask : i18n.dialog.addTask}
           </Button>
         </div>
       </div>

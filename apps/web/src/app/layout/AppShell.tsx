@@ -12,7 +12,6 @@ import {
 import { THEME_BEFORE_MODE_TOGGLE_EVENT } from '../../shared/theme/themePack'
 import Sidebar from './Sidebar'
 import { useTaskReminderEngine } from '../../features/tasks/useTaskReminderEngine'
-import ModuleGuideRuntime from '../../features/onboarding/ModuleGuideRuntime'
 import { UpgradeModalProvider } from '../../features/labs/UpgradeModalContext'
 import UpgradeModal from '../../features/labs/components/UpgradeModal'
 import { AuthGateProvider } from '../../features/auth/AuthGateContext'
@@ -216,7 +215,6 @@ const AppShell = ({ children }: AppShellProps) => {
                 {children}
               </section>
             </main>
-            <ModuleGuideRuntime />
           </div>
         </div>
         <UpgradeModal />

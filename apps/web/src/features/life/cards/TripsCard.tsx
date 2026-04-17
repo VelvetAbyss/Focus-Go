@@ -8,12 +8,20 @@ import { checklistProgress, fmtUSD, statusColor, tripDuration } from '../../trip
 import { useLifeI18n } from '../lifeI18n'
 
 const months = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const preloadTripsPage = () => import('../../trips/TripsPage')
+const preloadTripDetailPage = () => import('../../trips/TripDetailPage')
 
 const TripsCard = () => {
   const { t } = useLifeI18n()
   const navigate = useNavigate()
   const [trip, setTrip] = useState<TripRecord | null>(null)
   const [loading, setLoading] = useState(true)
+  const prefetchTripsList = () => {
+    void preloadTripsPage()
+  }
+  const prefetchTripDetail = () => {
+    void preloadTripDetailPage()
+  }
 
   const tripStatusLabel = (status: TripRecord['status']) =>
     status === 'Planning'
@@ -87,6 +95,9 @@ const TripsCard = () => {
           height: '100%',
           padding: 24,
         }}
+        onMouseEnter={prefetchTripsList}
+        onFocus={prefetchTripsList}
+        onPointerDown={prefetchTripsList}
         onClick={() => navigate(ROUTES.TRIPS)}
       >
         <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: 'rgba(58,55,51,0.38)' }}>{t('life.card.trips')}</span>
@@ -118,10 +129,13 @@ const TripsCard = () => {
         boxShadow: '0 12px 28px rgba(58, 55, 51, 0.08)',
         height: '100%',
       }}
+      onMouseEnter={prefetchTripDetail}
+      onFocus={prefetchTripDetail}
+      onPointerDown={prefetchTripDetail}
       onClick={() => navigate(trip ? buildTripDetailRoute(trip.id) : ROUTES.TRIPS)}
     >
       <div style={{ position: 'relative', height: 108, overflow: 'hidden' }}>
-        <img src={trip.heroImage} alt={trip.destination} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.82) saturate(0.75)' }} />
+        <img src={trip.heroImage} alt={trip.destination} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.82) saturate(0.75)' }} />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(58,55,51,0.10) 0%, rgba(58,55,51,0.55) 100%)' }} />
         <div style={{ position: 'absolute', bottom: 12, left: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
           <MapPin size={10} color="rgba(255,255,255,0.80)" />

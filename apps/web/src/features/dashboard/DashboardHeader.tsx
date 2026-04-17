@@ -2,7 +2,6 @@ import { type CSSProperties, useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Link } from 'react-router-dom'
 import { LayoutGrid, Settings as SettingsIcon } from 'lucide-react'
-import { motion } from 'motion/react'
 import { ROUTES } from '../../app/routes/routes'
 import { useI18n } from '../../shared/i18n/useI18n'
 import { useIsBreakpoint } from '../../hooks/use-is-breakpoint'
@@ -19,8 +18,6 @@ type DashboardHeaderProps = {
   onToggleWidgetsPanel: () => void
   layoutEditLocked?: boolean
   widgetsLocked?: boolean
-  onRestartOnboarding?: () => void
-  showRestartOnboarding?: boolean
   page?: DashboardPage
   onSetPage?: (page: DashboardPage) => void
 }
@@ -91,8 +88,6 @@ const DashboardHeader = ({
   onToggleWidgetsPanel,
   layoutEditLocked = false,
   widgetsLocked = false,
-  onRestartOnboarding,
-  showRestartOnboarding = false,
   page = 'main',
   onSetPage,
 }: DashboardHeaderProps) => {
@@ -175,80 +170,68 @@ const DashboardHeader = ({
       </div>
       <div className="app-shell__status">
         {/* Focus ↔ Life toggle */}
-        {onSetPage && (
-          <div className="life-page-toggle" role="tablist" aria-label="Dashboard view">
-            <motion.span
-              className="life-page-toggle__pill"
-              animate={{ x: page === 'main' ? 0 : '100%' }}
-              transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-            />
-            {(['main', 'life'] as const).map((tab) => (
-              <button
-                key={tab}
-                role="tab"
-                aria-selected={page === tab}
-                className={`life-page-toggle__btn${page === tab ? ' is-active' : ''}`}
-                onClick={() => onSetPage(tab)}
-              >
-                {tab === 'main' ? 'Focus' : 'Life'}
-              </button>
-            ))}
+        {onSetPage ? (
+          <div className="app-shell__status-group app-shell__status-group--toggle">
+            <div className="life-page-toggle" role="tablist" aria-label="Dashboard view">
+              {(['main', 'life'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  role="tab"
+                  aria-selected={page === tab}
+                  className={`app-shell__top-action life-page-toggle__btn${page === tab ? ' is-active' : ''}`}
+                  onClick={() => onSetPage(tab)}
+                >
+                  {tab === 'main' ? 'Focus' : 'Life'}
+                </button>
+              ))}
+            </div>
           </div>
-        )}
+        ) : null}
         {showProjectBadges && !layoutEdit ? <span className="pill">{t('dashboard.quote.localFirst')}</span> : null}
         {showProjectBadges && !layoutEdit ? <span className="pill pill--soft">{t('dashboard.quote.mvp')}</span> : null}
-        {!layoutEdit && showRestartOnboarding && onRestartOnboarding ? (
+        <div className="app-shell__status-group app-shell__status-group--actions">
+          {layoutEdit ? (
+            <Button
+              type="button"
+              className={`app-shell__top-action app-shell__manage-widgets ${widgetsPanelOpen ? 'is-active' : ''}`}
+              variant="outline"
+              size="sm"
+              onClick={onToggleWidgetsPanel}
+              data-locked={widgetsLocked ? 'true' : 'false'}
+              aria-label={t('dashboard.manageVisibility')}
+              aria-expanded={widgetsPanelOpen}
+            >
+              <span>{t('dashboard.manageWidgets')}</span>
+            </Button>
+          ) : null}
           <Button
             type="button"
-            className="app-shell__top-action"
+            className={`app-shell__top-action app-shell__edit-layout ${layoutEdit ? 'is-active' : ''}`}
             variant="outline"
             size="sm"
-            onClick={onRestartOnboarding}
+            onClick={onToggleLayoutEdit}
+            data-locked={layoutEditLocked ? 'true' : 'false'}
+            aria-label={layoutEdit ? t('dashboard.layoutEdit') : t('dashboard.editLayout')}
+            aria-expanded={layoutEdit}
           >
-            <span>{t('dashboard.restartOnboarding')}</span>
+            <LayoutGrid size={15} aria-hidden="true" />
+            <span>{layoutEdit ? t('dashboard.done') : t('dashboard.editLayout')}</span>
           </Button>
-        ) : null}
-        {layoutEdit ? (
-          <Button
-            type="button"
-            className={`app-shell__top-action app-shell__manage-widgets ${widgetsPanelOpen ? 'is-active' : ''}`}
-            variant="outline"
-            size="sm"
-            onClick={onToggleWidgetsPanel}
-            data-locked={widgetsLocked ? 'true' : 'false'}
-            aria-label={t('dashboard.manageVisibility')}
-            aria-expanded={widgetsPanelOpen}
-          >
-            <span>{t('dashboard.manageWidgets')}</span>
-          </Button>
-        ) : null}
-        <Button
-          type="button"
-          className={`app-shell__top-action app-shell__edit-layout ${layoutEdit ? 'is-active' : ''}`}
-          variant="outline"
-          size="sm"
-          onClick={onToggleLayoutEdit}
-          data-locked={layoutEditLocked ? 'true' : 'false'}
-          aria-label={layoutEdit ? t('dashboard.layoutEdit') : t('dashboard.editLayout')}
-          aria-expanded={layoutEdit}
-        >
-          <LayoutGrid size={15} aria-hidden="true" />
-          <span>{layoutEdit ? t('dashboard.done') : t('dashboard.editLayout')}</span>
-        </Button>
-        {!layoutEdit ? (
-          <Button
-            asChild
-            className="app-shell__top-action app-shell__settings-link"
-            variant="outline"
-            size="sm"
-            aria-label={t('dashboard.settings')}
-          >
-            <Link to={ROUTES.SETTINGS}>
-              <SettingsIcon size={15} aria-hidden="true" />
-              <span>{t('dashboard.settings')}</span>
-            </Link>
-          </Button>
-        ) : null}
+          {!layoutEdit ? (
+            <Button
+              asChild
+              className="app-shell__top-action app-shell__settings-link"
+              variant="outline"
+              size="sm"
+              aria-label={t('dashboard.settings')}
+            >
+              <Link to={ROUTES.SETTINGS}>
+                <SettingsIcon size={15} aria-hidden="true" />
+                <span>{t('dashboard.settings')}</span>
+              </Link>
+            </Button>
+          ) : null}
+        </div>
       </div>
     </header>
   )

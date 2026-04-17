@@ -17,6 +17,44 @@ type LifeDashboardProps = {
   widgetsPanelOpen: boolean
 }
 
+const DeferredLifeCard = ({ id, eager, children }: { id: string; eager: boolean; children: ReactNode }) => {
+  const hostRef = useRef<HTMLDivElement | null>(null)
+  const [visible, setVisible] = useState(eager)
+
+  useEffect(() => {
+    if (eager || visible) return
+    const node = hostRef.current
+    if (!node) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return
+        setVisible(true)
+        observer.disconnect()
+      },
+      { rootMargin: '240px 0px' },
+    )
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [eager, visible])
+
+  return (
+    <div ref={hostRef} data-life-card={id} style={{ width: '100%', height: '100%' }}>
+      {visible ? children : (
+        <div
+          aria-hidden="true"
+          style={{
+            width: '100%',
+            height: '100%',
+            borderRadius: 24,
+            background: '#ffffff',
+            boxShadow: '0 12px 28px rgba(58, 55, 51, 0.05)',
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
 const DEFAULT_LIFE_LAYOUT: DashboardLayoutItem[] = [
   { key: 'library', x: 5, y: 3, w: 6, h: 8 },
   { key: 'media_card', x: 5, y: 17, w: 6, h: 7 },
@@ -195,7 +233,7 @@ const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => 
         >
           {renderedCards.map((card) => (
             <div key={card.id} className={`dashboard__item${layoutEdit ? ' is-layout-edit' : ''}${gridEdit.activeId === card.id ? ' is-dragging' : ''}`}>
-              {card.node}
+              <DeferredLifeCard id={card.id} eager={layoutEdit}>{card.node}</DeferredLifeCard>
               {layoutEdit ? (
                 <>
                   <div className="dashboard__edit-overlay" {...gridEdit.dragProps(card.id)} aria-label={t('life.dashboard.editLayout')}>

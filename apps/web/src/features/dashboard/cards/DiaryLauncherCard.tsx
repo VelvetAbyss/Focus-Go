@@ -27,7 +27,6 @@ const DiaryLauncherCard = () => {
       title={t('diaryLauncher.cardTitle')}
       eyebrow={t('diaryLauncher.eyebrow')}
       className="card--clickable diary-launcher-card"
-      data-coachmark-anchor="dashboard-diary"
       onClick={handleClick}
       actions={
         <Button

@@ -107,7 +107,7 @@ const PremiumPricingPage = () => {
 
   return (
     <>
-      <section className="min-h-full bg-[#F5F3F0] px-6 py-10 text-[#3A3733]">
+      <section className="min-h-full bg-white px-6 py-10 text-[#3A3733]">
         <div className="mx-auto flex max-w-5xl flex-col gap-8">
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-3">

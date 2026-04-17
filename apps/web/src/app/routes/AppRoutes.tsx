@@ -19,6 +19,7 @@ const LabsPage = lazy(() => import('../../features/labs/pages/LabsPage'))
 const HabitTrackerPage = lazy(() => import('../../features/habits/pages/HabitTrackerPage'))
 const PremiumPricingPage = lazy(() => import('../../features/payments/pages/PremiumPricingPage'))
 const PaymentSuccessPage = lazy(() => import('../../features/payments/pages/PaymentSuccessPage'))
+const AdminPage = lazy(() => import('../../features/admin/pages/AdminPage'))
 
 export const RouteFallback = () => (
   <section className="route-loader" data-testid="route-loader" aria-live="polite" aria-busy="true">
@@ -95,6 +96,7 @@ const AppRoutes = () => {
       <Route path={ROUTES.PREMIUM} element={<Suspense fallback={<RouteFallback />}><PremiumPricingPage /></Suspense>} />
       <Route path={ROUTES.PREMIUM_SUCCESS} element={<Suspense fallback={<RouteFallback />}><PaymentSuccessPage /></Suspense>} />
       <Route path={ROUTES.HABITS} element={<GuardedHabitsRoute />} />
+      <Route path={ROUTES.ADMIN} element={<Suspense fallback={<RouteFallback />}><AdminPage /></Suspense>} />
     </Routes>
   )
 }

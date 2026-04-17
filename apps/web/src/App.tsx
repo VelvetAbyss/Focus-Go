@@ -10,12 +10,16 @@ import { LabsProvider } from './features/labs/LabsContext'
 import { SharedNoiseProvider } from './features/focus/SharedNoiseProvider'
 import { PremiumProvider } from './features/premium/PremiumProvider'
 import { SyncProvider } from './data/sync/service'
-import { useIsLoggedIn } from './store/auth'
+import { useIsLoggedIn, refreshAuthProfile } from './store/auth'
 import { SYNC_DATA_UPDATED_EVENT } from './data/sync/constants'
 import { syncedPreferencesRepo } from './data/repositories/syncedPreferencesRepo'
 
 const App = () => {
   const isLoggedIn = useIsLoggedIn()
+
+  useEffect(() => {
+    if (isLoggedIn) void refreshAuthProfile()
+  }, [isLoggedIn])
 
   useEffect(() => {
     seedDatabase().then(async () => {

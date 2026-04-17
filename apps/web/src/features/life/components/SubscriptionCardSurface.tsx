@@ -1,12 +1,13 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, InputHTMLAttributes, ReactNode } from 'react'
+import { Icon } from '@iconify/react'
 import Dialog from '../../../shared/ui/Dialog'
 import { Bell, BellOff, CalendarDays, CheckCheck, ChevronRight, CreditCard, LayoutGrid, Plus, Trash2, X } from 'lucide-react'
 import type { LifeSubscription } from '../../../data/models/types'
 import type { SubscriptionDraft } from '../cards/SubscriptionsCard'
 import type { SubscriptionPresentationModel } from '../cards/lifeDesignAdapters'
 import { LifeCardLoader, LifePanelLoader } from './lifeDesignPrimitives'
-import { useLifeI18n } from '../lifeI18n'
+import { useLifeI18n, type LifeTranslate } from '../lifeI18n'
 
 type Props = {
   model: SubscriptionPresentationModel
@@ -60,6 +61,19 @@ const CATEGORIES: Category[] = [
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const TODAY = new Date(2026, 3, 8)
 const CURRENT_MONTH = TODAY.getMonth()
+const categoryLabel = (id: string, t: LifeTranslate) =>
+  ({
+    entertainment: t('life.subscriptions.entertainment'),
+    music: t('life.subscriptions.music'),
+    productivity: t('life.subscriptions.productivity'),
+    cloud: t('life.subscriptions.cloud'),
+    learning: t('life.subscriptions.learning'),
+    health: t('life.subscriptions.health'),
+    security: t('life.subscriptions.security'),
+    developer: t('life.subscriptions.developer'),
+    news: t('life.subscriptions.news'),
+    other: t('life.subscriptions.other'),
+  })[id] ?? t('life.subscriptions.other')
 
 const inter = (size = 13, weight = 400, color = ink): CSSProperties => ({ fontFamily: 'Inter, sans-serif', fontSize: size, fontWeight: weight, color })
 const playfair = (size = 16, weight = 500, color = ink): CSSProperties => ({ fontFamily: 'Playfair Display, serif', fontSize: size, fontWeight: weight, color })
@@ -173,6 +187,12 @@ function InputField({ label, children }: { label: string; children: ReactNode })
   )
 }
 
+function SubIcon({ icon, size = 14 }: { icon?: string; size?: number }) {
+  if (!icon || !icon.includes(':')) return null
+  const [prefix, name] = icon.split(':')
+  return <img src={`https://api.iconify.design/${prefix}/${name}.svg`} width={size} height={size} style={{ flexShrink: 0, display: 'inline-block', verticalAlign: 'middle', opacity: 0.75 }} alt="" />
+}
+
 function ToggleGroup<T extends string>({ options, value, onChange }: { options: Array<{ value: T; label: string }>; value: T; onChange: (value: T) => void }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', padding: 2, borderRadius: 10, background: 'rgba(58,55,51,0.06)', border: '1px solid rgba(58,55,51,0.08)' }}>
@@ -220,6 +240,7 @@ function ColorPicker({ value, onChange }: { value: string; onChange: (value: str
 }
 
 function CategoryPicker({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const { t } = useLifeI18n()
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
       {CATEGORIES.map((category) => {
@@ -227,7 +248,7 @@ function CategoryPicker({ value, onChange }: { value: string; onChange: (value: 
         return (
           <button key={category.id} type="button" onClick={() => onChange(active ? '' : category.id)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, cursor: 'pointer', background: active ? 'rgba(58,55,51,0.10)' : 'rgba(58,55,51,0.04)', border: `1px solid ${active ? 'rgba(58,55,51,0.18)' : 'rgba(58,55,51,0.08)'}`, ...inter(11, active ? 500 : 400, active ? ink : mutedInk) }}>
             <span style={{ fontSize: 12 }}>{category.emoji}</span>
-            <span>{category.label}</span>
+            <span>{categoryLabel(category.id, t)}</span>
           </button>
         )
       })}
@@ -246,7 +267,7 @@ const MonthlyChart = memo(function MonthlyChart({ data, color, label }: { data: 
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 92 }}>
         {data.map((value, index) => (
           <div key={`${label}-${index}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
-            <div title={value > 0 ? formatAmount(value) : ''} style={{ width: '100%', height: value > 0 ? `${Math.max((value / max) * 90, 6)}px` : '4px', borderRadius: 2, background: index === CURRENT_MONTH ? color : value > 0 ? `${color}70` : 'rgba(58,55,51,0.06)' }} />
+            <div title={value > 0 ? formatAmount(value) : ''} style={{ width: '100%', height: value > 0 ? `${Math.max((value / max) * 90, 6)}px` : '4px', borderRadius: 2, background: index === CURRENT_MONTH ? color : index < CURRENT_MONTH ? (value > 0 ? `${color}88` : 'rgba(58,55,51,0.06)') : (value > 0 ? `${color}38` : 'rgba(58,55,51,0.04)') }} />
           </div>
         ))}
       </div>
@@ -260,6 +281,7 @@ const MonthlyChart = memo(function MonthlyChart({ data, color, label }: { data: 
 })
 
 const AnnualOverviewPanel = memo(function AnnualOverviewPanel({ subs, usdToCny, onUsdToCnyChange }: { subs: LifeSubscription[]; usdToCny: number; onUsdToCnyChange: (value: number) => void }) {
+  const { t } = useLifeI18n()
   const annuals = useMemo(() => annualTotals(subs), [subs])
   const breakdown = useMemo(() => getMonthlyBreakdown(subs), [subs])
   const categoryRows = useMemo(
@@ -288,16 +310,16 @@ const AnnualOverviewPanel = memo(function AnnualOverviewPanel({ subs, usdToCny, 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 56, height: 56, borderRadius: 18, marginBottom: 20, background: 'rgba(58,55,51,0.05)', border: `1px solid ${subtleBorder}` }}>
           <LayoutGrid size={20} color="rgba(58,55,51,0.22)" />
         </div>
-        <p style={{ ...playfair(17, 500, 'rgba(58,55,51,0.45)'), marginBottom: 6 }}>No data yet</p>
-        <p style={{ ...inter(12, 400, 'rgba(58,55,51,0.35)'), lineHeight: 1.65 }}>Add subscriptions to see your annual overview.</p>
+        <p style={{ ...playfair(17, 500, 'rgba(58,55,51,0.45)'), marginBottom: 6 }}>{t('life.subscriptions.noDataYet')}</p>
+        <p style={{ ...inter(12, 400, 'rgba(58,55,51,0.35)'), lineHeight: 1.65 }}>{t('life.subscriptions.addToSeeOverview')}</p>
       </div>
     )
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto' }}>
+    <div style={{ display: 'flex', flex: 1, minHeight: 0, flexDirection: 'column', overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}>
       <div style={{ padding: '36px 40px 28px', borderBottom: `1px solid ${subtleBorder}` }}>
-        <p style={{ ...inter(10, 600, 'rgba(58,55,51,0.38)'), marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.10em' }}>Annual overview · 2026</p>
+        <p style={{ ...inter(10, 600, 'rgba(58,55,51,0.38)'), marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.10em' }}>{t('life.subscriptions.annualOverview', { year: 2026 })}</p>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 48, flexWrap: 'wrap' }}>
           {annuals.USD > 0 ? <div><p style={{ ...inter(28, 600, ink), letterSpacing: '-0.02em', lineHeight: 1 }}>${formatAmount(annuals.USD)}<span style={{ ...inter(13, 400, mutedInk), marginLeft: 4 }}>/yr</span></p><p style={{ ...inter(11, 400, 'rgba(58,55,51,0.40)'), marginTop: 8 }}>USD · annual</p></div> : null}
           {annuals.CNY > 0 ? <div><p style={{ ...inter(28, 600, ink), letterSpacing: '-0.02em', lineHeight: 1 }}>¥{formatAmount(annuals.CNY)}<span style={{ ...inter(13, 400, mutedInk), marginLeft: 4 }}>/yr</span></p><p style={{ ...inter(11, 400, 'rgba(58,55,51,0.40)'), marginTop: 8 }}>CNY · annual</p></div> : null}
@@ -305,40 +327,40 @@ const AnnualOverviewPanel = memo(function AnnualOverviewPanel({ subs, usdToCny, 
       </div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', padding: '24px 40px', borderBottom: `1px solid ${subtleBorder}`, background: 'rgba(58,55,51,0.018)' }}>
         <div>
-          <p style={{ ...inter(10, 500, mutedInk), marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Exchange rate</p>
+          <p style={{ ...inter(10, 500, mutedInk), marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.07em' }}>{t('life.subscriptions.exchangeRate')}</p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={inter(13, 400, ink)}>1 USD =</span>
             <div style={{ width: 140 }}><StyledInput type="number" min="0" step="0.01" value={usdToCny} onChange={(event) => onUsdToCnyChange(parseFloat(event.target.value) || 7.25)} style={{ textAlign: 'center', padding: '8px 10px' }} /></div>
             <span style={inter(13, 400, ink)}>CNY</span>
           </div>
         </div>
-        {annuals.USD > 0 && annuals.CNY > 0 ? <div style={{ textAlign: 'right' }}><p style={{ ...inter(10, 500, mutedInk), marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Unified (est.)</p><p style={{ ...inter(18, 600, ink), letterSpacing: '-0.01em' }}>≈ ¥{formatAmount(annuals.USD * usdToCny + annuals.CNY)}<span style={{ ...inter(11, 400, mutedInk), marginLeft: 3 }}>/yr</span></p><p style={{ ...inter(10, 400, 'rgba(58,55,51,0.32)'), marginTop: 4 }}>≈ ¥{formatAmount((annuals.USD * usdToCny + annuals.CNY) / 12)}/mo</p></div> : null}
+        {annuals.USD > 0 && annuals.CNY > 0 ? <div style={{ textAlign: 'right' }}><p style={{ ...inter(10, 500, mutedInk), marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.07em' }}>{t('life.subscriptions.unifiedEstimate')}</p><p style={{ ...inter(18, 600, ink), letterSpacing: '-0.01em' }}>≈ ¥{formatAmount(annuals.USD * usdToCny + annuals.CNY)}<span style={{ ...inter(11, 400, mutedInk), marginLeft: 3 }}>/yr</span></p><p style={{ ...inter(10, 400, 'rgba(58,55,51,0.32)'), marginTop: 4 }}>≈ ¥{formatAmount((annuals.USD * usdToCny + annuals.CNY) / 12)}/mo</p></div> : null}
       </div>
       <div style={{ padding: '28px 40px', borderBottom: `1px solid ${subtleBorder}` }}>
-        <p style={{ ...inter(11, 500, mutedInk), marginBottom: 20, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Monthly burden</p>
+        <p style={{ ...inter(11, 500, mutedInk), marginBottom: 20, textTransform: 'uppercase', letterSpacing: '0.07em' }}>{t('life.subscriptions.monthlyBurden')}</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           {annuals.USD > 0 ? <MonthlyChart data={breakdown.USD} color="#3A3733" label="USD (monthly spend)" /> : null}
           {annuals.CNY > 0 ? <MonthlyChart data={breakdown.CNY} color="#E8A85F" label="CNY (monthly spend)" /> : null}
         </div>
       </div>
-      {categoryRows.length ? <div style={{ padding: '28px 40px', borderBottom: `1px solid ${subtleBorder}` }}><p style={{ ...inter(11, 500, mutedInk), marginBottom: 20, textTransform: 'uppercase', letterSpacing: '0.07em' }}>By category · annual</p><div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{categoryRows.map((row) => <div key={row.category.id}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontSize: 14 }}>{row.category.emoji}</span><span style={inter(12, 400, ink)}>{row.category.label}</span></div><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>{row.byCurrency.USD ? <span style={inter(11, 500, 'rgba(58,55,51,0.60)')}>${formatAmount(row.byCurrency.USD)}/yr</span> : null}{row.byCurrency.CNY ? <span style={inter(11, 500, 'rgba(58,55,51,0.60)')}>¥{formatAmount(row.byCurrency.CNY)}/yr</span> : null}</div></div><div style={{ height: 4, borderRadius: 999, overflow: 'hidden', background: 'rgba(58,55,51,0.07)' }}><div style={{ width: `${(row.unified / maxCategory) * 100}%`, height: '100%', borderRadius: 999, background: 'rgba(58,55,51,0.35)' }} /></div></div>)}</div></div> : null}
-      {upcoming.length ? <div style={{ padding: '28px 40px' }}><div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}><Bell size={13} color="#B87830" /><p style={{ ...inter(11, 500, '#B87830'), textTransform: 'uppercase', letterSpacing: '0.07em' }}>Due within 7 days</p></div><div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{upcoming.map(({ item, days }) => <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 16, background: 'rgba(232,168,95,0.08)', border: '1px solid rgba(232,168,95,0.20)' }}>{item.emoji ? <span style={{ fontSize: 15 }}>{item.emoji}</span> : null}<div style={{ flex: 1, minWidth: 0 }}><p style={{ ...inter(13, 500, ink), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</p><p style={inter(11, 400, 'rgba(58,55,51,0.50)')}>{CURRENCY_SYMBOL[item.currency]}{formatAmount(item.amount)}/{item.cycle === 'monthly' ? 'mo' : 'yr'} · Apr {item.billingDay}</p></div><span style={{ padding: '2px 8px', borderRadius: 999, border: '1px solid rgba(232,168,95,0.30)', background: 'rgba(232,168,95,0.18)', ...inter(10, 600, '#B87830') }}>{days === 0 ? 'Today' : `In ${days}d`}</span></div>)}</div></div> : null}
+      {categoryRows.length ? <div style={{ padding: '28px 40px', borderBottom: `1px solid ${subtleBorder}` }}><p style={{ ...inter(11, 500, mutedInk), marginBottom: 20, textTransform: 'uppercase', letterSpacing: '0.07em' }}>{t('life.subscriptions.byCategoryAnnual')}</p><div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{categoryRows.map((row) => <div key={row.category.id}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontSize: 14 }}>{row.category.emoji}</span><span style={inter(12, 400, ink)}>{categoryLabel(row.category.id, t)}</span></div><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>{row.byCurrency.USD ? <span style={inter(11, 500, 'rgba(58,55,51,0.60)')}>${formatAmount(row.byCurrency.USD)}/yr</span> : null}{row.byCurrency.CNY ? <span style={inter(11, 500, 'rgba(58,55,51,0.60)')}>¥{formatAmount(row.byCurrency.CNY)}/yr</span> : null}</div></div><div style={{ height: 4, borderRadius: 999, overflow: 'hidden', background: 'rgba(58,55,51,0.07)' }}><div style={{ width: `${(row.unified / maxCategory) * 100}%`, height: '100%', borderRadius: 999, background: 'rgba(58,55,51,0.35)' }} /></div></div>)}</div></div> : null}
+      {upcoming.length ? <div style={{ padding: '28px 40px' }}><div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}><Bell size={13} color="#B87830" /><p style={{ ...inter(11, 500, '#B87830'), textTransform: 'uppercase', letterSpacing: '0.07em' }}>{t('life.subscriptions.dueWithinDays', { count: 7 })}</p></div><div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{upcoming.map(({ item, days }) => <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 16, background: 'rgba(232,168,95,0.08)', border: '1px solid rgba(232,168,95,0.20)' }}>{item.emoji ? <SubIcon icon={item.emoji} size={16} /> : null}<div style={{ flex: 1, minWidth: 0 }}><p style={{ ...inter(13, 500, ink), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</p><p style={inter(11, 400, 'rgba(58,55,51,0.50)')}>{CURRENCY_SYMBOL[item.currency]}{formatAmount(item.amount)}/{item.cycle === 'monthly' ? 'mo' : 'yr'} · Apr {item.billingDay}</p></div><span style={{ padding: '2px 8px', borderRadius: 999, border: '1px solid rgba(232,168,95,0.30)', background: 'rgba(232,168,95,0.18)', ...inter(10, 600, '#B87830') }}>{days === 0 ? t('life.subscriptions.today') : t('life.subscriptions.inDays', { count: days ?? 0 })}</span></div>)}</div></div> : null}
     </div>
   )
 })
 
 const SubListItem = memo(function SubListItem({ sub, selected, onClick }: { sub: LifeSubscription; selected: boolean; onClick: () => void }) {
+  const { t } = useLifeI18n()
   const days = getDaysUntilBilling(sub)
   return (
     <button type="button" onClick={onClick} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 16, textAlign: 'left', cursor: 'pointer', border: selected ? '1px solid rgba(58,55,51,0.10)' : '1px solid transparent', background: selected ? 'rgba(58,55,51,0.06)' : 'transparent' }}>
-      <div style={{ width: 10, height: 10, borderRadius: 999, flexShrink: 0, background: sub.color ?? '#D4A06A', boxShadow: `0 0 0 2px ${(sub.color ?? '#D4A06A')}22` }} />
+      {sub.emoji?.includes(':') ? <SubIcon icon={sub.emoji} size={20} /> : <div style={{ width: 10, height: 10, borderRadius: 999, flexShrink: 0, background: sub.color ?? '#D4A06A', boxShadow: `0 0 0 2px ${(sub.color ?? '#D4A06A')}22` }} />}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-          {sub.emoji ? <span style={{ fontSize: 12 }}>{sub.emoji}</span> : null}
           <p style={{ ...inter(13, 400, ink), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub.name}</p>
           {days !== null && days <= 7 ? <span style={{ padding: '1px 4px', borderRadius: 4, background: 'rgba(232,168,95,0.18)', ...inter(8, 600, '#B87830') }}>{days}d</span> : null}
         </div>
-        <p style={{ ...inter(11, 400, mutedInk), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{CURRENCY_SYMBOL[sub.currency]}{formatAmount(sub.amount)}/{sub.cycle === 'monthly' ? 'mo' : 'yr'}{sub.category ? ` · ${CATEGORIES.find((item) => item.id === sub.category)?.emoji ?? ''}` : ''}</p>
+        <p style={{ ...inter(11, 400, mutedInk), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{CURRENCY_SYMBOL[sub.currency]}{formatAmount(sub.amount)}/{sub.cycle === 'monthly' ? 'mo' : 'yr'}{sub.category ? ` · ${CATEGORIES.find((item) => item.id === sub.category)?.emoji ?? ''} ${categoryLabel(sub.category, t)}` : ''}</p>
       </div>
       <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
         <div style={{ width: 6, height: 6, borderRadius: 999, background: sub.paymentStatus === 'paid' ? '#6EAB7A' : 'rgba(58,55,51,0.18)' }} />
@@ -350,6 +372,7 @@ const SubListItem = memo(function SubListItem({ sub, selected, onClick }: { sub:
 })
 
 const SummaryBar = memo(function SummaryBar({ subs, onOverview, showingOverview }: { subs: LifeSubscription[]; onOverview: () => void; showingOverview: boolean }) {
+  const { t } = useLifeI18n()
   const totals = useMemo(() => monthlyTotals(subs), [subs])
   const annuals = useMemo(() => annualTotals(subs), [subs])
   const totalLabel = useMemo(
@@ -363,65 +386,82 @@ const SummaryBar = memo(function SummaryBar({ subs, onOverview, showingOverview 
   return (
     <div style={{ padding: '16px 20px', borderBottom: `1px solid ${subtleBorder}` }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
-        <p style={{ ...inter(10, 500, mutedInk), textTransform: 'uppercase', letterSpacing: '0.08em' }}>Monthly total</p>
+        <p style={{ ...inter(10, 500, mutedInk), textTransform: 'uppercase', letterSpacing: '0.08em' }}>{t('life.subscriptions.monthlyTotal')}</p>
         <button type="button" onClick={onOverview} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 999, cursor: 'pointer', background: showingOverview ? 'rgba(58,55,51,0.10)' : 'rgba(58,55,51,0.04)', border: `1px solid ${showingOverview ? 'rgba(58,55,51,0.18)' : 'rgba(58,55,51,0.08)'}`, ...inter(9, 500, showingOverview ? ink : mutedInk), textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           <LayoutGrid size={9} />
-          <span>Overview</span>
+          <span>{t('life.subscriptions.overview')}</span>
         </button>
       </div>
-      {subs.length ? <><p style={{ ...inter(22, 600, ink), letterSpacing: '-0.02em', lineHeight: 1 }}>{totalLabel}<span style={{ ...inter(12, 400, mutedInk), marginLeft: 4 }}>/mo</span></p><p style={{ ...inter(10, 400, 'rgba(58,55,51,0.35)'), marginTop: 8 }}>{annualLabel} total</p></> : <p style={inter(13, 400, 'rgba(58,55,51,0.35)')}>No subscriptions tracked yet</p>}
+      {subs.length ? <><p style={{ ...inter(22, 600, ink), letterSpacing: '-0.02em', lineHeight: 1 }}>{totalLabel}<span style={{ ...inter(12, 400, mutedInk), marginLeft: 4 }}>/mo</span></p><p style={{ ...inter(10, 400, 'rgba(58,55,51,0.35)'), marginTop: 8 }}>{annualLabel} total</p></> : <p style={inter(13, 400, 'rgba(58,55,51,0.35)')}>{t('life.subscriptions.noTrackedYet')}</p>}
     </div>
   )
 })
 
 function EmptyList({ onAdd }: { onAdd: () => void }) {
+  const { t } = useLifeI18n()
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '48px 24px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 48, height: 48, borderRadius: 999, marginBottom: 16, background: 'rgba(58,55,51,0.05)' }}><CreditCard size={18} color="rgba(58,55,51,0.22)" /></div>
-      <p style={{ ...playfair(15, 500, 'rgba(58,55,51,0.55)'), marginBottom: 6 }}>No subscriptions yet.</p>
-      <p style={{ ...inter(12, 400, 'rgba(58,55,51,0.38)'), lineHeight: 1.65, marginBottom: 16 }}>Create your first one.</p>
-      <button type="button" onClick={onAdd} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 999, cursor: 'pointer', background: 'rgba(58,55,51,0.07)', border: '1px solid rgba(58,55,51,0.12)', ...inter(12, 500, ink) }}><Plus size={12} /><span>Add subscription</span></button>
+      <p style={{ ...playfair(15, 500, 'rgba(58,55,51,0.55)'), marginBottom: 6 }}>{t('life.subscriptions.emptyListTitle')}</p>
+      <p style={{ ...inter(12, 400, 'rgba(58,55,51,0.38)'), lineHeight: 1.65, marginBottom: 16 }}>{t('life.subscriptions.emptyListDescription')}</p>
+      <button type="button" onClick={onAdd} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 999, cursor: 'pointer', background: 'rgba(58,55,51,0.07)', border: '1px solid rgba(58,55,51,0.12)', ...inter(12, 500, ink) }}><Plus size={12} /><span>{t('life.subscriptions.addSubscription')}</span></button>
     </div>
   )
 }
 
 function SubForm({ initial, isNew, onSave, onRemove, onCancel }: { initial: FormState; isNew: boolean; onSave: (form: FormState) => void; onRemove?: () => void; onCancel?: () => void }) {
+  const { t } = useLifeI18n()
   const [form, setForm] = useState(initial)
-  const first = useRef(true)
+  const [iconResults, setIconResults] = useState<string[]>([])
+  const [iconSearching, setIconSearching] = useState(false)
+  const savedInitialRef = useRef(initial)
+  const latestName = useRef(form.name)
   useEffect(() => {
-    if (first.current) {
-      first.current = false
-      return
-    }
-    if (!isNew) onSave(form)
+    if (!isNew && form !== savedInitialRef.current) onSave(form)
   }, [form, isNew, onSave])
+  useEffect(() => {
+    const name = form.name.trim()
+    latestName.current = name
+    if (!name) { setIconResults([]); setIconSearching(false); return }
+    setIconSearching(true)
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`https://api.iconify.design/search?query=${encodeURIComponent(name)}&limit=16`)
+        const data = await res.json() as { icons?: string[] }
+        if (latestName.current === name) setIconResults(data.icons ?? [])
+      } catch { /* ignore */ } finally {
+        if (latestName.current === name) setIconSearching(false)
+      }
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [form.name])
   const update = useCallback(<K extends keyof FormState>(key: K, value: FormState[K]) => setForm((current) => ({ ...current, [key]: value })), [])
   const parsedAmount = parseFloat(form.amount) || 0
   const monthly = form.cycle === 'yearly' ? parsedAmount / 12 : parsedAmount
   const categoryInfo = CATEGORIES.find((item) => item.id === form.category)
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto' }}>
+    <div style={{ display: 'flex', flex: 1, minHeight: 0, flexDirection: 'column', overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '32px 40px', borderBottom: `1px solid ${subtleBorder}` }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 56, height: 56, borderRadius: 14, flexShrink: 0, background: `${form.color}1A`, border: `1.5px solid ${form.color}44` }}>{form.emoji ? <span style={{ fontSize: 24, lineHeight: 1 }}>{form.emoji}</span> : <div style={{ width: 20, height: 20, borderRadius: 999, background: form.color }} />}</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 56, height: 56, borderRadius: 14, flexShrink: 0, background: `${form.color}1A`, border: `1.5px solid ${form.color}44` }}>{form.emoji?.includes(':') ? <SubIcon icon={form.emoji} size={28} /> : <div style={{ width: 20, height: 20, borderRadius: 999, background: form.color }} />}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ ...playfair(19, 500), lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{form.name || (isNew ? 'New Subscription' : '—')}</p>
-          {parsedAmount > 0 ? <p style={{ ...inter(13, 400, mutedInk), marginTop: 4 }}>{CURRENCY_SYMBOL[form.currency]}{formatAmount(monthly)}/mo{form.cycle === 'yearly' ? <span style={{ ...inter(11, 400, 'rgba(58,55,51,0.30)'), marginLeft: 6 }}>(est. from {CURRENCY_SYMBOL[form.currency]}{formatAmount(parsedAmount)}/yr)</span> : null}</p> : null}
-          {categoryInfo ? <p style={{ ...inter(11, 400, 'rgba(58,55,51,0.40)'), marginTop: 4 }}>{categoryInfo.emoji} {categoryInfo.label}</p> : null}
+          <p style={{ ...playfair(19, 500), lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{form.name || (isNew ? t('life.subscriptions.newSubscription') : '—')}</p>
+          {parsedAmount > 0 ? <p style={{ ...inter(13, 400, mutedInk), marginTop: 4 }}>{CURRENCY_SYMBOL[form.currency]}{formatAmount(monthly)}/mo{form.cycle === 'yearly' ? <span style={{ ...inter(11, 400, 'rgba(58,55,51,0.30)'), marginLeft: 6 }}>{t('life.subscriptions.estFromYearly', { amount: `${CURRENCY_SYMBOL[form.currency]}${formatAmount(parsedAmount)}` })}</span> : null}</p> : null}
+          {categoryInfo ? <p style={{ ...inter(11, 400, 'rgba(58,55,51,0.40)'), marginTop: 4 }}>{categoryInfo.emoji} {categoryLabel(categoryInfo.id, t)}</p> : null}
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 28, padding: '28px 40px' }}>
-        <section><p style={{ ...inter(9, 600, 'rgba(58,55,51,0.30)'), marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Basics</p><div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}><InputField label="Service name"><StyledInput value={form.name} onChange={(event) => update('name', event.target.value)} placeholder="e.g. Netflix, iCloud+" /></InputField><div style={{ display: 'flex', gap: 16 }}><div style={{ flex: 1 }}><InputField label="Amount"><div style={{ position: 'relative' }}><span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', ...inter(14, 500, 'rgba(58,55,51,0.45)') }}>{CURRENCY_SYMBOL[form.currency]}</span><StyledInput type="number" min="0" step="0.01" value={form.amount} onChange={(event) => update('amount', event.target.value)} placeholder="0.00" style={{ paddingLeft: 28 }} /></div></InputField></div><div style={{ width: 140 }}><InputField label="Currency"><ToggleGroup<Currency> options={[{ value: 'USD', label: '$ USD' }, { value: 'CNY', label: '¥ CNY' }]} value={form.currency} onChange={(value) => update('currency', value)} /></InputField></div></div><InputField label="Billing cycle"><ToggleGroup<BillingCycle> options={[{ value: 'monthly', label: 'Monthly' }, { value: 'yearly', label: 'Yearly' }]} value={form.cycle} onChange={(value) => update('cycle', value)} />{form.cycle === 'yearly' && parsedAmount > 0 ? <p style={{ ...inter(11, 400, 'rgba(58,55,51,0.40)'), marginTop: 8 }}>≈ {CURRENCY_SYMBOL[form.currency]}{formatAmount(monthly)} per month</p> : null}</InputField></div></section>
+        <section><p style={{ ...inter(9, 600, 'rgba(58,55,51,0.30)'), marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{t('life.subscriptions.basics')}</p><div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}><InputField label={t('life.subscriptions.serviceName')}><StyledInput value={form.name} onChange={(event) => update('name', event.target.value)} placeholder={t('life.subscriptions.serviceNamePlaceholder')} /></InputField><div style={{ display: 'flex', gap: 16 }}><div style={{ flex: 1 }}><InputField label={t('life.subscriptions.amount')}><div style={{ position: 'relative' }}><span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', ...inter(14, 500, 'rgba(58,55,51,0.45)') }}>{CURRENCY_SYMBOL[form.currency]}</span><StyledInput type="number" min="0" step="0.01" value={form.amount} onChange={(event) => update('amount', event.target.value)} placeholder="0.00" style={{ paddingLeft: 28 }} /></div></InputField></div><div style={{ width: 140 }}><InputField label={t('life.subscriptions.currency')}><ToggleGroup<Currency> options={[{ value: 'USD', label: '$ USD' }, { value: 'CNY', label: '¥ CNY' }]} value={form.currency} onChange={(value) => update('currency', value)} /></InputField></div></div><InputField label={t('life.subscriptions.billingCycle')}><ToggleGroup<BillingCycle> options={[{ value: 'monthly', label: t('life.subscriptions.monthly') }, { value: 'yearly', label: t('life.subscriptions.yearly') }]} value={form.cycle} onChange={(value) => update('cycle', value)} />{form.cycle === 'yearly' && parsedAmount > 0 ? <p style={{ ...inter(11, 400, 'rgba(58,55,51,0.40)'), marginTop: 8 }}>≈ {CURRENCY_SYMBOL[form.currency]}{formatAmount(monthly)} {t('life.subscriptions.perMonth')}</p> : null}</InputField></div></section>
         <div style={{ height: 1, background: subtleBorder }} />
-        <section><p style={{ ...inter(9, 600, 'rgba(58,55,51,0.30)'), marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Category</p><CategoryPicker value={form.category} onChange={(value) => update('category', value)} /></section>
+        <section><p style={{ ...inter(9, 600, 'rgba(58,55,51,0.30)'), marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{t('life.subscriptions.category')}</p><CategoryPicker value={form.category} onChange={(value) => update('category', value)} /></section>
         <div style={{ height: 1, background: subtleBorder }} />
-        <section><p style={{ ...inter(9, 600, 'rgba(58,55,51,0.30)'), marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Schedule</p><div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}><div style={{ display: 'flex', gap: 16 }}><div style={{ flex: 1 }}><InputField label="Billing day"><div style={{ position: 'relative' }}><CalendarDays size={13} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'rgba(58,55,51,0.35)' }} /><StyledInput type="number" min="1" max="31" value={form.billingDay} onChange={(event) => update('billingDay', event.target.value)} placeholder="Day (1–31)" style={{ paddingLeft: 30 }} /></div></InputField></div>{form.cycle === 'yearly' ? <div style={{ flex: 1 }}><InputField label="Billing month"><StyledInput type="number" min="1" max="12" value={form.billingMonth} onChange={(event) => update('billingMonth', event.target.value)} placeholder="Month (1–12)" /></InputField></div> : null}</div><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 16, background: 'rgba(58,55,51,0.03)', border: `1px solid ${subtleBorder}` }}><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>{form.reminder ? <Bell size={14} color={ink} /> : <BellOff size={14} color="rgba(58,55,51,0.35)" />}<span style={inter(13, 400, form.reminder ? ink : 'rgba(58,55,51,0.50)')}>{form.reminder ? 'Renewal reminder on' : 'No reminder'}</span></div><ToggleSwitch value={form.reminder} onChange={(value) => update('reminder', value)} /></div></div></section>
+        <section><p style={{ ...inter(9, 600, 'rgba(58,55,51,0.30)'), marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{t('life.subscriptions.schedule')}</p><div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}><div style={{ display: 'flex', gap: 16 }}><div style={{ flex: 1 }}><InputField label={t('life.subscriptions.billingDay')}><div style={{ position: 'relative' }}><CalendarDays size={13} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'rgba(58,55,51,0.35)' }} /><StyledInput type="number" min="1" max="31" value={form.billingDay} onChange={(event) => update('billingDay', event.target.value)} placeholder={t('life.subscriptions.billingDayPlaceholder')} style={{ paddingLeft: 30 }} /></div></InputField></div>{form.cycle === 'yearly' ? <div style={{ flex: 1 }}><InputField label={t('life.subscriptions.billingMonth')}><StyledInput type="number" min="1" max="12" value={form.billingMonth} onChange={(event) => update('billingMonth', event.target.value)} placeholder={t('life.subscriptions.billingMonthPlaceholder')} /></InputField></div> : null}</div><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 16, background: 'rgba(58,55,51,0.03)', border: `1px solid ${subtleBorder}` }}><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>{form.reminder ? <Bell size={14} color={ink} /> : <BellOff size={14} color="rgba(58,55,51,0.35)" />}<span style={inter(13, 400, form.reminder ? ink : 'rgba(58,55,51,0.50)')}>{form.reminder ? t('life.subscriptions.reminderOn') : t('life.subscriptions.noReminder')}</span></div><ToggleSwitch value={form.reminder} onChange={(value) => update('reminder', value)} /></div></div></section>
         <div style={{ height: 1, background: subtleBorder }} />
-        <section><p style={{ ...inter(9, 600, 'rgba(58,55,51,0.30)'), marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Appearance</p><div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}><InputField label="Emoji icon"><div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><StyledInput type="text" value={form.emoji} onChange={(event) => update('emoji', event.target.value.slice(0, 2))} placeholder="e.g. 📺" style={{ width: 80, textAlign: 'center', fontSize: 20 }} /><p style={inter(11, 400, 'rgba(58,55,51,0.38)')}>One emoji to represent this service.</p></div></InputField><InputField label="Colour"><ColorPicker value={form.color} onChange={(value) => update('color', value)} /></InputField></div></section>
+        <section><p style={{ ...inter(9, 600, 'rgba(58,55,51,0.30)'), marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{t('life.subscriptions.appearance')}</p><div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}><InputField label={t('life.subscriptions.icon')}>{!form.name.trim() ? <p style={inter(11, 400, 'rgba(58,55,51,0.38)')}>{t('life.subscriptions.iconSearchHint')}</p> : iconSearching ? <p style={inter(11, 400, 'rgba(58,55,51,0.38)')}>{t('life.subscriptions.iconSearching')}</p> : iconResults.length > 0 ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>{iconResults.map((icon) => <button key={icon} type="button" title={icon} onClick={() => update('emoji', form.emoji === icon ? '' : icon)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: 10, border: 'none', cursor: 'pointer', background: form.emoji === icon ? 'rgba(58,55,51,0.12)' : 'rgba(58,55,51,0.05)', boxShadow: form.emoji === icon ? '0 0 0 1.5px rgba(58,55,51,0.30)' : 'none' }}><Icon icon={icon} width={20} height={20} /></button>)}</div> : <p style={inter(11, 400, 'rgba(58,55,51,0.38)')}>{t('life.subscriptions.noIconsFound')}</p>}</InputField><InputField label={t('life.subscriptions.colour')}><ColorPicker value={form.color} onChange={(value) => update('color', value)} /></InputField></div></section>
         <div style={{ height: 1, background: subtleBorder }} />
-        <section><p style={{ ...inter(9, 600, 'rgba(58,55,51,0.30)'), marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Payment status</p><ToggleGroup<PaymentStatus> options={[{ value: 'unpaid', label: 'Unpaid' }, { value: 'paid', label: 'Paid ✓' }]} value={form.paymentStatus} onChange={(value) => update('paymentStatus', value)} /><p style={{ ...inter(11, 400, 'rgba(58,55,51,0.38)'), marginTop: 8 }}>Mark whether this period&apos;s payment has been made.</p></section>
+        <section><p style={{ ...inter(9, 600, 'rgba(58,55,51,0.30)'), marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{t('life.subscriptions.paymentStatus')}</p><ToggleGroup<PaymentStatus> options={[{ value: 'unpaid', label: t('life.subscriptions.unpaid') }, { value: 'paid', label: t('life.subscriptions.paid') }]} value={form.paymentStatus} onChange={(value) => update('paymentStatus', value)} /><p style={{ ...inter(11, 400, 'rgba(58,55,51,0.38)'), marginTop: 8 }}>{t('life.subscriptions.paymentStatusHint')}</p></section>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px 40px', marginTop: 'auto', borderTop: `1px solid ${subtleBorder}` }}>
-        {isNew ? <><button type="button" onClick={onCancel} style={{ padding: '6px 16px', borderRadius: 10, cursor: 'pointer', background: 'transparent', border: '1px solid rgba(58,55,51,0.10)', ...inter(12, 400, mutedInk) }}>Cancel</button><button type="button" onClick={() => { if (form.name.trim() && parsedAmount > 0) onSave(form) }} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 20px', borderRadius: 12, cursor: 'pointer', border: 'none', background: form.name.trim() && parsedAmount > 0 ? '#3A3733' : 'rgba(58,55,51,0.18)', ...inter(13, 500, '#F5F3F0') }}><Plus size={14} /><span>Add subscription</span></button></> : <><button type="button" onClick={onRemove} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 10, cursor: 'pointer', border: '1px solid rgba(58,55,51,0.08)', background: 'transparent', ...inter(12, 400, 'rgba(58,55,51,0.35)') }}><Trash2 size={12} /><span>Remove</span></button><div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, ...inter(11, 400, 'rgba(58,55,51,0.38)') }}><CheckCheck size={12} /><span>Auto-saved</span></div></>}
+        {isNew ? <><button type="button" onClick={onCancel} style={{ padding: '6px 16px', borderRadius: 10, cursor: 'pointer', background: 'transparent', border: '1px solid rgba(58,55,51,0.10)', ...inter(12, 400, mutedInk) }}>{t('life.subscriptions.cancel')}</button><button type="button" onClick={() => { if (form.name.trim() && parsedAmount > 0) onSave(form) }} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 20px', borderRadius: 12, cursor: 'pointer', border: 'none', background: form.name.trim() && parsedAmount > 0 ? '#3A3733' : 'rgba(58,55,51,0.18)', ...inter(13, 500, '#F5F3F0') }}><Plus size={14} /><span>{t('life.subscriptions.addSubscription')}</span></button></> : <><button type="button" onClick={onRemove} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 10, cursor: 'pointer', border: '1px solid rgba(58,55,51,0.08)', background: 'transparent', ...inter(12, 400, 'rgba(58,55,51,0.35)') }}><Trash2 size={12} /><span>{t('life.subscriptions.remove')}</span></button><div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, ...inter(11, 400, 'rgba(58,55,51,0.38)') }}><CheckCheck size={12} /><span>{t('life.subscriptions.autoSaved')}</span></div></>}
       </div>
     </div>
   )
@@ -486,51 +526,51 @@ export const SubscriptionCardSurface = ({ model, subscriptions, open, loading, o
       <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', width: '100%', height: '100%', minHeight: model.previewRows.length === 0 ? 280 : 0, overflow: 'hidden', borderRadius: 24, cursor: 'pointer', background: '#ffffff', border: '1px solid transparent', boxShadow: '0 12px 28px rgba(58, 55, 51, 0.08)' }} onClick={onOpen} aria-label={`${model.stats.activeServices} active subscriptions`}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '20px 20px 16px', borderBottom: '1px solid rgba(58,55,51,0.07)' }}><div><div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><CreditCard size={13} color="rgba(58,55,51,0.38)" /><span style={{ ...inter(10, 600, 'rgba(58,55,51,0.40)'), letterSpacing: '0.10em', textTransform: 'uppercase' }}>{model.header.eyebrow}</span>{model.stats.reminders > 0 ? <Bell size={10} color="rgba(58,55,51,0.28)" /> : null}</div><h3 style={{ ...playfair(18, 500), lineHeight: 1.2, marginTop: 2 }}>{model.header.title}</h3>{subscriptions.length > 0 ? <p style={{ ...inter(20, 600), letterSpacing: '-0.02em', lineHeight: 1, marginTop: 8 }}>{model.monthlyTotalLabel.replace(' /mo', '')}<span style={{ ...inter(12, 400, 'rgba(58,55,51,0.40)'), marginLeft: 3 }}>/mo</span></p> : null}</div><div style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 999, color: 'rgba(58,55,51,0.38)', marginTop: 2 }}><ChevronRight size={15} /></div></div>
         <div style={{ flex: 1, padding: '0 20px' }}>
-          {loading ? <LifeCardLoader compact /> : model.previewRows.length === 0 ? <div style={{ display: 'flex', minHeight: 172, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 16px', textAlign: 'center' }}><div style={{ width: 48, height: 48, marginBottom: 16, borderRadius: 999, background: 'rgba(58,55,51,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CreditCard size={20} color="rgba(58,55,51,0.30)" /></div><p style={{ ...playfair(14, 500), marginBottom: 6 }}>{t('life.subscriptions.trackRecurring')}</p><p style={{ ...inter(12, 400, mutedInk), lineHeight: 1.65, maxWidth: 220, marginBottom: 18 }}>{t('life.subscriptions.emptyDescription')}</p><button type="button" onClick={(event) => { event.stopPropagation(); onOpen() }} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 999, border: '1px solid rgba(58,55,51,0.12)', background: 'rgba(58,55,51,0.07)', color: '#3A3733', padding: '6px 12px', cursor: 'pointer', ...inter(11, 500), letterSpacing: '0.03em' }}><Plus size={11} /><span>{t('life.subscriptions.addSubscription')}</span></button></div> : <div>{model.previewRows.map((sub, index) => <div key={sub.id}><div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0' }}><div style={{ width: 8, height: 8, borderRadius: 999, flexShrink: 0, background: sub.color, boxShadow: `0 0 0 2px ${sub.color}22` }} /><div style={{ display: 'flex', flex: 1, minWidth: 0, alignItems: 'center', gap: 8 }}>{sub.emoji ? <span style={{ fontSize: 13, lineHeight: 1 }}>{sub.emoji}</span> : null}<p style={{ ...inter(13, 400), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub.name}</p>{sub.dueSoonLabel ? <span style={{ flexShrink: 0, borderRadius: 4, border: '1px solid rgba(232,168,95,0.30)', background: 'rgba(232,168,95,0.18)', padding: '1px 5px', ...inter(9, 600, '#B87830'), letterSpacing: '0.04em' }}>{sub.dueSoonLabel}</span> : null}</div><div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}><div style={{ width: 6, height: 6, borderRadius: 999, background: sub.isPaid ? '#6EAB7A' : 'rgba(58,55,51,0.18)' }} /><p style={{ ...inter(12, 400, 'rgba(58,55,51,0.50)'), letterSpacing: '0.02em' }}>{sub.priceLabel}</p></div></div>{index < model.previewRows.length - 1 ? <div style={{ height: 1, background: 'rgba(58,55,51,0.05)' }} /> : null}</div>)}{subscriptions.length > 3 ? <div style={{ padding: '8px 0', borderTop: '1px solid rgba(58,55,51,0.05)', textAlign: 'center', ...inter(11, 400, 'rgba(58,55,51,0.35)') }}>{t('life.subscriptions.moreServices', { count: subscriptions.length - 3 })}</div> : null}</div>}
+          {loading ? <LifeCardLoader compact /> : model.previewRows.length === 0 ? <div style={{ display: 'flex', minHeight: 172, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 16px', textAlign: 'center' }}><div style={{ width: 48, height: 48, marginBottom: 16, borderRadius: 999, background: 'rgba(58,55,51,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CreditCard size={20} color="rgba(58,55,51,0.30)" /></div><p style={{ ...playfair(14, 500), marginBottom: 6 }}>{t('life.subscriptions.trackRecurring')}</p><p style={{ ...inter(12, 400, mutedInk), lineHeight: 1.65, maxWidth: 220, marginBottom: 18 }}>{t('life.subscriptions.emptyDescription')}</p><button type="button" onClick={(event) => { event.stopPropagation(); onOpen() }} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 999, border: '1px solid rgba(58,55,51,0.12)', background: 'rgba(58,55,51,0.07)', color: '#3A3733', padding: '6px 12px', cursor: 'pointer', ...inter(11, 500), letterSpacing: '0.03em' }}><Plus size={11} /><span>{t('life.subscriptions.addSubscription')}</span></button></div> : <div>{model.previewRows.map((sub, index) => <div key={sub.id}><div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0' }}><div style={{ width: 8, height: 8, borderRadius: 999, flexShrink: 0, background: sub.color, boxShadow: `0 0 0 2px ${sub.color}22` }} /><div style={{ display: 'flex', flex: 1, minWidth: 0, alignItems: 'center', gap: 8 }}>{sub.emoji ? <SubIcon icon={sub.emoji} size={14} /> : null}<p style={{ ...inter(13, 400), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub.name}</p>{sub.dueSoonLabel ? <span style={{ flexShrink: 0, borderRadius: 4, border: '1px solid rgba(232,168,95,0.30)', background: 'rgba(232,168,95,0.18)', padding: '1px 5px', ...inter(9, 600, '#B87830'), letterSpacing: '0.04em' }}>{sub.dueSoonLabel}</span> : null}</div><div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}><div style={{ width: 6, height: 6, borderRadius: 999, background: sub.isPaid ? '#6EAB7A' : 'rgba(58,55,51,0.18)' }} /><p style={{ ...inter(12, 400, 'rgba(58,55,51,0.50)'), letterSpacing: '0.02em' }}>{sub.priceLabel}</p></div></div>{index < model.previewRows.length - 1 ? <div style={{ height: 1, background: 'rgba(58,55,51,0.05)' }} /> : null}</div>)}{subscriptions.length > 3 ? <div style={{ padding: '8px 0', borderTop: '1px solid rgba(58,55,51,0.05)', textAlign: 'center', ...inter(11, 400, 'rgba(58,55,51,0.35)') }}>{t('life.subscriptions.moreServices', { count: subscriptions.length - 3 })}</div> : null}</div>}
         </div>
         {model.previewRows.length > 0 ? <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', marginTop: 'auto', borderTop: '1px solid rgba(58,55,51,0.07)' }}><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>{subscriptions.slice(0, 7).map((item) => <div key={item.id} style={{ width: 7, height: 7, borderRadius: 999, background: item.color ?? '#D4A06A' }} />)}{subscriptions.length > 7 ? <span style={inter(9, 400, 'rgba(58,55,51,0.38)')}>+{subscriptions.length - 7}</span> : null}</div><span style={inter(11, 400, 'rgba(58,55,51,0.50)')}>{t('life.subscriptions.paidSummary', { paid: paidCount, total: subscriptions.length })}</span></div><div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>{model.stats.dueSoon > 0 ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, borderRadius: 999, border: '1px solid rgba(232,168,95,0.25)', background: 'rgba(232,168,95,0.15)', padding: '3px 8px', ...inter(10, 500, '#B87830') }}><Bell size={9} />{t('life.subscriptions.dueSoon', { count: model.stats.dueSoon })}</span> : null}<button type="button" onClick={(event) => { event.stopPropagation(); onOpen() }} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, border: 'none', background: 'transparent', color: '#3A3733', cursor: 'pointer', padding: 0, ...inter(11, 400) }}><Plus size={11} /><span>{t('life.subscriptions.manage')}</span></button></div></div> : null}
       </div>
 
-      <Dialog
+      {open ? <Dialog
         open={open}
         onClose={onClose}
         panelClassName="life-modal__panel"
         contentClassName="life-modal__content"
-        panelStyle={{ width: 'min(1320px, 90vw)', maxHeight: 'min(800px, 88vh)', background: paper }}
+        panelStyle={{ width: 'min(1320px, 90vw)', height: 'min(800px, 88vh)', background: paper }}
       >
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 32px', borderBottom: `1px solid ${subtleBorder}`, flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <CreditCard size={16} color="rgba(58,55,51,0.38)" />
               <div>
-                <p style={{ ...inter(10, 600, 'rgba(58,55,51,0.38)'), marginBottom: 2, textTransform: 'uppercase', letterSpacing: '0.10em' }}>Monthly</p>
-                <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: 22, fontWeight: 500, color: ink }}>Subscriptions</h1>
+                <p style={{ ...inter(10, 600, 'rgba(58,55,51,0.38)'), marginBottom: 2, textTransform: 'uppercase', letterSpacing: '0.10em' }}>{t('life.subscriptions.monthly')}</p>
+                <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: 22, fontWeight: 500, color: ink }}>{t('life.card.subscriptions')}</h1>
               </div>
-              <span style={{ marginLeft: 4, padding: '4px 10px', borderRadius: 999, background: 'rgba(58,55,51,0.07)', ...inter(11, 500, mutedInk) }}>{subscriptions.length} service{subscriptions.length !== 1 ? 's' : ''}</span>
+              <span style={{ marginLeft: 4, padding: '4px 10px', borderRadius: 999, background: 'rgba(58,55,51,0.07)', ...inter(11, 500, mutedInk) }}>{t('life.subscriptions.servicesCount', { count: subscriptions.length })}</span>
             </div>
-            <button type="button" onClick={onClose} aria-label="Close" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 999, border: 'none', background: 'transparent', color: 'rgba(58,55,51,0.40)', cursor: 'pointer' }}><X size={16} /></button>
+            <button type="button" onClick={onClose} aria-label={t('life.subscriptions.close')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 999, border: 'none', background: 'transparent', color: 'rgba(58,55,51,0.40)', cursor: 'pointer' }}><X size={16} /></button>
           </div>
           <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
             <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0, width: 370, borderRight: `1px solid ${subtleBorder}`, background: '#FAF8F5' }}>
               <SummaryBar subs={subscriptions} onOverview={handleOverview} showingOverview={showingOverview && !isAdding} />
               <div style={{ padding: '12px 16px', borderBottom: `1px solid ${subtleBorder}` }}>
-                <button type="button" onClick={handleStartAdding} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 0', borderRadius: 18, cursor: 'pointer', border: `1px solid ${isAdding ? 'transparent' : 'rgba(58,55,51,0.10)'}`, background: isAdding ? '#3A3733' : 'rgba(58,55,51,0.07)', ...inter(12, 500, isAdding ? '#F5F3F0' : ink) }}><Plus size={13} /><span>Add subscription</span></button>
+                <button type="button" onClick={handleStartAdding} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 0', borderRadius: 18, cursor: 'pointer', border: `1px solid ${isAdding ? 'transparent' : 'rgba(58,55,51,0.10)'}`, background: isAdding ? '#3A3733' : 'rgba(58,55,51,0.07)', ...inter(12, 500, isAdding ? '#F5F3F0' : ink) }}><Plus size={13} /><span>{t('life.subscriptions.addSubscription')}</span></button>
               </div>
-              {subscriptions.length ? <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '12px 16px', borderBottom: `1px solid ${subtleBorder}` }}>{([{ key: 'all', label: `All ${subscriptions.length}` }, { key: 'unpaid', label: `Unpaid ${unpaidCount}` }, { key: 'paid', label: `Paid ${paidCount}` }] as Array<{ key: StatusFilter; label: string }>).map((item) => <button key={item.key} type="button" onClick={() => setStatusFilter(item.key)} style={{ padding: '6px 12px', borderRadius: 999, border: 'none', background: statusFilter === item.key ? 'rgba(58,55,51,0.08)' : 'transparent', cursor: 'pointer', ...inter(10, statusFilter === item.key ? 500 : 400, statusFilter === item.key ? ink : mutedInk), letterSpacing: '0.01em' }}>{item.label}</button>)}</div> : null}
+              {subscriptions.length ? <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '12px 16px', borderBottom: `1px solid ${subtleBorder}` }}>{([{ key: 'all', label: t('life.subscriptions.allCount', { count: subscriptions.length }) }, { key: 'unpaid', label: t('life.subscriptions.unpaidCount', { count: unpaidCount }) }, { key: 'paid', label: t('life.subscriptions.paidCount', { count: paidCount }) }] as Array<{ key: StatusFilter; label: string }>).map((item) => <button key={item.key} type="button" onClick={() => setStatusFilter(item.key)} style={{ padding: '6px 12px', borderRadius: 999, border: 'none', background: statusFilter === item.key ? 'rgba(58,55,51,0.08)' : 'transparent', cursor: 'pointer', ...inter(10, statusFilter === item.key ? 500 : 400, statusFilter === item.key ? ink : mutedInk), letterSpacing: '0.01em' }}>{item.label}</button>)}</div> : null}
               <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
                 {loading ? <LifePanelLoader /> : null}
                 {!loading && !subscriptions.length ? <EmptyList onAdd={handleStartAdding} /> : null}
-                {!loading && subscriptions.length && !filtered.length ? <p style={{ ...inter(12, 400, 'rgba(58,55,51,0.38)'), textAlign: 'center', padding: '32px 0' }}>No {statusFilter} subscriptions</p> : null}
+                {!loading && subscriptions.length && !filtered.length ? <p style={{ ...inter(12, 400, 'rgba(58,55,51,0.38)'), textAlign: 'center', padding: '32px 0' }}>{t('life.subscriptions.noFiltered', { status: statusFilter === 'paid' ? t('life.subscriptions.paid') : statusFilter === 'unpaid' ? t('life.subscriptions.unpaid') : t('life.subscriptions.allCount', { count: 0 }) })}</p> : null}
                 {!loading && filtered.length ? <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>{filtered.map((item) => <SubListItem key={item.id} sub={item} selected={!isAdding && selectedId === item.id} onClick={() => handleSelectSubscription(item.id)} />)}</div> : null}
               </div>
-              {subscriptions.length ? <div style={{ padding: '12px 20px', borderTop: `1px solid ${subtleBorder}` }}><p style={{ ...inter(10, 400, 'rgba(58,55,51,0.30)'), lineHeight: 1.65 }}>Yearly prices shown as estimated monthly. Currencies listed separately.</p></div> : null}
+              {subscriptions.length ? <div style={{ padding: '12px 20px', borderTop: `1px solid ${subtleBorder}` }}><p style={{ ...inter(10, 400, 'rgba(58,55,51,0.30)'), lineHeight: 1.65 }}>{t('life.subscriptions.yearlyHint')}</p></div> : null}
             </div>
-            <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ flex: 1, minHeight: 0, overflowX: 'hidden', overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', display: 'flex', flexDirection: 'column' }}>
               {isAdding ? <SubForm key="new" initial={freshForm(subscriptions)} isNew={true} onSave={(form) => void create(form)} onCancel={() => { setIsAdding(false); setShowingOverview(true) }} /> : selected && !showingOverview ? <SubForm key={selected.id} initial={toFormState(selected)} isNew={false} onSave={(form) => update(selected.id, form)} onRemove={() => { onRemoveSubscription(selected.id); setSelectedId(null); setShowingOverview(true) }} /> : <AnnualOverviewPanel subs={subscriptions} usdToCny={usdToCny} onUsdToCnyChange={setUsdToCny} />}
             </div>
           </div>
         </div>
-      </Dialog>
+      </Dialog> : null}
     </>
   )
 }

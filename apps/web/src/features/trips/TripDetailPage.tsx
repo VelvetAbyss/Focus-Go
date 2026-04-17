@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import type { TripUpdateInput } from '@focus-go/core'
+import { useLifeI18n } from '../life/lifeI18n'
 import {
   ArrowLeft,
   Calendar,
@@ -99,16 +100,6 @@ const TripDetailSkeleton = () => (
   </div>
 )
 
-const sections: Array<{ id: SectionId; label: string; icon: ReactNode }> = [
-  { id: 'overview', label: 'Overview', icon: <LayoutGrid size={14} /> },
-  { id: 'itinerary', label: 'Itinerary', icon: <Calendar size={14} /> },
-  { id: 'transport', label: 'Transport', icon: <Navigation size={14} /> },
-  { id: 'stay', label: 'Stay', icon: <Home size={14} /> },
-  { id: 'food', label: 'Food', icon: <Utensils size={14} /> },
-  { id: 'budget', label: 'Budget', icon: <Wallet size={14} /> },
-  { id: 'checklist', label: 'Checklist', icon: <List size={14} /> },
-  { id: 'notes', label: 'Notes', icon: <FileText size={14} /> },
-]
 
 const Card = ({ children, style }: { children: ReactNode; style?: CSSProperties }) => (
   <div style={{ background: cardBg, border: `1px solid ${subtleBorder}`, borderRadius: 16, boxShadow: '0 1px 6px rgba(58,55,51,0.05)', ...style }}>{children}</div>
@@ -197,11 +188,24 @@ const normalizeDays = (days: TripItineraryDay[]) =>
 
 const TripDetailPage = () => {
   const navigate = useNavigate()
+  const { t } = useLifeI18n()
   const { tripId } = useParams()
   const [trip, setTrip] = useState<TripRecord | null>(null)
   const [loading, setLoading] = useState(true)
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [collapsedDays, setCollapsedDays] = useState<number[]>([])
+
+  const sections: Array<{ id: SectionId; label: string; icon: ReactNode }> = [
+    { id: 'overview', label: t('life.trips.detail.overview'), icon: <LayoutGrid size={14} /> },
+    { id: 'itinerary', label: t('life.trips.detail.itinerary'), icon: <Calendar size={14} /> },
+    { id: 'transport', label: t('life.trips.detail.transport'), icon: <Navigation size={14} /> },
+    { id: 'stay', label: t('life.trips.detail.stay'), icon: <Home size={14} /> },
+    { id: 'food', label: t('life.trips.detail.food'), icon: <Utensils size={14} /> },
+    { id: 'budget', label: t('life.trips.detail.budget'), icon: <Wallet size={14} /> },
+    { id: 'checklist', label: t('life.trips.checklist'), icon: <List size={14} /> },
+    { id: 'notes', label: t('life.trips.detail.notes'), icon: <FileText size={14} /> },
+  ]
+
   const sectionRefs = useRef<Record<SectionId, HTMLElement | null>>({
     overview: null,
     itinerary: null,
@@ -329,12 +333,12 @@ const TripDetailPage = () => {
     return (
       <div ref={containerRef} style={pageWrapper}>
         <Card style={{ maxWidth: 620, margin: '80px auto 0', padding: 28 }}>
-          <h1 style={pf(28, 500)}>Trip not found</h1>
-          <p style={{ ...tx(13, 400, muted), marginTop: 10 }}>This trip was removed or the link is no longer valid.</p>
+          <h1 style={pf(28, 500)}>{t('life.trips.detail.tripNotFound')}</h1>
+          <p style={{ ...tx(13, 400, muted), marginTop: 10 }}>{t('life.trips.detail.tripNotFoundDesc')}</p>
           <div style={{ marginTop: 18 }}>
             <ActionButton onClick={() => navigate(ROUTES.TRIPS)}>
               <ArrowLeft size={14} />
-              Back to Trips
+              {t('life.trips.detail.backToTrips')}
             </ActionButton>
           </div>
         </Card>
@@ -347,12 +351,12 @@ const TripDetailPage = () => {
       <div style={{ display: 'grid', gridTemplateColumns: '220px minmax(0, 1fr)', gap: 24, maxWidth: 1480, margin: '0 auto' }}>
         <aside style={{ position: 'sticky', top: 24, alignSelf: 'start', background: paper, borderRadius: 18, padding: 18 }}>
           <button type="button" onClick={() => navigate(ROUTES.TRIPS)} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18, border: 'none', background: 'transparent', cursor: 'pointer', ...tx(12, 500, muted) }}>
-            <ArrowLeft size={14} /> All Trips
+            <ArrowLeft size={14} /> {t('life.trips.detail.allTrips')}
           </button>
           <div style={{ marginBottom: 16 }}>
-            <p style={{ ...tx(10, 600, 'rgba(58,55,51,0.38)'), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 6 }}>Trip Workspace</p>
+            <p style={{ ...tx(10, 600, 'rgba(58,55,51,0.38)'), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 6 }}>{t('life.trips.detail.tripWorkspace')}</p>
             <h1 style={{ ...pf(28, 500), lineHeight: 1.1 }}>{trip.title}</h1>
-            <p style={{ ...tx(12, 400, muted), marginTop: 8 }}>{trip.destination || 'Destination pending'}</p>
+            <p style={{ ...tx(12, 400, muted), marginTop: 8 }}>{trip.destination || t('life.trips.detail.destinationPending')}</p>
           </div>
           <nav style={{ display: 'grid', gap: 6 }}>
             {sections.map((section) => (
@@ -384,15 +388,15 @@ const TripDetailPage = () => {
         <main style={{ display: 'grid', gap: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, background: cardBg, border: `1px solid ${subtleBorder}`, borderRadius: 22, padding: '18px 22px', boxShadow: '0 1px 6px rgba(58,55,51,0.05)' }}>
             <div>
-              <p style={{ ...tx(10, 600, 'rgba(58,55,51,0.38)'), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 6 }}>Trip planner</p>
+              <p style={{ ...tx(10, 600, 'rgba(58,55,51,0.38)'), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 6 }}>{t('life.trips.detail.tripPlanner')}</p>
               <h2 style={{ ...pf(22, 500) }}>{trip.title}</h2>
             </div>
             <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
-              <div><div style={{ ...tx(28, 600), lineHeight: 1 }}>{duration}</div><div style={{ ...tx(10, 600, muted), letterSpacing: '0.08em', textTransform: 'uppercase' }}>Days</div></div>
-              <div><div style={{ ...tx(28, 600), lineHeight: 1 }}>{trip.travelers}</div><div style={{ ...tx(10, 600, muted), letterSpacing: '0.08em', textTransform: 'uppercase' }}>Travelers</div></div>
-              <div><div style={{ ...tx(28, 600), lineHeight: 1 }}>{progress.done}</div><div style={{ ...tx(10, 600, muted), letterSpacing: '0.08em', textTransform: 'uppercase' }}>Done</div></div>
+              <div><div style={{ ...tx(28, 600), lineHeight: 1 }}>{duration}</div><div style={{ ...tx(10, 600, muted), letterSpacing: '0.08em', textTransform: 'uppercase' }}>{t('life.trips.detail.daysLabel')}</div></div>
+              <div><div style={{ ...tx(28, 600), lineHeight: 1 }}>{trip.travelers}</div><div style={{ ...tx(10, 600, muted), letterSpacing: '0.08em', textTransform: 'uppercase' }}>{t('life.trips.detail.travelersLabel')}</div></div>
+              <div><div style={{ ...tx(28, 600), lineHeight: 1 }}>{progress.done}</div><div style={{ ...tx(10, 600, muted), letterSpacing: '0.08em', textTransform: 'uppercase' }}>{t('life.trips.detail.doneLabel')}</div></div>
               <span style={{ ...tx(11, 600, saveState === 'error' ? '#C05050' : ink), minWidth: 62, textAlign: 'right' }}>
-                {saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved' : saveState === 'error' ? 'Retry' : ''}
+                {saveState === 'saving' ? t('life.trips.detail.saving') : saveState === 'saved' ? t('life.trips.detail.saved') : saveState === 'error' ? t('life.trips.detail.retry') : ''}
               </span>
             </div>
           </div>
@@ -402,16 +406,16 @@ const TripDetailPage = () => {
               <img src={trip.heroImage} alt={trip.destination || trip.title} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.78) saturate(0.70)' }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 30%, rgba(58,55,51,0.65) 100%)' }} />
               <div style={{ position: 'absolute', left: 24, bottom: 22 }}>
-                <p style={{ ...tx(12, 400, 'rgba(255,255,255,0.72)'), marginBottom: 4 }}>{trip.destination || 'Destination pending'}</p>
+                <p style={{ ...tx(12, 400, 'rgba(255,255,255,0.72)'), marginBottom: 4 }}>{trip.destination || t('life.trips.detail.destinationPending')}</p>
                 <p style={{ fontFamily: 'Playfair Display, serif', fontSize: 30, fontWeight: 500, color: 'rgba(255,255,255,0.96)' }}>{trip.title}</p>
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 }}>
-              <Card style={{ padding: '18px 20px' }}><p style={{ ...tx(10, 600, muted), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 8 }}>Duration</p><p style={{ ...tx(28, 600), lineHeight: 1 }}>{duration}<span style={{ ...tx(14, 400, muted) }}> days</span></p></Card>
-              <Card style={{ padding: '18px 20px' }}><p style={{ ...tx(10, 600, muted), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 8 }}>Travelers</p><p style={{ ...tx(28, 600), lineHeight: 1 }}>{trip.travelers}<span style={{ ...tx(14, 400, muted) }}> pax</span></p></Card>
-              <Card style={{ padding: '18px 20px' }}><p style={{ ...tx(10, 600, muted), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 8 }}>Budget</p><p style={{ ...tx(22, 600), lineHeight: 1 }}>{fmtUSD(trip.budgetPlanned)}</p><p style={{ ...tx(10, 400, muted), marginTop: 8 }}>{fmtUSD(estimated)} estimated</p></Card>
-              <Card style={{ padding: '18px 20px' }}><p style={{ ...tx(10, 600, muted), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 8 }}>Checklist</p><p style={{ ...tx(22, 600), lineHeight: 1 }}>{progress.done}<span style={{ ...tx(14, 400, muted) }}>/ {progress.total}</span></p><div style={{ marginTop: 10, height: 4, borderRadius: 999, overflow: 'hidden', background: 'rgba(58,55,51,0.08)' }}><div style={{ height: '100%', width: `${percent}%`, background: '#3A3733' }} /></div></Card>
+              <Card style={{ padding: '18px 20px' }}><p style={{ ...tx(10, 600, muted), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 8 }}>{t('life.trips.detail.duration')}</p><p style={{ ...tx(28, 600), lineHeight: 1 }}>{duration}<span style={{ ...tx(14, 400, muted) }}> days</span></p></Card>
+              <Card style={{ padding: '18px 20px' }}><p style={{ ...tx(10, 600, muted), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 8 }}>{t('life.trips.detail.travelersLabel')}</p><p style={{ ...tx(28, 600), lineHeight: 1 }}>{trip.travelers}<span style={{ ...tx(14, 400, muted) }}> pax</span></p></Card>
+              <Card style={{ padding: '18px 20px' }}><p style={{ ...tx(10, 600, muted), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 8 }}>{t('life.trips.detail.budget')}</p><p style={{ ...tx(22, 600), lineHeight: 1 }}>{fmtUSD(trip.budgetPlanned)}</p><p style={{ ...tx(10, 400, muted), marginTop: 8 }}>{fmtUSD(estimated)} estimated</p></Card>
+              <Card style={{ padding: '18px 20px' }}><p style={{ ...tx(10, 600, muted), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 8 }}>{t('life.trips.checklist')}</p><p style={{ ...tx(22, 600), lineHeight: 1 }}>{progress.done}<span style={{ ...tx(14, 400, muted) }}>/ {progress.total}</span></p><div style={{ marginTop: 10, height: 4, borderRadius: 999, overflow: 'hidden', background: 'rgba(58,55,51,0.08)' }}><div style={{ height: '100%', width: `${percent}%`, background: '#3A3733' }} /></div></Card>
             </div>
 
             <Card style={{ padding: '20px 22px', display: 'grid', gap: 16 }}>
@@ -428,7 +432,7 @@ const TripDetailPage = () => {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
                 <div style={{ display: 'grid', gap: 10, flex: 1 }}>
-                  <Label>Next Actions</Label>
+                  <Label>{t('life.trips.detail.nextActions')}</Label>
                   <div style={{ display: 'grid', gap: 10 }}>
                     {(nextActions.length > 0 ? nextActions : ['Trip is fully shaped.']).map((action) => (
                       <div key={action} style={{ display: 'flex', alignItems: 'center', gap: 10, borderRadius: 12, padding: '12px 14px', background: 'rgba(58,55,51,0.03)', border: `1px solid ${subtleBorder}` }}>
@@ -441,20 +445,20 @@ const TripDetailPage = () => {
                 <ActionButton
                   danger
                   onClick={async () => {
-                    if (!window.confirm('Delete this trip?')) return
+                    if (!window.confirm(t('life.trips.detail.deleteConfirm'))) return
                     await tripsRepo.remove(trip.id)
                     navigate(ROUTES.TRIPS)
                   }}
                 >
                   <Trash2 size={14} />
-                  Delete Trip
+                  {t('life.trips.detail.deleteTrip')}
                 </ActionButton>
               </div>
             </Card>
           </section>
 
           <section ref={(node) => { sectionRefs.current.itinerary = node }} data-section="itinerary" style={{ display: 'grid', gap: 14 }}>
-            <SectionHeading title="Itinerary" meta={`${trip.itinerary.length} days · ${trip.itinerary.reduce((sum, day) => sum + day.items.length, 0)} activities`} action={<ActionButton onClick={() => updateItinerary([...trip.itinerary, createItineraryDay(trip.itinerary.length + 1)])}><Plus size={14} /> Add Day</ActionButton>} />
+            <SectionHeading title={t('life.trips.detail.itinerary')} meta={`${trip.itinerary.length} days · ${trip.itinerary.reduce((sum, day) => sum + day.items.length, 0)} activities`} action={<ActionButton onClick={() => updateItinerary([...trip.itinerary, createItineraryDay(trip.itinerary.length + 1)])}><Plus size={14} /> {t('life.trips.detail.addDay')}</ActionButton>} />
             {trip.itinerary.map((day) => {
               const isCollapsed = collapsedDays.includes(day.day)
               const patchD = (p: Partial<TripItineraryDay>) => updateItinerary(patchDay(trip.itinerary, day.day, p))
@@ -483,7 +487,7 @@ const TripDetailPage = () => {
                         <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr auto', gap: 12 }}>
                           <input value={day.date} onChange={(e) => patchD({ date: e.target.value })} style={inputStyle} placeholder="Apr 18" />
                           <input value={day.label} onChange={(e) => patchD({ label: e.target.value })} style={inputStyle} placeholder="Day label" />
-                          <ActionButton danger onClick={() => updateItinerary(normalizeDays(trip.itinerary.filter((d) => d.day !== day.day)))}><Trash2 size={14} /> Remove Day</ActionButton>
+                          <ActionButton danger onClick={() => updateItinerary(normalizeDays(trip.itinerary.filter((d) => d.day !== day.day)))}><Trash2 size={14} /> {t('life.trips.detail.removeDay')}</ActionButton>
                         </div>
                         {day.items.map((item) => {
                           const badge = itineraryTypeStyle(item.type)
@@ -494,7 +498,7 @@ const TripDetailPage = () => {
                                   <input value={item.title} onChange={(e) => patchItem(item.id, { title: e.target.value })} style={inputStyle} placeholder="Activity" />
                                   <input value={item.time} onChange={(e) => patchItem(item.id, { time: e.target.value })} style={inputStyle} placeholder="09:00" />
                                   <select value={item.type} onChange={(e) => patchItem(item.id, { type: e.target.value as TripItineraryItem['type'] })} style={inputStyle}>{itineraryTypeOptions.map((t) => <option key={t} value={t}>{t}</option>)}</select>
-                                  <ActionButton danger onClick={() => patchD({ items: day.items.filter((it) => it.id !== item.id) })}><Trash2 size={14} /> Remove</ActionButton>
+                                  <ActionButton danger onClick={() => patchD({ items: day.items.filter((it) => it.id !== item.id) })}><Trash2 size={14} /> {t('life.trips.detail.remove')}</ActionButton>
                                 </div>
                                 <input value={item.location} onChange={(e) => patchItem(item.id, { location: e.target.value })} style={inputStyle} placeholder="Location" />
                                 <textarea value={item.notes ?? ''} onChange={(e) => patchItem(item.id, { notes: e.target.value })} style={textareaStyle} placeholder="Notes" />
@@ -503,7 +507,7 @@ const TripDetailPage = () => {
                             </Card>
                           )
                         })}
-                        <div><ActionButton onClick={() => patchD({ items: [...day.items, createItineraryItem()] })}><Plus size={14} /> Add Activity</ActionButton></div>
+                        <div><ActionButton onClick={() => patchD({ items: [...day.items, createItineraryItem()] })}><Plus size={14} /> {t('life.trips.detail.addActivity')}</ActionButton></div>
                       </div>
                     </>
                   ) : null}
@@ -513,7 +517,7 @@ const TripDetailPage = () => {
           </section>
 
           <section ref={(node) => { sectionRefs.current.transport = node }} data-section="transport" style={{ display: 'grid', gap: 14 }}>
-            <SectionHeading title="Transport" meta={`${trip.transport.length} routes`} action={<ActionButton onClick={() => updateTransport([...trip.transport, createTransportItem()])}><Plus size={14} /> Add Route</ActionButton>} />
+            <SectionHeading title={t('life.trips.detail.transport')} meta={`${trip.transport.length} routes`} action={<ActionButton onClick={() => updateTransport([...trip.transport, createTransportItem()])}><Plus size={14} /> {t('life.trips.detail.addRoute')}</ActionButton>} />
             {trip.transport.map((item) => {
               const sc = bookingStatusColor(item.status)
               const patch = (p: Partial<TripTransportItem>) => updateTransport(patchIn(trip.transport, item.id, p))
@@ -521,7 +525,7 @@ const TripDetailPage = () => {
                 <Card key={item.id} style={{ padding: 20, display: 'grid', gap: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                     <span style={tx(11, 500, sc.text)}>{item.status}</span>
-                    <ActionButton danger onClick={() => updateTransport(removeFrom(trip.transport, item.id))}><Trash2 size={14} /> Remove</ActionButton>
+                    <ActionButton danger onClick={() => updateTransport(removeFrom(trip.transport, item.id))}><Trash2 size={14} /> {t('life.trips.detail.remove')}</ActionButton>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 140px', gap: 12 }}>
                     <input value={item.from} onChange={(e) => patch({ from: e.target.value })} style={inputStyle} placeholder="From" />
@@ -542,7 +546,7 @@ const TripDetailPage = () => {
           </section>
 
           <section ref={(node) => { sectionRefs.current.stay = node }} data-section="stay" style={{ display: 'grid', gap: 14 }}>
-            <SectionHeading title="Stay" meta={`${trip.stays.length} accommodation`} action={<ActionButton onClick={() => updateStays([...trip.stays, createStayItem()])}><Plus size={14} /> Add Stay</ActionButton>} />
+            <SectionHeading title={t('life.trips.detail.stay')} meta={`${trip.stays.length} accommodation`} action={<ActionButton onClick={() => updateStays([...trip.stays, createStayItem()])}><Plus size={14} /> {t('life.trips.detail.addStay')}</ActionButton>} />
             {trip.stays.map((stay) => {
               const sc = bookingStatusColor(stay.status)
               const patch = (p: Partial<TripStayItem>) => updateStays(patchIn(trip.stays, stay.id, p))
@@ -550,7 +554,7 @@ const TripDetailPage = () => {
                 <Card key={stay.id} style={{ padding: 20, display: 'grid', gap: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                     <span style={tx(11, 500, sc.text)}>{stay.status}</span>
-                    <ActionButton danger onClick={() => updateStays(removeFrom(trip.stays, stay.id))}><Trash2 size={14} /> Remove</ActionButton>
+                    <ActionButton danger onClick={() => updateStays(removeFrom(trip.stays, stay.id))}><Trash2 size={14} /> {t('life.trips.detail.remove')}</ActionButton>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px 140px 120px 140px', gap: 12 }}>
                     <input value={stay.name} onChange={(e) => patch({ name: e.target.value })} style={inputStyle} placeholder="Stay name" />
@@ -569,7 +573,7 @@ const TripDetailPage = () => {
           </section>
 
           <section ref={(node) => { sectionRefs.current.food = node }} data-section="food" style={{ display: 'grid', gap: 14 }}>
-            <SectionHeading title="Food" meta={`${trip.food.length} places`} action={<ActionButton onClick={() => updateFood([...trip.food, createFoodItem()])}><Plus size={14} /> Add Place</ActionButton>} />
+            <SectionHeading title={t('life.trips.detail.food')} meta={`${trip.food.length} places`} action={<ActionButton onClick={() => updateFood([...trip.food, createFoodItem()])}><Plus size={14} /> {t('life.trips.detail.addPlace')}</ActionButton>} />
             {trip.food.map((item) => {
               const sc = foodStatusColor(item.status)
               const patch = (p: Partial<TripFoodItem>) => updateFood(patchIn(trip.food, item.id, p))
@@ -577,7 +581,7 @@ const TripDetailPage = () => {
                 <Card key={item.id} style={{ padding: 20, display: 'grid', gap: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                     <span style={{ ...tx(10, 600, sc.text), background: sc.bg, borderRadius: 999, padding: '4px 8px' }}>{item.status}</span>
-                    <ActionButton danger onClick={() => updateFood(removeFrom(trip.food, item.id))}><Trash2 size={14} /> Remove</ActionButton>
+                    <ActionButton danger onClick={() => updateFood(removeFrom(trip.food, item.id))}><Trash2 size={14} /> {t('life.trips.detail.remove')}</ActionButton>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 120px 120px', gap: 12 }}>
                     <input value={item.name} onChange={(e) => patch({ name: e.target.value })} style={inputStyle} placeholder="Place" />
@@ -593,13 +597,13 @@ const TripDetailPage = () => {
           </section>
 
           <section ref={(node) => { sectionRefs.current.budget = node }} data-section="budget" style={{ display: 'grid', gap: 14 }}>
-            <SectionHeading title="Budget" meta={`Planned ${fmtUSD(trip.budgetPlanned)} · Actual ${fmtUSD(actual)}`} action={<ActionButton onClick={() => updateBudget([...trip.budget, createBudgetItem()])}><Plus size={14} /> Add Budget Item</ActionButton>} />
+            <SectionHeading title={t('life.trips.detail.budget')} meta={`Planned ${fmtUSD(trip.budgetPlanned)} · Actual ${fmtUSD(actual)}`} action={<ActionButton onClick={() => updateBudget([...trip.budget, createBudgetItem()])}><Plus size={14} /> {t('life.trips.detail.addBudgetItem')}</ActionButton>} />
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 }}>
               {[
-                ['Planned', trip.budgetPlanned, ink],
-                ['Estimated', estimated, '#2E6EA6'],
-                ['Actual', actual, '#3D7A4E'],
-                ['Remaining', trip.budgetPlanned - actual, trip.budgetPlanned - actual >= 0 ? ink : '#C05050'],
+                [t('life.trips.detail.planned'), trip.budgetPlanned, ink],
+                [t('life.trips.detail.estimated'), estimated, '#2E6EA6'],
+                [t('life.trips.detail.actual'), actual, '#3D7A4E'],
+                [t('life.trips.detail.remaining'), trip.budgetPlanned - actual, trip.budgetPlanned - actual >= 0 ? ink : '#C05050'],
               ].map(([label, value, color]) => (
                 <Card key={String(label)} style={{ padding: '16px 18px' }}>
                   <p style={{ ...tx(10, 600, muted), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 6 }}>{label}</p>
@@ -613,7 +617,7 @@ const TripDetailPage = () => {
                 <Card key={item.id} style={{ padding: 20, display: 'grid', gap: 12 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
                     <span style={tx(12, 500)}>{item.label || 'New budget item'}</span>
-                    <ActionButton danger onClick={() => updateBudget(removeFrom(trip.budget, item.id))}><Trash2 size={14} /> Remove</ActionButton>
+                    <ActionButton danger onClick={() => updateBudget(removeFrom(trip.budget, item.id))}><Trash2 size={14} /> {t('life.trips.detail.remove')}</ActionButton>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '72px 1fr 160px 160px', gap: 12 }}>
                     <input value={item.emoji} onChange={(e) => patch({ emoji: e.target.value })} style={inputStyle} placeholder="💸" />
@@ -627,10 +631,10 @@ const TripDetailPage = () => {
           </section>
 
           <section ref={(node) => { sectionRefs.current.checklist = node }} data-section="checklist" style={{ display: 'grid', gap: 14 }}>
-            <SectionHeading title="Checklist" meta={`${progress.done} of ${progress.total} complete`} action={<ActionButton onClick={() => updateChecklist([...trip.checklist, createChecklistGroup()])}><Plus size={14} /> Add Group</ActionButton>} />
+            <SectionHeading title={t('life.trips.checklist')} meta={`${progress.done} of ${progress.total} complete`} action={<ActionButton onClick={() => updateChecklist([...trip.checklist, createChecklistGroup()])}><Plus size={14} /> {t('life.trips.detail.addGroup')}</ActionButton>} />
             <Card style={{ padding: '18px 22px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <p style={tx(12, 400, muted)}>Overall progress</p>
+                <p style={tx(12, 400, muted)}>{t('life.trips.detail.overallProgress')}</p>
                 <p style={tx(12, 600)}>{percent}%</p>
               </div>
               <div style={{ height: 6, borderRadius: 999, overflow: 'hidden', background: 'rgba(58,55,51,0.08)' }}><div style={{ width: `${percent}%`, height: '100%', background: percent === 100 ? '#6EAB7A' : '#3A3733' }} /></div>
@@ -644,23 +648,23 @@ const TripDetailPage = () => {
                     <input value={group.emoji} onChange={(e) => patchG({ emoji: e.target.value })} style={inputStyle} />
                     <input value={group.label} onChange={(e) => patchG({ label: e.target.value })} style={inputStyle} />
                     <span style={{ ...tx(10, 500, groupDone === group.items.length ? '#3D7A4E' : muted), background: groupDone === group.items.length ? 'rgba(110,171,122,0.12)' : 'rgba(58,55,51,0.06)', borderRadius: 999, padding: '4px 8px' }}>{groupDone}/{group.items.length}</span>
-                    <ActionButton danger onClick={() => updateChecklist(removeFrom(trip.checklist, group.id))}><Trash2 size={14} /> Remove</ActionButton>
+                    <ActionButton danger onClick={() => updateChecklist(removeFrom(trip.checklist, group.id))}><Trash2 size={14} /> {t('life.trips.detail.remove')}</ActionButton>
                   </div>
                   {group.items.map((item) => (
                     <div key={item.id} style={{ display: 'grid', gridTemplateColumns: '24px 1fr auto', gap: 12, alignItems: 'center' }}>
                       <input type="checkbox" checked={item.done} onChange={(e) => updateChecklist(patchGroupItem(trip.checklist, group.id, item.id, { done: e.target.checked }))} />
                       <input value={item.label} onChange={(e) => updateChecklist(patchGroupItem(trip.checklist, group.id, item.id, { label: e.target.value }))} style={inputStyle} placeholder="Checklist item" />
-                      <ActionButton danger onClick={() => patchG({ items: group.items.filter((it) => it.id !== item.id) })}><Trash2 size={14} /> Remove</ActionButton>
+                      <ActionButton danger onClick={() => patchG({ items: group.items.filter((it) => it.id !== item.id) })}><Trash2 size={14} /> {t('life.trips.detail.remove')}</ActionButton>
                     </div>
                   ))}
-                  <div><ActionButton onClick={() => patchG({ items: [...group.items, createChecklistItem()] })}><Plus size={14} /> Add Item</ActionButton></div>
+                  <div><ActionButton onClick={() => patchG({ items: [...group.items, createChecklistItem()] })}><Plus size={14} /> {t('life.trips.detail.addItem')}</ActionButton></div>
                 </Card>
               )
             })}
           </section>
 
           <section ref={(node) => { sectionRefs.current.notes = node }} data-section="notes" style={{ display: 'grid', gap: 14 }}>
-            <SectionHeading title="Notes" meta="Trip memo" />
+            <SectionHeading title={t('life.trips.detail.notes')} meta={t('life.trips.detail.tripMemo')} />
             <Card style={{ padding: '22px 24px' }}>
               <textarea value={trip.notes} onChange={(event) => patchTrip({ notes: event.target.value })} style={{ ...textareaStyle, minHeight: 220 }} placeholder="Trip notes in plain text or markdown" />
             </Card>

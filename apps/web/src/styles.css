@@ -1108,7 +1108,7 @@ label input[type='checkbox'] {
 
 .app-shell__status {
   display: flex;
-  gap: 8px;
+  gap: 14px;
   align-items: center;
   flex-wrap: nowrap;
   white-space: nowrap;
@@ -1117,7 +1117,7 @@ label input[type='checkbox'] {
   animation: app-shell-status-enter var(--motion-duration-slow) var(--ease-emphasized) 110ms both;
   position: absolute;
   top: 0;
-  right: 0;
+  right: 24px;
   width: var(--header-action-guard);
   height: 100%;
   padding-top: 8px;
@@ -1126,6 +1126,21 @@ label input[type='checkbox'] {
   align-self: auto;
   z-index: 3;
   pointer-events: auto;
+}
+
+.app-shell__status-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.app-shell__status-group--toggle {
+  margin-right: 2px;
+}
+
+.app-shell__status-group--actions {
+  gap: 10px;
 }
 
 .app-shell__edit-layout {
@@ -1138,55 +1153,56 @@ label input[type='checkbox'] {
 }
 
 .app-shell__manage-widgets {
-  background: transparent;
-  color: var(--text-secondary);
-  border-color: transparent;
-  box-shadow: none;
+  background: rgba(245, 243, 240, 0.88);
+  color: rgba(58, 55, 51, 0.62);
+  border-color: rgba(58, 55, 51, 0.08);
 }
 
 .app-shell__manage-widgets:hover {
-  background: color-mix(in srgb, var(--bg-muted) 60%, transparent);
-  color: var(--text-primary);
-  border-color: color-mix(in srgb, var(--border) 50%, transparent);
-  box-shadow: none;
+  background: #ffffff;
+  color: #3A3733;
+  border-color: rgba(58, 55, 51, 0.08);
 }
 
 .app-shell__manage-widgets.is-active {
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
-  color: var(--text-primary);
-  border-color: color-mix(in srgb, var(--accent) 20%, var(--border));
-  box-shadow: none;
+  background: #ffffff;
+  color: #3A3733;
+  border-color: rgba(58, 55, 51, 0.08);
+  box-shadow: 0 1px 2px rgba(58, 55, 51, 0.08), 0 6px 14px rgba(58, 55, 51, 0.08);
 }
 
 .app-shell__top-action {
-  height: 32px;
-  padding: 0 10px;
-  border-radius: 8px;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--text-secondary);
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(58, 55, 51, 0.08);
+  background: rgba(245, 243, 240, 0.88);
+  color: rgba(58, 55, 51, 0.62);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   font-size: 0.82rem;
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1;
   text-decoration: none;
-  box-shadow: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 8px 18px rgba(58, 55, 51, 0.06);
   transition: background var(--motion-duration-fast) var(--ease-standard),
     color var(--motion-duration-fast) var(--ease-standard),
-    border-color var(--motion-duration-fast) var(--ease-standard);
+    border-color var(--motion-duration-fast) var(--ease-standard),
+    box-shadow var(--motion-duration-fast) var(--ease-standard);
+  backdrop-filter: blur(10px);
 }
 
 .app-shell__top-action:hover {
-  background: color-mix(in srgb, var(--bg-muted) 60%, transparent);
-  color: var(--text-primary);
-  border-color: color-mix(in srgb, var(--border) 50%, transparent);
+  background: #ffffff;
+  color: #3A3733;
+  border-color: rgba(58, 55, 51, 0.08);
+  box-shadow: 0 1px 2px rgba(58, 55, 51, 0.08), 0 6px 14px rgba(58, 55, 51, 0.08);
 }
 
 .app-shell__top-action:active {
-  background: color-mix(in srgb, var(--bg-muted) 80%, transparent);
-  transform: scale(0.98);
+  background: #ffffff;
+  transform: none;
 }
 
 .app-shell__top-action:focus-visible {
@@ -1405,10 +1421,10 @@ html[data-motion='reduce'] .theme-switch__circle-container {
 }
 
 .app-shell__edit-layout.is-active {
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
-  border-color: color-mix(in srgb, var(--accent) 20%, var(--border));
-  color: var(--text-primary);
-  box-shadow: none;
+  background: #ffffff;
+  border-color: rgba(58, 55, 51, 0.08);
+  color: #3A3733;
+  box-shadow: 0 1px 2px rgba(58, 55, 51, 0.08), 0 6px 14px rgba(58, 55, 51, 0.08);
 }
 
 .app-shell__main {
@@ -2777,27 +2793,17 @@ html[data-motion='reduce'] .drawer--visible .drawer__panel {
 
 .focus-card-lite__primary-raw {
   border: 1px solid rgba(40, 34, 29, 0.12);
-  border-radius: 13px;
+  width: 44px;
   height: 44px;
-  min-width: 0;
-  flex: 1;
-  padding: 0 15px;
+  flex: 0 0 auto;
+  padding: 0;
   background: linear-gradient(180deg, #3b342d 0%, #2e2823 100%);
   color: #f4eee6;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
   cursor: pointer;
-  font-size: 13px;
-  line-height: 1;
-  font-weight: 600;
-}
-
-.focus-card-lite__primary-raw span {
-  font-size: 14px;
-  line-height: 1;
-  letter-spacing: 0.005em;
+  border-radius: 999px;
 }
 
 .focus-card-lite__primary-raw svg {
@@ -3205,19 +3211,13 @@ html[data-motion='reduce'] .focus-card-lite__status {
 }
 
 .focus-card-lite__primary-raw {
+  width: 40px;
   height: 40px;
-  border-radius: 12px;
   font-family: var(--font-sans);
   background: #f5f3f0;
-  color: #4f4337;
+  color: #3a3733;
   border-color: rgba(84, 67, 49, 0.2);
-  min-width: 0;
-}
-
-.focus-card-lite__primary-raw span {
-  font-size: var(--dash-type-body);
-  font-weight: 650;
-  letter-spacing: 0.01em;
+  border-radius: 999px;
 }
 
 .focus-card-lite__reset-raw {
@@ -8653,6 +8653,10 @@ html[data-motion='reduce'] .dialog--visible .dialog__panel {
     flex-wrap: wrap;
   }
 
+  .app-shell__status-group {
+    flex-wrap: wrap;
+  }
+
   .world-clock-strip__suggestions {
     position: static;
     margin-top: 8px;
@@ -10579,7 +10583,8 @@ textarea:focus-visible,
   border-radius: 22px;
   border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
   background: color-mix(in srgb, var(--surface) 94%, var(--bg-muted) 6%);
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .focus-shell__route-layer {
