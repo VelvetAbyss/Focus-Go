@@ -44,6 +44,8 @@ import { DateRangePicker } from '../../../shared/ui/DateRangePicker'
 import { DateTimePicker } from '../../../shared/ui/DateTimePicker'
 import { useAddInputComposer } from '../../../shared/hooks/useAddInputComposer'
 import { tasksRepo } from '../../../data/repositories/tasksRepo'
+import { peopleRepo } from '../../../data/repositories/peopleRepo'
+import type { LifePerson } from '../../../data/models/types'
 import { emitTasksChanged, subscribeTasksChanged } from '../../tasks/taskSync'
 import { useSyncDataRefresh } from '../../../data/sync/service'
 import type { TaskItem } from '../../tasks/tasks.types'
@@ -433,6 +435,7 @@ const CalendarPage = () => {
   const [taskColorsById, setTaskColorsById] = useState<Record<string, string>>(readStoredTaskColors)
   const [syncStateBySubscription, setSyncStateBySubscription] = useState<Record<string, SubscriptionSyncState>>({})
   const [allTasks, setAllTasks] = useState<TaskItem[]>([])
+  const [allPeople, setAllPeople] = useState<LifePerson[]>([])
   const [creatingSelectedDayTask, setCreatingSelectedDayTask] = useState(false)
   const [deletingTaskIds, setDeletingTaskIds] = useState<Record<string, boolean>>({})
   const [savingTaskCardIds, setSavingTaskCardIds] = useState<Record<string, boolean>>({})
@@ -547,12 +550,39 @@ const CalendarPage = () => {
     })
   }, [loadTasks])
 
+  useEffect(() => {
+    void peopleRepo.list().then(setAllPeople)
+  }, [])
+
+  const birthdayEvents = useMemo<CalendarEvent[]>(() => {
+    const events: CalendarEvent[] = []
+    allPeople.forEach((person) => {
+      if (!person.birthday) return
+      const parts = person.birthday.split('-')
+      if (parts.length < 3) return
+      const birthdayMMDD = `${parts[1]}-${parts[2]}`
+      monthGridDateKeys.forEach((dateKey) => {
+        if (dateKey.slice(5) !== birthdayMMDD) return
+        events.push({
+          id: `birthday-${person.id}-${dateKey}`,
+          subscriptionId: 'system-birthdays',
+          title: language === 'zh' ? `${person.name} 生日` : `${person.name}'s Birthday`,
+          dateKey,
+          kind: 'event',
+        })
+      })
+    })
+    return events
+  }, [allPeople, monthGridDateKeys, language])
+
   const monthEvents = useMemo(() => {
     const seeded = buildSampleMonthEvents(anchorDate)
     const remoteEvents = filterEventsInMonth(Object.values(icsEventsBySubscription).flat(), anchorDate)
 
-    return [...seeded, ...remoteEvents].filter((event) => visibleSubscriptionIds.has(event.subscriptionId))
-  }, [anchorDate, icsEventsBySubscription, visibleSubscriptionIds])
+    return [...seeded, ...remoteEvents, ...birthdayEvents].filter(
+      (event) => event.subscriptionId === 'system-birthdays' || visibleSubscriptionIds.has(event.subscriptionId)
+    )
+  }, [anchorDate, icsEventsBySubscription, visibleSubscriptionIds, birthdayEvents])
 
   const eventsByDate = useMemo(() => {
     const grouped = new Map<string, CalendarEvent[]>()
@@ -581,10 +611,11 @@ const CalendarPage = () => {
   )
 
   const selectedDayEvents = useMemo(() => sortedEventsByDate.get(selectedDateKey) ?? [], [sortedEventsByDate, selectedDateKey])
-  const subscriptionColorById = useMemo(
-    () => new Map(subscriptions.map((subscription) => [subscription.id, subscription.color])),
-    [subscriptions]
-  )
+  const subscriptionColorById = useMemo(() => {
+    const map = new Map(subscriptions.map((subscription) => [subscription.id, subscription.color]))
+    map.set('system-birthdays', '#fb7185')
+    return map
+  }, [subscriptions])
 
   const tasksByDate = useMemo(() => {
     const grouped = new Map<string, TaskItem[]>()
@@ -907,7 +938,7 @@ const CalendarPage = () => {
     <section
       className={`calendar-v2${leftSidebarOpen ? ' is-left-open' : ''}${rightSidebarOpen ? ' is-right-open' : ''}${monthMotionDirection ? ` calendar-v2--month-${monthMotionDirection}` : ''}`}
       aria-label={t('calendar.page')}
-      data-guide-anchor="calendar"
+     
     >
       <aside className="calendar-v2__left calendar-v2__drawer" aria-label={t('calendar.sidebar')}>
         <div className="calendar-v2__drawer-header">

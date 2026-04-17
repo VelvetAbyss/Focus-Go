@@ -91,7 +91,7 @@ export const DailyReviewCardSurface = ({ model, open, activeRange, onOpen, onClo
         </div>
       </div>
 
-      <Dialog open={open} onClose={onClose} panelClassName="life-modal__panel" contentClassName="life-modal__content">
+      {open ? <Dialog open={open} onClose={onClose} panelClassName="life-modal__panel" contentClassName="life-modal__content">
         <div style={modalLayoutStyle}>
           <div style={modalHeaderStyle}>
             <div>
@@ -210,7 +210,7 @@ export const DailyReviewCardSurface = ({ model, open, activeRange, onOpen, onClo
             </div>
           </div>
         </div>
-      </Dialog>
+      </Dialog> : null}
     </>
   )
 }

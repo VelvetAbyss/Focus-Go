@@ -14,30 +14,11 @@ import { projectsRepo } from '../../../data/repositories/projectsRepo'
 import type { NoteItem, ProjectHealth, ProjectItem, ProjectPerson, TaskItem } from '../../../data/models/types'
 import { ROUTES } from '../../../app/routes/routes'
 import { PersonFormDialog, ProjectFormDialog, ProjectTaskDialog } from '../components/ProjectDialogs'
+import { useProjectsI18n } from '../projectsI18n'
 import '../projects.css'
 
 type ProjectTab = 'overview' | 'tasks' | 'timeline' | 'people' | 'notes'
 type TimelineMode = 'week' | 'month' | 'year'
-
-const TABS: Array<{ key: ProjectTab; label: string; Icon: React.FC<{ size?: number; strokeWidth?: number }> }> = [
-  { key: 'overview', label: 'Overview', Icon: Zap },
-  { key: 'tasks', label: 'Tasks', Icon: ClipboardList },
-  { key: 'timeline', label: 'Timeline', Icon: CalendarDays },
-  { key: 'people', label: 'People', Icon: Users },
-  { key: 'notes', label: 'Notes', Icon: FileText },
-]
-
-const HEALTH_CONFIG: Record<ProjectHealth, { label: string; cls: string }> = {
-  'on-track': { label: 'On Track', cls: 'pd-badge pd-badge--green' },
-  'at-risk': { label: 'At Risk', cls: 'pd-badge pd-badge--amber' },
-  blocked: { label: 'Blocked', cls: 'pd-badge pd-badge--red' },
-}
-
-const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
-  todo: { label: 'Todo', cls: 'pd-task-chip pd-task-chip--todo' },
-  doing: { label: 'In Progress', cls: 'pd-task-chip pd-task-chip--doing' },
-  done: { label: 'Done', cls: 'pd-task-chip pd-task-chip--done' },
-}
 
 const ROLE_COLORS: Record<string, string> = {
   owner: '#D4882B',
@@ -96,13 +77,13 @@ function useCountUp(target: number, delay = 0): number {
 }
 
 // ── Progress ring ────────────────────────────────────────────
-function ProgressRing({ progress, size = 96 }: { progress: number; size?: number }) {
+function ProgressRing({ progress, size = 96, label }: { progress: number; size?: number; label: string }) {
   const strokeWidth = 6
   const r = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * r
   const offset = circumference * (1 - Math.max(0, Math.min(100, progress)) / 100)
   return (
-    <svg width={size} height={size} className="pd-ring" aria-label={`${progress}% complete`}>
+    <svg width={size} height={size} className="pd-ring" aria-label={label}>
       <circle cx={size / 2} cy={size / 2} r={r} className="pd-ring__track" strokeWidth={strokeWidth} />
       <motion.circle
         cx={size / 2}
@@ -172,6 +153,7 @@ const ProjectDetailPage = () => {
   const { projectId } = useParams()
   const [params, setParams] = useSearchParams()
   const tab = (params.get('tab') as ProjectTab | null) ?? 'overview'
+  const i18n = useProjectsI18n()
 
   const [project, setProject] = useState<ProjectItem | null>(null)
   const [people, setPeople] = useState<ProjectPerson[]>([])
@@ -188,6 +170,26 @@ const ProjectDetailPage = () => {
   const [taskOwnerFilter, setTaskOwnerFilter] = useState<string>('all')
   const [timelineMode, setTimelineMode] = useState<TimelineMode>('month')
   const [notesQuery, setNotesQuery] = useState('')
+
+  const TABS: Array<{ key: ProjectTab; label: string; Icon: React.FC<{ size?: number; strokeWidth?: number }> }> = useMemo(() => [
+    { key: 'overview', label: i18n.tabs.overview, Icon: Zap },
+    { key: 'tasks', label: i18n.tabs.tasks, Icon: ClipboardList },
+    { key: 'timeline', label: i18n.tabs.timeline, Icon: CalendarDays },
+    { key: 'people', label: i18n.tabs.people, Icon: Users },
+    { key: 'notes', label: i18n.tabs.notes, Icon: FileText },
+  ], [i18n])
+
+  const HEALTH_CONFIG: Record<ProjectHealth, { label: string; cls: string }> = useMemo(() => ({
+    'on-track': { label: i18n.health.onTrack, cls: 'pd-badge pd-badge--green' },
+    'at-risk': { label: i18n.health.atRisk, cls: 'pd-badge pd-badge--amber' },
+    blocked: { label: i18n.health.blocked, cls: 'pd-badge pd-badge--red' },
+  }), [i18n])
+
+  const STATUS_CONFIG: Record<string, { label: string; cls: string }> = useMemo(() => ({
+    todo: { label: i18n.dialog.taskStatusTodo, cls: 'pd-task-chip pd-task-chip--todo' },
+    doing: { label: i18n.detail.inProgress, cls: 'pd-task-chip pd-task-chip--doing' },
+    done: { label: i18n.dialog.taskStatusDone, cls: 'pd-task-chip pd-task-chip--done' },
+  }), [i18n])
 
   const load = async () => {
     if (!projectId) return
@@ -228,22 +230,24 @@ const ProjectDetailPage = () => {
     const items = [
       ...tasks.map((t) => ({
         id: `task:${t.id}`,
-        title: t.status === 'done' ? `${t.title} completed` : `Task updated: ${t.title}`,
+        title: t.status === 'done'
+          ? i18n.t(i18n.detail.activityTaskCompleted, { title: t.title })
+          : i18n.t(i18n.detail.activityTaskUpdated, { title: t.title }),
         createdAt: t.updatedAt,
       })),
       ...people.map((p) => ({
         id: `person:${p.id}`,
-        title: `Team member: ${p.name}`,
+        title: i18n.t(i18n.detail.activityTeamMember, { name: p.name }),
         createdAt: p.updatedAt,
       })),
       ...notes.map(({ note }) => ({
         id: `note:${note.id}`,
-        title: `Note linked: ${note.title}`,
+        title: i18n.t(i18n.detail.activityNoteLinked, { title: note.title }),
         createdAt: note.updatedAt,
       })),
     ]
     return items.sort((a, b) => b.createdAt - a.createdAt).slice(0, 8)
-  }, [notes, people, tasks])
+  }, [notes, people, tasks, i18n])
 
   const visibleNotes = useMemo(
     () => notes.filter(({ note }) => note.title.toLowerCase().includes(notesQuery.toLowerCase())),
@@ -313,7 +317,7 @@ const ProjectDetailPage = () => {
       <section className="pd-page">
         <div className="pd-loading">
           <motion.div className="pd-loading__pulse" animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 1.6, repeat: Infinity }} />
-          <p>Loading project…</p>
+          <p>{i18n.detail.loading}</p>
         </div>
       </section>
     )
@@ -322,7 +326,7 @@ const ProjectDetailPage = () => {
   if (!project) {
     return (
       <section className="pd-page">
-        <div className="project-empty-state"><h2>Project not found</h2></div>
+        <div className="project-empty-state"><h2>{i18n.detail.notFound}</h2></div>
       </section>
     )
   }
@@ -342,25 +346,25 @@ const ProjectDetailPage = () => {
         <div className="pd-hero__topbar">
           <Link to={ROUTES.PROJECTS} className="pd-back">
             <ArrowLeft size={15} strokeWidth={2.2} />
-            <span>Projects</span>
+            <span>{i18n.detail.back}</span>
           </Link>
           <div className="pd-hero__actions">
-            <button type="button" className="pd-icon-btn" title="Edit project" onClick={() => setProjectDialogOpen(true)}>
+            <button type="button" className="pd-icon-btn" title={i18n.detail.editTitle} onClick={() => setProjectDialogOpen(true)}>
               <Pencil size={15} strokeWidth={2} />
-              <span>Edit</span>
+              <span>{i18n.detail.edit}</span>
             </button>
             <button
               type="button"
               className="pd-icon-btn pd-icon-btn--danger"
-              title="Archive project"
+              title={i18n.detail.archiveTitle}
               onClick={() => void projectsRepo.archive(project.id).then(load)}
             >
               <Trash2 size={15} strokeWidth={2} />
-              <span>Archive</span>
+              <span>{i18n.detail.archive}</span>
             </button>
             <button type="button" className="pd-btn pd-btn--primary" onClick={() => setTaskDialogOpen(true)}>
               <Plus size={15} strokeWidth={2.2} />
-              Add Task
+              {i18n.detail.addTask}
             </button>
           </div>
         </div>
@@ -384,13 +388,13 @@ const ProjectDetailPage = () => {
             </motion.div>
 
             <motion.p variants={slideUp} className="pd-hero__desc">
-              {project.goal || project.description || 'No project description yet.'}
+              {project.goal || project.description || i18n.detail.noDescription}
             </motion.p>
 
             <motion.div variants={slideUp} className="pd-hero__meta">
               <span className="pd-meta-chip">
                 <User size={12} />
-                {project.ownerId ? (ownerMap.get(project.ownerId) ?? 'Unassigned') : 'Unassigned'}
+                {project.ownerId ? (ownerMap.get(project.ownerId) ?? i18n.detail.unassigned) : i18n.detail.unassigned}
               </span>
               {(project.startDate || project.dueDate) ? (
                 <span className="pd-meta-chip">
@@ -406,24 +410,28 @@ const ProjectDetailPage = () => {
 
           {/* Progress ring + quick stats */}
           <motion.div variants={slideUp} className="pd-hero__ring-section">
-            <ProgressRing progress={project.progress} size={100} />
+            <ProgressRing
+              progress={project.progress}
+              size={100}
+              label={i18n.t(i18n.detail.progressComplete, { progress: project.progress })}
+            />
             <div className="pd-hero__quickstats">
               <div className="pd-qstat">
                 <strong>{tasks.length}</strong>
-                <span>Total</span>
+                <span>{i18n.detail.statTotal}</span>
               </div>
               <div className="pd-qstat pd-qstat--green">
                 <strong>{completedCount}</strong>
-                <span>Done</span>
+                <span>{i18n.detail.statDone}</span>
               </div>
               <div className="pd-qstat pd-qstat--blue">
                 <strong>{activeCount}</strong>
-                <span>Active</span>
+                <span>{i18n.detail.statActive}</span>
               </div>
               {overdueCount > 0 ? (
                 <div className="pd-qstat pd-qstat--red">
                   <strong>{overdueCount}</strong>
-                  <span>Overdue</span>
+                  <span>{i18n.detail.statOverdue}</span>
                 </div>
               ) : null}
             </div>
@@ -431,7 +439,7 @@ const ProjectDetailPage = () => {
         </motion.div>
 
         {/* Tabs */}
-        <div className="pd-tabs" role="tablist" aria-label="Project sections">
+        <div className="pd-tabs" role="tablist" aria-label={i18n.detail.projectSections}>
           {TABS.map(({ key, label, Icon }) => (
             <button
               key={key}
@@ -463,11 +471,11 @@ const ProjectDetailPage = () => {
             <motion.div key="overview" variants={tabContent} initial="hidden" animate="show" exit="exit">
               {/* Stats row */}
               <motion.div className="pd-stats-row" variants={stagger} initial="hidden" animate="show">
-                <StatCard label="TOTAL TASKS" value={tasks.length} delay={0} />
-                <StatCard label="COMPLETED" value={completedCount} delay={60} color="#0D7A54" />
-                <StatCard label="IN PROGRESS" value={activeCount} delay={120} color="#1E5BFF" />
+                <StatCard label={i18n.detail.statTotalTasks} value={tasks.length} delay={0} />
+                <StatCard label={i18n.detail.statCompleted} value={completedCount} delay={60} color="#0D7A54" />
+                <StatCard label={i18n.detail.statInProgress} value={activeCount} delay={120} color="#1E5BFF" />
                 {overdueCount > 0 ? (
-                  <StatCard label="OVERDUE" value={overdueCount} delay={180} color="#B83333" />
+                  <StatCard label={i18n.detail.statOverdueLabel} value={overdueCount} delay={180} color="#B83333" />
                 ) : null}
               </motion.div>
 
@@ -481,28 +489,28 @@ const ProjectDetailPage = () => {
                 <motion.article variants={slideUp} className="pd-panel">
                   <div className="pd-panel__header">
                     <Zap size={16} className="pd-panel__icon pd-panel__icon--amber" />
-                    <h3>Next Action</h3>
+                    <h3>{i18n.detail.nextAction}</h3>
                   </div>
                   <p className="pd-panel__body">
-                    {project.nextAction || 'Define the next meaningful step to move this project forward.'}
+                    {project.nextAction || i18n.detail.nextActionDefault}
                   </p>
                   <button type="button" className="pd-panel__cta" onClick={() => setProjectDialogOpen(true)}>
-                    Update →
+                    {i18n.detail.update}
                   </button>
                 </motion.article>
 
                 <motion.article variants={slideUp} className="pd-panel">
                   <div className="pd-panel__header">
                     <ShieldAlert size={16} className="pd-panel__icon pd-panel__icon--red" />
-                    <h3>Risks & Blockers</h3>
+                    <h3>{i18n.detail.risksBlockers}</h3>
                   </div>
                   <p className="pd-panel__body">
                     {project.riskSummary || (overdueCount > 0
-                      ? `${overdueCount} task(s) are overdue and need attention.`
-                      : 'No critical risks recorded. Looking good!')}
+                      ? i18n.t(i18n.detail.overdueWarning, { count: overdueCount })
+                      : i18n.detail.noRisks)}
                   </p>
                   <button type="button" className="pd-panel__cta" onClick={() => setProjectDialogOpen(true)}>
-                    Update →
+                    {i18n.detail.update}
                   </button>
                 </motion.article>
               </motion.div>
@@ -514,18 +522,18 @@ const ProjectDetailPage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.2 }}
               >
-                <h3 className="pd-activity__heading">Recent Activity</h3>
+                <h3 className="pd-activity__heading">{i18n.detail.recentActivity}</h3>
                 {activity.length === 0 ? (
-                  <p className="pd-muted">No activity recorded yet.</p>
+                  <p className="pd-muted">{i18n.detail.noActivity}</p>
                 ) : (
                   <div className="pd-activity__list">
-                    {activity.map((item, i) => (
+                    {activity.map((item, idx) => (
                       <motion.div
                         key={item.id}
                         className="pd-activity__item"
                         initial={{ opacity: 0, x: -8 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.25 + i * 0.04, duration: 0.3 }}
+                        transition={{ delay: 0.25 + idx * 0.04, duration: 0.3 }}
                       >
                         <span
                           className="pd-activity__icon"
@@ -549,24 +557,24 @@ const ProjectDetailPage = () => {
           {tab === 'tasks' ? (
             <motion.div key="tasks" variants={tabContent} initial="hidden" animate="show" exit="exit">
               <div className="pd-section-header">
-                <h2 className="pd-section-title">Tasks <span className="pd-count">{visibleTasks.length}</span></h2>
+                <h2 className="pd-section-title">{i18n.detail.addTask} <span className="pd-count">{visibleTasks.length}</span></h2>
                 <div className="pd-filters">
                   <select
                     className="pd-select"
                     value={taskStatusFilter}
                     onChange={(e) => setTaskStatusFilter(e.target.value as typeof taskStatusFilter)}
                   >
-                    <option value="all">All Status</option>
-                    <option value="todo">Todo</option>
-                    <option value="doing">In Progress</option>
-                    <option value="done">Done</option>
+                    <option value="all">{i18n.detail.allStatus}</option>
+                    <option value="todo">{i18n.dialog.taskStatusTodo}</option>
+                    <option value="doing">{i18n.detail.inProgress}</option>
+                    <option value="done">{i18n.dialog.taskStatusDone}</option>
                   </select>
                   <select
                     className="pd-select"
                     value={taskOwnerFilter}
                     onChange={(e) => setTaskOwnerFilter(e.target.value)}
                   >
-                    <option value="all">All Owners</option>
+                    <option value="all">{i18n.detail.allOwners}</option>
                     {people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                   <button
@@ -577,7 +585,7 @@ const ProjectDetailPage = () => {
                       setTaskDialogOpen(true)
                     }}
                   >
-                    <Plus size={14} /> Add Task
+                    <Plus size={14} /> {i18n.detail.addTask}
                   </button>
                 </div>
               </div>
@@ -615,7 +623,7 @@ const ProjectDetailPage = () => {
                           <div className="pd-task__meta">
                             <span>
                               <User size={11} />
-                              {task.ownerId ? (ownerMap.get(task.ownerId) ?? 'Unassigned') : 'Unassigned'}
+                              {task.ownerId ? (ownerMap.get(task.ownerId) ?? i18n.detail.unassigned) : i18n.detail.unassigned}
                             </span>
                             {task.dueDate ? (
                               <span className={isOverdue ? 'pd-overdue-text' : ''}>
@@ -631,7 +639,7 @@ const ProjectDetailPage = () => {
                   )
                 })}
                 {visibleTasks.length === 0 ? (
-                  <div className="pd-empty-inline">No tasks match the current filters.</div>
+                  <div className="pd-empty-inline">{i18n.detail.noTasksFiltered}</div>
                 ) : null}
               </motion.div>
             </motion.div>
@@ -641,23 +649,23 @@ const ProjectDetailPage = () => {
           {tab === 'timeline' ? (
             <motion.div key="timeline" variants={tabContent} initial="hidden" animate="show" exit="exit">
               <div className="pd-section-header">
-                <h2 className="pd-section-title">Timeline</h2>
+                <h2 className="pd-section-title">{i18n.detail.timeline}</h2>
                 <div className="pd-toggle">
                   <button
                     type="button"
                     className={`pd-toggle__btn${timelineMode === 'week' ? ' pd-toggle__btn--active' : ''}`}
                     onClick={() => setTimelineMode('week')}
-                  >Week</button>
+                  >{i18n.detail.week}</button>
                   <button
                     type="button"
                     className={`pd-toggle__btn${timelineMode === 'month' ? ' pd-toggle__btn--active' : ''}`}
                     onClick={() => setTimelineMode('month')}
-                  >Month</button>
+                  >{i18n.detail.month}</button>
                   <button
                     type="button"
                     className={`pd-toggle__btn${timelineMode === 'year' ? ' pd-toggle__btn--active' : ''}`}
                     onClick={() => setTimelineMode('year')}
-                  >Year</button>
+                  >{i18n.detail.year}</button>
                 </div>
               </div>
 
@@ -715,7 +723,7 @@ const ProjectDetailPage = () => {
                   )
                 })}
                 {tasks.length === 0 ? (
-                  <div className="pd-empty-inline">No tasks scheduled yet.</div>
+                  <div className="pd-empty-inline">{i18n.detail.noTasksScheduled}</div>
                 ) : null}
               </div>
             </motion.div>
@@ -725,13 +733,13 @@ const ProjectDetailPage = () => {
           {tab === 'people' ? (
             <motion.div key="people" variants={tabContent} initial="hidden" animate="show" exit="exit">
               <div className="pd-section-header">
-                <h2 className="pd-section-title">Team <span className="pd-count">{people.length}</span></h2>
+                <h2 className="pd-section-title">{i18n.detail.team} <span className="pd-count">{people.length}</span></h2>
                 <button
                   type="button"
                   className="pd-btn pd-btn--primary"
                   onClick={() => { setEditingPerson(null); setPersonDialogOpen(true) }}
                 >
-                  <Plus size={14} /> Add Person
+                  <Plus size={14} /> {i18n.detail.addPerson}
                 </button>
               </div>
 
@@ -760,7 +768,7 @@ const ProjectDetailPage = () => {
                       </div>
                       <div className="pd-person__tasks">
                         <strong>{linkedCount}</strong>
-                        <span>tasks</span>
+                        <span>{i18n.detail.tasks}</span>
                       </div>
                       <div className="pd-person__contact">
                         {person.email ? (
@@ -770,14 +778,14 @@ const ProjectDetailPage = () => {
                           <span><Phone size={12} />{person.phone}</span>
                         ) : null}
                         {!person.email && !person.phone ? (
-                          <span className="pd-muted">No contact info</span>
+                          <span className="pd-muted">{i18n.detail.noContactInfo}</span>
                         ) : null}
                       </div>
                     </motion.article>
                   )
                 })}
                 {people.length === 0 ? (
-                  <div className="pd-empty-inline">No team members yet. Add people to assign tasks.</div>
+                  <div className="pd-empty-inline">{i18n.detail.noTeamMembers}</div>
                 ) : null}
               </motion.div>
             </motion.div>
@@ -787,14 +795,14 @@ const ProjectDetailPage = () => {
           {tab === 'notes' ? (
             <motion.div key="notes" variants={tabContent} initial="hidden" animate="show" exit="exit">
               <div className="pd-section-header">
-                <h2 className="pd-section-title">Notes <span className="pd-count">{visibleNotes.length}</span></h2>
+                <h2 className="pd-section-title">{i18n.detail.notes} <span className="pd-count">{visibleNotes.length}</span></h2>
                 <div className="pd-search">
                   <Search size={14} strokeWidth={2} />
                   <Input
                     value={notesQuery}
                     onChange={(e) => setNotesQuery(e.target.value)}
                     className="pd-search__input"
-                    placeholder="Search notes…"
+                    placeholder={i18n.detail.searchNotes}
                   />
                 </div>
               </div>
@@ -809,21 +817,21 @@ const ProjectDetailPage = () => {
                     </div>
                     <div className="pd-note__actions">
                       <button type="button" className="pd-btn pd-btn--ghost" onClick={() => navigate(ROUTES.NOTE)}>
-                        Open
+                        {i18n.detail.open}
                       </button>
                       <button
                         type="button"
                         className="pd-btn pd-btn--danger-ghost"
                         onClick={() => void projectNoteLinksRepo.remove(project.id, note.id).then(load)}
                       >
-                        Unlink
+                        {i18n.detail.unlink}
                       </button>
                     </div>
                   </motion.article>
                 ))}
                 {visibleNotes.length === 0 ? (
                   <div className="pd-empty-inline">
-                    No linked notes yet. Tag a note with <code>project:{project.id}</code> to link it here.
+                    {i18n.t(i18n.detail.noLinkedNotes, { id: project.id })}
                   </div>
                 ) : null}
               </motion.div>

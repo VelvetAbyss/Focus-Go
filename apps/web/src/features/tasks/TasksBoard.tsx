@@ -27,7 +27,6 @@ import { useSyncDataRefresh } from '../../data/sync/service'
 import { readTaskTodayBucket, shouldClearTodayDoneTasks, writeTaskTodayBucket } from './taskTodayRefresh'
 import { TASK_STATUS_CONFIG } from './components/taskPresentation'
 import { useI18n } from '../../shared/i18n/useI18n'
-import { completeOnboarding, markFeatureSeen, resetOnboarding, setPendingCoachmark } from '../onboarding/onboarding.runtime'
 import { useAuthGate } from '../auth/AuthGateContext'
 import EmptyState from '../../shared/ui/EmptyState'
 
@@ -68,31 +67,26 @@ const sortByImportance = (a: TaskItem, b: TaskItem) => {
 const sortByTime = (a: TaskItem, b: TaskItem) => b.createdAt - a.createdAt
 
 const getNextStatus = (status: TaskStatus) => {
-  if (status === 'todo') return { next: 'doing' as const, label: '开始' }
-  if (status === 'doing') return { next: 'done' as const, label: '完成' }
-  return { next: 'todo' as const, label: '重新打开' }
+  if (status === 'todo') return { next: 'doing' as const }
+  if (status === 'doing') return { next: 'done' as const }
+  return { next: 'todo' as const }
 }
 
 type TasksBoardProps = {
   asCard?: boolean
   className?: string
   topView?: TopView
-  onboardingMode?: boolean
-  onOnboardingTaskCreated?: (task: TaskItem) => void
 }
 
 const TasksBoard = ({
   asCard = true,
   className,
   topView = 'board',
-  onboardingMode = false,
-  onOnboardingTaskCreated,
 }: TasksBoardProps) => {
   const { t } = useI18n()
   const { requireAuth } = useAuthGate()
   const [tasks, setTasks] = useState<TaskItem[]>([])
   const [activeTask, setActiveTask] = useState<TaskItem | null>(null)
-  const [onboardingDrawerOpen, setOnboardingDrawerOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<TaskItem | null>(null)
   const [sortMode, setSortMode] = useState<SortMode>(() => {
     if (typeof window === 'undefined') return 'importance'
@@ -165,14 +159,6 @@ const TasksBoard = ({
       if (statusActionSuccessTimerRef.current) window.clearTimeout(statusActionSuccessTimerRef.current)
     }
   }, [])
-
-  useEffect(() => {
-    if (!onboardingMode) {
-      setOnboardingDrawerOpen(false)
-      return
-    }
-    setOnboardingDrawerOpen(true)
-  }, [onboardingMode])
 
   const statusCounts = useMemo(() => {
     const counts: Record<TaskStatus, number> = { todo: 0, doing: 0, done: 0 }
@@ -300,29 +286,6 @@ const TasksBoard = ({
     emitTasksChanged('tasks-board:toggle-today')
   }, [tasks])
 
-  const handleOnboardingCreated = useCallback(
-    (task: TaskItem) => {
-      setTasks((prev) => [task, ...prev])
-      setOnboardingDrawerOpen(false)
-      markFeatureSeen('tasks')
-      completeOnboarding()
-      setPendingCoachmark('focus')
-      toast.push({
-        variant: 'success',
-        title: t('tasks.onboarding.focusReady'),
-        message: t('tasks.onboarding.focusHint'),
-      })
-      onOnboardingTaskCreated?.(task)
-    },
-    [onOnboardingTaskCreated, t, toast],
-  )
-
-  const exitOnboarding = useCallback(() => {
-    resetOnboarding()
-    setOnboardingDrawerOpen(false)
-    navigate(ROUTES.DASHBOARD)
-  }, [navigate])
-
   useEffect(() => {
     setSelectedTaskIds((prev) => {
       if (prev.size === 0) return prev
@@ -389,17 +352,7 @@ const TasksBoard = ({
 
   const isKanbanMode = asCard || boardMode === 'kanban'
   const showTasksEmptyState = filteredTasks.length === 0 && topView !== 'analytics' && isKanbanMode
-  const tasksEmptyState = onboardingMode ? (
-    <EmptyState
-      icon={<LayoutGrid className="size-6" />}
-      title={t('onboarding.empty.tasksTitle')}
-      description={t('onboarding.empty.tasksDescription')}
-      actionLabel={t('onboarding.empty.tasksAction')}
-      onAction={() => setOnboardingDrawerOpen(true)}
-      variant="onboarding"
-      className="mx-auto my-10 max-w-xl"
-    />
-  ) : (
+  const tasksEmptyState = (
     <EmptyState
       icon={<LayoutGrid className="size-6" />}
       title={topView === 'today' ? t('tasks.today.emptyTitle') : t('tasks.board.emptyTitle')}
@@ -444,10 +397,12 @@ const TasksBoard = ({
                     statusActions={
                       task.status === 'todo'
                         ? [
-                            { key: 'doing', label: '开始', onClick: async (nextTask) => handleStatusChange(nextTask.id, 'doing') },
-                            { key: 'done', label: '完成', onClick: async (nextTask) => handleStatusChange(nextTask.id, 'done') },
+                            { key: 'doing', label: t('tasks.status.start'), onClick: async (nextTask) => handleStatusChange(nextTask.id, 'doing') },
+                            { key: 'done', label: t('tasks.status.complete'), onClick: async (nextTask) => handleStatusChange(nextTask.id, 'done') },
                           ]
-                        : [{ key: getNextStatus(task.status).next, label: getNextStatus(task.status).label, onClick: async (nextTask) => handleStatusChange(nextTask.id, getNextStatus(nextTask.status).next) }]
+                        : task.status === 'doing'
+                          ? [{ key: 'done', label: t('tasks.status.complete'), onClick: async (nextTask) => handleStatusChange(nextTask.id, getNextStatus(nextTask.status).next) }]
+                          : [{ key: 'todo', label: t('tasks.status.reopen'), onClick: async (nextTask) => handleStatusChange(nextTask.id, getNextStatus(nextTask.status).next) }]
                     }
                     loadingActionKey={statusActionLoadingTaskId === task.id ? statusActionLoadingKey : null}
                     successActionKey={statusActionSuccessTaskId === task.id ? statusActionSuccessKey : null}
@@ -506,13 +461,7 @@ const TasksBoard = ({
 
               <div className="h-5 w-px bg-border" />
 
-              {onboardingMode ? (
-                <div className="rounded-full border border-[#3A3733]/10 bg-[#F5F3F0] px-3 py-1.5 text-xs text-[#3A3733]/72">
-                  {t('tasks.onboarding.description')}
-                </div>
-              ) : (
-                <>
-                  <Popover>
+              <Popover>
                     <PopoverTrigger asChild>
                       <button className="tasks-fg__filter-btn flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent">
                         <Tag className="size-3" />
@@ -562,12 +511,10 @@ const TasksBoard = ({
                   </div>
 
                   <span className="text-xs tabular-nums text-muted-foreground">{t('tasks.taskCount', { count: filteredTasks.length })}</span>
-                </>
-              )}
             </div>
 
             <div className="flex items-center gap-2">
-              {isKanbanMode && !asCard && !onboardingMode ? (
+              {isKanbanMode && !asCard ? (
                 bulkMode ? (
                   <div className="tasks-fg__bulk-bar flex items-center gap-1.5 rounded-md border border-[#3a3733]/10 bg-white px-2 py-1">
                     <button type="button" aria-label={t('tasks.selectAll')} className="tasks-fg__bulk-btn inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-[#3A3733]" onClick={toggleSelectAllVisible}>
@@ -626,7 +573,7 @@ const TasksBoard = ({
                 )
               ) : null}
 
-              {!asCard && !onboardingMode && topView === 'board' ? (
+              {!asCard && topView === 'board' ? (
                 <div className="flex items-center gap-0.5 rounded-md bg-muted p-0.5">
                   <button
                     className={cn(
@@ -655,11 +602,11 @@ const TasksBoard = ({
         </div>
       ) : null}
 
-      <div className="relative min-h-0 flex-1 overflow-visible pt-4" data-coachmark-anchor="tasks-entry">
+      <div className="relative min-h-0 flex-1 overflow-visible pt-4">
         {boardContent}
       </div>
 
-      {topView !== 'analytics' && isKanbanMode && !onboardingMode ? (
+      {topView !== 'analytics' && isKanbanMode ? (
         <TaskAddComposer onSubmit={(title) => { requireAuth(() => { void handleAddTask(title) }); return Promise.resolve(true) }} plain placeholder={topView === 'today' ? t('tasks.today.addPlaceholder') : undefined} />
       ) : null}
     </div>
@@ -680,20 +627,12 @@ const TasksBoard = ({
       )}
 
       <TaskDrawer
-        open={Boolean(activeTask) || onboardingDrawerOpen}
+        open={Boolean(activeTask)}
         task={activeTask}
-        mode={onboardingDrawerOpen ? 'onboarding' : 'normal'}
-        onClose={() => {
-          if (onboardingDrawerOpen) {
-            exitOnboarding()
-            return
-          }
-          setActiveTask(null)
-        }}
+        onClose={() => setActiveTask(null)}
         onUpdated={handleUpdateTask}
         onDeleted={(id) => setTasks((prev) => prev.filter((task) => task.id !== id))}
         onRequestDelete={setDeleteTarget}
-        onCreated={handleOnboardingCreated}
       />
 
       <Dialog open={Boolean(deleteTarget)} title={t('tasks.deleteTitle')} onClose={() => setDeleteTarget(null)}>

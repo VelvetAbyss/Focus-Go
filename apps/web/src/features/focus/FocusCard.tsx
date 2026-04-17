@@ -244,9 +244,9 @@ const FocusCard = () => {
                 className="focus-card-lite__primary-raw"
                 onPointerDown={(event) => springPress(event.currentTarget)}
                 onClick={() => void handlePrimaryAction()}
+                aria-label={primaryActionLabel}
               >
                 {timerState.running ? <Pause size={15} /> : <Play size={15} />}
-                <span>{primaryActionLabel}</span>
               </button>
               <button
                 className="focus-card-lite__reset-raw"

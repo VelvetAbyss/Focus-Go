@@ -8,6 +8,7 @@ import { db } from '../../../data/db'
 import { projectsRepo } from '../../../data/repositories/projectsRepo'
 import type { ProjectHealth, ProjectItem, ProjectPerson } from '../../../data/models/types'
 import { ProjectFormDialog } from '../components/ProjectDialogs'
+import { useProjectsI18n } from '../projectsI18n'
 import '../projects.css'
 
 const healthToneClass: Record<ProjectHealth, string> = {
@@ -21,8 +22,6 @@ const priorityClass: Record<string, string> = {
   medium: 'project-priority project-priority--medium',
   low: 'project-priority project-priority--low',
 }
-
-const labelHealth = (health: ProjectHealth) => (health === 'on-track' ? 'On Track' : health === 'at-risk' ? 'At Risk' : 'Blocked')
 
 const EASE = [0.16, 1, 0.3, 1] as [number, number, number, number]
 
@@ -51,6 +50,7 @@ let projectsListCache: { projects: ProjectItem[]; people: ProjectPerson[] } | nu
 
 const ProjectsPage = () => {
   const navigate = useNavigate()
+  const i18n = useProjectsI18n()
   const [projects, setProjects] = useState<ProjectItem[]>(() => projectsListCache?.projects ?? [])
   const [people, setPeople] = useState<ProjectPerson[]>(() => projectsListCache?.people ?? [])
   const [loading, setLoading] = useState(() => !projectsListCache)
@@ -94,6 +94,12 @@ const ProjectsPage = () => {
     hasAnimatedProjectsList = true
   }, [])
 
+  const labelHealth = (health: ProjectHealth) =>
+    health === 'on-track' ? i18n.health.onTrack : health === 'at-risk' ? i18n.health.atRisk : i18n.health.blocked
+
+  const labelStatus = (status: ProjectItem['status']) =>
+    i18n.status[status] ?? status
+
   return (
     <section className="project-page">
       {/* Hero */}
@@ -105,14 +111,14 @@ const ProjectsPage = () => {
       >
         <div>
           <div className="project-page__heading-row">
-            <h1 className="project-page__title">Projects</h1>
+            <h1 className="project-page__title">{i18n.page.title}</h1>
             <span className="project-page__labs-pill">LABS</span>
           </div>
-          <p className="project-page__subtitle">Dedicated workspace for complex projects with clear goals and timelines</p>
+          <p className="project-page__subtitle">{i18n.page.subtitle}</p>
         </div>
         <Button className="project-button project-button--primary" onClick={() => { setEditingProject(null); setDialogOpen(true) }}>
           <Plus size={16} />
-          New Project
+          {i18n.page.newProject}
         </Button>
       </motion.div>
 
@@ -129,7 +135,7 @@ const ProjectsPage = () => {
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             className="project-list-toolbar__input"
-            placeholder="Search projects..."
+            placeholder={i18n.page.searchPlaceholder}
           />
         </div>
         <Button
@@ -138,7 +144,7 @@ const ProjectsPage = () => {
           onClick={() => setFiltersOpen((value) => !value)}
         >
           <SlidersHorizontal size={16} />
-          Filter
+          {i18n.page.filter}
         </Button>
       </motion.div>
 
@@ -152,39 +158,39 @@ const ProjectsPage = () => {
             transition={{ duration: 0.28, ease: EASE }}
           >
             <label>
-              <span>Status</span>
+              <span>{i18n.filter.statusLabel}</span>
               <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}>
-                <option value="all">All</option>
-                <option value="planning">Planning</option>
-                <option value="active">Active</option>
-                <option value="blocked">Blocked</option>
-                <option value="done">Done</option>
-                <option value="archived">Archived</option>
+                <option value="all">{i18n.filter.all}</option>
+                <option value="planning">{i18n.filter.planning}</option>
+                <option value="active">{i18n.filter.active}</option>
+                <option value="blocked">{i18n.filter.blocked}</option>
+                <option value="done">{i18n.filter.done}</option>
+                <option value="archived">{i18n.filter.archived}</option>
               </select>
             </label>
             <label>
-              <span>Priority</span>
+              <span>{i18n.filter.priorityLabel}</span>
               <select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value as typeof priorityFilter)}>
-                <option value="all">All</option>
-                <option value="high">High</option>
-                <option value="medium">Medium</option>
-                <option value="low">Low</option>
+                <option value="all">{i18n.filter.all}</option>
+                <option value="high">{i18n.filter.high}</option>
+                <option value="medium">{i18n.filter.medium}</option>
+                <option value="low">{i18n.filter.low}</option>
               </select>
             </label>
             <label>
-              <span>Health</span>
+              <span>{i18n.filter.healthLabel}</span>
               <select value={healthFilter} onChange={(event) => setHealthFilter(event.target.value as typeof healthFilter)}>
-                <option value="all">All</option>
-                <option value="on-track">On Track</option>
-                <option value="at-risk">At Risk</option>
-                <option value="blocked">Blocked</option>
+                <option value="all">{i18n.filter.all}</option>
+                <option value="on-track">{i18n.filter.onTrack}</option>
+                <option value="at-risk">{i18n.filter.atRisk}</option>
+                <option value="blocked">{i18n.filter.blocked}</option>
               </select>
             </label>
           </motion.div>
         ) : null}
       </AnimatePresence>
 
-      {loading ? <div className="project-empty-state">Loading projects…</div> : null}
+      {loading ? <div className="project-empty-state">{i18n.page.loading}</div> : null}
 
       {!loading && filtered.length === 0 ? (
         <motion.div
@@ -193,11 +199,11 @@ const ProjectsPage = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.35, ease: EASE }}
         >
-          <h2>No projects yet</h2>
-          <p>Create your first project workspace to organize tasks, people, timelines, and notes in one place.</p>
+          <h2>{i18n.page.emptyTitle}</h2>
+          <p>{i18n.page.emptyDesc}</p>
           <Button className="project-button project-button--primary" onClick={() => { setEditingProject(null); setDialogOpen(true) }}>
             <Plus size={16} />
-            Create First Project
+            {i18n.page.createFirst}
           </Button>
         </motion.div>
       ) : null}
@@ -222,7 +228,7 @@ const ProjectsPage = () => {
                 <span className={healthToneClass[project.health]}>{labelHealth(project.health)}</span>
               </div>
               <div className="project-card__meta-row">
-                <span>{project.status === 'planning' ? 'Planning' : project.status === 'active' ? 'Active' : project.status === 'blocked' ? 'Blocked' : project.status === 'done' ? 'Done' : 'Archived'}</span>
+                <span>{labelStatus(project.status)}</span>
                 <span className="project-card__dot">•</span>
                 <span className={priorityClass[project.priority ?? 'medium']}>{(project.priority ?? 'medium').toUpperCase()}</span>
               </div>
@@ -230,15 +236,15 @@ const ProjectsPage = () => {
 
             <div className="project-card__grid">
               <div>
-                <p className="project-card__label">Owner</p>
-                <p className="project-card__value">{project.ownerId ? (ownerMap.get(project.ownerId) ?? 'Unassigned') : 'Unassigned'}</p>
+                <p className="project-card__label">{i18n.page.cardOwner}</p>
+                <p className="project-card__value">{project.ownerId ? (ownerMap.get(project.ownerId) ?? i18n.page.cardUnassigned) : i18n.page.cardUnassigned}</p>
               </div>
               <div>
-                <p className="project-card__label">Timeline</p>
-                <p className="project-card__value">{project.startDate ?? 'TBD'} – {project.dueDate ?? 'TBD'}</p>
+                <p className="project-card__label">{i18n.page.cardTimeline}</p>
+                <p className="project-card__value">{project.startDate ?? i18n.page.cardTBD} – {project.dueDate ?? i18n.page.cardTBD}</p>
               </div>
               <div>
-                <p className="project-card__label">Progress</p>
+                <p className="project-card__label">{i18n.page.cardProgress}</p>
                 <div className="project-card__progress-row">
                   <div className="project-progress-bar">
                     <motion.span
@@ -251,13 +257,13 @@ const ProjectsPage = () => {
                 </div>
               </div>
               <div>
-                <p className="project-card__label">Next Action</p>
-                <p className="project-card__value">{project.nextAction || project.riskSummary || 'Review current plan'}</p>
+                <p className="project-card__label">{i18n.page.cardNextAction}</p>
+                <p className="project-card__value">{project.nextAction || project.riskSummary || i18n.page.cardNextActionDefault}</p>
               </div>
             </div>
 
             <div className="project-card__footer">
-              <span>{project.goal || project.description || 'Open project workspace'}</span>
+              <span>{project.goal || project.description || i18n.page.cardOpenWorkspace}</span>
               <motion.span
                 className="project-card__arrow"
                 initial={false}

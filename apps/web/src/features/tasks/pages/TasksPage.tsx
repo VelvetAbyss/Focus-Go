@@ -5,7 +5,6 @@ import { cn } from '@/lib/utils'
 import TasksBoard from '../TasksBoard'
 import { useI18n } from '../../../shared/i18n/useI18n'
 import { useTasksViewportProfile } from './tasksViewport'
-import { useOnboardingFlow } from '../../onboarding/useOnboardingFlow'
 
 type TasksPageViewMode = 'board' | 'today' | 'analytics'
 
@@ -13,9 +12,7 @@ const STORAGE_VIEW_KEY = 'tasks_page_view_mode'
 
 const TasksPage = () => {
   const { t } = useI18n()
-  const onboarding = useOnboardingFlow()
   const viewportProfile = useTasksViewportProfile()
-  const onboardingMode = onboarding.status === 'in_progress' && onboarding.currentStep === 'tasks'
   const [viewMode, setViewMode] = useState<TasksPageViewMode>(() => {
     if (typeof window === 'undefined') return 'board'
     const stored = window.localStorage.getItem(STORAGE_VIEW_KEY)
@@ -27,7 +24,6 @@ const TasksPage = () => {
   })
 
   const switchView = (nextView: TasksPageViewMode) => {
-    if (onboardingMode) return
     setViewMode(nextView)
     if (typeof window !== 'undefined') window.localStorage.setItem(STORAGE_VIEW_KEY, nextView)
   }
@@ -44,8 +40,7 @@ const TasksPage = () => {
           <h1 className="tasks-page-shell__title text-xl tracking-tight text-foreground">{t('modules.tasks.title')}</h1>
         </div>
 
-        {onboardingMode ? null : (
-          <div className="tasks-page-shell__switch flex items-center gap-0.5 rounded-lg bg-muted p-0.5" role="tablist" aria-label={t('modules.tasks.viewAria')}>
+        <div className="tasks-page-shell__switch flex items-center gap-0.5 rounded-lg bg-muted p-0.5" role="tablist" aria-label={t('modules.tasks.viewAria')}>
             <button
               type="button"
               role="tab"
@@ -85,12 +80,11 @@ const TasksPage = () => {
               {t('modules.tasks.analytics')}
             </button>
           </div>
-        )}
       </div>
 
       <div className="tasks-page-shell__panel min-h-0 flex flex-1 px-6 pt-4">
         <div className="tasks-page-shell__panel-frame min-h-0 flex-1 pb-8">
-          <TasksBoard asCard={false} topView={onboardingMode ? 'board' : viewMode} onboardingMode={onboardingMode} />
+          <TasksBoard asCard={false} topView={viewMode} />
         </div>
       </div>
     </section>

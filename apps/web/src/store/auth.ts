@@ -11,6 +11,7 @@ export type AuthProfile = {
   email: string | null
   plan: AuthPlan
   expiresAt: string | null
+  isAdmin: boolean
 }
 
 export const getAuth = () => {
@@ -65,13 +66,16 @@ export const fetchAuthProfile = async (accessToken: string): Promise<AuthProfile
   }
 }
 
+export const useIsAdmin = () =>
+  useSyncExternalStore(subscribeAuth, () => isLocalhostRuntime() || Boolean(getAuth()?.isAdmin), () => false)
+
 export const refreshAuthProfile = async () => {
   const auth = getAuth()
   if (!auth?.accessToken) return null
   try {
     const profile = await fetchAuthProfile(auth.accessToken)
     if (!profile) return null
-    setAuth({ ...auth, plan: profile.plan, expiresAt: profile.expiresAt })
+    setAuth({ ...auth, plan: profile.plan, expiresAt: profile.expiresAt, isAdmin: profile.isAdmin })
     return profile
   } catch {
     return null

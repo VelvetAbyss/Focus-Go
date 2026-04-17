@@ -84,6 +84,8 @@ describe('NoteEditor', () => {
     getJSON: () => ({ type: 'doc', content: [] }),
     state: { selection: { to: 5 } },
     commands: { setContent: vi.fn() },
+    view: { dom: document.createElement('div'), composing: false },
+    isFocused: false,
     chain: () => ({
       focus: focusMock.mockReturnThis(),
       setTextSelection: setTextSelectionMock.mockReturnThis(),
@@ -250,5 +252,24 @@ describe('NoteEditor', () => {
 
     expect(result).toBe('第一行\n第二行\n第三行')
     expect(textBetween).toHaveBeenCalledWith(0, undefined, '\n', '\n')
+  })
+
+  it('does not reapply external content when the incoming doc matches editor state', () => {
+    const editor = createEditor()
+    useEditorMock.mockReturnValue(editor)
+
+    const { rerender } = render(<NoteEditor value={value} onChange={() => {}} />)
+
+    rerender(
+      <NoteEditor
+        value={{
+          ...value,
+          contentJson: { type: 'doc', content: [] },
+        }}
+        onChange={() => {}}
+      />,
+    )
+
+    expect(editor.commands.setContent).not.toHaveBeenCalled()
   })
 })

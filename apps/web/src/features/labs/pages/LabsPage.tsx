@@ -26,7 +26,7 @@ const LabsPage = () => {
   const [removingFeature, setRemovingFeature] = useState<FeatureCatalogItem | null>(null)
 
   if (!ready) {
-    return <div className="module-page-shell">Loading Labs…</div>
+    return <div className="module-page-shell">{i18n.labs.loading}</div>
   }
 
   const available = catalog.filter((item) => item.state === 'available')
@@ -40,10 +40,10 @@ const LabsPage = () => {
           <div className="labs-page__intro">
             <div className="labs-page__eyebrow-row">
               <span className="labs-page__eyebrow">
-                {subscription?.tier === 'premium' ? 'Premium Labs' : 'Labs'}
+                {subscription?.tier === 'premium' ? i18n.labs.eyebrowPremium : i18n.labs.eyebrow}
               </span>
               <Badge variant="secondary" className="labs-page__tier-badge">
-                {subscription?.tier === 'premium' ? 'Premium' : 'Free'}
+                {subscription?.tier === 'premium' ? i18n.labs.tierPremium : i18n.labs.tierFree}
               </Badge>
             </div>
             <h1 className="labs-page__title">{i18n.labs.title}</h1>
@@ -96,8 +96,8 @@ const LabsPage = () => {
                     )}
                   </div>
                   <div className="labs-card__body">
-                    <h3 className="labs-card__title">{feature.title}</h3>
-                    <p className="labs-card__desc">{feature.description}</p>
+                    <h3 className="labs-card__title">{i18n.featureTitles[feature.featureKey] ?? feature.title}</h3>
+                    <p className="labs-card__desc">{i18n.featureDescriptions[feature.featureKey] ?? feature.description}</p>
                   </div>
                   <div className="labs-card__foot">
                     {feature.requiresPremium ? (
@@ -144,8 +144,8 @@ const LabsPage = () => {
                     <Icon size={16} strokeWidth={1.6} />
                   </div>
                   <div className="labs-row__info">
-                    <span className="labs-row__title">{feature.title}</span>
-                    <span className="labs-row__desc">{feature.description}</span>
+                    <span className="labs-row__title">{i18n.featureTitles[feature.featureKey] ?? feature.title}</span>
+                    <span className="labs-row__desc">{i18n.featureDescriptions[feature.featureKey] ?? feature.description}</span>
                   </div>
                   <div className="labs-row__actions">
                     {feature.featureKey === 'habit-tracker' ? (
@@ -165,7 +165,7 @@ const LabsPage = () => {
                         </Button>
                       ) : (
                         <Button size="sm" asChild>
-                          <Link to={ROUTES.PROJECTS}>Open Project</Link>
+                          <Link to={ROUTES.PROJECTS}>{i18n.labs.openProject}</Link>
                         </Button>
                       )
                     ) : (
@@ -201,8 +201,8 @@ const LabsPage = () => {
                     <Icon size={16} strokeWidth={1.6} />
                   </div>
                   <div className="labs-row__info">
-                    <span className="labs-row__title">{feature.title}</span>
-                    <span className="labs-row__desc">{feature.description}</span>
+                    <span className="labs-row__title">{i18n.featureTitles[feature.featureKey] ?? feature.title}</span>
+                    <span className="labs-row__desc">{i18n.featureDescriptions[feature.featureKey] ?? feature.description}</span>
                   </div>
                   <div className="labs-row__actions">
                     {feature.comingSoon ? (

@@ -100,7 +100,64 @@ export type LifeKey =
   | 'life.subscriptions.productivity'
   | 'life.subscriptions.cloud'
   | 'life.subscriptions.learning'
+  | 'life.subscriptions.health'
+  | 'life.subscriptions.security'
+  | 'life.subscriptions.developer'
+  | 'life.subscriptions.news'
   | 'life.subscriptions.other'
+  | 'life.subscriptions.overview'
+  | 'life.subscriptions.monthlyTotal'
+  | 'life.subscriptions.noTrackedYet'
+  | 'life.subscriptions.noDataYet'
+  | 'life.subscriptions.addToSeeOverview'
+  | 'life.subscriptions.annualOverview'
+  | 'life.subscriptions.exchangeRate'
+  | 'life.subscriptions.unifiedEstimate'
+  | 'life.subscriptions.monthlyBurden'
+  | 'life.subscriptions.byCategoryAnnual'
+  | 'life.subscriptions.dueWithinDays'
+  | 'life.subscriptions.today'
+  | 'life.subscriptions.inDays'
+  | 'life.subscriptions.emptyListTitle'
+  | 'life.subscriptions.emptyListDescription'
+  | 'life.subscriptions.newSubscription'
+  | 'life.subscriptions.basics'
+  | 'life.subscriptions.serviceName'
+  | 'life.subscriptions.serviceNamePlaceholder'
+  | 'life.subscriptions.amount'
+  | 'life.subscriptions.currency'
+  | 'life.subscriptions.billingCycle'
+  | 'life.subscriptions.yearly'
+  | 'life.subscriptions.perMonth'
+  | 'life.subscriptions.estFromYearly'
+  | 'life.subscriptions.category'
+  | 'life.subscriptions.schedule'
+  | 'life.subscriptions.billingDay'
+  | 'life.subscriptions.billingDayPlaceholder'
+  | 'life.subscriptions.billingMonth'
+  | 'life.subscriptions.billingMonthPlaceholder'
+  | 'life.subscriptions.reminderOn'
+  | 'life.subscriptions.noReminder'
+  | 'life.subscriptions.appearance'
+  | 'life.subscriptions.icon'
+  | 'life.subscriptions.iconSearchHint'
+  | 'life.subscriptions.iconSearching'
+  | 'life.subscriptions.noIconsFound'
+  | 'life.subscriptions.colour'
+  | 'life.subscriptions.paymentStatus'
+  | 'life.subscriptions.unpaid'
+  | 'life.subscriptions.paid'
+  | 'life.subscriptions.paymentStatusHint'
+  | 'life.subscriptions.cancel'
+  | 'life.subscriptions.remove'
+  | 'life.subscriptions.autoSaved'
+  | 'life.subscriptions.servicesCount'
+  | 'life.subscriptions.allCount'
+  | 'life.subscriptions.unpaidCount'
+  | 'life.subscriptions.paidCount'
+  | 'life.subscriptions.noFiltered'
+  | 'life.subscriptions.yearlyHint'
+  | 'life.subscriptions.close'
   | 'life.trips.planNext'
   | 'life.trips.emptyDescription'
   | 'life.trips.checklist'
@@ -110,6 +167,121 @@ export type LifeKey =
   | 'life.trips.status.booked'
   | 'life.trips.status.active'
   | 'life.trips.status.completed'
+  | 'life.trips.title'
+  | 'life.trips.dashboard'
+  | 'life.trips.description'
+  | 'life.trips.newTrip'
+  | 'life.trips.creating'
+  | 'life.trips.createTrip'
+  | 'life.trips.deleteConfirm'
+  | 'life.trips.noTrips'
+  | 'life.trips.noTripsDesc'
+  | 'life.trips.destinationPending'
+  | 'life.trips.dateTo'
+  | 'life.trips.daysCount'
+  | 'life.trips.travelersCount'
+  | 'life.trips.detail.overview'
+  | 'life.trips.detail.itinerary'
+  | 'life.trips.detail.transport'
+  | 'life.trips.detail.stay'
+  | 'life.trips.detail.food'
+  | 'life.trips.detail.budget'
+  | 'life.trips.detail.notes'
+  | 'life.trips.detail.allTrips'
+  | 'life.trips.detail.tripWorkspace'
+  | 'life.trips.detail.tripPlanner'
+  | 'life.trips.detail.daysLabel'
+  | 'life.trips.detail.travelersLabel'
+  | 'life.trips.detail.doneLabel'
+  | 'life.trips.detail.saving'
+  | 'life.trips.detail.saved'
+  | 'life.trips.detail.retry'
+  | 'life.trips.detail.tripNotFound'
+  | 'life.trips.detail.tripNotFoundDesc'
+  | 'life.trips.detail.backToTrips'
+  | 'life.trips.detail.duration'
+  | 'life.trips.detail.destinationPending'
+  | 'life.trips.detail.deleteConfirm'
+  | 'life.trips.detail.deleteTrip'
+  | 'life.trips.detail.nextActions'
+  | 'life.trips.detail.addDay'
+  | 'life.trips.detail.addActivity'
+  | 'life.trips.detail.addRoute'
+  | 'life.trips.detail.addStay'
+  | 'life.trips.detail.addPlace'
+  | 'life.trips.detail.addBudgetItem'
+  | 'life.trips.detail.addGroup'
+  | 'life.trips.detail.addItem'
+  | 'life.trips.detail.remove'
+  | 'life.trips.detail.removeDay'
+  | 'life.trips.detail.overallProgress'
+  | 'life.trips.detail.datePending'
+  | 'life.trips.detail.planned'
+  | 'life.trips.detail.estimated'
+  | 'life.trips.detail.actual'
+  | 'life.trips.detail.remaining'
+  | 'life.trips.detail.tripMemo'
+  | 'life.library.title'
+  | 'life.library.bookCount'
+  | 'life.library.searchPlaceholder'
+  | 'life.library.searchResults'
+  | 'life.library.all'
+  | 'life.library.add'
+  | 'life.library.added'
+  | 'life.library.shelfEmpty'
+  | 'life.library.searchAbove'
+  | 'life.library.searchForBooks'
+  | 'life.library.publishedBy'
+  | 'life.library.status'
+  | 'life.library.readingProgress'
+  | 'life.library.myReflection'
+  | 'life.library.aboutBook'
+  | 'life.library.removeFromLibrary'
+  | 'life.library.selectBook'
+  | 'life.library.selectBookDesc'
+  | 'life.library.moreBooks'
+  | 'life.media.noMedia'
+  | 'life.media.status'
+  | 'life.media.progress'
+  | 'life.media.myNotes'
+  | 'life.media.synopsis'
+  | 'life.media.selectTitle'
+  | 'life.media.wantToWatch'
+  | 'life.people.title'
+  | 'life.people.newPerson'
+  | 'life.people.name'
+  | 'life.people.category'
+  | 'life.people.group'
+  | 'life.people.role'
+  | 'life.people.city'
+  | 'life.people.email'
+  | 'life.people.phone'
+  | 'life.people.birthday'
+  | 'life.people.lastInteraction'
+  | 'life.people.initials'
+  | 'life.people.avatarColor'
+  | 'life.people.notes'
+  | 'life.people.save'
+  | 'life.people.remove'
+  | 'life.podcast.emptyTitle'
+  | 'life.podcast.emptyDescription'
+  | 'life.podcast.findPodcast'
+  | 'life.podcast.searchPlaceholder'
+  | 'life.podcast.neteaseChannel'
+  | 'life.podcast.presetChannel'
+  | 'life.podcast.import'
+  | 'life.podcast.nowPlaying'
+  | 'life.podcast.play'
+  | 'life.podcast.viewOnApple'
+  | 'life.podcast.openChannel'
+  | 'life.podcast.refresh'
+  | 'life.podcast.remove'
+  | 'life.podcast.episodes'
+  | 'life.podcast.noDate'
+  | 'life.podcast.openInApple'
+  | 'life.podcast.searchStart'
+  | 'life.podcast.metadataApple'
+  | 'life.podcast.search'
 
 type Values = Record<string, string | number>
 type LifeLanguage = 'en' | 'zh'
@@ -216,7 +388,64 @@ const en: Record<LifeKey, string> = {
   'life.subscriptions.productivity': 'Productivity',
   'life.subscriptions.cloud': 'Cloud & Storage',
   'life.subscriptions.learning': 'Learning',
+  'life.subscriptions.health': 'Health & Fitness',
+  'life.subscriptions.security': 'Security',
+  'life.subscriptions.developer': 'Developer Tools',
+  'life.subscriptions.news': 'News & Media',
   'life.subscriptions.other': 'Other',
+  'life.subscriptions.overview': 'Overview',
+  'life.subscriptions.monthlyTotal': 'Monthly total',
+  'life.subscriptions.noTrackedYet': 'No subscriptions tracked yet',
+  'life.subscriptions.noDataYet': 'No data yet',
+  'life.subscriptions.addToSeeOverview': 'Add subscriptions to see your annual overview.',
+  'life.subscriptions.annualOverview': 'Annual overview · {{year}}',
+  'life.subscriptions.exchangeRate': 'Exchange rate',
+  'life.subscriptions.unifiedEstimate': 'Unified (est.)',
+  'life.subscriptions.monthlyBurden': 'Monthly burden',
+  'life.subscriptions.byCategoryAnnual': 'By category · annual',
+  'life.subscriptions.dueWithinDays': 'Due within {{count}} days',
+  'life.subscriptions.today': 'Today',
+  'life.subscriptions.inDays': 'In {{count}}d',
+  'life.subscriptions.emptyListTitle': 'No subscriptions yet.',
+  'life.subscriptions.emptyListDescription': 'Create your first one.',
+  'life.subscriptions.newSubscription': 'New Subscription',
+  'life.subscriptions.basics': 'Basics',
+  'life.subscriptions.serviceName': 'Service name',
+  'life.subscriptions.serviceNamePlaceholder': 'e.g. Netflix, iCloud+',
+  'life.subscriptions.amount': 'Amount',
+  'life.subscriptions.currency': 'Currency',
+  'life.subscriptions.billingCycle': 'Billing cycle',
+  'life.subscriptions.yearly': 'Yearly',
+  'life.subscriptions.perMonth': 'per month',
+  'life.subscriptions.estFromYearly': '(est. from {{amount}}/yr)',
+  'life.subscriptions.category': 'Category',
+  'life.subscriptions.schedule': 'Schedule',
+  'life.subscriptions.billingDay': 'Billing day',
+  'life.subscriptions.billingDayPlaceholder': 'Day (1–31)',
+  'life.subscriptions.billingMonth': 'Billing month',
+  'life.subscriptions.billingMonthPlaceholder': 'Month (1–12)',
+  'life.subscriptions.reminderOn': 'Renewal reminder on',
+  'life.subscriptions.noReminder': 'No reminder',
+  'life.subscriptions.appearance': 'Appearance',
+  'life.subscriptions.icon': 'Icon',
+  'life.subscriptions.iconSearchHint': 'Enter a service name to auto-search icons.',
+  'life.subscriptions.iconSearching': 'Searching…',
+  'life.subscriptions.noIconsFound': 'No icons found.',
+  'life.subscriptions.colour': 'Colour',
+  'life.subscriptions.paymentStatus': 'Payment status',
+  'life.subscriptions.unpaid': 'Unpaid',
+  'life.subscriptions.paid': 'Paid ✓',
+  'life.subscriptions.paymentStatusHint': 'Mark whether this period\'s payment has been made.',
+  'life.subscriptions.cancel': 'Cancel',
+  'life.subscriptions.remove': 'Remove',
+  'life.subscriptions.autoSaved': 'Auto-saved',
+  'life.subscriptions.servicesCount': '{{count}} services',
+  'life.subscriptions.allCount': 'All {{count}}',
+  'life.subscriptions.unpaidCount': 'Unpaid {{count}}',
+  'life.subscriptions.paidCount': 'Paid {{count}}',
+  'life.subscriptions.noFiltered': 'No {{status}} subscriptions',
+  'life.subscriptions.yearlyHint': 'Yearly prices shown as estimated monthly. Currencies listed separately.',
+  'life.subscriptions.close': 'Close',
   'life.trips.planNext': 'Plan your next trip',
   'life.trips.emptyDescription': 'Open the trips workspace to create an itinerary, budget, and checklist.',
   'life.trips.checklist': 'Checklist',
@@ -226,6 +455,121 @@ const en: Record<LifeKey, string> = {
   'life.trips.status.booked': 'Booked',
   'life.trips.status.active': 'Active',
   'life.trips.status.completed': 'Completed',
+  'life.trips.title': 'Trips',
+  'life.trips.dashboard': 'Dashboard',
+  'life.trips.description': 'Build trips, open a detail workspace, and keep plans updated automatically.',
+  'life.trips.newTrip': 'New Trip',
+  'life.trips.creating': 'Creating…',
+  'life.trips.createTrip': 'Create Trip',
+  'life.trips.deleteConfirm': 'Delete this trip?',
+  'life.trips.noTrips': 'No trips yet',
+  'life.trips.noTripsDesc': 'Create the first trip to open the planning workspace.',
+  'life.trips.destinationPending': 'Destination pending',
+  'life.trips.dateTo': ' to ',
+  'life.trips.daysCount': '{{count}} days',
+  'life.trips.travelersCount': '{{count}} travelers',
+  'life.trips.detail.overview': 'Overview',
+  'life.trips.detail.itinerary': 'Itinerary',
+  'life.trips.detail.transport': 'Transport',
+  'life.trips.detail.stay': 'Stay',
+  'life.trips.detail.food': 'Food',
+  'life.trips.detail.budget': 'Budget',
+  'life.trips.detail.notes': 'Notes',
+  'life.trips.detail.allTrips': 'All Trips',
+  'life.trips.detail.tripWorkspace': 'Trip Workspace',
+  'life.trips.detail.tripPlanner': 'Trip planner',
+  'life.trips.detail.daysLabel': 'Days',
+  'life.trips.detail.travelersLabel': 'Travelers',
+  'life.trips.detail.doneLabel': 'Done',
+  'life.trips.detail.saving': 'Saving…',
+  'life.trips.detail.saved': 'Saved',
+  'life.trips.detail.retry': 'Retry',
+  'life.trips.detail.tripNotFound': 'Trip not found',
+  'life.trips.detail.tripNotFoundDesc': 'This trip was removed or the link is no longer valid.',
+  'life.trips.detail.backToTrips': 'Back to Trips',
+  'life.trips.detail.duration': 'Duration',
+  'life.trips.detail.destinationPending': 'Destination pending',
+  'life.trips.detail.deleteConfirm': 'Delete this trip?',
+  'life.trips.detail.deleteTrip': 'Delete Trip',
+  'life.trips.detail.nextActions': 'Next Actions',
+  'life.trips.detail.addDay': 'Add Day',
+  'life.trips.detail.addActivity': 'Add Activity',
+  'life.trips.detail.addRoute': 'Add Route',
+  'life.trips.detail.addStay': 'Add Stay',
+  'life.trips.detail.addPlace': 'Add Place',
+  'life.trips.detail.addBudgetItem': 'Add Budget Item',
+  'life.trips.detail.addGroup': 'Add Group',
+  'life.trips.detail.addItem': 'Add Item',
+  'life.trips.detail.remove': 'Remove',
+  'life.trips.detail.removeDay': 'Remove Day',
+  'life.trips.detail.overallProgress': 'Overall progress',
+  'life.trips.detail.datePending': 'Date pending',
+  'life.trips.detail.planned': 'Planned',
+  'life.trips.detail.estimated': 'Estimated',
+  'life.trips.detail.actual': 'Actual',
+  'life.trips.detail.remaining': 'Remaining',
+  'life.trips.detail.tripMemo': 'Trip memo',
+  'life.library.title': 'Library',
+  'life.library.bookCount': '{{count}} books',
+  'life.library.searchPlaceholder': 'Title, author, or ISBN...',
+  'life.library.searchResults': 'Search Results',
+  'life.library.all': 'All',
+  'life.library.add': 'Add',
+  'life.library.added': 'Added',
+  'life.library.shelfEmpty': 'Nothing on your shelf yet',
+  'life.library.searchAbove': 'Use the search above to find books and add them to your personal library.',
+  'life.library.searchForBooks': 'Search for books',
+  'life.library.publishedBy': 'Published by ',
+  'life.library.status': 'Status',
+  'life.library.readingProgress': 'Reading Progress',
+  'life.library.myReflection': 'My Reflection',
+  'life.library.aboutBook': 'About this Book',
+  'life.library.removeFromLibrary': 'Remove from Library',
+  'life.library.selectBook': 'Select a book to explore',
+  'life.library.selectBookDesc': 'Choose a title from your collection to view details, track your progress, and write a reflection.',
+  'life.library.moreBooks': '+{{count}} more books on your shelf',
+  'life.media.noMedia': 'No media yet.',
+  'life.media.status': 'Status',
+  'life.media.progress': 'Progress',
+  'life.media.myNotes': 'My Notes',
+  'life.media.synopsis': 'Synopsis',
+  'life.media.selectTitle': 'Select a title to inspect details.',
+  'life.media.wantToWatch': 'Want to Watch',
+  'life.people.title': 'People',
+  'life.people.newPerson': 'New person',
+  'life.people.name': 'Name',
+  'life.people.category': 'Category',
+  'life.people.group': 'Group',
+  'life.people.role': 'Role',
+  'life.people.city': 'City',
+  'life.people.email': 'Email',
+  'life.people.phone': 'Phone',
+  'life.people.birthday': 'Birthday',
+  'life.people.lastInteraction': 'Last Interaction',
+  'life.people.initials': 'Initials',
+  'life.people.avatarColor': 'Avatar Color',
+  'life.people.notes': 'Notes',
+  'life.people.save': 'Save',
+  'life.people.remove': 'Remove',
+  'life.podcast.emptyTitle': 'Your podcast shelf is empty',
+  'life.podcast.emptyDescription': 'Search podcasts or import a Netease channel link.',
+  'life.podcast.findPodcast': 'Find podcast',
+  'life.podcast.searchPlaceholder': 'Search podcast or paste a Netease link',
+  'life.podcast.neteaseChannel': 'Netease channel',
+  'life.podcast.presetChannel': 'Preset Netease channel',
+  'life.podcast.import': 'Import',
+  'life.podcast.nowPlaying': 'Now Playing',
+  'life.podcast.play': 'Play',
+  'life.podcast.viewOnApple': 'View on Apple Podcasts',
+  'life.podcast.openChannel': 'Open Channel',
+  'life.podcast.refresh': 'Refresh',
+  'life.podcast.remove': 'Remove',
+  'life.podcast.episodes': 'Episodes',
+  'life.podcast.noDate': 'No date',
+  'life.podcast.openInApple': 'Open in Apple Podcasts',
+  'life.podcast.searchStart': 'Search and add a podcast to start.',
+  'life.podcast.metadataApple': 'Metadata courtesy of Apple Podcasts',
+  'life.podcast.search': 'Search',
 }
 
 const zh: Record<LifeKey, string> = {
@@ -327,7 +671,64 @@ const zh: Record<LifeKey, string> = {
   'life.subscriptions.productivity': '效率',
   'life.subscriptions.cloud': '云存储',
   'life.subscriptions.learning': '学习',
+  'life.subscriptions.health': '健康与健身',
+  'life.subscriptions.security': '安全',
+  'life.subscriptions.developer': '开发工具',
+  'life.subscriptions.news': '新闻与媒体',
   'life.subscriptions.other': '其他',
+  'life.subscriptions.overview': '概览',
+  'life.subscriptions.monthlyTotal': '月度总计',
+  'life.subscriptions.noTrackedYet': '还没有记录任何订阅',
+  'life.subscriptions.noDataYet': '暂无数据',
+  'life.subscriptions.addToSeeOverview': '添加订阅后即可查看年度概览。',
+  'life.subscriptions.annualOverview': '年度概览 · {{year}}',
+  'life.subscriptions.exchangeRate': '汇率',
+  'life.subscriptions.unifiedEstimate': '统一估算',
+  'life.subscriptions.monthlyBurden': '月度负担',
+  'life.subscriptions.byCategoryAnnual': '按分类 · 年度',
+  'life.subscriptions.dueWithinDays': '{{count}} 天内到期',
+  'life.subscriptions.today': '今天',
+  'life.subscriptions.inDays': '{{count}} 天后',
+  'life.subscriptions.emptyListTitle': '还没有订阅。',
+  'life.subscriptions.emptyListDescription': '创建你的第一个订阅。',
+  'life.subscriptions.newSubscription': '新订阅',
+  'life.subscriptions.basics': '基础信息',
+  'life.subscriptions.serviceName': '服务名称',
+  'life.subscriptions.serviceNamePlaceholder': '例如 Netflix、iCloud+',
+  'life.subscriptions.amount': '金额',
+  'life.subscriptions.currency': '币种',
+  'life.subscriptions.billingCycle': '计费周期',
+  'life.subscriptions.yearly': '每年',
+  'life.subscriptions.perMonth': '每月',
+  'life.subscriptions.estFromYearly': '（由 {{amount}}/年估算）',
+  'life.subscriptions.category': '分类',
+  'life.subscriptions.schedule': '时间安排',
+  'life.subscriptions.billingDay': '扣费日',
+  'life.subscriptions.billingDayPlaceholder': '日期（1–31）',
+  'life.subscriptions.billingMonth': '扣费月',
+  'life.subscriptions.billingMonthPlaceholder': '月份（1–12）',
+  'life.subscriptions.reminderOn': '开启续费提醒',
+  'life.subscriptions.noReminder': '不提醒',
+  'life.subscriptions.appearance': '外观',
+  'life.subscriptions.icon': '图标',
+  'life.subscriptions.iconSearchHint': '输入服务名后可自动搜索图标。',
+  'life.subscriptions.iconSearching': '搜索中…',
+  'life.subscriptions.noIconsFound': '未找到图标。',
+  'life.subscriptions.colour': '颜色',
+  'life.subscriptions.paymentStatus': '支付状态',
+  'life.subscriptions.unpaid': '未支付',
+  'life.subscriptions.paid': '已支付 ✓',
+  'life.subscriptions.paymentStatusHint': '标记本期是否已经支付。',
+  'life.subscriptions.cancel': '取消',
+  'life.subscriptions.remove': '删除',
+  'life.subscriptions.autoSaved': '已自动保存',
+  'life.subscriptions.servicesCount': '{{count}} 个服务',
+  'life.subscriptions.allCount': '全部 {{count}}',
+  'life.subscriptions.unpaidCount': '未支付 {{count}}',
+  'life.subscriptions.paidCount': '已支付 {{count}}',
+  'life.subscriptions.noFiltered': '没有{{status}}订阅',
+  'life.subscriptions.yearlyHint': '年付价格按月均估算展示。不同币种分开显示。',
+  'life.subscriptions.close': '关闭',
   'life.trips.planNext': '规划下一次旅行',
   'life.trips.emptyDescription': '打开旅行工作区，创建行程、预算和清单。',
   'life.trips.checklist': '清单',
@@ -337,6 +738,121 @@ const zh: Record<LifeKey, string> = {
   'life.trips.status.booked': '已预订',
   'life.trips.status.active': '进行中',
   'life.trips.status.completed': '已完成',
+  'life.trips.title': '旅行',
+  'life.trips.dashboard': '仪表盘',
+  'life.trips.description': '创建旅行，打开详情工作区，让计划自动同步更新。',
+  'life.trips.newTrip': '新建旅行',
+  'life.trips.creating': '创建中…',
+  'life.trips.createTrip': '创建旅行',
+  'life.trips.deleteConfirm': '确认删除此旅行？',
+  'life.trips.noTrips': '还没有旅行',
+  'life.trips.noTripsDesc': '创建第一个旅行来开始规划。',
+  'life.trips.destinationPending': '目的地待定',
+  'life.trips.dateTo': ' 至 ',
+  'life.trips.daysCount': '{{count}} 天',
+  'life.trips.travelersCount': '{{count}} 位同行者',
+  'life.trips.detail.overview': '概览',
+  'life.trips.detail.itinerary': '行程',
+  'life.trips.detail.transport': '交通',
+  'life.trips.detail.stay': '住宿',
+  'life.trips.detail.food': '餐饮',
+  'life.trips.detail.budget': '预算',
+  'life.trips.detail.notes': '备注',
+  'life.trips.detail.allTrips': '所有旅行',
+  'life.trips.detail.tripWorkspace': '旅行工作区',
+  'life.trips.detail.tripPlanner': '旅行规划',
+  'life.trips.detail.daysLabel': '天数',
+  'life.trips.detail.travelersLabel': '同行者',
+  'life.trips.detail.doneLabel': '已完成',
+  'life.trips.detail.saving': '保存中…',
+  'life.trips.detail.saved': '已保存',
+  'life.trips.detail.retry': '重试',
+  'life.trips.detail.tripNotFound': '旅行不存在',
+  'life.trips.detail.tripNotFoundDesc': '该旅行已被删除或链接已失效。',
+  'life.trips.detail.backToTrips': '返回旅行列表',
+  'life.trips.detail.duration': '时长',
+  'life.trips.detail.destinationPending': '目的地待定',
+  'life.trips.detail.deleteConfirm': '确认删除此旅行？',
+  'life.trips.detail.deleteTrip': '删除旅行',
+  'life.trips.detail.nextActions': '下一步行动',
+  'life.trips.detail.addDay': '添加天数',
+  'life.trips.detail.addActivity': '添加活动',
+  'life.trips.detail.addRoute': '添加路线',
+  'life.trips.detail.addStay': '添加住宿',
+  'life.trips.detail.addPlace': '添加地点',
+  'life.trips.detail.addBudgetItem': '添加预算项',
+  'life.trips.detail.addGroup': '添加分组',
+  'life.trips.detail.addItem': '添加项目',
+  'life.trips.detail.remove': '移除',
+  'life.trips.detail.removeDay': '移除这天',
+  'life.trips.detail.overallProgress': '整体进度',
+  'life.trips.detail.datePending': '日期待定',
+  'life.trips.detail.planned': '计划',
+  'life.trips.detail.estimated': '预估',
+  'life.trips.detail.actual': '实际',
+  'life.trips.detail.remaining': '剩余',
+  'life.trips.detail.tripMemo': '旅行备忘',
+  'life.library.title': '书库',
+  'life.library.bookCount': '{{count}} 本书',
+  'life.library.searchPlaceholder': '书名、作者或 ISBN...',
+  'life.library.searchResults': '搜索结果',
+  'life.library.all': '全部',
+  'life.library.add': '添加',
+  'life.library.added': '已添加',
+  'life.library.shelfEmpty': '你的书架还是空的',
+  'life.library.searchAbove': '使用上方搜索框找书，添加到你的书架。',
+  'life.library.searchForBooks': '搜索书籍',
+  'life.library.publishedBy': '出版商 ',
+  'life.library.status': '阅读状态',
+  'life.library.readingProgress': '阅读进度',
+  'life.library.myReflection': '我的感想',
+  'life.library.aboutBook': '关于此书',
+  'life.library.removeFromLibrary': '从书架移除',
+  'life.library.selectBook': '选择一本书来查看',
+  'life.library.selectBookDesc': '从你的收藏中选择一本书，查看详情、追踪进度并写下感想。',
+  'life.library.moreBooks': '书架上还有 +{{count}} 本书',
+  'life.media.noMedia': '还没有影音内容。',
+  'life.media.status': '状态',
+  'life.media.progress': '进度',
+  'life.media.myNotes': '我的笔记',
+  'life.media.synopsis': '剧情简介',
+  'life.media.selectTitle': '选择一部影音查看详情。',
+  'life.media.wantToWatch': '想看',
+  'life.people.title': '人际',
+  'life.people.newPerson': '新联系人',
+  'life.people.name': '姓名',
+  'life.people.category': '类别',
+  'life.people.group': '分组',
+  'life.people.role': '职位',
+  'life.people.city': '城市',
+  'life.people.email': '邮箱',
+  'life.people.phone': '电话',
+  'life.people.birthday': '生日',
+  'life.people.lastInteraction': '最近互动',
+  'life.people.initials': '缩写',
+  'life.people.avatarColor': '头像颜色',
+  'life.people.notes': '备注',
+  'life.people.save': '保存',
+  'life.people.remove': '移除',
+  'life.podcast.emptyTitle': '你的播客架还是空的',
+  'life.podcast.emptyDescription': '搜索播客或导入网易频道链接。',
+  'life.podcast.findPodcast': '查找播客',
+  'life.podcast.searchPlaceholder': '搜索播客或粘贴网易链接',
+  'life.podcast.neteaseChannel': '网易频道',
+  'life.podcast.presetChannel': '预设网易频道',
+  'life.podcast.import': '导入',
+  'life.podcast.nowPlaying': '正在播放',
+  'life.podcast.play': '播放',
+  'life.podcast.viewOnApple': '在 Apple 播客中查看',
+  'life.podcast.openChannel': '打开频道',
+  'life.podcast.refresh': '刷新',
+  'life.podcast.remove': '移除',
+  'life.podcast.episodes': '剧集',
+  'life.podcast.noDate': '无日期',
+  'life.podcast.openInApple': '在 Apple 播客中打开',
+  'life.podcast.searchStart': '搜索并添加播客以开始使用。',
+  'life.podcast.metadataApple': '元数据由 Apple 播客提供',
+  'life.podcast.search': '搜索',
 }
 
 const messagesByLanguage: Record<LifeLanguage, Record<LifeKey, string>> = { en, zh }

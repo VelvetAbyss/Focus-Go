@@ -97,7 +97,7 @@ export const PeopleCardSurface = ({
   useEffect(() => {
     setDraft(toDraft(selected))
     setEditingId(selectedId)
-  }, [selected])
+  }, [selected, selectedId])
 
   return (
     <>
@@ -168,12 +168,12 @@ export const PeopleCardSurface = ({
         </div>
       </div>
 
-      <Dialog open={open} onClose={onClose} panelClassName="life-modal__panel" contentClassName="life-modal__content">
+      {open ? <Dialog open={open} onClose={onClose} panelClassName="life-modal__panel" contentClassName="life-modal__content">
         <div style={modalLayoutStyle}>
           <div style={modalHeaderStyle}>
             <div>
-              <p style={{ ...inter(10, 600, 'rgba(58,55,51,0.38)'), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 4 }}>People</p>
-              <h2 style={{ ...playfair(22, 500) }}>People</h2>
+              <p style={{ ...inter(10, 600, 'rgba(58,55,51,0.38)'), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 4 }}>{t('life.people.title')}</p>
+              <h2 style={{ ...playfair(22, 500) }}>{t('life.people.title')}</h2>
             </div>
             <button type="button" onClick={onClose} style={iconButtonStyle}><X size={18} /></button>
           </div>
@@ -181,7 +181,7 @@ export const PeopleCardSurface = ({
             <aside style={sidebarStyle}>
               <button type="button" onClick={() => { setDraft({ ...toDraft(null), category: categoryFilter === 'All' ? '' : categoryFilter }); setEditingId(null) }} style={{ ...smallButtonStyle, marginBottom: 12, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 <Plus size={11} />
-                <span>New person</span>
+                <span>{t('life.people.newPerson')}</span>
               </button>
               {categories.length > 1 ? (
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
@@ -219,13 +219,13 @@ export const PeopleCardSurface = ({
             </aside>
             <div style={{ ...detailPaneStyle, background: paper, padding: 20, overflowY: 'auto' }}>
               <div style={{ display: 'grid', gap: 14 }}>
-                <Field label="Name">
+                <Field label={t('life.people.name')}>
                   <input value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} style={inputStyle} />
                 </Field>
-                <Field label="Category">
+                <Field label={t('life.people.category')}>
                   <input value={draft.category} onChange={(event) => setDraft((current) => ({ ...current, category: event.target.value }))} style={inputStyle} disabled={Boolean(editingPerson?.sourceProjectPersonId)} />
                 </Field>
-                <Field label="Group">
+                <Field label={t('life.people.group')}>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {groups.map((group) => (
                       <button key={group} type="button" onClick={() => setDraft((current) => ({ ...current, group }))} style={{ ...smallButtonStyle, background: draft.group === group ? 'rgba(58,55,51,0.10)' : 'rgba(58,55,51,0.06)' }}>
@@ -235,43 +235,43 @@ export const PeopleCardSurface = ({
                   </div>
                 </Field>
                 <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
-                  <Field label="Role">
+                  <Field label={t('life.people.role')}>
                     <input value={draft.role} onChange={(event) => setDraft((current) => ({ ...current, role: event.target.value }))} style={inputStyle} />
                   </Field>
-                  <Field label="City">
+                  <Field label={t('life.people.city')}>
                     <input value={draft.city} onChange={(event) => setDraft((current) => ({ ...current, city: event.target.value }))} style={inputStyle} />
                   </Field>
-                  <Field label="Email">
+                  <Field label={t('life.people.email')}>
                     <input value={draft.email} onChange={(event) => setDraft((current) => ({ ...current, email: event.target.value }))} style={inputStyle} />
                   </Field>
-                  <Field label="Phone">
+                  <Field label={t('life.people.phone')}>
                     <input value={draft.phone} onChange={(event) => setDraft((current) => ({ ...current, phone: event.target.value }))} style={inputStyle} />
                   </Field>
-                  <Field label="Birthday">
+                  <Field label={t('life.people.birthday')}>
                     <input type="date" value={draft.birthday} onChange={(event) => setDraft((current) => ({ ...current, birthday: event.target.value }))} style={inputStyle} />
                   </Field>
-                  <Field label="Last Interaction">
+                  <Field label={t('life.people.lastInteraction')}>
                     <input type="date" value={draft.lastInteraction} onChange={(event) => setDraft((current) => ({ ...current, lastInteraction: event.target.value }))} style={inputStyle} />
                   </Field>
-                  <Field label="Initials">
+                  <Field label={t('life.people.initials')}>
                     <input value={draft.avatarInitials} onChange={(event) => setDraft((current) => ({ ...current, avatarInitials: event.target.value }))} style={inputStyle} />
                   </Field>
-                  <Field label="Avatar Color">
+                  <Field label={t('life.people.avatarColor')}>
                     <input value={draft.avatarColor} onChange={(event) => setDraft((current) => ({ ...current, avatarColor: event.target.value }))} style={inputStyle} />
                   </Field>
                 </div>
-                <Field label="Notes">
+                <Field label={t('life.people.notes')}>
                   <textarea value={draft.notes} onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))} style={textareaStyle} />
                 </Field>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                  <button type="button" onClick={() => onSaveItem(draft, editingId)} style={smallButtonStyle}>Save</button>
-                  {editingId ? <button type="button" onClick={() => onRemoveItem(editingId)} style={{ ...smallButtonStyle, color: '#9D4C4C' }}>Remove</button> : null}
+                  <button type="button" onClick={() => onSaveItem(draft, editingId)} style={smallButtonStyle}>{t('life.people.save')}</button>
+                  {editingId ? <button type="button" onClick={() => onRemoveItem(editingId)} style={{ ...smallButtonStyle, color: '#9D4C4C' }}>{t('life.people.remove')}</button> : null}
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </Dialog>
+      </Dialog> : null}
     </>
   )
 }

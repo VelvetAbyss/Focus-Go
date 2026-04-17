@@ -1,5 +1,6 @@
 export const ROUTES = {
   DASHBOARD: '/',
+  ADMIN: '/admin',
   PROJECTS: '/projects',
   PROJECT_DETAIL: '/projects/:projectId',
   HABITS: '/habits',
@@ -25,7 +26,7 @@ export const LEGACY_ROUTES = {
   KNOWLEDGE: '/knowledge',
 } as const
 
-export type RouteKey = 'dashboard' | 'projects' | 'tasks' | 'note' | 'calendar' | 'trips' | 'focus' | 'diary' | 'settings' | 'labs'
+export type RouteKey = 'dashboard' | 'projects' | 'tasks' | 'note' | 'calendar' | 'trips' | 'focus' | 'diary' | 'settings' | 'labs' | 'admin'
 
 export type NavItem = {
   key: RouteKey

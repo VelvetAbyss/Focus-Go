@@ -39,6 +39,7 @@ html[data-theme='dark'] {
 
 .project-page,
 .project-detail-page {
+  flex: 1;
   min-height: calc(100% + 36px);
   background: #F5F3F0;
   color: #3A3733;
@@ -700,6 +701,180 @@ html[data-theme='dark'] {
 
 .project-muted {
   color: rgba(58, 55, 51, 0.6);
+}
+
+/* ── Contact picker (Add Person dialog) ─────────────────── */
+.pd-contact-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pd-contact-picker__label {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(58, 55, 51, 0.5);
+}
+
+.pd-contact-picker__search-wrap {
+  position: relative;
+}
+
+.pd-contact-picker__search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(58, 55, 51, 0.4);
+  pointer-events: none;
+}
+
+.pd-contact-picker__search {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px 0 34px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(58, 55, 51, 0.1);
+  background: white;
+  color: #3A3733;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.pd-contact-picker__search:focus {
+  border-color: rgba(58, 55, 51, 0.3);
+}
+
+.pd-contact-picker__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 172px;
+  overflow-y: auto;
+  border-radius: 14px;
+  border: 1.5px solid rgba(58, 55, 51, 0.08);
+  background: white;
+  padding: 4px;
+}
+
+.pd-contact-picker__empty {
+  margin: 0;
+  padding: 12px;
+  text-align: center;
+  font-size: 13px;
+  color: rgba(58, 55, 51, 0.4);
+}
+
+.pd-contact-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+  width: 100%;
+}
+
+.pd-contact-item:hover {
+  background: rgba(58, 55, 51, 0.05);
+}
+
+.pd-contact-item.is-selected {
+  background: rgba(58, 55, 51, 0.08);
+}
+
+.pd-contact-item__avatar {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.pd-contact-item__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.pd-contact-item__name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #3A3733;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pd-contact-item__meta {
+  font-size: 11px;
+  color: rgba(58, 55, 51, 0.5);
+}
+
+.pd-contact-item__check {
+  flex-shrink: 0;
+  color: rgba(58, 55, 51, 0.7);
+}
+
+.pd-contact-picker__divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(58, 55, 51, 0.35);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.pd-contact-picker__divider::before,
+.pd-contact-picker__divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(58, 55, 51, 0.1);
+}
+
+/* Dark mode for contact picker */
+html[data-theme='dark'] .pd-contact-picker__search,
+html[data-theme='dark'] .pd-contact-picker__list {
+  background: #23201d;
+  border-color: rgba(245, 243, 240, 0.1);
+  color: #F5F3F0;
+}
+
+html[data-theme='dark'] .pd-contact-picker__search {
+  color: #F5F3F0;
+}
+
+html[data-theme='dark'] .pd-contact-item:hover {
+  background: rgba(245, 243, 240, 0.07);
+}
+
+html[data-theme='dark'] .pd-contact-item.is-selected {
+  background: rgba(245, 243, 240, 0.1);
+}
+
+html[data-theme='dark'] .pd-contact-item__name {
+  color: #F5F3F0;
+}
+
+html[data-theme='dark'] .pd-contact-item__check {
+  color: rgba(245, 243, 240, 0.7);
 }
 
 /* Dark mode for list page */

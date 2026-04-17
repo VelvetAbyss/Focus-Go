@@ -1,0 +1,199 @@
+.admin-page {
+  padding: 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+  color: var(--text-primary);
+}
+
+.admin-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+}
+
+.admin-page__title {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.admin-page__refresh {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-muted);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-secondary);
+  transition: background 150ms;
+}
+
+.admin-page__refresh:hover {
+  background: var(--bg-hover);
+}
+
+.admin-page__state {
+  padding: 24px 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.admin-page__state--error {
+  color: #c0392b;
+}
+
+/* ── Sections ────────────────────────────────────────── */
+
+.admin-section {
+  margin-bottom: 40px;
+}
+
+.admin-section-header {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── KPI cards ───────────────────────────────────────── */
+
+.admin-kpi-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.admin-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 20px;
+  min-width: 120px;
+}
+
+.admin-kpi__value {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.admin-kpi__label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* ── User table ──────────────────────────────────────── */
+
+.admin-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.admin-table th {
+  text-align: left;
+  padding: 10px 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-muted);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.admin-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.admin-table tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-table tr:hover td {
+  background: var(--bg-hover);
+}
+
+.admin-table__email {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-table__active {
+  color: #27ae60;
+  font-weight: 600;
+}
+
+.admin-table__inactive {
+  color: var(--text-tertiary, var(--text-secondary));
+}
+
+/* ── Plan badge ──────────────────────────────────────── */
+
+.admin-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.admin-badge--premium {
+  background: color-mix(in srgb, #f5c518 20%, transparent);
+  color: #b8860b;
+}
+
+.admin-badge--free {
+  background: var(--bg-muted);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+/* ── Server grid ─────────────────────────────────────── */
+
+.admin-server-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.admin-server-item {
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-server-item__label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+}
+
+.admin-server-item__value {
+  font-size: 14px;
+  font-weight: 500;
+}
