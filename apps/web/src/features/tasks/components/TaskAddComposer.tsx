@@ -34,14 +34,16 @@ const TaskAddComposer = ({ onSubmit, compact = false, plain = false, placeholder
     requestAnimationFrame(() => inputRef.current?.focus())
   }
 
+  const hasText = title.trim().length > 0
+
   return (
     <form
       className={cn(
-        'tasks-fg__composer mt-4 rounded-[22px] border border-[#3a3733]/6 bg-transparent p-3 shadow-none backdrop-blur-none transition',
+        'tasks-fg__composer mt-4 rounded-[22px] border border-[#3a3733]/6 bg-transparent p-3 shadow-none backdrop-blur-none transition-all duration-300',
         compact ? 'mt-3 rounded-[18px] p-2.5' : '',
         plain ? 'mt-0 rounded-none border-x-0 border-b-0 border-t bg-transparent px-4 py-3 shadow-none backdrop-blur-none' : '',
-        isFocused && !plain && 'border-slate-300/80 shadow-none',
-        isFocused && plain && 'border-t-primary/20 bg-transparent shadow-[0_-2px_8px_rgba(58, 55, 51, 0.04)]',
+        isFocused && !plain && 'border-slate-300/80 shadow-[0_2px_12px_rgba(58,55,51,0.06)]',
+        isFocused && plain && 'border-t-primary/20 bg-transparent',
       )}
       onSubmit={(event) => {
         event.preventDefault()
@@ -50,22 +52,22 @@ const TaskAddComposer = ({ onSubmit, compact = false, plain = false, placeholder
     >
       <div
         className={cn(
-          'flex items-center gap-3 rounded-[18px] border border-slate-200/80 bg-slate-50/85 px-3 py-2 transition',
+          'flex items-center gap-3 rounded-[18px] border border-slate-200/80 bg-slate-50/85 px-3 py-2 transition-all duration-300',
           compact ? 'rounded-[15px] px-2.5 py-2' : '',
           plain ? 'flex-1 gap-2 rounded-lg bg-transparent px-3 py-1.5' : '',
-          isFocused && !plain && 'border-slate-300 bg-white shadow-[0_0_0_3px_rgba(148,163,184,0.12)]',
+          isFocused && !plain && 'border-slate-300 bg-white shadow-[0_0_0_3px_rgba(148,163,184,0.15)]',
           isFocused && plain && 'border-ring/60 bg-transparent ring-2 ring-ring/15',
         )}
       >
         <span
           className={cn(
-            'inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-slate-400 shadow-sm',
+            'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-slate-400 shadow-sm transition-all duration-300',
             plain && 'h-4 w-4 rounded-none bg-transparent text-muted-foreground shadow-none',
-            isFocused && !plain && 'text-slate-700',
+            isFocused && !plain && 'bg-primary/8 text-primary shadow-none',
             isFocused && plain && 'text-primary',
           )}
         >
-          <Plus className="h-4 w-4" />
+          <Plus className={cn('h-4 w-4 transition-transform duration-300', isFocused ? 'rotate-90 scale-110' : 'rotate-0')} />
         </span>
         <input
           ref={inputRef}
@@ -85,12 +87,13 @@ const TaskAddComposer = ({ onSubmit, compact = false, plain = false, placeholder
         <Button
           type="submit"
           className={cn(
-            'tasks-fg__add-btn h-8 rounded-full px-4 text-[11px] font-semibold shadow-none',
+            'tasks-fg__add-btn h-8 shrink-0 rounded-full px-4 text-[11px] font-semibold shadow-none transition-all duration-200',
             compact ? 'h-7 px-3 text-[10px]' : '',
-            plain ? 'shrink-0 rounded-md px-4 text-xs' : '',
+            plain ? 'rounded-md px-4 text-xs' : '',
+            hasText ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2 pointer-events-none',
           )}
           size="sm"
-          disabled={title.trim().length === 0}
+          disabled={!hasText}
         >
           {t('modules.tasks.add')}
         </Button>

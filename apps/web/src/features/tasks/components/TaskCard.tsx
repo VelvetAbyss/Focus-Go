@@ -76,16 +76,22 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
 
     const deadline = getTaskDeadlineState(task, now)
 
+    const priorityStripeClass =
+      priorityKey === 'high' ? 'task-card--priority-high' :
+      priorityKey === 'medium' ? 'task-card--priority-medium' :
+      priorityKey === 'low' ? 'task-card--priority-low' : ''
+
     return (
       <div
         ref={ref}
         className={cn(
           'task-card-shell group relative overflow-hidden cursor-pointer rounded-lg bg-card shadow-[0_2px_6px_rgba(58,55,51,0.08)]',
-          'hover:-translate-y-[1px] hover:shadow-[0_8px_18px_rgba(58,55,51,0.13)]',
-          task.status === 'done' && 'opacity-75',
+          'hover:-translate-y-[2px] hover:shadow-[0_10px_24px_rgba(58,55,51,0.14)]',
+          task.status === 'done' && 'opacity-70',
           compact && 'rounded-md',
           selected && 'ring-2 ring-[#3A3733]/35',
           deadline.shellClass,
+          priorityStripeClass,
         )}
         style={style}
         {...(interactive ? dragAttributes : undefined)}
@@ -117,8 +123,8 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
             {task.pinned ? <Pin className="mt-0.5 size-3.5 shrink-0 fill-amber-500 text-amber-500" /> : null}
             <h4
               className={cn(
-                'task-card__title flex-1 text-[0.95rem] font-semibold leading-[1.35] tracking-[0.005em] line-clamp-2',
-                task.status === 'done' && 'text-muted-foreground line-through',
+                'task-card__title flex-1 text-[0.95rem] font-semibold leading-[1.35] tracking-[0.005em] line-clamp-2 transition-colors duration-300',
+                task.status === 'done' ? 'text-muted-foreground line-through decoration-[#3A3733]/30' : 'text-foreground',
               )}
             >
               {task.title}
@@ -163,13 +169,13 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
             <div
               data-testid="task-card-actions"
               className={cn(
-                'task-card__actions grid overflow-hidden group-focus-within:grid-rows-[1fr] group-focus-within:translate-y-0 group-focus-within:pt-1 group-focus-within:opacity-100',
-                isHovered ? 'grid-rows-[1fr] translate-y-0 pt-1 opacity-100' : 'grid-rows-[0fr] -translate-y-1 pt-0 opacity-0',
+                'task-card__actions grid overflow-hidden group-focus-within:grid-rows-[1fr] group-focus-within:translate-y-0 group-focus-within:pt-1.5 group-focus-within:opacity-100',
+                isHovered ? 'grid-rows-[1fr] translate-y-0 pt-1.5 opacity-100' : 'grid-rows-[0fr] -translate-y-2 pt-0 opacity-0',
               )}
               onClick={(event) => event.stopPropagation()}
             >
               <div className="min-h-0 overflow-hidden">
-                <div className="flex items-center gap-0.5 border-t border-transparent pt-1">
+                <div className="flex items-center gap-0.5 border-t border-[#3A3733]/8 pt-1.5">
                   {statusActions?.map((action) => {
                     const icon =
                       action.key === 'doing' || action.key === 'start' ? Play :

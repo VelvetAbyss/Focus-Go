@@ -558,6 +558,9 @@ const TaskDrawer = ({
     setTagDraft('')
   }
 
+  const doneCount = subtasks.filter((s) => s.done).length
+  const allDone = subtasks.length > 0 && doneCount === subtasks.length
+
   return (
     <Dialog
       open={open}
@@ -569,93 +572,141 @@ const TaskDrawer = ({
     >
       {currentTask ? (
         <div ref={panelRef} className="task-drawer-shell task-detail-shell relative flex h-full min-h-0 flex-col overflow-hidden">
+          {/* Edge resize handles */}
           <div className="absolute inset-y-0 left-0 z-20 w-3 cursor-ew-resize" onPointerDown={(event) => beginWidthResize(event, 'left')} />
           <div className="absolute inset-y-0 right-0 z-20 w-3 cursor-ew-resize" onPointerDown={(event) => beginWidthResize(event, 'right')} />
           <div className="absolute bottom-1 right-1 z-20 h-4 w-4 cursor-ew-resize" onPointerDown={(event) => beginWidthResize(event, 'right')} />
-          <div className="task-detail-topbar flex items-center justify-between gap-4 border-b border-[#3a3733]/6 px-6 py-4">
-            <div className="task-detail-topbar__state flex min-w-0 items-center gap-3">
-              <Badge variant="outline" className={cn('task-detail-status-badge rounded-full border px-3 py-1 text-[11px] font-semibold', statusConfig.badge)}>
+
+          {/* ─── TOPBAR ─── */}
+          <div className="task-detail-topbar flex items-center justify-between gap-3 border-b border-[#3a3733]/6 px-5 py-3.5">
+            <div className="task-detail-topbar__state flex min-w-0 items-center gap-2.5">
+              <span
+                className={cn(
+                  'h-2 w-2 shrink-0 rounded-full ring-2 ring-offset-1 ring-offset-[color:var(--bg)]',
+                  priorityConfig.dot,
+                  priority === 'high' ? 'ring-rose-300/50' :
+                  priority === 'medium' ? 'ring-amber-300/50' :
+                  priority === 'low' ? 'ring-cyan-300/50' : 'ring-transparent',
+                )}
+              />
+              <Badge variant="outline" className={cn('task-detail-status-badge rounded-full border px-2.5 py-0.5 text-[11px] font-semibold', statusConfig.badge)}>
                 <span className={cn('mr-1.5 h-1.5 w-1.5 rounded-full', statusConfig.dot)} />
                 {t(statusConfig.labelKey)}
               </Badge>
               <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[color:var(--text-secondary)]">
-                {isSaving ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5 text-emerald-500" />}
+                {isSaving
+                  ? <LoaderCircle className="h-3 w-3 animate-spin" />
+                  : <Check className="h-3 w-3 text-emerald-500" />}
                 {isSaving ? t('modules.note.saveState.saving') : t('tasks.status.saved')}
               </span>
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="task-detail-actions flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              <div className="task-detail-actions flex items-center gap-1.5">
                 {currentTask.status === 'todo' ? (
                   <>
-                    <Button variant="outline" size="sm" className="task-detail-action-button h-8 rounded-full px-3 text-[11px] font-semibold" onClick={() => void handleStatusChange('doing')} disabled={isSaving}>
+                    <Button variant="outline" size="sm"
+                      className="h-8 rounded-full border-[#3a3733]/15 px-3.5 text-[11px] font-semibold hover:border-[#3a3733]/25 hover:bg-[color:var(--surface-hover)]"
+                      onClick={() => void handleStatusChange('doing')} disabled={isSaving}>
                       <Target className="mr-1.5 h-3.5 w-3.5" />
                       {t('tasks.action.start')}
                     </Button>
-                    <Button variant="outline" size="sm" className="task-detail-action-button h-8 rounded-full px-3 text-[11px] font-semibold" onClick={() => void handleStatusChange('done')} disabled={isSaving}>
+                    <Button size="sm"
+                      className="h-8 rounded-full border-0 bg-emerald-600 px-3.5 text-[11px] font-semibold text-white hover:bg-emerald-700"
+                      onClick={() => void handleStatusChange('done')} disabled={isSaving}>
                       <Check className="mr-1.5 h-3.5 w-3.5" />
                       {t('tasks.action.done')}
                     </Button>
                   </>
                 ) : null}
                 {currentTask.status === 'doing' ? (
-                  <Button variant="outline" size="sm" className="task-detail-action-button h-8 rounded-full px-3 text-[11px] font-semibold" onClick={() => void handleStatusChange('done')} disabled={isSaving}>
+                  <Button size="sm"
+                    className="h-8 rounded-full border-0 bg-emerald-600 px-3.5 text-[11px] font-semibold text-white hover:bg-emerald-700"
+                    onClick={() => void handleStatusChange('done')} disabled={isSaving}>
                     <Check className="mr-1.5 h-3.5 w-3.5" />
                     {t('tasks.action.done')}
                   </Button>
                 ) : null}
                 {currentTask.status === 'done' ? (
-                  <Button variant="outline" size="sm" className="task-detail-action-button h-8 rounded-full px-3 text-[11px] font-semibold" onClick={() => void handleStatusChange('todo')} disabled={isSaving}>
+                  <Button variant="outline" size="sm"
+                    className="h-8 rounded-full border-[#3a3733]/15 px-3.5 text-[11px] font-semibold hover:border-[#3a3733]/25"
+                    onClick={() => void handleStatusChange('todo')} disabled={isSaving}>
                     <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
                     {t('tasks.status.reopen')}
                   </Button>
                 ) : null}
               </div>
-              <Button aria-label="Delete task" variant="ghost" size="icon" className="h-8 w-8 rounded-full text-[color:var(--text-secondary)] hover:bg-[color:rgba(127,29,29,0.12)] hover:text-rose-500" onClick={() => requireAuth(() => { void handleDelete() })} disabled={isSaving}>
-                <Trash2 className="h-4 w-4" />
+              <Button aria-label="Delete task" variant="ghost" size="icon"
+                className="h-8 w-8 rounded-full text-[color:var(--text-secondary)] transition-colors hover:bg-rose-50 hover:text-rose-500"
+                onClick={() => requireAuth(() => { void handleDelete() })} disabled={isSaving}>
+                <Trash2 className="h-3.5 w-3.5" />
               </Button>
-              <Button aria-label="Close task detail" variant="ghost" size="icon" className="h-8 w-8 rounded-full text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-hover)] hover:text-[color:var(--text-primary)]" onClick={requestClose}>
-                <X className="h-4 w-4" />
+              <Button aria-label="Close task detail" variant="ghost" size="icon"
+                className="h-8 w-8 rounded-full text-[color:var(--text-secondary)] transition-colors hover:bg-[color:var(--surface-hover)] hover:text-[color:var(--text-primary)]"
+                onClick={requestClose}>
+                <X className="h-3.5 w-3.5" />
               </Button>
             </div>
           </div>
 
+          {/* ─── SPLIT LAYOUT ─── */}
           <div className="task-detail-layout grid min-h-0 flex-1" style={{ gridTemplateColumns: `${leftRatio}fr 10px ${1 - leftRatio}fr` }}>
+
+            {/* ════ LEFT PANE ════ */}
             <ScrollArea className="task-detail-pane task-detail-pane--left min-h-0">
-              <div className="task-detail-column space-y-6 px-6 py-6">
-                <div className="task-detail-card task-detail-card--hero rounded-[28px] border border-[#3a3733]/6 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.05)]">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0 flex-1">
-                      <Input
-                        value={title}
-                        onChange={(event) => setTitle(event.target.value)}
-                        className="task-detail-title-input h-auto border-0 bg-transparent px-0 py-0 text-[28px] font-semibold tracking-[-0.03em] text-[color:var(--text-primary)] shadow-none focus-visible:ring-0 md:text-[32px]"
-                        placeholder={t('tasks.drawer.title')}
-                      />
-                      <div className="mt-4 flex flex-wrap items-center gap-2 text-[12px] text-[color:var(--text-secondary)]">
-                        <span className="inline-flex items-center gap-1">
-                          <CalendarDays className="h-3.5 w-3.5" />
-                          {t('tasks.drawer.created')} {formatTaskDateTime(currentTask.createdAt)}
-                        </span>
-                        <span className="text-slate-300">•</span>
-                        <span className="inline-flex items-center gap-1">
-                          <Clock3 className="h-3.5 w-3.5" />
-                          {t('tasks.drawer.updated')} {formatTaskDateTime(currentTask.updatedAt)}
-                        </span>
-                        {currentTask.pinned ? (
-                          <>
-                            <span className="text-slate-300">•</span>
-                            <span className="inline-flex items-center gap-1 text-amber-600">
-                              <Pin className="h-3.5 w-3.5 fill-current" />
-                              {t('tasks.drawer.pinned')}
-                            </span>
-                          </>
-                        ) : null}
-                      </div>
+              <div className="task-detail-column space-y-5 px-6 py-6">
+
+                {/* ── HERO CARD ── */}
+                <div
+                  className="task-detail-card task-detail-card--hero tdv2-section-enter relative overflow-hidden rounded-[28px] border border-[#3a3733]/6 p-7 shadow-[0_24px_60px_rgba(15,23,42,0.06)]"
+                  style={{ animationDelay: '0ms' }}
+                >
+                  {/* Priority left accent bar */}
+                  <div className={cn(
+                    'absolute bottom-0 left-0 top-0 w-1.5 rounded-r-full transition-colors duration-300',
+                    priority === 'high' ? 'bg-rose-500' :
+                    priority === 'medium' ? 'bg-amber-400' :
+                    priority === 'low' ? 'bg-cyan-500' : 'bg-transparent',
+                  )} />
+
+                  <div className="pl-3">
+                    <Input
+                      value={title}
+                      onChange={(event) => setTitle(event.target.value)}
+                      className="task-detail-title-input h-auto border-0 bg-transparent px-0 py-0 text-[30px] font-bold leading-[1.15] tracking-[-0.04em] text-[color:var(--text-primary)] shadow-none focus-visible:ring-0"
+                      placeholder={t('tasks.drawer.title')}
+                    />
+                    <div className="mt-3 flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-[11px] font-medium text-[color:var(--text-secondary)]">
+                      <span className="inline-flex items-center gap-1.5">
+                        <CalendarDays className="h-3 w-3" />
+                        {t('tasks.drawer.created')} {formatTaskDateTime(currentTask.createdAt)}
+                      </span>
+                      <span className="h-[3px] w-[3px] rounded-full bg-[color:var(--text-secondary)] opacity-30" />
+                      <span className="inline-flex items-center gap-1.5">
+                        <Clock3 className="h-3 w-3" />
+                        {t('tasks.drawer.updated')} {formatTaskDateTime(currentTask.updatedAt)}
+                      </span>
+                      {currentTask.pinned ? (
+                        <>
+                          <span className="h-[3px] w-[3px] rounded-full bg-[color:var(--text-secondary)] opacity-30" />
+                          <span className="inline-flex items-center gap-1 text-amber-600">
+                            <Pin className="h-3 w-3 fill-current" />
+                            {t('tasks.drawer.pinned')}
+                          </span>
+                        </>
+                      ) : null}
                     </div>
-                    <div className="min-w-[120px]">
+
+                    {/* Status · Priority selector · Reminder inline row */}
+                    <div className="mt-5 flex flex-wrap items-center gap-2">
+                      <Badge variant="outline" className={cn('rounded-full border px-2.5 py-0.5 text-[11px] font-semibold', statusConfig.badge)}>
+                        <span className={cn('mr-1.5 h-1.5 w-1.5 rounded-full', statusConfig.dot)} />
+                        {t(statusConfig.labelKey)}
+                      </Badge>
+
                       <ShadcnSelect value={priority ?? '__none'} onValueChange={(value) => setPriority(value === '__none' ? null : (value as TaskPriority))}>
-                        <SelectTrigger className="task-detail-select-trigger h-9 rounded-[14px] border-[#3a3733]/8 bg-[color:var(--surface)] px-3 text-sm font-semibold">
+                        <SelectTrigger className="task-detail-select-trigger tdv2-priority-select h-7 w-auto min-w-0 gap-1.5 rounded-full border px-3 text-[11px] font-semibold">
+                          <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', priorityConfig.dot)} />
                           <SelectValue placeholder={t('tasks.drawer.none')} />
                         </SelectTrigger>
                         <SelectContent>
@@ -667,79 +718,63 @@ const TaskDrawer = ({
                           ))}
                         </SelectContent>
                       </ShadcnSelect>
-                    </div>
-                  </div>
 
-                  <div className="mt-5 grid gap-3 md:grid-cols-3">
-                    <div className="task-detail-card-inset rounded-[20px] border border-[#3a3733]/6 p-4">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">{t('tasks.drawer.status')}</p>
-                      <div className="mt-3">
-                        <Badge variant="outline" className={cn('rounded-full border px-3 py-1 text-[11px] font-semibold', statusConfig.badge)}>
-                          <span className={cn('mr-1.5 h-1.5 w-1.5 rounded-full', statusConfig.dot)} />
-                          {t(statusConfig.labelKey)}
-                        </Badge>
-                      </div>
-                    </div>
-                    <div className="task-detail-card-inset rounded-[20px] border border-[#3a3733]/6 p-4">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">{t('tasks.drawer.priority')}</p>
-                      <div className="mt-3">
-                        <Badge variant="secondary" className={cn('rounded-full px-3 py-1 text-[11px] font-semibold', priorityConfig.badge)}>
-                          <span className={cn('mr-1.5 h-1.5 w-1.5 rounded-full', priorityConfig.dot)} />
-                          {t(priorityConfig.labelKey)}
-                        </Badge>
-                      </div>
-                    </div>
-                    <div className="task-detail-card-inset rounded-[20px] border border-[#3a3733]/6 p-4">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">{t('tasks.drawer.reminderTimestamp')}</p>
-                      <p className="mt-3 text-[12px] font-medium text-[color:var(--text-secondary)]">{reminderAtIso}</p>
+                      {reminderAtIso !== '—' && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-[#3a3733]/8 bg-[color:var(--bg-muted)] px-2.5 py-0.5 text-[11px] font-medium text-[color:var(--text-secondary)]">
+                          <Clock3 className="h-3 w-3" />
+                          {reminderAtIso}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                <section className="task-detail-card rounded-[26px] border border-[#3a3733]/6 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="task-detail-kicker text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">{t('tasks.drawer.details')}</p>
-                      <h2 className="task-detail-title mt-1 text-[18px] font-semibold tracking-[-0.02em] text-[color:var(--text-primary)]">{t('tasks.drawer.coreProperties')}</h2>
-                    </div>
-                  </div>
+                {/* ── CORE PROPERTIES ── */}
+                <section
+                  className="task-detail-card tdv2-section-enter rounded-[26px] border border-[#3a3733]/6 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.04)]"
+                  style={{ animationDelay: '40ms' }}
+                >
+                  <p className="task-detail-kicker">{t('tasks.drawer.details')}</p>
+                  <h2 className="task-detail-title mt-0.5">{t('tasks.drawer.coreProperties')}</h2>
 
-                  <div className="mt-5 grid gap-4 md:grid-cols-2">
-                    <div className="rounded-[18px] border border-[#3a3733]/6 bg-[color:var(--bg-muted)] px-4 py-3 md:col-span-2">
-                      <div className="flex items-center justify-between gap-4">
-                        <div>
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">{t('tasks.today.title')}</p>
-                          <p className="mt-1 text-[13px] text-[color:var(--text-secondary)]">{t('tasks.today.switchHint')}</p>
-                        </div>
-                        <Switch checked={isToday} onCheckedChange={setIsToday} aria-label={t('tasks.today.title')} />
+                  <div className="mt-4 space-y-3">
+                    {/* Today toggle */}
+                    <div className="flex items-center justify-between rounded-[18px] border border-[#3a3733]/6 bg-[color:var(--bg-muted)] px-4 py-3">
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-semibold text-[color:var(--text-primary)]">{t('tasks.today.title')}</p>
+                        <p className="mt-0.5 text-[11px] text-[color:var(--text-secondary)]">{t('tasks.today.switchHint')}</p>
                       </div>
+                      <Switch checked={isToday} onCheckedChange={setIsToday} aria-label={t('tasks.today.title')} />
                     </div>
 
-                    <label className="grid gap-2">
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">{t('tasks.drawer.dueDate')}</span>
-                      <DatePicker value={dueDate} onChange={(date) => setDueDate(date ?? '')} placeholder={t('tasks.drawer.setDate')} className="task-detail-picker rounded-[14px]" />
-                    </label>
+                    {/* Due date + reminder */}
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <label className="grid gap-1.5">
+                        <span className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--text-secondary)]">{t('tasks.drawer.dueDate')}</span>
+                        <DatePicker value={dueDate} onChange={(date) => setDueDate(date ?? '')} placeholder={t('tasks.drawer.setDate')} className="task-detail-picker rounded-[14px]" />
+                      </label>
+                      <label className="grid gap-1.5">
+                        <span className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--text-secondary)]">{t('tasks.drawer.reminder')}</span>
+                        <DateTimePicker
+                          dateValue={reminderDate}
+                          timeValue={reminderTime}
+                          onDateChange={(date) => {
+                            const nextDate = date ?? ''
+                            setReminderDate(nextDate)
+                            if (!nextDate) setReminderTime('')
+                          }}
+                          onTimeChange={(time) => setReminderTime(time ?? '')}
+                          placeholder={t('tasks.drawer.setReminder')}
+                          ariaLabel={t('tasks.drawer.reminder')}
+                          className="w-full"
+                          triggerClassName="task-detail-picker rounded-[14px]"
+                        />
+                      </label>
+                    </div>
 
-                    <label className="grid gap-2">
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">{t('tasks.drawer.reminder')}</span>
-                      <DateTimePicker
-                        dateValue={reminderDate}
-                        timeValue={reminderTime}
-                        onDateChange={(date) => {
-                          const nextDate = date ?? ''
-                          setReminderDate(nextDate)
-                          if (!nextDate) setReminderTime('')
-                        }}
-                        onTimeChange={(time) => setReminderTime(time ?? '')}
-                        placeholder={t('tasks.drawer.setReminder')}
-                        ariaLabel={t('tasks.drawer.reminder')}
-                        className="w-full"
-                        triggerClassName="task-detail-picker rounded-[14px]"
-                      />
-                    </label>
-
-                    <label className="grid gap-2 md:col-span-2">
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">{t('tasks.drawer.dateRange')}</span>
+                    {/* Date range */}
+                    <label className="grid gap-1.5">
+                      <span className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--text-secondary)]">{t('tasks.drawer.dateRange')}</span>
                       <DateRangePicker
                         value={{ startDate, endDate }}
                         className="task-detail-picker rounded-[14px]"
@@ -750,34 +785,40 @@ const TaskDrawer = ({
                       />
                     </label>
 
-                    <label className="grid gap-2 md:col-span-2">
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">{t('tasks.drawer.summary')}</span>
+                    {/* Summary */}
+                    <label className="grid gap-1.5">
+                      <span className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--text-secondary)]">{t('tasks.drawer.summary')}</span>
                       <Textarea
                         value={description}
                         onChange={(event) => setDescription(event.target.value)}
-                        className="min-h-[100px] rounded-[18px] border-[#3a3733]/8 bg-[color:var(--bg-muted)] text-[13px] leading-6 shadow-none"
+                        className="min-h-[90px] resize-none rounded-[16px] border-[#3a3733]/8 bg-[color:var(--bg-muted)] text-[13px] leading-6 shadow-none"
                         placeholder={t('tasks.drawer.summaryPlaceholder')}
                       />
                     </label>
                   </div>
                 </section>
 
-                <section className="task-detail-card rounded-[26px] border border-[#3a3733]/6 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+                {/* ── TAGS ── */}
+                <section
+                  className="task-detail-card tdv2-section-enter rounded-[26px] border border-[#3a3733]/6 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.04)]"
+                  style={{ animationDelay: '80ms' }}
+                >
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <p className="task-detail-kicker text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">{t('tasks.drawer.tags')}</p>
-                      <h2 className="task-detail-title mt-1 text-[18px] font-semibold tracking-[-0.02em] text-[color:var(--text-primary)]">{t('tasks.drawer.tagContext')}</h2>
+                      <p className="task-detail-kicker">{t('tasks.drawer.tags')}</p>
+                      <h2 className="task-detail-title mt-0.5">{t('tasks.drawer.tagContext')}</h2>
                     </div>
                     <Popover open={tagPickerOpen} onOpenChange={setTagPickerOpen}>
                       <PopoverTrigger asChild>
-                        <Button type="button" variant="outline" size="sm" className="task-detail-action-button h-9 rounded-full px-4 text-[11px] font-semibold">
+                        <Button type="button" variant="outline" size="sm"
+                          className="h-8 rounded-full border-[#3a3733]/12 px-3.5 text-[11px] font-semibold hover:bg-[color:var(--surface-hover)]">
                           <Plus className="mr-1.5 h-3.5 w-3.5" />
                           {t('tasks.drawer.newTag')}
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-[280px] rounded-[22px] border border-[#3a3733]/8 p-3 shadow-[0_20px_50px_rgba(15,23,42,0.12)]" align="end" sideOffset={12}>
-                        <div className="space-y-3">
-                          <div className="grid gap-2">
+                      <PopoverContent className="w-[260px] rounded-[20px] border border-[#3a3733]/8 p-3 shadow-[0_20px_50px_rgba(15,23,42,0.12)]" align="end" sideOffset={10}>
+                        <div className="space-y-2.5">
+                          <div className="space-y-0.5">
                             {tagOptions.map((tagName) => {
                               const selected = tags.some((item) => item.toLowerCase() === tagName.toLowerCase())
                               const tone = getTaskTagTone(tagName)
@@ -785,27 +826,32 @@ const TaskDrawer = ({
                                 <button
                                   key={tagName}
                                   type="button"
-                                  className={cn('flex items-center justify-between rounded-[16px] px-3 py-2 text-left transition', selected ? 'bg-[color:var(--surface-hover)]' : 'hover:bg-[color:var(--surface-hover)]')}
+                                  className={cn(
+                                    'flex w-full items-center justify-between rounded-[13px] px-3 py-2 text-left transition-colors',
+                                    selected ? 'bg-[color:var(--surface-hover)]' : 'hover:bg-[color:var(--surface-hover)]',
+                                  )}
                                   onClick={() => toggleTag(tagName)}
                                 >
-                                  <span className={cn('task-detail-tag inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[11px] font-medium', tone.badge)}>
+                                  <span className={cn('task-detail-tag inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium', tone.badge)}>
                                     <span className={cn('h-1.5 w-1.5 rounded-full', tone.dot)} />
                                     {tagName}
                                   </span>
-                                  {selected ? <Check className="h-3.5 w-3.5 text-[color:var(--text-secondary)]" /> : null}
+                                  {selected ? <Check className="h-3 w-3 text-[color:var(--text-secondary)]" /> : null}
                                 </button>
                               )
                             })}
                           </div>
                           <form
                             className="flex items-center gap-2"
-                            onSubmit={(event) => {
-                              event.preventDefault()
-                              addCustomTag()
-                            }}
+                            onSubmit={(event) => { event.preventDefault(); addCustomTag() }}
                           >
-                            <Input value={tagDraft} onChange={(event) => setTagDraft(event.target.value)} placeholder={t('tasks.drawer.customTag')} className="h-10 rounded-[14px] border-[#3a3733]/8 bg-[color:var(--bg-muted)] text-[13px]" />
-                            <Button type="submit" size="sm" className="h-10 rounded-full px-4 text-[11px] font-semibold" disabled={!tagDraft.trim()}>
+                            <Input
+                              value={tagDraft}
+                              onChange={(event) => setTagDraft(event.target.value)}
+                              placeholder={t('tasks.drawer.customTag')}
+                              className="h-9 rounded-[12px] border-[#3a3733]/8 bg-[color:var(--bg-muted)] text-[13px]"
+                            />
+                            <Button type="submit" size="sm" className="h-9 shrink-0 rounded-full px-3.5 text-[11px] font-semibold" disabled={!tagDraft.trim()}>
                               {t('tasks.drawer.add')}
                             </Button>
                           </form>
@@ -813,7 +859,7 @@ const TaskDrawer = ({
                       </PopoverContent>
                     </Popover>
                   </div>
-                  <div className="mt-5 flex flex-wrap gap-2">
+                  <div className="mt-4 flex flex-wrap gap-2">
                     {tags.length > 0 ? (
                       tags.map((tagName) => {
                         const tone = getTaskTagTone(tagName)
@@ -830,20 +876,36 @@ const TaskDrawer = ({
                   </div>
                 </section>
 
-                <section className="task-detail-card-shell">
-                  <div className="task-detail-card rounded-[26px] border border-[#3a3733]/6 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
-                    <p className="task-detail-kicker text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">{t('tasks.drawer.activity')}</p>
-                    <h2 className="task-detail-title mt-1 text-[18px] font-semibold tracking-[-0.02em] text-[color:var(--text-primary)]">{t('tasks.drawer.systemTimeline')}</h2>
-                    <div className="mt-4 space-y-3">
+                {/* ── ACTIVITY ── */}
+                <section
+                  className="task-detail-card-shell tdv2-section-enter"
+                  style={{ animationDelay: '120ms' }}
+                >
+                  <div className="task-detail-card rounded-[26px] border border-[#3a3733]/6 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.04)]">
+                    <p className="task-detail-kicker">{t('tasks.drawer.activity')}</p>
+                    <h2 className="task-detail-title mt-0.5">{t('tasks.drawer.systemTimeline')}</h2>
+                    <div className="mt-4">
                       {activityLogs.length === 0 ? (
-                        <p className="rounded-[18px] border border-dashed border-[#3a3733]/10 bg-[color:var(--bg-muted)] px-4 py-6 text-[13px] text-[color:var(--text-secondary)]">{t('tasks.drawer.noActivity')}</p>
+                        <div className="rounded-[16px] border border-dashed border-[#3a3733]/10 bg-[color:var(--bg-muted)] px-4 py-5 text-center text-[13px] text-[color:var(--text-secondary)]">
+                          {t('tasks.drawer.noActivity')}
+                        </div>
                       ) : (
-                        activityLogs.map((log) => (
-                          <article key={log.id} className="rounded-[18px] border border-[#3a3733]/6 bg-[color:var(--bg-muted)] px-4 py-3">
-                            <p className="text-[13px] leading-6 text-[color:var(--text-primary)]">{localizeActivityMessage(log.message, t)}</p>
-                            <p className="mt-2 text-[11px] font-medium text-[color:var(--text-secondary)]">{formatTaskDateTime(log.createdAt)}</p>
-                          </article>
-                        ))
+                        <div className="tdv2-timeline">
+                          {activityLogs.map((log, index) => (
+                            <div
+                              key={log.id}
+                              className={cn('tdv2-timeline-item', index < activityLogs.length - 1 && 'tdv2-timeline-item--lined')}
+                            >
+                              <div className="tdv2-timeline-dot" />
+                              <div className="tdv2-timeline-content">
+                                <p className="text-[13px] font-medium leading-[1.4] text-[color:var(--text-primary)]">
+                                  {localizeActivityMessage(log.message, t)}
+                                </p>
+                                <p className="mt-1 text-[11px] text-[color:var(--text-secondary)]">{formatTaskDateTime(log.createdAt)}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -851,53 +913,98 @@ const TaskDrawer = ({
               </div>
             </ScrollArea>
 
+            {/* ─── DIVIDER ─── */}
             <button
               type="button"
               aria-label={t('tasks.drawer.resizeColumns')}
-              className="group relative h-full w-[10px] cursor-col-resize border-x border-[#3a3733]/6 bg-[color:var(--bg-muted)] transition-colors hover:bg-[color:var(--surface-hover)]"
+              className="group relative h-full cursor-col-resize border-x border-[#3a3733]/6 bg-[color:var(--bg-muted)] transition-colors hover:bg-[color:var(--surface-hover)]"
               onPointerDown={beginSplitResize}
               onDoubleClick={toggleSplitPreset}
             >
-              <span className="absolute left-1/2 top-1/2 h-14 w-[2px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[color:var(--border)] transition-colors group-hover:bg-[color:var(--text-secondary)]" />
+              <span className="absolute left-1/2 top-1/2 h-14 w-[2px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#3a3733]/12 transition-all duration-200 group-hover:h-20 group-hover:bg-[#3a3733]/28" />
             </button>
 
+            {/* ════ RIGHT PANE ════ */}
             <aside className="task-detail-aside flex min-h-0 flex-col">
               <ScrollArea className="task-detail-pane task-detail-pane--right min-h-0 flex-1">
-                <div className="task-detail-column space-y-5 px-5 py-6">
-                  <section className="task-detail-card task-detail-card--side rounded-[24px] border border-[#3a3733]/6 p-4 shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="task-detail-kicker text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">{t('tasks.drawer.subtasks')}</p>
-                        <h2 className="task-detail-title mt-1 text-[17px] font-semibold tracking-[-0.02em] text-[color:var(--text-primary)]">{t('tasks.drawer.executionChecklist')}</h2>
+                <div className="task-detail-column space-y-4 px-5 py-6">
+
+                  {/* ── SUBTASKS ── */}
+                  <section
+                    className="task-detail-card task-detail-card--side tdv2-section-enter rounded-[24px] border border-[#3a3733]/6 p-4 shadow-[0_14px_40px_rgba(15,23,42,0.05)]"
+                    style={{ animationDelay: '60ms' }}
+                  >
+                    {/* Header row */}
+                    <div className="mb-4 flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="task-detail-kicker">{t('tasks.drawer.subtasks')}</p>
+                        <div className="mt-0.5 flex items-center gap-2">
+                          <h2 className="task-detail-title">{t('tasks.drawer.executionChecklist')}</h2>
+                          {subtasks.length > 0 && (
+                            <span className={cn(
+                              'rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums transition-colors duration-300',
+                              allDone ? 'bg-emerald-100 text-emerald-700' : 'bg-[color:var(--bg-muted)] text-[color:var(--text-secondary)]',
+                            )}>
+                              {doneCount}/{subtasks.length}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div className="inline-flex items-center gap-1 rounded-full border border-[#3a3733]/8 bg-[color:var(--bg-muted)] p-1">
-                        {([
-                          { key: 'all', label: t('tasks.drawer.subtaskFilterAll') },
-                          { key: 'todo', label: t('tasks.drawer.subtaskFilterTodo') },
-                          { key: 'done', label: t('tasks.drawer.subtaskFilterDone') },
-                        ] as const).map((option) => (
-                          <button
-                            key={option.key}
-                            type="button"
-                            onClick={() => setSubtaskFilter(option.key)}
-                            className={cn(
-                              'rounded-full px-2.5 py-1 text-[10px] font-semibold transition-colors',
-                              subtaskFilter === option.key
-                                ? 'bg-[#3a3733] text-[#f5f3f0]'
-                                : 'text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-hover)] hover:text-[color:var(--text-primary)]',
-                            )}
-                          >
-                            {option.label}
-                          </button>
-                        ))}
+
+                      <div className="flex shrink-0 flex-col items-end gap-2">
+                        {/* Progress ring */}
+                        {subtasks.length > 0 && (
+                          <div className="tdv2-progress-ring">
+                            <svg viewBox="0 0 36 36" className="h-9 w-9 -rotate-90">
+                              <circle cx="18" cy="18" r="14" fill="none" stroke="currentColor" strokeWidth="3" className="text-[#3a3733]/8" />
+                              <circle
+                                cx="18" cy="18" r="14"
+                                fill="none" stroke="currentColor" strokeWidth="3"
+                                strokeDasharray={`${2 * Math.PI * 14}`}
+                                strokeDashoffset={`${2 * Math.PI * 14 * (1 - doneCount / subtasks.length)}`}
+                                strokeLinecap="round"
+                                className={cn(
+                                  'transition-all duration-500',
+                                  allDone ? 'text-emerald-500' : 'text-teal-500',
+                                )}
+                              />
+                            </svg>
+                          </div>
+                        )}
+                        {/* Filter tabs */}
+                        <div className="inline-flex items-center gap-0.5 rounded-full border border-[#3a3733]/8 bg-[color:var(--bg-muted)] p-0.5">
+                          {([
+                            { key: 'all', label: t('tasks.drawer.subtaskFilterAll') },
+                            { key: 'todo', label: t('tasks.drawer.subtaskFilterTodo') },
+                            { key: 'done', label: t('tasks.drawer.subtaskFilterDone') },
+                          ] as const).map((option) => (
+                            <button
+                              key={option.key}
+                              type="button"
+                              onClick={() => setSubtaskFilter(option.key)}
+                              className={cn(
+                                'rounded-full px-2.5 py-1 text-[10px] font-semibold transition-all duration-200',
+                                subtaskFilter === option.key
+                                  ? 'bg-[#3a3733] text-[#f5f3f0] shadow-sm'
+                                  : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]',
+                              )}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
 
-                    <div className="mt-4 space-y-2">
+                    {/* Subtask list */}
+                    <div className="space-y-1.5">
                       {visibleSubtasks.length > 0 ? (
                         visibleSubtasks.map((subtask) => (
-                          <div key={subtask.id} className="rounded-[18px] border border-[#3a3733]/6 bg-[color:var(--bg-muted)] px-3 py-3">
-                            <div className="task-popup-detail__subtask-checkbox-row flex items-center gap-3">
+                          <div
+                            key={subtask.id}
+                            className="group rounded-[15px] border border-[#3a3733]/6 bg-[color:var(--bg-muted)] px-3 py-2.5 transition-all duration-150 hover:border-[#3a3733]/12 hover:shadow-sm"
+                          >
+                            <div className="task-popup-detail__subtask-checkbox-row flex items-center gap-2.5">
                               <AnimatedPlanCheckbox
                                 checked={subtask.done}
                                 className="shrink-0 self-center"
@@ -919,21 +1026,27 @@ const TaskDrawer = ({
                                   className={cn('task-popup-detail__subtask-title-input', subtask.done && 'is-done')}
                                 />
                               </div>
-                              <Button type="button" variant="ghost" size="sm" className="h-7 rounded-full px-2.5 text-[10px] font-semibold text-[color:var(--text-secondary)] hover:bg-[color:rgba(127,29,29,0.12)] hover:text-rose-500" onClick={() => setSubtasks((prev) => prev.filter((item) => item.id !== subtask.id))}>
-                                {t('tasks.delete')}
-                              </Button>
+                              <button
+                                type="button"
+                                aria-label="Remove subtask"
+                                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[color:var(--text-secondary)] opacity-0 transition-all duration-150 hover:bg-rose-50 hover:text-rose-500 group-hover:opacity-100"
+                                onClick={() => setSubtasks((prev) => prev.filter((item) => item.id !== subtask.id))}
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
                             </div>
                           </div>
                         ))
                       ) : (
-                        <p className="rounded-[18px] border border-dashed border-[#3a3733]/10 bg-[color:var(--bg-muted)] px-4 py-6 text-[13px] text-[color:var(--text-secondary)]">
+                        <div className="rounded-[14px] border border-dashed border-[#3a3733]/10 bg-[color:var(--bg-muted)] px-4 py-5 text-center text-[12px] text-[color:var(--text-secondary)]">
                           {subtasks.length === 0 ? t('tasks.drawer.noSubtasks') : t('tasks.drawer.noSubtasksInFilter')}
-                        </p>
+                        </div>
                       )}
                     </div>
 
+                    {/* Add subtask composer */}
                     <form
-                      className="mt-4 flex items-center gap-2"
+                      className="mt-3 flex items-center gap-2"
                       onSubmit={(event) => {
                         event.preventDefault()
                         void subtaskComposer.submit()
@@ -944,22 +1057,30 @@ const TaskDrawer = ({
                         value={subtaskComposer.value}
                         onChange={(event) => subtaskComposer.setValue(event.target.value)}
                         onAnimationEnd={subtaskComposer.clearShake}
-                        className={cn('h-10 rounded-[14px] border-[#3a3733]/8 bg-[color:var(--bg-muted)] text-[13px]', subtaskComposer.isShaking && 'is-shaking')}
+                        className={cn(
+                          'h-9 flex-1 rounded-[12px] border-[#3a3733]/8 bg-[color:var(--bg-muted)] text-[13px]',
+                          subtaskComposer.isShaking && 'is-shaking',
+                        )}
                         placeholder={t('tasks.drawer.addSubtask')}
                       />
-                      <Button type="submit" className="h-10 rounded-full px-4 text-[11px] font-semibold" disabled={!subtaskComposer.canSubmit}>
+                      <Button type="submit" size="sm" className="h-9 shrink-0 rounded-full px-4 text-[11px] font-semibold" disabled={!subtaskComposer.canSubmit}>
                         {t('tasks.drawer.add')}
                       </Button>
                     </form>
                   </section>
 
-                  <section className="task-detail-card task-detail-card--side rounded-[24px] border border-[#3a3733]/6 p-4 shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
-                    <p className="task-detail-kicker text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">{t('tasks.drawer.note')}</p>
-                    <h2 className="task-detail-title mt-1 text-[17px] font-semibold tracking-[-0.02em] text-[color:var(--text-primary)]">{t('tasks.drawer.noteContext')}</h2>
-                    <div className="mt-4">
+                  {/* ── NOTES ── */}
+                  <section
+                    className="task-detail-card task-detail-card--side tdv2-section-enter rounded-[24px] border border-[#3a3733]/6 p-4 shadow-[0_14px_40px_rgba(15,23,42,0.05)]"
+                    style={{ animationDelay: '100ms' }}
+                  >
+                    <p className="task-detail-kicker">{t('tasks.drawer.note')}</p>
+                    <h2 className="task-detail-title mt-0.5">{t('tasks.drawer.noteContext')}</h2>
+                    <div className="mt-3">
                       <TaskNoteEditor key={currentTask.id} value={taskNoteSeed} onChange={handleTaskNoteChange} />
                     </div>
                   </section>
+
                 </div>
               </ScrollArea>
             </aside>

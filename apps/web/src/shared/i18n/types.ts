@@ -643,6 +643,8 @@ export type TranslationKey =
   | 'notes.pinned'
   | 'notes.recent'
   | 'notes.noNotesFound'
+  | 'notes.unselected.title'
+  | 'notes.unselected.description'
   | 'notes.newTag'
   | 'notes.enterFullscreen'
   | 'notes.exitFullscreen'
