@@ -37,6 +37,7 @@ const DashboardPage = () => {
   const widgetsPanelOpen = searchParams.get('widgetsPanel') === '1'
   const [confirmHideCardId, setConfirmHideCardId] = useState<string | null>(null)
   const [hideSubmitting, setHideSubmitting] = useState(false)
+  const [layoutLoaded, setLayoutLoaded] = useState(false)
   const layoutLockHydratedRef = useRef(false)
   const layoutSnapshotRef = useRef<{ layout: DashboardLayoutItem[]; hiddenCardIds: string[] }>({
     layout: [],
@@ -221,6 +222,7 @@ const DashboardPage = () => {
         }
         setLayout(merged)
         setHiddenCardIds(hidden)
+        setLayoutLoaded(true)
         return
       }
       const hidden = Array.from(new Set([...DEFAULT_DASHBOARD_HIDDEN_CARD_IDS, ...registryDefaultHidden])).filter((id) =>
@@ -249,6 +251,7 @@ const DashboardPage = () => {
 
       setLayout(fallback)
       setHiddenCardIds(hidden)
+      setLayoutLoaded(true)
       dashboardRepo.upsert({
         items: fallback,
         hiddenCardIds: hidden,
@@ -303,7 +306,7 @@ const DashboardPage = () => {
   )
 
   return (
-    <main className="dashboard" ref={containerRef} aria-label={t('dashboard.page')}>
+    <main className={`dashboard${layoutLoaded ? ' is-layout-loaded' : ''}`} ref={containerRef} aria-label={t('dashboard.page')}>
         <DashboardHeader
           layoutEdit={layoutEdit}
           widgetsPanelOpen={widgetsPanelOpen}
@@ -348,7 +351,7 @@ const DashboardPage = () => {
 
         {page === 'main' && mounted && (
           <GridLayout
-            className="dashboard__grid"
+            className={`dashboard__grid${layoutEdit ? ' dashboard__grid--edit-mode' : ''}`}
             layout={responsiveLayout.map((item) => ({
               i: item.key,
               x: item.x,
@@ -368,7 +371,7 @@ const DashboardPage = () => {
             }}
             dragConfig={{ enabled: false }}
             resizeConfig={{ enabled: false }}
-            positionStrategy={layoutEdit ? absoluteStrategy : undefined}
+            positionStrategy={absoluteStrategy}
             width={Math.max(width, 320)}
           >
             {visibleCards.map((card) => (

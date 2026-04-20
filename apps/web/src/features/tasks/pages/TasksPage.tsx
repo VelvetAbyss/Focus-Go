@@ -1,14 +1,22 @@
 import { useState } from 'react'
 import type { CSSProperties } from 'react'
-import { BarChart3, LayoutGrid } from 'lucide-react'
+import { BarChart3, LayoutGrid, ListTodo } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import TasksBoard from '../TasksBoard'
 import { useI18n } from '../../../shared/i18n/useI18n'
+import type { TranslationKey } from '../../../shared/i18n/types'
 import { useTasksViewportProfile } from './tasksViewport'
 
 type TasksPageViewMode = 'board' | 'today' | 'analytics'
 
 const STORAGE_VIEW_KEY = 'tasks_page_view_mode'
+
+type ViewModeConfig = { key: TasksPageViewMode; icon: React.ComponentType<{ className?: string }>; labelKey: TranslationKey }
+const VIEW_MODES: ViewModeConfig[] = [
+  { key: 'board', icon: LayoutGrid, labelKey: 'modules.tasks.board' },
+  { key: 'today', icon: ListTodo, labelKey: 'modules.tasks.today' },
+  { key: 'analytics', icon: BarChart3, labelKey: 'modules.tasks.analytics' },
+]
 
 const TasksPage = () => {
   const { t } = useI18n()
@@ -41,49 +49,30 @@ const TasksPage = () => {
         </div>
 
         <div className="tasks-page-shell__switch flex items-center gap-0.5 rounded-lg bg-muted p-0.5" role="tablist" aria-label={t('modules.tasks.viewAria')}>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={viewMode === 'board'}
-              className={cn(
-                'tasks-page-shell__tab flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-all',
-                viewMode === 'board' ? 'is-active' : 'text-muted-foreground hover:text-foreground',
-              )}
-              onClick={() => switchView('board')}
-            >
-              <LayoutGrid className="size-3.5" />
-              {t('modules.tasks.board')}
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={viewMode === 'today'}
-              className={cn(
-                'tasks-page-shell__tab flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-all',
-                viewMode === 'today' ? 'is-active' : 'text-muted-foreground hover:text-foreground',
-              )}
-              onClick={() => switchView('today')}
-            >
-              {t('modules.tasks.today')}
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={viewMode === 'analytics'}
-              className={cn(
-                'tasks-page-shell__tab flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-all',
-                viewMode === 'analytics' ? 'is-active' : 'text-muted-foreground hover:text-foreground',
-              )}
-              onClick={() => switchView('analytics')}
-            >
-              <BarChart3 className="size-3.5" />
-              {t('modules.tasks.analytics')}
-            </button>
+            {VIEW_MODES.map(({ key, icon: Icon, labelKey }) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={viewMode === key}
+                className={cn(
+                  'tasks-page-shell__tab flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs',
+                  viewMode === key ? 'is-active' : 'text-muted-foreground hover:text-foreground',
+                )}
+                onClick={() => switchView(key)}
+              >
+                <Icon className={cn(
+                  'size-3.5 transition-transform duration-300',
+                  viewMode === key ? 'scale-110' : 'scale-90',
+                )} />
+                {t(labelKey)}
+              </button>
+            ))}
           </div>
       </div>
 
       <div className="tasks-page-shell__panel min-h-0 flex flex-1 px-6 pt-4">
-        <div className="tasks-page-shell__panel-frame min-h-0 flex-1 pb-8">
+        <div key={viewMode} className="tasks-page-shell__panel-frame tasks-page__view-panel min-h-0 flex-1 pb-8">
           <TasksBoard asCard={false} topView={viewMode} />
         </div>
       </div>

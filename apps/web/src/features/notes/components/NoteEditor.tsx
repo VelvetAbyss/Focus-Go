@@ -230,6 +230,7 @@ const NoteEditor = ({
   const [tocVersion, setTocVersion] = useState(0)
   const scrollSyncFrameRef = useRef<number | null>(null)
   const emitTimerRef = useRef<number | null>(null)
+  const tocTimerRef = useRef<number | null>(null)
   const pendingDocRef = useRef<JSONContent | null | undefined>(undefined)
   const shouldSkipSyncRef = useRef(false)
   const lastEditorDocRef = useRef(serializeDoc(initialDoc))
@@ -249,6 +250,7 @@ const NoteEditor = ({
       emitTimerRef.current = null
     }
     const contentMd = richDocToMarkdown(doc)
+    lastEditorDocRef.current = serializeDoc(doc)
     const { onChange: handleChange, tags } = changeMetaRef.current
     handleChange({
       title: extractTitleFromMarkdown(contentMd),
@@ -262,17 +264,28 @@ const NoteEditor = ({
   const scheduleEmitChange = useCallback(
     (doc: JSONContent | null | undefined) => {
       pendingDocRef.current = doc
-      lastEditorDocRef.current = serializeDoc(doc)
       if (emitTimerRef.current) window.clearTimeout(emitTimerRef.current)
       emitTimerRef.current = window.setTimeout(() => {
         flushEmitChange()
-      }, 120)
+      }, 420)
     },
     [flushEmitChange],
   )
 
+  const scheduleTocRefresh = useCallback(() => {
+    if (tocTimerRef.current) window.clearTimeout(tocTimerRef.current)
+    tocTimerRef.current = window.setTimeout(() => {
+      tocTimerRef.current = null
+      setTocVersion((version) => version + 1)
+    }, 520)
+  }, [])
+
   useEffect(
     () => () => {
+      if (tocTimerRef.current) {
+        window.clearTimeout(tocTimerRef.current)
+        tocTimerRef.current = null
+      }
       flushEmitChange()
     },
     [flushEmitChange],
@@ -359,9 +372,8 @@ const NoteEditor = ({
     onUpdate: ({ editor }) => {
       shouldSkipSyncRef.current = true
       const nextDoc = editor.getJSON()
-      lastEditorDocRef.current = serializeDoc(nextDoc)
       scheduleEmitChange(nextDoc)
-      setTocVersion((version) => version + 1)
+      scheduleTocRefresh()
     },
   })
 
@@ -418,7 +430,7 @@ const NoteEditor = ({
       for (const heading of headings) {
         if (heading.top <= marker) current = heading.id
       }
-      setActiveHeadingId(current)
+      setActiveHeadingId((previous) => (previous === current ? previous : current))
     }
     const scheduleSyncActive = () => {
       if (scrollSyncFrameRef.current !== null) return
@@ -527,6 +539,7 @@ const NoteEditor = ({
           <EditorContext.Provider value={{ editor }}>
             <EditorContent editor={editor} className="simple-editor-content" />
           </EditorContext.Provider>
+          <div className="note-editor__bottom-spacer" aria-hidden="true" />
         </div>
       </div>
       {headings.length > 0 && (

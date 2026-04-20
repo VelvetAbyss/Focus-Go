@@ -94,7 +94,7 @@ export default function NoteBrowser({
   return (
     <section
       className={cn(
-        'flex h-full min-h-0 w-[300px] min-w-[300px] flex-col overflow-hidden border-r border-[#e5e2dd] bg-[#faf9f7] dark:border-slate-700/40 dark:bg-[#3a3733]',
+        'flex h-full min-h-0 w-[300px] min-w-[300px] flex-col overflow-hidden border-r border-[#e5e2dd] bg-[#f5f3f0] dark:border-[#f5f3f0]/15 dark:bg-[#3a3733]',
         className,
       )}
     >
@@ -106,7 +106,7 @@ export default function NoteBrowser({
         <button
           type="button"
           onClick={onNewNote}
-          className="rounded-lg p-1.5 text-[#3a3733] transition-colors hover:bg-[#f0eeeb] dark:text-slate-100 dark:hover:bg-slate-700/30"
+          className="rounded-lg p-1.5 text-[#3a3733] transition-[background-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:bg-[#ede9e2] hover:shadow-[0_8px_18px_rgba(58,55,51,0.08)] active:translate-y-0 dark:text-[#f5f3f0] dark:hover:bg-[#f5f3f0]/10"
           title={t('modules.note.new')}
         >
           <Plus size={16} />
@@ -118,13 +118,13 @@ export default function NoteBrowser({
           <button
             type="button"
             onClick={() => setShowSortMenu((current) => !current)}
-            className="flex items-center gap-1 rounded-md px-2 py-1 text-[0.75rem] text-[#66615b] transition-colors hover:bg-[#f0eeeb] dark:text-slate-300 dark:hover:bg-slate-700/30"
+            className="flex items-center gap-1 rounded-md px-2 py-1 text-[0.75rem] text-[#66615b] transition-colors hover:bg-[#ede9e2] dark:text-[#f5f3f0]/80 dark:hover:bg-[#f5f3f0]/10"
           >
             {sortLabels[sortBy]}
             <ChevronDown size={12} />
           </button>
           {showSortMenu ? (
-            <div className="absolute left-0 top-full z-20 mt-1 w-32 rounded-lg border border-[#e5e2dd] bg-[#faf9f7] p-1 shadow-lg dark:border-slate-700/40 dark:bg-slate-800">
+            <div className="absolute left-0 top-full z-20 mt-1 w-32 rounded-lg border border-[#e5e2dd] bg-[#f5f3f0] p-1 shadow-[0_18px_42px_rgba(58,55,51,0.14)] dark:border-[#f5f3f0]/15 dark:bg-[#3a3733]">
               {(['edited', 'created', 'title'] as NoteSortOption[]).map((option) => (
                 <button
                   key={option}
@@ -134,8 +134,8 @@ export default function NoteBrowser({
                     setShowSortMenu(false)
                   }}
                   className={cn(
-                    'w-full rounded-md px-2.5 py-1.5 text-left text-[0.75rem] hover:bg-[#f0eeeb] dark:text-slate-200 dark:hover:bg-slate-700/40',
-                    sortBy === option && 'bg-[#f0eeeb] dark:bg-slate-700/50',
+                    'w-full rounded-md px-2.5 py-1.5 text-left text-[0.75rem] text-[#3a3733] hover:bg-[#ede9e2] dark:text-[#f5f3f0] dark:hover:bg-[#f5f3f0]/10',
+                    sortBy === option && 'bg-[#ede9e2] dark:bg-[#f5f3f0]/15',
                   )}
                 >
                   {sortLabels[option]}
@@ -145,12 +145,12 @@ export default function NoteBrowser({
           ) : null}
         </div>
         <div className="relative flex-1">
-          <Search size={13} className="absolute left-2 top-1/2 -translate-y-1/2 text-[#8d867f] dark:text-slate-400" />
+          <Search size={13} className="absolute left-2 top-1/2 -translate-y-1/2 text-[#8d867f] dark:text-[#f5f3f0]/55" />
           <input
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
             placeholder={t('notes.searchPlaceholder')}
-            className="w-full rounded-md border-0 bg-[#f0eeeb]/80 py-1 pl-7 pr-2 text-[0.75rem] outline-none placeholder:text-[#8d867f]/70 dark:bg-slate-700/35 dark:text-slate-200 dark:placeholder:text-slate-400"
+            className="w-full rounded-md border-0 bg-[#ede9e2]/80 py-1 pl-7 pr-2 text-[0.75rem] text-[#3a3733] outline-none transition-[background-color,box-shadow] placeholder:text-[#8d867f]/70 focus:bg-[#f8f6f2] focus:shadow-[0_0_0_1px_rgba(58,55,51,0.08)] dark:bg-[#f5f3f0]/10 dark:text-[#f5f3f0] dark:placeholder:text-[#f5f3f0]/45 dark:focus:bg-[#f5f3f0]/15"
           />
         </div>
       </div>
@@ -184,14 +184,14 @@ export default function NoteBrowser({
             onDelete={() => onDeleteNote?.(note.id)}
           />
         ))}
-        {filtered.length === 0 ? <div className="py-12 text-center text-[13px] text-muted-foreground">{t('notes.noNotesFound')}</div> : null}
+        {filtered.length === 0 ? <div className="mx-2 rounded-xl border border-dashed border-[#d8d2ca] px-4 py-10 text-center text-[13px] text-[#8d867f] dark:border-[#f5f3f0]/15 dark:text-[#f5f3f0]/55">{t('notes.noNotesFound')}</div> : null}
       </div>
     </section>
   )
 }
 
 function SectionLabel({ children }: { children: string }) {
-  return <div className="px-2 py-1.5 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-[#8d867f] dark:text-slate-400">{children}</div>
+  return <div className="px-2 py-1.5 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-[#8d867f] dark:text-[#f5f3f0]/55">{children}</div>
 }
 
 function NoteCard({
@@ -249,19 +249,19 @@ function NoteCard({
       }}
       onClick={onSelect}
       className={cn(
-        'group relative mb-0.5 cursor-pointer rounded-lg px-3 py-2.5 pb-6 transition-[background-color,border-color,box-shadow,transform,opacity]',
-        selected ? 'bg-[#f0eeeb] shadow-[0_0_0_1px_rgba(58, 55, 51, 0.04)] dark:bg-slate-700/40 dark:shadow-none' : 'hover:bg-[#f0eeeb]/60 dark:hover:bg-slate-700/25',
+        'group relative mb-1 cursor-pointer rounded-xl border border-transparent px-3 py-2.5 pb-7 transition-[background-color,border-color,box-shadow,transform,opacity] duration-200',
+        selected ? 'translate-x-0.5 border-[#d8d2ca] bg-[#ede9e2] shadow-[0_12px_28px_rgba(58,55,51,0.08)] dark:border-[#f5f3f0]/15 dark:bg-[#f5f3f0]/10 dark:shadow-none' : 'hover:-translate-y-0.5 hover:bg-[#ede9e2]/60 hover:shadow-[0_10px_22px_rgba(58,55,51,0.05)] dark:hover:bg-[#f5f3f0]/10',
       )}
       style={{ minHeight: '101.1875px' }}
     >
       <div className="flex items-start justify-between gap-2">
-        <h4 className="flex-1 truncate text-[0.875rem] leading-[1.45] tracking-[-0.01em] text-foreground" style={{ fontWeight: 500 }}>
+        <h4 className="flex-1 truncate text-[0.875rem] leading-[1.45] text-[#3a3733] dark:text-[#f5f3f0]" style={{ fontWeight: 500 }}>
           {note.pinned ? <Pin size={10} className="mr-1 inline text-muted-foreground" /> : null}
           {stripMarkdown(note.title) || 'Untitled'}
         </h4>
       </div>
-      <p className="mt-0.5 line-clamp-2 text-[0.8125rem] leading-[1.55] text-[#7a7570] dark:text-slate-300/80">{note.excerpt ? stripMarkdown(note.excerpt) : 'This note does not have a preview yet.'}</p>
-      <span className="absolute bottom-2 right-3 text-[0.6875rem] tabular-nums text-[#8d867f] dark:text-slate-400">{formatTime(note.updatedAt)}</span>
+      <p className="mt-0.5 line-clamp-2 text-[0.8125rem] leading-[1.55] text-[#7a7570] dark:text-[#f5f3f0]/72">{note.excerpt ? stripMarkdown(note.excerpt) : 'This note does not have a preview yet.'}</p>
+      <span className="absolute bottom-2 right-3 text-[0.6875rem] tabular-nums text-[#8d867f] dark:text-[#f5f3f0]/55">{formatTime(note.updatedAt)}</span>
 
       <div className="absolute right-2 top-2 flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
         {mode === 'notes' ? (

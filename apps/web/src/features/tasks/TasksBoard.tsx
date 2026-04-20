@@ -371,7 +371,7 @@ const TasksBoard = ({
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               <div
                 className={cn(
-                  'grid grid-cols-1 gap-3 p-1 pb-4 sm:grid-cols-2',
+                  'tasks-fg__card-grid grid grid-cols-1 gap-3 p-1 pb-4 sm:grid-cols-2',
                   asCard ? 'lg:grid-cols-2 xl:grid-cols-2' : 'lg:grid-cols-3 xl:grid-cols-4',
                 )}
               >
@@ -439,14 +439,21 @@ const TasksBoard = ({
                       <button
                         key={status.key}
                         className={cn(
-                          'tasks-fg__status-tab flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-all',
+                          'tasks-fg__status-tab flex items-center gap-2 rounded-md px-3 py-1.5 text-sm',
                           isActive ? 'bg-muted text-foreground shadow-sm' : 'text-muted-foreground hover:bg-accent/70 hover:text-foreground',
                         )}
                         onClick={() => setActiveStatus(status.key)}
                       >
-                        <span className={cn('size-1.5 rounded-full', cfg.dot)} />
+                        <span className={cn(
+                          'size-2 rounded-full transition-transform duration-300',
+                          cfg.dot,
+                          isActive ? 'scale-110' : 'scale-90 opacity-60',
+                        )} />
                         {t(cfg.labelKey)}
-                        <span className={cn('min-w-[20px] rounded-full px-1.5 py-0.5 text-center text-xs tabular-nums', isActive ? 'bg-background text-foreground/80' : 'bg-muted text-muted-foreground')}>
+                        <span className={cn(
+                          'min-w-[20px] rounded-full px-1.5 py-0.5 text-center text-xs tabular-nums transition-all duration-200',
+                          isActive ? 'bg-background text-foreground/80 shadow-sm' : 'bg-muted/60 text-muted-foreground',
+                        )}>
                           {count}
                         </span>
                       </button>

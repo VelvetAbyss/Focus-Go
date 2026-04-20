@@ -643,6 +643,8 @@ export const zhMessages: TranslationMessages = {
   'notes.pinned': '置顶',
   'notes.recent': '最近',
   'notes.noNotesFound': '未找到笔记',
+  'notes.unselected.title': '未选择笔记',
+  'notes.unselected.description': '从左侧列表选择一条笔记，或新建一条开始记录。',
   'notes.newTag': '新建标签',
   'notes.enterFullscreen': '进入全屏',
   'notes.exitFullscreen': '退出全屏',

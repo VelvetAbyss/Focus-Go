@@ -301,7 +301,7 @@ export default function NotePage() {
     return sortNotes(next, sortBy)
   }, [activeCollection, activeTagId, tagNameById, sortBy, sourceNotes, todayKey])
 
-  const activeNote = useMemo(() => filteredNotes.find((note) => note.id === selectedNoteId) ?? filteredNotes[0] ?? null, [filteredNotes, selectedNoteId])
+  const activeNote = useMemo(() => filteredNotes.find((note) => note.id === selectedNoteId) ?? null, [filteredNotes, selectedNoteId])
   const activeNoteValue = activeNote
     ? {
         title: activeNote.title,
@@ -746,33 +746,51 @@ export default function NotePage() {
           onSearchChange={setSearch}
         />
         <div className="note-page-column note-page-column--editor relative flex min-w-0 flex-1">
-          <>
-            <NoteEditor
-              surfaceRef={editorSurfaceRef}
-              value={activeNoteValue}
-              appearance={appearance}
-              isFullscreen={isFullscreen}
-              onToggleFullscreen={() => setIsFullscreen((current) => !current)}
-              onOpenInfo={() => setOpenPanel((current) => (current === 'info' ? null : 'info'))}
-              onOpenAppearance={() => setOpenPanel((current) => (current === 'appearance' ? null : 'appearance'))}
-              onExport={() => setOpenPanel((current) => (current === 'export' ? null : 'export'))}
-              onChange={handleUpdateNote}
-            />
-            <InfoPopover
-              open={openPanel === 'info'}
-              note={activeNote}
-              onClose={() => setOpenPanel(null)}
-              onNavigateToHeading={handleNavigateToHeading}
-              onNavigateToNote={(id) => setSelectedNoteId(id)}
-            />
-            <AppearanceModal open={openPanel === 'appearance'} settings={appearance} onClose={() => setOpenPanel(null)} onUpdate={handleUpdateAppearance} />
-            <ExportModal
-              open={openPanel === 'export'}
-              noteTitle={activeNote?.title.trim() || 'Untitled'}
-              onClose={() => setOpenPanel(null)}
-              onExportMarkdown={handleExportMarkdown}
-            />
-          </>
+          {activeNote ? (
+            <div className="contents">
+              <NoteEditor
+                surfaceRef={editorSurfaceRef}
+                value={activeNoteValue}
+                appearance={appearance}
+                isFullscreen={isFullscreen}
+                onToggleFullscreen={() => setIsFullscreen((current) => !current)}
+                onOpenInfo={() => setOpenPanel((current) => (current === 'info' ? null : 'info'))}
+                onOpenAppearance={() => setOpenPanel((current) => (current === 'appearance' ? null : 'appearance'))}
+                onExport={() => setOpenPanel((current) => (current === 'export' ? null : 'export'))}
+                onChange={handleUpdateNote}
+              />
+              <InfoPopover
+                open={openPanel === 'info'}
+                note={activeNote}
+                onClose={() => setOpenPanel(null)}
+                onNavigateToHeading={handleNavigateToHeading}
+                onNavigateToNote={(id) => setSelectedNoteId(id)}
+              />
+              <AppearanceModal open={openPanel === 'appearance'} settings={appearance} onClose={() => setOpenPanel(null)} onUpdate={handleUpdateAppearance} />
+              <ExportModal
+                open={openPanel === 'export'}
+                noteTitle={activeNote?.title.trim() || 'Untitled'}
+                onClose={() => setOpenPanel(null)}
+                onExportMarkdown={handleExportMarkdown}
+              />
+            </div>
+          ) : (
+            <div className="note-page__unselected" role="status" aria-live="polite">
+              <div className="note-page__unselected-card">
+                <div className="note-page__unselected-mark" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                </div>
+                <p className="note-page__unselected-kicker">{collectionLabelMap[activeCollection]}</p>
+                <h2>{t('notes.unselected.title')}</h2>
+                <p>{t('notes.unselected.description')}</p>
+                <button type="button" className="note-page__unselected-action" onClick={handleCreate}>
+                  {t('modules.note.new')}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </section>

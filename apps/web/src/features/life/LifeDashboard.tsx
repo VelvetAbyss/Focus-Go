@@ -228,7 +228,7 @@ const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => 
           }}
           dragConfig={{ enabled: false }}
           resizeConfig={{ enabled: false }}
-          positionStrategy={layoutEdit ? absoluteStrategy : undefined}
+          positionStrategy={absoluteStrategy}
           width={Math.max(width, 320)}
         >
           {renderedCards.map((card) => (

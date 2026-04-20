@@ -6237,6 +6237,87 @@ html[data-motion='reduce'] .tasks-fg__list .task-card-shell {
   white-space: pre-wrap;
 }
 
+/* ── TaskDrawer v2 redesign ── */
+@keyframes tdv2-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tdv2-section-enter {
+  animation: tdv2-fade-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tdv2-section-enter {
+    animation: none;
+  }
+}
+
+/* Priority select styled as a compact pill */
+.tdv2-priority-select {
+  height: auto !important;
+  padding-top: 3px !important;
+  padding-bottom: 3px !important;
+}
+
+/* Progress ring container */
+.tdv2-progress-ring {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* Activity timeline */
+.tdv2-timeline {
+  display: flex;
+  flex-direction: column;
+}
+
+.tdv2-timeline-item {
+  display: flex;
+  gap: 12px;
+  position: relative;
+  padding-bottom: 16px;
+}
+
+.tdv2-timeline-item:last-child {
+  padding-bottom: 0;
+}
+
+.tdv2-timeline-item--lined::before {
+  content: '';
+  position: absolute;
+  left: 3.5px;
+  top: 13px;
+  bottom: 0;
+  width: 1px;
+  background: color-mix(in srgb, var(--text-secondary) 16%, transparent);
+}
+
+.tdv2-timeline-dot {
+  position: relative;
+  z-index: 1;
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  margin-top: 4px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--text-secondary) 40%, transparent);
+  border: 2px solid color-mix(in srgb, var(--bg) 70%, transparent);
+}
+
+.tdv2-timeline-content {
+  flex: 1;
+  min-width: 0;
+}
+
 @media (max-width: 1280px) {
   .task-popup-detail__panel.dialog__panel {
     width: min(1320px, 96vw);

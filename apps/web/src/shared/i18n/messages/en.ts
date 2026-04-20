@@ -643,6 +643,8 @@ export const enMessages: TranslationMessages = {
   'notes.pinned': 'Pinned',
   'notes.recent': 'Recent',
   'notes.noNotesFound': 'No notes found',
+  'notes.unselected.title': 'No note selected',
+  'notes.unselected.description': 'Select a note from the list, or create a new one to start writing.',
   'notes.newTag': 'New tag',
   'notes.enterFullscreen': 'Enter fullscreen',
   'notes.exitFullscreen': 'Exit fullscreen',
