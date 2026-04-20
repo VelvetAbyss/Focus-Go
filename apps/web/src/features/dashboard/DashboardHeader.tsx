@@ -1,5 +1,4 @@
 import { type CSSProperties, useEffect, useMemo, useState } from 'react'
-import { Button } from '@/components/ui/button'
 import { Link } from 'react-router-dom'
 import { LayoutGrid, Settings as SettingsIcon } from 'lucide-react'
 import { ROUTES } from '../../app/routes/routes'
@@ -169,67 +168,67 @@ const DashboardHeader = ({
         </div>
       </div>
       <div className="app-shell__status">
-        {/* Focus ↔ Life toggle */}
-        {onSetPage ? (
-          <div className="app-shell__status-group app-shell__status-group--toggle">
-            <div className="life-page-toggle" role="tablist" aria-label="Dashboard view">
-              {(['main', 'life'] as const).map((tab) => (
-                <button
-                  key={tab}
-                  role="tab"
-                  aria-selected={page === tab}
-                  className={`app-shell__top-action life-page-toggle__btn${page === tab ? ' is-active' : ''}`}
-                  onClick={() => onSetPage(tab)}
-                >
-                  {tab === 'main' ? 'Focus' : 'Life'}
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : null}
         {showProjectBadges && !layoutEdit ? <span className="pill">{t('dashboard.quote.localFirst')}</span> : null}
         {showProjectBadges && !layoutEdit ? <span className="pill pill--soft">{t('dashboard.quote.mvp')}</span> : null}
-        <div className="app-shell__status-group app-shell__status-group--actions">
+
+        {/* Unified pill: Focus/Life toggle + action buttons */}
+        <div className="header-pill">
+          {onSetPage ? (
+            <>
+              <button
+                role="tab"
+                aria-selected={page === 'main'}
+                className={`header-pill__btn${page === 'main' ? ' is-active' : ''}`}
+                onClick={() => onSetPage('main')}
+              >
+                Focus
+              </button>
+              <button
+                role="tab"
+                aria-selected={page === 'life'}
+                className={`header-pill__btn${page === 'life' ? ' is-active' : ''}`}
+                onClick={() => onSetPage('life')}
+              >
+                Life
+              </button>
+              <div className="header-pill__divider" aria-hidden="true" />
+            </>
+          ) : null}
+
           {layoutEdit ? (
-            <Button
+            <button
               type="button"
-              className={`app-shell__top-action app-shell__manage-widgets ${widgetsPanelOpen ? 'is-active' : ''}`}
-              variant="outline"
-              size="sm"
+              className={`header-pill__btn${widgetsPanelOpen ? ' is-active' : ''}`}
               onClick={onToggleWidgetsPanel}
               data-locked={widgetsLocked ? 'true' : 'false'}
               aria-label={t('dashboard.manageVisibility')}
               aria-expanded={widgetsPanelOpen}
             >
               <span>{t('dashboard.manageWidgets')}</span>
-            </Button>
+            </button>
           ) : null}
-          <Button
+
+          <button
             type="button"
-            className={`app-shell__top-action app-shell__edit-layout ${layoutEdit ? 'is-active' : ''}`}
-            variant="outline"
-            size="sm"
+            className={`header-pill__btn${layoutEdit ? ' is-active' : ''}`}
             onClick={onToggleLayoutEdit}
             data-locked={layoutEditLocked ? 'true' : 'false'}
             aria-label={layoutEdit ? t('dashboard.layoutEdit') : t('dashboard.editLayout')}
             aria-expanded={layoutEdit}
           >
-            <LayoutGrid size={15} aria-hidden="true" />
+            <LayoutGrid size={14} aria-hidden="true" />
             <span>{layoutEdit ? t('dashboard.done') : t('dashboard.editLayout')}</span>
-          </Button>
+          </button>
+
           {!layoutEdit ? (
-            <Button
-              asChild
-              className="app-shell__top-action app-shell__settings-link"
-              variant="outline"
-              size="sm"
+            <Link
+              to={ROUTES.SETTINGS}
+              className="header-pill__btn"
               aria-label={t('dashboard.settings')}
             >
-              <Link to={ROUTES.SETTINGS}>
-                <SettingsIcon size={15} aria-hidden="true" />
-                <span>{t('dashboard.settings')}</span>
-              </Link>
-            </Button>
+              <SettingsIcon size={14} aria-hidden="true" />
+              <span>{t('dashboard.settings')}</span>
+            </Link>
           ) : null}
         </div>
       </div>

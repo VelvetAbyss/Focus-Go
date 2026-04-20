@@ -17,7 +17,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Check, Eye, EyeOff, GripVertical, PanelLeftOpen, PanelRightOpen, Plus, RotateCcw, Trash2, X } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, Eye, EyeOff, GripVertical, PanelLeftOpen, PanelRightOpen, Plus, RotateCcw, Trash2, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -1022,7 +1022,7 @@ const CalendarPage = () => {
                 <SelectItem value="month">{t('calendar.month')}</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="ghost" onClick={jumpToToday}>
+            <Button variant="ghost" className="calendar-toolbar__today-btn" onClick={jumpToToday}>
               {t('calendar.today')}
             </Button>
           </div>
@@ -1051,11 +1051,11 @@ const CalendarPage = () => {
             </Button>
           </div>
           <div className="calendar-toolbar__right">
-            <Button variant="ghost" size="icon" onClick={() => moveMonth(-1)} aria-label={t('calendar.prevMonth')}>
-              ‹
+            <Button variant="ghost" size="icon" className="calendar-toolbar__nav-btn" onClick={() => moveMonth(-1)} aria-label={t('calendar.prevMonth')}>
+              <ChevronLeft size={18} />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => moveMonth(1)} aria-label={t('calendar.nextMonth')}>
-              ›
+            <Button variant="ghost" size="icon" className="calendar-toolbar__nav-btn" onClick={() => moveMonth(1)} aria-label={t('calendar.nextMonth')}>
+              <ChevronRight size={18} />
             </Button>
           </div>
         </header>
