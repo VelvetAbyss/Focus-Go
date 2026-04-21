@@ -2736,6 +2736,7 @@ html[data-motion='reduce'] .drawer--visible .drawer__panel {
     radial-gradient(140% 120% at 50% -24%, rgba(185, 157, 118, 0.14), transparent 60%),
     linear-gradient(180deg, #fbf9f4 0%, #f6f3ee 100%);
   padding: 10px 0 0;
+  container-type: inline-size;
 }
 
 .focus-card-lite--misted {
@@ -2887,7 +2888,7 @@ html[data-motion='reduce'] .drawer--visible .drawer__panel {
   margin: 0;
   text-align: center;
   font-family: var(--font-display);
-  font-size: clamp(5.1rem, 10vw, 6.7rem);
+  font-size: clamp(3.6rem, 17cqi, 6.4rem);
   line-height: 0.88;
   letter-spacing: -0.05em;
   font-weight: 500;
@@ -3160,9 +3161,48 @@ html[data-motion='reduce'] .focus-card-lite__status {
   transition: none;
 }
 
-@media (max-width: 1024px) {
-  .focus-card-lite__timer-raw {
-    font-size: clamp(4.5rem, 16vw, 6rem);
+@container (max-width: 300px) {
+  .focus-card-lite__body {
+    padding: 0 14px 10px;
+  }
+
+  .focus-card-lite__modes-band {
+    margin: 2px 0 10px;
+  }
+
+  .focus-card-lite__mode-pill {
+    font-size: 10px;
+    min-height: 26px;
+    padding: 0 9px;
+    gap: 4px;
+  }
+
+  .focus-card-lite__timer-band {
+    margin: 0 0 10px;
+  }
+
+  .focus-card-lite__status {
+    font-size: 10px;
+    margin: 0 0 6px;
+  }
+
+  .focus-card-lite__actions-band {
+    margin: 0 0 10px;
+  }
+
+  .focus-card-lite__primary-raw,
+  .focus-card-lite__reset-raw {
+    width: 38px;
+    height: 38px;
+  }
+
+  .focus-card-lite__sound-band {
+    padding: 10px 2px 6px;
+  }
+
+  .focus-card-lite__noise-play-raw {
+    width: 32px;
+    height: 32px;
   }
 }
 
@@ -3186,10 +3226,6 @@ html[data-motion='reduce'] .focus-card-lite__status {
 
   .focus-card-lite__timer-band {
     margin: 0 0 14px;
-  }
-
-  .focus-card-lite__timer-raw {
-    font-size: clamp(4rem, 18vw, 5.2rem);
   }
 
   .focus-card-lite__actions-band {
@@ -13999,4 +14035,213 @@ html[data-theme='dark'] .login-modal__feature--premium .login-modal__feature-ico
 
 .login-modal__cta:active {
   transform: scale(0.98);
+}
+
+/* ─── Focus Card: Unified Design Pass ───────────────────────────────────────── */
+
+/* 1. Align outer shell with shared card system */
+.focus-card-figma-shell {
+  background: var(--bg-elevated);
+  border: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+  box-shadow: 0 2px 6px rgba(58, 55, 51, 0.04), 0 10px 24px rgba(58, 55, 51, 0.07);
+}
+
+.focus-card-figma-shell:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 10px rgba(58, 55, 51, 0.06), 0 18px 36px rgba(58, 55, 51, 0.13);
+  border-color: color-mix(in srgb, var(--accent) 10%, color-mix(in srgb, var(--border) 60%, transparent));
+}
+
+.focus-card-figma-shell .card__header {
+  background: transparent;
+}
+
+/* 2. Inner card: transparent background so outer card controls tone */
+.focus-card-lite {
+  background: transparent;
+}
+
+/* 3. Mode pills: restore text labels */
+.focus-card-lite__mode-pill span {
+  display: inline;
+}
+
+.focus-card-lite__mode-pill {
+  width: auto;
+  padding: 0 11px;
+  min-height: 28px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+/* 4. Restore & style status indicator */
+.focus-card-lite__status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-secondary) 70%, transparent);
+  opacity: 0;
+  transform: translateY(0);
+  transition: opacity 200ms var(--ease-standard), color 200ms var(--ease-standard);
+}
+
+.focus-card-lite__status.is-running,
+.focus-card-lite__status.is-paused {
+  display: flex;
+  opacity: 1;
+  color: var(--text-secondary);
+}
+
+.focus-card-lite__status.is-running {
+  color: #65421e;
+}
+
+.focus-card-lite__status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.55;
+  flex: 0 0 auto;
+  transition: opacity 200ms;
+}
+
+.focus-card-lite__status.is-running .focus-card-lite__status-dot {
+  opacity: 1;
+  animation: focus-status-pulse 2s ease-in-out infinite;
+}
+
+@keyframes focus-status-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* 5. Progress bar under timer */
+.focus-card-lite__progress-bar {
+  height: 2px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--border) 60%, transparent);
+  overflow: hidden;
+  margin: 10px 0 0;
+  width: 100%;
+}
+
+.focus-card-lite__progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #b99d7a 0%, #7f6254 100%);
+  transition: width 1s linear;
+  will-change: width;
+}
+
+/* 6. Differentiate primary vs secondary buttons */
+.focus-card-lite__primary-raw {
+  background: linear-gradient(160deg, #3d342b 0%, #2a231e 100%);
+  color: #f4eee6;
+  border: 1px solid rgba(20, 16, 12, 0.18);
+  box-shadow: 0 2px 8px rgba(30, 24, 18, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition: background 200ms ease, box-shadow 200ms ease, transform 160ms ease, color 160ms ease;
+}
+
+.focus-card-lite__primary-raw:hover {
+  background: linear-gradient(160deg, #4a3f35 0%, #322a24 100%);
+  box-shadow: 0 4px 14px rgba(30, 24, 18, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.focus-card-lite__primary-raw.is-running {
+  background: linear-gradient(160deg, #3d342b 0%, #2a231e 100%);
+  box-shadow:
+    0 2px 8px rgba(30, 24, 18, 0.22),
+    0 0 0 3px rgba(185, 157, 118, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  animation: focus-btn-pulse 2.8s ease-in-out infinite;
+}
+
+@keyframes focus-btn-pulse {
+  0%, 100% { box-shadow: 0 2px 8px rgba(30, 24, 18, 0.22), 0 0 0 2px rgba(185, 157, 118, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.06); }
+  50% { box-shadow: 0 2px 8px rgba(30, 24, 18, 0.22), 0 0 0 5px rgba(185, 157, 118, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.06); }
+}
+
+.focus-card-lite__reset-raw {
+  background: color-mix(in srgb, var(--bg-elevated) 85%, #e6dece);
+  color: #72685d;
+  border: 1px solid rgba(63, 55, 47, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(58, 55, 51, 0.06);
+  transition: background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.focus-card-lite__reset-raw:hover {
+  background: color-mix(in srgb, var(--bg-elevated) 72%, #e6dece);
+  box-shadow: 0 2px 8px rgba(58, 55, 51, 0.1);
+}
+
+/* 7. Dark mode overrides for new elements */
+html[data-theme='dark'] .focus-card-figma-shell {
+  background: var(--bg-elevated);
+  border-color: color-mix(in srgb, var(--border) 50%, transparent);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12), 0 10px 24px rgba(0, 0, 0, 0.2);
+}
+
+html[data-theme='dark'] .focus-card-figma-shell:hover {
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18), 0 18px 36px rgba(0, 0, 0, 0.28);
+}
+
+html[data-theme='dark'] .focus-card-lite__status.is-running {
+  color: color-mix(in srgb, var(--accent) 80%, #f5f3f0);
+}
+
+html[data-theme='dark'] .focus-card-lite__progress-fill {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 55%, #b99d7a) 0%, var(--accent) 100%);
+}
+
+html[data-theme='dark'] .focus-card-lite__primary-raw,
+html[data-theme='dark'] .focus-card-lite__primary-raw.is-running {
+  background: linear-gradient(160deg, rgba(242, 237, 228, 0.15) 0%, rgba(242, 237, 228, 0.08) 100%);
+  color: #f4eee6;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme='dark'] .focus-card-lite__primary-raw:hover {
+  background: linear-gradient(160deg, rgba(242, 237, 228, 0.2) 0%, rgba(242, 237, 228, 0.12) 100%);
+}
+
+html[data-theme='dark'] .focus-card-lite__primary-raw.is-running {
+  animation: focus-btn-pulse-dark 2.8s ease-in-out infinite;
+}
+
+@keyframes focus-btn-pulse-dark {
+  0%, 100% { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28), 0 0 0 2px rgba(126, 219, 199, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.08); }
+  50% { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28), 0 0 0 5px rgba(126, 219, 199, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.08); }
+}
+
+html[data-theme='dark'] .focus-card-lite__reset-raw {
+  background: rgba(255, 255, 255, 0.06);
+  color: color-mix(in srgb, #f5f3f0 72%, transparent);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.14);
+}
+
+html[data-theme='dark'] .focus-card-lite__reset-raw:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme='dark'] .focus-card-lite__progress-bar {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* 8. Mode pills: reduced motion safety */
+html[data-motion='reduce'] .focus-card-lite__status-dot {
+  animation: none !important;
+}
+
+html[data-motion='reduce'] .focus-card-lite__primary-raw.is-running {
+  animation: none !important;
 }
