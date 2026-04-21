@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { readWorldClockItems, writeWorldClockItems, WORLD_CLOCK_ITEMS_KEY, type WorldClockItem } from './preferences'
+import { DEFAULT_WORLD_CLOCK_ITEMS, readWorldClockItems, writeWorldClockItems, WORLD_CLOCK_ITEMS_KEY, type WorldClockItem } from './preferences'
 
 const makeItem = (index: number): WorldClockItem => ({
   id: `item-${index}`,
@@ -32,6 +32,10 @@ describe('world clock preferences', () => {
   it('returns an empty array for invalid storage data', () => {
     localStorage.setItem(WORLD_CLOCK_ITEMS_KEY, '{bad json')
     expect(readWorldClockItems()).toEqual([])
+  })
+
+  it('returns preset cities when storage is empty', () => {
+    expect(readWorldClockItems()).toEqual(DEFAULT_WORLD_CLOCK_ITEMS)
   })
 
   it('persists up to four valid items', () => {

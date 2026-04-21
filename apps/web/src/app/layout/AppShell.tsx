@@ -16,6 +16,9 @@ import { UpgradeModalProvider } from '../../features/labs/UpgradeModalContext'
 import UpgradeModal from '../../features/labs/components/UpgradeModal'
 import { AuthGateProvider } from '../../features/auth/AuthGateContext'
 import { syncedPreferencesRepo } from '../../data/repositories/syncedPreferencesRepo'
+import { getAuth, subscribeAuth } from '../../store/auth'
+import { isLocalhostRuntime } from '../../shared/env/localhost'
+import { clearLocalUserData } from '../../data/sync/repository'
 
 type AppShellProps = {
   children: ReactNode
@@ -71,6 +74,16 @@ const AppShell = ({ children }: AppShellProps) => {
     return resolveInitialTheme()
   })
   useTaskReminderEngine()
+
+  useEffect(() => {
+    if (isLocalhostRuntime()) return
+    const guard = () => {
+      if (!getAuth()?.user) void clearLocalUserData()
+    }
+    guard()
+    return subscribeAuth(guard)
+  }, [])
+
   const isNoteRoute = location.pathname === ROUTES.NOTE
   const isDiaryRoute = location.pathname === ROUTES.DIARY
   const isCalendarRoute = location.pathname === ROUTES.CALENDAR

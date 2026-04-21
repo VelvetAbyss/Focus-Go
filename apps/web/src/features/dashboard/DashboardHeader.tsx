@@ -147,8 +147,8 @@ const DashboardHeader = ({
             style={getNodeStyle('lunar')}
           >
             <p className="app-shell__hero-lunar">
-              <span>{headerLunar}</span>
-              <span style={{ marginLeft: '18px' }}>{gregorian}</span>
+              {language === 'zh' ? <span>{headerLunar}</span> : null}
+              <span style={{ marginLeft: language === 'zh' ? '18px' : 0 }}>{gregorian}</span>
               <span style={{ marginLeft: '14px' }}>{weekday}</span>
             </p>
           </div>
