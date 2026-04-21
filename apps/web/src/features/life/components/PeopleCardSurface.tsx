@@ -7,6 +7,7 @@ import {
   cardArrowStyle,
   cardHeaderStyle,
   cardShellStyle,
+  dangerButtonStyle,
   detailPaneStyle,
   Field,
   iconButtonStyle,
@@ -55,6 +56,28 @@ type Props = {
 }
 
 const groups: LifePerson['group'][] = ['Family', 'Friends', 'Work', 'Community', 'Other']
+
+const groupColorMap: Record<LifePerson['group'], string> = {
+  Family: '#F4D4BF',
+  Friends: '#D7C6E0',
+  Work: '#BDD3E4',
+  Community: '#CBE0C3',
+  Other: '#D8CFC7',
+}
+
+const avatarColorPalette = [
+  '#F4D4BF', '#D7C6E0', '#BDD3E4', '#CBE0C3', '#D8CFC7',
+  '#F2E2C4', '#C9E0D5', '#E8C9C9', '#D4DFB0', '#C5C9E4',
+]
+
+const primarySaveStyle = {
+  ...smallButtonStyle,
+  background: '#3A3733',
+  color: '#F5F3F0',
+  border: '1px solid #3A3733',
+  fontWeight: 600 as const,
+  padding: '8px 16px',
+}
 
 const toDraft = (person?: LifePerson | null): PersonDraft => ({
   name: person?.name ?? '',
@@ -170,54 +193,119 @@ export const PeopleCardSurface = ({
 
       {open ? <Dialog open={open} onClose={onClose} panelClassName="life-modal__panel" contentClassName="life-modal__content">
         <div style={modalLayoutStyle}>
+          {/* Modal header */}
           <div style={modalHeaderStyle}>
             <div>
-              <p style={{ ...inter(10, 600, 'rgba(58,55,51,0.38)'), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 4 }}>{t('life.people.title')}</p>
+              <p style={{ ...inter(10, 600, 'rgba(58,55,51,0.38)'), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 4 }}>
+                {items.length > 0 ? t('life.people.count', { count: items.length }) : t('life.people.title')}
+              </p>
               <h2 style={{ ...playfair(22, 500) }}>{t('life.people.title')}</h2>
             </div>
             <button type="button" onClick={onClose} style={iconButtonStyle}><X size={18} /></button>
           </div>
+
           <div style={{ display: 'flex', minHeight: 0, flex: 1 }}>
+            {/* Sidebar */}
             <aside style={sidebarStyle}>
-              <button type="button" onClick={() => { setDraft({ ...toDraft(null), category: categoryFilter === 'All' ? '' : categoryFilter }); setEditingId(null) }} style={{ ...smallButtonStyle, marginBottom: 12, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <button
+                type="button"
+                onClick={() => { setDraft({ ...toDraft(null), category: categoryFilter === 'All' ? '' : categoryFilter }); setEditingId(null) }}
+                style={{ ...smallButtonStyle, marginBottom: 14, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              >
                 <Plus size={11} />
                 <span>{t('life.people.newPerson')}</span>
               </button>
+
               {categories.length > 1 ? (
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 12 }}>
                   {categories.map((category) => (
-                    <button key={category} type="button" onClick={() => setCategoryFilter(category)} style={{ ...smallButtonStyle, background: categoryFilter === category ? 'rgba(58,55,51,0.10)' : 'rgba(58,55,51,0.06)' }}>
+                    <button key={category} type="button" onClick={() => setCategoryFilter(category)}
+                      style={{ ...smallButtonStyle, padding: '4px 10px', background: categoryFilter === category ? 'rgba(58,55,51,0.12)' : 'rgba(58,55,51,0.05)' }}>
                       {category}
                     </button>
                   ))}
                 </div>
               ) : null}
-              <div style={{ display: 'grid', gap: 6 }}>
-                {visibleItems.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                      onClick={() => {
-                        setEditingId(item.id)
-                        onSelectItem(item.id)
+
+              <div style={{ display: 'grid', gap: 3 }}>
+                {visibleItems.map((item) => {
+                  const isActive = selectedId === item.id
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => { setEditingId(item.id); onSelectItem(item.id) }}
+                      style={{
+                        width: '100%',
+                        textAlign: 'left',
+                        padding: '9px 10px',
+                        borderRadius: 14,
+                        border: isActive ? '1px solid rgba(58,55,51,0.13)' : '1px solid transparent',
+                        background: isActive ? '#fff' : 'transparent',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        boxShadow: isActive ? '0 1px 4px rgba(58,55,51,0.07)' : 'none',
                       }}
-                    style={{
-                      width: '100%',
-                      textAlign: 'left',
-                      padding: '12px 14px',
-                      borderRadius: 16,
-                      border: selectedId === item.id ? '1px solid rgba(58,55,51,0.12)' : '1px solid transparent',
-                      background: selectedId === item.id ? 'rgba(58,55,51,0.06)' : 'transparent',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <p style={{ ...inter(12, 500), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</p>
-                    <p style={{ ...inter(10, 400, mutedText), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.category ?? item.group}{item.role ? ` · ${item.role}` : ''}</p>
-                  </button>
-                ))}
+                    >
+                      <div style={{
+                        width: 34, height: 34, borderRadius: '50%',
+                        background: item.avatarColor ?? '#D8CFC7',
+                        border: '1px solid rgba(58,55,51,0.08)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        ...inter(12, 600, 'rgba(58,55,51,0.65)'),
+                        flexShrink: 0,
+                        letterSpacing: '0.02em',
+                      }}>
+                        {item.avatarInitials || item.name.slice(0, 1).toUpperCase()}
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <p style={{ ...inter(12, 500), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</p>
+                        <p style={{ ...inter(10, 400, mutedText), marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {item.category ?? item.group}{item.role ? ` · ${item.role}` : ''}
+                        </p>
+                      </div>
+                      {item.group ? (
+                        <div style={{
+                          width: 8, height: 8, borderRadius: '50%',
+                          background: groupColorMap[item.group],
+                          border: '1px solid rgba(58,55,51,0.12)',
+                          flexShrink: 0,
+                        }} />
+                      ) : null}
+                    </button>
+                  )
+                })}
               </div>
             </aside>
-            <div style={{ ...detailPaneStyle, background: paper, padding: 20, overflowY: 'auto' }}>
+
+            {/* Detail pane */}
+            <div style={{ ...detailPaneStyle, background: paper, padding: '20px 24px', overflowY: 'auto' }}>
+              {/* Avatar preview header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 22, paddingBottom: 20, borderBottom: '1px solid rgba(58,55,51,0.07)' }}>
+                <div style={{
+                  width: 58, height: 58, borderRadius: '50%',
+                  background: draft.avatarColor,
+                  border: '1.5px solid rgba(58,55,51,0.10)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  ...inter(20, 600, 'rgba(58,55,51,0.65)'),
+                  flexShrink: 0,
+                  letterSpacing: '0.02em',
+                  transition: 'background 200ms ease',
+                }}>
+                  {draft.avatarInitials || (draft.name ? draft.name.slice(0, 1).toUpperCase() : '?')}
+                </div>
+                <div>
+                  <p style={{ ...playfair(18, 500), lineHeight: 1.2, marginBottom: 3 }}>
+                    {draft.name || <span style={{ color: mutedText, fontStyle: 'italic' }}>{t('life.people.newPerson')}</span>}
+                  </p>
+                  <p style={{ ...inter(11, 400, mutedText) }}>
+                    {draft.group}{draft.role ? ` · ${draft.role}` : ''}{draft.city ? ` · ${draft.city}` : ''}
+                  </p>
+                </div>
+              </div>
+
               <div style={{ display: 'grid', gap: 14 }}>
                 <Field label={t('life.people.name')}>
                   <input value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} style={inputStyle} />
@@ -225,15 +313,33 @@ export const PeopleCardSurface = ({
                 <Field label={t('life.people.category')}>
                   <input value={draft.category} onChange={(event) => setDraft((current) => ({ ...current, category: event.target.value }))} style={inputStyle} disabled={Boolean(editingPerson?.sourceProjectPersonId)} />
                 </Field>
+
+                {/* Group selector with color accents */}
                 <Field label={t('life.people.group')}>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {groups.map((group) => (
-                      <button key={group} type="button" onClick={() => setDraft((current) => ({ ...current, group }))} style={{ ...smallButtonStyle, background: draft.group === group ? 'rgba(58,55,51,0.10)' : 'rgba(58,55,51,0.06)' }}>
-                        {group}
-                      </button>
-                    ))}
+                  <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+                    {groups.map((group) => {
+                      const isSelected = draft.group === group
+                      return (
+                        <button
+                          key={group}
+                          type="button"
+                          onClick={() => setDraft((current) => ({ ...current, group }))}
+                          style={{
+                            ...smallButtonStyle,
+                            background: isSelected ? groupColorMap[group] : 'rgba(58,55,51,0.05)',
+                            border: isSelected ? '1px solid rgba(58,55,51,0.18)' : '1px solid rgba(58,55,51,0.09)',
+                            fontWeight: isSelected ? 600 : 500,
+                            color: isSelected ? 'rgba(58,55,51,0.85)' : 'rgba(58,55,51,0.55)',
+                            transition: 'background 150ms ease, color 150ms ease',
+                          }}
+                        >
+                          {group}
+                        </button>
+                      )
+                    })}
                   </div>
                 </Field>
+
                 <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
                   <Field label={t('life.people.role')}>
                     <input value={draft.role} onChange={(event) => setDraft((current) => ({ ...current, role: event.target.value }))} style={inputStyle} />
@@ -253,19 +359,58 @@ export const PeopleCardSurface = ({
                   <Field label={t('life.people.lastInteraction')}>
                     <input type="date" value={draft.lastInteraction} onChange={(event) => setDraft((current) => ({ ...current, lastInteraction: event.target.value }))} style={inputStyle} />
                   </Field>
+
+                  {/* Initials field */}
                   <Field label={t('life.people.initials')}>
-                    <input value={draft.avatarInitials} onChange={(event) => setDraft((current) => ({ ...current, avatarInitials: event.target.value }))} style={inputStyle} />
+                    <input
+                      value={draft.avatarInitials}
+                      onChange={(event) => setDraft((current) => ({ ...current, avatarInitials: event.target.value }))}
+                      style={inputStyle}
+                      maxLength={3}
+                      placeholder="e.g. AB"
+                    />
                   </Field>
+
+                  {/* Avatar color — swatch picker replaces plain hex input */}
                   <Field label={t('life.people.avatarColor')}>
-                    <input value={draft.avatarColor} onChange={(event) => setDraft((current) => ({ ...current, avatarColor: event.target.value }))} style={inputStyle} />
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', paddingTop: 2 }}>
+                      {avatarColorPalette.map((color) => (
+                        <button
+                          key={color}
+                          type="button"
+                          onClick={() => setDraft((current) => ({ ...current, avatarColor: color }))}
+                          aria-label={color}
+                          style={{
+                            width: 22, height: 22, borderRadius: '50%',
+                            background: color,
+                            border: 'none',
+                            cursor: 'pointer',
+                            flexShrink: 0,
+                            outline: draft.avatarColor === color ? `3px solid rgba(58,55,51,0.45)` : '2px solid transparent',
+                            outlineOffset: 2,
+                            transition: 'outline 120ms ease, transform 120ms ease',
+                            transform: draft.avatarColor === color ? 'scale(1.15)' : 'scale(1)',
+                          }}
+                        />
+                      ))}
+                    </div>
                   </Field>
                 </div>
+
                 <Field label={t('life.people.notes')}>
                   <textarea value={draft.notes} onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))} style={textareaStyle} />
                 </Field>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                  <button type="button" onClick={() => onSaveItem(draft, editingId)} style={smallButtonStyle}>{t('life.people.save')}</button>
-                  {editingId ? <button type="button" onClick={() => onRemoveItem(editingId)} style={{ ...smallButtonStyle, color: '#9D4C4C' }}>{t('life.people.remove')}</button> : null}
+
+                {/* Action row */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, paddingTop: 4 }}>
+                  <button type="button" onClick={() => onSaveItem(draft, editingId)} style={primarySaveStyle}>
+                    {t('life.people.save')}
+                  </button>
+                  {editingId ? (
+                    <button type="button" onClick={() => onRemoveItem(editingId)} style={dangerButtonStyle}>
+                      {t('life.people.remove')}
+                    </button>
+                  ) : null}
                 </div>
               </div>
             </div>

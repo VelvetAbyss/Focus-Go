@@ -204,7 +204,6 @@ const FocusCard = () => {
 
   const volumePercent = Math.round(noise.masterVolume * 100)
   const progress = Math.max(0, Math.min(1, 1 - timerState.remainingSeconds / (Math.max(1, timerState.durationMinutes) * 60)))
-  const timerRingStyle = { '--focus-progress': `${progress}` } as CSSProperties
 
   return (
     <Card className="focus-card-figma-shell" title={t('focus.center')} eyebrow={t('focus.pomodoro')}>
@@ -229,19 +228,25 @@ const FocusCard = () => {
           </section>
 
           <section className="focus-card-lite__timer-band">
-            <div className="focus-card-lite__timer-ring" style={timerRingStyle} aria-hidden />
-            <div ref={statusRef} className={`focus-card-lite__status ${timerState.status === 'running' ? 'is-running' : ''}`}>
-              ◉ {statusLabel}
+            <div ref={statusRef} className={`focus-card-lite__status ${timerState.status === 'running' ? 'is-running' : timerState.status === 'paused' ? 'is-paused' : ''}`}>
+              <span className="focus-card-lite__status-dot" aria-hidden />
+              {statusLabel}
             </div>
             <div ref={timerRef} className="focus-card-lite__timer-raw">
               <TimerDisplay timeText={timeText} />
+            </div>
+            <div className="focus-card-lite__progress-bar" aria-hidden>
+              <div
+                className="focus-card-lite__progress-fill"
+                style={{ width: `${progress * 100}%`, '--progress': `${progress}` } as CSSProperties}
+              />
             </div>
           </section>
 
           <section className="focus-card-lite__actions-band">
             <div className="focus-card-lite__actions-raw">
               <button
-                className="focus-card-lite__primary-raw"
+                className={`focus-card-lite__primary-raw${timerState.running ? ' is-running' : ''}`}
                 onPointerDown={(event) => springPress(event.currentTarget)}
                 onClick={() => void handlePrimaryAction()}
                 aria-label={primaryActionLabel}
@@ -278,7 +283,6 @@ const FocusCard = () => {
 
               <div className="focus-card-lite__volume-raw">
                 <div className="focus-card-lite__volume-row-raw">
-                  <span>{t('focus.masterVolume')}</span>
                   <span>{volumePercent}%</span>
                 </div>
                 <div
