@@ -56,13 +56,13 @@ const DeferredLifeCard = ({ id, eager, children }: { id: string; eager: boolean;
 }
 
 const DEFAULT_LIFE_LAYOUT: DashboardLayoutItem[] = [
-  { key: 'library', x: 5, y: 3, w: 6, h: 8 },
-  { key: 'media_card', x: 5, y: 17, w: 6, h: 7 },
+  { key: 'library', x: 5, y: 0, w: 6, h: 8 },
+  { key: 'media_card', x: 5, y: 28, w: 6, h: 7 },
   { key: 'subscriptions_card', x: 18, y: 24, w: 6, h: 7 },
-  { key: 'daily_review', x: 11, y: 32, w: 7, h: 7 },
+  { key: 'daily_review', x: 11, y: 50, w: 7, h: 7 },
   { key: 'trips_card', x: 18, y: 7, w: 6, h: 8 },
-  { key: 'podcast_card', x: 0, y: 24, w: 5, h: 15 },
-  { key: 'people_card', x: 11, y: 39, w: 7, h: 8 },
+  { key: 'podcast_card', x: 0, y: 38, w: 5, h: 15 },
+  { key: 'people_card', x: 11, y: 15, w: 7, h: 8 },
 ]
 
 const DEFAULT_LIFE_HIDDEN_CARD_IDS = ['stocks']

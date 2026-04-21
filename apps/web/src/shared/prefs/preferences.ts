@@ -59,6 +59,33 @@ export type WorldClockItem = {
   timeZone: string
 }
 
+export const DEFAULT_WORLD_CLOCK_ITEMS: WorldClockItem[] = [
+  {
+    id: 'Los Angeles, United States:America/Los_Angeles',
+    label: 'Los Angeles, United States',
+    searchValue: 'Los Angeles, United States',
+    latitude: 34.05223,
+    longitude: -118.24368,
+    timeZone: 'America/Los_Angeles',
+  },
+  {
+    id: 'New York, United States:America/New_York',
+    label: 'New York, United States',
+    searchValue: 'New York, United States',
+    latitude: 40.71427,
+    longitude: -74.00597,
+    timeZone: 'America/New_York',
+  },
+  {
+    id: 'Vancouver, Canada:America/Vancouver',
+    label: 'Vancouver, Canada',
+    searchValue: 'Vancouver, British Columbia, Canada',
+    latitude: 49.24966,
+    longitude: -123.11934,
+    timeZone: 'America/Vancouver',
+  },
+]
+
 export function detectBrowserLanguage(raw: string | string[]): LanguageCode {
   const first = Array.isArray(raw) ? raw.find((item) => typeof item === 'string' && item.trim().length > 0) : raw
   if (typeof first !== 'string') return 'en'
@@ -210,7 +237,7 @@ export function writeWeatherLastLocation(location: WeatherStoredLocation) {
 
 export function readWorldClockItems(): WorldClockItem[] {
   const raw = localStorage.getItem(WORLD_CLOCK_ITEMS_KEY)
-  if (!raw) return []
+  if (!raw) return DEFAULT_WORLD_CLOCK_ITEMS
   try {
     const parsed = JSON.parse(raw) as WorldClockItem[]
     if (!Array.isArray(parsed)) return []
