@@ -1,14 +1,9 @@
 const { AUTHING_DOMAIN, AUTHING_CLIENT_ID, AUTHING_CLIENT_SECRET, AUTHING_REDIRECT_URI, APP_BASE_URL } = process.env
 
-const ensureTrailingSlash = (value) => {
-  if (!value) return value
-  return value.endsWith('/') ? value : `${value}/`
-}
-
 const resolveRedirectUri = (redirectUri) => {
-  if (redirectUri) return ensureTrailingSlash(redirectUri)
-  if (APP_BASE_URL) return ensureTrailingSlash(APP_BASE_URL)
-  return ensureTrailingSlash(AUTHING_REDIRECT_URI)
+  if (redirectUri) return redirectUri
+  if (AUTHING_REDIRECT_URI) return AUTHING_REDIRECT_URI
+  return APP_BASE_URL
 }
 
 export async function getTokenByCode(code, codeVerifier, redirectUri) {
