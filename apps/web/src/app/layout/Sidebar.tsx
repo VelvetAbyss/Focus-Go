@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { motion } from 'motion/react'
 import {
   closestCenter,
@@ -43,8 +43,9 @@ import { mergeSidebarOrder, moveSidebarOrder, readSidebarOrder, writeSidebarOrde
 import { useIsLoggedIn, useAuthPlan, useIsAdmin } from '../../store/auth'
 import { useUpgradeModal } from '../../features/labs/UpgradeModalContext'
 import SidebarPodcastPlayer from './SidebarPodcastPlayer'
-import PodcastCard from '../../features/life/cards/PodcastCard'
 import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../data/repositories/syncedPreferencesRepo'
+
+const PodcastCard = lazy(() => import('../../features/life/cards/PodcastCard'))
 
 type SidebarProps = {
   collapsed: boolean
@@ -261,7 +262,9 @@ const Sidebar = ({ collapsed, onToggle, theme, onToggleTheme }: SidebarProps) =>
       </DndContext>
 
       <SidebarPodcastPlayer collapsed={collapsed} />
-      <PodcastCard standalone />
+      <Suspense fallback={null}>
+        <PodcastCard standalone />
+      </Suspense>
 
       <div className="focus-sidebar__bottom">
         {isLoggedIn && !isPremium && (

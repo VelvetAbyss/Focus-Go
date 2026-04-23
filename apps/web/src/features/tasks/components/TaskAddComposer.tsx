@@ -87,15 +87,16 @@ const TaskAddComposer = ({ onSubmit, compact = false, plain = false, placeholder
         <Button
           type="submit"
           className={cn(
-            'tasks-fg__add-btn h-8 shrink-0 rounded-full px-4 text-[11px] font-semibold shadow-none transition-all duration-200',
-            compact ? 'h-7 px-3 text-[10px]' : '',
-            plain ? 'rounded-md px-4 text-xs' : '',
+            'tasks-fg__add-btn h-8 shrink-0 rounded-full px-3 text-[11px] font-semibold shadow-none transition-all duration-200 gap-1.5',
+            compact ? 'h-7 px-2.5 text-[10px]' : '',
+            plain ? 'rounded-md px-3 text-xs' : '',
             hasText ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2 pointer-events-none',
           )}
           size="sm"
           disabled={!hasText}
         >
           {t('modules.tasks.add')}
+          <kbd className="inline-flex items-center justify-center rounded border border-current/25 bg-current/10 px-1 font-mono text-[10px] font-normal leading-none opacity-80" style={{ letterSpacing: 0 }}>⏎</kbd>
         </Button>
       </div>
     </form>

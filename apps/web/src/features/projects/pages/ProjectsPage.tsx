@@ -281,7 +281,13 @@ const ProjectsPage = () => {
         open={dialogOpen}
         project={editingProject}
         people={people.filter((person) => !editingProject || person.projectId === editingProject.id)}
-        onClose={() => setDialogOpen(false)}
+        onClose={async () => {
+          setDialogOpen(false)
+          if (editingProject) await load()
+        }}
+        onAutoSave={editingProject ? async (payload) => {
+          await projectsRepo.update(editingProject.id, payload)
+        } : undefined}
         onSubmit={async (payload) => {
           if (editingProject) {
             await projectsRepo.update(editingProject.id, payload)

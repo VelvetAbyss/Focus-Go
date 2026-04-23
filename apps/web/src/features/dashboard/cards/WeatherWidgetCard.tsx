@@ -33,11 +33,20 @@ const WeatherWidgetCard = () => {
   }, [])
 
   useEffect(() => {
-    startWeatherRuntime({
-      weatherAutoLocationEnabled,
-      weatherManualCity,
-      weatherTemperatureUnit,
-    })
+    const start = () => {
+      startWeatherRuntime({
+        weatherAutoLocationEnabled,
+        weatherManualCity,
+        weatherTemperatureUnit,
+      })
+    }
+    const idleId = window.requestIdleCallback?.(start, { timeout: 2500 })
+    const timeoutId = idleId === undefined ? window.setTimeout(start, 1200) : null
+
+    return () => {
+      if (idleId !== undefined) window.cancelIdleCallback?.(idleId)
+      if (timeoutId !== null) window.clearTimeout(timeoutId)
+    }
   }, [weatherAutoLocationEnabled, weatherManualCity, weatherTemperatureUnit])
 
   const today = snapshot.data?.days[0]

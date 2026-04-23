@@ -104,13 +104,21 @@ const DashboardHeader = ({
 
   useEffect(() => {
     const controller = new AbortController()
-    void getDashboardQuote(language, { signal: controller.signal })
-      .then((nextQuote) => {
-        if (!controller.signal.aborted) setQuote(nextQuote)
-      })
-      .catch(() => {})
+    const loadQuote = () => {
+      void getDashboardQuote(language, { signal: controller.signal })
+        .then((nextQuote) => {
+          if (!controller.signal.aborted) setQuote(nextQuote)
+        })
+        .catch(() => {})
+    }
+    const idleId = window.requestIdleCallback?.(loadQuote, { timeout: 2500 })
+    const timeoutId = idleId === undefined ? window.setTimeout(loadQuote, 1200) : null
 
-    return () => controller.abort()
+    return () => {
+      controller.abort()
+      if (idleId !== undefined) window.cancelIdleCallback?.(idleId)
+      if (timeoutId !== null) window.clearTimeout(timeoutId)
+    }
   }, [language])
 
   const getNodeStyle = (nodeId: HeaderInfoNodeId): CSSProperties => {

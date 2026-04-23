@@ -73,6 +73,7 @@ describe('HabitCard', () => {
       <HabitCard
         habit={habit}
         completedDates={[]}
+        streak={0}
         onToggleToday={onToggleToday}
         onToggleDate={vi.fn().mockResolvedValue(undefined)}
         onArchive={vi.fn().mockResolvedValue(undefined)}

@@ -60,6 +60,8 @@ export type NoteThemeMode = 'paper' | 'graphite'
 export type NoteFontFamily = 'uiSans' | 'humanistSans' | 'cnSans' | 'serif' | 'cnSerif' | 'mono'
 export type NoteEditorMode = 'document'
 
+export type NotePaperBg = 'beige' | 'white'
+
 export type NoteAppearanceSettings = BaseEntity & {
   id: 'note_appearance'
   theme: NoteThemeMode
@@ -68,6 +70,8 @@ export type NoteAppearanceSettings = BaseEntity & {
   lineHeight: number
   contentWidth: number
   focusMode: boolean
+  paperBg: NotePaperBg
+  zoom: number
 }
 
 export type NoteItem = BaseEntity & {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { lazy, Suspense, useState, useEffect, useRef } from 'react'
 import {
   User, LogOut, Crown, Zap, X, Timer, FileText, ArrowRight,
   ChevronRight, Flame, CheckSquare, Mail, Shield, CreditCard, Download,
@@ -11,7 +11,6 @@ import {
 import { getLogoutUrl, prepareAuthSession } from '../../config/auth'
 import { clearLocalUserData } from '../../data/sync/repository'
 import { useI18n } from '../../shared/i18n/useI18n'
-import LoginModal from './LoginModal'
 import { dbService } from '../../data/services/dbService'
 import type { FocusSession } from '../../data/models/types'
 import { ROUTES } from '../routes/routes'
@@ -24,6 +23,8 @@ import {
   downloadBackupFile,
   exportLocalBackup,
 } from '../../shared/backup/localBackup'
+
+const LoginModal = lazy(() => import('./LoginModal'))
 
 type SidebarUserPanelProps = {
   collapsed: boolean
@@ -691,7 +692,11 @@ const SidebarUserPanel = ({ collapsed }: SidebarUserPanelProps) => {
           </>
         )}
       </button>
-      {showLoginModal && <LoginModal onClose={() => setShowLoginModal(false)} />}
+      {showLoginModal && (
+        <Suspense fallback={null}>
+          <LoginModal onClose={() => setShowLoginModal(false)} />
+        </Suspense>
+      )}
     </>
   )
 }

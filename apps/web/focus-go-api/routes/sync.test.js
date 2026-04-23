@@ -140,3 +140,68 @@ test('sync route supports syncedPreferences entity', async () => {
     await ctx.close()
   }
 })
+
+test('sync route rejects stale writes when assumed master state does not match', async () => {
+  const ctx = await createServer()
+
+  try {
+    const initialResponse = await fetch(`${ctx.baseUrl}/sync/rxdb/push`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'notes',
+        rows: [{
+          newDocumentState: {
+            id: 'note-1',
+            title: 'Cloud version',
+            updatedAt: 20,
+            _deleted: false,
+          },
+          assumedMasterState: null,
+        }],
+        blobs: [],
+      }),
+    })
+
+    assert.equal(initialResponse.status, 200)
+    assert.deepEqual(await initialResponse.json(), { conflicts: [], blobs: [] })
+
+    const staleResponse = await fetch(`${ctx.baseUrl}/sync/rxdb/push`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'notes',
+        rows: [{
+          newDocumentState: {
+            id: 'note-1',
+            title: 'Stale local overwrite',
+            updatedAt: 999999,
+            _deleted: false,
+          },
+          assumedMasterState: null,
+        }],
+        blobs: [],
+      }),
+    })
+
+    assert.equal(staleResponse.status, 200)
+    const staleJson = await staleResponse.json()
+    assert.equal(staleJson.conflicts.length, 1)
+    assert.equal(staleJson.conflicts[0].title, 'Cloud version')
+
+    const pullResponse = await fetch(`${ctx.baseUrl}/sync/rxdb/pull`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'notes',
+        checkpoint: null,
+        limit: 100,
+      }),
+    })
+
+    const pullJson = await pullResponse.json()
+    assert.equal(pullJson.documents[0].title, 'Cloud version')
+  } finally {
+    await ctx.close()
+  }
+})
