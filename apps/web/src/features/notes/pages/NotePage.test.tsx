@@ -187,6 +187,8 @@ const appearance: NoteAppearanceSettings = {
   lineHeight: 1.7,
   contentWidth: 0,
   focusMode: false,
+  paperBg: 'beige',
+  zoom: 100,
 }
 
 describe('NotePage', () => {
