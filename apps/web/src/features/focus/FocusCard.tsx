@@ -283,6 +283,7 @@ const FocusCard = () => {
 
               <div className="focus-card-lite__volume-raw">
                 <div className="focus-card-lite__volume-row-raw">
+                  <span>{t('focus.volume')}</span>
                   <span>{volumePercent}%</span>
                 </div>
                 <div

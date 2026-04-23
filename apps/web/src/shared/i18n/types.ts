@@ -324,6 +324,7 @@ export type TranslationKey =
   | 'focus.reset'
   | 'focus.pauseNoise'
   | 'focus.playNoise'
+  | 'focus.volume'
   | 'focus.masterVolume'
   | 'focus.settings'
   | 'focus.done'

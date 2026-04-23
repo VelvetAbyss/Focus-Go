@@ -324,6 +324,7 @@ export const enMessages: TranslationMessages = {
   'focus.reset': 'Reset',
   'focus.pauseNoise': 'Pause noise',
   'focus.playNoise': 'Play noise',
+  'focus.volume': 'Volume',
   'focus.masterVolume': 'MASTER VOLUME',
   'focus.settings': 'Focus Settings',
   'focus.done': 'Done',

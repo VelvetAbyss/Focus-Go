@@ -324,6 +324,7 @@ export const zhMessages: TranslationMessages = {
   'focus.reset': '重置',
   'focus.pauseNoise': '暂停白噪音',
   'focus.playNoise': '播放白噪音',
+  'focus.volume': '音量',
   'focus.masterVolume': '主音量',
   'focus.settings': '专注设置',
   'focus.done': '完成',
