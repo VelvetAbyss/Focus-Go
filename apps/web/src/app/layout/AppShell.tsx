@@ -34,7 +34,9 @@ const SHELL_SCALE_MAX = 1
 
 const readSidebarCollapsed = () => {
   if (typeof localStorage === 'undefined') return false
-  return localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY) === '1'
+  const raw = localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY)
+  if (raw === null) return null
+  return raw === '1'
 }
 
 const readCompactViewport = () =>
@@ -60,8 +62,9 @@ const readShellScale = () => {
 
 const AppShell = ({ children }: AppShellProps) => {
   const location = useLocation()
+  const storedSidebarCollapsed = readSidebarCollapsed()
   const [compactViewport, setCompactViewport] = useState(() => readCompactViewport())
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => readCompactViewport() || readSidebarCollapsed())
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => storedSidebarCollapsed ?? false)
   const [sidebarDimmed, setSidebarDimmed] = useState(false)
   const [shellScale, setShellScale] = useState(() => readShellScale())
   const [theme, setTheme] = useState<ThemeMode>(() => {
@@ -104,7 +107,10 @@ const AppShell = ({ children }: AppShellProps) => {
     const handleViewportChange = (event: MediaQueryListEvent | MediaQueryList) => {
       const nextCompact = 'matches' in event ? event.matches : media.matches
       setCompactViewport(nextCompact)
-      setSidebarCollapsed(nextCompact ? true : readSidebarCollapsed())
+      if (!nextCompact) {
+        const stored = readSidebarCollapsed()
+        if (stored !== null) setSidebarCollapsed(stored)
+      }
     }
 
     handleViewportChange(media)
