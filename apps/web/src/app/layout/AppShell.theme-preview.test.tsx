@@ -42,10 +42,13 @@ vi.mock('../../data/repositories/syncedPreferencesRepo', () => ({
 }))
 
 vi.mock('./Sidebar', () => ({
-  default: ({ onToggleTheme }: { onToggleTheme: () => void }) => (
-    <button type="button" onClick={onToggleTheme}>
-      toggle-theme
-    </button>
+  default: ({ collapsed, onToggleTheme }: { collapsed: boolean; onToggleTheme: () => void }) => (
+    <div>
+      <div data-testid="sidebar-collapsed">{String(collapsed)}</div>
+      <button type="button" onClick={onToggleTheme}>
+        toggle-theme
+      </button>
+    </div>
   ),
 }))
 
@@ -90,6 +93,7 @@ describe('AppShell theme preview event flow', () => {
   }
 
   beforeEach(() => {
+    window.localStorage.clear()
     setViewportWidth(1920)
     installMatchMediaMock()
     mockReadStoredThemePreference.mockReturnValue(null)
@@ -168,5 +172,18 @@ describe('AppShell theme preview event flow', () => {
     await waitFor(() => {
       expect(shell.style.cssText).toBe(before)
     })
+  })
+
+  it('keeps sidebar expanded on first load even in compact viewport', () => {
+    setViewportWidth(1200)
+    installMatchMediaMock()
+    render(
+      <MemoryRouter>
+        <AppShell>
+          <div>child</div>
+        </AppShell>
+      </MemoryRouter>,
+    )
+    expect(screen.getByTestId('sidebar-collapsed')).toHaveTextContent('false')
   })
 })
