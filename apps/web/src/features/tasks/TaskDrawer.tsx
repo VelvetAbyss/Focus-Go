@@ -31,6 +31,8 @@ import { createTaskNoteDoc, resolveTaskNoteRichText } from './model/taskNoteRich
 import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, formatTaskDateTime, getTaskTagTone } from './components/taskPresentation'
 import { useI18n } from '../../shared/i18n/useI18n'
 import { useAuthGate } from '../auth/AuthGateContext'
+import { usePremiumGate } from '../premium/PremiumProvider'
+import PremiumMark from '../premium/PremiumMark'
 
 type TaskDrawerProps = {
   open: boolean
@@ -120,6 +122,7 @@ const TaskDrawer = ({
 }: TaskDrawerProps) => {
   const { t } = useI18n()
   const { requireAuth, isGated } = useAuthGate()
+  const { canUse, openUpgradeModal } = usePremiumGate()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [priority, setPriority] = useState<TaskPriority | null>(null)
@@ -512,14 +515,22 @@ const TaskDrawer = ({
     onClose()
   }
 
+  const guardSubtasks = useCallback(() => {
+    if (canUse('tasks.subtasks').allowed) return true
+    openUpgradeModal('button', 'tasks.subtasks')
+    return false
+  }, [canUse, openUpgradeModal])
+
   const subtaskComposer = useAddInputComposer({
     onSubmit: async (subtaskTitle) => {
+      if (!guardSubtasks()) return
       setSubtasks((prev) => [...prev, { id: createId(), title: subtaskTitle, done: false }])
     },
   })
 
   const activityLogs = useMemo(() => (currentTask?.activityLogs ?? []).slice().sort((a, b) => b.createdAt - a.createdAt), [currentTask?.activityLogs])
   const sortedSubtasks = useMemo(() => subtasks.slice().sort((a, b) => Number(a.done) - Number(b.done)), [subtasks])
+  const subtasksLocked = !canUse('tasks.subtasks').allowed
   const visibleSubtasks = useMemo(
     () =>
       sortedSubtasks.filter((subtask) => {
@@ -1009,6 +1020,7 @@ const TaskDrawer = ({
                                 checked={subtask.done}
                                 className="shrink-0 self-center"
                                 onChange={(event) => {
+                                  if (!guardSubtasks()) return
                                   setSubtasks((prev) =>
                                     prev.map((item) => (item.id === subtask.id ? { ...item, done: event.target.checked } : item)),
                                   )
@@ -1018,6 +1030,7 @@ const TaskDrawer = ({
                                 <input
                                   value={subtask.title}
                                   onChange={(event) => {
+                                    if (!guardSubtasks()) return
                                     setSubtasks((prev) =>
                                       prev.map((item) => (item.id === subtask.id ? { ...item, title: event.target.value } : item)),
                                     )
@@ -1030,7 +1043,10 @@ const TaskDrawer = ({
                                 type="button"
                                 aria-label="Remove subtask"
                                 className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[color:var(--text-secondary)] opacity-0 transition-all duration-150 hover:bg-rose-50 hover:text-rose-500 group-hover:opacity-100"
-                                onClick={() => setSubtasks((prev) => prev.filter((item) => item.id !== subtask.id))}
+                                onClick={() => {
+                                  if (!guardSubtasks()) return
+                                  setSubtasks((prev) => prev.filter((item) => item.id !== subtask.id))
+                                }}
                               >
                                 <X className="h-3 w-3" />
                               </button>
@@ -1049,6 +1065,7 @@ const TaskDrawer = ({
                       className="mt-3 flex items-center gap-2"
                       onSubmit={(event) => {
                         event.preventDefault()
+                        if (!guardSubtasks()) return
                         void subtaskComposer.submit()
                       }}
                     >
@@ -1064,6 +1081,7 @@ const TaskDrawer = ({
                         placeholder={t('tasks.drawer.addSubtask')}
                       />
                       <Button type="submit" size="sm" className="h-9 shrink-0 rounded-full px-4 text-[11px] font-semibold" disabled={!subtaskComposer.canSubmit}>
+                        {subtasksLocked ? <PremiumMark /> : null}
                         {t('tasks.drawer.add')}
                       </Button>
                     </form>

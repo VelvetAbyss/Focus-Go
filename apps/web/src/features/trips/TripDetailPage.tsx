@@ -57,6 +57,7 @@ import {
   tripStatusOptions,
 } from './tripEditorModel'
 import { tripsRepo } from './tripsRepo'
+import AuthInteractionGate from '../auth/AuthInteractionGate'
 
 type SectionId = 'overview' | 'itinerary' | 'transport' | 'stay' | 'food' | 'budget' | 'checklist' | 'notes'
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
@@ -348,6 +349,7 @@ const TripDetailPage = () => {
 
   return (
     <div ref={containerRef} style={pageWrapper}>
+      <AuthInteractionGate>
       <div style={{ display: 'grid', gridTemplateColumns: '220px minmax(0, 1fr)', gap: 24, maxWidth: 1480, margin: '0 auto' }}>
         <aside style={{ position: 'sticky', top: 24, alignSelf: 'start', background: paper, borderRadius: 18, padding: 18 }}>
           <button type="button" onClick={() => navigate(ROUTES.TRIPS)} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18, border: 'none', background: 'transparent', cursor: 'pointer', ...tx(12, 500, muted) }}>
@@ -671,6 +673,7 @@ const TripDetailPage = () => {
           </section>
         </main>
       </div>
+      </AuthInteractionGate>
     </div>
   )
 }

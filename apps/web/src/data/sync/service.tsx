@@ -1,9 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { useIsLoggedIn } from '../../store/auth'
+import { useAuthPlan, useIsLoggedIn } from '../../store/auth'
 import { SYNC_DATA_UPDATED_EVENT, SYNC_STATUS_CHANGED_EVENT } from './constants'
 import { syncStateRepo } from './repository'
 import { ensureRxdbSyncReady, runRxdbSyncCycle } from './rxdb'
 import type { SyncState } from './types'
+import { isLocalhostRuntime } from '../../shared/env/localhost'
 
 type SyncContextValue = {
   state: SyncState | null
@@ -18,8 +19,10 @@ const readSyncState = async (setState: (value: SyncState) => void) => {
 
 export const SyncProvider = ({ children }: { children: ReactNode }) => {
   const isLoggedIn = useIsLoggedIn()
+  const plan = useAuthPlan()
   const [state, setState] = useState<SyncState | null>(null)
   const runningRef = useRef(false)
+  const canUseCloudSync = isLocalhostRuntime() || plan === 'premium'
 
   const refreshState = useCallback(async () => {
     await readSyncState(setState)
@@ -27,6 +30,11 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
 
   const syncNow = useCallback(async () => {
     if (!isLoggedIn || runningRef.current) return
+    if (!canUseCloudSync) {
+      await syncStateRepo.markStatus('blocked', 'Cloud sync requires Premium')
+      await refreshState()
+      return
+    }
     runningRef.current = true
     try {
       await runRxdbSyncCycle()
@@ -34,10 +42,15 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
       runningRef.current = false
       await refreshState()
     }
-  }, [isLoggedIn, refreshState])
+  }, [canUseCloudSync, isLoggedIn, refreshState])
 
   const initialize = useCallback(async () => {
     if (!isLoggedIn || runningRef.current) return
+    if (!canUseCloudSync) {
+      await syncStateRepo.markStatus('blocked', 'Cloud sync requires Premium')
+      await refreshState()
+      return
+    }
     runningRef.current = true
     try {
       await ensureRxdbSyncReady()
@@ -46,7 +59,7 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
       await refreshState()
     }
     await syncNow()
-  }, [isLoggedIn, refreshState, syncNow])
+  }, [canUseCloudSync, isLoggedIn, refreshState, syncNow])
 
   useEffect(() => {
     void refreshState()
@@ -56,6 +69,11 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
     if (!isLoggedIn) return
     void initialize()
   }, [initialize, isLoggedIn])
+
+  useEffect(() => {
+    if (!isLoggedIn || canUseCloudSync) return
+    void syncStateRepo.markStatus('blocked', 'Cloud sync requires Premium')
+  }, [canUseCloudSync, isLoggedIn])
 
   useEffect(() => {
     const statusListener = () => {
@@ -68,15 +86,15 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
   }, [refreshState])
 
   useEffect(() => {
-    if (!isLoggedIn) return
+    if (!isLoggedIn || !canUseCloudSync) return
     const intervalId = window.setInterval(() => {
       void syncNow()
     }, 30_000)
     return () => window.clearInterval(intervalId)
-  }, [isLoggedIn, syncNow])
+  }, [canUseCloudSync, isLoggedIn, syncNow])
 
   useEffect(() => {
-    if (!isLoggedIn) return
+    if (!isLoggedIn || !canUseCloudSync) return
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') void syncNow()
     }
@@ -87,7 +105,7 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('online', handleOnline)
     }
-  }, [isLoggedIn, syncNow])
+  }, [canUseCloudSync, isLoggedIn, syncNow])
 
   const value = useMemo<SyncContextValue>(
     () => ({

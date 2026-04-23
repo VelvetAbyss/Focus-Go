@@ -18,7 +18,7 @@ const createServer = async () => {
   app.use('/sync', createSyncRouter({
     database: db,
     authMiddleware: (req, _res, next) => {
-      req.auth = { user: { id: 'user-1' } }
+      req.auth = { user: { id: 'user-1', plan: 'premium' } }
       next()
     },
   }))
@@ -203,5 +203,42 @@ test('sync route rejects stale writes when assumed master state does not match',
     assert.equal(pullJson.documents[0].title, 'Cloud version')
   } finally {
     await ctx.close()
+  }
+})
+
+test('sync route requires premium plan', async () => {
+  const db = createDb()
+  const app = express()
+  app.use(express.json({ limit: '10mb' }))
+  app.use('/sync', createSyncRouter({
+    database: db,
+    authMiddleware: (req, _res, next) => {
+      req.auth = { user: { id: 'user-1', plan: 'free' } }
+      next()
+    },
+  }))
+
+  const server = await new Promise((resolve) => {
+    const instance = app.listen(0, '127.0.0.1', () => resolve(instance))
+  })
+  const address = server.address()
+  const baseUrl = `http://127.0.0.1:${address.port}`
+
+  try {
+    const response = await fetch(`${baseUrl}/sync/rxdb/pull`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'notes',
+        checkpoint: null,
+        limit: 100,
+      }),
+    })
+
+    assert.equal(response.status, 403)
+    assert.deepEqual(await response.json(), { error: 'Cloud sync requires premium' })
+  } finally {
+    await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())))
+    db.close()
   }
 })

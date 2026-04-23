@@ -10,6 +10,7 @@ import { useLabsI18n } from '../labsI18n'
 import type { FeatureCatalogItem } from '../labsApi'
 import { useToast } from '../../../shared/ui/toast/toast'
 import { useUpgradeModal } from '../UpgradeModalContext'
+import PremiumMark from '../../premium/PremiumMark'
 
 const FEATURE_ICONS: Record<string, React.ElementType> = {
   'ai-digest': Brain,
@@ -92,7 +93,7 @@ const LabsPage = () => {
                       <span className="labs-card__chip labs-card__chip--soon">{i18n.labs.comingSoon}</span>
                     )}
                     {feature.requiresPremium && !feature.comingSoon && (
-                      <span className="labs-card__chip labs-card__chip--premium">{i18n.labs.premiumLocked}</span>
+                      <span className="labs-card__chip labs-card__chip--premium"><PremiumMark variant="dot" />{i18n.labs.premiumLocked}</span>
                     )}
                   </div>
                   <div className="labs-card__body">
@@ -102,6 +103,7 @@ const LabsPage = () => {
                   <div className="labs-card__foot">
                     {feature.requiresPremium ? (
                       <Button size="sm" onClick={() => openUpgradeModal(feature.title)}>
+                        <PremiumMark />
                         {i18n.labs.upgrade}
                       </Button>
                     ) : (
@@ -151,6 +153,7 @@ const LabsPage = () => {
                     {feature.featureKey === 'habit-tracker' ? (
                       feature.requiresPremium ? (
                         <Button size="sm" onClick={() => openUpgradeModal(feature.title)}>
+                          <PremiumMark />
                           {i18n.labs.upgrade}
                         </Button>
                       ) : (
@@ -207,6 +210,11 @@ const LabsPage = () => {
                   <div className="labs-row__actions">
                     {feature.comingSoon ? (
                       <Button size="sm" variant="secondary" disabled>{i18n.labs.comingSoon}</Button>
+                    ) : feature.requiresPremium ? (
+                      <Button size="sm" onClick={() => openUpgradeModal(feature.title)}>
+                        <PremiumMark />
+                        {i18n.labs.upgrade}
+                      </Button>
                     ) : (
                       <Button
                         size="sm"

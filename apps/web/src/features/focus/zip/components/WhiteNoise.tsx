@@ -324,30 +324,40 @@ export function WhiteNoise() {
   };
 
   const setTrackVolume = (id: NoiseTrackId, volume: number) => {
-    setActivePreset(null);
-    setNoiseTrackVolume(id, volume);
+    requireAuth(() => {
+      setActivePreset(null);
+      setNoiseTrackVolume(id, volume);
+    });
   };
 
   const applyPreset = (preset: SoundPreset) => {
-    if (activePreset === preset.id) {
-      setActivePreset(null);
-      return;
-    }
-    setActivePreset(preset.id);
-    setNoise({
-      ...noise,
-      playing: true,
-      tracks: preset.tracks,
+    requireAuth(() => {
+      if (activePreset === preset.id) {
+        setActivePreset(null);
+        return;
+      }
+      setActivePreset(preset.id);
+      setNoise({
+        ...noise,
+        playing: true,
+        tracks: preset.tracks,
+      });
     });
   };
 
   const startSleepTimer = (minutes: number) => {
-    setNoiseSleepTimer(minutes);
-    setShowSleepOptions(false);
+    requireAuth(() => {
+      setNoiseSleepTimer(minutes);
+      setShowSleepOptions(false);
+    });
   };
 
   const cancelSleepTimer = () => {
-    setNoiseSleepTimer(null);
+    requireAuth(() => setNoiseSleepTimer(null));
+  };
+
+  const setMasterVolume = (volume: number) => {
+    requireAuth(() => setNoiseMasterVolume(volume));
   };
 
   // Sleep timer countdown
@@ -413,9 +423,13 @@ export function WhiteNoise() {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-            onClick={() =>
-                sleepTimer ? cancelSleepTimer() : setShowSleepOptions(!showSleepOptions)
-              }
+              onClick={() => {
+                if (sleepTimer) {
+                  cancelSleepTimer();
+                  return;
+                }
+                requireAuth(() => setShowSleepOptions(!showSleepOptions));
+              }}
               className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer relative"
               style={{
                 background: sleepTimer
@@ -552,7 +566,7 @@ export function WhiteNoise() {
             {Math.round(masterVolume * 100)}%
           </span>
         </div>
-        <PremiumSlider value={masterVolume} onChange={setNoiseMasterVolume} color="#8a8478" />
+        <PremiumSlider value={masterVolume} onChange={setMasterVolume} color="#8a8478" />
       </div>
 
       {/* Divider */}

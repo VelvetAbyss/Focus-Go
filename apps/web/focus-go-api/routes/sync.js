@@ -10,6 +10,12 @@ export const createSyncRouter = ({
   const router = Router()
 
   router.use(authMiddleware)
+  router.use((req, res, next) => {
+    if (req.auth?.user?.plan !== 'premium') {
+      return res.status(403).json({ error: 'Cloud sync requires premium' })
+    }
+    return next()
+  })
 
   router.post('/rxdb/pull', (req, res) => {
     const userId = String(req.auth.user.id)
