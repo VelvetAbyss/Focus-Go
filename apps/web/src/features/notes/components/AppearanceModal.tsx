@@ -1,6 +1,6 @@
 import { X } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import type { NoteAppearanceSettings, NoteFontFamily } from '../../../data/models/types'
+import type { NoteAppearanceSettings, NoteFontFamily, NotePaperBg } from '../../../data/models/types'
 import { useI18n } from '../../../shared/i18n/useI18n'
 
 type Props = {
@@ -82,6 +82,51 @@ export default function AppearanceModal({ open, settings, onClose, onUpdate }: P
           }
           onChange={(value) => onUpdate({ contentWidth: value })}
         />
+        <SliderSetting
+          label={t('notes.appearancePanel.zoom')}
+          value={settings.zoom ?? 100}
+          min={70}
+          max={150}
+          step={5}
+          display={`${settings.zoom ?? 100}%`}
+          onChange={(value) => onUpdate({ zoom: value })}
+        />
+        <BgSetting
+          label={t('notes.appearancePanel.background')}
+          value={settings.paperBg ?? 'beige'}
+          onChange={(value) => onUpdate({ paperBg: value })}
+        />
+      </div>
+    </div>
+  )
+}
+
+const BG_OPTIONS: Array<{ value: NotePaperBg; swatch: string; label: string }> = [
+  { value: 'beige', swatch: '#f5f3f0', label: '米色' },
+  { value: 'white', swatch: '#ffffff', label: '白色' },
+]
+
+function BgSetting({ label, value, onChange }: { label: string; value: NotePaperBg; onChange: (value: NotePaperBg) => void }) {
+  return (
+    <div>
+      <label className="mb-2 block text-[12px] font-medium text-muted-foreground">{label}</label>
+      <div className="flex gap-2">
+        {BG_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onChange(opt.value)}
+            className={`flex items-center gap-2 flex-1 rounded-lg border px-3 py-2 text-[11px] transition-colors ${
+              value === opt.value ? 'border-foreground bg-accent' : 'border-border hover:border-foreground/30'
+            }`}
+          >
+            <span
+              className="inline-block h-4 w-4 shrink-0 rounded-sm border border-border shadow-sm"
+              style={{ background: opt.swatch }}
+            />
+            <span className="font-medium">{opt.label}</span>
+          </button>
+        ))}
       </div>
     </div>
   )

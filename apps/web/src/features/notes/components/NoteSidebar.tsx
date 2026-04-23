@@ -90,7 +90,7 @@ export default function NoteSidebar({
     <aside
       ref={scrollContainerRef}
       className={cn(
-        'flex h-full w-[240px] min-w-[240px] flex-col overflow-y-auto overscroll-contain border-r border-[#e5e2dd] bg-[#f5f3f0] dark:border-slate-700/40 dark:bg-[#3a3733]',
+        'flex h-full w-[240px] min-w-[240px] flex-col overflow-y-auto overscroll-contain border-r border-[rgba(58,55,51,0.09)] bg-[#f5f3f0] scrollbar-thin scrollbar-thumb-[rgba(58,55,51,0.1)] scrollbar-track-transparent dark:border-slate-700/40 dark:bg-[#3a3733]',
         className,
       )}
     >
@@ -181,7 +181,7 @@ export default function NoteSidebar({
 }
 
 function SectionTitle({ children, className }: { children: string; className?: string }) {
-  return <div className={cn('mb-1.5 px-2 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-[#8d867f] dark:text-slate-400', className)}>{children}</div>
+  return <div className={cn('mb-1.5 px-2 text-[0.625rem] font-semibold uppercase tracking-[0.18em] text-[#8d867f]/85 dark:text-slate-400', className)}>{children}</div>
 }
 
 function CollectionButton({
@@ -202,15 +202,20 @@ function CollectionButton({
       type="button"
       onClick={onClick}
       className={cn(
-        'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-left transition-colors',
-        active ? 'bg-[#f0eeeb] text-[#3a3733] dark:bg-slate-700/40 dark:text-slate-100' : 'text-[#66615b] hover:bg-[#f0eeeb]/70 dark:text-slate-300 dark:hover:bg-slate-700/25',
+        'relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-left transition-[background-color,color] duration-150',
+        active
+          ? 'bg-[rgba(30,28,24,0.06)] text-[#2e2b27] dark:bg-slate-700/40 dark:text-slate-100'
+          : 'text-[#66615b] hover:bg-[rgba(30,28,24,0.04)] dark:text-slate-300 dark:hover:bg-slate-700/25',
       )}
     >
-      <Icon size={16} className={active ? 'text-[#3a3733] dark:text-slate-100' : 'text-[#8d867f] dark:text-slate-400'} />
-      <span className="flex-1 text-[0.875rem]" style={{ fontWeight: active ? 500 : 400 }}>
+      {active ? (
+        <span className="absolute left-[3px] top-1/2 h-3.5 w-[3px] -translate-y-1/2 rounded-full bg-[rgba(46,43,39,0.38)] dark:bg-slate-300/40" />
+      ) : null}
+      <Icon size={15} strokeWidth={active ? 2.1 : 1.8} className={active ? 'text-[#2e2b27] dark:text-slate-100' : 'text-[#8d867f] dark:text-slate-400'} />
+      <span className="flex-1 text-[0.8125rem] tracking-[-0.005em]" style={{ fontWeight: active ? 530 : 400 }}>
         {label}
       </span>
-      <span className="text-[0.75rem] tabular-nums text-[#8d867f] dark:text-slate-400">{count}</span>
+      <span className="text-[0.625rem] tabular-nums text-[#8d867f]/80 dark:text-slate-400">{count}</span>
     </button>
   )
 }
@@ -264,8 +269,8 @@ function TagRow({
     <div>
       <div
         className={cn(
-          'group relative flex cursor-pointer items-center gap-1.5 rounded-lg py-[6px] transition-[background-color,color,transform,box-shadow,opacity] duration-200 ease-out',
-          isActive ? 'bg-[#f0eeeb] text-[#3a3733] dark:bg-slate-700/40 dark:text-slate-100' : 'hover:bg-[#f0eeeb]/60 dark:hover:bg-slate-700/25',
+          'group relative flex cursor-pointer items-center gap-1.5 rounded-lg py-[6px] transition-[background-color,color,transform,box-shadow,opacity] duration-150 ease-out',
+          isActive ? 'bg-[rgba(30,28,24,0.06)] text-[#2e2b27] dark:bg-slate-700/40 dark:text-slate-100' : 'text-[#66615b] hover:bg-[rgba(30,28,24,0.04)] dark:hover:bg-slate-700/25 dark:text-slate-300',
           dragPlacement === 'inside' && 'ring-1 ring-[#3a3733]/25 bg-[#f0eeeb]/70',
           isNoteHover && 'ring-1 ring-[#3a3733]/30 bg-[#f0eeeb]/70',
         )}
@@ -367,7 +372,8 @@ function TagRow({
         ) : (
           <div className="w-4" />
         )}
-        <Icon size={14} className="text-[#8d867f] dark:text-slate-400" />
+        {isActive ? <span className="absolute left-[3px] top-1/2 h-3 w-[3px] -translate-y-1/2 rounded-full bg-[rgba(46,43,39,0.35)] dark:bg-slate-300/40" /> : null}
+        <Icon size={14} strokeWidth={isActive ? 2 : 1.75} className={isActive ? 'text-[#2e2b27] dark:text-slate-200' : 'text-[#8d867f] dark:text-slate-400'} />
         {isRenaming ? (
           <input
             autoFocus
@@ -391,8 +397,8 @@ function TagRow({
           />
         ) : (
           <span
-            className="flex-1 truncate text-[0.875rem]"
-            style={{ fontWeight: isActive ? 500 : 400 }}
+            className="flex-1 truncate text-[0.8125rem] tracking-[-0.005em]"
+            style={{ fontWeight: isActive ? 520 : 400 }}
             onDoubleClick={(event) => {
               event.stopPropagation()
               setIsRenaming(true)

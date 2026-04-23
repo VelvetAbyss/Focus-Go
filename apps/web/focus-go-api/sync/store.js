@@ -11,6 +11,35 @@ const normalizeRow = (row) => ({
   deletedAt: row.deleted_at,
 })
 
+const stableStringify = (value) => {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value)
+  if (Array.isArray(value)) return `[${value.map((item) => stableStringify(item)).join(',')}]`
+  const entries = Object.entries(value).sort(([left], [right]) => left.localeCompare(right))
+  return `{${entries.map(([key, nested]) => `${JSON.stringify(key)}:${stableStringify(nested)}`).join(',')}}`
+}
+
+const normalizeDocumentForCompare = (document) => {
+  if (!document || typeof document !== 'object') return null
+  const next = { ...document }
+  if (next._deleted !== true) delete next._deleted
+  return next
+}
+
+const buildConflictDocument = (row, fallback = null) => {
+  if (!row) return fallback ? { ...fallback, _deleted: true } : null
+  const normalized = normalizeRow(row)
+  return {
+    ...normalized.payload,
+    _deleted: Boolean(normalized.deletedAt),
+  }
+}
+
+const documentsMatch = (current, assumedMasterState) => {
+  if (!current) return assumedMasterState == null
+  if (!assumedMasterState) return false
+  return stableStringify(buildConflictDocument(current)) === stableStringify(normalizeDocumentForCompare(assumedMasterState))
+}
+
 const getTableName = (entityType) => {
   const tableName = SYNC_TABLES[entityType]
   if (!tableName) {
@@ -153,12 +182,9 @@ export const pushRxdbRows = (db, userId, entityType, rows) => {
       .prepare(`SELECT id, user_id, payload, updated_at, deleted_at FROM ${tableName} WHERE user_id = ? AND id = ?`)
       .get(userId, next.id)
 
-    if (current && current.updated_at >= next.updatedAt) {
-      const normalized = normalizeRow(current)
-      conflicts.push({
-        ...normalized.payload,
-        _deleted: Boolean(normalized.deletedAt),
-      })
+    if (!documentsMatch(current, row?.assumedMasterState ?? null)) {
+      const conflict = buildConflictDocument(current, row?.assumedMasterState ?? null)
+      if (conflict) conflicts.push(conflict)
       continue
     }
 

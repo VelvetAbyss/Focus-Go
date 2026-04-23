@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Check, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,23 +15,26 @@ import type { LifePerson, ProjectItem, ProjectPerson, TaskItem } from '../../../
 import { peopleRepo } from '../../../data/repositories/peopleRepo'
 import { useProjectsI18n } from '../projectsI18n'
 
+type ProjectFormPayload = {
+  title: string
+  goal: string
+  description: string
+  status: ProjectItem['status']
+  priority: ProjectItem['priority']
+  ownerId?: string
+  startDate?: string
+  dueDate?: string
+  nextAction?: string
+  riskSummary?: string
+}
+
 type ProjectFormDialogProps = {
   open: boolean
   project?: ProjectItem | null
   people: ProjectPerson[]
   onClose: () => void
-  onSubmit: (payload: {
-    title: string
-    goal: string
-    description: string
-    status: ProjectItem['status']
-    priority: ProjectItem['priority']
-    ownerId?: string
-    startDate?: string
-    dueDate?: string
-    nextAction?: string
-    riskSummary?: string
-  }) => Promise<void> | void
+  onAutoSave?: (payload: ProjectFormPayload) => Promise<void> | void
+  onSubmit: (payload: ProjectFormPayload) => Promise<void> | void
 }
 
 type PersonFormDialogProps = {
@@ -58,7 +61,7 @@ const GROUP_COLORS: Record<string, string> = {
   Other: '#9ca3af',
 }
 
-export const ProjectFormDialog = ({ open, project, people, onClose, onSubmit }: ProjectFormDialogProps) => {
+export const ProjectFormDialog = ({ open, project, people, onClose, onAutoSave, onSubmit }: ProjectFormDialogProps) => {
   const i18n = useProjectsI18n()
   const [title, setTitle] = useState('')
   const [goal, setGoal] = useState('')
@@ -71,7 +74,10 @@ export const ProjectFormDialog = ({ open, project, people, onClose, onSubmit }: 
   const [nextAction, setNextAction] = useState('')
   const [riskSummary, setRiskSummary] = useState('')
 
+  const isInitializedRef = useRef(false)
+
   useEffect(() => {
+    isInitializedRef.current = false
     if (!open) return
     setTitle(project?.title ?? '')
     setGoal(project?.goal ?? '')
@@ -85,7 +91,28 @@ export const ProjectFormDialog = ({ open, project, people, onClose, onSubmit }: 
     setRiskSummary(project?.riskSummary ?? '')
   }, [open, project])
 
+  useEffect(() => {
+    if (!open || !onAutoSave || !project) return
+    if (!isInitializedRef.current) {
+      isInitializedRef.current = true
+      return
+    }
+    const timer = setTimeout(() => {
+      void onAutoSave({
+        title, goal, description, status, priority,
+        ownerId: ownerId === 'unassigned' ? undefined : ownerId,
+        startDate: startDate || undefined,
+        dueDate: dueDate || undefined,
+        nextAction: nextAction || undefined,
+        riskSummary: riskSummary || undefined,
+      })
+    }, 400)
+    return () => clearTimeout(timer)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, goal, description, status, priority, ownerId, startDate, dueDate, nextAction, riskSummary])
+
   const canSubmit = title.trim().length > 0
+  const isEditMode = !!project && !!onAutoSave
 
   return (
     <Dialog
@@ -192,28 +219,36 @@ export const ProjectFormDialog = ({ open, project, people, onClose, onSubmit }: 
         </div>
 
         <div className="project-dialog__footer">
-          <Button type="button" variant="outline" className="project-button project-button--secondary" onClick={onClose}>
-            {i18n.dialog.cancel}
-          </Button>
-          <Button
-            type="button"
-            className="project-button project-button--primary"
-            disabled={!canSubmit}
-            onClick={() => void onSubmit({
-              title,
-              goal,
-              description,
-              status,
-              priority,
-              ownerId: ownerId === 'unassigned' ? undefined : ownerId,
-              startDate: startDate || undefined,
-              dueDate: dueDate || undefined,
-              nextAction: nextAction || undefined,
-              riskSummary: riskSummary || undefined,
-            })}
-          >
-            {project ? i18n.dialog.saveChanges : i18n.dialog.createProject}
-          </Button>
+          {isEditMode ? (
+            <Button type="button" className="project-button project-button--primary" onClick={onClose}>
+              {i18n.dialog.done}
+            </Button>
+          ) : (
+            <>
+              <Button type="button" variant="outline" className="project-button project-button--secondary" onClick={onClose}>
+                {i18n.dialog.cancel}
+              </Button>
+              <Button
+                type="button"
+                className="project-button project-button--primary"
+                disabled={!canSubmit}
+                onClick={() => void onSubmit({
+                  title,
+                  goal,
+                  description,
+                  status,
+                  priority,
+                  ownerId: ownerId === 'unassigned' ? undefined : ownerId,
+                  startDate: startDate || undefined,
+                  dueDate: dueDate || undefined,
+                  nextAction: nextAction || undefined,
+                  riskSummary: riskSummary || undefined,
+                })}
+              >
+                {i18n.dialog.createProject}
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </Dialog>
@@ -398,23 +433,26 @@ export const PersonFormDialog = ({ open, person, onClose, onSubmit }: PersonForm
   )
 }
 
+type ProjectTaskPayload = {
+  title: string
+  description: string
+  status: 'todo' | 'doing' | 'done'
+  priority: 'high' | 'medium' | 'low'
+  ownerId?: string
+  dueDate?: string
+  startDate?: string
+}
+
 type ProjectTaskDialogProps = {
   open: boolean
   task?: TaskItem | null
   people: ProjectPerson[]
   onClose: () => void
-  onSubmit: (payload: {
-    title: string
-    description: string
-    status: 'todo' | 'doing' | 'done'
-    priority: 'high' | 'medium' | 'low'
-    ownerId?: string
-    dueDate?: string
-    startDate?: string
-  }) => Promise<void> | void
+  onAutoSave?: (payload: ProjectTaskPayload) => Promise<void> | void
+  onSubmit: (payload: ProjectTaskPayload) => Promise<void> | void
 }
 
-export const ProjectTaskDialog = ({ open, task, people, onClose, onSubmit }: ProjectTaskDialogProps) => {
+export const ProjectTaskDialog = ({ open, task, people, onClose, onAutoSave, onSubmit }: ProjectTaskDialogProps) => {
   const i18n = useProjectsI18n()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -424,7 +462,10 @@ export const ProjectTaskDialog = ({ open, task, people, onClose, onSubmit }: Pro
   const [startDate, setStartDate] = useState('')
   const [dueDate, setDueDate] = useState('')
 
+  const isInitializedRef = useRef(false)
+
   useEffect(() => {
+    isInitializedRef.current = false
     if (!open) return
     setTitle(task?.title ?? '')
     setDescription(task?.description ?? '')
@@ -434,6 +475,26 @@ export const ProjectTaskDialog = ({ open, task, people, onClose, onSubmit }: Pro
     setStartDate(task?.startDate ?? '')
     setDueDate(task?.dueDate ?? '')
   }, [open, task])
+
+  useEffect(() => {
+    if (!open || !onAutoSave || !task) return
+    if (!isInitializedRef.current) {
+      isInitializedRef.current = true
+      return
+    }
+    const timer = setTimeout(() => {
+      void onAutoSave({
+        title, description, status, priority,
+        ownerId: ownerId === 'unassigned' ? undefined : ownerId,
+        startDate: startDate || undefined,
+        dueDate: dueDate || undefined,
+      })
+    }, 400)
+    return () => clearTimeout(timer)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, description, status, priority, ownerId, startDate, dueDate])
+
+  const isEditMode = !!task && !!onAutoSave
 
   return (
     <Dialog
@@ -512,25 +573,33 @@ export const ProjectTaskDialog = ({ open, task, people, onClose, onSubmit }: Pro
           </div>
         </div>
         <div className="project-dialog__footer">
-          <Button type="button" variant="outline" className="project-button project-button--secondary" onClick={onClose}>
-            {i18n.dialog.cancel}
-          </Button>
-          <Button
-            type="button"
-            className="project-button project-button--primary"
-            disabled={title.trim().length === 0}
-            onClick={() => void onSubmit({
-              title,
-              description,
-              status,
-              priority,
-              ownerId: ownerId === 'unassigned' ? undefined : ownerId,
-              startDate: startDate || undefined,
-              dueDate: dueDate || undefined,
-            })}
-          >
-            {task ? i18n.dialog.saveTask : i18n.dialog.addTask}
-          </Button>
+          {isEditMode ? (
+            <Button type="button" className="project-button project-button--primary" onClick={onClose}>
+              {i18n.dialog.done}
+            </Button>
+          ) : (
+            <>
+              <Button type="button" variant="outline" className="project-button project-button--secondary" onClick={onClose}>
+                {i18n.dialog.cancel}
+              </Button>
+              <Button
+                type="button"
+                className="project-button project-button--primary"
+                disabled={title.trim().length === 0}
+                onClick={() => void onSubmit({
+                  title,
+                  description,
+                  status,
+                  priority,
+                  ownerId: ownerId === 'unassigned' ? undefined : ownerId,
+                  startDate: startDate || undefined,
+                  dueDate: dueDate || undefined,
+                })}
+              >
+                {i18n.dialog.addTask}
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </Dialog>

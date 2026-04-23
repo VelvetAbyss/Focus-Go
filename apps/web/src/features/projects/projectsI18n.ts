@@ -133,6 +133,7 @@ type ProjectsMessages = {
     cancel: string
     saveChanges: string
     createProject: string
+    done: string
     peopleEyebrow: string
     editPerson: string
     addPerson: string
@@ -304,6 +305,7 @@ const messages: Record<LanguageCode, ProjectsMessages> = {
       fieldRiskSummary: 'Risk Summary',
       riskPlaceholder: 'Timeline may be tight for final user testing.',
       cancel: 'Cancel',
+      done: 'Done',
       saveChanges: 'Save Changes',
       createProject: 'Create Project',
       peopleEyebrow: 'People',
@@ -475,6 +477,7 @@ const messages: Record<LanguageCode, ProjectsMessages> = {
       fieldRiskSummary: '风险摘要',
       riskPlaceholder: '最终用户测试的时间可能比较紧张。',
       cancel: '取消',
+      done: '完成',
       saveChanges: '保存更改',
       createProject: '创建项目',
       peopleEyebrow: '成员',

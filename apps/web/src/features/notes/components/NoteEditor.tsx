@@ -59,6 +59,8 @@ type NoteEditorProps = {
     lineHeight?: number
     contentWidth?: number
     focusMode?: boolean
+    paperBg?: 'beige' | 'white'
+    zoom?: number
   }
   onOpenInfo?: () => void
   onOpenAppearance?: () => void
@@ -213,6 +215,8 @@ const NoteEditor = ({
   const fontFamily = fontFamilyMap[appearance?.font ?? 'uiSans']
   const widthScale = Math.max(0, Math.min(100, appearance?.contentWidth ?? 0)) / 100
   const contentWidthPercent = 100 - widthScale * 42
+  const zoomLevel = Math.max(50, Math.min(200, appearance?.zoom ?? 100)) / 100
+  const surfaceBg = appearance?.paperBg === 'white' ? '#ffffff' : undefined
   const [headings, setHeadings] = useState<HeadingNavItem[]>([])
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null)
   const MAX_NAV_ITEMS = 12
@@ -523,7 +527,7 @@ const NoteEditor = ({
         </div>
       </div>
 
-      <div ref={surfaceRef} className="note-editor__surface">
+      <div ref={surfaceRef} className="note-editor__surface" style={surfaceBg ? { background: surfaceBg } : undefined}>
         <div
           className="note-editor__content"
           style={
@@ -531,6 +535,7 @@ const NoteEditor = ({
               width: `${contentWidthPercent}%`,
               maxWidth: 'none',
               fontFamily,
+              zoom: zoomLevel,
               '--note-editor-font-size': `${appearance?.fontSize ?? 16}px`,
               '--note-editor-line-height': `${appearance?.lineHeight ?? 1.7}`,
             } as CSSProperties

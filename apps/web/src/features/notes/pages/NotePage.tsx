@@ -27,6 +27,8 @@ const DEFAULT_APPEARANCE: NoteAppearanceSettings = {
   lineHeight: 1.8,
   contentWidth: 60,
   focusMode: false,
+  paperBg: 'beige',
+  zoom: 100,
 }
 
 const DEFAULT_TAGS: Array<Pick<NoteTag, 'name' | 'icon' | 'pinned' | 'sortOrder'> & { parentName?: string }> = [
@@ -730,6 +732,7 @@ export default function NotePage() {
           notes={filteredNotes}
           selectedNoteId={activeNote?.id ?? null}
           collectionLabel={collectionLabelMap[activeCollection]}
+          tagLabelMap={projectTagLabels}
           mode={activeCollection === 'trash' ? 'trash' : 'notes'}
           onSelectNote={async (id) => {
             await flushPendingSave()

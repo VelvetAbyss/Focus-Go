@@ -27,10 +27,19 @@ const ROLE_COLORS: Record<string, string> = {
   external: '#6B5FF5',
 }
 
+const STATUS_ORDER: Record<string, number> = { todo: 0, doing: 1, done: 2 }
+
 const sortByDate = (tasks: TaskItem[]) =>
   [...tasks].sort((a, b) =>
     (a.startDate ?? a.dueDate ?? '9999').localeCompare(b.startDate ?? b.dueDate ?? '9999'),
   )
+
+const sortByStatusThenDate = (tasks: TaskItem[]) =>
+  [...tasks].sort((a, b) => {
+    const statusDiff = (STATUS_ORDER[a.status] ?? 0) - (STATUS_ORDER[b.status] ?? 0)
+    if (statusDiff !== 0) return statusDiff
+    return (a.startDate ?? a.dueDate ?? '9999').localeCompare(b.startDate ?? b.dueDate ?? '9999')
+  })
 
 const DAY_MS = 86400000
 
@@ -212,7 +221,7 @@ const ProjectDetailPage = () => {
   const ownerMap = useMemo(() => new Map(people.map((p) => [p.id, p.name] as const)), [people])
 
   const visibleTasks = useMemo(() =>
-    sortByDate(tasks).filter((t) => {
+    sortByStatusThenDate(tasks).filter((t) => {
       if (taskStatusFilter !== 'all' && t.status !== taskStatusFilter) return false
       if (taskOwnerFilter !== 'all' && (t.ownerId ?? '') !== taskOwnerFilter) return false
       return true
@@ -845,7 +854,13 @@ const ProjectDetailPage = () => {
         open={projectDialogOpen}
         project={project}
         people={people}
-        onClose={() => setProjectDialogOpen(false)}
+        onClose={async () => {
+          setProjectDialogOpen(false)
+          await load()
+        }}
+        onAutoSave={async (payload) => {
+          await projectsRepo.update(project.id, payload)
+        }}
         onSubmit={async (payload) => {
           await projectsRepo.update(project.id, payload)
           setProjectDialogOpen(false)
@@ -870,40 +885,41 @@ const ProjectDetailPage = () => {
         open={taskDialogOpen}
         task={editingTask}
         people={people}
-        onClose={() => {
+        onClose={async () => {
           setTaskDialogOpen(false)
           setEditingTask(null)
+          await load()
+        }}
+        onAutoSave={async (payload) => {
+          if (!editingTask) return
+          await tasksRepo.update({
+            ...editingTask,
+            title: payload.title,
+            description: payload.description,
+            status: payload.status,
+            priority: payload.priority,
+            ownerId: payload.ownerId,
+            startDate: payload.startDate,
+            dueDate: payload.dueDate,
+          })
         }}
         onSubmit={async (payload) => {
-          if (editingTask) {
-            await tasksRepo.update({
-              ...editingTask,
-              title: payload.title,
-              description: payload.description,
-              status: payload.status,
-              priority: payload.priority,
-              ownerId: payload.ownerId,
-              startDate: payload.startDate,
-              dueDate: payload.dueDate,
-            })
-          } else {
-            await tasksRepo.add({
-              title: payload.title,
-              description: payload.description,
-              status: payload.status,
-              priority: payload.priority,
-              projectId: project.id,
-              ownerId: payload.ownerId,
-              startDate: payload.startDate,
-              dueDate: payload.dueDate,
-              tags: [],
-              subtasks: [],
-              collaboratorIds: [],
-              dependencyTaskIds: [],
-              blockedByTaskIds: [],
-              isBlocked: false,
-            })
-          }
+          await tasksRepo.add({
+            title: payload.title,
+            description: payload.description,
+            status: payload.status,
+            priority: payload.priority,
+            projectId: project.id,
+            ownerId: payload.ownerId,
+            startDate: payload.startDate,
+            dueDate: payload.dueDate,
+            tags: [],
+            subtasks: [],
+            collaboratorIds: [],
+            dependencyTaskIds: [],
+            blockedByTaskIds: [],
+            isBlocked: false,
+          })
           setTaskDialogOpen(false)
           setEditingTask(null)
           await load()
