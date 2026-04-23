@@ -173,4 +173,21 @@ describe('LabsPage', () => {
     await waitFor(() => expect(mockRestore).toHaveBeenCalledWith('ai-digest'))
   })
 
+  it('shows upgrade for removed premium features when user is free', async () => {
+    mockUseLabs.mockReturnValue({
+      ready: true,
+      catalog: [makeFeature('removed', { requiresPremium: true })],
+      subscription: { tier: 'free', role: 'member' },
+      install: mockInstall,
+      remove: mockRemove,
+      restore: mockRestore,
+    })
+
+    renderPage()
+    await userEvent.click(screen.getByRole('button', { name: i18n.labs.upgrade }))
+
+    expect(mockOpenUpgradeModal).toHaveBeenCalledWith('Habit Tracker')
+    expect(mockRestore).not.toHaveBeenCalled()
+  })
+
 })

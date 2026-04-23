@@ -6,6 +6,7 @@ import { useI18n } from '../../shared/i18n/useI18n'
 import { useIsBreakpoint } from '../../hooks/use-is-breakpoint'
 import LiveClock from './LiveClock'
 import { getDashboardQuote, getLocalDashboardQuote } from './quote/quoteService'
+import PremiumMark from '../premium/PremiumMark'
 import '../life/life.css'
 
 type DashboardPage = 'main' | 'life'
@@ -213,6 +214,7 @@ const DashboardHeader = ({
               aria-expanded={widgetsPanelOpen}
             >
               <span>{t('dashboard.manageWidgets')}</span>
+              {widgetsLocked ? <PremiumMark /> : null}
             </button>
           ) : null}
 
@@ -226,6 +228,7 @@ const DashboardHeader = ({
           >
             <LayoutGrid size={14} aria-hidden="true" />
             <span>{layoutEdit ? t('dashboard.done') : t('dashboard.editLayout')}</span>
+            {!layoutEdit && layoutEditLocked ? <PremiumMark /> : null}
           </button>
 
           {!layoutEdit ? (

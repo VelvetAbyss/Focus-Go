@@ -8,6 +8,8 @@ import { useSharedNoise } from './SharedNoiseProvider'
 import { useI18n } from '../../shared/i18n/useI18n'
 import type { TranslationKey } from '../../shared/i18n/types'
 import { usePremiumGate } from '../premium/PremiumProvider'
+import { useAuthGate } from '../auth/AuthGateContext'
+import PremiumMark from '../premium/PremiumMark'
 
 const clampDuration = (value: number) => {
   if (!Number.isFinite(value)) return 25
@@ -119,6 +121,7 @@ function TimerDisplay({ timeText }: { timeText: string }) {
 const FocusCard = () => {
   const { t } = useI18n()
   const { canUse, openUpgradeModal } = usePremiumGate()
+  const { requireAuth } = useAuthGate()
   const [activeMode, setActiveMode] = useState<FocusModeId>('pomodoro')
   const { noise, setNoiseMasterVolume, toggleNoisePlaying } = useSharedNoise()
   const { state: timerState, start, pause, resume, reset, setDuration } = useSharedFocusTimer({ defaultDurationMinutes: 25 })
@@ -154,25 +157,29 @@ const FocusCard = () => {
   }, [setNoiseMasterVolume])
 
   const handlePrimaryAction = async () => {
-    await withViewTransition(async () => {
-      if (timerState.running) {
-        await pause()
-        return
-      }
-      if (timerState.status === 'paused') {
-        await resume()
-        return
-      }
-      await start(clampDuration(timerState.durationMinutes))
+    requireAuth(() => {
+      void withViewTransition(async () => {
+        if (timerState.running) {
+          await pause()
+          return
+        }
+        if (timerState.status === 'paused') {
+          await resume()
+          return
+        }
+        await start(clampDuration(timerState.durationMinutes))
+      })
     })
   }
 
   const handleModeChange = async (modeId: FocusModeId) => {
     const mode = FOCUS_MODES.find((item) => item.id === modeId)
     if (!mode) return
-    await withViewTransition(async () => {
-      setActiveMode(mode.id)
-      await setDuration(clampDuration(mode.minutes))
+    requireAuth(() => {
+      void withViewTransition(async () => {
+        setActiveMode(mode.id)
+        await setDuration(clampDuration(mode.minutes))
+      })
     })
   }
 
@@ -204,6 +211,7 @@ const FocusCard = () => {
 
   const volumePercent = Math.round(noise.masterVolume * 100)
   const progress = Math.max(0, Math.min(1, 1 - timerState.remainingSeconds / (Math.max(1, timerState.durationMinutes) * 60)))
+  const whiteNoiseLocked = !canUse('focus.white-noise').allowed
 
   return (
     <Card className="focus-card-figma-shell" title={t('focus.center')} eyebrow={t('focus.pomodoro')}>
@@ -256,7 +264,7 @@ const FocusCard = () => {
               <button
                 className="focus-card-lite__reset-raw"
                 onPointerDown={(event) => springPress(event.currentTarget)}
-                onClick={() => void reset()}
+                onClick={() => requireAuth(() => { void reset() })}
                 aria-label={t('focus.reset')}
               >
                 <RotateCcw size={15} />
@@ -274,16 +282,20 @@ const FocusCard = () => {
                     openUpgradeModal('button', 'focus.white-noise')
                     return
                   }
-                  toggleNoisePlaying()
+                  requireAuth(() => toggleNoisePlaying())
                 }}
                 aria-label={noise.playing ? t('focus.pauseNoise') : t('focus.playNoise')}
               >
                 {noise.playing ? <Pause size={14} /> : <Play size={14} />}
+                {whiteNoiseLocked ? <PremiumMark variant="dot" className="focus-card-lite__premium-dot" /> : null}
               </button>
 
               <div className="focus-card-lite__volume-raw">
                 <div className="focus-card-lite__volume-row-raw">
-                  <span>{t('focus.volume')}</span>
+                  <span className="focus-card-lite__volume-label">
+                    {t('focus.volume')}
+                    {whiteNoiseLocked ? <PremiumMark /> : null}
+                  </span>
                   <span>{volumePercent}%</span>
                 </div>
                 <div
@@ -294,11 +306,13 @@ const FocusCard = () => {
                       openUpgradeModal('button', 'focus.white-noise')
                       return
                     }
-                    draggingRef.current = true
-                    if (!sliderRef.current) return
-                    const rect = sliderRef.current.getBoundingClientRect()
-                    const next = clamp01((event.clientX - rect.left) / rect.width)
-                    setNoiseMasterVolume(next)
+                    requireAuth(() => {
+                      draggingRef.current = true
+                      if (!sliderRef.current) return
+                      const rect = sliderRef.current.getBoundingClientRect()
+                      const next = clamp01((event.clientX - rect.left) / rect.width)
+                      setNoiseMasterVolume(next)
+                    })
                   }}
                 >
                   <div className="focus-card-lite__volume-fill-raw" style={{ width: `${noise.masterVolume * 100}%` }} />

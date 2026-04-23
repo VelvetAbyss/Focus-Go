@@ -2972,6 +2972,7 @@ html[data-motion='reduce'] .drawer--visible .drawer__panel {
 }
 
 .focus-card-lite__noise-play-raw {
+  position: relative;
   width: 38px;
   height: 38px;
   border: 1px solid rgba(77, 67, 56, 0.1);
@@ -3004,11 +3005,23 @@ html[data-motion='reduce'] .drawer--visible .drawer__panel {
   justify-content: space-between;
 }
 
+.focus-card-lite__volume-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .focus-card-lite__volume-row-raw span {
   font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.15em;
   color: #6e6559;
+}
+
+.focus-card-lite__premium-dot {
+  position: absolute;
+  top: -4px;
+  right: -4px;
 }
 
 .focus-card-lite__volume-track-raw {
@@ -13250,6 +13263,38 @@ html[data-theme='dark'] .acct-plan-badge--premium {
   font-weight: 500;
   margin-left: 2px;
   opacity: 0.75;
+}
+
+.premium-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #8A5A1F;
+  background: color-mix(in srgb, #E8C88F 72%, #F5F3F0 28%);
+  border: 1px solid color-mix(in srgb, #B87830 24%, transparent);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.55) inset;
+}
+
+.premium-mark--pill {
+  height: 16px;
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+}
+
+.premium-mark--dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  padding: 0;
+}
+
+html[data-theme='dark'] .premium-mark {
+  color: #F0C776;
+  background: color-mix(in srgb, #7A5A1E 62%, rgba(245, 243, 240, 0.08) 38%);
+  border-color: color-mix(in srgb, #D49A3A 34%, transparent);
+  box-shadow: none;
 }
 
 .acct-streak-line {

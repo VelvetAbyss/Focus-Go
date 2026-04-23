@@ -66,6 +66,7 @@ import { resetRxdbSyncDatabase } from '../../data/sync/rxdb'
 import { ROUTES } from './routes'
 import { useUpgradeModal } from '../../features/labs/UpgradeModalContext'
 import { useAuthGate } from '../../features/auth/AuthGateContext'
+import PremiumMark from '../../features/premium/PremiumMark'
 import {
   buildLocalSuggestions,
   MAX_CITY_SUGGESTIONS,
@@ -1297,7 +1298,18 @@ const SettingsRoute = () => {
                                   {t('settings.data.sync.error', { message: syncState.lastError })}
                                 </div>
                               ) : null}
-                              <Button variant="outline" disabled={syncState?.status === 'syncing'} onClick={() => void syncNow()}>
+                              <Button
+                                variant="outline"
+                                disabled={syncState?.status === 'syncing'}
+                                onClick={() => {
+                                  if (syncState?.status === 'blocked') {
+                                    openUpgradeModal()
+                                    return
+                                  }
+                                  void syncNow()
+                                }}
+                              >
+                                {syncState?.status === 'blocked' ? <PremiumMark /> : null}
                                 {t('settings.data.sync.action')}
                               </Button>
                             </div>

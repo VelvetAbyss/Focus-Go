@@ -15,6 +15,7 @@ import { useTaskReminderEngine } from '../../features/tasks/useTaskReminderEngin
 import { UpgradeModalProvider } from '../../features/labs/UpgradeModalContext'
 import UpgradeModal from '../../features/labs/components/UpgradeModal'
 import { AuthGateProvider } from '../../features/auth/AuthGateContext'
+import AuthInteractionGate from '../../features/auth/AuthInteractionGate'
 import { syncedPreferencesRepo } from '../../data/repositories/syncedPreferencesRepo'
 import { getAuth, subscribeAuth } from '../../store/auth'
 import { isLocalhostRuntime } from '../../shared/env/localhost'
@@ -231,7 +232,9 @@ const AppShell = ({ children }: AppShellProps) => {
             />
             <main className={`focus-shell__main flex min-h-0 flex-1 flex-col ${isFullBleedRoute ? 'focus-shell__main--surface-less' : ''}`}>
               <section className={`focus-shell__route-layer flex min-h-0 flex-1 flex-col ${isFullBleedRoute ? 'focus-shell__route-layer--full-bleed' : ''}`}>
-                {children}
+                <AuthInteractionGate>
+                  {children}
+                </AuthInteractionGate>
               </section>
             </main>
           </div>

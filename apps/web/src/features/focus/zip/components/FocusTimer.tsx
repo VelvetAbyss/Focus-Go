@@ -403,14 +403,14 @@ export function FocusTimer({
       if (e.code === "Space") {
         e.preventDefault();
         if (status === "idle" || status === "completed") void handleStart();
-        else if (status === "running") void handlePause();
-        else if (status === "paused") void handleResume();
+        else if (status === "running") requireAuth(() => { void handlePause(); });
+        else if (status === "paused") requireAuth(() => { void handleResume(); });
       }
       if (e.code === "KeyR" && (status === "running" || status === "paused")) {
-        void handleReset();
+        requireAuth(() => { void handleReset(); });
       }
       if (e.code === "KeyB" && status === "idle") {
-        setShowBreathing(true);
+        requireAuth(() => setShowBreathing(true));
       }
     };
     window.addEventListener("keydown", handler);

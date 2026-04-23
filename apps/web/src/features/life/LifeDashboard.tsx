@@ -9,6 +9,7 @@ import { getLifeCards, type DashboardCard } from '../dashboard/registry'
 import type { DashboardLayoutItem } from '../../data/models/types'
 import { useDashboardGridEdit } from '../dashboard/useDashboardGridEdit'
 import { lifeDashboardRepo } from '../../data/repositories/lifeDashboardRepo'
+import AuthInteractionGate from '../auth/AuthInteractionGate'
 import { useLifeI18n } from './lifeI18n'
 import './life.css'
 
@@ -193,6 +194,7 @@ const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => 
 
   return (
     <div className="life-dashboard" ref={containerRef}>
+      <AuthInteractionGate>
       {layoutEdit && widgetsPanelOpen ? (
         <section className="dashboard-widgets" aria-label={t('life.dashboard.manageWidgets')}>
           {cards.map((card) => {
@@ -245,6 +247,7 @@ const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => 
             </div>
           ))}
         </GridLayout>
+      </AuthInteractionGate>
     </div>
   )
 }

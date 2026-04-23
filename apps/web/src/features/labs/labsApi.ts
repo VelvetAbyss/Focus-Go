@@ -168,6 +168,12 @@ export const getFeatureCatalog = async (): Promise<FeatureCatalogItem[]> => {
 }
 
 const mutateFeature = async (featureKey: FeatureKey, action: 'install' | 'remove' | 'restore') => {
+  const subscription = await getSubscription()
+  const meta = FEATURE_META.find((item) => item.featureKey === featureKey)
+  if (meta?.premiumOnly && subscription.tier !== 'premium' && action !== 'remove') {
+    throw new Error('Premium required')
+  }
+
   const now = Date.now()
 
   const rows = await db.featureInstallations.where('userId').equals(CURRENT_USER_ID).toArray()
