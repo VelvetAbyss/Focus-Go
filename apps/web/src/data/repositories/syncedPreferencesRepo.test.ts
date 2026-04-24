@@ -90,4 +90,19 @@ describe('syncedPreferencesRepo', () => {
     expect(window.localStorage.getItem('focusgo.sidebar.order.v1')).toBe(JSON.stringify(['route:dashboard', 'route:tasks']))
     expect(window.localStorage.getItem('workbench.dashboard.layoutLocked')).toBe('false')
   })
+
+  it('marks the initial seed as completed without overwriting existing preferences', async () => {
+    writeLanguage('zh')
+
+    await syncedPreferencesRepo.persistFromLocal()
+    const before = await db.syncedPreferences.get(SYNCED_PREFERENCES_ID)
+
+    await syncedPreferencesRepo.markInitialSeedCompleted(123)
+
+    const stored = await db.syncedPreferences.get(SYNCED_PREFERENCES_ID)
+    expect(stored?.language).toBe('zh')
+    expect(stored?.initialSeedCompletedAt).toBe(123)
+    expect(stored?.createdAt).toBe(before?.createdAt)
+    expect(stored?.updatedAt).toBe(123)
+  })
 })

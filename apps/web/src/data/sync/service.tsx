@@ -5,6 +5,7 @@ import { syncStateRepo } from './repository'
 import { ensureRxdbSyncReady, runRxdbSyncCycle } from './rxdb'
 import type { SyncState } from './types'
 import { isLocalhostRuntime } from '../../shared/env/localhost'
+import { seedDatabase } from '../seed'
 
 type SyncContextValue = {
   state: SyncState | null
@@ -32,6 +33,8 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
     if (!isLoggedIn || runningRef.current) return
     if (!canUseCloudSync) {
       await syncStateRepo.markStatus('blocked', 'Cloud sync requires Premium')
+      const seeded = await seedDatabase()
+      if (seeded) window.dispatchEvent(new Event(SYNC_DATA_UPDATED_EVENT))
       await refreshState()
       return
     }
@@ -48,6 +51,8 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
     if (!isLoggedIn || runningRef.current) return
     if (!canUseCloudSync) {
       await syncStateRepo.markStatus('blocked', 'Cloud sync requires Premium')
+      const seeded = await seedDatabase()
+      if (seeded) window.dispatchEvent(new Event(SYNC_DATA_UPDATED_EVENT))
       await refreshState()
       return
     }
@@ -59,6 +64,11 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
       await refreshState()
     }
     await syncNow()
+    const seeded = await seedDatabase()
+    if (seeded) {
+      window.dispatchEvent(new Event(SYNC_DATA_UPDATED_EVENT))
+      await syncNow()
+    }
   }, [canUseCloudSync, isLoggedIn, refreshState, syncNow])
 
   useEffect(() => {
@@ -118,6 +128,7 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
   return <SyncContext.Provider value={value}>{children}</SyncContext.Provider>
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useSyncDataRefresh = (callback: () => void) => {
   useEffect(() => {
     const handler = () => callback()
@@ -126,11 +137,13 @@ export const useSyncDataRefresh = (callback: () => void) => {
   }, [callback])
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useSyncStatus = () => {
   const context = useContext(SyncContext)
   return context?.state ?? null
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useSyncActions = () => {
   const context = useContext(SyncContext)
   if (!context) {

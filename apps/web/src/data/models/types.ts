@@ -581,4 +581,5 @@ export type SyncedPreferences = BaseEntity & {
   themeSelection: ThemeSelection
   dashboardLayoutLocked: boolean
   calendarSubscriptions: CalendarSubscription[]
+  initialSeedCompletedAt?: number | null
 }

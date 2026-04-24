@@ -47,10 +47,14 @@ fi
 rm -f "$API_DIR/.env.bak"
 
 # ── 1. Fetch code (for API + config; web already built on CI) ─────
-echo "=== [1/8] git fetch origin/$BRANCH ==="
 cd "$REPO_DIR"
-git fetch origin "$BRANCH"
-git reset --hard "origin/$BRANCH"
+if [[ "${DEPLOY_SKIP_GIT_FETCH:-0}" == "1" ]]; then
+  echo "=== [1/8] git fetch origin/$BRANCH (skipped — using uploaded workspace) ==="
+else
+  echo "=== [1/8] git fetch origin/$BRANCH ==="
+  git fetch origin "$BRANCH"
+  git reset --hard "origin/$BRANCH"
+fi
 
 # ── 2. API dependencies (cached by lock hash) ─────────────────────
 API_LOCK_HASH=$(sha256sum "$API_DIR/package-lock.json" | cut -d' ' -f1)
