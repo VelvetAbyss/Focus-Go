@@ -9,3 +9,8 @@ script = ""
 name = "运行web app"
 icon = "run"
 command = "npm run dev --workspace @focus-go/web"
+
+[[actions]]
+name = "部署到服务器"
+icon = "rocket"
+command = "SSH_PASSWORD=\"$(security find-generic-password -a focus-go-deploy -s focus-go-deploy-ssh -w)\" SERVER_HOST=8.218.96.164 SERVER_USER=root ./scripts/deploy-direct.sh production"

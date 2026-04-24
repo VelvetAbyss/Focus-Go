@@ -22,11 +22,13 @@ const App = () => {
   }, [isLoggedIn])
 
   useEffect(() => {
-    seedDatabase().then(async () => {
+    const boot = async () => {
+      if (!isLoggedIn) await seedDatabase()
       await syncedPreferencesRepo.hydrateLocalFromDb()
       applyTheme(resolveInitialTheme())
-    })
-  }, [])
+    }
+    void boot()
+  }, [isLoggedIn])
 
   useEffect(() => {
     const handleSyncDataUpdated = () => {

@@ -3,6 +3,7 @@ import { diaryRepo } from './repositories/diaryRepo'
 import { focusRepo } from './repositories/focusRepo'
 import { lifeDashboardRepo } from './repositories/lifeDashboardRepo'
 import { spendRepo } from './repositories/spendRepo'
+import { syncedPreferencesRepo } from './repositories/syncedPreferencesRepo'
 import { tasksRepo } from './repositories/tasksRepo'
 import { widgetTodoRepo } from './repositories/widgetTodoRepo'
 import { toDateKey } from '../shared/utils/time'
@@ -25,10 +26,34 @@ const DEFAULT_LIFE_LAYOUT_ITEMS = [
 
 const DEFAULT_LIFE_HIDDEN_CARD_IDS = ['stocks']
 
+const hasExistingSeedSurfaceData = async () => {
+  const [tasks, widgetTodos, diaryEntries, spendEntries, spendCategories, focusSettings] = await Promise.all([
+    tasksRepo.list(),
+    widgetTodoRepo.list(),
+    diaryRepo.list(),
+    spendRepo.listEntries(),
+    spendRepo.listCategories(),
+    focusRepo.get(),
+  ])
+  return (
+    tasks.length > 0 ||
+    widgetTodos.length > 0 ||
+    diaryEntries.length > 0 ||
+    spendEntries.length > 0 ||
+    spendCategories.length > 0 ||
+    focusSettings !== null
+  )
+}
+
 export const seedDatabase = async () => {
   await ensureLabsSeed()
-  const existingTasks = await tasksRepo.list()
-  if (existingTasks.length > 0) return
+  const initialSeedCompletedAt = await syncedPreferencesRepo.getInitialSeedCompletedAt()
+  if (initialSeedCompletedAt) return false
+
+  if (await hasExistingSeedSurfaceData()) {
+    await syncedPreferencesRepo.markInitialSeedCompleted()
+    return false
+  }
 
   const todayKey = toDateKey()
   const tomorrowKey = toDateKey(new Date(Date.now() + 24 * 60 * 60 * 1000))
@@ -115,4 +140,7 @@ export const seedDatabase = async () => {
     items: DEFAULT_LIFE_LAYOUT_ITEMS,
     hiddenCardIds: DEFAULT_LIFE_HIDDEN_CARD_IDS,
   })
+
+  await syncedPreferencesRepo.markInitialSeedCompleted()
+  return true
 }

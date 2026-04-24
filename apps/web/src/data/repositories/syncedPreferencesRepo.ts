@@ -122,4 +122,27 @@ export const syncedPreferencesRepo = {
     emitUpdated()
     return true
   },
+  async getInitialSeedCompletedAt() {
+    const stored = await this.get()
+    return stored?.initialSeedCompletedAt ?? null
+  },
+  async markInitialSeedCompleted(timestamp = now()) {
+    const existing = await this.get()
+    if (existing?.initialSeedCompletedAt) return existing
+    const next: SyncedPreferences = existing
+      ? {
+          ...existing,
+          initialSeedCompletedAt: timestamp,
+          updatedAt: timestamp,
+        }
+      : {
+          ...buildLocalSnapshot(),
+          initialSeedCompletedAt: timestamp,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        }
+    await db.syncedPreferences.put(next)
+    await enqueueSyncOperation('syncedPreferences', 'upsert', next)
+    return next
+  },
 }
