@@ -26,10 +26,23 @@ type AuthErrorPayload = {
 }
 
 const authBasePath = () => {
+  const authApiBase = (import.meta.env.VITE_AUTH_API_BASE ?? '').trim()
+  if (authApiBase) return authApiBase.replace(/\/$/, '')
   const apiBase = getApiBase()
   if (!apiBase) return '/api/auth'
+  if (import.meta.env.PROD && apiBase === '/api') return 'https://api.nestflow.art/api/auth'
   if (apiBase.endsWith('/api')) return `${apiBase}/auth`
   return `${apiBase}/api/auth`
+}
+
+const parseAuthPayload = (text: string, contentType: string | null) => {
+  if (!text) return null
+  if (!contentType?.includes('application/json')) {
+    if (/^\s*</.test(text)) {
+      throw new Error('Auth API returned HTML instead of JSON. Check VITE_AUTH_API_BASE or the /api proxy.')
+    }
+  }
+  return JSON.parse(text)
 }
 
 const requestAuth = async <T>(path: string, init?: RequestInit): Promise<T> => {
@@ -42,7 +55,7 @@ const requestAuth = async <T>(path: string, init?: RequestInit): Promise<T> => {
     },
   })
   const text = await response.text()
-  const payload = text ? JSON.parse(text) : null
+  const payload = parseAuthPayload(text, response.headers.get('content-type'))
   if (!response.ok) {
     const error = payload as AuthErrorPayload | null
     throw new Error(error?.message || error?.error || error?.code || `Auth request failed (${response.status})`)
