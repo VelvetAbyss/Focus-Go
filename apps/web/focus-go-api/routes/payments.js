@@ -31,11 +31,11 @@ router.post('/zpay/create-order', requireAuth, async (req, res) => {
 
   try {
     const order = createPaymentOrder(db, {
-      userId: req.auth.authingUser.sub,
+      userId: String(req.auth.user.id),
       sku,
       payType,
     })
-    console.log(`[payment] create order out_trade_no=${order.outTradeNo} user=${req.auth.authingUser.sub} sku=${order.sku} amount=${order.amount} payType=${payType}`)
+    console.log(`[payment] create order out_trade_no=${order.outTradeNo} user=${req.auth.user.id} sku=${order.sku} amount=${order.amount} payType=${payType}`)
 
     const product = getPremiumSku(order.sku)
     const params = buildZPayRequest({
@@ -118,10 +118,15 @@ router.post('/zpay/notify', handleZPayNotify)
 
 router.get('/zpay/order/:outTradeNo', requireAuth, (req, res) => {
   const order = getPaymentOrderByOutTradeNo(db, req.params.outTradeNo)
-  if (!order || order.user_id !== req.auth.authingUser.sub) {
+  const currentUserIds = new Set([
+    String(req.auth.user.id),
+    req.auth.user.authing_id,
+    req.auth.user.auth_user_id,
+  ].filter(Boolean))
+  if (!order || !currentUserIds.has(order.user_id)) {
     return res.status(404).json({ error: 'order not found' })
   }
-  const user = db.prepare('SELECT plan, premium_expires_at FROM users WHERE authing_id = ?').get(order.user_id)
+  const user = db.prepare('SELECT plan, premium_expires_at FROM users WHERE id = ?').get(req.auth.user.id)
   res.json({
     status: order.status,
     plan: user?.plan ?? 'free',

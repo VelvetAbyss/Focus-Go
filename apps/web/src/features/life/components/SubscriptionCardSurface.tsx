@@ -5,7 +5,7 @@ import Dialog from '../../../shared/ui/Dialog'
 import { Bell, BellOff, CalendarDays, CheckCheck, ChevronRight, CreditCard, LayoutGrid, Plus, Trash2, X } from 'lucide-react'
 import type { LifeSubscription } from '../../../data/models/types'
 import type { SubscriptionDraft } from '../cards/SubscriptionsCard'
-import type { SubscriptionPresentationModel } from '../cards/lifeDesignAdapters'
+import { getBillingNotice, type SubscriptionPresentationModel } from '../cards/lifeDesignAdapters'
 import { LifeCardLoader, LifePanelLoader } from './lifeDesignPrimitives'
 import { useLifeI18n, type LifeTranslate } from '../lifeI18n'
 
@@ -101,12 +101,7 @@ const getMonthlyBreakdown = (subs: LifeSubscription[]) => {
   })
   return result
 }
-const getDaysUntilBilling = (item: LifeSubscription, today = TODAY) => {
-  if (!item.billingDay) return null
-  if (item.cycle === 'yearly' && item.billingMonth != null && item.billingMonth !== today.getMonth() + 1) return null
-  const delta = item.billingDay - today.getDate()
-  return delta < 0 ? null : delta
-}
+const formatBillingDate = (date: Date) => date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 const toFormState = (item: LifeSubscription): FormState => ({
   name: item.name,
   amount: String(item.amount),
@@ -298,9 +293,9 @@ const AnnualOverviewPanel = memo(function AnnualOverviewPanel({ subs, usdToCny, 
   const upcoming = useMemo(
     () =>
       subs
-        .map((item) => ({ item, days: getDaysUntilBilling(item) }))
-        .filter((entry) => entry.days !== null && entry.days >= 0 && entry.days <= 7)
-        .sort((a, b) => (a.days ?? 0) - (b.days ?? 0)),
+        .map((item) => ({ item, notice: getBillingNotice(item) }))
+        .filter((entry) => entry.notice !== null)
+        .sort((a, b) => (a.notice?.days ?? 0) - (b.notice?.days ?? 0)),
     [subs],
   )
 
@@ -344,21 +339,21 @@ const AnnualOverviewPanel = memo(function AnnualOverviewPanel({ subs, usdToCny, 
         </div>
       </div>
       {categoryRows.length ? <div style={{ padding: '28px 40px', borderBottom: `1px solid ${subtleBorder}` }}><p style={{ ...inter(11, 500, mutedInk), marginBottom: 20, textTransform: 'uppercase', letterSpacing: '0.07em' }}>{t('life.subscriptions.byCategoryAnnual')}</p><div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{categoryRows.map((row) => <div key={row.category.id}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontSize: 14 }}>{row.category.emoji}</span><span style={inter(12, 400, ink)}>{categoryLabel(row.category.id, t)}</span></div><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>{row.byCurrency.USD ? <span style={inter(11, 500, 'rgba(58,55,51,0.60)')}>${formatAmount(row.byCurrency.USD)}/yr</span> : null}{row.byCurrency.CNY ? <span style={inter(11, 500, 'rgba(58,55,51,0.60)')}>¥{formatAmount(row.byCurrency.CNY)}/yr</span> : null}</div></div><div style={{ height: 4, borderRadius: 999, overflow: 'hidden', background: 'rgba(58,55,51,0.07)' }}><div style={{ width: `${(row.unified / maxCategory) * 100}%`, height: '100%', borderRadius: 999, background: 'rgba(58,55,51,0.35)' }} /></div></div>)}</div></div> : null}
-      {upcoming.length ? <div style={{ padding: '28px 40px' }}><div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}><Bell size={13} color="#B87830" /><p style={{ ...inter(11, 500, '#B87830'), textTransform: 'uppercase', letterSpacing: '0.07em' }}>{t('life.subscriptions.dueWithinDays', { count: 7 })}</p></div><div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{upcoming.map(({ item, days }) => <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 16, background: 'rgba(232,168,95,0.08)', border: '1px solid rgba(232,168,95,0.20)' }}>{item.emoji ? <SubIcon icon={item.emoji} size={16} /> : null}<div style={{ flex: 1, minWidth: 0 }}><p style={{ ...inter(13, 500, ink), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</p><p style={inter(11, 400, 'rgba(58,55,51,0.50)')}>{CURRENCY_SYMBOL[item.currency]}{formatAmount(item.amount)}/{item.cycle === 'monthly' ? 'mo' : 'yr'} · Apr {item.billingDay}</p></div><span style={{ padding: '2px 8px', borderRadius: 999, border: '1px solid rgba(232,168,95,0.30)', background: 'rgba(232,168,95,0.18)', ...inter(10, 600, '#B87830') }}>{days === 0 ? t('life.subscriptions.today') : t('life.subscriptions.inDays', { count: days ?? 0 })}</span></div>)}</div></div> : null}
+      {upcoming.length ? <div style={{ padding: '28px 40px' }}><div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}><Bell size={13} color="#B87830" /><p style={{ ...inter(11, 500, '#B87830'), textTransform: 'uppercase', letterSpacing: '0.07em' }}>{t('life.subscriptions.dueWithinDays', { count: 7 })}</p></div><div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{upcoming.map(({ item, notice }) => <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 16, background: 'rgba(232,168,95,0.08)', border: '1px solid rgba(232,168,95,0.20)' }}>{item.emoji ? <SubIcon icon={item.emoji} size={16} /> : null}<div style={{ flex: 1, minWidth: 0 }}><p style={{ ...inter(13, 500, ink), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</p><p style={inter(11, 400, 'rgba(58,55,51,0.50)')}>{CURRENCY_SYMBOL[item.currency]}{formatAmount(item.amount)}/{item.cycle === 'monthly' ? 'mo' : 'yr'} · {notice ? formatBillingDate(notice.date) : ''}</p></div><span style={{ padding: '2px 8px', borderRadius: 999, border: '1px solid rgba(232,168,95,0.30)', background: 'rgba(232,168,95,0.18)', ...inter(10, 600, '#B87830') }}>{notice?.days === 0 ? t('life.subscriptions.today') : t('life.subscriptions.inDays', { count: notice?.days ?? 0 })}</span></div>)}</div></div> : null}
     </div>
   )
 })
 
 const SubListItem = memo(function SubListItem({ sub, selected, onClick }: { sub: LifeSubscription; selected: boolean; onClick: () => void }) {
   const { t } = useLifeI18n()
-  const days = getDaysUntilBilling(sub)
+  const notice = getBillingNotice(sub)
   return (
     <button type="button" onClick={onClick} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 16, textAlign: 'left', cursor: 'pointer', border: selected ? '1px solid rgba(58,55,51,0.10)' : '1px solid transparent', background: selected ? 'rgba(58,55,51,0.06)' : 'transparent' }}>
       {sub.emoji?.includes(':') ? <SubIcon icon={sub.emoji} size={20} /> : <div style={{ width: 10, height: 10, borderRadius: 999, flexShrink: 0, background: sub.color ?? '#D4A06A', boxShadow: `0 0 0 2px ${(sub.color ?? '#D4A06A')}22` }} />}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
           <p style={{ ...inter(13, 400, ink), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub.name}</p>
-          {days !== null && days <= 7 ? <span style={{ padding: '1px 4px', borderRadius: 4, background: 'rgba(232,168,95,0.18)', ...inter(8, 600, '#B87830') }}>{days}d</span> : null}
+          {notice ? <span style={{ padding: '1px 4px', borderRadius: 4, background: 'rgba(232,168,95,0.18)', ...inter(8, 600, '#B87830') }}>{notice.days}d</span> : null}
         </div>
         <p style={{ ...inter(11, 400, mutedInk), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{CURRENCY_SYMBOL[sub.currency]}{formatAmount(sub.amount)}/{sub.cycle === 'monthly' ? 'mo' : 'yr'}{sub.category ? ` · ${CATEGORIES.find((item) => item.id === sub.category)?.emoji ?? ''} ${categoryLabel(sub.category, t)}` : ''}</p>
       </div>

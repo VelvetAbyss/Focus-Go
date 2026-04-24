@@ -14,9 +14,9 @@ router.get('/profile', requireAuth, async (req, res) => {
     db.prepare(`
       UPDATE users
       SET plan = 'free', premium_expires_at = NULL
-      WHERE authing_id = ?
-    `).run(user.authing_id)
-    user = db.prepare('SELECT * FROM users WHERE authing_id = ?').get(user.authing_id)
+      WHERE id = ?
+    `).run(user.id)
+    user = db.prepare('SELECT * FROM users WHERE id = ?').get(user.id)
   }
 
   const expiresAt = user.premium_expires_at ? new Date(user.premium_expires_at).toISOString() : null

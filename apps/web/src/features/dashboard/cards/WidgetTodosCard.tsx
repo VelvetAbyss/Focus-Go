@@ -21,7 +21,44 @@ import {
 
 const DEFAULT_HABIT_COLOR = '#3a3733'
 const DEFAULT_HABIT_ICON = '🎯'
-const WIDGET_SCOPES: WidgetTodoScope[] = ['day', 'week', 'month']
+const RESET_SCOPES: WidgetTodoScope[] = ['day', 'week', 'month']
+
+type PeriodClosingAlert = {
+  count: number
+  level: 'soft' | 'steady' | 'close'
+}
+
+const todayInputDate = () => {
+  const date = new Date()
+  const y = date.getFullYear()
+  const m = `${date.getMonth() + 1}`.padStart(2, '0')
+  const d = `${date.getDate()}`.padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+const getLastWeekMondayAtEight = (date: Date) => {
+  const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0)
+  const day = endOfMonth.getDay() || 7
+  return new Date(endOfMonth.getFullYear(), endOfMonth.getMonth(), endOfMonth.getDate() - (day - 1), 8, 0, 0, 0)
+}
+
+const isPeriodClosingWindow = (scope: WidgetTodoScope, now: Date) => {
+  if (scope === 'day') return now.getHours() >= 18
+  if (scope === 'week') {
+    const day = now.getDay()
+    return day === 5 ? now.getHours() >= 8 : day === 0 || day === 6
+  }
+  if (scope === 'month') return now.getTime() >= getLastWeekMondayAtEight(now).getTime()
+  return false
+}
+
+const getPeriodClosingLevel = (scope: WidgetTodoScope, now: Date): PeriodClosingAlert['level'] => {
+  if (scope === 'day') return now.getHours() >= 21 ? 'close' : 'soft'
+  if (scope === 'week') return now.getDay() === 0 ? 'close' : now.getDay() === 6 ? 'steady' : 'soft'
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+  const daysLeft = Math.max(0, endOfMonth.getDate() - now.getDate())
+  return daysLeft <= 1 ? 'close' : daysLeft <= 3 ? 'steady' : 'soft'
+}
 
 const WidgetTodosCard = () => {
   const { t } = useI18n()
@@ -30,6 +67,7 @@ const WidgetTodosCard = () => {
       { key: 'day' as const, label: t('todo.daily') },
       { key: 'week' as const, label: t('todo.weekly') },
       { key: 'month' as const, label: t('todo.monthly') },
+      { key: 'custom' as const, label: t('todo.custom') },
     ],
     [t],
   )
@@ -46,19 +84,27 @@ const WidgetTodosCard = () => {
   const [pendingHabitId, setPendingHabitId] = useState<string | null>(null)
   const [lastAdded, setLastAdded] = useState<{ id: string; scope: WidgetTodoScope } | null>(null)
   const [sortAnchorTime, setSortAnchorTime] = useState(0)
+  const [customDueDate, setCustomDueDate] = useState(todayInputDate)
+  const [now, setNow] = useState(() => Date.now())
   const listRefs = useRef<Record<WidgetTodoScope, HTMLDivElement | null>>({
     day: null,
     week: null,
     month: null,
+    custom: null,
   })
   const today = todayDateKey()
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 60_000)
+    return () => window.clearInterval(timer)
+  }, [])
 
   const loadItems = useCallback(async () => {
     const loadedItems = await widgetTodoRepo.list()
     const now = Date.now()
     const itemsById = new Map(loadedItems.map((item) => [item.id, item]))
 
-    for (const scopeKey of WIDGET_SCOPES) {
+    for (const scopeKey of RESET_SCOPES) {
       const storedBucket = readWidgetTodoResetBucket(scopeKey)
       const { shouldReset, currentBucket } = shouldResetWidgetTodos(scopeKey, storedBucket, now)
       const needsBootstrapReset = storedBucket === null && shouldBootstrapResetWidgetTodos(loadedItems, scopeKey, now)
@@ -198,6 +244,7 @@ const WidgetTodosCard = () => {
       day: buildList('day'),
       week: buildList('week'),
       month: buildList('month'),
+      custom: buildList('custom'),
     }
   }, [items, lastAdded, sortAnchorTime])
 
@@ -220,6 +267,27 @@ const WidgetTodosCard = () => {
     const done = scopeItems.reduce((acc, item) => acc + (item.done ? 1 : 0), 0)
     return t('todo.completedCount', { completed: done, total })
   }, [scopeItems, t])
+
+  const periodAlertsByScope = useMemo(() => {
+    const current = new Date(now)
+    const alerts: Record<WidgetTodoScope, PeriodClosingAlert | null> = {
+      day: null,
+      week: null,
+      month: null,
+      custom: null,
+    }
+
+    RESET_SCOPES.forEach((scope) => {
+      const unfinished = items.filter((item) => item.scope === scope && !item.done).length
+      if (unfinished === 0 || !isPeriodClosingWindow(scope, current)) return
+      alerts[scope] = {
+        count: unfinished,
+        level: getPeriodClosingLevel(scope, current),
+      }
+    })
+
+    return alerts
+  }, [items, now])
 
   const handleToggle = async (todo: WidgetTodo, done: boolean) => {
     if (todo.scope === 'day' && todo.linkedHabitId) {
@@ -263,6 +331,7 @@ const WidgetTodosCard = () => {
         title,
         priority: 'medium',
         done: false,
+        dueDate: activeScope === 'custom' ? customDueDate || todayInputDate() : undefined,
         linkedHabitId: activeScope === 'day' ? linkedHabit?.id : undefined,
       })
 
@@ -286,20 +355,32 @@ const WidgetTodosCard = () => {
       <div className="widget-todos-card">
         <div className="widget-todos__tabs tab-motion-group" role="tablist" aria-label={t('todo.scope')} style={tabMotionStyle}>
           {scopes.map((scope) => (
-            <button
-              key={scope.key}
-              type="button"
-              role="tab"
-              aria-selected={activeScope === scope.key}
-              className={`widget-todos__tab tab-motion-tab ${activeScope === scope.key ? 'is-active' : ''}`}
-              onClick={(event) => {
-                triggerTabPressAnimation(event.currentTarget)
-                triggerTabGroupSwitchAnimation(event.currentTarget)
-                setActiveScope(scope.key)
-              }}
-            >
-              {scope.label}
-            </button>
+            (() => {
+              const alert = periodAlertsByScope[scope.key]
+              return (
+                <button
+                  key={scope.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeScope === scope.key}
+                  className={`widget-todos__tab tab-motion-tab ${activeScope === scope.key ? 'is-active' : ''} ${alert ? `period-alert period-alert--${alert.level}` : ''}`}
+                  title={alert ? t('todo.periodClosingAlert', { count: alert.count }) : undefined}
+                  onClick={(event) => {
+                    triggerTabPressAnimation(event.currentTarget)
+                    triggerTabGroupSwitchAnimation(event.currentTarget)
+                    setActiveScope(scope.key)
+                  }}
+                >
+                  <span>{scope.label}</span>
+                  {alert ? (
+                    <span className="period-alert__badge" aria-label={t('todo.periodClosingAlert', { count: alert.count })}>
+                      <span className="period-alert__pulse" aria-hidden />
+                      <span>{alert.count}</span>
+                    </span>
+                  ) : null}
+                </button>
+              )
+            })()
           ))}
         </div>
 
@@ -328,6 +409,7 @@ const WidgetTodosCard = () => {
                         />
                         <div className="widget-todos__title">
                           <span className="widget-todos__title-text">{item.title}</span>
+                          {item.dueDate ? <span className="widget-todos__due">{item.dueDate}</span> : null}
                         </div>
                         <button
                           type="button"
@@ -354,6 +436,13 @@ const WidgetTodosCard = () => {
             })}
           </div>
         </div>
+
+        {activeScope === 'custom' ? (
+          <label className="widget-todos__custom-time">
+            <span>{t('todo.customDate')}</span>
+            <input type="date" value={customDueDate} onChange={(event) => setCustomDueDate(event.target.value)} />
+          </label>
+        ) : null}
 
         <TaskAddComposer onSubmit={handleAdd} plain placeholder={activeScope === 'day' ? t('todo.addHabit') : t('todo.addTask')} />
       </div>

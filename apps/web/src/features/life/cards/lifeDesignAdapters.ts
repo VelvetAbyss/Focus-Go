@@ -42,11 +42,32 @@ const fallbackSubtaskTitle = (value?: string) => {
   const title = typeof value === 'string' ? value.trim() : ''
   return title || 'Untitled subtask'
 }
-const getDaysUntilBilling = (item: LifeSubscription, today = new Date()) => {
+const startOfDay = (value: Date) => new Date(value.getFullYear(), value.getMonth(), value.getDate())
+const daysBetween = (from: Date, to: Date) => Math.round((startOfDay(to).getTime() - startOfDay(from).getTime()) / 86400000)
+const billingDate = (year: number, month: number, day: number) => new Date(year, month, Math.min(day, new Date(year, month + 1, 0).getDate()))
+
+export const getBillingNotice = (item: LifeSubscription, today = new Date()) => {
   if (!item.billingDay) return null
-  if (item.cycle === 'yearly' && item.billingMonth && item.billingMonth !== today.getMonth() + 1) return null
-  const delta = item.billingDay - today.getDate()
-  return delta < 0 ? null : delta
+  const current = startOfDay(today)
+  const currentYear = current.getFullYear()
+  const currentMonth = current.getMonth()
+  const month = item.cycle === 'yearly' ? (item.billingMonth ?? currentMonth + 1) - 1 : currentMonth
+  let next = billingDate(currentYear, month, item.billingDay)
+  let previous = billingDate(currentYear, month, item.billingDay)
+
+  if (item.cycle === 'monthly') {
+    if (next < current) next = billingDate(currentYear, currentMonth + 1, item.billingDay)
+    if (previous > current) previous = billingDate(currentYear, currentMonth - 1, item.billingDay)
+  } else {
+    if (next < current) next = billingDate(currentYear + 1, month, item.billingDay)
+    if (previous > current) previous = billingDate(currentYear - 1, month, item.billingDay)
+  }
+
+  const daysSincePrevious = daysBetween(previous, current)
+  if (daysSincePrevious >= 1 && daysSincePrevious <= 7) return null
+
+  const days = daysBetween(current, next)
+  return days >= 0 && days <= 7 ? { days, date: next } : null
 }
 
 export type LibraryPresentationModel = {
@@ -256,7 +277,7 @@ export const buildSubscriptionPresentationModel = (items: readonly LifeSubscript
 
   const previewRows = items.slice(0, 3).map((item) => {
     const category = categoryMap.find((entry) => entry.match.test(item.name))
-    const days = getDaysUntilBilling(item)
+    const notice = getBillingNotice(item)
     return {
       id: item.id,
       name: item.name,
@@ -266,7 +287,7 @@ export const buildSubscriptionPresentationModel = (items: readonly LifeSubscript
       priceLabel: `${currencySymbol(item.currency)}${formatMoney(item.amount)}/${item.cycle === 'yearly' ? 'yr' : 'mo'}`,
       monthlyLabel: `${currencySymbol(item.currency)}${formatMoney(yearlyToMonthly(item))}/mo`,
       isPaid: item.paymentStatus === 'paid',
-      dueSoonLabel: days === null || days > 7 ? null : days === 0 ? 'today' : `${days}d`,
+      dueSoonLabel: notice ? (notice.days === 0 ? 'today' : `${notice.days}d`) : null,
     }
   })
 
@@ -279,8 +300,7 @@ export const buildSubscriptionPresentationModel = (items: readonly LifeSubscript
       activeServices: items.length,
       reminders: items.filter((item) => item.reminder).length,
       dueSoon: items.filter((item) => {
-        const days = getDaysUntilBilling(item)
-        return days !== null && days <= 7
+        return getBillingNotice(item) !== null
       }).length,
     },
   }

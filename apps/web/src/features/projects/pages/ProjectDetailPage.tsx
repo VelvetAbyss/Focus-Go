@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import {
-  ArrowLeft, CheckCircle2, ClipboardList, FileText,
+  Archive, ArrowLeft, CheckCircle2, ClipboardList, FileText,
   Mail, Pencil, Phone, Plus, Search, ShieldAlert,
   Trash2, Users, Zap, User, CalendarDays,
 } from 'lucide-react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Input } from '@/components/ui/input'
+import Dialog from '../../../shared/ui/Dialog'
 import { tasksRepo } from '../../../data/repositories/tasksRepo'
 import { projectPeopleRepo } from '../../../data/repositories/projectPeopleRepo'
 import { projectNoteLinksRepo } from '../../../data/repositories/projectNoteLinksRepo'
@@ -174,6 +175,7 @@ const ProjectDetailPage = () => {
   const [personDialogOpen, setPersonDialogOpen] = useState(false)
   const [editingPerson, setEditingPerson] = useState<ProjectPerson | null>(null)
   const [taskDialogOpen, setTaskDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<TaskItem | null>(null)
   const [taskStatusFilter, setTaskStatusFilter] = useState<'all' | 'todo' | 'doing' | 'done'>('all')
   const [taskOwnerFilter, setTaskOwnerFilter] = useState<string>('all')
@@ -364,12 +366,21 @@ const ProjectDetailPage = () => {
             </button>
             <button
               type="button"
-              className="pd-icon-btn pd-icon-btn--danger"
+              className="pd-icon-btn"
               title={i18n.detail.archiveTitle}
               onClick={() => void projectsRepo.archive(project.id).then(load)}
             >
-              <Trash2 size={15} strokeWidth={2} />
+              <Archive size={15} strokeWidth={2} />
               <span>{i18n.detail.archive}</span>
+            </button>
+            <button
+              type="button"
+              className="pd-icon-btn pd-icon-btn--danger"
+              title={i18n.detail.deleteTitle}
+              onClick={() => setDeleteDialogOpen(true)}
+            >
+              <Trash2 size={15} strokeWidth={2} />
+              <span>{i18n.detail.delete}</span>
             </button>
             <button type="button" className="pd-btn pd-btn--primary" onClick={() => setTaskDialogOpen(true)}>
               <Plus size={15} strokeWidth={2.2} />
@@ -925,6 +936,27 @@ const ProjectDetailPage = () => {
           await load()
         }}
       />
+      <Dialog open={deleteDialogOpen} title={i18n.detail.deleteTitle} onClose={() => setDeleteDialogOpen(false)}>
+        <div className="dialog__body">
+          <p>{i18n.t(i18n.detail.deleteConfirm, { title: project.title })}</p>
+          <div className="dialog__actions">
+            <button type="button" className="pd-btn pd-btn--ghost" onClick={() => setDeleteDialogOpen(false)}>
+              {i18n.detail.cancel}
+            </button>
+            <button
+              type="button"
+              className="pd-btn pd-btn--danger-ghost"
+              onClick={async () => {
+                await projectsRepo.remove(project.id)
+                setDeleteDialogOpen(false)
+                navigate(ROUTES.PROJECTS)
+              }}
+            >
+              {i18n.detail.delete}
+            </button>
+          </div>
+        </div>
+      </Dialog>
     </section>
   )
 }

@@ -7,10 +7,9 @@ import './styles/_keyframe-animations.scss'
 import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
 import App from './App.tsx'
-import { AUTH_CONFIG } from './config/auth'
 import { clearAuth, fetchAuthProfile, setAuth } from './store/auth'
 import { consumePendingCheckout, startPremiumCheckout } from './features/payments/paymentFlow'
-import { fetchApi } from './shared/apiBase'
+import { authClient } from './config/authClient'
 
 function mountApp() {
   createRoot(document.getElementById('root')!).render(
@@ -21,63 +20,16 @@ function mountApp() {
 }
 
 async function bootstrap() {
-  const url = new URL(window.location.href)
-  const code = url.searchParams.get('code')
-
-  // ── Fetch user profile (plan) using a valid access token ─────────────
-  // ── Check 1: code exchange ────────────────────────────────────────────
-  if (code) {
-    window.history.replaceState({}, '', '/')  // clear immediately — codes are single-use
-
-    // Verify OAuth state nonce to prevent Login CSRF
-    const returnedState = url.searchParams.get('state')
-    const expectedState = sessionStorage.getItem('oauth_state')
-    const pkceVerifier = sessionStorage.getItem('pkce_verifier')
-    sessionStorage.removeItem('oauth_state')
-    sessionStorage.removeItem('pkce_verifier')
-
-    if (!returnedState || returnedState !== expectedState) {
-      console.error('Auth exchange aborted: OAuth state mismatch')
-      mountApp()
-      return
-    }
-
-    try {
-      const res = await fetchApi('/auth/exchange', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, codeVerifier: pkceVerifier, redirectUri: AUTH_CONFIG.redirectUri }),
-      })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const data = await res.json()
-      const profile = await fetchAuthProfile(data.accessToken)
-      setAuth({ ...data, plan: profile?.plan ?? 'free', expiresAt: profile?.expiresAt ?? null })
-      const pendingCheckout = consumePendingCheckout()
-      if (pendingCheckout) {
-        await startPremiumCheckout(pendingCheckout)
-        return
-      }
-    } catch (err) {
-      console.error('Auth exchange failed:', err)
-    }
-
-    mountApp()
-    return
-  }
-
-  // ── Check 3: reuse stored access_token via /auth/me ──────────────────
+  // ── Reuse stored Better Auth session token via business profile ──────
   const existing = localStorage.getItem('auth')
   if (existing) {
     const { accessToken } = JSON.parse(existing)
     if (accessToken) {
       try {
-        const res = await fetchApi('/auth/me', {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        })
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        const { user } = await res.json()
+        const { user } = JSON.parse(existing)
         const profile = await fetchAuthProfile(accessToken)
-        setAuth({ accessToken, user, plan: profile?.plan ?? 'free', expiresAt: profile?.expiresAt ?? null })
+        if (!profile) throw new Error('profile unavailable')
+        setAuth({ accessToken, user, plan: profile.plan, expiresAt: profile.expiresAt, isAdmin: profile.isAdmin })
         const pendingCheckout = consumePendingCheckout()
         if (pendingCheckout) {
           await startPremiumCheckout(pendingCheckout)
@@ -88,6 +40,23 @@ async function bootstrap() {
         clearAuth()
       }
     }
+  }
+
+  // ── Rehydrate from Better Auth cookie after OAuth redirects ──────────
+  try {
+    const session = await authClient.getSession()
+    const accessToken = session?.session?.token
+    if (accessToken && session.user) {
+      const profile = await fetchAuthProfile(accessToken)
+      setAuth({ accessToken, user: session.user, plan: profile?.plan ?? 'free', expiresAt: profile?.expiresAt ?? null, isAdmin: profile?.isAdmin ?? false })
+      const pendingCheckout = consumePendingCheckout()
+      if (pendingCheckout) {
+        await startPremiumCheckout(pendingCheckout)
+        return
+      }
+    }
+  } catch {
+    // No active Better Auth cookie.
   }
 
   mountApp()

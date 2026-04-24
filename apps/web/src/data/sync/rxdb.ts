@@ -6,7 +6,7 @@ import { createBlobMap, decodeSyncPayload, encodeSyncPayload } from './content'
 import { SYNC_DATA_UPDATED_EVENT, SYNC_ENTITY_TABLES, SYNC_STATUS_CHANGED_EVENT } from './constants'
 import { syncApi } from './client'
 import { getAuth } from '../../store/auth'
-import type { RxdbCheckpoint, SyncEntityType, SyncPayload, SyncState, SyncStatus } from './types'
+import type { RxdbCheckpoint, RxdbPullDocument, RxdbPushRow, SyncEntityType, SyncPayload, SyncState, SyncStatus } from './types'
 
 const RXDB_SYNC_DB_NAME = 'focusgo-sync-rxdb'
 const RXDB_SYNC_BATCH_SIZE = 100
@@ -14,9 +14,10 @@ const RXDB_SYNC_TIMEOUT_MS = 8_000
 const RXDB_SYNC_PARALLEL_LIMIT = 6
 const SYNC_ENTITY_TYPES = Object.keys(SYNC_ENTITY_TABLES) as SyncEntityType[]
 
-type SyncDocument = SyncPayload & { _deleted?: boolean }
+type SyncDocument = RxdbPullDocument
 
 let rxdbQueue = Promise.resolve()
+let syncValidationErrors: string[] = []
 
 const now = () => Date.now()
 const getCollectionName = (entityType: SyncEntityType) => `sync${entityType.toLowerCase()}`
@@ -39,6 +40,8 @@ const runQueued = async <T>(task: () => Promise<T>) => {
   )
   return next
 }
+
+const timeoutAfter = (ms: number) => new Promise<void>((resolve) => globalThis.setTimeout(resolve, ms))
 
 const emitWindowEvent = (eventName: string) => {
   if (typeof window === 'undefined') return
@@ -110,8 +113,33 @@ const openCollection = async (entityType: SyncEntityType) => {
 
 const closeDatabase = async (database: unknown) => {
   if (database && typeof (database as { close?: () => Promise<void> }).close === 'function') {
-    await (database as { close: () => Promise<void> }).close()
+    await Promise.race([(database as { close: () => Promise<void> }).close(), timeoutAfter(2_000)])
   }
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+
+const describeSyncDocument = (entityType: SyncEntityType, document: unknown) => {
+  const id = isRecord(document) && typeof document.id === 'string' ? document.id : 'unknown'
+  return `${entityType}/${id}`
+}
+
+const normalizeSyncDocument = (entityType: SyncEntityType, document: unknown, source: string): SyncDocument => {
+  if (!isRecord(document)) throw new Error(`${source} returned invalid ${entityType} payload`)
+  if (typeof document.id !== 'string' || document.id.trim().length === 0) {
+    throw new Error(`${source} returned ${entityType} payload without id`)
+  }
+  if (typeof document.updatedAt !== 'number' || !Number.isFinite(document.updatedAt) || document.updatedAt < 0) {
+    throw new Error(`${source} returned invalid updatedAt for ${describeSyncDocument(entityType, document)}`)
+  }
+  if (document._deleted === true) {
+    const deletedAt = typeof document.deletedAt === 'number' && Number.isFinite(document.deletedAt)
+      ? document.deletedAt
+      : document.updatedAt
+    return { ...document, _deleted: true, deletedAt } as SyncDocument
+  }
+  return { ...document, _deleted: false } as SyncDocument
 }
 
 const withCollection = async <T>(entityType: SyncEntityType, task: (collection: RxCollection<SyncDocument>) => Promise<T>) => {
@@ -124,10 +152,11 @@ const withCollection = async <T>(entityType: SyncEntityType, task: (collection: 
 }
 
 const writeDexieEntity = async (entityType: SyncEntityType, document: SyncDocument) => {
+  const normalized = normalizeSyncDocument(entityType, document, 'pull')
   const tableName = SYNC_ENTITY_TABLES[entityType]
   const table = db.table(tableName)
-  if (document._deleted) await table.delete(document.id)
-  else await table.put({ ...document, _deleted: undefined })
+  if (normalized._deleted) await table.delete(normalized.id)
+  else await table.put({ ...normalized, _deleted: undefined })
   emitWindowEvent(SYNC_DATA_UPDATED_EVENT)
 }
 
@@ -146,12 +175,18 @@ const pullHandler = async (entityType: SyncEntityType, checkpoint: RxdbCheckpoin
     limit: batchSize,
   })
   const blobMap = createBlobMap(response.blobs)
-  const documents = await Promise.all(
+  const documents: SyncDocument[] = []
+  await Promise.all(
     response.documents.map(async (document) => {
-      const decoded = await decodeSyncPayload(entityType, document, blobMap)
-      return {
-        ...(decoded as SyncPayload),
-        _deleted: document._deleted === true,
+      try {
+        const decoded = await decodeSyncPayload(entityType, document, blobMap)
+        documents.push(normalizeSyncDocument(entityType, {
+          ...(decoded as SyncPayload),
+          _deleted: document._deleted === true,
+          deletedAt: document.deletedAt,
+        }, 'pull'))
+      } catch (error) {
+        syncValidationErrors.push(`${entityType}: ${extractSyncErrorMessage(error)}`)
       }
     }),
   )
@@ -161,17 +196,17 @@ const pullHandler = async (entityType: SyncEntityType, checkpoint: RxdbCheckpoin
   }
 }
 
-const pushHandler = async (entityType: SyncEntityType, rows: any[]) => {
+const pushHandler = async (entityType: SyncEntityType, rows: Array<RxdbPushRow>) => {
   const blobMap = new Map<string, Awaited<ReturnType<typeof encodeSyncPayload>>['blobs'][number]>()
-  const encodedRows = await Promise.all(
+  const encodedRows: Array<RxdbPushRow> = await Promise.all(
     rows.map(async (row) => {
-      const encodeState = async (state: any | null) => {
+      const encodeState = async (state: RxdbPullDocument | null) => {
         if (!state) return null
-        const base = { ...state }
+        const base = normalizeSyncDocument(entityType, state, 'push')
         const isDeleted = base._deleted === true
-        delete base._deleted
-        if (isDeleted) return { payload: base, blobs: [] }
-        const encoded = await encodeSyncPayload(entityType, base)
+        const payload = { ...base, _deleted: undefined } as SyncPayload
+        if (isDeleted) return { payload, blobs: [] }
+        const encoded = await encodeSyncPayload(entityType, payload)
         for (const blob of encoded.blobs) blobMap.set(blob.hash, blob)
         return { payload: encoded.payload, blobs: encoded.blobs }
       }
@@ -199,15 +234,22 @@ const pushHandler = async (entityType: SyncEntityType, rows: any[]) => {
     blobs: Array.from(blobMap.values()),
   })
   const conflictBlobMap = createBlobMap(response.blobs)
-  return Promise.all(
+  const conflicts: SyncDocument[] = []
+  await Promise.all(
     response.conflicts.map(async (document) => {
-      const decoded = await decodeSyncPayload(entityType, document, conflictBlobMap)
-      return {
-        ...(decoded as SyncPayload),
-        _deleted: document._deleted === true,
+      try {
+        const decoded = await decodeSyncPayload(entityType, document, conflictBlobMap)
+        conflicts.push(normalizeSyncDocument(entityType, {
+          ...(decoded as SyncPayload),
+          _deleted: document._deleted === true,
+          deletedAt: document.deletedAt,
+        }, 'conflict'))
+      } catch (error) {
+        syncValidationErrors.push(`${entityType}: ${extractSyncErrorMessage(error)}`)
       }
     }),
   )
+  return conflicts
 }
 
 const syncEntity = async (entityType: SyncEntityType) =>
@@ -238,7 +280,7 @@ const syncEntity = async (entityType: SyncEntityType) =>
       },
       push: {
         batchSize: RXDB_SYNC_BATCH_SIZE,
-        handler: (rows: any[]) => pushHandler(entityType, rows),
+        handler: (rows: Array<RxdbPushRow>) => pushHandler(entityType, rows),
       },
     } as never)
 
@@ -288,13 +330,14 @@ const syncEntity = async (entityType: SyncEntityType) =>
       if (receivedDocumentCount > 0) {
         await buildStatePatch({ lastPulledAt: now(), missingBlobPull: false }).catch(() => {})
       }
-      await replication.cancel()
+      await Promise.race([replication.cancel(), timeoutAfter(2_000)])
     }
   })
 
 export const ensureRxdbSyncReady = async () =>
   runQueued(async () => {
     await ensureSyncStateReady()
+    syncValidationErrors = []
   })
 
 export const runRxdbSyncCycle = async () =>
@@ -331,8 +374,9 @@ export const runRxdbSyncCycle = async () =>
       Array.from({ length: Math.min(RXDB_SYNC_PARALLEL_LIMIT, SYNC_ENTITY_TYPES.length) }, runWorker),
     )
 
-    if (entityErrors.length > 0) {
-      const message = entityErrors.join('; ')
+    const errors = [...entityErrors, ...syncValidationErrors]
+    if (errors.length > 0) {
+      const message = errors.join('; ')
       await setStatus('error', message)
       throw new Error(message)
     }
@@ -343,13 +387,17 @@ export const enqueueRxdbSyncChange = async <T extends SyncEntityType>(
   entityType: T,
   op: 'upsert' | 'delete',
   payload: SyncPayload<T>,
+  deletedAt?: number | null,
 ) =>
   runQueued(async () => {
     await ensureSyncStateReady()
     await withCollection(entityType, async (collection) => {
       await seedCollectionFromDexie(entityType, collection)
+      const timestamp = deletedAt ?? ('updatedAt' in payload && typeof payload.updatedAt === 'number' ? payload.updatedAt : now())
       await collection.upsert({
         ...(payload as SyncPayload),
+        updatedAt: timestamp,
+        deletedAt: op === 'delete' ? timestamp : undefined,
         _deleted: op === 'delete',
       })
     })

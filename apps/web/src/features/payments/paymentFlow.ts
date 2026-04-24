@@ -1,4 +1,3 @@
-import { prepareAuthSession } from '../../config/auth'
 import { getAuth } from '../../store/auth'
 import { createZpayOrder, type CreateZpayOrderResponse, type PayType } from './paymentApi'
 
@@ -14,7 +13,7 @@ export const startPremiumCheckout = async (payType: PayType): Promise<CreateZpay
   const auth = getAuth()
   if (!auth?.accessToken) {
     sessionStorage.setItem(PENDING_CHECKOUT_KEY, payType)
-    window.location.href = await prepareAuthSession()
+    window.location.href = '/'
     return null
   }
 

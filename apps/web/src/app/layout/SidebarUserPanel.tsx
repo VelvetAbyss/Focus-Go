@@ -2,13 +2,13 @@ import { lazy, Suspense, useState, useEffect, useRef } from 'react'
 import {
   User, LogOut, Crown, Zap, X, Timer, FileText, ArrowRight,
   ChevronRight, Flame, CheckSquare, Mail, Shield, CreditCard, Download,
-  HelpCircle, ArrowLeft, Check, Loader2, AlertTriangle, Copy, ExternalLink,
+  HelpCircle, ArrowLeft, Check, Loader2, AlertTriangle, Copy,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import {
   clearAuth, getAuth, setAuth, useAuthPlan, useIsLoggedIn, upgradeToPremium,
 } from '../../store/auth'
-import { getLogoutUrl, prepareAuthSession } from '../../config/auth'
+import { authClient } from '../../config/authClient'
 import { clearLocalUserData } from '../../data/sync/repository'
 import { useI18n } from '../../shared/i18n/useI18n'
 import { dbService } from '../../data/services/dbService'
@@ -64,6 +64,14 @@ const clearLocalUserDataBestEffort = async () => {
     ])
   } catch {
     // ignore and continue auth transition
+  }
+}
+
+const signOutBestEffort = async () => {
+  try {
+    await authClient.signOut()
+  } catch {
+    // local logout should still complete if the auth server is unavailable
   }
 }
 
@@ -149,7 +157,6 @@ const EditProfilePanel = ({ displayName, email }: {
 
 const EmailLoginPanel = ({ email }: { email: string }) => {
   const { t } = useI18n()
-  const domain = 'https://nestflow.authing.cn'
 
   return (
     <div className="acct-subpanel-body">
@@ -160,19 +167,10 @@ const EmailLoginPanel = ({ email }: { email: string }) => {
         </div>
         <div className="acct-info-row">
           <span className="acct-info-label">{t('auth.account.loginProvider')}</span>
-          <span className="acct-info-value">Authing (OIDC)</span>
+          <span className="acct-info-value">Focus & Go / Google</span>
         </div>
       </div>
       <p className="acct-subpanel-hint">{t('auth.account.providerManaged')}</p>
-      <a
-        href={domain}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="acct-portal-link"
-      >
-        {t('auth.account.openPortal')}
-        <ExternalLink size={12} />
-      </a>
     </div>
   )
 }
@@ -180,33 +178,25 @@ const EmailLoginPanel = ({ email }: { email: string }) => {
 // ─── Sub-panel: Account Security ─────────────────────────────────────────────
 
 const SecurityPanel = () => {
-  const { t } = useI18n()
-  const domain = 'https://nestflow.authing.cn'
+  const { language, t } = useI18n()
 
   return (
     <div className="acct-subpanel-body">
       <div className="acct-info-card">
         <div className="acct-info-row">
           <span className="acct-info-label">{t('auth.account.loginProvider')}</span>
-          <span className="acct-info-value">Authing (OIDC)</span>
+          <span className="acct-info-value">Better Auth</span>
         </div>
         <div className="acct-info-row">
           <span className="acct-info-label">Protocol</span>
-          <span className="acct-info-value">OAuth 2.0 + PKCE</span>
+          <span className="acct-info-value">Session + Google OAuth</span>
         </div>
       </div>
       <p className="acct-subpanel-hint">
-        Password changes, two-factor authentication, and connected devices are managed through your Authing account portal.
+        {language === 'zh'
+          ? '密码登录已由 Focus & Go 托管。邮箱验证、手机号验证和设备管理会在后续版本开放。'
+          : 'Password sign-in is now managed by Focus & Go. Email verification, phone verification, and device management will arrive later.'}
       </p>
-      <a
-        href={`${domain}/profile`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="acct-portal-link"
-      >
-        {t('auth.account.openPortal')}
-        <ExternalLink size={12} />
-      </a>
     </div>
   )
 }
@@ -266,9 +256,10 @@ const DeleteAccountPanel = ({ email }: { email: string }) => {
     if (!confirmed || deleting) return
     setDeleting(true)
     // No backend deletion API yet — clear auth and log out
+    await signOutBestEffort()
     await clearLocalUserData()
     clearAuth()
-    window.location.href = getLogoutUrl()
+    window.location.href = '/'
   }
 
   return (
@@ -371,10 +362,11 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
   const handleLogout = async () => {
     if (accountAction) return
     setAccountAction('logout')
+    await signOutBestEffort()
     await clearLocalUserDataBestEffort()
     clearAuth()
     onClose()
-    window.location.href = getLogoutUrl()
+    window.location.href = '/'
   }
 
   const handleUpgrade = async () => {
@@ -412,11 +404,10 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
   const handleSwitchAccount = async () => {
     if (accountAction) return
     setAccountAction('switch')
+    await signOutBestEffort()
     await clearLocalUserDataBestEffort()
     clearAuth()
     onClose()
-    const authUrl = await prepareAuthSession()
-    window.location.href = authUrl
   }
 
   const handleViewGrowth = () => {
