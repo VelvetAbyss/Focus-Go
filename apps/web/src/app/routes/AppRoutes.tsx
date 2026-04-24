@@ -4,6 +4,7 @@ import DashboardRoute from './DashboardRoute'
 import { LEGACY_ROUTES, ROUTES } from './routes'
 import { useLabs } from '../../features/labs/LabsContext'
 import { usePremiumGate } from '../../features/premium/PremiumProvider'
+import BrandLoader from '../../shared/ui/loading/BrandLoader'
 
 const TasksPage = lazy(() => import('../../features/tasks/pages/TasksPage'))
 const ProjectsPage = lazy(() => import('../../features/projects/pages/ProjectsPage'))
@@ -22,10 +23,7 @@ const PaymentSuccessPage = lazy(() => import('../../features/payments/pages/Paym
 const AdminPage = lazy(() => import('../../features/admin/pages/AdminPage'))
 
 export const RouteFallback = () => (
-  <section className="route-loader" data-testid="route-loader" aria-live="polite" aria-busy="true">
-    <span className="route-loader__mark" aria-hidden="true" />
-    <span className="sr-only">Loading page</span>
-  </section>
+  <BrandLoader variant="inline" data-testid="route-loader" />
 )
 
 const GuardedHabitsRoute = () => {
