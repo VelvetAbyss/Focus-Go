@@ -106,6 +106,7 @@ jobs:
 
           echo "=== [3/4] run deploy.sh ==="
           cd /root/focus-go
+          git config --global --add safe.directory /root/focus-go
           ORIGINAL_ORIGIN="$(git remote get-url origin)"
           restore_origin() {
             git remote set-url origin "${ORIGINAL_ORIGIN}" 2>/dev/null || true
