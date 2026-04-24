@@ -24,7 +24,12 @@ export const createApp = () => {
     allowedHeaders: ['Content-Type', 'Authorization'],
   }))
 
-  app.all('/api/auth/*', toNodeHandler(auth))
+  const authHandler = toNodeHandler(auth)
+  app.all('/api/auth/*', authHandler)
+  app.all('/auth/*', (req, res) => {
+    req.url = `/api${req.url}`
+    authHandler(req, res)
+  })
   app.use(express.json({ limit: '10mb' }))
 
   app.get('/', (req, res) => {
