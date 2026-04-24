@@ -15,6 +15,7 @@ const addMock = vi.fn()
 const updateMock = vi.fn()
 const removeMock = vi.fn()
 let syncRefreshCallback: (() => void) | null = null
+let dateNowSpy: ReturnType<typeof vi.spyOn> | null = null
 
 vi.mock('../../habits/hooks/useHabitTracker', () => ({
   useHabitTracker: () => ({
@@ -165,6 +166,8 @@ describe('WidgetTodosCard', () => {
 
   afterEach(() => {
     cleanup()
+    dateNowSpy?.mockRestore()
+    dateNowSpy = null
   })
 
   it('renders daily habits from the habit tracker state', async () => {
@@ -230,5 +233,15 @@ describe('WidgetTodosCard', () => {
     await syncRefreshCallback?.()
 
     await waitFor(() => expect(screen.getByText('Synced item')).toBeInTheDocument())
+  })
+
+  it('shows a closing reminder on weekly tab during the Friday closing window', async () => {
+    dateNowSpy = vi.spyOn(Date, 'now').mockReturnValue(new Date('2026-03-20T08:00:00').getTime())
+
+    render(<WidgetTodosCard />)
+
+    const weeklyTab = await screen.findByRole('tab', { name: /Weekly/ })
+    expect(weeklyTab).toHaveAttribute('title', '1 unfinished item(s) before this period closes')
+    expect(weeklyTab.querySelector('.period-alert__badge')).not.toBeNull()
   })
 })

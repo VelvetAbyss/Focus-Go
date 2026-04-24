@@ -90,7 +90,7 @@ const TripsPage = () => {
   }
 
   return (
-    <div ref={containerRef} style={{ margin: -18, height: 'calc(100vh - 40px)', overflowY: 'auto', background: paper, padding: 46 }}>
+    <div ref={containerRef} style={{ margin: -18, height: '100%', minHeight: 0, overflowY: 'auto', background: paper, padding: 46 }}>
       <AuthInteractionGate>
       <div style={{ maxWidth: 1280, margin: '0 auto', display: 'grid', gap: 22 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>

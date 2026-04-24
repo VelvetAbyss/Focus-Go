@@ -32,6 +32,7 @@ const getCurrentBucketStartDate = (scope: WidgetTodoScope, timestamp: number) =>
     start.setDate(start.getDate() - (day - 1))
     return start
   }
+  if (scope === 'custom') return new Date(8640000000000000)
   return new Date(effective.getFullYear(), effective.getMonth(), 1, RESET_HOUR, 0, 0, 0)
 }
 
@@ -42,6 +43,7 @@ export const getCurrentTodoResetBucket = (scope: WidgetTodoScope, now = Date.now
     const { weekYear, week } = getIsoWeekParts(effective)
     return `${weekYear}-W${pad(week)}`
   }
+  if (scope === 'custom') return 'custom'
   return `${effective.getFullYear()}-${pad(effective.getMonth() + 1)}`
 }
 
@@ -51,7 +53,7 @@ export const getCurrentTodoResetBoundary = (scope: WidgetTodoScope, now = Date.n
 export const shouldResetWidgetTodos = (scope: WidgetTodoScope, lastBucket: string | null, now = Date.now()) => {
   const currentBucket = getCurrentTodoResetBucket(scope, now)
   return {
-    shouldReset: lastBucket !== null && lastBucket !== currentBucket,
+    shouldReset: scope !== 'custom' && lastBucket !== null && lastBucket !== currentBucket,
     currentBucket,
   }
 }
@@ -67,6 +69,7 @@ export const writeWidgetTodoResetBucket = (scope: WidgetTodoScope, bucket: strin
 }
 
 export const shouldBootstrapResetWidgetTodos = (items: WidgetTodo[], scope: WidgetTodoScope, now = Date.now()) => {
+  if (scope === 'custom') return false
   const boundary = getCurrentTodoResetBoundary(scope, now)
   return items.some((item) => item.scope === scope && item.done && item.updatedAt < boundary)
 }

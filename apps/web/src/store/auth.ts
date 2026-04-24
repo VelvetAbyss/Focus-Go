@@ -54,10 +54,10 @@ export const useIsLoggedIn = () =>
 export const useAuthPlan = () =>
   useSyncExternalStore(subscribeAuth, () => (isLocalhostRuntime() ? 'premium' : (getAuth()?.plan ?? 'free')), () => 'free')
 
-export const fetchAuthProfile = async (accessToken: string): Promise<AuthProfile | null> => {
+export const fetchAuthProfile = async (accessToken?: string): Promise<AuthProfile | null> => {
   try {
     const res = await fetchApi('/user/profile', {
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
     })
     if (!res.ok) return null
     return await res.json() as AuthProfile

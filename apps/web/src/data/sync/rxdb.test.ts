@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { db } from '../db'
+import { enqueueSyncOperation } from './repository'
 
 vi.mock('../../store/auth', () => ({
   getAuth: () => ({ accessToken: 'token' }),
@@ -186,4 +187,69 @@ describe('rxdb sync migration', () => {
     expect((await db.projects.get('project-remote'))?.title).toBe('Remote project')
     expect(fetchMock.mock.calls.every(([url]) => String(url).includes('/sync/rxdb/'))).toBe(true)
   })
+
+  it('pushes deletes as tombstones with deletedAt', async () => {
+    const deletedAt = 1234
+    await enqueueSyncOperation('projects', 'delete', { id: 'project-deleted', updatedAt: deletedAt, title: 'Deleted' }, deletedAt)
+
+    fetchMock.mockImplementation(async (input, init) => {
+      const url = String(input)
+      const body = init?.body ? JSON.parse(String(init.body)) : {}
+      if (url.includes('/sync/rxdb/pull')) {
+        return {
+          ok: true,
+          json: async () => ({ documents: [], checkpoint: body.checkpoint ?? null, blobs: [] }),
+        } as Response
+      }
+      return {
+        ok: true,
+        json: async () => ({ conflicts: [], blobs: [] }),
+      } as Response
+    })
+
+    await runRxdbSyncCycle()
+
+    const pushCall = fetchMock.mock.calls.find(([url, init]) => {
+      const body = init?.body ? JSON.parse(String(init.body)) : {}
+      return String(url).includes('/sync/rxdb/push') && body.entityType === 'projects'
+    })
+    const body = JSON.parse(String(pushCall?.[1]?.body ?? '{}'))
+    expect(body.rows[0].newDocumentState).toMatchObject({
+      id: 'project-deleted',
+      _deleted: true,
+      deletedAt,
+      updatedAt: deletedAt,
+    })
+  })
+
+  it('blocks malformed remote payloads before writing to Dexie', async () => {
+    fetchMock.mockImplementation(async (input, init) => {
+      const url = String(input)
+      const body = init?.body ? JSON.parse(String(init.body)) : {}
+      if (url.includes('/sync/rxdb/pull') && body.entityType === 'notes') {
+        return {
+          ok: true,
+          json: async () => ({
+            documents: [{ id: 'note-bad', title: 'Bad', updatedAt: 'bad', _deleted: false }],
+            checkpoint: null,
+            blobs: [],
+          }),
+        } as Response
+      }
+      if (url.includes('/sync/rxdb/pull')) {
+        return {
+          ok: true,
+          json: async () => ({ documents: [], checkpoint: body.checkpoint ?? null, blobs: [] }),
+        } as Response
+      }
+      return {
+        ok: true,
+        json: async () => ({ conflicts: [], blobs: [] }),
+      } as Response
+    })
+
+    await expect(runRxdbSyncCycle()).rejects.toThrow(/notes: pull returned invalid updatedAt/)
+    expect(await db.notes.get('note-bad')).toBeUndefined()
+    expect((await db.syncState.get('cloud-sync'))?.lastError).toContain('notes: pull returned invalid updatedAt')
+  }, 15_000)
 })

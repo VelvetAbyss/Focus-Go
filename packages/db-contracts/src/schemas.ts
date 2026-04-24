@@ -170,7 +170,7 @@ const taskCreateInputSchema = z
   })
   .strict()
 
-const widgetTodoScopeSchema = z.enum(['day', 'week', 'month'])
+const widgetTodoScopeSchema = z.enum(['day', 'week', 'month', 'custom'])
 const noteEditorModeSchema = z.literal('document')
 const noteItemSchema = baseEntitySchema.extend({
   title: z.string(),

@@ -61,8 +61,8 @@ export const enqueueSyncOperation = <T extends SyncEntityType>(
   entityType: T,
   op: SyncOp,
   payload: SyncPayload<T>,
-  _deletedAt?: number | null,
-) => enqueueRxdbSyncChange(entityType, op, payload)
+  deletedAt?: number | null,
+) => enqueueRxdbSyncChange(entityType, op, payload, deletedAt)
 
 export const collectLocalSnapshot = async () => {
   const entries = await Promise.all(

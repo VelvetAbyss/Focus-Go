@@ -8,6 +8,7 @@ import {
   buildPeoplePresentationModel,
   buildPodcastPresentationModel,
   buildSubscriptionPresentationModel,
+  getBillingNotice,
 } from './lifeDesignAdapters'
 
 const makeBook = (overrides: Partial<BookItem> = {}): BookItem => ({
@@ -67,6 +68,8 @@ const makeSubscription = (overrides: Partial<LifeSubscription> = {}): LifeSubscr
   amount: overrides.amount ?? 12,
   currency: overrides.currency ?? 'USD',
   cycle: overrides.cycle ?? 'monthly',
+  billingDay: overrides.billingDay,
+  billingMonth: overrides.billingMonth,
 })
 
 const makePodcast = (overrides: Partial<LifePodcast> = {}): LifePodcast => ({
@@ -192,6 +195,12 @@ describe('lifeDesignAdapters', () => {
     expect(model.monthlyTotalLabel).toContain('¥')
     expect(model.previewRows).toHaveLength(3)
     expect(model.stats.activeServices).toBe(3)
+  })
+
+  it('shows billing notices only before the next charge window', () => {
+    expect(getBillingNotice(makeSubscription({ billingDay: 30 }), new Date(2026, 3, 24))?.days).toBe(6)
+    expect(getBillingNotice(makeSubscription({ billingDay: 15 }), new Date(2026, 3, 20))).toBeNull()
+    expect(getBillingNotice(makeSubscription({ billingDay: 1 }), new Date(2026, 3, 25))?.days).toBe(6)
   })
 
   it('maps podcasts into now-playing and recent episode summaries', () => {

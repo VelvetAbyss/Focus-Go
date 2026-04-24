@@ -13,6 +13,12 @@ export type TaskDeadlineState = {
   textClass: string
 }
 
+export type TaskDeadlineAlert = {
+  daysRemaining: number
+  label: string
+  level: 'watch' | 'soon' | 'urgent'
+}
+
 const DAY_MS = 24 * 60 * 60 * 1000
 
 const toLocalDayStart = (value: number) => {
@@ -101,6 +107,24 @@ export const getTaskDeadlineState = (task: Pick<TaskItem, 'dueDate' | 'status'>,
 
   const daysRemaining = Math.round((dueDay - toLocalDayStart(now)) / DAY_MS)
   return buildDeadlineState(daysRemaining)
+}
+
+export const getUpcomingDeadlineAlert = (
+  items: Array<Pick<TaskItem, 'dueDate' | 'status'>>,
+  now = Date.now(),
+): TaskDeadlineAlert | null => {
+  const nearest = items.reduce<number | null>((min, item) => {
+    const state = getTaskDeadlineState(item, now)
+    if (state.daysRemaining == null || state.daysRemaining < 1 || state.daysRemaining > 7) return min
+    return min == null ? state.daysRemaining : Math.min(min, state.daysRemaining)
+  }, null)
+
+  if (nearest == null) return null
+  return {
+    daysRemaining: nearest,
+    label: `${nearest}d`,
+    level: nearest <= 1 ? 'urgent' : nearest <= 3 ? 'soon' : 'watch',
+  }
 }
 
 export const TASK_STATUS_CONFIG: Record<TaskStatus, { labelKey: 'tasks.status.todo' | 'tasks.status.doing' | 'tasks.status.done'; dot: string; badge: string }> = {

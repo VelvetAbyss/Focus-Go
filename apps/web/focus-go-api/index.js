@@ -1,7 +1,8 @@
 import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
-import authRouter from './routes/auth.js'
+import { toNodeHandler } from 'better-auth/node'
+import { auth } from './auth/betterAuth.js'
 import userRouter from './routes/user.js'
 import syncRouter from './routes/sync.js'
 import paymentsRouter from './routes/payments.js'
@@ -22,6 +23,8 @@ export const createApp = () => {
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization'],
   }))
+
+  app.all('/api/auth/*', toNodeHandler(auth))
   app.use(express.json({ limit: '10mb' }))
 
   app.get('/', (req, res) => {
@@ -43,8 +46,6 @@ export const createApp = () => {
     })
   })
 
-  app.use('/auth', authRouter)
-  app.use('/api/auth', authRouter)
   app.use('/user', userRouter)
   app.use('/api/user', userRouter)
   app.use('/sync', syncRouter)

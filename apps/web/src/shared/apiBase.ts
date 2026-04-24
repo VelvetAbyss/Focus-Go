@@ -31,17 +31,18 @@ const isProxyFailure = (status: number) => status === 404 || status >= 500
 
 export const fetchApi = async (path: string, init?: RequestInit) => {
   const primaryUrl = buildApiUrl(path)
+  const requestInit: RequestInit = { credentials: 'include', ...init }
   let response: Response
   try {
-    response = await fetch(primaryUrl, init)
+    response = await fetch(primaryUrl, requestInit)
   } catch (networkError) {
     if (getApiBase() !== PROD_PROXY_PREFIX) throw networkError
     const fallbackUrl = getDirectApiUrl(path)
     if (!fallbackUrl) throw networkError
-    return fetch(fallbackUrl, init)
+    return fetch(fallbackUrl, requestInit)
   }
   if (!isProxyFailure(response.status) || getApiBase() !== PROD_PROXY_PREFIX) return response
   const fallbackUrl = getDirectApiUrl(path)
   if (!fallbackUrl || fallbackUrl === primaryUrl) return response
-  return fetch(fallbackUrl, init)
+  return fetch(fallbackUrl, requestInit)
 }

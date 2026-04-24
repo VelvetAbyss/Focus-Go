@@ -51,7 +51,7 @@ const getServerMetrics = () => {
 }
 
 const getAllUsers = () =>
-  db.prepare('SELECT id, authing_id, email, plan, status, created_at, premium_expires_at FROM users ORDER BY created_at DESC').all()
+  db.prepare('SELECT id, authing_id, auth_user_id, email, plan, status, created_at, premium_expires_at FROM users ORDER BY created_at DESC').all()
 
 const buildSyncStatsPerUser = () => {
   // For each sync table, aggregate per-user record count + payload byte size

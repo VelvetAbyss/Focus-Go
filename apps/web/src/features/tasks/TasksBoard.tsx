@@ -25,7 +25,7 @@ import { ROUTES } from '../../app/routes/routes'
 import { emitTasksChanged, subscribeTasksChanged } from './taskSync'
 import { useSyncDataRefresh } from '../../data/sync/service'
 import { readTaskTodayBucket, shouldClearTodayDoneTasks, writeTaskTodayBucket } from './taskTodayRefresh'
-import { TASK_STATUS_CONFIG } from './components/taskPresentation'
+import { TASK_STATUS_CONFIG, getUpcomingDeadlineAlert } from './components/taskPresentation'
 import { useI18n } from '../../shared/i18n/useI18n'
 import { useAuthGate } from '../auth/AuthGateContext'
 import EmptyState from '../../shared/ui/EmptyState'
@@ -164,6 +164,14 @@ const TasksBoard = ({
     const counts: Record<TaskStatus, number> = { todo: 0, doing: 0, done: 0 }
     tasks.forEach((task) => counts[task.status]++)
     return counts
+  }, [tasks])
+
+  const statusDeadlineAlerts = useMemo(() => {
+    const alerts: Record<TaskStatus, ReturnType<typeof getUpcomingDeadlineAlert>> = { todo: null, doing: null, done: null }
+    tabs.forEach((status) => {
+      alerts[status.key] = getUpcomingDeadlineAlert(tasks.filter((task) => task.status === status.key))
+    })
+    return alerts
   }, [tasks])
 
   const filteredTasks = useMemo(() => {
@@ -435,13 +443,16 @@ const TasksBoard = ({
                     const cfg = TASK_STATUS_CONFIG[status.key]
                     const count = statusCounts[status.key]
                     const isActive = activeStatus === status.key
+                    const alert = statusDeadlineAlerts[status.key]
                     return (
                       <button
                         key={status.key}
                         className={cn(
                           'tasks-fg__status-tab flex items-center gap-2 rounded-md px-3 py-1.5 text-sm',
+                          alert && `deadline-alert deadline-alert--${alert.level}`,
                           isActive ? 'bg-muted text-foreground shadow-sm' : 'text-muted-foreground hover:bg-accent/70 hover:text-foreground',
                         )}
+                        title={alert ? t('tasks.deadlineAlert', { days: alert.daysRemaining }) : undefined}
                         onClick={() => setActiveStatus(status.key)}
                       >
                         <span className={cn(
@@ -456,6 +467,11 @@ const TasksBoard = ({
                         )}>
                           {count}
                         </span>
+                        {alert ? (
+                          <span className="deadline-alert__badge" aria-label={t('tasks.deadlineAlert', { days: alert.daysRemaining })}>
+                            {alert.label}
+                          </span>
+                        ) : null}
                       </button>
                     )
                   })}

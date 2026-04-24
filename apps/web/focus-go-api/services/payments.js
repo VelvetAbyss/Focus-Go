@@ -17,6 +17,17 @@ const addMonths = (timestamp, months) => {
 
 const getUserColumns = (db) => db.prepare("PRAGMA table_info('users')").all().map((column) => column.name)
 
+const getUserByPaymentUserId = (db, userId) => {
+  const columns = new Set(getUserColumns(db))
+  const clauses = ['CAST(id AS TEXT) = ?', 'authing_id = ?']
+  const params = [userId, userId]
+  if (columns.has('auth_user_id')) {
+    clauses.push('auth_user_id = ?')
+    params.push(userId)
+  }
+  return db.prepare(`SELECT * FROM users WHERE ${clauses.join(' OR ')}`).get(...params)
+}
+
 export const ensurePaymentTables = (db) => {
   const userColumns = new Set(getUserColumns(db))
   if (!userColumns.has('premium_expires_at')) {
@@ -149,7 +160,7 @@ const applyOrderPayment = (db, order, payload) => {
     throw new Error('amount mismatch')
   }
 
-  const existingUser = db.prepare('SELECT * FROM users WHERE authing_id = ?').get(order.user_id)
+  const existingUser = getUserByPaymentUserId(db, order.user_id)
   if (!existingUser) throw new Error('user not found')
 
   const now = Date.now()
@@ -161,8 +172,8 @@ const applyOrderPayment = (db, order, payload) => {
   db.prepare(`
     UPDATE users
     SET plan = 'premium', premium_expires_at = ?
-    WHERE authing_id = ?
-  `).run(nextExpiry, order.user_id)
+    WHERE id = ?
+  `).run(nextExpiry, existingUser.id)
 
   db.prepare(`
     UPDATE payment_orders
@@ -185,7 +196,7 @@ export const markOrderPaid = (db, { outTradeNo, zpayTradeNo, money, payType, raw
     if (!order) throw new Error('order not found')
     if (order.pay_type !== input.payType) throw new Error('pay type mismatch')
     if (order.status === 'paid') {
-      const user = db.prepare('SELECT plan, premium_expires_at FROM users WHERE authing_id = ?').get(order.user_id)
+      const user = getUserByPaymentUserId(db, order.user_id)
       return {
         applied: false,
         plan: user?.plan ?? 'free',

@@ -115,7 +115,7 @@ export type TaskItem = BaseEntity & {
   activityLogs: TaskActivityLog[]
 }
 
-export type WidgetTodoScope = 'day' | 'week' | 'month'
+export type WidgetTodoScope = 'day' | 'week' | 'month' | 'custom'
 
 export type WidgetTodo = BaseEntity & {
   scope: WidgetTodoScope

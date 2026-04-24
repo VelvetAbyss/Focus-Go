@@ -130,4 +130,26 @@ export const projectsRepo = {
   async archive(id: string) {
     return this.update(id, { status: 'archived' })
   },
+  async remove(id: string) {
+    const project = await db.projects.get(id)
+    if (!project) return
+    const deletedAt = Date.now()
+    const [tasks, people, noteLinks] = await Promise.all([
+      db.tasks.where('projectId').equals(id).toArray(),
+      db.projectPeople.where('projectId').equals(id).toArray(),
+      db.projectNoteLinks.where('projectId').equals(id).toArray(),
+    ])
+    await db.transaction('rw', db.projects, db.tasks, db.projectPeople, db.projectNoteLinks, async () => {
+      await db.tasks.bulkDelete(tasks.map((task) => task.id))
+      await db.projectPeople.bulkDelete(people.map((person) => person.id))
+      await db.projectNoteLinks.bulkDelete(noteLinks.map((link) => link.id))
+      await db.projects.delete(id)
+    })
+    await Promise.all([
+      enqueueSyncOperation('projects', 'delete', { id, updatedAt: deletedAt, title: project.title }, deletedAt),
+      ...tasks.map((task) => enqueueSyncOperation('tasks', 'delete', { id: task.id, updatedAt: deletedAt, title: task.title }, deletedAt)),
+      ...people.map((person) => enqueueSyncOperation('projectPeople', 'delete', { id: person.id, updatedAt: deletedAt, projectId: id }, deletedAt)),
+      ...noteLinks.map((link) => enqueueSyncOperation('projectNoteLinks', 'delete', { id: link.id, updatedAt: deletedAt, projectId: id, noteId: link.noteId }, deletedAt)),
+    ])
+  },
 }

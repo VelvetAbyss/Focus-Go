@@ -63,6 +63,10 @@ type ProjectsMessages = {
     edit: string
     archiveTitle: string
     archive: string
+    deleteTitle: string
+    delete: string
+    deleteConfirm: string
+    cancel: string
     addTask: string
     noDescription: string
     unassigned: string
@@ -237,6 +241,10 @@ const messages: Record<LanguageCode, ProjectsMessages> = {
       edit: 'Edit',
       archiveTitle: 'Archive project',
       archive: 'Archive',
+      deleteTitle: 'Delete project',
+      delete: 'Delete',
+      deleteConfirm: 'Delete “{title}”? This cannot be undone.',
+      cancel: 'Cancel',
       addTask: 'Add Task',
       noDescription: 'No project description yet.',
       unassigned: 'Unassigned',
@@ -409,6 +417,10 @@ const messages: Record<LanguageCode, ProjectsMessages> = {
       edit: '编辑',
       archiveTitle: '归档项目',
       archive: '归档',
+      deleteTitle: '删除项目',
+      delete: '删除',
+      deleteConfirm: '删除“{title}”？此操作不可撤销。',
+      cancel: '取消',
       addTask: '添加任务',
       noDescription: '暂无项目描述。',
       unassigned: '未分配',

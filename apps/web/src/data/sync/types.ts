@@ -135,6 +135,7 @@ export type RxdbPullRequest = {
 
 export type RxdbPullDocument<T extends SyncEntityType = SyncEntityType> = SyncPayload<T> & {
   _deleted?: boolean
+  deletedAt?: number | null
 }
 
 export type RxdbPullResponse<T extends SyncEntityType = SyncEntityType> = {
