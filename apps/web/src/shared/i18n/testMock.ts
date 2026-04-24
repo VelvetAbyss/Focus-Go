@@ -1,4 +1,8 @@
 import { enMessages } from './messages/en'
+import { primeMessages } from './loader'
+
+// Keep EN primed for any unit/integration test that touches `t()`.
+primeMessages('en', enMessages as Record<string, string>)
 
 export function createMockT() {
   return (key: string, values?: Record<string, string | number>) => {

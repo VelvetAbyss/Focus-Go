@@ -12,6 +12,7 @@ import { useDashboardGridEdit } from './useDashboardGridEdit'
 import type { DashboardLayoutItem } from '../../data/models/types'
 import { useSearchParams } from 'react-router-dom'
 import DashboardHeader from './DashboardHeader'
+import DashboardSkeleton from './DashboardSkeleton'
 import { useI18n } from '../../shared/i18n/useI18n'
 import {
   DEFAULT_DASHBOARD_HIDDEN_CARD_IDS,
@@ -349,7 +350,11 @@ const DashboardPage = () => {
           </section>
         )}
 
-        {page === 'main' && mounted && (
+        {page === 'main' && mounted && !layoutLoaded && (
+          <DashboardSkeleton columns={columns} rowHeight={60} margin={18} />
+        )}
+
+        {page === 'main' && mounted && layoutLoaded && (
           <GridLayout
             className={`dashboard__grid${layoutEdit ? ' dashboard__grid--edit-mode' : ''}`}
             layout={responsiveLayout.map((item) => ({

@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import AppShell from './app/layout/AppShell'
 import AppRoutes from './app/routes/AppRoutes'
-import { seedDatabase } from './data/seed'
+import AppBootGate from './app/AppBootGate'
 import { applyTheme, resolveInitialTheme } from './shared/theme/theme'
 import { BrowserRouter } from 'react-router-dom'
 import { PreferencesProvider } from './shared/prefs/PreferencesProvider'
@@ -22,15 +22,6 @@ const App = () => {
   }, [isLoggedIn])
 
   useEffect(() => {
-    const boot = async () => {
-      if (!isLoggedIn) await seedDatabase()
-      await syncedPreferencesRepo.hydrateLocalFromDb()
-      applyTheme(resolveInitialTheme())
-    }
-    void boot()
-  }, [isLoggedIn])
-
-  useEffect(() => {
     const handleSyncDataUpdated = () => {
       void syncedPreferencesRepo.hydrateLocalFromDb().then(() => {
         applyTheme(resolveInitialTheme())
@@ -43,19 +34,21 @@ const App = () => {
   return (
     <BrowserRouter>
       <PreferencesProvider>
-        <ToastProvider>
-          <SyncProvider>
-            <PremiumProvider>
-              <LabsProvider>
-                <SharedNoiseProvider>
-                  <AppShell>
-                    <AppRoutes key={isLoggedIn ? 'authenticated' : 'guest'} />
-                  </AppShell>
-                </SharedNoiseProvider>
-              </LabsProvider>
-            </PremiumProvider>
-          </SyncProvider>
-        </ToastProvider>
+        <AppBootGate>
+          <ToastProvider>
+            <SyncProvider>
+              <PremiumProvider>
+                <LabsProvider>
+                  <SharedNoiseProvider>
+                    <AppShell>
+                      <AppRoutes key={isLoggedIn ? 'authenticated' : 'guest'} />
+                    </AppShell>
+                  </SharedNoiseProvider>
+                </LabsProvider>
+              </PremiumProvider>
+            </SyncProvider>
+          </ToastProvider>
+        </AppBootGate>
       </PreferencesProvider>
     </BrowserRouter>
   )

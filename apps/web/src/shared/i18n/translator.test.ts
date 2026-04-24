@@ -1,7 +1,11 @@
-import { describe, expect, it } from 'vitest'
-import { t } from './translator'
+import { beforeAll, describe, expect, it } from 'vitest'
+import { loadLanguage, t } from './translator'
 
 describe('translator', () => {
+  beforeAll(async () => {
+    await Promise.all([loadLanguage('en'), loadLanguage('zh')])
+  })
+
   it('returns localized text for existing key', () => {
     expect(t('nav.settings', 'en')).toBe('Settings')
     expect(t('nav.settings', 'zh')).toBe('设置')

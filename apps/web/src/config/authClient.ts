@@ -70,10 +70,10 @@ export const authClient = {
       body: JSON.stringify(input),
     }),
 
-  signInEmail: (input: { email: string; password: string }) =>
+  signInEmail: (input: { email: string; password: string; rememberMe?: boolean }) =>
     requestAuth<AuthResponse>('/sign-in/email', {
       method: 'POST',
-      body: JSON.stringify({ ...input, rememberMe: true }),
+      body: JSON.stringify({ ...input, rememberMe: input.rememberMe ?? true }),
     }),
 
   signInUsername: (input: { username: string; password: string }) =>

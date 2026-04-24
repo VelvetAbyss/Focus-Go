@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-concept="aperture">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>BrandLoader · Focus&go</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+/* =============================================================
+   BrandLoader — Focus&go
+   Aesthetic: editorial minimalism × warm aperture
+   Concepts : (primary) Aperture   (alt) Meridian
+   ============================================================= */
+
+/* ---------- tokens : APERTURE (primary, amber on espresso) ---------- */
+[data-theme='dark'] {
+  --surface-0:#0E0C0A;           /* page */
+  --surface-1:#141210;           /* loader canvas */
+  --surface-2:#1B1815;           /* inset / inline frame */
+  --hairline:rgba(237,230,218,.08);
+  --hairline-strong:rgba(237,230,218,.18);
+  --text-hi:#EDE6DA;
+  --text-lo:rgba(237,230,218,.56);
+  --text-xlo:rgba(237,230,218,.30);
+  --accent:#E8A25A;              /* soft amber glow */
+  --accent-deep:#C8651A;
+  --accent-wash:rgba(232,162,90,.14);
+  --grain:rgba(255,255,255,.015);
+}
+[data-theme='light'] {
+  --surface-0:#F5F1E9;
+  --surface-1:#FAF7F2;
+  --surface-2:#EFEAE0;
+  --hairline:rgba(26,24,22,.08);
+  --hairline-strong:rgba(26,24,22,.20);
+  --text-hi:#1A1816;
+  --text-lo:rgba(26,24,22,.56);
+  --text-xlo:rgba(26,24,22,.32);
+  --accent:#B95814;
+  --accent-deep:#8E3E07;
+  --accent-wash:rgba(185,88,20,.09);
+  --grain:rgba(0,0,0,.015);
+}
+
+/* ---------- page chrome ---------- */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  background:var(--surface-0);
+  color:var(--text-hi);
+  -webkit-font-smoothing:antialiased;
+  font-feature-settings:"ss01","cv01";
+  transition:background .4s ease,color .4s ease;
+  overflow-x:hidden;
+}
+body::before{                        /* grain */
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:100;
+  background-image:radial-gradient(var(--grain) 1px,transparent 1px);
+  background-size:3px 3px;mix-blend-mode:overlay;opacity:.6;
+}
+.page{
+  max-width:1280px;margin:0 auto;padding:56px 48px 96px;
+}
+
+/* ---------- masthead ---------- */
+.masthead{
+  display:grid;grid-template-columns:1fr auto;gap:32px;align-items:end;
+  padding-bottom:28px;border-bottom:1px solid var(--hairline);
+}
+.mast-title{
+  font-family:'Fraunces',serif;font-weight:500;font-size:56px;line-height:.95;letter-spacing:-.02em;
+  font-variation-settings:"opsz" 144;
+}
+.mast-title em{font-style:italic;font-weight:500;color:var(--accent)}
+.mast-meta{
+  display:flex;gap:24px;align-items:center;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-lo);
+}
+.mast-meta span{display:flex;gap:8px;align-items:center}
+.mast-meta .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent)}
+
+.sub{
+  margin-top:14px;font-size:13px;color:var(--text-lo);max-width:640px;line-height:1.6;
+}
+
+/* ---------- toolbar ---------- */
+.toolbar{
+  margin-top:32px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+  font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+}
+.seg{
+  display:inline-flex;border:1px solid var(--hairline-strong);border-radius:999px;overflow:hidden;
+}
+.seg button{
+  all:unset;cursor:pointer;padding:8px 16px;font:inherit;letter-spacing:inherit;text-transform:inherit;
+  color:var(--text-lo);transition:background .2s,color .2s;
+}
+.seg button[aria-pressed='true']{background:var(--accent-wash);color:var(--text-hi)}
+.seg button:hover{color:var(--text-hi)}
+.seg + .seg-label{margin-left:4px;color:var(--text-xlo);margin-right:12px}
+.btn-ghost{
+  all:unset;cursor:pointer;padding:8px 16px;border:1px solid var(--hairline-strong);border-radius:999px;
+  color:var(--text-lo);font:inherit;letter-spacing:inherit;text-transform:inherit;transition:color .2s,border-color .2s;
+}
+.btn-ghost:hover{color:var(--text-hi);border-color:var(--text-lo)}
+
+/* ---------- stage ---------- */
+.stage{
+  margin-top:40px;display:grid;grid-template-columns:minmax(0,1.6fr) minmax(360px,1fr);gap:24px;
+}
+@media (max-width:960px){.stage{grid-template-columns:1fr}}
+
+.frame{
+  position:relative;background:var(--surface-1);border:1px solid var(--hairline);border-radius:2px;
+  overflow:hidden;
+}
+.frame-label{
+  position:absolute;top:12px;left:14px;z-index:3;
+  font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-xlo);
+  display:flex;gap:10px;align-items:center;
+}
+.frame-label::before{content:"";width:6px;height:6px;border:1px solid var(--text-xlo);border-radius:50%}
+.frame-meta{
+  position:absolute;bottom:12px;right:14px;z-index:3;
+  font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-xlo);
+}
+.frame-hairline{
+  position:absolute;inset:20px;pointer-events:none;z-index:2;
+  border:1px dashed var(--hairline);
+}
+.frame.fullscreen{aspect-ratio:16/10}
+.frame.inline-demo{aspect-ratio:4/3;background:var(--surface-2)}
+
+/* ---------- BrandLoader — core ---------- */
+.brand-loader{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:28px;
+}
+.brand-loader[data-state='exit']{animation:bl-exit 320ms cubic-bezier(.4,0,1,1) forwards}
+.brand-loader[data-state='entry']{animation:bl-entry 220ms cubic-bezier(.2,.8,.2,1) both}
+
+/* keyframes — entry / exit
+   entry (220ms): opacity 0→1, scale .96→1, y 6px→0
+   exit  (320ms): opacity 1→0, scale 1→.98, y 0→-4px
+   align with route-loader-mark loop cadence (1.15s) */
+@keyframes bl-entry{
+  from{opacity:0;transform:translateY(6px) scale(.96)}
+  to  {opacity:1;transform:translateY(0)    scale(1)}
+}
+@keyframes bl-exit{
+  from{opacity:1;transform:translateY(0)    scale(1)}
+  to  {opacity:0;transform:translateY(-4px) scale(.98)}
+}
+
+/* ---------- APERTURE symbol ----------
+   composition (svg 96×96, centered):
+   ring-outer  : 44r  static, 1px hairline
+   ring-middle : 34r  dashed, rotates 36s  (almost imperceptible drift)
+   ring-inner  : 22r  solid, 1.5px, BREATHES in/out 1.15s
+   glow        : radial wash behind center, opacity pulses with breath
+   center dot  : 3r   amber, opacity pulses 0.55→1 (phase-offset 80ms)
+*/
+.aperture{position:relative;width:104px;height:104px}
+.aperture svg{position:absolute;inset:0;overflow:visible}
+.aperture .glow{
+  position:absolute;inset:0;border-radius:50%;
+  background:radial-gradient(circle at 50% 50%,var(--accent-wash) 0%,transparent 62%);
+  animation:ap-breathe 1150ms cubic-bezier(.4,0,.3,1) infinite;
+  filter:blur(1px);
+}
+.aperture .r-outer,.aperture .r-mid,.aperture .r-inner{
+  fill:none;stroke:var(--text-hi);transform-origin:52px 52px;
+}
+.aperture .r-outer{stroke:var(--hairline-strong);stroke-width:1}
+.aperture .r-mid{
+  stroke:var(--text-lo);stroke-width:1;stroke-dasharray:3 4;
+  animation:ap-rotate 36s linear infinite;
+  opacity:.55;
+}
+.aperture .r-inner{
+  stroke:var(--accent);stroke-width:1.5;
+  animation:ap-breathe-ring 1150ms cubic-bezier(.4,0,.3,1) infinite;
+}
+.aperture .tick{stroke:var(--text-xlo);stroke-width:1}
+.aperture .dot{
+  fill:var(--accent);
+  animation:ap-pulse 1150ms cubic-bezier(.4,0,.3,1) infinite;
+  filter:drop-shadow(0 0 6px var(--accent));
+}
+
+/* loop keyframes
+   breathe (1.15s): scale 0.92 ↔ 1.0 (inner ring + glow)
+   pulse   (1.15s): dot opacity 0.55 ↔ 1.0, slight scale
+   rotate  (36s  ): middle ring 0deg ↔ 360deg */
+@keyframes ap-breathe-ring{
+  0%,100%{transform:scale(.92);opacity:.7}
+  50%    {transform:scale(1);   opacity:1}
+}
+@keyframes ap-breathe{
+  0%,100%{transform:scale(.9);opacity:.5}
+  50%    {transform:scale(1.08);opacity:1}
+}
+@keyframes ap-pulse{
+  0%,100%{opacity:.55;transform:scale(.85)}
+  50%    {opacity:1;  transform:scale(1)}
+  /* center-origin scaling for the dot: handled via transform-box */
+}
+.aperture .dot{transform-box:fill-box;transform-origin:center}
+@keyframes ap-rotate{to{transform:rotate(360deg)}}
+
+/* ---------- MERIDIAN symbol (alternate) ----------
+   composition :
+   dot         : 4r  amber, quietly pulsing
+   arc         : 40r  stroke-dasharray simulating a 70°
+                 segment, rotates 2.8s (one full sweep)
+   ring        : 40r  hairline, static as a reference track
+   micro ticks : 4 N/E/S/W index marks, static
+*/
+.meridian{position:relative;width:104px;height:104px}
+.meridian svg{position:absolute;inset:0;overflow:visible}
+.meridian .track{fill:none;stroke:var(--hairline-strong);stroke-width:1}
+.meridian .arc{
+  fill:none;stroke:var(--accent);stroke-width:1.5;stroke-linecap:round;
+  stroke-dasharray:48 200;transform-origin:52px 52px;
+  animation:md-sweep 2800ms cubic-bezier(.45,.05,.55,.95) infinite;
+}
+.meridian .idx{stroke:var(--text-xlo);stroke-width:1}
+.meridian .core{
+  fill:var(--accent);
+  animation:md-core 1400ms cubic-bezier(.4,0,.3,1) infinite;
+  filter:drop-shadow(0 0 5px var(--accent));
+  transform-box:fill-box;transform-origin:center;
+}
+@keyframes md-sweep{
+  0%  {transform:rotate(0deg)}
+  100%{transform:rotate(360deg)}
+}
+@keyframes md-core{
+  0%,100%{opacity:.6;transform:scale(.9)}
+  50%    {opacity:1;transform:scale(1.05)}
+}
+
+/* concept switch: hide whichever isn't active */
+[data-concept='aperture'] .symbol-meridian{display:none}
+[data-concept='meridian'] .symbol-aperture{display:none}
+
+/* ---------- label ---------- */
+.bl-label{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--text-lo);
+  animation:bl-label-in 320ms 80ms cubic-bezier(.2,.8,.2,1) backwards;
+}
+.bl-label em{
+  font-family:'Fraunces',serif;font-style:italic;font-weight:400;
+  font-size:13px;letter-spacing:0;text-transform:none;color:var(--text-hi);
+  font-variation-settings:"opsz" 144;
+}
+.bl-label .dotline{
+  display:flex;gap:4px;
+}
+.bl-label .dotline i{
+  width:3px;height:3px;border-radius:50%;background:var(--text-xlo);display:block;
+  animation:bl-dot 1150ms ease-in-out infinite;
+}
+.bl-label .dotline i:nth-child(2){animation-delay:140ms}
+.bl-label .dotline i:nth-child(3){animation-delay:280ms}
+@keyframes bl-label-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes bl-dot{0%,100%{opacity:.25}50%{opacity:1;background:var(--accent)}}
+
+/* inline variant tweaks — tighter */
+.brand-loader.inline{gap:20px}
+.brand-loader.inline .aperture,
+.brand-loader.inline .meridian{width:76px;height:76px}
+.brand-loader.inline .aperture svg,
+.brand-loader.inline .meridian svg{viewBox:0 0 104 104}
+.brand-loader.inline .bl-label{font-size:9px}
+.brand-loader.inline .bl-label em{font-size:11px}
+
+/* signature (only on fullscreen) */
+.sig{
+  position:absolute;left:24px;bottom:20px;z-index:3;
+  font-family:'Fraunces',serif;font-size:15px;letter-spacing:-.01em;color:var(--text-lo);
+  font-variation-settings:"opsz" 144;
+}
+.sig em{font-style:italic;color:var(--accent)}
+.sig small{
+  display:block;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--text-xlo);margin-top:2px;
+}
+
+/* ---------- dashboard preview (shown after exit) ---------- */
+.dash-preview{
+  position:absolute;inset:0;padding:32px;display:grid;
+  grid-template-columns:repeat(4,1fr);grid-auto-rows:58px;gap:12px;
+  opacity:0;pointer-events:none;
+}
+.dash-preview .card{
+  background:var(--surface-2);border:1px solid var(--hairline);border-radius:4px;
+  transform:translateY(10px) scale(.98);opacity:0;
+}
+.stage.show-dash .brand-loader{animation:bl-exit 320ms cubic-bezier(.4,0,1,1) forwards}
+.stage.show-dash .dash-preview{opacity:1;animation:dash-in 600ms 220ms ease forwards}
+.stage.show-dash .dash-preview .card{animation:dash-card-enter 480ms cubic-bezier(.2,.8,.2,1) forwards}
+.stage.show-dash .dash-preview .card:nth-child(1){animation-delay:260ms;grid-column:span 2;grid-row:span 2}
+.stage.show-dash .dash-preview .card:nth-child(2){animation-delay:315ms;grid-column:span 2}
+.stage.show-dash .dash-preview .card:nth-child(3){animation-delay:370ms;grid-column:span 1}
+.stage.show-dash .dash-preview .card:nth-child(4){animation-delay:425ms;grid-column:span 1;grid-row:span 2}
+.stage.show-dash .dash-preview .card:nth-child(5){animation-delay:480ms;grid-column:span 2}
+.stage.show-dash .dash-preview .card:nth-child(6){animation-delay:535ms;grid-column:span 2}
+@keyframes dash-in{to{opacity:1}}
+@keyframes dash-card-enter{to{opacity:1;transform:translateY(0) scale(1)}}
+
+/* ---------- spec ---------- */
+.spec{
+  margin-top:56px;display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:48px;
+  padding-top:32px;border-top:1px solid var(--hairline);
+}
+@media (max-width:960px){.spec{grid-template-columns:1fr}}
+.spec h3{
+  font-family:'IBM Plex Mono',monospace;font-weight:400;font-size:10px;letter-spacing:.24em;
+  text-transform:uppercase;color:var(--text-lo);margin-bottom:14px;
+}
+.spec p,.spec li{
+  font-family:'Fraunces',serif;font-weight:400;font-size:15px;line-height:1.55;color:var(--text-hi);
+  font-variation-settings:"opsz" 24;
+}
+.spec ul{list-style:none}
+.spec li{padding:6px 0;border-bottom:1px dashed var(--hairline);display:grid;grid-template-columns:64px 1fr auto;gap:16px;align-items:baseline}
+.spec li .tok{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;color:var(--text-lo);text-transform:uppercase}
+.spec li .val{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--accent)}
+
+.footline{
+  margin-top:72px;padding-top:28px;border-top:1px solid var(--hairline);
+  display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;
+  font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--text-xlo);
+}
+.footline em{font-family:'Fraunces',serif;font-style:italic;font-size:13px;letter-spacing:0;text-transform:none;color:var(--accent)}
+
+/* ---------- prefers-reduced-motion ---------- */
+@media (prefers-reduced-motion:reduce){
+  .aperture .r-inner,.aperture .glow,.aperture .dot,
+  .aperture .r-mid,.meridian .arc,.meridian .core,
+  .bl-label .dotline i{animation:none !important}
+  .brand-loader[data-state='entry'],.brand-loader[data-state='exit']{animation:none !important}
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- ============ masthead ============ -->
+  <header class="masthead">
+    <div>
+      <div class="mast-meta">
+        <span><span class="dot"></span>BRAND · LOADER</span>
+        <span>FOCUS<em>&amp;</em>GO / v0.1</span>
+        <span>APERTURE × MERIDIAN</span>
+      </div>
+      <h1 class="mast-title" style="margin-top:18px">A quiet <em>&amp;</em> moment,<br/>before the work begins.</h1>
+      <p class="sub">Bridging the 0.5–1.5s window between authentication and a ready workspace. One breathing mark, one italic line of Fraunces — no spinners, no progress theatre. Designed to feel hand-crafted, not computed.</p>
+    </div>
+
+    <div class="mast-meta" style="flex-direction:column;align-items:flex-end;gap:6px">
+      <span>ENTRY 220ms</span>
+      <span>LOOP 1150ms</span>
+      <span>EXIT 320ms</span>
+    </div>
+  </header>
+
+  <!-- ============ toolbar ============ -->
+  <div class="toolbar" role="toolbar">
+    <span class="seg-label">Theme</span>
+    <div class="seg" id="seg-theme">
+      <button data-v="dark"  aria-pressed="true">Espresso</button>
+      <button data-v="light" aria-pressed="false">Paper</button>
+    </div>
+
+    <span class="seg-label">Mark</span>
+    <div class="seg" id="seg-concept">
+      <button data-v="aperture" aria-pressed="true">Aperture · primary</button>
+      <button data-v="meridian" aria-pressed="false">Meridian · alt</button>
+    </div>
+
+    <button class="btn-ghost" id="btn-replay">Replay entry</button>
+    <button class="btn-ghost" id="btn-exit">Trigger exit → dash</button>
+    <button class="btn-ghost" id="btn-reset">Reset</button>
+  </div>
+
+  <!-- ============ stage ============ -->
+  <section class="stage" id="stage">
+
+    <!-- ---- fullscreen ---- -->
+    <div class="frame fullscreen">
+      <span class="frame-label">Variant / fullscreen · app bootstrap</span>
+      <span class="frame-meta">1440 × 900</span>
+      <div class="frame-hairline"></div>
+
+      <div class="brand-loader" id="loader-full" data-state="entry">
+        <div class="symbol-aperture aperture" aria-hidden="true">
+          <div class="glow"></div>
+          <svg viewBox="0 0 104 104">
+            <!-- outer static ring -->
+            <circle class="r-outer" cx="52" cy="52" r="44"/>
+            <!-- middle dashed slowly rotating ring -->
+            <circle class="r-mid"   cx="52" cy="52" r="34"/>
+            <!-- inner breathing ring -->
+            <circle class="r-inner" cx="52" cy="52" r="22"/>
+            <!-- cardinal ticks, very quiet -->
+            <line class="tick" x1="52" y1="6"  x2="52" y2="12"/>
+            <line class="tick" x1="52" y1="92" x2="52" y2="98"/>
+            <line class="tick" x1="6"  y1="52" x2="12" y2="52"/>
+            <line class="tick" x1="92" y1="52" x2="98" y2="52"/>
+            <!-- center dot -->
+            <circle class="dot" cx="52" cy="52" r="3"/>
+          </svg>
+        </div>
+
+        <div class="symbol-meridian meridian" aria-hidden="true">
+          <svg viewBox="0 0 104 104">
+            <circle class="track" cx="52" cy="52" r="40"/>
+            <!-- index marks -->
+            <line class="idx" x1="52" y1="8"  x2="52" y2="14"/>
+            <line class="idx" x1="52" y1="90" x2="52" y2="96"/>
+            <line class="idx" x1="8"  y1="52" x2="14" y2="52"/>
+            <line class="idx" x1="90" y1="52" x2="96" y2="52"/>
+            <!-- sweeping arc -->
+            <circle class="arc" cx="52" cy="52" r="40"/>
+            <circle class="core" cx="52" cy="52" r="4"/>
+          </svg>
+        </div>
+
+        <div class="bl-label">
+          <em>Preparing your workspace</em>
+          <div class="dotline" aria-hidden="true"><i></i><i></i><i></i></div>
+        </div>
+      </div>
+
+      <div class="sig">
+        Focus<em>&amp;</em>go<small>calm systems · warm tools</small>
+      </div>
+
+      <!-- dashboard preview (revealed on exit) -->
+      <div class="dash-preview" aria-hidden="true">
+        <div class="card"></div><div class="card"></div>
+        <div class="card"></div><div class="card"></div>
+        <div class="card"></div><div class="card"></div>
+      </div>
+    </div>
+
+    <!-- ---- inline ---- -->
+    <div class="frame inline-demo">
+      <span class="frame-label">Variant / inline · route suspense</span>
+      <span class="frame-meta">320 × 240</span>
+      <div class="frame-hairline"></div>
+
+      <div class="brand-loader inline" id="loader-inline" data-state="entry">
+        <div class="symbol-aperture aperture" aria-hidden="true">
+          <div class="glow"></div>
+          <svg viewBox="0 0 104 104">
+            <circle class="r-outer" cx="52" cy="52" r="44"/>
+            <circle class="r-mid"   cx="52" cy="52" r="34"/>
+            <circle class="r-inner" cx="52" cy="52" r="22"/>
+            <circle class="dot" cx="52" cy="52" r="3"/>
+          </svg>
+        </div>
+        <div class="symbol-meridian meridian" aria-hidden="true">
+          <svg viewBox="0 0 104 104">
+            <circle class="track" cx="52" cy="52" r="40"/>
+            <circle class="arc"   cx="52" cy="52" r="40"/>
+            <circle class="core"  cx="52" cy="52" r="4"/>
+          </svg>
+        </div>
+        <div class="bl-label">
+          <em>Loading</em>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ spec ============ -->
+  <section class="spec">
+    <div>
+      <h3>01 · Concept</h3>
+      <p><strong style="font-weight:600">Aperture</strong> — concentric rings around a warm amber point. A literal rendering of <em style="font-style:italic;color:var(--accent)">focus</em>: the outer world holds still, the inner ring breathes, the center burns steady. The middle ring rotates at 36s — slow enough that motion registers subconsciously, never as spinning.</p>
+      <p style="margin-top:14px;color:var(--text-lo);font-size:13px"><strong style="color:var(--text-hi)">Alt / Meridian</strong> — a solitary sundial arc sweeping the hour. Directional, carries the <em style="font-style:italic;color:var(--accent)">go</em>. Consider for error-recovery or longer-wait surfaces.</p>
+    </div>
+
+    <div>
+      <h3>02 · Timing</h3>
+      <ul>
+        <li><span class="tok">entry</span><span>opacity 0→1, scale .96→1, y +6→0</span><span class="val">220ms</span></li>
+        <li><span class="tok">label</span><span>fade-in, delay 80ms after entry</span><span class="val">320ms</span></li>
+        <li><span class="tok">loop·ring</span><span>breathe, scale .92↔1</span><span class="val">1150ms</span></li>
+        <li><span class="tok">loop·dot</span><span>pulse, opacity .55↔1</span><span class="val">1150ms</span></li>
+        <li><span class="tok">loop·drift</span><span>dashed ring rotation</span><span class="val">36s</span></li>
+        <li><span class="tok">exit</span><span>opacity 1→0, scale 1→.98, y 0→−4</span><span class="val">320ms</span></li>
+        <li><span class="tok">hand-off</span><span>dash-card-enter staggered 55ms</span><span class="val">480ms</span></li>
+      </ul>
+    </div>
+
+    <div>
+      <h3>03 · Tokens</h3>
+      <ul>
+        <li><span class="tok">surface-1</span><span>loader canvas</span><span class="val" id="tk-surface"></span></li>
+        <li><span class="tok">accent</span><span>amber glow</span><span class="val" id="tk-accent"></span></li>
+        <li><span class="tok">text-hi</span><span>label + wordmark</span><span class="val" id="tk-text"></span></li>
+        <li><span class="tok">hairline</span><span>outer ring</span><span class="val">rgba / .18</span></li>
+        <li><span class="tok">font-display</span><span>Fraunces · italic &amp;</span><span class="val">opsz 144</span></li>
+        <li><span class="tok">font-mono</span><span>IBM Plex Mono</span><span class="val">weight 300</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ footline ============ -->
+  <footer class="footline">
+    <span>PROTOTYPE · 2026.04.24</span>
+    <em>One mark. One breath. Then the work.</em>
+    <span>CSS-ONLY · NO JS ANIMATION</span>
+  </footer>
+</div>
+
+<script>
+  // ---- theme toggle ----
+  document.getElementById('seg-theme').addEventListener('click', e=>{
+    const b = e.target.closest('button'); if(!b) return;
+    document.documentElement.dataset.theme = b.dataset.v;
+    [...e.currentTarget.querySelectorAll('button')].forEach(x=>x.setAttribute('aria-pressed', x===b));
+    refreshTokens();
+  });
+  // ---- concept toggle ----
+  document.getElementById('seg-concept').addEventListener('click', e=>{
+    const b = e.target.closest('button'); if(!b) return;
+    document.documentElement.dataset.concept = b.dataset.v;
+    [...e.currentTarget.querySelectorAll('button')].forEach(x=>x.setAttribute('aria-pressed', x===b));
+  });
+
+  // ---- replay / exit controls ----
+  const stage = document.getElementById('stage');
+  const loaders = [document.getElementById('loader-full'), document.getElementById('loader-inline')];
+  function replay(){
+    stage.classList.remove('show-dash');
+    loaders.forEach(l=>{
+      l.style.display='none'; l.dataset.state='entry';
+      // force reflow to restart animation
+      void l.offsetWidth; l.style.display='';
+    });
+  }
+  document.getElementById('btn-replay').addEventListener('click', replay);
+  document.getElementById('btn-exit').addEventListener('click', ()=>{
+    stage.classList.add('show-dash');
+    loaders.forEach(l=>{ l.dataset.state='exit'; });
+  });
+  document.getElementById('btn-reset').addEventListener('click', replay);
+
+  // ---- live token readouts ----
+  function refreshTokens(){
+    const cs = getComputedStyle(document.documentElement);
+    document.getElementById('tk-surface').textContent = cs.getPropertyValue('--surface-1').trim();
+    document.getElementById('tk-accent').textContent  = cs.getPropertyValue('--accent').trim();
+    document.getElementById('tk-text').textContent    = cs.getPropertyValue('--text-hi').trim();
+  }
+  refreshTokens();
+</script>
+</body>
+</html>
