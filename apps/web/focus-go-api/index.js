@@ -11,15 +11,19 @@ import adminRouter from './routes/admin.js'
 import db from './db/init.js'
 import { startNeteasePodcastSyncJob } from './services/podcasts.js'
 
+const ALLOWED_ORIGINS = [
+  'https://app.nestflow.art',
+  'https://nestflow.art',
+  'https://www.nestflow.art',
+  'http://localhost:5173',
+  'http://localhost:5174',
+]
+
 export const createApp = () => {
   const app = express()
 
   app.use(cors({
-    origin: [
-      'https://app.nestflow.art',
-      'http://localhost:5173',
-      'http://localhost:5174',
-    ],
+    origin: ALLOWED_ORIGINS,
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization'],
   }))
