@@ -20,6 +20,13 @@ const dayLabel = (index: number) => {
 
 const roundTemp = (value: number) => Math.round(value)
 
+const ATMOS_PARTICLE_COUNT: Record<string, number> = {
+  rain: 14,
+  drizzle: 10,
+  snow: 12,
+  storm: 14,
+}
+
 const WeatherWidgetCard = () => {
   const { t, language } = useI18n()
   const { weatherAutoLocationEnabled, weatherManualCity, weatherTemperatureUnit } = usePreferences()
@@ -53,6 +60,9 @@ const WeatherWidgetCard = () => {
   const rows = useMemo(() => snapshot.data?.days.slice(0, 3) ?? [], [snapshot.data?.days])
   const selectedDay = rows[selectedIndex] ?? today
   const selectedMeta = selectedDay ? getWeatherIconMeta(selectedDay.weatherCode) : null
+
+  const effectiveTone = selectedMeta?.tone ?? 'cloud'
+
   useEffect(() => {
     if (selectedIndex >= rows.length) setSelectedIndex(0)
   }, [rows.length, selectedIndex])
@@ -80,6 +90,12 @@ const WeatherWidgetCard = () => {
     update()
   }
 
+  const particleCount = ATMOS_PARTICLE_COUNT[effectiveTone] ?? 0
+  const particles = useMemo(
+    () => Array.from({ length: particleCount }, (_, i) => i),
+    [particleCount],
+  )
+
   return (
     <Card
       title={t('weather.cardTitle')}
@@ -87,13 +103,54 @@ const WeatherWidgetCard = () => {
       actions={refreshAction}
       className="weather-widget-card dashboard-widget-card--weather"
     >
-      <div className={`weather-widget weather-widget--tone-${selectedMeta?.tone ?? 'cloud'}`}>
+      <div
+        className="weather-widget"
+        data-tone={effectiveTone}
+      >
         {snapshot.status === 'error' && !snapshot.data ? (
           <p className="muted">{t('weather.error')}</p>
         ) : (
           <>
-            <section className="weather-widget__main" aria-label={t('weather.today')}>
-              <p className="weather-widget__city">{snapshot.data?.location.name ?? t('weather.loading')}</p>
+            <div className="weather-widget__atmos" aria-hidden="true">
+              <span className="weather-widget__atmos-glow" />
+              <span className="weather-widget__atmos-blob weather-widget__atmos-blob--a" />
+              <span className="weather-widget__atmos-blob weather-widget__atmos-blob--b" />
+              {particles.map((i) => (
+                <span
+                  key={i}
+                  className="weather-widget__atmos-particle"
+                  style={
+                    {
+                      '--p-i': i,
+                      '--p-x': `${(i * 53) % 100}%`,
+                      '--p-delay': `${(i * 137) % 1800}ms`,
+                      '--p-duration': `${1200 + ((i * 213) % 1400)}ms`,
+                    } as CSSProperties
+                  }
+                />
+              ))}
+            </div>
+
+            <section className="weather-widget__hero" aria-label={t('weather.today')}>
+              <div className="weather-widget__hero-top">
+                <p className="weather-widget__city">
+                  {snapshot.data?.location.name ?? t('weather.loading')}
+                </p>
+                <p className="weather-widget__condition">
+                  {selectedMeta ? (
+                    <>
+                      <span className={`weather-icon ${selectedMeta.className}`} title={selectedMeta.label}>
+                        <selectedMeta.Icon size={14} strokeWidth={2.1} />
+                      </span>
+                      <span key={selectedMeta.label}>
+                        {language === 'zh' ? selectedMeta.labelZh : selectedMeta.label}
+                      </span>
+                    </>
+                  ) : (
+                    'Loading weather...'
+                  )}
+                </p>
+              </div>
               <div
                 className="weather-widget__temp"
                 key={
@@ -102,44 +159,57 @@ const WeatherWidgetCard = () => {
                     : 'temp-empty'
                 }
               >
-                {selectedDay ? `${roundTemp(selectedDay.tempMax)}°${unitSymbol}` : `--°${unitSymbol}`}
+                <span className="weather-widget__temp-value">
+                  {selectedDay ? roundTemp(selectedDay.tempMax) : '--'}
+                </span>
+                <span className="weather-widget__temp-unit">°{unitSymbol}</span>
               </div>
               <p className="weather-widget__range">
-                H {selectedDay ? roundTemp(selectedDay.tempMax) : '--'}° · L {selectedDay ? roundTemp(selectedDay.tempMin) : '--'}°
-              </p>
-              <p className="weather-widget__condition">
-                {selectedMeta ? (
-                  <>
-                    <span className={`weather-icon ${selectedMeta.className}`} title={selectedMeta.label}>
-                      <selectedMeta.Icon size={16} strokeWidth={2.1} />
-                    </span>
-                    <span key={selectedMeta.label}>{language === 'zh' ? selectedMeta.labelZh : selectedMeta.label}</span>
-                  </>
-                ) : (
-                  'Loading weather...'
-                )}
+                <span className="weather-widget__range-pair">
+                  <span className="weather-widget__range-key">H</span>
+                  {selectedDay ? roundTemp(selectedDay.tempMax) : '--'}°
+                </span>
+                <span className="weather-widget__range-sep" aria-hidden="true" />
+                <span className="weather-widget__range-pair">
+                  <span className="weather-widget__range-key">L</span>
+                  {selectedDay ? roundTemp(selectedDay.tempMin) : '--'}°
+                </span>
               </p>
             </section>
 
-            <section className="weather-widget__days" aria-label={t('weather.threeDayForecast')}>
+            <section
+              className="weather-widget__segments"
+              role="tablist"
+              aria-label={t('weather.threeDayForecast')}
+            >
               {rows.map((row, index) => {
                 const rowIcon = getWeatherIconMeta(row.weatherCode)
                 const RowIcon = rowIcon.Icon
+                const active = selectedIndex === index
                 return (
                   <button
                     type="button"
-                    className="weather-widget__row"
-                    data-active={selectedIndex === index ? 'true' : 'false'}
-                    style={{ '--row-index': index } as CSSProperties}
+                    role="tab"
+                    aria-selected={active}
+                    className="weather-widget__segment"
+                    data-active={active ? 'true' : 'false'}
+                    style={{ '--seg-index': index } as CSSProperties}
                     key={row.date}
                     onClick={() => selectDay(index)}
                   >
-                    <span className="weather-widget__day-label" title={t(dayLabel(index))}>{t(dayLabel(index))}</span>
-                    <span className={`weather-icon ${rowIcon.className}`} title={row.condition} aria-label={row.condition}>
+                    <span className="weather-widget__segment-label" title={t(dayLabel(index))}>
+                      {t(dayLabel(index))}
+                    </span>
+                    <span
+                      className={`weather-icon ${rowIcon.className}`}
+                      title={row.condition}
+                      aria-label={row.condition}
+                    >
                       <RowIcon size={15} strokeWidth={2.05} />
                     </span>
-                    <span className="weather-widget__day-range">
-                      {roundTemp(row.tempMax)}° / {roundTemp(row.tempMin)}°
+                    <span className="weather-widget__segment-range">
+                      <span className="weather-widget__segment-hi">{roundTemp(row.tempMax)}°</span>
+                      <span className="weather-widget__segment-lo">{roundTemp(row.tempMin)}°</span>
                     </span>
                   </button>
                 )

@@ -221,6 +221,35 @@ export type LifeKey =
   | 'life.trips.detail.actual'
   | 'life.trips.detail.remaining'
   | 'life.trips.detail.tripMemo'
+  | 'life.trips.filter.all'
+  | 'life.trips.filter.planning'
+  | 'life.trips.filter.booked'
+  | 'life.trips.filter.ongoing'
+  | 'life.trips.filter.done'
+  | 'life.trips.countdown.dminus'
+  | 'life.trips.countdown.today'
+  | 'life.trips.countdown.ongoing'
+  | 'life.trips.countdown.ended'
+  | 'life.trips.readiness.title'
+  | 'life.trips.readiness.transport'
+  | 'life.trips.readiness.stays'
+  | 'life.trips.readiness.food'
+  | 'life.trips.readinessConfirmed'
+  | 'life.trips.budgetTitle'
+  | 'life.trips.budgetUsed'
+  | 'life.trips.budgetOverrun'
+  | 'life.trips.budgetUntracked'
+  | 'life.trips.checklistTitle'
+  | 'life.trips.highlightsTitle'
+  | 'life.trips.openWorkspace'
+  | 'life.trips.view.grid'
+  | 'life.trips.view.timeline'
+  | 'life.trips.nextDeparture'
+  | 'life.trips.shape'
+  | 'life.trips.summary.upcoming'
+  | 'life.trips.summary.ongoing'
+  | 'life.trips.summary.past'
+  | 'life.trips.summary.total'
   | 'life.library.title'
   | 'life.library.bookCount'
   | 'life.library.searchPlaceholder'
@@ -509,6 +538,35 @@ const en: Record<LifeKey, string> = {
   'life.trips.detail.actual': 'Actual',
   'life.trips.detail.remaining': 'Remaining',
   'life.trips.detail.tripMemo': 'Trip memo',
+  'life.trips.filter.all': 'All',
+  'life.trips.filter.planning': 'Planning',
+  'life.trips.filter.booked': 'Booked',
+  'life.trips.filter.ongoing': 'Ongoing',
+  'life.trips.filter.done': 'Past',
+  'life.trips.countdown.dminus': 'D-{{count}}',
+  'life.trips.countdown.today': 'Departing today',
+  'life.trips.countdown.ongoing': 'Ongoing',
+  'life.trips.countdown.ended': 'Wrapped',
+  'life.trips.readiness.title': 'Readiness',
+  'life.trips.readiness.transport': 'Transport',
+  'life.trips.readiness.stays': 'Stays',
+  'life.trips.readiness.food': 'Food',
+  'life.trips.readinessConfirmed': '{{done}}/{{total}} confirmed',
+  'life.trips.budgetTitle': 'Budget',
+  'life.trips.budgetUsed': '{{pct}}% used · ${{used}}',
+  'life.trips.budgetOverrun': 'Over by ${{amount}}',
+  'life.trips.budgetUntracked': 'No spend logged yet',
+  'life.trips.checklistTitle': 'Checklist',
+  'life.trips.highlightsTitle': 'Highlights',
+  'life.trips.openWorkspace': 'Open workspace →',
+  'life.trips.view.grid': 'Grid',
+  'life.trips.view.timeline': 'Timeline',
+  'life.trips.nextDeparture': 'Next departure',
+  'life.trips.shape': 'Trip shape',
+  'life.trips.summary.upcoming': 'Upcoming',
+  'life.trips.summary.ongoing': 'Ongoing',
+  'life.trips.summary.past': 'Past',
+  'life.trips.summary.total': 'Total',
   'life.library.title': 'Library',
   'life.library.bookCount': '{{count}} books',
   'life.library.searchPlaceholder': 'Title, author, or ISBN...',
@@ -792,6 +850,35 @@ const zh: Record<LifeKey, string> = {
   'life.trips.detail.actual': '实际',
   'life.trips.detail.remaining': '剩余',
   'life.trips.detail.tripMemo': '旅行备忘',
+  'life.trips.filter.all': '全部',
+  'life.trips.filter.planning': '规划中',
+  'life.trips.filter.booked': '已预订',
+  'life.trips.filter.ongoing': '进行中',
+  'life.trips.filter.done': '已结束',
+  'life.trips.countdown.dminus': 'D-{{count}}',
+  'life.trips.countdown.today': '今日出发',
+  'life.trips.countdown.ongoing': '进行中',
+  'life.trips.countdown.ended': '已结束',
+  'life.trips.readiness.title': '准备进度',
+  'life.trips.readiness.transport': '交通',
+  'life.trips.readiness.stays': '住宿',
+  'life.trips.readiness.food': '餐饮',
+  'life.trips.readinessConfirmed': '{{done}}/{{total}} 已确认',
+  'life.trips.budgetTitle': '预算',
+  'life.trips.budgetUsed': '已用 {{pct}}% · ${{used}}',
+  'life.trips.budgetOverrun': '超支 ${{amount}}',
+  'life.trips.budgetUntracked': '尚未记录支出',
+  'life.trips.checklistTitle': '清单',
+  'life.trips.highlightsTitle': '亮点',
+  'life.trips.openWorkspace': '查看工作区 →',
+  'life.trips.view.grid': '卡片',
+  'life.trips.view.timeline': '时间轴',
+  'life.trips.nextDeparture': '即将出发',
+  'life.trips.shape': '行程节奏',
+  'life.trips.summary.upcoming': '即将出发',
+  'life.trips.summary.ongoing': '进行中',
+  'life.trips.summary.past': '已结束',
+  'life.trips.summary.total': '全部',
   'life.library.title': '书库',
   'life.library.bookCount': '{{count}} 本书',
   'life.library.searchPlaceholder': '书名、作者或 ISBN...',

@@ -25,8 +25,8 @@ const moveDateKey = (dateKey: string, offset: number) => {
 export const demoTrip: TripCreateInput = {
   title: 'Tokyo Trip',
   destination: 'Tokyo, Japan',
-  startDate: '2026-04-18',
-  endDate: '2026-04-24',
+  startDate: '2026-05-08',
+  endDate: '2026-05-14',
   status: 'Planning',
   travelers: 2,
   budgetPlanned: 3200,
@@ -173,6 +173,104 @@ export const itineraryTypeStyle = (type: ItineraryType) => {
     case 'transport': return { bg: 'rgba(58,55,51,0.08)', text: 'rgba(58,55,51,0.55)' }
     case 'hotel': return { bg: 'rgba(192,122,192,0.14)', text: '#7A3A7A' }
   }
+}
+
+export type TripPhase = 'upcoming' | 'imminent' | 'ongoing' | 'past'
+
+const parseDateKey = (key: string) => {
+  if (!key) return null
+  const [y, m, d] = key.split('-').map(Number)
+  if (!y || !m || !d) return null
+  return new Date(y, m - 1, d)
+}
+
+const startOfToday = () => {
+  const now = new Date()
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate())
+}
+
+export const daysUntilStart = (trip: TripRecord) => {
+  const start = parseDateKey(trip.startDate)
+  if (!start) return Infinity
+  const today = startOfToday()
+  const diff = (start.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+  return Math.round(diff)
+}
+
+export const tripPhase = (trip: TripRecord): TripPhase => {
+  const start = parseDateKey(trip.startDate)
+  const end = parseDateKey(trip.endDate)
+  const today = startOfToday()
+  if (!start || !end) return 'upcoming'
+  if (today < start) {
+    const diffDays = (start.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+    return diffDays <= 7 ? 'imminent' : 'upcoming'
+  }
+  if (today >= start && today <= end) return 'ongoing'
+  return 'past'
+}
+
+export const bookingReadiness = (trip: TripRecord) => {
+  const transport = trip.transport.reduce(
+    (acc, item) => {
+      acc.total += 1
+      if (item.status === 'Confirmed') acc.confirmed += 1
+      else if (item.status === 'Pending') acc.pending += 1
+      return acc
+    },
+    { confirmed: 0, pending: 0, total: 0 },
+  )
+  const stays = trip.stays.reduce(
+    (acc, item) => {
+      acc.total += 1
+      if (item.status === 'Confirmed') acc.confirmed += 1
+      else if (item.status === 'Pending') acc.pending += 1
+      return acc
+    },
+    { confirmed: 0, pending: 0, total: 0 },
+  )
+  const food = trip.food.reduce(
+    (acc, item) => {
+      acc.total += 1
+      if (item.status === 'Visited' || item.status === 'Planned') acc.confirmed += 1
+      return acc
+    },
+    { confirmed: 0, pending: 0, total: 0 },
+  )
+  return { transport, stays, food }
+}
+
+export type ReadinessTone = 'green' | 'amber' | 'grey'
+
+export const readinessTone = (cluster: { confirmed: number; pending: number; total: number }): ReadinessTone => {
+  if (cluster.total === 0) return 'grey'
+  if (cluster.confirmed === cluster.total) return 'green'
+  return 'amber'
+}
+
+export const budgetActualOverrun = (trip: TripRecord) => {
+  const planned = trip.budget.reduce((sum, item) => sum + item.planned, 0)
+  const actual = trip.budget.reduce((sum, item) => sum + item.actual, 0)
+  const percent = planned > 0 ? Math.round((actual / planned) * 100) : 0
+  return { planned, actual, percent, overrun: actual > planned && planned > 0 }
+}
+
+export const tripHighlights = (trip: TripRecord, max = 2) => {
+  if (!trip.itinerary.length) return []
+  const sorted = [...trip.itinerary]
+    .map((day, idx) => ({ day, idx, weight: day.items.length }))
+    .sort((a, b) => b.weight - a.weight)
+  const picks = new Set<number>()
+  picks.add(0)
+  for (const entry of sorted) {
+    if (picks.size >= max) break
+    picks.add(entry.idx)
+  }
+  return Array.from(picks)
+    .sort((a, b) => a - b)
+    .slice(0, max)
+    .map((idx) => trip.itinerary[idx])
+    .filter(Boolean)
 }
 
 export const transportMethodEmoji = (method: TransportMethod) => {

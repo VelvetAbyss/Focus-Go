@@ -1,11 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
-  BarChart3,
   CheckSquare,
-  Flame,
   ListChecks,
-  Percent,
   TrendingUp,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -27,19 +24,19 @@ const granularityLabelKeys: Record<AnalyticsGranularity, 'modules.tasks.analytic
   month: 'modules.tasks.analytics.month',
 }
 
-const metricIcons = {
-  totalTasks: ListChecks,
-  completedTasks: CheckSquare,
-  completionRate: Percent,
-  subtaskCompletionRate: TrendingUp,
-  overdueTasks: AlertTriangle,
-  dueSoonTasks: Flame,
-} as const
+// Status tone-matched colors (match toolbar dots)
+const STATUS_COLOR: Record<'todo' | 'doing' | 'done', string> = {
+  todo: '#a8a29e',
+  doing: '#14b8a6',
+  done: '#10b981',
+}
 
-const formatMetricValue = (value: number, type: keyof typeof metricIcons) => {
-  if (type === 'completionRate') return `${value}%`
-  if (type === 'subtaskCompletionRate') return `${value}%`
-  return `${value}`
+// Priority tone-matched colors
+const PRIORITY_COLOR: Record<'high' | 'medium' | 'low' | 'none', string> = {
+  high: '#dc2626',
+  medium: '#d97706',
+  low: '#65a30d',
+  none: '#a8a29e',
 }
 
 const TasksAnalyticsView = ({ tasks }: TasksAnalyticsViewProps) => {
@@ -56,24 +53,22 @@ const TasksAnalyticsView = ({ tasks }: TasksAnalyticsViewProps) => {
   }, [granularity])
 
   const analytics = useMemo(() => buildTaskAnalytics(tasks, { granularity }), [tasks, granularity])
-  const maxCompletion = Math.max(...analytics.buckets.map((bucket) => bucket.completions), 0)
-  const hasHistory = analytics.buckets.some((bucket) => bucket.completions > 0)
-  const trendPeak = Math.max(maxCompletion, 1)
-  const trendAverage = analytics.summary.averageCompletions
-  const trendHighlights = [
-    { label: t('modules.tasks.analytics.peak'), value: maxCompletion },
-    { label: t('modules.tasks.analytics.average'), value: trendAverage },
-    { label: t('modules.tasks.analytics.totalCompletions'), value: analytics.summary.completions },
-  ]
 
-  const summaryCards = [
-    { key: 'totalTasks', label: t('modules.tasks.analytics.totalTasks'), value: analytics.summary.totalTasks },
-    { key: 'completedTasks', label: t('modules.tasks.analytics.completedTasks'), value: analytics.summary.completedTasks },
-    { key: 'completionRate', label: t('modules.tasks.analytics.completionRate'), value: analytics.summary.completionRate },
-    { key: 'subtaskCompletionRate', label: t('modules.tasks.analytics.subtaskCompletionRate'), value: analytics.summary.subtaskCompletionRate },
-    { key: 'overdueTasks', label: t('modules.tasks.analytics.overdueTasks'), value: analytics.summary.overdueTasks },
-    { key: 'dueSoonTasks', label: t('modules.tasks.analytics.dueSoonTasks'), value: analytics.summary.dueSoonTasks },
-  ] as const
+  const maxCompletion = Math.max(...analytics.buckets.map((b) => b.completions), 0)
+  const trendPeak = Math.max(maxCompletion, 1)
+  const hasHistory = analytics.buckets.some((b) => b.completions > 0)
+  const currentBucketIndex = analytics.buckets.length - 1
+
+  // Streak pills — last 7 buckets, one filled per completion-bearing bucket
+  const streakPills = useMemo(() => {
+    const last = analytics.buckets.slice(-7)
+    while (last.length < 7) last.unshift({ key: `pad-${last.length}`, label: '', startAt: 0, endAt: 0, completions: 0, created: 0, subtasksCompleted: 0, subtasksTotal: 0, overdue: 0, dueSoon: 0 })
+    return last.map((b, i) => ({
+      key: b.key + i,
+      active: b.completions > 0,
+      isCurrent: i === last.length - 1,
+    }))
+  }, [analytics.buckets])
 
   const statusRows = (['todo', 'doing', 'done'] as const).map((status) => {
     const cfg = TASK_STATUS_CONFIG[status]
@@ -81,11 +76,10 @@ const TasksAnalyticsView = ({ tasks }: TasksAnalyticsViewProps) => {
     const total = analytics.summary.totalTasks || 1
     return {
       key: status,
-      label: t(`tasks.status.${status}`),
+      label: t(cfg.labelKey),
       count,
       percent: Math.round((count / total) * 100),
-      dot: cfg.dot,
-      badge: cfg.badge,
+      color: STATUS_COLOR[status],
     }
   })
 
@@ -98,22 +92,31 @@ const TasksAnalyticsView = ({ tasks }: TasksAnalyticsViewProps) => {
       label: t(cfg.labelKey),
       count,
       percent: Math.round((count / total) * 100),
-      badge: cfg.badge,
-      dot: cfg.dot,
+      color: PRIORITY_COLOR[priority],
     }
   })
 
+  const miniCards = [
+    { key: 'totalTasks', label: t('modules.tasks.analytics.totalTasks'), value: analytics.summary.totalTasks, icon: ListChecks, tone: 'neutral' },
+    { key: 'completedTasks', label: t('modules.tasks.analytics.completedTasks'), value: analytics.summary.completedTasks, icon: CheckSquare, tone: 'neutral' },
+    { key: 'avg', label: t('modules.tasks.analytics.average'), value: analytics.summary.averageCompletions, icon: TrendingUp, tone: 'neutral' },
+    { key: 'overdue', label: t('modules.tasks.analytics.overdueTasks'), value: analytics.summary.overdueTasks, icon: AlertTriangle, tone: analytics.summary.overdueTasks > 0 ? 'alert' : 'neutral' },
+  ] as const
+
   return (
-    <section className="tasks-analytics flex h-full min-h-0 flex-col gap-4">
-      <div className="tasks-analytics__toolbar flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 rounded-full border border-[#3a3733]/8 bg-white/80 p-1 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+    <section className="tasks-analytics-v2 flex h-full min-h-0 flex-col gap-4">
+      {/* Toolbar — granularity tabs + context tagline */}
+      <div className="flex items-center justify-between gap-3 flex-none">
+        <div className="flex items-center gap-1 rounded-xl border border-[color:var(--ts-line)] bg-white/70 p-1">
           {granularityOptions.map((option) => (
             <button
               key={option}
               type="button"
+              role="tab"
+              aria-selected={granularity === option}
               className={cn(
-                'rounded-full px-3 py-1.5 text-xs font-semibold transition-all',
-                granularity === option ? 'bg-slate-900 text-white shadow-[0_8px_18px_rgba(15,23,42,0.18)]' : 'text-slate-500 hover:text-slate-900',
+                'tasks-fg__mode-tab',
+                granularity === option && 'tasks-fg__mode-tab--active',
               )}
               onClick={() => setGranularity(option)}
             >
@@ -122,194 +125,225 @@ const TasksAnalyticsView = ({ tasks }: TasksAnalyticsViewProps) => {
           ))}
         </div>
 
-        <div className="inline-flex items-center gap-2 rounded-full border border-[#3a3733]/8 bg-white/70 px-3 py-1.5 text-xs font-medium text-slate-500 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
-          <BarChart3 className="size-3.5" />
-          {t('modules.tasks.analytics.trendTitle')}
-        </div>
+        <p className="text-[11px] font-medium tracking-wide" style={{ color: 'var(--ts-ink-soft)' }}>
+          {t(granularityLabelKeys[granularity])} · {analytics.buckets.length} {t('modules.tasks.analytics.totalCompletions').includes('总') ? '段' : 'buckets'} · {t('modules.tasks.analytics.completionRate')} {analytics.summary.completionRate}%
+        </p>
       </div>
 
-      <div className="tasks-analytics__scroller flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-2 pb-2">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {summaryCards.map((card) => {
-            const Icon = metricIcons[card.key]
-            return (
-              <article key={card.key} className="tasks-analytics__summary-card rounded-[24px] border border-[#3a3733]/6 bg-white/88 p-4">
-                <div className="mb-3 inline-flex size-9 items-center justify-center rounded-2xl bg-slate-100 text-slate-600">
-                  <Icon className="size-4" />
-                </div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{card.label}</p>
-                <p className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-slate-950">{formatMetricValue(card.value, card.key)}</p>
-              </article>
-            )
-          })}
-        </div>
-
-        <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[0.95fr_1.25fr]">
-          <div className="flex flex-col gap-4">
-            <article className="rounded-[30px] border border-[#3a3733]/6 bg-white/88 p-5">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('modules.tasks.analytics.statusBreakdown')}</p>
-                  <h2 className="mt-1 text-lg font-semibold tracking-[-0.03em] text-slate-950">{t('modules.tasks.analytics.activeTasks')}</h2>
-                </div>
-                <p className="text-xs text-slate-500">{analytics.summary.activeTasks}</p>
+      {/* Scrollable body */}
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain pb-2 pr-1">
+        {/* Hero — completion rate big number + sparkline + streak */}
+        <article className="tasks-analytics-v2__card tasks-analytics-v2__card--paper">
+          <div className="tasks-analytics-v2__hero">
+            <div>
+              <p className="tasks-analytics-v2__eyebrow">{t('modules.tasks.analytics.completionRate')}</p>
+              <p className="tasks-analytics-v2__hero-rate">
+                {analytics.summary.completionRate}
+                <span className="tasks-analytics-v2__hero-rate-suffix">%</span>
+              </p>
+              <div className="tasks-analytics-v2__hero-meta">
+                <span className="tasks-analytics-v2__hero-meta-item">
+                  <span>{t('modules.tasks.analytics.completedTasks')}</span>
+                  <span className="tasks-analytics-v2__hero-meta-num">{analytics.summary.completedTasks}</span>
+                  <span>/ {analytics.summary.totalTasks}</span>
+                </span>
+                <span className="tasks-analytics-v2__hero-meta-item">
+                  <span>{t('modules.tasks.analytics.average')}</span>
+                  <span className="tasks-analytics-v2__hero-meta-num">{analytics.summary.averageCompletions}</span>
+                </span>
+                <span className="tasks-analytics-v2__hero-meta-item">
+                  <span>{t('modules.tasks.analytics.totalCompletions')}</span>
+                  <span className="tasks-analytics-v2__hero-meta-num">{analytics.summary.completions}</span>
+                </span>
               </div>
-
-              <div className="space-y-3">
-                {statusRows.map((row) => (
-                  <div key={row.key} className="space-y-1.5">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="inline-flex items-center gap-2">
-                        <span className={cn('size-2 rounded-full', row.dot)} />
-                        <span className="text-sm font-medium text-slate-700">{row.label}</span>
-                      </div>
-                      <div className="inline-flex items-center gap-2 text-sm font-semibold text-slate-950">
-                        <span>{row.count}</span>
-                        <span className={cn('rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em]', row.badge)}>{row.percent}%</span>
-                      </div>
-                    </div>
-                    <div className="h-2 rounded-full bg-slate-100">
-                      <div className={cn('h-full rounded-full', row.dot)} style={{ width: `${row.percent}%` }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </article>
-
-            <article className="rounded-[30px] border border-[#3a3733]/6 bg-white/88 p-5">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('modules.tasks.analytics.priorityBreakdown')}</p>
-                  <h2 className="mt-1 text-lg font-semibold tracking-[-0.03em] text-slate-950">{t('modules.tasks.analytics.completedTasks')}</h2>
-                </div>
-                <p className="text-xs text-slate-500">{analytics.summary.completedTasks}</p>
-              </div>
-
-              <div className="space-y-3">
-                {priorityRows.map((row) => (
-                  <div key={row.key} className="space-y-1.5">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="inline-flex items-center gap-2">
-                        <span className={cn('size-2 rounded-full', row.dot)} />
-                        <span className="text-sm font-medium text-slate-700">{row.label}</span>
-                      </div>
-                      <div className="inline-flex items-center gap-2 text-sm font-semibold text-slate-950">
-                        <span>{row.count}</span>
-                        <span className={cn('rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em]', row.badge)}>{row.percent}%</span>
-                      </div>
-                    </div>
-                    <div className="h-2 rounded-full bg-slate-100">
-                      <div className={cn('h-full rounded-full', row.dot)} style={{ width: `${row.percent}%` }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </article>
-
-            <article className="rounded-[30px] border border-[#3a3733]/6 bg-white/88 p-5">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('modules.tasks.analytics.subtaskBreakdown')}</p>
-                  <h2 className="mt-1 text-lg font-semibold tracking-[-0.03em] text-slate-950">{t('modules.tasks.analytics.subtaskCompletionRate')}</h2>
-                </div>
-                <p className="text-xs text-slate-500">{analytics.summary.subtasksCompleted} / {analytics.summary.subtasksTotal}</p>
-              </div>
-
-              <div className="rounded-[24px] border border-dashed border-slate-200/90 bg-slate-50/70 p-4">
-                <div className="flex items-end justify-between gap-3">
-                  <div>
-                    <p className="text-3xl font-semibold tracking-[-0.04em] text-slate-950">{analytics.summary.subtaskCompletionRate}%</p>
-                    <p className="mt-1 text-xs text-slate-500">{t('modules.tasks.analytics.completions')}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">{t('modules.tasks.analytics.totalTasks')}</p>
-                    <p className="mt-1 text-sm font-semibold text-slate-700">{analytics.summary.totalTasks}</p>
-                  </div>
-                </div>
-                <div className="mt-4 h-2 rounded-full bg-white">
-                  <div className="h-full rounded-full bg-[linear-gradient(90deg,#3A3733_0%,#c2410c_100%)]" style={{ width: `${analytics.summary.subtaskCompletionRate}%` }} />
-                </div>
-              </div>
-            </article>
-          </div>
-
-          <div className="tasks-analytics__trend-panel min-h-0 rounded-[30px] border border-[#3a3733]/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.92))] p-5">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('modules.tasks.analytics.trendTitle')}</p>
-                <h2 className="mt-1 text-lg font-semibold tracking-[-0.03em] text-slate-950">{t(granularityLabelKeys[granularity])}</h2>
-              </div>
-              <p className="text-xs text-slate-500">{analytics.buckets.length} buckets</p>
             </div>
 
-            <div className="mb-4 grid grid-cols-3 gap-2">
-              {trendHighlights.map((item) => (
-                <div key={item.label} className="rounded-[18px] border border-[#3a3733]/6 bg-white/84 px-3 py-2.5">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">{item.label}</p>
-                  <p className="mt-1 text-base font-semibold tracking-[-0.03em] text-slate-950">{item.value}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex min-h-0 flex-col gap-3">
-              <div className="tasks-analytics__chart relative flex h-[240px] shrink-0 items-end gap-2 overflow-hidden rounded-[24px] border border-dashed border-slate-200/90 bg-[linear-gradient(180deg,rgba(248,250,252,0.9),rgba(255,255,255,0.98))] px-3 pb-4 pt-6">
-                <div className="pointer-events-none absolute inset-x-3 top-6 bottom-14">
-                  {[0.25, 0.5, 0.75].map((ratio) => (
-                    <div
-                      key={ratio}
-                      className="absolute left-0 right-0 border-t border-slate-200/80"
-                      style={{ top: `${ratio * 100}%` }}
-                    />
-                  ))}
-                </div>
-
-                {analytics.buckets.map((bucket) => {
-                  const height = maxCompletion > 0 ? Math.max((bucket.completions / trendPeak) * 100, bucket.completions > 0 ? 14 : 5) : 5
-                  const isActive = bucket.completions > 0
+            <div className="flex flex-col gap-3">
+              {/* Sparkline */}
+              <div className="tasks-analytics-v2__spark" aria-hidden="true">
+                {analytics.buckets.map((b, i) => {
+                  const h = trendPeak > 0 ? Math.max((b.completions / trendPeak) * 100, b.completions > 0 ? 14 : 6) : 6
                   return (
-                    <div key={bucket.key} className="relative z-10 flex min-w-0 flex-1 flex-col items-center justify-end gap-2">
-                      <div className="text-center leading-tight">
-                        <span className="block text-[10px] font-semibold text-slate-500">{bucket.completions}</span>
-                        <span className="block text-[9px] text-slate-400">{bucket.created} 新建</span>
-                      </div>
-                      <div className="relative flex h-[180px] w-full items-end justify-center">
-                        <div className="w-[68%] rounded-t-[16px] bg-slate-100/80" style={{ height: '100%' }} />
-                        <div
-                          className={cn(
-                            'absolute bottom-0 w-[68%] rounded-t-[16px] bg-[linear-gradient(180deg,#3A3733_0%,#6b7280_100%)] shadow-[0_12px_24px_rgba(58,55,51,0.18)] transition-[height,opacity] duration-300',
-                            !isActive && 'opacity-30',
-                          )}
-                          style={{ height: `${height}%` }}
-                        />
-                        {isActive ? (
-                          <div
-                            className="absolute left-1/2 size-2 -translate-x-1/2 rounded-full bg-white shadow-[0_0_0_3px_rgba(58,55,51,0.14)]"
-                            style={{ bottom: `calc(${height}% - 4px)` }}
-                          />
-                        ) : null}
-                      </div>
-                    </div>
+                    <div
+                      key={b.key}
+                      className="tasks-analytics-v2__spark-bar"
+                      data-empty={b.completions === 0 ? 'true' : 'false'}
+                      data-current={i === currentBucketIndex ? 'true' : 'false'}
+                      style={{ height: `${h}%` }}
+                    />
                   )
                 })}
               </div>
 
-              <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px] text-slate-500 md:grid-cols-4 xl:grid-cols-6">
-                {analytics.buckets.map((bucket) => (
-                  <div key={bucket.key} className="truncate">
-                    {bucket.label}
-                  </div>
-                ))}
+              {/* Streak */}
+              <div className="tasks-analytics-v2__streak">
+                <span className="tasks-analytics-v2__streak-num">{analytics.summary.streakDays}</span>
+                <span className="tasks-analytics-v2__streak-label">{t('modules.tasks.analytics.streakDays')}</span>
+                <span className="tasks-analytics-v2__streak-pills" aria-hidden="true">
+                  {streakPills.map((p) => (
+                    <span
+                      key={p.key}
+                      className="tasks-analytics-v2__streak-pill"
+                      data-active={p.active ? 'true' : 'false'}
+                      data-today={p.isCurrent ? 'true' : 'false'}
+                    />
+                  ))}
+                </span>
               </div>
-
-              {!hasHistory ? (
-                <div className="rounded-[22px] border border-dashed border-slate-200 bg-white/80 px-4 py-5 text-center">
-                  <p className="text-sm font-medium text-slate-900">{t('modules.tasks.analytics.emptyTitle')}</p>
-                  <p className="mt-1 text-xs leading-6 text-slate-500">{t('modules.tasks.analytics.emptyDescription')}</p>
-                </div>
-              ) : null}
             </div>
           </div>
+        </article>
+
+        {/* Mini metric strip */}
+        <div className="tasks-analytics-v2__mini">
+          {miniCards.map(({ key, label, value, icon: Icon, tone }) => (
+            <div key={key} className="tasks-analytics-v2__mini-card" data-tone={tone}>
+              <span className="tasks-analytics-v2__mini-card-icon">
+                <Icon className="size-3.5" strokeWidth={1.8} />
+              </span>
+              <span className="tasks-analytics-v2__mini-card-label">{label}</span>
+              <span className="tasks-analytics-v2__mini-card-value">{value}</span>
+            </div>
+          ))}
         </div>
+
+        {/* Trend chart */}
+        <article className="tasks-analytics-v2__card">
+          <div className="flex items-baseline justify-between gap-3 mb-2">
+            <div>
+              <p className="tasks-analytics-v2__eyebrow">{t('modules.tasks.analytics.trendTitle')}</p>
+              <h2 className="tasks-analytics-v2__title">{t(granularityLabelKeys[granularity])}</h2>
+            </div>
+            <div className="flex gap-4 text-[11px]" style={{ color: 'var(--ts-ink-soft)' }}>
+              <span>{t('modules.tasks.analytics.peak')}: <span style={{ color: 'var(--ts-ink)', fontWeight: 600 }}>{maxCompletion}</span></span>
+            </div>
+          </div>
+
+          <div className="tasks-analytics-v2__chart">
+            <div className="tasks-analytics-v2__chart-grid" aria-hidden="true">
+              {[0.25, 0.5, 0.75, 1].map((r) => (
+                <div key={r} className="tasks-analytics-v2__chart-grid-line" style={{ top: `${(1 - r) * 100}%` }} />
+              ))}
+            </div>
+            {analytics.buckets.map((b, i) => {
+              const h = trendPeak > 0 ? Math.max((b.completions / trendPeak) * 100, b.completions > 0 ? 8 : 2) : 2
+              const isCurrent = i === currentBucketIndex
+              return (
+                <div
+                  key={b.key}
+                  className="tasks-analytics-v2__chart-bar-col"
+                  data-current={isCurrent ? 'true' : 'false'}
+                >
+                  <div className="tasks-analytics-v2__chart-tooltip">
+                    {b.label} · {b.completions} {t('modules.tasks.analytics.completions')}
+                  </div>
+                  <div className="tasks-analytics-v2__chart-bar-track">
+                    <div
+                      className="tasks-analytics-v2__chart-bar"
+                      data-empty={b.completions === 0 ? 'true' : 'false'}
+                      style={{ height: `${h}%` }}
+                    />
+                  </div>
+                  <span className="tasks-analytics-v2__chart-label">{b.label}</span>
+                </div>
+              )
+            })}
+          </div>
+
+          {!hasHistory ? (
+            <div className="tasks-analytics-v2__empty">
+              <p className="tasks-analytics-v2__empty-title">{t('modules.tasks.analytics.emptyTitle')}</p>
+              <p className="tasks-analytics-v2__empty-desc">{t('modules.tasks.analytics.emptyDescription')}</p>
+            </div>
+          ) : null}
+        </article>
+
+        {/* Distribution: Status + Priority side by side */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <article className="tasks-analytics-v2__card">
+            <p className="tasks-analytics-v2__eyebrow">{t('modules.tasks.analytics.statusBreakdown')}</p>
+            <h2 className="tasks-analytics-v2__title">{analytics.summary.totalTasks} {t('modules.tasks.analytics.totalTasks')}</h2>
+
+            <div className="tasks-analytics-v2__stack mt-4" aria-hidden="true">
+              {statusRows.map((r) => (
+                r.percent > 0 ? (
+                  <span key={r.key} className="tasks-analytics-v2__stack-seg" style={{ width: `${r.percent}%`, background: r.color }} />
+                ) : null
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-1">
+              {statusRows.map((row) => (
+                <div key={row.key} className="tasks-analytics-v2__dist-row">
+                  <span className="tasks-analytics-v2__dist-label">
+                    <span className="tasks-analytics-v2__dist-dot" style={{ background: row.color }} />
+                    {row.label}
+                  </span>
+                  <span className="tasks-analytics-v2__dist-meta">
+                    <span className="tasks-analytics-v2__dist-count">{row.count}</span>
+                    <span className="tasks-analytics-v2__dist-pct">{row.percent}%</span>
+                  </span>
+                  <span className="tasks-analytics-v2__dist-bar">
+                    <span className="tasks-analytics-v2__dist-bar-fill" style={{ width: `${row.percent}%`, background: row.color }} />
+                  </span>
+                </div>
+              ))}
+            </div>
+          </article>
+
+          <article className="tasks-analytics-v2__card">
+            <p className="tasks-analytics-v2__eyebrow">{t('modules.tasks.analytics.priorityBreakdown')}</p>
+            <h2 className="tasks-analytics-v2__title">{analytics.summary.totalTasks} {t('modules.tasks.analytics.totalTasks')}</h2>
+
+            <div className="tasks-analytics-v2__stack mt-4" aria-hidden="true">
+              {priorityRows.map((r) => (
+                r.percent > 0 ? (
+                  <span key={r.key} className="tasks-analytics-v2__stack-seg" style={{ width: `${r.percent}%`, background: r.color }} />
+                ) : null
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-1">
+              {priorityRows.map((row) => (
+                <div key={row.key} className="tasks-analytics-v2__dist-row">
+                  <span className="tasks-analytics-v2__dist-label">
+                    <span className="tasks-analytics-v2__dist-dot" style={{ background: row.color }} />
+                    {row.label}
+                  </span>
+                  <span className="tasks-analytics-v2__dist-meta">
+                    <span className="tasks-analytics-v2__dist-count">{row.count}</span>
+                    <span className="tasks-analytics-v2__dist-pct">{row.percent}%</span>
+                  </span>
+                  <span className="tasks-analytics-v2__dist-bar">
+                    <span className="tasks-analytics-v2__dist-bar-fill" style={{ width: `${row.percent}%`, background: row.color }} />
+                  </span>
+                </div>
+              ))}
+            </div>
+          </article>
+        </div>
+
+        {/* Subtask card */}
+        <article className="tasks-analytics-v2__card tasks-analytics-v2__card--paper">
+          <div className="flex items-baseline justify-between gap-3">
+            <div>
+              <p className="tasks-analytics-v2__eyebrow">{t('modules.tasks.analytics.subtaskBreakdown')}</p>
+              <h2 className="tasks-analytics-v2__title">{t('modules.tasks.analytics.subtaskCompletionRate')}</h2>
+            </div>
+            <div className="text-right">
+              <p className="tasks-analytics-v2__hero-rate" style={{ fontSize: '36px' }}>
+                {analytics.summary.subtaskCompletionRate}
+                <span className="tasks-analytics-v2__hero-rate-suffix">%</span>
+              </p>
+              <p className="text-[11px] mt-1 font-variant-numeric tabular-nums" style={{ color: 'var(--ts-ink-soft)' }}>
+                {analytics.summary.subtasksCompleted} / {analytics.summary.subtasksTotal}
+              </p>
+            </div>
+          </div>
+          <div className="tasks-analytics-v2__subtask-bar">
+            <div className="tasks-analytics-v2__subtask-bar-fill" style={{ width: `${analytics.summary.subtaskCompletionRate}%` }} />
+          </div>
+        </article>
       </div>
     </section>
   )

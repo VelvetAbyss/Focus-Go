@@ -320,8 +320,7 @@ const TripDetailPage = () => {
 
   const pageWrapper: CSSProperties = {
     margin: -18,
-    height: '100%',
-    minHeight: 0,
+    minHeight: 'calc(100% + 36px)',
     overflowY: 'auto',
     background: paper,
     padding: 46,

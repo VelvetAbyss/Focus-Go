@@ -930,7 +930,6 @@ html[data-theme='dark'] .project-dialog {
 
 /* ── Page wrapper ──────────────────────────────────────────────── */
 .pd-page {
-  height: calc(100% + 36px);
   min-height: calc(100% + 36px);
   margin: -18px;
   background: var(--pd-bg);

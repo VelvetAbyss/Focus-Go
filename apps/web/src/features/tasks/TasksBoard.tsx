@@ -447,26 +447,20 @@ const TasksBoard = ({
                     return (
                       <button
                         key={status.key}
+                        type="button"
+                        role="tab"
+                        aria-selected={isActive}
+                        data-status={status.key}
                         className={cn(
-                          'tasks-fg__status-tab flex items-center gap-2 rounded-md px-3 py-1.5 text-sm',
+                          'tasks-fg__status-tab',
                           alert && `deadline-alert deadline-alert--${alert.level}`,
-                          isActive ? 'bg-muted text-foreground shadow-sm' : 'text-muted-foreground hover:bg-accent/70 hover:text-foreground',
                         )}
                         title={alert ? t('tasks.deadlineAlert', { days: alert.daysRemaining }) : undefined}
                         onClick={() => setActiveStatus(status.key)}
                       >
-                        <span className={cn(
-                          'size-2 rounded-full transition-transform duration-300',
-                          cfg.dot,
-                          isActive ? 'scale-110' : 'scale-90 opacity-60',
-                        )} />
+                        <span aria-hidden="true" />
                         {t(cfg.labelKey)}
-                        <span className={cn(
-                          'min-w-[20px] rounded-full px-1.5 py-0.5 text-center text-xs tabular-nums transition-all duration-200',
-                          isActive ? 'bg-background text-foreground/80 shadow-sm' : 'bg-muted/60 text-muted-foreground',
-                        )}>
-                          {count}
-                        </span>
+                        <span>{count}</span>
                         {alert ? (
                           <span className="deadline-alert__badge" aria-label={t('tasks.deadlineAlert', { days: alert.daysRemaining })}>
                             {alert.label}
@@ -486,11 +480,17 @@ const TasksBoard = ({
 
               <Popover>
                     <PopoverTrigger asChild>
-                      <button className="tasks-fg__filter-btn flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent">
-                        <Tag className="size-3" />
+                      <button
+                        type="button"
+                        className={cn(
+                          'tasks-fg__filter-btn',
+                          tagFilter.length > 0 && 'is-active',
+                        )}
+                      >
+                        <Tag className="size-3.5" strokeWidth={1.8} />
                         {t('tasks.selectTag')}
                         {tagFilter.length > 0 ? (
-                          <span className="min-w-[16px] rounded-full bg-primary px-1 text-center text-[10px] text-primary-foreground">{tagFilter.length}</span>
+                          <span>{tagFilter.length}</span>
                         ) : null}
                       </button>
                     </PopoverTrigger>
@@ -521,19 +521,17 @@ const TasksBoard = ({
                     </PopoverContent>
                   </Popover>
 
-                  <div className="w-[132px]">
-                    <ShadcnSelect value={sortMode} onValueChange={(value) => setSortMode(value as SortMode)}>
-                      <SelectTrigger className="h-9 rounded-md border-input bg-background/40 px-3 text-xs font-medium text-muted-foreground">
-                        <SelectValue placeholder={t('tasks.sortBy')} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="importance">{t('tasks.sort.priority')}</SelectItem>
-                        <SelectItem value="time">{t('tasks.sort.created')}</SelectItem>
-                      </SelectContent>
-                    </ShadcnSelect>
-                  </div>
+                  <ShadcnSelect value={sortMode} onValueChange={(value) => setSortMode(value as SortMode)}>
+                    <SelectTrigger className="tasks-fg__sort-trigger">
+                      <SelectValue placeholder={t('tasks.sortBy')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="importance">{t('tasks.sort.priority')}</SelectItem>
+                      <SelectItem value="time">{t('tasks.sort.created')}</SelectItem>
+                    </SelectContent>
+                  </ShadcnSelect>
 
-                  <span className="text-xs tabular-nums text-muted-foreground">{t('tasks.taskCount', { count: filteredTasks.length })}</span>
+                  <span className="tasks-fg__count-meta">{t('tasks.taskCount', { count: filteredTasks.length })}</span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -587,10 +585,10 @@ const TasksBoard = ({
                 ) : (
                   <button
                     type="button"
-                    className="tasks-fg__bulk-toggle inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent"
+                    className="tasks-fg__bulk-toggle"
                     onClick={() => setBulkMode(true)}
                   >
-                    <CheckSquare className="size-3.5" />
+                    <CheckSquare className="size-3.5" strokeWidth={1.8} />
                     {t('tasks.bulkEdit')}
                   </button>
                 )

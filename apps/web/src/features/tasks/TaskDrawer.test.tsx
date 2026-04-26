@@ -262,4 +262,30 @@ describe('TaskDrawer onboarding mode', () => {
     expect(screen.getByDisplayValue('Todo item')).toBeInTheDocument()
     expect(screen.queryByDisplayValue('Done item')).not.toBeInTheDocument()
   })
+
+  it('keeps task detail columns constrained when subtask filters change', async () => {
+    render(
+      <TaskDrawer
+        open
+        task={{
+          ...createdTask,
+          subtasks: [
+            { id: 'sub-1', title: 'Todo item', done: false },
+            { id: 'sub-2', title: 'Done item with a long title that should stay inside the right pane', done: true },
+          ],
+        }}
+        onClose={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />,
+    )
+
+    const layout = document.body.querySelector('.task-detail-layout') as HTMLElement
+    expect(layout.style.gridTemplateColumns).toContain('minmax(0')
+
+    fireEvent.click(screen.getByRole('button', { name: '已完成' }))
+    expect(layout.style.gridTemplateColumns).toContain('minmax(0')
+    expect(document.body.querySelector('.task-detail-pane--right')).toHaveClass('min-w-0')
+    expect(document.body.querySelector('.task-detail-aside')).toHaveClass('min-w-0')
+  })
 })
