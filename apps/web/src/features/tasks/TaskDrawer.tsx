@@ -661,11 +661,14 @@ const TaskDrawer = ({
           </div>
 
           {/* ─── SPLIT LAYOUT ─── */}
-          <div className="task-detail-layout grid min-h-0 flex-1" style={{ gridTemplateColumns: `${leftRatio}fr 10px ${1 - leftRatio}fr` }}>
+          <div
+            className="task-detail-layout grid min-h-0 flex-1"
+            style={{ gridTemplateColumns: `minmax(0, ${leftRatio}fr) 10px minmax(0, ${1 - leftRatio}fr)` }}
+          >
 
             {/* ════ LEFT PANE ════ */}
-            <ScrollArea className="task-detail-pane task-detail-pane--left min-h-0">
-              <div className="task-detail-column space-y-5 px-6 py-6">
+            <ScrollArea className="task-detail-pane task-detail-pane--left min-h-0 min-w-0">
+              <div className="task-detail-column min-w-0 space-y-5 px-6 py-6">
 
                 {/* ── HERO CARD ── */}
                 <div
@@ -936,9 +939,9 @@ const TaskDrawer = ({
             </button>
 
             {/* ════ RIGHT PANE ════ */}
-            <aside className="task-detail-aside flex min-h-0 flex-col">
-              <ScrollArea className="task-detail-pane task-detail-pane--right min-h-0 flex-1">
-                <div className="task-detail-column space-y-4 px-5 py-6">
+            <aside className="task-detail-aside flex min-h-0 min-w-0 flex-col">
+              <ScrollArea className="task-detail-pane task-detail-pane--right min-h-0 min-w-0 flex-1">
+                <div className="task-detail-column min-w-0 space-y-4 px-5 py-6">
 
                   {/* ── SUBTASKS ── */}
                   <section

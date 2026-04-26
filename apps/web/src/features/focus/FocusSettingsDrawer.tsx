@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { useMotionPreference } from '../../shared/prefs/useMotionPreference'
 import NoiseControlPanel from './components/NoiseControlPanel'
 import { useI18n } from '../../shared/i18n/useI18n'
+import { useFocusCardVariant } from './useFocusCardVariant'
 
 type FocusSettingsDrawerProps = {
   open: boolean
@@ -43,6 +44,7 @@ const FocusSettingsDrawer = ({
   setNoiseMasterVolume,
 }: FocusSettingsDrawerProps) => {
   const { t } = useI18n()
+  const [variant, setVariant] = useFocusCardVariant()
   const [activeTimer, setActiveTimer] = useState<'focus' | 'break' | 'longBreak' | null>(null)
   const [noiseHint, setNoiseHint] = useState<string | null>(null)
   const noiseHintTimerRef = useRef<number | null>(null)
@@ -135,6 +137,32 @@ const FocusSettingsDrawer = ({
         </Button>
       }
     >
+      <motion.section layout transition={layoutTransition} className="focus-settings__panel">
+        <div className="focus-settings__panelHeader">
+          <h4>{t('focus.appearance')}</h4>
+        </div>
+        <div className="focus-settings__variantToggle" role="tablist" aria-label={t('focus.appearance')}>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={variant === 'almanac'}
+            className={`focus-settings__variantOption${variant === 'almanac' ? ' is-active' : ''}`}
+            onClick={() => setVariant('almanac')}
+          >
+            {t('focus.variantAlmanac')}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={variant === 'classic'}
+            className={`focus-settings__variantOption${variant === 'classic' ? ' is-active' : ''}`}
+            onClick={() => setVariant('classic')}
+          >
+            {t('focus.variantClassic')}
+          </button>
+        </div>
+      </motion.section>
+
       <motion.section layout transition={layoutTransition} className="focus-settings__panel">
         <div className="focus-settings__panelHeader">
           <h4>{t('focus.timer')}</h4>
