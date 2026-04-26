@@ -3,11 +3,15 @@ import {
   User, LogOut, Crown, Zap, X, Timer, FileText, ArrowRight,
   ChevronRight, Flame, CheckSquare, Mail, Shield, CreditCard, Download,
   HelpCircle, ArrowLeft, Check, Loader2, AlertTriangle, Copy,
+  Camera, MapPin, Cake, Sparkles,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import {
   clearAuth, getAuth, setAuth, useAuthPlan, useIsLoggedIn, upgradeToPremium,
 } from '../../store/auth'
+import {
+  updateProfile, processAvatarFile, useUserProfile,
+} from '../../store/userProfile'
 import { authClient } from '../../config/authClient'
 import { clearLocalUserData } from '../../data/sync/repository'
 import { useI18n } from '../../shared/i18n/useI18n'
@@ -97,51 +101,206 @@ function computeStreak(sessions: FocusSession[]): number {
 
 // ─── Sub-panel: Edit Profile ──────────────────────────────────────────────────
 
-const EditProfilePanel = ({ displayName, email }: {
-  displayName: string; email: string
+const EditProfilePanel = ({ userId, displayName, email, initial }: {
+  userId: string; displayName: string; email: string; initial: string
 }) => {
   const { t } = useI18n()
+  const profile = useUserProfile(userId)
+
   const [editName, setEditName] = useState(displayName)
+  const [pronouns, setPronouns] = useState(profile.pronouns ?? '')
+  const [role, setRole] = useState(profile.role ?? '')
+  const [location, setLocation] = useState(profile.location ?? '')
+  const [birthday, setBirthday] = useState(profile.birthday ?? '')
+  const [bio, setBio] = useState(profile.bio ?? '')
+  const [avatar, setAvatar] = useState<string | null | undefined>(profile.avatar ?? null)
+  const [avatarError, setAvatarError] = useState<string | null>(null)
+  const [avatarBusy, setAvatarBusy] = useState(false)
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle')
   const inputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { inputRef.current?.focus() }, [])
 
+  const dirty =
+    editName.trim() !== displayName.trim() ||
+    (pronouns.trim() || '') !== (profile.pronouns ?? '') ||
+    (role.trim() || '') !== (profile.role ?? '') ||
+    (location.trim() || '') !== (profile.location ?? '') ||
+    (birthday || '') !== (profile.birthday ?? '') ||
+    (bio.trim() || '') !== (profile.bio ?? '') ||
+    (avatar ?? null) !== (profile.avatar ?? null)
+
   const handleSave = () => {
-    if (saveState !== 'idle') return
+    if (saveState !== 'idle' || !dirty) return
     setSaveState('saving')
     const auth = getAuth()
     if (auth?.user) {
-      setAuth({ ...auth, user: { ...auth.user, nickname: editName } })
+      setAuth({ ...auth, user: { ...auth.user, nickname: editName.trim() || displayName } })
     }
+    updateProfile(userId, {
+      avatar: avatar ?? '',
+      pronouns: pronouns.trim(),
+      role: role.trim(),
+      location: location.trim(),
+      birthday: birthday.trim(),
+      bio: bio.trim(),
+    })
     setTimeout(() => {
       setSaveState('saved')
       setTimeout(() => setSaveState('idle'), 1800)
     }, 400)
   }
 
+  const handleAvatarPick = async (file: File) => {
+    setAvatarError(null)
+    setAvatarBusy(true)
+    try {
+      const dataUrl = await processAvatarFile(file)
+      setAvatar(dataUrl)
+    } catch (err) {
+      const code = (err as Error)?.message || ''
+      if (code === 'AVATAR_TOO_LARGE') setAvatarError(t('auth.account.edit.avatarTooLarge'))
+      else if (code === 'AVATAR_BAD_TYPE') setAvatarError(t('auth.account.edit.avatarBadType'))
+      else setAvatarError(t('auth.account.edit.avatarFailed'))
+    } finally {
+      setAvatarBusy(false)
+    }
+  }
+
   return (
-    <div className="acct-subpanel-body">
-      <div className="acct-field">
-        <label className="acct-field-label">{t('auth.account.displayName')}</label>
+    <div className="acct-subpanel-body acct-edit-body">
+      <div className="acct-edit-avatar-row">
+        <button
+          type="button"
+          className="acct-edit-avatar"
+          onClick={() => fileInputRef.current?.click()}
+          aria-label={t('auth.account.edit.avatarUpload')}
+        >
+          {avatar
+            ? <img src={avatar} alt="" className="acct-edit-avatar-img" />
+            : <span className="acct-edit-avatar-initial">{initial}</span>}
+          <span className="acct-edit-avatar-overlay">
+            {avatarBusy ? <Loader2 size={16} className="acct-spin" /> : <Camera size={16} />}
+          </span>
+        </button>
+        <div className="acct-edit-avatar-meta">
+          <div className="acct-edit-avatar-actions">
+            <button
+              type="button"
+              className="acct-edit-avatar-btn"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={avatarBusy}
+            >
+              <Camera size={12} />
+              {t('auth.account.edit.avatarUpload')}
+            </button>
+            {avatar && (
+              <button
+                type="button"
+                className="acct-edit-avatar-btn acct-edit-avatar-btn--ghost"
+                onClick={() => { setAvatar(null); setAvatarError(null) }}
+                disabled={avatarBusy}
+              >
+                {t('auth.account.edit.avatarRemove')}
+              </button>
+            )}
+          </div>
+          <p className="acct-edit-avatar-hint">{t('auth.account.edit.avatarHint')}</p>
+          {avatarError && <p className="acct-edit-avatar-error">{avatarError}</p>}
+        </div>
         <input
-          ref={inputRef}
-          className="acct-field-input"
-          value={editName}
-          onChange={e => setEditName(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleSave()}
-          maxLength={40}
+          ref={fileInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          style={{ display: 'none' }}
+          onChange={e => {
+            const file = e.target.files?.[0]
+            if (file) handleAvatarPick(file)
+            e.target.value = ''
+          }}
         />
       </div>
+
+      <h4 className="acct-edit-section-title">{t('auth.account.edit.sectionIdentity')}</h4>
+      <div className="acct-field-grid">
+        <div className="acct-field">
+          <label className="acct-field-label">{t('auth.account.displayName')}</label>
+          <input
+            ref={inputRef}
+            className="acct-field-input"
+            value={editName}
+            onChange={e => setEditName(e.target.value)}
+            maxLength={40}
+          />
+        </div>
+        <div className="acct-field">
+          <label className="acct-field-label">{t('auth.account.edit.pronouns')}</label>
+          <input
+            className="acct-field-input"
+            value={pronouns}
+            onChange={e => setPronouns(e.target.value)}
+            placeholder={t('auth.account.edit.pronounsPlaceholder')}
+            maxLength={16}
+          />
+        </div>
+        <div className="acct-field acct-field--full">
+          <label className="acct-field-label">{t('auth.account.edit.role')}</label>
+          <input
+            className="acct-field-input"
+            value={role}
+            onChange={e => setRole(e.target.value)}
+            placeholder={t('auth.account.edit.rolePlaceholder')}
+            maxLength={48}
+          />
+        </div>
+        <div className="acct-field">
+          <label className="acct-field-label">{t('auth.account.edit.location')}</label>
+          <input
+            className="acct-field-input"
+            value={location}
+            onChange={e => setLocation(e.target.value)}
+            placeholder={t('auth.account.edit.locationPlaceholder')}
+            maxLength={40}
+          />
+        </div>
+        <div className="acct-field">
+          <label className="acct-field-label">{t('auth.account.edit.birthday')}</label>
+          <input
+            type="date"
+            className="acct-field-input"
+            value={birthday}
+            onChange={e => setBirthday(e.target.value)}
+          />
+        </div>
+      </div>
+
+      <h4 className="acct-edit-section-title">{t('auth.account.edit.sectionAbout')}</h4>
+      <div className="acct-field">
+        <label className="acct-field-label">{t('auth.account.edit.bio')}</label>
+        <textarea
+          className="acct-field-input acct-field-textarea"
+          value={bio}
+          onChange={e => setBio(e.target.value.slice(0, 200))}
+          placeholder={t('auth.account.edit.bioPlaceholder')}
+          rows={3}
+          maxLength={200}
+        />
+        <div className="acct-field-counter">
+          {t('auth.account.edit.bioCount', { n: bio.length })}
+        </div>
+      </div>
+
       <div className="acct-field">
         <label className="acct-field-label">{t('auth.account.currentEmail')}</label>
         <div className="acct-field-readonly">{email || '—'}</div>
       </div>
+
       <button
         type="button"
         className={`acct-save-btn${saveState === 'saved' ? ' acct-save-btn--saved' : ''}`}
         onClick={handleSave}
-        disabled={saveState !== 'idle' || editName.trim() === displayName.trim()}
+        disabled={saveState !== 'idle' || !dirty}
       >
         {saveState === 'saving' && <Loader2 size={14} className="acct-spin" />}
         {saveState === 'saved' && <Check size={14} />}
@@ -312,6 +471,9 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
   const displayName = user?.name || user?.nickname || user?.email?.split('@')[0] || 'U'
   const email = user?.email || ''
   const initial = displayName[0].toUpperCase()
+  const userId: string = user?.id || user?.email || 'guest'
+  const profile = useUserProfile(userId)
+  const hasMeta = Boolean(profile.pronouns || profile.location)
 
   const expiryLabel = (() => {
     if (!expiresAt) return null
@@ -482,7 +644,12 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
             </div>
 
             {activePanel === 'editProfile' && (
-              <EditProfilePanel displayName={displayName} email={email} />
+              <EditProfilePanel
+                userId={userId}
+                displayName={displayName}
+                email={email}
+                initial={initial}
+              />
             )}
             {activePanel === 'emailLogin' && <EmailLoginPanel email={email} />}
             {activePanel === 'security' && <SecurityPanel />}
@@ -498,32 +665,70 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
               <X size={15} />
             </button>
 
-            {/* Section 1: Profile */}
-            <div className="acct-profile">
-              <div className="acct-avatar">{initial}</div>
-              <div className="acct-name">{displayName}</div>
-              {email && <div className="acct-email">{email}</div>}
-              <div className="acct-plan-row">
-                {isPremium ? (
-                  <span className="acct-plan-badge acct-plan-badge--premium">
-                    <Crown size={11} />
-                    {t('auth.premium')}
-                    {expiryLabel && <span className="acct-plan-expiry">· {expiryLabel}</span>}
-                  </span>
-                ) : (
-                  <button type="button" className="acct-plan-badge acct-plan-badge--free" onClick={handleUpgrade} disabled={upgrading}>
-                    <Zap size={11} />
-                    {t('auth.free')}
-                    <span className="acct-plan-upgrade-hint">{upgrading ? '…' : t('auth.upgradePlan')}</span>
-                  </button>
+            {/* Section 1: Profile hero (two-column on wide) */}
+            <div className="acct-profile acct-profile--editorial">
+              <button
+                type="button"
+                className="acct-avatar acct-avatar--clickable"
+                onClick={() => setActivePanel('editProfile')}
+                aria-label={t('auth.account.edit.avatarUpload')}
+              >
+                {profile.avatar
+                  ? <img src={profile.avatar} alt="" className="acct-avatar-img" />
+                  : <span>{initial}</span>}
+                <span className="acct-avatar-overlay">
+                  <Camera size={14} />
+                </span>
+              </button>
+              <div className="acct-profile-text">
+                <div className="acct-name">{displayName}</div>
+                {profile.role && <div className="acct-role">{profile.role}</div>}
+                {(email || hasMeta) && (
+                  <div className="acct-meta-row">
+                    {email && <span className="acct-meta-item acct-meta-item--email">{email}</span>}
+                    {profile.pronouns && (
+                      <span className="acct-meta-item">
+                        <Sparkles size={11} />
+                        {profile.pronouns}
+                      </span>
+                    )}
+                    {profile.location && (
+                      <span className="acct-meta-item">
+                        <MapPin size={11} />
+                        {profile.location}
+                      </span>
+                    )}
+                    {profile.birthday && (
+                      <span className="acct-meta-item">
+                        <Cake size={11} />
+                        {profile.birthday.slice(5)}
+                      </span>
+                    )}
+                  </div>
                 )}
-              </div>
-              {stats && stats.streak > 1 && (
-                <div className="acct-streak-line">
-                  <Flame size={13} />
-                  {t('auth.account.streakLine', { n: stats.streak })}
+                <div className="acct-plan-row">
+                  {isPremium ? (
+                    <span className="acct-plan-badge acct-plan-badge--premium">
+                      <Crown size={11} />
+                      {t('auth.premium')}
+                      {expiryLabel && <span className="acct-plan-expiry">· {expiryLabel}</span>}
+                    </span>
+                  ) : (
+                    <button type="button" className="acct-plan-badge acct-plan-badge--free" onClick={handleUpgrade} disabled={upgrading}>
+                      <Zap size={11} />
+                      {t('auth.free')}
+                      <span className="acct-plan-upgrade-hint">{upgrading ? '…' : t('auth.upgradePlan')}</span>
+                    </button>
+                  )}
+                  {stats && stats.streak > 1 && (
+                    <span className="acct-streak-line acct-streak-line--inline">
+                      <Flame size={13} />
+                      {t('auth.account.streakLine', { n: stats.streak })}
+                    </span>
+                  )}
                 </div>
-              )}
+                {profile.bio && <p className="acct-bio">{profile.bio}</p>}
+              </div>
             </div>
 
             {/* Section 2: Weekly Progress */}
@@ -628,6 +833,34 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
 
 // ─── Sidebar trigger ──────────────────────────────────────────────────────────
 
+const SidebarUserTrigger = ({
+  collapsed, isOpen, displayName, initial, userId, onClick,
+}: {
+  collapsed: boolean; isOpen: boolean; displayName: string; initial: string
+  userId: string; onClick: () => void
+}) => {
+  const profile = useUserProfile(userId)
+  return (
+    <button
+      type="button"
+      className={`sidebar-user-panel sidebar-user-panel--signed-in${collapsed ? ' sidebar-user-panel--collapsed' : ''}${isOpen ? ' is-open' : ''}`}
+      onClick={onClick}
+      aria-label={displayName}
+    >
+      <div className="sidebar-user-panel__avatar">
+        {profile.avatar
+          ? <img src={profile.avatar} alt="" className="sidebar-user-panel__avatar-img" />
+          : initial}
+      </div>
+      {!collapsed && (
+        <div className="sidebar-user-panel__info">
+          <div className="sidebar-user-panel__name">{displayName}</div>
+        </div>
+      )}
+    </button>
+  )
+}
+
 const SidebarUserPanel = ({ collapsed }: SidebarUserPanelProps) => {
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [showUserModal, setShowUserModal] = useState(false)
@@ -639,22 +872,18 @@ const SidebarUserPanel = ({ collapsed }: SidebarUserPanelProps) => {
     const user = authState?.user
     const displayName = user?.name || user?.nickname || user?.email || 'U'
     const initial = displayName[0].toUpperCase()
+    const userId: string = user?.id || user?.email || 'guest'
 
     return (
       <>
-        <button
-          type="button"
-          className={`sidebar-user-panel sidebar-user-panel--signed-in${collapsed ? ' sidebar-user-panel--collapsed' : ''}${showUserModal ? ' is-open' : ''}`}
+        <SidebarUserTrigger
+          collapsed={collapsed}
+          isOpen={showUserModal}
+          displayName={displayName}
+          initial={initial}
+          userId={userId}
           onClick={() => setShowUserModal(true)}
-          aria-label={displayName}
-        >
-          <div className="sidebar-user-panel__avatar">{initial}</div>
-          {!collapsed && (
-            <div className="sidebar-user-panel__info">
-              <div className="sidebar-user-panel__name">{displayName}</div>
-            </div>
-          )}
-        </button>
+        />
         {showUserModal && <UserModal onClose={() => setShowUserModal(false)} />}
       </>
     )
