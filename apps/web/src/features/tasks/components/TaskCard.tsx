@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useState } from 'react'
-import { Calendar, CircleCheck, Crosshair, Ellipsis, Pin, PinOff, Play, RotateCcw, SunMedium, Trash2 } from 'lucide-react'
+import { Calendar, CircleCheck, Circle, Crosshair, Ellipsis, ListChecks, Pin, PinOff, Play, RotateCcw, SunMedium, Trash2 } from 'lucide-react'
 import type { CSSProperties, HTMLAttributes } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -69,12 +69,29 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
     const displayTags = task.tags.slice(0, 2)
     const extraTagCount = task.tags.length - 2
 
+    const subtasks = task.subtasks ?? []
+    const totalSubtasks = subtasks.length
+    const doneSubtasks = subtasks.filter((s) => s.done).length
+    const pendingSubtasks = subtasks.filter((s) => !s.done)
+    const SUBTASK_PEEK_LIMIT = 4
+    const visibleSubtasks = pendingSubtasks.slice(0, SUBTASK_PEEK_LIMIT)
+    const remainingSubtasks = pendingSubtasks.length - visibleSubtasks.length
+    const hasSubtasks = totalSubtasks > 0
+    const showHoverPanel = isHovered && pendingSubtasks.length > 0
+
     useEffect(() => {
       const timer = window.setInterval(() => setNow(Date.now()), 60_000)
       return () => window.clearInterval(timer)
     }, [])
 
     const deadline = getTaskDeadlineState(task, now)
+
+    const activateTask = (cardElement: HTMLDivElement) => {
+      setIsHovered(false)
+      cardElement.blur()
+      const handler = onClick ?? onSelect
+      handler(task)
+    }
 
     const priorityStripeClass =
       priorityKey === 'high' ? 'task-card--priority-high' :
@@ -100,10 +117,13 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
         tabIndex={interactive ? 0 : undefined}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        onClick={() => (onClick ?? onSelect)(task)}
+        onClick={(event) => activateTask(event.currentTarget)}
         onKeyDown={(event) => {
           if (!interactive || event.target !== event.currentTarget) return
-          if (event.key === 'Enter' || event.key === ' ') (onClick ?? onSelect)(task)
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+            activateTask(event.currentTarget)
+          }
         }}
       >
         {selectionMode ? (
@@ -148,6 +168,19 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
             <span className={cn('inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs font-semibold', statusCfg.badge)}>
               {t(statusCfg.labelKey)}
             </span>
+            {hasSubtasks ? (
+              <span
+                className={cn(
+                  'task-card__subtask-progress inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium',
+                  doneSubtasks === totalSubtasks
+                    ? 'bg-emerald-50 text-emerald-700'
+                    : 'bg-[#3A3733]/6 text-muted-foreground',
+                )}
+              >
+                <ListChecks className="size-3" />
+                <span className="tabular-nums">{doneSubtasks}/{totalSubtasks}</span>
+              </span>
+            ) : null}
           </div>
 
           {task.tags.length > 0 ? (
@@ -162,6 +195,36 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
                 )
               })}
               {extraTagCount > 0 ? <span className="px-1 text-xs text-muted-foreground">+{extraTagCount}</span> : null}
+            </div>
+          ) : null}
+
+          {hasSubtasks && !selectionMode ? (
+            <div
+              data-testid="task-card-subtasks"
+              className={cn(
+                'task-card__subtasks grid overflow-hidden transition-all duration-200 ease-out',
+                showHoverPanel ? 'grid-rows-[1fr] opacity-100 pt-1.5' : 'grid-rows-[0fr] opacity-0 pt-0',
+              )}
+              aria-hidden={!showHoverPanel}
+            >
+              <div className="min-h-0 overflow-hidden">
+                <ul className="flex flex-col gap-1 border-t border-[#3A3733]/8 pt-1.5">
+                  {visibleSubtasks.map((subtask) => (
+                    <li
+                      key={subtask.id}
+                      className="flex items-start gap-1.5 text-[12.5px] leading-[1.4] text-muted-foreground"
+                    >
+                      <Circle className="mt-[3px] size-3 shrink-0 text-[#3A3733]/35" />
+                      <span className="line-clamp-1 flex-1">{subtask.title}</span>
+                    </li>
+                  ))}
+                  {remainingSubtasks > 0 ? (
+                    <li className="pl-[18px] text-[11.5px] font-medium text-muted-foreground/80">
+                      {t('tasks.card.subtaskMore', { n: remainingSubtasks })}
+                    </li>
+                  ) : null}
+                </ul>
+              </div>
             </div>
           ) : null}
 
