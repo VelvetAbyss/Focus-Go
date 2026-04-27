@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../../../shared/i18n/useI18n', async () => {
@@ -30,6 +30,7 @@ const task: TaskItem = {
 
 describe('TaskCard', () => {
   afterEach(() => {
+    cleanup()
     vi.useRealTimers()
   })
 
@@ -60,6 +61,20 @@ describe('TaskCard', () => {
 
     expect(screen.queryByRole('button', { name: /save/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+  })
+
+  it('blurs the card when opening a task so focus reveal state does not stick', () => {
+    const onSelect = vi.fn()
+    render(<TaskCard task={task} onSelect={onSelect} />)
+
+    const card = screen.getByRole('button', { name: /write hover animation/i })
+    card.focus()
+    expect(card).toHaveFocus()
+
+    fireEvent.click(card)
+
+    expect(onSelect).toHaveBeenCalledWith(task)
+    expect(card).not.toHaveFocus()
   })
 
   it('highlights overdue deadlines with a stronger red treatment', () => {

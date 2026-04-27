@@ -234,6 +234,18 @@ describe('TasksBoard sync', () => {
     expect(surface?.className).not.toContain('overflow-hidden')
   })
 
+  it('top-aligns card grid items so one hovered card does not stretch the whole row', async () => {
+    listMock.mockResolvedValueOnce([makeTask('task-1', 'First task'), makeTask('task-2', 'Second task')])
+
+    const { container } = render(<TasksBoard asCard={false} />)
+
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1))
+    const grid = container.querySelector('.tasks-fg__card-grid')
+
+    expect(grid).toBeInTheDocument()
+    expect(grid?.className).toContain('items-start')
+  })
+
   it('shows the empty state and keeps the composer available when there are no tasks', async () => {
     listMock.mockResolvedValueOnce([])
 

@@ -379,7 +379,7 @@ const TasksBoard = ({
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               <div
                 className={cn(
-                  'tasks-fg__card-grid grid grid-cols-1 gap-3 p-1 pb-4 sm:grid-cols-2',
+                  'tasks-fg__card-grid grid grid-cols-1 items-start gap-3 p-1 pb-4 sm:grid-cols-2',
                   asCard ? 'lg:grid-cols-2 xl:grid-cols-2' : 'lg:grid-cols-3 xl:grid-cols-4',
                 )}
               >
