@@ -12,20 +12,31 @@ export type NewsPreferences = {
 const STORAGE_KEY = 'focusgo.news.preferences.v1'
 
 export const DEFAULT_ENABLED_SOURCE_IDS = [
+  // hot
   'zhihu',
   'weibo',
   'baidu',
   'toutiao',
+  'bilibili',
   'hackernews',
   'github',
+  // tech
   'ithome',
   'sspai',
   '36kr',
   'producthunt',
+  'v2ex',
+  'juejin',
+  // finance
   'wallstreetcn',
   'cls',
   'xueqiu',
+  'jin10',
+  'gelonghui',
 ]
+
+// Sources that are off by default but available to enable
+export const EXTRA_SOURCE_IDS = ['douyin']
 
 export const DEFAULT_NEWS_PREFERENCES: NewsPreferences = {
   enabledSourceIds: DEFAULT_ENABLED_SOURCE_IDS,

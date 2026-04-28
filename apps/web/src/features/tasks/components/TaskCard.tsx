@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useState } from 'react'
-import { Calendar, CircleCheck, Circle, Crosshair, Ellipsis, ListChecks, Pin, PinOff, Play, RotateCcw, SunMedium, Trash2 } from 'lucide-react'
+import { Calendar, CircleCheck, Circle, ListChecks, Pin, PinOff, Play, RotateCcw, SunMedium, Trash2 } from 'lucide-react'
 import type { CSSProperties, HTMLAttributes } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -23,7 +23,6 @@ type TaskCardProps = {
   dragListeners?: HTMLAttributes<HTMLDivElement>
   interactive?: boolean
   style?: CSSProperties
-  onFocusStart?: (task: TaskItem) => void
   loadingActionKey?: string | null
   successActionKey?: string | null
   compact?: boolean
@@ -51,7 +50,6 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
       dragListeners,
       interactive = true,
       style,
-      onFocusStart,
       loadingActionKey,
       compact = false,
       onClick,
@@ -259,12 +257,6 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
                     )
                   })}
 
-                  {onFocusStart ? (
-                    <Button variant="ghost" size="icon" className="task-card__action-btn size-7 text-muted-foreground hover:text-foreground" onClick={() => onFocusStart(task)}>
-                      <Crosshair className="size-3.5" />
-                    </Button>
-                  ) : null}
-
                   {onToggleToday ? (
                     <Button
                       variant="ghost"
@@ -292,9 +284,6 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
                       <Trash2 className="size-3.5" />
                     </Button>
                   ) : null}
-                  <Button variant="ghost" size="icon" className="task-card__action-btn size-7 text-muted-foreground">
-                    <Ellipsis className="size-3.5" />
-                  </Button>
                 </div>
               </div>
             </div>

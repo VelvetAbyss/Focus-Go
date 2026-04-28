@@ -1,25 +1,38 @@
 const DEFAULT_TTL_MS = 30 * 60 * 1000
 const DEFAULT_LIMIT = 30
 
+// Public newsnow API — used for sources whose direct scrapers are fragile.
+// newsnow team maintains the scrapers; we just proxy + cache.
+const NEWSNOW_BASE = 'https://newsnow.busiyi.world'
+
 const requestHeaders = {
   'user-agent': 'Mozilla/5.0 FocusGoNews/1.0 (+https://nestflow.art)',
   accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,application/json;q=0.8,*/*;q=0.7',
 }
 
 export const NEWS_SOURCES = {
-  zhihu: { id: 'zhihu', name: '知乎', category: 'hot', type: 'hottest', interval: 10 * 60 * 1000, home: 'https://www.zhihu.com/hot', accent: '#2f6f9f' },
-  weibo: { id: 'weibo', name: '微博', category: 'hot', type: 'hottest', interval: 2 * 60 * 1000, home: 'https://s.weibo.com/top/summary', accent: '#c95f38' },
-  baidu: { id: 'baidu', name: '百度热搜', category: 'hot', type: 'hottest', interval: 10 * 60 * 1000, home: 'https://top.baidu.com/board?tab=realtime', accent: '#3d6ea8' },
-  toutiao: { id: 'toutiao', name: '今日头条', category: 'hot', type: 'hottest', interval: 10 * 60 * 1000, home: 'https://www.toutiao.com/', accent: '#b84a3a' },
-  hackernews: { id: 'hackernews', name: 'Hacker News', category: 'hot', type: 'hottest', interval: 10 * 60 * 1000, home: 'https://news.ycombinator.com/', accent: '#c77a32' },
-  github: { id: 'github', name: 'GitHub', category: 'hot', type: 'hottest', interval: 10 * 60 * 1000, home: 'https://github.com/trending', accent: '#3A3733' },
-  ithome: { id: 'ithome', name: 'IT之家', category: 'tech', type: 'realtime', interval: 10 * 60 * 1000, home: 'https://www.ithome.com/list/', accent: '#be4a35' },
-  sspai: { id: 'sspai', name: '少数派', category: 'tech', type: 'hottest', interval: 10 * 60 * 1000, home: 'https://sspai.com/', accent: '#c7554a' },
-  '36kr': { id: '36kr', name: '36氪', category: 'tech', type: 'realtime', interval: 10 * 60 * 1000, home: 'https://36kr.com/newsflashes', accent: '#4e6d88' },
-  producthunt: { id: 'producthunt', name: 'Product Hunt', category: 'tech', type: 'hottest', interval: 10 * 60 * 1000, home: 'https://www.producthunt.com/', accent: '#cf6f42' },
-  wallstreetcn: { id: 'wallstreetcn', name: '华尔街见闻', category: 'finance', type: 'realtime', interval: 5 * 60 * 1000, home: 'https://wallstreetcn.com/live/global', accent: '#8a6b36' },
-  cls: { id: 'cls', name: '财联社', category: 'finance', type: 'realtime', interval: 5 * 60 * 1000, home: 'https://www.cls.cn/telegraph', accent: '#8b5f2b' },
-  xueqiu: { id: 'xueqiu', name: '雪球', category: 'finance', type: 'hottest', interval: 2 * 60 * 1000, home: 'https://xueqiu.com/hq', accent: '#537f6b' },
+  // ── Hot ────────────────────────────────────────────────────────────────
+  zhihu:       { id: 'zhihu',       name: '知乎',       category: 'hot',     type: 'hottest',  interval: 10 * 60 * 1000, home: 'https://www.zhihu.com/hot',              accent: '#2f6f9f' },
+  weibo:       { id: 'weibo',       name: '微博',       category: 'hot',     type: 'hottest',  interval:  2 * 60 * 1000, home: 'https://s.weibo.com/top/summary',        accent: '#c95f38' },
+  baidu:       { id: 'baidu',       name: '百度热搜',   category: 'hot',     type: 'hottest',  interval: 10 * 60 * 1000, home: 'https://top.baidu.com/board?tab=realtime', accent: '#3d6ea8' },
+  toutiao:     { id: 'toutiao',     name: '今日头条',   category: 'hot',     type: 'hottest',  interval: 10 * 60 * 1000, home: 'https://www.toutiao.com/',               accent: '#b84a3a' },
+  bilibili:    { id: 'bilibili',    name: '哔哩哔哩',   category: 'hot',     type: 'hottest',  interval: 10 * 60 * 1000, home: 'https://www.bilibili.com/',              accent: '#4a8ec4' },
+  douyin:      { id: 'douyin',      name: '抖音',       category: 'hot',     type: 'hottest',  interval: 10 * 60 * 1000, home: 'https://www.douyin.com/',                accent: '#3A3733' },
+  hackernews:  { id: 'hackernews',  name: 'Hacker News',category: 'hot',     type: 'hottest',  interval: 10 * 60 * 1000, home: 'https://news.ycombinator.com/',          accent: '#c77a32' },
+  github:      { id: 'github',      name: 'GitHub',     category: 'hot',     type: 'hottest',  interval: 10 * 60 * 1000, home: 'https://github.com/trending',            accent: '#3A3733' },
+  // ── Tech ───────────────────────────────────────────────────────────────
+  ithome:      { id: 'ithome',      name: 'IT之家',     category: 'tech',    type: 'realtime', interval: 10 * 60 * 1000, home: 'https://www.ithome.com/list/',           accent: '#be4a35' },
+  sspai:       { id: 'sspai',       name: '少数派',     category: 'tech',    type: 'hottest',  interval: 10 * 60 * 1000, home: 'https://sspai.com/',                    accent: '#c7554a' },
+  '36kr':      { id: '36kr',        name: '36氪',       category: 'tech',    type: 'realtime', interval: 10 * 60 * 1000, home: 'https://36kr.com/newsflashes',           accent: '#4e6d88' },
+  producthunt: { id: 'producthunt', name: 'Product Hunt',category: 'tech',   type: 'hottest',  interval: 10 * 60 * 1000, home: 'https://www.producthunt.com/',          accent: '#cf6f42' },
+  v2ex:        { id: 'v2ex',        name: 'V2EX',       category: 'tech',    type: 'hottest',  interval: 10 * 60 * 1000, home: 'https://v2ex.com/',                     accent: '#5a7a8a' },
+  juejin:      { id: 'juejin',      name: '掘金',       category: 'tech',    type: 'hottest',  interval: 10 * 60 * 1000, home: 'https://juejin.cn/',                    accent: '#1e80ff' },
+  // ── Finance ────────────────────────────────────────────────────────────
+  wallstreetcn:{ id: 'wallstreetcn',name: '华尔街见闻', category: 'finance', type: 'realtime', interval:  5 * 60 * 1000, home: 'https://wallstreetcn.com/live/global',   accent: '#8a6b36' },
+  cls:         { id: 'cls',         name: '财联社',     category: 'finance', type: 'realtime', interval:  5 * 60 * 1000, home: 'https://www.cls.cn/telegraph',           accent: '#8b5f2b' },
+  xueqiu:      { id: 'xueqiu',      name: '雪球',       category: 'finance', type: 'hottest',  interval:  2 * 60 * 1000, home: 'https://xueqiu.com/hq',                 accent: '#537f6b' },
+  jin10:       { id: 'jin10',       name: '金十数据',   category: 'finance', type: 'realtime', interval:  5 * 60 * 1000, home: 'https://www.jin10.com/',                accent: '#7a6030' },
+  gelonghui:   { id: 'gelonghui',   name: '格隆汇',     category: 'finance', type: 'realtime', interval:  5 * 60 * 1000, home: 'https://www.gelonghui.com/',            accent: '#6b5a2a' },
 }
 
 export const ensureNewsTables = (db) => {
@@ -74,12 +87,6 @@ const normalizeItems = (items) =>
       extra: item.extra && typeof item.extra === 'object' ? item.extra : undefined,
     }))
 
-const parseJsonScript = (html, pattern) => {
-  const match = html.match(pattern)
-  if (!match?.[1]) throw new Error('Missing embedded data')
-  return JSON.parse(match[1])
-}
-
 const parseRssItems = (xml, sourceUrl) =>
   [...xml.matchAll(/<item\b[\s\S]*?<\/item>/gi)].map((match, index) => {
     const raw = match[0]
@@ -96,7 +103,44 @@ const parseRssItems = (xml, sourceUrl) =>
     }
   })
 
+// ─── newsnow proxy ─────────────────────────────────────────────────────────────
+// Maps our source IDs to newsnow source IDs (most are identical; override here if
+// they diverge). Returns normalized items ready for normalizeItems().
+const NEWSNOW_ID_MAP = {
+  hackernews: 'hackernews',
+  github: 'github',
+  weibo: 'weibo',
+  baidu: 'baidu',
+  '36kr': '36kr',
+  bilibili: 'bilibili',
+  douyin: 'douyin',
+  v2ex: 'v2ex',
+  juejin: 'juejin',
+  jin10: 'jin10',
+  gelonghui: 'gelonghui',
+  producthunt: 'producthunt',
+  ithome: 'ithome',
+  sspai: 'sspai',
+  toutiao: 'toutiao',
+  zhihu: 'zhihu',
+}
+
+const fetchFromNewsnow = async (id, fetchImpl = fetch) => {
+  const newsnowId = NEWSNOW_ID_MAP[id] ?? id
+  const res = await fetchJson(`${NEWSNOW_BASE}/api/s/?id=${newsnowId}`, {}, fetchImpl)
+  if (!Array.isArray(res?.items)) throw new Error(`newsnow returned no items for "${newsnowId}"`)
+  return res.items.map((item) => ({
+    id: item.id != null ? String(item.id) : item.url,
+    title: item.title,
+    url: item.url,
+    mobileUrl: item.mobileUrl,
+    pubDate: item.pubDate,
+    extra: item.extra && typeof item.extra === 'object' ? item.extra : undefined,
+  }))
+}
+
 export const createDefaultFetchers = (fetchImpl = fetch) => ({
+  // ── Sources that have stable direct APIs — keep our own fetchers ────────
   zhihu: async () => {
     const res = await fetchJson('https://www.zhihu.com/api/v3/feed/topstory/hot-list-web?limit=20&desktop=true', {}, fetchImpl)
     return res.data?.map((item) => ({
@@ -104,27 +148,6 @@ export const createDefaultFetchers = (fetchImpl = fetch) => ({
       title: item.target?.title_area?.text,
       url: item.target?.link?.url,
       extra: { info: item.target?.metrics_area?.text, hover: item.target?.excerpt_area?.text },
-    }))
-  },
-  weibo: async () => {
-    const html = await fetchText('https://s.weibo.com/top/summary?cate=realtimehot', {
-      headers: { referer: 'https://s.weibo.com/top/summary?cate=realtimehot' },
-    }, fetchImpl)
-    return [...html.matchAll(/<td class="td-02">[\s\S]*?<a href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)]
-      .map((match) => ({
-        id: stripTags(match[2]),
-        title: match[2],
-        url: `https://s.weibo.com${decodeHtml(match[1])}`,
-      }))
-  },
-  baidu: async () => {
-    const html = await fetchText('https://top.baidu.com/board?tab=realtime', {}, fetchImpl)
-    const data = parseJsonScript(html, /<!--s-data:(.*?)-->/s)
-    return data.data?.cards?.[0]?.content?.filter((item) => !item.isTop).map((item) => ({
-      id: item.rawUrl,
-      title: item.word,
-      url: item.rawUrl,
-      extra: { hover: item.desc },
     }))
   },
   toutiao: async () => {
@@ -144,40 +167,10 @@ export const createDefaultFetchers = (fetchImpl = fetch) => ({
       extra: { info: `${item.points ?? 0} points` },
     }))
   },
-  github: async () => {
-    const html = await fetchText('https://github.com/trending?spoken_language_code=', {}, fetchImpl)
-    return [...html.matchAll(/<article[\s\S]*?<h2[\s\S]*?<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<\/article>/g)]
-      .map((match) => {
-        const path = decodeHtml(match[1])
-        return { id: path, title: stripTags(match[2]).replace(/\s+\/\s+/, ' / '), url: `https://github.com${path}` }
-      })
-  },
   ithome: async () => parseRssItems(await fetchText('https://www.ithome.com/rss/', {}, fetchImpl), 'https://www.ithome.com/'),
   sspai: async () => {
     const res = await fetchJson(`https://sspai.com/api/v1/article/tag/page/get?limit=30&offset=0&created_at=${Date.now()}&tag=%E7%83%AD%E9%97%A8%E6%96%87%E7%AB%A0&released=false`, {}, fetchImpl)
     return res.data?.map((item) => ({ id: item.id, title: item.title, url: `https://sspai.com/post/${item.id}` }))
-  },
-  '36kr': async () => {
-    const html = await fetchText('https://36kr.com/newsflashes', {}, fetchImpl)
-    return [...html.matchAll(/<a[^>]+href="([^"]+)"[^>]*class="[^"]*item-title[^"]*"[^>]*>([\s\S]*?)<\/a>/g)]
-      .map((match) => ({ id: match[1], title: match[2], url: `https://36kr.com${decodeHtml(match[1])}` }))
-  },
-  producthunt: async () => {
-    const token = process.env.PRODUCTHUNT_API_TOKEN
-    if (token) {
-      const res = await fetchJson('https://api.producthunt.com/v2/api/graphql', {
-        method: 'POST',
-        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-        body: JSON.stringify({ query: 'query { posts(first: 30, order: VOTES) { edges { node { id name tagline votesCount url slug } } } }' }),
-      }, fetchImpl)
-      return res.data?.posts?.edges?.map(({ node }) => ({
-        id: node.id,
-        title: node.name,
-        url: node.url || `https://www.producthunt.com/posts/${node.slug}`,
-        extra: { info: `△ ${node.votesCount ?? 0}`, hover: node.tagline },
-      }))
-    }
-    return parseRssItems(await fetchText('https://www.producthunt.com/feed', {}, fetchImpl), 'https://www.producthunt.com/')
   },
   wallstreetcn: async () => {
     const res = await fetchJson('https://api-one.wallstcn.com/apiv1/content/lives?channel=global-channel&limit=30', {}, fetchImpl)
@@ -207,6 +200,19 @@ export const createDefaultFetchers = (fetchImpl = fetch) => ({
       extra: { info: `${item.percent}% ${item.exchange}` },
     }))
   },
+
+  // ── Sources routed through newsnow (fragile scrapers replaced) ──────────
+  weibo:       async () => fetchFromNewsnow('weibo', fetchImpl),
+  baidu:       async () => fetchFromNewsnow('baidu', fetchImpl),
+  github:      async () => fetchFromNewsnow('github', fetchImpl),
+  '36kr':      async () => fetchFromNewsnow('36kr', fetchImpl),
+  bilibili:    async () => fetchFromNewsnow('bilibili', fetchImpl),
+  douyin:      async () => fetchFromNewsnow('douyin', fetchImpl),
+  producthunt: async () => fetchFromNewsnow('producthunt', fetchImpl),
+  v2ex:        async () => fetchFromNewsnow('v2ex', fetchImpl),
+  juejin:      async () => fetchFromNewsnow('juejin', fetchImpl),
+  jin10:       async () => fetchFromNewsnow('jin10', fetchImpl),
+  gelonghui:   async () => fetchFromNewsnow('gelonghui', fetchImpl),
 })
 
 const readCache = (db, sourceId) => {

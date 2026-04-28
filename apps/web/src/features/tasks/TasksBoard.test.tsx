@@ -27,7 +27,6 @@ const { mockT } = vi.hoisted(() => {
         'tasks.cancel': 'Cancel',
         'tasks.bulkEdit': 'Bulk edit',
         'tasks.kanban': 'Kanban',
-        'tasks.calendar': 'Calendar',
         'tasks.deleteTitle': 'Delete task',
         'tasks.deleteConfirm': 'Delete "{{title}}"?',
         'tasks.status.todo': 'Todo',
@@ -59,10 +58,6 @@ vi.mock('../../shared/ui/toast/toast', () => ({
   useToast: () => ({ push: vi.fn() }),
 }))
 
-vi.mock('react-router-dom', () => ({
-  useNavigate: () => vi.fn(),
-}))
-
 const listMock = vi.fn()
 const updateMock = vi.fn()
 const removeMock = vi.fn()
@@ -87,10 +82,6 @@ vi.mock('./taskSync', () => ({
     tasksChangedHandler = callback
     return subscribeTasksChangedMock(callback)
   },
-}))
-
-vi.mock('./components/TaskCalendarWidget', () => ({
-  default: () => <div data-testid="task-calendar-widget" />,
 }))
 
 vi.mock('./TaskDrawer', () => ({
@@ -220,6 +211,26 @@ describe('TasksBoard sync', () => {
     await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1))
     expect(container.querySelector('.tasks-fg')).toBeInTheDocument()
     expect(container.querySelector('.tasks-fg--plain')).not.toBeInTheDocument()
+  })
+
+  it('hides tag and sort controls in the dashboard card layout', async () => {
+    listMock.mockResolvedValueOnce([makeTask('task-1', 'First task')])
+
+    render(<TasksBoard />)
+
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1))
+    expect(screen.queryByText('Select tag')).not.toBeInTheDocument()
+    expect(screen.queryByText('Priority')).not.toBeInTheDocument()
+  })
+
+  it('keeps tag and sort controls on the full tasks page', async () => {
+    listMock.mockResolvedValueOnce([makeTask('task-1', 'First task')])
+
+    render(<TasksBoard asCard={false} />)
+
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1))
+    expect(screen.getByText('Select tag')).toBeInTheDocument()
+    expect(screen.getByText('Priority')).toBeInTheDocument()
   })
 
   it('keeps the plain tasks page surface from clipping shadows', async () => {
