@@ -35,4 +35,18 @@ describe('authClient', () => {
       }),
     }))
   })
+
+  it('explains missing Google provider configuration', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      text: () => Promise.resolve('{"message":"Provider not found"}'),
+      headers: new Headers({ 'content-type': 'application/json' }),
+    } as Response)
+    const { authClient } = await import('./authClient')
+
+    await expect(authClient.signInGoogle('https://app.nestflow.art/?auth=google')).rejects.toThrow(
+      /GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET/,
+    )
+  })
 })
