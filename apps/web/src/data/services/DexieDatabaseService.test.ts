@@ -150,6 +150,7 @@ describe('DexieDatabaseService', () => {
       amount: 12,
       currency: 'USD',
       cycle: 'monthly',
+      emoji: 'logos:spotify-icon',
     })
     const yearly = await service.lifeSubscriptions.create({
       name: 'Figma',
@@ -164,7 +165,9 @@ describe('DexieDatabaseService', () => {
     const listed = await service.lifeSubscriptions.list()
 
     expect(monthly.name).toBe('Spotify')
+    expect(monthly.emoji).toBe('logos:spotify-icon')
     expect(updated?.amount).toBe(144)
+    expect((await service.lifeSubscriptions.update(monthly.id, { emoji: 'mdi:cloud' }))?.emoji).toBe('mdi:cloud')
     expect(listed).toHaveLength(2)
     expect(Number((listed.reduce((sum, item) => sum + (item.cycle === 'yearly' ? item.amount / 12 : item.amount), 0)).toFixed(2))).toBe(24)
 

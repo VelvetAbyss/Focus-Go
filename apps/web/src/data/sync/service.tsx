@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useAuthPlan, useIsLoggedIn } from '../../store/auth'
-import { SYNC_DATA_UPDATED_EVENT, SYNC_STATUS_CHANGED_EVENT } from './constants'
+import { dispatchSyncDataUpdated, SYNC_DATA_UPDATED_EVENT, SYNC_STATUS_CHANGED_EVENT, type SyncDataUpdatedDetail } from './constants'
+import type { SyncEntityType } from './types'
 import { syncStateRepo } from './repository'
 import { ensureRxdbSyncReady, runRxdbSyncCycle } from './rxdb'
 import type { SyncState } from './types'
@@ -34,7 +35,7 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
     if (!canUseCloudSync) {
       await syncStateRepo.markStatus('blocked', 'Cloud sync requires Premium')
       const seeded = await seedDatabase()
-      if (seeded) window.dispatchEvent(new Event(SYNC_DATA_UPDATED_EVENT))
+      if (seeded) dispatchSyncDataUpdated('all')
       await refreshState()
       return
     }
@@ -52,7 +53,7 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
     if (!canUseCloudSync) {
       await syncStateRepo.markStatus('blocked', 'Cloud sync requires Premium')
       const seeded = await seedDatabase()
-      if (seeded) window.dispatchEvent(new Event(SYNC_DATA_UPDATED_EVENT))
+      if (seeded) dispatchSyncDataUpdated('all')
       await refreshState()
       return
     }
@@ -66,7 +67,7 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
     await syncNow()
     const seeded = await seedDatabase()
     if (seeded) {
-      window.dispatchEvent(new Event(SYNC_DATA_UPDATED_EVENT))
+      dispatchSyncDataUpdated('all')
       await syncNow()
     }
   }, [canUseCloudSync, isLoggedIn, refreshState, syncNow])
@@ -129,12 +130,26 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
-export const useSyncDataRefresh = (callback: () => void) => {
+export const useSyncDataRefresh = (callback: () => void, topics?: SyncEntityType[]) => {
+  const callbackRef = useRef(callback)
+  useEffect(() => { callbackRef.current = callback })
+
+  // Serialize topics for stable dep comparison (callers may pass inline arrays)
+  const topicsKey = topics?.join(',') ?? ''
+
   useEffect(() => {
-    const handler = () => callback()
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<SyncDataUpdatedDetail>).detail
+      const topic = detail?.topic
+      // 'all' (seed/full sync) always triggers everyone; no filter = subscribe to all
+      if (!topics?.length || !topic || topic === 'all' || topics.includes(topic as SyncEntityType)) {
+        callbackRef.current()
+      }
+    }
     window.addEventListener(SYNC_DATA_UPDATED_EVENT, handler)
     return () => window.removeEventListener(SYNC_DATA_UPDATED_EVENT, handler)
-  }, [callback])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [topicsKey])
 }
 
 // eslint-disable-next-line react-refresh/only-export-components

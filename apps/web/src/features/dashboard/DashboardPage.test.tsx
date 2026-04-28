@@ -40,11 +40,18 @@ vi.mock('./DashboardHeader', () => ({
   default: ({
     onToggleLayoutEdit,
     onToggleWidgetsPanel,
+    page,
+    onSetPage,
   }: {
     onToggleLayoutEdit: () => void
     onToggleWidgetsPanel: () => void
+    page: 'main' | 'life' | 'news'
+    onSetPage: (page: 'main' | 'life' | 'news') => void
   }) => (
     <div>
+      <button type="button" aria-pressed={page === 'main'} onClick={() => onSetPage('main')}>Focus</button>
+      <button type="button" aria-pressed={page === 'life'} onClick={() => onSetPage('life')}>Life</button>
+      <button type="button" aria-pressed={page === 'news'} onClick={() => onSetPage('news')}>News</button>
       <button type="button" onClick={onToggleLayoutEdit}>Edit layout</button>
       <button type="button" onClick={onToggleWidgetsPanel}>Manage widgets</button>
     </div>
@@ -79,6 +86,14 @@ vi.mock('./registry', () => ({
       render: () => <div>Tasks card</div>,
     },
   ],
+}))
+
+vi.mock('../life/LifeDashboard', () => ({
+  default: () => <div>Life dashboard</div>,
+}))
+
+vi.mock('../news/NewsDashboard', () => ({
+  default: () => <div>News dashboard</div>,
 }))
 
 
@@ -146,5 +161,15 @@ describe('DashboardPage onboarding', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Edit layout' }))
 
     await waitFor(() => expect(screen.queryByLabelText('Manage widgets visibility')).not.toBeInTheDocument())
+  })
+
+  it('switches to the News workspace tab', async () => {
+    renderDashboard()
+
+    await waitFor(() => expect(screen.getByText('Tasks card')).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: 'News' }))
+
+    expect(screen.getByText('News dashboard')).toBeInTheDocument()
+    expect(screen.queryByText('Tasks card')).not.toBeInTheDocument()
   })
 })

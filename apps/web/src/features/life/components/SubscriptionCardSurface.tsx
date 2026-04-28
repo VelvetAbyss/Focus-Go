@@ -102,6 +102,7 @@ const getMonthlyBreakdown = (subs: LifeSubscription[]) => {
   return result
 }
 const formatBillingDate = (date: Date) => date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+const isIconifyIcon = (icon?: string) => Boolean(icon && /^[a-z0-9-]+:[a-z0-9_.-]+$/i.test(icon))
 const toFormState = (item: LifeSubscription): FormState => ({
   name: item.name,
   amount: String(item.amount),
@@ -183,9 +184,8 @@ function InputField({ label, children }: { label: string; children: ReactNode })
 }
 
 function SubIcon({ icon, size = 14 }: { icon?: string; size?: number }) {
-  if (!icon || !icon.includes(':')) return null
-  const [prefix, name] = icon.split(':')
-  return <img src={`https://api.iconify.design/${prefix}/${name}.svg`} width={size} height={size} style={{ flexShrink: 0, display: 'inline-block', verticalAlign: 'middle', opacity: 0.75 }} alt="" />
+  if (!isIconifyIcon(icon)) return null
+  return <Icon icon={icon as string} width={size} height={size} style={{ flexShrink: 0, display: 'inline-block', verticalAlign: 'middle', opacity: 0.75 }} aria-hidden />
 }
 
 function ToggleGroup<T extends string>({ options, value, onChange }: { options: Array<{ value: T; label: string }>; value: T; onChange: (value: T) => void }) {
@@ -349,7 +349,7 @@ const SubListItem = memo(function SubListItem({ sub, selected, onClick }: { sub:
   const notice = getBillingNotice(sub)
   return (
     <button type="button" onClick={onClick} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 16, textAlign: 'left', cursor: 'pointer', border: selected ? '1px solid rgba(58,55,51,0.10)' : '1px solid transparent', background: selected ? 'rgba(58,55,51,0.06)' : 'transparent' }}>
-      {sub.emoji?.includes(':') ? <SubIcon icon={sub.emoji} size={20} /> : <div style={{ width: 10, height: 10, borderRadius: 999, flexShrink: 0, background: sub.color ?? '#D4A06A', boxShadow: `0 0 0 2px ${(sub.color ?? '#D4A06A')}22` }} />}
+      {isIconifyIcon(sub.emoji) ? <SubIcon icon={sub.emoji} size={20} /> : <div style={{ width: 10, height: 10, borderRadius: 999, flexShrink: 0, background: sub.color ?? '#D4A06A', boxShadow: `0 0 0 2px ${(sub.color ?? '#D4A06A')}22` }} />}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
           <p style={{ ...inter(13, 400, ink), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub.name}</p>
@@ -437,7 +437,7 @@ function SubForm({ initial, isNew, onSave, onRemove, onCancel }: { initial: Form
   return (
     <div style={{ display: 'flex', flex: 1, minHeight: 0, flexDirection: 'column', overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '32px 40px', borderBottom: `1px solid ${subtleBorder}` }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 56, height: 56, borderRadius: 14, flexShrink: 0, background: `${form.color}1A`, border: `1.5px solid ${form.color}44` }}>{form.emoji?.includes(':') ? <SubIcon icon={form.emoji} size={28} /> : <div style={{ width: 20, height: 20, borderRadius: 999, background: form.color }} />}</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 56, height: 56, borderRadius: 14, flexShrink: 0, background: `${form.color}1A`, border: `1.5px solid ${form.color}44` }}>{isIconifyIcon(form.emoji) ? <SubIcon icon={form.emoji} size={28} /> : <div style={{ width: 20, height: 20, borderRadius: 999, background: form.color }} />}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ ...playfair(19, 500), lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{form.name || (isNew ? t('life.subscriptions.newSubscription') : '—')}</p>
           {parsedAmount > 0 ? <p style={{ ...inter(13, 400, mutedInk), marginTop: 4 }}>{CURRENCY_SYMBOL[form.currency]}{formatAmount(monthly)}/mo{form.cycle === 'yearly' ? <span style={{ ...inter(11, 400, 'rgba(58,55,51,0.30)'), marginLeft: 6 }}>{t('life.subscriptions.estFromYearly', { amount: `${CURRENCY_SYMBOL[form.currency]}${formatAmount(parsedAmount)}` })}</span> : null}</p> : null}

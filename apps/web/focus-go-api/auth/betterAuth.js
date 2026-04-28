@@ -8,10 +8,17 @@ const devSecret = 'focus-go-dev-better-auth-secret-change-me'
 const TRUSTED_ORIGINS = [
   APP_BASE_URL,
   'https://app.nestflow.art',
+  'http://app.nestflow.art',
+  'https://api.nestflow.art',
+  'http://api.nestflow.art',
   'https://nestflow.art',
+  'http://nestflow.art',
   'https://www.nestflow.art',
+  'http://www.nestflow.art',
   'http://localhost:5173',
   'http://localhost:5174',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174',
 ]
 
 const googleProvider = process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET

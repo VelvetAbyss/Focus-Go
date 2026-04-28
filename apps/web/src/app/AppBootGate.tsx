@@ -7,6 +7,11 @@ import { syncedPreferencesRepo } from '../data/repositories/syncedPreferencesRep
 import { applyTheme, resolveInitialTheme } from '../shared/theme/theme'
 import { useIsLoggedIn } from '../store/auth'
 import type { LanguageCode } from '../shared/i18n/types'
+import { installMotionVisibilityController } from '../shared/utils/motionVisibility'
+
+// Install once at module evaluation time — runs before first render.
+// Pauses all CSS animations when the tab is hidden (saves CPU/GPU/battery).
+installMotionVisibilityController()
 
 // Minimum on-screen time so the loader registers as a deliberate moment
 // rather than a flash. Matches entry+label choreography (~320ms).

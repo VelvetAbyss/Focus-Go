@@ -122,7 +122,7 @@ const TasksBoard = ({
     setDeleteTarget((prev) => (prev ? items.find((item) => item.id === prev.id) ?? null : prev))
   }, [])
 
-  useSyncDataRefresh(loadTasks)
+  useSyncDataRefresh(loadTasks, ['tasks'])
 
   useEffect(() => {
     const bootstrap = async () => {

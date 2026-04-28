@@ -9,7 +9,7 @@ import { getDashboardQuote, getLocalDashboardQuote } from './quote/quoteService'
 import PremiumMark from '../premium/PremiumMark'
 import '../life/life.css'
 
-type DashboardPage = 'main' | 'life'
+type DashboardPage = 'main' | 'life' | 'news'
 
 type DashboardHeaderProps = {
   layoutEdit: boolean
@@ -180,7 +180,7 @@ const DashboardHeader = ({
         {showProjectBadges && !layoutEdit ? <span className="pill">{t('dashboard.quote.localFirst')}</span> : null}
         {showProjectBadges && !layoutEdit ? <span className="pill pill--soft">{t('dashboard.quote.mvp')}</span> : null}
 
-        {/* Unified pill: Focus/Life toggle + action buttons */}
+        {/* Unified pill: Focus/Life/News toggle + action buttons */}
         <div className="header-pill">
           {onSetPage ? (
             <>
@@ -200,11 +200,19 @@ const DashboardHeader = ({
               >
                 Life
               </button>
+              <button
+                role="tab"
+                aria-selected={page === 'news'}
+                className={`header-pill__btn${page === 'news' ? ' is-active' : ''}`}
+                onClick={() => onSetPage('news')}
+              >
+                News
+              </button>
               <div className="header-pill__divider" aria-hidden="true" />
             </>
           ) : null}
 
-          {layoutEdit ? (
+          {layoutEdit && page !== 'news' ? (
             <button
               type="button"
               className={`header-pill__btn${widgetsPanelOpen ? ' is-active' : ''}`}
@@ -218,18 +226,20 @@ const DashboardHeader = ({
             </button>
           ) : null}
 
-          <button
-            type="button"
-            className={`header-pill__btn${layoutEdit ? ' is-active' : ''}`}
-            onClick={onToggleLayoutEdit}
-            data-locked={layoutEditLocked ? 'true' : 'false'}
-            aria-label={layoutEdit ? t('dashboard.layoutEdit') : t('dashboard.editLayout')}
-            aria-expanded={layoutEdit}
-          >
-            <LayoutGrid size={14} aria-hidden="true" />
-            <span>{layoutEdit ? t('dashboard.done') : t('dashboard.editLayout')}</span>
-            {!layoutEdit && layoutEditLocked ? <PremiumMark /> : null}
-          </button>
+          {page !== 'news' ? (
+            <button
+              type="button"
+              className={`header-pill__btn${layoutEdit ? ' is-active' : ''}`}
+              onClick={onToggleLayoutEdit}
+              data-locked={layoutEditLocked ? 'true' : 'false'}
+              aria-label={layoutEdit ? t('dashboard.layoutEdit') : t('dashboard.editLayout')}
+              aria-expanded={layoutEdit}
+            >
+              <LayoutGrid size={14} aria-hidden="true" />
+              <span>{layoutEdit ? t('dashboard.done') : t('dashboard.editLayout')}</span>
+              {!layoutEdit && layoutEditLocked ? <PremiumMark /> : null}
+            </button>
+          ) : null}
 
           {!layoutEdit ? (
             <Link

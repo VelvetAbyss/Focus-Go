@@ -116,7 +116,7 @@ const DiaryPanel = ({ open, intent, onClose }: DiaryPanelProps) => {
     setTrashEntries(list)
   }, [])
 
-  useSyncDataRefresh(loadHistory)
+  useSyncDataRefresh(loadHistory, ['diaryEntries'])
 
   useEffect(() => {
     if (!open) return

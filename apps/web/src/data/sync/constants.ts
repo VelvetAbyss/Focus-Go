@@ -4,7 +4,16 @@ import type { SyncEntityType } from './types'
 export const SYNC_STATE_ID = 'cloud-sync' as const
 export const SYNC_STATUS_CHANGED_EVENT = 'focusgo:sync-status-changed'
 // Fired after a successful pull so every component can reload data from IndexedDB.
+// detail: { topic: SyncEntityType | 'all' }  — 'all' means every entity was refreshed.
 export const SYNC_DATA_UPDATED_EVENT = 'focusgo:sync-data-updated'
+
+export type SyncDataUpdatedDetail = { topic: SyncEntityType | 'all' }
+
+export const dispatchSyncDataUpdated = (topic: SyncEntityType | 'all') => {
+  window.dispatchEvent(
+    new CustomEvent<SyncDataUpdatedDetail>(SYNC_DATA_UPDATED_EVENT, { detail: { topic } }),
+  )
+}
 export const SYNC_ENTITY_TABLES: Record<SyncEntityType, string> = {
   tasks: TABLES.tasks,
   notes: TABLES.notes,

@@ -49,7 +49,31 @@ type AdminOverview = {
   }
 }
 
-type View = 'overview' | 'users' | 'server'
+type AdminOrder = {
+  orderNo: string
+  userId: string
+  email: string | null
+  planId: string
+  amount: string
+  feeAmount: string | null
+  netAmount: string | null
+  currency: string
+  channel: string
+  status: string
+  providerOrderId: string | null
+  providerPaymentId: string | null
+  paidAt: string | null
+  createdAt: string
+  abnormalReason: string | null
+}
+
+type AdminOrdersResponse = {
+  total: number
+  orders: AdminOrder[]
+  summary: Array<{ channel: string; currency: string; count: number; gross: string }>
+}
+
+type View = 'overview' | 'users' | 'orders' | 'server'
 type Sort = 'records' | 'newest' | 'sync'
 
 const fmtBytes = (bytes: number | null | undefined): string => {
@@ -122,6 +146,13 @@ const AdminPage = () => {
   const [sort, setSort] = useState<Sort>('records')
   const [autoRefresh, setAutoRefresh] = useState(false)
   const [expanded, setExpanded] = useState<number | null>(null)
+  const [ordersData, setOrdersData] = useState<AdminOrdersResponse | null>(null)
+  const [ordersLoading, setOrdersLoading] = useState(false)
+  const [orderQuery, setOrderQuery] = useState('')
+  const [orderStatus, setOrderStatus] = useState('all')
+  const [orderChannel, setOrderChannel] = useState('all')
+  const [expandedOrder, setExpandedOrder] = useState<string | null>(null)
+  const [orderAction, setOrderAction] = useState<string | null>(null)
 
   useEffect(() => {
     if (!autoRefresh) return
@@ -151,6 +182,87 @@ const AdminPage = () => {
         setLoading(false)
       })
   }, [isAdmin, tick, t.unknownError])
+
+  useEffect(() => {
+    if (!isAdmin || view !== 'orders') return
+    const auth = getAuth()
+    const headers: HeadersInit = auth?.accessToken ? { Authorization: `Bearer ${auth.accessToken}` } : {}
+    const params = new URLSearchParams({
+      limit: '100',
+      status: orderStatus,
+      channel: orderChannel,
+    })
+    if (orderQuery.trim()) params.set('q', orderQuery.trim())
+    setOrdersLoading(true)
+    fetchApi(`/admin/orders?${params.toString()}`, { headers })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        return res.json() as Promise<AdminOrdersResponse>
+      })
+      .then((next) => {
+        setOrdersData(next)
+        setOrdersLoading(false)
+      })
+      .catch(() => {
+        setOrdersLoading(false)
+      })
+  }, [isAdmin, orderChannel, orderQuery, orderStatus, tick, view])
+
+  const adminFetch = async (path: string, init?: RequestInit) => {
+    const auth = getAuth()
+    const headers: HeadersInit = {
+      ...(init?.headers ?? {}),
+      ...(auth?.accessToken ? { Authorization: `Bearer ${auth.accessToken}` } : {}),
+    }
+    const response = await fetchApi(path, { ...init, headers })
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    return response
+  }
+
+  const exportOrders = () => {
+    const params = new URLSearchParams({ status: orderStatus, channel: orderChannel })
+    if (orderQuery.trim()) params.set('q', orderQuery.trim())
+    void adminFetch(`/admin/orders/export?${params.toString()}`)
+      .then((res) => res.blob())
+      .then((blob) => {
+        const url = URL.createObjectURL(blob)
+        const anchor = document.createElement('a')
+        anchor.href = url
+        anchor.download = 'focusgo-orders.csv'
+        anchor.click()
+        URL.revokeObjectURL(url)
+      })
+  }
+
+  const markAbnormal = async (orderNo: string) => {
+    const reason = window.prompt(t.abnormalReasonPrompt)
+    if (!reason) return
+    setOrderAction(orderNo)
+    try {
+      await adminFetch(`/admin/orders/${orderNo}/mark-abnormal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason }),
+      })
+      setTick((n) => n + 1)
+    } finally {
+      setOrderAction(null)
+    }
+  }
+
+  const grantEntitlement = async (userId: string, planId: 'pro_monthly' | 'pro_yearly' | 'lifetime') => {
+    setOrderAction(`${userId}:${planId}`)
+    try {
+      await adminFetch(`/admin/users/${userId}/entitlements`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planId, months: planId === 'pro_monthly' ? 1 : planId === 'pro_yearly' ? 12 : undefined, note: 'manual admin grant' }),
+      })
+      setTick((n) => n + 1)
+    } finally {
+      setOrderAction(null)
+    }
+  }
 
   const planOptions = useMemo(() => {
     const options = new Set<string>(['all'])
@@ -183,6 +295,7 @@ const AdminPage = () => {
   const viewLabels: Record<View, string> = {
     overview: t.overview,
     users: t.users,
+    orders: t.orders,
     server: t.server,
   }
 
@@ -346,6 +459,112 @@ const AdminPage = () => {
               </table>
             </div>
           )}
+        </section>
+      )}
+
+      {view === 'orders' && (
+        <section className="admin-panel admin-panel--enter">
+          <div className="admin-filters admin-filters--orders">
+            <input
+              value={orderQuery}
+              onChange={(e) => setOrderQuery(e.target.value)}
+              className="admin-field"
+              type="search"
+              placeholder={t.searchOrders}
+            />
+            <select className="admin-field" value={orderStatus} onChange={(e) => setOrderStatus(e.target.value)}>
+              <option value="all">{t.allStatuses}</option>
+              <option value="pending">pending</option>
+              <option value="paid">paid</option>
+              <option value="failed">failed</option>
+              <option value="expired">expired</option>
+              <option value="abnormal">abnormal</option>
+              <option value="refunded">refunded</option>
+            </select>
+            <select className="admin-field" value={orderChannel} onChange={(e) => setOrderChannel(e.target.value)}>
+              <option value="all">{t.allChannels}</option>
+              <option value="zpay_alipay">zpay_alipay</option>
+              <option value="paypal_checkout">paypal_checkout</option>
+            </select>
+            <button type="button" className="admin-btn" onClick={exportOrders}>{t.exportCsv}</button>
+          </div>
+
+          {ordersData?.summary?.length ? (
+            <div className="admin-kpis admin-kpis--orders">
+              {ordersData.summary.map((item) => (
+                <article key={`${item.channel}-${item.currency}`} className="admin-kpi-card">
+                  <p>{item.channel} · {item.currency}</p>
+                  <h3>{item.gross}</h3>
+                  <p>{item.count.toLocaleString()} {t.orders}</p>
+                </article>
+              ))}
+            </div>
+          ) : null}
+
+          {ordersLoading && <div className="admin-banner">{t.loading}</div>}
+          {ordersData && ordersData.orders.length === 0 ? (
+            <p className="admin-empty">{t.noOrders}</p>
+          ) : null}
+          {ordersData && ordersData.orders.length > 0 ? (
+            <div className="admin-table-wrap admin-table-wrap--orders">
+              <table className="admin-table admin-table--orders">
+                <thead>
+                  <tr>
+                    <th>{t.orderNo}</th>
+                    <th>{t.email}</th>
+                    <th>{t.plan}</th>
+                    <th>{t.amount}</th>
+                    <th>{t.channel}</th>
+                    <th>{t.status}</th>
+                    <th>{t.paidAt}</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {ordersData.orders.map((order) => {
+                    const opened = expandedOrder === order.orderNo
+                    return (
+                      <Fragment key={order.orderNo}>
+                        <tr className="admin-row">
+                          <td className="admin-email">{order.orderNo}</td>
+                          <td className="admin-email">{order.email ?? '—'}</td>
+                          <td><span className={`admin-pill ${order.planId}`}>{order.planId}</span></td>
+                          <td>{order.amount} {order.currency}</td>
+                          <td>{order.channel}</td>
+                          <td><span className={`admin-pill ${order.status}`}>{order.status}</span></td>
+                          <td>{fmtDate(order.paidAt, lang)}</td>
+                          <td>
+                            <button type="button" className="admin-row__toggle" onClick={() => setExpandedOrder((curr) => (curr === order.orderNo ? null : order.orderNo))}>
+                              {opened ? t.collapse : t.details}
+                            </button>
+                          </td>
+                        </tr>
+                        <tr className={`admin-row-detail ${opened ? 'is-open' : ''}`}>
+                          <td colSpan={8}>
+                            <div className="admin-row-detail__body">
+                              <div className="admin-row-detail__content admin-order-detail">
+                                <div className="admin-sync-item"><span>{t.providerOrder}</span><span>{order.providerOrderId ?? '—'}</span></div>
+                                <div className="admin-sync-item"><span>{t.providerPayment}</span><span>{order.providerPaymentId ?? '—'}</span></div>
+                                <div className="admin-sync-item"><span>{t.netAmount}</span><span>{order.netAmount ?? '—'} {order.currency}</span></div>
+                                <div className="admin-sync-item"><span>{t.feeAmount}</span><span>{order.feeAmount ?? '—'} {order.currency}</span></div>
+                                <div className="admin-sync-item"><span>{t.abnormalReason}</span><span>{order.abnormalReason ?? '—'}</span></div>
+                                <div className="admin-row-actions">
+                                  <button type="button" className="admin-btn" disabled={orderAction === order.orderNo} onClick={() => void markAbnormal(order.orderNo)}>{t.markAbnormal}</button>
+                                  <button type="button" className="admin-btn" disabled={orderAction === `${order.userId}:pro_monthly`} onClick={() => void grantEntitlement(order.userId, 'pro_monthly')}>{t.grantPro}</button>
+                                  <button type="button" className="admin-btn" disabled={orderAction === `${order.userId}:pro_yearly`} onClick={() => void grantEntitlement(order.userId, 'pro_yearly')}>{t.grantProYearly}</button>
+                                  <button type="button" className="admin-btn" disabled={orderAction === `${order.userId}:lifetime`} onClick={() => void grantEntitlement(order.userId, 'lifetime')}>{t.grantLifetime}</button>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      </Fragment>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
         </section>
       )}
 

@@ -3,7 +3,7 @@ import { replicateRxCollection } from 'rxdb/plugins/replication'
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie'
 import { db } from '../db'
 import { createBlobMap, decodeSyncPayload, encodeSyncPayload } from './content'
-import { SYNC_DATA_UPDATED_EVENT, SYNC_ENTITY_TABLES, SYNC_STATUS_CHANGED_EVENT } from './constants'
+import { dispatchSyncDataUpdated, SYNC_ENTITY_TABLES, SYNC_STATUS_CHANGED_EVENT } from './constants'
 import { syncApi } from './client'
 import { getAuth } from '../../store/auth'
 import type { RxdbCheckpoint, RxdbPullDocument, RxdbPushRow, SyncEntityType, SyncPayload, SyncState, SyncStatus } from './types'
@@ -157,7 +157,7 @@ const writeDexieEntity = async (entityType: SyncEntityType, document: SyncDocume
   const table = db.table(tableName)
   if (normalized._deleted) await table.delete(normalized.id)
   else await table.put({ ...normalized, _deleted: undefined })
-  emitWindowEvent(SYNC_DATA_UPDATED_EVENT)
+  dispatchSyncDataUpdated(entityType)
 }
 
 const seedCollectionFromDexie = async (entityType: SyncEntityType, collection: RxCollection<SyncDocument>) => {

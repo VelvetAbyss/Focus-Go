@@ -11,7 +11,7 @@ const PAYMENT_STATUS_POLL_MS = 300
 const PaymentSuccessPage = () => {
   const [searchParams] = useSearchParams()
   const outTradeNo = searchParams.get('out_trade_no')
-  const [status, setStatus] = useState<'pending' | 'paid' | 'failed'>(outTradeNo ? 'pending' : 'failed')
+  const [status, setStatus] = useState<'pending' | 'paid' | 'failed' | 'expired' | 'abnormal' | 'refunded'>(outTradeNo ? 'pending' : 'failed')
   const timerRef = useRef<number | null>(null)
 
   useEffect(() => {

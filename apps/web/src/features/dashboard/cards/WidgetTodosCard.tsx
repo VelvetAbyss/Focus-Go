@@ -135,7 +135,6 @@ const WidgetTodosCard = () => {
   const [lastAdded, setLastAdded] = useState<{ id: string; scope: WidgetTodoScope } | null>(null)
   const [sortAnchorTime, setSortAnchorTime] = useState(0)
   const [customDueDate, setCustomDueDate] = useState(todayInputDate)
-  const [now, setNow] = useState(() => Date.now())
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draftTitle, setDraftTitle] = useState('')
   const [removingId, setRemovingId] = useState<string | null>(null)
@@ -149,11 +148,6 @@ const WidgetTodosCard = () => {
   const trackRef = useRef<HTMLDivElement | null>(null)
   const [panelDragX, setPanelDragX] = useState(0)
   const panelDragStartRef = useRef<{ x: number; y: number; active: boolean; captured: boolean; id: number } | null>(null)
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 60_000)
-    return () => window.clearInterval(timer)
-  }, [])
 
   const loadItems = useCallback(async () => {
     const loadedItems = await widgetTodoRepo.list()
@@ -200,7 +194,7 @@ const WidgetTodosCard = () => {
       setSortAnchorTime(nextItems.reduce((max, item) => (item.updatedAt > max ? item.updatedAt : max), 0))
       setLoaded(true)
     })
-  })
+  }, ['widgetTodos'])
 
   useEffect(() => {
     if (!loaded) return
@@ -273,7 +267,7 @@ const WidgetTodosCard = () => {
     (dueDate?: string): DueInfo | null => {
       const ts = parseDueDate(dueDate)
       if (ts === null) return null
-      const todayTs = startOfDay(now)
+      const todayTs = startOfDay(Date.now())
       const diffDays = Math.round((ts - todayTs) / 86_400_000)
       if (diffDays < 0) {
         const d = Math.abs(diffDays)
@@ -284,7 +278,7 @@ const WidgetTodosCard = () => {
       if (diffDays <= 6) return { label: t('todo.inDays', { days: diffDays }), tone: 'soon' }
       return { label: formatShortDate(ts), tone: 'normal' }
     },
-    [now, t],
+    [t],
   )
 
   type OrderedRow =
@@ -365,7 +359,7 @@ const WidgetTodosCard = () => {
   }, [scopeItems])
 
   const periodAlertsByScope = useMemo(() => {
-    const current = new Date(now)
+    const current = new Date(Date.now())
     const alerts: Record<WidgetTodoScope, PeriodClosingAlert | null> = {
       day: null,
       week: null,
@@ -383,7 +377,7 @@ const WidgetTodosCard = () => {
     })
 
     return alerts
-  }, [items, now])
+  }, [items])
 
   const handleToggle = async (todo: WidgetTodo, done: boolean) => {
     if (todo.scope === 'day' && todo.linkedHabitId) {

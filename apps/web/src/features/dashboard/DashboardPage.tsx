@@ -21,13 +21,14 @@ import {
 } from '../../data/defaultDashboardLayout'
 import { usePremiumGate } from '../premium/PremiumProvider'
 import LifeDashboard from '../life/LifeDashboard'
+import NewsDashboard from '../news/NewsDashboard'
 import { readLayoutLocked, writeLayoutLocked } from '../../shared/prefs/dashboardLayoutLock'
 import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../data/repositories/syncedPreferencesRepo'
 
 const DashboardPage = () => {
   const { t } = useI18n()
   const { canUse, openUpgradeModal } = usePremiumGate()
-  const [page, setPage] = useState<'main' | 'life'>('main')
+  const [page, setPage] = useState<'main' | 'life' | 'news'>('main')
   const [layout, setLayout] = useState<DashboardLayoutItem[]>([])
   const [hiddenCardIds, setHiddenCardIds] = useState<string[]>([])
   const isMobile = useIsBreakpoint('max', 768)
@@ -84,6 +85,10 @@ const DashboardPage = () => {
   useEffect(() => {
     if (isMobile) setLayoutEdit(false)
   }, [isMobile])
+
+  useEffect(() => {
+    if (page === 'news') setLayoutEdit(false)
+  }, [page])
 
   useEffect(() => {
     writeLayoutLocked(!layoutEdit)
@@ -324,6 +329,9 @@ const DashboardPage = () => {
 
         {/* Life page */}
         {page === 'life' && <LifeDashboard layoutEdit={layoutEdit} widgetsPanelOpen={widgetsPanelOpen} />}
+
+        {/* News page */}
+        {page === 'news' && <NewsDashboard />}
 
         {/* Main dashboard */}
         {page === 'main' && layoutEdit && widgetsPanelOpen && (

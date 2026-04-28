@@ -358,7 +358,7 @@ const normalizeLifeSubscription = (subscription: LifeSubscription): LifeSubscrip
     typeof subscription.billingMonth === 'number' && Number.isFinite(subscription.billingMonth)
       ? Math.min(12, Math.max(1, Math.round(subscription.billingMonth)))
       : undefined,
-  emoji: typeof subscription.emoji === 'string' && subscription.emoji.trim().length > 0 ? subscription.emoji.slice(0, 4) : undefined,
+  emoji: typeof subscription.emoji === 'string' && subscription.emoji.trim().length > 0 ? subscription.emoji.trim() : undefined,
   reminder: subscription.reminder === true,
   paymentStatus: subscription.paymentStatus === 'paid' ? 'paid' : subscription.paymentStatus === 'unpaid' ? 'unpaid' : undefined,
 })

@@ -250,7 +250,7 @@ export default function NotePage() {
     }
   }
 
-  useSyncDataRefresh(refresh)
+  useSyncDataRefresh(refresh, ['notes', 'noteTags', 'noteAppearance'])
 
   // Re-run refresh once the first sync cycle finishes ('syncing' → 'idle').
   // At that point hasSyncedOnceRef is true, so refresh will create defaults

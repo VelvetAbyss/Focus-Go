@@ -1,12 +1,15 @@
 import { Suspense, lazy } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
-import TasksBoard from '../tasks/TasksBoard'
-import FocusCard from '../focus/FocusCard'
-import SpendCard from '../spend/SpendCard'
-import WidgetTodosCard from './cards/WidgetTodosCard'
-import WeatherWidgetCard from './cards/WeatherWidgetCard'
 import type { LifeTranslate } from '../life/lifeI18n'
 
+// Main page cards — lazy so each becomes its own chunk and hidden cards don't parse at all
+const TasksBoard = lazy(() => import('../tasks/TasksBoard'))
+const FocusCard = lazy(() => import('../focus/FocusCard'))
+const SpendCard = lazy(() => import('../spend/SpendCard'))
+const WidgetTodosCard = lazy(() => import('./cards/WidgetTodosCard'))
+const WeatherWidgetCard = lazy(() => import('./cards/WeatherWidgetCard'))
+
+// Life page cards — already lazy
 const WorldClockCard = lazy(() => import('../life/cards/WorldClockCard'))
 const BooksCard = lazy(() => import('../life/cards/BooksCard'))
 const DailyReviewCard = lazy(() => import('../life/cards/DailyReviewCard'))
@@ -17,16 +20,19 @@ const SubscriptionsCard = lazy(() => import('../life/cards/SubscriptionsCard'))
 const StocksCard = lazy(() => import('../life/cards/StocksCard'))
 const TripsCard = lazy(() => import('../life/cards/TripsCard'))
 
-const lifeCardFallbackStyle = {
+const cardFallbackStyle = {
   height: '100%',
   borderRadius: 24,
-  background: '#ffffff',
+  background: 'var(--color-surface, #ffffff)',
   boxShadow: '0 12px 28px rgba(58, 55, 51, 0.05)',
 } satisfies CSSProperties
 
-const renderLazyLifeCard = (node: ReactNode) => (
-  <Suspense fallback={<div aria-hidden="true" style={lifeCardFallbackStyle} />}>{node}</Suspense>
+const renderLazyCard = (node: ReactNode) => (
+  <Suspense fallback={<div aria-hidden="true" style={cardFallbackStyle} />}>{node}</Suspense>
 )
+
+// Keep backward compat alias
+const renderLazyLifeCard = renderLazyCard
 
 export type DashboardCard = {
   id: string
@@ -43,35 +49,35 @@ export const getDashboardCards = (): DashboardCard[] => [
     title: 'Tasks',
     defaultSize: { w: 4, h: 4 },
     pageScope: 'main',
-    render: () => <TasksBoard />,
+    render: () => renderLazyCard(<TasksBoard />),
   },
   {
     id: 'focus',
     title: 'Focus Center',
     defaultSize: { w: 4, h: 3 },
     pageScope: 'main',
-    render: () => <FocusCard />,
+    render: () => renderLazyCard(<FocusCard />),
   },
   {
     id: 'spend',
     title: 'Spend',
     defaultSize: { w: 4, h: 3 },
     pageScope: 'main',
-    render: () => <SpendCard />,
+    render: () => renderLazyCard(<SpendCard />),
   },
   {
     id: 'weather',
     title: 'Weather',
     defaultSize: { w: 4, h: 2 },
     pageScope: 'main',
-    render: () => <WeatherWidgetCard />,
+    render: () => renderLazyCard(<WeatherWidgetCard />),
   },
   {
     id: 'widget-todos',
     title: 'Daily/Weekly/Monthly',
     defaultSize: { w: 6, h: 3 },
     pageScope: 'main',
-    render: () => <WidgetTodosCard />,
+    render: () => renderLazyCard(<WidgetTodosCard />),
   },
   {
     id: 'world_clock',

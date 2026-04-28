@@ -533,7 +533,7 @@ const CalendarPage = () => {
     setAllTasks(items)
   }, [])
 
-  useSyncDataRefresh(loadTasks)
+  useSyncDataRefresh(loadTasks, ['tasks'])
 
   useEffect(() => {
     const handleSyncedPreferencesUpdated = () => {

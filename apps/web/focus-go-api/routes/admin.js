@@ -7,6 +7,7 @@ import db from '../db/init.js'
 import { requireAuth } from '../middleware/auth.js'
 import { requireAdmin, isLocalhostRequest } from '../middleware/admin.js'
 import { SYNC_TABLES } from '../sync/config.js'
+import { grantManualEntitlement, markOrderAbnormal } from '../services/payments.js'
 
 const router = Router()
 
@@ -157,6 +158,164 @@ router.get('/overview', (_req, res) => {
   } catch (err) {
     console.error('[admin/overview]', err)
     res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+const toIso = (value) => value ? new Date(value).toISOString() : null
+
+const serializeAdminOrder = (row) => ({
+  orderNo: row.order_no ?? row.out_trade_no,
+  userId: row.user_id,
+  email: row.email ?? null,
+  planId: row.plan_id ?? (row.sku === 'lifetime' ? 'lifetime' : 'pro_monthly'),
+  amount: row.gross_amount ?? row.amount,
+  feeAmount: row.fee_amount ?? null,
+  netAmount: row.net_amount ?? null,
+  currency: row.currency ?? 'CNY',
+  channel: row.channel ?? row.pay_type,
+  status: row.status,
+  providerOrderId: row.provider_order_id ?? null,
+  providerPaymentId: row.provider_payment_id ?? row.zpay_trade_no ?? null,
+  paidAt: toIso(row.paid_at),
+  createdAt: toIso(row.created_at),
+  updatedAt: toIso(row.updated_at ?? row.created_at),
+  abnormalReason: row.abnormal_reason ?? null,
+})
+
+const orderWhere = (query) => {
+  const clauses = []
+  const params = {}
+  if (query.status && query.status !== 'all') {
+    clauses.push('o.status = @status')
+    params.status = query.status
+  }
+  if (query.channel && query.channel !== 'all') {
+    clauses.push('COALESCE(o.channel, o.pay_type) = @channel')
+    params.channel = query.channel
+  }
+  if (query.currency && query.currency !== 'all') {
+    clauses.push('COALESCE(o.currency, "CNY") = @currency')
+    params.currency = query.currency
+  }
+  if (query.q) {
+    clauses.push('(o.order_no LIKE @q OR o.out_trade_no LIKE @q OR u.email LIKE @q OR o.provider_order_id LIKE @q OR o.provider_payment_id LIKE @q)')
+    params.q = `%${query.q}%`
+  }
+  if (query.from) {
+    clauses.push('o.created_at >= @from')
+    params.from = new Date(query.from).getTime()
+  }
+  if (query.to) {
+    clauses.push('o.created_at <= @to')
+    params.to = new Date(query.to).getTime() + 24 * 60 * 60 * 1000 - 1
+  }
+  return {
+    sql: clauses.length ? `WHERE ${clauses.join(' AND ')}` : '',
+    params,
+  }
+}
+
+router.get('/orders', (req, res) => {
+  try {
+    const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200)
+    const offset = Math.max(Number(req.query.offset) || 0, 0)
+    const where = orderWhere(req.query)
+    const rows = db.prepare(`
+      SELECT o.*, u.email
+      FROM payment_orders o
+      LEFT JOIN users u ON CAST(u.id AS TEXT) = o.user_id OR u.authing_id = o.user_id OR u.auth_user_id = o.user_id
+      ${where.sql}
+      ORDER BY o.created_at DESC
+      LIMIT @limit OFFSET @offset
+    `).all({ ...where.params, limit, offset })
+    const total = db.prepare(`
+      SELECT COUNT(*) as count
+      FROM payment_orders o
+      LEFT JOIN users u ON CAST(u.id AS TEXT) = o.user_id OR u.authing_id = o.user_id OR u.auth_user_id = o.user_id
+      ${where.sql}
+    `).get(where.params)?.count ?? 0
+    const summaryRows = db.prepare(`
+      SELECT COALESCE(o.channel, o.pay_type) as channel, COALESCE(o.currency, 'CNY') as currency, COUNT(*) as count, SUM(CAST(COALESCE(o.gross_amount, o.amount) AS REAL)) as gross
+      FROM payment_orders o
+      LEFT JOIN users u ON CAST(u.id AS TEXT) = o.user_id OR u.authing_id = o.user_id OR u.auth_user_id = o.user_id
+      ${where.sql}
+      GROUP BY COALESCE(o.channel, o.pay_type), COALESCE(o.currency, 'CNY')
+    `).all(where.params)
+    res.json({
+      total,
+      orders: rows.map(serializeAdminOrder),
+      summary: summaryRows.map((row) => ({
+        channel: row.channel,
+        currency: row.currency,
+        count: row.count,
+        gross: Number(row.gross ?? 0).toFixed(2),
+      })),
+    })
+  } catch (err) {
+    console.error('[admin/orders]', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+router.get('/orders/export', (req, res) => {
+  const where = orderWhere(req.query)
+  const rows = db.prepare(`
+    SELECT o.*, u.email
+    FROM payment_orders o
+    LEFT JOIN users u ON CAST(u.id AS TEXT) = o.user_id OR u.authing_id = o.user_id OR u.auth_user_id = o.user_id
+    ${where.sql}
+    ORDER BY o.created_at DESC
+  `).all(where.params).map(serializeAdminOrder)
+  const columns = ['orderNo', 'email', 'userId', 'planId', 'amount', 'feeAmount', 'netAmount', 'currency', 'channel', 'status', 'providerOrderId', 'providerPaymentId', 'paidAt', 'createdAt', 'abnormalReason']
+  const escape = (value) => `"${String(value ?? '').replaceAll('"', '""')}"`
+  const csv = [columns.join(','), ...rows.map((row) => columns.map((key) => escape(row[key])).join(','))].join('\n')
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8')
+  res.setHeader('Content-Disposition', 'attachment; filename="focusgo-orders.csv"')
+  res.send(csv)
+})
+
+router.get('/orders/:orderNo', (req, res) => {
+  const row = db.prepare(`
+    SELECT o.*, u.email
+    FROM payment_orders o
+    LEFT JOIN users u ON CAST(u.id AS TEXT) = o.user_id OR u.authing_id = o.user_id OR u.auth_user_id = o.user_id
+    WHERE o.order_no = ? OR o.out_trade_no = ?
+  `).get(req.params.orderNo, req.params.orderNo)
+  if (!row) return res.status(404).json({ error: 'order not found' })
+  const events = db.prepare('SELECT event_key, channel, event_type, raw_payload, created_at FROM payment_events WHERE order_no = ? ORDER BY created_at DESC').all(req.params.orderNo)
+  res.json({
+    order: serializeAdminOrder(row),
+    rawPayload: row.raw_notify_payload ? JSON.parse(row.raw_notify_payload) : null,
+    events: events.map((event) => ({
+      ...event,
+      createdAt: toIso(event.created_at),
+      rawPayload: event.raw_payload ? JSON.parse(event.raw_payload) : null,
+    })),
+  })
+})
+
+router.post('/orders/:orderNo/mark-abnormal', (req, res) => {
+  try {
+    const reason = typeof req.body?.reason === 'string' && req.body.reason.trim() ? req.body.reason.trim() : 'manual abnormal mark'
+    markOrderAbnormal(db, { orderNo: req.params.orderNo, reason })
+    res.json({ ok: true })
+  } catch (err) {
+    res.status(400).json({ error: err.message })
+  }
+})
+
+router.post('/users/:userId/entitlements', (req, res) => {
+  try {
+    const { planId = 'pro_monthly', months, note } = req.body ?? {}
+    const status = grantManualEntitlement(db, {
+      userId: req.params.userId,
+      planId,
+      months: Number(months) || undefined,
+      note,
+    })
+    res.json(status)
+  } catch (err) {
+    res.status(400).json({ error: err.message })
   }
 })
 

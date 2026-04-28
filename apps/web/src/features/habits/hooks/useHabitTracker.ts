@@ -98,7 +98,7 @@ export const useHabitTracker = () => {
     void refresh()
   }), [refresh])
 
-  useSyncDataRefresh(refresh)
+  useSyncDataRefresh(refresh, ['habits', 'habitLogs'])
 
   const completedHabitIds = useMemo(() => {
     return new Set(
