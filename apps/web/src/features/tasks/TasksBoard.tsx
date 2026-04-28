@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { CalendarDays, CheckSquare, Columns3, LayoutGrid, Plus, Square, Tag, Trash2 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { CheckSquare, LayoutGrid, Plus, Square, Tag, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Select as ShadcnSelect,
@@ -18,10 +17,8 @@ import Dialog from '../../shared/ui/Dialog'
 import { Popover, PopoverContent, PopoverTrigger } from '../../shared/ui/popover'
 import TaskCard from './components/TaskCard'
 import TaskAddComposer from './components/TaskAddComposer'
-import TaskCalendarWidget from './components/TaskCalendarWidget'
 import TasksAnalyticsView from './components/TasksAnalyticsView'
 import { useToast } from '../../shared/ui/toast/toast'
-import { ROUTES } from '../../app/routes/routes'
 import { emitTasksChanged, subscribeTasksChanged } from './taskSync'
 import { useSyncDataRefresh } from '../../data/sync/service'
 import { readTaskTodayBucket, shouldClearTodayDoneTasks, writeTaskTodayBucket } from './taskTodayRefresh'
@@ -34,7 +31,6 @@ const tabs: { key: TaskStatus }[] = [{ key: 'todo' }, { key: 'doing' }, { key: '
 
 type SortMode = 'importance' | 'time'
 type TagFilterMode = 'all' | 'work' | 'life' | 'health' | 'study' | 'finance' | 'family'
-type BoardMode = 'kanban' | 'calendar'
 type TopView = 'board' | 'today' | 'analytics'
 
 const STORAGE_TAB_KEY = 'tasks_active_tab'
@@ -94,7 +90,6 @@ const TasksBoard = ({
     return stored === 'time' || stored === 'importance' ? stored : 'importance'
   })
   const [tagFilter, setTagFilter] = useState<string[]>([])
-  const [boardMode, setBoardMode] = useState<BoardMode>('kanban')
   const [statusActionLoadingTaskId, setStatusActionLoadingTaskId] = useState<string | null>(null)
   const [statusActionLoadingKey, setStatusActionLoadingKey] = useState<string | null>(null)
   const [statusActionSuccessTaskId, setStatusActionSuccessTaskId] = useState<string | null>(null)
@@ -110,7 +105,6 @@ const TasksBoard = ({
   const statusActionSuccessTimerRef = useRef<number | null>(null)
   const tasksReloadTokenRef = useRef(0)
   const toast = useToast()
-  const navigate = useNavigate()
 
   const loadTasks = useCallback(async () => {
     const token = tasksReloadTokenRef.current + 1
@@ -194,10 +188,6 @@ const TasksBoard = ({
   const filteredTaskIds = useMemo(() => filteredTasks.map((task) => task.id), [filteredTasks])
   const selectedCount = selectedTaskIds.size
 
-  const allFilteredTasks = useMemo(() => {
-    if (tagFilter.length === 0) return tasks
-    return tasks.filter((task) => tagFilter.some((tag) => task.tags.some((item) => item.toLowerCase() === tag)))
-  }, [tasks, tagFilter])
   const bulkTagOptions = useMemo(() => {
     const seen = new Map<string, string>()
     tasks.forEach((task) => {
@@ -358,8 +348,7 @@ const TasksBoard = ({
     setBulkTagDraft('')
   }, [bulkTagDraft, selectedTaskIds, tasks])
 
-  const isKanbanMode = asCard || boardMode === 'kanban'
-  const showTasksEmptyState = filteredTasks.length === 0 && topView !== 'analytics' && isKanbanMode
+  const showTasksEmptyState = filteredTasks.length === 0 && topView !== 'analytics'
   const tasksEmptyState = (
     <EmptyState
       icon={<LayoutGrid className="size-6" />}
@@ -370,8 +359,7 @@ const TasksBoard = ({
   )
 
   const boardContent = topView !== 'analytics'
-    ? isKanbanMode
-      ? (
+    ? (
         <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
           {showTasksEmptyState ? (
             tasksEmptyState
@@ -395,9 +383,6 @@ const TasksBoard = ({
                     onDelete={(nextTask) => setDeleteTarget(nextTask)}
                     onTogglePin={(nextTask) => {
                       void handlePin(nextTask.id)
-                    }}
-                    onFocusStart={(nextTask) => {
-                      navigate(`${ROUTES.FOCUS}?taskId=${encodeURIComponent(nextTask.id)}&autostart=1`)
                     }}
                     onToggleToday={(nextTask) => {
                       void handleToggleToday(nextTask.id)
@@ -423,10 +408,7 @@ const TasksBoard = ({
             </div>
           )}
         </div>
-        )
-      : (
-        <TaskCalendarWidget tasks={allFilteredTasks} onTaskCreated={(task) => setTasks((prev) => [task, ...prev])} onTaskUpdated={handleUpdateTask} onTaskDeleted={(id) => setTasks((prev) => prev.filter((task) => task.id !== id))} compact={asCard} plain />
-        )
+      )
     : (
       <TasksAnalyticsView tasks={tasks} />
     )
@@ -476,9 +458,11 @@ const TasksBoard = ({
                 </div>
               )}
 
-              <div className="h-5 w-px bg-border" />
+              {!asCard ? (
+                <>
+                  <div className="h-5 w-px bg-border" />
 
-              <Popover>
+                  <Popover>
                     <PopoverTrigger asChild>
                       <button
                         type="button"
@@ -530,12 +514,14 @@ const TasksBoard = ({
                       <SelectItem value="time">{t('tasks.sort.created')}</SelectItem>
                     </SelectContent>
                   </ShadcnSelect>
+                </>
+              ) : null}
 
                   <span className="tasks-fg__count-meta">{t('tasks.taskCount', { count: filteredTasks.length })}</span>
             </div>
 
             <div className="flex items-center gap-2">
-              {isKanbanMode && !asCard ? (
+              {!asCard ? (
                 bulkMode ? (
                   <div className="tasks-fg__bulk-bar flex items-center gap-1.5 rounded-md border border-[#3a3733]/10 bg-white px-2 py-1">
                     <button type="button" aria-label={t('tasks.selectAll')} className="tasks-fg__bulk-btn inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-[#3A3733]" onClick={toggleSelectAllVisible}>
@@ -593,31 +579,6 @@ const TasksBoard = ({
                   </button>
                 )
               ) : null}
-
-              {!asCard && topView === 'board' ? (
-                <div className="flex items-center gap-0.5 rounded-md bg-muted p-0.5">
-                  <button
-                    className={cn(
-                      'tasks-fg__mode-tab flex items-center gap-1.5 rounded px-2.5 py-1 text-xs transition-all',
-                      boardMode === 'kanban' ? 'tasks-fg__mode-tab--active bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
-                    )}
-                    onClick={() => setBoardMode('kanban')}
-                  >
-                    <Columns3 className="size-3" />
-                    {t('tasks.kanban')}
-                  </button>
-                  <button
-                    className={cn(
-                      'tasks-fg__mode-tab flex items-center gap-1.5 rounded px-2.5 py-1 text-xs transition-all',
-                      boardMode === 'calendar' ? 'tasks-fg__mode-tab--active bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
-                    )}
-                    onClick={() => setBoardMode('calendar')}
-                  >
-                    <CalendarDays className="size-3" />
-                    {t('tasks.calendar')}
-                  </button>
-                </div>
-              ) : null}
             </div>
           </div>
         </div>
@@ -627,7 +588,7 @@ const TasksBoard = ({
         {boardContent}
       </div>
 
-      {topView !== 'analytics' && isKanbanMode ? (
+      {topView !== 'analytics' ? (
         <TaskAddComposer onSubmit={(title) => { requireAuth(() => { void handleAddTask(title) }); return Promise.resolve(true) }} plain placeholder={topView === 'today' ? t('tasks.today.addPlaceholder') : undefined} />
       ) : null}
     </div>

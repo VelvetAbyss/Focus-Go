@@ -5271,6 +5271,11 @@ html[data-motion='reduce'] .tab-motion-tab::before {
     transform 160ms var(--tk-ease);
 }
 
+.dashboard-widget-card .tasks-fg__filter-btn,
+.dashboard-widget-card .tasks-fg__sort-trigger {
+  display: none;
+}
+
 .tasks-fg__filter-btn:hover,
 .tasks-fg__bulk-toggle:hover,
 .tasks-fg__sort-trigger:hover {
@@ -12480,7 +12485,7 @@ textarea:focus-visible,
   border-radius: 24px;
   border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
   background: color-mix(in srgb, var(--surface) 94%, var(--bg-muted) 6%);
-  box-shadow: 0 22px 48px color-mix(in srgb, #3a3733 10%, transparent);
+  box-shadow: 0 18px 40px color-mix(in srgb, #3a3733 10%, transparent);
   overflow: hidden;
 }
 
@@ -14319,6 +14324,7 @@ textarea:focus-visible,
   border-radius: 22px;
   border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
   background: color-mix(in srgb, var(--surface) 94%, var(--bg-muted) 6%);
+  box-shadow: 0 18px 36px color-mix(in srgb, #3a3733 11%, transparent);
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -15307,7 +15313,8 @@ html.dark .labs-row--removed {
 .focus-shell__main--surface-less {
   border-color: transparent !important;
   background: transparent !important;
-  box-shadow: none !important;
+  /* Keep box-shadow so full-bleed routes (tasks, notes, diary…) share the
+     same outer-panel depth as the sidebar and non-full-bleed pages. */
 }
 
 .focus-shell__route-layer--full-bleed {
