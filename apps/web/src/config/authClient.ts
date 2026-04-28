@@ -25,6 +25,14 @@ type AuthErrorPayload = {
   code?: string
 }
 
+const normalizeAuthErrorMessage = (error: AuthErrorPayload | null, fallback: string) => {
+  const message = error?.message || error?.error || error?.code || fallback
+  if (/provider not found/i.test(message)) {
+    return 'Google sign in is not configured on the server. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET for the API.'
+  }
+  return message
+}
+
 const authBasePath = () => {
   const authApiBase = (import.meta.env.VITE_AUTH_API_BASE ?? '').trim()
   if (authApiBase) return authApiBase.replace(/\/$/, '')
@@ -58,7 +66,7 @@ const requestAuth = async <T>(path: string, init?: RequestInit): Promise<T> => {
   const payload = parseAuthPayload(text, response.headers.get('content-type'))
   if (!response.ok) {
     const error = payload as AuthErrorPayload | null
-    throw new Error(error?.message || error?.error || error?.code || `Auth request failed (${response.status})`)
+    throw new Error(normalizeAuthErrorMessage(error, `Auth request failed (${response.status})`))
   }
   return payload as T
 }

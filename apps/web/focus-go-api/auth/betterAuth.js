@@ -1,6 +1,12 @@
 import { betterAuth } from 'better-auth'
 import { username } from 'better-auth/plugins'
+import dotenv from 'dotenv'
+import { dirname, join } from 'path'
+import { fileURLToPath } from 'url'
 import db from '../db/init.js'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+dotenv.config({ path: join(__dirname, '../.env') })
 
 const API_BASE_URL = process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 3000}`
 const APP_BASE_URL = process.env.APP_BASE_URL || 'http://localhost:5174'
@@ -29,6 +35,10 @@ const googleProvider = process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT
       },
     }
   : {}
+
+if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+  console.warn('[auth] Google OAuth is disabled: GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set.')
+}
 
 export const auth = betterAuth({
   appName: 'Focus & Go',
