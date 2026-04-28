@@ -10,7 +10,9 @@ export type AuthProfile = {
   id: string
   email: string | null
   plan: AuthPlan
+  entitlement?: 'free' | 'pro' | 'lifetime'
   expiresAt: string | null
+  isLifetime?: boolean
   isAdmin: boolean
 }
 
@@ -75,7 +77,7 @@ export const refreshAuthProfile = async () => {
   try {
     const profile = await fetchAuthProfile(auth.accessToken)
     if (!profile) return null
-    setAuth({ ...auth, plan: profile.plan, expiresAt: profile.expiresAt, isAdmin: profile.isAdmin })
+    setAuth({ ...auth, plan: profile.plan, entitlement: profile.entitlement, expiresAt: profile.expiresAt, isLifetime: profile.isLifetime, isAdmin: profile.isAdmin })
     return profile
   } catch {
     return null

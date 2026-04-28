@@ -1,13 +1,22 @@
 import { fromNodeHeaders } from 'better-auth/node'
 import db from '../db/init.js'
 import { auth } from '../auth/betterAuth.js'
+import { getMembershipStatus } from '../services/payments.js'
 
 const TRIAL_DAYS = 7
 const TRIAL_DURATION_MS = TRIAL_DAYS * 24 * 60 * 60 * 1000
 
 const normalizePremiumStatus = (user) => {
   if (!user) return null
+  const membership = getMembershipStatus(db, user.id)
+  if (membership.plan === 'premium' && user.plan !== 'premium') {
+    db.prepare('UPDATE users SET plan = ? WHERE id = ?').run('premium', user.id)
+    return db.prepare('SELECT * FROM users WHERE id = ?').get(user.id)
+  }
   if (user.plan !== 'premium') return user
+  if (membership.plan === 'premium') {
+    return { ...user, plan: 'premium' }
+  }
   if (typeof user.premium_expires_at !== 'number' || user.premium_expires_at > Date.now()) return user
 
   db.prepare(`

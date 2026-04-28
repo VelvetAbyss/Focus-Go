@@ -2,6 +2,7 @@ import { Router } from 'express'
 import db from '../db/init.js'
 import { requireAuth } from '../middleware/auth.js'
 import { isAdminEmail } from '../middleware/admin.js'
+import { getMembershipStatus } from '../services/payments.js'
 
 const router = Router()
 
@@ -19,8 +20,8 @@ router.get('/profile', requireAuth, async (req, res) => {
     user = db.prepare('SELECT * FROM users WHERE id = ?').get(user.id)
   }
 
-  const expiresAt = user.premium_expires_at ? new Date(user.premium_expires_at).toISOString() : null
-  res.json({ id: user.id, email: user.email, plan: user.plan, expiresAt, isAdmin: isAdminEmail(user.email) })
+  const membership = getMembershipStatus(db, user.id)
+  res.json({ id: user.id, email: user.email, ...membership, isAdmin: isAdminEmail(user.email) })
 })
 
 export default router

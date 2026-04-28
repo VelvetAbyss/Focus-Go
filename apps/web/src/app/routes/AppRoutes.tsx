@@ -1,11 +1,11 @@
-import { lazy, Suspense, useEffect, useRef } from 'react'
+import { lazy, Suspense, useDeferredValue, useEffect, useRef } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
-import DashboardRoute from './DashboardRoute'
 import { LEGACY_ROUTES, ROUTES } from './routes'
 import { useLabs } from '../../features/labs/LabsContext'
 import { usePremiumGate } from '../../features/premium/PremiumProvider'
 import BrandLoader from '../../shared/ui/loading/BrandLoader'
 
+const DashboardRoute = lazy(() => import('./DashboardRoute'))
 const TasksPage = lazy(() => import('../../features/tasks/pages/TasksPage'))
 const ProjectsPage = lazy(() => import('../../features/projects/pages/ProjectsPage'))
 const ProjectDetailPage = lazy(() => import('../../features/projects/pages/ProjectDetailPage'))
@@ -74,11 +74,18 @@ const GuardedProjectsRoute = ({ detail = false }: { detail?: boolean }) => {
 }
 
 const AppRoutes = () => {
+  const location = useLocation()
+  // useDeferredValue lets React keep the current page visible while mounting
+  // the next route in the background (concurrent / interruptible render).
+  // For cached chunks this means zero visible flash; for fresh chunks the
+  // BrandLoader only appears after the old page can no longer be held.
+  const deferredLocation = useDeferredValue(location)
+
   return (
-    <Routes>
+    <Routes location={deferredLocation}>
       <Route path={LEGACY_ROUTES.KNOWLEDGE} element={<Navigate to={ROUTES.DASHBOARD} replace />} />
       <Route path="/rss" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
-      <Route path={ROUTES.DASHBOARD} element={<DashboardRoute />} />
+      <Route path={ROUTES.DASHBOARD} element={<Suspense fallback={<RouteFallback />}><DashboardRoute /></Suspense>} />
       <Route path={ROUTES.PROJECTS} element={<GuardedProjectsRoute />} />
       <Route path={ROUTES.PROJECT_DETAIL} element={<GuardedProjectsRoute detail />} />
       <Route path={ROUTES.TASKS} element={<Suspense fallback={<RouteFallback />}><TasksPage /></Suspense>} />

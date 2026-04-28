@@ -2,8 +2,8 @@ import { X, LogIn, UserPlus, Mail, KeyRound, Eye, EyeOff } from 'lucide-react'
 import type { FormEvent } from 'react'
 import { useState, useEffect } from 'react'
 import { authClient } from '../../config/authClient'
+import { finishBetterAuthSession, getGoogleAuthCallbackURL } from '../../config/authRuntime'
 import { consumePendingCheckout, startPremiumCheckout } from '../../features/payments/paymentFlow'
-import { fetchAuthProfile, setAuth } from '../../store/auth'
 import { useI18n } from '../../shared/i18n/useI18n'
 
 type LoginModalProps = {
@@ -58,8 +58,7 @@ const LoginModal = ({ onClose }: LoginModalProps) => {
 
   const finishAuth = async (token?: string, user?: unknown) => {
     if (!token || !user) throw new Error(language === 'zh' ? '登录响应缺少会话。' : 'Missing session in auth response.')
-    const profile = await fetchAuthProfile(token)
-    setAuth({ accessToken: token, user, plan: profile?.plan ?? 'free', expiresAt: profile?.expiresAt ?? null, isAdmin: profile?.isAdmin ?? false })
+    await finishBetterAuthSession(token, user)
     const pendingCheckout = consumePendingCheckout()
     if (pendingCheckout) {
       await startPremiumCheckout(pendingCheckout)
@@ -111,7 +110,7 @@ const LoginModal = ({ onClose }: LoginModalProps) => {
     setError(null)
     setLoading(true)
     try {
-      const result = await authClient.signInGoogle(window.location.origin)
+      const result = await authClient.signInGoogle(getGoogleAuthCallbackURL())
       if (result.url) {
         window.location.href = result.url
         return

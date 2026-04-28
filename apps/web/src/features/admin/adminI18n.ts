@@ -15,6 +15,7 @@ type Messages = {
   noUsers: string
   overview: string
   users: string
+  orders: string
   server: string
   tabAria: string
   allPlans: string
@@ -36,6 +37,24 @@ type Messages = {
   details: string
   collapse: string
   noSyncDetails: string
+  noOrders: string
+  searchOrders: string
+  allChannels: string
+  exportCsv: string
+  orderNo: string
+  amount: string
+  channel: string
+  paidAt: string
+  providerOrder: string
+  providerPayment: string
+  netAmount: string
+  feeAmount: string
+  abnormalReason: string
+  abnormalReasonPrompt: string
+  markAbnormal: string
+  grantPro: string
+  grantProYearly: string
+  grantLifetime: string
   totalUsers: string
   premiumUsers: string
   activeUsers7d: string
@@ -70,6 +89,7 @@ const messages: Record<AdminLanguage, Messages> = {
     noUsers: 'No users yet.',
     overview: 'Overview',
     users: 'Users',
+    orders: 'Orders',
     server: 'Server',
     tabAria: 'Admin sections',
     allPlans: 'All plans',
@@ -91,6 +111,24 @@ const messages: Record<AdminLanguage, Messages> = {
     details: 'Details',
     collapse: 'Collapse',
     noSyncDetails: 'No sync type details.',
+    noOrders: 'No orders match the current filters.',
+    searchOrders: 'Search order, email, provider id',
+    allChannels: 'All channels',
+    exportCsv: 'Export CSV',
+    orderNo: 'Order no.',
+    amount: 'Amount',
+    channel: 'Channel',
+    paidAt: 'Paid at',
+    providerOrder: 'Provider order',
+    providerPayment: 'Provider payment',
+    netAmount: 'Net amount',
+    feeAmount: 'Fee',
+    abnormalReason: 'Abnormal reason',
+    abnormalReasonPrompt: 'Reason for marking this order abnormal',
+    markAbnormal: 'Mark abnormal',
+    grantPro: 'Grant Pro',
+    grantProYearly: 'Grant yearly',
+    grantLifetime: 'Grant Lifetime',
     totalUsers: 'Total users',
     premiumUsers: 'Premium users',
     activeUsers7d: 'Active 7d',
@@ -123,6 +161,7 @@ const messages: Record<AdminLanguage, Messages> = {
     noUsers: '暂无用户。',
     overview: '总览',
     users: '用户',
+    orders: '订单',
     server: '服务端',
     tabAria: '管理分区',
     allPlans: '全部套餐',
@@ -144,6 +183,24 @@ const messages: Record<AdminLanguage, Messages> = {
     details: '详情',
     collapse: '收起',
     noSyncDetails: '暂无按类型同步明细。',
+    noOrders: '当前筛选条件下暂无订单。',
+    searchOrders: '搜索订单、邮箱、渠道订单号',
+    allChannels: '全部渠道',
+    exportCsv: '导出 CSV',
+    orderNo: '订单号',
+    amount: '金额',
+    channel: '渠道',
+    paidAt: '支付时间',
+    providerOrder: '渠道订单',
+    providerPayment: '渠道支付号',
+    netAmount: '实际到账',
+    feeAmount: '手续费',
+    abnormalReason: '异常原因',
+    abnormalReasonPrompt: '请输入标记异常的原因',
+    markAbnormal: '标记异常',
+    grantPro: '补发 Pro',
+    grantProYearly: '补发年付',
+    grantLifetime: '授予 Lifetime',
     totalUsers: '总用户',
     premiumUsers: '高级用户',
     activeUsers7d: '7天活跃',

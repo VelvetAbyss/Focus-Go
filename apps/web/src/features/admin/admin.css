@@ -164,6 +164,11 @@
   gap: 10px;
 }
 
+.admin-kpis--orders {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin-bottom: 12px;
+}
+
 .admin-kpi-card {
   min-height: 94px;
   display: flex;
@@ -199,6 +204,10 @@
   grid-template-columns: minmax(240px, 1.2fr) repeat(3, minmax(150px, 0.75fr));
   gap: 8px;
   margin-bottom: 12px;
+}
+
+.admin-filters--orders {
+  grid-template-columns: minmax(260px, 1fr) minmax(150px, 0.45fr) minmax(170px, 0.55fr) auto;
 }
 
 .admin-field {
@@ -284,6 +293,27 @@
   color: var(--deck-muted);
 }
 
+.admin-pill.pro_monthly,
+.admin-pill.pro_yearly,
+.admin-pill.lifetime,
+.admin-pill.paid {
+  border-color: color-mix(in srgb, var(--deck-sage) 34%, var(--deck-line));
+  background: color-mix(in srgb, var(--deck-sage) 12%, #F5F3F0);
+  color: color-mix(in srgb, var(--deck-sage) 76%, var(--deck-ink));
+}
+
+.admin-pill.pending {
+  border-color: color-mix(in srgb, var(--deck-amber) 34%, var(--deck-line));
+  background: color-mix(in srgb, var(--deck-amber) 12%, #F5F3F0);
+}
+
+.admin-pill.abnormal,
+.admin-pill.failed {
+  border-color: color-mix(in srgb, #9E4036 38%, var(--deck-line));
+  background: color-mix(in srgb, #9E4036 10%, #F5F3F0);
+  color: #9E4036;
+}
+
 .admin-row__toggle {
   min-height: 26px;
   border: 1px solid var(--deck-line);
@@ -337,6 +367,17 @@
   padding: 10px 14px;
   border-top: 1px dashed color-mix(in srgb, var(--deck-line) 86%, transparent);
   color: var(--deck-muted);
+}
+
+.admin-order-detail {
+  padding-bottom: 12px;
+}
+
+.admin-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 14px 0;
 }
 
 .admin-empty {
@@ -395,6 +436,10 @@
   .admin-filters {
     grid-template-columns: 1fr 1fr;
   }
+
+  .admin-filters--orders {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 @media (max-width: 640px) {
@@ -405,7 +450,7 @@
   .admin-tabs {
     width: 100%;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
   }
 
   .admin-tab {
@@ -413,6 +458,10 @@
   }
 
   .admin-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-filters--orders {
     grid-template-columns: 1fr;
   }
 }

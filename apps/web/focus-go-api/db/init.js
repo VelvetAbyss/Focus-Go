@@ -5,6 +5,7 @@ import { mkdirSync } from 'fs'
 import { ensureSyncTables } from '../sync/store.js'
 import { ensurePaymentTables } from '../services/payments.js'
 import { ensureNeteasePodcastTables } from '../services/podcasts.js'
+import { ensureNewsTables } from '../services/news.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const DATA_DIR = join(__dirname, '../data')
@@ -90,5 +91,6 @@ db.exec(`
 ensureSyncTables(db)
 ensurePaymentTables(db)
 ensureNeteasePodcastTables(db)
+ensureNewsTables(db)
 
 export default db

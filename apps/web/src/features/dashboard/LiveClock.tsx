@@ -10,23 +10,33 @@ const timeTrend = (oldValue: number, value: number) => (value >= oldValue ? 1 : 
 
 const LiveClock = memo(({ style, className }: LiveClockProps) => {
   const [now, setNow] = useState(() => new Date())
-  const frameRef = useRef<number>(0)
-  const lastSecondRef = useRef<number>(-1)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    const tick = () => {
-      const current = new Date()
-      const currentSecond = current.getSeconds()
-      // Only update state if the second has actually changed
-      if (currentSecond !== lastSecondRef.current) {
-        lastSecondRef.current = currentSecond
-        setNow(current)
-      }
-      frameRef.current = requestAnimationFrame(tick)
+    const scheduleNext = () => {
+      // Align to the next second boundary to avoid drift
+      const msUntilNextSecond = 1000 - (Date.now() % 1000)
+      timerRef.current = setTimeout(() => {
+        if (document.visibilityState === 'visible') {
+          setNow(new Date())
+        }
+        scheduleNext()
+      }, msUntilNextSecond)
     }
 
-    frameRef.current = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(frameRef.current)
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        setNow(new Date())
+      }
+    }
+
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    scheduleNext()
+
+    return () => {
+      if (timerRef.current !== null) clearTimeout(timerRef.current)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
   }, [])
 
   const hours = now.getHours()

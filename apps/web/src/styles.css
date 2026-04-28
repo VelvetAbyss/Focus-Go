@@ -1801,6 +1801,9 @@ html[data-motion='reduce'] .route-loader__mark {
   position: relative;
   z-index: 0;
   transition: box-shadow var(--motion-duration-medium) var(--ease-standard);
+  /* Isolate layout per card so sibling card changes don't trigger cross-card layout recalc.
+     paint is intentionally omitted — it clips box-shadows that bleed outside the boundary. */
+  contain: layout style;
 }
 
 /* Staggered entrance animation — fires once on layout load */
@@ -1909,6 +1912,8 @@ html[data-motion='reduce'] .route-loader__mark {
   transition: none !important;
   filter: drop-shadow(0 20px 40px rgba(58, 55, 51, 0.2));
   transform: scale(1.015) !important;
+  /* Release containment so the drag shadow isn't clipped */
+  contain: none;
 }
 
 .dashboard__item.is-dragging .dashboard__edit-overlay {
@@ -2307,6 +2312,11 @@ html[data-motion='reduce'] .route-loader__mark {
   transition-property: transform, box-shadow, border-color !important;
   transition-duration: 380ms !important;
   transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1) !important;
+  /* will-change moved to :hover — promote the layer only when interaction is
+     imminent, not for every idle card (that would create N permanent GPU layers). */
+}
+
+.task-card-shell:hover {
   will-change: transform, box-shadow;
 }
 
@@ -2320,7 +2330,8 @@ html[data-motion='reduce'] .route-loader__mark {
   border-bottom-right-radius: 8px;
   box-shadow: 0 3px 8px color-mix(in srgb, var(--color-ink) 12%, transparent);
   transform-origin: top center;
-  will-change: height, box-shadow;
+  /* height + box-shadow cannot be GPU-composited — will-change here wastes
+     GPU memory without acceleration benefit; removed entirely. */
   transition-property: height, box-shadow !important;
   transition-duration: 860ms !important;
   transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
@@ -2331,7 +2342,8 @@ html[data-motion='reduce'] .route-loader__mark {
   transition-property: grid-template-rows, opacity, transform, padding-top !important;
   transition-duration: 500ms !important;
   transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1) !important;
-  will-change: grid-template-rows, opacity, transform;
+  /* grid-template-rows cannot be composited; opacity+transform can be but
+     only matter during the expand/collapse moment — not worth a permanent layer. */
 }
 
 .task-card__action-btn {
@@ -2709,7 +2721,6 @@ html[data-motion='reduce'] .task-card__actions {
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--motion-duration-medium) var(--ease-accelerate);
-  will-change: opacity;
 }
 
 .drawer--visible .drawer__backdrop {
@@ -2737,8 +2748,12 @@ html[data-motion='reduce'] .task-card__actions {
   flex-direction: column;
   padding: 20px;
   box-shadow: var(--shadow-drawer);
-  will-change: transform, opacity;
   overflow: visible;
+}
+
+/* Promote the panel layer only while the drawer is opening/open, not while hidden. */
+.drawer--visible .drawer__panel {
+  will-change: transform, opacity;
 }
 
 .drawer--visible .drawer__panel {
@@ -3713,32 +3728,31 @@ html[data-motion='reduce'] .focus-card-lite__timer-ring {
   background-color: #918b80;
   border-radius: 2px;
   opacity: 0.7;
+  /* Use transform:scaleY instead of height so the animation runs entirely on the
+     GPU compositor thread (height changes trigger layout recalc every frame). */
+  transform-origin: bottom;
   animation: mini-eq-bounce 900ms ease-in-out infinite;
+  will-change: transform;
 }
 
 .mini-equalizer span:nth-child(1) {
   animation-delay: 0ms;
-  height: 4px;
+  height: 10px; /* fixed max-height; scaleY controls the visual range */
 }
 
 .mini-equalizer span:nth-child(2) {
   animation-delay: 150ms;
-  height: 8px;
+  height: 10px;
 }
 
 .mini-equalizer span:nth-child(3) {
   animation-delay: 300ms;
-  height: 5px;
+  height: 10px;
 }
 
 @keyframes mini-eq-bounce {
-  0%,
-  100% {
-    height: 4px;
-  }
-  50% {
-    height: 10px;
-  }
+  0%, 100% { transform: scaleY(0.4); }
+  50%       { transform: scaleY(1); }
 }
 
 html[data-motion='reduce'] .mini-equalizer span {
@@ -6450,13 +6464,26 @@ html[data-motion='reduce'] :is(
   height: 6px;
   border-radius: 999px;
   background: currentColor;
-  box-shadow: 0 0 0 0 currentColor;
-  animation: trips-pulse 1.6s var(--tj-ease) infinite;
+  position: relative;
 }
+
+/* Ripple ring via ::after — transform+opacity (GPU) instead of box-shadow (repaint). */
+.trips-journal__card-countdown-pulse::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: currentColor;
+  opacity: 0.6;
+  transform: scale(1);
+  animation: trips-pulse 1.6s var(--tj-ease) infinite;
+  will-change: transform, opacity;
+}
+
 @keyframes trips-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.6); }
-  70% { box-shadow: 0 0 0 8px rgba(255, 255, 255, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+  0%   { transform: scale(1);    opacity: 0.6; }
+  70%  { transform: scale(3.2);  opacity: 0; }
+  100% { transform: scale(3.2);  opacity: 0; }
 }
 
 .trips-journal__card-hero-foot {
@@ -9529,16 +9556,27 @@ html[data-motion='reduce'] .widget-todos__tab-indicator {
 
 .period-alert--close .period-alert__pulse {
   background: color-mix(in srgb, #3A3733 42%, #9f4d18 58%);
+  /* Ripple via ::after pseudo-element so we animate transform+opacity (GPU)
+     instead of box-shadow (forces repaint every frame). */
+  position: relative;
+}
+
+.period-alert--close .period-alert__pulse::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  border: 2px solid rgba(159, 77, 24, 0.35);
+  opacity: 0;
+  transform: scale(0.85);
   animation: period-alert-breathe 1.8s var(--ease-standard) infinite;
+  will-change: transform, opacity;
+  pointer-events: none;
 }
 
 @keyframes period-alert-breathe {
-  0%, 100% {
-    box-shadow: 0 0 0 2px rgba(159, 77, 24, 0.1);
-  }
-  50% {
-    box-shadow: 0 0 0 5px rgba(159, 77, 24, 0.18);
-  }
+  0%, 100% { transform: scale(0.85); opacity: 0.5; }
+  50%       { transform: scale(1.4);  opacity: 0; }
 }
 
 html[data-motion='reduce'] .period-alert__pulse {
@@ -9614,6 +9652,11 @@ html[data-motion='reduce'] .widget-todos__track {
   position: relative;
   border-radius: 14px;
   isolation: isolate;
+  /* will-change: transform only while the row is being dragged (set via JS class).
+     Permanent promotion for every row causes GPU layer explosion on long lists. */
+}
+
+.widget-todos__row.is-dragging {
   will-change: transform;
 }
 
@@ -12081,7 +12124,6 @@ html[data-motion='reduce'] .spend-fg__track {
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--motion-duration-medium) var(--ease-accelerate);
-  will-change: opacity;
 }
 
 .dialog--visible {
@@ -12109,10 +12151,11 @@ html[data-motion='reduce'] .spend-fg__track {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  will-change: transform, opacity;
 }
 
 .dialog--visible .dialog__panel {
+  /* Promote layer only when dialog is visible and animating. */
+  will-change: transform, opacity;
   transform: scale(1) translate3d(0, 0, 0);
   opacity: 1;
   transition: transform var(--motion-duration-slow) var(--ease-decelerate),
@@ -14465,16 +14508,25 @@ textarea:focus-visible,
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: box-shadow 0.6s ease;
+  position: relative;
 }
 
-.sidebar-podcast-player.is-playing .sidebar-podcast-player__cover {
+/* Pulse ring via ::after — transform+opacity (GPU) instead of box-shadow (repaint). */
+.sidebar-podcast-player.is-playing .sidebar-podcast-player__cover::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  border: 2px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  opacity: 0;
+  transform: scale(1);
   animation: spp-pulse 2.4s ease-in-out infinite;
+  will-change: transform, opacity;
 }
 
 @keyframes spp-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent); }
-  50%       { box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 16%, transparent); }
+  0%, 100% { transform: scale(1);   opacity: 0.7; }
+  50%       { transform: scale(1.6); opacity: 0; }
 }
 
 .sidebar-podcast-player.is-collapsed .sidebar-podcast-player__cover {
@@ -14639,12 +14691,27 @@ textarea:focus-visible,
 }
 
 .podcast-cover-outer.is-playing {
+  position: relative;
+}
+
+/* Glow ring via ::after so we use opacity (GPU) instead of box-shadow (repaint). */
+.podcast-cover-outer.is-playing::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  background: var(--pod-color, rgba(58, 55, 51, 0.15));
+  opacity: 0.4;
+  filter: blur(8px);
   animation: pod-cover-glow 3.5s ease-in-out infinite;
+  will-change: opacity;
+  pointer-events: none;
+  z-index: -1;
 }
 
 @keyframes pod-cover-glow {
-  0%, 100% { box-shadow: 0 0 0 2px var(--pod-color, rgba(58,55,51,0.12)), 0 6px 20px -2px var(--pod-color, rgba(58,55,51,0.18)); }
-  50%       { box-shadow: 0 0 0 3px var(--pod-color, rgba(58,55,51,0.22)), 0 10px 36px -2px var(--pod-color, rgba(58,55,51,0.40)); }
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 0.8; }
 }
 
 .podcast-eq {
@@ -17868,7 +17935,8 @@ html[data-theme='dark'] .login-modal__premium-badge {
   border-radius: 999px;
   background: linear-gradient(90deg, #b99d7a 0%, #7f6254 100%);
   transition: width 1s linear;
-  will-change: width;
+  /* width cannot be GPU-composited; will-change: width allocates a GPU layer
+     but width changes still run on the main thread — net cost, zero benefit. */
 }
 
 /* 6. Differentiate primary vs secondary buttons */
@@ -19142,4 +19210,34 @@ html[data-theme='dark'] .acct-edit-avatar-error {
   .acct-edit-avatar-actions {
     justify-content: center;
   }
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Global motion safety net
+   Covers animations that don't individually opt-in to prefers-reduced-motion.
+   Also wires up a CSS custom property that JS can toggle on visibilitychange
+   to pause all infinite animations when the tab is hidden (saves CPU/GPU/battery).
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* 1. Respect OS-level "Reduce Motion" setting globally. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    /* Kill long animation durations — one-shot transitions still play instantly. */
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    /* Keep transitions but make them instant (still communicates state change). */
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 2. Pause all animations when the tab is hidden (set by JS visibilitychange). */
+html[data-animations='paused'] *,
+html[data-animations='paused'] *::before,
+html[data-animations='paused'] *::after {
+  animation-play-state: paused !important;
 }

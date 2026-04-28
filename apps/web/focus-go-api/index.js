@@ -6,17 +6,27 @@ import { auth } from './auth/betterAuth.js'
 import userRouter from './routes/user.js'
 import syncRouter from './routes/sync.js'
 import paymentsRouter from './routes/payments.js'
+import membershipRouter from './routes/membership.js'
 import podcastsRouter from './routes/podcasts.js'
 import adminRouter from './routes/admin.js'
+import { createNewsRouter } from './routes/news.js'
+import { createNewsService } from './services/news.js'
 import db from './db/init.js'
 import { startNeteasePodcastSyncJob } from './services/podcasts.js'
 
 const ALLOWED_ORIGINS = [
   'https://app.nestflow.art',
+  'http://app.nestflow.art',
+  'https://api.nestflow.art',
+  'http://api.nestflow.art',
   'https://nestflow.art',
+  'http://nestflow.art',
   'https://www.nestflow.art',
+  'http://www.nestflow.art',
   'http://localhost:5173',
   'http://localhost:5174',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174',
 ]
 
 export const createApp = () => {
@@ -61,8 +71,13 @@ export const createApp = () => {
   app.use('/api/sync', syncRouter)
   app.use('/payments', paymentsRouter)
   app.use('/api/payments', paymentsRouter)
+  app.use('/membership', membershipRouter)
+  app.use('/api/membership', membershipRouter)
   app.use('/podcasts', podcastsRouter)
   app.use('/api/podcasts', podcastsRouter)
+  const newsRouter = createNewsRouter({ service: createNewsService({ db }) })
+  app.use('/news', newsRouter)
+  app.use('/api/news', newsRouter)
   app.use('/admin', adminRouter)
   app.use('/api/admin', adminRouter)
 

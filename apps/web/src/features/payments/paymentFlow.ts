@@ -1,5 +1,5 @@
 import { getAuth } from '../../store/auth'
-import { createZpayOrder, type CreateZpayOrderResponse, type PayType } from './paymentApi'
+import { createPaymentOrder, type CreatePaymentOrderResponse, type PayType, type PlanId } from './paymentApi'
 
 const PENDING_CHECKOUT_KEY = 'focusgo.pendingCheckout'
 
@@ -9,7 +9,7 @@ const PENDING_CHECKOUT_KEY = 'focusgo.pendingCheckout'
  * - If authenticated + qrcode available: returns order data so the caller can show a QR modal.
  * - If authenticated + only payUrl: navigates directly to the payment URL and returns null.
  */
-export const startPremiumCheckout = async (payType: PayType): Promise<CreateZpayOrderResponse | null> => {
+export const startPremiumCheckout = async (payType: PayType, planId: PlanId = 'pro_monthly'): Promise<CreatePaymentOrderResponse | null> => {
   const auth = getAuth()
   if (!auth?.accessToken) {
     sessionStorage.setItem(PENDING_CHECKOUT_KEY, payType)
@@ -17,7 +17,7 @@ export const startPremiumCheckout = async (payType: PayType): Promise<CreateZpay
     return null
   }
 
-  const order = await createZpayOrder(payType)
+  const order = await createPaymentOrder(planId, payType === 'alipay' ? 'zpay_alipay' : 'zpay_alipay')
 
   // Desktop: show QR code modal so user can scan instead of landing on WAP page
   if (order.qrcode) return order
