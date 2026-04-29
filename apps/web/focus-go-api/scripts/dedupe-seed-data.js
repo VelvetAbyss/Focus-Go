@@ -44,6 +44,15 @@ const TARGETS = [
     label: 'spendEntry(lunch)',
     match: (payload) => payload?.amount === 32 && payload?.note === 'Quick lunch between tasks',
   },
+  {
+    table: 'sync_trips',
+    label: 'trip(Tokyo demo)',
+    match: (payload) =>
+      payload?.title === 'Tokyo Trip'
+      && payload?.destination === 'Tokyo, Japan'
+      && payload?.startDate === '2026-05-08'
+      && payload?.endDate === '2026-05-14',
+  },
 ]
 
 const dedupePerUser = ({ table, label, match }) => {
@@ -95,6 +104,7 @@ const stampUsersAsSeeded = () => {
         OR EXISTS (SELECT 1 FROM sync_diary_entries d WHERE d.user_id = u.auth_user_id)
         OR EXISTS (SELECT 1 FROM sync_spends s WHERE s.user_id = u.auth_user_id)
         OR EXISTS (SELECT 1 FROM sync_spend_categories c WHERE c.user_id = u.auth_user_id)
+        OR EXISTS (SELECT 1 FROM sync_trips tr WHERE tr.user_id = u.auth_user_id)
       )
   `).all()
   console.log(`Users to stamp as seeded: ${candidates.length}`)

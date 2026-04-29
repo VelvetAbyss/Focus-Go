@@ -66,8 +66,16 @@ describe('feature tripsRepo', () => {
     await expect(tripsRepo.getById('trip_b')).resolves.toMatchObject({ id: 'trip_b' })
   })
 
-  it('creates the demo trip when storage is empty', async () => {
+  it('returns null when storage is empty', async () => {
     listMock.mockResolvedValue([])
+
+    const trip = await tripsRepo.getPrimary()
+
+    expect(createMock).not.toHaveBeenCalled()
+    expect(trip).toBeNull()
+  })
+
+  it('creates an empty trip only when requested explicitly', async () => {
     createMock.mockImplementation(async (input) => ({
       id: 'created',
       createdAt: 1,
@@ -75,9 +83,10 @@ describe('feature tripsRepo', () => {
       ...input,
     }))
 
-    const trip = await tripsRepo.getPrimary()
+    const trip = await tripsRepo.create()
 
     expect(createMock).toHaveBeenCalledTimes(1)
     expect(trip.id).toBe('created')
+    expect(trip.title).toBe('Untitled Trip')
   })
 })

@@ -10,6 +10,7 @@ export const SYNC_DATA_UPDATED_EVENT = 'focusgo:sync-data-updated'
 export type SyncDataUpdatedDetail = { topic: SyncEntityType | 'all' }
 
 export const dispatchSyncDataUpdated = (topic: SyncEntityType | 'all') => {
+  if (typeof window === 'undefined') return
   window.dispatchEvent(
     new CustomEvent<SyncDataUpdatedDetail>(SYNC_DATA_UPDATED_EVENT, { detail: { topic } }),
   )
