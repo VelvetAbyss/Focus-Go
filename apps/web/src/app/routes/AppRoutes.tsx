@@ -19,6 +19,7 @@ const SettingsRoute = lazy(() => import('./SettingsRoute'))
 const LabsPage = lazy(() => import('../../features/labs/pages/LabsPage'))
 const HabitTrackerPage = lazy(() => import('../../features/habits/pages/HabitTrackerPage'))
 const PremiumPricingPage = lazy(() => import('../../features/payments/pages/PremiumPricingPage'))
+const MembershipPage = lazy(() => import('../../features/payments/pages/MembershipPage'))
 const PaymentSuccessPage = lazy(() => import('../../features/payments/pages/PaymentSuccessPage'))
 const AdminPage = lazy(() => import('../../features/admin/pages/AdminPage'))
 
@@ -98,6 +99,7 @@ const AppRoutes = () => {
       <Route path={ROUTES.DIARY} element={<Suspense fallback={<RouteFallback />}><DiaryPage /></Suspense>} />
       <Route path={`${ROUTES.SETTINGS}/*`} element={<Suspense fallback={<RouteFallback />}><SettingsRoute /></Suspense>} />
       <Route path={ROUTES.LABS} element={<Suspense fallback={<RouteFallback />}><LabsPage /></Suspense>} />
+      <Route path={ROUTES.MEMBERSHIP} element={<Suspense fallback={<RouteFallback />}><MembershipPage /></Suspense>} />
       <Route path={ROUTES.PREMIUM} element={<Suspense fallback={<RouteFallback />}><PremiumPricingPage /></Suspense>} />
       <Route path={ROUTES.PREMIUM_SUCCESS} element={<Suspense fallback={<RouteFallback />}><PaymentSuccessPage /></Suspense>} />
       <Route path={ROUTES.HABITS} element={<GuardedHabitsRoute />} />

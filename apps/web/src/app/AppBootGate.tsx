@@ -2,10 +2,8 @@ import { useEffect, useState, type ReactNode } from 'react'
 import BrandLoader from '../shared/ui/loading/BrandLoader'
 import { usePreferences } from '../shared/prefs/usePreferences'
 import { loadLanguage } from '../shared/i18n/translator'
-import { seedDatabase } from '../data/seed'
 import { syncedPreferencesRepo } from '../data/repositories/syncedPreferencesRepo'
 import { applyTheme, resolveInitialTheme } from '../shared/theme/theme'
-import { useIsLoggedIn } from '../store/auth'
 import type { LanguageCode } from '../shared/i18n/types'
 import { installMotionVisibilityController } from '../shared/utils/motionVisibility'
 
@@ -23,7 +21,7 @@ const EXIT_MS = 320
 
 let bootPromise: Promise<void> | null = null
 
-const runBoot = (language: LanguageCode, isLoggedIn: boolean): Promise<void> => {
+const runBoot = (language: LanguageCode): Promise<void> => {
   if (bootPromise) return bootPromise
   const started = performance.now()
 
@@ -31,9 +29,6 @@ const runBoot = (language: LanguageCode, isLoggedIn: boolean): Promise<void> => 
 
   const work = Promise.allSettled([
     loadLanguage(language),
-    (async () => {
-      if (!isLoggedIn) await seedDatabase()
-    })(),
     syncedPreferencesRepo.hydrateLocalFromDb().then(() => applyTheme(resolveInitialTheme())),
   ])
 
@@ -49,13 +44,12 @@ const runBoot = (language: LanguageCode, isLoggedIn: boolean): Promise<void> => 
 
 const AppBootGate = ({ children }: { children: ReactNode }) => {
   const { language } = usePreferences()
-  const isLoggedIn = useIsLoggedIn()
   const [ready, setReady] = useState(false)
   const [exiting, setExiting] = useState(false)
 
   useEffect(() => {
     let cancelled = false
-    runBoot(language, isLoggedIn).then(() => {
+    runBoot(language).then(() => {
       if (cancelled) return
       setExiting(true)
       setTimeout(() => {

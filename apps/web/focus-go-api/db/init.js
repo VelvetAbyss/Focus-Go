@@ -34,6 +34,9 @@ const userColumns = db.prepare("PRAGMA table_info('users')").all().map((column) 
 if (!userColumns.includes('auth_user_id')) {
   db.exec('ALTER TABLE users ADD COLUMN auth_user_id TEXT')
 }
+if (!userColumns.includes('initial_seeded_at')) {
+  db.exec('ALTER TABLE users ADD COLUMN initial_seeded_at DATETIME')
+}
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS users_auth_user_id_idx ON users(auth_user_id)')
 
 db.exec(`

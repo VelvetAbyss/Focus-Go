@@ -3,6 +3,8 @@
     max-width: 100%;
     height: auto;
     display: block;
+    margin-inline: auto;
+    cursor: default;
   }
 
   p > img {
@@ -10,22 +12,116 @@
   }
 
   > img:not([data-type="emoji"] img) {
-    margin: 2rem 0;
     outline: 0.125rem solid transparent;
-    border-radius: var(--tt-radius-xs, 0.25rem);
+    border-radius: 0.5rem;
   }
 
   img:not([data-type="emoji"] img).ProseMirror-selectednode {
-    outline-color: var(--tt-brand-color-500);
+    box-shadow:
+      0 0 0 3px #F5F3F0,
+      0 0 0 5px rgba(58, 55, 51, 0.36);
+    outline-color: transparent;
+  }
+
+  .note-editor__image-node {
+    display: block;
+    margin-top: 1.5rem;
+    text-align: center;
+    user-select: none;
+  }
+
+  .note-editor__image-frame {
+    position: relative;
+    display: inline-flex;
+    max-width: 100%;
+    vertical-align: top;
+  }
+
+  .note-editor__image-frame img {
+    width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+    box-shadow: none;
+    transition:
+      box-shadow 120ms ease,
+      outline-color 120ms ease;
+  }
+
+  .note-editor__image-node.is-selected .note-editor__image-frame img {
+    box-shadow:
+      0 0 0 3px #F5F3F0,
+      0 0 0 5px rgba(58, 55, 51, 0.36);
+  }
+
+  .note-editor__image-resizer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .note-editor__image-resize-handle {
+    position: absolute;
+    z-index: 2;
+    width: 12px;
+    height: 12px;
+    padding: 0;
+    border: 1px solid #F5F3F0;
+    border-radius: 3px;
+    background: #3A3733;
+    box-shadow: 0 1px 4px rgba(58, 55, 51, 0.18);
+    pointer-events: auto;
+  }
+
+  .note-editor__image-resize-handle--nw {
+    top: -6px;
+    left: -6px;
+    cursor: nw-resize;
+  }
+
+  .note-editor__image-resize-handle--ne {
+    top: -6px;
+    right: -6px;
+    cursor: ne-resize;
+  }
+
+  .note-editor__image-resize-handle--sw {
+    bottom: -6px;
+    left: -6px;
+    cursor: sw-resize;
+  }
+
+  .note-editor__image-resize-handle--se {
+    right: -6px;
+    bottom: -6px;
+    cursor: se-resize;
+  }
+
+  .note-editor__image-caption {
+    display: block;
+    width: min(100%, 36rem);
+    margin: 0.625rem auto -0.25rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: rgba(58, 55, 51, 0.56);
+    font: inherit;
+    font-size: 0.9em;
+    line-height: 1.4;
+    text-align: center;
+    outline: none;
+  }
+
+  .note-editor__image-caption::placeholder {
+    color: rgba(58, 55, 51, 0.34);
   }
 
   // Thread image handling
   .tiptap-thread:has(> img) {
-    margin: 2rem 0;
+    margin: 1.5rem 0 0;
 
     img {
       outline: 0.125rem solid transparent;
-      border-radius: var(--tt-radius-xs, 0.25rem);
+      border-radius: 0.5rem;
     }
   }
 

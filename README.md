@@ -70,6 +70,8 @@ Focus&go uses a dual-track release model:
 - Stable releases for everyday use.
 - Prereleases for early testing and feedback.
 
+Version numbers follow the project rules in [VERSIONING.md](./VERSIONING.md).
+
 ## Project Structure
 
 ```text

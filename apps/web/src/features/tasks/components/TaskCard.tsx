@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useState } from 'react'
-import { Calendar, CircleCheck, Circle, ListChecks, Pin, PinOff, Play, RotateCcw, SunMedium, Trash2 } from 'lucide-react'
+import { Calendar, CircleCheck, Circle, FolderKanban, ListChecks, Pin, PinOff, Play, RotateCcw, SunMedium, Trash2 } from 'lucide-react'
 import type { CSSProperties, HTMLAttributes } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -7,8 +7,14 @@ import { useI18n } from '../../../shared/i18n/useI18n'
 import type { TaskItem } from '../tasks.types'
 import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, getTaskDeadlineState, getTaskPriorityKey, getTaskTagTone } from './taskPresentation'
 
+type TaskCardProject = {
+  id: string
+  title: string
+}
+
 type TaskCardProps = {
   task: TaskItem
+  project?: TaskCardProject | null
   onSelect: (task: TaskItem) => void
   onDelete?: (task: TaskItem) => void
   onTogglePin?: (task: TaskItem) => void
@@ -41,6 +47,7 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
   (
     {
       task,
+      project,
       onSelect,
       onDelete,
       onTogglePin,
@@ -181,8 +188,18 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
             ) : null}
           </div>
 
-          {task.tags.length > 0 ? (
+          {task.tags.length > 0 || project ? (
             <div className="flex flex-wrap items-center gap-1.5">
+              {project ? (
+                <span
+                  className="inline-flex max-w-[140px] items-center gap-1 rounded-full bg-[#F5F3F0] px-2 py-0.5 text-[11px] font-medium text-[#3A3733]"
+                  aria-label={t('tasks.card.projectBadgeAria', { title: project.title })}
+                  title={project.title}
+                >
+                  <FolderKanban className="size-3 shrink-0" />
+                  <span className="truncate">{project.title}</span>
+                </span>
+              ) : null}
               {displayTags.map((tag) => {
                 const tone = getTaskTagTone(tag)
                 return (

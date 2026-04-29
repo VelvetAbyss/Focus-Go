@@ -14,8 +14,10 @@ import { projectNoteLinksRepo } from '../../../data/repositories/projectNoteLink
 import { projectsRepo } from '../../../data/repositories/projectsRepo'
 import type { NoteItem, ProjectHealth, ProjectItem, ProjectPerson, TaskItem } from '../../../data/models/types'
 import { ROUTES } from '../../../app/routes/routes'
-import { PersonFormDialog, ProjectFormDialog, ProjectTaskDialog } from '../components/ProjectDialogs'
+import { PersonFormDialog, ProjectFormDialog } from '../components/ProjectDialogs'
 import { useProjectsI18n } from '../projectsI18n'
+import TaskDrawer from '../../tasks/TaskDrawer'
+import { emitTasksChanged, subscribeTasksChanged } from '../../tasks/taskSync'
 import '../projects.css'
 
 type ProjectTab = 'overview' | 'tasks' | 'timeline' | 'people' | 'notes'
@@ -46,8 +48,15 @@ const DAY_MS = 86400000
 
 const toDateString = (date: Date) => date.toISOString().slice(0, 10)
 
+const isValidDateString = (value: unknown): value is string => {
+  if (typeof value !== 'string' || !value) return false
+  const time = new Date(value).getTime()
+  return Number.isFinite(time)
+}
+
 const addDays = (dateString: string, days: number) => {
   const date = new Date(dateString)
+  if (!Number.isFinite(date.getTime())) return dateString
   date.setDate(date.getDate() + days)
   return toDateString(date)
 }
@@ -174,9 +183,9 @@ const ProjectDetailPage = () => {
   const [projectDialogOpen, setProjectDialogOpen] = useState(false)
   const [personDialogOpen, setPersonDialogOpen] = useState(false)
   const [editingPerson, setEditingPerson] = useState<ProjectPerson | null>(null)
-  const [taskDialogOpen, setTaskDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [editingTask, setEditingTask] = useState<TaskItem | null>(null)
+  const [drawerTask, setDrawerTask] = useState<TaskItem | null>(null)
+  const [allProjects, setAllProjects] = useState<ProjectItem[]>([])
   const [taskStatusFilter, setTaskStatusFilter] = useState<'all' | 'todo' | 'doing' | 'done'>('all')
   const [taskOwnerFilter, setTaskOwnerFilter] = useState<string>('all')
   const [timelineMode, setTimelineMode] = useState<TimelineMode>('month')
@@ -219,6 +228,54 @@ const ProjectDetailPage = () => {
   }
 
   useEffect(() => { void load() }, [projectId])
+
+  useEffect(() => {
+    void projectsRepo.list().then(setAllProjects)
+  }, [projectId])
+
+  useEffect(() => {
+    return subscribeTasksChanged(() => {
+      void load()
+      void projectsRepo.list().then(setAllProjects)
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId])
+
+  const openNewTask = async () => {
+    if (!projectId) return
+    const created = await tasksRepo.add({
+      title: i18n.dialog.taskTitlePlaceholder ?? 'New task',
+      status: 'todo',
+      priority: null,
+      projectId,
+      tags: [],
+      subtasks: [],
+      collaboratorIds: [],
+      dependencyTaskIds: [],
+      blockedByTaskIds: [],
+      isBlocked: false,
+    })
+    emitTasksChanged('project-detail:create-task')
+    setTasks((prev) => [...prev, created])
+    setDrawerTask(created)
+  }
+
+  const handleTaskUpdated = (updated: TaskItem) => {
+    setTasks((prev) => {
+      const exists = prev.some((task) => task.id === updated.id)
+      if (updated.projectId !== projectId) {
+        return prev.filter((task) => task.id !== updated.id)
+      }
+      if (!exists) return [...prev, updated]
+      return prev.map((task) => (task.id === updated.id ? updated : task))
+    })
+    setDrawerTask((prev) => (prev?.id === updated.id ? updated : prev))
+  }
+
+  const handleTaskDeleted = (id: string) => {
+    setTasks((prev) => prev.filter((task) => task.id !== id))
+    setDrawerTask((prev) => (prev?.id === id ? null : prev))
+  }
 
   const ownerMap = useMemo(() => new Map(people.map((p) => [p.id, p.name] as const)), [people])
 
@@ -268,8 +325,8 @@ const ProjectDetailPage = () => {
   // Timeline range calculation
   const timelineBaseRange = useMemo(() => {
     const sorted = sortByDate(tasks)
-    const starts = sorted.map((t) => t.startDate ?? t.dueDate).filter(Boolean) as string[]
-    const ends = sorted.map((t) => t.dueDate ?? t.startDate).filter(Boolean) as string[]
+    const starts = sorted.map((t) => t.startDate ?? t.dueDate).filter(isValidDateString)
+    const ends = sorted.map((t) => t.dueDate ?? t.startDate).filter(isValidDateString)
     if (!starts.length) return null
     return { min: starts[0], max: ends[ends.length - 1] ?? starts[starts.length - 1] }
   }, [tasks])
@@ -382,7 +439,7 @@ const ProjectDetailPage = () => {
               <Trash2 size={15} strokeWidth={2} />
               <span>{i18n.detail.delete}</span>
             </button>
-            <button type="button" className="pd-btn pd-btn--primary" onClick={() => setTaskDialogOpen(true)}>
+            <button type="button" className="pd-btn pd-btn--primary" onClick={() => void openNewTask()}>
               <Plus size={15} strokeWidth={2.2} />
               {i18n.detail.addTask}
             </button>
@@ -600,10 +657,7 @@ const ProjectDetailPage = () => {
                   <button
                     type="button"
                     className="pd-btn pd-btn--ghost"
-                    onClick={() => {
-                      setEditingTask(null)
-                      setTaskDialogOpen(true)
-                    }}
+                    onClick={() => void openNewTask()}
                   >
                     <Plus size={14} /> {i18n.detail.addTask}
                   </button>
@@ -621,17 +675,13 @@ const ProjectDetailPage = () => {
                       variants={slideUp}
                       className={`pd-task${isOverdue ? ' pd-task--overdue' : ''} pd-task--${task.status}`}
                       whileHover={{ y: -1, transition: { duration: 0.15 } }}
-                      onClick={() => {
-                        setEditingTask(task)
-                        setTaskDialogOpen(true)
-                      }}
+                      onClick={() => setDrawerTask(task)}
                       role="button"
                       tabIndex={0}
                       onKeyDown={(event) => {
                         if (event.key === 'Enter' || event.key === ' ') {
                           event.preventDefault()
-                          setEditingTask(task)
-                          setTaskDialogOpen(true)
+                          setDrawerTask(task)
                         }
                       }}
                     >
@@ -892,49 +942,13 @@ const ProjectDetailPage = () => {
         }}
       />
 
-      <ProjectTaskDialog
-        open={taskDialogOpen}
-        task={editingTask}
-        people={people}
-        onClose={async () => {
-          setTaskDialogOpen(false)
-          setEditingTask(null)
-          await load()
-        }}
-        onAutoSave={async (payload) => {
-          if (!editingTask) return
-          await tasksRepo.update({
-            ...editingTask,
-            title: payload.title,
-            description: payload.description,
-            status: payload.status,
-            priority: payload.priority,
-            ownerId: payload.ownerId,
-            startDate: payload.startDate,
-            dueDate: payload.dueDate,
-          })
-        }}
-        onSubmit={async (payload) => {
-          await tasksRepo.add({
-            title: payload.title,
-            description: payload.description,
-            status: payload.status,
-            priority: payload.priority,
-            projectId: project.id,
-            ownerId: payload.ownerId,
-            startDate: payload.startDate,
-            dueDate: payload.dueDate,
-            tags: [],
-            subtasks: [],
-            collaboratorIds: [],
-            dependencyTaskIds: [],
-            blockedByTaskIds: [],
-            isBlocked: false,
-          })
-          setTaskDialogOpen(false)
-          setEditingTask(null)
-          await load()
-        }}
+      <TaskDrawer
+        open={Boolean(drawerTask)}
+        task={drawerTask}
+        projects={allProjects}
+        onClose={() => setDrawerTask(null)}
+        onUpdated={handleTaskUpdated}
+        onDeleted={handleTaskDeleted}
       />
       <Dialog open={deleteDialogOpen} title={i18n.detail.deleteTitle} onClose={() => setDeleteDialogOpen(false)}>
         <div className="dialog__body">

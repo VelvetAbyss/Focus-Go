@@ -18,6 +18,21 @@ const turndown = new TurndownService({
 
 turndown.use(gfm)
 
+turndown.addRule('figureImageCaption', {
+  filter: (node) => node.nodeName === 'FIGURE' && Boolean((node as HTMLElement).querySelector('img')),
+  replacement: (_content, node) => {
+    const figure = node as HTMLElement
+    const image = figure.querySelector('img')
+    if (!image) return ''
+    const src = image.getAttribute('src') ?? ''
+    if (!src) return ''
+    const alt = image.getAttribute('alt') ?? ''
+    const caption = figure.querySelector('figcaption')?.textContent?.trim() ?? ''
+    const imageMarkdown = `![${alt}](${src})`
+    return caption ? `\n\n${imageMarkdown}\n\n_${caption}_\n\n` : `\n\n${imageMarkdown}\n\n`
+  },
+})
+
 const extensions = createRichTextExtensions()
 
 export const emptyRichDoc = (): JSONContent => ({
