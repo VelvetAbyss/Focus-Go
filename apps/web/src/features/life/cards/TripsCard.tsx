@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Calendar, ChevronRight, MapPin, Users, Wallet } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { buildTripDetailRoute, ROUTES } from '../../../app/routes/routes'
 import type { TripRecord } from '../../../data/models/types'
+import { useSyncDataRefresh } from '../../../data/sync/service'
 import { tripsRepo } from '../../trips/tripsRepo'
 import { checklistProgress, fmtUSD, statusColor, tripDuration } from '../../trips/tripData'
 import { useLifeI18n } from '../lifeI18n'
@@ -32,17 +33,22 @@ const TripsCard = () => {
           ? t('life.trips.status.active')
           : t('life.trips.status.completed')
 
-  useEffect(() => {
-    const loadTrip = async () => {
-      setLoading(true)
-      try {
-        setTrip(await tripsRepo.getDashboardTrip())
-      } finally {
-        setLoading(false)
-      }
+  const loadTrip = useCallback(async () => {
+    setLoading(true)
+    try {
+      setTrip(await tripsRepo.getDashboardTrip())
+    } finally {
+      setLoading(false)
     }
-    void loadTrip()
   }, [])
+
+  useEffect(() => {
+    void loadTrip()
+  }, [loadTrip])
+
+  useSyncDataRefresh(() => {
+    void loadTrip()
+  }, ['trips'])
 
   if (loading) {
     return (

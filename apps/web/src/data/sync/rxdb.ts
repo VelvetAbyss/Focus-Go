@@ -100,6 +100,7 @@ const openCollection = async (entityType: SyncEntityType) => {
     name: getDatabaseName(entityType),
     storage: getRxStorageDexie(),
     multiInstance: false,
+    closeDuplicates: true,
   })
   const collectionName = getCollectionName(entityType)
   const collections = await database.addCollections({
@@ -113,7 +114,7 @@ const openCollection = async (entityType: SyncEntityType) => {
 
 const closeDatabase = async (database: unknown) => {
   if (database && typeof (database as { close?: () => Promise<void> }).close === 'function') {
-    await Promise.race([(database as { close: () => Promise<void> }).close(), timeoutAfter(2_000)])
+    await (database as { close: () => Promise<void> }).close()
   }
 }
 
@@ -422,6 +423,7 @@ export const resetRxdbSyncDatabase = async () =>
         name: getDatabaseName(entityType),
         storage: getRxStorageDexie(),
         multiInstance: false,
+        closeDuplicates: true,
       })
       await database.remove()
     }

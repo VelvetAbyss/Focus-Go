@@ -17,6 +17,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { buildTripDetailRoute, ROUTES } from '../../app/routes/routes'
 import type { TripRecord, TripStatus } from '../../data/models/types'
+import { useSyncDataRefresh } from '../../data/sync/service'
 import {
   bookingReadiness,
   budgetActualOverrun,
@@ -81,6 +82,10 @@ const TripsPage = () => {
   useEffect(() => {
     void loadTrips()
   }, [])
+
+  useSyncDataRefresh(() => {
+    void loadTrips()
+  }, ['trips'])
 
   const handleCreate = async () => {
     setCreating(true)
