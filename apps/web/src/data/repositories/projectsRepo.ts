@@ -139,15 +139,16 @@ export const projectsRepo = {
       db.projectPeople.where('projectId').equals(id).toArray(),
       db.projectNoteLinks.where('projectId').equals(id).toArray(),
     ])
+    const updatedTasks = tasks.map((task) => ({ ...task, projectId: undefined, updatedAt: deletedAt }))
     await db.transaction('rw', db.projects, db.tasks, db.projectPeople, db.projectNoteLinks, async () => {
-      await db.tasks.bulkDelete(tasks.map((task) => task.id))
+      if (updatedTasks.length) await db.tasks.bulkPut(updatedTasks)
       await db.projectPeople.bulkDelete(people.map((person) => person.id))
       await db.projectNoteLinks.bulkDelete(noteLinks.map((link) => link.id))
       await db.projects.delete(id)
     })
     await Promise.all([
       enqueueSyncOperation('projects', 'delete', { id, updatedAt: deletedAt, title: project.title }, deletedAt),
-      ...tasks.map((task) => enqueueSyncOperation('tasks', 'delete', { id: task.id, updatedAt: deletedAt, title: task.title }, deletedAt)),
+      ...updatedTasks.map((task) => enqueueSyncOperation('tasks', 'upsert', task, deletedAt)),
       ...people.map((person) => enqueueSyncOperation('projectPeople', 'delete', { id: person.id, updatedAt: deletedAt, projectId: id }, deletedAt)),
       ...noteLinks.map((link) => enqueueSyncOperation('projectNoteLinks', 'delete', { id: link.id, updatedAt: deletedAt, projectId: id, noteId: link.noteId }, deletedAt)),
     ])

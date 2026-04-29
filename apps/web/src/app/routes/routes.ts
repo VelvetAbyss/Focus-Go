@@ -16,6 +16,7 @@ export const ROUTES = {
   SETTINGS_LEGAL_PRIVACY: '/workspace/settings/legal/privacy-policy',
   SETTINGS_LEGAL_TERMS: '/workspace/settings/legal/terms-of-service',
   LABS: '/labs',
+  MEMBERSHIP: '/membership',
   PREMIUM: '/premium',
   PREMIUM_SUCCESS: '/premium/success',
 } as const
@@ -26,7 +27,7 @@ export const LEGACY_ROUTES = {
   KNOWLEDGE: '/knowledge',
 } as const
 
-export type RouteKey = 'dashboard' | 'projects' | 'tasks' | 'note' | 'calendar' | 'trips' | 'focus' | 'diary' | 'settings' | 'labs' | 'admin'
+export type RouteKey = 'dashboard' | 'projects' | 'tasks' | 'note' | 'calendar' | 'trips' | 'focus' | 'diary' | 'settings' | 'labs' | 'admin' | 'membership'
 
 export type NavItem = {
   key: RouteKey
@@ -43,6 +44,7 @@ export const NAV_ITEMS: NavItem[] = [
   { key: 'trips', label: 'Trips', to: ROUTES.TRIPS },
   { key: 'focus', label: 'Focus', to: ROUTES.FOCUS },
   { key: 'diary', label: 'Diary', to: ROUTES.DIARY },
+  { key: 'membership', label: 'Membership', to: ROUTES.MEMBERSHIP },
   { key: 'settings', label: 'Settings', to: ROUTES.SETTINGS },
 ]
 
@@ -54,5 +56,6 @@ export const BASE_NAV_ITEMS: NavItem[] = [
   { key: 'trips', label: 'Trips', to: ROUTES.TRIPS },
   { key: 'focus', label: 'Focus', to: ROUTES.FOCUS },
   { key: 'diary', label: 'Diary', to: ROUTES.DIARY },
+  { key: 'membership', label: 'Membership', to: ROUTES.MEMBERSHIP },
   { key: 'settings', label: 'Settings', to: ROUTES.SETTINGS },
 ]

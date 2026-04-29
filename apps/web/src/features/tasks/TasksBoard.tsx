@@ -10,6 +10,8 @@ import {
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { tasksRepo } from '../../data/repositories/tasksRepo'
+import { projectsRepo } from '../../data/repositories/projectsRepo'
+import type { ProjectItem } from '../../data/models/types'
 import type { TaskItem, TaskPriority, TaskStatus } from './tasks.types'
 import TaskDrawer from './TaskDrawer'
 import Card from '../../shared/ui/Card'
@@ -82,6 +84,8 @@ const TasksBoard = ({
   const { t } = useI18n()
   const { requireAuth } = useAuthGate()
   const [tasks, setTasks] = useState<TaskItem[]>([])
+  const [projects, setProjects] = useState<ProjectItem[]>([])
+  const [bulkProjectDraft, setBulkProjectDraft] = useState('')
   const [activeTask, setActiveTask] = useState<TaskItem | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<TaskItem | null>(null)
   const [sortMode, setSortMode] = useState<SortMode>(() => {
@@ -109,14 +113,15 @@ const TasksBoard = ({
   const loadTasks = useCallback(async () => {
     const token = tasksReloadTokenRef.current + 1
     tasksReloadTokenRef.current = token
-    const items = await tasksRepo.list()
+    const [items, projectItems] = await Promise.all([tasksRepo.list(), projectsRepo.list()])
     if (tasksReloadTokenRef.current !== token) return
     setTasks(items)
+    setProjects(projectItems)
     setActiveTask((prev) => (prev ? items.find((item) => item.id === prev.id) ?? null : prev))
     setDeleteTarget((prev) => (prev ? items.find((item) => item.id === prev.id) ?? null : prev))
   }, [])
 
-  useSyncDataRefresh(loadTasks, ['tasks'])
+  useSyncDataRefresh(loadTasks, ['tasks', 'projects'])
 
   useEffect(() => {
     const bootstrap = async () => {
@@ -186,6 +191,12 @@ const TasksBoard = ({
     return ordered
   }, [tasks, topView, activeStatus, tagFilter, sortMode])
   const filteredTaskIds = useMemo(() => filteredTasks.map((task) => task.id), [filteredTasks])
+  const projectById = useMemo(() => {
+    const map = new Map<string, ProjectItem>()
+    projects.forEach((project) => map.set(project.id, project))
+    return map
+  }, [projects])
+  const activeProjects = useMemo(() => projects.filter((project) => project.status !== 'archived'), [projects])
   const selectedCount = selectedTaskIds.size
 
   const bulkTagOptions = useMemo(() => {
@@ -330,6 +341,23 @@ const TasksBoard = ({
     setSelectedTaskIds(new Set())
   }, [selectedTaskIds])
 
+  const handleBulkAssignProject = useCallback(async (rawValue: string) => {
+    if (selectedTaskIds.size === 0) return
+    const nextProjectId = rawValue === '__none__' ? undefined : rawValue
+    const selected = tasks.filter((task) => selectedTaskIds.has(task.id))
+    if (selected.length === 0) return
+    const updates = await Promise.all(
+      selected.map((task) => {
+        if ((task.projectId ?? undefined) === nextProjectId) return Promise.resolve(task)
+        return tasksRepo.update({ ...task, projectId: nextProjectId })
+      }),
+    )
+    const updatedById = new Map(updates.map((item) => [item.id, item]))
+    emitTasksChanged('tasks-board:bulk-assign-project')
+    setTasks((prev) => prev.map((task) => updatedById.get(task.id) ?? task))
+    setBulkProjectDraft('')
+  }, [selectedTaskIds, tasks])
+
   const handleBulkAddTag = useCallback(async () => {
     const nextTag = bulkTagDraft.trim()
     if (!nextTag || selectedTaskIds.size === 0) return
@@ -371,10 +399,16 @@ const TasksBoard = ({
                   asCard ? 'lg:grid-cols-2 xl:grid-cols-2' : 'lg:grid-cols-3 xl:grid-cols-4',
                 )}
               >
-                {filteredTasks.map((task) => (
+                {filteredTasks.map((task) => {
+                  const taskProject = task.projectId ? projectById.get(task.projectId) : undefined
+                  const cardProject = taskProject && taskProject.status !== 'archived'
+                    ? { id: taskProject.id, title: taskProject.title }
+                    : null
+                  return (
                   <TaskCard
                     key={task.id}
                     task={task}
+                    project={cardProject}
                     onSelect={setActiveTask}
                     onClick={(nextTask) => {
                       if (bulkMode) toggleTaskSelection(nextTask.id)
@@ -403,7 +437,8 @@ const TasksBoard = ({
                     selected={selectedTaskIds.has(task.id)}
                     selectionMode={bulkMode}
                   />
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}
@@ -548,6 +583,28 @@ const TasksBoard = ({
                         <Tag className="size-3.5" />
                       </button>
                     </div>
+                    <div className="inline-flex items-center gap-1">
+                      <ShadcnSelect
+                        value={bulkProjectDraft}
+                        onValueChange={(value) => {
+                          setBulkProjectDraft(value)
+                          void handleBulkAssignProject(value)
+                        }}
+                        disabled={selectedCount === 0}
+                      >
+                        <SelectTrigger aria-label={t('tasks.bulk.assignProject')} className="h-7 min-w-[128px] rounded border-[#3a3733]/12 bg-white px-2 text-xs">
+                          <SelectValue placeholder={t('tasks.bulk.assignProject')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">{t('tasks.drawer.projectUnassigned')}</SelectItem>
+                          {activeProjects.map((project) => (
+                            <SelectItem key={project.id} value={project.id}>
+                              {project.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </ShadcnSelect>
+                    </div>
                     <button type="button" aria-label={t('tasks.markDone')} className="tasks-fg__bulk-btn inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-[#3A3733]" onClick={() => void handleBulkMarkDone()} disabled={selectedCount === 0}>
                       <CheckSquare className="size-3.5" />
                       {t('tasks.markDone').split(' ').pop()}
@@ -611,6 +668,7 @@ const TasksBoard = ({
       <TaskDrawer
         open={Boolean(activeTask)}
         task={activeTask}
+        projects={projects}
         onClose={() => setActiveTask(null)}
         onUpdated={handleUpdateTask}
         onDeleted={(id) => setTasks((prev) => prev.filter((task) => task.id !== id))}

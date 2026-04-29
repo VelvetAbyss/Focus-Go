@@ -1,6 +1,6 @@
 import { type CSSProperties, useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { ArrowRight, Plus, Search } from 'lucide-react'
+import { ArrowRight, LayoutGrid, Plus, Rows3, Search, StretchHorizontal } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { db } from '../../../data/db'
 import { projectsRepo } from '../../../data/repositories/projectsRepo'
@@ -30,6 +30,14 @@ let hasAnimatedProjectsList = false
 let projectsListCache: { projects: ProjectItem[]; people: ProjectPerson[] } | null = null
 
 type StatusFilter = 'all' | ProjectItem['status']
+type ViewMode = 'detail' | 'grid' | 'list'
+
+const VIEW_STORAGE_KEY = 'projects_view_mode_v1'
+const readStoredView = (): ViewMode => {
+  if (typeof window === 'undefined') return 'detail'
+  const raw = window.localStorage.getItem(VIEW_STORAGE_KEY)
+  return raw === 'grid' || raw === 'list' || raw === 'detail' ? raw : 'detail'
+}
 
 const ProjectsPage = () => {
   const navigate = useNavigate()
@@ -43,6 +51,12 @@ const ProjectsPage = () => {
   const [healthFilter, setHealthFilter] = useState<'all' | ProjectHealth>('all')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingProject, setEditingProject] = useState<ProjectItem | null>(null)
+  const [viewMode, setViewMode] = useState<ViewMode>(() => readStoredView())
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem(VIEW_STORAGE_KEY, viewMode)
+  }, [viewMode])
 
   const load = async () => {
     setLoading((prev) => prev && !projectsListCache)
@@ -157,6 +171,35 @@ const ProjectsPage = () => {
               <option value="at-risk">{i18n.filter.atRisk}</option>
               <option value="blocked">{i18n.filter.blocked}</option>
             </select>
+            <div className="pj-view-toggle" role="group" aria-label="View mode">
+              <button
+                type="button"
+                className={`pj-view-toggle__btn${viewMode === 'detail' ? ' is-active' : ''}`}
+                onClick={() => setViewMode('detail')}
+                aria-label="Detail view"
+                aria-pressed={viewMode === 'detail'}
+              >
+                <StretchHorizontal size={14} strokeWidth={2} />
+              </button>
+              <button
+                type="button"
+                className={`pj-view-toggle__btn${viewMode === 'grid' ? ' is-active' : ''}`}
+                onClick={() => setViewMode('grid')}
+                aria-label="Grid view"
+                aria-pressed={viewMode === 'grid'}
+              >
+                <LayoutGrid size={14} strokeWidth={2} />
+              </button>
+              <button
+                type="button"
+                className={`pj-view-toggle__btn${viewMode === 'list' ? ' is-active' : ''}`}
+                onClick={() => setViewMode('list')}
+                aria-label="List view"
+                aria-pressed={viewMode === 'list'}
+              >
+                <Rows3 size={14} strokeWidth={2} />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -213,7 +256,7 @@ const ProjectsPage = () => {
 
       {/* ── Card list ───────────────────────────────────────────── */}
       <motion.div
-        className="pj-card-list"
+        className={`pj-card-list pj-card-list--${viewMode}`}
         variants={listStagger}
         initial={shouldAnimateIn ? 'hidden' : false}
         animate="show"
@@ -221,22 +264,90 @@ const ProjectsPage = () => {
         {filtered.map((project, index) => {
           const ownerName = project.ownerId ? (ownerMap.get(project.ownerId) ?? i18n.page.cardUnassigned) : i18n.page.cardUnassigned
           const timeline = `${project.startDate ?? i18n.page.cardTBD} – ${project.dueDate ?? i18n.page.cardTBD}`
+          const healthSlug = project.health === 'on-track' ? 'track' : project.health === 'at-risk' ? 'risk' : 'blocked'
+          const goNav = () => navigate(`/projects/${project.id}`)
+          const onKey = (e: React.KeyboardEvent) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goNav() }
+          }
 
+          if (viewMode === 'list') {
+            return (
+              <motion.div
+                key={project.id}
+                className={`pj-row pj-row--${healthSlug}`}
+                style={{ '--pj-i': index } as CSSProperties}
+                variants={cardVariant}
+                onClick={goNav}
+                role="button"
+                tabIndex={0}
+                onKeyDown={onKey}
+              >
+                <span className={`pj-row__health-dot pj-row__health-dot--${healthSlug}`} aria-label={labelHealth(project.health)} />
+                <h3 className="pj-row__title">{project.title}</h3>
+                {project.priority ? (
+                  <span className={`pj-row__pri pj-row__pri--${project.priority}`}>{project.priority}</span>
+                ) : <span />}
+                <span className={`pj-row__status pj-row__status--${project.status}`}>{labelStatus(project.status)}</span>
+                <span className="pj-row__owner">{ownerName}</span>
+                <span className="pj-row__timeline">{timeline}</span>
+                <div className="pj-row__progress">
+                  <div className="pj-progress pj-progress--thin">
+                    <span className="pj-progress__fill" style={{ width: `${project.progress}%` }} />
+                  </div>
+                  <span className="pj-row__pct">{project.progress}%</span>
+                </div>
+                <ArrowRight size={13} className="pj-row__arrow" />
+              </motion.div>
+            )
+          }
+
+          if (viewMode === 'grid') {
+            return (
+              <motion.div
+                key={project.id}
+                className="pj-tile"
+                style={{ '--pj-i': index } as CSSProperties}
+                variants={cardVariant}
+                onClick={goNav}
+                role="button"
+                tabIndex={0}
+                onKeyDown={onKey}
+              >
+                <div className="pj-tile__topbar">
+                  <span className={`pj-badge pj-badge--${healthSlug}`}>{labelHealth(project.health)}</span>
+                  <span className="pj-tile__pct">{project.progress}%</span>
+                </div>
+                <h3 className="pj-tile__title">{project.title}</h3>
+                {(project.goal || project.description) ? (
+                  <p className="pj-tile__goal">{project.goal || project.description}</p>
+                ) : null}
+                <div className="pj-progress pj-progress--thin">
+                  <span className="pj-progress__fill" style={{ width: `${project.progress}%` }} />
+                </div>
+                <div className="pj-tile__footer">
+                  <span className={`pj-badge-status pj-badge-status--${project.status}`}>{labelStatus(project.status)}</span>
+                  <span className="pj-tile__owner">{ownerName}</span>
+                </div>
+              </motion.div>
+            )
+          }
+
+          // detail (default — original layout)
           return (
             <motion.div
               key={project.id}
               className="pj-card"
               style={{ '--pj-i': index } as CSSProperties}
               variants={cardVariant}
-              onClick={() => navigate(`/projects/${project.id}`)}
+              onClick={goNav}
               role="button"
               tabIndex={0}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/projects/${project.id}`) } }}
+              onKeyDown={onKey}
             >
               {/* badges + progress % */}
               <div className="pj-card__toprow">
                 <div className="pj-card__badges">
-                  <span className={`pj-badge pj-badge--${project.health === 'on-track' ? 'track' : project.health === 'at-risk' ? 'risk' : 'blocked'}`}>
+                  <span className={`pj-badge pj-badge--${healthSlug}`}>
                     {labelHealth(project.health)}
                   </span>
                   <span className={`pj-badge-status pj-badge-status--${project.status}`}>

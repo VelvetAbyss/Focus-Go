@@ -23,6 +23,7 @@ import { tasksRepo } from '../../data/repositories/tasksRepo'
 import { createId } from '../../shared/utils/ids'
 import { useToast } from '../../shared/ui/toast/toast'
 import type { TaskItem, TaskPriority } from './tasks.types'
+import type { ProjectItem } from '../../data/models/types'
 import { useAddInputComposer } from '../../shared/hooks/useAddInputComposer'
 import { Popover, PopoverContent, PopoverTrigger } from '../../shared/ui/popover'
 import { emitTasksChanged } from './taskSync'
@@ -37,11 +38,14 @@ import PremiumMark from '../premium/PremiumMark'
 type TaskDrawerProps = {
   open: boolean
   task: TaskItem | null
+  projects?: ProjectItem[]
   onClose: () => void
   onUpdated: (task: TaskItem) => void
   onDeleted: (id: string) => void
   onRequestDelete?: (task: TaskItem) => void
 }
+
+const PROJECT_NONE_VALUE = '__none__'
 
 const priorityOptions: TaskPriority[] = ['high', 'medium', 'low']
 const defaultTagOptions = ['work', 'life', 'health', 'study', 'finance', 'family']
@@ -115,6 +119,7 @@ const localizeActivityMessage = (
 const TaskDrawer = ({
   open,
   task,
+  projects = [],
   onClose,
   onUpdated,
   onDeleted,
@@ -136,6 +141,7 @@ const TaskDrawer = ({
   const [tagOptions, setTagOptions] = useState<string[]>(defaultTagOptions)
   const [tagDraft, setTagDraft] = useState('')
   const [tagPickerOpen, setTagPickerOpen] = useState(false)
+  const [projectId, setProjectId] = useState<string | undefined>(undefined)
   const [subtasks, setSubtasks] = useState<TaskItem['subtasks']>([])
   const [subtaskFilter, setSubtaskFilter] = useState<SubtaskFilter>('todo')
   const [taskNoteSeed, setTaskNoteSeed] = useState<TaskNoteValue>({
@@ -178,6 +184,7 @@ const TaskDrawer = ({
     startDate: string
     endDate: string
     reminderAt?: number
+    projectId?: string
     tags: string[]
     subtasks: TaskItem['subtasks']
     taskNoteContentMd?: TaskItem['taskNoteContentMd']
@@ -227,6 +234,7 @@ const TaskDrawer = ({
       return Array.from(map.values())
     })
     setTagDraft('')
+    setProjectId(task.projectId ?? undefined)
     setSubtasks(task.subtasks)
     setSubtaskFilter('todo')
     const nextTaskNote = resolveTaskNoteRichText(task)
@@ -241,6 +249,7 @@ const TaskDrawer = ({
       startDate: task.startDate ?? '',
       endDate: task.endDate ?? '',
       reminderAt: task.reminderAt,
+      projectId: task.projectId ?? undefined,
       tags: task.tags,
       subtasks: task.subtasks,
       taskNoteContentMd: task.taskNoteContentMd,
@@ -260,13 +269,14 @@ const TaskDrawer = ({
       startDate: startDate || undefined,
       endDate: endDate || undefined,
       reminderAt: combineReminderDateTime(reminderDate, reminderTime),
+      projectId,
       tags,
       subtasks,
       taskNoteBlocks: [],
       taskNoteContentMd: taskNoteRef.current.contentMd,
       taskNoteContentJson: taskNoteRef.current.contentJson,
     }
-  }, [description, dueDate, endDate, isToday, priority, reminderDate, reminderTime, startDate, subtasks, tags, title])
+  }, [description, dueDate, endDate, isToday, priority, projectId, reminderDate, reminderTime, startDate, subtasks, tags, title])
 
   const isDraftDirty = useCallback((nextDraft: TaskItem) => {
     const baseline = baselineRef.current
@@ -279,6 +289,7 @@ const TaskDrawer = ({
     if ((nextDraft.startDate ?? '') !== (baseline.startDate ?? '')) return true
     if ((nextDraft.endDate ?? '') !== (baseline.endDate ?? '')) return true
     if (nextDraft.reminderAt !== baseline.reminderAt) return true
+    if ((nextDraft.projectId ?? undefined) !== (baseline.projectId ?? undefined)) return true
     if (!equalStringArrays(nextDraft.tags, baseline.tags)) return true
     if (!equalSubtasks(nextDraft.subtasks, baseline.subtasks)) return true
     if ((nextDraft.taskNoteContentMd ?? '') !== (baseline.taskNoteContentMd ?? '')) return true
@@ -313,6 +324,7 @@ const TaskDrawer = ({
           startDate: next.startDate ?? '',
           endDate: next.endDate ?? '',
           reminderAt: next.reminderAt,
+          projectId: next.projectId ?? undefined,
           tags: next.tags,
           subtasks: next.subtasks,
           taskNoteContentMd: next.taskNoteContentMd,
@@ -572,6 +584,14 @@ const TaskDrawer = ({
   const doneCount = subtasks.filter((s) => s.done).length
   const allDone = subtasks.length > 0 && doneCount === subtasks.length
 
+  const activeProjectOptions = useMemo(() => projects.filter((project) => project.status !== 'archived'), [projects])
+  const currentProject = projectId ? projects.find((project) => project.id === projectId) : undefined
+  const showOrphanProjectOption = Boolean(projectId && (!currentProject || currentProject.status === 'archived'))
+  const orphanProjectLabel = currentProject
+    ? `${currentProject.title} ${t('tasks.drawer.projectArchivedSuffix')}`
+    : t('tasks.drawer.projectMissing')
+  const projectSelectValue = projectId ?? PROJECT_NONE_VALUE
+
   return (
     <Dialog
       open={open}
@@ -728,6 +748,29 @@ const TaskDrawer = ({
                           {priorityOptions.map((option) => (
                             <SelectItem key={option} value={option}>
                               {t(TASK_PRIORITY_CONFIG[option].labelKey)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </ShadcnSelect>
+
+                      <ShadcnSelect
+                        value={projectSelectValue}
+                        onValueChange={(value) => setProjectId(value === PROJECT_NONE_VALUE ? undefined : value)}
+                      >
+                        <SelectTrigger
+                          aria-label={t('tasks.drawer.project')}
+                          className="task-detail-select-trigger h-7 w-auto min-w-0 max-w-[200px] gap-1.5 rounded-full border px-3 text-[11px] font-semibold"
+                        >
+                          <SelectValue placeholder={t('tasks.drawer.projectUnassigned')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={PROJECT_NONE_VALUE}>{t('tasks.drawer.projectUnassigned')}</SelectItem>
+                          {showOrphanProjectOption && projectId ? (
+                            <SelectItem value={projectId}>{orphanProjectLabel}</SelectItem>
+                          ) : null}
+                          {activeProjectOptions.map((project) => (
+                            <SelectItem key={project.id} value={project.id}>
+                              {project.title}
                             </SelectItem>
                           ))}
                         </SelectContent>
