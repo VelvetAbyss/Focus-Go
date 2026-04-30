@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import {
@@ -423,253 +424,288 @@ const MembershipPage = () => {
 
   return (
     <>
-      <section className="relative min-h-full overflow-hidden bg-[#F5F3F0] text-[#3A3733]">
+      <section
+        className="relative -m-[18px] flex flex-col overflow-hidden bg-[#F5F3F0] text-[#3A3733]"
+        style={{ minHeight: 'calc(var(--shell-content-height) + 36px)' }}
+      >
         {/* warm vignette */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0"
+          className="pointer-events-none absolute inset-0 z-0"
           style={{ background: 'radial-gradient(120% 60% at 80% -10%, rgba(194,83,46,0.10), transparent 55%), radial-gradient(120% 80% at -10% 110%, rgba(58,55,51,0.08), transparent 60%)' }}
         />
 
-        <div className="relative mx-auto flex max-w-[1180px] flex-col gap-16 px-8 pb-24 pt-12 lg:px-14">
-          {/* masthead */}
-          <header className="flex items-center justify-between border-b border-[#3A3733]/15 pb-5">
-            <Link
-              to={ROUTES.DASHBOARD}
-              className="font-mono text-[11px] uppercase tracking-[0.28em] text-[#3A3733]/60 transition hover:text-[#3A3733]"
-            >
-              ← {COPY.back[lang]}
-            </Link>
-            <div className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.28em] text-[#3A3733]/45">
-              <span>{COPY.edition[lang]}</span>
-              <span className="h-1 w-1 rounded-full bg-[#3A3733]/40" />
-              <span>FG · MEMBERSHIP</span>
-            </div>
-          </header>
+        {/* two-column layout */}
+        <div className="relative z-[1] flex min-h-0 flex-1 flex-col lg:flex-row">
 
-          {/* hero */}
-          <motion.div
-            initial="initial"
-            animate="animate"
-            transition={{ staggerChildren: 0.08, delayChildren: 0.05 }}
-            className="flex flex-col gap-6"
-          >
-            <motion.p
-              variants={fadeUp}
-              transition={{ duration: 0.45 }}
-              className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.32em] text-[#C2532E]"
-            >
-              <span className="inline-flex items-center gap-1.5">
-                <Crown size={12} strokeWidth={2.2} />
-                {COPY.eyebrow[lang]}
-              </span>
-              <span className="h-px flex-1 bg-[#3A3733]/15" />
-              <span className="font-mono text-[10px] tracking-[0.28em] text-[#3A3733]/45">03 PLANS</span>
-            </motion.p>
+          {/* ── LEFT COLUMN — scrollable content ── */}
+          <div className="min-w-0 flex-1 overflow-y-auto">
+            <div className="mx-auto flex max-w-[760px] flex-col gap-14 px-8 pb-24 pt-12 lg:px-12">
 
-            <motion.h1
-              variants={fadeUp}
-              transition={{ duration: 0.55 }}
-              className="max-w-[14ch] whitespace-pre-line font-display text-[58px] leading-[0.96] tracking-[-0.025em] text-[#3A3733] md:text-[88px]"
-              style={{ fontFamily: 'var(--font-display, "Fraunces", serif)', fontVariationSettings: '"opsz" 144' }}
-            >
-              {COPY.headline[lang]}
-            </motion.h1>
-
-            <motion.div
-              variants={fadeUp}
-              transition={{ duration: 0.5 }}
-              className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-end"
-            >
-              <p className="max-w-[58ch] text-[15px] leading-7 text-[#3A3733]/70">
-                {COPY.lede[lang]}
-              </p>
-              {/* current plan status */}
-              {(isLifetime || entitlement === 'lifetime') ? (
-                <div className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[#3A3733]/20 bg-[#3A3733] px-3 py-1.5 text-[12px] text-[#F5F3F0]">
-                  <InfinityIcon size={13} />
-                  {COPY.statusLifetime[lang]}
+              {/* masthead */}
+              <header className="flex items-center justify-between border-b border-[#3A3733]/15 pb-5">
+                <Link
+                  to={ROUTES.DASHBOARD}
+                  className="font-mono text-[11px] uppercase tracking-[0.28em] text-[#3A3733]/60 transition hover:text-[#3A3733]"
+                >
+                  ← {COPY.back[lang]}
+                </Link>
+                <div className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.28em] text-[#3A3733]/45">
+                  <span>{COPY.edition[lang]}</span>
+                  <span className="h-1 w-1 rounded-full bg-[#3A3733]/40" />
+                  <span>FG · MEMBERSHIP</span>
                 </div>
-              ) : isPro ? (
-                <div className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[#1f7a4a]/25 bg-[#1f7a4a]/8 px-3 py-1.5 text-[12px] text-[#1f7a4a]">
-                  <CheckCircle2 size={13} />
-                  {expiresAt
-                    ? `${COPY.statusProExpiry[lang]} ${formatExpiry(expiresAt, lang)}`
-                    : COPY.statusPro[lang]}
-                </div>
-              ) : (
-                <div className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[#3A3733]/15 bg-[#3A3733]/6 px-3 py-1.5 text-[12px] text-[#3A3733]/65">
-                  <Crown size={13} />
-                  {COPY.statusFree[lang]}
-                </div>
-              )}
-            </motion.div>
-          </motion.div>
+              </header>
 
-          {/* free vs pro comparison */}
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.18 }}
-            className="overflow-hidden rounded-[8px] border border-[#3A3733]/12 bg-[#FBFAF7]"
-          >
-            <div className="grid grid-cols-[1fr_80px_80px] items-center border-b border-[#3A3733]/10 px-6 py-4">
-              <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#3A3733]/45">{COPY.compareTitle[lang]}</span>
-              <span className="text-center font-mono text-[10px] uppercase tracking-[0.2em] text-[#3A3733]/45">{COPY.compareFree[lang]}</span>
-              <span className="text-center font-mono text-[10px] uppercase tracking-[0.2em] text-[#C2532E]">{COPY.comparePro[lang]}</span>
-            </div>
-            {COMPARE_ROWS.map((row, i) => (
-              <div
-                key={row.en}
-                className={[
-                  'grid grid-cols-[1fr_80px_80px] items-center px-6 py-3',
-                  i < COMPARE_ROWS.length - 1 ? 'border-b border-[#3A3733]/6' : '',
-                  !row.free ? 'bg-[#F5F3F0]/40' : '',
-                ].join(' ')}
+              {/* hero */}
+              <motion.div
+                initial="initial"
+                animate="animate"
+                transition={{ staggerChildren: 0.08, delayChildren: 0.05 }}
+                className="flex flex-col gap-6"
               >
-                <span className="text-[13px] text-[#3A3733]/78">{row[lang]}</span>
-                <span className="flex justify-center">
-                  {row.free
-                    ? <CheckCircle2 size={14} className="text-[#3A3733]/55" />
-                    : <span className="inline-block h-px w-4 bg-[#3A3733]/20" />}
-                </span>
-                <span className="flex justify-center">
-                  {row.pro
-                    ? <CheckCircle2 size={14} className="text-[#C2532E]" />
-                    : <span className="inline-block h-px w-4 bg-[#3A3733]/20" />}
-                </span>
-              </div>
-            ))}
-          </motion.div>
+                <motion.p
+                  variants={fadeUp}
+                  transition={{ duration: 0.45 }}
+                  className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.32em] text-[#C2532E]"
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    <Crown size={12} strokeWidth={2.2} />
+                    {COPY.eyebrow[lang]}
+                  </span>
+                  <span className="h-px flex-1 bg-[#3A3733]/15" />
+                  <span className="font-mono text-[10px] tracking-[0.28em] text-[#3A3733]/45">03 PLANS</span>
+                </motion.p>
 
-          {/* plans */}
-          <motion.div
-            initial="initial"
-            animate="animate"
-            transition={{ staggerChildren: 0.1, delayChildren: 0.15 }}
-            className="grid gap-5 lg:grid-cols-3"
-          >
-            {PLANS.map((p) => {
-              const active = p.id === selectedPlanId
-              const recommended = Boolean(p.recommended)
-              return (
-                <motion.button
-                  key={p.id}
-                  type="button"
-                  onClick={() => setSelectedPlanId(p.id)}
+                <motion.h1
+                  variants={fadeUp}
+                  transition={{ duration: 0.55 }}
+                  className="max-w-[14ch] whitespace-pre-line font-display text-[52px] leading-[0.96] tracking-[-0.025em] text-[#3A3733] md:text-[72px]"
+                  style={{ fontFamily: 'var(--font-display, "Fraunces", serif)', fontVariationSettings: '"opsz" 144' }}
+                >
+                  {COPY.headline[lang]}
+                </motion.h1>
+
+                <motion.div
                   variants={fadeUp}
                   transition={{ duration: 0.5 }}
-                  whileHover={{ y: -3 }}
-                  className={[
-                    'group relative flex flex-col items-stretch rounded-[6px] border bg-[#FBFAF7] p-7 text-left transition-all',
-                    'shadow-[0_2px_0_rgba(58,55,51,0.04),0_18px_46px_-28px_rgba(58,55,51,0.35)]',
-                    active
-                      ? 'border-[#3A3733] ring-1 ring-[#3A3733]'
-                      : 'border-[#3A3733]/12 hover:border-[#3A3733]/30',
-                    recommended ? 'lg:-translate-y-3 lg:py-9' : '',
-                  ].join(' ')}
+                  className="flex flex-col items-start gap-4"
                 >
-                  {recommended ? (
-                    <div className="absolute -right-3 -top-3 rotate-[8deg] select-none rounded-[2px] border border-[#C2532E] bg-[#C2532E] px-3.5 py-1 font-mono text-[10px] uppercase tracking-[0.32em] text-[#F5F3F0] shadow-[0_10px_24px_rgba(194,83,46,0.35)]">
-                      ★ {COPY.recommended[lang]}
+                  <p className="max-w-[52ch] text-[15px] leading-7 text-[#3A3733]/70">
+                    {COPY.lede[lang]}
+                  </p>
+                  {/* current plan status */}
+                  {(isLifetime || entitlement === 'lifetime') ? (
+                    <div className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[#3A3733]/20 bg-[#3A3733] px-3 py-1.5 text-[12px] text-[#F5F3F0]">
+                      <InfinityIcon size={13} />
+                      {COPY.statusLifetime[lang]}
                     </div>
-                  ) : null}
+                  ) : isPro ? (
+                    <div className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[#1f7a4a]/25 bg-[#1f7a4a]/8 px-3 py-1.5 text-[12px] text-[#1f7a4a]">
+                      <CheckCircle2 size={13} />
+                      {expiresAt
+                        ? `${COPY.statusProExpiry[lang]} ${formatExpiry(expiresAt, lang)}`
+                        : COPY.statusPro[lang]}
+                    </div>
+                  ) : (
+                    <div className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[#3A3733]/15 bg-[#3A3733]/6 px-3 py-1.5 text-[12px] text-[#3A3733]/65">
+                      <Crown size={13} />
+                      {COPY.statusFree[lang]}
+                    </div>
+                  )}
+                </motion.div>
+              </motion.div>
 
-                  <div className="flex items-start justify-between">
-                    <span className="font-mono text-[11px] uppercase tracking-[0.28em] text-[#3A3733]/45">{p.number}</span>
-                    <span className="rounded-full border border-[#3A3733]/15 px-2.5 py-0.5 text-[10px] uppercase tracking-[0.18em] text-[#3A3733]/60">
-                      {p.badge[lang]}
-                    </span>
-                  </div>
-
-                  <h2
-                    className="mt-7 font-display text-[34px] leading-[1.05] tracking-[-0.015em]"
-                    style={{ fontFamily: 'var(--font-display, "Fraunces", serif)', fontVariationSettings: '"opsz" 96' }}
+              {/* free vs pro comparison */}
+              <motion.div
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.18 }}
+                className="overflow-hidden rounded-[8px] border border-[#3A3733]/12 bg-[#FBFAF7]"
+              >
+                <div className="grid grid-cols-[1fr_80px_80px] items-center border-b border-[#3A3733]/10 px-6 py-4">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#3A3733]/45">{COPY.compareTitle[lang]}</span>
+                  <span className="text-center font-mono text-[10px] uppercase tracking-[0.2em] text-[#3A3733]/45">{COPY.compareFree[lang]}</span>
+                  <span className="text-center font-mono text-[10px] uppercase tracking-[0.2em] text-[#C2532E]">{COPY.comparePro[lang]}</span>
+                </div>
+                {COMPARE_ROWS.map((row, i) => (
+                  <div
+                    key={row.en}
+                    className={[
+                      'grid grid-cols-[1fr_80px_80px] items-center px-6 py-3',
+                      i < COMPARE_ROWS.length - 1 ? 'border-b border-[#3A3733]/6' : '',
+                      !row.free ? 'bg-[#F5F3F0]/40' : '',
+                    ].join(' ')}
                   >
-                    {p.title[lang]}
-                  </h2>
-
-                  <div className="mt-4 flex items-baseline gap-2">
-                    <span
-                      className="font-display text-[52px] leading-none tracking-[-0.03em]"
-                      style={{ fontFamily: 'var(--font-display, "Fraunces", serif)', fontVariationSettings: '"opsz" 144' }}
-                    >
-                      {channel === 'alipay' ? `¥${p.cny}` : `$${p.usd}`}
+                    <span className="text-[13px] text-[#3A3733]/78">{row[lang]}</span>
+                    <span className="flex justify-center">
+                      {row.free
+                        ? <CheckCircle2 size={14} className="text-[#3A3733]/55" />
+                        : <span className="inline-block h-px w-4 bg-[#3A3733]/20" />}
                     </span>
-                    <span className="text-[12px] uppercase tracking-[0.18em] text-[#3A3733]/55">
-                      {p.cadence[lang]}
+                    <span className="flex justify-center">
+                      {row.pro
+                        ? <CheckCircle2 size={14} className="text-[#C2532E]" />
+                        : <span className="inline-block h-px w-4 bg-[#3A3733]/20" />}
                     </span>
                   </div>
-                  {p.cnyEach && channel === 'alipay' ? (
-                    <p className="mt-1 font-mono text-[11px] tracking-[0.18em] text-[#3A3733]/50">{p.cnyEach[lang]}</p>
-                  ) : null}
+                ))}
+              </motion.div>
 
-                  <p className="mt-5 text-[13.5px] leading-6 text-[#3A3733]/68">{p.blurb[lang]}</p>
-
-                  <div className="mt-6 border-t border-dashed border-[#3A3733]/15 pt-5">
-                    <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#3A3733]/45">
-                      {COPY.perks[lang]}
-                    </p>
-                    <ul className="mt-3 space-y-2.5">
-                      {p.perks.map((perk) => (
-                        <li key={perk.en} className="flex items-start gap-2.5 text-[13.5px] leading-6 text-[#3A3733]/82">
-                          <span className="mt-2 inline-block h-1 w-1 shrink-0 rounded-full bg-[#C2532E]" />
-                          {perk[lang]}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="mt-7 flex items-center justify-between">
-                    <span
+              {/* plans */}
+              <motion.div
+                initial="initial"
+                animate="animate"
+                transition={{ staggerChildren: 0.1, delayChildren: 0.15 }}
+                className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3"
+              >
+                {PLANS.map((p) => {
+                  const active = p.id === selectedPlanId
+                  const recommended = Boolean(p.recommended)
+                  return (
+                    <motion.button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setSelectedPlanId(p.id)}
+                      variants={fadeUp}
+                      transition={{ duration: 0.5 }}
+                      whileHover={{ y: -3 }}
                       className={[
-                        'inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.24em]',
-                        active ? 'text-[#3A3733]' : 'text-[#3A3733]/50',
+                        'group relative flex flex-col items-stretch rounded-[6px] border bg-[#FBFAF7] p-7 text-left transition-all',
+                        'shadow-[0_2px_0_rgba(58,55,51,0.04),0_18px_46px_-28px_rgba(58,55,51,0.35)]',
+                        active
+                          ? 'border-[#3A3733] ring-1 ring-[#3A3733]'
+                          : 'border-[#3A3733]/12 hover:border-[#3A3733]/30',
+                        recommended ? 'sm:-translate-y-2 sm:py-9' : '',
                       ].join(' ')}
                     >
-                      {active ? (
-                        <>
-                          <CheckCircle2 size={13} />
-                          {lang === 'zh' ? '已选定' : 'Selected'}
-                        </>
-                      ) : (
-                        <>
-                          {COPY.choose[lang]}
-                          <ArrowUpRight size={13} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                        </>
-                      )}
-                    </span>
-                  </div>
-                </motion.button>
-              )
-            })}
-          </motion.div>
+                      {recommended ? (
+                        <div className="absolute -right-3 -top-3 rotate-[8deg] select-none rounded-[2px] border border-[#C2532E] bg-[#C2532E] px-3.5 py-1 font-mono text-[10px] uppercase tracking-[0.32em] text-[#F5F3F0] shadow-[0_10px_24px_rgba(194,83,46,0.35)]">
+                          ★ {COPY.recommended[lang]}
+                        </div>
+                      ) : null}
 
-          {/* checkout */}
+                      <div className="flex items-start justify-between">
+                        <span className="font-mono text-[11px] uppercase tracking-[0.28em] text-[#3A3733]/45">{p.number}</span>
+                        <span className="rounded-full border border-[#3A3733]/15 px-2.5 py-0.5 text-[10px] uppercase tracking-[0.18em] text-[#3A3733]/60">
+                          {p.badge[lang]}
+                        </span>
+                      </div>
+
+                      <h2
+                        className="mt-7 font-display text-[30px] leading-[1.05] tracking-[-0.015em]"
+                        style={{ fontFamily: 'var(--font-display, "Fraunces", serif)', fontVariationSettings: '"opsz" 96' }}
+                      >
+                        {p.title[lang]}
+                      </h2>
+
+                      <div className="mt-4 flex items-baseline gap-2">
+                        <span
+                          className="font-display text-[44px] leading-none tracking-[-0.03em]"
+                          style={{ fontFamily: 'var(--font-display, "Fraunces", serif)', fontVariationSettings: '"opsz" 144' }}
+                        >
+                          {channel === 'alipay' ? `¥${p.cny}` : `$${p.usd}`}
+                        </span>
+                        <span className="text-[12px] uppercase tracking-[0.18em] text-[#3A3733]/55">
+                          {p.cadence[lang]}
+                        </span>
+                      </div>
+                      {p.cnyEach && channel === 'alipay' ? (
+                        <p className="mt-1 font-mono text-[11px] tracking-[0.18em] text-[#3A3733]/50">{p.cnyEach[lang]}</p>
+                      ) : null}
+
+                      <p className="mt-5 text-[13.5px] leading-6 text-[#3A3733]/68">{p.blurb[lang]}</p>
+
+                      <div className="mt-6 border-t border-dashed border-[#3A3733]/15 pt-5">
+                        <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#3A3733]/45">
+                          {COPY.perks[lang]}
+                        </p>
+                        <ul className="mt-3 space-y-2.5">
+                          {p.perks.map((perk) => (
+                            <li key={perk.en} className="flex items-start gap-2.5 text-[13.5px] leading-6 text-[#3A3733]/82">
+                              <span className="mt-2 inline-block h-1 w-1 shrink-0 rounded-full bg-[#C2532E]" />
+                              {perk[lang]}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div className="mt-7 flex items-center justify-between">
+                        <span
+                          className={[
+                            'inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.24em]',
+                            active ? 'text-[#3A3733]' : 'text-[#3A3733]/50',
+                          ].join(' ')}
+                        >
+                          {active ? (
+                            <>
+                              <CheckCircle2 size={13} />
+                              {lang === 'zh' ? '已选定' : 'Selected'}
+                            </>
+                          ) : (
+                            <>
+                              {COPY.choose[lang]}
+                              <ArrowUpRight size={13} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                            </>
+                          )}
+                        </span>
+                      </div>
+                    </motion.button>
+                  )
+                })}
+              </motion.div>
+
+            </div>
+          </div>
+
+          {/* ── RIGHT COLUMN — sticky checkout sidebar ── */}
           <motion.div
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, delay: 0.45 }}
-            className="grid overflow-hidden rounded-[8px] border border-[#3A3733]/12 bg-[#FBFAF7] shadow-[0_30px_80px_-60px_rgba(58,55,51,0.45)]"
-            style={{ gridTemplateColumns: 'minmax(0, 1.45fr) minmax(0, 1fr)' }}
+            initial={{ opacity: 0, x: 24 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.55, delay: 0.3 }}
+            className="flex shrink-0 flex-col border-t border-[#3A3733]/12 bg-[#3A3733] text-[#F5F3F0] lg:w-[360px] lg:border-l lg:border-t-0"
           >
-              {/* left: channel picker + summary */}
-              <div className="border-r border-[#3A3733]/10 p-8">
-                <div className="flex items-baseline justify-between">
-                  <h3
-                    className="font-display text-[28px] leading-none tracking-[-0.01em]"
-                    style={{ fontFamily: 'var(--font-display, "Fraunces", serif)', fontVariationSettings: '"opsz" 96' }}
+            <div className="flex flex-1 flex-col overflow-y-auto p-8">
+              {/* header */}
+              <div className="flex items-baseline justify-between">
+                <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-[#F5F3F0]/50">
+                  {lang === 'zh' ? '结算' : 'Checkout'}
+                </p>
+                <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#F5F3F0]/35">02 / 02</span>
+              </div>
+
+              {/* order summary */}
+              <div className="mt-6">
+                <h3
+                  className="font-display text-[28px] leading-[1.05] tracking-[-0.01em]"
+                  style={{ fontFamily: 'var(--font-display, "Fraunces", serif)', fontVariationSettings: '"opsz" 96' }}
+                >
+                  {selectedPlan.title[lang]}
+                </h3>
+                <p className="mt-1 text-[12.5px] text-[#F5F3F0]/55">{selectedPlan.cadence[lang]}</p>
+
+                <div className="mt-6 flex items-end justify-between border-t border-dashed border-[#F5F3F0]/18 pt-5">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#F5F3F0]/50">
+                    {selectedChannel.label[lang]} · {selectedChannel.currency}
+                  </span>
+                  <span
+                    className="font-display text-[42px] leading-none tracking-[-0.03em]"
+                    style={{ fontFamily: 'var(--font-display, "Fraunces", serif)', fontVariationSettings: '"opsz" 144' }}
                   >
-                    {COPY.channelTitle[lang]}
-                  </h3>
-                  <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#3A3733]/45">02 / 02</span>
+                    {displaySymbol}{displayPrice}
+                  </span>
                 </div>
-                <p className="mt-2 max-w-[44ch] text-[13px] leading-6 text-[#3A3733]/64">
+              </div>
+
+              {/* channel picker */}
+              <div className="mt-8">
+                <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#F5F3F0]/50">
+                  {COPY.channelTitle[lang]}
+                </p>
+                <p className="mt-1.5 text-[12px] leading-5 text-[#F5F3F0]/45">
                   {COPY.channelLede[lang]}
                 </p>
-
-                {/* tabs */}
-                <div className="mt-6 inline-flex rounded-[6px] border border-[#3A3733]/15 bg-[#F5F3F0] p-1">
+                <div className="mt-4 inline-flex rounded-[6px] border border-[#F5F3F0]/15 bg-[#F5F3F0]/8 p-1">
                   {CHANNELS.map((c) => {
                     const active = channel === c.id
                     return (
@@ -680,8 +716,8 @@ const MembershipPage = () => {
                         className={[
                           'inline-flex items-center gap-2 rounded-[4px] px-4 py-2 text-[12px] uppercase tracking-[0.2em] transition',
                           active
-                            ? 'bg-[#3A3733] text-[#F5F3F0] shadow-[0_4px_14px_-6px_rgba(58,55,51,0.55)]'
-                            : 'text-[#3A3733]/55 hover:text-[#3A3733]',
+                            ? 'bg-[#F5F3F0] text-[#3A3733] shadow-[0_4px_14px_-6px_rgba(0,0,0,0.35)]'
+                            : 'text-[#F5F3F0]/55 hover:text-[#F5F3F0]',
                         ].join(' ')}
                       >
                         {c.id === 'alipay' ? <ScanLine size={13} /> : <Globe2 size={13} />}
@@ -690,77 +726,52 @@ const MembershipPage = () => {
                     )
                   })}
                 </div>
-
-                <p className="mt-3 text-[12px] text-[#3A3733]/55">{selectedChannel.hint[lang]}</p>
-
-                <div className="mt-8 grid grid-cols-2 gap-4">
-                  {ASSURANCES.map((a) => (
-                    <div key={a.en} className="flex items-start gap-2.5 text-[12px] leading-5 text-[#3A3733]/68">
-                      <a.icon size={14} className="mt-0.5 shrink-0 text-[#3A3733]/55" />
-                      <span>{a[lang]}</span>
-                    </div>
-                  ))}
-                </div>
+                <p className="mt-3 text-[12px] text-[#F5F3F0]/40">{selectedChannel.hint[lang]}</p>
               </div>
 
-              {/* right: summary + cta */}
-              <div className="relative flex flex-col justify-between bg-[#3A3733] p-8 text-[#F5F3F0]">
-                <div className="relative">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-[#F5F3F0]/55">
-                    {lang === 'zh' ? '订单摘要' : 'Order summary'}
-                  </p>
-                  <h4
-                    className="mt-4 font-display text-[30px] leading-[1.05] tracking-[-0.01em]"
-                    style={{ fontFamily: 'var(--font-display, "Fraunces", serif)', fontVariationSettings: '"opsz" 96' }}
-                  >
-                    {selectedPlan.title[lang]}
-                  </h4>
-                  <p className="mt-1 text-[12.5px] text-[#F5F3F0]/62">{selectedPlan.cadence[lang]}</p>
-
-                  <div className="mt-7 flex items-end justify-between border-t border-dashed border-[#F5F3F0]/22 pt-5">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#F5F3F0]/55">
-                      {selectedChannel.label[lang]} · {selectedChannel.currency}
-                    </span>
-                    <span
-                      className="font-display text-[44px] leading-none tracking-[-0.03em]"
-                      style={{ fontFamily: 'var(--font-display, "Fraunces", serif)', fontVariationSettings: '"opsz" 144' }}
-                    >
-                      {displaySymbol}{displayPrice}
-                    </span>
+              {/* assurances */}
+              <div className="mt-8 space-y-3 border-t border-dashed border-[#F5F3F0]/15 pt-6">
+                {ASSURANCES.map((a) => (
+                  <div key={a.en} className="flex items-start gap-2.5 text-[12px] leading-5 text-[#F5F3F0]/50">
+                    <a.icon size={13} className="mt-0.5 shrink-0 text-[#F5F3F0]/40" />
+                    <span>{a[lang]}</span>
                   </div>
-                </div>
-
-                <div className="relative mt-8">
-                  {channel === 'alipay' ? (
-                    <button
-                      type="button"
-                      onClick={handleAlipay}
-                      disabled={loading}
-                      className="group inline-flex w-full items-center justify-between gap-3 rounded-[4px] bg-[#F5F3F0] px-5 py-4 text-[#3A3733] transition hover:bg-white disabled:opacity-70"
-                    >
-                      <span className="inline-flex items-center gap-2 font-mono text-[12px] uppercase tracking-[0.24em]">
-                        {loading ? <LoaderCircle size={14} className="animate-spin" /> : <Sparkles size={14} className="text-[#C2532E]" />}
-                        {loading ? COPY.paying[lang] : COPY.pay[lang]}
-                      </span>
-                      <ArrowUpRight size={16} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                    </button>
-                  ) : (
-                    <div className="rounded-[4px] bg-[#F5F3F0] p-3">
-                      <PayPalCheckoutButton planId={selectedPlan.id} />
-                    </div>
-                  )}
-
-                  {errorMsg ? <p className="mt-3 text-[12px] text-[#F1A488]">{errorMsg}</p> : null}
-
-                  <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.22em] text-[#F5F3F0]/45">
-                    {COPY.fineprint[lang]}
-                  </p>
-                </div>
+                ))}
               </div>
+
+              {/* pay button */}
+              <div className="mt-auto pt-8">
+                {channel === 'alipay' ? (
+                  <button
+                    type="button"
+                    onClick={handleAlipay}
+                    disabled={loading}
+                    className="group inline-flex w-full items-center justify-between gap-3 rounded-[4px] bg-[#F5F3F0] px-5 py-4 text-[#3A3733] transition hover:bg-white disabled:opacity-70"
+                  >
+                    <span className="inline-flex items-center gap-2 font-mono text-[12px] uppercase tracking-[0.24em]">
+                      {loading ? <LoaderCircle size={14} className="animate-spin" /> : <Sparkles size={14} className="text-[#C2532E]" />}
+                      {loading ? COPY.paying[lang] : COPY.pay[lang]}
+                    </span>
+                    <ArrowUpRight size={16} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                  </button>
+                ) : (
+                  <div className="rounded-[4px] bg-[#F5F3F0] p-3">
+                    <PayPalCheckoutButton planId={selectedPlan.id} />
+                  </div>
+                )}
+
+                {errorMsg ? <p className="mt-3 text-[12px] text-[#F1A488]">{errorMsg}</p> : null}
+
+                <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.22em] text-[#F5F3F0]/35">
+                  {COPY.fineprint[lang]}
+                </p>
+              </div>
+            </div>
           </motion.div>
+
         </div>
       </section>
-      {qrOrder ? <QrModal order={qrOrder} onClose={() => setQrOrder(null)} lang={lang} /> : null}
+      {qrOrder ? createPortal(<QrModal order={qrOrder} onClose={() => setQrOrder(null)} lang={lang} />, document.body) : null}
     </>
   )
 }
