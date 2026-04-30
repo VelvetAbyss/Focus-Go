@@ -133,7 +133,21 @@ const CHANNELS: Array<{
 const ASSURANCES = [
   { icon: ShieldCheck, en: 'Secure payment · server-verified webhooks', zh: '安全支付 · 服务端校验回调' },
   { icon: Lock, en: 'No card info touches our servers', zh: '我们不接触你的卡片信息' },
-  { icon: InfinityIcon, en: 'Cancel renewal anytime in Settings', zh: '随时在设置中关闭续费' },
+  { icon: InfinityIcon, en: 'Rights stack on purchase · no auto-renewal', zh: '权益叠加，无自动续费' },
+]
+
+type CompareRow = { free: boolean; pro: boolean; en: string; zh: string }
+const COMPARE_ROWS: CompareRow[] = [
+  { free: true,  pro: true,  en: 'Tasks · Notes · Diary',            zh: '任务、笔记与日记' },
+  { free: true,  pro: true,  en: 'Focus Timer',                      zh: '专注计时器' },
+  { free: true,  pro: true,  en: 'Local data storage',               zh: '本地数据存储' },
+  { free: true,  pro: true,  en: 'Import & Export',                  zh: '数据导入导出' },
+  { free: false, pro: true,  en: 'Cloud sync across devices',        zh: '多设备云端同步' },
+  { free: false, pro: true,  en: 'Habit Tracker',                    zh: '习惯追踪器' },
+  { free: false, pro: true,  en: 'Project workspace',                zh: '项目工作区' },
+  { free: false, pro: true,  en: 'Premium dashboard widgets',        zh: '高级仪表盘组件' },
+  { free: false, pro: true,  en: 'Labs priority access',             zh: '实验室新功能优先体验' },
+  { free: false, pro: true,  en: 'Advanced focus & yearly review',   zh: '高级专注与年度回顾' },
 ]
 
 const detectInitialChannel = (lang: Lang): Channel => {
@@ -204,6 +218,13 @@ const COPY = {
     zh: '价格含适用税费。退款依据已公布的退款政策处理。',
   },
   back: { en: 'Back to dashboard', zh: '返回仪表盘' },
+  statusFree: { en: 'Free plan · local storage only', zh: 'Free 计划 · 仅本地存储' },
+  statusPro: { en: 'Pro · Active', zh: 'Pro · 已激活' },
+  statusProExpiry: { en: 'Pro · expires', zh: 'Pro · 到期' },
+  statusLifetime: { en: 'Lifetime · Permanent entitlement', zh: '终身买断 · 永久权益' },
+  compareTitle: { en: 'Free vs Pro', zh: 'Free 与 Pro 对比' },
+  compareFree: { en: 'Free', zh: 'Free' },
+  comparePro: { en: 'Pro', zh: 'Pro' },
 }
 
 const QrModal = ({ order, onClose, lang }: { order: CreatePaymentOrderResponse; onClose: () => void; lang: Lang }) => {
@@ -335,12 +356,27 @@ const PayPalCheckoutButton = ({ planId }: { planId: PlanId }) => {
   )
 }
 
+const formatExpiry = (expiresAt: string | null, lang: Lang): string => {
+  if (!expiresAt) return ''
+  try {
+    return new Date(expiresAt).toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+  } catch {
+    return expiresAt
+  }
+}
+
 const MembershipPage = () => {
   const { language } = usePreferences()
   const lang = pickLang(language)
   const { t } = useI18n()
   const plan = useAuthPlan()
   const isPro = plan === 'premium'
+  // getAuth() is safe here — useAuthPlan() already subscribes to auth changes,
+  // so this component re-renders whenever auth updates.
+  const authRaw = getAuth() as { entitlement?: string; expiresAt?: string | null; isLifetime?: boolean } | null
+  const entitlement = authRaw?.entitlement ?? 'free'
+  const expiresAt = authRaw?.expiresAt ?? null
+  const isLifetime = authRaw?.isLifetime ?? false
   const [selectedPlanId, setSelectedPlanId] = useState<PlanId>('pro_yearly')
   const [channel, setChannel] = useState<Channel>(() => detectInitialChannel(lang))
   const [loading, setLoading] = useState(false)
@@ -442,13 +478,62 @@ const MembershipPage = () => {
               <p className="max-w-[58ch] text-[15px] leading-7 text-[#3A3733]/70">
                 {COPY.lede[lang]}
               </p>
-              {isPro ? (
-                <div className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[#1f7a4a]/25 bg-[#1f7a4a]/8 px-3 py-1.5 text-[12px] text-[#1f7a4a]">
-                  <CheckCircle2 size={14} />
-                  {COPY.alreadyPro[lang]}
+              {/* current plan status */}
+              {(isLifetime || entitlement === 'lifetime') ? (
+                <div className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[#3A3733]/20 bg-[#3A3733] px-3 py-1.5 text-[12px] text-[#F5F3F0]">
+                  <InfinityIcon size={13} />
+                  {COPY.statusLifetime[lang]}
                 </div>
-              ) : null}
+              ) : isPro ? (
+                <div className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[#1f7a4a]/25 bg-[#1f7a4a]/8 px-3 py-1.5 text-[12px] text-[#1f7a4a]">
+                  <CheckCircle2 size={13} />
+                  {expiresAt
+                    ? `${COPY.statusProExpiry[lang]} ${formatExpiry(expiresAt, lang)}`
+                    : COPY.statusPro[lang]}
+                </div>
+              ) : (
+                <div className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[#3A3733]/15 bg-[#3A3733]/6 px-3 py-1.5 text-[12px] text-[#3A3733]/65">
+                  <Crown size={13} />
+                  {COPY.statusFree[lang]}
+                </div>
+              )}
             </motion.div>
+          </motion.div>
+
+          {/* free vs pro comparison */}
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.18 }}
+            className="overflow-hidden rounded-[8px] border border-[#3A3733]/12 bg-[#FBFAF7]"
+          >
+            <div className="grid grid-cols-[1fr_80px_80px] items-center border-b border-[#3A3733]/10 px-6 py-4">
+              <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#3A3733]/45">{COPY.compareTitle[lang]}</span>
+              <span className="text-center font-mono text-[10px] uppercase tracking-[0.2em] text-[#3A3733]/45">{COPY.compareFree[lang]}</span>
+              <span className="text-center font-mono text-[10px] uppercase tracking-[0.2em] text-[#C2532E]">{COPY.comparePro[lang]}</span>
+            </div>
+            {COMPARE_ROWS.map((row, i) => (
+              <div
+                key={row.en}
+                className={[
+                  'grid grid-cols-[1fr_80px_80px] items-center px-6 py-3',
+                  i < COMPARE_ROWS.length - 1 ? 'border-b border-[#3A3733]/6' : '',
+                  !row.free ? 'bg-[#F5F3F0]/40' : '',
+                ].join(' ')}
+              >
+                <span className="text-[13px] text-[#3A3733]/78">{row[lang]}</span>
+                <span className="flex justify-center">
+                  {row.free
+                    ? <CheckCircle2 size={14} className="text-[#3A3733]/55" />
+                    : <span className="inline-block h-px w-4 bg-[#3A3733]/20" />}
+                </span>
+                <span className="flex justify-center">
+                  {row.pro
+                    ? <CheckCircle2 size={14} className="text-[#C2532E]" />
+                    : <span className="inline-block h-px w-4 bg-[#3A3733]/20" />}
+                </span>
+              </div>
+            ))}
           </motion.div>
 
           {/* plans */}
