@@ -9,6 +9,7 @@ import paymentsRouter from './routes/payments.js'
 import membershipRouter from './routes/membership.js'
 import podcastsRouter from './routes/podcasts.js'
 import adminRouter from './routes/admin.js'
+import feedbackRouter from './routes/feedback.js'
 import seedRouter from './routes/seed.js'
 import { createNewsRouter } from './routes/news.js'
 import { createNewsService } from './services/news.js'
@@ -81,6 +82,8 @@ export const createApp = () => {
   app.use('/api/news', newsRouter)
   app.use('/admin', adminRouter)
   app.use('/api/admin', adminRouter)
+  app.use('/feedback', feedbackRouter)
+  app.use('/api/feedback', feedbackRouter)
   app.use('/seed', seedRouter)
   app.use('/api/seed', seedRouter)
 

@@ -3,7 +3,7 @@ import db from '../db/init.js'
 import { auth } from '../auth/betterAuth.js'
 import { getMembershipStatus } from '../services/payments.js'
 
-const TRIAL_DAYS = 7
+const TRIAL_DAYS = 14
 const TRIAL_DURATION_MS = TRIAL_DAYS * 24 * 60 * 60 * 1000
 
 const normalizePremiumStatus = (user) => {
