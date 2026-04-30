@@ -35,6 +35,14 @@ export type PaymentOrderStatus = {
   isLifetime?: boolean
 }
 
+export class RegionMismatchError extends Error {
+  readonly preferredChannel: PaymentChannel
+  constructor(preferredChannel: PaymentChannel) {
+    super('channel unavailable for region')
+    this.preferredChannel = preferredChannel
+  }
+}
+
 const getAccessToken = () => {
   const auth = getAuth()
   if (!auth?.accessToken) throw new Error('missing access token')
@@ -66,7 +74,18 @@ export const createPaymentOrder = async (planId: PlanId, channel: PaymentChannel
     },
     body: JSON.stringify({ planId, channel }),
   })
-  if (!response.ok) throw new Error('failed to create order')
+  if (!response.ok) {
+    try {
+      const body = await response.json() as { error?: string; preferredChannel?: string }
+      if (body.preferredChannel && ['zpay_alipay', 'paypal_checkout'].includes(body.preferredChannel)) {
+        throw new RegionMismatchError(body.preferredChannel as PaymentChannel)
+      }
+      if (body.error) throw new Error(body.error)
+    } catch (e) {
+      if (e instanceof RegionMismatchError) throw e
+    }
+    throw new Error(`failed to create order (${response.status})`)
+  }
   return await response.json() as CreatePaymentOrderResponse
 }
 

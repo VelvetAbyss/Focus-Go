@@ -23,6 +23,7 @@ import {
   capturePaypalOrder,
   createPaymentOrder,
   fetchPaymentOrderStatus,
+  RegionMismatchError,
   type CreatePaymentOrderResponse,
   type PlanId,
 } from '../paymentApi'
@@ -404,7 +405,12 @@ const MembershipPage = () => {
       if (order.qrcode) setQrOrder(order)
       else if (order.payUrl || order.img) window.location.assign(order.payUrl ?? order.img!)
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'Failed to open Alipay checkout')
+      if (err instanceof RegionMismatchError) {
+        setChannel(err.preferredChannel === 'paypal_checkout' ? 'paypal' : 'alipay')
+        setErrorMsg(lang === 'zh' ? '当前地区不支持支付宝，已切换至 PayPal。' : 'Alipay unavailable in your region — switched to PayPal.')
+      } else {
+        setErrorMsg(err instanceof Error ? err.message : 'Failed to open Alipay checkout')
+      }
     } finally {
       setLoading(false)
     }
