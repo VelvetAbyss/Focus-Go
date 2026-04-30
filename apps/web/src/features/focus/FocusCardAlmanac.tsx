@@ -504,12 +504,19 @@ const FocusCardAlmanac = () => {
   const minutes = Math.floor(timerState.remainingSeconds / 60)
   const seconds = timerState.remainingSeconds % 60
   const timeText = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+  const [endsAtBaseMs, setEndsAtBaseMs] = useState(0)
+
+  useEffect(() => {
+    if (timerState.status === 'running') {
+      setEndsAtBaseMs(Date.now())
+    }
+  }, [timerState.status, timerState.remainingSeconds])
 
   const endsAtText = useMemo(() => {
-    if (timerState.status !== 'running') return ''
-    const at = Date.now() + timerState.remainingSeconds * 1000
+    if (timerState.status !== 'running' || !endsAtBaseMs) return ''
+    const at = endsAtBaseMs + timerState.remainingSeconds * 1000
     return new Date(at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-  }, [timerState.status, timerState.remainingSeconds])
+  }, [endsAtBaseMs, timerState.status, timerState.remainingSeconds])
 
   useEffect(() => {
     const onMove = (event: MouseEvent) => {

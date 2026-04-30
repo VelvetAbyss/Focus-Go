@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, lazy, Suspense, useCallback, useContext, useState, type ReactNode } from 'react'
 import { useIsLoggedIn } from '../../store/auth'
 import { isLocalhostRuntime } from '../../shared/env/localhost'

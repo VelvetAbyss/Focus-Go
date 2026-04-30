@@ -7,6 +7,8 @@ export default defineConfig({
   plugins: [react()],
   test: {
     exclude: ['focus-go-api/**', '.claude/**'],
+    setupFiles: ['./src/test/setup.ts'],
+    testTimeout: 10000,
   },
   server: {
     port: 5174,
