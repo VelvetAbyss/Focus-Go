@@ -233,7 +233,7 @@ describe('NotePage', () => {
     renderPage()
 
     await waitFor(() => expect(createMock).not.toHaveBeenCalled())
-    expect(await screen.findByText('Editor:Untitled')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'notes.unselected.title' })).toBeInTheDocument()
   })
 
   it('auto creates the first note when user starts typing in an empty workspace', async () => {
@@ -244,7 +244,7 @@ describe('NotePage', () => {
 
     renderPage()
 
-    await userEvent.click(screen.getByRole('button', { name: 'Change note' }))
+    await userEvent.click(screen.getAllByRole('button', { name: 'modules.note.new' })[0])
     await waitFor(() => expect(createMock).toHaveBeenCalledTimes(1))
     expect(await screen.findByText('Editor:Updated title')).toBeInTheDocument()
   })

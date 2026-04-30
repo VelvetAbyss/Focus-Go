@@ -21,7 +21,7 @@ describe('TaskAddComposer', () => {
 
     const input = screen.getByPlaceholderText('Add a new task...')
     await user.type(input, '  New task  ')
-    await user.click(screen.getByRole('button', { name: 'Add' }))
+    await user.click(screen.getByRole('button', { name: /Add/ }))
 
     expect(onSubmit).toHaveBeenCalledWith('New task')
     expect(input).toHaveValue('')

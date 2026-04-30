@@ -63,8 +63,8 @@ describe('NewsDashboard', () => {
 
     render(<NewsDashboard />)
 
-    await waitFor(() => expect(screen.getByText('No stories yet')).toBeInTheDocument())
-    await waitFor(() => expect(screen.getByText('刷新失败')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('暂无来源')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('暂时无法加载')).toBeInTheDocument())
   })
 
   it('persists source preferences when sources are toggled', async () => {
@@ -75,7 +75,8 @@ describe('NewsDashboard', () => {
 
     render(<NewsDashboard />)
 
-    fireEvent.click(await screen.findByRole('button', { name: /来源/ }))
+    const [sourceManagerButton] = await screen.findAllByRole('button', { name: '管理来源' })
+    fireEvent.click(sourceManagerButton)
     const manager = screen.getByLabelText('Manage news sources')
     fireEvent.click(within(manager).getByRole('button', { name: /GitHub/ }))
 

@@ -47,12 +47,10 @@ describe('TasksAnalyticsView', () => {
 
     const { container } = render(<TasksAnalyticsView tasks={tasks} />)
 
-    expect(container.querySelector('.tasks-analytics')).not.toHaveClass('overflow-y-auto')
-    expect(container.querySelector('.tasks-analytics__scroller')).toHaveClass('overflow-y-auto')
-    expect(container.querySelector('.tasks-analytics__summary-card')?.className).not.toContain('shadow-')
-    expect(container.querySelector('.tasks-analytics__trend-panel')?.className).not.toContain('shadow-')
-    expect(screen.getByText('Peak')).toBeInTheDocument()
-    expect(screen.getByText('Average')).toBeInTheDocument()
+    expect(container.querySelector('.tasks-analytics-v2')).not.toHaveClass('overflow-y-auto')
+    expect(container.querySelector('.tasks-analytics-v2__card')?.className).not.toContain('shadow-')
+    expect(screen.getAllByText('Completion rate').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Average').length).toBeGreaterThan(0)
     expect(screen.getByText('Total completed')).toBeInTheDocument()
   })
 })

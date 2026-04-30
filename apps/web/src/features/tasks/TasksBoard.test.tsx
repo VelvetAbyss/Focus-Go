@@ -76,6 +76,16 @@ vi.mock('../../data/repositories/tasksRepo', () => ({
   },
 }))
 
+vi.mock('../../data/repositories/projectsRepo', () => ({
+  projectsRepo: {
+    list: vi.fn(async () => []),
+  },
+}))
+
+vi.mock('../../data/sync/service', () => ({
+  useSyncDataRefresh: vi.fn(),
+}))
+
 vi.mock('./taskSync', () => ({
   emitTasksChanged: vi.fn(),
   subscribeTasksChanged: (callback: () => void) => {

@@ -80,7 +80,7 @@ vi.mock('../../../shared/ui/AnimatedPlanCheckbox', () => ({
 }))
 
 vi.mock('../../tasks/components/TaskAddComposer', () => ({
-  default: ({ placeholder, onSubmit }: { placeholder: string; onSubmit: (value: string) => Promise<boolean> }) => {
+  default: function TaskAddComposerMock({ placeholder, onSubmit }: { placeholder: string; onSubmit: (value: string) => Promise<boolean> }) {
     const [value, setValue] = useState('')
     return (
       <form
