@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   Bell,
   Brush,
+  CheckCircle2,
   Crown,
   Database,
   LayoutGrid,
@@ -35,6 +36,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import { fetchApi } from '../../shared/apiBase'
 import { dashboardRepo } from '../../data/repositories/dashboardRepo'
 import { db, requestCrossTabDbReset } from '../../data/db'
 import { DB_NAME, DB_VERSION, TABLES } from '../../data/db/schema'
@@ -80,7 +82,7 @@ import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../d
 const RESET_TIMEOUT_MS = 4_000
 
 type ThemeSelection = 'system' | 'light' | 'dark'
-type SettingsSection = 'appearance' | 'experience' | 'weather' | 'data' | 'legal'
+type SettingsSection = 'appearance' | 'experience' | 'weather' | 'data' | 'legal' | 'feedback'
 type BaseSettingsSection = Exclude<SettingsSection, 'legal'>
 type LegalDocumentKey = 'privacy-policy' | 'terms-of-service'
 
@@ -92,12 +94,14 @@ const SECTION_META_KEYS: Array<{
     | 'settings.module.weather.title'
     | 'settings.module.data.title'
     | 'settings.module.legal.title'
+    | 'settings.module.feedback.title'
   hintKey:
     | 'settings.module.appearance.hint'
     | 'settings.module.experience.hint'
     | 'settings.module.weather.hint'
     | 'settings.module.data.hint'
     | 'settings.module.legal.hint'
+    | 'settings.module.feedback.hint'
   icon: typeof Brush
   badgeKey:
     | 'settings.badge.visual'
@@ -105,12 +109,14 @@ const SECTION_META_KEYS: Array<{
     | 'settings.badge.widget'
     | 'settings.badge.safety'
     | 'settings.badge.legal'
+    | 'settings.badge.feedback'
 }> = [
   { key: 'appearance', titleKey: 'settings.module.appearance.title', hintKey: 'settings.module.appearance.hint', icon: Brush, badgeKey: 'settings.badge.visual' },
   { key: 'experience', titleKey: 'settings.module.experience.title', hintKey: 'settings.module.experience.hint', icon: Sparkles, badgeKey: 'settings.badge.motion' },
   { key: 'weather', titleKey: 'settings.module.weather.title', hintKey: 'settings.module.weather.hint', icon: SunMedium, badgeKey: 'settings.badge.widget' },
   { key: 'data', titleKey: 'settings.module.data.title', hintKey: 'settings.module.data.hint', icon: Database, badgeKey: 'settings.badge.safety' },
   { key: 'legal', titleKey: 'settings.module.legal.title', hintKey: 'settings.module.legal.hint', icon: Shield, badgeKey: 'settings.badge.legal' },
+  { key: 'feedback', titleKey: 'settings.module.feedback.title', hintKey: 'settings.module.feedback.hint', icon: Bell, badgeKey: 'settings.badge.feedback' },
 ]
 
 type LegalDocumentSection = {
@@ -338,6 +344,167 @@ const LEGAL_DOCUMENTS: Record<LanguageCode, Record<LegalDocumentKey, LegalDocume
       ],
     },
   },
+}
+
+const FEEDBACK_TYPES = ['feature_request', 'bug', 'confusion', 'praise'] as const
+type FeedbackType = (typeof FEEDBACK_TYPES)[number]
+
+const FeedbackForm = () => {
+  const { t } = useI18n()
+  const [fbType, setFbType] = useState<FeedbackType>('feature_request')
+  const [fbTitle, setFbTitle] = useState('')
+  const [fbBody, setFbBody] = useState('')
+  const [fbEmail, setFbEmail] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const reset = () => {
+    setFbTitle('')
+    setFbBody('')
+    setFbEmail('')
+    setFbType('feature_request')
+    setSubmitted(false)
+    setError(null)
+  }
+
+  const submit = async () => {
+    if (!fbTitle.trim()) { setError(t('settings.feedback.error.title.required')); return }
+    if (!fbBody.trim()) { setError(t('settings.feedback.error.body.required')); return }
+    setError(null)
+    setSubmitting(true)
+    try {
+      const res = await fetchApi('/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: fbType,
+          title: fbTitle.trim(),
+          body: fbBody.trim(),
+          email: fbEmail.trim() || undefined,
+          pageContext: typeof window !== 'undefined' ? window.location.pathname : undefined,
+          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
+        }),
+      })
+      if (!res.ok) throw new Error(`${res.status}`)
+      setSubmitted(true)
+    } catch {
+      setError(t('settings.feedback.error.generic'))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (submitted) {
+    return (
+      <motion.div
+        className="flex flex-col items-center gap-4 rounded-2xl border border-[#3A3733]/10 bg-[#F5F3F0]/90 p-8 text-center text-[#3A3733] shadow-sm dark:border-white/10 dark:bg-background/50 dark:text-foreground"
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <CheckCircle2 className="h-10 w-10 text-[#4F746C]" />
+        <div className="space-y-1">
+          <h3 className="text-base font-semibold">{t('settings.feedback.success.title')}</h3>
+          <p className="text-sm text-[#3A3733]/68 dark:text-muted-foreground">{t('settings.feedback.success.body')}</p>
+        </div>
+        <Button type="button" variant="outline" onClick={reset}>
+          {t('settings.feedback.success.again')}
+        </Button>
+      </motion.div>
+    )
+  }
+
+  return (
+    <motion.div
+      className="space-y-5 rounded-2xl border border-[#3A3733]/10 bg-[#F5F3F0]/90 p-6 text-[#3A3733] shadow-sm dark:border-white/10 dark:bg-background/50 dark:text-foreground"
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <div>
+        <h2 className="text-xl font-semibold tracking-tight">{t('settings.feedback.title')}</h2>
+        <p className="mt-1 text-sm leading-6 text-[#3A3733]/68 dark:text-muted-foreground">{t('settings.feedback.description')}</p>
+      </div>
+
+      <div className="space-y-4">
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold uppercase tracking-wide text-[#3A3733]/52 dark:text-muted-foreground">
+            {t('settings.feedback.type.label')}
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {FEEDBACK_TYPES.map((type) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => setFbType(type)}
+                className={`rounded-full border px-3 py-1 text-sm font-semibold transition ${
+                  fbType === type
+                    ? 'border-[#3A3733]/60 bg-[#3A3733] text-[#F5F3F0] dark:border-white/60 dark:bg-white dark:text-background'
+                    : 'border-[#3A3733]/14 bg-white/60 text-[#3A3733]/72 hover:border-[#3A3733]/28 dark:border-white/14 dark:bg-white/10 dark:text-foreground/72'
+                }`}
+              >
+                {t(`settings.feedback.type.${type}`)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold uppercase tracking-wide text-[#3A3733]/52 dark:text-muted-foreground">
+            {t('settings.feedback.title.label')}
+          </label>
+          <Input
+            value={fbTitle}
+            onChange={(e) => { setFbTitle(e.target.value); setError(null) }}
+            placeholder={t('settings.feedback.title.placeholder')}
+            maxLength={200}
+            className="border-[#3A3733]/14 bg-white/70 dark:bg-white/10"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold uppercase tracking-wide text-[#3A3733]/52 dark:text-muted-foreground">
+            {t('settings.feedback.body.label')}
+          </label>
+          <textarea
+            value={fbBody}
+            onChange={(e) => { setFbBody(e.target.value); setError(null) }}
+            placeholder={t('settings.feedback.body.placeholder')}
+            maxLength={5000}
+            rows={5}
+            className="w-full resize-y rounded-md border border-[#3A3733]/14 bg-white/70 px-3 py-2 text-sm text-[#3A3733] placeholder-[#3A3733]/38 outline-none transition focus-visible:ring-2 focus-visible:ring-[#4F746C]/30 dark:border-white/14 dark:bg-white/10 dark:text-foreground dark:placeholder-white/38"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold uppercase tracking-wide text-[#3A3733]/52 dark:text-muted-foreground">
+            {t('settings.feedback.email.label')}
+          </label>
+          <Input
+            type="email"
+            value={fbEmail}
+            onChange={(e) => setFbEmail(e.target.value)}
+            placeholder={t('settings.feedback.email.placeholder')}
+            className="border-[#3A3733]/14 bg-white/70 dark:bg-white/10"
+          />
+        </div>
+
+        {error && (
+          <p className="text-sm text-destructive">{error}</p>
+        )}
+
+        <Button
+          type="button"
+          disabled={submitting}
+          onClick={() => void submit()}
+          className="w-full sm:w-auto"
+        >
+          {submitting ? t('settings.feedback.submitting') : t('settings.feedback.submit')}
+        </Button>
+      </div>
+    </motion.div>
+  )
 }
 
 type SettingRowProps = {
@@ -1410,6 +1577,10 @@ const SettingsRoute = () => {
                             </AlertDialogContent>
                           </AlertDialog>
                         </>
+                      ) : null}
+
+                      {resolvedSection === 'feedback' ? (
+                        <FeedbackForm />
                       ) : null}
                   </div>
                 </div>

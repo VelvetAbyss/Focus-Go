@@ -17,6 +17,7 @@ type Messages = {
   users: string
   orders: string
   server: string
+  feedback: string
   tabAria: string
   allPlans: string
   allStatuses: string
@@ -34,6 +35,7 @@ type Messages = {
   active30d: string
   records: string
   syncSize: string
+  health: string
   details: string
   collapse: string
   noSyncDetails: string
@@ -55,6 +57,9 @@ type Messages = {
   grantPro: string
   grantProYearly: string
   grantLifetime: string
+  grantReason: string
+  revokeEntitlement: string
+  revokeWarning: string
   totalUsers: string
   premiumUsers: string
   activeUsers7d: string
@@ -71,9 +76,58 @@ type Messages = {
   premium: string
   active: string
   inactive: string
+  suspended: string
+  deletionPending: string
   unknownError: string
   yes: string
   no: string
+  healthy: string
+  dormant: string
+  risk: string
+  empty: string
+  suspend: string
+  unsuspend: string
+  suspendReason: string
+  requestDeletion: string
+  cancelDeletion: string
+  deletionPreview: string
+  purge: string
+  purgeConfirmPrompt: string
+  deletionPendingAt: string
+  deletionEligibleAt: string
+  coolingWindow: string
+  notes: string
+  addNote: string
+  noteBodyPlaceholder: string
+  deleteNote: string
+  tags: string
+  tagsPlaceholder: string
+  diagnostics: string
+  auditLogs: string
+  entitlements: string
+  noEntitlements: string
+  noNotes: string
+  noAuditLogs: string
+  feedbackInbox: string
+  noFeedback: string
+  feedbackType: string
+  feedbackStatusLabel: string
+  feedbackPriority: string
+  feedbackNew: string
+  feedbackReviewing: string
+  feedbackPlanned: string
+  feedbackShipped: string
+  feedbackClosed: string
+  typeFeatureRequest: string
+  typeBug: string
+  typeConfusion: string
+  typePraise: string
+  allTypes: string
+  loadingDetail: string
+  viewDetail: string
+  source: string
+  expiresAt: string
+  lifetime: string
 }
 
 const messages: Record<AdminLanguage, Messages> = {
@@ -91,6 +145,7 @@ const messages: Record<AdminLanguage, Messages> = {
     users: 'Users',
     orders: 'Orders',
     server: 'Server',
+    feedback: 'Feedback',
     tabAria: 'Admin sections',
     allPlans: 'All plans',
     allStatuses: 'All statuses',
@@ -108,6 +163,7 @@ const messages: Record<AdminLanguage, Messages> = {
     active30d: '30d',
     records: 'Records',
     syncSize: 'Sync size',
+    health: 'Health',
     details: 'Details',
     collapse: 'Collapse',
     noSyncDetails: 'No sync type details.',
@@ -127,8 +183,11 @@ const messages: Record<AdminLanguage, Messages> = {
     abnormalReasonPrompt: 'Reason for marking this order abnormal',
     markAbnormal: 'Mark abnormal',
     grantPro: 'Grant Pro',
-    grantProYearly: 'Grant yearly',
+    grantProYearly: 'Grant Yearly',
     grantLifetime: 'Grant Lifetime',
+    grantReason: 'Reason (optional)',
+    revokeEntitlement: 'Revoke',
+    revokeWarning: 'This will not cancel any active payment orders.',
     totalUsers: 'Total users',
     premiumUsers: 'Premium users',
     activeUsers7d: 'Active 7d',
@@ -145,9 +204,58 @@ const messages: Record<AdminLanguage, Messages> = {
     premium: 'Premium',
     active: 'Active',
     inactive: 'Inactive',
+    suspended: 'Suspended',
+    deletionPending: 'Deletion Pending',
     unknownError: 'Unknown error',
     yes: 'Yes',
     no: 'No',
+    healthy: 'Healthy',
+    dormant: 'Dormant',
+    risk: 'Risk',
+    empty: 'Empty',
+    suspend: 'Suspend',
+    unsuspend: 'Unsuspend',
+    suspendReason: 'Reason for suspension',
+    requestDeletion: 'Request Deletion',
+    cancelDeletion: 'Cancel Deletion',
+    deletionPreview: 'Preview Deletion Impact',
+    purge: 'Hard Purge',
+    purgeConfirmPrompt: 'Type user email to confirm',
+    deletionPendingAt: 'Pending since',
+    deletionEligibleAt: 'Eligible for purge after',
+    coolingWindow: '7-day cooling window',
+    notes: 'Admin Notes',
+    addNote: 'Add note',
+    noteBodyPlaceholder: 'e.g. test account, manually granted — promo campaign',
+    deleteNote: 'Delete',
+    tags: 'Tags',
+    tagsPlaceholder: 'e.g. test-account, vip, spam-risk',
+    diagnostics: 'Diagnostics',
+    auditLogs: 'Audit Log',
+    entitlements: 'Entitlements',
+    noEntitlements: 'No entitlements.',
+    noNotes: 'No notes yet.',
+    noAuditLogs: 'No audit log entries.',
+    feedbackInbox: 'Feedback Inbox',
+    noFeedback: 'No feedback yet.',
+    feedbackType: 'Type',
+    feedbackStatusLabel: 'Status',
+    feedbackPriority: 'Priority',
+    feedbackNew: 'New',
+    feedbackReviewing: 'Reviewing',
+    feedbackPlanned: 'Planned',
+    feedbackShipped: 'Shipped',
+    feedbackClosed: 'Closed',
+    typeFeatureRequest: 'Feature Request',
+    typeBug: 'Bug',
+    typeConfusion: 'Confusion',
+    typePraise: 'Praise',
+    allTypes: 'All types',
+    loadingDetail: 'Loading user details…',
+    viewDetail: 'Manage',
+    source: 'Source',
+    expiresAt: 'Expires',
+    lifetime: 'Lifetime',
   },
   zh: {
     title: '管理指挥台',
@@ -163,6 +271,7 @@ const messages: Record<AdminLanguage, Messages> = {
     users: '用户',
     orders: '订单',
     server: '服务端',
+    feedback: '用户反馈',
     tabAria: '管理分区',
     allPlans: '全部套餐',
     allStatuses: '全部状态',
@@ -180,6 +289,7 @@ const messages: Record<AdminLanguage, Messages> = {
     active30d: '30天',
     records: '记录数',
     syncSize: '同步体积',
+    health: '健康度',
     details: '详情',
     collapse: '收起',
     noSyncDetails: '暂无按类型同步明细。',
@@ -201,6 +311,9 @@ const messages: Record<AdminLanguage, Messages> = {
     grantPro: '补发 Pro',
     grantProYearly: '补发年付',
     grantLifetime: '授予 Lifetime',
+    grantReason: '授权原因（可选）',
+    revokeEntitlement: '撤销',
+    revokeWarning: '撤销权益不会取消任何有效的支付订单。',
     totalUsers: '总用户',
     premiumUsers: '高级用户',
     activeUsers7d: '7天活跃',
@@ -217,9 +330,58 @@ const messages: Record<AdminLanguage, Messages> = {
     premium: '高级版',
     active: '活跃',
     inactive: '不活跃',
+    suspended: '已封禁',
+    deletionPending: '待删除',
     unknownError: '未知错误',
     yes: '是',
     no: '否',
+    healthy: '健康',
+    dormant: '休眠',
+    risk: '风险',
+    empty: '空账号',
+    suspend: '封禁账号',
+    unsuspend: '解除封禁',
+    suspendReason: '封禁原因',
+    requestDeletion: '申请删除',
+    cancelDeletion: '取消删除',
+    deletionPreview: '预览删除影响',
+    purge: '彻底删除',
+    purgeConfirmPrompt: '输入用户邮箱以确认',
+    deletionPendingAt: '申请时间',
+    deletionEligibleAt: '可删除时间',
+    coolingWindow: '7天冷静期',
+    notes: '管理员备注',
+    addNote: '添加备注',
+    noteBodyPlaceholder: '例：测试账号、手动赠送 — 活动赠送',
+    deleteNote: '删除',
+    tags: '标签',
+    tagsPlaceholder: '例：测试账号、vip、疑似垃圾',
+    diagnostics: '诊断信息',
+    auditLogs: '操作日志',
+    entitlements: '权益记录',
+    noEntitlements: '暂无权益记录。',
+    noNotes: '暂无备注。',
+    noAuditLogs: '暂无操作日志。',
+    feedbackInbox: '反馈收件箱',
+    noFeedback: '暂无反馈。',
+    feedbackType: '类型',
+    feedbackStatusLabel: '状态',
+    feedbackPriority: '优先级',
+    feedbackNew: '新建',
+    feedbackReviewing: '审核中',
+    feedbackPlanned: '已计划',
+    feedbackShipped: '已上线',
+    feedbackClosed: '已关闭',
+    typeFeatureRequest: '功能建议',
+    typeBug: 'Bug',
+    typeConfusion: '使用困惑',
+    typePraise: '正向反馈',
+    allTypes: '全部类型',
+    loadingDetail: '正在加载用户详情…',
+    viewDetail: '管理',
+    source: '来源',
+    expiresAt: '到期',
+    lifetime: '永久',
   },
 }
 
