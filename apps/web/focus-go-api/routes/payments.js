@@ -29,28 +29,6 @@ const getNotifyBaseUrl = () => process.env.ZPAY_NOTIFY_BASE_URL || 'https://api.
 const getReturnBaseUrl = () => process.env.ZPAY_RETURN_BASE_URL || 'https://api.nestflow.art'
 const getAppBaseUrl = () => process.env.APP_BASE_URL || 'https://app.nestflow.art'
 
-const isLocalhostRequest = (req) => {
-  const host = req.headers.host ?? ''
-  return host.startsWith('localhost') || host.startsWith('127.0.0.1')
-}
-
-const getCountryHeader = (req) => String(
-  req.headers['x-vercel-ip-country'] ||
-  req.headers['cf-ipcountry'] ||
-  req.headers['x-country'] ||
-  '',
-).toUpperCase()
-
-const resolvePreferredChannel = (req) => {
-  if (isLocalhostRequest(req)) return null
-  const country = getCountryHeader(req)
-  if (country === 'CN') return PAYMENT_CHANNELS.ZPAY_ALIPAY
-  if (country && country !== 'CN' && country !== 'XX') return PAYMENT_CHANNELS.PAYPAL_CHECKOUT
-  const language = String(req.headers['accept-language'] ?? '').toLowerCase()
-  if (language.includes('zh-cn') || language.includes('zh-hans')) return PAYMENT_CHANNELS.ZPAY_ALIPAY
-  return PAYMENT_CHANNELS.PAYPAL_CHECKOUT
-}
-
 const currentUserIds = (req) => new Set([
   String(req.auth.user.id),
   req.auth.user.authing_id,
@@ -109,10 +87,6 @@ router.post('/orders', requireAuth, async (req, res) => {
   if (!['pro_monthly', 'pro_yearly', 'lifetime'].includes(planId)) return res.status(400).json({ error: 'invalid planId' })
   if (![PAYMENT_CHANNELS.ZPAY_ALIPAY, PAYMENT_CHANNELS.PAYPAL_CHECKOUT].includes(channel)) {
     return res.status(400).json({ error: 'invalid channel' })
-  }
-  const preferredChannel = resolvePreferredChannel(req)
-  if (preferredChannel && channel !== preferredChannel) {
-    return res.status(400).json({ error: 'channel unavailable for region', preferredChannel })
   }
 
   try {
