@@ -117,6 +117,8 @@ const createMockService = (): IDatabaseService => ({
       lineHeight: data.lineHeight ?? 1.7,
       contentWidth: data.contentWidth ?? 0,
       focusMode: data.focusMode ?? false,
+      paperBg: data.paperBg ?? 'beige',
+      zoom: data.zoom ?? 100,
     }),
   },
   widgetTodos: {
