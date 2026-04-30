@@ -6,7 +6,6 @@ import {
   Bell,
   Brush,
   CheckCircle2,
-  Crown,
   Database,
   LayoutGrid,
   LocateFixed,
@@ -1028,17 +1027,6 @@ const SettingsRoute = () => {
                 })}
               </TabsList>
 
-              <button
-                type="button"
-                className="mt-2 flex w-full items-center gap-3 rounded-xl border border-dashed border-[var(--accent)] bg-[var(--accent-soft)] px-3 py-3 text-left transition-opacity hover:opacity-80"
-                onClick={() => openUpgradeModal()}
-              >
-                <Crown className="h-4 w-4 shrink-0 text-[var(--accent)]" />
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-semibold text-[var(--accent)]">{t('settings.subscription.title')}</div>
-                  <div className="truncate text-xs text-muted-foreground">{t('settings.subscription.hint')}</div>
-                </div>
-              </button>
             </CardContent>
           </Card>
 
