@@ -14,6 +14,8 @@ export type AuthProfile = {
   expiresAt: string | null
   isLifetime?: boolean
   isAdmin: boolean
+  /** ISO 3166-1 alpha-2 country code from IP geolocation, e.g. 'CN', 'US'. null = not yet detected. */
+  country_code?: string | null
 }
 
 export const getAuth = () => {
@@ -78,7 +80,17 @@ export const refreshAuthProfile = async () => {
   try {
     const profile = await fetchAuthProfile(auth.accessToken)
     if (!profile) return null
-    setAuth({ ...auth, plan: profile.plan, entitlement: profile.entitlement, expiresAt: profile.expiresAt, isLifetime: profile.isLifetime, isAdmin: profile.isAdmin })
+    setAuth({
+      ...auth,
+      plan: profile.plan,
+      entitlement: profile.entitlement,
+      expiresAt: profile.expiresAt,
+      isLifetime: profile.isLifetime,
+      isAdmin: profile.isAdmin,
+      // Persist country_code so MembershipPage and other consumers can read it
+      // without an extra fetch. Only overwrite when the server returns a value.
+      ...(profile.country_code != null ? { country_code: profile.country_code } : {}),
+    })
     return profile
   } catch {
     return null

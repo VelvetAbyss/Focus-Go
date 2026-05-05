@@ -52,6 +52,12 @@ if (!userColumns.includes('deletion_pending_at')) {
 if (!userColumns.includes('tags')) {
   db.exec("ALTER TABLE users ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'")
 }
+// ISO 3166-1 alpha-2 country code detected from IP on first authenticated request.
+// 'CN' = China region (Alipay); all others = global region (PayPal).
+// NULL means not yet detected — frontend falls back to lang/timezone heuristic.
+if (!userColumns.includes('country_code')) {
+  db.exec('ALTER TABLE users ADD COLUMN country_code TEXT')
+}
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS users_auth_user_id_idx ON users(auth_user_id)')
 
 db.exec(`

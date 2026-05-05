@@ -2,6 +2,8 @@ import { Router } from 'express'
 import crypto from 'node:crypto'
 import db from '../db/init.js'
 import { requireAuth } from '../middleware/auth.js'
+import { backfillRegion } from '../middleware/region.js'
+import { detectCountryFromRequest, isChinaRegion } from '../services/region.js'
 import {
   PAYMENT_CHANNELS,
   applyPaidOrder,
@@ -82,11 +84,28 @@ const buildZPayCheckout = async (order) => {
   }
 }
 
-router.post('/orders', requireAuth, async (req, res) => {
+router.post('/orders', requireAuth, backfillRegion, async (req, res) => {
   const { planId = 'pro_monthly', channel } = req.body ?? {}
   if (!['pro_monthly', 'pro_yearly', 'lifetime'].includes(planId)) return res.status(400).json({ error: 'invalid planId' })
   if (![PAYMENT_CHANNELS.ZPAY_ALIPAY, PAYMENT_CHANNELS.PAYPAL_CHECKOUT].includes(channel)) {
     return res.status(400).json({ error: 'invalid channel' })
+  }
+
+  // Region gate — only active when REGION_GATE_ENABLED=true (soft rollback via env var).
+  // Block: global user attempting Alipay (order would fail on ZPay's side anyway).
+  // Allow: China user using PayPal (valid: foreign card, proxy payment).
+  if (process.env.REGION_GATE_ENABLED === 'true') {
+    const userCountry = req.auth.user.country_code || detectCountryFromRequest(req)
+    const userIsCN = isChinaRegion(userCountry)
+
+    if (channel === PAYMENT_CHANNELS.ZPAY_ALIPAY && !userIsCN) {
+      console.log(`[region] alipay blocked for non-CN user id=${req.auth.user.id} country=${userCountry ?? 'unknown'}`)
+      return res.status(400).json({
+        error: 'region_mismatch',
+        preferredChannel: PAYMENT_CHANNELS.PAYPAL_CHECKOUT,
+        message: 'Alipay is only available for users in China.',
+      })
+    }
   }
 
   try {
