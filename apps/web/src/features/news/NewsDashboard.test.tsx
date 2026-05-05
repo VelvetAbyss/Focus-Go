@@ -23,6 +23,8 @@ const jsonResponse = (payload: unknown, ok = true, status = 200) => ({
   text: async () => JSON.stringify(payload),
 })
 
+const pending = () => new Promise<never>(() => {})
+
 describe('NewsDashboard', () => {
   beforeEach(() => {
     window.localStorage.clear()
@@ -65,6 +67,21 @@ describe('NewsDashboard', () => {
 
     await waitFor(() => expect(screen.getByText('暂无来源')).toBeInTheDocument())
     await waitFor(() => expect(screen.getByText('暂时无法加载')).toBeInTheDocument())
+  })
+
+  it('shows a loading animation instead of empty state while source stories are loading', async () => {
+    fetchApiMock.mockImplementation((path: string) => {
+      if (path === '/news/sources') return Promise.resolve(jsonResponse({ sources }))
+      if (path.includes('id=zhihu')) return pending()
+      if (path.includes('id=github')) return pending()
+      return pending()
+    })
+
+    render(<NewsDashboard />)
+
+    expect(await screen.findByText('知乎')).toBeInTheDocument()
+    expect(screen.getAllByRole('status', { name: '正在加载新闻' })).toHaveLength(2)
+    expect(screen.queryByText('暂无来源')).not.toBeInTheDocument()
   })
 
   it('persists source preferences when sources are toggled', async () => {
