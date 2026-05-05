@@ -204,6 +204,10 @@ const COPY = {
     en: 'We auto-suggest a channel by your locale. Switch any time before paying.',
     zh: '已根据当前地区自动选择通道，可随时切换。',
   },
+  alipayUnavailable: {
+    en: 'Alipay is only available for users in China.',
+    zh: '支付宝仅对中国地区用户开放。',
+  },
   pay: { en: 'Continue to pay', zh: '前往支付' },
   paying: { en: 'Opening…', zh: '请求中…' },
   loginRequired: { en: 'Sign in to continue', zh: '请先登录' },
@@ -375,15 +379,29 @@ const MembershipPage = () => {
   const isPro = plan === 'premium'
   // getAuth() is safe here — useAuthPlan() already subscribes to auth changes,
   // so this component re-renders whenever auth updates.
-  const authRaw = getAuth() as { entitlement?: string; expiresAt?: string | null; isLifetime?: boolean } | null
+  const authRaw = getAuth() as { entitlement?: string; expiresAt?: string | null; isLifetime?: boolean; country_code?: string | null } | null
   const entitlement = authRaw?.entitlement ?? 'free'
   const expiresAt = authRaw?.expiresAt ?? null
   const isLifetime = authRaw?.isLifetime ?? false
+
+  // country_code from IP geolocation (persisted in auth profile by the backend).
+  // null/undefined means not yet detected — frontend falls back to lang/tz heuristic.
+  // 'CN' = China region (Alipay default); anything else = global region (PayPal default).
+  const countryCode = authRaw?.country_code ?? null
+  const isGlobalUser = countryCode !== null && countryCode !== 'CN'
+
   const [selectedPlanId, setSelectedPlanId] = useState<PlanId>('pro_yearly')
   const [channel, setChannel] = useState<Channel>(() => detectInitialChannel(lang))
   const [loading, setLoading] = useState(false)
   const [qrOrder, setQrOrder] = useState<CreatePaymentOrderResponse | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
+  // Once the profile loads and country_code is available, override the heuristic default.
+  // We only override once (when countryCode transitions from null to a known value).
+  useEffect(() => {
+    if (countryCode === null) return
+    setChannel(countryCode === 'CN' ? 'alipay' : 'paypal')
+  }, [countryCode])
 
   const selectedPlan = useMemo(() => PLANS.find((p) => p.id === selectedPlanId)!, [selectedPlanId])
   const selectedChannel = useMemo(() => CHANNELS.find((c) => c.id === channel)!, [channel])
@@ -426,7 +444,7 @@ const MembershipPage = () => {
     <>
       <section
         className="relative -m-[18px] flex flex-col overflow-hidden bg-[#F5F3F0] text-[#3A3733]"
-        style={{ minHeight: 'calc(var(--shell-content-height) + 36px)' }}
+        style={{ height: 'calc(var(--shell-content-height) + 36px)' }}
       >
         {/* warm vignette */}
         <div
@@ -440,7 +458,7 @@ const MembershipPage = () => {
 
           {/* ── LEFT COLUMN — scrollable content ── */}
           <div className="min-w-0 flex-1 overflow-y-auto">
-            <div className="mx-auto flex max-w-[760px] flex-col gap-14 px-8 pb-24 pt-12 lg:px-12">
+            <div className="flex flex-col gap-14 px-8 pb-24 pt-12 lg:px-12">
 
               {/* masthead */}
               <header className="flex items-center justify-between border-b border-[#3A3733]/15 pb-5">
@@ -665,7 +683,7 @@ const MembershipPage = () => {
             transition={{ duration: 0.55, delay: 0.3 }}
             className="flex shrink-0 flex-col border-t border-[#3A3733]/12 bg-[#3A3733] text-[#F5F3F0] lg:w-[360px] lg:border-l lg:border-t-0"
           >
-            <div className="flex flex-1 flex-col overflow-y-auto p-8">
+            <div className="flex flex-col p-8 gap-8">
               {/* header */}
               <div className="flex items-baseline justify-between">
                 <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-[#F5F3F0]/50">
@@ -675,7 +693,7 @@ const MembershipPage = () => {
               </div>
 
               {/* order summary */}
-              <div className="mt-6">
+              <div>
                 <h3
                   className="font-display text-[28px] leading-[1.05] tracking-[-0.01em]"
                   style={{ fontFamily: 'var(--font-display, "Fraunces", serif)', fontVariationSettings: '"opsz" 96' }}
@@ -688,17 +706,14 @@ const MembershipPage = () => {
                   <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#F5F3F0]/50">
                     {selectedChannel.label[lang]} · {selectedChannel.currency}
                   </span>
-                  <span
-                    className="font-display text-[42px] leading-none tracking-[-0.03em]"
-                    style={{ fontFamily: 'var(--font-display, "Fraunces", serif)', fontVariationSettings: '"opsz" 144' }}
-                  >
+                  <span className="font-sans text-[42px] font-semibold leading-none tracking-[-0.03em]">
                     {displaySymbol}{displayPrice}
                   </span>
                 </div>
               </div>
 
               {/* channel picker */}
-              <div className="mt-8">
+              <div>
                 <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#F5F3F0]/50">
                   {COPY.channelTitle[lang]}
                 </p>
@@ -708,16 +723,20 @@ const MembershipPage = () => {
                 <div className="mt-4 inline-flex rounded-[6px] border border-[#F5F3F0]/15 bg-[#F5F3F0]/8 p-1">
                   {CHANNELS.map((c) => {
                     const active = channel === c.id
+                    const disabledForGlobal = c.id === 'alipay' && isGlobalUser
                     return (
                       <button
                         key={c.id}
                         type="button"
-                        onClick={() => setChannel(c.id)}
+                        onClick={disabledForGlobal ? undefined : () => setChannel(c.id)}
+                        title={disabledForGlobal ? COPY.alipayUnavailable[lang] : undefined}
                         className={[
                           'inline-flex items-center gap-2 rounded-[4px] px-4 py-2 text-[12px] uppercase tracking-[0.2em] transition',
-                          active
-                            ? 'bg-[#F5F3F0] text-[#3A3733] shadow-[0_4px_14px_-6px_rgba(0,0,0,0.35)]'
-                            : 'text-[#F5F3F0]/55 hover:text-[#F5F3F0]',
+                          disabledForGlobal
+                            ? 'cursor-not-allowed opacity-30'
+                            : active
+                              ? 'bg-[#F5F3F0] text-[#3A3733] shadow-[0_4px_14px_-6px_rgba(0,0,0,0.35)]'
+                              : 'text-[#F5F3F0]/55 hover:text-[#F5F3F0]',
                         ].join(' ')}
                       >
                         {c.id === 'alipay' ? <ScanLine size={13} /> : <Globe2 size={13} />}
@@ -730,7 +749,7 @@ const MembershipPage = () => {
               </div>
 
               {/* assurances */}
-              <div className="mt-8 space-y-3 border-t border-dashed border-[#F5F3F0]/15 pt-6">
+              <div className="space-y-3 border-t border-dashed border-[#F5F3F0]/15 pt-6">
                 {ASSURANCES.map((a) => (
                   <div key={a.en} className="flex items-start gap-2.5 text-[12px] leading-5 text-[#F5F3F0]/50">
                     <a.icon size={13} className="mt-0.5 shrink-0 text-[#F5F3F0]/40" />
@@ -740,7 +759,7 @@ const MembershipPage = () => {
               </div>
 
               {/* pay button */}
-              <div className="mt-auto pt-8">
+              <div className="border-t border-dashed border-[#F5F3F0]/15 pt-6">
                 {channel === 'alipay' ? (
                   <button
                     type="button"

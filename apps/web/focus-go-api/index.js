@@ -34,6 +34,11 @@ const ALLOWED_ORIGINS = [
 export const createApp = () => {
   const app = express()
 
+  // Trust the first hop (Alibaba Cloud SLB) so that req.ip and X-Forwarded-For
+  // reflect the real client IP rather than the internal load-balancer address.
+  // Required for accurate geoip-lite lookups in services/region.js.
+  app.set('trust proxy', 1)
+
   app.use(cors({
     origin: ALLOWED_ORIGINS,
     credentials: true,
