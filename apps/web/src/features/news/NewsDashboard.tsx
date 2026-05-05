@@ -83,13 +83,13 @@ const SourceIcon = ({ source }: { source: NewsSource }) => {
 
 // ─── Loading skeleton ──────────────────────────────────────────────────────────
 const NewsSkeleton = () => (
-  <div className="news-card__skeleton" aria-hidden="true">
-    <span />
-    <span />
-    <span />
-    <span />
-    <span />
-    <span />
+  <div className="news-card__skeleton" role="status" aria-label="正在加载新闻">
+    <span aria-hidden="true" />
+    <span aria-hidden="true" />
+    <span aria-hidden="true" />
+    <span aria-hidden="true" />
+    <span aria-hidden="true" />
+    <span aria-hidden="true" />
   </div>
 )
 
@@ -547,7 +547,7 @@ const NewsDashboard = () => {
             <NewsCard
               key={source.id}
               source={source}
-              state={sourceStates[source.id] ?? { loading: false }}
+              state={sourceStates[source.id] ?? { loading: true }}
               density={preferences.density}
               cardIndex={index}
               onRefresh={(sourceId) => void loadSource(sourceId, true)}

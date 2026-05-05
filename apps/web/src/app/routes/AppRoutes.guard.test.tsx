@@ -1,13 +1,17 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest'
-import { cleanup, render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { Link, MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PremiumProvider } from '../../features/premium/PremiumProvider'
 import { ToastProvider } from '../../shared/ui/toast/ToastProvider'
 import AppRoutes, { RouteFallback } from './AppRoutes'
 
 const mockUseLabs = vi.fn()
+const routeTestState = vi.hoisted(() => ({
+  noteSuspends: false,
+  pendingNote: new Promise<void>(() => {}),
+}))
 
 vi.mock('../../features/labs/LabsContext', () => ({
   useLabs: () => mockUseLabs(),
@@ -20,7 +24,12 @@ vi.mock('../../features/labs/labsI18n', () => ({
 vi.mock('./DashboardRoute', () => ({ default: () => <div>Dashboard Page</div> }))
 vi.mock('./SettingsRoute', () => ({ default: () => <div>Settings Page</div> }))
 vi.mock('../../features/tasks/pages/TasksPage', () => ({ default: () => <div>Tasks Page</div> }))
-vi.mock('../../features/notes/pages/NotePage', () => ({ default: () => <div>Note Page</div> }))
+vi.mock('../../features/notes/pages/NotePage', () => ({
+  default: () => {
+    if (routeTestState.noteSuspends) throw routeTestState.pendingNote
+    return <div>Note Page</div>
+  },
+}))
 vi.mock('../../features/focus/pages/FocusPage', () => ({ default: () => <div>Focus Page</div> }))
 vi.mock('../../features/calendar/pages/CalendarPage', () => ({ default: () => <div>Calendar Page</div> }))
 vi.mock('../../features/diary/pages/DiaryPage', () => ({ default: () => <div>Diary Page</div> }))
@@ -41,6 +50,7 @@ const renderRoutes = (path: string) =>
 describe('AppRoutes guarded routes', () => {
   beforeEach(() => {
     mockUseLabs.mockReset()
+    routeTestState.noteSuspends = false
   })
 
   afterEach(() => {
@@ -74,6 +84,27 @@ describe('AppRoutes guarded routes', () => {
     renderRoutes('/note')
 
     expect(await screen.findByText('Note Page')).toBeInTheDocument()
+  })
+
+  it('shows the route loader instead of stale page content while the next route is pending', async () => {
+    mockUseLabs.mockReturnValue({ ready: true, canAccessHabitFeature: true })
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <ToastProvider>
+          <PremiumProvider>
+            <Link to="/note">Open note</Link>
+            <AppRoutes />
+          </PremiumProvider>
+        </ToastProvider>
+      </MemoryRouter>,
+    )
+    expect(await screen.findByText('Dashboard Page')).toBeInTheDocument()
+
+    routeTestState.noteSuspends = true
+    fireEvent.click(screen.getByRole('link', { name: 'Open note' }))
+
+    expect(screen.queryByText('Dashboard Page')).not.toBeInTheDocument()
+    expect(screen.getByTestId('route-loader')).toBeInTheDocument()
   })
 
   it('renders a stable route fallback loader', () => {

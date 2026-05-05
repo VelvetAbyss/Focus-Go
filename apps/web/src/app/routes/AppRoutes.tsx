@@ -1,4 +1,4 @@
-import { lazy, Suspense, useDeferredValue, useEffect, useRef } from 'react'
+import { lazy, Suspense, useEffect, useRef } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { LEGACY_ROUTES, ROUTES } from './routes'
 import { useLabs } from '../../features/labs/LabsContext'
@@ -75,14 +75,9 @@ const GuardedProjectsRoute = ({ detail = false }: { detail?: boolean }) => {
 
 const AppRoutes = () => {
   const location = useLocation()
-  // useDeferredValue lets React keep the current page visible while mounting
-  // the next route in the background (concurrent / interruptible render).
-  // For cached chunks this means zero visible flash; for fresh chunks the
-  // BrandLoader only appears after the old page can no longer be held.
-  const deferredLocation = useDeferredValue(location)
 
   return (
-    <Routes location={deferredLocation}>
+    <Routes key={location.pathname} location={location}>
       <Route path={LEGACY_ROUTES.KNOWLEDGE} element={<Navigate to={ROUTES.DASHBOARD} replace />} />
       <Route path="/rss" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
       <Route path={ROUTES.DASHBOARD} element={<Suspense fallback={<RouteFallback />}><DashboardRoute /></Suspense>} />
