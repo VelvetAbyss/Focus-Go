@@ -22,22 +22,20 @@ import geoip from 'geoip-lite'
 
 /**
  * Extract the client's real IP address from the request.
- * Prefers X-Forwarded-For (SLB/Nginx), then X-Real-IP, then socket address.
+ *
+ * IMPORTANT: Do NOT parse X-Forwarded-For manually. An attacker can inject
+ * arbitrary values into the leftmost position before the SLB appends the real
+ * client IP — reading the raw header would let them spoof a CN origin.
+ *
+ * With `app.set('trust proxy', 1)` Express walks X-Forwarded-For from the
+ * right, skips the one trusted hop (Alibaba Cloud SLB), and exposes the real
+ * client IP via req.ip. Use that value only.
  *
  * @param {import('express').Request} req
  * @returns {string|null}
  */
 export function getClientIp(req) {
-  const forwarded = req.headers['x-forwarded-for']
-  if (forwarded && typeof forwarded === 'string') {
-    const first = forwarded.split(',')[0].trim()
-    if (first) return first
-  }
-  const realIp = req.headers['x-real-ip']
-  if (realIp && typeof realIp === 'string') return realIp.trim()
-  // Express req.ip already respects `trust proxy` setting.
-  if (req.ip) return req.ip
-  return req.socket?.remoteAddress ?? null
+  return req.ip ?? req.socket?.remoteAddress ?? null
 }
 
 /**
