@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useState } from 'react'
-import { Calendar, CircleCheck, Circle, FolderKanban, ListChecks, Pin, PinOff, Play, RotateCcw, SunMedium, Trash2 } from 'lucide-react'
+import { Calendar, CircleCheck, Circle, FolderKanban, GitBranch, ListChecks, LockKeyhole, Pin, PinOff, Play, RotateCcw, SunMedium, Trash2 } from 'lucide-react'
 import type { CSSProperties, HTMLAttributes } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -10,6 +10,7 @@ import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, getTaskDeadlineState, getTask
 type TaskCardProject = {
   id: string
   title: string
+  color?: string
 }
 
 type TaskCardProps = {
@@ -19,6 +20,9 @@ type TaskCardProps = {
   onDelete?: (task: TaskItem) => void
   onTogglePin?: (task: TaskItem) => void
   onToggleToday?: (task: TaskItem) => void
+  onProjectClick?: (projectId: string) => void
+  onStartFocus?: (task: TaskItem) => void
+  dependencyTasks?: TaskItem[]
   statusActions?: {
     key: string
     label: string
@@ -52,6 +56,9 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
       onDelete,
       onTogglePin,
       onToggleToday,
+      onProjectClick,
+      onStartFocus,
+      dependencyTasks = [],
       statusActions,
       dragAttributes,
       dragListeners,
@@ -83,6 +90,9 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
     const remainingSubtasks = pendingSubtasks.length - visibleSubtasks.length
     const hasSubtasks = totalSubtasks > 0
     const showHoverPanel = isHovered && pendingSubtasks.length > 0
+    const blockedCount = task.blockedByTaskIds?.length ?? 0
+    const dependencyCount = task.dependencyTaskIds?.length ?? 0
+    const isBlocked = task.isBlocked || blockedCount > 0
 
     useEffect(() => {
       const timer = window.setInterval(() => setNow(Date.now()), 60_000)
@@ -142,6 +152,19 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
           </span>
         ) : null}
         {priorityKey !== 'none' ? <div className={cn('task-card__priority-flag', priorityCfg.dot)} aria-hidden /> : null}
+        {project ? (
+          <button
+            type="button"
+            className="task-card__project-dot"
+            style={{ background: project.color }}
+            title={project.title}
+            aria-label={t('tasks.card.projectBadgeAria', { title: project.title })}
+            onClick={(event) => {
+              event.stopPropagation()
+              onProjectClick?.(project.id)
+            }}
+          />
+        ) : null}
 
         <div className="space-y-2.5 p-3.5">
           <div className="flex items-start gap-2">
@@ -186,6 +209,17 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
                 <span className="tabular-nums">{doneSubtasks}/{totalSubtasks}</span>
               </span>
             ) : null}
+            {isBlocked ? (
+              <span className="task-card__blocked-chip inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs font-semibold">
+                <LockKeyhole className="size-3" />
+                Blocked by {blockedCount || dependencyCount}
+              </span>
+            ) : dependencyCount > 0 ? (
+              <span className="inline-flex items-center gap-1 rounded border border-[#3A3733]/10 px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
+                <GitBranch className="size-3" />
+                {dependencyCount} dep
+              </span>
+            ) : null}
           </div>
 
           {task.tags.length > 0 || project ? (
@@ -210,6 +244,21 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
                 )
               })}
               {extraTagCount > 0 ? <span className="px-1 text-xs text-muted-foreground">+{extraTagCount}</span> : null}
+            </div>
+          ) : null}
+
+          {isBlocked && dependencyTasks.length > 0 && !selectionMode ? (
+            <div className="task-card__dependency-mini" aria-label={`Blocked by ${dependencyTasks.length} tasks`}>
+              {dependencyTasks.slice(0, 3).map((dependency) => (
+                <div key={dependency.id} className="task-card__dependency-row">
+                  <span className={`task-card__dependency-status task-card__dependency-status--${dependency.status}`} aria-hidden />
+                  <span className="truncate">{dependency.title}</span>
+                  <span>{dependency.status}</span>
+                </div>
+              ))}
+              {dependencyTasks.length > 3 ? (
+                <div className="task-card__dependency-more">+{dependencyTasks.length - 3} more blockers</div>
+              ) : null}
             </div>
           ) : null}
 
@@ -273,6 +322,18 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
                       </Button>
                     )
                   })}
+
+                  {onStartFocus ? (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`Start focus on ${task.title}`}
+                      className="task-card__action-btn size-7 text-muted-foreground hover:text-foreground"
+                      onClick={() => onStartFocus(task)}
+                    >
+                      <Play className="size-3.5" />
+                    </Button>
+                  ) : null}
 
                   {onToggleToday ? (
                     <Button

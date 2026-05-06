@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { CheckSquare, LayoutGrid, Plus, Square, Tag, Trash2 } from 'lucide-react'
+import { CheckSquare, FolderKanban, LayoutGrid, Plus, Square, SunMedium, Tag, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Select as ShadcnSelect,
@@ -28,16 +28,22 @@ import { TASK_STATUS_CONFIG, getUpcomingDeadlineAlert } from './components/taskP
 import { useI18n } from '../../shared/i18n/useI18n'
 import { useAuthGate } from '../auth/AuthGateContext'
 import EmptyState from '../../shared/ui/EmptyState'
+import { ROUTES } from '../../app/routes/routes'
+import { resolveProjectColor } from '../../shared/design/tokens'
 
 const tabs: { key: TaskStatus }[] = [{ key: 'todo' }, { key: 'doing' }, { key: 'done' }]
 
 type SortMode = 'importance' | 'time'
 type TagFilterMode = 'all' | 'work' | 'life' | 'health' | 'study' | 'finance' | 'family'
 type TopView = 'board' | 'today' | 'analytics'
+type BoardGroupBy = 'status' | 'project' | 'today'
+type BoardScope = { kind: 'all' } | { kind: 'project'; projectId: string } | { kind: 'today' }
 
 const STORAGE_TAB_KEY = 'tasks_active_tab'
 const STORAGE_SORT_KEY = 'tasks_sort_mode'
 const STORAGE_TAGS_MIGRATION_KEY = 'tasks_tags_select_v2_migrated'
+const STORAGE_GROUP_BY_KEY = 'tasks_group_by_v1'
+const STORAGE_PROJECT_FILTER_KEY = 'tasks_project_filter_v1'
 
 const priorityOrder: Record<TaskPriority, number> = {
   high: 0,
@@ -64,6 +70,76 @@ const sortByImportance = (a: TaskItem, b: TaskItem) => {
 
 const sortByTime = (a: TaskItem, b: TaskItem) => b.createdAt - a.createdAt
 
+type ParsedQuickAdd = {
+  title: string
+  priority: TaskPriority | null
+  tags: string[]
+  dueDate?: string
+  isToday?: boolean
+  projectId?: string
+}
+
+const toDateKey = (date: Date) => date.toISOString().slice(0, 10)
+
+const normalizeToken = (value: string) => value.trim().toLowerCase().replace(/[\s_-]+/g, '')
+
+const parseQuickAdd = (rawTitle: string, projects: ProjectItem[], fallbackProjectId?: string): ParsedQuickAdd => {
+  const today = new Date()
+  const tomorrow = new Date(today)
+  tomorrow.setDate(today.getDate() + 1)
+  const parts = rawTitle.trim().split(/\s+/)
+  const tags: string[] = []
+  let priority: TaskPriority | null = null
+  let dueDate: string | undefined
+  let isToday = false
+  let projectId = fallbackProjectId
+  const titleParts: string[] = []
+  const projectBySlug = new Map(projects.map((project) => [normalizeToken(project.title), project.id] as const))
+
+  parts.forEach((part) => {
+    const token = part.trim()
+    if (!token) return
+    const lower = token.toLowerCase()
+    if (lower === 'today' || lower === '今天') {
+      isToday = true
+      dueDate = toDateKey(today)
+      return
+    }
+    if (lower === 'tomorrow' || lower === '明天') {
+      dueDate = toDateKey(tomorrow)
+      return
+    }
+    if (lower.startsWith('#') && lower.length > 1) {
+      tags.push(token.slice(1))
+      return
+    }
+    if (lower.startsWith('!')) {
+      const value = lower.slice(1)
+      if (value === '1' || value === 'high') priority = 'high'
+      else if (value === '2' || value === 'medium' || value === 'med') priority = 'medium'
+      else if (value === '3' || value === 'low') priority = 'low'
+      else titleParts.push(token)
+      return
+    }
+    if (lower.startsWith('@') && lower.length > 1) {
+      const matchedProjectId = projectBySlug.get(normalizeToken(token.slice(1)))
+      if (matchedProjectId) projectId = matchedProjectId
+      else tags.push(token.slice(1))
+      return
+    }
+    titleParts.push(token)
+  })
+
+  return {
+    title: titleParts.join(' ').trim() || rawTitle.trim(),
+    priority,
+    tags,
+    dueDate,
+    isToday,
+    projectId,
+  }
+}
+
 const getNextStatus = (status: TaskStatus) => {
   if (status === 'todo') return { next: 'doing' as const }
   if (status === 'doing') return { next: 'done' as const }
@@ -74,12 +150,14 @@ type TasksBoardProps = {
   asCard?: boolean
   className?: string
   topView?: TopView
+  scope?: BoardScope
 }
 
 const TasksBoard = ({
   asCard = true,
   className,
   topView = 'board',
+  scope = { kind: 'all' },
 }: TasksBoardProps) => {
   const { t } = useI18n()
   const { requireAuth } = useAuthGate()
@@ -101,6 +179,27 @@ const TasksBoard = ({
   const [bulkMode, setBulkMode] = useState(false)
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set())
   const [bulkTagDraft, setBulkTagDraft] = useState('')
+  const [groupBy, setGroupBy] = useState<BoardGroupBy>(() => {
+    if (typeof window === 'undefined') return 'status'
+    const stored = window.localStorage.getItem(STORAGE_GROUP_BY_KEY)
+    return stored === 'project' || stored === 'today' || stored === 'status' ? stored : 'status'
+  })
+  const [projectFilterIds, setProjectFilterIds] = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set()
+    const stored = window.localStorage.getItem(STORAGE_PROJECT_FILTER_KEY)
+    if (!stored) return new Set()
+    try {
+      const parsed = JSON.parse(stored)
+      if (typeof parsed === 'string') return new Set([parsed])
+      if (Array.isArray(parsed)) {
+        const first = parsed.find((item): item is string => typeof item === 'string')
+        return first ? new Set([first]) : new Set()
+      }
+      return new Set()
+    } catch {
+      return new Set()
+    }
+  })
   const [activeStatus, setActiveStatus] = useState<TaskStatus>(() => {
     if (typeof window === 'undefined') return 'todo'
     const stored = window.localStorage.getItem(STORAGE_TAB_KEY)
@@ -109,6 +208,7 @@ const TasksBoard = ({
   const statusActionSuccessTimerRef = useRef<number | null>(null)
   const tasksReloadTokenRef = useRef(0)
   const toast = useToast()
+  const effectiveGroupBy = scope.kind === 'project' ? 'status' : groupBy
 
   const loadTasks = useCallback(async () => {
     const token = tasksReloadTokenRef.current + 1
@@ -154,6 +254,16 @@ const TasksBoard = ({
   }, [sortMode])
 
   useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem(STORAGE_GROUP_BY_KEY, groupBy)
+  }, [groupBy])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem(STORAGE_PROJECT_FILTER_KEY, JSON.stringify([...projectFilterIds]))
+  }, [projectFilterIds])
+
+  useEffect(() => {
     return () => {
       if (statusActionSuccessTimerRef.current) window.clearTimeout(statusActionSuccessTimerRef.current)
     }
@@ -161,22 +271,39 @@ const TasksBoard = ({
 
   const statusCounts = useMemo(() => {
     const counts: Record<TaskStatus, number> = { todo: 0, doing: 0, done: 0 }
-    tasks.forEach((task) => counts[task.status]++)
+    const countBase = scope.kind === 'project'
+      ? tasks.filter((task) => task.projectId === scope.projectId)
+      : scope.kind === 'today' || topView === 'today'
+        ? tasks.filter((task) => task.isToday)
+        : tasks
+    countBase.forEach((task) => counts[task.status]++)
     return counts
-  }, [tasks])
+  }, [scope, tasks, topView])
 
   const statusDeadlineAlerts = useMemo(() => {
     const alerts: Record<TaskStatus, ReturnType<typeof getUpcomingDeadlineAlert>> = { todo: null, doing: null, done: null }
+    const alertBase = scope.kind === 'project'
+      ? tasks.filter((task) => task.projectId === scope.projectId)
+      : scope.kind === 'today' || topView === 'today'
+        ? tasks.filter((task) => task.isToday)
+        : tasks
     tabs.forEach((status) => {
-      alerts[status.key] = getUpcomingDeadlineAlert(tasks.filter((task) => task.status === status.key))
+      alerts[status.key] = getUpcomingDeadlineAlert(alertBase.filter((task) => task.status === status.key))
     })
     return alerts
-  }, [tasks])
+  }, [scope, tasks, topView])
 
   const filteredTasks = useMemo(() => {
-    let result = topView === 'today'
-      ? tasks.filter((task) => task.isToday)
-      : tasks.filter((task) => task.status === activeStatus)
+    let result = scope.kind === 'project'
+      ? tasks.filter((task) => task.projectId === scope.projectId && (effectiveGroupBy !== 'status' || task.status === activeStatus))
+      : scope.kind === 'today' || topView === 'today'
+        ? tasks.filter((task) => task.isToday)
+        : effectiveGroupBy === 'status'
+          ? tasks.filter((task) => task.status === activeStatus)
+          : tasks
+    if (scope.kind === 'all' && projectFilterIds.size > 0) {
+      result = result.filter((task) => task.projectId && projectFilterIds.has(task.projectId))
+    }
     if (tagFilter.length > 0) {
       result = result.filter((task) => tagFilter.some((tag) => task.tags.some((item) => item.toLowerCase() === tag)))
     }
@@ -189,7 +316,7 @@ const TasksBoard = ({
       return sortByImportance(a, b)
     })
     return ordered
-  }, [tasks, topView, activeStatus, tagFilter, sortMode])
+  }, [tasks, scope, topView, effectiveGroupBy, activeStatus, projectFilterIds, tagFilter, sortMode])
   const filteredTaskIds = useMemo(() => filteredTasks.map((task) => task.id), [filteredTasks])
   const projectById = useMemo(() => {
     const map = new Map<string, ProjectItem>()
@@ -197,6 +324,33 @@ const TasksBoard = ({
     return map
   }, [projects])
   const activeProjects = useMemo(() => projects.filter((project) => project.status !== 'archived'), [projects])
+
+  useEffect(() => {
+    if (projectFilterIds.size === 0 || activeProjects.length === 0) return
+    const validProjectIds = new Set(activeProjects.map((project) => project.id))
+    setProjectFilterIds((prev) => {
+      const next = [...prev].filter((projectId) => validProjectIds.has(projectId))
+      if (next.length === prev.size) return prev
+      return new Set(next.slice(0, 1))
+    })
+  }, [activeProjects, projectFilterIds.size])
+
+  const taskById = useMemo(() => new Map(tasks.map((task) => [task.id, task] as const)), [tasks])
+  const projectFilterBaseTasks = useMemo(() => {
+    if (scope.kind !== 'all') return []
+    if (topView === 'today') return tasks.filter((task) => task.isToday)
+    if (effectiveGroupBy === 'status') return tasks.filter((task) => task.status === activeStatus)
+    if (effectiveGroupBy === 'today') return tasks.filter((task) => task.status !== 'done')
+    return tasks
+  }, [activeStatus, effectiveGroupBy, scope.kind, tasks, topView])
+  const projectFilterCounts = useMemo(() => {
+    const counts = new Map<string, number>()
+    projectFilterBaseTasks.forEach((task) => {
+      if (!task.projectId) return
+      counts.set(task.projectId, (counts.get(task.projectId) ?? 0) + 1)
+    })
+    return counts
+  }, [projectFilterBaseTasks])
   const selectedCount = selectedTaskIds.size
 
   const bulkTagOptions = useMemo(() => {
@@ -271,20 +425,35 @@ const TasksBoard = ({
     setActiveTask((prev) => (prev?.id === updated.id ? updated : prev))
   }, [])
 
-  const handleAddTask = useCallback(async (title: string) => {
+  const handleAddTask = useCallback(async (rawTitle: string) => {
+    const parsed = parseQuickAdd(rawTitle, projects, scope.kind === 'project' ? scope.projectId : undefined)
     const created = await tasksRepo.add({
-      title,
-      status: topView === 'today' ? 'todo' : activeStatus,
-      isToday: topView === 'today',
-      priority: null,
-      dueDate: undefined,
-      tags: [],
+      title: parsed.title,
+      status: topView === 'today' || effectiveGroupBy !== 'status' ? 'todo' : activeStatus,
+      isToday: topView === 'today' || parsed.isToday === true,
+      priority: parsed.priority,
+      projectId: parsed.projectId,
+      dueDate: parsed.dueDate,
+      tags: parsed.tags,
       subtasks: [],
     })
     emitTasksChanged('tasks-board:create')
     setTasks((prev) => [created, ...prev])
     return true
-  }, [activeStatus, topView])
+  }, [activeStatus, effectiveGroupBy, projects, scope, topView])
+
+  const handleStartFocus = useCallback((task: TaskItem) => {
+    window.localStorage.setItem('focusgo.pendingTaskId', task.id)
+    window.history.pushState({}, '', ROUTES.FOCUS)
+    window.dispatchEvent(new PopStateEvent('popstate'))
+  }, [])
+
+  const toggleProjectFilter = useCallback((projectId: string) => {
+    setProjectFilterIds((prev) => {
+      if (prev.has(projectId)) return new Set()
+      return new Set([projectId])
+    })
+  }, [])
 
   const handleToggleToday = useCallback(async (taskId: string) => {
     const task = tasks.find((item) => item.id === taskId)
@@ -377,6 +546,79 @@ const TasksBoard = ({
   }, [bulkTagDraft, selectedTaskIds, tasks])
 
   const showTasksEmptyState = filteredTasks.length === 0 && topView !== 'analytics'
+  const groupSections = useMemo(() => {
+    if (effectiveGroupBy === 'project' || topView === 'today' || scope.kind === 'project') {
+      const sections = activeProjects
+        .map((project) => ({
+          id: project.id,
+          title: project.title,
+          color: resolveProjectColor(project),
+          tasks: filteredTasks.filter((task) => task.projectId === project.id),
+        }))
+        .filter((section) => section.tasks.length > 0)
+      const inboxTasks = filteredTasks.filter((task) => !task.projectId)
+      if (inboxTasks.length > 0 && scope.kind !== 'project') {
+        sections.push({ id: '__inbox__', title: 'Inbox', color: '#9A8F83', tasks: inboxTasks })
+      }
+      return sections
+    }
+    if (effectiveGroupBy === 'today') {
+      return [
+        { id: 'today', title: 'Today', color: '#B07830', tasks: filteredTasks.filter((task) => task.isToday) },
+        { id: 'next', title: 'Next', color: '#3D7A4E', tasks: filteredTasks.filter((task) => !task.isToday && task.status !== 'done') },
+        { id: 'done', title: 'Done', color: '#0D7A54', tasks: filteredTasks.filter((task) => task.status === 'done') },
+      ].filter((section) => section.tasks.length > 0)
+    }
+    return [{ id: activeStatus, title: t(TASK_STATUS_CONFIG[activeStatus].labelKey), color: '#3A3733', tasks: filteredTasks }]
+  }, [activeProjects, activeStatus, effectiveGroupBy, filteredTasks, scope.kind, t, topView])
+
+  const renderTaskCard = (task: TaskItem) => {
+    const taskProject = task.projectId ? projectById.get(task.projectId) : undefined
+    const cardProject = taskProject && taskProject.status !== 'archived'
+      ? { id: taskProject.id, title: taskProject.title, color: resolveProjectColor(taskProject) }
+      : null
+    const dependencyTasks = (task.blockedByTaskIds ?? task.dependencyTaskIds ?? [])
+      .map((id) => taskById.get(id))
+      .filter((item): item is TaskItem => Boolean(item))
+    return (
+      <TaskCard
+        key={task.id}
+        task={task}
+        project={cardProject}
+        dependencyTasks={dependencyTasks}
+        onProjectClick={scope.kind === 'all' ? toggleProjectFilter : undefined}
+        onStartFocus={handleStartFocus}
+        onSelect={setActiveTask}
+        onClick={(nextTask) => {
+          if (bulkMode) toggleTaskSelection(nextTask.id)
+          else setActiveTask(nextTask)
+        }}
+        onDelete={(nextTask) => setDeleteTarget(nextTask)}
+        onTogglePin={(nextTask) => {
+          void handlePin(nextTask.id)
+        }}
+        onToggleToday={(nextTask) => {
+          void handleToggleToday(nextTask.id)
+        }}
+        statusActions={
+          task.status === 'todo'
+            ? [
+                { key: 'doing', label: t('tasks.status.start'), onClick: async (nextTask) => handleStatusChange(nextTask.id, 'doing') },
+                { key: 'done', label: t('tasks.status.complete'), onClick: async (nextTask) => handleStatusChange(nextTask.id, 'done') },
+              ]
+            : task.status === 'doing'
+              ? [{ key: 'done', label: t('tasks.status.complete'), onClick: async (nextTask) => handleStatusChange(nextTask.id, getNextStatus(nextTask.status).next) }]
+              : [{ key: 'todo', label: t('tasks.status.reopen'), onClick: async (nextTask) => handleStatusChange(nextTask.id, getNextStatus(nextTask.status).next) }]
+        }
+        loadingActionKey={statusActionLoadingTaskId === task.id ? statusActionLoadingKey : null}
+        successActionKey={statusActionSuccessTaskId === task.id ? statusActionSuccessKey : null}
+        compact={asCard}
+        selected={selectedTaskIds.has(task.id)}
+        selectionMode={bulkMode}
+      />
+    )
+  }
+
   const tasksEmptyState = (
     <EmptyState
       icon={<LayoutGrid className="size-6" />}
@@ -393,52 +635,26 @@ const TasksBoard = ({
             tasksEmptyState
           ) : (
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-              <div
-                className={cn(
-                  'tasks-fg__card-grid grid grid-cols-1 items-start gap-3 p-1 pb-4 sm:grid-cols-2',
-                  asCard ? 'lg:grid-cols-2 xl:grid-cols-2' : 'lg:grid-cols-3 xl:grid-cols-4',
-                )}
-              >
-                {filteredTasks.map((task) => {
-                  const taskProject = task.projectId ? projectById.get(task.projectId) : undefined
-                  const cardProject = taskProject && taskProject.status !== 'archived'
-                    ? { id: taskProject.id, title: taskProject.title }
-                    : null
-                  return (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    project={cardProject}
-                    onSelect={setActiveTask}
-                    onClick={(nextTask) => {
-                      if (bulkMode) toggleTaskSelection(nextTask.id)
-                      else setActiveTask(nextTask)
-                    }}
-                    onDelete={(nextTask) => setDeleteTarget(nextTask)}
-                    onTogglePin={(nextTask) => {
-                      void handlePin(nextTask.id)
-                    }}
-                    onToggleToday={(nextTask) => {
-                      void handleToggleToday(nextTask.id)
-                    }}
-                    statusActions={
-                      task.status === 'todo'
-                        ? [
-                            { key: 'doing', label: t('tasks.status.start'), onClick: async (nextTask) => handleStatusChange(nextTask.id, 'doing') },
-                            { key: 'done', label: t('tasks.status.complete'), onClick: async (nextTask) => handleStatusChange(nextTask.id, 'done') },
-                          ]
-                        : task.status === 'doing'
-                          ? [{ key: 'done', label: t('tasks.status.complete'), onClick: async (nextTask) => handleStatusChange(nextTask.id, getNextStatus(nextTask.status).next) }]
-                          : [{ key: 'todo', label: t('tasks.status.reopen'), onClick: async (nextTask) => handleStatusChange(nextTask.id, getNextStatus(nextTask.status).next) }]
-                    }
-                    loadingActionKey={statusActionLoadingTaskId === task.id ? statusActionLoadingKey : null}
-                    successActionKey={statusActionSuccessTaskId === task.id ? statusActionSuccessKey : null}
-                    compact={asCard}
-                    selected={selectedTaskIds.has(task.id)}
-                    selectionMode={bulkMode}
-                  />
-                  )
-                })}
+              <div className="tasks-fg__group-stack">
+                {groupSections.map((section) => (
+                  <section key={section.id} className="tasks-fg__group">
+                    {(effectiveGroupBy !== 'status' || topView === 'today' || scope.kind === 'project') ? (
+                      <header className="tasks-fg__group-header">
+                        <span className="tasks-fg__project-dot" style={{ background: section.color }} aria-hidden />
+                        <h3>{section.title}</h3>
+                        <span>{section.tasks.length}</span>
+                      </header>
+                    ) : null}
+                    <div
+                      className={cn(
+                        'tasks-fg__card-grid grid grid-cols-1 items-start gap-3 p-1 pb-4 sm:grid-cols-2',
+                        asCard ? 'lg:grid-cols-2 xl:grid-cols-2' : 'lg:grid-cols-3 xl:grid-cols-4',
+                      )}
+                    >
+                      {section.tasks.map(renderTaskCard)}
+                    </div>
+                  </section>
+                ))}
               </div>
             </div>
           )}
@@ -450,11 +666,42 @@ const TasksBoard = ({
 
   const plain = (
     <div className={cn('tasks-fg flex h-full min-h-0 flex-col', asCard ? 'bg-background' : 'bg-transparent', !asCard && 'tasks-fg--plain')}>
-      {topView === 'board' ? (
+      {topView === 'board' || topView === 'today' ? (
         <div className="mb-0 border-b pb-3">
+          <div className="flex flex-col gap-3">
+            {!asCard && scope.kind === 'all' ? (
+              <div className="tasks-fg__project-filter" aria-label="Project filters">
+                <button
+                  type="button"
+                  className={cn('pj-chip tasks-fg__project-chip', projectFilterIds.size === 0 && 'pj-chip--active')}
+                  onClick={() => setProjectFilterIds(new Set())}
+	                >
+	                  All <span className="pj-chip__count">{projectFilterBaseTasks.length}</span>
+	                </button>
+	                {activeProjects.map((project) => {
+	                  const selected = projectFilterIds.has(project.id)
+	                  const count = projectFilterCounts.get(project.id) ?? 0
+	                  if (count === 0) return null
+	                  return (
+                    <button
+                      key={project.id}
+	                      type="button"
+	                      className={cn('pj-chip tasks-fg__project-chip', selected && 'pj-chip--active')}
+	                      aria-pressed={selected}
+	                      onClick={() => toggleProjectFilter(project.id)}
+                    >
+                      <span className="tasks-fg__project-dot" style={{ background: resolveProjectColor(project) }} aria-hidden />
+                      {project.title}
+                      <span className="pj-chip__count">{count}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            ) : null}
+
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              {topView === 'board' ? (
+              {topView === 'board' && effectiveGroupBy === 'status' ? (
                 <div className="flex items-center gap-0.5">
                   {tabs.map((status) => {
                     const cfg = TASK_STATUS_CONFIG[status.key]
@@ -496,6 +743,27 @@ const TasksBoard = ({
               {!asCard ? (
                 <>
                   <div className="h-5 w-px bg-border" />
+
+                  {topView === 'board' && scope.kind === 'all' ? (
+                    <div className="tasks-fg__group-toggle" role="group" aria-label="Group tasks">
+                      {([
+                        { key: 'status', label: 'Status', Icon: LayoutGrid },
+                        { key: 'project', label: 'Project', Icon: FolderKanban },
+                        { key: 'today', label: 'Today', Icon: SunMedium },
+                      ] satisfies Array<{ key: BoardGroupBy; label: string; Icon: typeof LayoutGrid }>).map(({ key, label, Icon }) => (
+                        <button
+                          key={key}
+                          type="button"
+                          className={cn('tasks-fg__mode-tab', groupBy === key && 'tasks-fg__mode-tab--active')}
+                          aria-pressed={groupBy === key}
+                          onClick={() => setGroupBy(key)}
+                        >
+                          <Icon className="size-3.5" />
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
 
                   <Popover>
                     <PopoverTrigger asChild>
@@ -637,6 +905,7 @@ const TasksBoard = ({
                 )
               ) : null}
             </div>
+          </div>
           </div>
         </div>
       ) : null}

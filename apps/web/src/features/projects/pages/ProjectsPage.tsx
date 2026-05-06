@@ -5,25 +5,25 @@ import { useNavigate } from 'react-router-dom'
 import { db } from '../../../data/db'
 import { projectsRepo } from '../../../data/repositories/projectsRepo'
 import type { ProjectHealth, ProjectItem, ProjectPerson } from '../../../data/models/types'
+import { resolveProjectColor } from '../../../shared/design/tokens'
+import { EASE_OUT, STAGGER_SLOW } from '../../../shared/motion/tokens'
 import { ProjectFormDialog } from '../components/ProjectDialogs'
 import { useProjectsI18n } from '../projectsI18n'
 import '../projects.css'
 
-const EASE = [0.16, 1, 0.3, 1] as [number, number, number, number]
-
 const listStagger = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.06, delayChildren: 0.08 } },
+  show: { transition: { staggerChildren: STAGGER_SLOW, delayChildren: 0.08 } },
 }
 
 const cardVariant = {
   hidden: { opacity: 0, y: 14 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.42, ease: EASE } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.42, ease: EASE_OUT } },
 }
 
 const heroVariant = {
   hidden: { opacity: 0, y: -10 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.46, ease: EASE } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.46, ease: EASE_OUT } },
 }
 
 let hasAnimatedProjectsList = false
@@ -118,7 +118,6 @@ const ProjectsPage = () => {
         <div>
           <div className="pj-header__title-row">
             <h1 className="pj-title">{i18n.page.title}</h1>
-            <span className="pj-labs-badge">LABS</span>
           </div>
           <p className="pj-subtitle">{i18n.page.subtitle}</p>
         </div>
@@ -137,7 +136,7 @@ const ProjectsPage = () => {
         className="pj-controls"
         initial={shouldAnimateIn ? { opacity: 0, y: 8 } : false}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.38, ease: EASE, delay: 0.12 }}
+        transition={{ duration: 0.38, ease: EASE_OUT, delay: 0.12 }}
       >
         {/* Top: search + secondary filters */}
         <div className="pj-controls-top">
@@ -237,7 +236,7 @@ const ProjectsPage = () => {
             className="pj-empty"
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.32, ease: EASE }}
+            transition={{ duration: 0.32, ease: EASE_OUT }}
           >
             <h2>{i18n.page.emptyTitle}</h2>
             <p>{i18n.page.emptyDesc}</p>
@@ -265,6 +264,7 @@ const ProjectsPage = () => {
           const ownerName = project.ownerId ? (ownerMap.get(project.ownerId) ?? i18n.page.cardUnassigned) : i18n.page.cardUnassigned
           const timeline = `${project.startDate ?? i18n.page.cardTBD} – ${project.dueDate ?? i18n.page.cardTBD}`
           const healthSlug = project.health === 'on-track' ? 'track' : project.health === 'at-risk' ? 'risk' : 'blocked'
+          const projectColor = resolveProjectColor(project)
           const goNav = () => navigate(`/projects/${project.id}`)
           const onKey = (e: React.KeyboardEvent) => {
             if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goNav() }
@@ -314,6 +314,7 @@ const ProjectsPage = () => {
                 onKeyDown={onKey}
               >
                 <div className="pj-tile__topbar">
+                  <span className="pj-project-dot" style={{ background: projectColor }} aria-hidden />
                   <span className={`pj-badge pj-badge--${healthSlug}`}>{labelHealth(project.health)}</span>
                   <span className="pj-tile__pct">{project.progress}%</span>
                 </div>
@@ -364,6 +365,7 @@ const ProjectsPage = () => {
 
               {/* title */}
               <h2 className="pj-card__title">{project.title}</h2>
+              <span className="pj-card__color-dot" style={{ background: projectColor }} aria-hidden />
 
               {/* goal / description */}
               {(project.goal || project.description) ? (
@@ -378,8 +380,8 @@ const ProjectsPage = () => {
                     initial={shouldAnimateIn ? { width: '0%' } : false}
                     animate={{ width: `${project.progress}%` }}
                     transition={shouldAnimateIn
-                      ? { duration: 0.9, ease: EASE, delay: 0.3 + index * 0.06 }
-                      : { duration: 0.3, ease: EASE }}
+                      ? { duration: 0.9, ease: EASE_OUT, delay: 0.3 + index * 0.06 }
+                      : { duration: 0.3, ease: EASE_OUT }}
                   />
                 </div>
               </div>

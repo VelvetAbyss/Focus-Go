@@ -41,6 +41,7 @@
   position: relative;
   width: 100%;
   flex: 1 1 auto;
+  height: 100%;
   min-height: max(60vh, 220px);
   gap: 20px;
   background: transparent;

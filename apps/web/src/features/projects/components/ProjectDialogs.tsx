@@ -13,12 +13,14 @@ import {
 import Dialog from '../../../shared/ui/Dialog'
 import type { LifePerson, ProjectItem, ProjectPerson, TaskItem } from '../../../data/models/types'
 import { peopleRepo } from '../../../data/repositories/peopleRepo'
+import { PROJECT_COLORS, resolveProjectColor } from '../../../shared/design/tokens'
 import { useProjectsI18n } from '../projectsI18n'
 
 type ProjectFormPayload = {
   title: string
   goal: string
   description: string
+  color?: string
   status: ProjectItem['status']
   priority: ProjectItem['priority']
   ownerId?: string
@@ -66,6 +68,7 @@ export const ProjectFormDialog = ({ open, project, people, onClose, onAutoSave, 
   const [title, setTitle] = useState('')
   const [goal, setGoal] = useState('')
   const [description, setDescription] = useState('')
+  const [color, setColor] = useState<string>(PROJECT_COLORS[0])
   const [status, setStatus] = useState<ProjectItem['status']>('planning')
   const [priority, setPriority] = useState<ProjectItem['priority']>('medium')
   const [ownerId, setOwnerId] = useState<string>('unassigned')
@@ -82,6 +85,7 @@ export const ProjectFormDialog = ({ open, project, people, onClose, onAutoSave, 
     setTitle(project?.title ?? '')
     setGoal(project?.goal ?? '')
     setDescription(project?.description ?? '')
+    setColor(project ? resolveProjectColor(project) : PROJECT_COLORS[0])
     setStatus(project?.status ?? 'planning')
     setPriority(project?.priority ?? 'medium')
     setOwnerId(project?.ownerId ?? 'unassigned')
@@ -100,6 +104,7 @@ export const ProjectFormDialog = ({ open, project, people, onClose, onAutoSave, 
     const timer = setTimeout(() => {
       void onAutoSave({
         title, goal, description, status, priority,
+        color,
         ownerId: ownerId === 'unassigned' ? undefined : ownerId,
         startDate: startDate || undefined,
         dueDate: dueDate || undefined,
@@ -109,7 +114,7 @@ export const ProjectFormDialog = ({ open, project, people, onClose, onAutoSave, 
     }, 400)
     return () => clearTimeout(timer)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, goal, description, status, priority, ownerId, startDate, dueDate, nextAction, riskSummary])
+  }, [title, goal, description, color, status, priority, ownerId, startDate, dueDate, nextAction, riskSummary])
 
   const canSubmit = title.trim().length > 0
   const isEditMode = !!project && !!onAutoSave
@@ -149,6 +154,27 @@ export const ProjectFormDialog = ({ open, project, people, onClose, onAutoSave, 
               <span>{i18n.dialog.fieldDescription}</span>
               <Textarea value={description} onChange={(event) => setDescription(event.target.value)} className={textareaClassName} placeholder={i18n.dialog.descPlaceholder} />
             </label>
+          </div>
+
+          <div className="project-dialog__grid project-dialog__grid--single">
+            <div className="project-dialog__field">
+              <span>Project color</span>
+              <div className="project-dialog__swatches" role="radiogroup" aria-label="Project color">
+                {PROJECT_COLORS.map((nextColor) => (
+                  <button
+                    key={nextColor}
+                    type="button"
+                    role="radio"
+                    aria-checked={color === nextColor}
+                    className={`project-dialog__swatch${color === nextColor ? ' is-active' : ''}`}
+                    style={{ background: nextColor }}
+                    onClick={() => setColor(nextColor)}
+                  >
+                    <span className="sr-only">{nextColor}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="project-dialog__grid">
@@ -236,6 +262,7 @@ export const ProjectFormDialog = ({ open, project, people, onClose, onAutoSave, 
                   title,
                   goal,
                   description,
+                  color,
                   status,
                   priority,
                   ownerId: ownerId === 'unassigned' ? undefined : ownerId,

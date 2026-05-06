@@ -500,6 +500,7 @@ export type ProjectItem = BaseEntity & {
   title: string
   description: string
   goal: string
+  color?: string
   status: ProjectStatus
   priority: TaskPriority | null
   ownerId?: string

@@ -3,6 +3,7 @@ import type { ProjectHealth, ProjectItem, ProjectStatus, TaskItem } from '../mod
 import { enqueueSyncOperation } from '../sync/repository'
 import { touch, withBase } from './base'
 import { noteTagsRepo } from './noteTagsRepo'
+import { getDeterministicProjectColor } from '../../shared/design/tokens'
 
 export type ProjectCreateInput = {
   title: string
@@ -15,6 +16,7 @@ export type ProjectCreateInput = {
   dueDate?: string
   nextAction?: string
   riskSummary?: string
+  color?: string
 }
 
 const toProjectTag = (projectId: string) => `project:${projectId}`
@@ -65,6 +67,7 @@ export const projectsRepo = {
       const projectTasks = tasks.filter((task) => task.projectId === project.id)
       return {
         ...project,
+        color: project.color ?? getDeterministicProjectColor(project.id),
         progress: deriveProjectProgress(projectTasks),
         health: deriveProjectHealth(project, projectTasks),
         nextAction: deriveNextAction(project, projectTasks),
@@ -77,6 +80,7 @@ export const projectsRepo = {
     const projectTasks = tasks.filter((task) => task.projectId === id)
     return {
       ...project,
+      color: project.color ?? getDeterministicProjectColor(project.id),
       progress: deriveProjectProgress(projectTasks),
       health: deriveProjectHealth(project, projectTasks),
       nextAction: deriveNextAction(project, projectTasks),
@@ -87,6 +91,7 @@ export const projectsRepo = {
       title: data.title.trim(),
       description: data.description?.trim() ?? '',
       goal: data.goal?.trim() ?? '',
+      color: data.color?.trim() || undefined,
       status: data.status ?? 'planning',
       priority: data.priority ?? 'medium',
       ownerId: data.ownerId,
@@ -120,6 +125,7 @@ export const projectsRepo = {
       title: typeof patch.title === 'string' ? patch.title.trim() : current.title,
       description: typeof patch.description === 'string' ? patch.description.trim() : current.description,
       goal: typeof patch.goal === 'string' ? patch.goal.trim() : current.goal,
+      color: typeof patch.color === 'string' ? patch.color.trim() : current.color,
       nextAction: typeof patch.nextAction === 'string' ? patch.nextAction.trim() : current.nextAction,
       riskSummary: typeof patch.riskSummary === 'string' ? patch.riskSummary.trim() : current.riskSummary,
     })
