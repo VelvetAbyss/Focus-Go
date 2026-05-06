@@ -20,6 +20,7 @@ import { syncedPreferencesRepo } from '../../data/repositories/syncedPreferences
 import { getAuth, subscribeAuth } from '../../store/auth'
 import { isLocalhostRuntime } from '../../shared/env/localhost'
 import { clearLocalUserData } from '../../data/sync/repository'
+import CommandPalette from '../../shared/ui/CommandPalette'
 
 type AppShellProps = {
   children: ReactNode
@@ -77,6 +78,7 @@ const AppShell = ({ children }: AppShellProps) => {
     if (storedSelection === 'light' || storedSelection === 'dark') return storedSelection
     return resolveInitialTheme()
   })
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   useTaskReminderEngine()
 
   useEffect(() => {
@@ -239,6 +241,7 @@ const AppShell = ({ children }: AppShellProps) => {
             </main>
           </div>
         </div>
+        <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
         <UpgradeModal />
       </UpgradeModalProvider>
     </AuthGateProvider>

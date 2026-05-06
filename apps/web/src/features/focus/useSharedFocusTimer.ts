@@ -4,6 +4,7 @@ import { focusRepo } from '../../data/repositories/focusRepo'
 
 const FOCUS_TIMER_EVENT = 'focus:timer-updated'
 const SESSION_KEY = 'focusgo.timer.sessionId'
+const PENDING_TASK_KEY = 'focusgo.pendingTaskId'
 
 const clampDuration = (value: number) => {
   if (!Number.isFinite(value)) return 25
@@ -29,6 +30,13 @@ const getOrCreateSessionId = () => {
   const next = randomSessionId()
   window.sessionStorage.setItem(SESSION_KEY, next)
   return next
+}
+
+const consumePendingTaskId = () => {
+  if (typeof window === 'undefined') return undefined
+  const taskId = window.localStorage.getItem(PENDING_TASK_KEY) ?? undefined
+  if (taskId) window.localStorage.removeItem(PENDING_TASK_KEY)
+  return taskId
 }
 
 const buildIdleSnapshot = (durationMinutes: number, sessionId: string): FocusTimerSnapshot => ({
@@ -205,6 +213,7 @@ export const useSharedFocusTimer = ({ defaultDurationMinutes }: UseSharedFocusTi
     if (!activeSessionId) {
       const startedSession = await focusRepo.startSession({
         plannedMinutes: normalizedDuration,
+        taskId: consumePendingTaskId(),
       })
       activeSessionId = startedSession.id
     }
@@ -253,6 +262,7 @@ export const useSharedFocusTimer = ({ defaultDurationMinutes }: UseSharedFocusTi
     if (!activeSessionId) {
       const startedSession = await focusRepo.startSession({
         plannedMinutes: targetDuration,
+        taskId: consumePendingTaskId(),
       })
       activeSessionId = startedSession.id
     }
@@ -317,4 +327,3 @@ export const useSharedFocusTimer = ({ defaultDurationMinutes }: UseSharedFocusTi
     reload: loadFromStorage,
   }
 }
-

@@ -59,6 +59,7 @@ vi.mock('../../shared/ui/toast/toast', () => ({
 }))
 
 const listMock = vi.fn()
+const projectListMock = vi.fn()
 const updateMock = vi.fn()
 const removeMock = vi.fn()
 const updateStatusMock = vi.fn()
@@ -78,7 +79,7 @@ vi.mock('../../data/repositories/tasksRepo', () => ({
 
 vi.mock('../../data/repositories/projectsRepo', () => ({
   projectsRepo: {
-    list: vi.fn(async () => []),
+    list: (...args: unknown[]) => projectListMock(...args),
   },
 }))
 
@@ -148,6 +149,8 @@ describe('TasksBoard sync', () => {
   beforeEach(() => {
     cleanup()
     listMock.mockReset()
+    projectListMock.mockReset()
+    projectListMock.mockResolvedValue([])
     updateMock.mockReset()
     removeMock.mockReset()
     updateStatusMock.mockReset()
@@ -211,6 +214,102 @@ describe('TasksBoard sync', () => {
     await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1))
     expect(screen.getByText('Today task')).toBeInTheDocument()
     expect(screen.queryByText('Backlog task')).not.toBeInTheDocument()
+  })
+
+  it('filters project-scoped tasks by the active status tabs', async () => {
+    projectListMock.mockResolvedValueOnce([
+      {
+        id: 'project-1',
+        title: 'Lowes',
+        description: '',
+        goal: '',
+        status: 'active',
+        priority: 'high',
+        health: 'on-track',
+        progress: 0,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ])
+    listMock.mockResolvedValueOnce([
+      { ...makeTask('task-1', 'Todo project task'), projectId: 'project-1', status: 'todo' },
+      { ...makeTask('task-2', 'Doing project task'), projectId: 'project-1', status: 'doing' },
+      { ...makeTask('task-3', 'Done project task'), projectId: 'project-1', status: 'done' },
+      { ...makeTask('task-4', 'Other project task'), projectId: 'project-2', status: 'todo' },
+    ])
+
+    render(<TasksBoard asCard={false} scope={{ kind: 'project', projectId: 'project-1' }} />)
+
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1))
+    expect(screen.getByText('Todo project task')).toBeInTheDocument()
+    expect(screen.queryByText('Doing project task')).not.toBeInTheDocument()
+    expect(screen.queryByText('Done project task')).not.toBeInTheDocument()
+    expect(screen.queryByText('Other project task')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('tab', { name: /Doing/ }))
+    expect(await screen.findByText('Doing project task')).toBeInTheDocument()
+    expect(screen.queryByText('Todo project task')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('tab', { name: /Done/ }))
+    expect(await screen.findByText('Done project task')).toBeInTheDocument()
+    expect(screen.queryByText('Doing project task')).not.toBeInTheDocument()
+  })
+
+  it('filters the full tasks board by a single selected project and keeps counts scoped to the active status', async () => {
+    projectListMock.mockResolvedValueOnce([
+      {
+        id: 'project-1',
+        title: 'Lowes',
+        description: '',
+        goal: '',
+        status: 'active',
+        priority: 'high',
+        health: 'on-track',
+        progress: 0,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+      {
+        id: 'project-2',
+        title: 'Costco',
+        description: '',
+        goal: '',
+        status: 'active',
+        priority: 'medium',
+        health: 'on-track',
+        progress: 0,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ])
+    listMock.mockResolvedValueOnce([
+      { ...makeTask('task-1', 'Lowes doing task'), projectId: 'project-1', status: 'doing' },
+      { ...makeTask('task-2', 'Lowes todo task'), projectId: 'project-1', status: 'todo' },
+      { ...makeTask('task-3', 'Costco doing task'), projectId: 'project-2', status: 'doing' },
+    ])
+
+    render(<TasksBoard asCard={false} />)
+
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1))
+    fireEvent.click(screen.getByRole('tab', { name: /Doing/ }))
+
+    expect(await screen.findByText('Lowes doing task')).toBeInTheDocument()
+    expect(screen.getByText('Costco doing task')).toBeInTheDocument()
+    expect(screen.queryByText('Lowes todo task')).not.toBeInTheDocument()
+    expect(screen.getByText('All').parentElement).toHaveTextContent('2')
+    expect(screen.getByText('Lowes').parentElement).toHaveTextContent('1')
+
+    fireEvent.click(screen.getByText('Lowes'))
+    expect(await screen.findByText('Lowes doing task')).toBeInTheDocument()
+    expect(screen.queryByText('Costco doing task')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('Costco'))
+    expect(await screen.findByText('Costco doing task')).toBeInTheDocument()
+    expect(screen.queryByText('Lowes doing task')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('All'))
+    expect(await screen.findByText('Lowes doing task')).toBeInTheDocument()
+    expect(screen.getByText('Costco doing task')).toBeInTheDocument()
   })
 
   it('keeps dashboard card layout separate from the plain tasks page layout', async () => {

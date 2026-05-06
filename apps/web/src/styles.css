@@ -2338,6 +2338,62 @@ html[data-motion='reduce'] .route-loader__mark {
   z-index: 1;
 }
 
+.task-card__project-dot {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  z-index: 3;
+  width: 7px;
+  height: 7px;
+  border: 1px solid rgba(245, 243, 240, 0.88);
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgba(58, 55, 51, 0.10);
+  cursor: pointer;
+}
+
+.task-card__project-dot:focus-visible {
+  outline: 2px solid #3A3733;
+  outline-offset: 2px;
+}
+
+.task-card__blocked-chip {
+  border-color: rgba(184, 51, 51, 0.22);
+  background: rgba(184, 51, 51, 0.08);
+  color: #B83333;
+}
+
+.task-card__dependency-mini {
+  display: grid;
+  gap: 4px;
+  border-top: 1px solid rgba(58, 55, 51, 0.08);
+  padding-top: 8px;
+}
+
+.task-card__dependency-row {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  line-height: 1.25;
+  color: rgba(58, 55, 51, 0.62);
+}
+
+.task-card__dependency-status {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(58, 55, 51, 0.32);
+}
+
+.task-card__dependency-status--doing { background: #1E5BFF; }
+.task-card__dependency-status--done { background: #0D7A54; }
+.task-card__dependency-more {
+  padding-left: 15px;
+  font-size: 11px;
+  color: rgba(58, 55, 51, 0.48);
+}
+
 .task-card__actions {
   transition-property: grid-template-rows, opacity, transform, padding-top !important;
   transition-duration: 500ms !important;
@@ -7105,6 +7161,31 @@ html[data-theme='dark'] .trips-journal__shape-bar { background: rgba(236, 232, 2
 .pj-chip--done.pj-chip--active          { background: rgba(58,55,51,0.55); border-color: rgba(58,55,51,0.55); }
 .pj-chip--archived.pj-chip--active      { background: rgba(58,55,51,0.38); border-color: rgba(58,55,51,0.38); }
 
+.project-dialog__swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.project-dialog__swatch {
+  width: 30px;
+  height: 30px;
+  border: 2px solid rgba(245, 243, 240, 0.9);
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgba(58, 55, 51, 0.14);
+  cursor: pointer;
+}
+
+.project-dialog__swatch.is-active {
+  box-shadow: 0 0 0 2px #3A3733;
+}
+
+.project-dialog__swatch:focus-visible {
+  outline: 2px solid #3A3733;
+  outline-offset: 2px;
+}
+
 /* ── Card list ───────────────────────────────────────────────────── */
 .pj-card-list {
   display: flex;
@@ -7120,6 +7201,21 @@ html[data-theme='dark'] .trips-journal__shape-bar { background: rgba(236, 232, 2
 
 .pj-card-list--list {
   gap: 6px;
+}
+
+.pj-project-dot,
+.pj-card__color-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgba(58, 55, 51, 0.10);
+  flex: 0 0 auto;
+}
+
+.pj-card__color-dot {
+  margin-top: -4px;
+  margin-bottom: 2px;
 }
 
 /* ── View toggle ─────────────────────────────────────────────────── */
@@ -9241,6 +9337,102 @@ html[data-motion='reduce'] .tasks-fg__list .task-card-shell {
   border-color: color-mix(in srgb, #22c55e 42%, transparent);
 }
 
+.command-palette {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: start center;
+  padding-top: min(14vh, 120px);
+}
+
+.command-palette__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(58, 55, 51, 0.18);
+  cursor: default;
+}
+
+.command-palette__panel {
+  position: relative;
+  width: min(620px, calc(100vw - 28px));
+  overflow: hidden;
+  border: 1px solid rgba(58, 55, 51, 0.14);
+  border-radius: 16px;
+  background: #F5F3F0;
+  color: #3A3733;
+  box-shadow: 0 18px 48px rgba(58, 55, 51, 0.18);
+}
+
+.command-palette__input-row {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid rgba(58, 55, 51, 0.10);
+  padding: 14px 16px;
+}
+
+.command-palette__input-row input {
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: #3A3733;
+  font-size: 15px;
+  outline: none;
+}
+
+.command-palette__input-row input::placeholder {
+  color: rgba(58, 55, 51, 0.48);
+}
+
+.command-palette__input-row kbd {
+  border: 1px solid rgba(58, 55, 51, 0.16);
+  border-radius: 6px;
+  padding: 2px 6px;
+  color: rgba(58, 55, 51, 0.56);
+  font-size: 11px;
+  letter-spacing: 0;
+}
+
+.command-palette__list {
+  display: grid;
+  gap: 2px;
+  padding: 8px;
+}
+
+.command-palette__item {
+  display: grid;
+  grid-template-columns: 20px auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #3A3733;
+  padding: 0 10px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.command-palette__item:hover,
+.command-palette__item:focus-visible {
+  background: rgba(58, 55, 51, 0.07);
+  outline: none;
+}
+
+.command-palette__item strong {
+  min-width: 0;
+  color: rgba(58, 55, 51, 0.56);
+  font-size: 12px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .tasks-page {
   --tasks-page-gap: 10px;
   --tasks-page-title-size: 22px;
@@ -9326,6 +9518,65 @@ html[data-motion='reduce'] .tasks-fg__list .task-card-shell {
   --tasks-list-gap: 8px;
   --tasks-composer-padding: 7px;
   --tasks-composer-margin-top: 6px;
+}
+
+.tasks-fg__project-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.tasks-fg__project-chip {
+  flex: 0 0 auto;
+  max-width: 180px;
+}
+
+.tasks-fg__project-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+}
+
+.tasks-fg__group-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.tasks-fg__group-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.tasks-fg__group {
+  min-width: 0;
+}
+
+.tasks-fg__group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px 8px;
+  color: #3A3733;
+}
+
+.tasks-fg__group-header h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.tasks-fg__group-header span:last-child {
+  color: rgba(58, 55, 51, 0.45);
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .tasks-page[data-height-band='tall'] {

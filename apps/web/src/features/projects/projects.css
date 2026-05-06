@@ -1378,6 +1378,70 @@ html[data-theme='dark'] .project-dialog {
   letter-spacing: -0.02em;
 }
 
+.pd-inline-stats {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-bottom: 18px;
+  color: rgba(58, 55, 51, 0.62);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pd-inline-stats span + span::before {
+  content: '·';
+  margin-right: 12px;
+  color: rgba(58, 55, 51, 0.30);
+}
+
+.pd-inline-stats__danger {
+  color: #B83333;
+}
+
+.pd-focus-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 132px;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 24px;
+  border: 1px solid var(--pd-border);
+  border-radius: 18px;
+  background: var(--pd-surface);
+  padding: 24px;
+  box-shadow: none;
+}
+
+.pd-focus-card__main {
+  min-width: 0;
+}
+
+.pd-focus-card__eyebrow {
+  margin: 0 0 8px;
+  color: var(--pd-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pd-focus-card h2 {
+  margin: 0;
+  color: var(--pd-text);
+  font-size: clamp(22px, 3vw, 34px);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+}
+
+.pd-focus-card p:not(.pd-focus-card__eyebrow) {
+  max-width: 680px;
+  margin: 12px 0 16px;
+  color: var(--pd-muted);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
 /* ── Panels ────────────────────────────────────────────────────── */
 .pd-panel-grid {
   display: grid;
@@ -1462,13 +1526,7 @@ html[data-theme='dark'] .project-dialog {
 }
 
 .pd-activity__list::before {
-  content: '';
-  position: absolute;
-  left: 14px;
-  top: 6px;
-  bottom: 6px;
-  width: 1px;
-  background: var(--pd-border-med);
+  content: none;
 }
 
 .pd-activity__item {
@@ -1488,6 +1546,14 @@ html[data-theme='dark'] .project-dialog {
   flex-shrink: 0;
   position: relative;
   z-index: 1;
+}
+
+.pd-activity__bar {
+  width: 2px;
+  align-self: stretch;
+  min-height: 28px;
+  border-radius: 999px;
+  flex: 0 0 auto;
 }
 
 .pd-activity__text {

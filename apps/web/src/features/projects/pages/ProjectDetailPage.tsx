@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import {
-  Archive, ArrowLeft, CheckCircle2, ClipboardList, FileText,
-  Mail, Pencil, Phone, Plus, Search, ShieldAlert,
-  Trash2, Users, Zap, User, CalendarDays,
+  Archive, ArrowLeft, ClipboardList, FileText,
+  Mail, Pencil, Phone, Plus, Search,
+  Trash2, Users, Zap, CalendarDays, User,
 } from 'lucide-react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Input } from '@/components/ui/input'
@@ -17,32 +17,26 @@ import { ROUTES } from '../../../app/routes/routes'
 import { PersonFormDialog, ProjectFormDialog } from '../components/ProjectDialogs'
 import { useProjectsI18n } from '../projectsI18n'
 import TaskDrawer from '../../tasks/TaskDrawer'
+import TasksBoard from '../../tasks/TasksBoard'
 import { emitTasksChanged, subscribeTasksChanged } from '../../tasks/taskSync'
+import { EASE_OUT } from '../../../shared/motion/tokens'
+import { ROLE } from '../../../shared/design/tokens'
 import '../projects.css'
 
 type ProjectTab = 'overview' | 'tasks' | 'timeline' | 'people' | 'notes'
 type TimelineMode = 'week' | 'month' | 'year'
 
 const ROLE_COLORS: Record<string, string> = {
-  owner: '#D4882B',
-  collaborator: '#1E5BFF',
-  reviewer: '#0D7A54',
-  external: '#6B5FF5',
+  owner: ROLE.owner,
+  collaborator: ROLE.collaborator,
+  reviewer: ROLE.reviewer,
+  external: ROLE.external,
 }
-
-const STATUS_ORDER: Record<string, number> = { todo: 0, doing: 1, done: 2 }
 
 const sortByDate = (tasks: TaskItem[]) =>
   [...tasks].sort((a, b) =>
     (a.startDate ?? a.dueDate ?? '9999').localeCompare(b.startDate ?? b.dueDate ?? '9999'),
   )
-
-const sortByStatusThenDate = (tasks: TaskItem[]) =>
-  [...tasks].sort((a, b) => {
-    const statusDiff = (STATUS_ORDER[a.status] ?? 0) - (STATUS_ORDER[b.status] ?? 0)
-    if (statusDiff !== 0) return statusDiff
-    return (a.startDate ?? a.dueDate ?? '9999').localeCompare(b.startDate ?? b.dueDate ?? '9999')
-  })
 
 const DAY_MS = 86400000
 
@@ -75,26 +69,6 @@ function getInitials(name: string): string {
     .slice(0, 2)
 }
 
-function useCountUp(target: number, delay = 0): number {
-  const [count, setCount] = useState(0)
-  useEffect(() => {
-    let raf: number
-    const startTime = performance.now() + delay
-    const duration = 900
-    const tick = (now: number) => {
-      if (now < startTime) { raf = requestAnimationFrame(tick); return }
-      const elapsed = now - startTime
-      const progress = Math.min(elapsed / duration, 1)
-      const eased = 1 - Math.pow(1 - progress, 3)
-      setCount(Math.round(eased * target))
-      if (progress < 1) raf = requestAnimationFrame(tick)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
-  }, [target, delay])
-  return count
-}
-
 // ── Progress ring ────────────────────────────────────────────
 function ProgressRing({ progress, size = 96, label }: { progress: number; size?: number; label: string }) {
   const strokeWidth = 6
@@ -113,7 +87,7 @@ function ProgressRing({ progress, size = 96, label }: { progress: number; size?:
         strokeDasharray={circumference}
         initial={{ strokeDashoffset: circumference }}
         animate={{ strokeDashoffset: offset }}
-        transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1], delay: 0.4 }}
+        transition={{ duration: 1.4, ease: EASE_OUT, delay: 0.4 }}
         transform={`rotate(-90 ${size / 2} ${size / 2})`}
       />
       <text x={size / 2} y={size / 2 + 1} textAnchor="middle" dominantBaseline="middle" className="pd-ring__text">
@@ -124,40 +98,18 @@ function ProgressRing({ progress, size = 96, label }: { progress: number; size?:
 }
 
 // ── Animation variants ────────────────────────────────────────
-const EASE = [0.16, 1, 0.3, 1] as [number, number, number, number]
-
 const stagger = {
   hidden: {},
   show: { transition: { staggerChildren: 0.055 } },
 }
 const slideUp = {
   hidden: { opacity: 0, y: 14 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: EASE } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: EASE_OUT } },
 }
 const tabContent = {
   hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.32, ease: EASE } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.32, ease: EASE_OUT } },
   exit: { opacity: 0, y: -6, transition: { duration: 0.18 } },
-}
-
-// ── Stat card ────────────────────────────────────────────────
-function StatCard({ label, value, delay, color }: { label: string; value: number; delay?: number; color?: string }) {
-  const count = useCountUp(value, delay ?? 0)
-  return (
-    <motion.article variants={slideUp} className="pd-stat">
-      <p className="pd-stat__label">{label}</p>
-      <strong className="pd-stat__value" style={color ? { color } : undefined}>
-        {count}
-      </strong>
-    </motion.article>
-  )
-}
-
-// ── Activity icon helper ─────────────────────────────────────
-function activityIcon(id: string) {
-  if (id.startsWith('task:')) return <CheckCircle2 size={13} />
-  if (id.startsWith('person:')) return <User size={13} />
-  return <FileText size={13} />
 }
 
 function activityColor(id: string): string {
@@ -186,8 +138,6 @@ const ProjectDetailPage = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [drawerTask, setDrawerTask] = useState<TaskItem | null>(null)
   const [allProjects, setAllProjects] = useState<ProjectItem[]>([])
-  const [taskStatusFilter, setTaskStatusFilter] = useState<'all' | 'todo' | 'doing' | 'done'>('all')
-  const [taskOwnerFilter, setTaskOwnerFilter] = useState<string>('all')
   const [timelineMode, setTimelineMode] = useState<TimelineMode>('month')
   const [notesQuery, setNotesQuery] = useState('')
 
@@ -278,13 +228,6 @@ const ProjectDetailPage = () => {
   }
 
   const ownerMap = useMemo(() => new Map(people.map((p) => [p.id, p.name] as const)), [people])
-
-  const visibleTasks = useMemo(() =>
-    sortByStatusThenDate(tasks).filter((t) => {
-      if (taskStatusFilter !== 'all' && t.status !== taskStatusFilter) return false
-      if (taskOwnerFilter !== 'all' && (t.ownerId ?? '') !== taskOwnerFilter) return false
-      return true
-    }), [taskOwnerFilter, taskStatusFilter, tasks])
 
   const overdueCount = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10)
@@ -546,42 +489,25 @@ const ProjectDetailPage = () => {
           {/* ── OVERVIEW ──────────────────────────────────────── */}
           {tab === 'overview' ? (
             <motion.div key="overview" variants={tabContent} initial="hidden" animate="show" exit="exit">
-              {/* Stats row */}
-              <motion.div className="pd-stats-row" variants={stagger} initial="hidden" animate="show">
-                <StatCard label={i18n.detail.statTotalTasks} value={tasks.length} delay={0} />
-                <StatCard label={i18n.detail.statCompleted} value={completedCount} delay={60} color="#0D7A54" />
-                <StatCard label={i18n.detail.statInProgress} value={activeCount} delay={120} color="#1E5BFF" />
+              <motion.div className="pd-inline-stats" variants={slideUp} initial="hidden" animate="show">
+                <span>{tasks.length} {i18n.detail.statTotalTasks}</span>
+                <span>{completedCount} {i18n.detail.statCompleted}</span>
+                <span>{activeCount} {i18n.detail.statInProgress}</span>
                 {overdueCount > 0 ? (
-                  <StatCard label={i18n.detail.statOverdueLabel} value={overdueCount} delay={180} color="#B83333" />
+                  <span className="pd-inline-stats__danger">{overdueCount} {i18n.detail.statOverdueLabel}</span>
                 ) : null}
               </motion.div>
 
-              {/* Panel grid */}
-              <motion.div
-                className="pd-panel-grid"
-                variants={stagger}
+              <motion.article
+                variants={slideUp}
                 initial="hidden"
                 animate="show"
+                className="pd-focus-card"
               >
-                <motion.article variants={slideUp} className="pd-panel">
-                  <div className="pd-panel__header">
-                    <Zap size={16} className="pd-panel__icon pd-panel__icon--amber" />
-                    <h3>{i18n.detail.nextAction}</h3>
-                  </div>
-                  <p className="pd-panel__body">
-                    {project.nextAction || i18n.detail.nextActionDefault}
-                  </p>
-                  <button type="button" className="pd-panel__cta" onClick={() => setProjectDialogOpen(true)}>
-                    {i18n.detail.update}
-                  </button>
-                </motion.article>
-
-                <motion.article variants={slideUp} className="pd-panel">
-                  <div className="pd-panel__header">
-                    <ShieldAlert size={16} className="pd-panel__icon pd-panel__icon--red" />
-                    <h3>{i18n.detail.risksBlockers}</h3>
-                  </div>
-                  <p className="pd-panel__body">
+                <div className="pd-focus-card__main">
+                  <p className="pd-focus-card__eyebrow">{i18n.detail.nextAction}</p>
+                  <h2>{project.nextAction || i18n.detail.nextActionDefault}</h2>
+                  <p>
                     {project.riskSummary || (overdueCount > 0
                       ? i18n.t(i18n.detail.overdueWarning, { count: overdueCount })
                       : i18n.detail.noRisks)}
@@ -589,8 +515,9 @@ const ProjectDetailPage = () => {
                   <button type="button" className="pd-panel__cta" onClick={() => setProjectDialogOpen(true)}>
                     {i18n.detail.update}
                   </button>
-                </motion.article>
-              </motion.div>
+                </div>
+                <ProgressRing progress={project.progress} size={104} label="Project progress" />
+              </motion.article>
 
               {/* Activity feed */}
               <motion.article
@@ -612,12 +539,7 @@ const ProjectDetailPage = () => {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.25 + idx * 0.04, duration: 0.3 }}
                       >
-                        <span
-                          className="pd-activity__icon"
-                          style={{ background: activityColor(item.id) + '18', color: activityColor(item.id) }}
-                        >
-                          {activityIcon(item.id)}
-                        </span>
+                        <span className="pd-activity__bar" style={{ background: activityColor(item.id) }} aria-hidden />
                         <div className="pd-activity__text">
                           <p>{item.title}</p>
                           <time>{new Date(item.createdAt).toLocaleString()}</time>
@@ -633,85 +555,7 @@ const ProjectDetailPage = () => {
           {/* ── TASKS ─────────────────────────────────────────── */}
           {tab === 'tasks' ? (
             <motion.div key="tasks" variants={tabContent} initial="hidden" animate="show" exit="exit">
-              <div className="pd-section-header">
-                <h2 className="pd-section-title">{i18n.detail.addTask} <span className="pd-count">{visibleTasks.length}</span></h2>
-                <div className="pd-filters">
-                  <select
-                    className="pd-select"
-                    value={taskStatusFilter}
-                    onChange={(e) => setTaskStatusFilter(e.target.value as typeof taskStatusFilter)}
-                  >
-                    <option value="all">{i18n.detail.allStatus}</option>
-                    <option value="todo">{i18n.dialog.taskStatusTodo}</option>
-                    <option value="doing">{i18n.detail.inProgress}</option>
-                    <option value="done">{i18n.dialog.taskStatusDone}</option>
-                  </select>
-                  <select
-                    className="pd-select"
-                    value={taskOwnerFilter}
-                    onChange={(e) => setTaskOwnerFilter(e.target.value)}
-                  >
-                    <option value="all">{i18n.detail.allOwners}</option>
-                    {people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  </select>
-                  <button
-                    type="button"
-                    className="pd-btn pd-btn--ghost"
-                    onClick={() => void openNewTask()}
-                  >
-                    <Plus size={14} /> {i18n.detail.addTask}
-                  </button>
-                </div>
-              </div>
-
-              <motion.div className="pd-task-list" variants={stagger} initial="hidden" animate="show">
-                {visibleTasks.map((task) => {
-                  const today = new Date().toISOString().slice(0, 10)
-                  const isOverdue = task.status !== 'done' && task.dueDate && task.dueDate < today
-                  const sCfg = STATUS_CONFIG[task.status] ?? STATUS_CONFIG.todo
-                  return (
-                    <motion.article
-                      key={task.id}
-                      variants={slideUp}
-                      className={`pd-task${isOverdue ? ' pd-task--overdue' : ''} pd-task--${task.status}`}
-                      whileHover={{ y: -1, transition: { duration: 0.15 } }}
-                      onClick={() => setDrawerTask(task)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault()
-                          setDrawerTask(task)
-                        }
-                      }}
-                    >
-                      <div className="pd-task__left">
-                        <div className="pd-task__status-dot pd-task__status-dot--${task.status}" />
-                        <div>
-                          <h3 className="pd-task__title">{task.title}</h3>
-                          {task.description ? <p className="pd-task__desc">{task.description}</p> : null}
-                          <div className="pd-task__meta">
-                            <span>
-                              <User size={11} />
-                              {task.ownerId ? (ownerMap.get(task.ownerId) ?? i18n.detail.unassigned) : i18n.detail.unassigned}
-                            </span>
-                            {task.dueDate ? (
-                              <span className={isOverdue ? 'pd-overdue-text' : ''}>
-                                <CalendarDays size={11} />
-                                {isOverdue ? '⚠ ' : ''}{task.dueDate}
-                              </span>
-                            ) : null}
-                          </div>
-                        </div>
-                      </div>
-                      <span className={sCfg.cls}>{sCfg.label}</span>
-                    </motion.article>
-                  )
-                })}
-                {visibleTasks.length === 0 ? (
-                  <div className="pd-empty-inline">{i18n.detail.noTasksFiltered}</div>
-                ) : null}
-              </motion.div>
+              <TasksBoard asCard={false} topView="board" scope={{ kind: 'project', projectId: project.id }} />
             </motion.div>
           ) : null}
 
@@ -782,7 +626,7 @@ const ProjectDetailPage = () => {
                             style={{ left: barProps.left }}
                             initial={{ width: '0%', opacity: 0 }}
                             animate={{ width: barProps.width, opacity: 1 }}
-                            transition={{ delay: 0.15 + i * 0.06, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                            transition={{ delay: 0.15 + i * 0.06, duration: 0.6, ease: EASE_OUT }}
                           >
                             <strong>{task.title}</strong>
                             {task.ownerId ? <span className="pd-timeline__owner">{ownerMap.get(task.ownerId) ?? ''}</span> : null}
