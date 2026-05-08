@@ -426,7 +426,10 @@ const TasksBoard = ({
   }, [])
 
   const handleAddTask = useCallback(async (rawTitle: string) => {
-    const parsed = parseQuickAdd(rawTitle, projects, scope.kind === 'project' ? scope.projectId : undefined)
+    const fallbackProjectId = scope.kind === 'project'
+      ? scope.projectId
+      : projectFilterIds.size === 1 ? [...projectFilterIds][0] : undefined
+    const parsed = parseQuickAdd(rawTitle, projects, fallbackProjectId)
     const created = await tasksRepo.add({
       title: parsed.title,
       status: topView === 'today' || effectiveGroupBy !== 'status' ? 'todo' : activeStatus,
@@ -440,7 +443,7 @@ const TasksBoard = ({
     emitTasksChanged('tasks-board:create')
     setTasks((prev) => [created, ...prev])
     return true
-  }, [activeStatus, effectiveGroupBy, projects, scope, topView])
+  }, [activeStatus, effectiveGroupBy, projectFilterIds, projects, scope, topView])
 
   const handleStartFocus = useCallback((task: TaskItem) => {
     window.localStorage.setItem('focusgo.pendingTaskId', task.id)
@@ -673,26 +676,30 @@ const TasksBoard = ({
               <div className="tasks-fg__project-filter" aria-label="Project filters">
                 <button
                   type="button"
-                  className={cn('pj-chip tasks-fg__project-chip', projectFilterIds.size === 0 && 'pj-chip--active')}
+                  className={cn('tasks-fg__project-chip', projectFilterIds.size === 0 && 'tasks-fg__project-chip--active')}
+                  aria-pressed={projectFilterIds.size === 0}
                   onClick={() => setProjectFilterIds(new Set())}
-	                >
-	                  All <span className="pj-chip__count">{projectFilterBaseTasks.length}</span>
-	                </button>
-	                {activeProjects.map((project) => {
-	                  const selected = projectFilterIds.has(project.id)
-	                  const count = projectFilterCounts.get(project.id) ?? 0
-	                  if (count === 0) return null
-	                  return (
+                >
+                  <span className="tasks-fg__project-chip__label">All</span>
+                  <span className="tasks-fg__project-chip__count">{projectFilterBaseTasks.length}</span>
+                </button>
+                {activeProjects.map((project) => {
+                  const selected = projectFilterIds.has(project.id)
+                  const count = projectFilterCounts.get(project.id) ?? 0
+                  if (count === 0) return null
+                  const projectColor = resolveProjectColor(project)
+                  return (
                     <button
                       key={project.id}
-	                      type="button"
-	                      className={cn('pj-chip tasks-fg__project-chip', selected && 'pj-chip--active')}
-	                      aria-pressed={selected}
-	                      onClick={() => toggleProjectFilter(project.id)}
+                      type="button"
+                      className={cn('tasks-fg__project-chip', selected && 'tasks-fg__project-chip--active')}
+                      style={{ ['--project-color' as string]: projectColor }}
+                      aria-pressed={selected}
+                      onClick={() => toggleProjectFilter(project.id)}
                     >
-                      <span className="tasks-fg__project-dot" style={{ background: resolveProjectColor(project) }} aria-hidden />
-                      {project.title}
-                      <span className="pj-chip__count">{count}</span>
+                      <span className="tasks-fg__project-dot" aria-hidden />
+                      <span className="tasks-fg__project-chip__label">{project.title}</span>
+                      <span className="tasks-fg__project-chip__count">{count}</span>
                     </button>
                   )
                 })}

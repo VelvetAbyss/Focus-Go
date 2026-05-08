@@ -1169,6 +1169,65 @@ html[data-theme='dark'] .project-dialog {
   border-color: transparent;
 }
 
+.pd-meta-chip--btn {
+  cursor: pointer;
+  transition: background 140ms ease, box-shadow 140ms ease, opacity 100ms ease;
+}
+
+.pd-meta-chip--btn:hover {
+  background: var(--pd-surface-hover, color-mix(in srgb, var(--pd-surface) 85%, var(--pd-ink)));
+  box-shadow: 0 1px 3px rgba(58, 55, 51, 0.1);
+}
+
+.pd-meta-chip--btn:active {
+  opacity: 0.8;
+}
+
+.pd-meta-chip--status.pd-meta-chip--btn:hover {
+  background: color-mix(in srgb, var(--pd-accent-sub) 80%, var(--pd-accent));
+}
+
+.pd-meta-chip__chevron {
+  opacity: 0.5;
+  margin-left: 1px;
+}
+
+.pd-meta-chip--btn:hover .pd-meta-chip__chevron {
+  opacity: 0.8;
+}
+
+/* Picker dropdown options */
+.pd-meta-picker-option {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--pd-ink, #3a3733);
+  background: transparent;
+  cursor: pointer;
+  transition: background 120ms ease;
+  text-align: left;
+}
+
+.pd-meta-picker-option:hover {
+  background: var(--pd-surface, rgba(58, 55, 51, 0.06));
+}
+
+.pd-meta-picker-option.is-active {
+  background: var(--pd-accent-sub, rgba(58, 55, 51, 0.1));
+  color: var(--pd-accent, #3a3733);
+  font-weight: 600;
+}
+
+.pd-meta-picker-option--status-planning  { }
+.pd-meta-picker-option--status-active    { color: #2e7d52; }
+.pd-meta-picker-option--status-blocked   { color: #b83333; }
+.pd-meta-picker-option--status-done      { color: #1d4ed8; }
+.pd-meta-picker-option--status-archived  { color: #6b7280; }
+
 /* ── Badges ────────────────────────────────────────────────────── */
 .pd-badge {
   display: inline-flex;
@@ -1332,6 +1391,19 @@ html[data-theme='dark'] .project-dialog {
 .pd-body {
   padding: 32px 36px 64px;
 }
+
+/* Tasks tab: make the board surface fill remaining viewport height so the
+   flex column inside can push the composer to the bottom. */
+.pd-body .tasks-board-surface {
+  min-height: calc(100dvh - 340px);
+  display: flex;
+  flex-direction: column;
+}
+
+.pd-body .tasks-board-surface .tasks-fg {
+  flex: 1;
+}
+
 
 /* ── Stats row ─────────────────────────────────────────────────── */
 .pd-stats-row {

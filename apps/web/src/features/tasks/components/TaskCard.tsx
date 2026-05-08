@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useState } from 'react'
-import { Calendar, CircleCheck, Circle, FolderKanban, GitBranch, ListChecks, LockKeyhole, Pin, PinOff, Play, RotateCcw, SunMedium, Trash2 } from 'lucide-react'
+import { Calendar, CircleCheck, Circle, GitBranch, ListChecks, LockKeyhole, Pin, PinOff, Play, RotateCcw, SunMedium, Trash2 } from 'lucide-react'
 import type { CSSProperties, HTMLAttributes } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -152,19 +152,6 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
           </span>
         ) : null}
         {priorityKey !== 'none' ? <div className={cn('task-card__priority-flag', priorityCfg.dot)} aria-hidden /> : null}
-        {project ? (
-          <button
-            type="button"
-            className="task-card__project-dot"
-            style={{ background: project.color }}
-            title={project.title}
-            aria-label={t('tasks.card.projectBadgeAria', { title: project.title })}
-            onClick={(event) => {
-              event.stopPropagation()
-              onProjectClick?.(project.id)
-            }}
-          />
-        ) : null}
 
         <div className="space-y-2.5 p-3.5">
           <div className="flex items-start gap-2">
@@ -225,14 +212,23 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
           {task.tags.length > 0 || project ? (
             <div className="flex flex-wrap items-center gap-1.5">
               {project ? (
-                <span
-                  className="inline-flex max-w-[140px] items-center gap-1 rounded-full bg-[#F5F3F0] px-2 py-0.5 text-[11px] font-medium text-[#3A3733]"
+                <button
+                  type="button"
+                  className="inline-flex max-w-[140px] items-center gap-1.5 rounded-full bg-[#F5F3F0] px-2 py-0.5 text-[11px] font-medium text-[#3A3733] transition-colors hover:bg-[#ECE8E1]"
                   aria-label={t('tasks.card.projectBadgeAria', { title: project.title })}
                   title={project.title}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    onProjectClick?.(project.id)
+                  }}
                 >
-                  <FolderKanban className="size-3 shrink-0" />
+                  <span
+                    className="size-1.5 shrink-0 rounded-full"
+                    style={{ background: project.color ?? '#3A3733' }}
+                    aria-hidden
+                  />
                   <span className="truncate">{project.title}</span>
-                </span>
+                </button>
               ) : null}
               {displayTags.map((tag) => {
                 const tone = getTaskTagTone(tag)
