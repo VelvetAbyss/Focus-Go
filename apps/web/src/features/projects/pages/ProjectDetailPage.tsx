@@ -1,18 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import {
-  Archive, ArrowLeft, ClipboardList, FileText,
+  Archive, ArrowLeft, ChevronDown, ClipboardList, FileText,
   Mail, Pencil, Phone, Plus, Search,
   Trash2, Users, Zap, CalendarDays, User,
 } from 'lucide-react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Input } from '@/components/ui/input'
 import Dialog from '../../../shared/ui/Dialog'
+import { Popover, PopoverContent, PopoverTrigger } from '../../../shared/ui/popover'
 import { tasksRepo } from '../../../data/repositories/tasksRepo'
 import { projectPeopleRepo } from '../../../data/repositories/projectPeopleRepo'
 import { projectNoteLinksRepo } from '../../../data/repositories/projectNoteLinksRepo'
 import { projectsRepo } from '../../../data/repositories/projectsRepo'
-import type { NoteItem, ProjectHealth, ProjectItem, ProjectPerson, TaskItem } from '../../../data/models/types'
+import type { NoteItem, ProjectHealth, ProjectItem, ProjectPerson, ProjectStatus, TaskItem } from '../../../data/models/types'
 import { ROUTES } from '../../../app/routes/routes'
 import { PersonFormDialog, ProjectFormDialog } from '../components/ProjectDialogs'
 import { useProjectsI18n } from '../projectsI18n'
@@ -24,6 +25,15 @@ import { ROLE } from '../../../shared/design/tokens'
 import '../projects.css'
 
 type ProjectTab = 'overview' | 'tasks' | 'timeline' | 'people' | 'notes'
+const PROJECT_STATUS_OPTIONS: ProjectStatus[] = ['planning', 'active', 'blocked', 'done', 'archived']
+
+const STATUS_LABEL_KEYS: Record<ProjectStatus, 'statusPlanning' | 'statusActive' | 'statusBlocked' | 'statusDone' | 'statusArchived'> = {
+  planning: 'statusPlanning',
+  active: 'statusActive',
+  blocked: 'statusBlocked',
+  done: 'statusDone',
+  archived: 'statusArchived',
+}
 type TimelineMode = 'week' | 'month' | 'year'
 
 const ROLE_COLORS: Record<string, string> = {
@@ -412,19 +422,70 @@ const ProjectDetailPage = () => {
             </motion.p>
 
             <motion.div variants={slideUp} className="pd-hero__meta">
-              <span className="pd-meta-chip">
-                <User size={12} />
-                {project.ownerId ? (ownerMap.get(project.ownerId) ?? i18n.detail.unassigned) : i18n.detail.unassigned}
-              </span>
-              {(project.startDate || project.dueDate) ? (
-                <span className="pd-meta-chip">
-                  <CalendarDays size={12} />
-                  {project.startDate ?? '—'} → {project.dueDate ?? '—'}
-                </span>
-              ) : null}
-              <span className="pd-meta-chip pd-meta-chip--status">
-                {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
-              </span>
+              {/* Owner picker */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button type="button" className="pd-meta-chip pd-meta-chip--btn">
+                    <User size={12} />
+                    {project.ownerId ? (ownerMap.get(project.ownerId) ?? i18n.detail.unassigned) : i18n.detail.unassigned}
+                    <ChevronDown size={10} className="pd-meta-chip__chevron" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-48 p-1.5" align="start">
+                  <button
+                    type="button"
+                    className={`pd-meta-picker-option${!project.ownerId ? ' is-active' : ''}`}
+                    onClick={() => void projectsRepo.update(project.id, { ownerId: undefined }).then(load)}
+                  >
+                    {i18n.detail.unassigned}
+                  </button>
+                  {people.map((person) => (
+                    <button
+                      key={person.id}
+                      type="button"
+                      className={`pd-meta-picker-option${project.ownerId === person.id ? ' is-active' : ''}`}
+                      onClick={() => void projectsRepo.update(project.id, { ownerId: person.id }).then(load)}
+                    >
+                      {person.name}
+                    </button>
+                  ))}
+                </PopoverContent>
+              </Popover>
+
+              {/* Date range — click opens edit dialog */}
+              <button
+                type="button"
+                className="pd-meta-chip pd-meta-chip--btn"
+                onClick={() => setProjectDialogOpen(true)}
+              >
+                <CalendarDays size={12} />
+                {(project.startDate || project.dueDate)
+                  ? `${project.startDate ?? '—'} → ${project.dueDate ?? '—'}`
+                  : i18n.detail.noDescription === '暂无项目描述。' ? '设置日期' : 'Set dates'}
+                <ChevronDown size={10} className="pd-meta-chip__chevron" />
+              </button>
+
+              {/* Status picker */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button type="button" className="pd-meta-chip pd-meta-chip--status pd-meta-chip--btn">
+                    {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
+                    <ChevronDown size={10} className="pd-meta-chip__chevron" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-44 p-1.5" align="start">
+                  {PROJECT_STATUS_OPTIONS.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      className={`pd-meta-picker-option pd-meta-picker-option--status-${s}${project.status === s ? ' is-active' : ''}`}
+                      onClick={() => void projectsRepo.update(project.id, { status: s }).then(load)}
+                    >
+                      {i18n.dialog[STATUS_LABEL_KEYS[s]]}
+                    </button>
+                  ))}
+                </PopoverContent>
+              </Popover>
             </motion.div>
           </div>
 

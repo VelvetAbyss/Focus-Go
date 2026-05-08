@@ -5087,25 +5087,11 @@ html[data-motion='reduce'] .tab-motion-tab::before {
 .tasks-fg__mode-tab,
 .tasks-fg__filter-btn {
   position: relative;
-  transform: translate3d(0, 0, 0);
-  transition:
-    transform var(--motion-duration-fast) var(--ease-emphasized),
-    background-color var(--motion-duration-fast) var(--ease-standard),
-    box-shadow var(--motion-duration-fast) var(--ease-standard),
-    color var(--motion-duration-fast) var(--ease-standard);
 }
 
-.tasks-fg__status-tab:hover,
-.tasks-fg__mode-tab:hover,
-.tasks-fg__filter-btn:hover {
-  transform: translate3d(0, -1px, 0);
-}
-
-.tasks-fg__status-tab:active,
-.tasks-fg__mode-tab:active,
-.tasks-fg__filter-btn:active {
-  transform: scale(0.98);
-}
+/* Hover/press transforms intentionally removed from this base layer.
+   Interaction visuals are owned exclusively by the unlayered rules below,
+   which gate hover with :not([active]) so the click → active transition is atomic. */
 
 .deadline-alert__badge {
   display: inline-flex;
@@ -5207,10 +5193,9 @@ html[data-motion='reduce'] .tab-motion-tab::before {
     transform 160ms var(--tk-ease);
 }
 
-.tasks-fg__status-tab:hover {
+.tasks-fg__status-tab:not([aria-selected='true']):not(.is-active):not(.bg-muted):hover {
   color: var(--tk-ink);
   background: color-mix(in srgb, var(--tk-rail) 60%, transparent);
-  transform: translateY(-0.5px);
 }
 
 .tasks-fg__status-tab[aria-selected='true'],
@@ -5224,9 +5209,24 @@ html[data-motion='reduce'] .tab-motion-tab::before {
     inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
+/* No focus outline. The active pill is the only selection indicator.
+   This eliminates the visual race between :focus-visible and aria-selected
+   that caused the "click → wrong state until I click elsewhere" bug. */
+.tasks-fg__status-tab:focus,
 .tasks-fg__status-tab:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--tk-ink) 32%, transparent);
-  outline-offset: 2px;
+  outline: none;
+}
+
+/* The global button:focus rule suppresses box-shadow with !important.
+   Restore the active-pill ring when the tab is both active and focused. */
+.tasks-fg__status-tab[aria-selected='true']:focus,
+.tasks-fg__status-tab.is-active:focus,
+.tasks-fg__status-tab[aria-selected='true']:focus-visible,
+.tasks-fg__status-tab.is-active:focus-visible {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--tk-ink) 8%, transparent),
+    0 1px 2px color-mix(in srgb, var(--tk-ink) 6%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7) !important;
 }
 
 /* Status dot — scales + halos when active, tone-matched per status */
@@ -5332,23 +5332,15 @@ html[data-motion='reduce'] .tab-motion-tab::before {
   display: none;
 }
 
-.tasks-fg__filter-btn:hover,
-.tasks-fg__bulk-toggle:hover,
-.tasks-fg__sort-trigger:hover {
+.tasks-fg__filter-btn:not(.is-active):not([data-state='open']):hover,
+.tasks-fg__bulk-toggle:not(.is-active):hover,
+.tasks-fg__sort-trigger:not([data-state='open']):hover {
   color: var(--tk-ink);
   border-color: color-mix(in srgb, var(--tk-ink) 16%, transparent);
   background: #ffffff;
   box-shadow:
     0 1px 2px color-mix(in srgb, var(--tk-ink) 5%, transparent),
     0 4px 12px color-mix(in srgb, var(--tk-ink) 5%, transparent);
-  transform: translateY(-0.5px);
-}
-
-.tasks-fg__filter-btn:active,
-.tasks-fg__bulk-toggle:active,
-.tasks-fg__sort-trigger:active {
-  transform: scale(0.985);
-  box-shadow: 0 1px 1px color-mix(in srgb, var(--tk-ink) 6%, transparent);
 }
 
 .tasks-fg__filter-btn[data-state='open'],
@@ -5362,11 +5354,13 @@ html[data-motion='reduce'] .tab-motion-tab::before {
     0 1px 2px color-mix(in srgb, var(--tk-ink) 6%, transparent);
 }
 
+.tasks-fg__filter-btn:focus,
 .tasks-fg__filter-btn:focus-visible,
+.tasks-fg__bulk-toggle:focus,
 .tasks-fg__bulk-toggle:focus-visible,
+.tasks-fg__sort-trigger:focus,
 .tasks-fg__sort-trigger:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--tk-ink) 32%, transparent);
-  outline-offset: 2px;
+  outline: none;
 }
 
 /* filter active counter badge (when tags are picked) */
@@ -5423,22 +5417,24 @@ html[data-motion='reduce'] .tab-motion-tab::before {
   white-space: nowrap;
 }
 
-/* Segmented pill — used for board mode tabs (kanban/calendar) AND TasksPage top tabs */
+/* Segmented pill — used for group-by toggle AND TasksPage top tabs.
+   Unified with .tasks-fg__status-tab: 32px height, 10px radius, same active treatment. */
 .tasks-fg__mode-tab {
   position: relative;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 28px;
-  padding: 0 10px;
+  height: 32px;
+  padding: 0 12px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 10px;
   background: transparent;
   color: var(--tk-ink-soft);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   letter-spacing: 0.005em;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   transition:
     background-color 220ms var(--tk-ease),
     color 200ms var(--tk-ease),
@@ -5446,18 +5442,19 @@ html[data-motion='reduce'] .tab-motion-tab::before {
     transform 160ms var(--tk-ease);
 }
 
-.tasks-fg__mode-tab:hover {
+.tasks-fg__mode-tab:not(.tasks-fg__mode-tab--active):not([aria-selected='true']):hover {
   color: var(--tk-ink);
-  background: color-mix(in srgb, #ffffff 70%, transparent);
+  background: color-mix(in srgb, var(--tk-rail) 60%, transparent);
 }
 
 .tasks-fg__mode-tab--active,
 .tasks-fg__mode-tab[aria-selected='true'] {
   color: var(--tk-ink);
-  background: #ffffff;
+  background: linear-gradient(180deg, #ffffff 0%, color-mix(in srgb, #ffffff 88%, var(--bg-muted)) 100%);
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--tk-ink) 8%, transparent),
-    0 1px 2px color-mix(in srgb, var(--tk-ink) 6%, transparent);
+    0 1px 2px color-mix(in srgb, var(--tk-ink) 6%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .tasks-fg__mode-tab svg {
@@ -5469,9 +5466,17 @@ html[data-motion='reduce'] .tab-motion-tab::before {
   transform: scale(1.12);
 }
 
+.tasks-fg__mode-tab:focus,
 .tasks-fg__mode-tab:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--tk-ink) 32%, transparent);
-  outline-offset: 2px;
+  outline: none;
+}
+
+.tasks-fg__mode-tab--active:focus,
+.tasks-fg__mode-tab--active:focus-visible {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--tk-ink) 8%, transparent),
+    0 1px 2px color-mix(in srgb, var(--tk-ink) 6%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7) !important;
 }
 
 /* TasksPage top switcher — same language, slightly larger */
@@ -6928,7 +6933,10 @@ html[data-theme='dark'] .trips-journal__shape-bar { background: rgba(236, 232, 2
    Unlayered so it beats Tailwind utilities — same trick as trips.
    ═══════════════════════════════════════════════════════════════════ */
 
-.pj-page {
+/* pj-* design tokens — shared by any surface that reuses .pj-chip / .pj-card primitives.
+   Without .tasks-fg here, chip variants like pj-chip--active resolve var(--pj-ink) to empty. */
+.pj-page,
+.tasks-fg {
   --pj-paper: #f5f3f0;
   --pj-card: #fdfaf7;
   --pj-ink: #3a3733;
@@ -6946,7 +6954,9 @@ html[data-theme='dark'] .trips-journal__shape-bar { background: rgba(236, 232, 2
   --pj-iris: #1e5bff;
   --pj-iris-bg: rgba(30, 91, 255, 0.10);
   --pj-ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
 
+.pj-page {
   margin: -18px;
   min-height: calc(100% + 36px);
   overflow-y: auto;
@@ -9525,21 +9535,129 @@ html[data-motion='reduce'] .tasks-fg__list .task-card-shell {
   align-items: center;
   gap: 6px;
   overflow-x: auto;
-  padding-bottom: 2px;
+  padding: 2px 2px 4px;
+  margin: -2px -2px -4px;
   scrollbar-width: thin;
 }
 
+/* Project filter chip — same language as .tasks-fg__status-tab.
+   Soft white pill on active, 1px ring + 1px shadow. The project-identity dot
+   gets a colored halo when active to mirror the status-dot halo. */
 .tasks-fg__project-chip {
+  position: relative;
+  display: inline-flex;
   flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
   max-width: 180px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--tk-ink-soft, color-mix(in srgb, #3a3733 64%, transparent));
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color 220ms var(--tk-ease, cubic-bezier(0.32, 0.72, 0, 1)),
+    color 200ms var(--tk-ease, cubic-bezier(0.32, 0.72, 0, 1)),
+    box-shadow 220ms var(--tk-ease, cubic-bezier(0.32, 0.72, 0, 1)),
+    transform 160ms var(--tk-ease, cubic-bezier(0.32, 0.72, 0, 1));
 }
 
+.tasks-fg__project-chip:not(.tasks-fg__project-chip--active):hover {
+  color: var(--tk-ink, #3a3733);
+  background: color-mix(in srgb, var(--tk-rail, rgba(58, 55, 51, 0.08)) 60%, transparent);
+}
+
+.tasks-fg__project-chip:focus,
+.tasks-fg__project-chip:focus-visible {
+  outline: none;
+}
+
+.tasks-fg__project-chip--active:focus,
+.tasks-fg__project-chip--active:focus-visible {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--tk-ink, #3a3733) 8%, transparent),
+    0 1px 2px color-mix(in srgb, var(--tk-ink, #3a3733) 6%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7) !important;
+}
+
+.tasks-fg__project-chip--active {
+  color: var(--tk-ink, #3a3733);
+  background: linear-gradient(180deg, #ffffff 0%, color-mix(in srgb, #ffffff 88%, var(--bg-muted, #f5f3f0)) 100%);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--tk-ink, #3a3733) 8%, transparent),
+    0 1px 2px color-mix(in srgb, var(--tk-ink, #3a3733) 6%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.tasks-fg__project-chip__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* Identity dot — picks up project color via inline --project-color custom property.
+   Scales + halos on active to mirror the status-tab dot. */
 .tasks-fg__project-dot {
   display: inline-block;
   width: 7px;
   height: 7px;
   border-radius: 999px;
   flex: 0 0 auto;
+  background: var(--project-color, currentColor);
+  opacity: 0.78;
+  transform: scale(0.92);
+  transition:
+    transform 260ms var(--tk-ease, cubic-bezier(0.32, 0.72, 0, 1)),
+    opacity 200ms var(--tk-ease, cubic-bezier(0.32, 0.72, 0, 1)),
+    box-shadow 260ms var(--tk-ease, cubic-bezier(0.32, 0.72, 0, 1));
+}
+
+.tasks-fg__project-chip:hover .tasks-fg__project-dot {
+  opacity: 1;
+}
+
+.tasks-fg__project-chip--active .tasks-fg__project-dot {
+  opacity: 1;
+  transform: scale(1.05);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--project-color, #3a3733) 22%, transparent);
+}
+
+/* Count badge — same compact tabular-nums treatment as status-tab counts. */
+.tasks-fg__project-chip__count {
+  display: inline-flex;
+  min-width: 20px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  background: color-mix(in srgb, var(--tk-ink, #3a3733) 6%, transparent);
+  color: var(--tk-ink-soft, color-mix(in srgb, #3a3733 64%, transparent));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tk-ink, #3a3733) 4%, transparent);
+  transition:
+    background-color 220ms var(--tk-ease, cubic-bezier(0.32, 0.72, 0, 1)),
+    color 200ms var(--tk-ease, cubic-bezier(0.32, 0.72, 0, 1)),
+    box-shadow 220ms var(--tk-ease, cubic-bezier(0.32, 0.72, 0, 1));
+}
+
+.tasks-fg__project-chip--active .tasks-fg__project-chip__count {
+  background: #ffffff;
+  color: var(--tk-ink, #3a3733);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--tk-ink, #3a3733) 8%, transparent),
+    0 1px 1px color-mix(in srgb, var(--tk-ink, #3a3733) 4%, transparent);
 }
 
 .tasks-fg__group-toggle {
