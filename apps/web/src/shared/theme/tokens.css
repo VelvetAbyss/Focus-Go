@@ -33,6 +33,10 @@
   --z-drawer: 100;
   --z-popover: 1000;
   --shell-scale: 1;
+  /* Discovery components */
+  --hint-border: color-mix(in srgb, var(--accent) 25%, var(--border));
+  --hint-icon:   color-mix(in srgb, var(--accent) 65%, transparent);
+
   --status-todo: #8b95a7;
   --status-doing: #7ab8ff;
   --status-blocked: #f2a65a;

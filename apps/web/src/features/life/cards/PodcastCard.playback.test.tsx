@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { LifePodcast } from '../../../data/models/types'
 import { NETEASE_EXPERIMENTAL_PLAYBACK_ENABLED_KEY } from '../../../shared/prefs/preferences'
+import { resetPodcastPlaybackForTests } from '../podcastPlayback'
 
 let currentPodcast: LifePodcast
 const listMock = vi.fn()
@@ -76,11 +77,18 @@ import PodcastCard from './PodcastCard'
 
 const playMock = vi.fn(async () => undefined)
 const pauseMock = vi.fn()
-const audioInstances: Array<{ src: string; play: typeof playMock; pause: typeof pauseMock; currentTime: number }> = []
+const audioInstances: Array<{
+  src: string
+  play: typeof playMock
+  pause: typeof pauseMock
+  currentTime: number
+  onended: (() => void | Promise<void>) | null
+}> = []
 
 class AudioMock {
   src = ''
   currentTime = 0
+  onended: (() => void | Promise<void>) | null = null
   play = playMock
   pause = pauseMock
 
@@ -95,6 +103,7 @@ describe('PodcastCard playback', () => {
   })
 
   beforeEach(() => {
+    resetPodcastPlaybackForTests()
     playMock.mockClear()
     pauseMock.mockClear()
     audioInstances.length = 0
@@ -123,7 +132,7 @@ describe('PodcastCard playback', () => {
       isPlaying: false,
       lastSyncedAt: 1,
     }
-    listMock.mockResolvedValue([currentPodcast])
+    listMock.mockImplementation(async () => [currentPodcast])
     updateMock.mockImplementation(async (_id: string, patch: Partial<LifePodcast>) => {
       currentPodcast = { ...currentPodcast, ...patch, updatedAt: currentPodcast.updatedAt + 1 }
       return currentPodcast
@@ -165,6 +174,32 @@ describe('PodcastCard playback', () => {
     unmount()
 
     expect(pauseMock.mock.calls.length).toBe(pauseCallsBeforeUnmount)
+  })
+
+  it('continues with the next episode when the current episode ends', async () => {
+    window.localStorage.setItem(NETEASE_EXPERIMENTAL_PLAYBACK_ENABLED_KEY, 'true')
+    currentPodcast = {
+      ...currentPodcast,
+      episodes: [
+        ...currentPodcast.episodes,
+        {
+          id: 'episode-2',
+          title: 'Next',
+          externalUrl: 'https://music.163.com/program?id=episode-2',
+        },
+      ],
+    }
+    render(<PodcastCard />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Play' }))
+    await waitFor(() => expect(playMock).toHaveBeenCalledTimes(1))
+
+    await audioInstances[0]?.onended?.()
+
+    await waitFor(() => expect(playMock).toHaveBeenCalledTimes(2))
+    expect(currentPodcast.selectedEpisodeId).toBe('episode-2')
+    expect(currentPodcast.isPlaying).toBe(true)
+    expect(audioInstances[0]?.src).toContain('/podcasts/netease/stream?programId=episode-2')
   })
 
   it('stops active netease playback when the podcast is removed', async () => {

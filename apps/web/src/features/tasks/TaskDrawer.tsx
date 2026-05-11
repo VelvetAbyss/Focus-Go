@@ -31,6 +31,7 @@ import TaskNoteEditor from './components/TaskNoteEditor'
 import { createTaskNoteDoc, resolveTaskNoteRichText } from './model/taskNoteRichText'
 import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, formatTaskDateTime, getTaskTagTone } from './components/taskPresentation'
 import { useI18n } from '../../shared/i18n/useI18n'
+import { HelpBadge } from '../../shared/ui/HelpBadge'
 import { useAuthGate } from '../auth/AuthGateContext'
 import { usePremiumGate } from '../premium/PremiumProvider'
 import PremiumMark from '../premium/PremiumMark'
@@ -753,6 +754,7 @@ const TaskDrawer = ({
                         </SelectContent>
                       </ShadcnSelect>
 
+                      <div className="inline-flex items-center gap-1">
                       <ShadcnSelect
                         value={projectSelectValue}
                         onValueChange={(value) => setProjectId(value === PROJECT_NONE_VALUE ? undefined : value)}
@@ -775,6 +777,10 @@ const TaskDrawer = ({
                           ))}
                         </SelectContent>
                       </ShadcnSelect>
+                      <HelpBadge label={t('tasks.drawer.project')}>
+                        {t('helpBadge.taskProject')}
+                      </HelpBadge>
+                      </div>
 
                       {reminderAtIso !== '—' && (
                         <span className="inline-flex items-center gap-1.5 rounded-full border border-[#3a3733]/8 bg-[color:var(--bg-muted)] px-2.5 py-0.5 text-[11px] font-medium text-[color:var(--text-secondary)]">
@@ -994,7 +1000,12 @@ const TaskDrawer = ({
                     {/* Header row */}
                     <div className="mb-4 flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="task-detail-kicker">{t('tasks.drawer.subtasks')}</p>
+                        <p className="task-detail-kicker flex items-center gap-1">
+                          {t('tasks.drawer.subtasks')}
+                          <HelpBadge label={t('tasks.drawer.subtasks')}>
+                            {t('helpBadge.taskSubtasks')}
+                          </HelpBadge>
+                        </p>
                         <div className="mt-0.5 flex items-center gap-2">
                           <h2 className="task-detail-title">{t('tasks.drawer.executionChecklist')}</h2>
                           {subtasks.length > 0 && (

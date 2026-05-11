@@ -2462,6 +2462,16 @@ html[data-motion='reduce'] .task-card__actions {
   transform: none;
 }
 
+/* Touch devices: always show task card actions (no hover available) */
+@media (pointer: coarse) {
+  .task-card__actions {
+    grid-template-rows: 1fr !important;
+    transform: translateY(0) !important;
+    padding-top: 6px !important;
+    opacity: 1 !important;
+  }
+}
+
 .task-card__priority::before {
   content: '';
   position: absolute;

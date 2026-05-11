@@ -9,40 +9,14 @@
   color: #3a3733;
 }
 
-/* ─── Toolbar ──────────────────────────────────────────────────────────────── */
+/* ─── Controls ─────────────────────────────────────────────────────────────── */
 
-.news-dashboard__toolbar {
+.news-dashboard__controls {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: 18px;
+  gap: 12px;
   margin-bottom: 16px;
-}
-
-.news-dashboard__toolbar p {
-  margin: 0 0 4px;
-  font-size: 0.67rem;
-  font-weight: 800;
-  letter-spacing: 0.2em;
-  color: color-mix(in srgb, #3a3733 44%, transparent);
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-}
-
-.news-dashboard__toolbar h2 {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: clamp(1.45rem, 1.2rem + 1vw, 2.1rem);
-  line-height: 1.05;
-  font-style: italic;
-  color: #3a3733;
-}
-
-.news-dashboard__toolbar span {
-  display: inline-flex;
-  margin-top: 7px;
-  font-size: 0.76rem;
-  color: color-mix(in srgb, #3a3733 52%, transparent);
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
 }
 
 /* ─── Shared pill container (actions, density) ─────────────────────────────── */
@@ -128,7 +102,7 @@
   align-items: center;
   gap: 2px;
   padding: 4px;
-  margin-bottom: 16px;
+  margin: 0;
   border: 1px solid color-mix(in srgb, #3a3733 10%, transparent);
   border-radius: 13px;
   background: color-mix(in srgb, #f5f3f0 88%, white 12%);
@@ -162,6 +136,13 @@
 .news-dashboard__filters button {
   position: relative;
   z-index: 1;
+}
+
+@media (max-width: 640px) {
+  .news-dashboard__controls {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 
 /* ─── Source manager panel ─────────────────────────────────────────────────── */
@@ -496,12 +477,15 @@
   will-change: transform;
 }
 
+.news-dashboard__page-loader {
+  min-height: clamp(360px, 48vh, 560px);
+}
+
 /* ─── Error / empty / fatal states ────────────────────────────────────────── */
 
 .news-card__error,
 .news-dashboard__empty,
-.news-dashboard__fatal,
-.news-dashboard__loading {
+.news-dashboard__fatal {
   flex: 1;
   min-height: 180px;
   display: grid;
@@ -562,18 +546,12 @@
 /* ─── Dark mode ────────────────────────────────────────────────────────────── */
 
 html[data-theme='dark'] .news-dashboard,
-html[data-theme='dark'] .news-dashboard__toolbar h2,
-html[data-theme='dark'] .news-dashboard__toolbar p,
 html[data-theme='dark'] .news-card__source,
 html[data-theme='dark'] .news-card__list a,
 html[data-theme='dark'] .news-card__error p,
 html[data-theme='dark'] .news-dashboard__empty p,
 html[data-theme='dark'] .news-dashboard__fatal p {
   color: #f5f3f0;
-}
-
-html[data-theme='dark'] .news-dashboard__toolbar span {
-  color: color-mix(in srgb, #f5f3f0 50%, transparent);
 }
 
 html[data-theme='dark'] .news-card {
@@ -669,7 +647,7 @@ html[data-theme='dark'] .news-dashboard__manager-header > span {
     padding: 12px 12px 24px;
   }
 
-  .news-dashboard__toolbar {
+  .news-dashboard__controls {
     align-items: stretch;
     flex-direction: column;
     gap: 12px;

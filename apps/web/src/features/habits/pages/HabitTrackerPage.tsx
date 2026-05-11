@@ -8,6 +8,8 @@ import { HabitList } from '../components/HabitList'
 import { useHabitTracker } from '../hooks/useHabitTracker'
 import { useHabitsI18n } from '../habitsI18n'
 import { todayDateKey } from '../model/dateKey'
+import { DiscoveryEmptyState } from '../../../shared/ui/EmptyState'
+import { useI18n } from '../../../shared/i18n/useI18n'
 import '../habits.css'
 
 /* ─── Stats Panel ─────────────────────────────────────────── */
@@ -135,6 +137,7 @@ const StatsPanel = ({ completed, total, percent, activeCount, bestStreak, weekTo
 /* ─── Main Page ───────────────────────────────────────────── */
 const HabitTrackerPage = () => {
   const i18n = useHabitsI18n()
+  const { t } = useI18n()
   const toast = useToast()
   const {
     loading,
@@ -217,10 +220,12 @@ const HabitTrackerPage = () => {
         ) : (
           <>
             {activeHabits.length === 0 ? (
-              <div className="habits-page-design__empty">
-                <h3>{i18n.emptyTitle}</h3>
-                <p>{i18n.emptyDescription}</p>
-              </div>
+              <DiscoveryEmptyState
+                variant="first-time"
+                title={i18n.emptyTitle}
+                body={i18n.emptyDescription}
+                relatedFeature={{ label: t('emptyState.habits.related') }}
+              />
             ) : (
               <HabitList
                 habits={activeHabits}

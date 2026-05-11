@@ -1,6 +1,9 @@
 import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import './EmptyState.css'
+
+// ─── Legacy shape (existing callers) ─────────────────────────────────────────
 
 export type EmptyStateProps = {
   icon: ReactNode
@@ -44,3 +47,71 @@ const EmptyState = ({
 }
 
 export default EmptyState
+
+// ─── Discovery empty state (3-variant teaching system) ───────────────────────
+
+interface DiscoveryFirstTimeProps {
+  variant: 'first-time'
+  title: string
+  body?: string
+  primaryAction?: ReactNode
+  relatedFeature?: { label: string; href?: string; onClick?: () => void }
+}
+
+interface DiscoveryFilteredProps {
+  variant: 'filtered'
+  title: string
+  primaryAction?: ReactNode
+}
+
+interface DiscoveryErrorProps {
+  variant: 'error'
+  title: string
+  body?: string
+  primaryAction?: ReactNode
+}
+
+export type DiscoveryEmptyStateProps =
+  | DiscoveryFirstTimeProps
+  | DiscoveryFilteredProps
+  | DiscoveryErrorProps
+
+/**
+ * Teaching empty states with three explicit variants:
+ * - `first-time`: educate with body text and cross-feature link
+ * - `filtered`: recover with a "clear filter" CTA
+ * - `error`: retry with a clear error message
+ */
+export function DiscoveryEmptyState(props: DiscoveryEmptyStateProps) {
+  return (
+    <div className={`ds-empty ds-empty--${props.variant}`} aria-live="polite">
+      <p className="ds-empty__title">{props.title}</p>
+
+      {'body' in props && props.body && (
+        <p className="ds-empty__body">{props.body}</p>
+      )}
+
+      {props.primaryAction && (
+        <div className="ds-empty__action">{props.primaryAction}</div>
+      )}
+
+      {'relatedFeature' in props && props.relatedFeature && (
+        <div className="ds-empty__related">
+          {props.relatedFeature.href ? (
+            <a href={props.relatedFeature.href} className="ds-empty__related-link">
+              {props.relatedFeature.label}
+            </a>
+          ) : (
+            <button
+              type="button"
+              className="ds-empty__related-link"
+              onClick={props.relatedFeature.onClick}
+            >
+              {props.relatedFeature.label}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Check, ChevronRight, Circle, Film, Play, Plus, Search, Star, Tv, X } from 'lucide-react'
+import { Check, ChevronRight, Circle, Film, Play, Plus, Search, Star, Trash2, Tv, X } from 'lucide-react'
 import Dialog from '../../../shared/ui/Dialog'
 import ImeTextarea from '../../../shared/ui/ImeTextarea'
 import { AppNumber } from '../../../shared/ui/AppNumber'
@@ -84,6 +84,7 @@ export const MediaCardSurface = ({
   onSelectItem,
   onAddItem,
   onPatchItem,
+  onRemoveItem,
 }: Props) => {
   const { t } = useLifeI18n()
   const searchAreaRef = useRef<HTMLDivElement | null>(null)
@@ -273,37 +274,47 @@ export const MediaCardSurface = ({
             {!loading && items.length === 0 ? <p style={inter(12, 400, mutedText)}>{t('life.media.noMedia')}</p> : null}
             <div style={{ display: 'grid', gap: 10, marginTop: 16 }}>
               {!loading && items.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => onSelectItem(item.id)}
-                  style={{
-                    display: 'flex',
-                    width: '100%',
-                    alignItems: 'flex-start',
-                    gap: 12,
-                    borderRadius: 16,
-                    padding: '12px 12px 10px',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    border: `1px solid ${selectedId === item.id ? 'rgba(58,55,51,0.12)' : 'transparent'}`,
-                    background: selectedId === item.id ? 'rgba(255,255,255,0.54)' : 'transparent',
-                  }}
-                >
-                  <div style={{ width: 38, height: 54, borderRadius: 4, overflow: 'hidden', flexShrink: 0, background: 'rgba(58,55,51,0.08)' }}>
-                    {item.posterUrl ? <img src={item.posterUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <p style={{ ...playfair(13, 500), flex: 1, minWidth: 0, marginBottom: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.title}</p>
-                      <span style={{ width: 6, height: 6, marginLeft: 'auto', flexShrink: 0, borderRadius: 999, background: statusDot(item.status) }} />
+                <div key={item.id} className="life-sidebar-item">
+                  <button
+                    type="button"
+                    onClick={() => onSelectItem(item.id)}
+                    style={{
+                      display: 'flex',
+                      width: '100%',
+                      alignItems: 'flex-start',
+                      gap: 12,
+                      borderRadius: 16,
+                      padding: '12px 12px 10px',
+                      paddingRight: 36,
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      border: `1px solid ${selectedId === item.id ? 'rgba(58,55,51,0.12)' : 'transparent'}`,
+                      background: selectedId === item.id ? 'rgba(255,255,255,0.54)' : 'transparent',
+                    }}
+                  >
+                    <div style={{ width: 38, height: 54, borderRadius: 4, overflow: 'hidden', flexShrink: 0, background: 'rgba(58,55,51,0.08)' }}>
+                      {item.posterUrl ? <img src={item.posterUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
                     </div>
-                    <p style={{ ...inter(11, 400, mutedText) }}>{itemTypeLine(item)}</p>
-                    <div style={{ marginTop: 10, height: 2, borderRadius: 999, overflow: 'hidden', background: 'rgba(58,55,51,0.08)' }}>
-                      <div style={{ width: `${item.progress}%`, height: '100%', borderRadius: 999, background: item.status === 'watching' ? '#8E81B8' : '#6D8B74' }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <p style={{ ...playfair(13, 500), flex: 1, minWidth: 0, marginBottom: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.title}</p>
+                        <span style={{ width: 6, height: 6, marginLeft: 'auto', flexShrink: 0, borderRadius: 999, background: statusDot(item.status) }} />
+                      </div>
+                      <p style={{ ...inter(11, 400, mutedText) }}>{itemTypeLine(item)}</p>
+                      <div style={{ marginTop: 10, height: 2, borderRadius: 999, overflow: 'hidden', background: 'rgba(58,55,51,0.08)' }}>
+                        <div style={{ width: `${item.progress}%`, height: '100%', borderRadius: 999, background: item.status === 'watching' ? '#8E81B8' : '#6D8B74' }} />
+                      </div>
                     </div>
-                  </div>
-                </button>
+                  </button>
+                  <button
+                    type="button"
+                    className="life-sidebar-item__delete"
+                    title="Remove"
+                    onClick={(event) => { event.stopPropagation(); onRemoveItem(item.id) }}
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
               ))}
             </div>
           </aside>

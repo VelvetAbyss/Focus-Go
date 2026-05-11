@@ -6,6 +6,9 @@ import { NETEASE_EXPERIMENTAL_PLAYBACK_ENABLED_KEY } from '../../shared/prefs/pr
 export const PODCAST_PLAYBACK_CHANGED_EVENT = 'focusgo:podcast-playback-changed'
 export const PODCAST_PROGRESS_EVENT = 'focusgo:podcast-progress'
 export const PODCAST_OPEN_PLAYER_EVENT = 'focusgo:podcast-open-player'
+export const PODCAST_PLAYBACK_MODE_KEY = 'focusgo.podcast.playbackMode'
+
+export type PodcastPlaybackMode = 'sequence' | 'shuffle'
 
 export const dispatchOpenPodcastPlayer = () => {
   if (typeof window === 'undefined') return
@@ -28,6 +31,16 @@ let activePlayback: PlaybackState | null = null
 let pausedPlayback: (PlaybackState & { currentTime: number }) | null = null
 let lastPositionSavedAt = 0
 const POSITION_SAVE_INTERVAL_MS = 5000
+
+export const getPodcastPlaybackMode = (): PodcastPlaybackMode => {
+  if (typeof window === 'undefined') return 'sequence'
+  return window.localStorage.getItem(PODCAST_PLAYBACK_MODE_KEY) === 'shuffle' ? 'shuffle' : 'sequence'
+}
+
+export const setPodcastPlaybackMode = (mode: PodcastPlaybackMode) => {
+  if (typeof window === 'undefined') return
+  window.localStorage.setItem(PODCAST_PLAYBACK_MODE_KEY, mode)
+}
 
 const saveEpisodePosition = async (podcastId: string, episodeId: string, currentTime: number) => {
   const podcasts = await podcastsRepo.list()
@@ -63,8 +76,12 @@ const getAudio = () => {
     }
     sharedAudio.onended = async () => {
       if (!activePlayback) return
-      await saveEpisodePosition(activePlayback.podcastId, activePlayback.episodeId, 0)
-      await podcastsRepo.update(activePlayback.podcastId, { isPlaying: false })
+      const endedPlayback = activePlayback
+      activePlayback = null
+      await saveEpisodePosition(endedPlayback.podcastId, endedPlayback.episodeId, 0)
+      const advanced = await playNextPodcastEpisode(endedPlayback)
+      if (advanced) return
+      await podcastsRepo.update(endedPlayback.podcastId, { isPlaying: false })
       activePlayback = null
       dispatchPlaybackChange()
     }
@@ -78,6 +95,44 @@ const resolveEpisodeUrl = (podcast: LifePodcast, episode: LifePodcastEpisode) =>
     return buildNeteaseStreamUrl(episode.id, Date.now())
   }
   return episode.audioUrl
+}
+
+const pickNextEpisode = (podcast: LifePodcast, currentEpisodeId: string) => {
+  const playableEpisodes = podcast.episodes.filter((episode) => Boolean(resolveEpisodeUrl(podcast, episode)))
+  if (playableEpisodes.length === 0) return null
+  if (playableEpisodes.length === 1) return null
+
+  const currentIndex = playableEpisodes.findIndex((episode) => episode.id === currentEpisodeId)
+  if (getPodcastPlaybackMode() === 'shuffle') {
+    const candidates = playableEpisodes.filter((episode) => episode.id !== currentEpisodeId)
+    return candidates[Math.floor(Math.random() * candidates.length)] ?? null
+  }
+
+  if (currentIndex < 0) return playableEpisodes[0] ?? null
+  return playableEpisodes[currentIndex + 1] ?? null
+}
+
+const playNextPodcastEpisode = async (endedPlayback: PlaybackState) => {
+  const podcast = await podcastsRepo.list().then((rows) => rows.find((item) => item.id === endedPlayback.podcastId))
+  if (!podcast) return false
+  const nextEpisode = pickNextEpisode(podcast, endedPlayback.episodeId)
+  if (!nextEpisode) return false
+
+  const updated = await podcastsRepo.update(podcast.id, {
+    selectedEpisodeId: nextEpisode.id,
+    isPlaying: true,
+  })
+  if (!updated) return false
+
+  try {
+    await playPodcastEpisode(updated, nextEpisode)
+    return true
+  } catch {
+    await podcastsRepo.update(podcast.id, { isPlaying: false })
+    activePlayback = null
+    dispatchPlaybackChange()
+    return true
+  }
 }
 
 export const playPodcastEpisode = async (podcast: LifePodcast, episode: LifePodcastEpisode) => {
@@ -159,4 +214,13 @@ export const subscribePodcastPlayback = (listener: () => void) => {
   if (typeof window === 'undefined') return () => {}
   window.addEventListener(PODCAST_PLAYBACK_CHANGED_EVENT, listener)
   return () => window.removeEventListener(PODCAST_PLAYBACK_CHANGED_EVENT, listener)
+}
+
+export const resetPodcastPlaybackForTests = () => {
+  if (import.meta.env.PROD) return
+  sharedAudio?.pause()
+  sharedAudio = null
+  activePlayback = null
+  pausedPlayback = null
+  lastPositionSavedAt = 0
 }

@@ -5,6 +5,7 @@ import type { NoiseSettings, NoiseTrackId, NoiseTrackSettings } from '../../data
 import { Button } from '@/components/ui/button'
 import { useMotionPreference } from '../../shared/prefs/useMotionPreference'
 import NoiseControlPanel from './components/NoiseControlPanel'
+import { DiscoveryHint } from '../../shared/ui/DiscoveryHint'
 import { useI18n } from '../../shared/i18n/useI18n'
 import { useFocusCardVariant } from './useFocusCardVariant'
 
@@ -219,6 +220,7 @@ const FocusSettingsDrawer = ({
       </motion.section>
 
       <motion.section layout transition={layoutTransition} className="focus-settings__panel">
+        <DiscoveryHint region="focus" />
         <NoiseControlPanel
           noise={noise}
           onTogglePlay={toggleNoisePlaying}

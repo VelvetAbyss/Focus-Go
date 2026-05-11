@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSyncDataRefresh } from '../../data/sync/service'
 import type { CSSProperties } from 'react'
 import { Button } from '@/components/ui/button'
-import { BookText, Calendar, Trash2, X } from 'lucide-react'
+import { Calendar, X } from 'lucide-react'
 import { format } from 'date-fns'
 import { useSearchParams } from 'react-router-dom'
 import Drawer from '../../shared/ui/Drawer'
@@ -14,7 +14,7 @@ import { toDateKey } from '../../shared/utils/time'
 import AnimatedScrollList from '../../shared/ui/AnimatedScrollList'
 import { triggerTabGroupSwitchAnimation, triggerTabPressAnimation } from '../../shared/ui/tabPressAnimation'
 import { useI18n } from '../../shared/i18n/useI18n'
-import EmptyState from '../../shared/ui/EmptyState'
+import { DiscoveryEmptyState } from '../../shared/ui/EmptyState'
 import './diary.css'
 
 type DiaryPanelProps = {
@@ -580,11 +580,11 @@ const DiaryPanel = ({ open, intent, onClose }: DiaryPanelProps) => {
                     <>
                       <h2 className="diary-fg__section-title">{t('diary.entries')}</h2>
                       {entries.length === 0 ? (
-                        <EmptyState
-                          icon={<BookText size={22} />}
+                        <DiscoveryEmptyState
+                          variant="first-time"
                           title={t('empty.diary.historyTitle')}
-                          description={t('empty.diary.historyDescription')}
-                          className="mb-4 border-0 bg-transparent px-0 py-8 shadow-none"
+                          body={t('empty.diary.historyDescription')}
+                          relatedFeature={{ label: t('emptyState.diary.related') }}
                         />
                       ) : null}
                       <AnimatedScrollList
@@ -620,11 +620,9 @@ const DiaryPanel = ({ open, intent, onClose }: DiaryPanelProps) => {
               <section className="diary-fg__panel" role="tabpanel" aria-label={t('diary.trashPanel')}>
                 <section className="diary-fg__view diary-fg__view--trash">
                   {visibleTrashEntries.length === 0 ? (
-                    <EmptyState
-                      icon={<Trash2 size={22} />}
+                    <DiscoveryEmptyState
+                      variant="filtered"
                       title={t('empty.diary.trashTitle')}
-                      description={t('empty.diary.trashDescription')}
-                      className="border-0 bg-transparent px-0 py-12 shadow-none"
                     />
                   ) : (
                     <div className="diary-fg__list-wrap">

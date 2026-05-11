@@ -15,6 +15,7 @@ import {
   SunMedium,
   Waves,
   AlertTriangle,
+  Lightbulb,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -66,6 +67,7 @@ import { restampLocalSnapshotForRestore } from '../../data/sync/repository'
 import { resetRxdbSyncDatabase } from '../../data/sync/rxdb'
 import { ROUTES } from './routes'
 import { useUpgradeModal } from '../../features/labs/UpgradeModalContext'
+import { useDiscoveryReset } from '../../shared/discovery/DiscoveryHintContext'
 import { useAuthGate } from '../../features/auth/AuthGateContext'
 import PremiumMark from '../../features/premium/PremiumMark'
 import {
@@ -648,6 +650,8 @@ const SettingsRoute = () => {
   const [isExporting, setIsExporting] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [pendingImport, setPendingImport] = useState<{ fileName: string; payload: ParsedLocalBackup } | null>(null)
+  const [discoveryResetDone, setDiscoveryResetDone] = useState(false)
+  const discoveryReset = useDiscoveryReset()
   const importInputRef = useRef<HTMLInputElement | null>(null)
   const {
     setLanguage,
@@ -1269,6 +1273,24 @@ const SettingsRoute = () => {
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
+
+                          <SettingRow
+                            icon={Lightbulb}
+                            title={t('settings.discovery.title')}
+                            description={discoveryResetDone ? t('settings.discovery.resetDone') : t('settings.discovery.description')}
+                          >
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                discoveryReset()
+                                setDiscoveryResetDone(true)
+                                setTimeout(() => setDiscoveryResetDone(false), 3000)
+                              }}
+                            >
+                              {t('settings.discovery.reset')}
+                            </Button>
+                          </SettingRow>
 
                           <SettingRow
                             icon={AlertTriangle}

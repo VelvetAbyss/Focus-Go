@@ -27,7 +27,8 @@ import { readTaskTodayBucket, shouldClearTodayDoneTasks, writeTaskTodayBucket } 
 import { TASK_STATUS_CONFIG, getUpcomingDeadlineAlert } from './components/taskPresentation'
 import { useI18n } from '../../shared/i18n/useI18n'
 import { useAuthGate } from '../auth/AuthGateContext'
-import EmptyState from '../../shared/ui/EmptyState'
+import { DiscoveryEmptyState } from '../../shared/ui/EmptyState'
+import { DiscoveryHint } from '../../shared/ui/DiscoveryHint'
 import { ROUTES } from '../../app/routes/routes'
 import { resolveProjectColor } from '../../shared/design/tokens'
 
@@ -622,13 +623,23 @@ const TasksBoard = ({
     )
   }
 
-  const tasksEmptyState = (
-    <EmptyState
-      icon={<LayoutGrid className="size-6" />}
-      title={topView === 'today' ? t('tasks.today.emptyTitle') : t('tasks.board.emptyTitle')}
-      description={topView === 'today' ? t('tasks.today.emptyDescription') : t('tasks.board.emptyDescription')}
-      className="mx-auto my-10 max-w-xl"
-    />
+  const isFirstTimeEmpty = tasks.length === 0
+  const tasksEmptyState = isFirstTimeEmpty ? (
+    <div className="px-1 py-8">
+      <DiscoveryEmptyState
+        variant="first-time"
+        title={t('emptyState.tasks.title')}
+        body={t('emptyState.tasks.body')}
+        relatedFeature={{ label: t('emptyState.tasks.related') }}
+      />
+    </div>
+  ) : (
+    <div className="px-1 py-8">
+      <DiscoveryEmptyState
+        variant="filtered"
+        title={topView === 'today' ? t('tasks.today.emptyTitle') : t('emptyState.tasks.filtered.title')}
+      />
+    </div>
   )
 
   const boardContent = topView !== 'analytics'
@@ -916,6 +927,12 @@ const TasksBoard = ({
           </div>
         </div>
       ) : null}
+
+      {!showTasksEmptyState && topView !== 'analytics' && (
+        <div className="px-1 pt-3">
+          <DiscoveryHint region="tasks" />
+        </div>
+      )}
 
       <div className="relative min-h-0 flex-1 overflow-visible pt-4">
         {boardContent}

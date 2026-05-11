@@ -6,7 +6,7 @@ import { fileURLToPath, URL } from 'node:url'
 export default defineConfig({
   plugins: [react()],
   test: {
-    exclude: ['focus-go-api/**', '.claude/**'],
+    exclude: ['focus-go-api/**', '.claude/**', 'e2e/**'],
     setupFiles: ['./src/test/setup.ts'],
     testTimeout: 10000,
   },

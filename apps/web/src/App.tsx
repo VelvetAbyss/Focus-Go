@@ -7,6 +7,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { PreferencesProvider } from './shared/prefs/PreferencesProvider'
 import { ToastProvider } from './shared/ui/toast/ToastProvider'
 import { LabsProvider } from './features/labs/LabsContext'
+import { DiscoveryHintProvider } from './shared/discovery/DiscoveryHintContext'
 import { SharedNoiseProvider } from './features/focus/SharedNoiseProvider'
 import { PremiumProvider } from './features/premium/PremiumProvider'
 import { SyncProvider } from './data/sync/service'
@@ -38,6 +39,7 @@ const App = () => {
           <ToastProvider>
             <SyncProvider>
               <PremiumProvider>
+                <DiscoveryHintProvider>
                 <LabsProvider>
                   <SharedNoiseProvider>
                     <AppShell>
@@ -45,6 +47,7 @@ const App = () => {
                     </AppShell>
                   </SharedNoiseProvider>
                 </LabsProvider>
+                </DiscoveryHintProvider>
               </PremiumProvider>
             </SyncProvider>
           </ToastProvider>

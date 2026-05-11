@@ -1,0 +1,13 @@
+.nav-new-badge {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  /* Sits inline after the label text */
+  margin-left: 4px;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+}
