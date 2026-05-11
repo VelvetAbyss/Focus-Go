@@ -1,4 +1,5 @@
 import { BookMarked, BookOpen, CheckCheck, ChevronRight, Clock, Plus, Search, Trash2, X } from 'lucide-react'
+
 import { useEffect, useMemo, useRef } from 'react'
 import Dialog from '../../../shared/ui/Dialog'
 import ImeTextarea from '../../../shared/ui/ImeTextarea'
@@ -116,45 +117,56 @@ const CardRow = ({ book }: { book: LibraryPresentationModel['previewRows'][numbe
   </div>
 )
 
-const SidebarBookItem = ({ book, selected, onClick }: { book: BookItem; selected: boolean; onClick: () => void }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    style={{
-      width: '100%',
-      display: 'flex',
-      alignItems: 'center',
-      gap: 12,
-      padding: '12px 14px',
-      borderRadius: 16,
-      textAlign: 'left',
-      background: selected ? 'rgba(58,55,51,0.06)' : 'transparent',
-      border: selected ? '1px solid rgba(58,55,51,0.10)' : '1px solid transparent',
-      cursor: 'pointer',
-    }}
-  >
-    <div
+const SidebarBookItem = ({ book, selected, onClick, onRemove }: { book: BookItem; selected: boolean; onClick: () => void; onRemove: (id: string) => void }) => (
+  <div className="life-sidebar-item">
+    <button
+      type="button"
+      onClick={onClick}
       style={{
-        width: 36,
-        height: 50,
-        flexShrink: 0,
-        overflow: 'hidden',
-        borderRadius: 3,
-        boxShadow: '1px 2px 8px rgba(58,55,51,0.18), inset -1px 0 0 rgba(0,0,0,0.07)',
-        background: 'rgba(58,55,51,0.08)',
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        padding: '12px 14px',
+        paddingRight: 40,
+        borderRadius: 16,
+        textAlign: 'left',
+        background: selected ? 'rgba(58,55,51,0.06)' : 'transparent',
+        border: selected ? '1px solid rgba(58,55,51,0.10)' : '1px solid transparent',
+        cursor: 'pointer',
       }}
     >
-      {book.coverUrl ? <img src={book.coverUrl} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top' }} /> : null}
-    </div>
-    <div style={{ flex: 1, minWidth: 0 }}>
-      <p style={{ ...playfair(13, 500), marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{book.title}</p>
-      <p style={{ ...inter(11, 400, mutedText), marginBottom: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{book.authors.join(', ')}</p>
-      <div style={{ height: 2, overflow: 'hidden', borderRadius: 999, background: 'rgba(58,55,51,0.08)' }}>
-        <div style={{ width: `${book.progress}%`, height: '100%', borderRadius: 999, background: statusConfig[book.status].color }} />
+      <div
+        style={{
+          width: 36,
+          height: 50,
+          flexShrink: 0,
+          overflow: 'hidden',
+          borderRadius: 3,
+          boxShadow: '1px 2px 8px rgba(58,55,51,0.18), inset -1px 0 0 rgba(0,0,0,0.07)',
+          background: 'rgba(58,55,51,0.08)',
+        }}
+      >
+        {book.coverUrl ? <img src={book.coverUrl} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top' }} /> : null}
       </div>
-    </div>
-    <div style={{ width: 6, height: 6, flexShrink: 0, borderRadius: 999, background: statusConfig[book.status].color, opacity: 0.8 }} />
-  </button>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ ...playfair(13, 500), marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{book.title}</p>
+        <p style={{ ...inter(11, 400, mutedText), marginBottom: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{book.authors.join(', ')}</p>
+        <div style={{ height: 2, overflow: 'hidden', borderRadius: 999, background: 'rgba(58,55,51,0.08)' }}>
+          <div style={{ width: `${book.progress}%`, height: '100%', borderRadius: 999, background: statusConfig[book.status].color }} />
+        </div>
+      </div>
+      <div style={{ width: 6, height: 6, flexShrink: 0, borderRadius: 999, background: statusConfig[book.status].color, opacity: 0.8 }} />
+    </button>
+    <button
+      type="button"
+      className="life-sidebar-item__delete"
+      title="Remove from library"
+      onClick={(event) => { event.stopPropagation(); onRemove(book.id) }}
+    >
+      <Trash2 size={12} />
+    </button>
+  </div>
 )
 
 export const LibraryCardSurface = ({
@@ -414,7 +426,7 @@ export const LibraryCardSurface = ({
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {filteredBooks.map((book) => (
-                      <SidebarBookItem key={book.id} book={book} selected={selectedBookId === book.id} onClick={() => onSelectBook(book.id)} />
+                      <SidebarBookItem key={book.id} book={book} selected={selectedBookId === book.id} onClick={() => onSelectBook(book.id)} onRemove={onRemoveBook} />
                     ))}
                   </div>
                 )}

@@ -38,6 +38,10 @@ const { mockT } = vi.hoisted(() => {
         'tasks.today.addPlaceholder': 'Add a task for today...',
         'tasks.board.emptyTitle': 'No tasks yet',
         'tasks.board.emptyDescription': 'Create a task to get started.',
+        'emptyState.tasks.title': 'No tasks yet',
+        'emptyState.tasks.body': 'Add your first task above to get started',
+        'emptyState.tasks.related': 'Tasks can belong to a Project →',
+        'emptyState.tasks.filtered.title': 'No tasks match your filters',
         'dashboard.widget.tasks': 'Tasks',
         'modules.tasks.addPlaceholder': 'Add a new task...',
         'modules.tasks.add': 'Add',
@@ -56,6 +60,10 @@ vi.mock('../../shared/i18n/useI18n', () => ({
 
 vi.mock('../../shared/ui/toast/toast', () => ({
   useToast: () => ({ push: vi.fn() }),
+}))
+
+vi.mock('../../shared/discovery/DiscoveryHintContext', () => ({
+  useDiscoveryHint: () => ({ activeHintId: null, dismiss: vi.fn() }),
 }))
 
 const listMock = vi.fn()
@@ -373,7 +381,7 @@ describe('TasksBoard sync', () => {
 
     await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1))
     expect(screen.getByText('No tasks yet')).toBeInTheDocument()
-    expect(screen.getByText('Create a task to get started.')).toBeInTheDocument()
+    expect(screen.getByText('Add your first task above to get started')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Add a new task...')).toBeInTheDocument()
     expect(screen.queryByTestId('task-drawer')).not.toBeInTheDocument()
   })

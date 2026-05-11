@@ -84,6 +84,40 @@ describe('NewsDashboard', () => {
     expect(screen.queryByText('暂无来源')).not.toBeInTheDocument()
   })
 
+  it('shows the shared page loading state while the source list is still loading', async () => {
+    fetchApiMock.mockImplementation((path: string) => {
+      if (path === '/news/sources') return pending()
+      return pending()
+    })
+
+    render(<NewsDashboard />)
+
+    expect(await screen.findByTestId('news-source-loader')).toBeInTheDocument()
+    expect(screen.getByText('Loading')).toBeInTheDocument()
+    expect(screen.queryByText('暂无来源')).not.toBeInTheDocument()
+  })
+
+  it('keeps source loading active after a stale source-list request is aborted', async () => {
+    fetchApiMock.mockImplementation((path: string, init?: RequestInit) => {
+      if (path !== '/news/sources') return pending()
+      const signal = init?.signal
+      return new Promise((resolve, reject) => {
+        signal?.addEventListener('abort', () => {
+          reject(Object.assign(new Error('aborted'), { name: 'AbortError' }))
+        })
+        setTimeout(() => resolve(jsonResponse({ sources })), 40)
+      })
+    })
+
+    const { unmount } = render(<NewsDashboard />)
+    unmount()
+    render(<NewsDashboard />)
+
+    expect(await screen.findByTestId('news-source-loader')).toBeInTheDocument()
+    expect(screen.queryByText('暂无来源')).not.toBeInTheDocument()
+    expect(await screen.findByText('知乎')).toBeInTheDocument()
+  })
+
   it('persists source preferences when sources are toggled', async () => {
     fetchApiMock.mockImplementation((path: string) => {
       if (path === '/news/sources') return Promise.resolve(jsonResponse({ sources }))

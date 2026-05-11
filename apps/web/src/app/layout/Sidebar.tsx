@@ -45,6 +45,7 @@ import { useIsLoggedIn, useAuthPlan, useIsAdmin } from '../../store/auth'
 import { useUpgradeModal } from '../../features/labs/UpgradeModalContext'
 import SidebarPodcastPlayer from './SidebarPodcastPlayer'
 import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../data/repositories/syncedPreferencesRepo'
+import { NavNewBadge, markNavModuleSeen } from '../../shared/ui/NavNewBadge'
 
 const PodcastCard = lazy(() => import('../../features/life/cards/PodcastCard'))
 
@@ -79,6 +80,9 @@ type SidebarNavItem = {
   extraClassName?: string
 }
 
+/** Modules that show a "New" dot until first visit */
+const NEW_BADGE_MODULES = new Set(['trips', 'note', 'labs'])
+
 type SortableSidebarItemProps = {
   item: SidebarNavItem
   collapsed: boolean
@@ -86,6 +90,9 @@ type SortableSidebarItemProps = {
 
 const SortableSidebarItem = ({ item, collapsed }: SortableSidebarItemProps) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
+  // Derive module key from item id (format: "route:trips" → "trips")
+  const moduleKey = item.id.startsWith('route:') ? item.id.slice(6) : null
+  const showBadge = moduleKey !== null && NEW_BADGE_MODULES.has(moduleKey)
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -101,11 +108,13 @@ const SortableSidebarItem = ({ item, collapsed }: SortableSidebarItemProps) => {
       className={({ isActive }) =>
         `focus-sidebar__item${item.extraClassName ? ` ${item.extraClassName}` : ''}${isActive ? ' is-active' : ''}${isDragging ? ' is-dragging' : ''}`
       }
+      onClick={() => { if (moduleKey) markNavModuleSeen(moduleKey) }}
       {...attributes}
       {...listeners}
     >
       <item.Icon size={18} aria-hidden="true" />
       {!collapsed ? <span>{item.label}</span> : null}
+      {showBadge && <NavNewBadge module={moduleKey} />}
     </NavLink>
   )
 }

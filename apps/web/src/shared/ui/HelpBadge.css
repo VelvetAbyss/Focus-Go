@@ -1,0 +1,49 @@
+.help-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Visible size */
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: 50%;
+  cursor: pointer;
+  vertical-align: middle;
+  /* Extend hit area without growing visual size */
+  position: relative;
+  transition: color var(--motion-duration-fast) var(--ease-standard);
+}
+
+.help-badge::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+}
+
+.help-badge:hover {
+  color: var(--text-primary);
+}
+
+.help-badge:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Mobile: larger tap target */
+@media (pointer: coarse) {
+  .help-badge::before {
+    inset: -13px;
+  }
+}
+
+.help-badge__popover {
+  max-width: 280px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}

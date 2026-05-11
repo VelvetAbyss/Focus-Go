@@ -1,7 +1,8 @@
-import { ChevronRight, Headphones, Pause, Play, Search, X } from 'lucide-react'
+import { ChevronRight, Headphones, ListMusic, Pause, Play, Search, Shuffle, Trash2, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Dialog from '../../../shared/ui/Dialog'
 import { getPlaybackProgress, seekTo, subscribePlaybackProgress } from '../podcastPlayback'
+import type { PodcastPlaybackMode } from '../podcastPlayback'
 
 const EPISODE_ROW_HEIGHT = 34 // 8px padding-top + ~16px content + 8px padding-bottom + 1px divider
 
@@ -73,6 +74,7 @@ type Props = {
   presetChannels: Array<{ id: string; title: string; url: string }>
   addingCandidateId: string | null
   refreshingPodcastId: string | null
+  playbackMode: PodcastPlaybackMode
   neteaseExperimentalPlaybackEnabled: boolean
   standalone?: boolean
   onOpen: () => void
@@ -86,6 +88,7 @@ type Props = {
   onAddItem: (id: string) => void
   onSelectEpisode: (podcastId: string, episodeId: string) => void
   onTogglePlaying: (podcastId: string) => void
+  onPlaybackModeChange: (mode: PodcastPlaybackMode) => void
   onOpenExternal: (url?: string) => void
   onClearResults: () => void
   onRefreshItem: (id: string) => void
@@ -107,6 +110,7 @@ export const PodcastCardSurface = ({
   presetChannels,
   addingCandidateId,
   refreshingPodcastId,
+  playbackMode,
   neteaseExperimentalPlaybackEnabled,
   standalone,
   onOpen,
@@ -120,6 +124,7 @@ export const PodcastCardSurface = ({
   onAddItem,
   onSelectEpisode,
   onTogglePlaying,
+  onPlaybackModeChange,
   onOpenExternal,
   onClearResults,
   onRefreshItem,
@@ -181,6 +186,15 @@ export const PodcastCardSurface = ({
   const selectedSourceLabel = selected?.source === 'netease' ? t('life.podcast.netease') : t('life.podcast.apple')
   const isNeteaseDefaultMode = selected?.source === 'netease' && !neteaseExperimentalPlaybackEnabled
   const cardActionLabel = model.nowPlaying?.source === 'netease' && !neteaseExperimentalPlaybackEnabled ? t('life.podcast.openOriginal') : model.nowPlaying?.isPlaying ? t('life.podcast.pause') : t('life.podcast.openPlayer')
+  const playbackModeButtonStyle = (mode: PodcastPlaybackMode): React.CSSProperties => ({
+    ...smallButtonStyle,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+    background: playbackMode === mode ? 'rgba(58,55,51,0.10)' : smallButtonStyle.background,
+    borderColor: playbackMode === mode ? 'rgba(58,55,51,0.22)' : smallButtonStyle.borderColor,
+    color: playbackMode === mode ? '#3A3733' : smallButtonStyle.color,
+  })
 
   return (
     <>
@@ -458,25 +472,35 @@ export const PodcastCardSurface = ({
                 ) : null}
                 <div style={{ display: 'grid', gap: 6, paddingTop: 6, gridTemplateColumns: '1fr', minWidth: 0 }}>
                   {items.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => onSelectItem(item.id)}
-                      style={{
-                        width: '100%',
-                        textAlign: 'left',
-                        padding: '12px 14px',
-                        borderRadius: 16,
-                        border: selectedId === item.id ? '1px solid rgba(58,55,51,0.12)' : '1px solid transparent',
-                        background: selectedId === item.id ? 'rgba(58,55,51,0.06)' : 'transparent',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <p style={{ ...inter(12, 500), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</p>
-                      <p style={{ ...inter(10, 400, mutedText), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {item.author}{item.source === 'netease' ? ` · ${t('life.podcast.netease')}` : ` · ${t('life.podcast.apple')}`}
-                      </p>
-                    </button>
+                    <div key={item.id} className="life-sidebar-item">
+                      <button
+                        type="button"
+                        onClick={() => onSelectItem(item.id)}
+                        style={{
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '12px 14px',
+                          paddingRight: 40,
+                          borderRadius: 16,
+                          border: selectedId === item.id ? '1px solid rgba(58,55,51,0.12)' : '1px solid transparent',
+                          background: selectedId === item.id ? 'rgba(58,55,51,0.06)' : 'transparent',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <p style={{ ...inter(12, 500), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</p>
+                        <p style={{ ...inter(10, 400, mutedText), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {item.author}{item.source === 'netease' ? ` · ${t('life.podcast.netease')}` : ` · ${t('life.podcast.apple')}`}
+                        </p>
+                      </button>
+                      <button
+                        type="button"
+                        className="life-sidebar-item__delete"
+                        title={t('life.podcast.remove')}
+                        onClick={(event) => { event.stopPropagation(); onRemoveItem(item.id) }}
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -533,6 +557,26 @@ export const PodcastCardSurface = ({
                           <button type="button" onClick={() => onTogglePlaying(selected.id)} style={{ ...smallButtonStyle, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                             {selected.isPlaying && !isNeteaseDefaultMode ? <Pause size={11} /> : <Play size={11} />}
                             <span>{isNeteaseDefaultMode ? t('life.podcast.openOriginal') : selected.isPlaying ? t('life.podcast.pause') : t('life.podcast.play')}</span>
+                          </button>
+                          <button
+                            type="button"
+                            aria-pressed={playbackMode === 'sequence'}
+                            title={t('life.podcast.sequenceMode')}
+                            onClick={() => onPlaybackModeChange('sequence')}
+                            style={playbackModeButtonStyle('sequence')}
+                          >
+                            <ListMusic size={11} />
+                            <span>{t('life.podcast.sequenceShort')}</span>
+                          </button>
+                          <button
+                            type="button"
+                            aria-pressed={playbackMode === 'shuffle'}
+                            title={t('life.podcast.shuffleMode')}
+                            onClick={() => onPlaybackModeChange('shuffle')}
+                            style={playbackModeButtonStyle('shuffle')}
+                          >
+                            <Shuffle size={11} />
+                            <span>{t('life.podcast.shuffleShort')}</span>
                           </button>
                           {selected.source === 'itunes' ? (
                             <button type="button" onClick={() => onOpenExternal(selected.externalUrl ?? `https://podcasts.apple.com/podcast/id${selected.collectionId}`)} style={smallButtonStyle}>{t('life.podcast.viewOnApple')}</button>

@@ -1,0 +1,66 @@
+/* DiscoveryEmptyState — teaching empty state, 3 variants */
+.ds-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 28px 0 24px;
+  max-width: 480px;
+  font-family: var(--font-body);
+}
+
+.ds-empty__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text-primary);
+}
+
+.ds-empty__body {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.ds-empty__action {
+  margin-top: 4px;
+}
+
+.ds-empty__related {
+  margin-top: 6px;
+}
+
+.ds-empty__related-link {
+  display: inline;
+  font-size: 13px;
+  color: var(--accent);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity var(--motion-duration-fast) var(--ease-standard);
+}
+
+.ds-empty__related-link:hover {
+  opacity: 0.72;
+}
+
+.ds-empty__related-link:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  border-radius: 2px;
+}
+
+/* Filtered variant: centered, compact */
+.ds-empty--filtered {
+  align-items: center;
+  text-align: center;
+  padding: 20px 0;
+}
+
+/* Error variant: slightly distinct */
+.ds-empty--error .ds-empty__title {
+  color: var(--text-secondary);
+}

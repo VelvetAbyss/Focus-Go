@@ -70,6 +70,10 @@ export type LifeKey =
   | 'life.podcast.openOriginal'
   | 'life.podcast.openPlayer'
   | 'life.podcast.pause'
+  | 'life.podcast.sequenceMode'
+  | 'life.podcast.shuffleMode'
+  | 'life.podcast.sequenceShort'
+  | 'life.podcast.shuffleShort'
   | 'life.podcast.recentEpisodes'
   | 'life.podcast.stats'
   | 'life.podcast.netease'
@@ -387,6 +391,10 @@ const en: Record<LifeKey, string> = {
   'life.podcast.openOriginal': 'Open Original',
   'life.podcast.openPlayer': 'Open Player',
   'life.podcast.pause': 'Pause',
+  'life.podcast.sequenceMode': 'Play episodes in order',
+  'life.podcast.shuffleMode': 'Play random episodes',
+  'life.podcast.sequenceShort': 'Order',
+  'life.podcast.shuffleShort': 'Random',
   'life.podcast.recentEpisodes': 'Recent Episodes',
   'life.podcast.stats': '{{podcasts}} podcasts · {{episodes}} episodes',
   'life.podcast.netease': 'Netease (Open Original)',
@@ -699,6 +707,10 @@ const zh: Record<LifeKey, string> = {
   'life.podcast.openOriginal': '打开原链接',
   'life.podcast.openPlayer': '打开播放器',
   'life.podcast.pause': '暂停',
+  'life.podcast.sequenceMode': '按顺序播放剧集',
+  'life.podcast.shuffleMode': '随机播放剧集',
+  'life.podcast.sequenceShort': '顺序',
+  'life.podcast.shuffleShort': '随机',
   'life.podcast.recentEpisodes': '最近剧集',
   'life.podcast.stats': '{{podcasts}} 个播客 · {{episodes}} 集',
   'life.podcast.netease': '网易云（打开原链接）',

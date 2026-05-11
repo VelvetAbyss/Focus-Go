@@ -1,4 +1,4 @@
-import { ChevronRight, Plus, Users, X } from 'lucide-react'
+import { ChevronRight, Plus, Trash2, Users, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import Dialog from '../../../shared/ui/Dialog'
 import type { LifePerson } from '../../../data/models/types'
@@ -231,50 +231,60 @@ export const PeopleCardSurface = ({
                 {visibleItems.map((item) => {
                   const isActive = selectedId === item.id
                   return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => { setEditingId(item.id); onSelectItem(item.id) }}
-                      style={{
-                        width: '100%',
-                        textAlign: 'left',
-                        padding: '9px 10px',
-                        borderRadius: 14,
-                        border: isActive ? '1px solid rgba(58,55,51,0.13)' : '1px solid transparent',
-                        background: isActive ? '#fff' : 'transparent',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 10,
-                        boxShadow: isActive ? '0 1px 4px rgba(58,55,51,0.07)' : 'none',
-                      }}
-                    >
-                      <div style={{
-                        width: 34, height: 34, borderRadius: '50%',
-                        background: item.avatarColor ?? '#D8CFC7',
-                        border: '1px solid rgba(58,55,51,0.08)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        ...inter(12, 600, 'rgba(58,55,51,0.65)'),
-                        flexShrink: 0,
-                        letterSpacing: '0.02em',
-                      }}>
-                        {item.avatarInitials || item.name.slice(0, 1).toUpperCase()}
-                      </div>
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <p style={{ ...inter(12, 500), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</p>
-                        <p style={{ ...inter(10, 400, mutedText), marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {item.category ?? item.group}{item.role ? ` · ${item.role}` : ''}
-                        </p>
-                      </div>
-                      {item.group ? (
+                    <div key={item.id} className="life-sidebar-item">
+                      <button
+                        type="button"
+                        onClick={() => { setEditingId(item.id); onSelectItem(item.id) }}
+                        style={{
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '9px 10px',
+                          paddingRight: 36,
+                          borderRadius: 14,
+                          border: isActive ? '1px solid rgba(58,55,51,0.13)' : '1px solid transparent',
+                          background: isActive ? '#fff' : 'transparent',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 10,
+                          boxShadow: isActive ? '0 1px 4px rgba(58,55,51,0.07)' : 'none',
+                        }}
+                      >
                         <div style={{
-                          width: 8, height: 8, borderRadius: '50%',
-                          background: groupColorMap[item.group],
-                          border: '1px solid rgba(58,55,51,0.12)',
+                          width: 34, height: 34, borderRadius: '50%',
+                          background: item.avatarColor ?? '#D8CFC7',
+                          border: '1px solid rgba(58,55,51,0.08)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          ...inter(12, 600, 'rgba(58,55,51,0.65)'),
                           flexShrink: 0,
-                        }} />
-                      ) : null}
-                    </button>
+                          letterSpacing: '0.02em',
+                        }}>
+                          {item.avatarInitials || item.name.slice(0, 1).toUpperCase()}
+                        </div>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <p style={{ ...inter(12, 500), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</p>
+                          <p style={{ ...inter(10, 400, mutedText), marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {item.category ?? item.group}{item.role ? ` · ${item.role}` : ''}
+                          </p>
+                        </div>
+                        {item.group ? (
+                          <div style={{
+                            width: 8, height: 8, borderRadius: '50%',
+                            background: groupColorMap[item.group],
+                            border: '1px solid rgba(58,55,51,0.12)',
+                            flexShrink: 0,
+                          }} />
+                        ) : null}
+                      </button>
+                      <button
+                        type="button"
+                        className="life-sidebar-item__delete"
+                        title="Remove"
+                        onClick={(event) => { event.stopPropagation(); onRemoveItem(item.id) }}
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
                   )
                 })}
               </div>

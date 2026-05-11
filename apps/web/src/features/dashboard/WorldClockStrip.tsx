@@ -12,6 +12,7 @@ import {
   type CitySuggestion,
 } from '../../shared/location/citySuggestions'
 import { useI18n } from '../../shared/i18n/useI18n'
+import { HelpBadge } from '../../shared/ui/HelpBadge'
 import { readWorldClockItems, WORLD_CLOCK_ITEMS_KEY, writeWorldClockItems, type WorldClockItem } from '../../shared/prefs/preferences'
 import { formatWorldClockDisplay, repairWorldClockItems, resolveWorldClockItemFromSuggestion } from './worldClock'
 import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../data/repositories/syncedPreferencesRepo'
@@ -46,7 +47,7 @@ const copy = {
 } as const
 
 const WorldClockStrip = () => {
-  const { language } = useI18n()
+  const { language, t } = useI18n()
   const text = language === 'zh' ? copy.zh : copy.en
   const [items, setItems] = useState<WorldClockItem[]>(() => readWorldClockItems())
   const [query, setQuery] = useState('')
@@ -263,18 +264,23 @@ const WorldClockStrip = () => {
               ) : null}
             </div>
           ) : items.length < MAX_WORLD_CLOCK_ITEMS ? (
-            <button
-              type="button"
-              className={`world-clock-strip__add${cards.length === 0 ? ' world-clock-strip__add--empty' : ''}`}
-              onClick={() => {
-                setOpen(true)
-                setActiveIndex(0)
-              }}
-              title={cards.length === 0 ? text.empty : undefined}
-            >
-              <Plus size={14} />
-              <span>{text.add}</span>
-            </button>
+            <div className="inline-flex items-center gap-1">
+              <button
+                type="button"
+                className={`world-clock-strip__add${cards.length === 0 ? ' world-clock-strip__add--empty' : ''}`}
+                onClick={() => {
+                  setOpen(true)
+                  setActiveIndex(0)
+                }}
+                title={cards.length === 0 ? text.empty : undefined}
+              >
+                <Plus size={14} />
+                <span>{text.add}</span>
+              </button>
+              <HelpBadge label={t('worldClock.addCity')}>
+                {t('helpBadge.worldClock')}
+              </HelpBadge>
+            </div>
           ) : null}
         </div>
 

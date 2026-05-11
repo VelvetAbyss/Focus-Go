@@ -11,10 +11,10 @@ import { useI18n } from '../../shared/i18n/useI18n'
 import { convertToBase, currencyToSymbol } from '../../lib/currency'
 import { usePreferences } from '../../shared/prefs/usePreferences'
 import { EMOJI_TO_ICON_KEY, renderSpendIcon } from './spendIcons'
-import { Receipt, Trash2 } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import AnimatedScrollList from '../../shared/ui/AnimatedScrollList'
 import { triggerTabGroupSwitchAnimation, triggerTabPressAnimation } from '../../shared/ui/tabPressAnimation'
-import EmptyState from '../../shared/ui/EmptyState'
+import { DiscoveryEmptyState } from '../../shared/ui/EmptyState'
 type SpendView = 'today' | 'trend'
 type SpendChartComponentType = typeof import('./SpendChart')['default']
 
@@ -246,11 +246,10 @@ const SpendCard = () => {
                     listRef.current = node
                   }}
                   emptyState={
-                    <EmptyState
-                      icon={<Receipt size={22} />}
+                    <DiscoveryEmptyState
+                      variant="first-time"
                       title={t('empty.spend.title')}
-                      description={t('empty.spend.description')}
-                      className="border-0 bg-transparent px-0 py-8 shadow-none"
+                      body={t('empty.spend.description')}
                     />
                   }
                   renderItem={(entry) => {

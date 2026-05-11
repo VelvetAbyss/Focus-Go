@@ -8,6 +8,11 @@ vi.mock('../TasksBoard', () => ({
   default: () => <div data-testid="tasks-board" />,
 }))
 
+vi.mock('../../../shared/ui/NavNewBadge', () => ({
+  NavNewBadge: () => null,
+  markNavModuleSeen: vi.fn(),
+}))
+
 vi.mock('../../../shared/i18n/useI18n', async () => {
   const { mockUseI18n } = await import('../../../shared/i18n/testMock')
   return { useI18n: mockUseI18n }

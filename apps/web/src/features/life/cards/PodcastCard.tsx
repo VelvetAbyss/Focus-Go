@@ -15,8 +15,11 @@ import {
   type RemotePodcastSearchResult,
 } from '../podcastsApi'
 import {
+  getPodcastPlaybackMode,
   pausePodcastPlayback,
+  type PodcastPlaybackMode,
   playPodcastEpisode,
+  setPodcastPlaybackMode,
   stopNeteasePlaybackIfDisabled,
   subscribePodcastPlayback,
   subscribeOpenPodcastPlayer,
@@ -67,6 +70,7 @@ const PodcastCard = ({ standalone }: { standalone?: boolean } = {}) => {
   const [channelUrl, setChannelUrl] = useState('')
   const [refreshingPodcastId, setRefreshingPodcastId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [playbackMode, setPlaybackModeState] = useState<PodcastPlaybackMode>(() => getPodcastPlaybackMode())
 
   const selected = useMemo(() => items.find((item) => item.id === selectedId) ?? null, [items, selectedId])
   const model = useMemo(() => buildPodcastPresentationModel(items, t), [items, t])
@@ -304,6 +308,11 @@ const PodcastCard = ({ standalone }: { standalone?: boolean } = {}) => {
     else await pausePodcastPlayback(updated.id)
   }
 
+  const handlePlaybackModeChange = (mode: PodcastPlaybackMode) => {
+    setPodcastPlaybackMode(mode)
+    setPlaybackModeState(mode)
+  }
+
   const handleRemove = async (id: string) => {
     if (items.find((item) => item.id === id)?.isPlaying) await pausePodcastPlayback(id)
     await podcastsRepo.remove(id)
@@ -337,6 +346,7 @@ const PodcastCard = ({ standalone }: { standalone?: boolean } = {}) => {
       presetChannels={presetChannels}
       addingCandidateId={addingCandidateId}
       refreshingPodcastId={refreshingPodcastId}
+      playbackMode={playbackMode}
       neteaseExperimentalPlaybackEnabled={neteaseExperimentalPlaybackEnabled}
       standalone={standalone}
       onOpen={() => setOpen(true)}
@@ -350,6 +360,7 @@ const PodcastCard = ({ standalone }: { standalone?: boolean } = {}) => {
       onAddItem={(id) => void handleAdd(id)}
       onSelectEpisode={(podcastId, episodeId) => void handleSelectEpisode(podcastId, episodeId)}
       onTogglePlaying={(podcastId) => void handleTogglePlaying(podcastId)}
+      onPlaybackModeChange={handlePlaybackModeChange}
       onOpenExternal={(url) => openExternal(url)}
       onClearResults={() => setResults([])}
       onRefreshItem={(id) => void handleRefresh(id)}

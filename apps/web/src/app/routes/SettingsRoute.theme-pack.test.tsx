@@ -72,6 +72,10 @@ vi.mock('../../shared/ui/toast/toast', () => ({
   useToast: () => ({ push: vi.fn() }),
 }))
 
+vi.mock('../../shared/discovery/DiscoveryHintContext', () => ({
+  useDiscoveryReset: () => vi.fn(),
+}))
+
 const renderRoute = () =>
   render(
     <MemoryRouter>

@@ -11,6 +11,7 @@ import {
   type NewsSourceResponse,
 } from './newsApi'
 import { readNewsPreferences, writeNewsPreferences, type NewsDensity, type NewsPreferences } from './newsPreferences'
+import BrandLoader from '../../shared/ui/loading/BrandLoader'
 import './news.css'
 
 type SourceState = {
@@ -388,13 +389,6 @@ const NewsDashboard = () => {
     [enabledSourceIds, orderedSources, preferences.selectedCategory],
   )
 
-  const latestUpdated = useMemo(() => {
-    const timestamps = Object.values(sourceStates)
-      .map((state) => new Date(state.response?.updatedTime ?? 0).getTime())
-      .filter((value) => Number.isFinite(value) && value > 0)
-    return timestamps.length ? Math.max(...timestamps) : undefined
-  }, [sourceStates])
-
   const loadSource = useCallback(async (sourceId: string, latest = false, signal?: AbortSignal) => {
     setSourceStates((prev) => ({ ...prev, [sourceId]: { ...prev[sourceId], loading: true, error: undefined } }))
     try {
@@ -412,19 +406,26 @@ const NewsDashboard = () => {
   // Fetch sources list on mount
   useEffect(() => {
     const controller = new AbortController()
+    let active = true
     setSourcesLoading(true)
     void fetchNewsSources(controller.signal)
       .then((nextSources) => {
+        if (!active) return
         setSources(nextSources)
         setSourcesError(null)
       })
       .catch((error) => {
-        if ((error as Error)?.name !== 'AbortError') {
+        if (active && (error as Error)?.name !== 'AbortError') {
           setSourcesError(error instanceof Error ? error.message : 'Failed to load news sources')
         }
       })
-      .finally(() => setSourcesLoading(false))
-    return () => controller.abort()
+      .finally(() => {
+        if (active) setSourcesLoading(false)
+      })
+    return () => {
+      active = false
+      controller.abort()
+    }
   }, [])
 
   // onVisible: called by IntersectionObserver inside each NewsCard
@@ -475,19 +476,6 @@ const NewsDashboard = () => {
     persistPreferences({ ...preferences, density })
   }
 
-  // ── Loading / error states for the source list itself ─────────────────
-  if (sourcesLoading) {
-    return (
-      <section className="news-dashboard" aria-label="News">
-        <div className="news-dashboard__loading">
-          <div className="news-card__skeleton">
-            <span /><span /><span /><span /><span />
-          </div>
-        </div>
-      </section>
-    )
-  }
-
   if (sourcesError) {
     return (
       <section className="news-dashboard" aria-label="News">
@@ -502,17 +490,13 @@ const NewsDashboard = () => {
 
   return (
     <section className={`news-dashboard news-dashboard--${preferences.density}`} aria-label="News">
-      <header className="news-dashboard__toolbar">
-        <div>
-          <p>NEWSROOM</p>
-          <h2>News</h2>
-          <span>最后更新 {formatUpdatedTime(latestUpdated)}</span>
-        </div>
+      <div className="news-dashboard__controls">
+        <CategoryFilter selected={preferences.selectedCategory} onChange={setCategory} />
         <div className="news-dashboard__actions">
           <button
             type="button"
             onClick={handleRefreshAll}
-            disabled={refreshingAll || visibleSources.length === 0}
+            disabled={sourcesLoading || refreshingAll || visibleSources.length === 0}
           >
             <RefreshCw size={14} aria-hidden="true" className={refreshingAll ? 'is-spinning' : undefined} />
             刷新全部
@@ -522,14 +506,13 @@ const NewsDashboard = () => {
             onClick={() => setManageOpen((prev) => !prev)}
             aria-expanded={manageOpen}
             aria-label="管理来源"
+            disabled={sourcesLoading}
           >
             <Settings2 size={14} aria-hidden="true" />
             来源
           </button>
         </div>
-      </header>
-
-      <CategoryFilter selected={preferences.selectedCategory} onChange={setCategory} />
+      </div>
 
       {manageOpen ? (
         <SourceManager
@@ -541,7 +524,9 @@ const NewsDashboard = () => {
         />
       ) : null}
 
-      {visibleSources.length ? (
+      {sourcesLoading ? (
+        <BrandLoader variant="inline" className="news-dashboard__page-loader" data-testid="news-source-loader" />
+      ) : visibleSources.length ? (
         <div className="news-dashboard__grid">
           {visibleSources.map((source, index) => (
             <NewsCard
