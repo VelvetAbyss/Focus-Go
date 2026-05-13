@@ -45,7 +45,8 @@ import { useIsLoggedIn, useAuthPlan, useIsAdmin } from '../../store/auth'
 import { useUpgradeModal } from '../../features/labs/UpgradeModalContext'
 import SidebarPodcastPlayer from './SidebarPodcastPlayer'
 import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../data/repositories/syncedPreferencesRepo'
-import { NavNewBadge, markNavModuleSeen } from '../../shared/ui/NavNewBadge'
+import { DiscoveryNewBadge, markDiscoveryNewTargetSeen } from '../../shared/ui/DiscoveryNewBadge'
+import { SIDEBAR_DISCOVERY_TARGET_BY_ITEM_ID } from '../../shared/discovery/newTargets'
 
 const PodcastCard = lazy(() => import('../../features/life/cards/PodcastCard'))
 
@@ -80,9 +81,6 @@ type SidebarNavItem = {
   extraClassName?: string
 }
 
-/** Modules that show a "New" dot until first visit */
-const NEW_BADGE_MODULES = new Set(['trips', 'note', 'labs'])
-
 type SortableSidebarItemProps = {
   item: SidebarNavItem
   collapsed: boolean
@@ -90,9 +88,7 @@ type SortableSidebarItemProps = {
 
 const SortableSidebarItem = ({ item, collapsed }: SortableSidebarItemProps) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
-  // Derive module key from item id (format: "route:trips" → "trips")
-  const moduleKey = item.id.startsWith('route:') ? item.id.slice(6) : null
-  const showBadge = moduleKey !== null && NEW_BADGE_MODULES.has(moduleKey)
+  const discoveryTarget = SIDEBAR_DISCOVERY_TARGET_BY_ITEM_ID[item.id]
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -108,13 +104,13 @@ const SortableSidebarItem = ({ item, collapsed }: SortableSidebarItemProps) => {
       className={({ isActive }) =>
         `focus-sidebar__item${item.extraClassName ? ` ${item.extraClassName}` : ''}${isActive ? ' is-active' : ''}${isDragging ? ' is-dragging' : ''}`
       }
-      onClick={() => { if (moduleKey) markNavModuleSeen(moduleKey) }}
+      onClick={() => { if (discoveryTarget) markDiscoveryNewTargetSeen(discoveryTarget) }}
       {...attributes}
       {...listeners}
     >
       <item.Icon size={18} aria-hidden="true" />
       {!collapsed ? <span>{item.label}</span> : null}
-      {showBadge && <NavNewBadge module={moduleKey} />}
+      {discoveryTarget ? <DiscoveryNewBadge target={discoveryTarget} /> : null}
     </NavLink>
   )
 }
@@ -282,11 +278,15 @@ const Sidebar = ({ collapsed, onToggle, theme, onToggleTheme }: SidebarProps) =>
           <button
             type="button"
             className="focus-sidebar__upgrade"
-            onClick={() => openUpgradeModal()}
+            onClick={() => {
+              markDiscoveryNewTargetSeen('nav-premium')
+              openUpgradeModal()
+            }}
             aria-label={t('auth.upgradePlan')}
           >
             <Sparkles size={14} aria-hidden="true" />
             {!collapsed && <span>{t('auth.upgradePlan')}</span>}
+            <DiscoveryNewBadge target="nav-premium" />
           </button>
         )}
         <div className="focus-sidebar__theme-toggle">

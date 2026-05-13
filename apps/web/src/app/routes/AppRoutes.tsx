@@ -4,6 +4,7 @@ import { LEGACY_ROUTES, ROUTES } from './routes'
 import { useLabs } from '../../features/labs/LabsContext'
 import { usePremiumGate } from '../../features/premium/PremiumProvider'
 import BrandLoader from '../../shared/ui/loading/BrandLoader'
+import { markDiscoveryNewSeen } from '../../shared/discovery/resetDiscovery'
 
 const DashboardRoute = lazy(() => import('./DashboardRoute'))
 const TasksPage = lazy(() => import('../../features/tasks/pages/TasksPage'))
@@ -36,6 +37,7 @@ const GuardedHabitsRoute = () => {
 
   useEffect(() => {
     if (denied && !didNotifyRef.current) {
+      markDiscoveryNewSeen('nav-habits')
       openUpgradeModal('route', 'dashboard.extra-widgets')
       didNotifyRef.current = true
     }
@@ -59,6 +61,7 @@ const GuardedProjectsRoute = ({ detail = false }: { detail?: boolean }) => {
 
   useEffect(() => {
     if (denied && !didNotifyRef.current) {
+      markDiscoveryNewSeen('nav-projects')
       openUpgradeModal('route', 'project.workspace')
       didNotifyRef.current = true
     }

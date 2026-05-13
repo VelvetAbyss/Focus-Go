@@ -106,6 +106,7 @@ describe('NoteEditor', () => {
     expect(toolbar).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'notes.info' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'notes.appearance' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'notes.import' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'notes.export' })).toBeInTheDocument()
   })
 

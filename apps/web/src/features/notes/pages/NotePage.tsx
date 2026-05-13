@@ -9,12 +9,15 @@ import { projectsRepo } from '../../../data/repositories/projectsRepo'
 import AppearanceModal from '../components/AppearanceModal'
 import ExportModal from '../components/ExportModal'
 import InfoPopover from '../components/InfoPopover'
+import NoteImportPanel, { type NoteImportQueueItem } from '../components/NoteImportPanel'
 import NoteBrowser, { type NoteSortOption } from '../components/NoteBrowser'
 import NoteEditor from '../components/NoteEditor'
 import NoteSidebar, { type NoteSystemCollection } from '../components/NoteSidebar'
 import { countCharactersInMarkdown, countWordsInMarkdown } from '../model/noteStats'
+import { MAX_NOTE_IMPORT_FILES, MAX_NOTE_IMPORT_FILE_SIZE, describeNoteImportError, getNoteImportFormat, parseNoteImportFile } from '../model/noteImport'
 import { useI18n } from '../../../shared/i18n/useI18n'
 import { usePremiumGate } from '../../premium/PremiumProvider'
+import { createId } from '../../../shared/utils/ids'
 import '../notes.css'
 
 const DEFAULT_APPEARANCE: NoteAppearanceSettings = {
@@ -39,7 +42,9 @@ const DEFAULT_TAGS: Array<Pick<NoteTag, 'name' | 'icon' | 'pinned' | 'sortOrder'
   { name: 'Ideas', icon: 'lightbulb', pinned: false, sortOrder: 5 },
 ]
 
-type NotePanel = 'info' | 'appearance' | 'export' | null
+type NotePanel = 'info' | 'appearance' | 'import' | 'export' | null
+
+const IMPORTED_TAG_NAME = 'Imported'
 
 const buildPreview = (content: string) => {
   const compact = content.replace(/\s+/g, ' ').trim()
@@ -125,6 +130,9 @@ export default function NotePage() {
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<NoteSortOption>('edited')
   const [openPanel, setOpenPanel] = useState<NotePanel>(null)
+  const [importItems, setImportItems] = useState<NoteImportQueueItem[]>([])
+  const [isImporting, setIsImporting] = useState(false)
+  const [importNotice, setImportNotice] = useState<string | null>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [todayKey, setTodayKey] = useState(() => dateKey(Date.now()))
   const [isAppDark, setIsAppDark] = useState(() => document.documentElement.classList.contains('dark'))
@@ -659,6 +667,132 @@ export default function NotePage() {
     setAppearance(next)
   }
 
+  const formatImportLimit = (bytes: number) => `${Math.round(bytes / (1024 * 1024))}MB`
+
+  const buildImportQueueItem = (file: File): NoteImportQueueItem => {
+    const format = getNoteImportFormat(file.name)
+    if (!format) {
+      return {
+        id: createId(),
+        file,
+        status: 'unsupported',
+        message: t('notes.importModal.error.unsupported'),
+      }
+    }
+    if (file.size > MAX_NOTE_IMPORT_FILE_SIZE) {
+      return {
+        id: createId(),
+        file,
+        status: 'error',
+        message: t('notes.importModal.error.tooLarge', { size: formatImportLimit(MAX_NOTE_IMPORT_FILE_SIZE) }),
+      }
+    }
+    return {
+      id: createId(),
+      file,
+      status: 'ready',
+    }
+  }
+
+  const handleQueueImportFiles = (files: File[]) => {
+    if (files.length === 0) return
+    setOpenPanel('import')
+    setImportItems((current) => {
+      const availableSlots = Math.max(0, MAX_NOTE_IMPORT_FILES - current.length)
+      const accepted = files.slice(0, availableSlots).map(buildImportQueueItem)
+      if (files.length > availableSlots) {
+        setImportNotice(t('notes.importModal.tooMany', { count: MAX_NOTE_IMPORT_FILES }))
+      } else {
+        setImportNotice(null)
+      }
+      return [...current, ...accepted]
+    })
+  }
+
+  const ensureImportedTag = async () => {
+    const existing = tags.find((tag) => tag.name.toLowerCase() === IMPORTED_TAG_NAME.toLowerCase())
+    if (existing) return existing
+    const nextSortOrder = tags.reduce((max, tag) => Math.max(max, tag.sortOrder), 0) + 1
+    return await noteTagsRepo.create({
+      name: IMPORTED_TAG_NAME,
+      icon: undefined,
+      pinned: false,
+      parentId: null,
+      sortOrder: nextSortOrder,
+    })
+  }
+
+  const handleRunImport = async () => {
+    const readyItems = importItems.filter((item) => item.status === 'ready')
+    if (readyItems.length === 0 || isImporting) return
+    await flushPendingSave()
+    if (!canUse('notes.max-count', { noteCount: notes.length + readyItems.length }).allowed) {
+      openUpgradeModal('limit-reached', 'notes.max-count')
+      return
+    }
+
+    setIsImporting(true)
+    setImportNotice(null)
+    const createdNotes: NoteItem[] = []
+    let importedTag: NoteTag | null = null
+
+    try {
+      importedTag = await ensureImportedTag()
+      for (const item of readyItems) {
+        setImportItems((current) => current.map((entry) => (entry.id === item.id ? { ...entry, status: 'importing', message: undefined, warnings: undefined } : entry)))
+        try {
+          const payload = await parseNoteImportFile(item.file)
+          const created = await notesRepo.create({
+            title: payload.title,
+            contentMd: payload.contentMd,
+            contentJson: payload.contentJson,
+            editorMode: payload.editorMode,
+            tags: [importedTag.name],
+          })
+          createdNotes.push(created)
+          setImportItems((current) =>
+            current.map((entry) =>
+              entry.id === item.id
+                ? {
+                    ...entry,
+                    status: payload.warnings.length > 0 ? 'warning' : 'imported',
+                    title: payload.title,
+                    warnings: payload.warnings,
+                    message: payload.warnings.length > 0 ? t('notes.importModal.importedWithWarnings') : undefined,
+                  }
+                : entry,
+            ),
+          )
+        } catch (error) {
+          setImportItems((current) =>
+            current.map((entry) =>
+              entry.id === item.id
+                ? {
+                    ...entry,
+                    status: 'error',
+                    message: describeNoteImportError(error),
+                  }
+                : entry,
+            ),
+          )
+        }
+      }
+    } finally {
+      setIsImporting(false)
+    }
+
+    if (createdNotes.length > 0 && importedTag) {
+      const nextNotes = [...createdNotes, ...notes]
+      const nextTags = tags.some((tag) => tag.id === importedTag?.id) ? tags : [...tags, importedTag]
+      setNotes(nextNotes)
+      setTags(recomputeTagCounts(nextTags, nextNotes))
+      setActiveCollection('notes')
+      setActiveTagId(importedTag.id)
+      setSelectedNoteId(createdNotes[0]?.id ?? null)
+      setSearch('')
+    }
+  }
+
   const handleExportMarkdown = async () => {
     await flushPendingSave()
     if (!activeNote) return
@@ -759,6 +893,7 @@ export default function NotePage() {
                 onToggleFullscreen={() => setIsFullscreen((current) => !current)}
                 onOpenInfo={() => setOpenPanel((current) => (current === 'info' ? null : 'info'))}
                 onOpenAppearance={() => setOpenPanel((current) => (current === 'appearance' ? null : 'appearance'))}
+                onImport={() => setOpenPanel((current) => (current === 'import' ? null : 'import'))}
                 onExport={() => setOpenPanel((current) => (current === 'export' ? null : 'export'))}
                 onChange={handleUpdateNote}
               />
@@ -791,9 +926,30 @@ export default function NotePage() {
                 <button type="button" className="note-page__unselected-action" onClick={handleCreate}>
                   {t('modules.note.new')}
                 </button>
+                <button
+                  type="button"
+                  className="note-page__unselected-action note-page__unselected-action--secondary"
+                  data-note-panel-trigger="import"
+                  onClick={() => setOpenPanel((current) => (current === 'import' ? null : 'import'))}
+                >
+                  {t('notes.import')}
+                </button>
               </div>
             </div>
           )}
+          <NoteImportPanel
+            open={openPanel === 'import'}
+            items={importItems}
+            importing={isImporting}
+            notice={importNotice}
+            onClose={() => setOpenPanel(null)}
+            onFiles={handleQueueImportFiles}
+            onImport={handleRunImport}
+            onClear={() => {
+              setImportItems([])
+              setImportNotice(null)
+            }}
+          />
         </div>
       </div>
     </section>

@@ -1,16 +1,11 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest'
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../TasksBoard', () => ({
   default: () => <div data-testid="tasks-board" />,
-}))
-
-vi.mock('../../../shared/ui/NavNewBadge', () => ({
-  NavNewBadge: () => null,
-  markNavModuleSeen: vi.fn(),
 }))
 
 vi.mock('../../../shared/i18n/useI18n', async () => {
@@ -65,6 +60,15 @@ describe('TasksPage viewport adaptation', () => {
     const switcher = screen.getByRole('tablist', { name: 'Tasks page view' })
     expect(within(switcher).getByRole('tab', { name: 'Analytics' })).toHaveAttribute('aria-selected', 'true')
     expect(window.localStorage.getItem('tasks_page_view_mode')).toBe('analytics')
+  })
+
+  it('marks the analytics discovery dot as seen after opening the analytics tab', () => {
+    render(<TasksPage />)
+
+    const switcher = screen.getByRole('tablist', { name: 'Tasks page view' })
+    fireEvent.click(within(switcher).getByRole('tab', { name: /Analytics/i }))
+
+    expect(window.localStorage.getItem('focusgo.discovery.new.tasks-analytics-tab.v1')).toBe('1')
   })
 
   it('keeps panel and frame from clipping container shadows', () => {

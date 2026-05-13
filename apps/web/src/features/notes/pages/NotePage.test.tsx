@@ -92,6 +92,7 @@ vi.mock('../components/NoteEditor', () => ({
     onToggleFullscreen,
     onOpenInfo,
     onOpenAppearance,
+    onImport,
     onExport,
     onChange,
   }: {
@@ -100,6 +101,7 @@ vi.mock('../components/NoteEditor', () => ({
     onToggleFullscreen?: () => void
     onOpenInfo?: () => void
     onOpenAppearance?: () => void
+    onImport?: () => void
     onExport?: () => void
     onChange: (value: {
       title: string
@@ -121,6 +123,9 @@ vi.mock('../components/NoteEditor', () => ({
       </button>
       <button type="button" onClick={onOpenAppearance}>
         Open appearance
+      </button>
+      <button type="button" onClick={onImport}>
+        Import files
       </button>
       <button type="button" onClick={onExport}>
         Export markdown
@@ -204,6 +209,7 @@ describe('NotePage', () => {
     })
     projectsListMock.mockResolvedValue([])
     listTagsMock.mockResolvedValue([createTag({ name: 'Research', pinned: true })])
+    createTagMock.mockResolvedValue(createTag({ id: 'imported-tag', name: 'Imported', noteCount: 0, sortOrder: 2 }))
     appearanceGetMock.mockResolvedValue(appearance)
     appearanceUpsertMock.mockResolvedValue(appearance)
     vi.stubGlobal('URL', {
@@ -303,6 +309,71 @@ describe('NotePage', () => {
 
     expect(createObjectURLMock).toHaveBeenCalledTimes(1)
     expect(anchorClickMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('imports multiple supported files as new notes with an Imported tag', async () => {
+    const existing = createNote({ id: 'existing-1', title: 'Current note', contentMd: '# Current note' })
+    let importedIndex = 0
+    listMock.mockResolvedValue([existing])
+    listTrashMock.mockResolvedValue([])
+    createMock.mockImplementation(async (data?: unknown) => {
+      importedIndex += 1
+      const input = data as { title?: string; contentMd?: string; contentJson?: Record<string, unknown> | null; tags?: string[] }
+      return createNote({
+        id: `imported-${importedIndex}`,
+        title: input.title,
+        contentMd: input.contentMd,
+        contentJson: input.contentJson ?? null,
+        tags: input.tags ?? [],
+      })
+    })
+
+    renderPage()
+
+    expect(await screen.findByText('Editor:Current note')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Import files' }))
+    await userEvent.upload(screen.getByLabelText('notes.importModal.fileInput'), [
+      new File(['# Lecture One\n\nLimits'], 'lecture-one.md', { type: 'text/markdown' }),
+      new File(['Remember formulas'], 'exam-plan.txt', { type: 'text/plain' }),
+    ])
+    await userEvent.click(screen.getByRole('button', { name: 'notes.importModal.import' }))
+
+    await waitFor(() => expect(createTagMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'Imported' })))
+    await waitFor(() => expect(createMock).toHaveBeenCalledTimes(2))
+    expect(createMock).toHaveBeenNthCalledWith(1, expect.objectContaining({ title: 'Lecture One', tags: ['Imported'] }))
+    expect(createMock).toHaveBeenNthCalledWith(2, expect.objectContaining({ title: 'exam plan', tags: ['Imported'] }))
+    expect(updateMock).not.toHaveBeenCalledWith('existing-1', expect.anything())
+    expect((await screen.findAllByText('Lecture One')).length).toBeGreaterThan(0)
+  })
+
+  it('imports valid files from a mixed batch and leaves unsupported files visible', async () => {
+    listMock.mockResolvedValue([createNote({ id: 'existing-1', title: 'Current note' })])
+    listTrashMock.mockResolvedValue([])
+    createMock.mockImplementation(async (data?: unknown) => {
+      const input = data as { title?: string; contentMd?: string; tags?: string[] }
+      return createNote({ id: 'imported-1', title: input.title, contentMd: input.contentMd, tags: input.tags ?? [] })
+    })
+
+    renderPage()
+
+    expect(await screen.findByText('Editor:Current note')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Import files' }))
+    await userEvent.upload(
+      screen.getByLabelText('notes.importModal.fileInput'),
+      [
+        new File(['# Valid'], 'valid.md', { type: 'text/markdown' }),
+        new File(['%PDF-1.4'], 'scan.pdf', { type: 'application/pdf' }),
+      ],
+      { applyAccept: false },
+    )
+
+    expect(await screen.findByText('scan.pdf')).toBeInTheDocument()
+    expect(screen.getByText(/notes\.importModal\.status\.unsupported/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'notes.importModal.import' }))
+
+    await waitFor(() => expect(createMock).toHaveBeenCalledTimes(1))
+    expect(createMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'Valid' }))
+    expect(screen.getByText(/notes\.importModal\.status\.unsupported/)).toBeInTheDocument()
   })
 
   it('opens appearance controls and persists settings', async () => {
