@@ -4,6 +4,7 @@ import { LayoutGrid, Settings as SettingsIcon } from 'lucide-react'
 import { ROUTES } from '../../app/routes/routes'
 import { useI18n } from '../../shared/i18n/useI18n'
 import { useIsBreakpoint } from '../../hooks/use-is-breakpoint'
+import { DiscoveryNewBadge, markDiscoveryNewTargetSeen } from '../../shared/ui/DiscoveryNewBadge'
 import LiveClock from './LiveClock'
 import { getDashboardQuote, getLocalDashboardQuote } from './quote/quoteService'
 import PremiumMark from '../premium/PremiumMark'
@@ -102,6 +103,11 @@ const DashboardHeader = ({
   const fallbackQuote = useMemo(() => getLocalDashboardQuote(language), [language])
   const [quote, setQuote] = useState(() => fallbackQuote)
   const displayedQuote = quote.language === language ? quote : fallbackQuote
+  const handleSetPage = (nextPage: DashboardPage) => {
+    onSetPage?.(nextPage)
+    if (nextPage === 'life') markDiscoveryNewTargetSeen('dashboard-life-tab')
+    if (nextPage === 'news') markDiscoveryNewTargetSeen('dashboard-news-tab')
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -188,7 +194,7 @@ const DashboardHeader = ({
                 role="tab"
                 aria-selected={page === 'main'}
                 className={`header-pill__btn${page === 'main' ? ' is-active' : ''}`}
-                onClick={() => onSetPage('main')}
+                onClick={() => handleSetPage('main')}
               >
                 Focus
               </button>
@@ -196,17 +202,19 @@ const DashboardHeader = ({
                 role="tab"
                 aria-selected={page === 'life'}
                 className={`header-pill__btn${page === 'life' ? ' is-active' : ''}`}
-                onClick={() => onSetPage('life')}
+                onClick={() => handleSetPage('life')}
               >
                 Life
+                <DiscoveryNewBadge target="dashboard-life-tab" />
               </button>
               <button
                 role="tab"
                 aria-selected={page === 'news'}
                 className={`header-pill__btn${page === 'news' ? ' is-active' : ''}`}
-                onClick={() => onSetPage('news')}
+                onClick={() => handleSetPage('news')}
               >
                 News
+                <DiscoveryNewBadge target="dashboard-news-tab" />
               </button>
               <div className="header-pill__divider" aria-hidden="true" />
             </>

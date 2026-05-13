@@ -56,6 +56,20 @@ export const markdownToRichDoc = (contentMd: string): JSONContent => {
   }
 }
 
+export const htmlToMarkdown = (html: string) => turndown.turndown(html).trimEnd()
+
+export const htmlToRichDoc = (html: string): JSONContent => {
+  const source = html.trim()
+  if (!source) return emptyRichDoc()
+
+  try {
+    const json = generateJSON(source, extensions)
+    return json.type === 'doc' ? json : emptyRichDoc()
+  } catch {
+    return emptyRichDoc()
+  }
+}
+
 export const richDocToMarkdown = (contentJson: JSONContent | null | undefined) => {
   if (!contentJson) return ''
   try {

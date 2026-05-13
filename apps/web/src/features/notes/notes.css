@@ -669,6 +669,15 @@
   transition: transform 180ms var(--note-ease-out-quart), box-shadow 180ms var(--note-ease-out-quart), background-color 180ms var(--note-ease-out-quart);
 }
 
+.note-page__unselected-action + .note-page__unselected-action {
+  margin-left: 8px;
+}
+
+.note-page__unselected-action--secondary {
+  background: transparent;
+  color: #3a3733;
+}
+
 .note-page__unselected-action:hover {
   transform: translateY(-1px);
   box-shadow: 0 14px 28px rgba(58, 55, 51, 0.16);
@@ -1179,6 +1188,164 @@
   gap: 8px;
 }
 
+.note-import-panel {
+  color: var(--note-foreground, #3a3733);
+}
+
+.note-import-panel__subtitle {
+  margin: 4px 0 0;
+  color: var(--note-muted, #8d867f);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.note-import-panel__dropzone {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 112px;
+  border: 1px dashed rgba(58, 55, 51, 0.26);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.38);
+  color: #3a3733;
+  cursor: pointer;
+  text-align: center;
+  padding: 18px;
+  transition: border-color 160ms var(--note-ease-out-quart), background-color 160ms var(--note-ease-out-quart), transform 160ms var(--note-ease-out-quart);
+}
+
+.note-import-panel__dropzone:hover {
+  border-color: rgba(58, 55, 51, 0.46);
+  background: rgba(255, 255, 255, 0.58);
+  transform: translateY(-1px);
+}
+
+.note-import-panel__dropzone input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.note-import-panel__dropzone span {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.note-import-panel__dropzone small,
+.note-import-panel__item-meta,
+.note-import-panel__item-message,
+.note-import-panel__notice {
+  color: var(--note-muted, #8d867f);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.note-import-panel__notice {
+  border-radius: 10px;
+  border: 1px solid rgba(138, 75, 29, 0.2);
+  background: rgba(138, 75, 29, 0.07);
+  color: #8a4b1d;
+  padding: 8px 10px;
+}
+
+.note-import-panel__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 270px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.note-import-panel__item {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(58, 55, 51, 0.08);
+  background: rgba(255, 255, 255, 0.36);
+  padding: 10px;
+}
+
+.note-import-panel__item[data-status='imported'],
+.note-import-panel__item[data-status='warning'] {
+  border-color: rgba(44, 107, 79, 0.2);
+}
+
+.note-import-panel__item[data-status='error'],
+.note-import-panel__item[data-status='unsupported'] {
+  border-color: rgba(138, 75, 29, 0.22);
+}
+
+.note-import-panel__item-icon {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: #3a3733;
+}
+
+.note-import-panel__item[data-status='imported'] .note-import-panel__item-icon,
+.note-import-panel__item[data-status='warning'] .note-import-panel__item-icon {
+  color: #2c6b4f;
+}
+
+.note-import-panel__item[data-status='error'] .note-import-panel__item-icon,
+.note-import-panel__item[data-status='unsupported'] .note-import-panel__item-icon {
+  color: #8a4b1d;
+}
+
+.note-import-panel__item-title {
+  overflow: hidden;
+  color: #3a3733;
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.note-import-panel__item-body {
+  min-width: 0;
+}
+
+.note-import-panel__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.note-import-panel__primary,
+.note-import-panel__secondary {
+  min-height: 34px;
+  border-radius: 10px;
+  border: 1px solid rgba(58, 55, 51, 0.14);
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.note-import-panel__primary {
+  background: #3a3733;
+  color: #f5f3f0;
+}
+
+.note-import-panel__secondary {
+  background: transparent;
+  color: #3a3733;
+}
+
+.note-import-panel__primary:disabled,
+.note-import-panel__secondary:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.note-import-panel__spin {
+  animation: note-import-spin 850ms linear infinite;
+}
+
 .note-page__browser-filter-mode {
   color: var(--note-muted, #8d867f);
 }
@@ -1221,6 +1388,12 @@
   to {
     opacity: 1;
     transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes note-import-spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 

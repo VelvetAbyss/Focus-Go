@@ -24,6 +24,8 @@ import LifeDashboard from '../life/LifeDashboard'
 import NewsDashboard from '../news/NewsDashboard'
 import { readLayoutLocked, writeLayoutLocked } from '../../shared/prefs/dashboardLayoutLock'
 import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../data/repositories/syncedPreferencesRepo'
+import { DiscoveryNewBadge, markDiscoveryNewTargetSeen } from '../../shared/ui/DiscoveryNewBadge'
+import { DASHBOARD_CARD_DISCOVERY_TARGET_BY_ID } from '../../shared/discovery/newTargets'
 
 const DashboardPage = () => {
   const { t } = useI18n()
@@ -388,11 +390,16 @@ const DashboardPage = () => {
             width={Math.max(width, 320)}
           >
             {visibleCards.map((card) => (
-              <div
-                key={card.id}
-                className={`dashboard__item${layoutEdit ? ' is-layout-edit' : ''}${gridEdit.activeId === card.id ? ' is-dragging' : ''}`}
-              >
-                {card.render()}
+              (() => {
+                const discoveryTarget = DASHBOARD_CARD_DISCOVERY_TARGET_BY_ID[card.id]
+                return (
+                  <div
+                    key={card.id}
+                    className={`dashboard__item${layoutEdit ? ' is-layout-edit' : ''}${gridEdit.activeId === card.id ? ' is-dragging' : ''}`}
+                    onPointerDownCapture={() => { if (discoveryTarget) markDiscoveryNewTargetSeen(discoveryTarget) }}
+                  >
+                    {card.render()}
+                    {discoveryTarget ? <DiscoveryNewBadge target={discoveryTarget} className="discovery-new-badge--card" /> : null}
                 {layoutEdit && (
                   <>
                     <div
@@ -408,7 +415,9 @@ const DashboardPage = () => {
                     />
                   </>
                 )}
-              </div>
+                  </div>
+                )
+              })()
             ))}
           </GridLayout>
         )}

@@ -11,6 +11,8 @@ import { useDashboardGridEdit } from '../dashboard/useDashboardGridEdit'
 import { lifeDashboardRepo } from '../../data/repositories/lifeDashboardRepo'
 import AuthInteractionGate from '../auth/AuthInteractionGate'
 import { useLifeI18n } from './lifeI18n'
+import { DiscoveryNewBadge, markDiscoveryNewTargetSeen } from '../../shared/ui/DiscoveryNewBadge'
+import { LIFE_CARD_DISCOVERY_TARGET_BY_ID } from '../../shared/discovery/newTargets'
 import './life.css'
 
 type LifeDashboardProps = {
@@ -233,9 +235,16 @@ const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => 
           positionStrategy={absoluteStrategy}
           width={Math.max(width, 320)}
         >
-          {renderedCards.map((card) => (
-            <div key={card.id} className={`dashboard__item${layoutEdit ? ' is-layout-edit' : ''}${gridEdit.activeId === card.id ? ' is-dragging' : ''}`}>
+          {renderedCards.map((card) => {
+            const discoveryTarget = LIFE_CARD_DISCOVERY_TARGET_BY_ID[card.id]
+            return (
+            <div
+              key={card.id}
+              className={`dashboard__item${layoutEdit ? ' is-layout-edit' : ''}${gridEdit.activeId === card.id ? ' is-dragging' : ''}`}
+              onPointerDownCapture={() => { if (discoveryTarget) markDiscoveryNewTargetSeen(discoveryTarget) }}
+            >
               <DeferredLifeCard id={card.id} eager={layoutEdit}>{card.node}</DeferredLifeCard>
+              {discoveryTarget ? <DiscoveryNewBadge target={discoveryTarget} className="discovery-new-badge--card" /> : null}
               {layoutEdit ? (
                 <>
                   <div className="dashboard__edit-overlay" {...gridEdit.dragProps(card.id)} aria-label={t('life.dashboard.editLayout')}>
@@ -245,7 +254,8 @@ const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => 
                 </>
               ) : null}
             </div>
-          ))}
+            )
+          })}
         </GridLayout>
       </AuthInteractionGate>
     </div>

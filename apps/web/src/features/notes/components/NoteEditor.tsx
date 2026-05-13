@@ -13,7 +13,7 @@ import { TextAlign } from '@tiptap/extension-text-align'
 import { Typography } from '@tiptap/extension-typography'
 import { StarterKit } from '@tiptap/starter-kit'
 import { EditorContent, EditorContext, useEditor } from '@tiptap/react'
-import { Download, Expand, Info, Minimize2, Palette } from 'lucide-react'
+import { Download, Expand, FileUp, Info, Minimize2, Palette } from 'lucide-react'
 import type { CSSProperties, ReactNode, RefObject } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { HorizontalRule } from '@/components/tiptap-node/horizontal-rule-node/horizontal-rule-node-extension'
@@ -41,6 +41,7 @@ import { MAX_FILE_SIZE } from '@/lib/tiptap-utils'
 import type { NoteFontFamily } from '../../../data/models/types'
 import { ensureRichDoc, richDocToMarkdown } from '../model/richTextCodec'
 import { ResizableImage } from '../model/resizableImage'
+import { DiscoveryNewBadge, markDiscoveryNewTargetSeen, type DiscoveryNewTargetId } from '../../../shared/ui/DiscoveryNewBadge'
 
 type NoteEditorValue = {
   title: string
@@ -64,6 +65,7 @@ type NoteEditorProps = {
   }
   onOpenInfo?: () => void
   onOpenAppearance?: () => void
+  onImport?: () => void
   onExport?: () => void
   onToggleFullscreen?: () => void
   onChange: (next: NoteEditorValue) => void
@@ -96,10 +98,26 @@ const fontFamilyMap = {
   mono: '"SF Mono", "JetBrains Mono", "Fira Code", Consolas, monospace',
 } as const
 
-const ActionButton = ({ icon, label, onClick, panelId }: { icon: ReactNode; label: string; onClick?: () => void; panelId: 'info' | 'appearance' | 'export' }) => (
-  <button type="button" className="note-editor__action-button" onClick={onClick} data-note-panel-trigger={panelId}>
+const PANEL_DISCOVERY_TARGETS = {
+  info: 'notes-info-panel',
+  appearance: 'notes-appearance-panel',
+  import: 'notes-import-panel',
+  export: 'notes-export-panel',
+} as const satisfies Record<'info' | 'appearance' | 'import' | 'export', DiscoveryNewTargetId>
+
+const ActionButton = ({ icon, label, onClick, panelId }: { icon: ReactNode; label: string; onClick?: () => void; panelId: 'info' | 'appearance' | 'import' | 'export' }) => (
+  <button
+    type="button"
+    className="note-editor__action-button"
+    onClick={() => {
+      markDiscoveryNewTargetSeen(PANEL_DISCOVERY_TARGETS[panelId])
+      onClick?.()
+    }}
+    data-note-panel-trigger={panelId}
+  >
     {icon}
     <span>{label}</span>
+    <DiscoveryNewBadge target={PANEL_DISCOVERY_TARGETS[panelId]} />
   </button>
 )
 
@@ -204,6 +222,7 @@ const NoteEditor = ({
   appearance,
   onOpenInfo,
   onOpenAppearance,
+  onImport,
   onExport,
   onToggleFullscreen,
   onChange,
@@ -523,6 +542,7 @@ const NoteEditor = ({
           </button>
           <ActionButton icon={<Info size={14} />} label={t('notes.info')} panelId="info" onClick={onOpenInfo} />
           <ActionButton icon={<Palette size={14} />} label={t('notes.appearance')} panelId="appearance" onClick={onOpenAppearance} />
+          <ActionButton icon={<FileUp size={14} />} label={t('notes.import')} panelId="import" onClick={onImport} />
           <ActionButton icon={<Download size={14} />} label={t('notes.export')} panelId="export" onClick={onExport} />
         </div>
       </div>

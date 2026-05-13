@@ -6,7 +6,7 @@ import TasksBoard from '../TasksBoard'
 import { useI18n } from '../../../shared/i18n/useI18n'
 import type { TranslationKey } from '../../../shared/i18n/types'
 import { useTasksViewportProfile } from './tasksViewport'
-import { NavNewBadge, markNavModuleSeen } from '../../../shared/ui/NavNewBadge'
+import { DiscoveryNewBadge, markDiscoveryNewTargetSeen } from '../../../shared/ui/DiscoveryNewBadge'
 
 type TasksPageViewMode = 'board' | 'today' | 'analytics'
 
@@ -35,7 +35,7 @@ const TasksPage = () => {
   const switchView = (nextView: TasksPageViewMode) => {
     setViewMode(nextView)
     if (typeof window !== 'undefined') window.localStorage.setItem(STORAGE_VIEW_KEY, nextView)
-    if (nextView === 'analytics') markNavModuleSeen('tasks-analytics')
+    if (nextView === 'analytics') markDiscoveryNewTargetSeen('tasks-analytics-tab')
   }
 
   return (
@@ -69,7 +69,7 @@ const TasksPage = () => {
                 )} />
                 {t(labelKey)}
                 {key === 'analytics' && (
-                  <NavNewBadge module="tasks-analytics" />
+                  <DiscoveryNewBadge target="tasks-analytics-tab" />
                 )}
               </button>
             ))}
