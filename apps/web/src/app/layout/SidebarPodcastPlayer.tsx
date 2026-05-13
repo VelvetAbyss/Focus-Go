@@ -15,6 +15,7 @@ import {
   subscribePlaybackProgress,
 } from '../../features/life/podcastPlayback'
 import { usePreferences } from '../../shared/prefs/usePreferences'
+import { subscribeAuth } from '../../store/auth'
 
 type Props = { collapsed: boolean }
 
@@ -38,7 +39,12 @@ const SidebarPodcastPlayer = ({ collapsed }: Props) => {
 
   useEffect(() => {
     void sync()
-    return subscribePodcastPlayback(() => void sync())
+    const unsubscribePlayback = subscribePodcastPlayback(() => void sync())
+    const unsubscribeAuth = subscribeAuth(() => void sync())
+    return () => {
+      unsubscribePlayback()
+      unsubscribeAuth()
+    }
   }, [sync])
 
   useEffect(() => {
