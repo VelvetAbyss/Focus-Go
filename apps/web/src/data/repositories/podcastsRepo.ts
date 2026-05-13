@@ -1,12 +1,26 @@
 import type { LifePodcastCreateInput, LifePodcastUpdateInput } from '@focus-go/core'
 import { dbService } from '../services/dbService'
+import { getAuth, subscribeAuth } from '../../store/auth'
+import { isLocalhostRuntime } from '../../shared/env/localhost'
 
 let cache: Awaited<ReturnType<typeof dbService.lifePodcasts.list>> | null = null
 
 const copy = <T,>(rows: T[]) => [...rows]
 
+const isAuthed = () => isLocalhostRuntime() || Boolean(getAuth()?.user)
+
+if (typeof window !== 'undefined') {
+  subscribeAuth(() => {
+    cache = null
+  })
+}
+
 export const podcastsRepo = {
   async list() {
+    if (!isAuthed()) {
+      cache = null
+      return []
+    }
     if (cache) return copy(cache)
     cache = await dbService.lifePodcasts.list()
     return copy(cache)

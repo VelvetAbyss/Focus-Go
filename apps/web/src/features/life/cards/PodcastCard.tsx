@@ -25,6 +25,7 @@ import {
   subscribeOpenPodcastPlayer,
 } from '../podcastPlayback'
 import { usePreferences } from '../../../shared/prefs/usePreferences'
+import { subscribeAuth } from '../../../store/auth'
 import { useLifeI18n, type LifeTranslate } from '../lifeI18n'
 
 const NETEASE_LIMIT = 3
@@ -91,6 +92,12 @@ const PodcastCard = ({ standalone }: { standalone?: boolean } = {}) => {
       setLoading(false)
     }
     void load()
+    return subscribeAuth(() => {
+      void podcastsRepo.list().then((rows) => {
+        setItems(rows)
+        setSelectedId((current) => (current && rows.some((row) => row.id === current) ? current : rows[0]?.id ?? null))
+      })
+    })
   }, [])
 
   useEffect(

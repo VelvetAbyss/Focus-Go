@@ -29,7 +29,6 @@ import { useI18n } from '../../shared/i18n/useI18n'
 import { useAuthGate } from '../auth/AuthGateContext'
 import { DiscoveryEmptyState } from '../../shared/ui/EmptyState'
 import { DiscoveryHint } from '../../shared/ui/DiscoveryHint'
-import { ROUTES } from '../../app/routes/routes'
 import { resolveProjectColor } from '../../shared/design/tokens'
 
 const tabs: { key: TaskStatus }[] = [{ key: 'todo' }, { key: 'doing' }, { key: 'done' }]
@@ -139,12 +138,6 @@ const parseQuickAdd = (rawTitle: string, projects: ProjectItem[], fallbackProjec
     isToday,
     projectId,
   }
-}
-
-const getNextStatus = (status: TaskStatus) => {
-  if (status === 'todo') return { next: 'doing' as const }
-  if (status === 'doing') return { next: 'done' as const }
-  return { next: 'todo' as const }
 }
 
 type TasksBoardProps = {
@@ -446,12 +439,6 @@ const TasksBoard = ({
     return true
   }, [activeStatus, effectiveGroupBy, projectFilterIds, projects, scope, topView])
 
-  const handleStartFocus = useCallback((task: TaskItem) => {
-    window.localStorage.setItem('focusgo.pendingTaskId', task.id)
-    window.history.pushState({}, '', ROUTES.FOCUS)
-    window.dispatchEvent(new PopStateEvent('popstate'))
-  }, [])
-
   const toggleProjectFilter = useCallback((projectId: string) => {
     setProjectFilterIds((prev) => {
       if (prev.has(projectId)) return new Set()
@@ -591,7 +578,6 @@ const TasksBoard = ({
         project={cardProject}
         dependencyTasks={dependencyTasks}
         onProjectClick={scope.kind === 'all' ? toggleProjectFilter : undefined}
-        onStartFocus={handleStartFocus}
         onSelect={setActiveTask}
         onClick={(nextTask) => {
           if (bulkMode) toggleTaskSelection(nextTask.id)
@@ -611,8 +597,11 @@ const TasksBoard = ({
                 { key: 'done', label: t('tasks.status.complete'), onClick: async (nextTask) => handleStatusChange(nextTask.id, 'done') },
               ]
             : task.status === 'doing'
-              ? [{ key: 'done', label: t('tasks.status.complete'), onClick: async (nextTask) => handleStatusChange(nextTask.id, getNextStatus(nextTask.status).next) }]
-              : [{ key: 'todo', label: t('tasks.status.reopen'), onClick: async (nextTask) => handleStatusChange(nextTask.id, getNextStatus(nextTask.status).next) }]
+              ? [
+                  { key: 'todo', label: t('tasks.status.todo'), onClick: async (nextTask) => handleStatusChange(nextTask.id, 'todo') },
+                  { key: 'done', label: t('tasks.status.complete'), onClick: async (nextTask) => handleStatusChange(nextTask.id, 'done') },
+                ]
+              : [{ key: 'todo', label: t('tasks.status.reopen'), onClick: async (nextTask) => handleStatusChange(nextTask.id, 'todo') }]
         }
         loadingActionKey={statusActionLoadingTaskId === task.id ? statusActionLoadingKey : null}
         successActionKey={statusActionSuccessTaskId === task.id ? statusActionSuccessKey : null}

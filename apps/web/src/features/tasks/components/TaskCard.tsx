@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useState } from 'react'
-import { Calendar, CircleCheck, Circle, GitBranch, ListChecks, LockKeyhole, Pin, PinOff, Play, RotateCcw, SunMedium, Trash2 } from 'lucide-react'
+import { Calendar, CircleCheck, Circle, GitBranch, ListChecks, LockKeyhole, Pin, PinOff, Play, RotateCcw, SunMedium, Trash2, Undo2 } from 'lucide-react'
 import type { CSSProperties, HTMLAttributes } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -21,7 +21,6 @@ type TaskCardProps = {
   onTogglePin?: (task: TaskItem) => void
   onToggleToday?: (task: TaskItem) => void
   onProjectClick?: (projectId: string) => void
-  onStartFocus?: (task: TaskItem) => void
   dependencyTasks?: TaskItem[]
   statusActions?: {
     key: string
@@ -57,7 +56,6 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
       onTogglePin,
       onToggleToday,
       onProjectClick,
-      onStartFocus,
       dependencyTasks = [],
       statusActions,
       dragAttributes,
@@ -303,6 +301,7 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
                     const icon =
                       action.key === 'doing' || action.key === 'start' ? Play :
                       action.key === 'done' ? CircleCheck :
+                      action.key === 'todo' && task.status === 'doing' ? Undo2 :
                       RotateCcw
                     const Icon = icon
                     return (
@@ -310,6 +309,8 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
                         key={action.key}
                         variant="ghost"
                         size="icon"
+                        aria-label={action.label}
+                        title={action.label}
                         className="task-card__action-btn size-7 text-muted-foreground hover:text-foreground"
                         disabled={Boolean(action.disabled || loadingActionKey)}
                         onClick={() => void action.onClick(task)}
@@ -319,23 +320,12 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
                     )
                   })}
 
-                  {onStartFocus ? (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={`Start focus on ${task.title}`}
-                      className="task-card__action-btn size-7 text-muted-foreground hover:text-foreground"
-                      onClick={() => onStartFocus(task)}
-                    >
-                      <Play className="size-3.5" />
-                    </Button>
-                  ) : null}
-
                   {onToggleToday ? (
                     <Button
                       variant="ghost"
                       size="icon"
                       aria-label={task.isToday ? t('tasks.today.remove') : t('tasks.today.add')}
+                      title={task.isToday ? t('tasks.today.remove') : t('tasks.today.add')}
                       className={cn(
                         'task-card__action-btn size-7 hover:text-foreground',
                         task.isToday ? 'text-amber-600' : 'text-muted-foreground',
@@ -349,12 +339,26 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
                   <div className="flex-1" />
 
                   {onTogglePin ? (
-                    <Button variant="ghost" size="icon" className="task-card__action-btn size-7 text-muted-foreground" onClick={() => onTogglePin(task)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={task.pinned ? t('tasks.card.unpin') : t('tasks.card.pin')}
+                      title={task.pinned ? t('tasks.card.unpin') : t('tasks.card.pin')}
+                      className="task-card__action-btn size-7 text-muted-foreground"
+                      onClick={() => onTogglePin(task)}
+                    >
                       {task.pinned ? <PinOff className="size-3.5" /> : <Pin className="size-3.5" />}
                     </Button>
                   ) : null}
                   {onDelete ? (
-                    <Button variant="ghost" size="icon" className="task-card__action-btn size-7 text-muted-foreground hover:text-destructive" onClick={() => onDelete(task)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={t('tasks.card.delete')}
+                      title={t('tasks.card.delete')}
+                      className="task-card__action-btn size-7 text-muted-foreground hover:text-destructive"
+                      onClick={() => onDelete(task)}
+                    >
                       <Trash2 className="size-3.5" />
                     </Button>
                   ) : null}
