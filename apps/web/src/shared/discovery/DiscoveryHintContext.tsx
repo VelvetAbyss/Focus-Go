@@ -1,7 +1,8 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useReducer } from 'react'
+import { useCallback, useEffect, useMemo, useReducer } from 'react'
 import { HINTS, type HintId, type HintRegion } from './hints'
 import { dismissHint, isHintDismissed, resetDiscovery } from './resetDiscovery'
 import { recordHintEvent } from './telemetry'
+import { DiscoveryHintContext } from './discoveryHintContextValue'
 
 // ─── State ───────────────────────────────────────────────────────────────────
 
@@ -22,20 +23,6 @@ function reducer(state: State, action: Action): State {
       return { sessionDismissed: new Set() }
   }
 }
-
-// ─── Context ─────────────────────────────────────────────────────────────────
-
-export interface DiscoveryHintContextValue {
-  /**
-   * Returns the hint ID that should be visible in a given region, or null.
-   * Applies priority ordering and filters dismissed hints.
-   */
-  activeHintForRegion: (region: HintRegion) => HintId | null
-  dismiss: (id: HintId) => void
-  reset: () => void
-}
-
-const DiscoveryHintContext = createContext<DiscoveryHintContextValue | null>(null)
 
 // ─── Provider ────────────────────────────────────────────────────────────────
 
@@ -94,24 +81,4 @@ export function DiscoveryHintProvider({ children }: { children: React.ReactNode 
   )
 
   return <DiscoveryHintContext.Provider value={value}>{children}</DiscoveryHintContext.Provider>
-}
-
-// ─── Hook ─────────────────────────────────────────────────────────────────────
-
-export function useDiscoveryHint(region: HintRegion): {
-  activeHintId: HintId | null
-  dismiss: (id: HintId) => void
-} {
-  const ctx = useContext(DiscoveryHintContext)
-  if (!ctx) throw new Error('useDiscoveryHint must be used within DiscoveryHintProvider')
-  return {
-    activeHintId: ctx.activeHintForRegion(region),
-    dismiss: ctx.dismiss,
-  }
-}
-
-export function useDiscoveryReset(): () => void {
-  const ctx = useContext(DiscoveryHintContext)
-  if (!ctx) throw new Error('useDiscoveryReset must be used within DiscoveryHintProvider')
-  return ctx.reset
 }

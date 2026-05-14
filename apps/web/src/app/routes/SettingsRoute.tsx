@@ -67,7 +67,7 @@ import { restampLocalSnapshotForRestore } from '../../data/sync/repository'
 import { resetRxdbSyncDatabase } from '../../data/sync/rxdb'
 import { ROUTES } from './routes'
 import { useUpgradeModal } from '../../features/labs/UpgradeModalContext'
-import { useDiscoveryReset } from '../../shared/discovery/DiscoveryHintContext'
+import { useDiscoveryReset } from '../../shared/discovery/useDiscoveryHint'
 import { useAuthGate } from '../../features/auth/AuthGateContext'
 import PremiumMark from '../../features/premium/PremiumMark'
 import {

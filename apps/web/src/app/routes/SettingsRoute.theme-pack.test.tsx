@@ -72,7 +72,7 @@ vi.mock('../../shared/ui/toast/toast', () => ({
   useToast: () => ({ push: vi.fn() }),
 }))
 
-vi.mock('../../shared/discovery/DiscoveryHintContext', () => ({
+vi.mock('../../shared/discovery/useDiscoveryHint', () => ({
   useDiscoveryReset: () => vi.fn(),
 }))
 

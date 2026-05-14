@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 import type { DiscoveryNewTargetId } from '../discovery/newTargets'
-import { DISCOVERY_NEW_UPDATED_EVENT, isDiscoveryNewSeen, markDiscoveryNewSeen } from '../discovery/resetDiscovery'
+import { DISCOVERY_NEW_UPDATED_EVENT, isDiscoveryNewSeen } from '../discovery/resetDiscovery'
 import './NavNewBadge.css'
 
 type DiscoveryNewBadgeProps = {
@@ -25,9 +25,3 @@ export function DiscoveryNewBadge({ target, className }: DiscoveryNewBadgeProps)
   if (seen) return null
   return <span className={cn('discovery-new-badge', className)} aria-hidden="true" />
 }
-
-export function markDiscoveryNewTargetSeen(target: DiscoveryNewTargetId) {
-  markDiscoveryNewSeen(target)
-}
-
-export type { DiscoveryNewTargetId }

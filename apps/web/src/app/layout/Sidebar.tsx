@@ -45,7 +45,8 @@ import { useIsLoggedIn, useAuthPlan, useIsAdmin } from '../../store/auth'
 import { useUpgradeModal } from '../../features/labs/UpgradeModalContext'
 import SidebarPodcastPlayer from './SidebarPodcastPlayer'
 import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../data/repositories/syncedPreferencesRepo'
-import { DiscoveryNewBadge, markDiscoveryNewTargetSeen } from '../../shared/ui/DiscoveryNewBadge'
+import { DiscoveryNewBadge } from '../../shared/ui/DiscoveryNewBadge'
+import { markDiscoveryNewTargetSeen } from '../../shared/discovery/discoveryNewTargetActions'
 import { SIDEBAR_DISCOVERY_TARGET_BY_ITEM_ID } from '../../shared/discovery/newTargets'
 
 const PodcastCard = lazy(() => import('../../features/life/cards/PodcastCard'))

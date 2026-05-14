@@ -41,7 +41,8 @@ import { MAX_FILE_SIZE } from '@/lib/tiptap-utils'
 import type { NoteFontFamily } from '../../../data/models/types'
 import { ensureRichDoc, richDocToMarkdown } from '../model/richTextCodec'
 import { ResizableImage } from '../model/resizableImage'
-import { DiscoveryNewBadge, markDiscoveryNewTargetSeen, type DiscoveryNewTargetId } from '../../../shared/ui/DiscoveryNewBadge'
+import { DiscoveryNewBadge } from '../../../shared/ui/DiscoveryNewBadge'
+import { markDiscoveryNewTargetSeen, type DiscoveryNewTargetId } from '../../../shared/discovery/discoveryNewTargetActions'
 
 type NoteEditorValue = {
   title: string
