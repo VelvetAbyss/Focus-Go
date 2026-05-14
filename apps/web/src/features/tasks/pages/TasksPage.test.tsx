@@ -42,24 +42,24 @@ describe('TasksPage viewport adaptation', () => {
     expect(page).toHaveStyle('--tasks-page-viewport-height: 864px')
   })
 
-  it('renders analytics instead of list in the top-level switch', () => {
+  it('renders list and analytics in the top-level switch', () => {
     render(<TasksPage />)
 
     const switcher = screen.getByRole('tablist', { name: 'Tasks page view' })
     expect(within(switcher).getByRole('tab', { name: 'Board' })).toBeInTheDocument()
     expect(within(switcher).getByRole('tab', { name: 'Today' })).toBeInTheDocument()
+    expect(within(switcher).getByRole('tab', { name: 'List' })).toBeInTheDocument()
     expect(within(switcher).getByRole('tab', { name: 'Analytics' })).toBeInTheDocument()
-    expect(within(switcher).queryByRole('tab', { name: 'List' })).not.toBeInTheDocument()
   })
 
-  it('migrates a stored list mode preference to analytics', () => {
+  it('preserves a stored list mode preference', () => {
     window.localStorage.setItem('tasks_page_view_mode', 'list')
 
     render(<TasksPage />)
 
     const switcher = screen.getByRole('tablist', { name: 'Tasks page view' })
-    expect(within(switcher).getByRole('tab', { name: 'Analytics' })).toHaveAttribute('aria-selected', 'true')
-    expect(window.localStorage.getItem('tasks_page_view_mode')).toBe('analytics')
+    expect(within(switcher).getByRole('tab', { name: 'List' })).toHaveAttribute('aria-selected', 'true')
+    expect(window.localStorage.getItem('tasks_page_view_mode')).toBe('list')
   })
 
   it('marks the analytics discovery dot as seen after opening the analytics tab', () => {
