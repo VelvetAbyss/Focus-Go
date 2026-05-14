@@ -685,6 +685,29 @@ html[data-theme='dark'] {
   gap: 18px;
 }
 
+.project-dialog__section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(58, 55, 51, 0.08);
+}
+
+.project-dialog__section:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+
+.project-dialog__section-title {
+  margin: 0;
+  color: rgba(58, 55, 51, 0.5);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .project-dialog__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2307,3 +2330,432 @@ html[data-theme='dark'] .project-dialog {
     flex-wrap: wrap;
   }
 }
+
+/* ── Focus&go timeline (editorial day-planner) ─────────────── */
+.fg-timeline {
+  --fg-accent: #B07830;
+  --fg-paper: #F5F3F0;
+  --fg-ink: #3A3733;
+  --fg-rule: rgba(58, 55, 51, 0.08);
+  --fg-rule-bold: rgba(58, 55, 51, 0.18);
+  --fg-today: #B83333;
+  position: relative;
+  margin-top: 8px;
+  padding: 0;
+  border-radius: 18px;
+  background:
+    radial-gradient(1200px 320px at -10% -40%, rgba(58, 55, 51, 0.05), transparent 60%),
+    linear-gradient(180deg, #FBF8F4 0%, var(--fg-paper) 100%);
+  border: 1px solid rgba(58, 55, 51, 0.08);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 12px 32px -28px rgba(58, 55, 51, 0.4);
+  overflow: hidden;
+  font-family: 'DM Sans', system-ui, sans-serif;
+}
+
+.fg-timeline--empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 56px 32px 64px;
+  text-align: center;
+}
+
+.fg-timeline__empty-eyebrow {
+  margin: 0;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(58, 55, 51, 0.45);
+}
+
+.fg-timeline__empty-title {
+  margin: 4px 0 2px;
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-size: 26px;
+  letter-spacing: -0.01em;
+  color: var(--fg-ink);
+}
+
+.fg-timeline__empty-hint {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(58, 55, 51, 0.6);
+}
+
+.fg-timeline__inner {
+  position: relative;
+}
+
+.fg-timeline__sticky-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 22px 12px;
+  border-bottom: 1px solid rgba(58, 55, 51, 0.06);
+}
+
+.fg-timeline__sticky-head__title {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.fg-timeline__eyebrow {
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-size: 15px;
+  letter-spacing: -0.005em;
+  color: var(--fg-ink);
+}
+
+.fg-timeline__legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(58, 55, 51, 0.55);
+}
+
+.fg-timeline__legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 4px;
+  margin-left: 8px;
+  border-radius: 999px;
+  border: 1.4px solid var(--fg-accent);
+  background: transparent;
+  vertical-align: -1px;
+}
+
+.fg-timeline__legend-dot:first-child {
+  margin-left: 0;
+}
+
+.fg-timeline__legend-dot--done {
+  background: rgba(61, 122, 78, 0.18);
+  border-color: rgba(61, 122, 78, 0.45);
+}
+
+.fg-timeline__viewport {
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+}
+
+.fg-timeline__viewport::-webkit-scrollbar {
+  height: 10px;
+}
+.fg-timeline__viewport::-webkit-scrollbar-track {
+  background: transparent;
+}
+.fg-timeline__viewport::-webkit-scrollbar-thumb {
+  background: rgba(58, 55, 51, 0.18);
+  border-radius: 999px;
+  border: 3px solid var(--fg-paper);
+}
+
+.fg-timeline__canvas {
+  position: relative;
+  min-width: 100%;
+}
+
+.fg-timeline__sticky-col {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  background:
+    linear-gradient(90deg, var(--fg-paper) 92%, rgba(245, 243, 240, 0)),
+    var(--fg-paper);
+  border-right: 1px solid rgba(58, 55, 51, 0.1);
+  box-shadow: 8px 0 16px -12px rgba(58, 55, 51, 0.18);
+  will-change: transform;
+}
+
+.fg-timeline__sticky-col__head {
+  height: 56px;
+  border-bottom: 1px solid rgba(58, 55, 51, 0.08);
+  background: linear-gradient(180deg, #FBF8F4 0%, var(--fg-paper) 100%);
+}
+
+.fg-timeline__row-head {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 20px 0 22px;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed rgba(58, 55, 51, 0.08);
+  cursor: pointer;
+  transition: background 160ms ease;
+}
+
+.fg-timeline__row-head:hover {
+  background: rgba(58, 55, 51, 0.035);
+}
+
+.fg-timeline__row-head__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-size: 15px;
+  letter-spacing: -0.005em;
+  color: var(--fg-ink);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fg-timeline__pin {
+  color: var(--fg-accent);
+  font-size: 11px;
+  margin-right: 2px;
+}
+
+.fg-timeline__row-head__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: rgba(58, 55, 51, 0.55);
+}
+
+.fg-timeline__row-head__dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+}
+
+.fg-timeline__row-head__priority {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(184, 51, 51, 0.1);
+  color: #8A2828;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.fg-timeline__chart {
+  position: relative;
+}
+
+.fg-timeline__axis {
+  position: relative;
+  height: 56px;
+  border-bottom: 1px solid rgba(58, 55, 51, 0.1);
+  background: linear-gradient(180deg, #FBF8F4 0%, var(--fg-paper) 100%);
+}
+
+.fg-timeline__axis-tick {
+  position: absolute;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  height: 100%;
+  padding-left: 6px;
+  white-space: nowrap;
+}
+
+.fg-timeline__axis-tick__label {
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-size: 13px;
+  color: rgba(58, 55, 51, 0.62);
+  letter-spacing: -0.01em;
+}
+
+.fg-timeline__axis-tick.is-bold .fg-timeline__axis-tick__label {
+  color: var(--fg-ink);
+  font-size: 15px;
+}
+
+.fg-timeline__axis-tick__sub {
+  margin-top: 1px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(58, 55, 51, 0.4);
+}
+
+.fg-timeline__grid {
+  position: relative;
+  padding: 12px 0 16px;
+}
+
+.fg-timeline__grid-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--fg-rule);
+  pointer-events: none;
+}
+
+.fg-timeline__grid-line.is-bold {
+  background: var(--fg-rule-bold);
+}
+
+.fg-timeline__today {
+  position: absolute;
+  top: -10px;
+  bottom: 0;
+  width: 1.5px;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.fg-timeline__today-line {
+  position: absolute;
+  inset: 22px 0 0 0;
+  width: 1.5px;
+  background: linear-gradient(180deg, var(--fg-today) 0%, rgba(184, 51, 51, 0.35) 100%);
+  border-radius: 999px;
+}
+
+.fg-timeline__today-label {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Noto Serif SC', 'DM Serif Display', serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: #FBF8F4;
+  background: var(--fg-today);
+  padding: 2px 7px 3px;
+  border-radius: 999px;
+  letter-spacing: 0.08em;
+  box-shadow: 0 4px 10px -6px rgba(184, 51, 51, 0.6);
+}
+
+.fg-timeline__rows {
+  position: relative;
+}
+
+.fg-timeline__row {
+  position: relative;
+  border-bottom: 1px dashed rgba(58, 55, 51, 0.06);
+}
+
+.fg-timeline__trail {
+  position: absolute;
+  top: 50%;
+  height: 6px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+.fg-timeline__bar {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 14px 0 12px;
+  border: 1.5px solid;
+  border-radius: 14px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 6px 14px -10px rgba(58, 55, 51, 0.35);
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms ease;
+}
+
+.fg-timeline__bar:hover {
+  transform: translateY(-50%) translateY(-1px);
+  box-shadow: 0 10px 22px -12px rgba(58, 55, 51, 0.42);
+}
+
+.fg-timeline__bar-cap {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: -2px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px rgba(251, 248, 244, 0.8);
+}
+
+.fg-timeline__bar-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fg-timeline__bar--done {
+  font-style: italic;
+  color: rgba(58, 55, 51, 0.55);
+}
+
+.fg-timeline__bar--todo {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 8px,
+    rgba(58, 55, 51, 0.04) 8px 9px
+  );
+}
+
+@media (max-width: 760px) {
+  .fg-timeline__sticky-col {
+    width: 180px !important;
+  }
+  .fg-timeline__chart {
+    margin-left: 180px !important;
+  }
+  .fg-timeline__row-head {
+    padding: 0 14px;
+  }
+  .fg-timeline__row-head__title {
+    font-size: 13.5px;
+  }
+}
+
+html[data-theme='dark'] .fg-timeline {
+  --fg-paper: #1B1A18;
+  --fg-ink: #EFEAE0;
+  --fg-rule: rgba(239, 234, 224, 0.08);
+  --fg-rule-bold: rgba(239, 234, 224, 0.18);
+  background:
+    radial-gradient(1200px 320px at -10% -40%, rgba(239, 234, 224, 0.04), transparent 60%),
+    linear-gradient(180deg, #221F1B 0%, var(--fg-paper) 100%);
+  border-color: rgba(239, 234, 224, 0.08);
+}
+
+html[data-theme='dark'] .fg-timeline__sticky-col {
+  background: linear-gradient(90deg, var(--fg-paper) 92%, rgba(27, 26, 24, 0)), var(--fg-paper);
+}
+
+html[data-theme='dark'] .fg-timeline__sticky-col__head,
+html[data-theme='dark'] .fg-timeline__axis {
+  background: linear-gradient(180deg, #221F1B 0%, var(--fg-paper) 100%);
+}
+

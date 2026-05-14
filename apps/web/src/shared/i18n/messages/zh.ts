@@ -119,6 +119,7 @@ export const zhMessages: TranslationMessages = {
   'modules.tasks.board': '看板',
   'modules.tasks.today': '今日',
   'modules.tasks.analytics': '分析',
+  'modules.tasks.list': '列表',
   'modules.tasks.addPlaceholder': '添加新任务...',
   'modules.tasks.add': '添加',
   'modules.tasks.viewAria': '任务页面视图',
