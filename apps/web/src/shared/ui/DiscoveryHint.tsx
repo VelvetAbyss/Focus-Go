@@ -1,5 +1,5 @@
 import { Lightbulb, X } from 'lucide-react'
-import { useDiscoveryHint } from '../discovery/DiscoveryHintContext'
+import { useDiscoveryHint } from '../discovery/useDiscoveryHint'
 import { HINTS, type HintId, type HintRegion } from '../discovery/hints'
 import { useI18n } from '../i18n/useI18n'
 import './DiscoveryHint.css'

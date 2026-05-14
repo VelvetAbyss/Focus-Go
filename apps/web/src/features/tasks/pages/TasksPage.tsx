@@ -1,14 +1,15 @@
 import { useState } from 'react'
 import type { CSSProperties } from 'react'
-import { BarChart3, Columns3, LayoutGrid, ListTodo } from 'lucide-react'
+import { BarChart3, LayoutGrid, ListTodo } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import TasksBoard from '../TasksBoard'
 import { useI18n } from '../../../shared/i18n/useI18n'
 import type { TranslationKey } from '../../../shared/i18n/types'
 import { useTasksViewportProfile } from './tasksViewport'
-import { DiscoveryNewBadge, markDiscoveryNewTargetSeen } from '../../../shared/ui/DiscoveryNewBadge'
+import { DiscoveryNewBadge } from '../../../shared/ui/DiscoveryNewBadge'
+import { markDiscoveryNewTargetSeen } from '../../../shared/discovery/discoveryNewTargetActions'
 
-type TasksPageViewMode = 'board' | 'today' | 'list' | 'analytics'
+type TasksPageViewMode = 'board' | 'today' | 'analytics'
 
 const STORAGE_VIEW_KEY = 'tasks_page_view_mode'
 
@@ -16,7 +17,6 @@ type ViewModeConfig = { key: TasksPageViewMode; icon: React.ComponentType<{ clas
 const VIEW_MODES: ViewModeConfig[] = [
   { key: 'board', icon: LayoutGrid, labelKey: 'modules.tasks.board' },
   { key: 'today', icon: ListTodo, labelKey: 'modules.tasks.today' },
-  { key: 'list', icon: Columns3, labelKey: 'modules.tasks.list' },
   { key: 'analytics', icon: BarChart3, labelKey: 'modules.tasks.analytics' },
 ]
 
@@ -26,9 +26,11 @@ const TasksPage = () => {
   const [viewMode, setViewMode] = useState<TasksPageViewMode>(() => {
     if (typeof window === 'undefined') return 'board'
     const stored = window.localStorage.getItem(STORAGE_VIEW_KEY)
-    return stored === 'analytics' || stored === 'board' || stored === 'today' || stored === 'list'
-      ? stored
-      : 'board'
+    if (stored === 'list') {
+      window.localStorage.setItem(STORAGE_VIEW_KEY, 'analytics')
+      return 'analytics'
+    }
+    return stored === 'analytics' || stored === 'board' || stored === 'today' ? stored : 'board'
   })
 
   const switchView = (nextView: TasksPageViewMode) => {

@@ -24,7 +24,8 @@ import LifeDashboard from '../life/LifeDashboard'
 import NewsDashboard from '../news/NewsDashboard'
 import { readLayoutLocked, writeLayoutLocked } from '../../shared/prefs/dashboardLayoutLock'
 import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../data/repositories/syncedPreferencesRepo'
-import { DiscoveryNewBadge, markDiscoveryNewTargetSeen } from '../../shared/ui/DiscoveryNewBadge'
+import { DiscoveryNewBadge } from '../../shared/ui/DiscoveryNewBadge'
+import { markDiscoveryNewTargetSeen } from '../../shared/discovery/discoveryNewTargetActions'
 import { DASHBOARD_CARD_DISCOVERY_TARGET_BY_ID } from '../../shared/discovery/newTargets'
 
 const DashboardPage = () => {
