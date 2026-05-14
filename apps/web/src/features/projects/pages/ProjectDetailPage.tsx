@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Input } from '@/components/ui/input'
+import { EditableText } from '@/components/ui/EditableText'
 import Dialog from '../../../shared/ui/Dialog'
 import { Popover, PopoverContent, PopoverTrigger } from '../../../shared/ui/popover'
 import { tasksRepo } from '../../../data/repositories/tasksRepo'
@@ -16,6 +17,7 @@ import { projectsRepo } from '../../../data/repositories/projectsRepo'
 import type { NoteItem, ProjectHealth, ProjectItem, ProjectPerson, ProjectStatus, TaskItem } from '../../../data/models/types'
 import { ROUTES } from '../../../app/routes/routes'
 import { PersonFormDialog, ProjectFormDialog } from '../components/ProjectDialogs'
+import ProjectGantt from '../components/ProjectGantt'
 import { useProjectsI18n } from '../projectsI18n'
 import TaskDrawer from '../../tasks/TaskDrawer'
 import TasksBoard from '../../tasks/TasksBoard'
@@ -41,33 +43,6 @@ const ROLE_COLORS: Record<string, string> = {
   collaborator: ROLE.collaborator,
   reviewer: ROLE.reviewer,
   external: ROLE.external,
-}
-
-const sortByDate = (tasks: TaskItem[]) =>
-  [...tasks].sort((a, b) =>
-    (a.startDate ?? a.dueDate ?? '9999').localeCompare(b.startDate ?? b.dueDate ?? '9999'),
-  )
-
-const DAY_MS = 86400000
-
-const toDateString = (date: Date) => date.toISOString().slice(0, 10)
-
-const isValidDateString = (value: unknown): value is string => {
-  if (typeof value !== 'string' || !value) return false
-  const time = new Date(value).getTime()
-  return Number.isFinite(time)
-}
-
-const addDays = (dateString: string, days: number) => {
-  const date = new Date(dateString)
-  if (!Number.isFinite(date.getTime())) return dateString
-  date.setDate(date.getDate() + days)
-  return toDateString(date)
-}
-
-const formatTimelineTick = (dateString: string, mode: TimelineMode) => {
-  if (mode === 'year') return dateString.slice(0, 7)
-  return dateString.slice(5).replace('-', '/')
 }
 
 function getInitials(name: string): string {
@@ -163,12 +138,6 @@ const ProjectDetailPage = () => {
     'on-track': { label: i18n.health.onTrack, cls: 'pd-badge pd-badge--green' },
     'at-risk': { label: i18n.health.atRisk, cls: 'pd-badge pd-badge--amber' },
     blocked: { label: i18n.health.blocked, cls: 'pd-badge pd-badge--red' },
-  }), [i18n])
-
-  const STATUS_CONFIG: Record<string, { label: string; cls: string }> = useMemo(() => ({
-    todo: { label: i18n.dialog.taskStatusTodo, cls: 'pd-task-chip pd-task-chip--todo' },
-    doing: { label: i18n.detail.inProgress, cls: 'pd-task-chip pd-task-chip--doing' },
-    done: { label: i18n.dialog.taskStatusDone, cls: 'pd-task-chip pd-task-chip--done' },
   }), [i18n])
 
   const load = async () => {
@@ -274,64 +243,6 @@ const ProjectDetailPage = () => {
     () => notes.filter(({ note }) => note.title.toLowerCase().includes(notesQuery.toLowerCase())),
     [notes, notesQuery],
   )
-
-  // Timeline range calculation
-  const timelineBaseRange = useMemo(() => {
-    const sorted = sortByDate(tasks)
-    const starts = sorted.map((t) => t.startDate ?? t.dueDate).filter(isValidDateString)
-    const ends = sorted.map((t) => t.dueDate ?? t.startDate).filter(isValidDateString)
-    if (!starts.length) return null
-    return { min: starts[0], max: ends[ends.length - 1] ?? starts[starts.length - 1] }
-  }, [tasks])
-
-  const timelineRange = useMemo(() => {
-    if (!timelineBaseRange) return null
-    const spanDays = timelineMode === 'week' ? 6 : timelineMode === 'month' ? 29 : 364
-    return {
-      min: timelineBaseRange.min,
-      max: addDays(timelineBaseRange.min, spanDays),
-    }
-  }, [timelineBaseRange, timelineMode])
-
-  const timelineTicks = useMemo(() => {
-    if (!timelineRange) return []
-    const totalDays = Math.max(1, Math.round((new Date(timelineRange.max).getTime() - new Date(timelineRange.min).getTime()) / DAY_MS))
-    const stepDays = timelineMode === 'week' ? 1 : timelineMode === 'month' ? 5 : 30
-    const ticks: Array<{ key: string; left: string; label: string }> = []
-    for (let offset = 0; offset <= totalDays; offset += stepDays) {
-      const value = addDays(timelineRange.min, offset)
-      ticks.push({
-        key: value,
-        left: `${((offset / totalDays) * 100).toFixed(2)}%`,
-        label: formatTimelineTick(value, timelineMode),
-      })
-    }
-    if (ticks[ticks.length - 1]?.key !== timelineRange.max) {
-      ticks.push({
-        key: timelineRange.max,
-        left: '100%',
-        label: formatTimelineTick(timelineRange.max, timelineMode),
-      })
-    }
-    return ticks
-  }, [timelineMode, timelineRange])
-
-  function taskBarProps(task: TaskItem): { left: string; width: string; hidden: boolean } {
-    if (!timelineRange) return { left: '0%', width: '60%', hidden: false }
-    const rangeStart = new Date(timelineRange.min).getTime()
-    const rangeEnd = new Date(timelineRange.max).getTime()
-    const total = rangeEnd - rangeStart || 1
-    const tStart = new Date(task.startDate ?? task.dueDate ?? timelineRange.min).getTime()
-    const tEnd = new Date(task.dueDate ?? task.startDate ?? timelineRange.max).getTime()
-    const visibleStart = Math.max(tStart, rangeStart)
-    const visibleEnd = Math.min(Math.max(tEnd, tStart + DAY_MS), rangeEnd)
-    if (visibleEnd <= rangeStart || visibleStart >= rangeEnd) {
-      return { left: '0%', width: '0%', hidden: true }
-    }
-    const left = Math.max(0, (visibleStart - rangeStart) / total) * 100
-    const width = Math.max(timelineMode === 'year' ? 0.9 : timelineMode === 'month' ? 2 : 4, ((visibleEnd - visibleStart) / total) * 100)
-    return { left: `${left.toFixed(2)}%`, width: `${width.toFixed(2)}%`, hidden: false }
-  }
 
   if (loading) {
     return (
@@ -567,15 +478,33 @@ const ProjectDetailPage = () => {
               >
                 <div className="pd-focus-card__main">
                   <p className="pd-focus-card__eyebrow">{i18n.detail.nextAction}</p>
-                  <h2>{project.nextAction || i18n.detail.nextActionDefault}</h2>
+                  <h2>
+                    <EditableText
+                      value={project.nextAction ?? ''}
+                      placeholder={i18n.detail.nextActionDefault}
+                      ariaLabel={i18n.detail.nextAction}
+                      onCommit={async (next) => {
+                        await projectsRepo.update(project.id, { nextAction: next })
+                        const refreshed = await projectsRepo.getById(project.id)
+                        if (refreshed) setProject(refreshed)
+                      }}
+                    />
+                  </h2>
                   <p>
-                    {project.riskSummary || (overdueCount > 0
-                      ? i18n.t(i18n.detail.overdueWarning, { count: overdueCount })
-                      : i18n.detail.noRisks)}
+                    <EditableText
+                      value={project.riskSummary ?? ''}
+                      placeholder={overdueCount > 0
+                        ? i18n.t(i18n.detail.overdueWarning, { count: overdueCount })
+                        : i18n.detail.noRisks}
+                      multiline
+                      ariaLabel={i18n.detail.noRisks}
+                      onCommit={async (next) => {
+                        await projectsRepo.update(project.id, { riskSummary: next })
+                        const refreshed = await projectsRepo.getById(project.id)
+                        if (refreshed) setProject(refreshed)
+                      }}
+                    />
                   </p>
-                  <button type="button" className="pd-panel__cta" onClick={() => setProjectDialogOpen(true)}>
-                    {i18n.detail.update}
-                  </button>
                 </div>
                 <ProgressRing progress={project.progress} size={104} label="Project progress" />
               </motion.article>
@@ -644,63 +573,16 @@ const ProjectDetailPage = () => {
                 </div>
               </div>
 
-              {timelineRange ? (
-                <div className="pd-timeline-axis">
-                  <div className="pd-timeline-axis__range">
-                    <span className="pd-timeline-range">{timelineRange.min} → {timelineRange.max}</span>
-                  </div>
-                  <div className="pd-timeline-axis__ruler">
-                    <div className="pd-timeline-axis__line" />
-                    {timelineTicks.map((tick) => (
-                      <div key={tick.key} className="pd-timeline-axis__tick" style={{ left: tick.left }}>
-                        <span className="pd-timeline-axis__mark" />
-                        <span className="pd-timeline-axis__label">{tick.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
-              <div className="pd-timeline">
-                {sortByDate(tasks).map((task, i) => {
-                  const barProps = timelineRange ? taskBarProps(task) : { left: '0%', width: timelineMode === 'week' ? '50%' : timelineMode === 'month' ? '24%' : '8%', hidden: false }
-                  const sCfg = STATUS_CONFIG[task.status] ?? STATUS_CONFIG.todo
-                  return (
-                    <motion.div
-                      key={task.id}
-                      className={`pd-timeline__row pd-timeline__row--${task.status}`}
-                      initial={{ opacity: 0, x: -12 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.08 + i * 0.06, duration: 0.35 }}
-                    >
-                      <div className="pd-timeline__meta">
-                        <span className="pd-timeline__date">{task.startDate ?? task.dueDate ?? `T+${i + 1}`}</span>
-                        <span className="pd-timeline__status-wrap">
-                          <span className={sCfg.cls} style={{ fontSize: '10px', padding: '2px 7px' }}>{sCfg.label}</span>
-                        </span>
-                      </div>
-                      <div className="pd-timeline__track">
-                        <div className="pd-timeline__lane" />
-                        {!barProps.hidden ? (
-                          <motion.div
-                            className={`pd-timeline__bar pd-timeline__bar--${task.status}`}
-                            style={{ left: barProps.left }}
-                            initial={{ width: '0%', opacity: 0 }}
-                            animate={{ width: barProps.width, opacity: 1 }}
-                            transition={{ delay: 0.15 + i * 0.06, duration: 0.6, ease: EASE_OUT }}
-                          >
-                            <strong>{task.title}</strong>
-                            {task.ownerId ? <span className="pd-timeline__owner">{ownerMap.get(task.ownerId) ?? ''}</span> : null}
-                          </motion.div>
-                        ) : null}
-                      </div>
-                    </motion.div>
-                  )
-                })}
-                {tasks.length === 0 ? (
-                  <div className="pd-empty-inline">{i18n.detail.noTasksScheduled}</div>
-                ) : null}
-              </div>
+              {tasks.length === 0 ? (
+                <div className="pd-empty-inline">{i18n.detail.noTasksScheduled}</div>
+              ) : (
+                <ProjectGantt
+                  tasks={tasks}
+                  projectColor={project.color}
+                  viewMode={timelineMode}
+                  onTaskClick={(task) => setDrawerTask(task)}
+                />
+              )}
             </motion.div>
           ) : null}
 

@@ -119,6 +119,7 @@ export const enMessages: TranslationMessages = {
   'modules.tasks.board': 'Board',
   'modules.tasks.today': 'Today',
   'modules.tasks.analytics': 'Analytics',
+  'modules.tasks.list': 'List',
   'modules.tasks.addPlaceholder': 'Add a new task...',
   'modules.tasks.add': 'Add',
   'modules.tasks.viewAria': 'Tasks page view',

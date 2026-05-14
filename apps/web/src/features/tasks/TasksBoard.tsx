@@ -20,6 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../../shared/ui/popover
 import TaskCard from './components/TaskCard'
 import TaskAddComposer from './components/TaskAddComposer'
 import TasksAnalyticsView from './components/TasksAnalyticsView'
+import TaskListView from './components/TaskListView'
 import { useToast } from '../../shared/ui/toast/toast'
 import { emitTasksChanged, subscribeTasksChanged } from './taskSync'
 import { useSyncDataRefresh } from '../../data/sync/service'
@@ -35,7 +36,7 @@ const tabs: { key: TaskStatus }[] = [{ key: 'todo' }, { key: 'doing' }, { key: '
 
 type SortMode = 'importance' | 'time'
 type TagFilterMode = 'all' | 'work' | 'life' | 'health' | 'study' | 'finance' | 'family'
-type TopView = 'board' | 'today' | 'analytics'
+type TopView = 'board' | 'today' | 'list' | 'analytics'
 type BoardGroupBy = 'status' | 'project' | 'today'
 type BoardScope = { kind: 'all' } | { kind: 'project'; projectId: string } | { kind: 'today' }
 
@@ -289,12 +290,14 @@ const TasksBoard = ({
 
   const filteredTasks = useMemo(() => {
     let result = scope.kind === 'project'
-      ? tasks.filter((task) => task.projectId === scope.projectId && (effectiveGroupBy !== 'status' || task.status === activeStatus))
+      ? tasks.filter((task) => task.projectId === scope.projectId && (effectiveGroupBy !== 'status' || topView === 'list' || task.status === activeStatus))
       : scope.kind === 'today' || topView === 'today'
         ? tasks.filter((task) => task.isToday)
-        : effectiveGroupBy === 'status'
-          ? tasks.filter((task) => task.status === activeStatus)
-          : tasks
+        : topView === 'list'
+          ? tasks
+          : effectiveGroupBy === 'status'
+            ? tasks.filter((task) => task.status === activeStatus)
+            : tasks
     if (scope.kind === 'all' && projectFilterIds.size > 0) {
       result = result.filter((task) => task.projectId && projectFilterIds.has(task.projectId))
     }
@@ -631,8 +634,36 @@ const TasksBoard = ({
     </div>
   )
 
-  const boardContent = topView !== 'analytics'
+  const cycleTaskStatus = (task: TaskItem) => {
+    const next: TaskStatus = task.status === 'todo' ? 'doing' : task.status === 'doing' ? 'done' : 'todo'
+    void handleStatusChange(task.id, next)
+  }
+
+  const boardContent = topView === 'analytics'
     ? (
+      <TasksAnalyticsView tasks={tasks} />
+    )
+    : topView === 'list'
+      ? (
+        <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+          {showTasksEmptyState ? (
+            tasksEmptyState
+          ) : (
+            <TaskListView
+              tasks={filteredTasks}
+              projectById={projectById}
+              onTaskClick={(task) => {
+                if (bulkMode) toggleTaskSelection(task.id)
+                else setActiveTask(task)
+              }}
+              onCycleStatus={cycleTaskStatus}
+              onDelete={(task) => setDeleteTarget(task)}
+              onTogglePin={(task) => { void handlePin(task.id) }}
+            />
+          )}
+        </div>
+      )
+      : (
         <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
           {showTasksEmptyState ? (
             tasksEmptyState
@@ -663,13 +694,10 @@ const TasksBoard = ({
           )}
         </div>
       )
-    : (
-      <TasksAnalyticsView tasks={tasks} />
-    )
 
   const plain = (
     <div className={cn('tasks-fg flex h-full min-h-0 flex-col', asCard ? 'bg-background' : 'bg-transparent', !asCard && 'tasks-fg--plain')}>
-      {topView === 'board' || topView === 'today' ? (
+      {topView === 'board' || topView === 'today' || topView === 'list' ? (
         <div className="mb-0 border-b pb-3">
           <div className="flex flex-col gap-3">
             {!asCard && scope.kind === 'all' ? (
@@ -741,7 +769,7 @@ const TasksBoard = ({
                     )
                   })}
                 </div>
-              ) : (
+              ) : topView === 'list' ? null : (
                 <div className="rounded-full border border-[#3A3733]/10 bg-[#F5F3F0] px-3 py-1.5 text-xs text-[#3A3733]/72">
                   {t('tasks.today.badge')}
                 </div>

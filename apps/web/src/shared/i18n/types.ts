@@ -119,6 +119,7 @@ export type TranslationKey =
   | 'modules.tasks.board'
   | 'modules.tasks.today'
   | 'modules.tasks.analytics'
+  | 'modules.tasks.list'
   | 'modules.tasks.addPlaceholder'
   | 'modules.tasks.add'
   | 'modules.tasks.viewAria'

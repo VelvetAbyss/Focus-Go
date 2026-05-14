@@ -118,6 +118,10 @@ type ProjectsMessages = {
     projectEyebrow: string
     editProject: string
     newProject: string
+    sectionBasic: string
+    sectionTime: string
+    sectionStyle: string
+    fieldColor: string
     fieldTitle: string
     titlePlaceholder: string
     fieldGoal: string
@@ -296,6 +300,10 @@ const messages: Record<LanguageCode, ProjectsMessages> = {
       projectEyebrow: 'Project',
       editProject: 'Edit Project',
       newProject: 'New Project',
+      sectionBasic: 'Basics',
+      sectionTime: 'Time & Owner',
+      sectionStyle: 'Status & Style',
+      fieldColor: 'Project Color',
       fieldTitle: 'Title',
       titlePlaceholder: 'Focus&go v2 Launch',
       fieldGoal: 'Goal',
@@ -472,6 +480,10 @@ const messages: Record<LanguageCode, ProjectsMessages> = {
       projectEyebrow: '项目',
       editProject: '编辑项目',
       newProject: '新建项目',
+      sectionBasic: '基本信息',
+      sectionTime: '时间与负责人',
+      sectionStyle: '状态与样式',
+      fieldColor: '项目颜色',
       fieldTitle: '标题',
       titlePlaceholder: 'Focus&go v2 发布',
       fieldGoal: '目标',

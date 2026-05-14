@@ -123,7 +123,7 @@ export const ProjectFormDialog = ({ open, project, people, onClose, onAutoSave, 
     <Dialog
       open={open}
       onClose={onClose}
-      panelClassName="w-[min(760px,calc(100vw-32px))] rounded-[32px] border border-[#3A3733]/10 bg-[#F5F3F0]"
+      panelClassName="w-[min(640px,calc(100vw-32px))] rounded-[24px] border border-[#3A3733]/10 bg-[#F5F3F0]"
       contentClassName="p-0"
     >
       <div className="project-dialog">
@@ -135,113 +135,127 @@ export const ProjectFormDialog = ({ open, project, people, onClose, onAutoSave, 
         </div>
 
         <div className="project-dialog__body">
-          <div className="project-dialog__grid project-dialog__grid--single">
-            <label className="project-dialog__field">
-              <span>{i18n.dialog.fieldTitle}</span>
-              <Input value={title} onChange={(event) => setTitle(event.target.value)} className={inputClassName} placeholder={i18n.dialog.titlePlaceholder} />
-            </label>
-          </div>
+          <section className="project-dialog__section" aria-labelledby="project-dialog-section-basic">
+            <h3 id="project-dialog-section-basic" className="project-dialog__section-title">{i18n.dialog.sectionBasic}</h3>
 
-          <div className="project-dialog__grid project-dialog__grid--single">
-            <label className="project-dialog__field">
-              <span>{i18n.dialog.fieldGoal}</span>
-              <Input value={goal} onChange={(event) => setGoal(event.target.value)} className={inputClassName} placeholder={i18n.dialog.goalPlaceholder} />
-            </label>
-          </div>
+            <div className="project-dialog__grid project-dialog__grid--single">
+              <label className="project-dialog__field">
+                <span>{i18n.dialog.fieldTitle}</span>
+                <Input value={title} onChange={(event) => setTitle(event.target.value)} className={inputClassName} placeholder={i18n.dialog.titlePlaceholder} />
+              </label>
+            </div>
 
-          <div className="project-dialog__grid project-dialog__grid--single">
-            <label className="project-dialog__field">
-              <span>{i18n.dialog.fieldDescription}</span>
-              <Textarea value={description} onChange={(event) => setDescription(event.target.value)} className={textareaClassName} placeholder={i18n.dialog.descPlaceholder} />
-            </label>
-          </div>
+            <div className="project-dialog__grid project-dialog__grid--single">
+              <label className="project-dialog__field">
+                <span>{i18n.dialog.fieldGoal}</span>
+                <Input value={goal} onChange={(event) => setGoal(event.target.value)} className={inputClassName} placeholder={i18n.dialog.goalPlaceholder} />
+              </label>
+            </div>
 
-          <div className="project-dialog__grid project-dialog__grid--single">
-            <div className="project-dialog__field">
-              <span>Project color</span>
-              <div className="project-dialog__swatches" role="radiogroup" aria-label="Project color">
-                {PROJECT_COLORS.map((nextColor) => (
-                  <button
-                    key={nextColor}
-                    type="button"
-                    role="radio"
-                    aria-checked={color === nextColor}
-                    className={`project-dialog__swatch${color === nextColor ? ' is-active' : ''}`}
-                    style={{ background: nextColor }}
-                    onClick={() => setColor(nextColor)}
-                  >
-                    <span className="sr-only">{nextColor}</span>
-                  </button>
-                ))}
+            <div className="project-dialog__grid project-dialog__grid--single">
+              <label className="project-dialog__field">
+                <span>{i18n.dialog.fieldDescription}</span>
+                <Textarea value={description} onChange={(event) => setDescription(event.target.value)} className={textareaClassName} placeholder={i18n.dialog.descPlaceholder} />
+              </label>
+            </div>
+
+            <div className="project-dialog__grid project-dialog__grid--single">
+              <label className="project-dialog__field">
+                <span>{i18n.dialog.fieldNextAction}</span>
+                <Input value={nextAction} onChange={(event) => setNextAction(event.target.value)} className={inputClassName} placeholder={i18n.dialog.nextActionPlaceholder} />
+              </label>
+            </div>
+
+            <div className="project-dialog__grid project-dialog__grid--single">
+              <label className="project-dialog__field">
+                <span>{i18n.dialog.fieldRiskSummary}</span>
+                <Textarea value={riskSummary} onChange={(event) => setRiskSummary(event.target.value)} className={textareaClassName} placeholder={i18n.dialog.riskPlaceholder} />
+              </label>
+            </div>
+          </section>
+
+          <section className="project-dialog__section" aria-labelledby="project-dialog-section-time">
+            <h3 id="project-dialog-section-time" className="project-dialog__section-title">{i18n.dialog.sectionTime}</h3>
+
+            <div className="project-dialog__grid">
+              <div className="project-dialog__field">
+                <span>{i18n.dialog.fieldStartDate}</span>
+                <Input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} className={inputClassName} />
+              </div>
+              <div className="project-dialog__field">
+                <span>{i18n.dialog.fieldDueDate}</span>
+                <Input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} className={inputClassName} />
               </div>
             </div>
-          </div>
 
-          <div className="project-dialog__grid">
-            <label className="project-dialog__field">
-              <span>{i18n.dialog.fieldStatus}</span>
-              <Select value={status} onValueChange={(value: ProjectItem['status']) => setStatus(value)}>
-                <SelectTrigger className={inputClassName}><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="planning">{i18n.dialog.statusPlanning}</SelectItem>
-                  <SelectItem value="active">{i18n.dialog.statusActive}</SelectItem>
-                  <SelectItem value="blocked">{i18n.dialog.statusBlocked}</SelectItem>
-                  <SelectItem value="done">{i18n.dialog.statusDone}</SelectItem>
-                  <SelectItem value="archived">{i18n.dialog.statusArchived}</SelectItem>
-                </SelectContent>
-              </Select>
-            </label>
+            <div className="project-dialog__grid project-dialog__grid--single">
+              <label className="project-dialog__field">
+                <span>{i18n.dialog.fieldOwner}</span>
+                <Select value={ownerId} onValueChange={setOwnerId}>
+                  <SelectTrigger className={inputClassName}><SelectValue placeholder={i18n.dialog.unassigned} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassigned">{i18n.dialog.unassigned}</SelectItem>
+                    {people.map((person) => (
+                      <SelectItem key={person.id} value={person.id}>{person.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </label>
+            </div>
+          </section>
 
-            <label className="project-dialog__field">
-              <span>{i18n.dialog.fieldPriority}</span>
-              <Select value={priority ?? 'medium'} onValueChange={(value: 'high' | 'medium' | 'low') => setPriority(value)}>
-                <SelectTrigger className={inputClassName}><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="high">{i18n.dialog.priorityHigh}</SelectItem>
-                  <SelectItem value="medium">{i18n.dialog.priorityMedium}</SelectItem>
-                  <SelectItem value="low">{i18n.dialog.priorityLow}</SelectItem>
-                </SelectContent>
-              </Select>
-            </label>
-          </div>
+          <section className="project-dialog__section" aria-labelledby="project-dialog-section-style">
+            <h3 id="project-dialog-section-style" className="project-dialog__section-title">{i18n.dialog.sectionStyle}</h3>
 
-          <div className="project-dialog__grid">
-            <label className="project-dialog__field">
-              <span>{i18n.dialog.fieldOwner}</span>
-              <Select value={ownerId} onValueChange={setOwnerId}>
-                <SelectTrigger className={inputClassName}><SelectValue placeholder={i18n.dialog.unassigned} /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unassigned">{i18n.dialog.unassigned}</SelectItem>
-                  {people.map((person) => (
-                    <SelectItem key={person.id} value={person.id}>{person.name}</SelectItem>
+            <div className="project-dialog__grid">
+              <label className="project-dialog__field">
+                <span>{i18n.dialog.fieldStatus}</span>
+                <Select value={status} onValueChange={(value: ProjectItem['status']) => setStatus(value)}>
+                  <SelectTrigger className={inputClassName}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="planning">{i18n.dialog.statusPlanning}</SelectItem>
+                    <SelectItem value="active">{i18n.dialog.statusActive}</SelectItem>
+                    <SelectItem value="blocked">{i18n.dialog.statusBlocked}</SelectItem>
+                    <SelectItem value="done">{i18n.dialog.statusDone}</SelectItem>
+                    <SelectItem value="archived">{i18n.dialog.statusArchived}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </label>
+
+              <label className="project-dialog__field">
+                <span>{i18n.dialog.fieldPriority}</span>
+                <Select value={priority ?? 'medium'} onValueChange={(value: 'high' | 'medium' | 'low') => setPriority(value)}>
+                  <SelectTrigger className={inputClassName}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="high">{i18n.dialog.priorityHigh}</SelectItem>
+                    <SelectItem value="medium">{i18n.dialog.priorityMedium}</SelectItem>
+                    <SelectItem value="low">{i18n.dialog.priorityLow}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </label>
+            </div>
+
+            <div className="project-dialog__grid project-dialog__grid--single">
+              <div className="project-dialog__field">
+                <span>{i18n.dialog.fieldColor}</span>
+                <div className="project-dialog__swatches" role="radiogroup" aria-label={i18n.dialog.fieldColor}>
+                  {PROJECT_COLORS.map((nextColor) => (
+                    <button
+                      key={nextColor}
+                      type="button"
+                      role="radio"
+                      aria-checked={color === nextColor}
+                      className={`project-dialog__swatch${color === nextColor ? ' is-active' : ''}`}
+                      style={{ background: nextColor }}
+                      onClick={() => setColor(nextColor)}
+                    >
+                      <span className="sr-only">{nextColor}</span>
+                    </button>
                   ))}
-                </SelectContent>
-              </Select>
-            </label>
-
-            <div className="project-dialog__field">
-              <span>{i18n.dialog.fieldStartDate}</span>
-              <Input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} className={inputClassName} />
+                </div>
+              </div>
             </div>
-          </div>
-
-          <div className="project-dialog__grid">
-            <div className="project-dialog__field">
-              <span>{i18n.dialog.fieldDueDate}</span>
-              <Input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} className={inputClassName} />
-            </div>
-            <label className="project-dialog__field">
-              <span>{i18n.dialog.fieldNextAction}</span>
-              <Input value={nextAction} onChange={(event) => setNextAction(event.target.value)} className={inputClassName} placeholder={i18n.dialog.nextActionPlaceholder} />
-            </label>
-          </div>
-
-          <div className="project-dialog__grid project-dialog__grid--single">
-            <label className="project-dialog__field">
-              <span>{i18n.dialog.fieldRiskSummary}</span>
-              <Textarea value={riskSummary} onChange={(event) => setRiskSummary(event.target.value)} className={textareaClassName} placeholder={i18n.dialog.riskPlaceholder} />
-            </label>
-          </div>
+          </section>
         </div>
 
         <div className="project-dialog__footer">
