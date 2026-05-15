@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import {
   Archive, ArrowLeft, ChevronDown, ClipboardList, FileText,
@@ -22,6 +22,8 @@ import { useProjectsI18n } from '../projectsI18n'
 import TaskDrawer from '../../tasks/TaskDrawer'
 import TasksBoard from '../../tasks/TasksBoard'
 import { emitTasksChanged, subscribeTasksChanged } from '../../tasks/taskSync'
+import { createProjectTask } from '../../tasks/application/taskActions'
+import { isTaskDone, isTaskOverdue } from '../../tasks/domain/taskRules'
 import { EASE_OUT } from '../../../shared/motion/tokens'
 import { ROLE } from '../../../shared/design/tokens'
 import '../projects.css'
@@ -140,7 +142,7 @@ const ProjectDetailPage = () => {
     blocked: { label: i18n.health.blocked, cls: 'pd-badge pd-badge--red' },
   }), [i18n])
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!projectId) return
     setLoading(true)
     const [nextProject, nextPeople, nextTasks, nextNotes] = await Promise.all([
@@ -154,9 +156,9 @@ const ProjectDetailPage = () => {
     setTasks(nextTasks.filter((t) => t.projectId === projectId))
     setNotes(nextNotes)
     setLoading(false)
-  }
+  }, [projectId])
 
-  useEffect(() => { void load() }, [projectId])
+  useEffect(() => { void load() }, [load])
 
   useEffect(() => {
     void projectsRepo.list().then(setAllProjects)
@@ -167,12 +169,11 @@ const ProjectDetailPage = () => {
       void load()
       void projectsRepo.list().then(setAllProjects)
     })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId])
+  }, [load, projectId])
 
   const openNewTask = async () => {
     if (!projectId) return
-    const created = await tasksRepo.add({
+    const created = await createProjectTask({
       title: i18n.dialog.taskTitlePlaceholder ?? 'New task',
       status: 'todo',
       priority: null,
@@ -209,18 +210,17 @@ const ProjectDetailPage = () => {
   const ownerMap = useMemo(() => new Map(people.map((p) => [p.id, p.name] as const)), [people])
 
   const overdueCount = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10)
-    return tasks.filter((t) => t.status !== 'done' && t.dueDate && t.dueDate < today).length
+    return tasks.filter((task) => isTaskOverdue(task)).length
   }, [tasks])
 
   const activeCount = useMemo(() => tasks.filter((t) => t.status === 'doing').length, [tasks])
-  const completedCount = useMemo(() => tasks.filter((t) => t.status === 'done').length, [tasks])
+  const completedCount = useMemo(() => tasks.filter(isTaskDone).length, [tasks])
 
   const activity = useMemo(() => {
     const items = [
       ...tasks.map((t) => ({
         id: `task:${t.id}`,
-        title: t.status === 'done'
+        title: isTaskDone(t)
           ? i18n.t(i18n.detail.activityTaskCompleted, { title: t.title })
           : i18n.t(i18n.detail.activityTaskUpdated, { title: t.title }),
         createdAt: t.updatedAt,

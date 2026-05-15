@@ -1,9 +1,9 @@
 import { db } from '../db'
-import type { ProjectHealth, ProjectItem, ProjectStatus, TaskItem } from '../models/types'
+import type { ProjectHealth, ProjectItem, ProjectStatus } from '../models/types'
 import { enqueueSyncOperation } from '../sync/repository'
 import { touch, withBase } from './base'
 import { noteTagsRepo } from './noteTagsRepo'
-import { getDeterministicProjectColor } from '../../shared/design/tokens'
+import { summarizeProject } from '../../features/projects/domain/projectSummary'
 
 export type ProjectCreateInput = {
   title: string
@@ -21,43 +21,6 @@ export type ProjectCreateInput = {
 
 const toProjectTag = (projectId: string) => `project:${projectId}`
 
-const clampProgress = (value: number) => Math.min(100, Math.max(0, Math.round(value)))
-
-const deriveProjectProgress = (tasks: TaskItem[]) => {
-  if (tasks.length === 0) return 0
-  const doneCount = tasks.filter((task) => task.status === 'done').length
-  return clampProgress((doneCount / tasks.length) * 100)
-}
-
-const deriveProjectHealth = (project: ProjectItem, tasks: TaskItem[]): ProjectHealth => {
-  if (project.status === 'blocked') return 'blocked'
-  const hasBlockedTask = tasks.some((task) => task.isBlocked || (task.blockedByTaskIds?.length ?? 0) > 0)
-  if (hasBlockedTask) return 'blocked'
-  const todayKey = new Date().toISOString().slice(0, 10)
-  const overdueCount = tasks.filter((task) => task.status !== 'done' && task.dueDate && task.dueDate < todayKey).length
-  if (overdueCount > 0) return 'at-risk'
-  if (project.dueDate) {
-    const due = new Date(project.dueDate).getTime()
-    const daysLeft = Math.ceil((due - Date.now()) / (24 * 60 * 60 * 1000))
-    if (daysLeft <= 7 && deriveProjectProgress(tasks) < 80) return 'at-risk'
-  }
-  return 'on-track'
-}
-
-const deriveNextAction = (project: ProjectItem, tasks: TaskItem[]) => {
-  if (project.nextAction?.trim()) return project.nextAction.trim()
-  const priorityOrder: Record<NonNullable<TaskItem['priority']>, number> = { high: 0, medium: 1, low: 2 }
-  const candidate = [...tasks]
-    .filter((task) => task.status !== 'done' && !task.isBlocked)
-    .sort((left, right) => {
-      const leftScore = left.priority ? priorityOrder[left.priority] : 99
-      const rightScore = right.priority ? priorityOrder[right.priority] : 99
-      if (leftScore !== rightScore) return leftScore - rightScore
-      return (left.dueDate ?? '9999-12-31').localeCompare(right.dueDate ?? '9999-12-31')
-    })[0]
-  return candidate?.title ?? ''
-}
-
 export const projectTagName = toProjectTag
 
 export const projectsRepo = {
@@ -65,26 +28,14 @@ export const projectsRepo = {
     const [projects, tasks] = await Promise.all([db.projects.orderBy('updatedAt').reverse().toArray(), db.tasks.toArray()])
     return projects.map((project) => {
       const projectTasks = tasks.filter((task) => task.projectId === project.id)
-      return {
-        ...project,
-        color: project.color ?? getDeterministicProjectColor(project.id),
-        progress: deriveProjectProgress(projectTasks),
-        health: deriveProjectHealth(project, projectTasks),
-        nextAction: deriveNextAction(project, projectTasks),
-      }
+      return summarizeProject(project, projectTasks)
     })
   },
   async getById(id: string) {
     const [project, tasks] = await Promise.all([db.projects.get(id), db.tasks.toArray()])
     if (!project) return null
     const projectTasks = tasks.filter((task) => task.projectId === id)
-    return {
-      ...project,
-      color: project.color ?? getDeterministicProjectColor(project.id),
-      progress: deriveProjectProgress(projectTasks),
-      health: deriveProjectHealth(project, projectTasks),
-      nextAction: deriveNextAction(project, projectTasks),
-    }
+    return summarizeProject(project, projectTasks)
   },
   async create(data: ProjectCreateInput) {
     const project = withBase({

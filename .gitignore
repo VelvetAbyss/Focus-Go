@@ -73,6 +73,9 @@ SKILL.md
 
 # Documentation / planning files (not product code)
 docs/
+!/docs/
+/docs/*
+!/docs/domain-boundaries.md
 findings.md
 progress.md
 task_plan.md

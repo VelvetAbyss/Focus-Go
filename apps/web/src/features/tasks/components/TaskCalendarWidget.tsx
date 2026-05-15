@@ -10,6 +10,7 @@ import { DatePicker } from '../../../shared/ui/DatePicker'
 import { emitTasksChanged } from '../taskSync'
 import { getTaskDisplayRange } from '../taskDates'
 import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, getTaskPriorityKey } from './taskPresentation'
+import { createTask } from '../application/taskActions'
 
 type CalendarEntry = {
   id: string
@@ -174,7 +175,7 @@ const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted
     if (!title || !createDueDate) return
     setIsCreating(true)
     try {
-      const created = await tasksRepo.add({
+      const created = await createTask({
         title,
         status: 'todo',
         priority: null,
