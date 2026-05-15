@@ -65,6 +65,8 @@ import {
 import { useSyncActions, useSyncStatus } from '../../data/sync/service'
 import { restampLocalSnapshotForRestore } from '../../data/sync/repository'
 import { resetRxdbSyncDatabase } from '../../data/sync/rxdb'
+import { wipeServerData } from '../../data/sync/wipeServerData'
+import { getAuth } from '../../store/auth'
 import { ROUTES } from './routes'
 import { useUpgradeModal } from '../../features/labs/UpgradeModalContext'
 import { useDiscoveryReset } from '../../shared/discovery/useDiscoveryHint'
@@ -860,6 +862,21 @@ const SettingsRoute = () => {
   const resetApp = async () => {
     setIsResetting(true)
     try {
+      // If signed in, wipe the server copy FIRST. Otherwise the next sync cycle
+      // after the local reset pulls every "old" row back down and the user sees
+      // their reset undone. Bail loudly on failure rather than silently leaving
+      // local + server out of sync.
+      if (getAuth()?.user) {
+        try {
+          await wipeServerData()
+        } catch (err) {
+          throw new Error(
+            language === 'zh'
+              ? `云端数据清除失败，已中止重置（本地数据未改动）：${err instanceof Error ? err.message : '未知错误'}`
+              : `Failed to wipe cloud data; reset aborted (local data untouched): ${err instanceof Error ? err.message : 'Unknown error'}`,
+          )
+        }
+      }
       requestCrossTabDbReset()
       await new Promise((resolve) => window.setTimeout(resolve, 150))
       await Promise.race([

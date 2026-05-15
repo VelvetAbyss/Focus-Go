@@ -28,6 +28,7 @@ type AdminUser = {
   syncPayloadBytes: number
   syncByType: SyncByType
   healthScore: HealthScore
+  latestNote: { body: string; adminEmail: string; createdAt: number; count: number } | null
 }
 
 type AdminOverview = {
@@ -921,6 +922,15 @@ const AdminPage = () => {
                               <span className="admin-user-tags">
                                 {u.tags.map((tag) => <span key={tag} className="admin-tag">{tag}</span>)}
                               </span>
+                            )}
+                            {u.latestNote && (
+                              <div className="admin-user-note-inline" title={u.latestNote.body}>
+                                <span className="admin-user-note-inline__body">📝 {u.latestNote.body}</span>
+                                <span className="admin-user-note-inline__meta">
+                                  {u.latestNote.adminEmail} · {fmtDateTime(u.latestNote.createdAt, lang)}
+                                  {u.latestNote.count > 1 ? ` · +${u.latestNote.count - 1}` : ''}
+                                </span>
+                              </div>
                             )}
                           </td>
                           <td><span className={`admin-pill ${planKey(u.plan)}`}>{planKey(u.plan) === 'premium' ? t.premium : t.free}</span></td>
