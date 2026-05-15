@@ -6,6 +6,113 @@ export type BaseEntity = {
   workspaceId?: string
 }
 
+export type EntityRefDomain = 'core' | 'productivity' | 'content' | 'life' | 'commercial' | 'sync'
+
+export type EntityRef = {
+  domain: EntityRefDomain
+  type: string
+  id: string
+}
+
+export type EventSource = {
+  kind: 'user' | 'system' | 'sync' | 'payment' | 'backfill'
+  clientId?: string
+  requestId?: string
+  externalId?: string
+}
+
+export type ProjectStatus = 'planning' | 'active' | 'blocked' | 'done' | 'archived'
+
+export type DomainEventType =
+  | 'task.created'
+  | 'task.completed'
+  | 'focus.started'
+  | 'focus.completed'
+  | 'note.created'
+  | 'note.updated'
+  | 'project.created'
+  | 'project.archived'
+  | 'diary.created'
+  | 'podcast.saved'
+  | 'news.saved'
+  | 'payment.success'
+  | 'sync.finished'
+
+export type DomainEventPayloadMap = {
+  'task.created': { title: string; status: TaskStatus; priority: TaskPriority | null; projectId?: string }
+  'task.completed': { title: string; previousStatus: TaskStatus; completedAt: number; projectId?: string }
+  'focus.started': { taskId?: string; goal?: string; plannedMinutes: number }
+  'focus.completed': { taskId?: string; goal?: string; plannedMinutes: number; actualMinutes: number; completedAt: number }
+  'note.created': { title: string; collection: NoteCollection; tagNames: string[] }
+  'note.updated': { title: string; changedFields: string[] }
+  'project.created': { title: string; status: ProjectStatus; priority: TaskPriority | null; dueDate?: string }
+  'project.archived': { title: string; archivedAt: number }
+  'diary.created': { dateKey: string; entryAt: number; tagNames: string[] }
+  'podcast.saved': { name: string; author: string; source: 'itunes' | 'netease'; collectionId: number }
+  'news.saved': { title: string; url: string; sourceId?: string }
+  'payment.success': {
+    orderNo: string
+    planId: string
+    entitlement: string
+    amount: number
+    currency: string
+    channel: string
+    paidAt: number
+  }
+  'sync.finished': { pushedCount?: number; pulledCount?: number; status: 'success'; finishedAt: number }
+}
+
+export type DomainEvent<TType extends DomainEventType = DomainEventType> = Omit<BaseEntity, 'workspaceId'> & {
+  type: TType
+  actorId?: string | null
+  workspaceId?: string | null
+  occurredAt: number
+  source: EventSource
+  subject: EntityRef
+  subjectKey: string
+  related: EntityRef[]
+  payload: DomainEventPayloadMap[TType]
+  schemaVersion: number
+  dedupeKey: string
+}
+
+export type TimelineKind =
+  | 'task'
+  | 'focus'
+  | 'note'
+  | 'project'
+  | 'diary'
+  | 'podcast'
+  | 'news'
+  | 'payment'
+  | 'sync'
+
+export type TimelineVisibility = 'default' | 'quiet' | 'hidden'
+
+export type TimelineItem = BaseEntity & {
+  eventId: string
+  kind: TimelineKind
+  title: string
+  summary?: string
+  occurredAt: number
+  subject: EntityRef
+  subjectKey: string
+  related: EntityRef[]
+  domain: EntityRefDomain
+  entityType: string
+  entityId: string
+  visibility: TimelineVisibility
+  pinned: boolean
+  route?: string
+  icon?: string
+  accent?: string
+  source: {
+    eventType: DomainEventType | 'backfill'
+    eventSchemaVersion: number
+    projectionVersion: number
+  }
+}
+
 export type TaskStatus = 'todo' | 'doing' | 'done'
 export type TaskPriority = 'high' | 'medium' | 'low'
 

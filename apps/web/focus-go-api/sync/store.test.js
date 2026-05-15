@@ -51,6 +51,40 @@ test('getRxdbPullState returns rows after checkpoint in stable order', () => {
   assert.equal(changes.documents[0].id, 'habit-2')
 })
 
+test('ensureSyncTables creates sync_domain_events', () => {
+  const db = createDb()
+
+  const table = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'sync_domain_events'").get()
+  assert.equal(table.name, 'sync_domain_events')
+})
+
+test('pushRxdbRows and getRxdbPullState support domainEvents', () => {
+  const db = createDb()
+
+  const result = pushRxdbRows(db, 'user-1', 'domainEvents', [{
+    newDocumentState: {
+      id: 'event-1',
+      type: 'task.completed',
+      occurredAt: 20,
+      dedupeKey: 'task.completed:task-1:20',
+      subject: { domain: 'productivity', type: 'task', id: 'task-1' },
+      subjectKey: 'task:task-1',
+      related: [],
+      payload: { title: 'Task', previousStatus: 'doing', completedAt: 20 },
+      schemaVersion: 1,
+      updatedAt: 20,
+      createdAt: 20,
+      _deleted: false,
+    },
+    assumedMasterState: null,
+  }])
+  assert.equal(result.conflicts.length, 0)
+
+  const state = getRxdbPullState(db, 'user-1', 'domainEvents', null, 10)
+  assert.equal(state.documents.length, 1)
+  assert.equal(state.documents[0].dedupeKey, 'task.completed:task-1:20')
+})
+
 test('getRxdbPullState returns blobs referenced by pulled documents', () => {
   const db = createDb()
   upsertSyncBlob(db, {

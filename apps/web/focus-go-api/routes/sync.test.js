@@ -141,6 +141,58 @@ test('sync route supports syncedPreferences entity', async () => {
   }
 })
 
+test('sync route supports domainEvents entity', async () => {
+  const ctx = await createServer()
+
+  try {
+    const event = {
+      id: 'event-1',
+      type: 'task.completed',
+      actorId: null,
+      workspaceId: null,
+      occurredAt: 20,
+      source: { kind: 'user' },
+      subject: { domain: 'productivity', type: 'task', id: 'task-1' },
+      subjectKey: 'task:task-1',
+      related: [],
+      payload: { title: 'Task', previousStatus: 'doing', completedAt: 20 },
+      schemaVersion: 1,
+      dedupeKey: 'task.completed:task-1:20',
+      createdAt: 20,
+      updatedAt: 20,
+      _deleted: false,
+    }
+    const pushResponse = await fetch(`${ctx.baseUrl}/sync/rxdb/push`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'domainEvents',
+        rows: [{ newDocumentState: event, assumedMasterState: null }],
+        blobs: [],
+      }),
+    })
+
+    assert.equal(pushResponse.status, 200)
+
+    const pullResponse = await fetch(`${ctx.baseUrl}/sync/rxdb/pull`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'domainEvents',
+        checkpoint: null,
+        limit: 100,
+      }),
+    })
+
+    assert.equal(pullResponse.status, 200)
+    const pullJson = await pullResponse.json()
+    assert.equal(pullJson.documents.length, 1)
+    assert.equal(pullJson.documents[0].dedupeKey, 'task.completed:task-1:20')
+  } finally {
+    await ctx.close()
+  }
+})
+
 test('sync route rejects stale writes when assumed master state does not match', async () => {
   const ctx = await createServer()
 

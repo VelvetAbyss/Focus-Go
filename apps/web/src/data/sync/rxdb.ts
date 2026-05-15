@@ -6,6 +6,8 @@ import { createBlobMap, decodeSyncPayload, encodeSyncPayload } from './content'
 import { dispatchSyncDataUpdated, SYNC_ENTITY_TABLES, SYNC_STATUS_CHANGED_EVENT } from './constants'
 import { syncApi } from './client'
 import { getAuth } from '../../store/auth'
+import { runDomainEventProjections } from '../events/projections'
+import type { DomainEvent } from '../models/types'
 import type { RxdbCheckpoint, RxdbPullDocument, RxdbPushRow, SyncEntityType, SyncPayload, SyncState, SyncStatus } from './types'
 
 const RXDB_SYNC_DB_NAME = 'focusgo-sync-rxdb'
@@ -140,6 +142,17 @@ const normalizeSyncDocument = (entityType: SyncEntityType, document: unknown, so
       : document.updatedAt
     return { ...document, _deleted: true, deletedAt } as SyncDocument
   }
+  if (entityType === 'domainEvents') {
+    if (typeof document.type !== 'string' || document.type.trim().length === 0) {
+      throw new Error(`${source} returned invalid type for ${describeSyncDocument(entityType, document)}`)
+    }
+    if (typeof document.occurredAt !== 'number' || !Number.isFinite(document.occurredAt) || document.occurredAt < 0) {
+      throw new Error(`${source} returned invalid occurredAt for ${describeSyncDocument(entityType, document)}`)
+    }
+    if (typeof document.dedupeKey !== 'string' || document.dedupeKey.trim().length === 0) {
+      throw new Error(`${source} returned invalid dedupeKey for ${describeSyncDocument(entityType, document)}`)
+    }
+  }
   return { ...document, _deleted: false } as SyncDocument
 }
 
@@ -156,8 +169,17 @@ const writeDexieEntity = async (entityType: SyncEntityType, document: SyncDocume
   const normalized = normalizeSyncDocument(entityType, document, 'pull')
   const tableName = SYNC_ENTITY_TABLES[entityType]
   const table = db.table(tableName)
-  if (normalized._deleted) await table.delete(normalized.id)
-  else await table.put({ ...normalized, _deleted: undefined })
+  if (normalized._deleted) {
+    if (entityType === 'domainEvents') {
+      console.error('[domain-events] ignoring remote delete for append-only event', normalized.id)
+      return
+    }
+    await table.delete(normalized.id)
+  } else {
+    const payload = { ...normalized, _deleted: undefined }
+    await table.put(payload)
+    if (entityType === 'domainEvents') await runDomainEventProjections(payload as DomainEvent)
+  }
   dispatchSyncDataUpdated(entityType)
 }
 
@@ -344,6 +366,7 @@ export const ensureRxdbSyncReady = async () =>
 export const runRxdbSyncCycle = async () =>
   runQueued(async () => {
     await ensureSyncStateReady()
+    syncValidationErrors = []
 
     if (!getAuth()?.accessToken) {
       const message = 'Sync failed: session expired, please log in again'

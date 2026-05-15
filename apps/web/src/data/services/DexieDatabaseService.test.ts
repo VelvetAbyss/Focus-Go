@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { IDatabaseService } from '@focus-go/core'
 import { createDexieDatabaseService } from './DexieDatabaseService'
 import { db } from '../db'
+import { publishDomainEvent } from '../events/publisher'
 
 describe('DexieDatabaseService', () => {
   it('implements IDatabaseService contract surface', () => {
@@ -452,5 +453,67 @@ describe('DexieDatabaseService', () => {
 
     expect(await service.tasks.list()).toHaveLength(0)
     expect(db.tables.some((table) => table.name === 'sync_outbox')).toBe(false)
+  })
+
+  it('publishes task created and completed domain events', async () => {
+    await db.delete({ disableAutoOpen: false })
+    await db.open()
+    const service = createDexieDatabaseService()
+
+    const task = await service.tasks.add({
+      title: 'Evented task',
+      status: 'todo',
+      priority: 'high',
+    })
+    await service.tasks.updateStatus(task.id, 'done')
+    await service.tasks.updateStatus(task.id, 'done')
+
+    const events = await db.domainEvents.orderBy('occurredAt').toArray()
+    expect(events.map((event) => event.type)).toEqual(['task.created', 'task.completed'])
+    expect(events[0]?.dedupeKey).toBe(`task.created:${task.id}`)
+    expect(events[1]?.payload).toMatchObject({ title: 'Evented task', previousStatus: 'todo' })
+  })
+
+  it('dedupes domain events by dedupeKey', async () => {
+    await db.delete({ disableAutoOpen: false })
+    await db.open()
+
+    const input = {
+      type: 'sync.finished' as const,
+      occurredAt: 123,
+      source: { kind: 'sync' as const, clientId: 'test' },
+      subject: { domain: 'sync' as const, type: 'syncRun', id: 'run-1' },
+      payload: { status: 'success' as const, finishedAt: 123 },
+      dedupeKey: 'sync.finished:123:test',
+    }
+
+    const first = await publishDomainEvent(input)
+    const second = await publishDomainEvent(input)
+
+    expect(second.id).toBe(first.id)
+    expect(await db.domainEvents.count()).toBe(1)
+  })
+
+  it('publishes focus, note, diary, and podcast domain events', async () => {
+    await db.delete({ disableAutoOpen: false })
+    await db.open()
+    const service = createDexieDatabaseService()
+
+    const session = await service.focusSessions.start({ plannedMinutes: 25, goal: 'Draft' })
+    await service.focusSessions.complete(session.id, { actualMinutes: 20, completedAt: session.createdAt + 20 * 60 * 1000 })
+    const note = await service.notes.create({ title: 'Note', contentMd: 'Body', tags: ['work'] })
+    await service.notes.update(note.id, { title: 'Updated note' })
+    await service.diary.add({ dateKey: '2026-05-15', entryAt: 1_768_475_200_000, contentMd: 'Entry', tags: ['daily'] })
+    await service.lifePodcasts.create({ source: 'itunes', sourceId: '1', collectionId: 1, name: 'Show', author: 'Host', episodes: [] })
+
+    const events = await db.domainEvents.toArray()
+    expect(events.map((event) => event.type)).toEqual(expect.arrayContaining([
+      'focus.started',
+      'focus.completed',
+      'note.created',
+      'note.updated',
+      'diary.created',
+      'podcast.saved',
+    ]))
   })
 })

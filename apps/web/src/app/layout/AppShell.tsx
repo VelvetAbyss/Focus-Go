@@ -91,12 +91,13 @@ const AppShell = ({ children }: AppShellProps) => {
   }, [])
 
   const isNoteRoute = location.pathname === ROUTES.NOTE
+  const isTimelineRoute = location.pathname === ROUTES.TIMELINE
   const isDiaryRoute = location.pathname === ROUTES.DIARY
   const isCalendarRoute = location.pathname === ROUTES.CALENDAR
   const isFocusRoute = location.pathname === ROUTES.FOCUS
   const isTasksRoute = location.pathname === ROUTES.TASKS
   const isTripsRoute = location.pathname === ROUTES.TRIPS || location.pathname.startsWith('/trips/')
-  const isFullBleedRoute = isNoteRoute || isDiaryRoute || isCalendarRoute || isFocusRoute || isTasksRoute || isTripsRoute
+  const isFullBleedRoute = isNoteRoute || isTimelineRoute || isDiaryRoute || isCalendarRoute || isFocusRoute || isTasksRoute || isTripsRoute
 
   useEffect(() => {
     if (compactViewport) return

@@ -9,6 +9,7 @@ type LabsMessages = {
   featureDescriptions: Record<string, string>
   nav: {
     dashboard: string
+    timeline: string
     projects: string
     tasks: string
     note: string
@@ -72,6 +73,7 @@ const messages: Record<LabsLang, LabsMessages> = {
     },
     nav: {
       dashboard: 'Dashboard',
+      timeline: 'Timeline',
       projects: 'Project',
       tasks: 'Tasks',
       note: 'Note',
@@ -133,6 +135,7 @@ const messages: Record<LabsLang, LabsMessages> = {
     },
     nav: {
       dashboard: '仪表盘',
+      timeline: '时间线',
       projects: '项目',
       tasks: '任务',
       note: '笔记',

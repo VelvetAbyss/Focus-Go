@@ -6,6 +6,7 @@ import './styles/_variables.scss'
 import './styles/_keyframe-animations.scss'
 import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
+import './data/events/timelineProjection'
 import App from './App.tsx'
 import { bootstrapAuth } from './config/authBootstrap'
 

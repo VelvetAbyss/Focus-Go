@@ -4,6 +4,7 @@ import type {
   BookItem,
   DashboardLayout,
   DiaryEntry,
+  DomainEvent,
   FeatureInstallation,
   FocusSession,
   FocusSettings,
@@ -22,6 +23,7 @@ import type {
   StockItem,
   SyncedPreferences,
   TaskItem,
+  TimelineItem,
   ProjectItem,
   ProjectNoteLink,
   ProjectPerson,
@@ -49,6 +51,8 @@ import {
   schemaV37,
   schemaV38,
   schemaV39,
+  schemaV40,
+  schemaV41,
   schemaV2,
   schemaV3,
   schemaV4,
@@ -90,6 +94,8 @@ export class WorkbenchDb extends Dexie {
   lifePeople!: Table<LifePerson, string>
   trips!: Table<TripRecord, string>
   syncedPreferences!: Table<SyncedPreferences, string>
+  domainEvents!: Table<DomainEvent, string>
+  timelineItems!: Table<TimelineItem, string>
 
   constructor() {
     super(DB_NAME)
@@ -227,7 +233,15 @@ export class WorkbenchDb extends Dexie {
       .stores(schemaV39)
       .upgrade(async () => {})
 
-    this.version(DB_VERSION).stores(schemaV39)
+    this.version(40)
+      .stores(schemaV40)
+      .upgrade(async () => {})
+
+    this.version(41)
+      .stores(schemaV41)
+      .upgrade(async () => {})
+
+    this.version(DB_VERSION).stores(schemaV41)
 
     this.tasks = this.table(TABLES.tasks)
     this.notes = this.table(TABLES.notes)
@@ -258,6 +272,8 @@ export class WorkbenchDb extends Dexie {
     this.lifePeople = this.table(TABLES.lifePeople)
     this.trips = this.table(TABLES.trips)
     this.syncedPreferences = this.table(TABLES.syncedPreferences)
+    this.domainEvents = this.table(TABLES.domainEvents)
+    this.timelineItems = this.table(TABLES.timelineItems)
   }
 }
 

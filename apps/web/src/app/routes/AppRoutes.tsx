@@ -7,6 +7,7 @@ import BrandLoader from '../../shared/ui/loading/BrandLoader'
 import { markDiscoveryNewSeen } from '../../shared/discovery/resetDiscovery'
 
 const DashboardRoute = lazy(() => import('./DashboardRoute'))
+const TimelinePage = lazy(() => import('../../features/timeline/pages/TimelinePage'))
 const TasksPage = lazy(() => import('../../features/tasks/pages/TasksPage'))
 const ProjectsPage = lazy(() => import('../../features/projects/pages/ProjectsPage'))
 const ProjectDetailPage = lazy(() => import('../../features/projects/pages/ProjectDetailPage'))
@@ -84,6 +85,7 @@ const AppRoutes = () => {
       <Route path={LEGACY_ROUTES.KNOWLEDGE} element={<Navigate to={ROUTES.DASHBOARD} replace />} />
       <Route path="/rss" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
       <Route path={ROUTES.DASHBOARD} element={<Suspense fallback={<RouteFallback />}><DashboardRoute /></Suspense>} />
+      <Route path={ROUTES.TIMELINE} element={<Suspense fallback={<RouteFallback />}><TimelinePage /></Suspense>} />
       <Route path={ROUTES.PROJECTS} element={<GuardedProjectsRoute />} />
       <Route path={ROUTES.PROJECT_DETAIL} element={<GuardedProjectsRoute detail />} />
       <Route path={ROUTES.TASKS} element={<Suspense fallback={<RouteFallback />}><TasksPage /></Suspense>} />
