@@ -1,4 +1,5 @@
 import type { TaskItem, TaskPriority, TaskStatus } from '../tasks.types'
+import { getTaskCompletion, getTaskDaysUntilDue } from '../domain/taskRules'
 
 export type TaskTagTone = {
   dot: string
@@ -17,20 +18,6 @@ export type TaskDeadlineAlert = {
   daysRemaining: number
   label: string
   level: 'watch' | 'soon' | 'urgent'
-}
-
-const DAY_MS = 24 * 60 * 60 * 1000
-
-const toLocalDayStart = (value: number) => {
-  const date = new Date(value)
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
-}
-
-const parseDateOnlyToLocalDayStart = (value: string) => {
-  const parts = value.split('-').map((part) => Number.parseInt(part, 10))
-  if (parts.length !== 3 || parts.some((part) => Number.isNaN(part))) return null
-  const [year, month, day] = parts
-  return new Date(year, month - 1, day).getTime()
 }
 
 const buildDeadlineState = (daysRemaining: number): TaskDeadlineState => {
@@ -84,7 +71,8 @@ const buildDeadlineState = (daysRemaining: number): TaskDeadlineState => {
 }
 
 export const getTaskDeadlineState = (task: Pick<TaskItem, 'dueDate' | 'status'>, now = Date.now()): TaskDeadlineState => {
-  if (!task.dueDate || task.status === 'done') {
+  const daysRemaining = getTaskDaysUntilDue(task, now)
+  if (daysRemaining == null) {
     return {
       daysRemaining: null,
       label: null,
@@ -94,18 +82,6 @@ export const getTaskDeadlineState = (task: Pick<TaskItem, 'dueDate' | 'status'>,
     }
   }
 
-  const dueDay = parseDateOnlyToLocalDayStart(task.dueDate)
-  if (dueDay == null) {
-    return {
-      daysRemaining: null,
-      label: null,
-      shellClass: '',
-      badgeClass: 'border-[#3A3733]/10 bg-white text-[#3A3733]/70',
-      textClass: 'text-muted-foreground',
-    }
-  }
-
-  const daysRemaining = Math.round((dueDay - toLocalDayStart(now)) / DAY_MS)
   return buildDeadlineState(daysRemaining)
 }
 
@@ -197,8 +173,4 @@ export const formatTaskDateTime = (value: number) =>
     minute: '2-digit',
   })
 
-export const getTaskCompletion = (task: Pick<TaskItem, 'subtasks'>) => {
-  if (task.subtasks.length === 0) return null
-  const completed = task.subtasks.filter((item) => item.done).length
-  return { completed, total: task.subtasks.length }
-}
+export { getTaskCompletion }

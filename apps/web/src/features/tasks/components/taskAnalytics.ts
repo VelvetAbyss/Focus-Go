@@ -1,4 +1,5 @@
 import type { TaskItem, TaskPriority, TaskStatus } from '../tasks.types'
+import { getTaskCompletion, isTaskDone } from '../domain/taskRules'
 
 export type AnalyticsGranularity = 'day' | 'week' | 'month'
 
@@ -178,12 +179,12 @@ export const buildTaskAnalytics = (tasks: TaskItem[], { now = Date.now(), granul
     if (index == null) return
     buckets[index]!.created += 1
 
-    const subtaskCompleted = task.subtasks.filter((item) => item.done).length
-    buckets[index]!.subtasksCompleted += subtaskCompleted
-    buckets[index]!.subtasksTotal += task.subtasks.length
+    const completion = getTaskCompletion(task)
+    buckets[index]!.subtasksCompleted += completion?.completed ?? 0
+    buckets[index]!.subtasksTotal += completion?.total ?? 0
 
     const dueDay = parseDateOnlyToUtcDayStart(task.dueDate)
-    if (dueDay != null && task.status !== 'done') {
+    if (dueDay != null && !isTaskDone(task)) {
       const dueIndex = bucketIndex.get(getBucketRange(dueDay, granularity).startAt)
       if (dueIndex != null) {
         const daysRemaining = Math.round((dueDay - nowDayStart) / DAY_MS)
@@ -196,18 +197,18 @@ export const buildTaskAnalytics = (tasks: TaskItem[], { now = Date.now(), granul
   const completions = buckets.reduce((sum, bucket) => sum + bucket.completions, 0)
   const created = buckets.reduce((sum, bucket) => sum + bucket.created, 0)
   const totalTasks = tasks.length
-  const completedTasks = tasks.filter((task) => task.status === 'done').length
+  const completedTasks = tasks.filter(isTaskDone).length
   const activeTasks = totalTasks - completedTasks
-  const subtasksCompleted = tasks.reduce((sum, task) => sum + task.subtasks.filter((item) => item.done).length, 0)
-  const subtasksTotal = tasks.reduce((sum, task) => sum + task.subtasks.length, 0)
+  const subtasksCompleted = tasks.reduce((sum, task) => sum + (getTaskCompletion(task)?.completed ?? 0), 0)
+  const subtasksTotal = tasks.reduce((sum, task) => sum + (getTaskCompletion(task)?.total ?? 0), 0)
   const subtaskCompletionRate = subtasksTotal > 0 ? roundTo((subtasksCompleted / subtasksTotal) * 100, 0) : 0
   const overdueTasks = tasks.filter((task) => {
     const dueDay = parseDateOnlyToUtcDayStart(task.dueDate)
-    return dueDay != null && task.status !== 'done' && dueDay < nowDayStart
+    return dueDay != null && !isTaskDone(task) && dueDay < nowDayStart
   }).length
   const dueSoonTasks = tasks.filter((task) => {
     const dueDay = parseDateOnlyToUtcDayStart(task.dueDate)
-    if (dueDay == null || task.status === 'done') return false
+    if (dueDay == null || isTaskDone(task)) return false
     const daysRemaining = Math.round((dueDay - nowDayStart) / DAY_MS)
     return daysRemaining >= 0 && daysRemaining <= DEADLINE_SOON_DAYS
   }).length

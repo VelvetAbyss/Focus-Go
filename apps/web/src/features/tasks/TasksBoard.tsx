@@ -31,7 +31,7 @@ import { useAuthGate } from '../auth/AuthGateContext'
 import { DiscoveryEmptyState } from '../../shared/ui/EmptyState'
 import { DiscoveryHint } from '../../shared/ui/DiscoveryHint'
 import { resolveProjectColor } from '../../shared/design/tokens'
-import { parseQuickAdd } from './parseQuickAdd'
+import { createTask, parseQuickAddTaskInput } from './application/taskActions'
 
 const tabs: { key: TaskStatus }[] = [{ key: 'todo' }, { key: 'doing' }, { key: 'done' }]
 
@@ -357,8 +357,8 @@ const TasksBoard = ({
     const fallbackProjectId = scope.kind === 'project'
       ? scope.projectId
       : projectFilterIds.size === 1 ? [...projectFilterIds][0] : undefined
-    const parsed = await parseQuickAdd(rawTitle, projects, fallbackProjectId)
-    const created = await tasksRepo.add({
+    const parsed = await parseQuickAddTaskInput(rawTitle, { projects, fallbackProjectId })
+    const created = await createTask({
       title: parsed.title,
       status: topView === 'today' || effectiveGroupBy !== 'status' ? 'todo' : activeStatus,
       isToday: topView === 'today' || parsed.isToday === true,
