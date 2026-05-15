@@ -258,6 +258,65 @@ test('sync route rejects stale writes when assumed master state does not match',
   }
 })
 
+test('sync route refuses to resurrect a tombstoned row from a stale upsert', async () => {
+  const ctx = await createServer()
+
+  try {
+    // Setup: seed a tombstoned row directly in the DB. Bypasses the push path
+    // because the existing documentsMatch helper is asymmetric on _deleted:false
+    // (a separate matter — covered by the "stale assumedMasterState" test);
+    // here we only need a tombstoned starting state to exercise the new check.
+    ctx.db.prepare(`
+      INSERT INTO sync_notes (id, user_id, payload, updated_at, deleted_at)
+      VALUES (?, ?, ?, ?, ?)
+    `).run('note-1', 'user-1', JSON.stringify({ id: 'note-1', title: 'v1', updatedAt: 50 }), 50, 50)
+
+    // Stale upsert with updatedAt <= tombstone deleted_at must be rejected.
+    const stale = await fetch(`${ctx.baseUrl}/sync/rxdb/push`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'notes',
+        rows: [{
+          newDocumentState: { id: 'note-1', title: 'resurrected!', updatedAt: 30, _deleted: false },
+          assumedMasterState: { id: 'note-1', title: 'v1', updatedAt: 50, _deleted: true },
+        }],
+        blobs: [],
+      }),
+    })
+    assert.equal(stale.status, 200)
+    const staleJson = await stale.json()
+    assert.equal(staleJson.conflicts.length, 1, 'tombstoned row must not be resurrected by a stale upsert')
+    assert.equal(staleJson.conflicts[0]._deleted, true, 'conflict returned should still be the tombstone')
+
+    // Verify the DB row is still a tombstone (deleted_at unchanged, title unchanged).
+    const afterStale = ctx.db.prepare('SELECT payload, deleted_at FROM sync_notes WHERE id = ?').get('note-1')
+    assert.equal(afterStale.deleted_at, 50)
+    assert.equal(JSON.parse(afterStale.payload).title, 'v1')
+
+    // A legit re-creation with updatedAt strictly newer than the tombstone IS allowed.
+    const revive = await fetch(`${ctx.baseUrl}/sync/rxdb/push`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'notes',
+        rows: [{
+          newDocumentState: { id: 'note-1', title: 'genuinely recreated', updatedAt: 100, _deleted: false },
+          assumedMasterState: { id: 'note-1', title: 'v1', updatedAt: 50, _deleted: true },
+        }],
+        blobs: [],
+      }),
+    })
+    assert.equal(revive.status, 200)
+    assert.deepEqual(await revive.json(), { conflicts: [], blobs: [] })
+    const afterRevive = ctx.db.prepare('SELECT payload, deleted_at FROM sync_notes WHERE id = ?').get('note-1')
+    assert.equal(afterRevive.deleted_at, null)
+    assert.equal(JSON.parse(afterRevive.payload).title, 'genuinely recreated')
+  } finally {
+    await ctx.close()
+  }
+})
+
 test('sync route requires premium plan', async () => {
   const db = createDb()
   const app = express()

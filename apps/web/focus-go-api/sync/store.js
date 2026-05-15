@@ -188,6 +188,17 @@ export const pushRxdbRows = (db, userId, entityType, rows) => {
       continue
     }
 
+    // Tombstone-priority sanity check: refuse to resurrect a deleted row from
+    // an upsert whose updatedAt isn't strictly newer than the tombstone. Stops
+    // a client with a skewed clock (or replaying a stale queued op) from
+    // un-deleting a row that another device has already deleted. Idempotent
+    // re-deletes (incoming _deleted=true) are allowed through.
+    if (current && current.deleted_at && next._deleted !== true && next.updatedAt <= current.deleted_at) {
+      const conflict = buildConflictDocument(current)
+      if (conflict) conflicts.push(conflict)
+      continue
+    }
+
     const deletedAt = next._deleted === true ? next.updatedAt : null
     const payload = { ...next }
     delete payload._deleted
