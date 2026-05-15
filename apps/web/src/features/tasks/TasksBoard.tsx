@@ -31,6 +31,7 @@ import { useAuthGate } from '../auth/AuthGateContext'
 import { DiscoveryEmptyState } from '../../shared/ui/EmptyState'
 import { DiscoveryHint } from '../../shared/ui/DiscoveryHint'
 import { resolveProjectColor } from '../../shared/design/tokens'
+import { parseQuickAdd } from './parseQuickAdd'
 
 const tabs: { key: TaskStatus }[] = [{ key: 'todo' }, { key: 'doing' }, { key: 'done' }]
 
@@ -70,76 +71,6 @@ const sortByImportance = (a: TaskItem, b: TaskItem) => {
 }
 
 const sortByTime = (a: TaskItem, b: TaskItem) => b.createdAt - a.createdAt
-
-type ParsedQuickAdd = {
-  title: string
-  priority: TaskPriority | null
-  tags: string[]
-  dueDate?: string
-  isToday?: boolean
-  projectId?: string
-}
-
-const toDateKey = (date: Date) => date.toISOString().slice(0, 10)
-
-const normalizeToken = (value: string) => value.trim().toLowerCase().replace(/[\s_-]+/g, '')
-
-const parseQuickAdd = (rawTitle: string, projects: ProjectItem[], fallbackProjectId?: string): ParsedQuickAdd => {
-  const today = new Date()
-  const tomorrow = new Date(today)
-  tomorrow.setDate(today.getDate() + 1)
-  const parts = rawTitle.trim().split(/\s+/)
-  const tags: string[] = []
-  let priority: TaskPriority | null = null
-  let dueDate: string | undefined
-  let isToday = false
-  let projectId = fallbackProjectId
-  const titleParts: string[] = []
-  const projectBySlug = new Map(projects.map((project) => [normalizeToken(project.title), project.id] as const))
-
-  parts.forEach((part) => {
-    const token = part.trim()
-    if (!token) return
-    const lower = token.toLowerCase()
-    if (lower === 'today' || lower === '今天') {
-      isToday = true
-      dueDate = toDateKey(today)
-      return
-    }
-    if (lower === 'tomorrow' || lower === '明天') {
-      dueDate = toDateKey(tomorrow)
-      return
-    }
-    if (lower.startsWith('#') && lower.length > 1) {
-      tags.push(token.slice(1))
-      return
-    }
-    if (lower.startsWith('!')) {
-      const value = lower.slice(1)
-      if (value === '1' || value === 'high') priority = 'high'
-      else if (value === '2' || value === 'medium' || value === 'med') priority = 'medium'
-      else if (value === '3' || value === 'low') priority = 'low'
-      else titleParts.push(token)
-      return
-    }
-    if (lower.startsWith('@') && lower.length > 1) {
-      const matchedProjectId = projectBySlug.get(normalizeToken(token.slice(1)))
-      if (matchedProjectId) projectId = matchedProjectId
-      else tags.push(token.slice(1))
-      return
-    }
-    titleParts.push(token)
-  })
-
-  return {
-    title: titleParts.join(' ').trim() || rawTitle.trim(),
-    priority,
-    tags,
-    dueDate,
-    isToday,
-    projectId,
-  }
-}
 
 type TasksBoardProps = {
   asCard?: boolean
@@ -426,7 +357,7 @@ const TasksBoard = ({
     const fallbackProjectId = scope.kind === 'project'
       ? scope.projectId
       : projectFilterIds.size === 1 ? [...projectFilterIds][0] : undefined
-    const parsed = parseQuickAdd(rawTitle, projects, fallbackProjectId)
+    const parsed = await parseQuickAdd(rawTitle, projects, fallbackProjectId)
     const created = await tasksRepo.add({
       title: parsed.title,
       status: topView === 'today' || effectiveGroupBy !== 'status' ? 'todo' : activeStatus,
