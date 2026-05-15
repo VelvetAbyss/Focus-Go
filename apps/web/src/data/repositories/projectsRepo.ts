@@ -1,6 +1,9 @@
 import { db } from '../db'
 import type { ProjectHealth, ProjectItem, ProjectStatus } from '../models/types'
 import { enqueueSyncOperation } from '../sync/repository'
+import type { DomainEvent } from '../models/types'
+import { finalizeDomainEvent } from '../events/domainEventsRepo'
+import { publishDomainEvent } from '../events/publisher'
 import { touch, withBase } from './base'
 import { noteTagsRepo } from './noteTagsRepo'
 import { summarizeProject } from '../../features/projects/domain/projectSummary'
@@ -53,8 +56,24 @@ export const projectsRepo = {
       nextAction: data.nextAction?.trim() ?? '',
       riskSummary: data.riskSummary?.trim() ?? '',
     } satisfies Omit<ProjectItem, 'id' | 'createdAt' | 'updatedAt'>)
-    await db.projects.add(project)
+    let event: DomainEvent | undefined
+    await db.transaction('rw', db.projects, db.domainEvents, async () => {
+      await db.projects.add(project)
+      event = await publishDomainEvent({
+        type: 'project.created',
+        occurredAt: project.createdAt,
+        subject: { domain: 'productivity', type: 'project', id: project.id },
+        payload: {
+          title: project.title,
+          status: project.status,
+          priority: project.priority,
+          dueDate: project.dueDate,
+        },
+        dedupeKey: `project.created:${project.id}`,
+      })
+    })
     await enqueueSyncOperation('projects', 'upsert', project)
+    await finalizeDomainEvent(event)
     const existingTags = await noteTagsRepo.list()
     const tagName = toProjectTag(project.id)
     if (!existingTags.find((tag) => tag.name === tagName)) {
@@ -70,6 +89,7 @@ export const projectsRepo = {
   async update(id: string, patch: Partial<Omit<ProjectItem, 'id' | 'createdAt' | 'updatedAt'>>) {
     const current = await db.projects.get(id)
     if (!current) return null
+    const previousStatus = current.status
     const next = touch({
       ...current,
       ...patch,
@@ -80,8 +100,24 @@ export const projectsRepo = {
       nextAction: typeof patch.nextAction === 'string' ? patch.nextAction.trim() : current.nextAction,
       riskSummary: typeof patch.riskSummary === 'string' ? patch.riskSummary.trim() : current.riskSummary,
     })
-    await db.projects.put(next)
+    let event: DomainEvent | undefined
+    await db.transaction('rw', db.projects, db.domainEvents, async () => {
+      await db.projects.put(next)
+      if (previousStatus !== 'archived' && next.status === 'archived') {
+        event = await publishDomainEvent({
+          type: 'project.archived',
+          occurredAt: next.updatedAt,
+          subject: { domain: 'productivity', type: 'project', id: next.id },
+          payload: {
+            title: next.title,
+            archivedAt: next.updatedAt,
+          },
+          dedupeKey: `project.archived:${next.id}:${next.updatedAt}`,
+        })
+      }
+    })
     await enqueueSyncOperation('projects', 'upsert', next)
+    await finalizeDomainEvent(event)
     return next
   },
   async archive(id: string) {

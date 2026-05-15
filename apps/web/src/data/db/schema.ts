@@ -1,5 +1,5 @@
 export const DB_NAME = 'workbench-app'
-export const DB_VERSION = 39
+export const DB_VERSION = 41
 
 export const TABLES = {
   tasks: 'tasks',
@@ -31,6 +31,8 @@ export const TABLES = {
   lifePeople: 'life_people',
   trips: 'trips',
   syncedPreferences: 'synced_preferences',
+  domainEvents: 'domain_events',
+  timelineItems: 'timeline_items',
 } as const
 
 export const schemaV2 = {
@@ -223,4 +225,15 @@ export const schemaV38 = {
 export const schemaV39 = {
   ...schemaV38,
   [TABLES.syncedPreferences]: 'id, updatedAt, createdAt',
+} as const
+
+export const schemaV40 = {
+  ...schemaV39,
+  [TABLES.domainEvents]: 'id, type, occurredAt, workspaceId, &dedupeKey, subjectKey, createdAt, updatedAt',
+} as const
+
+export const schemaV41 = {
+  ...schemaV40,
+  [TABLES.timelineItems]:
+    'id, eventId, occurredAt, domain, kind, entityType, entityId, pinned, visibility, subjectKey, createdAt, updatedAt, [domain+occurredAt], [kind+occurredAt]',
 } as const

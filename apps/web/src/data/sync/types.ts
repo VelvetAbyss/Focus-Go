@@ -1,6 +1,7 @@
 import type {
   BookItem,
   DiaryEntry,
+  DomainEvent,
   FeatureInstallation,
   FocusSession,
   FocusSettings,
@@ -53,6 +54,7 @@ export const SYNC_ENTITY_TYPES = [
   'lifePeople',
   'trips',
   'syncedPreferences',
+  'domainEvents',
 ] as const
 
 export type SyncEntityType = (typeof SYNC_ENTITY_TYPES)[number]
@@ -85,6 +87,7 @@ export type SyncEntityMap = {
   lifePeople: LifePerson
   trips: TripRecord
   syncedPreferences: SyncedPreferences
+  domainEvents: DomainEvent
 }
 
 export type SyncPayload<T extends SyncEntityType = SyncEntityType> = SyncEntityMap[T] | ({ id: string; updatedAt: number } & Record<string, unknown>)

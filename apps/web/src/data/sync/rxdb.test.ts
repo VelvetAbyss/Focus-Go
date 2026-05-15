@@ -2,6 +2,7 @@ import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { db } from '../db'
 import { enqueueSyncOperation } from './repository'
+import '../events/timelineProjection'
 
 vi.mock('../../store/auth', () => ({
   getAuth: () => ({ accessToken: 'token' }),
@@ -128,6 +129,55 @@ describe('rxdb sync migration', () => {
     expect((await db.notes.get('note-remote'))?.title).toBe('Remote note')
   })
 
+  it('syncs domainEvents and projects pulled events into local timeline items', async () => {
+    fetchMock.mockImplementation(async (input, init) => {
+      const url = String(input)
+      const body = init?.body ? JSON.parse(String(init.body)) : {}
+      if (url.includes('/sync/rxdb/pull') && body.entityType === 'domainEvents') {
+        return {
+          ok: true,
+          json: async () => ({
+            documents: [{
+              id: 'event-remote',
+              type: 'task.completed',
+              actorId: null,
+              workspaceId: null,
+              occurredAt: 20,
+              source: { kind: 'user' },
+              subject: { domain: 'productivity', type: 'task', id: 'task-remote' },
+              subjectKey: 'task:task-remote',
+              related: [],
+              payload: { title: 'Remote task', previousStatus: 'doing', completedAt: 20 },
+              schemaVersion: 1,
+              dedupeKey: 'task.completed:task-remote:20',
+              createdAt: 20,
+              updatedAt: 20,
+              _deleted: false,
+            }],
+            checkpoint: { updatedAt: 20, id: 'event-remote' },
+            blobs: [],
+          }),
+        } as Response
+      }
+      if (url.includes('/sync/rxdb/pull')) {
+        return {
+          ok: true,
+          json: async () => ({ documents: [], checkpoint: body.checkpoint ?? null, blobs: [] }),
+        } as Response
+      }
+      return {
+        ok: true,
+        json: async () => ({ conflicts: [], blobs: [] }),
+      } as Response
+    })
+
+    await ensureRxdbSyncReady()
+    await runRxdbSyncCycle()
+
+    expect((await db.domainEvents.get('event-remote'))?.dedupeKey).toBe('task.completed:task-remote:20')
+    expect((await db.timelineItems.get('tl_event-remote'))?.summary).toBe('Remote task')
+  })
+
   it('uses only rxdb endpoints during migration sync', async () => {
     await db.projects.put({
       id: 'project-local',
@@ -186,6 +236,10 @@ describe('rxdb sync migration', () => {
     expect((await db.projects.get('project-local'))?.title).toBe('Local project')
     expect((await db.projects.get('project-remote'))?.title).toBe('Remote project')
     expect(fetchMock.mock.calls.every(([url]) => String(url).includes('/sync/rxdb/'))).toBe(true)
+    expect(fetchMock.mock.calls.some(([, init]) => {
+      const body = init?.body ? JSON.parse(String(init.body)) : {}
+      return body.entityType === 'timelineItems'
+    })).toBe(false)
   })
 
   it('pushes deletes as tombstones with deletedAt', async () => {
@@ -251,5 +305,41 @@ describe('rxdb sync migration', () => {
     await expect(runRxdbSyncCycle()).rejects.toThrow(/notes: pull returned invalid updatedAt/)
     expect(await db.notes.get('note-bad')).toBeUndefined()
     expect((await db.syncState.get('cloud-sync'))?.lastError).toContain('notes: pull returned invalid updatedAt')
+  }, 15_000)
+
+  it('blocks malformed remote domainEvents before writing to Dexie', async () => {
+    fetchMock.mockImplementation(async (input, init) => {
+      const url = String(input)
+      const body = init?.body ? JSON.parse(String(init.body)) : {}
+      if (url.includes('/sync/rxdb/pull') && body.entityType === 'domainEvents') {
+        return {
+          ok: true,
+          json: async () => ({
+            documents: [{
+              id: 'event-bad',
+              type: 'task.completed',
+              occurredAt: 20,
+              updatedAt: 20,
+              _deleted: false,
+            }],
+            checkpoint: null,
+            blobs: [],
+          }),
+        } as Response
+      }
+      if (url.includes('/sync/rxdb/pull')) {
+        return {
+          ok: true,
+          json: async () => ({ documents: [], checkpoint: body.checkpoint ?? null, blobs: [] }),
+        } as Response
+      }
+      return {
+        ok: true,
+        json: async () => ({ conflicts: [], blobs: [] }),
+      } as Response
+    })
+
+    await expect(runRxdbSyncCycle()).rejects.toThrow(/domainEvents: pull returned invalid dedupeKey/)
+    expect(await db.domainEvents.get('event-bad')).toBeUndefined()
   }, 15_000)
 })

@@ -1,6 +1,17 @@
 import type { CalendarSubscription } from '../../features/calendar/calendar.model'
 import type { DiaryFontId, LanguageCode, TemperatureUnit, WorldClockItem } from '../../shared/prefs/preferences'
 import type { ThemeSelection } from '../../shared/theme/theme'
+export type {
+  DomainEvent,
+  DomainEventPayloadMap,
+  DomainEventType,
+  EntityRef,
+  EntityRefDomain,
+  EventSource,
+  TimelineItem,
+  TimelineKind,
+  TimelineVisibility,
+} from '@focus-go/core'
 
 export type BaseEntity = {
   id: string

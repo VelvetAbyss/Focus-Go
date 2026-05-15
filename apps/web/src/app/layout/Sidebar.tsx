@@ -29,6 +29,7 @@ import {
   Settings,
   Sparkles,
   Timer,
+  ListTree,
   ShieldCheck,
   type LucideIcon,
 } from 'lucide-react'
@@ -60,6 +61,7 @@ type SidebarProps = {
 
 const ICONS: Record<RouteKey, LucideIcon> = {
   dashboard: House,
+  timeline: ListTree,
   projects: PanelsTopLeft,
   tasks: ListTodo,
   note: Notebook,

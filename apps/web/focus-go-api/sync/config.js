@@ -26,6 +26,7 @@ export const SYNC_TABLES = {
   trips: 'sync_trips',
   lifeDashboardLayout: 'sync_life_dashboard_layout',
   syncedPreferences: 'sync_synced_preferences',
+  domainEvents: 'sync_domain_events',
 }
 
 export const SYNC_ENTITY_TYPES = Object.keys(SYNC_TABLES)

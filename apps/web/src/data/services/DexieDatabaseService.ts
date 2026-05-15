@@ -18,6 +18,7 @@ import type {
   TaskCreateInput,
 } from '@focus-go/core'
 import { db } from '../db'
+import '../events/timelineProjection'
 import type {
   BookItem,
   DashboardLayout,
@@ -44,6 +45,9 @@ import type {
   WidgetTodo,
   WidgetTodoScope,
 } from '../models/types'
+import type { DomainEvent } from '../models/types'
+import { finalizeDomainEvent } from '../events/domainEventsRepo'
+import { publishDomainEvent } from '../events/publisher'
 import { touch, withBase } from '../repositories/base'
 import { createId } from '../../shared/utils/ids'
 import { areTaskNoteBlocksEqual, normalizeTaskNoteBlocks } from '../../features/tasks/model/taskNote'
@@ -549,8 +553,25 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
           createdAt: now,
         },
       ]
-      await db.tasks.add(task)
+      let event: DomainEvent | undefined
+      await db.transaction('rw', db.tasks, db.domainEvents, async () => {
+        await db.tasks.add(task)
+        event = await publishDomainEvent({
+          type: 'task.created',
+          occurredAt: task.createdAt,
+          subject: { domain: 'productivity', type: 'task', id: task.id },
+          related: task.projectId ? [{ domain: 'productivity', type: 'project', id: task.projectId }] : [],
+          payload: {
+            title: task.title,
+            status: task.status,
+            priority: task.priority,
+            projectId: task.projectId,
+          },
+          dedupeKey: `task.created:${task.id}`,
+        })
+      })
       await enqueueUpsert('tasks', task)
+      await finalizeDomainEvent(event)
       return task
     },
     async update(task) {
@@ -580,13 +601,32 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
           {
             id: createId(),
             type: 'status' as const,
-              message: `状态变更为${statusLabelMap[status]}`,
+            message: `状态变更为${statusLabelMap[status]}`,
             createdAt: now,
           },
         ],
       })
-      await db.tasks.put(next)
+      let event: DomainEvent | undefined
+      await db.transaction('rw', db.tasks, db.domainEvents, async () => {
+        await db.tasks.put(next)
+        if (status === 'done') {
+          event = await publishDomainEvent({
+            type: 'task.completed',
+            occurredAt: now,
+            subject: { domain: 'productivity', type: 'task', id: next.id },
+            related: next.projectId ? [{ domain: 'productivity', type: 'project', id: next.projectId }] : [],
+            payload: {
+              title: next.title,
+              previousStatus: normalized.status,
+              completedAt: now,
+              projectId: next.projectId,
+            },
+            dedupeKey: `task.completed:${next.id}:${now}`,
+          })
+        }
+      })
       await enqueueUpsert('tasks', next)
+      await finalizeDomainEvent(event)
       return next
     },
     async clearAllTags() {
@@ -644,8 +684,23 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
         backlinks: data?.backlinks ?? [],
         deletedAt: null,
       })
-      await db.notes.add(note)
+      let event: DomainEvent | undefined
+      await db.transaction('rw', db.notes, db.domainEvents, async () => {
+        await db.notes.add(note)
+        event = await publishDomainEvent({
+          type: 'note.created',
+          occurredAt: note.createdAt,
+          subject: { domain: 'content', type: 'note', id: note.id },
+          payload: {
+            title: note.title,
+            collection: note.collection,
+            tagNames: note.tags,
+          },
+          dedupeKey: `note.created:${note.id}`,
+        })
+      })
       await enqueueUpsert('notes', note)
+      await finalizeDomainEvent(event)
       return normalizeNote(note)
     },
     async update(id: string, patch: NoteUpdateInput) {
@@ -668,8 +723,28 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
           deletedAt: current.deletedAt ?? null,
         }),
       )
-      await db.notes.put(next)
+      const changedFields = (['title', 'contentMd', 'tags', 'collection'] as const).filter((field) => {
+        if (!(field in patch)) return false
+        return JSON.stringify(current[field]) !== JSON.stringify(next[field])
+      })
+      let event: DomainEvent | undefined
+      await db.transaction('rw', db.notes, db.domainEvents, async () => {
+        await db.notes.put(next)
+        if (changedFields.length > 0) {
+          event = await publishDomainEvent({
+            type: 'note.updated',
+            occurredAt: next.updatedAt,
+            subject: { domain: 'content', type: 'note', id: next.id },
+            payload: {
+              title: next.title,
+              changedFields: [...changedFields],
+            },
+            dedupeKey: `note.updated:${next.id}:${next.updatedAt}:${changedFields.join(',')}`,
+          })
+        }
+      })
       await enqueueUpsert('notes', next)
+      await finalizeDomainEvent(event)
       return next
     },
     async softDelete(id: string) {
@@ -843,8 +918,24 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
         taskId: data.taskId,
         goal: data.goal?.trim() || undefined,
       })
-      await db.focusSessions.add(session)
+      let event: DomainEvent | undefined
+      await db.transaction('rw', db.focusSessions, db.domainEvents, async () => {
+        await db.focusSessions.add(session)
+        event = await publishDomainEvent({
+          type: 'focus.started',
+          occurredAt: session.createdAt,
+          subject: { domain: 'productivity', type: 'focusSession', id: session.id },
+          related: session.taskId ? [{ domain: 'productivity', type: 'task', id: session.taskId }] : [],
+          payload: {
+            taskId: session.taskId,
+            goal: session.goal,
+            plannedMinutes: session.plannedMinutes,
+          },
+          dedupeKey: `focus.started:${session.id}`,
+        })
+      })
       await enqueueUpsert('focusSessions', session)
+      await finalizeDomainEvent(event)
       return session
     },
     async complete(id, data) {
@@ -859,8 +950,26 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
         actualMinutes,
         completedAt,
       })
-      await db.focusSessions.put(next)
+      let event: DomainEvent | undefined
+      await db.transaction('rw', db.focusSessions, db.domainEvents, async () => {
+        await db.focusSessions.put(next)
+        event = await publishDomainEvent({
+          type: 'focus.completed',
+          occurredAt: completedAt,
+          subject: { domain: 'productivity', type: 'focusSession', id: next.id },
+          related: next.taskId ? [{ domain: 'productivity', type: 'task', id: next.taskId }] : [],
+          payload: {
+            taskId: next.taskId,
+            goal: next.goal,
+            plannedMinutes: next.plannedMinutes,
+            actualMinutes,
+            completedAt,
+          },
+          dedupeKey: `focus.completed:${next.id}`,
+        })
+      })
       await enqueueUpsert('focusSessions', next)
+      await finalizeDomainEvent(event)
       return next
     },
   },
@@ -947,8 +1056,23 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
     },
     async add(data) {
       const entry = withBase(data as Omit<DiaryEntry, 'id' | 'createdAt' | 'updatedAt'>)
-      await db.diaryEntries.add(entry)
+      let event: DomainEvent | undefined
+      await db.transaction('rw', db.diaryEntries, db.domainEvents, async () => {
+        await db.diaryEntries.add(entry)
+        event = await publishDomainEvent({
+          type: 'diary.created',
+          occurredAt: entry.entryAt,
+          subject: { domain: 'life', type: 'diaryEntry', id: entry.id },
+          payload: {
+            dateKey: entry.dateKey,
+            entryAt: entry.entryAt,
+            tagNames: entry.tags,
+          },
+          dedupeKey: `diary.created:${entry.id}`,
+        })
+      })
       await enqueueUpsert('diaryEntries', entry)
+      await finalizeDomainEvent(event)
       return entry
     },
     async update(entry) {
@@ -1319,8 +1443,24 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
     },
     async create(data: LifePodcastCreateInput) {
       const next = normalizeLifePodcast(withBase(data as Omit<LifePodcast, 'id' | 'createdAt' | 'updatedAt'>))
-      await db.lifePodcasts.put(next)
+      let event: DomainEvent | undefined
+      await db.transaction('rw', db.lifePodcasts, db.domainEvents, async () => {
+        await db.lifePodcasts.put(next)
+        event = await publishDomainEvent({
+          type: 'podcast.saved',
+          occurredAt: next.createdAt,
+          subject: { domain: 'life', type: 'lifePodcast', id: next.id },
+          payload: {
+            name: next.name,
+            author: next.author,
+            source: next.source,
+            collectionId: next.collectionId,
+          },
+          dedupeKey: `podcast.saved:${next.id}`,
+        })
+      })
       await enqueueUpsert('lifePodcasts', next)
+      await finalizeDomainEvent(event)
       return next
     },
     async update(id: string, patch: LifePodcastUpdateInput) {

@@ -1,6 +1,7 @@
 export const ROUTES = {
   DASHBOARD: '/',
   ADMIN: '/admin',
+  TIMELINE: '/timeline',
   PROJECTS: '/projects',
   PROJECT_DETAIL: '/projects/:projectId',
   HABITS: '/habits',
@@ -27,7 +28,7 @@ export const LEGACY_ROUTES = {
   KNOWLEDGE: '/knowledge',
 } as const
 
-export type RouteKey = 'dashboard' | 'projects' | 'tasks' | 'note' | 'calendar' | 'trips' | 'focus' | 'diary' | 'settings' | 'labs' | 'admin' | 'membership'
+export type RouteKey = 'dashboard' | 'timeline' | 'projects' | 'tasks' | 'note' | 'calendar' | 'trips' | 'focus' | 'diary' | 'settings' | 'labs' | 'admin' | 'membership'
 
 export type NavItem = {
   key: RouteKey
@@ -37,6 +38,7 @@ export type NavItem = {
 
 export const NAV_ITEMS: NavItem[] = [
   { key: 'dashboard', label: 'Dashboard', to: ROUTES.DASHBOARD },
+  { key: 'timeline', label: 'Timeline', to: ROUTES.TIMELINE },
   { key: 'projects', label: 'Project', to: ROUTES.PROJECTS },
   { key: 'tasks', label: 'Tasks', to: ROUTES.TASKS },
   { key: 'note', label: 'Note', to: ROUTES.NOTE },
@@ -50,6 +52,7 @@ export const NAV_ITEMS: NavItem[] = [
 
 export const BASE_NAV_ITEMS: NavItem[] = [
   { key: 'dashboard', label: 'Dashboard', to: ROUTES.DASHBOARD },
+  { key: 'timeline', label: 'Timeline', to: ROUTES.TIMELINE },
   { key: 'tasks', label: 'Tasks', to: ROUTES.TASKS },
   { key: 'note', label: 'Note', to: ROUTES.NOTE },
   { key: 'calendar', label: 'Calendar', to: ROUTES.CALENDAR },

@@ -16,6 +16,7 @@ describe('routes config', () => {
   it('keeps only the supported primary modules in navigation', () => {
     expect(BASE_NAV_ITEMS.map((item) => item.key)).toEqual([
       'dashboard',
+      'timeline',
       'tasks',
       'note',
       'calendar',
