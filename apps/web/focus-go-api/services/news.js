@@ -20,6 +20,7 @@ export const NEWS_SOURCES = {
   douyin:      { id: 'douyin',      name: '抖音',       category: 'hot',     type: 'hottest',  interval: 10 * 60 * 1000, home: 'https://www.douyin.com/',                accent: '#3A3733' },
   hackernews:  { id: 'hackernews',  name: 'Hacker News',category: 'hot',     type: 'hottest',  interval: 10 * 60 * 1000, home: 'https://news.ycombinator.com/',          accent: '#c77a32' },
   github:      { id: 'github',      name: 'GitHub',     category: 'hot',     type: 'hottest',  interval: 10 * 60 * 1000, home: 'https://github.com/trending',            accent: '#3A3733' },
+  xiaoheihe:   { id: 'xiaoheihe',   name: '小黑盒',     category: 'hot',     type: 'hottest',  interval: 10 * 60 * 1000, home: 'https://xiaoheihe.cn/',                  accent: '#3a86ff' },
   // ── Tech ───────────────────────────────────────────────────────────────
   ithome:      { id: 'ithome',      name: 'IT之家',     category: 'tech',    type: 'realtime', interval: 10 * 60 * 1000, home: 'https://www.ithome.com/list/',           accent: '#be4a35' },
   sspai:       { id: 'sspai',       name: '少数派',     category: 'tech',    type: 'hottest',  interval: 10 * 60 * 1000, home: 'https://sspai.com/',                    accent: '#c7554a' },
@@ -123,6 +124,7 @@ const NEWSNOW_ID_MAP = {
   sspai: 'sspai',
   toutiao: 'toutiao',
   zhihu: 'zhihu',
+  xiaoheihe: 'xiaoheihe',
 }
 
 const fetchFromNewsnow = async (id, fetchImpl = fetch) => {
@@ -213,6 +215,7 @@ export const createDefaultFetchers = (fetchImpl = fetch) => ({
   juejin:      async () => fetchFromNewsnow('juejin', fetchImpl),
   jin10:       async () => fetchFromNewsnow('jin10', fetchImpl),
   gelonghui:   async () => fetchFromNewsnow('gelonghui', fetchImpl),
+  xiaoheihe:   async () => fetchFromNewsnow('xiaoheihe', fetchImpl),
 })
 
 const readCache = (db, sourceId) => {

@@ -36,7 +36,7 @@ export const DEFAULT_ENABLED_SOURCE_IDS = [
 ]
 
 // Sources that are off by default but available to enable
-export const EXTRA_SOURCE_IDS = ['douyin']
+export const EXTRA_SOURCE_IDS = ['douyin', 'xiaoheihe']
 
 export const DEFAULT_NEWS_PREFERENCES: NewsPreferences = {
   enabledSourceIds: DEFAULT_ENABLED_SOURCE_IDS,
