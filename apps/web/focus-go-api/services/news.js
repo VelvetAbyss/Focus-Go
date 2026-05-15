@@ -124,7 +124,6 @@ const NEWSNOW_ID_MAP = {
   sspai: 'sspai',
   toutiao: 'toutiao',
   zhihu: 'zhihu',
-  xiaoheihe: 'xiaoheihe',
 }
 
 const fetchFromNewsnow = async (id, fetchImpl = fetch) => {
@@ -215,7 +214,16 @@ export const createDefaultFetchers = (fetchImpl = fetch) => ({
   juejin:      async () => fetchFromNewsnow('juejin', fetchImpl),
   jin10:       async () => fetchFromNewsnow('jin10', fetchImpl),
   gelonghui:   async () => fetchFromNewsnow('gelonghui', fetchImpl),
-  xiaoheihe:   async () => fetchFromNewsnow('xiaoheihe', fetchImpl),
+  xiaoheihe: async () => {
+    const res = await fetchJson('https://api.xiaoheihe.cn/bbs/web/home/banner', {}, fetchImpl)
+    return res.result?.banner?.map((item) => ({
+      id: String(item.linkid),
+      title: item.title,
+      url: `https://xiaoheihe.cn/h/${item.linkid}`,
+      pubDate: item.timestamp ? item.timestamp * 1000 : undefined,
+      extra: { info: [item.author?.username, item.topic?.name].filter(Boolean).join(' · ') || undefined },
+    }))
+  },
 })
 
 const readCache = (db, sourceId) => {

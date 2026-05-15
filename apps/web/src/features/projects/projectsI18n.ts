@@ -180,6 +180,27 @@ type ProjectsMessages = {
     statusBlocked: string
     statusDone: string
     statusArchived: string
+    moreOptions: string
+    fewerOptions: string
+    dueQuickToday: string
+    dueQuickTomorrow: string
+    dueQuickWeekend: string
+    dueQuickNextWeek: string
+    dueQuickIn30Days: string
+    dueCustom: string
+    dueClear: string
+    titleRequiredHint: string
+    savedJustNow: string
+    savedAgo: string
+    pillStatus: string
+    pillPriority: string
+    pillOwner: string
+    pillDue: string
+    pillColor: string
+    pillStart: string
+    descriptionPlaceholderShort: string
+    goalPlaceholderShort: string
+    titlePlaceholderHero: string
   }
 }
 
@@ -362,6 +383,27 @@ const messages: Record<LanguageCode, ProjectsMessages> = {
       statusBlocked: 'Blocked',
       statusDone: 'Done',
       statusArchived: 'Archived',
+      moreOptions: 'More options',
+      fewerOptions: 'Fewer options',
+      dueQuickToday: 'Today',
+      dueQuickTomorrow: 'Tomorrow',
+      dueQuickWeekend: 'This weekend',
+      dueQuickNextWeek: 'Next Monday',
+      dueQuickIn30Days: 'In 30 days',
+      dueCustom: 'Pick a date',
+      dueClear: 'Clear',
+      titleRequiredHint: 'A title is needed',
+      savedJustNow: 'Saved · just now',
+      savedAgo: 'Saved · {{n}}s ago',
+      pillStatus: 'Status',
+      pillPriority: 'Priority',
+      pillOwner: 'Owner',
+      pillDue: 'Due date',
+      pillColor: 'Color',
+      pillStart: 'Start date',
+      descriptionPlaceholderShort: 'What does success look like?',
+      goalPlaceholderShort: 'Add a goal (optional)',
+      titlePlaceholderHero: 'Untitled project',
     },
   },
   zh: {
@@ -542,6 +584,27 @@ const messages: Record<LanguageCode, ProjectsMessages> = {
       statusBlocked: '受阻',
       statusDone: '已完成',
       statusArchived: '已归档',
+      moreOptions: '更多选项',
+      fewerOptions: '收起',
+      dueQuickToday: '今天',
+      dueQuickTomorrow: '明天',
+      dueQuickWeekend: '本周末',
+      dueQuickNextWeek: '下周一',
+      dueQuickIn30Days: '+30 天',
+      dueCustom: '自定义',
+      dueClear: '清除',
+      titleRequiredHint: '需要一个标题',
+      savedJustNow: '已保存 · 刚刚',
+      savedAgo: '已保存 · {{n}} 秒前',
+      pillStatus: '状态',
+      pillPriority: '优先级',
+      pillOwner: '负责人',
+      pillDue: '截止日期',
+      pillColor: '颜色',
+      pillStart: '开始日期',
+      descriptionPlaceholderShort: '怎样算成功？',
+      goalPlaceholderShort: '加一个目标（可选）',
+      titlePlaceholderHero: '未命名项目',
     },
   },
 }
