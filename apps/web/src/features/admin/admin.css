@@ -463,6 +463,33 @@
   font: 650 11px/1 var(--font-body);
 }
 
+/* ── Inline latest note (visible without expanding) ─────────────────────── */
+
+.admin-user-note-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 6px;
+  padding: 6px 8px;
+  border-left: 2px solid color-mix(in srgb, var(--deck-accent, #6b8e6b) 60%, transparent);
+  background: color-mix(in srgb, var(--deck-faint) 35%, transparent);
+  border-radius: 0 4px 4px 0;
+  max-width: 320px;
+}
+
+.admin-user-note-inline__body {
+  font: 500 12px/1.4 var(--font-body);
+  color: var(--deck-text, inherit);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-user-note-inline__meta {
+  font: 500 10px/1.3 var(--font-body);
+  color: var(--deck-muted);
+}
+
 /* ── User detail panel ───────────────────────────────────────────────────── */
 
 .admin-user-detail {

@@ -125,6 +125,27 @@ router.get('/overview', (_req, res) => {
     const blobStats = getBlobStats()
     const now = NOW()
 
+    const latestNoteByUser = {}
+    try {
+      const noteRows = db.prepare(`
+        SELECT n.user_id, n.body, n.admin_email, n.created_at
+        FROM admin_user_notes n
+        JOIN (
+          SELECT user_id, MAX(created_at) AS max_created
+          FROM admin_user_notes
+          GROUP BY user_id
+        ) latest ON latest.user_id = n.user_id AND latest.max_created = n.created_at
+      `).all()
+      const noteCountRows = db.prepare('SELECT user_id, COUNT(*) AS cnt FROM admin_user_notes GROUP BY user_id').all()
+      const countMap = {}
+      for (const r of noteCountRows) countMap[r.user_id] = r.cnt
+      for (const n of noteRows) {
+        latestNoteByUser[n.user_id] = {
+          body: n.body, adminEmail: n.admin_email, createdAt: n.created_at, count: countMap[n.user_id] ?? 1,
+        }
+      }
+    } catch { /* admin_user_notes may not exist yet */ }
+
     const userRows = users.map((u) => {
       const stats = syncStats[String(u.id)] ?? { recordCount: 0, payloadBytes: 0, lastActiveAt: 0, byType: {} }
       const lastActiveAt = stats.lastActiveAt ? new Date(stats.lastActiveAt).toISOString() : null
@@ -139,6 +160,7 @@ router.get('/overview', (_req, res) => {
         active30d: stats.lastActiveAt > 0 && now - stats.lastActiveAt < MS_30D,
         syncRecordCount: stats.recordCount, syncPayloadBytes: stats.payloadBytes, syncByType: stats.byType,
         healthScore: computeHealthScore(u, stats),
+        latestNote: latestNoteByUser[String(u.id)] ?? null,
       }
     })
 

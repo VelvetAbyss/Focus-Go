@@ -5,15 +5,23 @@
 // pass, stamp users.initial_seeded_at so the new claim endpoint short-circuits.
 //
 // Usage:
-//   node scripts/dedupe-seed-data.js            # dry run, prints summary
-//   node scripts/dedupe-seed-data.js --apply    # actually mutate the DB
+//   node scripts/dedupe-seed-data.js                          # dry run: dedupe + stamp summary
+//   node scripts/dedupe-seed-data.js --apply                  # apply dedupe + stamp
+//   node scripts/dedupe-seed-data.js --stamp-only             # dry run: stamp only (skip dedupe)
+//   node scripts/dedupe-seed-data.js --stamp-only --apply     # apply stamp only — touches zero user content
 //
 // Soft delete = set deleted_at = now and bump updated_at so RxDB pulls the
 // tombstone on the next sync. Payload is kept intact for forensics.
+//
+// --stamp-only is the safe option for live production with real users: it only
+// writes users.initial_seeded_at (metadata column, never read by the client as
+// content). Use it to stop the "re-seed on every login" loop without risking
+// any change to user-facing rows.
 
 import db from '../db/init.js'
 
 const APPLY = process.argv.includes('--apply')
+const STAMP_ONLY = process.argv.includes('--stamp-only')
 const NOW = Date.now()
 
 const TARGETS = [
@@ -94,17 +102,20 @@ const stampUsersAsSeeded = () => {
   // Only stamp users that currently have any seed-surface row (anyone whose
   // local DB ever ran seedDatabase). Untouched users keep NULL so a real
   // first-time seed can still fire.
+  // sync_*.user_id stores String(users.id) (see routes/sync.js and admin/purge),
+  // NOT users.auth_user_id. The earlier auth_user_id join silently matched zero
+  // rows on every account, so this stamp pass was a no-op in production.
   const candidates = db.prepare(`
     SELECT u.id
     FROM users u
     WHERE u.initial_seeded_at IS NULL
       AND (
-        EXISTS (SELECT 1 FROM sync_tasks t WHERE t.user_id = u.auth_user_id)
-        OR EXISTS (SELECT 1 FROM sync_widget_todos w WHERE w.user_id = u.auth_user_id)
-        OR EXISTS (SELECT 1 FROM sync_diary_entries d WHERE d.user_id = u.auth_user_id)
-        OR EXISTS (SELECT 1 FROM sync_spends s WHERE s.user_id = u.auth_user_id)
-        OR EXISTS (SELECT 1 FROM sync_spend_categories c WHERE c.user_id = u.auth_user_id)
-        OR EXISTS (SELECT 1 FROM sync_trips tr WHERE tr.user_id = u.auth_user_id)
+        EXISTS (SELECT 1 FROM sync_tasks t WHERE t.user_id = CAST(u.id AS TEXT))
+        OR EXISTS (SELECT 1 FROM sync_widget_todos w WHERE w.user_id = CAST(u.id AS TEXT))
+        OR EXISTS (SELECT 1 FROM sync_diary_entries d WHERE d.user_id = CAST(u.id AS TEXT))
+        OR EXISTS (SELECT 1 FROM sync_spends s WHERE s.user_id = CAST(u.id AS TEXT))
+        OR EXISTS (SELECT 1 FROM sync_spend_categories c WHERE c.user_id = CAST(u.id AS TEXT))
+        OR EXISTS (SELECT 1 FROM sync_trips tr WHERE tr.user_id = CAST(u.id AS TEXT))
       )
   `).all()
   console.log(`Users to stamp as seeded: ${candidates.length}`)
@@ -117,11 +128,14 @@ const stampUsersAsSeeded = () => {
 }
 
 console.log(APPLY ? '== APPLY MODE ==' : '== DRY RUN ==')
+if (STAMP_ONLY) console.log('== STAMP ONLY (dedupe skipped — no sync rows will be touched) ==')
 let totalDeleted = 0
-for (const target of TARGETS) {
-  const { toDelete } = dedupePerUser(target)
-  totalDeleted += toDelete
+if (!STAMP_ONLY) {
+  for (const target of TARGETS) {
+    const { toDelete } = dedupePerUser(target)
+    totalDeleted += toDelete
+  }
 }
 stampUsersAsSeeded()
-console.log(`Total redundant rows ${APPLY ? 'soft-deleted' : 'would soft-delete'}: ${totalDeleted}`)
+if (!STAMP_ONLY) console.log(`Total redundant rows ${APPLY ? 'soft-deleted' : 'would soft-delete'}: ${totalDeleted}`)
 console.log(APPLY ? 'Done.' : 'Re-run with --apply to commit.')
