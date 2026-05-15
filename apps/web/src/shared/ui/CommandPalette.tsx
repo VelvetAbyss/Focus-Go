@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { Command } from 'cmdk'
 import { FolderKanban, ListTodo, Play, Plus, Search } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { tasksRepo } from '../../data/repositories/tasksRepo'
@@ -32,11 +33,9 @@ const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [onOpenChange, open])
 
-  const filteredActions = useMemo(() => {
-    const needle = query.trim().toLowerCase()
-    if (!needle) return ACTIONS
-    return ACTIONS.filter((action) => action.label.toLowerCase().includes(needle))
-  }, [query])
+  useEffect(() => {
+    if (!open) setQuery('')
+  }, [open])
 
   const createTask = async () => {
     const title = query.trim()
@@ -57,53 +56,73 @@ const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
 
   if (!open) return null
 
+  const trimmed = query.trim()
+
   return (
     <div className="command-palette" role="dialog" aria-modal="true" aria-label="Command palette">
-      <button type="button" className="command-palette__backdrop" aria-label="Close command palette" onClick={() => onOpenChange(false)} />
-      <div className="command-palette__panel">
+      <button
+        type="button"
+        className="command-palette__backdrop"
+        aria-label="Close command palette"
+        onClick={() => onOpenChange(false)}
+      />
+      <Command
+        className="command-palette__panel"
+        label="Command palette"
+        shouldFilter
+      >
         <div className="command-palette__input-row">
           <Search className="size-4" />
-          <input
+          <Command.Input
             autoFocus
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onValueChange={setQuery}
+            placeholder="Capture a task or type a destination"
             onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                event.preventDefault()
-                void createTask()
+              if (event.key === 'Enter' && trimmed && !event.defaultPrevented) {
+                const hasMatch = ACTIONS.some((action) =>
+                  action.label.toLowerCase().includes(trimmed.toLowerCase()),
+                )
+                if (!hasMatch) {
+                  event.preventDefault()
+                  void createTask()
+                }
               }
             }}
-            placeholder="Capture a task or type a destination"
           />
           <kbd>⌘K</kbd>
         </div>
-        <div className="command-palette__list">
-          {query.trim() ? (
-            <button type="button" className="command-palette__item" onClick={() => void createTask()}>
+        <Command.List className="command-palette__list">
+          {trimmed ? (
+            <Command.Item
+              value={`create-task:${trimmed}`}
+              className="command-palette__item"
+              onSelect={() => void createTask()}
+            >
               <Plus className="size-4" />
               <span>Create task</span>
-              <strong>{query.trim()}</strong>
-            </button>
+              <strong>{trimmed}</strong>
+            </Command.Item>
           ) : null}
-          {filteredActions.map((action) => {
+          {ACTIONS.map((action) => {
             const Icon = action.icon
             return (
-              <button
+              <Command.Item
                 key={action.id}
-                type="button"
+                value={action.label}
                 className="command-palette__item"
-                onClick={() => {
+                onSelect={() => {
                   onOpenChange(false)
                   navigate(action.to)
                 }}
               >
                 <Icon className="size-4" />
                 <span>{action.label}</span>
-              </button>
+              </Command.Item>
             )
           })}
-        </div>
-      </div>
+        </Command.List>
+      </Command>
     </div>
   )
 }
