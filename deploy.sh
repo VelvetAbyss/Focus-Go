@@ -30,7 +30,44 @@ API_DIR="$REPO_DIR/apps/web/focus-go-api"
 # Pre-built dist dir uploaded by CI (2nd arg); falls back to building locally
 DIST_SRC="${2:-}"
 
+bootstrap_node_runtime() {
+  export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+  if [[ -s "$NVM_DIR/nvm.sh" ]]; then
+    # GitHub Actions opens a non-interactive SSH shell, so nvm is not loaded.
+    # Source it explicitly before npm/pm2 use their /usr/bin/env node shebangs.
+    # shellcheck source=/dev/null
+    . "$NVM_DIR/nvm.sh"
+    nvm use --silent 22 >/dev/null 2>&1 || nvm use --silent default >/dev/null 2>&1 || true
+  fi
+
+  for node_bin_dir in \
+    /usr/bin \
+    /usr/local/bin \
+    "$HOME/.local/bin" \
+    "$HOME/.npm-global/bin" \
+    "$HOME/.nvm/versions/node/"*/bin
+  do
+    if [[ -d "$node_bin_dir" && ":$PATH:" != *":$node_bin_dir:"* ]]; then
+      PATH="$node_bin_dir:$PATH"
+    fi
+  done
+
+  export PATH
+  hash -r
+}
+
 echo "=== Deploy: $DEPLOY_ENV | branch: $BRANCH | port: $API_PORT ==="
+
+bootstrap_node_runtime
+echo "=== Node runtime: $(command -v node || echo missing) | npm: $(command -v npm || echo missing) | pm2: $(command -v pm2 || echo missing) ==="
+command -v node >/dev/null || {
+  echo "❌ node is not available in PATH for this SSH deploy shell"
+  exit 127
+}
+command -v npm >/dev/null || {
+  echo "❌ npm is not available in PATH for this SSH deploy shell"
+  exit 127
+}
 
 # ── 0. Pre-flight: verify API .env exists ─────────────────────────
 if [[ ! -f "$API_DIR/.env" ]]; then
@@ -97,6 +134,10 @@ systemctl reload nginx
 # ── 7. PM2 reload API ─────────────────────────────────────────────
 echo "=== [7/8] PM2 reload $PM2_APP_NAME ==="
 cd "$API_DIR"
+command -v pm2 >/dev/null || {
+  echo "❌ pm2 is not available in PATH for this SSH deploy shell"
+  exit 127
+}
 PORT=$API_PORT NODE_ENV=$NODE_ENV pm2 reload "$PM2_APP_NAME" --update-env \
   || PORT=$API_PORT NODE_ENV=$NODE_ENV pm2 start index.js --name "$PM2_APP_NAME"
 
