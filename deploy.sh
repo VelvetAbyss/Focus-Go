@@ -45,12 +45,27 @@ bootstrap_node_runtime() {
     /usr/local/bin \
     "$HOME/.local/bin" \
     "$HOME/.npm-global/bin" \
-    "$HOME/.nvm/versions/node/"*/bin
+    "$HOME/.volta/bin" \
+    "$HOME/.n/bin" \
+    "$HOME/.local/share/fnm/node-versions/"*/installation/bin \
+    "$HOME/.nvm/versions/node/"*/bin \
+    /www/server/nodejs/*/bin \
+    /www/server/nvm/versions/node/*/bin \
+    /opt/node*/bin \
+    /usr/local/node*/bin \
+    /usr/local/lib/nodejs/node*/bin
   do
     if [[ -d "$node_bin_dir" && ":$PATH:" != *":$node_bin_dir:"* ]]; then
       PATH="$node_bin_dir:$PATH"
     fi
   done
+
+  if ! command -v node >/dev/null && command -v nodejs >/dev/null; then
+    NODE_SHIM_DIR="/tmp/focus-go-node-shim"
+    mkdir -p "$NODE_SHIM_DIR"
+    ln -sfn "$(command -v nodejs)" "$NODE_SHIM_DIR/node"
+    PATH="$NODE_SHIM_DIR:$PATH"
+  fi
 
   export PATH
   hash -r
