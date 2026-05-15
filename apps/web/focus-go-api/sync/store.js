@@ -20,9 +20,14 @@ const stableStringify = (value) => {
 
 const normalizeDocumentForCompare = (document) => {
   if (!document || typeof document !== 'object') return null
-  const next = { ...document }
-  if (next._deleted !== true) delete next._deleted
-  return next
+  // Always represent _deleted as an explicit boolean so the comparison is
+  // symmetric with buildConflictDocument (which always emits _deleted as a
+  // boolean derived from deleted_at). Without this, a client-sent
+  // assumedMasterState carrying { _deleted: false } would never match the
+  // server's current view of a live row, and every non-create push (especially
+  // deletes) would silently dead-end in the conflict path — the user would see
+  // creates sync but updates/deletes get reverted by RxDB's master-wins resolve.
+  return { ...document, _deleted: Boolean(document._deleted) }
 }
 
 const buildConflictDocument = (row, fallback = null) => {

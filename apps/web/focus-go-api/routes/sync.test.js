@@ -258,6 +258,74 @@ test('sync route rejects stale writes when assumed master state does not match',
   }
 })
 
+test('sync route propagates a delete pushed with the previous master state', async () => {
+  // Regression: documentsMatch used to strip _deleted:false from
+  // assumedMasterState while buildConflictDocument always emitted it, so every
+  // non-create push (especially deletes) hit the conflict path and RxDB
+  // master-wins resolution silently reverted the user's intent on the other
+  // device. End-to-end check: A creates → A deletes with the pulled master
+  // state → server stores the tombstone → B pulls and sees _deleted:true.
+  const ctx = await createServer()
+
+  try {
+    // A creates the task. assumedMasterState: null is the first-write case.
+    const create = await fetch(`${ctx.baseUrl}/sync/rxdb/push`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'tasks',
+        rows: [{
+          newDocumentState: { id: 'task-1', title: 'unfinished', updatedAt: 10, _deleted: false },
+          assumedMasterState: null,
+        }],
+        blobs: [],
+      }),
+    })
+    assert.equal(create.status, 200)
+    assert.deepEqual(await create.json(), { conflicts: [], blobs: [] })
+
+    // B pulls — payload is exactly what RxDB on B will cache as its last known master.
+    const bPull = await fetch(`${ctx.baseUrl}/sync/rxdb/pull`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entityType: 'tasks', checkpoint: null, limit: 100 }),
+    })
+    const bPullJson = await bPull.json()
+    assert.equal(bPullJson.documents.length, 1)
+    const lastKnownMasterOnA = bPullJson.documents[0]
+    assert.equal(lastKnownMasterOnA._deleted, false)
+
+    // A deletes. assumedMasterState mirrors what A pulled — _deleted:false explicit.
+    const del = await fetch(`${ctx.baseUrl}/sync/rxdb/push`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'tasks',
+        rows: [{
+          newDocumentState: { ...lastKnownMasterOnA, updatedAt: 20, _deleted: true },
+          assumedMasterState: lastKnownMasterOnA,
+        }],
+        blobs: [],
+      }),
+    })
+    assert.equal(del.status, 200)
+    const delJson = await del.json()
+    assert.deepEqual(delJson, { conflicts: [], blobs: [] }, 'delete must not be rejected as a conflict')
+
+    // B pulls again — must see the tombstone, not the live row.
+    const bPull2 = await fetch(`${ctx.baseUrl}/sync/rxdb/pull`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entityType: 'tasks', checkpoint: null, limit: 100 }),
+    })
+    const bPull2Json = await bPull2.json()
+    assert.equal(bPull2Json.documents.length, 1)
+    assert.equal(bPull2Json.documents[0]._deleted, true, 'B must see the row as deleted')
+  } finally {
+    await ctx.close()
+  }
+})
+
 test('sync route refuses to resurrect a tombstoned row from a stale upsert', async () => {
   const ctx = await createServer()
 
