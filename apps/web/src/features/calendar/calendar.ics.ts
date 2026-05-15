@@ -1,6 +1,37 @@
 import type { CalendarEvent } from './calendar.model'
 
 const DAY_MS = 86_400_000
+const RECURRENCE_PAST_DAYS = 365
+const RECURRENCE_FUTURE_DAYS = 730
+const RECURRENCE_MAX_INSTANCES = 500
+
+type IcalEvent = {
+  uid: string | null
+  summary: string | null
+  startDate: { toJSDate: () => Date; isDate: boolean } | null
+  isRecurring: () => boolean
+  iterator: () => { next: () => { toJSDate: () => Date } | null }
+}
+
+type IcalComponent = {
+  getAllSubcomponents: (name: string) => unknown[]
+}
+
+type IcalModule = {
+  parse: (text: string) => unknown
+  Component: new (jcal: unknown) => IcalComponent
+  Event: new (vevent: unknown) => IcalEvent
+}
+
+let icalPromise: Promise<IcalModule | null> | null = null
+const loadIcal = (): Promise<IcalModule | null> => {
+  if (!icalPromise) {
+    icalPromise = import('ical.js')
+      .then((mod) => (mod.default ?? mod) as unknown as IcalModule)
+      .catch(() => null)
+  }
+  return icalPromise
+}
 
 const toDateKey = (date: Date) => {
   const y = date.getFullYear()
@@ -15,53 +46,6 @@ const toTimeLabel = (date: Date) =>
     minute: '2-digit',
     hour12: false,
   })
-
-const unfoldIcsLines = (icsText: string): string[] => {
-  const normalized = icsText.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
-  const rawLines = normalized.split('\n')
-  const lines: string[] = []
-
-  rawLines.forEach((line) => {
-    if (!line) return
-    if (/^[ \t]/.test(line) && lines.length > 0) {
-      lines[lines.length - 1] += line.trimStart()
-      return
-    }
-    lines.push(line)
-  })
-
-  return lines
-}
-
-const parseIcsDateTime = (raw: string) => {
-  const value = raw.trim()
-
-  if (/^\d{8}$/.test(value)) {
-    const y = Number(value.slice(0, 4))
-    const m = Number(value.slice(4, 6)) - 1
-    const d = Number(value.slice(6, 8))
-    const date = new Date(y, m, d)
-    return { date, isAllDay: true }
-  }
-
-  const match = value.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})?(Z)?$/)
-  if (!match) return null
-
-  const [, y, m, d, hh, mm, ss, zulu] = match
-  const second = Number(ss ?? '0')
-
-  if (zulu === 'Z') {
-    return {
-      date: new Date(Date.UTC(Number(y), Number(m) - 1, Number(d), Number(hh), Number(mm), second)),
-      isAllDay: false,
-    }
-  }
-
-  return {
-    date: new Date(Number(y), Number(m) - 1, Number(d), Number(hh), Number(mm), second),
-    isAllDay: false,
-  }
-}
 
 const extractLunarMonthDay = (summary: string) => {
   const match = summary.match(/(闰?[正一二三四五六七八九十冬腊]+月(?:初[一二三四五六七八九十]|十[一二三四五六七八九]?|廿[一二三四五六七八九]?|三十))/)
@@ -80,62 +64,73 @@ const resolveEventKind = (summary: string, subscriptionId: string): CalendarEven
   return 'event'
 }
 
-export const parseIcsEvents = (icsText: string, subscriptionId: string): CalendarEvent[] => {
-  const lines = unfoldIcsLines(icsText)
+const buildEvent = (
+  subscriptionId: string,
+  uid: string,
+  summary: string,
+  occurrence: Date,
+  isAllDay: boolean,
+  index: number,
+): CalendarEvent => {
+  const kind = resolveEventKind(summary, subscriptionId)
+  const title = kind === 'lunar' ? extractLunarMonthDay(summary) : summary.trim()
+  const baseId = uid.trim() || `${subscriptionId}-${occurrence.getTime()}-${title}`
+  const idSuffix = index > 0 ? `-${index}` : ''
+  return {
+    id: `${subscriptionId}-${baseId}${idSuffix}`,
+    subscriptionId,
+    title,
+    dateKey: toDateKey(occurrence),
+    timeLabel: isAllDay ? 'All day' : toTimeLabel(occurrence),
+    kind,
+  }
+}
+
+export const parseIcsEvents = async (icsText: string, subscriptionId: string): Promise<CalendarEvent[]> => {
+  const ical = await loadIcal()
+  if (!ical) return []
+
+  const jcal = ical.parse(icsText)
+  const root = new ical.Component(jcal)
+  const vevents = root.getAllSubcomponents('vevent')
   const events: CalendarEvent[] = []
 
-  let inEvent = false
-  let uid = ''
-  let summary = ''
-  let dtStartRaw = ''
+  const windowStart = Date.now() - RECURRENCE_PAST_DAYS * DAY_MS
+  const windowEnd = Date.now() + RECURRENCE_FUTURE_DAYS * DAY_MS
 
-  const flushEvent = () => {
-    if (!inEvent) return
+  for (const vevent of vevents) {
+    let event: IcalEvent
+    try {
+      event = new ical.Event(vevent)
+    } catch {
+      continue
+    }
 
-    const parsedStart = dtStartRaw ? parseIcsDateTime(dtStartRaw) : null
-    if (!parsedStart || !summary.trim()) return
+    const summary = event.summary?.trim()
+    if (!summary || !event.startDate) continue
 
-    const kind = resolveEventKind(summary, subscriptionId)
-    const title = kind === 'lunar' ? extractLunarMonthDay(summary) : summary.trim()
-    const baseId = uid.trim() || `${subscriptionId}-${parsedStart.date.getTime()}-${title}`
+    const uid = event.uid ?? ''
+    const isAllDay = event.startDate.isDate === true
 
-    events.push({
-      id: `${subscriptionId}-${baseId}`,
-      subscriptionId,
-      title,
-      dateKey: toDateKey(parsedStart.date),
-      timeLabel: parsedStart.isAllDay ? 'All day' : toTimeLabel(parsedStart.date),
-      kind,
-    })
+    if (!event.isRecurring()) {
+      const occurrence = event.startDate.toJSDate()
+      events.push(buildEvent(subscriptionId, uid, summary, occurrence, isAllDay, 0))
+      continue
+    }
+
+    const iterator = event.iterator()
+    let index = 0
+    for (let i = 0; i < RECURRENCE_MAX_INSTANCES; i += 1) {
+      const next = iterator.next()
+      if (!next) break
+      const occurrence = next.toJSDate()
+      const ts = occurrence.getTime()
+      if (ts > windowEnd) break
+      if (ts < windowStart) continue
+      events.push(buildEvent(subscriptionId, uid, summary, occurrence, isAllDay, index))
+      index += 1
+    }
   }
-
-  lines.forEach((line) => {
-    if (line === 'BEGIN:VEVENT') {
-      inEvent = true
-      uid = ''
-      summary = ''
-      dtStartRaw = ''
-      return
-    }
-
-    if (line === 'END:VEVENT') {
-      flushEvent()
-      inEvent = false
-      return
-    }
-
-    if (!inEvent) return
-
-    const colonIdx = line.indexOf(':')
-    if (colonIdx === -1) return
-    const rawKey = line.slice(0, colonIdx)
-    const value = line.slice(colonIdx + 1)
-    const key = rawKey.split(';')[0].toUpperCase()
-
-    if (key === 'UID') uid = value
-    if (key === 'SUMMARY') summary = value
-    if (key === 'DTSTART') dtStartRaw = value
-  })
 
   return events
 }
@@ -170,7 +165,7 @@ export const fetchIcsEventsWithFallback = async (
   for (const candidate of candidates) {
     try {
       const text = await fetchTextFrom(candidate, fetchImpl)
-      const events = parseIcsEvents(text, subscriptionId)
+      const events = await parseIcsEvents(text, subscriptionId)
       if (events.length === 0) {
         throw new Error('No events found in ICS feed')
       }
