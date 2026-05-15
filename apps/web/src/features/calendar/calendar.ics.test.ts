@@ -16,8 +16,8 @@ END:VEVENT
 END:VCALENDAR`
 
 describe('calendar.ics', () => {
-  it('parses vevents and keeps lunar title as month/day only', () => {
-    const events = parseIcsEvents(sampleIcs, 'system-cn-lunar')
+  it('parses vevents and keeps lunar title as month/day only', async () => {
+    const events = await parseIcsEvents(sampleIcs, 'system-cn-lunar')
 
     expect(events).toHaveLength(2)
     expect(events[0]).toMatchObject({ dateKey: '2026-02-10' })
@@ -38,6 +38,17 @@ describe('calendar.ics', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(2)
     expect(events.length).toBeGreaterThan(0)
+  })
+
+  it('expands RRULE occurrences into separate events', async () => {
+    const today = new Date()
+    const yyyy = today.getFullYear()
+    const mm = `${today.getMonth() + 1}`.padStart(2, '0')
+    const dd = `${today.getDate()}`.padStart(2, '0')
+    const recurring = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nUID:weekly-1\nDTSTART;VALUE=DATE:${yyyy}${mm}${dd}\nSUMMARY:Standup\nRRULE:FREQ=WEEKLY;COUNT=3\nEND:VEVENT\nEND:VCALENDAR`
+    const events = await parseIcsEvents(recurring, 'custom')
+    expect(events).toHaveLength(3)
+    expect(new Set(events.map((event) => event.id)).size).toBe(3)
   })
 
   it('throws when parsed events are empty', async () => {
