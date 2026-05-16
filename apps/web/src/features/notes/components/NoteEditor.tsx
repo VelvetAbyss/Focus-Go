@@ -18,6 +18,7 @@ import type { CSSProperties, ReactNode, RefObject } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { HorizontalRule } from '@/components/tiptap-node/horizontal-rule-node/horizontal-rule-node-extension'
 import { ImageUploadNode } from '@/components/tiptap-node/image-upload-node/image-upload-node-extension'
+import { getPastedImageFiles } from '../../../shared/util/clipboard'
 import '@/components/tiptap-node/blockquote-node/blockquote-node.scss'
 import '@/components/tiptap-node/code-block-node/code-block-node.scss'
 import '@/components/tiptap-node/horizontal-rule-node/horizontal-rule-node.scss'
@@ -133,12 +134,6 @@ const uploadImageAsDataUrl = async (file: File): Promise<string> => {
     reader.readAsDataURL(file)
   })
 }
-
-const getPastedImageFiles = (event: ClipboardEvent) =>
-  Array.from(event.clipboardData?.items ?? [])
-    .filter((item) => item.type.startsWith('image/'))
-    .map((item) => item.getAsFile())
-    .filter((file): file is File => Boolean(file))
 
 const hasStructuredTableShape = (rows: string[][]) => {
   const maxCols = rows.reduce((max, row) => Math.max(max, row.length), 0)

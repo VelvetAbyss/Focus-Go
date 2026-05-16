@@ -28,6 +28,9 @@ import { useAddInputComposer } from '../../shared/hooks/useAddInputComposer'
 import { Popover, PopoverContent, PopoverTrigger } from '../../shared/ui/popover'
 import { emitTasksChanged } from './taskSync'
 import TaskNoteEditor from './components/TaskNoteEditor'
+import TaskAttachmentImage from './components/TaskAttachmentImage'
+import { PhotoProvider } from 'react-photo-view'
+import { TASK_ATTACHMENT_LIMIT } from './application/taskAttachments'
 import { createTaskNoteDoc, resolveTaskNoteRichText } from './model/taskNoteRichText'
 import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, formatTaskDateTime, getTaskTagTone } from './components/taskPresentation'
 import { useI18n } from '../../shared/i18n/useI18n'
@@ -139,6 +142,7 @@ const TaskDrawer = ({
   const [reminderDate, setReminderDate] = useState('')
   const [reminderTime, setReminderTime] = useState('')
   const [tags, setTags] = useState<string[]>([])
+  const [attachments, setAttachments] = useState<TaskItem['attachments']>([])
   const [tagOptions, setTagOptions] = useState<string[]>(defaultTagOptions)
   const [tagDraft, setTagDraft] = useState('')
   const [tagPickerOpen, setTagPickerOpen] = useState(false)
@@ -190,6 +194,7 @@ const TaskDrawer = ({
     subtasks: TaskItem['subtasks']
     taskNoteContentMd?: TaskItem['taskNoteContentMd']
     taskNoteContentJson?: TaskItem['taskNoteContentJson']
+    attachments: TaskItem['attachments']
   } | null>(null)
 
   const saveTimerRef = useRef<number | null>(null)
@@ -228,6 +233,7 @@ const TaskDrawer = ({
     setReminderDate(reminderParts.reminderDate)
     setReminderTime(reminderParts.reminderTime)
     setTags(task.tags)
+    setAttachments(task.attachments ?? [])
     setTagOptions(() => {
       const map = new Map<string, string>()
       defaultTagOptions.forEach((tagName) => map.set(tagName.toLowerCase(), tagName))
@@ -255,6 +261,7 @@ const TaskDrawer = ({
       subtasks: task.subtasks,
       taskNoteContentMd: task.taskNoteContentMd,
       taskNoteContentJson: task.taskNoteContentJson,
+      attachments: task.attachments ?? [],
     }
   }, [open, task, lastId])
 
@@ -276,8 +283,9 @@ const TaskDrawer = ({
       taskNoteBlocks: [],
       taskNoteContentMd: taskNoteRef.current.contentMd,
       taskNoteContentJson: taskNoteRef.current.contentJson,
+      attachments,
     }
-  }, [description, dueDate, endDate, isToday, priority, projectId, reminderDate, reminderTime, startDate, subtasks, tags, title])
+  }, [attachments, description, dueDate, endDate, isToday, priority, projectId, reminderDate, reminderTime, startDate, subtasks, tags, title])
 
   const isDraftDirty = useCallback((nextDraft: TaskItem) => {
     const baseline = baselineRef.current
@@ -295,6 +303,9 @@ const TaskDrawer = ({
     if (!equalSubtasks(nextDraft.subtasks, baseline.subtasks)) return true
     if ((nextDraft.taskNoteContentMd ?? '') !== (baseline.taskNoteContentMd ?? '')) return true
     if (JSON.stringify(nextDraft.taskNoteContentJson ?? null) !== JSON.stringify(baseline.taskNoteContentJson ?? null)) return true
+    const nextAttachmentIds = (nextDraft.attachments ?? []).map((item) => item.id).join('|')
+    const baselineAttachmentIds = (baseline.attachments ?? []).map((item) => item.id).join('|')
+    if (nextAttachmentIds !== baselineAttachmentIds) return true
     return false
   }, [])
 
@@ -330,6 +341,7 @@ const TaskDrawer = ({
           subtasks: next.subtasks,
           taskNoteContentMd: next.taskNoteContentMd,
           taskNoteContentJson: next.taskNoteContentJson,
+          attachments: next.attachments ?? [],
         }
         taskNoteRef.current = {
           contentMd: next.taskNoteContentMd,
@@ -938,6 +950,34 @@ const TaskDrawer = ({
                     )}
                   </div>
                 </section>
+
+                {(attachments?.length ?? 0) > 0 ? (
+                  <section
+                    className="task-detail-card-shell tdv2-section-enter"
+                    style={{ animationDelay: '90ms' }}
+                  >
+                    <div className="task-detail-card rounded-[26px] border border-[#3a3733]/6 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.04)]">
+                      <p className="task-detail-kicker">{t('tasks.attachments.title')}</p>
+                      <h2 className="task-detail-title mt-0.5">
+                        {t('tasks.attachments.title')} {attachments?.length}/{TASK_ATTACHMENT_LIMIT}
+                      </h2>
+                      <PhotoProvider maskOpacity={0.85}>
+                        <div className="task-attachments-gallery mt-4 flex gap-3 overflow-x-auto pb-2">
+                          {(attachments ?? []).map((attachment) => (
+                            <TaskAttachmentImage
+                              key={attachment.id}
+                              attachment={attachment}
+                              removeLabel={t('tasks.attachments.remove')}
+                              onRemove={(id) =>
+                                setAttachments((prev) => (prev ?? []).filter((item) => item.id !== id))
+                              }
+                            />
+                          ))}
+                        </div>
+                      </PhotoProvider>
+                    </div>
+                  </section>
+                ) : null}
 
                 {/* ── ACTIVITY ── */}
                 <section

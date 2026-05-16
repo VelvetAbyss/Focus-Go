@@ -2,6 +2,8 @@ import { db } from '../db'
 import type { NoteItem, TaskItem } from '../models/types'
 import type { SyncEntityType, SyncPayload, SyncWireBlob } from './types'
 
+const isString = (value: unknown): value is string => typeof value === 'string'
+
 type PlainObject = Record<string, unknown>
 
 type NotesSyncPayload = Omit<
@@ -140,6 +142,19 @@ const buildTaskPayload = async (payload: TaskItem): Promise<{ payload: TasksSync
     blobs.push(blob)
     next.bodyRefs = { ...(next.bodyRefs ?? {}), taskNoteContentJson: blob.hash }
   }
+  if (Array.isArray(payload.attachments)) {
+    const seen = new Set<string>()
+    for (const attachment of payload.attachments) {
+      if (!attachment || typeof attachment.hash !== 'string') continue
+      if (seen.has(attachment.hash)) continue
+      seen.add(attachment.hash)
+      const cached = await db.syncBlobCache.get(attachment.hash)
+      if (cached) {
+        const { createdAt: _c, updatedAt: _u, ...wire } = cached
+        blobs.push(wire)
+      }
+    }
+  }
   return { payload: next, blobs }
 }
 
@@ -149,10 +164,21 @@ export const collectBlobRefs = (entityType: SyncEntityType, payload: SyncPayload
   const payloadObject = isPlainObject(payload) ? payload : null
   const refsCandidate = payloadObject && 'bodyRefs' in payloadObject ? payloadObject.bodyRefs : null
   const bodyRefs = isPlainObject(refsCandidate) ? refsCandidate : null
+  const refs: string[] = []
   if ((entityType === 'notes' || entityType === 'tasks') && bodyRefs) {
-    return Object.values(bodyRefs).filter((value): value is string => typeof value === 'string')
+    for (const value of Object.values(bodyRefs)) {
+      if (isString(value)) refs.push(value)
+    }
   }
-  return []
+  if (entityType === 'tasks' && payloadObject) {
+    const attachments = (payloadObject as { attachments?: unknown }).attachments
+    if (Array.isArray(attachments)) {
+      for (const attachment of attachments) {
+        if (isPlainObject(attachment) && isString(attachment.hash)) refs.push(attachment.hash)
+      }
+    }
+  }
+  return refs
 }
 
 export const encodeSyncPayload = async (entityType: SyncEntityType, payload: SyncPayload) => {

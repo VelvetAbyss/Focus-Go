@@ -10,6 +10,7 @@ import { StarterKit } from '@tiptap/starter-kit'
 import { EditorContent, EditorContext, useEditor } from '@tiptap/react'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { HorizontalRule } from '@/components/tiptap-node/horizontal-rule-node/horizontal-rule-node-extension'
+import { getPastedImageFiles } from '../../../shared/util/clipboard'
 import '@/components/tiptap-node/blockquote-node/blockquote-node.scss'
 import '@/components/tiptap-node/code-block-node/code-block-node.scss'
 import '@/components/tiptap-node/horizontal-rule-node/horizontal-rule-node.scss'
@@ -53,12 +54,6 @@ const uploadImageAsDataUrl = async (file: File): Promise<string> => {
     reader.readAsDataURL(file)
   })
 }
-
-const getPastedImageFiles = (event: ClipboardEvent) =>
-  Array.from(event.clipboardData?.items ?? [])
-    .filter((item) => item.type.startsWith('image/'))
-    .map((item) => item.getAsFile())
-    .filter((file): file is File => Boolean(file))
 
 const DiaryEditor = ({ value, placeholder, onChange, onFlush }: DiaryEditorProps) => {
   const initialDoc = useMemo(() => ensureRichDoc(value.contentJson, value.contentMd), [value.contentJson, value.contentMd])

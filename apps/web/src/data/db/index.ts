@@ -53,6 +53,7 @@ import {
   schemaV39,
   schemaV40,
   schemaV41,
+  schemaV42,
   schemaV2,
   schemaV3,
   schemaV4,
@@ -241,7 +242,11 @@ export class WorkbenchDb extends Dexie {
       .stores(schemaV41)
       .upgrade(async () => {})
 
-    this.version(DB_VERSION).stores(schemaV41)
+    this.version(42)
+      .stores(schemaV42)
+      .upgrade(async () => {})
+
+    this.version(DB_VERSION).stores(schemaV42)
 
     this.tasks = this.table(TABLES.tasks)
     this.notes = this.table(TABLES.notes)

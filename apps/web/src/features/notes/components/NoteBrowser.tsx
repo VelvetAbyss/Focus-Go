@@ -108,7 +108,7 @@ export default function NoteBrowser({
         <button
           type="button"
           onClick={onNewNote}
-          className="rounded-lg p-1.5 text-[#3a3733] transition-[background-color,transform,box-shadow] duration-[160ms] hover:-translate-y-0.5 hover:bg-[rgba(30,28,24,0.06)] hover:shadow-[0_6px_14px_rgba(58,55,51,0.07)] active:translate-y-0 dark:text-[#f5f3f0] dark:hover:bg-[#f5f3f0]/10"
+          className="rounded-lg p-1.5 text-[#3a3733] transition-[background-color,transform,box-shadow] [transition-duration:160ms] hover:-translate-y-0.5 hover:bg-[rgba(30,28,24,0.06)] hover:shadow-[0_6px_14px_rgba(58,55,51,0.07)] active:translate-y-0 dark:text-[#f5f3f0] dark:hover:bg-[#f5f3f0]/10"
           title={t('modules.note.new')}
         >
           <Plus size={15} strokeWidth={2.2} />
@@ -266,7 +266,7 @@ function NoteCard({
       }}
       onClick={onSelect}
       className={cn(
-        'group relative mb-1 cursor-pointer rounded-[11px] border px-3 py-2.5 transition-[background-color,border-color,box-shadow,transform] duration-[180ms]',
+        'group relative mb-1 cursor-pointer rounded-[11px] border px-3 py-2.5 transition-[background-color,border-color,box-shadow,transform] [transition-duration:180ms]',
         selected
           ? 'translate-x-[1px] border-[rgba(58,55,51,0.10)] bg-[rgba(30,28,24,0.055)] shadow-[inset_2.5px_0_0_rgba(58,55,51,0.22),0_10px_24px_rgba(58,55,51,0.07)] dark:border-[#f5f3f0]/15 dark:bg-[#f5f3f0]/10 dark:shadow-none'
           : 'border-transparent hover:-translate-y-[1px] hover:border-[rgba(58,55,51,0.06)] hover:bg-[rgba(30,28,24,0.038)] hover:shadow-[0_6px_16px_rgba(58,55,51,0.05)] dark:hover:bg-[#f5f3f0]/10 dark:hover:border-[#f5f3f0]/10',

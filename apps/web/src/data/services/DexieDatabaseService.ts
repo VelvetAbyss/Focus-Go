@@ -543,6 +543,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
         taskNoteContentMd: taskNote.contentMd,
         taskNoteContentJson: taskNote.contentJson as TaskItem['taskNoteContentJson'],
         activityLogs: [],
+        attachments: data.attachments ?? [],
       })
       const now = Date.now()
       task.activityLogs = [

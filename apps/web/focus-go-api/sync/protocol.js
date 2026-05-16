@@ -71,9 +71,18 @@ const encodeTaskPayload = (payload) => {
 }
 
 export const collectBlobRefs = (entityType, payload) => {
-  if (entityType === 'notes' && payload?.bodyRefs) return Object.values(payload.bodyRefs).filter((value) => typeof value === 'string')
-  if (entityType === 'tasks' && payload?.bodyRefs) return Object.values(payload.bodyRefs).filter((value) => typeof value === 'string')
-  return []
+  const refs = []
+  if ((entityType === 'notes' || entityType === 'tasks') && payload?.bodyRefs) {
+    for (const value of Object.values(payload.bodyRefs)) {
+      if (typeof value === 'string') refs.push(value)
+    }
+  }
+  if (entityType === 'tasks' && Array.isArray(payload?.attachments)) {
+    for (const attachment of payload.attachments) {
+      if (attachment && typeof attachment.hash === 'string') refs.push(attachment.hash)
+    }
+  }
+  return refs
 }
 
 export const normalizePayloadForWire = (entityType, payload) => {

@@ -24,6 +24,7 @@ type TaskCreateInput = {
   taskNoteBlocks?: TaskItem['taskNoteBlocks']
   taskNoteContentMd?: TaskItem['taskNoteContentMd']
   taskNoteContentJson?: TaskItem['taskNoteContentJson']
+  attachments?: TaskItem['attachments']
 }
 
 export const tasksRepo = {

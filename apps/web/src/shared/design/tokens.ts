@@ -1,5 +1,6 @@
 export const APP_SURFACE = '#F5F3F0'
 export const APP_INK = '#3A3733'
+export const ACCENT_ACTION = '#8B5E34'
 
 export const HEALTH = {
   onTrack: '#3D7A4E',
