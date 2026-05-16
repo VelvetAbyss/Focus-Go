@@ -25,6 +25,7 @@ export type CreateTaskInput = {
   taskNoteBlocks?: TaskItem['taskNoteBlocks']
   taskNoteContentMd?: TaskItem['taskNoteContentMd']
   taskNoteContentJson?: TaskItem['taskNoteContentJson']
+  attachments?: TaskItem['attachments']
 }
 
 export type CreateProjectTaskInput = Omit<CreateTaskInput, 'projectId'> & {
@@ -64,6 +65,7 @@ export const createTask = (input: CreateTaskInput) =>
     taskNoteBlocks: input.taskNoteBlocks,
     taskNoteContentMd: input.taskNoteContentMd,
     taskNoteContentJson: input.taskNoteContentJson,
+    attachments: input.attachments,
   })
 
 export const createProjectTask = (input: CreateProjectTaskInput) =>

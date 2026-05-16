@@ -111,10 +111,20 @@ export type SyncState = {
   updatedAt: number
 }
 
+export type SyncWireBlobContentType =
+  | 'text/plain'
+  | 'application/json'
+  | 'image/webp'
+  | 'image/png'
+  | 'image/jpeg'
+  | 'image/gif'
+
+export type SyncWireBlobCompression = 'gzip' | 'none'
+
 export type SyncWireBlob = {
   hash: string
-  contentType: 'text/plain' | 'application/json'
-  compression: 'gzip'
+  contentType: SyncWireBlobContentType
+  compression: SyncWireBlobCompression
   rawByteLength: number
   byteLength: number
   dataBase64: string

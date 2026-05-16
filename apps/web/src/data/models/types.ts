@@ -104,6 +104,19 @@ export type NoteItem = BaseEntity & {
   deletedAt?: number | null
 }
 
+export type TaskAttachmentMime = 'image/webp' | 'image/png' | 'image/jpeg' | 'image/gif'
+
+export type TaskAttachment = {
+  id: string
+  hash: string
+  mime: TaskAttachmentMime
+  width: number
+  height: number
+  byteLength: number
+  name?: string
+  createdAt: number
+}
+
 export type TaskItem = BaseEntity & {
   title: string
   description: string
@@ -128,6 +141,7 @@ export type TaskItem = BaseEntity & {
   taskNoteContentMd?: string
   taskNoteContentJson?: Record<string, unknown> | null
   activityLogs: TaskActivityLog[]
+  attachments?: TaskAttachment[]
 }
 
 export type WidgetTodoScope = 'day' | 'week' | 'month' | 'custom'

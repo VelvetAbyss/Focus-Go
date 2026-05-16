@@ -8135,6 +8135,226 @@ html[data-motion='reduce'] .tasks-fg__list .task-card-shell {
   animation: widget-todos-shake 320ms ease;
 }
 
+.tasks-fg__composer--hero {
+  --silk-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --silk-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  border-radius: 14px;
+  overflow: visible;
+}
+
+/* Smooth transition on the inner container so hover/focus glide */
+.tasks-fg__composer--hero > div:not(.tasks-fg__hero-shimmer) {
+  transition:
+    transform 320ms var(--silk-out),
+    box-shadow 360ms var(--silk-out),
+    border-color 320ms var(--silk-out),
+    background-color 320ms var(--silk-out);
+  will-change: transform, box-shadow;
+}
+
+/* Hover lift — gentle, only on hero variant, only when not focused */
+.tasks-fg__composer--hero:hover > div:not(.tasks-fg__hero-shimmer) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px -10px rgba(139, 94, 52, 0.32);
+  border-color: color-mix(in srgb, var(--accent-action) 38%, transparent);
+}
+
+/* Shimmer overlay — covers the inner container, ignores pointer events */
+.tasks-fg__hero-shimmer {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 600ms var(--silk-out);
+  z-index: 0;
+}
+
+.tasks-fg__hero-shimmer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 60%;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgba(139, 94, 52, 0.07) 35%,
+    rgba(139, 94, 52, 0.16) 50%,
+    rgba(139, 94, 52, 0.07) 65%,
+    transparent 100%
+  );
+  transform: translateX(-110%);
+  filter: blur(2px);
+}
+
+/* Make sure the inner content sits above the shimmer */
+.tasks-fg__composer--hero > div:not(.tasks-fg__hero-shimmer) {
+  position: relative;
+  z-index: 1;
+}
+
+/* Phase B: existing pulse, but emanating from inner container */
+.tasks-fg__composer.is-attracting {
+  animation: tasks-fg-attract 1.6s ease-out 2;
+}
+
+@keyframes tasks-fg-attract {
+  0% {
+    box-shadow: 0 0 0 0 rgba(139, 94, 52, 0.36);
+  }
+  60% {
+    box-shadow: 0 0 0 14px rgba(139, 94, 52, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(139, 94, 52, 0);
+  }
+}
+
+/* Phase C: idle breathing — border + soft outer halo on inner container */
+.tasks-fg__composer.is-breathing > div:not(.tasks-fg__hero-shimmer) {
+  animation: tasks-fg-breath 5s ease-in-out infinite;
+}
+
+@keyframes tasks-fg-breath {
+  0%, 100% {
+    border-color: color-mix(in srgb, var(--accent-action) 22%, transparent);
+    box-shadow: 0 0 0 0 rgba(139, 94, 52, 0);
+  }
+  50% {
+    border-color: color-mix(in srgb, var(--accent-action) 42%, transparent);
+    box-shadow: 0 0 22px -2px rgba(139, 94, 52, 0.18);
+  }
+}
+
+/* Phase C: shimmer becomes visible and sweeps */
+.tasks-fg__composer.is-breathing .tasks-fg__hero-shimmer {
+  opacity: 1;
+}
+
+.tasks-fg__composer.is-breathing .tasks-fg__hero-shimmer::before {
+  animation: tasks-fg-shimmer 5.5s var(--silk-out) infinite;
+  animation-delay: 1.6s;
+}
+
+@keyframes tasks-fg-shimmer {
+  0% { transform: translateX(-110%); }
+  55%, 100% { transform: translateX(220%); }
+}
+
+/* Phase C: plus icon idle micro-bob */
+.tasks-fg__composer.is-breathing .tasks-fg__hero-plus {
+  animation: tasks-fg-plus-bob 4s ease-in-out infinite;
+}
+
+@keyframes tasks-fg-plus-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1.5px); }
+}
+
+/* Submit celebration */
+.tasks-fg__composer.just-submitted > div:not(.tasks-fg__hero-shimmer) {
+  animation: tasks-fg-celebrate 520ms var(--silk-spring);
+}
+
+@keyframes tasks-fg-celebrate {
+  0% {
+    transform: scale(1);
+    background-color: color-mix(in srgb, var(--accent-action) 5%, white);
+  }
+  35% {
+    transform: scale(1.015);
+    background-color: color-mix(in srgb, var(--accent-action) 12%, white);
+    box-shadow: 0 0 0 6px rgba(139, 94, 52, 0.14);
+  }
+  100% {
+    transform: scale(1);
+    background-color: color-mix(in srgb, var(--accent-action) 5%, white);
+    box-shadow: 0 0 0 0 rgba(139, 94, 52, 0);
+  }
+}
+
+/* Drag-over state for hero composer */
+.tasks-fg__composer.is-drag-over > div:not(.tasks-fg__hero-shimmer):not(.tasks-fg__chip-strip) {
+  transform: translateY(-2px);
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--accent-action) 65%, transparent);
+  background-color: color-mix(in srgb, var(--accent-action) 9%, white);
+  box-shadow: 0 0 0 5px rgba(139, 94, 52, 0.10);
+}
+
+/* Chip strip horizontal scroll polish */
+.tasks-fg__chip-strip {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent-action) 30%, transparent) transparent;
+  scroll-snap-type: x proximity;
+}
+
+.tasks-fg__chip-strip::-webkit-scrollbar {
+  height: 6px;
+}
+
+.tasks-fg__chip-strip::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent-action) 28%, transparent);
+  border-radius: 3px;
+}
+
+.tasks-fg__chip {
+  scroll-snap-align: start;
+  animation: tasks-fg-chip-in 320ms var(--silk-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+
+.task-attachments-gallery {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent-action) 30%, transparent) transparent;
+  scroll-snap-type: x proximity;
+}
+
+.task-attachments-gallery::-webkit-scrollbar {
+  height: 7px;
+}
+
+.task-attachments-gallery::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent-action) 28%, transparent);
+  border-radius: 4px;
+}
+
+.task-attachments-gallery > * {
+  scroll-snap-align: start;
+}
+
+@keyframes tasks-fg-chip-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.85) translateY(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tasks-fg__composer.is-attracting,
+  .tasks-fg__composer.is-breathing > div,
+  .tasks-fg__composer.is-breathing .tasks-fg__hero-shimmer,
+  .tasks-fg__composer.is-breathing .tasks-fg__hero-shimmer::before,
+  .tasks-fg__composer.is-breathing .tasks-fg__hero-plus,
+  .tasks-fg__composer.just-submitted > div,
+  .tasks-fg__chip {
+    animation: none !important;
+  }
+  .tasks-fg__composer--hero:hover > div:not(.tasks-fg__hero-shimmer) {
+    transform: none;
+  }
+  .tasks-fg__composer.is-drag-over > div:not(.tasks-fg__hero-shimmer):not(.tasks-fg__chip-strip) {
+    transform: none;
+  }
+}
+
 @media (max-width: 900px) {
   .task-calendar {
     padding: 10px;
@@ -13039,6 +13259,7 @@ textarea:focus-visible,
   --chart-4: 43 74% 66%;
   --chart-5: 27 87% 67%;
   --radius: 0.5rem;
+  --accent-action: #8B5E34;
 }
 
 .dark {
@@ -13066,6 +13287,7 @@ textarea:focus-visible,
   --chart-3: 30 80% 55%;
   --chart-4: 280 65% 60%;
   --chart-5: 340 75% 55%;
+  --accent-action: #C08552;
 }
 }
 

@@ -18,7 +18,7 @@ import Card from '../../shared/ui/Card'
 import Dialog from '../../shared/ui/Dialog'
 import { Popover, PopoverContent, PopoverTrigger } from '../../shared/ui/popover'
 import TaskCard from './components/TaskCard'
-import TaskAddComposer from './components/TaskAddComposer'
+import TaskAddComposer, { type TaskAddComposerHandle } from './components/TaskAddComposer'
 import TasksAnalyticsView from './components/TasksAnalyticsView'
 import TaskListView from './components/TaskListView'
 import { useToast } from '../../shared/ui/toast/toast'
@@ -133,6 +133,7 @@ const TasksBoard = ({
   })
   const statusActionSuccessTimerRef = useRef<number | null>(null)
   const tasksReloadTokenRef = useRef(0)
+  const composerRef = useRef<TaskAddComposerHandle | null>(null)
   const toast = useToast()
   const effectiveGroupBy = scope.kind === 'project' ? 'status' : groupBy
 
@@ -193,6 +194,30 @@ const TasksBoard = ({
     return () => {
       if (statusActionSuccessTimerRef.current) window.clearTimeout(statusActionSuccessTimerRef.current)
     }
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const handler = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return
+      const target = event.target as HTMLElement | null
+      const tag = target?.tagName
+      const isEditable = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable
+      const isCmdK = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k'
+      if (isCmdK) {
+        event.preventDefault()
+        composerRef.current?.focus()
+        return
+      }
+      if (isEditable) return
+      if (event.metaKey || event.ctrlKey || event.altKey) return
+      if (event.key === 'n' || event.key === 'N') {
+        event.preventDefault()
+        composerRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
   }, [])
 
   const statusCounts = useMemo(() => {
@@ -353,7 +378,7 @@ const TasksBoard = ({
     setActiveTask((prev) => (prev?.id === updated.id ? updated : prev))
   }, [])
 
-  const handleAddTask = useCallback(async (rawTitle: string) => {
+  const handleAddTask = useCallback(async (rawTitle: string, attachments?: TaskItem['attachments']) => {
     const fallbackProjectId = scope.kind === 'project'
       ? scope.projectId
       : projectFilterIds.size === 1 ? [...projectFilterIds][0] : undefined
@@ -367,6 +392,7 @@ const TasksBoard = ({
       dueDate: parsed.dueDate,
       tags: parsed.tags,
       subtasks: [],
+      attachments,
     })
     emitTasksChanged('tasks-board:create')
     setTasks((prev) => [created, ...prev])
@@ -887,7 +913,19 @@ const TasksBoard = ({
       </div>
 
       {topView !== 'analytics' ? (
-        <TaskAddComposer onSubmit={(title) => { requireAuth(() => { void handleAddTask(title) }); return Promise.resolve(true) }} plain placeholder={topView === 'today' ? t('tasks.today.addPlaceholder') : undefined} />
+        <div className="flex flex-col">
+          {showTasksEmptyState ? (
+            <div className="px-4 pt-2 pb-1 text-[12px] text-muted-foreground/80">
+              {t('modules.tasks.addPlaceholder')} ↓
+            </div>
+          ) : null}
+          <TaskAddComposer
+            ref={composerRef}
+            onSubmit={(title, attachments) => { requireAuth(() => { void handleAddTask(title, attachments) }); return Promise.resolve(true) }}
+            hero
+            placeholder={topView === 'today' ? t('tasks.today.addPlaceholder') : undefined}
+          />
+        </div>
       ) : null}
     </div>
   )

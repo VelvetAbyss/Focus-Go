@@ -1,5 +1,5 @@
 export const DB_NAME = 'workbench-app'
-export const DB_VERSION = 41
+export const DB_VERSION = 42
 
 export const TABLES = {
   tasks: 'tasks',
@@ -236,4 +236,8 @@ export const schemaV41 = {
   ...schemaV40,
   [TABLES.timelineItems]:
     'id, eventId, occurredAt, domain, kind, entityType, entityId, pinned, visibility, subjectKey, createdAt, updatedAt, [domain+occurredAt], [kind+occurredAt]',
+} as const
+
+export const schemaV42 = {
+  ...schemaV41,
 } as const
