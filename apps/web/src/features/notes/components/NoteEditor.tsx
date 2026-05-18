@@ -543,7 +543,23 @@ const NoteEditor = ({
         </div>
       </div>
 
-      <div ref={surfaceRef} className="note-editor__surface" style={surfaceBg ? { background: surfaceBg } : undefined}>
+      <div
+        ref={surfaceRef}
+        className="note-editor__surface"
+        style={surfaceBg ? { background: surfaceBg } : undefined}
+        onMouseDown={(event) => {
+          if (!editor) return
+          const target = event.target as HTMLElement | null
+          // If the click already lands inside the actual editable content,
+          // let ProseMirror handle it as usual (caret-on-character behavior).
+          if (target && target.closest('.ProseMirror')) return
+          // Otherwise the user clicked on the surface / bottom spacer / side
+          // padding — treat it as "click-to-continue-writing" and put the
+          // caret at the very end of the document.
+          event.preventDefault()
+          editor.chain().focus('end').run()
+        }}
+      >
         <div
           className="note-editor__content"
           style={

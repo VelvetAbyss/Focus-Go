@@ -1,5 +1,5 @@
 export const DB_NAME = 'workbench-app'
-export const DB_VERSION = 42
+export const DB_VERSION = 43
 
 export const TABLES = {
   tasks: 'tasks',
@@ -19,6 +19,7 @@ export const TABLES = {
   projects: 'projects',
   projectPeople: 'project_people',
   projectNoteLinks: 'project_note_links',
+  taskNoteLinks: 'task_note_links',
   habits: 'habits',
   habitLogs: 'habit_logs',
   syncState: 'sync_state',
@@ -240,4 +241,9 @@ export const schemaV41 = {
 
 export const schemaV42 = {
   ...schemaV41,
+} as const
+
+export const schemaV43 = {
+  ...schemaV42,
+  [TABLES.taskNoteLinks]: 'id, taskId, noteId, [taskId+noteId], order, createdAt, updatedAt',
 } as const

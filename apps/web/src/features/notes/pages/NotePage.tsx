@@ -6,6 +6,8 @@ import { noteAppearanceRepo } from '../../../data/repositories/noteAppearanceRep
 import { noteTagsRepo } from '../../../data/repositories/noteTagsRepo'
 import { notesRepo } from '../../../data/repositories/notesRepo'
 import { projectsRepo } from '../../../data/repositories/projectsRepo'
+import { tasksRepo } from '../../../data/repositories/tasksRepo'
+import { db } from '../../../data/db'
 import AppearanceModal from '../components/AppearanceModal'
 import ExportModal from '../components/ExportModal'
 import InfoPopover from '../components/InfoPopover'
@@ -123,6 +125,7 @@ export default function NotePage() {
   const [trash, setTrash] = useState<NoteItem[]>([])
   const [tags, setTags] = useState<NoteTag[]>([])
   const [projectTagLabels, setProjectTagLabels] = useState<Map<string, string>>(new Map())
+  const [linkedTaskTitles, setLinkedTaskTitles] = useState<Map<string, string>>(new Map())
   const [appearance, setAppearance] = useState<NoteAppearanceSettings>(DEFAULT_APPEARANCE)
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
   const [activeCollection, setActiveCollection] = useState<NoteSystemCollection>('notes')
@@ -167,13 +170,23 @@ export default function NotePage() {
   }, [isLoggedIn])
 
   const refresh = useCallback(async () => {
-    const [activeNotes, trashedNotes, storedTags, storedAppearance, projects] = await Promise.all([
+    const [activeNotes, trashedNotes, storedTags, storedAppearance, projects, taskNoteLinks, tasks] = await Promise.all([
       notesRepo.list(),
       notesRepo.listTrash(),
       noteTagsRepo.list(),
       noteAppearanceRepo.get(),
       projectsRepo.list(),
+      db.taskNoteLinks.toArray(),
+      tasksRepo.list(),
     ])
+    const taskTitleById = new Map(tasks.map((task) => [task.id, task.title] as const))
+    setLinkedTaskTitles(
+      new Map(
+        taskNoteLinks
+          .map((link) => [link.noteId, taskTitleById.get(link.taskId)] as const)
+          .filter((entry): entry is readonly [string, string] => Boolean(entry[1])),
+      ),
+    )
 
     let resolvedTags: NoteTag[] = storedTags
 
@@ -867,6 +880,7 @@ export default function NotePage() {
           selectedNoteId={activeNote?.id ?? null}
           collectionLabel={collectionLabelMap[activeCollection]}
           tagLabelMap={projectTagLabels}
+          linkedTaskTitles={linkedTaskTitles}
           mode={activeCollection === 'trash' ? 'trash' : 'notes'}
           onSelectNote={async (id) => {
             await flushPendingSave()

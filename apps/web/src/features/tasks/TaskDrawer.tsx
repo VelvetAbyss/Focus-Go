@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { CalendarDays, Check, Clock3, LoaderCircle, Pin, Plus, RotateCcw, Target, Trash2, X } from 'lucide-react'
+import { CalendarDays, Check, Clock3, Flag, LoaderCircle, Pin, Plus, RotateCcw, Target, Trash2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -27,11 +27,9 @@ import type { ProjectItem } from '../../data/models/types'
 import { useAddInputComposer } from '../../shared/hooks/useAddInputComposer'
 import { Popover, PopoverContent, PopoverTrigger } from '../../shared/ui/popover'
 import { emitTasksChanged } from './taskSync'
-import TaskNoteEditor from './components/TaskNoteEditor'
-import TaskAttachmentImage from './components/TaskAttachmentImage'
-import { PhotoProvider } from 'react-photo-view'
-import { TASK_ATTACHMENT_LIMIT } from './application/taskAttachments'
-import { createTaskNoteDoc, resolveTaskNoteRichText } from './model/taskNoteRichText'
+import TaskAttachmentsSection from './components/TaskAttachmentsSection'
+import TaskNotesPanel from './components/TaskNotesPanel'
+import TaskProjectAssignCard from './components/TaskProjectAssignCard'
 import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, formatTaskDateTime, getTaskTagTone } from './components/taskPresentation'
 import { useI18n } from '../../shared/i18n/useI18n'
 import { HelpBadge } from '../../shared/ui/HelpBadge'
@@ -49,8 +47,6 @@ type TaskDrawerProps = {
   onRequestDelete?: (task: TaskItem) => void
 }
 
-const PROJECT_NONE_VALUE = '__none__'
-
 const priorityOptions: TaskPriority[] = ['high', 'medium', 'low']
 const defaultTagOptions = ['work', 'life', 'health', 'study', 'finance', 'family']
 const TASK_DRAWER_WIDTH_STORAGE_KEY = 'task_drawer_width_v1'
@@ -62,10 +58,6 @@ const TASK_DRAWER_MAX_LEFT_RATIO = 0.75
 const TASK_DRAWER_TOGGLE_RATIO_A = 0.6
 const TASK_DRAWER_TOGGLE_RATIO_B = 0.7
 type SubtaskFilter = 'all' | 'todo' | 'done'
-type TaskNoteValue = {
-  contentJson?: TaskItem['taskNoteContentJson']
-  contentMd?: TaskItem['taskNoteContentMd']
-}
 
 const equalStringArrays = (a: string[], b: string[]) => {
   if (a.length !== b.length) return false
@@ -149,10 +141,6 @@ const TaskDrawer = ({
   const [projectId, setProjectId] = useState<string | undefined>(undefined)
   const [subtasks, setSubtasks] = useState<TaskItem['subtasks']>([])
   const [subtaskFilter, setSubtaskFilter] = useState<SubtaskFilter>('todo')
-  const [taskNoteSeed, setTaskNoteSeed] = useState<TaskNoteValue>({
-    contentJson: createTaskNoteDoc() as TaskItem['taskNoteContentJson'],
-    contentMd: '',
-  })
   const [lastId, setLastId] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const toast = useToast()
@@ -202,7 +190,6 @@ const TaskDrawer = ({
   const queuedDraftRef = useRef<TaskItem | null>(null)
   const isSavingRef = useRef(false)
   const draftRef = useRef<TaskItem | null>(null)
-  const taskNoteRef = useRef<TaskNoteValue>(taskNoteSeed)
 
   useEffect(() => {
     isSavingRef.current = isSaving
@@ -244,9 +231,6 @@ const TaskDrawer = ({
     setProjectId(task.projectId ?? undefined)
     setSubtasks(task.subtasks)
     setSubtaskFilter('todo')
-    const nextTaskNote = resolveTaskNoteRichText(task)
-    taskNoteRef.current = nextTaskNote
-    setTaskNoteSeed(nextTaskNote)
     baselineRef.current = {
       title: task.title,
       description: task.description ?? '',
@@ -280,9 +264,9 @@ const TaskDrawer = ({
       projectId,
       tags,
       subtasks,
-      taskNoteBlocks: [],
-      taskNoteContentMd: taskNoteRef.current.contentMd,
-      taskNoteContentJson: taskNoteRef.current.contentJson,
+      taskNoteBlocks: sourceTask.taskNoteBlocks ?? [],
+      taskNoteContentMd: sourceTask.taskNoteContentMd,
+      taskNoteContentJson: sourceTask.taskNoteContentJson,
       attachments,
     }
   }, [attachments, description, dueDate, endDate, isToday, priority, projectId, reminderDate, reminderTime, startDate, subtasks, tags, title])
@@ -342,10 +326,6 @@ const TaskDrawer = ({
           taskNoteContentMd: next.taskNoteContentMd,
           taskNoteContentJson: next.taskNoteContentJson,
           attachments: next.attachments ?? [],
-        }
-        taskNoteRef.current = {
-          contentMd: next.taskNoteContentMd,
-          contentJson: next.taskNoteContentJson,
         }
       } catch {
         toast.push({
@@ -413,11 +393,6 @@ const TaskDrawer = ({
       flushSave()
     }
   }, [flushSave])
-
-  const handleTaskNoteChange = useCallback((next: TaskNoteValue) => {
-    taskNoteRef.current = next
-    scheduleSave(buildDraft(task))
-  }, [buildDraft, scheduleSave, task])
 
   useEffect(() => {
     if (!open) return
@@ -597,14 +572,6 @@ const TaskDrawer = ({
   const doneCount = subtasks.filter((s) => s.done).length
   const allDone = subtasks.length > 0 && doneCount === subtasks.length
 
-  const activeProjectOptions = useMemo(() => projects.filter((project) => project.status !== 'archived'), [projects])
-  const currentProject = projectId ? projects.find((project) => project.id === projectId) : undefined
-  const showOrphanProjectOption = Boolean(projectId && (!currentProject || currentProject.status === 'archived'))
-  const orphanProjectLabel = currentProject
-    ? `${currentProject.title} ${t('tasks.drawer.projectArchivedSuffix')}`
-    : t('tasks.drawer.projectMissing')
-  const projectSelectValue = projectId ?? PROJECT_NONE_VALUE
-
   return (
     <Dialog
       open={open}
@@ -752,7 +719,20 @@ const TaskDrawer = ({
                       </Badge>
 
                       <ShadcnSelect value={priority ?? '__none'} onValueChange={(value) => setPriority(value === '__none' ? null : (value as TaskPriority))}>
-                        <SelectTrigger className="task-detail-select-trigger tdv2-priority-select h-7 w-auto min-w-0 gap-1.5 rounded-full border px-3 text-[11px] font-semibold">
+                        <SelectTrigger
+                          aria-label={t('tasks.drawer.priority')}
+                          className={cn(
+                            'task-detail-select-trigger tdv2-priority-select h-7 w-auto min-w-0 gap-1.5 rounded-full border px-3 text-[11px] font-semibold transition-colors',
+                            priority === 'high' && 'border-rose-300/60 bg-rose-50/60 text-rose-700 hover:bg-rose-50',
+                            priority === 'medium' && 'border-amber-300/60 bg-amber-50/60 text-amber-700 hover:bg-amber-50',
+                            priority === 'low' && 'border-cyan-300/60 bg-cyan-50/60 text-cyan-700 hover:bg-cyan-50',
+                            !priority && 'border-dashed text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-hover)]',
+                          )}
+                        >
+                          <Flag className="h-3 w-3 shrink-0" />
+                          <span className="text-[10px] font-semibold uppercase tracking-[0.08em] opacity-70">
+                            {t('tasks.drawer.priority')}
+                          </span>
                           <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', priorityConfig.dot)} />
                           <SelectValue placeholder={t('tasks.drawer.none')} />
                         </SelectTrigger>
@@ -766,34 +746,6 @@ const TaskDrawer = ({
                         </SelectContent>
                       </ShadcnSelect>
 
-                      <div className="inline-flex items-center gap-1">
-                      <ShadcnSelect
-                        value={projectSelectValue}
-                        onValueChange={(value) => setProjectId(value === PROJECT_NONE_VALUE ? undefined : value)}
-                      >
-                        <SelectTrigger
-                          aria-label={t('tasks.drawer.project')}
-                          className="task-detail-select-trigger h-7 w-auto min-w-0 max-w-[200px] gap-1.5 rounded-full border px-3 text-[11px] font-semibold"
-                        >
-                          <SelectValue placeholder={t('tasks.drawer.projectUnassigned')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={PROJECT_NONE_VALUE}>{t('tasks.drawer.projectUnassigned')}</SelectItem>
-                          {showOrphanProjectOption && projectId ? (
-                            <SelectItem value={projectId}>{orphanProjectLabel}</SelectItem>
-                          ) : null}
-                          {activeProjectOptions.map((project) => (
-                            <SelectItem key={project.id} value={project.id}>
-                              {project.title}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </ShadcnSelect>
-                      <HelpBadge label={t('tasks.drawer.project')}>
-                        {t('helpBadge.taskProject')}
-                      </HelpBadge>
-                      </div>
-
                       {reminderAtIso !== '—' && (
                         <span className="inline-flex items-center gap-1.5 rounded-full border border-[#3a3733]/8 bg-[color:var(--bg-muted)] px-2.5 py-0.5 text-[11px] font-medium text-[color:var(--text-secondary)]">
                           <Clock3 className="h-3 w-3" />
@@ -803,6 +755,17 @@ const TaskDrawer = ({
                     </div>
                   </div>
                 </div>
+
+                <TaskProjectAssignCard
+                  projectId={projectId}
+                  projects={projects}
+                  onChange={(next) => setProjectId(next)}
+                />
+
+                <TaskAttachmentsSection
+                  attachments={attachments}
+                  onChange={(next) => setAttachments(next)}
+                />
 
                 {/* ── CORE PROPERTIES ── */}
                 <section
@@ -950,34 +913,6 @@ const TaskDrawer = ({
                     )}
                   </div>
                 </section>
-
-                {(attachments?.length ?? 0) > 0 ? (
-                  <section
-                    className="task-detail-card-shell tdv2-section-enter"
-                    style={{ animationDelay: '90ms' }}
-                  >
-                    <div className="task-detail-card rounded-[26px] border border-[#3a3733]/6 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.04)]">
-                      <p className="task-detail-kicker">{t('tasks.attachments.title')}</p>
-                      <h2 className="task-detail-title mt-0.5">
-                        {t('tasks.attachments.title')} {attachments?.length}/{TASK_ATTACHMENT_LIMIT}
-                      </h2>
-                      <PhotoProvider maskOpacity={0.85}>
-                        <div className="task-attachments-gallery mt-4 flex gap-3 overflow-x-auto pb-2">
-                          {(attachments ?? []).map((attachment) => (
-                            <TaskAttachmentImage
-                              key={attachment.id}
-                              attachment={attachment}
-                              removeLabel={t('tasks.attachments.remove')}
-                              onRemove={(id) =>
-                                setAttachments((prev) => (prev ?? []).filter((item) => item.id !== id))
-                              }
-                            />
-                          ))}
-                        </div>
-                      </PhotoProvider>
-                    </div>
-                  </section>
-                ) : null}
 
                 {/* ── ACTIVITY ── */}
                 <section
@@ -1157,44 +1092,76 @@ const TaskDrawer = ({
                       )}
                     </div>
 
-                    {/* Add subtask composer */}
+                    {/* Add subtask composer — aligned with the main task add composer */}
                     <form
-                      className="mt-3 flex items-center gap-2"
+                      className="mt-3 w-full"
                       onSubmit={(event) => {
                         event.preventDefault()
                         if (!guardSubtasks()) return
                         void subtaskComposer.submit()
                       }}
                     >
-                      <Input
-                        ref={subtaskComposer.inputRef}
-                        value={subtaskComposer.value}
-                        onChange={(event) => subtaskComposer.setValue(event.target.value)}
-                        onAnimationEnd={subtaskComposer.clearShake}
+                      <div
                         className={cn(
-                          'h-9 flex-1 rounded-[12px] border-[#3a3733]/8 bg-[color:var(--bg-muted)] text-[13px]',
-                          subtaskComposer.isShaking && 'is-shaking',
+                          'flex w-full items-center gap-3 rounded-xl border bg-[color:color-mix(in_srgb,var(--accent-action)_5%,white)] px-3.5 py-2 transition-all duration-300',
+                          'border-[color:color-mix(in_srgb,var(--accent-action)_22%,transparent)]',
+                          subtaskComposer.value.trim().length > 0
+                            ? 'border-[color:color-mix(in_srgb,var(--accent-action)_50%,transparent)] shadow-[0_0_0_3px_rgba(139,94,52,0.10)]'
+                            : '',
                         )}
-                        placeholder={t('tasks.drawer.addSubtask')}
-                      />
-                      <Button type="submit" size="sm" className="h-9 shrink-0 rounded-full px-4 text-[11px] font-semibold" disabled={!subtaskComposer.canSubmit}>
-                        {subtasksLocked ? <PremiumMark /> : null}
-                        {t('tasks.drawer.add')}
-                      </Button>
+                      >
+                        <span
+                          className="tasks-fg__hero-plus inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-none bg-transparent text-[color:var(--accent-action)] shadow-none"
+                          style={{ transition: 'transform 320ms cubic-bezier(0.22,1,0.36,1)' }}
+                          aria-hidden="true"
+                        >
+                          <Plus
+                            className={cn(
+                              'h-[18px] w-[18px] transition-transform duration-300',
+                              subtaskComposer.value.trim().length > 0 ? 'rotate-90 scale-110' : 'rotate-0',
+                            )}
+                            strokeWidth={2.4}
+                          />
+                        </span>
+                        <input
+                          ref={subtaskComposer.inputRef as React.RefObject<HTMLInputElement>}
+                          value={subtaskComposer.value}
+                          onChange={(event) => subtaskComposer.setValue(event.target.value)}
+                          onAnimationEnd={subtaskComposer.clearShake}
+                          placeholder={t('tasks.drawer.addSubtask')}
+                          className={cn(
+                            'tasks-fg__input flex-1 h-auto min-h-0 border-0 bg-transparent px-0 py-0 text-[13px] font-medium shadow-none outline-none placeholder:text-muted-foreground/85 caret-[color:var(--accent-action)] focus-visible:ring-0',
+                            subtaskComposer.isShaking && 'is-shaking',
+                          )}
+                        />
+                        <Button
+                          type="submit"
+                          size="sm"
+                          disabled={!subtaskComposer.canSubmit}
+                          className={cn(
+                            'tasks-fg__add-btn h-8 shrink-0 gap-1.5 rounded-md px-3 text-xs font-semibold text-white shadow-none transition-all duration-300',
+                            'bg-[color:var(--accent-action)] hover:bg-[color:color-mix(in_srgb,var(--accent-action)_88%,white)] hover:shadow-[0_6px_16px_-6px_rgba(139,94,52,0.5)] active:scale-[0.96]',
+                            subtaskComposer.value.trim().length > 0
+                              ? 'opacity-100 scale-100 shadow-[0_2px_10px_-2px_rgba(139,94,52,0.4)]'
+                              : 'opacity-60 scale-[0.94]',
+                          )}
+                          style={{ transitionTimingFunction: 'cubic-bezier(0.34,1.56,0.64,1)' }}
+                        >
+                          {subtasksLocked ? <PremiumMark /> : null}
+                          {t('tasks.drawer.add')}
+                          <kbd
+                            className="inline-flex items-center justify-center rounded border border-current/25 bg-current/10 px-1 font-mono text-[10px] font-normal leading-none opacity-80"
+                            style={{ letterSpacing: 0 }}
+                          >
+                            ⏎
+                          </kbd>
+                        </Button>
+                      </div>
                     </form>
                   </section>
 
                   {/* ── NOTES ── */}
-                  <section
-                    className="task-detail-card task-detail-card--side tdv2-section-enter rounded-[24px] border border-[#3a3733]/6 p-4 shadow-[0_14px_40px_rgba(15,23,42,0.05)]"
-                    style={{ animationDelay: '100ms' }}
-                  >
-                    <p className="task-detail-kicker">{t('tasks.drawer.note')}</p>
-                    <h2 className="task-detail-title mt-0.5">{t('tasks.drawer.noteContext')}</h2>
-                    <div className="mt-3">
-                      <TaskNoteEditor key={currentTask.id} value={taskNoteSeed} onChange={handleTaskNoteChange} />
-                    </div>
-                  </section>
+                  <TaskNotesPanel key={currentTask.id} taskId={currentTask.id} taskTitle={currentTask.title} />
 
                 </div>
               </ScrollArea>

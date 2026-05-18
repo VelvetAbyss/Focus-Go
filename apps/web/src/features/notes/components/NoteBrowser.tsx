@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type RefObject } from 'react'
-import { ChevronDown, Pin, PinOff, Plus, RotateCcw, Search, Trash2 } from 'lucide-react'
+import { CheckSquare2, ChevronDown, Pin, PinOff, Plus, RotateCcw, Search, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useI18n } from '../../../shared/i18n/useI18n'
 import type { NoteItem } from '../../../data/models/types'
@@ -28,6 +28,7 @@ type Props = {
   collectionLabel: string
   mode?: NoteBrowserMode
   tagLabelMap?: Map<string, string>
+  linkedTaskTitles?: Map<string, string>
   onSelectNote: (id: string) => void
   onNewNote: () => void
   onTogglePin: (id: string) => void
@@ -60,6 +61,7 @@ export default function NoteBrowser({
   collectionLabel,
   mode = 'notes',
   tagLabelMap,
+  linkedTaskTitles,
   onSelectNote,
   onNewNote,
   onTogglePin,
@@ -165,6 +167,7 @@ export default function NoteBrowser({
             note={note}
             mode={mode}
             tagLabelMap={tagLabelMap}
+            linkedTaskTitle={linkedTaskTitles?.get(note.id)}
             selected={note.id === selectedNoteId}
             onSelect={() => onSelectNote(note.id)}
             onTogglePin={() => onTogglePin(note.id)}
@@ -180,6 +183,7 @@ export default function NoteBrowser({
             note={note}
             mode={mode}
             tagLabelMap={tagLabelMap}
+            linkedTaskTitle={linkedTaskTitles?.get(note.id)}
             selected={note.id === selectedNoteId}
             onSelect={() => onSelectNote(note.id)}
             onTogglePin={() => onTogglePin(note.id)}
@@ -213,6 +217,7 @@ function NoteCard({
   note,
   mode,
   tagLabelMap,
+  linkedTaskTitle,
   selected,
   onSelect,
   onTogglePin,
@@ -223,6 +228,7 @@ function NoteCard({
   note: NoteItem
   mode: NoteBrowserMode
   tagLabelMap?: Map<string, string>
+  linkedTaskTitle?: string
   selected: boolean
   onSelect: () => void
   onTogglePin: () => void
@@ -307,6 +313,13 @@ function NoteCard({
         </div>
         <span className="shrink-0 text-[0.625rem] tabular-nums text-[#8d867f] dark:text-[#f5f3f0]/45">{formatTime(note.updatedAt)}</span>
       </div>
+
+      {linkedTaskTitle ? (
+        <div className="mt-1.5 flex items-center gap-1 text-[10px] text-[#8d867f] dark:text-[#f5f3f0]/55">
+          <CheckSquare2 size={10} className="shrink-0" />
+          <span className="truncate">{linkedTaskTitle}</span>
+        </div>
+      ) : null}
 
       {/* Action buttons */}
       <div className="absolute right-2 top-2 flex items-center gap-0.5 opacity-0 transition-[opacity,transform] duration-150 group-hover:opacity-100">
