@@ -1,6 +1,8 @@
-import { CheckCircle2, Clipboard, FolderKanban, ListChecks } from 'lucide-react'
+import { Check, Clipboard, ListChecks } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type { ProjectItem } from '../../../data/models/types'
+import { useI18n } from '../../../shared/i18n/useI18n'
+import Card from '../../../shared/ui/Card'
 import type { TaskItem } from '../tasks.types'
 import {
   buildTaskProgressSummary,
@@ -17,28 +19,41 @@ type TaskProgressSummaryCardProps = {
   now?: number
 }
 
-const periodOptions: Array<{ value: TaskProgressPeriod; label: string }> = [
-  { value: 'week', label: '本周' },
-  { value: 'month', label: '本月' },
-]
-
-const modeOptions: Array<{ value: TaskProgressDetailMode; label: string }> = [
-  { value: 'compact', label: '精简' },
-  { value: 'detailed', label: '详细' },
-]
-
-const formatDelta = (value: number) => {
-  if (value > 0) return `+${value}`
-  return String(value)
+const Delta = ({ value }: { value: number }) => {
+  if (value === 0) return <span className="ml-1.5 text-[11px] font-medium text-[color:var(--text-secondary)]/55">—</span>
+  const positive = value > 0
+  return (
+    <span
+      className={[
+        'ml-1.5 inline-flex items-baseline gap-0.5 rounded-full px-1.5 py-px text-[10px] font-semibold tabular-nums',
+        positive ? 'bg-[#5A7A62]/12 text-[#3E5A48]' : 'bg-[color:var(--text-secondary)]/10 text-[color:var(--text-secondary)]/80',
+      ].join(' ')}
+    >
+      <span aria-hidden>{positive ? '↑' : '↓'}</span>
+      {Math.abs(value)}
+    </span>
+  )
 }
 
-const formatDateTime = (value: number) =>
-  new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-
-const StatPill = ({ label, value }: { label: string; value: number | string }) => (
-  <div className="rounded-[18px] border border-[#3A3733]/10 bg-white/62 px-3 py-2">
-    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#3A3733]/45">{label}</p>
-    <p className="mt-1 text-lg font-semibold leading-none text-[#3A3733]">{value}</p>
+const Stat = ({
+  label,
+  value,
+  delta,
+}: {
+  label: string
+  value: number
+  delta?: number
+}) => (
+  <div className="flex flex-col gap-1">
+    <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[color:var(--text-secondary)]/70">
+      {label}
+    </span>
+    <div className="flex items-baseline">
+      <span className="text-[22px] font-bold leading-none tabular-nums tracking-tight text-[color:var(--text-primary)]">
+        {value}
+      </span>
+      {delta !== undefined ? <Delta value={delta} /> : null}
+    </div>
   </div>
 )
 
@@ -46,90 +61,150 @@ const SegmentControl = <T extends string>({
   value,
   options,
   onChange,
+  ariaLabel,
 }: {
   value: T
   options: Array<{ value: T; label: string }>
   onChange: (value: T) => void
+  ariaLabel?: string
 }) => (
-  <div className="inline-flex rounded-full border border-[#3A3733]/10 bg-[#3A3733]/5 p-0.5">
-    {options.map((option) => (
-      <button
-        key={option.value}
-        type="button"
-        className={[
-          'rounded-full px-3 py-1 text-[11px] font-semibold transition',
-          value === option.value ? 'bg-[#3A3733] text-[#F5F3F0]' : 'text-[#3A3733]/58 hover:text-[#3A3733]',
-        ].join(' ')}
-        onClick={() => onChange(option.value)}
-      >
-        {option.label}
-      </button>
-    ))}
+  <div role="tablist" aria-label={ariaLabel} className="header-pill is-compact">
+    {options.map((option) => {
+      const selected = value === option.value
+      return (
+        <button
+          key={option.value}
+          type="button"
+          role="tab"
+          aria-selected={selected}
+          className={`header-pill__btn${selected ? ' is-active' : ''}`}
+          onClick={() => onChange(option.value)}
+        >
+          {option.label}
+        </button>
+      )
+    })}
   </div>
 )
+
+type Translator = ReturnType<typeof useI18n>['t']
 
 const ProjectRow = ({
   project,
   mode,
   compact,
+  t,
+  language,
 }: {
   project: TaskProgressSummary['projects'][number]
   mode: TaskProgressDetailMode
   compact?: boolean
+  t: Translator
+  language: 'en' | 'zh'
 }) => {
   const visibleTasks = compact ? project.tasks.slice(0, 2) : project.tasks
+  const locale = language === 'zh' ? 'zh-CN' : 'en-US'
+  const dateLabel = new Date(project.latestCompletedAt).toLocaleDateString(locale, {
+    month: 'short',
+    day: 'numeric',
+  })
+  const displayTitle = project.projectId ? project.projectTitle : t('taskRecap.unassigned')
+
   return (
-    <article className="rounded-[18px] border border-[#3A3733]/9 bg-white/68 p-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex min-w-0 items-center gap-2">
-            <span className="size-2.5 shrink-0 rounded-full" style={{ background: project.projectColor }} />
-            <h3 className="truncate text-sm font-semibold text-[#3A3733]">{project.projectTitle}</h3>
-          </div>
-          <p className="mt-1 text-[11px] text-[#3A3733]/52">
-            {project.completedTaskCount} tasks · {project.completedSubtaskCount} subtasks · progress {project.progress}%
-          </p>
+    <article className="py-3">
+      <header className="flex items-baseline justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <span
+            className="size-2 shrink-0 rounded-full"
+            style={{ background: project.projectColor }}
+            aria-hidden
+          />
+          <h4 className="truncate text-[13px] font-semibold leading-tight text-[color:var(--text-primary)]">
+            {displayTitle}
+          </h4>
         </div>
-        <span className="shrink-0 rounded-full bg-[#3A3733]/6 px-2 py-1 text-[10px] font-semibold text-[#3A3733]/58">
-          {formatDateTime(project.latestCompletedAt)}
+        <span className="shrink-0 text-[10px] font-medium uppercase tracking-[0.1em] tabular-nums text-[color:var(--text-secondary)]/65">
+          {dateLabel}
         </span>
+      </header>
+
+      <div className="mt-1.5 flex items-center gap-2 text-[11px] text-[color:var(--text-secondary)]/80">
+        <span className="tabular-nums">
+          <span className="font-semibold text-[color:var(--text-primary)]/85">{project.completedTaskCount}</span>{' '}
+          {t('taskRecap.row.tasks')}
+        </span>
+        <span className="text-[color:var(--text-secondary)]/35">·</span>
+        <span className="tabular-nums">
+          <span className="font-semibold text-[color:var(--text-primary)]/85">{project.completedSubtaskCount}</span>{' '}
+          {t('taskRecap.row.subtasks')}
+        </span>
+        <span className="text-[color:var(--text-secondary)]/35">·</span>
+        <span className="tabular-nums font-semibold text-[color:var(--text-primary)]/85">{project.progress}%</span>
       </div>
 
-      <div className="mt-3 grid gap-2">
-        {visibleTasks.map((task) => (
-          <div key={task.id} className="rounded-[14px] border border-[#3A3733]/7 bg-[#F5F3F0]/72 px-3 py-2">
-            <div className="flex items-start gap-2">
-              <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-[#5A7A62]" />
+      <div className="mt-2 h-[3px] w-full overflow-hidden rounded-full bg-[color:var(--text-primary)]/[0.06]">
+        <div
+          className="h-full rounded-full transition-[width] duration-500"
+          style={{
+            width: `${Math.min(100, Math.max(0, project.progress))}%`,
+            background: project.projectColor,
+          }}
+        />
+      </div>
+
+      {visibleTasks.length > 0 ? (
+        <ul className="mt-2.5 grid gap-1.5">
+          {visibleTasks.map((task) => (
+            <li key={task.id} className="flex items-start gap-2">
+              <Check className="mt-[3px] size-3 shrink-0 stroke-[2.5] text-[#5A7A62]" aria-hidden />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-medium text-[#3A3733]">{task.title}</p>
+                <p className="truncate text-[12px] leading-snug text-[color:var(--text-primary)]/90">
+                  {task.title}
+                </p>
                 {mode === 'detailed' ? (
                   <div className="mt-1 grid gap-1">
                     {task.subtasks.length === 0 ? (
-                      <p className="text-[11px] text-[#3A3733]/42">没有子任务记录</p>
+                      <p className="text-[11px] text-[color:var(--text-secondary)]/55">
+                        {t('taskRecap.row.noSubtaskLog')}
+                      </p>
                     ) : (
                       task.subtasks.map((subtask) => (
-                        <div key={subtask.id} className="flex items-center gap-2 text-[11px] text-[#3A3733]/62">
-                          <span className="size-1.5 rounded-full bg-[#3A3733]/28" />
+                        <div
+                          key={subtask.id}
+                          className="flex items-center gap-1.5 text-[11px] text-[color:var(--text-secondary)]/80"
+                        >
+                          <span
+                            className="size-1 rounded-full bg-[color:var(--text-secondary)]/40"
+                            aria-hidden
+                          />
                           <span className="truncate">{subtask.title}</span>
-                          {!subtask.precise ? <span className="shrink-0 text-[#3A3733]/38">当前状态</span> : null}
+                          {!subtask.precise ? (
+                            <span className="shrink-0 text-[10px] text-[color:var(--text-secondary)]/50">
+                              {t('taskRecap.row.currentState')}
+                            </span>
+                          ) : null}
                         </div>
                       ))
                     )}
                   </div>
                 ) : null}
               </div>
-            </div>
-          </div>
-        ))}
-        {compact && project.tasks.length > visibleTasks.length ? (
-          <p className="px-1 text-[11px] text-[#3A3733]/45">还有 {project.tasks.length - visibleTasks.length} 个任务</p>
-        ) : null}
-      </div>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {compact && project.tasks.length > visibleTasks.length ? (
+        <p className="mt-1.5 text-[11px] text-[color:var(--text-secondary)]/65">
+          {t('taskRecap.row.more', { count: project.tasks.length - visibleTasks.length })}
+        </p>
+      ) : null}
     </article>
   )
 }
 
 export const TaskProgressSummaryCard = ({ tasks, projects, className, compact, now }: TaskProgressSummaryCardProps) => {
+  const { t, language } = useI18n()
   const [period, setPeriod] = useState<TaskProgressPeriod>('week')
   const [mode, setMode] = useState<TaskProgressDetailMode>('compact')
   const [copied, setCopied] = useState(false)
@@ -138,6 +213,27 @@ export const TaskProgressSummaryCard = ({ tasks, projects, className, compact, n
     [mode, now, period, projects, tasks],
   )
   const visibleProjects = compact ? summary.projects.slice(0, 3) : summary.projects
+
+  const periodOptions = useMemo(
+    () => [
+      { value: 'week' as const, label: t('taskRecap.period.week') },
+      { value: 'month' as const, label: t('taskRecap.period.month') },
+    ],
+    [t],
+  )
+  const modeOptions = useMemo(
+    () => [
+      { value: 'compact' as const, label: t('taskRecap.mode.compact') },
+      { value: 'detailed' as const, label: t('taskRecap.mode.detailed') },
+    ],
+    [t],
+  )
+
+  const localizedSummaryLine = t(period === 'week' ? 'taskRecap.summary.week' : 'taskRecap.summary.month', {
+    projects: summary.totals.projectCount,
+    tasks: summary.totals.completedTaskCount,
+    subtasks: summary.totals.completedSubtaskCount,
+  })
 
   const copyReport = async () => {
     try {
@@ -162,69 +258,113 @@ export const TaskProgressSummaryCard = ({ tasks, projects, className, compact, n
   }
 
   return (
-    <section
-      className={[
-        'flex h-full min-h-0 flex-col overflow-hidden rounded-[24px] border border-[#3A3733]/10 bg-[#F5F3F0] text-[#3A3733] shadow-[0_18px_48px_rgba(58,55,51,0.08)]',
-        className ?? '',
-      ].join(' ')}
+    <Card
+      eyebrow={t('taskRecap.eyebrow')}
+      title={t(period === 'week' ? 'taskRecap.title.week' : 'taskRecap.title.month')}
+      className={className}
       data-testid="task-progress-summary-card"
-    >
-      <div className="flex items-start justify-between gap-3 border-b border-[#3A3733]/8 px-4 py-4">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#3A3733]/45">
-            <FolderKanban className="size-3" />
-            <span>成果总结</span>
-          </div>
-          <h2 className="mt-1 text-lg font-semibold tracking-tight text-[#3A3733]">{period === 'week' ? '本周成果' : '本月成果'}</h2>
-        </div>
+      actions={
         <button
           type="button"
-          className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-[#3A3733]/10 bg-white/64 text-[#3A3733] transition hover:bg-white"
-          aria-label="复制周报月报文本"
-          title="复制周报月报文本"
+          className={[
+            'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold transition',
+            copied
+              ? 'bg-[#5A7A62]/12 text-[#3E5A48]'
+              : 'border border-[color:var(--border)] bg-white text-[color:var(--text-secondary)] hover:border-[color:var(--text-primary)]/40 hover:text-[color:var(--text-primary)]',
+          ].join(' ')}
+          aria-label={t('taskRecap.copyAria')}
+          title={t('taskRecap.copyAria')}
           onClick={copyReport}
         >
-          <Clipboard className="size-3.5" />
+          {copied ? <Check className="size-3" aria-hidden /> : <Clipboard className="size-3" aria-hidden />}
+          <span>{copied ? t('taskRecap.copied') : t('taskRecap.copy')}</span>
         </button>
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
-        <SegmentControl value={period} options={periodOptions} onChange={setPeriod} />
-        <SegmentControl value={mode} options={modeOptions} onChange={setMode} />
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4">
-        <p className="rounded-[18px] border border-[#3A3733]/8 bg-white/58 px-3 py-3 text-sm leading-6 text-[#3A3733]/78">
-          {summary.summaryLine}
-        </p>
-
-        <div className="mt-3 grid grid-cols-3 gap-2">
-          <StatPill label="项目" value={summary.totals.projectCount} />
-          <StatPill label="任务" value={`${summary.totals.completedTaskCount} (${formatDelta(summary.delta.completedTaskCount)})`} />
-          <StatPill label="子任务" value={`${summary.totals.completedSubtaskCount} (${formatDelta(summary.delta.completedSubtaskCount)})`} />
+      }
+    >
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-3">
+          <SegmentControl
+            value={period}
+            options={periodOptions}
+            onChange={setPeriod}
+            ariaLabel={t('taskRecap.aria.period')}
+          />
+          <SegmentControl
+            value={mode}
+            options={modeOptions}
+            onChange={setMode}
+            ariaLabel={t('taskRecap.aria.mode')}
+          />
         </div>
 
-        {copied ? (
-          <div className="mt-3 rounded-full bg-[#5A7A62]/12 px-3 py-2 text-center text-[11px] font-semibold text-[#4E6E58]">
-            已复制周报/月报文本
-          </div>
-        ) : null}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <p className="text-[13px] leading-[1.6] text-[color:var(--text-secondary)]">
+            {localizedSummaryLine}
+          </p>
 
-        <div className="mt-3 grid gap-3">
+          <div className="mt-3 grid grid-cols-3 divide-x divide-[color:var(--border)] rounded-xl border border-[color:var(--border)] bg-[color:var(--text-primary)]/[0.02]">
+            <div className="px-3 py-2.5">
+              <Stat label={t('taskRecap.stat.projects')} value={summary.totals.projectCount} />
+            </div>
+            <div className="px-3 py-2.5">
+              <Stat
+                label={t('taskRecap.stat.tasks')}
+                value={summary.totals.completedTaskCount}
+                delta={summary.delta.completedTaskCount}
+              />
+            </div>
+            <div className="px-3 py-2.5">
+              <Stat
+                label={t('taskRecap.stat.subtasks')}
+                value={summary.totals.completedSubtaskCount}
+                delta={summary.delta.completedSubtaskCount}
+              />
+            </div>
+          </div>
+
+          {copied ? (
+            <div className="mt-3 flex items-center justify-center gap-1.5 rounded-md bg-[#5A7A62]/10 px-3 py-1.5 text-[11px] font-semibold text-[#3E5A48]">
+              <Check className="size-3" aria-hidden />
+              <span>{t('taskRecap.copyToast')}</span>
+            </div>
+          ) : null}
+
+          <div className="mt-4 flex items-baseline justify-between">
+            <h5 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[color:var(--text-secondary)]/70">
+              {t('taskRecap.byProject')}
+            </h5>
+            <span className="text-[10px] tabular-nums text-[color:var(--text-secondary)]/55">
+              {visibleProjects.length} / {summary.projects.length || 0}
+            </span>
+          </div>
+
           {visibleProjects.length === 0 ? (
-            <div className="flex min-h-[160px] flex-col items-center justify-center rounded-[18px] border border-dashed border-[#3A3733]/12 bg-white/42 px-4 text-center">
-              <ListChecks className="mb-3 size-6 text-[#3A3733]/28" />
-              <p className="text-sm font-semibold text-[#3A3733]/60">本周期还没有完成记录</p>
-              <p className="mt-1 text-xs text-[#3A3733]/42">完成任务后，这里会自动按项目整理进展。</p>
+            <div className="mt-2 flex min-h-[120px] flex-col items-center justify-center rounded-xl border border-dashed border-[color:var(--border)] px-4 text-center">
+              <ListChecks className="mb-2 size-5 text-[color:var(--text-secondary)]/45" aria-hidden />
+              <p className="text-[12px] font-semibold text-[color:var(--text-primary)]/75">
+                {t('taskRecap.empty.title')}
+              </p>
+              <p className="mt-0.5 text-[11px] text-[color:var(--text-secondary)]/65">
+                {t('taskRecap.empty.subtitle')}
+              </p>
             </div>
           ) : (
-            visibleProjects.map((project) => (
-              <ProjectRow key={project.projectId ?? '__unassigned'} project={project} mode={mode} compact={compact} />
-            ))
+            <div className="mt-1 divide-y divide-[color:var(--border)]">
+              {visibleProjects.map((project) => (
+                <ProjectRow
+                  key={project.projectId ?? '__unassigned'}
+                  project={project}
+                  mode={mode}
+                  compact={compact}
+                  t={t}
+                  language={language}
+                />
+              ))}
+            </div>
           )}
         </div>
       </div>
-    </section>
+    </Card>
   )
 }
 

@@ -340,6 +340,7 @@ export type DashboardLayout = BaseEntity & {
   items: DashboardLayoutItem[]
   hiddenCardIds?: string[]
   themeOverride?: 'light' | 'dark' | null
+  layoutVersion?: number
 }
 
 export type LifeDashboardLayout = BaseEntity & {
