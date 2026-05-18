@@ -552,6 +552,12 @@ export type ProjectNoteLink = BaseEntity & {
   tagName: string
 }
 
+export type TaskNoteLink = BaseEntity & {
+  taskId: string
+  noteId: string
+  order: number
+}
+
 export type FeatureKey = 'ai-digest' | 'automation' | 'habit-tracker' | 'project-workspace'
 export type FeatureInstallState = 'installed' | 'removed'
 

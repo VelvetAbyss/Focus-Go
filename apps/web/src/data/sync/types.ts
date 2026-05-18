@@ -17,6 +17,7 @@ import type {
   ProjectItem,
   ProjectNoteLink,
   ProjectPerson,
+  TaskNoteLink,
   SpendCategory,
   SpendEntry,
   StockItem,
@@ -43,6 +44,7 @@ export const SYNC_ENTITY_TYPES = [
   'projects',
   'projectPeople',
   'projectNoteLinks',
+  'taskNoteLinks',
   'habits',
   'habitLogs',
   // Life feature tables (previously local-only)
@@ -77,6 +79,7 @@ export type SyncEntityMap = {
   projects: ProjectItem
   projectPeople: ProjectPerson
   projectNoteLinks: ProjectNoteLink
+  taskNoteLinks: TaskNoteLink
   habits: Habit
   habitLogs: HabitLog
   books: BookItem

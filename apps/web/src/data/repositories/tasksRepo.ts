@@ -39,6 +39,12 @@ export const tasksRepo = {
   },
   async remove(id: string) {
     await dbService.tasks.remove(id)
+    try {
+      const { taskNoteLinksRepo } = await import('./taskNoteLinksRepo')
+      await taskNoteLinksRepo.unlinkAllForTask(id)
+    } catch (error) {
+      console.error('[tasksRepo] unlinkAllForTask failed', id, error)
+    }
   },
   async updateStatus(id: string, status: TaskStatus) {
     return dbService.tasks.updateStatus(id, status)

@@ -27,6 +27,7 @@ import type {
   ProjectItem,
   ProjectNoteLink,
   ProjectPerson,
+  TaskNoteLink,
   TripRecord,
   UserSubscription,
   WidgetTodo,
@@ -54,6 +55,7 @@ import {
   schemaV40,
   schemaV41,
   schemaV42,
+  schemaV43,
   schemaV2,
   schemaV3,
   schemaV4,
@@ -83,6 +85,7 @@ export class WorkbenchDb extends Dexie {
   projects!: Table<ProjectItem, string>
   projectPeople!: Table<ProjectPerson, string>
   projectNoteLinks!: Table<ProjectNoteLink, string>
+  taskNoteLinks!: Table<TaskNoteLink, string>
   habits!: Table<Habit, string>
   habitLogs!: Table<HabitLog, string>
   syncState!: Table<SyncState, string>
@@ -246,7 +249,11 @@ export class WorkbenchDb extends Dexie {
       .stores(schemaV42)
       .upgrade(async () => {})
 
-    this.version(DB_VERSION).stores(schemaV42)
+    this.version(43)
+      .stores(schemaV43)
+      .upgrade(async () => {})
+
+    this.version(DB_VERSION).stores(schemaV43)
 
     this.tasks = this.table(TABLES.tasks)
     this.notes = this.table(TABLES.notes)
@@ -265,6 +272,7 @@ export class WorkbenchDb extends Dexie {
     this.projects = this.table(TABLES.projects)
     this.projectPeople = this.table(TABLES.projectPeople)
     this.projectNoteLinks = this.table(TABLES.projectNoteLinks)
+    this.taskNoteLinks = this.table(TABLES.taskNoteLinks)
     this.habits = this.table(TABLES.habits)
     this.habitLogs = this.table(TABLES.habitLogs)
     this.syncState = this.table(TABLES.syncState)

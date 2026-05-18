@@ -32,6 +32,7 @@ export const SYNC_ENTITY_TABLES: Record<SyncEntityType, string> = {
   projects: TABLES.projects,
   projectPeople: TABLES.projectPeople,
   projectNoteLinks: TABLES.projectNoteLinks,
+  taskNoteLinks: TABLES.taskNoteLinks,
   habits: TABLES.habits,
   habitLogs: TABLES.habitLogs,
   // Life feature tables
