@@ -1,6 +1,6 @@
 import { db } from '../db'
 import type { NoteItem, TaskNoteLink } from '../models/types'
-import { enqueueSyncOperation } from '../sync/repository'
+import { enqueueSyncOperationInBackground } from '../sync/repository'
 import { withBase } from './base'
 import { notesRepo } from './notesRepo'
 
@@ -60,7 +60,7 @@ export const taskNoteLinksRepo = {
       id: buildLinkId(taskId, note.id),
     }
     await db.taskNoteLinks.put(link)
-    await enqueueSyncOperation('taskNoteLinks', 'upsert', link)
+    enqueueSyncOperationInBackground('taskNoteLinks', 'upsert', link)
     return { link, note }
   },
 
@@ -74,7 +74,7 @@ export const taskNoteLinksRepo = {
       id: buildLinkId(taskId, noteId),
     }
     await db.taskNoteLinks.put(link)
-    await enqueueSyncOperation('taskNoteLinks', 'upsert', link)
+    enqueueSyncOperationInBackground('taskNoteLinks', 'upsert', link)
     return link
   },
 
@@ -82,7 +82,7 @@ export const taskNoteLinksRepo = {
     const id = buildLinkId(taskId, noteId)
     const deletedAt = Date.now()
     await db.taskNoteLinks.delete(id)
-    await enqueueSyncOperation('taskNoteLinks', 'delete', { id, updatedAt: deletedAt, taskId, noteId }, deletedAt)
+    enqueueSyncOperationInBackground('taskNoteLinks', 'delete', { id, updatedAt: deletedAt, taskId, noteId }, deletedAt)
   },
 
   async unlinkAllForTask(taskId: string): Promise<void> {
@@ -90,16 +90,14 @@ export const taskNoteLinksRepo = {
     if (links.length === 0) return
     const deletedAt = Date.now()
     await db.taskNoteLinks.bulkDelete(links.map((link) => link.id))
-    await Promise.all(
-      links.map((link) =>
-        enqueueSyncOperation(
-          'taskNoteLinks',
-          'delete',
-          { id: link.id, updatedAt: deletedAt, taskId: link.taskId, noteId: link.noteId },
-          deletedAt,
-        ),
-      ),
-    )
+    links.forEach((link) => {
+      enqueueSyncOperationInBackground(
+        'taskNoteLinks',
+        'delete',
+        { id: link.id, updatedAt: deletedAt, taskId: link.taskId, noteId: link.noteId },
+        deletedAt,
+      )
+    })
   },
 
   /**
@@ -123,7 +121,7 @@ export const taskNoteLinksRepo = {
         id: buildLinkId(taskId, note.id),
       }
       await db.taskNoteLinks.put(link)
-      await enqueueSyncOperation('taskNoteLinks', 'upsert', link)
+      enqueueSyncOperationInBackground('taskNoteLinks', 'upsert', link)
       return true
     } catch (error) {
       console.error('[taskNoteLinksRepo] migrateLegacyForTask failed', taskId, error)
@@ -156,7 +154,7 @@ export const taskNoteLinksRepo = {
           id: buildLinkId(task.id, note.id),
         }
         await db.taskNoteLinks.put(link)
-        await enqueueSyncOperation('taskNoteLinks', 'upsert', link)
+        enqueueSyncOperationInBackground('taskNoteLinks', 'upsert', link)
         migrated += 1
       } catch (error) {
         console.error('[taskNoteLinksRepo] migrate failed for task', task.id, error)

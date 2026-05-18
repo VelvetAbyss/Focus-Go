@@ -640,7 +640,7 @@ const SettingsRoute = () => {
   const { openModal: openUpgradeModal } = useUpgradeModal()
   const toast = useToast()
   const syncState = useSyncStatus()
-  const { syncNow } = useSyncActions()
+  const { enabled: cloudSyncEnabled, setEnabled: setCloudSyncEnabled, syncNow } = useSyncActions()
   const [activeSection, setActiveSection] = useState<BaseSettingsSection>('appearance')
   const [layoutLocked, setLayoutLocked] = useState(() => readLayoutLocked())
   const [theme, setTheme] = useState<ThemeSelection>('system')
@@ -718,7 +718,9 @@ const SettingsRoute = () => {
   const isLegalSection = location.pathname === LEGAL_ROOT_PATH || legalDocumentKey !== null
   const resolvedSection: SettingsSection = isLegalSection ? 'legal' : activeSection
   const legalDocument = legalDocumentKey ? LEGAL_DOCUMENTS[language][legalDocumentKey] : null
-  const syncStatusLabel = syncState ? t(`settings.data.sync.status.${syncState.status}`) : t('settings.data.sync.status.idle')
+  const syncStatusLabel = !cloudSyncEnabled
+    ? t('settings.data.sync.status.paused')
+    : syncState ? t(`settings.data.sync.status.${syncState.status}`) : t('settings.data.sync.status.idle')
   const lastSyncedLabel = syncState?.lastPulledAt
     ? t('settings.data.sync.lastSynced', { time: new Date(syncState.lastPulledAt).toLocaleString() })
     : t('settings.data.sync.lastSynced.never')
@@ -1485,16 +1487,24 @@ const SettingsRoute = () => {
                             description={t('settings.data.sync.description')}
                           >
                             <div className="flex w-full flex-col gap-3 sm:items-end">
+                              <label className="flex items-center gap-3 text-sm font-medium">
+                                <span>{cloudSyncEnabled ? t('settings.data.sync.enabled') : t('settings.data.sync.disabled')}</span>
+                                <Switch
+                                  checked={cloudSyncEnabled}
+                                  onCheckedChange={(checked) => setCloudSyncEnabled(checked)}
+                                  aria-label={t('settings.data.sync.toggle')}
+                                />
+                              </label>
                               <div className="text-sm text-muted-foreground">{syncStatusLabel}</div>
                               <div className="text-xs text-muted-foreground">{lastSyncedLabel}</div>
-                              {syncState?.lastError ? (
+                              {cloudSyncEnabled && syncState?.lastError ? (
                                 <div className="max-w-[360px] text-right text-xs text-destructive">
                                   {t('settings.data.sync.error', { message: syncState.lastError })}
                                 </div>
                               ) : null}
                               <Button
                                 variant="outline"
-                                disabled={syncState?.status === 'syncing'}
+                                disabled={!cloudSyncEnabled || syncState?.status === 'syncing'}
                                 onClick={() => {
                                   if (syncState?.status === 'blocked') {
                                     openUpgradeModal()

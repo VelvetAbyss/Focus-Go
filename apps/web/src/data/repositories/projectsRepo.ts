@@ -1,6 +1,6 @@
 import { db } from '../db'
 import type { ProjectHealth, ProjectItem, ProjectStatus } from '../models/types'
-import { enqueueSyncOperation } from '../sync/repository'
+import { enqueueSyncOperationInBackground } from '../sync/repository'
 import type { DomainEvent } from '../models/types'
 import { finalizeDomainEvent } from '../events/domainEventsRepo'
 import { publishDomainEvent } from '../events/publisher'
@@ -72,7 +72,7 @@ export const projectsRepo = {
         dedupeKey: `project.created:${project.id}`,
       })
     })
-    await enqueueSyncOperation('projects', 'upsert', project)
+    enqueueSyncOperationInBackground('projects', 'upsert', project)
     await finalizeDomainEvent(event)
     const existingTags = await noteTagsRepo.list()
     const tagName = toProjectTag(project.id)
@@ -116,7 +116,7 @@ export const projectsRepo = {
         })
       }
     })
-    await enqueueSyncOperation('projects', 'upsert', next)
+    enqueueSyncOperationInBackground('projects', 'upsert', next)
     await finalizeDomainEvent(event)
     return next
   },
@@ -139,11 +139,9 @@ export const projectsRepo = {
       await db.projectNoteLinks.bulkDelete(noteLinks.map((link) => link.id))
       await db.projects.delete(id)
     })
-    await Promise.all([
-      enqueueSyncOperation('projects', 'delete', { id, updatedAt: deletedAt, title: project.title }, deletedAt),
-      ...updatedTasks.map((task) => enqueueSyncOperation('tasks', 'upsert', task, deletedAt)),
-      ...people.map((person) => enqueueSyncOperation('projectPeople', 'delete', { id: person.id, updatedAt: deletedAt, projectId: id }, deletedAt)),
-      ...noteLinks.map((link) => enqueueSyncOperation('projectNoteLinks', 'delete', { id: link.id, updatedAt: deletedAt, projectId: id, noteId: link.noteId }, deletedAt)),
-    ])
+    enqueueSyncOperationInBackground('projects', 'delete', { id, updatedAt: deletedAt, title: project.title }, deletedAt)
+    updatedTasks.forEach((task) => enqueueSyncOperationInBackground('tasks', 'upsert', task, deletedAt))
+    people.forEach((person) => enqueueSyncOperationInBackground('projectPeople', 'delete', { id: person.id, updatedAt: deletedAt, projectId: id }, deletedAt))
+    noteLinks.forEach((link) => enqueueSyncOperationInBackground('projectNoteLinks', 'delete', { id: link.id, updatedAt: deletedAt, projectId: id, noteId: link.noteId }, deletedAt))
   },
 }

@@ -1,6 +1,6 @@
 import { db } from '../db'
 import type { SyncedPreferences } from '../models/types'
-import { enqueueSyncOperation } from '../sync/repository'
+import { enqueueSyncOperationInBackground } from '../sync/repository'
 import {
   readDefaultCurrency,
   readDiaryFont,
@@ -107,9 +107,9 @@ export const syncedPreferencesRepo = {
           ...snapshot,
           createdAt: timestamp,
           updatedAt: timestamp,
-        }
+    }
     await db.syncedPreferences.put(next)
-    await enqueueSyncOperation('syncedPreferences', 'upsert', next)
+    enqueueSyncOperationInBackground('syncedPreferences', 'upsert', next)
     return next
   },
   async hydrateLocalFromDb() {
@@ -140,9 +140,9 @@ export const syncedPreferencesRepo = {
           initialSeedCompletedAt: timestamp,
           createdAt: timestamp,
           updatedAt: timestamp,
-        }
+    }
     await db.syncedPreferences.put(next)
-    await enqueueSyncOperation('syncedPreferences', 'upsert', next)
+    enqueueSyncOperationInBackground('syncedPreferences', 'upsert', next)
     return next
   },
 }

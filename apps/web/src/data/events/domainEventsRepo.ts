@@ -1,7 +1,7 @@
 import type { DomainEvent } from '../models/types'
 import { db } from '../db'
 import { dispatchSyncDataUpdated } from '../sync/constants'
-import { enqueueSyncOperation } from '../sync/repository'
+import { enqueueSyncOperationInBackground } from '../sync/repository'
 import { runDomainEventProjections } from './projections'
 
 export const domainEventsRepo = {
@@ -30,5 +30,5 @@ export const domainEventsRepo = {
 export const finalizeDomainEvent = async (event: DomainEvent | null | undefined) => {
   if (!event) return
   await runDomainEventProjections(event)
-  await enqueueSyncOperation('domainEvents', 'upsert', event)
+  enqueueSyncOperationInBackground('domainEvents', 'upsert', event)
 }

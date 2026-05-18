@@ -53,7 +53,7 @@ import { touch, withBase } from '../repositories/base'
 import { createId } from '../../shared/utils/ids'
 import { areTaskNoteBlocksEqual, normalizeTaskNoteBlocks } from '../../features/tasks/model/taskNote'
 import { resolveTaskNoteRichText } from '../../features/tasks/model/taskNoteRichText'
-import { enqueueSyncOperation } from '../sync/repository'
+import { enqueueSyncOperationInBackground } from '../sync/repository'
 
 const statusLabelMap: Record<TaskStatus, string> = {
   todo: '待办',
@@ -515,7 +515,7 @@ const enqueueUpsert = async <
     | 'lifePeople'
     | 'trips'
 >(entityType: T, payload: { id: string; updatedAt: number } & Record<string, unknown>) => {
-  await enqueueSyncOperation(entityType, 'upsert', payload)
+  enqueueSyncOperationInBackground(entityType, 'upsert', payload)
 }
 
 const reportBackgroundSyncError = (label: string, error: unknown) => {
@@ -564,7 +564,7 @@ const enqueueDelete = async <
     | 'lifePeople'
     | 'trips'
 >(entityType: T, payload: { id: string; updatedAt: number } & Record<string, unknown>, deletedAt = payload.updatedAt) => {
-  await enqueueSyncOperation(entityType, 'delete', { ...payload, deletedAt }, deletedAt)
+  enqueueSyncOperationInBackground(entityType, 'delete', { ...payload, deletedAt }, deletedAt)
 }
 
 export const createDexieDatabaseService = (): IDatabaseService => ({
