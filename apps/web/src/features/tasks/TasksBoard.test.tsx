@@ -67,6 +67,7 @@ vi.mock('../../shared/discovery/useDiscoveryHint', () => ({
 }))
 
 const listMock = vi.fn()
+const addMock = vi.fn()
 const projectListMock = vi.fn()
 const updateMock = vi.fn()
 const removeMock = vi.fn()
@@ -77,11 +78,11 @@ let tasksChangedHandler: (() => void) | null = null
 vi.mock('../../data/repositories/tasksRepo', () => ({
   tasksRepo: {
     list: (...args: unknown[]) => listMock(...args),
+    add: (...args: unknown[]) => addMock(...args),
     update: (...args: unknown[]) => updateMock(...args),
     remove: (...args: unknown[]) => removeMock(...args),
     updateStatus: (...args: unknown[]) => updateStatusMock(...args),
     clearAllTags: vi.fn(),
-    add: vi.fn(),
   },
 }))
 
@@ -93,6 +94,13 @@ vi.mock('../../data/repositories/projectsRepo', () => ({
 
 vi.mock('../../data/sync/service', () => ({
   useSyncDataRefresh: vi.fn(),
+}))
+
+vi.mock('../auth/AuthGateContext', () => ({
+  useAuthGate: () => ({
+    isGated: false,
+    requireAuth: (action: () => void) => action(),
+  }),
 }))
 
 vi.mock('./taskSync', () => ({
@@ -157,6 +165,7 @@ describe('TasksBoard sync', () => {
   beforeEach(() => {
     cleanup()
     listMock.mockReset()
+    addMock.mockReset()
     projectListMock.mockReset()
     projectListMock.mockResolvedValue([])
     updateMock.mockReset()
@@ -209,6 +218,21 @@ describe('TasksBoard sync', () => {
 
     await waitFor(() => expect(listMock).toHaveBeenCalledTimes(2))
     expect(screen.getByText('Synced task')).toBeInTheDocument()
+  })
+
+  it('adds a task into the current board after the create call resolves', async () => {
+    const created = { ...makeTask('task-created', 'Created online task'), createdAt: 2, updatedAt: 2 }
+    listMock.mockResolvedValueOnce([])
+    addMock.mockResolvedValueOnce(created)
+
+    render(<TasksBoard asCard={false} />)
+
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1))
+    fireEvent.change(screen.getByPlaceholderText('Add a new task...'), { target: { value: 'Created online task' } })
+    fireEvent.click(screen.getByText('Add'))
+
+    await waitFor(() => expect(addMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'Created online task' })))
+    expect(await screen.findByText('Created online task')).toBeInTheDocument()
   })
 
   it('shows only today-marked tasks in today view', async () => {
