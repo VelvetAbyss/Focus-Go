@@ -86,7 +86,7 @@ const TasksBoard = ({
   scope = { kind: 'all' },
 }: TasksBoardProps) => {
   const { t } = useI18n()
-  const { requireAuth } = useAuthGate()
+  const { isGated, requireAuth } = useAuthGate()
   const [tasks, setTasks] = useState<TaskItem[]>([])
   const [projects, setProjects] = useState<ProjectItem[]>([])
   const [bulkProjectDraft, setBulkProjectDraft] = useState('')
@@ -921,7 +921,13 @@ const TasksBoard = ({
           ) : null}
           <TaskAddComposer
             ref={composerRef}
-            onSubmit={(title, attachments) => { requireAuth(() => { void handleAddTask(title, attachments) }); return Promise.resolve(true) }}
+            onSubmit={(title, attachments) => {
+              if (isGated) {
+                requireAuth(() => undefined)
+                return Promise.resolve(false)
+              }
+              return handleAddTask(title, attachments)
+            }}
             hero
             placeholder={topView === 'today' ? t('tasks.today.addPlaceholder') : undefined}
           />

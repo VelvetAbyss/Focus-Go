@@ -484,6 +484,35 @@ const enqueueUpsert = async <
   await enqueueSyncOperation(entityType, 'upsert', payload)
 }
 
+const reportBackgroundSyncError = (label: string, error: unknown) => {
+  console.error(`[sync] ${label} failed`, error)
+}
+
+const enqueueUpsertInBackground = <
+  T extends
+    | 'tasks'
+    | 'notes'
+    | 'noteTags'
+    | 'widgetTodos'
+    | 'focusSessions'
+    | 'diaryEntries'
+    | 'spends'
+    | 'habitLogs'
+    | 'books'
+    | 'stocks'
+    | 'media'
+    | 'lifeSubscriptions'
+    | 'lifePodcasts'
+    | 'lifePeople'
+    | 'trips'
+>(entityType: T, payload: { id: string; updatedAt: number } & Record<string, unknown>) => {
+  void enqueueUpsert(entityType, payload).catch((error) => reportBackgroundSyncError(`${entityType}/${payload.id} enqueue`, error))
+}
+
+const finalizeDomainEventInBackground = (event: DomainEvent | undefined) => {
+  void finalizeDomainEvent(event).catch((error) => reportBackgroundSyncError(`domain event ${event?.id ?? 'unknown'} finalize`, error))
+}
+
 const enqueueDelete = async <
   T extends
     | 'tasks'
@@ -571,8 +600,8 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
           dedupeKey: `task.created:${task.id}`,
         })
       })
-      await enqueueUpsert('tasks', task)
-      await finalizeDomainEvent(event)
+      enqueueUpsertInBackground('tasks', task)
+      finalizeDomainEventInBackground(event)
       return task
     },
     async update(task) {
