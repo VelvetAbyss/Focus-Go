@@ -1,7 +1,7 @@
 import type { LifePersonCreateInput, LifePersonUpdateInput } from '@focus-go/core'
 import { db } from '../db'
 import type { LifePerson, ProjectPerson } from '../models/types'
-import { enqueueSyncOperation } from '../sync/repository'
+import { enqueueSyncOperationInBackground } from '../sync/repository'
 import { dbService } from '../services/dbService'
 import { touch } from './base'
 
@@ -56,9 +56,7 @@ const syncProjectPeopleBackfill = async () => {
   if (duplicateIds.length) {
     const deletedAt = Date.now()
     await db.lifePeople.bulkDelete(duplicateIds)
-    await Promise.all(
-      duplicateIds.map((id) => enqueueSyncOperation('lifePeople', 'delete', { id, updatedAt: deletedAt }, deletedAt)),
-    )
+    duplicateIds.forEach((id) => enqueueSyncOperationInBackground('lifePeople', 'delete', { id, updatedAt: deletedAt }, deletedAt))
   }
   const writes = projectPeople.map((person) => {
     const current = linkedMap.get(person.id)
@@ -78,7 +76,7 @@ const syncProjectPeopleBackfill = async () => {
   })
   if (writes.length) {
     await db.lifePeople.bulkPut(writes)
-    await Promise.all(writes.map((row) => enqueueSyncOperation('lifePeople', 'upsert', row)))
+    writes.forEach((row) => enqueueSyncOperationInBackground('lifePeople', 'upsert', row))
   }
 }
 
@@ -109,7 +107,7 @@ export const peopleRepo = {
           note: updated.notes ?? '',
         })
         await db.projectPeople.put(nextProjectPerson)
-        await enqueueSyncOperation('projectPeople', 'upsert', nextProjectPerson)
+        enqueueSyncOperationInBackground('projectPeople', 'upsert', nextProjectPerson)
       }
     }
     cache = cache ? [updated, ...cache.filter((item) => item.id !== id)] : null
@@ -118,12 +116,13 @@ export const peopleRepo = {
   async remove(id: string) {
     const current = await db.lifePeople.get(id)
     if (current?.sourceProjectPersonId) {
+      const deletedAt = Date.now()
       await db.projectPeople.delete(current.sourceProjectPersonId)
-      await enqueueSyncOperation(
+      enqueueSyncOperationInBackground(
         'projectPeople',
         'delete',
-        { id: current.sourceProjectPersonId, updatedAt: Date.now(), projectId: current.sourceProjectId ?? '' },
-        Date.now(),
+        { id: current.sourceProjectPersonId, updatedAt: deletedAt, projectId: current.sourceProjectId ?? '' },
+        deletedAt,
       )
     }
     await dbService.lifePeople.remove(id)

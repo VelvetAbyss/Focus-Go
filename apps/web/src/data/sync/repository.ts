@@ -64,6 +64,17 @@ export const enqueueSyncOperation = <T extends SyncEntityType>(
   deletedAt?: number | null,
 ) => enqueueRxdbSyncChange(entityType, op, payload, deletedAt)
 
+export const enqueueSyncOperationInBackground = <T extends SyncEntityType>(
+  entityType: T,
+  op: SyncOp,
+  payload: SyncPayload<T>,
+  deletedAt?: number | null,
+) => {
+  void enqueueSyncOperation(entityType, op, payload, deletedAt).catch((error) => {
+    console.error(`[sync] ${entityType}/${payload.id} enqueue failed`, error)
+  })
+}
+
 export const collectLocalSnapshot = async () => {
   const entries = await Promise.all(
     (Object.entries(SYNC_ENTITY_TABLES) as Array<[SyncEntityType, string]>).map(async ([entityType, tableName]) => {

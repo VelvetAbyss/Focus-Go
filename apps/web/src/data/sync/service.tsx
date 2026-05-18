@@ -11,19 +11,33 @@ import { seedDatabase } from '../seed'
 
 type SyncContextValue = {
   state: SyncState | null
+  enabled: boolean
+  setEnabled: (enabled: boolean) => void
   syncNow: () => Promise<void>
 }
 
 const SyncContext = createContext<SyncContextValue | null>(null)
+const CLOUD_SYNC_ENABLED_KEY = 'focusgo:cloud-sync-enabled'
 
 const readSyncState = async (setState: (value: SyncState) => void) => {
   setState(await syncStateRepo.get())
+}
+
+const readCloudSyncEnabled = () => {
+  if (typeof window === 'undefined') return true
+  return window.localStorage.getItem(CLOUD_SYNC_ENABLED_KEY) !== '0'
+}
+
+const writeCloudSyncEnabled = (enabled: boolean) => {
+  if (typeof window === 'undefined') return
+  window.localStorage.setItem(CLOUD_SYNC_ENABLED_KEY, enabled ? '1' : '0')
 }
 
 export const SyncProvider = ({ children }: { children: ReactNode }) => {
   const isLoggedIn = useIsLoggedIn()
   const plan = useAuthPlan()
   const [state, setState] = useState<SyncState | null>(null)
+  const [enabled, setEnabledState] = useState(readCloudSyncEnabled)
   const runningRef = useRef(false)
   const canUseCloudSync = isLocalhostRuntime() || plan === 'premium'
   const pageActivity = usePageActivity()
@@ -32,8 +46,13 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
     await readSyncState(setState)
   }, [])
 
+  const setEnabled = useCallback((nextEnabled: boolean) => {
+    writeCloudSyncEnabled(nextEnabled)
+    setEnabledState(nextEnabled)
+  }, [])
+
   const syncNow = useCallback(async () => {
-    if (!isLoggedIn || runningRef.current) return
+    if (!enabled || !isLoggedIn || runningRef.current) return
     if (!canUseCloudSync) {
       await syncStateRepo.markStatus('blocked', 'Cloud sync requires Premium')
       const seeded = await seedDatabase()
@@ -48,10 +67,10 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
       runningRef.current = false
       await refreshState()
     }
-  }, [canUseCloudSync, isLoggedIn, refreshState])
+  }, [canUseCloudSync, enabled, isLoggedIn, refreshState])
 
   const initialize = useCallback(async () => {
-    if (!isLoggedIn || runningRef.current) return
+    if (!enabled || !isLoggedIn || runningRef.current) return
     if (!canUseCloudSync) {
       await syncStateRepo.markStatus('blocked', 'Cloud sync requires Premium')
       const seeded = await seedDatabase()
@@ -72,21 +91,21 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
       dispatchSyncDataUpdated('all')
       await syncNow()
     }
-  }, [canUseCloudSync, isLoggedIn, refreshState, syncNow])
+  }, [canUseCloudSync, enabled, isLoggedIn, refreshState, syncNow])
 
   useEffect(() => {
     void refreshState()
   }, [refreshState])
 
   useEffect(() => {
-    if (!isLoggedIn) return
+    if (!enabled || !isLoggedIn) return
     void initialize()
-  }, [initialize, isLoggedIn])
+  }, [enabled, initialize, isLoggedIn])
 
   useEffect(() => {
-    if (!isLoggedIn || canUseCloudSync) return
+    if (!enabled || !isLoggedIn || canUseCloudSync) return
     void syncStateRepo.markStatus('blocked', 'Cloud sync requires Premium')
-  }, [canUseCloudSync, isLoggedIn])
+  }, [canUseCloudSync, enabled, isLoggedIn])
 
   useEffect(() => {
     const statusListener = () => {
@@ -99,33 +118,35 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
   }, [refreshState])
 
   useEffect(() => {
-    if (!isLoggedIn || !canUseCloudSync || pageActivity !== 'visible') return
+    if (!enabled || !isLoggedIn || !canUseCloudSync || pageActivity !== 'visible') return
     const intervalId = window.setInterval(() => {
       void syncNow()
     }, 30_000)
     return () => window.clearInterval(intervalId)
-  }, [canUseCloudSync, isLoggedIn, pageActivity, syncNow])
+  }, [canUseCloudSync, enabled, isLoggedIn, pageActivity, syncNow])
 
   useEffect(() => {
-    if (!isLoggedIn || !canUseCloudSync) return
+    if (!enabled || !isLoggedIn || !canUseCloudSync) return
     const handleOnline = () => void syncNow()
     window.addEventListener('online', handleOnline)
     return () => {
       window.removeEventListener('online', handleOnline)
     }
-  }, [canUseCloudSync, isLoggedIn, syncNow])
+  }, [canUseCloudSync, enabled, isLoggedIn, syncNow])
 
   useEffect(() => {
-    if (!isLoggedIn || !canUseCloudSync || pageActivity !== 'visible') return
+    if (!enabled || !isLoggedIn || !canUseCloudSync || pageActivity !== 'visible') return
     void syncNow()
-  }, [canUseCloudSync, isLoggedIn, pageActivity, syncNow])
+  }, [canUseCloudSync, enabled, isLoggedIn, pageActivity, syncNow])
 
   const value = useMemo<SyncContextValue>(
     () => ({
       state,
+      enabled,
+      setEnabled,
       syncNow,
     }),
-    [state, syncNow],
+    [enabled, setEnabled, state, syncNow],
   )
 
   return <SyncContext.Provider value={value}>{children}</SyncContext.Provider>
@@ -165,10 +186,14 @@ export const useSyncActions = () => {
   const context = useContext(SyncContext)
   if (!context) {
     return {
+      enabled: true,
+      setEnabled: () => {},
       syncNow: async () => {},
     }
   }
   return {
+    enabled: context.enabled,
+    setEnabled: context.setEnabled,
     syncNow: context.syncNow,
   }
 }
