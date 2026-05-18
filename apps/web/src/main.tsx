@@ -9,6 +9,8 @@ import 'react-resizable/css/styles.css'
 import './data/events/timelineProjection'
 import App from './App.tsx'
 import { bootstrapAuth } from './config/authBootstrap'
+import { installReactScan } from './shared/performance/installReactScan'
+import { installWebVitalsReporting } from './shared/performance/reportWebVitals'
 
 function mountApp() {
   createRoot(document.getElementById('root')!).render(
@@ -16,9 +18,11 @@ function mountApp() {
       <App />
     </StrictMode>,
   )
+  installWebVitalsReporting()
 }
 
 async function bootstrap() {
+  await installReactScan()
   if (await bootstrapAuth()) mountApp()
 }
 

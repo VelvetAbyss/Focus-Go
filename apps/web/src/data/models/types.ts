@@ -32,9 +32,12 @@ export type TaskSubtask = {
 
 export type TaskActivityLog = {
   id: string
-  type: 'status' | 'details'
+  type: 'status' | 'details' | 'subtask'
   message: string
   createdAt: number
+  subtaskId?: string
+  subtaskTitle?: string
+  subtaskDone?: boolean
 }
 
 export type TaskNoteParagraphBlock = {
@@ -544,6 +547,8 @@ export type ProjectPerson = BaseEntity & {
   phone?: string
   email?: string
   note?: string
+  avatarBlobHash?: string
+  avatarSeed?: string
 }
 
 export type ProjectNoteLink = BaseEntity & {

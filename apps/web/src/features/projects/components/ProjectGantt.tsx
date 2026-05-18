@@ -10,6 +10,9 @@ type ProjectGanttProps = {
   projectColor?: string
   viewMode: ProjectGanttViewMode
   onTaskClick?: (task: TaskItem) => void
+  /** Fired when the user clicks an empty area on a date column. The argument
+   *  is the date (00:00 local time) of the column that was clicked. */
+  onEmptySlotClick?: (date: Date) => void
 }
 
 const DAY_MS = 86400000
@@ -151,7 +154,7 @@ const buildAxisTicks = (
   return ticks
 }
 
-const ProjectGantt = ({ tasks, projectColor, viewMode, onTaskClick }: ProjectGanttProps) => {
+const ProjectGantt = ({ tasks, projectColor, viewMode, onTaskClick, onEmptySlotClick }: ProjectGanttProps) => {
   const accent = projectColor?.trim() || '#B07830'
   const dayWidth = DAY_WIDTH[viewMode]
 
@@ -226,6 +229,34 @@ const ProjectGantt = ({ tasks, projectColor, viewMode, onTaskClick }: ProjectGan
   const todayOffset = useMemo(() => diffDays(rangeStart, today) * dayWidth + dayWidth / 2, [rangeStart, today, dayWidth])
   const showTodayLine = todayOffset >= 0 && todayOffset <= chartWidth
 
+  // Weekend column bands. In year mode the per-day stripes are too noisy, so
+  // we skip them.
+  const weekendBands = useMemo(() => {
+    if (viewMode === 'year') return []
+    const bands: Array<{ left: number; width: number }> = []
+    let run = -1
+    for (let i = 0; i < rangeDays; i += 1) {
+      const day = addDays(rangeStart, i).getDay()
+      const isWeekend = day === 0 || day === 6
+      if (isWeekend) {
+        if (run < 0) run = i
+      } else if (run >= 0) {
+        bands.push({ left: run * dayWidth, width: (i - run) * dayWidth })
+        run = -1
+      }
+    }
+    if (run >= 0) bands.push({ left: run * dayWidth, width: (rangeDays - run) * dayWidth })
+    return bands
+  }, [rangeStart, rangeDays, viewMode, dayWidth])
+
+  // Translate a horizontal click X (in chart-local coords) to a date.
+  const dateFromOffset = (offsetX: number): Date | null => {
+    if (!onEmptySlotClick) return null
+    if (offsetX < 0 || offsetX > chartWidth) return null
+    const dayIndex = Math.floor(offsetX / dayWidth)
+    return addDays(rangeStart, dayIndex)
+  }
+
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
@@ -271,7 +302,16 @@ const ProjectGantt = ({ tasks, projectColor, viewMode, onTaskClick }: ProjectGan
         </header>
 
         <div className="fg-timeline__viewport" ref={scrollRef}>
-          <div className="fg-timeline__canvas" style={{ width: canvasWidth, minHeight: AXIS_HEIGHT + scheduled.length * ROW_HEIGHT_BASE + 24 }}>
+          <div
+            className="fg-timeline__canvas"
+            style={{
+              width: canvasWidth,
+              // Fill the viewport even when there are few tasks, so the time
+              // grid + today line extend down the whole page instead of
+              // collapsing to ~124px.
+              minHeight: `max(${AXIS_HEIGHT + scheduled.length * ROW_HEIGHT_BASE + 24}px, 100%)`,
+            }}
+          >
             <div className="fg-timeline__sticky-col" style={{ width: stickyColWidth, transform: `translateX(${scrollX}px)` }}>
               <div className="fg-timeline__sticky-col__head" />
               {scheduled.map(({ task }, i) => {
@@ -301,6 +341,10 @@ const ProjectGantt = ({ tasks, projectColor, viewMode, onTaskClick }: ProjectGan
                   </motion.button>
                 )
               })}
+              {/* Ghost row heads to match the fill zone in the chart */}
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={`ghost-head-${i}`} className="fg-timeline__row-head fg-timeline__row-head--ghost" aria-hidden />
+              ))}
             </div>
 
             <div className="fg-timeline__chart" style={{ marginLeft: stickyColWidth, width: chartWidth }}>
@@ -321,6 +365,15 @@ const ProjectGantt = ({ tasks, projectColor, viewMode, onTaskClick }: ProjectGan
               </div>
 
               <div className="fg-timeline__grid" style={{ width: chartWidth }}>
+                {/* Weekend column tint bands — paper-planner feel */}
+                {weekendBands.map((band, idx) => (
+                  <span
+                    key={`weekend-${idx}`}
+                    className="fg-timeline__weekend"
+                    style={{ left: band.left, width: band.width }}
+                    aria-hidden
+                  />
+                ))}
                 {ticks.map((tick) => (
                   <span
                     key={`grid-${tick.date.toISOString()}`}
@@ -409,6 +462,25 @@ const ProjectGantt = ({ tasks, projectColor, viewMode, onTaskClick }: ProjectGan
                       </motion.div>
                     )
                   })}
+                </div>
+
+                {/* Ghost rows: fill the remaining vertical space with empty
+                    row placeholders. Each cell click translates to a "create
+                    task on this date" request. */}
+                <div
+                  className="fg-timeline__ghost-fill"
+                  onClick={(event) => {
+                    if (!onEmptySlotClick) return
+                    const target = event.currentTarget as HTMLDivElement
+                    const rect = target.getBoundingClientRect()
+                    const offsetX = event.clientX - rect.left
+                    const date = dateFromOffset(offsetX)
+                    if (date) onEmptySlotClick(date)
+                  }}
+                >
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={`ghost-${i}`} className="fg-timeline__ghost-row" aria-hidden />
+                  ))}
                 </div>
               </div>
             </div>

@@ -6,6 +6,7 @@ type State = 'entry' | 'exit'
 interface BrandLoaderProps {
   variant?: Variant
   state?: State
+  theme?: 'light' | 'dark'
   /** Visible italic phrase below the mark. Undefined hides the label entirely. */
   label?: string
   /** Small signature block — only rendered for fullscreen variant. */
@@ -17,6 +18,7 @@ interface BrandLoaderProps {
 const BrandLoader = ({
   variant = 'fullscreen',
   state = 'entry',
+  theme,
   label,
   showSignature,
   className,
@@ -29,6 +31,7 @@ const BrandLoader = ({
     <section
       className={`brand-loader brand-loader--${variant}${className ? ` ${className}` : ''}`}
       data-state={state}
+      data-theme={theme}
       data-testid={testId}
       role="status"
       aria-live="polite"

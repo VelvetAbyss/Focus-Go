@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom'
 import { fetchApi } from '../../../shared/apiBase'
 import { getAuth, useIsAdmin } from '../../../store/auth'
 import { ROUTES } from '../../../app/routes/routes'
+import { useVisibleInterval } from '../../../shared/hooks/usePageActivity'
 import { useAdminI18n } from '../adminI18n'
 import '../admin.css'
 
@@ -708,11 +709,10 @@ const AdminPage = () => {
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null)
   const [orderAction, setOrderAction] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!autoRefresh) return
-    const timer = window.setInterval(() => setTick((n) => n + 1), 20000)
-    return () => window.clearInterval(timer)
-  }, [autoRefresh])
+  useVisibleInterval(() => setTick((n) => n + 1), 20000, {
+    enabled: autoRefresh,
+    runOnVisible: true,
+  })
 
   useEffect(() => {
     if (!isAdmin) return

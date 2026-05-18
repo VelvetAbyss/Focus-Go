@@ -1,5 +1,6 @@
 import type { TaskItem, TaskPriority, TaskStatus } from '../tasks.types'
 import { getTaskCompletion, isTaskDone } from '../domain/taskRules'
+import { isTaskDoneActivityLog } from '../domain/taskProgressSummary'
 
 export type AnalyticsGranularity = 'day' | 'week' | 'month'
 
@@ -43,7 +44,6 @@ type BuildTaskAnalyticsOptions = {
   granularity: AnalyticsGranularity
 }
 
-const DONE_MESSAGE = 'status changed to done'
 const DAY_MS = 24 * 60 * 60 * 1000
 const DEADLINE_SOON_DAYS = 3
 
@@ -111,7 +111,7 @@ const formatBucketLabel = (startAt: number, granularity: AnalyticsGranularity) =
 const extractCompletionEvents = (tasks: TaskItem[]) =>
   tasks.flatMap((task) =>
     task.activityLogs
-      .filter((log) => log.type === 'status' && log.message.toLowerCase() === DONE_MESSAGE)
+      .filter(isTaskDoneActivityLog)
       .map((log) => ({
         taskId: task.id,
         createdAt: log.createdAt,

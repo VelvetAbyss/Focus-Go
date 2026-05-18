@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { usePageActivity } from '../../../shared/hooks/usePageActivity'
 
 type NoiseVisualizerBarsProps = {
   playing: boolean
@@ -18,12 +19,9 @@ const NoiseVisualizerBars = ({ playing }: NoiseVisualizerBarsProps) => {
   const wrapRef = useRef<HTMLDivElement | null>(null)
   const barsRef = useRef<HTMLSpanElement[]>([])
   const rafRef = useRef<number | null>(null)
+  const pageActivity = usePageActivity()
   const [isMobile, setIsMobile] = useState(false)
   const [reduceMotion, setReduceMotion] = useState(false)
-  const [isVisible, setIsVisible] = useState(() => {
-    if (typeof document === 'undefined') return true
-    return document.visibilityState === 'visible'
-  })
   const [heightPx, setHeightPx] = useState(MAX_HEIGHT_PX)
 
   const barCount = useMemo(() => (isMobile ? MOBILE_BAR_COUNT : DESKTOP_BAR_COUNT), [isMobile])
@@ -63,13 +61,6 @@ const NoiseVisualizerBars = ({ playing }: NoiseVisualizerBarsProps) => {
   }, [])
 
   useEffect(() => {
-    if (typeof document === 'undefined') return
-    const onVisibilityChange = () => setIsVisible(document.visibilityState === 'visible')
-    document.addEventListener('visibilitychange', onVisibilityChange)
-    return () => document.removeEventListener('visibilitychange', onVisibilityChange)
-  }, [])
-
-  useEffect(() => {
     barsRef.current = barsRef.current.slice(0, barCount)
   }, [barCount])
 
@@ -104,7 +95,7 @@ const NoiseVisualizerBars = ({ playing }: NoiseVisualizerBarsProps) => {
   }, [barCount])
 
   useEffect(() => {
-    const shouldAnimate = playing && isVisible && !reduceMotion
+    const shouldAnimate = playing && pageActivity === 'visible' && !reduceMotion
     if (!shouldAnimate) {
       if (rafRef.current !== null) {
         cancelAnimationFrame(rafRef.current)
@@ -135,7 +126,7 @@ const NoiseVisualizerBars = ({ playing }: NoiseVisualizerBarsProps) => {
         rafRef.current = null
       }
     }
-  }, [barCount, isVisible, playing, reduceMotion])
+  }, [barCount, pageActivity, playing, reduceMotion])
 
   return (
     <div className="focus-noise-bars-wrap" ref={wrapRef} aria-hidden="true">

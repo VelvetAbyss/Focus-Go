@@ -15,6 +15,7 @@ import {
 import { useSharedNoise } from "../../SharedNoiseProvider";
 import type { NoiseTrackId } from "../../../../data/models/types";
 import { useI18n } from "../../../../shared/i18n/useI18n";
+import { useVisibleInterval, useVisibleRaf } from "../../../../shared/hooks/usePageActivity";
 import { useAuthGate } from "../../../auth/AuthGateContext";
 
 interface SoundTrack {
@@ -93,9 +94,7 @@ const defaultTracks: SoundTrack[] = [
 
 function SoundBarVisualizer({ tracks, isPlaying }: { tracks: SoundTrack[]; isPlaying: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animRef = useRef<number>(0);
   const barsRef = useRef<number[]>([]);
-  const rafActiveRef = useRef(false);
 
   const activeTrackCount = useMemo(() => tracks.filter((t) => t.enabled).length, [tracks]);
   const avgVol = useMemo(() => {
@@ -172,26 +171,12 @@ function SoundBarVisualizer({ tracks, isPlaying }: { tracks: SoundTrack[]; isPla
 
   useEffect(() => {
     syncCanvasSize();
-    if (!isPlaying || activeTrackCount === 0) {
-      rafActiveRef.current = false;
-      cancelAnimationFrame(animRef.current);
-      draw(performance.now());
-      return;
-    }
+  }, [syncCanvasSize]);
 
-    rafActiveRef.current = true;
-    const loop = (t: number) => {
-      if (!rafActiveRef.current) return;
-      draw(t);
-      animRef.current = requestAnimationFrame(loop);
-    };
-    animRef.current = requestAnimationFrame(loop);
-
-    return () => {
-      rafActiveRef.current = false;
-      cancelAnimationFrame(animRef.current);
-    };
-  }, [activeTrackCount, draw, isPlaying, syncCanvasSize]);
+  useVisibleRaf(draw, {
+    enabled: isPlaying && activeTrackCount > 0,
+    drawOnPause: true,
+  });
 
   return <canvas ref={canvasRef} className="w-full" style={{ height: 44 }} />;
 }
@@ -360,24 +345,22 @@ export function WhiteNoise() {
     requireAuth(() => setNoiseMasterVolume(volume));
   };
 
-  // Sleep timer countdown
-  useEffect(() => {
+  const updateSleepRemaining = useCallback(() => {
     if (!noise.sleepEndsAt) {
       setSleepRemaining(null);
       return;
     }
-
-    const sleepEndsAt = noise.sleepEndsAt;
-
-    const tick = () => {
-      const remaining = Math.max(0, Math.ceil((sleepEndsAt - Date.now()) / 1000));
-      setSleepRemaining(remaining);
-    };
-
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
+    setSleepRemaining(Math.max(0, Math.ceil((noise.sleepEndsAt - Date.now()) / 1000)));
   }, [noise.sleepEndsAt]);
+
+  useEffect(() => {
+    updateSleepRemaining();
+  }, [updateSleepRemaining]);
+
+  useVisibleInterval(updateSleepRemaining, 1000, {
+    enabled: Boolean(noise.sleepEndsAt),
+    runOnVisible: true,
+  });
 
   const activeTracks = tracks.filter((t) => t.enabled).length;
   const presetNameMap: Record<string, string> = {

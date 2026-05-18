@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type EditableTextProps = {
@@ -14,6 +15,15 @@ type EditableTextProps = {
   hideWhenEmpty?: boolean
   /** Optional: render fallback element instead of placeholder when value is empty (e.g. a different default copy). */
   emptyFallback?: React.ReactNode
+  /**
+   * When true, display mode shows an obvious affordance: dashed underline +
+   * a pencil icon on hover + tooltip. Use for "low-discoverability" fields
+   * (e.g. the Project detail "next step") where users don't realize the text
+   * is editable.
+   */
+  hint?: boolean
+  /** Custom tooltip for the hint pencil. Defaults to "Click to edit". */
+  hintLabel?: string
 }
 
 export function EditableText({
@@ -27,6 +37,8 @@ export function EditableText({
   ariaLabel,
   hideWhenEmpty = false,
   emptyFallback,
+  hint = false,
+  hintLabel = 'Click to edit',
 }: EditableTextProps) {
   const [editing, setEditing] = React.useState(false)
   const [draft, setDraft] = React.useState(value)
@@ -137,14 +149,16 @@ export function EditableText({
   return (
     <span
       className={cn(
-        'editable-text editable-text--display',
+        'editable-text editable-text--display group/editable inline-flex items-center gap-1.5 align-baseline',
         'cursor-text rounded-sm transition-colors hover:bg-foreground/[0.04]',
+        hint && 'editable-text--hint border-b border-dashed border-foreground/15 hover:border-foreground/40',
         className,
         textClassName,
       )}
       role="button"
       tabIndex={0}
       aria-label={ariaLabel}
+      title={hint ? hintLabel : undefined}
       onClick={() => setEditing(true)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -153,7 +167,15 @@ export function EditableText({
         }
       }}
     >
-      {empty ? (emptyFallback ?? <span className="opacity-50">{placeholder}</span>) : value}
+      <span className="min-w-0 flex-1">
+        {empty ? (emptyFallback ?? <span className="opacity-50">{placeholder}</span>) : value}
+      </span>
+      {hint ? (
+        <Pencil
+          aria-hidden
+          className="h-3 w-3 shrink-0 text-foreground/35 opacity-0 transition-opacity duration-200 group-hover/editable:opacity-100"
+        />
+      ) : null}
     </span>
   )
 }

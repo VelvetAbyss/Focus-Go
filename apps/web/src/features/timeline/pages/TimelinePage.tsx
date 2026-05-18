@@ -17,9 +17,13 @@ import {
   Trash2,
   type LucideIcon,
 } from 'lucide-react'
-import type { EntityRefDomain, TimelineItem, TimelineKind } from '../../../data/models/types'
+import type { EntityRefDomain, ProjectItem, TimelineItem, TimelineKind } from '../../../data/models/types'
 import { timelineRepo } from '../../../data/repositories/timelineRepo'
+import { tasksRepo } from '../../../data/repositories/tasksRepo'
+import { projectsRepo } from '../../../data/repositories/projectsRepo'
 import { SYNC_DATA_UPDATED_EVENT } from '../../../data/sync/constants'
+import type { TaskItem } from '../../tasks/tasks.types'
+import TaskProgressSummaryCard from '../../tasks/components/TaskProgressSummaryCard'
 import './timeline.css'
 
 type KindFilter = 'all' | TimelineKind
@@ -85,6 +89,8 @@ const buildGroups = (items: TimelineItem[]) => {
 
 const TimelinePage = () => {
   const [items, setItems] = useState<TimelineItem[]>([])
+  const [tasks, setTasks] = useState<TaskItem[]>([])
+  const [projects, setProjects] = useState<ProjectItem[]>([])
   const [kind, setKind] = useState<KindFilter>('all')
   const [domain, setDomain] = useState<DomainFilter>('all')
   const [query, setQuery] = useState('')
@@ -97,15 +103,21 @@ const TimelinePage = () => {
   const load = useCallback(async () => {
     setLoading(true)
     setTodayAnchor(Date.now())
-    const result = await timelineRepo.list({
-      kind: kind === 'all' ? undefined : kind,
-      domain: domain === 'all' ? undefined : domain,
-      search: query,
-      pinnedOnly,
-      visibility: includeQuiet ? ['default', 'quiet'] : ['default'],
-      limit: 160,
-    })
+    const [result, nextTasks, nextProjects] = await Promise.all([
+      timelineRepo.list({
+        kind: kind === 'all' ? undefined : kind,
+        domain: domain === 'all' ? undefined : domain,
+        search: query,
+        pinnedOnly,
+        visibility: includeQuiet ? ['default', 'quiet'] : ['default'],
+        limit: 160,
+      }),
+      tasksRepo.list(),
+      projectsRepo.list(),
+    ])
     setItems(result.items)
+    setTasks(nextTasks)
+    setProjects(nextProjects)
     setLoading(false)
   }, [domain, includeQuiet, kind, pinnedOnly, query])
 
@@ -189,6 +201,10 @@ const TimelinePage = () => {
         <div><strong>{stats.focusMinutes}</strong><span>focus min</span></div>
         <div><strong>{stats.captures}</strong><span>notes + diary</span></div>
       </aside>
+
+      <section className="timeline-page__progress-summary" aria-label="Task progress summary">
+        <TaskProgressSummaryCard tasks={tasks} projects={projects} compact />
+      </section>
 
       <main className="timeline-feed" aria-busy={loading}>
         {loading ? <div className="timeline-empty">Loading activity…</div> : null}

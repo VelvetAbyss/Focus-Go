@@ -124,9 +124,12 @@ export type TaskSubtask = {
 
 export type TaskActivityLog = {
   id: string
-  type: 'status' | 'details'
+  type: 'status' | 'details' | 'subtask'
   message: string
   createdAt: number
+  subtaskId?: string
+  subtaskTitle?: string
+  subtaskDone?: boolean
 }
 
 export type TaskNoteParagraphBlock = {

@@ -7,9 +7,11 @@ type Props = {
   noteTitle: string
   onClose: () => void
   onExportMarkdown: () => void
+  onExportPdf: () => void | Promise<void>
+  isExportingPdf?: boolean
 }
 
-export default function ExportModal({ open, noteTitle, onClose, onExportMarkdown }: Props) {
+export default function ExportModal({ open, noteTitle, onClose, onExportMarkdown, onExportPdf, isExportingPdf = false }: Props) {
   const { t } = useI18n()
   const [rendered, setRendered] = useState(open)
   const [visible, setVisible] = useState(open)
@@ -28,10 +30,16 @@ export default function ExportModal({ open, noteTitle, onClose, onExportMarkdown
   if (!rendered) return null
 
   const formats = [
-    { id: 'markdown', label: t('notes.exportModal.markdown'), ext: '.md', desc: t('notes.exportModal.markdownDesc'), action: onExportMarkdown, icon: FileText, disabled: false },
-    { id: 'html', label: t('notes.exportModal.html'), ext: '.html', desc: t('notes.exportModal.htmlDesc'), action: onClose, icon: Code, disabled: true },
-    { id: 'pdf', label: t('notes.exportModal.pdf'), ext: '.pdf', desc: t('notes.exportModal.pdfDesc'), action: onClose, icon: FileDown, disabled: true },
+    { id: 'markdown', label: t('notes.exportModal.markdown'), ext: '.md', desc: t('notes.exportModal.markdownDesc'), action: onExportMarkdown, icon: FileText, unavailable: false },
+    { id: 'html', label: t('notes.exportModal.html'), ext: '.html', desc: t('notes.exportModal.htmlDesc'), action: onClose, icon: Code, unavailable: true },
+    { id: 'pdf', label: t('notes.exportModal.pdf'), ext: '.pdf', desc: t('notes.exportModal.pdfDesc'), action: onExportPdf, icon: FileDown, unavailable: false },
   ] as const
+
+  const handleFormatClick = async (format: (typeof formats)[number]) => {
+    if (format.unavailable || isExportingPdf) return
+    await format.action()
+    onClose()
+  }
 
   return (
     <div data-note-floating-panel="export" data-state={visible ? 'open' : 'closed'} className="note-page__panel">
@@ -49,11 +57,8 @@ export default function ExportModal({ open, noteTitle, onClose, onExportMarkdown
           <button
             key={format.id}
             type="button"
-            disabled={format.disabled}
-            onClick={() => {
-              format.action()
-              if (!format.disabled) onClose()
-            }}
+            disabled={format.unavailable || isExportingPdf}
+            onClick={() => void handleFormatClick(format)}
             className="group flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors enabled:hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
           >
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent transition-colors group-hover:bg-background">
@@ -61,7 +66,7 @@ export default function ExportModal({ open, noteTitle, onClose, onExportMarkdown
             </div>
             <div className="flex-1">
               <div className="text-[13px] font-medium text-foreground">{format.label}</div>
-              <div className="text-[11px] text-muted-foreground">{format.disabled ? `${format.desc} · ${t('notes.exportModal.soon')}` : format.desc}</div>
+              <div className="text-[11px] text-muted-foreground">{format.unavailable ? `${format.desc} · ${t('notes.exportModal.soon')}` : format.desc}</div>
             </div>
             <span className="text-[11px] text-muted-foreground">{format.ext}</span>
           </button>

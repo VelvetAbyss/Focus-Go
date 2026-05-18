@@ -8,6 +8,7 @@ import type { ProjectHealth, ProjectItem, ProjectPerson } from '../../../data/mo
 import { resolveProjectColor } from '../../../shared/design/tokens'
 import { EASE_OUT, STAGGER_SLOW } from '../../../shared/motion/tokens'
 import { ProjectFormDialog } from '../components/ProjectDialogs'
+import ProjectCardHero from '../components/ProjectCardHero'
 import { useProjectsI18n } from '../projectsI18n'
 import '../projects.css'
 
@@ -333,81 +334,25 @@ const ProjectsPage = () => {
             )
           }
 
-          // detail (default — original layout)
+          // detail (default — hero card)
+          const projectMembers = people.filter((p) => p.projectId === project.id)
           return (
-            <motion.div
+            <ProjectCardHero
               key={project.id}
-              className="pj-card"
-              style={{ '--pj-i': index } as CSSProperties}
-              variants={cardVariant}
-              onClick={goNav}
-              role="button"
-              tabIndex={0}
-              onKeyDown={onKey}
-            >
-              {/* badges + progress % */}
-              <div className="pj-card__toprow">
-                <div className="pj-card__badges">
-                  <span className={`pj-badge pj-badge--${healthSlug}`}>
-                    {labelHealth(project.health)}
-                  </span>
-                  <span className={`pj-badge-status pj-badge-status--${project.status}`}>
-                    {labelStatus(project.status)}
-                  </span>
-                  {project.priority ? (
-                    <span className={`pj-badge-priority pj-badge-priority--${project.priority}`}>
-                      {project.priority}
-                    </span>
-                  ) : null}
-                </div>
-                <span className="pj-card__pct">{project.progress}%</span>
-              </div>
-
-              {/* title */}
-              <h2 className="pj-card__title">{project.title}</h2>
-              <span className="pj-card__color-dot" style={{ background: projectColor }} aria-hidden />
-
-              {/* goal / description */}
-              {(project.goal || project.description) ? (
-                <p className="pj-card__goal">{project.goal || project.description}</p>
-              ) : null}
-
-              {/* progress bar */}
-              <div className="pj-card__progress">
-                <div className="pj-progress">
-                  <motion.span
-                    className="pj-progress__fill"
-                    initial={shouldAnimateIn ? { width: '0%' } : false}
-                    animate={{ width: `${project.progress}%` }}
-                    transition={shouldAnimateIn
-                      ? { duration: 0.9, ease: EASE_OUT, delay: 0.3 + index * 0.06 }
-                      : { duration: 0.3, ease: EASE_OUT }}
-                  />
-                </div>
-              </div>
-
-              {/* meta grid */}
-              <div className="pj-card__meta">
-                <div>
-                  <span className="pj-meta-label">{i18n.page.cardOwner}</span>
-                  <span className="pj-meta-val">{ownerName}</span>
-                </div>
-                <div>
-                  <span className="pj-meta-label">{i18n.page.cardTimeline}</span>
-                  <span className="pj-meta-val">{timeline}</span>
-                </div>
-                <div>
-                  <span className="pj-meta-label">{i18n.page.cardNextAction}</span>
-                  <span className="pj-meta-val">{project.nextAction || i18n.page.cardNextActionDefault}</span>
-                </div>
-              </div>
-
-              {/* hover-reveal CTA */}
-              <div className="pj-card__footer">
-                <span>{i18n.page.cardOpenWorkspace}</span>
-                <ArrowRight size={14} className="pj-card__arrow" />
-              </div>
-            </motion.div>
+              project={project}
+              members={projectMembers}
+              ownerName={ownerName}
+              overdueCount={0}
+              nextActionLabel={i18n.page.cardNextAction}
+              ownerLabel={i18n.page.cardOwner}
+              timelineLabel={i18n.page.cardTimeline}
+              timelineValue={timeline}
+              openLabel={i18n.page.cardOpenWorkspace}
+              overdueLabel={i18n.page.cardOverdue ?? ''}
+              onOpen={goNav}
+              index={index}
+              shouldAnimateIn={shouldAnimateIn}
+            />
           )
         })}
       </motion.div>

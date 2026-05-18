@@ -953,29 +953,17 @@ html[data-theme='dark'] .project-dialog {
 
 /* ── Page wrapper ──────────────────────────────────────────────── */
 .pd-page {
+  /* Fill the route layer (which itself is height:100% within the shell) and
+     act as a flex column so the body region can own its own scrollbar. */
+  display: flex;
+  flex-direction: column;
   min-height: calc(100% + 36px);
+  height: calc(100% + 36px);
   margin: -18px;
   background: var(--pd-bg);
   color: var(--pd-text);
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   font-feature-settings: 'kern' 1;
-  /* custom scrollbar */
-  scrollbar-width: thin;
-  scrollbar-color: var(--pd-border-med) transparent;
-}
-
-.pd-page::-webkit-scrollbar {
-  width: 6px;
-}
-
-.pd-page::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.pd-page::-webkit-scrollbar-thumb {
-  background: var(--pd-border-med);
-  border-radius: 99px;
 }
 
 /* ── Loading state ─────────────────────────────────────────────── */
@@ -1002,9 +990,9 @@ html[data-theme='dark'] .project-dialog {
   background: var(--pd-hero-bg);
   padding: 22px 36px 0;
   border-bottom: 1px solid var(--pd-border);
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 10;
+  flex-shrink: 0;
 }
 
 /* subtle grain texture for hero */
@@ -1412,13 +1400,60 @@ html[data-theme='dark'] .project-dialog {
 
 /* ── Body ──────────────────────────────────────────────────────── */
 .pd-body {
+  /* Owns the scrollbar for tab content; hero/tabs stay fixed above. */
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 32px 36px 64px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pd-border-med) transparent;
 }
 
-/* Tasks tab: make the board surface fill remaining viewport height so the
-   flex column inside can push the composer to the bottom. */
+.pd-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.pd-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.pd-body::-webkit-scrollbar-thumb {
+  background: var(--pd-border-med);
+  border-radius: 99px;
+}
+
+/* When a tab needs to fill the body height (Tasks board, Timeline), the
+   AnimatePresence motion.div sits between .pd-body and the tab content. */
+.pd-body > * {
+  min-height: 100%;
+}
+
+/* Tabs that need to fill the body height (Tasks board, Timeline) opt in by
+   adding this class. They become flex columns so children with min-height:0
+   can shrink and own their own scrolling. */
+.pd-tab-fill {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  height: 100%;
+}
+
+.pd-tab-fill > * {
+  flex-shrink: 0;
+}
+
+.pd-tab-fill > *:last-child {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Tasks tab: make the board surface fill the body so the flex column can
+   push the composer to the bottom. */
 .pd-body .tasks-board-surface {
-  min-height: calc(100dvh - 340px);
+  min-height: 100%;
   display: flex;
   flex-direction: column;
 }
@@ -1495,6 +1530,7 @@ html[data-theme='dark'] .project-dialog {
 }
 
 .pd-focus-card {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 132px;
   align-items: center;
@@ -1505,6 +1541,21 @@ html[data-theme='dark'] .project-dialog {
   background: var(--pd-surface);
   padding: 24px;
   box-shadow: none;
+  transition: box-shadow 0.4s ease, border-color 0.4s ease;
+}
+
+/* First-visit pulse: a soft accent halo that fades in/out twice to draw
+   attention to the editable Next-Step + Risk fields. */
+@keyframes pd-focus-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(176, 120, 48, 0); border-color: var(--pd-border); }
+  20%  { box-shadow: 0 0 0 6px rgba(176, 120, 48, 0.12); border-color: rgba(176, 120, 48, 0.45); }
+  50%  { box-shadow: 0 0 0 12px rgba(176, 120, 48, 0); border-color: rgba(176, 120, 48, 0.25); }
+  80%  { box-shadow: 0 0 0 6px rgba(176, 120, 48, 0.10); border-color: rgba(176, 120, 48, 0.35); }
+  100% { box-shadow: 0 0 0 0 rgba(176, 120, 48, 0); border-color: var(--pd-border); }
+}
+
+.pd-focus-card--pulse {
+  animation: pd-focus-pulse 2.4s ease-out 1;
 }
 
 .pd-focus-card__main {
@@ -2155,6 +2206,313 @@ html[data-theme='dark'] .project-dialog {
   color: var(--pd-muted);
 }
 
+/* ── New person card (view-first, with avatar) ───────────────────── */
+.pd-people-grid--cards {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.pd-person-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: var(--pd-surface);
+  border: 1px solid var(--pd-border);
+  border-radius: 20px;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: var(--pd-shadow-sm);
+  transition: box-shadow 0.18s, border-color 0.18s;
+}
+
+.pd-person-card:hover {
+  box-shadow: var(--pd-shadow);
+  border-color: var(--pd-border-med);
+}
+
+.pd-person-card__banner {
+  width: 100%;
+  height: 64px;
+  flex-shrink: 0;
+}
+
+.pd-person-card__avatar {
+  margin-top: -32px;
+  border: 3px solid var(--pd-surface);
+  box-shadow: 0 4px 12px -4px rgba(58, 55, 51, 0.18);
+  z-index: 2;
+}
+
+.pd-person-card__body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 18px 18px;
+  width: 100%;
+}
+
+.pd-person-card__name {
+  margin: 4px 0 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--pd-text);
+}
+
+.pd-person-card__role {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pd-person-card__contact {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+  width: 100%;
+  align-items: center;
+}
+
+.pd-person-card__contact span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--pd-muted);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pd-person-card__footer {
+  width: 100%;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--pd-border);
+}
+
+.pd-person-card__tasks-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--pd-border);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--pd-muted);
+}
+
+.pd-person-card__tasks-chip strong {
+  font-weight: 800;
+  color: var(--pd-text);
+}
+
+/* ── PersonProfileDialog (read-only view) ────────────────────────── */
+.pd-person-profile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.pd-person-profile__banner {
+  height: 100px;
+  width: 100%;
+}
+
+.pd-person-profile__head {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 28px;
+  margin-top: -48px;
+}
+
+.pd-person-profile__avatar {
+  border: 4px solid #F5F3F0;
+  box-shadow: 0 8px 24px -8px rgba(58, 55, 51, 0.25);
+}
+
+.pd-person-profile__edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  margin-bottom: 4px;
+  border-radius: 999px;
+  background: #3A3733;
+  color: #F5F3F0;
+  font-size: 12px;
+  font-weight: 600;
+  transition: background 0.18s ease;
+}
+
+.pd-person-profile__edit:hover {
+  background: #2A2724;
+}
+
+.pd-person-profile__body {
+  padding: 16px 28px 28px;
+}
+
+.pd-person-profile__name {
+  margin: 4px 0 6px;
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-size: 26px;
+  letter-spacing: -0.018em;
+  color: var(--pd-text);
+}
+
+.pd-person-profile__role {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pd-person-profile__contact {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(58, 55, 51, 0.04);
+}
+
+.pd-person-profile__contact-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--pd-text);
+  text-decoration: none;
+}
+
+.pd-person-profile__contact-row:hover {
+  text-decoration: underline;
+}
+
+.pd-person-profile__note {
+  margin: 4px 0 0;
+  padding: 8px 0 0;
+  border-top: 1px dashed var(--pd-border);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--pd-muted);
+}
+
+.pd-person-profile__tasks {
+  margin-top: 22px;
+}
+
+.pd-person-profile__task-list {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pd-person-profile__task {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(58, 55, 51, 0.04);
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.pd-person-profile__task:hover {
+  background: rgba(58, 55, 51, 0.08);
+}
+
+.pd-person-profile__task-title {
+  font-size: 13px;
+  color: var(--pd-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pd-person-profile__task-more {
+  padding: 6px 12px;
+  font-size: 11px;
+  color: var(--pd-muted);
+  text-align: center;
+}
+
+/* ── Avatar uploader inside PersonFormDialog ─────────────────────── */
+.pd-avatar-uploader {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border-radius: 18px;
+  background: rgba(58, 55, 51, 0.04);
+  border: 1px solid var(--pd-border);
+}
+
+.pd-avatar-uploader__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+}
+
+.pd-avatar-uploader__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: white;
+  border: 1px solid var(--pd-border);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pd-text);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.pd-avatar-uploader__btn:hover {
+  border-color: var(--pd-border-med);
+  background: rgba(58, 55, 51, 0.04);
+}
+
+.pd-avatar-uploader__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pd-avatar-uploader__btn--danger {
+  color: #B83333;
+}
+
+.pd-avatar-uploader__btn--danger:hover {
+  background: rgba(184, 51, 51, 0.08);
+}
+
 /* ── Search ────────────────────────────────────────────────────── */
 .pd-search {
   display: flex;
@@ -2240,6 +2598,149 @@ html[data-theme='dark'] .project-dialog {
   display: flex;
   gap: 8px;
   flex-shrink: 0;
+}
+
+/* ── New project notes UI ────────────────────────────────────────── */
+.pd-notes-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pd-note-list--cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.pd-note-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 132px;
+  background: var(--pd-surface);
+  border: 1px solid var(--pd-border);
+  border-radius: 16px;
+  transition: box-shadow 0.18s, border-color 0.18s;
+  overflow: hidden;
+}
+
+.pd-note-card:hover {
+  border-color: var(--pd-border-med);
+  box-shadow: var(--pd-shadow);
+}
+
+.pd-note-card__open {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 18px 14px;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  width: 100%;
+}
+
+.pd-note-card__title {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--pd-text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pd-note-card__excerpt {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--pd-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: 1;
+}
+
+.pd-note-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 8px;
+  font-size: 10.5px;
+  color: var(--pd-muted);
+  border-top: 1px dashed var(--pd-border);
+}
+
+.pd-note-card__tag {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(58, 55, 51, 0.06);
+  font-weight: 600;
+}
+
+.pd-note-card__unlink {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--pd-muted);
+  font-size: 18px;
+  line-height: 1;
+  border: 0;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s, color 0.15s;
+  cursor: pointer;
+}
+
+.pd-note-card:hover .pd-note-card__unlink {
+  opacity: 1;
+}
+
+.pd-note-card__unlink:hover {
+  background: rgba(184, 51, 51, 0.1);
+  color: #B83333;
+}
+
+.pd-notes-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 64px 32px;
+  text-align: center;
+  border: 1px dashed var(--pd-border-med);
+  border-radius: 20px;
+  background: var(--pd-surface);
+}
+
+.pd-notes-empty__title {
+  margin: 0;
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-size: 22px;
+  letter-spacing: -0.018em;
+  color: var(--pd-text);
+}
+
+.pd-notes-empty__hint {
+  margin: 0 0 8px;
+  max-width: 420px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--pd-muted);
 }
 
 /* ── Empty states ──────────────────────────────────────────────── */
@@ -2340,6 +2841,10 @@ html[data-theme='dark'] .project-dialog {
   --fg-rule-bold: rgba(58, 55, 51, 0.18);
   --fg-today: #B83333;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
   margin-top: 8px;
   padding: 0;
   border-radius: 18px;
@@ -2388,6 +2893,9 @@ html[data-theme='dark'] .project-dialog {
 
 .fg-timeline__inner {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .fg-timeline__sticky-head {
@@ -2446,8 +2954,10 @@ html[data-theme='dark'] .project-dialog {
 
 .fg-timeline__viewport {
   position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: auto;
   scroll-behavior: smooth;
 }
 
@@ -2466,12 +2976,15 @@ html[data-theme='dark'] .project-dialog {
 .fg-timeline__canvas {
   position: relative;
   min-width: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .fg-timeline__sticky-col {
   position: absolute;
   top: 0;
   left: 0;
+  bottom: 0;
   z-index: 4;
   display: flex;
   flex-direction: column;
@@ -2557,6 +3070,9 @@ html[data-theme='dark'] .project-dialog {
 
 .fg-timeline__chart {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
 }
 
 .fg-timeline__axis {
@@ -2601,7 +3117,19 @@ html[data-theme='dark'] .project-dialog {
 
 .fg-timeline__grid {
   position: relative;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
   padding: 12px 0 16px;
+}
+
+.fg-timeline__weekend {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(58, 55, 51, 0.022);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .fg-timeline__grid-line {
@@ -2611,6 +3139,7 @@ html[data-theme='dark'] .project-dialog {
   width: 1px;
   background: var(--fg-rule);
   pointer-events: none;
+  z-index: 1;
 }
 
 .fg-timeline__grid-line.is-bold {
@@ -2652,11 +3181,53 @@ html[data-theme='dark'] .project-dialog {
 
 .fg-timeline__rows {
   position: relative;
+  z-index: 2;
 }
 
 .fg-timeline__row {
   position: relative;
   border-bottom: 1px dashed rgba(58, 55, 51, 0.06);
+}
+
+/* Ghost rows: fill the space below the last real task so the grid + today
+   line + weekend bands look like a full paper calendar. Each row is clickable
+   to create a task on the column's date. */
+.fg-timeline__ghost-fill {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  cursor: cell;
+  z-index: 2;
+}
+
+.fg-timeline__ghost-row {
+  flex: 1 1 0;
+  min-height: 44px;
+  border-bottom: 1px dashed rgba(58, 55, 51, 0.05);
+  transition: background-color 0.12s ease;
+}
+
+.fg-timeline__ghost-row:last-child {
+  border-bottom: none;
+}
+
+.fg-timeline__ghost-fill:hover .fg-timeline__ghost-row:hover {
+  background: rgba(176, 120, 48, 0.04);
+}
+
+.fg-timeline__row-head--ghost {
+  flex: 1 1 0;
+  min-height: 44px;
+  background: transparent;
+  cursor: default;
+  border-bottom: 1px dashed rgba(58, 55, 51, 0.04);
+  pointer-events: none;
+}
+
+.fg-timeline__row-head--ghost:last-child {
+  border-bottom: none;
 }
 
 .fg-timeline__trail {

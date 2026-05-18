@@ -25,6 +25,16 @@ async function fetchTimeZone(latitude: number, longitude: number): Promise<strin
 }
 
 const UTC_TIMEZONE_RE = /^(gmt|utc|etc\/gmt|etc\/utc)$/i
+const formatterCache = new Map<string, Intl.DateTimeFormat>()
+
+const getFormatter = (locale: string, timeZone: string, options: Intl.DateTimeFormatOptions) => {
+  const key = `${locale}:${timeZone}:${JSON.stringify(options)}`
+  const cached = formatterCache.get(key)
+  if (cached) return cached
+  const formatter = new Intl.DateTimeFormat(locale, { ...options, timeZone })
+  formatterCache.set(key, formatter)
+  return formatter
+}
 
 function shouldRepairTimeZone(item: WorldClockItem) {
   return UTC_TIMEZONE_RE.test(item.timeZone) && Math.abs(item.longitude) >= 30
@@ -63,25 +73,22 @@ export async function repairWorldClockItems(items: WorldClockItem[]): Promise<Wo
 
 export function formatWorldClockDisplay(item: WorldClockItem, language: LanguageCode, now: Date): WorldClockDisplay {
   const locale = language === 'zh' ? 'zh-CN' : 'en-US'
-  const dateParts = new Intl.DateTimeFormat(locale, {
+  const dateParts = getFormatter(locale, item.timeZone, {
     month: '2-digit',
     day: '2-digit',
-    timeZone: item.timeZone,
   }).formatToParts(now)
   const month = dateParts.find((part) => part.type === 'month')?.value ?? '00'
   const day = dateParts.find((part) => part.type === 'day')?.value ?? '00'
 
   return {
     date: `${month}/${day}`,
-    time: new Intl.DateTimeFormat(locale, {
+    time: getFormatter(locale, item.timeZone, {
       hour: '2-digit',
       minute: '2-digit',
       hour12: false,
-      timeZone: item.timeZone,
     }).format(now),
-    weekday: new Intl.DateTimeFormat(locale, {
+    weekday: getFormatter(locale, item.timeZone, {
       weekday: 'short',
-      timeZone: item.timeZone,
     }).format(now),
     location: item.label,
   }
