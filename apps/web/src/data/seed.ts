@@ -18,6 +18,7 @@ import { claimInitialSeed } from './sync/seedClaim'
 import type { LanguageCode } from '../shared/i18n/types'
 import type { TaskPriority, TaskStatus } from './models/types'
 import {
+  CURRENT_DASHBOARD_LAYOUT_VERSION,
   DEFAULT_DASHBOARD_HIDDEN_CARD_IDS,
   DEFAULT_DASHBOARD_LAYOUT_ITEMS,
   DEFAULT_DASHBOARD_THEME_OVERRIDE,
@@ -541,6 +542,7 @@ export const seedDatabase = async () => {
     items: DEFAULT_DASHBOARD_LAYOUT_ITEMS,
     hiddenCardIds: DEFAULT_DASHBOARD_HIDDEN_CARD_IDS,
     themeOverride: DEFAULT_DASHBOARD_THEME_OVERRIDE,
+    layoutVersion: CURRENT_DASHBOARD_LAYOUT_VERSION,
   })
 
   await lifeDashboardRepo.upsert({

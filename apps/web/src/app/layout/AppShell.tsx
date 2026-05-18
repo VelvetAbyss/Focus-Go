@@ -4,19 +4,14 @@ import { ROUTES } from '../routes/routes'
 import {
   applyTheme,
   readStoredThemePreference,
-  resolveInitialTheme,
   resolveTheme,
-  type ThemeMode,
-  writeStoredThemePreference,
 } from '../../shared/theme/theme'
-import { THEME_BEFORE_MODE_TOGGLE_EVENT } from '../../shared/theme/themePack'
 import Sidebar from './Sidebar'
 import { useTaskReminderEngine } from '../../features/tasks/useTaskReminderEngine'
 import { UpgradeModalProvider } from '../../features/labs/UpgradeModalContext'
 import UpgradeModal from '../../features/labs/components/UpgradeModal'
 import { AuthGateProvider } from '../../features/auth/AuthGateContext'
 import AuthInteractionGate from '../../features/auth/AuthInteractionGate'
-import { syncedPreferencesRepo } from '../../data/repositories/syncedPreferencesRepo'
 import { getAuth, subscribeAuth } from '../../store/auth'
 import { isLocalhostRuntime } from '../../shared/env/localhost'
 import { clearLocalUserData } from '../../data/sync/repository'
@@ -69,15 +64,6 @@ const AppShell = ({ children }: AppShellProps) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => storedSidebarCollapsed ?? false)
   const [sidebarDimmed, setSidebarDimmed] = useState(false)
   const [shellScale, setShellScale] = useState(() => readShellScale())
-  const [theme, setTheme] = useState<ThemeMode>(() => {
-    if (typeof document !== 'undefined') {
-      const current = document.documentElement.dataset.theme
-      if (current === 'light' || current === 'dark') return current
-    }
-    const storedSelection = readStoredThemePreference()
-    if (storedSelection === 'light' || storedSelection === 'dark') return storedSelection
-    return resolveInitialTheme()
-  })
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   useTaskReminderEngine()
 
@@ -176,28 +162,12 @@ const AppShell = ({ children }: AppShellProps) => {
   }, [])
 
   useEffect(() => {
-    const root = document.documentElement
-    const syncThemeFromDom = () => {
-      const domTheme = root.dataset.theme
-      if (domTheme === 'light' || domTheme === 'dark') {
-        setTheme((prev) => (prev === domTheme ? prev : domTheme))
-      }
-    }
-    syncThemeFromDom()
-    const observer = new MutationObserver(syncThemeFromDom)
-    observer.observe(root, { attributes: true, attributeFilter: ['data-theme'] })
-    return () => observer.disconnect()
-  }, [])
-
-  useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
     const media = window.matchMedia('(prefers-color-scheme: dark)')
     const handleSystemThemeChange = () => {
       const selection = readStoredThemePreference()
       if (selection !== 'system') return
-      const next = resolveTheme('system')
-      setTheme(next)
-      applyTheme(next)
+      applyTheme(resolveTheme('system'))
     }
 
     if (typeof media.addEventListener === 'function') {
@@ -208,15 +178,6 @@ const AppShell = ({ children }: AppShellProps) => {
     media.addListener(handleSystemThemeChange)
     return () => media.removeListener(handleSystemThemeChange)
   }, [])
-
-  const toggleTheme = () => {
-    window.dispatchEvent(new CustomEvent(THEME_BEFORE_MODE_TOGGLE_EVENT))
-    const nextTheme: ThemeMode = theme === 'dark' ? 'light' : 'dark'
-    setTheme(nextTheme)
-    writeStoredThemePreference(nextTheme)
-    applyTheme(nextTheme)
-    void syncedPreferencesRepo.persistFromLocal()
-  }
 
   const shellStyle = {
     '--shell-scale': shellScale,
@@ -230,8 +191,6 @@ const AppShell = ({ children }: AppShellProps) => {
             <Sidebar
               collapsed={sidebarCollapsed}
               onToggle={() => setSidebarCollapsed((prev) => !prev)}
-              theme={theme}
-              onToggleTheme={toggleTheme}
             />
             <main className={`focus-shell__main flex min-h-0 flex-1 flex-col ${isFullBleedRoute ? 'focus-shell__main--surface-less' : ''}`}>
               <section className={`focus-shell__route-layer flex min-h-0 flex-1 flex-col ${isFullBleedRoute ? 'focus-shell__route-layer--full-bleed' : ''}`}>

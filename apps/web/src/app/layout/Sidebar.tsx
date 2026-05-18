@@ -34,8 +34,6 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { BASE_NAV_ITEMS, ROUTES, type RouteKey } from '../routes/routes'
-import ThemeToggle from '../../shared/theme/ThemeToggle'
-import type { ThemeMode } from '../../shared/theme/theme'
 import SidebarUserPanel from './SidebarUserPanel'
 import { useLabs } from '../../features/labs/LabsContext'
 import { useLabsI18n } from '../../features/labs/labsI18n'
@@ -45,6 +43,8 @@ import { mergeSidebarOrder, moveSidebarOrder, readSidebarOrder, writeSidebarOrde
 import { useIsLoggedIn, useAuthPlan, useIsAdmin } from '../../store/auth'
 import { useUpgradeModal } from '../../features/labs/UpgradeModalContext'
 import SidebarPodcastPlayer from './SidebarPodcastPlayer'
+import SidebarWhiteNoise from './SidebarWhiteNoise'
+import SidebarFocusTimer from './SidebarFocusTimer'
 import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../data/repositories/syncedPreferencesRepo'
 import { DiscoveryNewBadge } from '../../shared/ui/DiscoveryNewBadge'
 import { markDiscoveryNewTargetSeen } from '../../shared/discovery/discoveryNewTargetActions'
@@ -55,8 +55,6 @@ const PodcastCard = lazy(() => import('../../features/life/cards/PodcastCard'))
 type SidebarProps = {
   collapsed: boolean
   onToggle: () => void
-  theme: ThemeMode
-  onToggleTheme: () => void
 }
 
 const ICONS: Record<RouteKey, LucideIcon> = {
@@ -118,7 +116,7 @@ const SortableSidebarItem = ({ item, collapsed }: SortableSidebarItemProps) => {
   )
 }
 
-const Sidebar = ({ collapsed, onToggle, theme, onToggleTheme }: SidebarProps) => {
+const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
   const { catalog } = useLabs()
   const i18n = useLabsI18n()
   const { t } = useI18n()
@@ -272,6 +270,8 @@ const Sidebar = ({ collapsed, onToggle, theme, onToggleTheme }: SidebarProps) =>
       </DndContext>
 
       <SidebarPodcastPlayer collapsed={collapsed} />
+      <SidebarWhiteNoise collapsed={collapsed} />
+      <SidebarFocusTimer collapsed={collapsed} />
       <Suspense fallback={null}>
         <PodcastCard standalone />
       </Suspense>
@@ -292,9 +292,6 @@ const Sidebar = ({ collapsed, onToggle, theme, onToggleTheme }: SidebarProps) =>
             <DiscoveryNewBadge target="nav-premium" />
           </button>
         )}
-        <div className="focus-sidebar__theme-toggle">
-          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
-        </div>
       </div>
     </motion.aside>
   )

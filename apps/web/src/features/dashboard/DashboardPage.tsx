@@ -15,6 +15,7 @@ import DashboardHeader from './DashboardHeader'
 import DashboardSkeleton from './DashboardSkeleton'
 import { useI18n } from '../../shared/i18n/useI18n'
 import {
+  CURRENT_DASHBOARD_LAYOUT_VERSION,
   DEFAULT_DASHBOARD_HIDDEN_CARD_IDS,
   DEFAULT_DASHBOARD_LAYOUT_ITEMS,
   DEFAULT_DASHBOARD_THEME_OVERRIDE,
@@ -160,6 +161,7 @@ const DashboardPage = () => {
         items: nextLayout,
         hiddenCardIds: nextHiddenCardIds,
         themeOverride,
+        layoutVersion: CURRENT_DASHBOARD_LAYOUT_VERSION,
       })
     },
     []
@@ -190,7 +192,9 @@ const DashboardPage = () => {
     const registryDefaultHidden = cards.filter((card) => card.defaultVisible === false).map((card) => card.id)
 
     dashboardRepo.get().then((stored) => {
-      if (stored?.items?.length) {
+      const storedVersion = stored?.layoutVersion ?? 0
+      const isStale = storedVersion < CURRENT_DASHBOARD_LAYOUT_VERSION
+      if (stored?.items?.length && !isStale) {
         const visibleKeySet = new Set(stored.items.map((item) => item.key))
         const storedHidden = stored.hiddenCardIds ?? []
         const storedHiddenSet = new Set(storedHidden)
@@ -227,6 +231,7 @@ const DashboardPage = () => {
             items: merged,
             hiddenCardIds: hidden,
             themeOverride: stored.themeOverride ?? null,
+            layoutVersion: CURRENT_DASHBOARD_LAYOUT_VERSION,
           })
         }
         setLayout(merged)
@@ -264,7 +269,8 @@ const DashboardPage = () => {
       dashboardRepo.upsert({
         items: fallback,
         hiddenCardIds: hidden,
-        themeOverride: DEFAULT_DASHBOARD_THEME_OVERRIDE,
+        themeOverride: isStale ? (stored?.themeOverride ?? DEFAULT_DASHBOARD_THEME_OVERRIDE) : DEFAULT_DASHBOARD_THEME_OVERRIDE,
+        layoutVersion: CURRENT_DASHBOARD_LAYOUT_VERSION,
       })
     })
   }, [cards])

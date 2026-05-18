@@ -5,7 +5,6 @@ import type { LifeTranslate } from '../life/lifeI18n'
 // Main page cards — lazy so each becomes its own chunk and hidden cards don't parse at all
 const TasksBoard = lazy(() => import('../tasks/TasksBoard'))
 const TaskProgressSummaryWidgetCard = lazy(() => import('../tasks/components/TaskProgressSummaryWidgetCard'))
-const FocusCard = lazy(() => import('../focus/FocusCard'))
 const SpendCard = lazy(() => import('../spend/SpendCard'))
 const WidgetTodosCard = lazy(() => import('./cards/WidgetTodosCard'))
 const WeatherWidgetCard = lazy(() => import('./cards/WeatherWidgetCard'))
@@ -58,13 +57,6 @@ export const getDashboardCards = (): DashboardCard[] => [
     defaultSize: { w: 4, h: 4 },
     pageScope: 'main',
     render: () => renderLazyCard(<TasksBoard />),
-  },
-  {
-    id: 'focus',
-    title: 'Focus Center',
-    defaultSize: { w: 4, h: 3 },
-    pageScope: 'main',
-    render: () => renderLazyCard(<FocusCard />),
   },
   {
     id: 'spend',
