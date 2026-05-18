@@ -598,7 +598,7 @@ const TasksBoard = ({
 
   const boardContent = topView === 'analytics'
     ? (
-      <TasksAnalyticsView tasks={tasks} />
+      <TasksAnalyticsView tasks={tasks} projects={projects} />
     )
     : topView === 'list'
       ? (

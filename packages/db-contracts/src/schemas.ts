@@ -27,9 +27,12 @@ const taskSubtaskSchema = z
 const taskActivityLogSchema = z
   .object({
     id: z.string().min(1),
-    type: z.enum(['status', 'details']),
+    type: z.enum(['status', 'details', 'subtask']),
     message: z.string(),
     createdAt: z.number(),
+    subtaskId: z.string().optional(),
+    subtaskTitle: z.string().optional(),
+    subtaskDone: z.boolean().optional(),
   })
   .strict()
 

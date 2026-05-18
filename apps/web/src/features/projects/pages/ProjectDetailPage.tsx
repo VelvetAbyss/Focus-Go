@@ -6,6 +6,7 @@ import {
   Trash2, Users, Zap, CalendarDays, User,
 } from 'lucide-react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 import { EditableText } from '@/components/ui/EditableText'
 import Dialog from '../../../shared/ui/Dialog'
@@ -13,11 +14,14 @@ import { Popover, PopoverContent, PopoverTrigger } from '../../../shared/ui/popo
 import { tasksRepo } from '../../../data/repositories/tasksRepo'
 import { projectPeopleRepo } from '../../../data/repositories/projectPeopleRepo'
 import { projectNoteLinksRepo } from '../../../data/repositories/projectNoteLinksRepo'
-import { projectsRepo } from '../../../data/repositories/projectsRepo'
+import { projectsRepo, projectTagName } from '../../../data/repositories/projectsRepo'
+import { notesRepo } from '../../../data/repositories/notesRepo'
 import type { NoteItem, ProjectHealth, ProjectItem, ProjectPerson, ProjectStatus, TaskItem } from '../../../data/models/types'
 import { ROUTES } from '../../../app/routes/routes'
 import { PersonFormDialog, ProjectFormDialog } from '../components/ProjectDialogs'
+import PersonProfileDialog from '../components/PersonProfileDialog'
 import ProjectGantt from '../components/ProjectGantt'
+import Avatar from '../../../shared/ui/Avatar'
 import { useProjectsI18n } from '../projectsI18n'
 import TaskDrawer from '../../tasks/TaskDrawer'
 import TasksBoard from '../../tasks/TasksBoard'
@@ -47,42 +51,7 @@ const ROLE_COLORS: Record<string, string> = {
   external: ROLE.external,
 }
 
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
-}
-
-// ── Progress ring ────────────────────────────────────────────
-function ProgressRing({ progress, size = 96, label }: { progress: number; size?: number; label: string }) {
-  const strokeWidth = 6
-  const r = (size - strokeWidth) / 2
-  const circumference = 2 * Math.PI * r
-  const offset = circumference * (1 - Math.max(0, Math.min(100, progress)) / 100)
-  return (
-    <svg width={size} height={size} className="pd-ring" aria-label={label}>
-      <circle cx={size / 2} cy={size / 2} r={r} className="pd-ring__track" strokeWidth={strokeWidth} />
-      <motion.circle
-        cx={size / 2}
-        cy={size / 2}
-        r={r}
-        className="pd-ring__fill"
-        strokeWidth={strokeWidth}
-        strokeDasharray={circumference}
-        initial={{ strokeDashoffset: circumference }}
-        animate={{ strokeDashoffset: offset }}
-        transition={{ duration: 1.4, ease: EASE_OUT, delay: 0.4 }}
-        transform={`rotate(-90 ${size / 2} ${size / 2})`}
-      />
-      <text x={size / 2} y={size / 2 + 1} textAnchor="middle" dominantBaseline="middle" className="pd-ring__text">
-        {progress}%
-      </text>
-    </svg>
-  )
-}
+import ProgressRing from '../../../shared/ui/ProgressRing'
 
 // ── Animation variants ────────────────────────────────────────
 const stagger = {
@@ -122,11 +91,27 @@ const ProjectDetailPage = () => {
   const [projectDialogOpen, setProjectDialogOpen] = useState(false)
   const [personDialogOpen, setPersonDialogOpen] = useState(false)
   const [editingPerson, setEditingPerson] = useState<ProjectPerson | null>(null)
+  const [viewingPerson, setViewingPerson] = useState<ProjectPerson | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [drawerTask, setDrawerTask] = useState<TaskItem | null>(null)
   const [allProjects, setAllProjects] = useState<ProjectItem[]>([])
   const [timelineMode, setTimelineMode] = useState<TimelineMode>('month')
   const [notesQuery, setNotesQuery] = useState('')
+  const [showFocusCardPulse, setShowFocusCardPulse] = useState(false)
+
+  // First-visit affordance: pulse the "next step" card for 2s so users discover
+  // that those fields are inline-editable. Suppress on subsequent visits in the
+  // same browser session.
+  useEffect(() => {
+    if (!projectId) return
+    if (typeof window === 'undefined') return
+    const key = `pd_focus_pulse_seen:${projectId}`
+    if (window.sessionStorage.getItem(key)) return
+    setShowFocusCardPulse(true)
+    window.sessionStorage.setItem(key, '1')
+    const timer = window.setTimeout(() => setShowFocusCardPulse(false), 2400)
+    return () => window.clearTimeout(timer)
+  }, [projectId])
 
   const TABS: Array<{ key: ProjectTab; label: string; Icon: React.FC<{ size?: number; strokeWidth?: number }> }> = useMemo(() => [
     { key: 'overview', label: i18n.tabs.overview, Icon: Zap },
@@ -474,7 +459,7 @@ const ProjectDetailPage = () => {
                 variants={slideUp}
                 initial="hidden"
                 animate="show"
-                className="pd-focus-card"
+                className={cn('pd-focus-card', showFocusCardPulse && 'pd-focus-card--pulse')}
               >
                 <div className="pd-focus-card__main">
                   <p className="pd-focus-card__eyebrow">{i18n.detail.nextAction}</p>
@@ -483,6 +468,8 @@ const ProjectDetailPage = () => {
                       value={project.nextAction ?? ''}
                       placeholder={i18n.detail.nextActionDefault}
                       ariaLabel={i18n.detail.nextAction}
+                      hint
+                      hintLabel={i18n.detail.editHint}
                       onCommit={async (next) => {
                         await projectsRepo.update(project.id, { nextAction: next })
                         const refreshed = await projectsRepo.getById(project.id)
@@ -498,6 +485,8 @@ const ProjectDetailPage = () => {
                         : i18n.detail.noRisks}
                       multiline
                       ariaLabel={i18n.detail.noRisks}
+                      hint
+                      hintLabel={i18n.detail.editHint}
                       onCommit={async (next) => {
                         await projectsRepo.update(project.id, { riskSummary: next })
                         const refreshed = await projectsRepo.getById(project.id)
@@ -544,14 +533,28 @@ const ProjectDetailPage = () => {
 
           {/* ── TASKS ─────────────────────────────────────────── */}
           {tab === 'tasks' ? (
-            <motion.div key="tasks" variants={tabContent} initial="hidden" animate="show" exit="exit">
+            <motion.div
+              key="tasks"
+              variants={tabContent}
+              initial="hidden"
+              animate="show"
+              exit="exit"
+              className="pd-tab-fill"
+            >
               <TasksBoard asCard={false} topView="board" scope={{ kind: 'project', projectId: project.id }} />
             </motion.div>
           ) : null}
 
           {/* ── TIMELINE ──────────────────────────────────────── */}
           {tab === 'timeline' ? (
-            <motion.div key="timeline" variants={tabContent} initial="hidden" animate="show" exit="exit">
+            <motion.div
+              key="timeline"
+              variants={tabContent}
+              initial="hidden"
+              animate="show"
+              exit="exit"
+              className="pd-tab-fill"
+            >
               <div className="pd-section-header">
                 <h2 className="pd-section-title">{i18n.detail.timeline}</h2>
                 <div className="pd-toggle">
@@ -581,6 +584,27 @@ const ProjectDetailPage = () => {
                   projectColor={project.color}
                   viewMode={timelineMode}
                   onTaskClick={(task) => setDrawerTask(task)}
+                  onEmptySlotClick={async (date) => {
+                    if (!projectId) return
+                    const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+                    const created = await createProjectTask({
+                      title: i18n.dialog.taskTitlePlaceholder ?? 'New task',
+                      status: 'todo',
+                      priority: null,
+                      projectId,
+                      tags: [],
+                      subtasks: [],
+                      collaboratorIds: [],
+                      dependencyTaskIds: [],
+                      blockedByTaskIds: [],
+                      isBlocked: false,
+                      startDate: iso,
+                      dueDate: iso,
+                    })
+                    emitTasksChanged('project-detail:create-task-on-day')
+                    setTasks((prev) => [...prev, created])
+                    setDrawerTask(created)
+                  }}
                 />
               )}
             </motion.div>
@@ -600,7 +624,7 @@ const ProjectDetailPage = () => {
                 </button>
               </div>
 
-              <motion.div className="pd-people-grid" variants={stagger} initial="hidden" animate="show">
+              <motion.div className="pd-people-grid pd-people-grid--cards" variants={stagger} initial="hidden" animate="show">
                 {people.map((person) => {
                   const linkedCount = tasks.filter(
                     (t) => t.ownerId === person.id || t.collaboratorIds?.includes(person.id),
@@ -610,33 +634,45 @@ const ProjectDetailPage = () => {
                     <motion.article
                       key={person.id}
                       variants={slideUp}
-                      className="pd-person"
+                      className="pd-person-card"
                       whileHover={{ y: -2, transition: { duration: 0.15 } }}
-                      onClick={() => { setEditingPerson(person); setPersonDialogOpen(true) }}
+                      onClick={() => setViewingPerson(person)}
                     >
-                      <div className="pd-person__avatar" style={{ background: roleColor + '1A', color: roleColor }}>
-                        {getInitials(person.name)}
-                      </div>
-                      <div className="pd-person__info">
-                        <h3>{person.name}</h3>
-                        <span className="pd-person__role" style={{ color: roleColor }}>
+                      <div
+                        className="pd-person-card__banner"
+                        style={{ background: `linear-gradient(135deg, ${roleColor} 0%, ${roleColor}cc 100%)` }}
+                      />
+                      <Avatar
+                        name={person.name}
+                        blobHash={person.avatarBlobHash}
+                        seed={person.avatarSeed ?? person.id}
+                        size={64}
+                        className="pd-person-card__avatar"
+                      />
+                      <div className="pd-person-card__body">
+                        <h3 className="pd-person-card__name">{person.name}</h3>
+                        <span
+                          className="pd-person-card__role"
+                          style={{ color: roleColor, background: `${roleColor}14` }}
+                        >
                           {person.roleType.charAt(0).toUpperCase() + person.roleType.slice(1)}
                         </span>
-                      </div>
-                      <div className="pd-person__tasks">
-                        <strong>{linkedCount}</strong>
-                        <span>{i18n.detail.tasks}</span>
-                      </div>
-                      <div className="pd-person__contact">
-                        {person.email ? (
-                          <span><Mail size={12} />{person.email}</span>
-                        ) : null}
-                        {person.phone ? (
-                          <span><Phone size={12} />{person.phone}</span>
-                        ) : null}
-                        {!person.email && !person.phone ? (
-                          <span className="pd-muted">{i18n.detail.noContactInfo}</span>
-                        ) : null}
+                        <div className="pd-person-card__contact">
+                          {person.email ? (
+                            <span title={person.email}><Mail size={11} />{person.email}</span>
+                          ) : null}
+                          {person.phone ? (
+                            <span><Phone size={11} />{person.phone}</span>
+                          ) : null}
+                          {!person.email && !person.phone ? (
+                            <span className="pd-muted">{i18n.detail.noContactInfo}</span>
+                          ) : null}
+                        </div>
+                        <div className="pd-person-card__footer">
+                          <span className="pd-person-card__tasks-chip">
+                            <strong>{linkedCount}</strong> {i18n.detail.tasks}
+                          </span>
+                        </div>
                       </div>
                     </motion.article>
                   )
@@ -652,46 +688,108 @@ const ProjectDetailPage = () => {
           {tab === 'notes' ? (
             <motion.div key="notes" variants={tabContent} initial="hidden" animate="show" exit="exit">
               <div className="pd-section-header">
-                <h2 className="pd-section-title">{i18n.detail.notes} <span className="pd-count">{visibleNotes.length}</span></h2>
-                <div className="pd-search">
-                  <Search size={14} strokeWidth={2} />
-                  <Input
-                    value={notesQuery}
-                    onChange={(e) => setNotesQuery(e.target.value)}
-                    className="pd-search__input"
-                    placeholder={i18n.detail.searchNotes}
-                  />
+                <h2 className="pd-section-title">
+                  {i18n.detail.notes} <span className="pd-count">{visibleNotes.length}</span>
+                </h2>
+                <div className="pd-notes-toolbar">
+                  <div className="pd-search">
+                    <Search size={14} strokeWidth={2} />
+                    <Input
+                      value={notesQuery}
+                      onChange={(e) => setNotesQuery(e.target.value)}
+                      className="pd-search__input"
+                      placeholder={i18n.detail.searchNotes}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    className="pd-btn pd-btn--primary"
+                    onClick={async () => {
+                      const created = await notesRepo.create({
+                        title: project.title ? `${project.title.slice(0, 40)} · ${i18n.detail.notes}` : '',
+                        contentMd: '',
+                        collection: 'all-notes',
+                        tags: [projectTagName(project.id)],
+                      })
+                      // Tag-based sync wires the link automatically on next read.
+                      await load()
+                      navigate(`${ROUTES.NOTE}?id=${created.id}`)
+                    }}
+                  >
+                    <Plus size={14} /> {i18n.detail.createNote}
+                  </button>
                 </div>
               </div>
 
-              <motion.div className="pd-note-list" variants={stagger} initial="hidden" animate="show">
-                {visibleNotes.map(({ note }) => (
-                  <motion.article key={note.id} variants={slideUp} className="pd-note" whileHover={{ y: -1, transition: { duration: 0.15 } }}>
-                    <div className="pd-note__body">
-                      <h3>{note.title}</h3>
-                      {note.excerpt ? <p>{note.excerpt}</p> : null}
-                      <time>{new Date(note.updatedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</time>
-                    </div>
-                    <div className="pd-note__actions">
-                      <button type="button" className="pd-btn pd-btn--ghost" onClick={() => navigate(ROUTES.NOTE)}>
-                        {i18n.detail.open}
+              {visibleNotes.length === 0 ? (
+                <div className="pd-notes-empty">
+                  <h3 className="pd-notes-empty__title">{i18n.detail.notesEmptyTitle}</h3>
+                  <p className="pd-notes-empty__hint">{i18n.detail.notesEmptyHint}</p>
+                  <button
+                    type="button"
+                    className="pd-btn pd-btn--primary"
+                    onClick={async () => {
+                      const created = await notesRepo.create({
+                        title: project.title ? `${project.title.slice(0, 40)} · ${i18n.detail.notes}` : '',
+                        contentMd: '',
+                        collection: 'all-notes',
+                        tags: [projectTagName(project.id)],
+                      })
+                      await load()
+                      navigate(`${ROUTES.NOTE}?id=${created.id}`)
+                    }}
+                  >
+                    <Plus size={14} /> {i18n.detail.createFirstNote}
+                  </button>
+                </div>
+              ) : (
+                <motion.div className="pd-note-list pd-note-list--cards" variants={stagger} initial="hidden" animate="show">
+                  {visibleNotes.map(({ note }) => (
+                    <motion.article
+                      key={note.id}
+                      variants={slideUp}
+                      className="pd-note-card"
+                      whileHover={{ y: -1, transition: { duration: 0.15 } }}
+                    >
+                      <button
+                        type="button"
+                        className="pd-note-card__open"
+                        onClick={() => navigate(`${ROUTES.NOTE}?id=${note.id}`)}
+                      >
+                        <h3 className="pd-note-card__title">
+                          {note.title?.trim() || i18n.detail.untitledNote}
+                        </h3>
+                        {note.excerpt ? (
+                          <p className="pd-note-card__excerpt">{note.excerpt}</p>
+                        ) : null}
+                        <div className="pd-note-card__meta">
+                          <time>
+                            {new Date(note.updatedAt).toLocaleDateString(undefined, {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                            })}
+                          </time>
+                          {note.tags.filter((tag) => !tag.startsWith('project:')).slice(0, 2).map((tag) => (
+                            <span key={tag} className="pd-note-card__tag">#{tag}</span>
+                          ))}
+                        </div>
                       </button>
                       <button
                         type="button"
-                        className="pd-btn pd-btn--danger-ghost"
-                        onClick={() => void projectNoteLinksRepo.remove(project.id, note.id).then(load)}
+                        className="pd-note-card__unlink"
+                        title={i18n.detail.unlink}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          void projectNoteLinksRepo.remove(project.id, note.id).then(load)
+                        }}
                       >
-                        {i18n.detail.unlink}
+                        ×
                       </button>
-                    </div>
-                  </motion.article>
-                ))}
-                {visibleNotes.length === 0 ? (
-                  <div className="pd-empty-inline">
-                    {i18n.t(i18n.detail.noLinkedNotes, { id: project.id })}
-                  </div>
-                ) : null}
-              </motion.div>
+                    </motion.article>
+                  ))}
+                </motion.div>
+              )}
             </motion.div>
           ) : null}
         </AnimatePresence>
@@ -716,13 +814,39 @@ const ProjectDetailPage = () => {
         }}
       />
 
+      <PersonProfileDialog
+        open={Boolean(viewingPerson)}
+        person={viewingPerson}
+        linkedTasks={tasks.filter(
+          (t) => viewingPerson && (t.ownerId === viewingPerson.id || t.collaboratorIds?.includes(viewingPerson.id)),
+        )}
+        onClose={() => setViewingPerson(null)}
+        onRequestEdit={() => {
+          if (viewingPerson) {
+            setEditingPerson(viewingPerson)
+            setViewingPerson(null)
+            setPersonDialogOpen(true)
+          }
+        }}
+        onOpenTask={(task) => {
+          setViewingPerson(null)
+          setDrawerTask(task)
+        }}
+      />
+
       <PersonFormDialog
         open={personDialogOpen}
         person={editingPerson}
         onClose={() => setPersonDialogOpen(false)}
         onSubmit={async (payload) => {
-          if (editingPerson) await projectPeopleRepo.update(editingPerson.id, payload)
-          else await projectPeopleRepo.create({ projectId: project.id, ...payload })
+          // Normalize null avatar hash to undefined for repo signature; null
+          // signals "remove" and is the same as undefined here.
+          const normalized = {
+            ...payload,
+            avatarBlobHash: payload.avatarBlobHash ?? undefined,
+          }
+          if (editingPerson) await projectPeopleRepo.update(editingPerson.id, normalized)
+          else await projectPeopleRepo.create({ projectId: project.id, ...normalized })
           setPersonDialogOpen(false)
           setEditingPerson(null)
           await load()

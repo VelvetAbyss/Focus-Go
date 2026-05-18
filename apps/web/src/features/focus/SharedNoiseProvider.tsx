@@ -2,6 +2,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { NoiseSettings, NoiseTrackId, NoiseTrackSettings } from '../../data/models/types'
 import { focusRepo } from '../../data/repositories/focusRepo'
+import { usePageActivity } from '../../shared/hooks/usePageActivity'
 import { createDefaultNoiseSettings, DEFAULT_NOISE_PRESET } from './noise'
 import { useNoiseMixer } from './useNoiseMixer'
 
@@ -33,6 +34,7 @@ type SharedNoiseContextValue = {
 const SharedNoiseContext = createContext<SharedNoiseContextValue | null>(null)
 
 export const SharedNoiseProvider = ({ children }: { children: ReactNode }) => {
+  const pageActivity = usePageActivity()
   const [noise, setNoise] = useState<NoiseSettings>(createDefaultNoiseSettings())
   const [ready, setReady] = useState(false)
   const readyRef = useRef(false)
@@ -158,9 +160,10 @@ export const SharedNoiseProvider = ({ children }: { children: ReactNode }) => {
     }
 
     tick()
-    const timer = window.setInterval(tick, 1000)
-    return () => window.clearInterval(timer)
-  }, [noise.sleepEndsAt, ready])
+    const delay = Math.max(0, sleepEndsAt - Date.now())
+    const timer = window.setTimeout(tick, delay)
+    return () => window.clearTimeout(timer)
+  }, [noise.sleepEndsAt, pageActivity, ready])
 
   useNoiseMixer(noise, handlePlaybackBlocked)
 

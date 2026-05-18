@@ -28,6 +28,7 @@ type ProjectsMessages = {
     cardNextAction: string
     cardNextActionDefault: string
     cardOpenWorkspace: string
+    cardOverdue: string
   }
   filter: {
     statusLabel: string
@@ -81,6 +82,12 @@ type ProjectsMessages = {
     statOverdueLabel: string
     nextAction: string
     nextActionDefault: string
+    editHint: string
+    createNote: string
+    createFirstNote: string
+    notesEmptyTitle: string
+    notesEmptyHint: string
+    untitledNote: string
     update: string
     risksBlockers: string
     overdueWarning: string
@@ -151,6 +158,12 @@ type ProjectsMessages = {
     orFillManually: string
     fieldName: string
     namePlaceholder: string
+    avatarUpload: string
+    avatarRegenerate: string
+    avatarRemove: string
+    personDetail: string
+    personDetailEyebrow: string
+    linkedTasks: string
     fieldRole: string
     roleOwner: string
     roleCollaborator: string
@@ -231,6 +244,7 @@ const messages: Record<LanguageCode, ProjectsMessages> = {
       cardNextAction: 'Next Action',
       cardNextActionDefault: 'Review current plan',
       cardOpenWorkspace: 'Open project workspace',
+      cardOverdue: 'overdue',
     },
     filter: {
       statusLabel: 'Status',
@@ -284,6 +298,12 @@ const messages: Record<LanguageCode, ProjectsMessages> = {
       statOverdueLabel: 'OVERDUE',
       nextAction: 'Next Action',
       nextActionDefault: 'Define the next meaningful step to move this project forward.',
+      editHint: 'Click to edit',
+      createNote: 'New note',
+      createFirstNote: 'Create your first note',
+      notesEmptyTitle: 'No project notes yet',
+      notesEmptyHint: 'Capture meeting notes, decisions, or specs — they\'ll auto-link to this project.',
+      untitledNote: 'Untitled',
       update: 'Update →',
       risksBlockers: 'Risks & Blockers',
       overdueWarning: '{{count}} task(s) are overdue and need attention.',
@@ -354,6 +374,12 @@ const messages: Record<LanguageCode, ProjectsMessages> = {
       orFillManually: 'or fill in manually',
       fieldName: 'Name',
       namePlaceholder: 'Sarah Chen',
+      avatarUpload: 'Upload',
+      avatarRegenerate: 'Regenerate',
+      avatarRemove: 'Remove',
+      personDetail: 'Member detail',
+      personDetailEyebrow: 'Team member',
+      linkedTasks: 'Linked tasks',
       fieldRole: 'Role',
       roleOwner: 'Owner',
       roleCollaborator: 'Collaborator',
@@ -432,6 +458,7 @@ const messages: Record<LanguageCode, ProjectsMessages> = {
       cardNextAction: '下一步',
       cardNextActionDefault: '回顾当前计划',
       cardOpenWorkspace: '打开项目工作区',
+      cardOverdue: '逾期',
     },
     filter: {
       statusLabel: '状态',
@@ -485,6 +512,12 @@ const messages: Record<LanguageCode, ProjectsMessages> = {
       statOverdueLabel: '已逾期',
       nextAction: '下一步',
       nextActionDefault: '明确推动项目向前的下一个关键步骤。',
+      editHint: '点击文本即可编辑',
+      createNote: '新建笔记',
+      createFirstNote: '创建第一条笔记',
+      notesEmptyTitle: '还没有项目笔记',
+      notesEmptyHint: '记录会议、决策、规格等——它们会自动关联到这个项目。',
+      untitledNote: '未命名笔记',
       update: '更新 →',
       risksBlockers: '风险与阻碍',
       overdueWarning: '{{count}} 个任务已逾期，需要处理。',
@@ -555,6 +588,12 @@ const messages: Record<LanguageCode, ProjectsMessages> = {
       orFillManually: '或手动填写',
       fieldName: '姓名',
       namePlaceholder: '陈晓明',
+      avatarUpload: '上传图片',
+      avatarRegenerate: '重新生成',
+      avatarRemove: '移除',
+      personDetail: '成员详情',
+      personDetailEyebrow: '团队成员',
+      linkedTasks: '关联任务',
       fieldRole: '角色',
       roleOwner: '负责人',
       roleCollaborator: '协作者',

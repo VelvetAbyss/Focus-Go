@@ -352,6 +352,36 @@ describe('DexieDatabaseService', () => {
     expect(stored?.taskNoteContentJson).toEqual(updated.taskNoteContentJson)
   })
 
+  it('records subtask completion logs when subtasks move to done', async () => {
+    await db.tasks.clear()
+    const service = createDexieDatabaseService()
+    const created = await service.tasks.add({
+      title: 'Subtask task',
+      status: 'doing',
+      priority: null,
+      subtasks: [
+        { id: 'sub-1', title: 'Draft', done: false },
+        { id: 'sub-2', title: 'Review', done: false },
+      ],
+    })
+
+    const updated = await service.tasks.update({
+      ...created,
+      subtasks: [
+        { id: 'sub-1', title: 'Draft', done: true },
+        { id: 'sub-2', title: 'Review', done: false },
+      ],
+    })
+
+    const log = updated.activityLogs.find((item) => item.type === 'subtask')
+    expect(log).toMatchObject({
+      message: '子任务已完成',
+      subtaskId: 'sub-1',
+      subtaskTitle: 'Draft',
+      subtaskDone: true,
+    })
+  })
+
   it('does not bulk rewrite normalized tasks on repeated list calls', async () => {
     await db.tasks.clear()
     const service = createDexieDatabaseService()

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
-import { Calendar, Check, ChevronDown, Flag, Palette, Search, Tag, User } from 'lucide-react'
+import { Calendar, Check, ChevronDown, Flag, ImagePlus, Palette, RefreshCcw, Search, Tag, Trash2, User } from 'lucide-react'
+import Avatar from '../../../shared/ui/Avatar'
+import { uploadAvatar } from '../../../shared/avatars/avatarStorage'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -18,6 +20,7 @@ import { peopleRepo } from '../../../data/repositories/peopleRepo'
 import { PROJECT_COLORS, resolveProjectColor } from '../../../shared/design/tokens'
 import { useProjectsI18n } from '../projectsI18n'
 import { usePreferences } from '../../../shared/prefs/usePreferences'
+import { useVisibleInterval } from '../../../shared/hooks/usePageActivity'
 
 type ProjectFormPayload = {
   title: string
@@ -52,6 +55,8 @@ type PersonFormDialogProps = {
     phone?: string
     email?: string
     note?: string
+    avatarBlobHash?: string | null
+    avatarSeed?: string
   }) => Promise<void> | void
 }
 
@@ -220,11 +225,10 @@ export const ProjectFormDialog = ({ open, project, people, onClose, onAutoSave, 
   }, [title, goal, description, color, status, priority, ownerId, startDate, dueDate, nextAction, riskSummary])
 
   // Tick once a second so "Saved · 5s ago" stays fresh while editing
-  useEffect(() => {
-    if (!isEditMode || !savedAt) return
-    const id = window.setInterval(() => setNow(Date.now()), 1000)
-    return () => window.clearInterval(id)
-  }, [isEditMode, savedAt])
+  useVisibleInterval(() => setNow(Date.now()), 1000, {
+    enabled: isEditMode && Boolean(savedAt),
+    runOnVisible: true,
+  })
 
   const buildPayload = useCallback((): ProjectFormPayload => ({
     title: title.trim(),
@@ -695,6 +699,10 @@ export const PersonFormDialog = ({ open, person, onClose, onSubmit }: PersonForm
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [note, setNote] = useState('')
+  const [avatarBlobHash, setAvatarBlobHash] = useState<string | null>(null)
+  const [avatarSeed, setAvatarSeed] = useState<string>('')
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const avatarInputRef = useRef<HTMLInputElement | null>(null)
 
   const [contacts, setContacts] = useState<LifePerson[]>([])
   const [contactQuery, setContactQuery] = useState('')
@@ -707,9 +715,36 @@ export const PersonFormDialog = ({ open, person, onClose, onSubmit }: PersonForm
     setPhone(person?.phone ?? '')
     setEmail(person?.email ?? '')
     setNote(person?.note ?? '')
+    setAvatarBlobHash(person?.avatarBlobHash ?? null)
+    setAvatarSeed(person?.avatarSeed ?? person?.id ?? '')
     setContactQuery('')
     setSelectedContactId(null)
   }, [open, person])
+
+  const handlePickAvatar = () => avatarInputRef.current?.click()
+
+  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    setAvatarUploading(true)
+    try {
+      const result = await uploadAvatar(file)
+      if (result.ok) setAvatarBlobHash(result.hash)
+    } finally {
+      setAvatarUploading(false)
+    }
+  }
+
+  const handleRegenerateAvatar = () => {
+    setAvatarBlobHash(null)
+    setAvatarSeed(`${Date.now()}_${Math.random().toString(36).slice(2, 8)}`)
+  }
+
+  const handleRemoveAvatar = () => {
+    setAvatarBlobHash(null)
+    setAvatarSeed(person?.id ?? avatarSeed)
+  }
 
   useEffect(() => {
     if (!open || person) return
@@ -813,6 +848,53 @@ export const PersonFormDialog = ({ open, person, onClose, onSubmit }: PersonForm
               </div>
             </div>
           ) : null}
+          {/* Avatar uploader */}
+          <div className="pd-avatar-uploader">
+            <Avatar
+              name={name || person?.name || '?'}
+              blobHash={avatarBlobHash}
+              seed={avatarSeed || person?.id || name}
+              size={72}
+            />
+            <div className="pd-avatar-uploader__actions">
+              <button
+                type="button"
+                className="pd-avatar-uploader__btn"
+                onClick={handlePickAvatar}
+                disabled={avatarUploading}
+              >
+                <ImagePlus size={13} />
+                {avatarUploading ? '…' : i18n.dialog.avatarUpload}
+              </button>
+              <button
+                type="button"
+                className="pd-avatar-uploader__btn"
+                onClick={handleRegenerateAvatar}
+                disabled={avatarUploading}
+              >
+                <RefreshCcw size={13} />
+                {i18n.dialog.avatarRegenerate}
+              </button>
+              {avatarBlobHash ? (
+                <button
+                  type="button"
+                  className="pd-avatar-uploader__btn pd-avatar-uploader__btn--danger"
+                  onClick={handleRemoveAvatar}
+                >
+                  <Trash2 size={13} />
+                  {i18n.dialog.avatarRemove}
+                </button>
+              ) : null}
+            </div>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(event) => { void handleAvatarChange(event) }}
+            />
+          </div>
+
           <div className="project-dialog__grid project-dialog__grid--single">
             <label className="project-dialog__field">
               <span>{i18n.dialog.fieldName}</span>
@@ -856,7 +938,15 @@ export const PersonFormDialog = ({ open, person, onClose, onSubmit }: PersonForm
             type="button"
             className="project-button project-button--primary"
             disabled={name.trim().length === 0}
-            onClick={() => void onSubmit({ name, roleType, phone: phone || undefined, email: email || undefined, note: note || undefined })}
+            onClick={() => void onSubmit({
+              name,
+              roleType,
+              phone: phone || undefined,
+              email: email || undefined,
+              note: note || undefined,
+              avatarBlobHash: avatarBlobHash ?? null,
+              avatarSeed: avatarSeed || undefined,
+            })}
           >
             {person ? i18n.dialog.savePerson : i18n.dialog.addPerson}
           </Button>

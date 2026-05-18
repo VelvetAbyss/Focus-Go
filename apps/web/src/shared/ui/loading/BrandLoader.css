@@ -23,11 +23,11 @@
 .brand-loader[data-theme='light'] {
   --bl-accent: #b95814;
   --bl-accent-wash: rgba(185, 88, 20, 0.09);
-  --bl-text-hi: #1a1816;
-  --bl-text-lo: rgba(26, 24, 22, 0.56);
-  --bl-text-xlo: rgba(26, 24, 22, 0.32);
-  --bl-hairline-strong: rgba(26, 24, 22, 0.2);
-  --bl-surface: #faf7f2;
+  --bl-text-hi: #3A3733;
+  --bl-text-lo: rgba(58, 55, 51, 0.56);
+  --bl-text-xlo: rgba(58, 55, 51, 0.32);
+  --bl-hairline-strong: rgba(58, 55, 51, 0.2);
+  --bl-surface: #F5F3F0;
 }
 
 /* Variants */

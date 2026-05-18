@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState, type RefObject } from 'react'
+import { useCallback, useMemo, useRef, useState, type RefObject } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { CheckSquare2, ChevronDown, Pin, PinOff, Plus, RotateCcw, Search, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useI18n } from '../../../shared/i18n/useI18n'
@@ -55,6 +56,12 @@ const formatTime = (time: number) => {
   return new Date(time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
+const VIRTUALIZE_NOTE_COUNT = 40
+
+type NoteBrowserRow =
+  | { type: 'label'; key: string; label: string }
+  | { type: 'note'; key: string; note: NoteItem }
+
 export default function NoteBrowser({
   notes,
   selectedNoteId,
@@ -82,18 +89,62 @@ export default function NoteBrowser({
     title: language === 'zh' ? '标题' : 'Title',
   }
   const [showSortMenu, setShowSortMenu] = useState(false)
+  const [scrollNode, setScrollNode] = useState<HTMLDivElement | null>(null)
+  const normalizedSearch = useMemo(() => search.trim().toLowerCase(), [search])
   const filtered = useMemo(
     () =>
       notes.filter(
         (note) =>
-          note.title.toLowerCase().includes(search.toLowerCase()) ||
-          note.excerpt.toLowerCase().includes(search.toLowerCase()) ||
-          note.tags.some((tag) => tag.toLowerCase().includes(search.toLowerCase())),
+          note.title.toLowerCase().includes(normalizedSearch) ||
+          note.excerpt.toLowerCase().includes(normalizedSearch) ||
+          note.tags.some((tag) => tag.toLowerCase().includes(normalizedSearch)),
       ),
-    [notes, search],
+    [notes, normalizedSearch],
   )
-  const pinnedNotes = filtered.filter((note) => note.pinned)
-  const otherNotes = filtered.filter((note) => !note.pinned)
+  const { pinnedNotes, otherNotes } = useMemo(() => ({
+    pinnedNotes: filtered.filter((note) => note.pinned),
+    otherNotes: filtered.filter((note) => !note.pinned),
+  }), [filtered])
+  const rows = useMemo<NoteBrowserRow[]>(() => {
+    const next: NoteBrowserRow[] = []
+    if (pinnedNotes.length > 0) next.push({ type: 'label', key: 'label:pinned', label: t('notes.pinned') })
+    for (const note of pinnedNotes) next.push({ type: 'note', key: `note:${note.id}`, note })
+    if (otherNotes.length > 0 && pinnedNotes.length > 0) next.push({ type: 'label', key: 'label:recent', label: t('notes.recent') })
+    for (const note of otherNotes) next.push({ type: 'note', key: `note:${note.id}`, note })
+    return next
+  }, [otherNotes, pinnedNotes, t])
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const rowVirtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => scrollNode,
+    estimateSize: (index) => rows[index]?.type === 'label' ? 34 : 118,
+    getItemKey: (index) => rows[index]?.key ?? index,
+    overscan: 8,
+  })
+  const shouldVirtualize = filtered.length > VIRTUALIZE_NOTE_COUNT
+  const assignScrollRef = useCallback((node: HTMLDivElement | null) => {
+    setScrollNode(node)
+    if (scrollContainerRef) {
+      ;(scrollContainerRef as { current: HTMLDivElement | null }).current = node
+    }
+  }, [scrollContainerRef])
+  const renderRow = (row: NoteBrowserRow) => {
+    if (row.type === 'label') return <SectionLabel>{row.label}</SectionLabel>
+    return (
+      <NoteCard
+        note={row.note}
+        mode={mode}
+        tagLabelMap={tagLabelMap}
+        linkedTaskTitle={linkedTaskTitles?.get(row.note.id)}
+        selected={row.note.id === selectedNoteId}
+        onSelect={() => onSelectNote(row.note.id)}
+        onTogglePin={() => onTogglePin(row.note.id)}
+        onTrash={() => onTrashNote(row.note.id)}
+        onRestore={() => onRestoreNote?.(row.note.id)}
+        onDelete={() => onDeleteNote?.(row.note.id)}
+      />
+    )
+  }
 
   return (
     <section
@@ -159,39 +210,32 @@ export default function NoteBrowser({
         </div>
       </div>
 
-      <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-4">
-        {pinnedNotes.length > 0 ? <SectionLabel>{t('notes.pinned')}</SectionLabel> : null}
-        {pinnedNotes.map((note) => (
-          <NoteCard
-            key={note.id}
-            note={note}
-            mode={mode}
-            tagLabelMap={tagLabelMap}
-            linkedTaskTitle={linkedTaskTitles?.get(note.id)}
-            selected={note.id === selectedNoteId}
-            onSelect={() => onSelectNote(note.id)}
-            onTogglePin={() => onTogglePin(note.id)}
-            onTrash={() => onTrashNote(note.id)}
-            onRestore={() => onRestoreNote?.(note.id)}
-            onDelete={() => onDeleteNote?.(note.id)}
-          />
-        ))}
-        {otherNotes.length > 0 && pinnedNotes.length > 0 ? <SectionLabel>{t('notes.recent')}</SectionLabel> : null}
-        {otherNotes.map((note) => (
-          <NoteCard
-            key={note.id}
-            note={note}
-            mode={mode}
-            tagLabelMap={tagLabelMap}
-            linkedTaskTitle={linkedTaskTitles?.get(note.id)}
-            selected={note.id === selectedNoteId}
-            onSelect={() => onSelectNote(note.id)}
-            onTogglePin={() => onTogglePin(note.id)}
-            onTrash={() => onTrashNote(note.id)}
-            onRestore={() => onRestoreNote?.(note.id)}
-            onDelete={() => onDeleteNote?.(note.id)}
-          />
-        ))}
+      <div ref={assignScrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-4">
+        {filtered.length > 0 && !shouldVirtualize ? rows.map((row) => (
+          <div key={row.key}>{renderRow(row)}</div>
+        )) : null}
+        {filtered.length > 0 && shouldVirtualize ? (
+          <div
+            className="relative"
+            style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
+          >
+            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+              const row = rows[virtualRow.index]
+              if (!row) return null
+              return (
+                <div
+                  key={virtualRow.key}
+                  ref={rowVirtualizer.measureElement}
+                  data-index={virtualRow.index}
+                  className="absolute left-0 right-0 top-0"
+                  style={{ transform: `translateY(${virtualRow.start}px)` }}
+                >
+                  {renderRow(row)}
+                </div>
+              )
+            })}
+          </div>
+        ) : null}
         {filtered.length === 0 ? (
           <div className="mx-2 mt-4 rounded-xl border border-dashed border-[rgba(58,55,51,0.14)] px-4 py-10 text-center dark:border-[#f5f3f0]/12">
             <p className="text-[0.8125rem] font-medium text-[#8d867f] dark:text-[#f5f3f0]/50">{t('notes.noNotesFound')}</p>

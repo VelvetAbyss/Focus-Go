@@ -7,12 +7,15 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { TaskItem } from '../tasks.types'
+import type { ProjectItem } from '../../../data/models/types'
 import { buildTaskAnalytics, type AnalyticsGranularity } from './taskAnalytics'
 import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG } from './taskPresentation'
 import { useI18n } from '../../../shared/i18n/useI18n'
+import TaskProgressSummaryCard from './TaskProgressSummaryCard'
 
 type TasksAnalyticsViewProps = {
   tasks: TaskItem[]
+  projects?: ProjectItem[]
 }
 
 const STORAGE_KEY = 'tasks_analytics_granularity'
@@ -39,7 +42,7 @@ const PRIORITY_COLOR: Record<'high' | 'medium' | 'low' | 'none', string> = {
   none: '#a8a29e',
 }
 
-const TasksAnalyticsView = ({ tasks }: TasksAnalyticsViewProps) => {
+const TasksAnalyticsView = ({ tasks, projects = [] }: TasksAnalyticsViewProps) => {
   const { t } = useI18n()
   const [granularity, setGranularity] = useState<AnalyticsGranularity>(() => {
     if (typeof window === 'undefined') return 'week'
@@ -193,6 +196,10 @@ const TasksAnalyticsView = ({ tasks }: TasksAnalyticsViewProps) => {
             </div>
           </div>
         </article>
+
+        <div className="min-h-[420px]">
+          <TaskProgressSummaryCard tasks={tasks} projects={projects} compact />
+        </div>
 
         {/* Mini metric strip */}
         <div className="tasks-analytics-v2__mini">

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { tasksRepo } from '../../data/repositories/tasksRepo'
 import { usePreferences } from '../../shared/prefs/usePreferences'
+import { usePageActivity } from '../../shared/hooks/usePageActivity'
 import { useToast } from '../../shared/ui/toast/toast'
 import { emitTasksChanged, subscribeTasksChanged } from './taskSync'
 import type { TaskItem } from './tasks.types'
@@ -15,6 +16,7 @@ const sortByReminderAt = (tasks: TaskItem[]) =>
 
 export const useTaskReminderEngine = () => {
   const toast = useToast()
+  const pageActivity = usePageActivity()
   const { taskReminderEnabled, taskReminderLeadMinutes } = usePreferences()
   const tasksRef = useRef<TaskItem[]>([])
   const loadTokenRef = useRef(0)
@@ -60,17 +62,21 @@ export const useTaskReminderEngine = () => {
       }
     }
 
-    void loadTasks().then(() => runTick())
-    const intervalId = window.setInterval(() => {
-      void runTick()
-    }, POLL_INTERVAL_MS)
+    void loadTasks().then(() => {
+      if (pageActivity === 'visible') void runTick()
+    })
+    const intervalId = pageActivity === 'visible'
+      ? window.setInterval(() => {
+        void runTick()
+      }, POLL_INTERVAL_MS)
+      : null
     const unsubscribe = subscribeTasksChanged(() => {
       void loadTasks()
     })
 
     return () => {
-      window.clearInterval(intervalId)
+      if (intervalId !== null) window.clearInterval(intervalId)
       unsubscribe()
     }
-  }, [taskReminderEnabled, taskReminderLeadMinutes, toast])
+  }, [pageActivity, taskReminderEnabled, taskReminderLeadMinutes, toast])
 }

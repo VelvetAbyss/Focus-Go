@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FocusTimerSnapshot, FocusTimerStatus } from '../../data/models/types'
 import { focusRepo } from '../../data/repositories/focusRepo'
+import { usePageActivity, useVisibleInterval } from '../../shared/hooks/usePageActivity'
 
 const FOCUS_TIMER_EVENT = 'focus:timer-updated'
 const SESSION_KEY = 'focusgo.timer.sessionId'
@@ -105,6 +106,7 @@ type UseSharedFocusTimerOptions = {
 }
 
 export const useSharedFocusTimer = ({ defaultDurationMinutes }: UseSharedFocusTimerOptions) => {
+  const pageActivity = usePageActivity()
   const sessionIdRef = useRef<string | null>(null)
   const completingRef = useRef(false)
   const [snapshot, setSnapshot] = useState<FocusTimerSnapshot>(() => ({
@@ -185,22 +187,32 @@ export const useSharedFocusTimer = ({ defaultDurationMinutes }: UseSharedFocusTi
     return () => window.removeEventListener(FOCUS_TIMER_EVENT, onExternalUpdate)
   }, [loadFromStorage])
 
+  const tick = useCallback(() => {
+    const current = snapshotRef.current
+    const nextRemaining = deriveRemainingSeconds(current, Date.now())
+    setSnapshot((prev) => {
+      if (prev.status !== 'running') return prev
+      if (prev.remainingSeconds === nextRemaining) return prev
+      return { ...prev, remainingSeconds: nextRemaining }
+    })
+    if (nextRemaining <= 0) {
+      void completeIfNeeded()
+    }
+  }, [completeIfNeeded])
+
+  useVisibleInterval(tick, 1000, {
+    enabled: snapshot.status === 'running',
+    runOnVisible: true,
+  })
+
   useEffect(() => {
-    if (snapshot.status !== 'running') return
-    const timer = window.setInterval(() => {
-      const current = snapshotRef.current
-      const nextRemaining = deriveRemainingSeconds(current, Date.now())
-      setSnapshot((prev) => {
-        if (prev.status !== 'running') return prev
-        if (prev.remainingSeconds === nextRemaining) return prev
-        return { ...prev, remainingSeconds: nextRemaining }
-      })
-      if (nextRemaining <= 0) {
-        void completeIfNeeded()
-      }
-    }, 1000)
-    return () => window.clearInterval(timer)
-  }, [completeIfNeeded, snapshot.status])
+    if (snapshot.status !== 'running' || pageActivity === 'visible') return
+    const remainingMs = Math.max(0, deriveRemainingSeconds(snapshot, Date.now()) * 1000)
+    const timeout = window.setTimeout(() => {
+      void completeIfNeeded()
+    }, remainingMs + 50)
+    return () => window.clearTimeout(timeout)
+  }, [completeIfNeeded, pageActivity, snapshot])
 
   const start = useCallback(async (durationMinutes: number) => {
     const sessionId = sessionIdRef.current ?? getOrCreateSessionId()

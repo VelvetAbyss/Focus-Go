@@ -1,9 +1,10 @@
-import { forwardRef, useEffect, useState } from 'react'
+import { forwardRef, useState } from 'react'
 import { Calendar, CircleCheck, Circle, GitBranch, ListChecks, LockKeyhole, Pin, PinOff, Play, RotateCcw, SunMedium, Trash2, Undo2 } from 'lucide-react'
 import type { CSSProperties, HTMLAttributes } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useI18n } from '../../../shared/i18n/useI18n'
+import { useVisibleInterval } from '../../../shared/hooks/usePageActivity'
 import type { TaskItem } from '../tasks.types'
 import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, getTaskDeadlineState, getTaskPriorityKey, getTaskTagTone } from './taskPresentation'
 
@@ -92,10 +93,7 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
     const dependencyCount = task.dependencyTaskIds?.length ?? 0
     const isBlocked = task.isBlocked || blockedCount > 0
 
-    useEffect(() => {
-      const timer = window.setInterval(() => setNow(Date.now()), 60_000)
-      return () => window.clearInterval(timer)
-    }, [])
+    useVisibleInterval(() => setNow(Date.now()), 60_000, { runOnVisible: true })
 
     const deadline = getTaskDeadlineState(task, now)
 

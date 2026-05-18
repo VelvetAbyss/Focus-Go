@@ -150,7 +150,9 @@ const buildTaskPayload = async (payload: TaskItem): Promise<{ payload: TasksSync
       seen.add(attachment.hash)
       const cached = await db.syncBlobCache.get(attachment.hash)
       if (cached) {
-        const { createdAt: _c, updatedAt: _u, ...wire } = cached
+        const { createdAt, updatedAt, ...wire } = cached
+        void createdAt
+        void updatedAt
         blobs.push(wire)
       }
     }

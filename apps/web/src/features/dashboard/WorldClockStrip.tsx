@@ -14,6 +14,7 @@ import {
 import { useI18n } from '../../shared/i18n/useI18n'
 import { HelpBadge } from '../../shared/ui/HelpBadge'
 import { readWorldClockItems, WORLD_CLOCK_ITEMS_KEY, writeWorldClockItems, type WorldClockItem } from '../../shared/prefs/preferences'
+import { usePageActivity } from '../../shared/hooks/usePageActivity'
 import { formatWorldClockDisplay, repairWorldClockItems, resolveWorldClockItemFromSuggestion } from './worldClock'
 import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../data/repositories/syncedPreferencesRepo'
 
@@ -59,6 +60,7 @@ const WorldClockStrip = () => {
   })
   const [activeIndex, setActiveIndex] = useState(-1)
   const [now, setNow] = useState(() => new Date())
+  const pageActivity = usePageActivity()
 
   const localSuggestions = useMemo(() => buildLocalSuggestions(query), [query])
   const shouldSearch = normalizeQuery(query).length >= MIN_CITY_QUERY_LENGTH && items.length < MAX_WORLD_CLOCK_ITEMS
@@ -80,9 +82,15 @@ const WorldClockStrip = () => {
   }, [])
 
   useEffect(() => {
-    const intervalId = window.setInterval(() => setNow(new Date()), 1000)
-    return () => window.clearInterval(intervalId)
-  }, [])
+    if (pageActivity !== 'visible') return
+    let timeoutId = 0
+    const tick = () => {
+      setNow(new Date())
+      timeoutId = window.setTimeout(tick, 60_000 - (Date.now() % 60_000))
+    }
+    tick()
+    return () => window.clearTimeout(timeoutId)
+  }, [pageActivity])
 
   useEffect(() => {
     if (items.length === 0) return

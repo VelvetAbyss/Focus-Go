@@ -709,6 +709,7 @@ export type TranslationKey =
   | 'empty.diary.trashDescription'
   | 'empty.spend.title'
   | 'empty.spend.description'
+  | 'notes.loading'
   | 'notes.newNote'
   | 'notes.searchPlaceholder'
   | 'notes.editorPlaceholder'

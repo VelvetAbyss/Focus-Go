@@ -145,6 +145,12 @@
   background: var(--tl-line);
 }
 
+.timeline-page__progress-summary {
+  max-width: 1180px;
+  height: min(520px, 72vh);
+  margin: 0 auto 24px;
+}
+
 .timeline-page__stats div {
   display: flex;
   align-items: baseline;

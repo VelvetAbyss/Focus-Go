@@ -9,6 +9,7 @@ import NotePage from './NotePage'
 
 const mockUseLabs = vi.fn()
 const openMock = vi.fn()
+const exportNoteAsPdfMock = vi.hoisted(() => vi.fn<() => Promise<void>>(async () => {}))
 
 vi.mock('../../../shared/i18n/useI18n', () => ({
   useI18n: () => ({
@@ -24,6 +25,10 @@ vi.mock('../../../shared/i18n/useI18n', () => ({
 
 vi.mock('../../labs/LabsContext', () => ({
   useLabs: () => mockUseLabs(),
+}))
+
+vi.mock('../model/notePdfExport', () => ({
+  exportNoteAsPdf: exportNoteAsPdfMock,
 }))
 
 const listMock = vi.fn<() => Promise<NoteItem[]>>()
@@ -242,6 +247,24 @@ describe('NotePage', () => {
     expect(await screen.findByRole('heading', { name: 'notes.unselected.title' })).toBeInTheDocument()
   })
 
+  it('shows the shared loader while notes are initially loading', async () => {
+    let resolveList: (notes: NoteItem[]) => void = () => {}
+    listMock.mockReturnValueOnce(new Promise((resolve) => {
+      resolveList = resolve
+    }))
+    listTrashMock.mockResolvedValue([])
+
+    renderPage()
+
+    expect(screen.getByTestId('note-page-loader')).toBeInTheDocument()
+    expect(screen.getByText('notes.loading')).toBeInTheDocument()
+
+    resolveList([])
+
+    expect(await screen.findByRole('heading', { name: 'notes.unselected.title' })).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByTestId('note-page-loader')).not.toBeInTheDocument())
+  })
+
   it('auto creates the first note when user starts typing in an empty workspace', async () => {
     const created = createNote({ id: 'created-1', title: 'Updated title', contentMd: '# Heading\n\nBody copy', tags: ['Research'] })
     listMock.mockResolvedValueOnce([])
@@ -250,7 +273,7 @@ describe('NotePage', () => {
 
     renderPage()
 
-    await userEvent.click(screen.getAllByRole('button', { name: 'modules.note.new' })[0])
+    await userEvent.click((await screen.findAllByRole('button', { name: 'modules.note.new' }))[0]!)
     await waitFor(() => expect(createMock).toHaveBeenCalledTimes(1))
     expect(await screen.findByText('Editor:Updated title')).toBeInTheDocument()
   })
@@ -309,6 +332,39 @@ describe('NotePage', () => {
 
     expect(createObjectURLMock).toHaveBeenCalledTimes(1)
     expect(anchorClickMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('exports the active note as pdf and closes the export panel', async () => {
+    listMock.mockResolvedValue([createNote({ title: 'Design doc', contentMd: '# Hello world' })])
+    listTrashMock.mockResolvedValue([])
+
+    renderPage()
+
+    expect(await screen.findByText('Editor:Design doc')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Export markdown' }))
+    await userEvent.click(screen.getByRole('button', { name: /PDF/i }))
+
+    await waitFor(() => expect(exportNoteAsPdfMock).toHaveBeenCalledTimes(1))
+    expect(exportNoteAsPdfMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'Design doc', contentMd: '# Hello world' }), expect.objectContaining({ font: 'uiSans' }))
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'notes.exportModal.title' })).not.toBeInTheDocument())
+  })
+
+  it('flushes pending note edits before exporting pdf', async () => {
+    const note = createNote({ id: 'pdf-save-1', title: 'Draft', contentMd: 'Old copy' })
+    listMock.mockResolvedValue([note])
+    listTrashMock.mockResolvedValue([])
+    updateMock.mockResolvedValue(createNote({ ...note, title: 'Updated title', contentMd: '# Heading\n\nBody copy', tags: ['Research'] }))
+
+    renderPage()
+
+    expect(await screen.findByText('Editor:Draft')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Change note' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Export markdown' }))
+    await userEvent.click(screen.getByRole('button', { name: /PDF/i }))
+
+    await waitFor(() => expect(updateMock).toHaveBeenCalledWith('pdf-save-1', expect.objectContaining({ title: 'Updated title' })))
+    await waitFor(() => expect(exportNoteAsPdfMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'Updated title', contentMd: '# Heading\n\nBody copy' }), expect.anything()))
+    expect(updateMock.mock.invocationCallOrder[0]).toBeLessThan(exportNoteAsPdfMock.mock.invocationCallOrder[0])
   })
 
   it('imports multiple supported files as new notes with an Imported tag', async () => {

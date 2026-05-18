@@ -20,12 +20,23 @@ import {
   writeWorldClockItems,
   type WorldClockItem,
 } from '../../../shared/prefs/preferences'
+import { usePageActivity } from '../../../shared/hooks/usePageActivity'
 import { repairWorldClockItems, resolveWorldClockItemFromSuggestion } from '../../dashboard/worldClock'
 import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../../data/repositories/syncedPreferencesRepo'
 
 const MAX_WORLD_CLOCK_ITEMS = 6
 
 type DayPhase = 'dawn' | 'day' | 'dusk' | 'night'
+const formatterCache = new Map<string, Intl.DateTimeFormat>()
+
+const getFormatter = (locale: string, timeZone: string, options: Intl.DateTimeFormatOptions) => {
+  const key = `${locale}:${timeZone}:${JSON.stringify(options)}`
+  const cached = formatterCache.get(key)
+  if (cached) return cached
+  const formatter = new Intl.DateTimeFormat(locale, { ...options, timeZone })
+  formatterCache.set(key, formatter)
+  return formatter
+}
 
 const phaseFromHour = (hour: number): DayPhase => {
   if (hour >= 5 && hour < 8) return 'dawn'
@@ -36,8 +47,7 @@ const phaseFromHour = (hour: number): DayPhase => {
 
 const getZoneOffsetMinutes = (timeZone: string, ref: Date): number => {
   try {
-    const dtf = new Intl.DateTimeFormat('en-US', {
-      timeZone,
+    const dtf = getFormatter('en-US', timeZone, {
       hourCycle: 'h23',
       year: 'numeric', month: '2-digit', day: '2-digit',
       hour: '2-digit', minute: '2-digit', second: '2-digit',
@@ -53,8 +63,8 @@ const getZoneOffsetMinutes = (timeZone: string, ref: Date): number => {
 
 const getZoneHourFraction = (timeZone: string, ref: Date): number => {
   try {
-    const dtf = new Intl.DateTimeFormat('en-US', {
-      timeZone, hourCycle: 'h23',
+    const dtf = getFormatter('en-US', timeZone, {
+      hourCycle: 'h23',
       hour: '2-digit', minute: '2-digit', second: '2-digit',
     })
     const parts = dtf.formatToParts(ref)
@@ -105,6 +115,7 @@ const WorldClockCard = () => {
   const { language, t } = useI18n()
   const [items, setItems] = useState<WorldClockItem[]>(() => readWorldClockItems())
   const [now, setNow] = useState(() => new Date())
+  const pageActivity = usePageActivity()
   const [adding, setAdding] = useState(false)
   const [query, setQuery] = useState('')
   const [pending, setPending] = useState(false)
@@ -134,9 +145,15 @@ const WorldClockCard = () => {
   }, [])
 
   useEffect(() => {
-    const id = window.setInterval(() => setNow(new Date()), 1000)
-    return () => window.clearInterval(id)
-  }, [])
+    if (pageActivity !== 'visible') return
+    let timeoutId = 0
+    const tick = () => {
+      setNow(new Date())
+      timeoutId = window.setTimeout(tick, 60_000 - (Date.now() % 60_000))
+    }
+    tick()
+    return () => window.clearTimeout(timeoutId)
+  }, [pageActivity])
 
   useEffect(() => {
     if (items.length === 0) return
@@ -249,13 +266,13 @@ const WorldClockCard = () => {
             const phase = phaseFromHour(hour)
             const phaseLabel = t(`worldClock.phase.${phase}` as const)
 
-            const time = new Intl.DateTimeFormat(locale, {
-              hour: '2-digit', minute: '2-digit', hour12: false, timeZone: item.timeZone,
+            const time = getFormatter(locale, item.timeZone, {
+              hour: '2-digit', minute: '2-digit', hour12: false,
             }).format(now)
             const [hh, mm] = time.split(':')
 
-            const weekday = new Intl.DateTimeFormat(locale, {
-              weekday: 'short', timeZone: item.timeZone,
+            const weekday = getFormatter(locale, item.timeZone, {
+              weekday: 'short',
             }).format(now)
 
             const isHome = item.timeZone === homeTimeZone

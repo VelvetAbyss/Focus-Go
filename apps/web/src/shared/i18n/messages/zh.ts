@@ -709,6 +709,7 @@ export const zhMessages: TranslationMessages = {
   'empty.diary.trashDescription': '删除的日记会先显示在这里，直到过期。',
   'empty.spend.title': '今天还没有支出数据',
   'empty.spend.description': '添加一条记录后，今天的支出列表会显示在这里。',
+  'notes.loading': '加载笔记中',
   'notes.newNote': '新建笔记',
   'notes.searchPlaceholder': '搜索标题、正文或标签',
   'notes.editorPlaceholder': '开始写作...',

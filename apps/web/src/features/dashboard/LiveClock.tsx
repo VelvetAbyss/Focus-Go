@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef, useState } from 'react'
 import { AppNumber, AppNumberGroup } from '../../shared/ui/AppNumber'
+import { usePageActivity } from '../../shared/hooks/usePageActivity'
 
 type LiveClockProps = {
   style?: React.CSSProperties
@@ -11,33 +12,27 @@ const timeTrend = (oldValue: number, value: number) => (value >= oldValue ? 1 : 
 const LiveClock = memo(({ style, className }: LiveClockProps) => {
   const [now, setNow] = useState(() => new Date())
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pageActivity = usePageActivity()
 
   useEffect(() => {
+    if (pageActivity !== 'visible') return
+
     const scheduleNext = () => {
       // Align to the next second boundary to avoid drift
       const msUntilNextSecond = 1000 - (Date.now() % 1000)
       timerRef.current = setTimeout(() => {
-        if (document.visibilityState === 'visible') {
-          setNow(new Date())
-        }
+        setNow(new Date())
         scheduleNext()
       }, msUntilNextSecond)
     }
 
-    const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        setNow(new Date())
-      }
-    }
-
-    document.addEventListener('visibilitychange', onVisibilityChange)
+    setNow(new Date())
     scheduleNext()
 
     return () => {
       if (timerRef.current !== null) clearTimeout(timerRef.current)
-      document.removeEventListener('visibilitychange', onVisibilityChange)
     }
-  }, [])
+  }, [pageActivity])
 
   const hours = now.getHours()
   const minutes = now.getMinutes()

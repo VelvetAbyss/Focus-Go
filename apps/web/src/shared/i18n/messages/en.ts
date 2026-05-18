@@ -709,6 +709,7 @@ export const enMessages: TranslationMessages = {
   'empty.diary.trashDescription': 'Deleted diary entries will show up here until they expire.',
   'empty.spend.title': 'No spend data today',
   'empty.spend.description': 'Add an entry and today\'s spending list will appear here.',
+  'notes.loading': 'Loading notes',
   'notes.newNote': 'New note',
   'notes.searchPlaceholder': 'Search title, content, or tag',
   'notes.editorPlaceholder': 'Start writing...',

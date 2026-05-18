@@ -17,9 +17,12 @@ import NoteEditor from '../components/NoteEditor'
 import NoteSidebar, { type NoteSystemCollection } from '../components/NoteSidebar'
 import { countCharactersInMarkdown, countWordsInMarkdown } from '../model/noteStats'
 import { MAX_NOTE_IMPORT_FILES, MAX_NOTE_IMPORT_FILE_SIZE, describeNoteImportError, getNoteImportFormat, parseNoteImportFile } from '../model/noteImport'
+import { exportNoteAsPdf } from '../model/notePdfExport'
 import { useI18n } from '../../../shared/i18n/useI18n'
 import { usePremiumGate } from '../../premium/PremiumProvider'
+import BrandLoader from '../../../shared/ui/loading/BrandLoader'
 import { createId } from '../../../shared/utils/ids'
+import { useVisibleInterval } from '../../../shared/hooks/usePageActivity'
 import '../notes.css'
 
 const DEFAULT_APPEARANCE: NoteAppearanceSettings = {
@@ -135,8 +138,10 @@ export default function NotePage() {
   const [openPanel, setOpenPanel] = useState<NotePanel>(null)
   const [importItems, setImportItems] = useState<NoteImportQueueItem[]>([])
   const [isImporting, setIsImporting] = useState(false)
+  const [isExportingPdf, setIsExportingPdf] = useState(false)
   const [importNotice, setImportNotice] = useState<string | null>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [isInitialLoading, setIsInitialLoading] = useState(true)
   const [todayKey, setTodayKey] = useState(() => dateKey(Date.now()))
   const [isAppDark, setIsAppDark] = useState(() => document.documentElement.classList.contains('dark'))
   const collectionLabelMap: Record<NoteSystemCollection, string> = {
@@ -170,90 +175,94 @@ export default function NotePage() {
   }, [isLoggedIn])
 
   const refresh = useCallback(async () => {
-    const [activeNotes, trashedNotes, storedTags, storedAppearance, projects, taskNoteLinks, tasks] = await Promise.all([
-      notesRepo.list(),
-      notesRepo.listTrash(),
-      noteTagsRepo.list(),
-      noteAppearanceRepo.get(),
-      projectsRepo.list(),
-      db.taskNoteLinks.toArray(),
-      tasksRepo.list(),
-    ])
-    const taskTitleById = new Map(tasks.map((task) => [task.id, task.title] as const))
-    setLinkedTaskTitles(
-      new Map(
-        taskNoteLinks
-          .map((link) => [link.noteId, taskTitleById.get(link.taskId)] as const)
-          .filter((entry): entry is readonly [string, string] => Boolean(entry[1])),
-      ),
-    )
+    try {
+      const [activeNotes, trashedNotes, storedTags, storedAppearance, projects, taskNoteLinks, tasks] = await Promise.all([
+        notesRepo.list(),
+        notesRepo.listTrash(),
+        noteTagsRepo.list(),
+        noteAppearanceRepo.get(),
+        projectsRepo.list(),
+        db.taskNoteLinks.toArray(),
+        tasksRepo.list(),
+      ])
+      const taskTitleById = new Map(tasks.map((task) => [task.id, task.title] as const))
+      setLinkedTaskTitles(
+        new Map(
+          taskNoteLinks
+            .map((link) => [link.noteId, taskTitleById.get(link.taskId)] as const)
+            .filter((entry): entry is readonly [string, string] => Boolean(entry[1])),
+        ),
+      )
 
-    let resolvedTags: NoteTag[] = storedTags
+      let resolvedTags: NoteTag[] = storedTags
 
-    if (storedTags.length === 0) {
-      // For logged-in users, wait for the first sync cycle to complete before
-      // seeding defaults. If we create tags now with fresh random IDs, they
-      // will duplicate any tags the server already holds (different IDs, same
-      // names). The sync-completion effect below re-fires refresh once the
-      // cycle finishes and hasSyncedOnceRef is set to true.
-      if (isLoggedInRef.current && !hasSyncedOnceRef.current) {
-        resolvedTags = []
-      } else {
-        const createdTags: NoteTag[] = []
-        const byName = new Map<string, NoteTag>()
-        for (const tag of DEFAULT_TAGS) {
-          const created = await noteTagsRepo.create({
-            name: tag.name,
-            icon: tag.icon,
-            pinned: tag.pinned,
-            parentId: tag.parentName ? byName.get(tag.parentName)?.id ?? null : null,
-            sortOrder: tag.sortOrder,
-          })
-          createdTags.push(created)
-          byName.set(created.name, created)
-        }
-        resolvedTags = createdTags
-      }
-    } else {
-      const shouldRelinkDefaults = storedTags.every((tag) => DEFAULT_TAGS.some((seed) => seed.name === tag.name)) && storedTags.every((tag) => !tag.parentId)
-      if (shouldRelinkDefaults) {
-        const nextTags = [...storedTags]
-        const byName = new Map(nextTags.map((tag) => [tag.name, tag]))
-        for (const seed of DEFAULT_TAGS) {
-          const current = byName.get(seed.name)
-          if (!current) continue
-          const desiredParentId = seed.parentName ? byName.get(seed.parentName)?.id ?? null : null
-          if (current.parentId !== desiredParentId) {
-            const updated = await noteTagsRepo.update(current.id, { parentId: desiredParentId })
-            if (updated) byName.set(updated.name, updated)
+      if (storedTags.length === 0) {
+        // For logged-in users, wait for the first sync cycle to complete before
+        // seeding defaults. If we create tags now with fresh random IDs, they
+        // will duplicate any tags the server already holds (different IDs, same
+        // names). The sync-completion effect below re-fires refresh once the
+        // cycle finishes and hasSyncedOnceRef is set to true.
+        if (isLoggedInRef.current && !hasSyncedOnceRef.current) {
+          resolvedTags = []
+        } else {
+          const createdTags: NoteTag[] = []
+          const byName = new Map<string, NoteTag>()
+          for (const tag of DEFAULT_TAGS) {
+            const created = await noteTagsRepo.create({
+              name: tag.name,
+              icon: tag.icon,
+              pinned: tag.pinned,
+              parentId: tag.parentName ? byName.get(tag.parentName)?.id ?? null : null,
+              sortOrder: tag.sortOrder,
+            })
+            createdTags.push(created)
+            byName.set(created.name, created)
           }
+          resolvedTags = createdTags
         }
-        resolvedTags = Array.from(byName.values()).sort((a, b) => a.sortOrder - b.sortOrder)
       } else {
-        resolvedTags = storedTags
+        const shouldRelinkDefaults = storedTags.every((tag) => DEFAULT_TAGS.some((seed) => seed.name === tag.name)) && storedTags.every((tag) => !tag.parentId)
+        if (shouldRelinkDefaults) {
+          const nextTags = [...storedTags]
+          const byName = new Map(nextTags.map((tag) => [tag.name, tag]))
+          for (const seed of DEFAULT_TAGS) {
+            const current = byName.get(seed.name)
+            if (!current) continue
+            const desiredParentId = seed.parentName ? byName.get(seed.parentName)?.id ?? null : null
+            if (current.parentId !== desiredParentId) {
+              const updated = await noteTagsRepo.update(current.id, { parentId: desiredParentId })
+              if (updated) byName.set(updated.name, updated)
+            }
+          }
+          resolvedTags = Array.from(byName.values()).sort((a, b) => a.sortOrder - b.sortOrder)
+        } else {
+          resolvedTags = storedTags
+        }
       }
+
+      if (!storedAppearance) {
+        const createdAppearance = await noteAppearanceRepo.upsert({ id: 'note_appearance' })
+        setAppearance(createdAppearance)
+      } else {
+        setAppearance({ ...DEFAULT_APPEARANCE, ...storedAppearance })
+      }
+
+      const visibleNotes = activeNotes.filter((note) => !note.deletedAt)
+      const trashedOnly = trashedNotes.filter((note) => Boolean(note.deletedAt))
+
+      setTags(recomputeTagCounts(resolvedTags, visibleNotes))
+      setProjectTagLabels(new Map(projects.map((project) => [`project:${project.id}`, project.title] as const)))
+      setNotes(visibleNotes)
+      setTrash(trashedOnly)
+
+      setSelectedNoteId((current) => {
+        const source = activeCollectionRef.current === 'trash' ? trashedOnly : visibleNotes
+        if (current && [...visibleNotes, ...trashedOnly].some((note) => note.id === current)) return current
+        return source[0]?.id ?? null
+      })
+    } finally {
+      setIsInitialLoading(false)
     }
-
-    if (!storedAppearance) {
-      const createdAppearance = await noteAppearanceRepo.upsert({ id: 'note_appearance' })
-      setAppearance(createdAppearance)
-    } else {
-      setAppearance({ ...DEFAULT_APPEARANCE, ...storedAppearance })
-    }
-
-    const visibleNotes = activeNotes.filter((note) => !note.deletedAt)
-    const trashedOnly = trashedNotes.filter((note) => Boolean(note.deletedAt))
-
-    setTags(recomputeTagCounts(resolvedTags, visibleNotes))
-    setProjectTagLabels(new Map(projects.map((project) => [`project:${project.id}`, project.title] as const)))
-    setNotes(visibleNotes)
-    setTrash(trashedOnly)
-
-    setSelectedNoteId((current) => {
-      const source = activeCollectionRef.current === 'trash' ? trashedOnly : visibleNotes
-      if (current && [...visibleNotes, ...trashedOnly].some((note) => note.id === current)) return current
-      return source[0]?.id ?? null
-    })
   }, [])
 
   const flushPendingSave = async () => {
@@ -296,12 +305,9 @@ export default function NotePage() {
     }
   }, [refresh])
 
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setTodayKey(dateKey(Date.now()))
-    }, 60000)
-    return () => window.clearInterval(timer)
-  }, [])
+  useVisibleInterval(() => {
+    setTodayKey(dateKey(Date.now()))
+  }, 60000, { runOnVisible: true })
 
   useEffect(() => {
     const root = document.documentElement
@@ -818,6 +824,19 @@ export default function NotePage() {
     URL.revokeObjectURL(url)
   }
 
+  const handleExportPdf = async () => {
+    if (!activeNote || isExportingPdf) return
+    const pendingPatch = pendingSaveRef.current?.id === activeNote.id ? pendingSaveRef.current.patch : null
+    setIsExportingPdf(true)
+    try {
+      await flushPendingSave()
+      const noteForExport = pendingPatch ? { ...activeNote, ...pendingPatch } : activeNote
+      await exportNoteAsPdf(noteForExport, appearance)
+    } finally {
+      setIsExportingPdf(false)
+    }
+  }
+
   useEffect(() => {
     if (sidebarScrollRef.current) sidebarScrollRef.current.scrollTop = 0
     if (browserScrollRef.current) browserScrollRef.current.scrollTop = 0
@@ -854,117 +873,132 @@ export default function NotePage() {
   }, [isFullscreen])
 
   return (
-    <section className="note-page-shell flex h-full max-h-full min-h-0" data-note-theme={effectiveTheme}>
+    <section className="note-page-shell flex h-full max-h-full min-h-0" data-note-theme={effectiveTheme} aria-busy={isInitialLoading}>
       <div className="note-page-shell__content note-page" data-fullscreen={isFullscreen ? 'true' : 'false'}>
-        <NoteSidebar
-          className="note-page-column note-page-column--sidebar"
-          scrollContainerRef={sidebarScrollRef}
-          tags={tagsWithCounts}
-          tagLabelMap={projectTagLabels}
-          activeCollection={activeCollection}
-          activeTagId={activeTagId}
-          noteCounts={noteCounts}
-          onSelectCollection={handleSelectCollection}
-          onSelectTag={handleSelectTag}
-          onTogglePinTag={handleTogglePinTag}
-          onCreateTag={handleCreateTag}
-          onRenameTag={handleRenameTag}
-          onDeleteTag={handleDeleteTag}
-          onDropNoteOnTag={handleDropNoteOnTag}
-          onDropTag={handleDropTag}
-        />
-        <NoteBrowser
-          className="note-page-column note-page-column--browser"
-          scrollContainerRef={browserScrollRef}
-          notes={filteredNotes}
-          selectedNoteId={activeNote?.id ?? null}
-          collectionLabel={collectionLabelMap[activeCollection]}
-          tagLabelMap={projectTagLabels}
-          linkedTaskTitles={linkedTaskTitles}
-          mode={activeCollection === 'trash' ? 'trash' : 'notes'}
-          onSelectNote={async (id) => {
-            await flushPendingSave()
-            setSelectedNoteId(id)
-          }}
-          onNewNote={handleCreate}
-          onTogglePin={handleTogglePinNote}
-          onTrashNote={handleTrashNote}
-          onRestoreNote={handleRestoreNote}
-          onDeleteNote={handleDeletePermanently}
-          sortBy={sortBy}
-          onSortChange={setSortBy}
-          search={search}
-          onSearchChange={setSearch}
-        />
-        <div className="note-page-column note-page-column--editor relative flex min-w-0 flex-1">
-          {activeNote ? (
-            <div className="contents">
-              <NoteEditor
-                surfaceRef={editorSurfaceRef}
-                value={activeNoteValue}
-                appearance={appearance}
-                isFullscreen={isFullscreen}
-                onToggleFullscreen={() => setIsFullscreen((current) => !current)}
-                onOpenInfo={() => setOpenPanel((current) => (current === 'info' ? null : 'info'))}
-                onOpenAppearance={() => setOpenPanel((current) => (current === 'appearance' ? null : 'appearance'))}
-                onImport={() => setOpenPanel((current) => (current === 'import' ? null : 'import'))}
-                onExport={() => setOpenPanel((current) => (current === 'export' ? null : 'export'))}
-                onChange={handleUpdateNote}
-              />
-              <InfoPopover
-                open={openPanel === 'info'}
-                note={activeNote}
-                onClose={() => setOpenPanel(null)}
-                onNavigateToHeading={handleNavigateToHeading}
-                onNavigateToNote={(id) => setSelectedNoteId(id)}
-              />
-              <AppearanceModal open={openPanel === 'appearance'} settings={appearance} onClose={() => setOpenPanel(null)} onUpdate={handleUpdateAppearance} />
-              <ExportModal
-                open={openPanel === 'export'}
-                noteTitle={activeNote?.title.trim() || 'Untitled'}
-                onClose={() => setOpenPanel(null)}
-                onExportMarkdown={handleExportMarkdown}
-              />
-            </div>
-          ) : (
-            <div className="note-page__unselected" role="status" aria-live="polite">
-              <div className="note-page__unselected-card">
-                <div className="note-page__unselected-mark" aria-hidden="true">
-                  <span />
-                  <span />
-                  <span />
+        {isInitialLoading ? (
+          <div className="note-page__loading" data-testid="note-page-loader">
+            <BrandLoader
+              variant="inline"
+              label={t('notes.loading')}
+              showSignature={false}
+              theme={effectiveTheme === 'graphite' ? 'dark' : 'light'}
+            />
+          </div>
+        ) : (
+          <>
+            <NoteSidebar
+              className="note-page-column note-page-column--sidebar"
+              scrollContainerRef={sidebarScrollRef}
+              tags={tagsWithCounts}
+              tagLabelMap={projectTagLabels}
+              activeCollection={activeCollection}
+              activeTagId={activeTagId}
+              noteCounts={noteCounts}
+              onSelectCollection={handleSelectCollection}
+              onSelectTag={handleSelectTag}
+              onTogglePinTag={handleTogglePinTag}
+              onCreateTag={handleCreateTag}
+              onRenameTag={handleRenameTag}
+              onDeleteTag={handleDeleteTag}
+              onDropNoteOnTag={handleDropNoteOnTag}
+              onDropTag={handleDropTag}
+            />
+            <NoteBrowser
+              className="note-page-column note-page-column--browser"
+              scrollContainerRef={browserScrollRef}
+              notes={filteredNotes}
+              selectedNoteId={activeNote?.id ?? null}
+              collectionLabel={collectionLabelMap[activeCollection]}
+              tagLabelMap={projectTagLabels}
+              linkedTaskTitles={linkedTaskTitles}
+              mode={activeCollection === 'trash' ? 'trash' : 'notes'}
+              onSelectNote={async (id) => {
+                await flushPendingSave()
+                setSelectedNoteId(id)
+              }}
+              onNewNote={handleCreate}
+              onTogglePin={handleTogglePinNote}
+              onTrashNote={handleTrashNote}
+              onRestoreNote={handleRestoreNote}
+              onDeleteNote={handleDeletePermanently}
+              sortBy={sortBy}
+              onSortChange={setSortBy}
+              search={search}
+              onSearchChange={setSearch}
+            />
+            <div className="note-page-column note-page-column--editor relative flex min-w-0 flex-1">
+              {activeNote ? (
+                <div className="contents">
+                  <NoteEditor
+                    surfaceRef={editorSurfaceRef}
+                    value={activeNoteValue}
+                    appearance={appearance}
+                    isFullscreen={isFullscreen}
+                    onToggleFullscreen={() => setIsFullscreen((current) => !current)}
+                    onOpenInfo={() => setOpenPanel((current) => (current === 'info' ? null : 'info'))}
+                    onOpenAppearance={() => setOpenPanel((current) => (current === 'appearance' ? null : 'appearance'))}
+                    onImport={() => setOpenPanel((current) => (current === 'import' ? null : 'import'))}
+                    onExport={() => setOpenPanel((current) => (current === 'export' ? null : 'export'))}
+                    onChange={handleUpdateNote}
+                  />
+                  <InfoPopover
+                    open={openPanel === 'info'}
+                    note={activeNote}
+                    onClose={() => setOpenPanel(null)}
+                    onNavigateToHeading={handleNavigateToHeading}
+                    onNavigateToNote={(id) => setSelectedNoteId(id)}
+                  />
+                  <AppearanceModal open={openPanel === 'appearance'} settings={appearance} onClose={() => setOpenPanel(null)} onUpdate={handleUpdateAppearance} />
+                  <ExportModal
+                    open={openPanel === 'export'}
+                    noteTitle={activeNote?.title.trim() || 'Untitled'}
+                    onClose={() => setOpenPanel(null)}
+                    onExportMarkdown={handleExportMarkdown}
+                    onExportPdf={handleExportPdf}
+                    isExportingPdf={isExportingPdf}
+                  />
                 </div>
-                <p className="note-page__unselected-kicker">{collectionLabelMap[activeCollection]}</p>
-                <h2>{t('notes.unselected.title')}</h2>
-                <p>{t('notes.unselected.description')}</p>
-                <button type="button" className="note-page__unselected-action" onClick={handleCreate}>
-                  {t('modules.note.new')}
-                </button>
-                <button
-                  type="button"
-                  className="note-page__unselected-action note-page__unselected-action--secondary"
-                  data-note-panel-trigger="import"
-                  onClick={() => setOpenPanel((current) => (current === 'import' ? null : 'import'))}
-                >
-                  {t('notes.import')}
-                </button>
-              </div>
+              ) : (
+                <div className="note-page__unselected" role="status" aria-live="polite">
+                  <div className="note-page__unselected-card">
+                    <div className="note-page__unselected-mark" aria-hidden="true">
+                      <span />
+                      <span />
+                      <span />
+                    </div>
+                    <p className="note-page__unselected-kicker">{collectionLabelMap[activeCollection]}</p>
+                    <h2>{t('notes.unselected.title')}</h2>
+                    <p>{t('notes.unselected.description')}</p>
+                    <button type="button" className="note-page__unselected-action" onClick={handleCreate}>
+                      {t('modules.note.new')}
+                    </button>
+                    <button
+                      type="button"
+                      className="note-page__unselected-action note-page__unselected-action--secondary"
+                      data-note-panel-trigger="import"
+                      onClick={() => setOpenPanel((current) => (current === 'import' ? null : 'import'))}
+                    >
+                      {t('notes.import')}
+                    </button>
+                  </div>
+                </div>
+              )}
+              <NoteImportPanel
+                open={openPanel === 'import'}
+                items={importItems}
+                importing={isImporting}
+                notice={importNotice}
+                onClose={() => setOpenPanel(null)}
+                onFiles={handleQueueImportFiles}
+                onImport={handleRunImport}
+                onClear={() => {
+                  setImportItems([])
+                  setImportNotice(null)
+                }}
+              />
             </div>
-          )}
-          <NoteImportPanel
-            open={openPanel === 'import'}
-            items={importItems}
-            importing={isImporting}
-            notice={importNotice}
-            onClose={() => setOpenPanel(null)}
-            onFiles={handleQueueImportFiles}
-            onImport={handleRunImport}
-            onClear={() => {
-              setImportItems([])
-              setImportNotice(null)
-            }}
-          />
-        </div>
+          </>
+        )}
       </div>
     </section>
   )

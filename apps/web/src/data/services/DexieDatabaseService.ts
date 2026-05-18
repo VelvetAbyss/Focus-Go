@@ -40,6 +40,7 @@ import type {
   SpendEntry,
   StockItem,
   TaskItem,
+  TaskActivityLog,
   TaskStatus,
   TripRecord,
   WidgetTodo,
@@ -227,7 +228,17 @@ const normalizeTask = (task: TaskItem): TaskItem => {
     taskNoteBlocks: [],
     taskNoteContentMd: taskNote.contentMd,
     taskNoteContentJson: taskNote.contentJson as TaskItem['taskNoteContentJson'],
-    activityLogs: Array.isArray(task.activityLogs) ? task.activityLogs : [],
+    activityLogs: Array.isArray(task.activityLogs)
+      ? task.activityLogs.map((log) => ({
+          id: log.id,
+          type: log.type === 'status' || log.type === 'details' || log.type === 'subtask' ? log.type : 'details',
+          message: typeof log.message === 'string' ? log.message : '',
+          createdAt: typeof log.createdAt === 'number' && Number.isFinite(log.createdAt) ? log.createdAt : task.updatedAt,
+          subtaskId: typeof log.subtaskId === 'string' && log.subtaskId ? log.subtaskId : undefined,
+          subtaskTitle: typeof log.subtaskTitle === 'string' ? log.subtaskTitle : undefined,
+          subtaskDone: typeof log.subtaskDone === 'boolean' ? log.subtaskDone : undefined,
+        }))
+      : [],
   }
 }
 
@@ -256,9 +267,32 @@ const equalTaskActivityLogs = (left: TaskItem['activityLogs'], right: TaskItem['
     const a = left[i]
     const b = right[i]
     if (!a || !b) return false
-    if (a.id !== b.id || a.type !== b.type || a.message !== b.message || a.createdAt !== b.createdAt) return false
+    if (
+      a.id !== b.id ||
+      a.type !== b.type ||
+      a.message !== b.message ||
+      a.createdAt !== b.createdAt ||
+      a.subtaskId !== b.subtaskId ||
+      a.subtaskTitle !== b.subtaskTitle ||
+      a.subtaskDone !== b.subtaskDone
+    ) return false
   }
   return true
+}
+
+const buildSubtaskCompletionLogs = (previous: TaskItem, next: TaskItem, createdAt = Date.now()): TaskActivityLog[] => {
+  const previousById = new Map(previous.subtasks.map((subtask) => [subtask.id, subtask]))
+  return next.subtasks
+    .filter((subtask) => subtask.done && previousById.get(subtask.id)?.done !== true)
+    .map((subtask) => ({
+      id: createId(),
+      type: 'subtask' as const,
+      message: '子任务已完成',
+      subtaskId: subtask.id,
+      subtaskTitle: subtask.title,
+      subtaskDone: true,
+      createdAt,
+    }))
 }
 
 const getStoredTaskNoteBlocksForComparison = (task: TaskItem) => {
@@ -605,7 +639,13 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       return task
     },
     async update(task) {
-      const next = touch(normalizeTask(task as TaskItem))
+      const normalized = normalizeTask(task as TaskItem)
+      const previous = await db.tasks.get(normalized.id)
+      const subtaskLogs = previous ? buildSubtaskCompletionLogs(normalizeTask(previous), normalized) : []
+      const next = touch({
+        ...normalized,
+        activityLogs: subtaskLogs.length > 0 ? [...normalized.activityLogs, ...subtaskLogs] : normalized.activityLogs,
+      })
       await db.tasks.put(next)
       await enqueueUpsert('tasks', next)
       return next

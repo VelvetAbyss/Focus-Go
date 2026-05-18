@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useI18n } from "../../../../shared/i18n/useI18n";
 import { useSharedFocusTimer } from "../../useSharedFocusTimer";
+import { useVisibleInterval } from "../../../../shared/hooks/usePageActivity";
 import { useAuthGate } from "../../../auth/AuthGateContext";
 
 type TimerStatus = "idle" | "running" | "paused" | "completed";
@@ -418,13 +419,9 @@ export function FocusTimer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, duration]);
 
-  // Rotate quotes
-  useEffect(() => {
-    const id = setInterval(() => {
-      setQuoteIndex((prev) => (prev + 1) % quotes.length);
-    }, 12000);
-    return () => clearInterval(id);
-  }, []);
+  useVisibleInterval(() => {
+    setQuoteIndex((prev) => (prev + 1) % quotes.length);
+  }, 12000);
 
   const handleStart = async () => {
     if (status === "idle" || status === "completed") {

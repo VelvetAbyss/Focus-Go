@@ -6,6 +6,7 @@ import { syncStateRepo } from './repository'
 import { ensureRxdbSyncReady, runRxdbSyncCycle } from './rxdb'
 import type { SyncState } from './types'
 import { isLocalhostRuntime } from '../../shared/env/localhost'
+import { usePageActivity } from '../../shared/hooks/usePageActivity'
 import { seedDatabase } from '../seed'
 
 type SyncContextValue = {
@@ -25,6 +26,7 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
   const [state, setState] = useState<SyncState | null>(null)
   const runningRef = useRef(false)
   const canUseCloudSync = isLocalhostRuntime() || plan === 'premium'
+  const pageActivity = usePageActivity()
 
   const refreshState = useCallback(async () => {
     await readSyncState(setState)
@@ -97,26 +99,26 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
   }, [refreshState])
 
   useEffect(() => {
-    if (!isLoggedIn || !canUseCloudSync) return
+    if (!isLoggedIn || !canUseCloudSync || pageActivity !== 'visible') return
     const intervalId = window.setInterval(() => {
       void syncNow()
     }, 30_000)
     return () => window.clearInterval(intervalId)
-  }, [canUseCloudSync, isLoggedIn, syncNow])
+  }, [canUseCloudSync, isLoggedIn, pageActivity, syncNow])
 
   useEffect(() => {
     if (!isLoggedIn || !canUseCloudSync) return
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') void syncNow()
-    }
     const handleOnline = () => void syncNow()
-    document.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener('online', handleOnline)
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('online', handleOnline)
     }
   }, [canUseCloudSync, isLoggedIn, syncNow])
+
+  useEffect(() => {
+    if (!isLoggedIn || !canUseCloudSync || pageActivity !== 'visible') return
+    void syncNow()
+  }, [canUseCloudSync, isLoggedIn, pageActivity, syncNow])
 
   const value = useMemo<SyncContextValue>(
     () => ({
