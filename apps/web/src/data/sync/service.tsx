@@ -52,6 +52,7 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
   }, [])
 
   const lastSyncEndedAtRef = useRef(0)
+  const consecutiveErrorsRef = useRef(0)
   const syncNow = useCallback(async (trigger: string = 'manual') => {
     if (!enabled || !isLoggedIn || runningRef.current) return
     if (!canUseCloudSync) {
@@ -61,22 +62,38 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
       await refreshState()
       return
     }
-    // Debounce: skip auto-triggered syncs that fire within 10s of the previous
-    // cycle completing. Manual syncs (button click) bypass this.
+    // Cycle gate. Manual syncs (button click) bypass; everything else waits:
+    //  - 10s minimum between successful cycles
+    //  - exponential backoff after errors (30s, 60s, 120s, ..., capped 5min)
+    //    so a 500ing server doesn't get hammered every 30s.
     const sinceLast = Date.now() - lastSyncEndedAtRef.current
-    if (trigger !== 'manual' && sinceLast < 10_000) {
-      console.debug('[sync] skipping', trigger, 'last cycle ended', sinceLast, 'ms ago')
+    const errorBackoffMs = consecutiveErrorsRef.current === 0
+      ? 0
+      : Math.min(30_000 * 2 ** (consecutiveErrorsRef.current - 1), 300_000)
+    const minGapMs = Math.max(10_000, errorBackoffMs)
+    if (trigger !== 'manual' && sinceLast < minGapMs) {
+      console.debug('[sync] skipping', trigger, 'sinceLast', sinceLast, 'ms', 'errors', consecutiveErrorsRef.current, 'gap', minGapMs)
       return
     }
     const startedAt = Date.now()
     console.debug('[sync] cycle start', { trigger })
     runningRef.current = true
+    let cycleError: unknown = null
     try {
       await runRxdbSyncCycle()
+      consecutiveErrorsRef.current = 0
+    } catch (error) {
+      cycleError = error
+      consecutiveErrorsRef.current += 1
     } finally {
       runningRef.current = false
       lastSyncEndedAtRef.current = Date.now()
-      console.debug('[sync] cycle end', { trigger, durationMs: Date.now() - startedAt })
+      console.debug('[sync] cycle end', {
+        trigger,
+        durationMs: Date.now() - startedAt,
+        error: cycleError instanceof Error ? cycleError.message : cycleError,
+        consecutiveErrors: consecutiveErrorsRef.current,
+      })
       await refreshState()
     }
   }, [canUseCloudSync, enabled, isLoggedIn, refreshState])
