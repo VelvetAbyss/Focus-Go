@@ -193,10 +193,22 @@ const writeDexieEntity = async (entityType: SyncEntityType, document: SyncDocume
   } else {
     const payload = { ...normalized } as Record<string, unknown>
     delete payload._deleted
-    const existing = await table.get(normalized.id)
-    if (recordsEqual(existing, payload)) return false
-    await table.put(payload)
-    if (entityType === 'domainEvents') await runDomainEventProjections(payload as DomainEvent)
+    // RxDB injects collection-internal fields (_meta, _attachments, _rev) into
+    // documents that flow through received$. They must not be written to Dexie
+    // tables — _meta.lwt changes every cycle, which would defeat recordsEqual
+    // and cause an infinite pull/dispatch loop.
+    delete payload._meta
+    delete payload._attachments
+    delete payload._rev
+    const existing = (await table.get(normalized.id)) as Record<string, unknown> | undefined
+    // Merge into existing so fields the local layer adds on read (e.g. excerpt,
+    // wordCount, contentMd defaults) survive a pull that doesn't carry them.
+    // Without this, list() normalizes + bulkPuts defaults → next pull sees a
+    // false-diff → writes again → fires dispatchSyncDataUpdated → loop.
+    const merged: Record<string, unknown> = existing ? { ...existing, ...payload } : payload
+    if (existing && recordsEqual(existing, merged)) return false
+    await table.put(merged)
+    if (entityType === 'domainEvents') await runDomainEventProjections(merged as DomainEvent)
     return true
   }
 }
