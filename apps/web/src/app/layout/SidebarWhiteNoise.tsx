@@ -2,7 +2,12 @@ import { useRef } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Pause, Waves } from 'lucide-react'
 import { useSharedNoise } from '../../features/focus/SharedNoiseProvider'
-import { NOISE_TRACKS } from '../../features/focus/noise'
+import {
+  cloneNoiseTracks,
+  findMatchingNoiseScenePreset,
+  NOISE_SCENE_PRESETS,
+  type NoiseScenePresetId,
+} from '../../features/focus/noise'
 import { useI18n } from '../../shared/i18n/useI18n'
 import { usePremiumGate } from '../../features/premium/PremiumProvider'
 import { useAuthGate } from '../../features/auth/AuthGateContext'
@@ -13,7 +18,7 @@ const clamp01 = (value: number) => Math.max(0, Math.min(1, value))
 
 const SidebarWhiteNoise = ({ collapsed }: Props) => {
   const { t } = useI18n()
-  const { noise, toggleNoisePlaying, setNoiseTrackEnabled, setNoiseMasterVolume } = useSharedNoise()
+  const { noise, setNoise, toggleNoisePlaying, setNoiseMasterVolume } = useSharedNoise()
   const { canUse, openUpgradeModal } = usePremiumGate()
   const { requireAuth } = useAuthGate()
   const sliderRef = useRef<HTMLDivElement | null>(null)
@@ -21,10 +26,7 @@ const SidebarWhiteNoise = ({ collapsed }: Props) => {
 
   const isPlaying = noise.playing
   const allowed = canUse('focus.white-noise').allowed
-
-  const activeTrackId = (Object.entries(noise.tracks).find(([, track]) => track.enabled)?.[0]
-    ?? NOISE_TRACKS[0].id) as (typeof NOISE_TRACKS)[number]['id']
-  const activeTrack = NOISE_TRACKS.find((track) => track.id === activeTrackId) ?? NOISE_TRACKS[0]
+  const activeScene = findMatchingNoiseScenePreset(noise.tracks)
 
   const handleToggle = () => {
     if (!allowed) {
@@ -34,14 +36,17 @@ const SidebarWhiteNoise = ({ collapsed }: Props) => {
     requireAuth(() => toggleNoisePlaying())
   }
 
-  const handleTrackChange = (nextId: (typeof NOISE_TRACKS)[number]['id']) => {
+  const handleSceneChange = (nextId: NoiseScenePresetId) => {
     if (!allowed) {
       openUpgradeModal('button', 'focus.white-noise')
       return
     }
     requireAuth(() => {
-      NOISE_TRACKS.forEach((track) => {
-        setNoiseTrackEnabled(track.id, track.id === nextId)
+      const nextScene = NOISE_SCENE_PRESETS.find((scene) => scene.id === nextId)
+      if (!nextScene) return
+      setNoise({
+        ...noise,
+        tracks: cloneNoiseTracks(nextScene.tracks),
       })
     })
   }
@@ -92,13 +97,18 @@ const SidebarWhiteNoise = ({ collapsed }: Props) => {
           >
             <select
               className="sidebar-noise-mini__preset"
-              value={activeTrack.id}
-              onChange={(event) => handleTrackChange(event.target.value as (typeof NOISE_TRACKS)[number]['id'])}
-              aria-label={t('focus.playNoise')}
+              value={activeScene?.id ?? ''}
+              onChange={(event) => handleSceneChange(event.target.value as NoiseScenePresetId)}
+              aria-label={t('focus.scenes')}
             >
-              {NOISE_TRACKS.map((track) => (
-                <option key={track.id} value={track.id}>
-                  {track.label}
+              {!activeScene ? (
+                <option value="" disabled hidden>
+                  {t('focus.scenes')}
+                </option>
+              ) : null}
+              {NOISE_SCENE_PRESETS.map((scene) => (
+                <option key={scene.id} value={scene.id}>
+                  {scene.emoji} {t(scene.labelKey)}
                 </option>
               ))}
             </select>

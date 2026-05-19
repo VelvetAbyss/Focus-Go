@@ -17,6 +17,7 @@ import type { NoiseTrackId } from "../../../../data/models/types";
 import { useI18n } from "../../../../shared/i18n/useI18n";
 import { useVisibleInterval, useVisibleRaf } from "../../../../shared/hooks/usePageActivity";
 import { useAuthGate } from "../../../auth/AuthGateContext";
+import { cloneNoiseTracks, findMatchingNoiseScenePreset, NOISE_SCENE_PRESETS, type NoiseScenePreset } from "../../noise";
 
 interface SoundTrack {
   id: NoiseTrackId;
@@ -25,63 +26,6 @@ interface SoundTrack {
   volume: number;
   color: string;
 }
-
-interface SoundPreset {
-  id: string;
-  emoji: string;
-  tracks: Record<NoiseTrackId, { enabled: boolean; volume: number }>;
-}
-
-const soundPresets: SoundPreset[] = [
-  {
-    id: "rainy-cafe",
-    emoji: "☕",
-    tracks: {
-      cafe: { enabled: true, volume: 0.5 },
-      fireplace: { enabled: false, volume: 0.4 },
-      rain: { enabled: true, volume: 0.65 },
-      wind: { enabled: false, volume: 0.3 },
-      thunder: { enabled: false, volume: 0.2 },
-      ocean: { enabled: false, volume: 0.5 },
-    },
-  },
-  {
-    id: "stormy-night",
-    emoji: "🌩",
-    tracks: {
-      cafe: { enabled: false, volume: 0.5 },
-      fireplace: { enabled: true, volume: 0.6 },
-      rain: { enabled: true, volume: 0.8 },
-      wind: { enabled: true, volume: 0.4 },
-      thunder: { enabled: true, volume: 0.35 },
-      ocean: { enabled: false, volume: 0.5 },
-    },
-  },
-  {
-    id: "ocean-breeze",
-    emoji: "🌊",
-    tracks: {
-      cafe: { enabled: false, volume: 0.5 },
-      fireplace: { enabled: false, volume: 0.4 },
-      rain: { enabled: false, volume: 0.5 },
-      wind: { enabled: true, volume: 0.35 },
-      thunder: { enabled: false, volume: 0.2 },
-      ocean: { enabled: true, volume: 0.75 },
-    },
-  },
-  {
-    id: "cozy-fireside",
-    emoji: "🔥",
-    tracks: {
-      cafe: { enabled: false, volume: 0.5 },
-      fireplace: { enabled: true, volume: 0.7 },
-      rain: { enabled: true, volume: 0.3 },
-      wind: { enabled: false, volume: 0.2 },
-      thunder: { enabled: false, volume: 0.15 },
-      ocean: { enabled: false, volume: 0.5 },
-    },
-  },
-];
 
 const defaultTracks: SoundTrack[] = [
   { id: "cafe", icon: <Coffee size={15} />, enabled: true, volume: 0.6, color: "#C4A882" },
@@ -264,7 +208,6 @@ export function WhiteNoise() {
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const [sleepRemaining, setSleepRemaining] = useState<number | null>(null);
   const [showSleepOptions, setShowSleepOptions] = useState(false);
-  const presetHydratedRef = useRef(false);
   const {
     noise,
     setNoise,
@@ -289,16 +232,8 @@ export function WhiteNoise() {
   );
 
   useEffect(() => {
-    if (presetHydratedRef.current) return;
-    const matchedPreset = soundPresets.find((preset) =>
-      defaultTracks.every((track) => {
-        const current = noise.tracks[track.id];
-        const target = preset.tracks[track.id];
-        return current.enabled === target.enabled && Math.abs(current.volume - target.volume) < 0.001;
-      })
-    );
+    const matchedPreset = findMatchingNoiseScenePreset(noise.tracks);
     setActivePreset(matchedPreset?.id ?? null);
-    presetHydratedRef.current = true;
   }, [noise.tracks]);
 
   const toggleTrack = (id: NoiseTrackId) => {
@@ -315,7 +250,7 @@ export function WhiteNoise() {
     });
   };
 
-  const applyPreset = (preset: SoundPreset) => {
+  const applyPreset = (preset: NoiseScenePreset) => {
     requireAuth(() => {
       if (activePreset === preset.id) {
         setActivePreset(null);
@@ -325,7 +260,7 @@ export function WhiteNoise() {
       setNoise({
         ...noise,
         playing: true,
-        tracks: preset.tracks,
+        tracks: cloneNoiseTracks(preset.tracks),
       });
     });
   };
@@ -363,12 +298,6 @@ export function WhiteNoise() {
   });
 
   const activeTracks = tracks.filter((t) => t.enabled).length;
-  const presetNameMap: Record<string, string> = {
-    "rainy-cafe": t("focus.scene.rainyCafe"),
-    "stormy-night": t("focus.scene.stormyNight"),
-    "ocean-breeze": t("focus.scene.oceanBreeze"),
-    "cozy-fireside": t("focus.scene.cozyFireside"),
-  };
   const trackNameMap: Record<NoiseTrackId, string> = {
     cafe: language === "zh" ? "咖啡馆" : "Cafe",
     fireplace: language === "zh" ? "壁炉" : "Fireplace",
@@ -507,7 +436,7 @@ export function WhiteNoise() {
           </span>
         </div>
         <div className="grid grid-cols-2 gap-1.5">
-          {soundPresets.map((preset) => (
+          {NOISE_SCENE_PRESETS.map((preset) => (
             <motion.button
               key={preset.id}
               whileTap={{ scale: 0.97 }}
@@ -532,7 +461,7 @@ export function WhiteNoise() {
                     activePreset === preset.id ? "#5a7a58" : "#8a8478",
                 }}
               >
-                {presetNameMap[preset.id] ?? preset.id}
+                {t(preset.labelKey)}
               </span>
             </motion.button>
           ))}
