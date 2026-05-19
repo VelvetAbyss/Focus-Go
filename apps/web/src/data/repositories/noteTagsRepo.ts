@@ -1,9 +1,21 @@
 import type { NoteTagCreateInput, NoteTagUpdateInput } from '@focus-go/core'
 import { dbService } from '../services/dbService'
+import { SYNC_DATA_UPDATED_EVENT, type SyncDataUpdatedDetail } from '../sync/constants'
 
 let tagsCache: Awaited<ReturnType<typeof dbService.noteTags.list>> | null = null
 
 const copy = <T,>(rows: T[]): T[] => [...rows]
+
+export const invalidateNoteTagsCache = () => {
+  tagsCache = null
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener(SYNC_DATA_UPDATED_EVENT, (event) => {
+    const topic = (event as CustomEvent<SyncDataUpdatedDetail>).detail?.topic
+    if (topic === 'all' || topic === 'noteTags') invalidateNoteTagsCache()
+  })
+}
 
 export const noteTagsRepo = {
   async list() {

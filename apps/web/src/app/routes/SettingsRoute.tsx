@@ -517,6 +517,51 @@ type SettingRowProps = {
   children: ReactNode
 }
 
+const DesktopNotificationRow = () => {
+  const { t } = useI18n()
+  const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>(() => {
+    if (typeof window === 'undefined' || typeof Notification === 'undefined') return 'unsupported'
+    return Notification.permission
+  })
+
+  const requestPermission = async () => {
+    if (typeof Notification === 'undefined') return
+    try {
+      const result = await Notification.requestPermission()
+      setPermission(result)
+    } catch (error) {
+      console.warn('[Settings] notification permission request failed', error)
+    }
+  }
+
+  let content: ReactNode
+  if (permission === 'unsupported') {
+    content = <span className="text-xs text-muted-foreground">—</span>
+  } else if (permission === 'granted') {
+    content = <span className="text-xs font-semibold text-emerald-600">✓</span>
+  } else if (permission === 'denied') {
+    content = (
+      <span className="text-xs text-rose-600">{t('tasks.reminder.desktopBlocked')}</span>
+    )
+  } else {
+    content = (
+      <Button variant="outline" size="sm" onClick={() => void requestPermission()}>
+        {t('tasks.reminder.enableDesktopButton')}
+      </Button>
+    )
+  }
+
+  return (
+    <SettingRow
+      icon={Bell}
+      title={t('tasks.reminder.enableDesktopTitle')}
+      description={t('tasks.reminder.enableDesktopHint')}
+    >
+      {content}
+    </SettingRow>
+  )
+}
+
 const SettingRow = ({ icon: Icon, title, description, children }: SettingRowProps) => (
   <motion.div
     layout
@@ -1269,6 +1314,9 @@ const SettingsRoute = () => {
                           >
                             <Switch checked={taskReminderEnabled} onCheckedChange={(checked) => setTaskReminderEnabled(checked)} />
                           </SettingRow>
+
+                          <DesktopNotificationRow />
+
 
                           <AlertDialog open={pendingNeteaseExperimentalToggle} onOpenChange={setPendingNeteaseExperimentalToggle}>
                             <AlertDialogContent>

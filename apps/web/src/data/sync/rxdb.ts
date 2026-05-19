@@ -123,6 +123,19 @@ const closeDatabase = async (database: unknown) => {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
+const stripUndefined = (value: unknown): unknown => {
+  if (Array.isArray(value)) return value.map(stripUndefined)
+  if (!isRecord(value)) return value
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([, nested]) => nested !== undefined)
+      .map(([key, nested]) => [key, stripUndefined(nested)]),
+  )
+}
+
+const recordsEqual = (left: unknown, right: unknown) =>
+  JSON.stringify(stripUndefined(left)) === JSON.stringify(stripUndefined(right))
+
 const describeSyncDocument = (entityType: SyncEntityType, document: unknown) => {
   const id = isRecord(document) && typeof document.id === 'string' ? document.id : 'unknown'
   return `${entityType}/${id}`
@@ -172,15 +185,20 @@ const writeDexieEntity = async (entityType: SyncEntityType, document: SyncDocume
   if (normalized._deleted) {
     if (entityType === 'domainEvents') {
       console.error('[domain-events] ignoring remote delete for append-only event', normalized.id)
-      return
+      return false
     }
+    if (!(await table.get(normalized.id))) return false
     await table.delete(normalized.id)
+    return true
   } else {
-    const payload = { ...normalized, _deleted: undefined }
+    const payload = { ...normalized } as Record<string, unknown>
+    delete payload._deleted
+    const existing = await table.get(normalized.id)
+    if (recordsEqual(existing, payload)) return false
     await table.put(payload)
     if (entityType === 'domainEvents') await runDomainEventProjections(payload as DomainEvent)
+    return true
   }
-  dispatchSyncDataUpdated(entityType)
 }
 
 const seedCollectionFromDexie = async (entityType: SyncEntityType, collection: RxCollection<SyncDocument>) => {
@@ -307,7 +325,7 @@ const syncEntity = async (entityType: SyncEntityType) =>
       },
     } as never)
 
-    const pendingWrites: Promise<unknown>[] = []
+    const pendingWrites: Promise<boolean>[] = []
     let receivedDocumentCount = 0
     const receivedSub = replication.received$.subscribe({
       next: (document) => {
@@ -346,10 +364,13 @@ const syncEntity = async (entityType: SyncEntityType) =>
       sentSub.unsubscribe()
       errorSub.unsubscribe()
       // Flush Dexie writes with a safety timeout — guards against db.close() leaving ops hanging
-      await Promise.race([
+      const writeResults = await Promise.race([
         Promise.allSettled(pendingWrites),
-        new Promise<void>(resolve => globalThis.setTimeout(resolve, 5_000)),
+        new Promise<PromiseSettledResult<boolean>[]>(resolve => globalThis.setTimeout(() => resolve([]), 5_000)),
       ])
+      if (writeResults.some((result) => result.status === 'fulfilled' && result.value)) {
+        dispatchSyncDataUpdated(entityType)
+      }
       if (receivedDocumentCount > 0) {
         await buildStatePatch({ lastPulledAt: now(), missingBlobPull: false }).catch(() => {})
       }

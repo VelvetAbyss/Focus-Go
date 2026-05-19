@@ -29,6 +29,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../../shared/ui/popover
 import { emitTasksChanged } from './taskSync'
 import TaskAttachmentsSection from './components/TaskAttachmentsSection'
 import TaskNotesPanel from './components/TaskNotesPanel'
+import TaskProgressCard from './components/TaskProgressCard'
 import TaskProjectAssignCard from './components/TaskProjectAssignCard'
 import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, formatTaskDateTime, getTaskTagTone } from './components/taskPresentation'
 import { useI18n } from '../../shared/i18n/useI18n'
@@ -755,6 +756,8 @@ const TaskDrawer = ({
                     </div>
                   </div>
                 </div>
+
+                <TaskProgressCard task={currentTask} onUpdated={onUpdated} />
 
                 <TaskProjectAssignCard
                   projectId={projectId}
