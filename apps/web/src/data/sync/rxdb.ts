@@ -314,7 +314,9 @@ const syncEntity = async (entityType: SyncEntityType) =>
       deletedField: '_deleted',
       live: false,
       waitForLeadership: false,
-      retryTime: 3_000,
+      // Keep retryTime well above the per-cycle timeout so a single failure
+      // doesn't trigger an in-cycle retry storm against a 500ing server.
+      retryTime: 60_000,
       // Last-write-wins: whichever side has the more recent updatedAt timestamp wins.
       conflictHandler: async (input: { newDocumentState: SyncDocument; realMasterState: SyncDocument }) => {
         const local = input.newDocumentState

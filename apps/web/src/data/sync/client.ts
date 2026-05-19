@@ -61,7 +61,26 @@ const fetchJson = async <T>(path: string, init?: RequestInit): Promise<T> => {
   }
   if (!response.ok) {
     if (response.status === 401) throw new Error('Sync failed: session expired, please log in again')
-    throw new Error(`Sync request failed: ${response.status}`)
+    // Capture server body to surface in entityErrors so the user can see *why*
+    // it 500'd (e.g. unknown entityType, malformed checkpoint). Without this
+    // the client just retries forever against a broken endpoint.
+    let bodyHint = ''
+    try {
+      const bodyText = await response.text()
+      if (bodyText) {
+        const entityType = (() => {
+          try {
+            return JSON.parse(String(init?.body ?? '{}'))?.entityType
+          } catch {
+            return undefined
+          }
+        })()
+        bodyHint = ` body=${bodyText.slice(0, 200)}${entityType ? ` entity=${entityType}` : ''}`
+      }
+    } catch {
+      // swallow — body may already be consumed or stream-broken
+    }
+    throw new Error(`Sync request failed: ${response.status}${bodyHint}`)
   }
   return response.json() as Promise<T>
 }
