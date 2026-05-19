@@ -51,7 +51,8 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
     setEnabledState(nextEnabled)
   }, [])
 
-  const syncNow = useCallback(async () => {
+  const lastSyncEndedAtRef = useRef(0)
+  const syncNow = useCallback(async (trigger: string = 'manual') => {
     if (!enabled || !isLoggedIn || runningRef.current) return
     if (!canUseCloudSync) {
       await syncStateRepo.markStatus('blocked', 'Cloud sync requires Premium')
@@ -60,11 +61,22 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
       await refreshState()
       return
     }
+    // Debounce: skip auto-triggered syncs that fire within 10s of the previous
+    // cycle completing. Manual syncs (button click) bypass this.
+    const sinceLast = Date.now() - lastSyncEndedAtRef.current
+    if (trigger !== 'manual' && sinceLast < 10_000) {
+      console.debug('[sync] skipping', trigger, 'last cycle ended', sinceLast, 'ms ago')
+      return
+    }
+    const startedAt = Date.now()
+    console.debug('[sync] cycle start', { trigger })
     runningRef.current = true
     try {
       await runRxdbSyncCycle()
     } finally {
       runningRef.current = false
+      lastSyncEndedAtRef.current = Date.now()
+      console.debug('[sync] cycle end', { trigger, durationMs: Date.now() - startedAt })
       await refreshState()
     }
   }, [canUseCloudSync, enabled, isLoggedIn, refreshState])
@@ -85,11 +97,11 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
       runningRef.current = false
       await refreshState()
     }
-    await syncNow()
+    await syncNow('initialize')
     const seeded = await seedDatabase()
     if (seeded) {
       dispatchSyncDataUpdated('all')
-      await syncNow()
+      await syncNow('post-seed')
     }
   }, [canUseCloudSync, enabled, isLoggedIn, refreshState, syncNow])
 
@@ -120,14 +132,14 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (!enabled || !isLoggedIn || !canUseCloudSync || pageActivity !== 'visible') return
     const intervalId = window.setInterval(() => {
-      void syncNow()
+      void syncNow('interval')
     }, 30_000)
     return () => window.clearInterval(intervalId)
   }, [canUseCloudSync, enabled, isLoggedIn, pageActivity, syncNow])
 
   useEffect(() => {
     if (!enabled || !isLoggedIn || !canUseCloudSync) return
-    const handleOnline = () => void syncNow()
+    const handleOnline = () => void syncNow('online')
     window.addEventListener('online', handleOnline)
     return () => {
       window.removeEventListener('online', handleOnline)
@@ -136,7 +148,7 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (!enabled || !isLoggedIn || !canUseCloudSync || pageActivity !== 'visible') return
-    void syncNow()
+    void syncNow('page-visible')
   }, [canUseCloudSync, enabled, isLoggedIn, pageActivity, syncNow])
 
   const value = useMemo<SyncContextValue>(
@@ -144,7 +156,7 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
       state,
       enabled,
       setEnabled,
-      syncNow,
+      syncNow: () => syncNow('manual'),
     }),
     [enabled, setEnabled, state, syncNow],
   )
