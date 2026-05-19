@@ -72,11 +72,11 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
       : Math.min(30_000 * 2 ** (consecutiveErrorsRef.current - 1), 300_000)
     const minGapMs = Math.max(10_000, errorBackoffMs)
     if (trigger !== 'manual' && sinceLast < minGapMs) {
-      console.debug('[sync] skipping', trigger, 'sinceLast', sinceLast, 'ms', 'errors', consecutiveErrorsRef.current, 'gap', minGapMs)
+      console.info('[sync] skipping', trigger, 'sinceLast', sinceLast, 'ms', 'errors', consecutiveErrorsRef.current, 'gap', minGapMs)
       return
     }
     const startedAt = Date.now()
-    console.debug('[sync] cycle start', { trigger })
+    console.info('[sync] cycle start', { trigger })
     runningRef.current = true
     let cycleError: unknown = null
     try {
@@ -88,7 +88,7 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       runningRef.current = false
       lastSyncEndedAtRef.current = Date.now()
-      console.debug('[sync] cycle end', {
+      console.info('[sync] cycle end', {
         trigger,
         durationMs: Date.now() - startedAt,
         error: cycleError instanceof Error ? cycleError.message : cycleError,
