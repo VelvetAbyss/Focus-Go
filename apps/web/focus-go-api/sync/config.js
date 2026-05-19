@@ -15,6 +15,7 @@ export const SYNC_TABLES = {
   projects: 'sync_projects',
   projectPeople: 'sync_project_people',
   projectNoteLinks: 'sync_project_note_links',
+  taskNoteLinks: 'sync_task_note_links',
   habits: 'sync_habits',
   habitLogs: 'sync_habit_logs',
   books: 'sync_books',

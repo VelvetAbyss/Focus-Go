@@ -421,3 +421,44 @@ test('sync route requires premium plan', async () => {
     db.close()
   }
 })
+
+test('sync route returns JSON 400 for unknown entity types on pull and push', async () => {
+  const ctx = await createServer()
+  try {
+    const pull = await fetch(`${ctx.baseUrl}/sync/rxdb/pull`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entityType: 'definitelyNotAnEntity', checkpoint: null, limit: 100 }),
+    })
+    assert.equal(pull.status, 400)
+    const pullBody = await pull.json()
+    assert.match(pullBody.error, /Unsupported sync entity type/)
+
+    const push = await fetch(`${ctx.baseUrl}/sync/rxdb/push`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entityType: 'definitelyNotAnEntity', rows: [], blobs: [] }),
+    })
+    assert.equal(push.status, 400)
+    const pushBody = await push.json()
+    assert.match(pushBody.error, /Unsupported sync entity type/)
+  } finally {
+    await ctx.close()
+  }
+})
+
+test('sync route serves taskNoteLinks entity', async () => {
+  const ctx = await createServer()
+  try {
+    const response = await fetch(`${ctx.baseUrl}/sync/rxdb/pull`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entityType: 'taskNoteLinks', checkpoint: null, limit: 100 }),
+    })
+    assert.equal(response.status, 200)
+    const body = await response.json()
+    assert.deepEqual(body.documents, [])
+  } finally {
+    await ctx.close()
+  }
+})
