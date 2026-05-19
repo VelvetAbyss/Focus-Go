@@ -2,6 +2,7 @@ import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { db } from '../db'
 import { enqueueSyncOperation } from './repository'
+import { SYNC_DATA_UPDATED_EVENT } from './constants'
 import '../events/timelineProjection'
 
 vi.mock('../../store/auth', () => ({
@@ -127,6 +128,169 @@ describe('rxdb sync migration', () => {
     await runRxdbSyncCycle()
 
     expect((await db.notes.get('note-remote'))?.title).toBe('Remote note')
+  })
+
+  it('batches pulled Dexie refresh notifications per entity', async () => {
+    const eventTarget = new EventTarget()
+    vi.stubGlobal('window', eventTarget)
+    const syncDataUpdated = vi.fn()
+    eventTarget.addEventListener(SYNC_DATA_UPDATED_EVENT, syncDataUpdated)
+
+    fetchMock.mockImplementation(async (input, init) => {
+      const url = String(input)
+      const body = init?.body ? JSON.parse(String(init.body)) : {}
+      if (url.includes('/sync/rxdb/pull') && body.entityType === 'notes') {
+        return {
+          ok: true,
+          json: async () => ({
+            documents: [
+              {
+                id: 'note-remote-a',
+                title: 'Remote note A',
+                contentMd: 'body',
+                contentJson: null,
+                editorMode: 'document',
+                collection: 'all-notes',
+                tags: [],
+                excerpt: '',
+                pinned: false,
+                wordCount: 0,
+                charCount: 0,
+                paragraphCount: 0,
+                imageCount: 0,
+                fileCount: 0,
+                headings: [],
+                backlinks: [],
+                createdAt: 1,
+                updatedAt: 20,
+                _deleted: false,
+              },
+              {
+                id: 'note-remote-b',
+                title: 'Remote note B',
+                contentMd: 'body',
+                contentJson: null,
+                editorMode: 'document',
+                collection: 'all-notes',
+                tags: [],
+                excerpt: '',
+                pinned: false,
+                wordCount: 0,
+                charCount: 0,
+                paragraphCount: 0,
+                imageCount: 0,
+                fileCount: 0,
+                headings: [],
+                backlinks: [],
+                createdAt: 1,
+                updatedAt: 21,
+                _deleted: false,
+              },
+            ],
+            checkpoint: { updatedAt: 21, id: 'note-remote-b' },
+            blobs: [],
+          }),
+        } as Response
+      }
+      if (url.includes('/sync/rxdb/pull')) {
+        return {
+          ok: true,
+          json: async () => ({ documents: [], checkpoint: body.checkpoint ?? null, blobs: [] }),
+        } as Response
+      }
+      return {
+        ok: true,
+        json: async () => ({ conflicts: [], blobs: [] }),
+      } as Response
+    })
+
+    await ensureRxdbSyncReady()
+    await runRxdbSyncCycle()
+
+    const noteEvents = syncDataUpdated.mock.calls.filter(([event]) => {
+      return (event as CustomEvent).detail?.topic === 'notes'
+    })
+    expect(noteEvents).toHaveLength(1)
+  })
+
+  it('does not emit pulled refresh notifications when Dexie data is unchanged', async () => {
+    const eventTarget = new EventTarget()
+    vi.stubGlobal('window', eventTarget)
+    const syncDataUpdated = vi.fn()
+    eventTarget.addEventListener(SYNC_DATA_UPDATED_EVENT, syncDataUpdated)
+
+    await db.notes.put({
+      id: 'note-remote',
+      title: 'Remote note',
+      contentMd: 'body',
+      contentJson: null,
+      editorMode: 'document',
+      collection: 'all-notes',
+      tags: [],
+      excerpt: '',
+      pinned: false,
+      wordCount: 0,
+      charCount: 0,
+      paragraphCount: 0,
+      imageCount: 0,
+      fileCount: 0,
+      headings: [],
+      backlinks: [],
+      deletedAt: null,
+      createdAt: 1,
+      updatedAt: 20,
+    })
+
+    fetchMock.mockImplementation(async (input, init) => {
+      const url = String(input)
+      const body = init?.body ? JSON.parse(String(init.body)) : {}
+      if (url.includes('/sync/rxdb/pull') && body.entityType === 'notes') {
+        return {
+          ok: true,
+          json: async () => ({
+            documents: [{
+              id: 'note-remote',
+              title: 'Remote note',
+              contentMd: 'body',
+              contentJson: null,
+              editorMode: 'document',
+              collection: 'all-notes',
+              tags: [],
+              excerpt: '',
+              pinned: false,
+              wordCount: 0,
+              charCount: 0,
+              paragraphCount: 0,
+              imageCount: 0,
+              fileCount: 0,
+              headings: [],
+              backlinks: [],
+              deletedAt: null,
+              createdAt: 1,
+              updatedAt: 20,
+              _deleted: false,
+            }],
+            checkpoint: { updatedAt: 20, id: 'note-remote' },
+            blobs: [],
+          }),
+        } as Response
+      }
+      if (url.includes('/sync/rxdb/pull')) {
+        return {
+          ok: true,
+          json: async () => ({ documents: [], checkpoint: body.checkpoint ?? null, blobs: [] }),
+        } as Response
+      }
+      return {
+        ok: true,
+        json: async () => ({ conflicts: [], blobs: [] }),
+      } as Response
+    })
+
+    await ensureRxdbSyncReady()
+    await runRxdbSyncCycle()
+
+    expect(syncDataUpdated.mock.calls.some(([event]) => (event as CustomEvent).detail?.topic === 'notes')).toBe(false)
   })
 
   it('syncs domainEvents and projects pulled events into local timeline items', async () => {

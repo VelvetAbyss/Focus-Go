@@ -40,10 +40,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import AnimatedScrollList from '../../../shared/ui/AnimatedScrollList'
-import { DateRangePicker } from '../../../shared/ui/DateRangePicker'
-import { DateTimePicker } from '../../../shared/ui/DateTimePicker'
 import { useAddInputComposer } from '../../../shared/hooks/useAddInputComposer'
 import { tasksRepo } from '../../../data/repositories/tasksRepo'
+import TaskDrawer from '../../tasks/TaskDrawer'
 import { peopleRepo } from '../../../data/repositories/peopleRepo'
 import type { LifePerson } from '../../../data/models/types'
 import { emitTasksChanged, subscribeTasksChanged } from '../../tasks/taskSync'
@@ -233,15 +232,6 @@ const formatReminderLabel = (value: number | undefined, language: 'en' | 'zh') =
   })
 }
 
-type TaskCardDraft = {
-  title: string
-  startDate: string
-  endDate: string
-  reminderDate: string
-  reminderTime: string
-  priority: TaskItem['priority']
-}
-
 const readStoredTaskColors = () => {
   if (typeof window === 'undefined') return {} as Record<string, string>
   try {
@@ -254,33 +244,6 @@ const readStoredTaskColors = () => {
     return {} as Record<string, string>
   }
 }
-
-const getReminderDateParts = (value?: number) => {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return { reminderDate: '', reminderTime: '' }
-  const date = new Date(value)
-  const y = date.getFullYear()
-  const m = `${date.getMonth() + 1}`.padStart(2, '0')
-  const d = `${date.getDate()}`.padStart(2, '0')
-  const hh = `${date.getHours()}`.padStart(2, '0')
-  const mm = `${date.getMinutes()}`.padStart(2, '0')
-  return { reminderDate: `${y}-${m}-${d}`, reminderTime: `${hh}:${mm}` }
-}
-
-const combineReminderDateTime = (dateKey: string, time: string) => {
-  const date = dateKey.trim()
-  const timeText = time.trim()
-  if (!date || !timeText) return undefined
-  const ts = new Date(`${date}T${timeText}`).getTime()
-  return Number.isFinite(ts) ? ts : undefined
-}
-
-const buildTaskCardDraft = (task: TaskItem): TaskCardDraft => ({
-  title: task.title,
-  startDate: task.startDate ?? '',
-  endDate: task.endDate ?? '',
-  ...getReminderDateParts(task.reminderAt),
-  priority: task.priority,
-})
 
 const getProviderLabel = (provider: CalendarProvider, language: 'en' | 'zh') => {
   if (provider === 'builtin') return language === 'zh' ? '内置' : 'Built-in'
@@ -438,10 +401,8 @@ const CalendarPage = () => {
   const [allPeople, setAllPeople] = useState<LifePerson[]>([])
   const [creatingSelectedDayTask, setCreatingSelectedDayTask] = useState(false)
   const [deletingTaskIds, setDeletingTaskIds] = useState<Record<string, boolean>>({})
-  const [savingTaskCardIds, setSavingTaskCardIds] = useState<Record<string, boolean>>({})
-  const [taskCardDrafts, setTaskCardDrafts] = useState<Record<string, TaskCardDraft>>({})
   const [taskDeleteError, setTaskDeleteError] = useState<string | null>(null)
-  const [taskCardError, setTaskCardError] = useState<string | null>(null)
+  const [drawerTask, setDrawerTask] = useState<TaskItem | null>(null)
 
   const [isAccountDialogOpen, setIsAccountDialogOpen] = useState(false)
   const [accountMode, setAccountMode] = useState<'google' | 'ics'>('google')
@@ -874,62 +835,9 @@ const CalendarPage = () => {
     }
   }
 
-  const updateTaskCardDraft = (taskId: string, patch: Partial<TaskCardDraft>) => {
-    setTaskCardDrafts((prev) => {
-      const current = prev[taskId]
-      const next = {
-        ...(current ?? { title: '', startDate: '', endDate: '', reminderDate: '', reminderTime: '', priority: null }),
-        ...patch,
-      }
-      if (!next.reminderDate) {
-        next.reminderTime = ''
-      }
-      return { ...prev, [taskId]: next }
-    })
-  }
-
-  const handleTaskCardEditorOpen = (task: TaskItem, open: boolean) => {
-    if (!open) return
-    setTaskCardDrafts((prev) => ({ ...prev, [task.id]: buildTaskCardDraft(task) }))
-  }
-
-  const handleSaveTaskCard = async (task: TaskItem, nextDraft?: TaskCardDraft) => {
-    if (savingTaskCardIds[task.id]) return
-    const draft = nextDraft ?? taskCardDrafts[task.id] ?? buildTaskCardDraft(task)
-    if (draft.startDate && draft.endDate && draft.endDate < draft.startDate) {
-      setTaskCardError(t('tasks.drawer.endDateError'))
-      return
-    }
-
-    setTaskCardError(null)
-    setSavingTaskCardIds((prev) => ({ ...prev, [task.id]: true }))
-    try {
-      const nextReminderAt = combineReminderDateTime(draft.reminderDate, draft.reminderTime)
-      const nextTask: TaskItem = {
-        ...task,
-        title: draft.title.trim() || task.title,
-        priority: draft.priority,
-        startDate: draft.startDate || undefined,
-        endDate: draft.endDate || undefined,
-        reminderAt: nextReminderAt,
-        reminderFiredAt: nextReminderAt === task.reminderAt ? task.reminderFiredAt : undefined,
-      }
-      const updated = await tasksRepo.update(nextTask)
-      setAllTasks((prev) => prev.map((item) => (item.id === updated.id ? updated : item)))
-      emitTasksChanged('calendar:selected-day-update-task')
-    } finally {
-      setSavingTaskCardIds((prev) => {
-        const next = { ...prev }
-        delete next[task.id]
-        return next
-      })
-    }
-  }
-
   useEffect(() => {
     selectedDayTaskComposer.setValue('')
     setTaskDeleteError(null)
-    setTaskCardError(null)
   // selectedDayTaskComposer is intentionally omitted.
   // Re-running on composer identity change clears the current draft.
   }, [selectedDateKey]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -1192,7 +1100,6 @@ const CalendarPage = () => {
               renderItem={(task) => {
                 const taskTitle = task.title.trim() || t('calendar.untitled')
                 const isDeleting = Boolean(deletingTaskIds[task.id])
-                const draft = taskCardDrafts[task.id] ?? buildTaskCardDraft(task)
                 const taskTags = task.tags.slice(0, 2)
                 const hiddenTagCount = Math.max(0, task.tags.length - taskTags.length)
                 return (
@@ -1224,96 +1131,15 @@ const CalendarPage = () => {
                       </Popover>
                       <span className={`calendar-side-row__text${hasCjk(taskTitle) ? ' is-cjk' : ''}`}>{taskTitle}</span>
                       <div className="calendar-side-row__action">
-                        <Popover
-                          onOpenChange={(open) => {
-                            handleTaskCardEditorOpen(task, open)
-                            if (!open) {
-                              void handleSaveTaskCard(task)
-                            }
-                          }}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="calendar-task-card__edit"
+                          onClick={() => setDrawerTask(task)}
                         >
-                          <PopoverTrigger asChild>
-                            <Button type="button" variant="outline" size="sm" className="calendar-task-card__edit">
-                              {t('calendar.edit')}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="calendar-task-card__editor" align="end">
-                            <div className="calendar-task-card__editor-grid">
-                              <div className="calendar-task-card__field">
-                                <span>{t('calendar.title')}</span>
-                                <Input
-                                  aria-label="Title"
-                                  value={draft.title}
-                                  onChange={(event) => {
-                                    const patch = { title: event.currentTarget.value }
-                                    const nextDraft = { ...draft, ...patch }
-                                    updateTaskCardDraft(task.id, patch)
-                                    void handleSaveTaskCard(task, nextDraft)
-                                  }}
-                                />
-                              </div>
-                              <div className="calendar-task-card__field">
-                                <span>{t('calendar.dateRange')}</span>
-                                <DateRangePicker
-                                  value={{ startDate: draft.startDate, endDate: draft.endDate }}
-                                  onChange={({ startDate, endDate }) => {
-                                    const patch = { startDate: startDate ?? '', endDate: endDate ?? '' }
-                                    const nextDraft = { ...draft, ...patch }
-                                    updateTaskCardDraft(task.id, patch)
-                                    void handleSaveTaskCard(task, nextDraft)
-                                  }}
-                                  className="w-full"
-                                  popoverClassName="calendar-task-card__date-popover"
-                                />
-                              </div>
-                              <div className="calendar-task-card__field">
-                                <span>{t('calendar.reminder')}</span>
-                                <DateTimePicker
-                                  dateValue={draft.reminderDate}
-                                  timeValue={draft.reminderTime}
-                                  onDateChange={(date) => {
-                                    const patch = { reminderDate: date ?? '', reminderTime: date ? draft.reminderTime : '' }
-                                    const nextDraft = { ...draft, ...patch }
-                                    updateTaskCardDraft(task.id, patch)
-                                    void handleSaveTaskCard(task, nextDraft)
-                                  }}
-                                  onTimeChange={(time) => {
-                                    const patch = { reminderTime: time ?? '' }
-                                    const nextDraft = { ...draft, ...patch }
-                                    updateTaskCardDraft(task.id, patch)
-                                    void handleSaveTaskCard(task, nextDraft)
-                                  }}
-                                  placeholder="—"
-                                  ariaLabel={t('calendar.reminderDate')}
-                                  className="w-full"
-                                  popoverClassName="calendar-task-card__date-popover"
-                                />
-                              </div>
-                              <div className="calendar-task-card__field">
-                                <span>{t('calendar.priority')}</span>
-                                <Select
-                                  value={draft.priority ?? '__none'}
-                                  onValueChange={(value) => {
-                                    const patch = { priority: value === '__none' ? null : (value as TaskItem['priority']) }
-                                    const nextDraft = { ...draft, ...patch }
-                                    updateTaskCardDraft(task.id, patch)
-                                    void handleSaveTaskCard(task, nextDraft)
-                                  }}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="__none">{t('calendar.none')}</SelectItem>
-                                    <SelectItem value="high">{t('calendar.high')}</SelectItem>
-                                    <SelectItem value="medium">{t('calendar.medium')}</SelectItem>
-                                    <SelectItem value="low">{t('calendar.low')}</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </div>
-                          </PopoverContent>
-                        </Popover>
+                          {t('calendar.edit')}
+                        </Button>
                         <Button
                           type="button"
                           variant="ghost"
@@ -1363,11 +1189,6 @@ const CalendarPage = () => {
               }}
             />
           </div>
-          {taskCardError ? (
-            <p role="status" className="calendar-side-panel__error">
-              {taskCardError}
-            </p>
-          ) : null}
           {taskDeleteError ? (
             <p role="status" className="calendar-side-panel__error">
               {taskDeleteError}
@@ -1547,6 +1368,20 @@ const CalendarPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <TaskDrawer
+        open={drawerTask !== null}
+        task={drawerTask}
+        onClose={() => setDrawerTask(null)}
+        onUpdated={(updated) => {
+          setAllTasks((prev) => prev.map((item) => (item.id === updated.id ? updated : item)))
+          setDrawerTask((prev) => (prev?.id === updated.id ? updated : prev))
+        }}
+        onDeleted={(taskId) => {
+          setAllTasks((prev) => prev.filter((item) => item.id !== taskId))
+          setDrawerTask((prev) => (prev?.id === taskId ? null : prev))
+        }}
+      />
     </section>
   )
 }

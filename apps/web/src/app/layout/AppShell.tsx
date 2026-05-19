@@ -8,6 +8,7 @@ import {
 } from '../../shared/theme/theme'
 import Sidebar from './Sidebar'
 import { useTaskReminderEngine } from '../../features/tasks/useTaskReminderEngine'
+import TaskReminderModal from '../../features/tasks/TaskReminderModal'
 import { UpgradeModalProvider } from '../../features/labs/UpgradeModalContext'
 import UpgradeModal from '../../features/labs/components/UpgradeModal'
 import { AuthGateProvider } from '../../features/auth/AuthGateContext'
@@ -203,6 +204,7 @@ const AppShell = ({ children }: AppShellProps) => {
         </div>
         <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
         <UpgradeModal />
+        <TaskReminderModal />
       </UpgradeModalProvider>
     </AuthGateProvider>
   )

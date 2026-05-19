@@ -1,5 +1,6 @@
 import type { NoteCreateInput, NoteUpdateInput } from '@focus-go/core'
 import { dbService } from '../services/dbService'
+import { SYNC_DATA_UPDATED_EVENT, type SyncDataUpdatedDetail } from '../sync/constants'
 
 let activeCache: Awaited<ReturnType<typeof dbService.notes.list>> | null = null
 let trashCache: Awaited<ReturnType<typeof dbService.notes.listTrash>> | null = null
@@ -13,6 +14,18 @@ const mergeById = <T extends { id: string }>(rows: T[] | null, next: T): T[] | n
   const updated = [...rows]
   updated[index] = next
   return updated
+}
+
+export const invalidateNotesCache = () => {
+  activeCache = null
+  trashCache = null
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener(SYNC_DATA_UPDATED_EVENT, (event) => {
+    const topic = (event as CustomEvent<SyncDataUpdatedDetail>).detail?.topic
+    if (topic === 'all' || topic === 'notes') invalidateNotesCache()
+  })
 }
 
 export const notesRepo = {
