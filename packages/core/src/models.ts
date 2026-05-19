@@ -132,6 +132,12 @@ export type TaskActivityLog = {
   subtaskDone?: boolean
 }
 
+export type TaskProgressEntry = {
+  id: string
+  text: string
+  createdAt: number
+}
+
 export type TaskNoteParagraphBlock = {
   id: string
   type: 'paragraph'
@@ -237,6 +243,9 @@ export type TaskItem = BaseEntity & {
   taskNoteContentJson?: Record<string, unknown> | null
   activityLogs: TaskActivityLog[]
   attachments?: TaskAttachment[]
+  progressNote?: string
+  progressNoteUpdatedAt?: number
+  progressHistory?: TaskProgressEntry[]
 }
 
 export type WidgetTodoScope = 'day' | 'week' | 'month' | 'custom'
