@@ -293,6 +293,94 @@ describe('rxdb sync migration', () => {
     expect(syncDataUpdated.mock.calls.some(([event]) => (event as CustomEvent).detail?.topic === 'notes')).toBe(false)
   })
 
+  it('does not loop when remote payload omits locally-defaulted fields', async () => {
+    // Simulates a note whose wire payload omits fields the local normalize step
+    // re-adds on read (e.g. excerpt, wordCount, charCount). Without the merge fix,
+    // writeDexieEntity would see existing-with-defaults vs payload-without-defaults
+    // as different, write every cycle, and dispatch a 'notes' refresh forever.
+    const eventTarget = new EventTarget()
+    vi.stubGlobal('window', eventTarget)
+    const syncDataUpdated = vi.fn()
+    eventTarget.addEventListener(SYNC_DATA_UPDATED_EVENT, syncDataUpdated)
+
+    // Local row with all normalized defaults present (matches what list() bulkPuts).
+    await db.notes.put({
+      id: 'note-loop',
+      title: 'Hello',
+      contentMd: '',
+      contentJson: null,
+      editorMode: 'document',
+      collection: 'all-notes',
+      tags: [],
+      excerpt: '',
+      pinned: false,
+      wordCount: 0,
+      charCount: 0,
+      paragraphCount: 0,
+      imageCount: 0,
+      fileCount: 0,
+      headings: [],
+      backlinks: [],
+      deletedAt: null,
+      createdAt: 1,
+      updatedAt: 20,
+    })
+
+    // Wire payload omits the derived fields (matches real encoder behavior for
+    // empty contentMd: no bodyRefs and decoder doesn't add the derived defaults).
+    fetchMock.mockImplementation(async (input, init) => {
+      const url = String(input)
+      const body = init?.body ? JSON.parse(String(init.body)) : {}
+      if (url.includes('/sync/rxdb/pull') && body.entityType === 'notes') {
+        return {
+          ok: true,
+          json: async () => ({
+            documents: [{
+              id: 'note-loop',
+              title: 'Hello',
+              editorMode: 'document',
+              collection: 'all-notes',
+              tags: [],
+              pinned: false,
+              deletedAt: null,
+              createdAt: 1,
+              updatedAt: 20,
+              _deleted: false,
+            }],
+            checkpoint: { updatedAt: 20, id: 'note-loop' },
+            blobs: [],
+          }),
+        } as Response
+      }
+      if (url.includes('/sync/rxdb/pull')) {
+        return {
+          ok: true,
+          json: async () => ({ documents: [], checkpoint: body.checkpoint ?? null, blobs: [] }),
+        } as Response
+      }
+      return {
+        ok: true,
+        json: async () => ({ conflicts: [], blobs: [] }),
+      } as Response
+    })
+
+    await ensureRxdbSyncReady()
+    await runRxdbSyncCycle()
+    // After the first cycle settled into steady state, additional cycles must
+    // not fire 'notes' refresh events again. Pre-fix this looped forever.
+    syncDataUpdated.mockClear()
+    await runRxdbSyncCycle()
+    await runRxdbSyncCycle()
+
+    const noteEvents = syncDataUpdated.mock.calls.filter(([event]) => (event as CustomEvent).detail?.topic === 'notes')
+    expect(noteEvents).toHaveLength(0)
+
+    // Locally-derived fields must still be there after sync, not stripped.
+    const stored = await db.notes.get('note-loop')
+    expect(stored?.excerpt).toBe('')
+    expect(stored?.wordCount).toBe(0)
+  })
+
   it('syncs domainEvents and projects pulled events into local timeline items', async () => {
     fetchMock.mockImplementation(async (input, init) => {
       const url = String(input)
