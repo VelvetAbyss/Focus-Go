@@ -176,7 +176,9 @@ describe('WidgetTodosCard', () => {
     await waitFor(() => expect(screen.getByText('Plan day rhythm')).toBeInTheDocument())
     expect(screen.getByText('Weekly review')).toBeInTheDocument()
     expect(screen.getByText('Monthly reset')).toBeInTheDocument()
-    expect(screen.getByText('1 / 1 completed')).toBeInTheDocument()
+    // Editorial chip renders done/total as zero-padded mono pair and keeps the
+    // full sentence on aria-label for assistive tech.
+    expect(screen.getByLabelText('1 / 1 completed')).toBeInTheDocument()
     expect(screen.getAllByRole('checkbox')[0]).toBeChecked()
   })
 

@@ -345,18 +345,23 @@ const WidgetTodosCard = () => {
     [activeIndex, scopes.length],
   )
 
-  const completionLabel = useMemo(() => {
+  const completionStats = useMemo(() => {
     const total = scopeItems.length
-    if (total === 0) return t('todo.completedCount', { completed: 0, total: 0 })
-    const done = scopeItems.reduce((acc, item) => acc + (item.done ? 1 : 0), 0)
-    return t('todo.completedCount', { completed: done, total })
-  }, [scopeItems, t])
+    const done = total === 0 ? 0 : scopeItems.reduce((acc, item) => acc + (item.done ? 1 : 0), 0)
+    return { done, total }
+  }, [scopeItems])
+
+  const completionLabel = useMemo(
+    () => t('todo.completedCount', { completed: completionStats.done, total: completionStats.total }),
+    [completionStats.done, completionStats.total, t],
+  )
 
   const completionRatio = useMemo(() => {
-    if (scopeItems.length === 0) return 0
-    const done = scopeItems.reduce((acc, item) => acc + (item.done ? 1 : 0), 0)
-    return done / scopeItems.length
-  }, [scopeItems])
+    if (completionStats.total === 0) return 0
+    return completionStats.done / completionStats.total
+  }, [completionStats.done, completionStats.total])
+
+  const formatTwoDigit = (value: number) => (value < 10 ? `0${value}` : `${value}`)
 
   const periodAlertsByScope = useMemo(() => {
     const current = new Date(Date.now())
@@ -807,13 +812,23 @@ const WidgetTodosCard = () => {
       eyebrow="WIDGET"
       className="dashboard-widget-card dashboard-widget-card--shadow-safe dashboard-widget-card--todo"
       actions={
-        <span className="widget-todos__completed" aria-label={completionLabel}>
+        <span
+          className="widget-todos__completed"
+          aria-label={completionLabel}
+          title={completionLabel}
+        >
+          <span className="widget-todos__completed-stat" aria-hidden>
+            <span className="widget-todos__completed-done">{formatTwoDigit(completionStats.done)}</span>
+            <span className="widget-todos__completed-sep">/</span>
+            <span className="widget-todos__completed-total">{formatTwoDigit(completionStats.total)}</span>
+          </span>
           <span
-            className="widget-todos__completed-ring"
+            className="widget-todos__completed-bar"
             aria-hidden
             style={{ ['--completion' as string]: `${Math.round(completionRatio * 100)}` }}
-          />
-          <span className="widget-todos__completed-text">{completionLabel}</span>
+          >
+            <i />
+          </span>
         </span>
       }
     >

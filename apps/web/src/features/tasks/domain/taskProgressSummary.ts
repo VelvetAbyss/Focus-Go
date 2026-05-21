@@ -38,6 +38,13 @@ export type TaskProgressProjectSummary = {
   tasks: TaskProgressTaskRecord[]
 }
 
+export type TaskProgressTrendBuckets = {
+  /** 7 evenly-partitioned buckets of completed-task counts across the range */
+  tasks: number[]
+  /** 7 evenly-partitioned buckets of completed-subtask counts across the range */
+  subtasks: number[]
+}
+
 export type TaskProgressSummary = {
   period: TaskProgressPeriod
   mode: TaskProgressDetailMode
@@ -61,8 +68,11 @@ export type TaskProgressSummary = {
     completionEventCount: number
     completedSubtaskCount: number
   }
+  trend: TaskProgressTrendBuckets
   projects: TaskProgressProjectSummary[]
 }
+
+export const TASK_PROGRESS_TREND_BUCKETS = 7
 
 type BuildTaskProgressSummaryInput = {
   tasks: readonly TaskItem[]
@@ -230,6 +240,19 @@ const attachSubtasks = (
   }
 }
 
+const bucketizeByTime = (timestamps: readonly number[], range: TaskProgressRange): number[] => {
+  const buckets = new Array<number>(TASK_PROGRESS_TREND_BUCKETS).fill(0)
+  const span = range.endAt - range.startAt
+  if (span <= 0) return buckets
+  for (const value of timestamps) {
+    const ratio = (value - range.startAt) / span
+    if (ratio < 0 || ratio >= 1) continue
+    const index = Math.min(TASK_PROGRESS_TREND_BUCKETS - 1, Math.floor(ratio * TASK_PROGRESS_TREND_BUCKETS))
+    buckets[index] += 1
+  }
+  return buckets
+}
+
 const summarizeRange = (
   tasks: readonly TaskItem[],
   projects: readonly ProjectItem[],
@@ -291,8 +314,20 @@ const summarizeRange = (
     completedSubtaskCount: projectsSummary.reduce((sum, project) => sum + project.completedSubtaskCount, 0),
   }
 
+  const trend: TaskProgressTrendBuckets = {
+    tasks: bucketizeByTime(
+      [...taskRecordsById.values()].map((record) => record.completedAt),
+      range,
+    ),
+    subtasks: bucketizeByTime(
+      subtaskCompletionEvents.map((event) => event.completedAt),
+      range,
+    ),
+  }
+
   return {
     totals,
+    trend,
     projects: projectsSummary,
   }
 }
@@ -346,6 +381,7 @@ export const buildTaskProgressSummary = ({
       completionEventCount: current.totals.completionEventCount - previous.totals.completionEventCount,
       completedSubtaskCount: current.totals.completedSubtaskCount - previous.totals.completedSubtaskCount,
     },
+    trend: current.trend,
     projects: current.projects,
   }
 

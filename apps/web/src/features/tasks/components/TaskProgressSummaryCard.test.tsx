@@ -73,7 +73,10 @@ describe('TaskProgressSummaryCard', () => {
       </div>,
     )
 
-    expect(screen.getByText(/本周在 1 个项目推进了 1 个任务/)).toBeInTheDocument()
+    // Editorial layout no longer renders the summary sentence inline; the totals
+    // are surfaced via the stats trio. Verify the task count surfaces (formatted
+    // as two digits) and that subtask detail is hidden until detailed mode.
+    expect(screen.getByText('01')).toBeInTheDocument()
     expect(screen.queryByText('Write summary model')).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: '详细' }))

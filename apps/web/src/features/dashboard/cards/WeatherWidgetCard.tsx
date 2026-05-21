@@ -21,10 +21,10 @@ const dayLabel = (index: number) => {
 const roundTemp = (value: number) => Math.round(value)
 
 const ATMOS_PARTICLE_COUNT: Record<string, number> = {
-  rain: 14,
-  drizzle: 10,
-  snow: 12,
-  storm: 14,
+  rain: 26,
+  drizzle: 20,
+  snow: 18,
+  storm: 28,
 }
 
 const WeatherWidgetCard = () => {
@@ -103,6 +103,36 @@ const WeatherWidgetCard = () => {
       actions={refreshAction}
       className="weather-widget-card dashboard-widget-card--weather"
     >
+      {/* atmosphere lives at card-section scope so it spans header + body */}
+      {snapshot.status !== 'error' || snapshot.data ? (
+        <div
+          className="weather-widget__atmos"
+          data-tone={effectiveTone}
+          aria-hidden="true"
+        >
+          <span className="weather-widget__atmos-glow" />
+          <span className="weather-widget__atmos-rays" />
+          <span className="weather-widget__atmos-blob weather-widget__atmos-blob--a" />
+          <span className="weather-widget__atmos-blob weather-widget__atmos-blob--b" />
+          <span className="weather-widget__atmos-flash" />
+          <span className="weather-widget__atmos-puddle" />
+          {particles.map((i) => (
+            <span
+              key={i}
+              className="weather-widget__atmos-particle"
+              style={
+                {
+                  '--p-i': i,
+                  '--p-x': `${(i * 53) % 100}%`,
+                  '--p-delay': `${(i * 137) % 1800}ms`,
+                  '--p-duration': `${1200 + ((i * 213) % 1400)}ms`,
+                } as CSSProperties
+              }
+            />
+          ))}
+        </div>
+      ) : null}
+
       <div
         className="weather-widget"
         data-tone={effectiveTone}
@@ -111,26 +141,6 @@ const WeatherWidgetCard = () => {
           <p className="muted">{t('weather.error')}</p>
         ) : (
           <>
-            <div className="weather-widget__atmos" aria-hidden="true">
-              <span className="weather-widget__atmos-glow" />
-              <span className="weather-widget__atmos-blob weather-widget__atmos-blob--a" />
-              <span className="weather-widget__atmos-blob weather-widget__atmos-blob--b" />
-              {particles.map((i) => (
-                <span
-                  key={i}
-                  className="weather-widget__atmos-particle"
-                  style={
-                    {
-                      '--p-i': i,
-                      '--p-x': `${(i * 53) % 100}%`,
-                      '--p-delay': `${(i * 137) % 1800}ms`,
-                      '--p-duration': `${1200 + ((i * 213) % 1400)}ms`,
-                    } as CSSProperties
-                  }
-                />
-              ))}
-            </div>
-
             <section className="weather-widget__hero" aria-label={t('weather.today')}>
               <div className="weather-widget__hero-top">
                 <p className="weather-widget__city">

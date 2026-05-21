@@ -136,7 +136,8 @@ const EditProfilePanel = ({ userId, displayName, email, initial }: {
     setSaveState('saving')
     const auth = getAuth()
     if (auth?.user) {
-      setAuth({ ...auth, user: { ...auth.user, nickname: editName.trim() || displayName } })
+      const nextName = editName.trim() || displayName
+      setAuth({ ...auth, user: { ...auth.user, name: nextName, nickname: nextName } })
     }
     updateProfile(userId, {
       avatar: avatar ?? '',
