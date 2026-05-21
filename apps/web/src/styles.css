@@ -20799,8 +20799,10 @@ html[data-animations='paused'] *::after {
   align-items: center;
   gap: 8px;
   color: var(--todo-rust);
-  font-family: var(--todo-mono);
-  letter-spacing: 0.14em;
+  font-family: "Manrope", system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-weight: 700;
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
 }
 
 .dashboard-widget-card--todo > .card__header > div > .card__eyebrow::before {
@@ -21059,8 +21061,10 @@ html[data-theme='dark'] .dashboard-widget-card--todo .widget-plan-checkbox-wrap 
   align-items: center;
   gap: 8px;
   color: var(--wcc-rust);
-  font-family: var(--wcc-mono);
-  letter-spacing: 0.14em;
+  font-family: "Manrope", system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-weight: 700;
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
 }
 
 .dashboard-widget-card--worldclock > .card__header > div > .card__eyebrow::before {
@@ -21193,4 +21197,690 @@ html[data-theme='dark'] .dashboard-widget-card--worldclock {
   --wcc-rule:       #3a342c;
   --wcc-rule-soft:  #2a2520;
   --wcc-paper-warm: #221d18;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   TasksBoard — editorial reskin
+   Scoped under .dashboard-widget-card--tasks. All interaction logic (hover
+   actions, drag, status cycle, click-to-open, bulk mode) is untouched —
+   this block only overrides visuals.
+
+   Composer (TaskAddComposer) is INTENTIONALLY left alone per user request.
+   ────────────────────────────────────────────────────────────────────────── */
+
+.dashboard-widget-card--tasks {
+  --tk-ink:        #1a1714;
+  --tk-ink-soft:   #4a423a;
+  --tk-ink-mute:   #8a7f70;
+  --tk-rule:       #d8d3c6;
+  --tk-rule-soft:  #ebe6da;
+  --tk-paper:      #ffffff;
+  --tk-paper-warm: #f5f3ee;
+  --tk-rust:       #b54226;
+  --tk-ochre:      #c98a1c;
+  --tk-moss:       #4f6b2f;
+  --tk-lamp:       #b8aea0;
+  --tk-mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo, monospace;
+  --tk-serif: "Fraunces", "Noto Serif SC", serif;
+  --tk-sans: "Manrope", system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+}
+
+/* ── Header: kicker on top, headline below ─────────────────────────────── */
+.dashboard-widget-card--tasks > .card__header > div > .card__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--tk-sans);
+  font-weight: 700;
+  font-size: 10.5px;
+  color: var(--tk-rust);
+  letter-spacing: 0.18em;
+}
+.dashboard-widget-card--tasks > .card__header > div > .card__eyebrow::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tk-rust);
+  box-shadow: 0 0 0 3px rgba(181, 66, 38, 0.15);
+}
+
+.dashboard-widget-card--tasks > .card__header > div > .card__title {
+  font-family: var(--tk-serif);
+  font-variation-settings: "opsz" 96, "SOFT" 30;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  color: var(--tk-ink);
+}
+
+/* ── Status tabs (待办/进行中/已完成) ─────────────────────────────────── */
+.dashboard-widget-card--tasks .tasks-fg__status-tab {
+  font-family: var(--tk-sans);
+  color: var(--tk-ink-mute);
+  letter-spacing: 0.01em;
+  font-weight: 500;
+  font-size: 12.5px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+.dashboard-widget-card--tasks .tasks-fg__status-tab:hover {
+  color: var(--tk-ink);
+}
+.dashboard-widget-card--tasks .tasks-fg__status-tab[aria-selected="true"] {
+  background: var(--tk-paper);
+  border-color: var(--tk-rule);
+  color: var(--tk-ink);
+  box-shadow: 0 2px 6px rgba(26, 23, 20, 0.08);
+  font-weight: 600;
+}
+/* The count number after the tab label — mono for tabular precision */
+.dashboard-widget-card--tasks .tasks-fg__status-tab > span:last-child {
+  margin-left: 7px;
+  color: var(--tk-ink-mute);
+  font-family: var(--tk-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+.dashboard-widget-card--tasks .tasks-fg__status-tab[aria-selected="true"] > span:last-child {
+  color: var(--tk-ink-soft);
+}
+
+/* ── Count meta "6 个任务" — sans, status-line feel ────────────────────── */
+.dashboard-widget-card--tasks .tasks-fg__count-meta {
+  font-family: var(--tk-sans);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--tk-ink-mute);
+  text-transform: none;
+}
+
+/* ── Group header (project sections) ───────────────────────────────────── */
+.dashboard-widget-card--tasks .tasks-fg__group-header h3 {
+  font-family: var(--tk-serif);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--tk-ink);
+  letter-spacing: -0.005em;
+}
+.dashboard-widget-card--tasks .tasks-fg__group-header > span:last-child {
+  font-family: var(--tk-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--tk-ink-mute);
+}
+
+/* ── Task card shell ───────────────────────────────────────────────────── */
+.dashboard-widget-card--tasks .task-card-shell {
+  background: var(--tk-paper) !important;
+  border: 1px solid var(--tk-rule-soft) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 6px rgba(26, 23, 20, 0.04) !important;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease !important;
+}
+.dashboard-widget-card--tasks .task-card-shell:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 10px 24px -10px rgba(40, 28, 10, 0.14) !important;
+  border-color: var(--tk-rule) !important;
+}
+
+/* High priority: barely-warm rust tint + warmer border */
+.dashboard-widget-card--tasks .task-card-shell[data-priority="high"] {
+  background:
+    linear-gradient(180deg, rgba(181, 66, 38, 0.045) 0%, rgba(181, 66, 38, 0.018) 100%),
+    var(--tk-paper) !important;
+  border-color: rgba(181, 66, 38, 0.22) !important;
+}
+
+/* Hide the corner priority flag — editorial uses left-stripe only */
+.dashboard-widget-card--tasks .task-card__priority-flag { display: none !important; }
+
+/* Override the existing left stripe colors with the editorial palette */
+.dashboard-widget-card--tasks .task-card--priority-high::before    { background: var(--tk-rust) !important; }
+.dashboard-widget-card--tasks .task-card--priority-medium::before  { background: var(--tk-ochre) !important; }
+.dashboard-widget-card--tasks .task-card--priority-low::before     { background: var(--tk-lamp) !important; }
+/* Tasks with no priority: still get a stripe for visual rhythm */
+.dashboard-widget-card--tasks .task-card-shell[data-priority="none"]::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--tk-lamp);
+  border-radius: 8px 0 0 8px;
+  transition: width 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.dashboard-widget-card--tasks .task-card-shell[data-priority="none"]:hover::before {
+  width: 4px;
+}
+
+/* ── Title ─────────────────────────────────────────────────────────────── */
+.dashboard-widget-card--tasks .task-card__title {
+  font-family: var(--tk-serif);
+  font-weight: 500;
+  font-size: 15px;
+  line-height: 1.35;
+  letter-spacing: -0.005em;
+  color: var(--tk-ink);
+}
+
+/* ── Priority badge → mono small caps with semantic color ─────────────── */
+.dashboard-widget-card--tasks .task-card__priority-badge {
+  background: transparent !important;
+  padding: 0 !important;
+  font-family: var(--tk-mono) !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.16em !important;
+  text-transform: uppercase;
+}
+.dashboard-widget-card--tasks .task-card__priority-badge > span:first-child {
+  /* the colored dot inside the badge */
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+}
+.dashboard-widget-card--tasks .task-card__priority-badge[data-priority="high"]   { color: var(--tk-rust) !important; }
+.dashboard-widget-card--tasks .task-card__priority-badge[data-priority="high"] > span:first-child   { background: var(--tk-rust) !important; }
+.dashboard-widget-card--tasks .task-card__priority-badge[data-priority="medium"] { color: var(--tk-ochre) !important; }
+.dashboard-widget-card--tasks .task-card__priority-badge[data-priority="medium"] > span:first-child { background: var(--tk-ochre) !important; }
+.dashboard-widget-card--tasks .task-card__priority-badge[data-priority="low"]    { color: var(--tk-ink-mute) !important; }
+.dashboard-widget-card--tasks .task-card__priority-badge[data-priority="low"] > span:first-child    { background: var(--tk-ink-mute) !important; }
+
+/* ── Status badge → tiny 7×7 color swatch (text hidden) ────────────────── */
+.dashboard-widget-card--tasks .task-card__status-badge {
+  width: 8px;
+  height: 8px;
+  padding: 0 !important;
+  border-radius: 2px !important;
+  border: 0 !important;
+  font-size: 0 !important;
+  color: transparent !important;
+  overflow: hidden;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+.dashboard-widget-card--tasks .task-card__status-badge[data-status="todo"]  { background: var(--tk-lamp) !important; }
+.dashboard-widget-card--tasks .task-card__status-badge[data-status="doing"] { background: var(--tk-ochre) !important; }
+.dashboard-widget-card--tasks .task-card__status-badge[data-status="done"]  { background: var(--tk-moss) !important; }
+
+/* ── Subtask progress → mono ✓ N/M, no chrome ─────────────────────────── */
+.dashboard-widget-card--tasks .task-card__subtask-progress {
+  background: transparent !important;
+  padding: 0 !important;
+  color: var(--tk-ink-mute) !important;
+  font-family: var(--tk-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+/* ── Project chip (in tags row) → sans, editorial ─────────────────────── */
+.dashboard-widget-card--tasks .task-card__project-chip {
+  background: var(--tk-paper-warm) !important;
+  border: 1px solid var(--tk-rule-soft);
+  color: var(--tk-ink-soft) !important;
+  font-family: var(--font-body, "Instrument Sans"), system-ui, sans-serif !important;
+  font-weight: 500 !important;
+  font-size: 11.5px !important;
+  letter-spacing: 0.01em;
+}
+.dashboard-widget-card--tasks .task-card__project-chip:hover {
+  background: #ECE8E1 !important;
+  color: var(--tk-ink) !important;
+}
+
+/* ── Regular tags ──────────────────────────────────────────────────────── */
+.dashboard-widget-card--tasks .task-card__tag {
+  background: var(--tk-paper-warm) !important;
+  color: var(--tk-ink-soft) !important;
+  border: 1px solid var(--tk-rule-soft);
+  font-family: var(--font-body, "Instrument Sans"), system-ui, sans-serif !important;
+  font-weight: 500 !important;
+  font-size: 11px !important;
+  letter-spacing: 0.01em;
+  padding: 1px 8px !important;
+  border-radius: 999px !important;
+}
+
+/* ── Overdue/deadline shellClass overrides — kill the rose tint ─────────
+   The default `.shellClass` slaps `!bg-rose-50/80 !border-rose-300/70` on
+   the card when it's overdue. We let high-priority's own subtle tint do
+   the job and drop the toast-pink feel. */
+.dashboard-widget-card--tasks .task-card-shell.\!bg-rose-50\/80,
+.dashboard-widget-card--tasks .task-card-shell.\!bg-rose-50\/70 {
+  /* keep card pristine; the data-priority="high" tint already speaks */
+  background: var(--tk-paper) !important;
+}
+.dashboard-widget-card--tasks .task-card-shell[data-priority="high"].\!bg-rose-50\/80,
+.dashboard-widget-card--tasks .task-card-shell[data-priority="high"].\!bg-rose-50\/70 {
+  background:
+    linear-gradient(180deg, rgba(181, 66, 38, 0.045) 0%, rgba(181, 66, 38, 0.018) 100%),
+    var(--tk-paper) !important;
+}
+.dashboard-widget-card--tasks .task-card-shell.\!border-rose-300\/70,
+.dashboard-widget-card--tasks .task-card-shell.\!border-rose-300\/60 {
+  border-color: rgba(181, 66, 38, 0.22) !important;
+}
+
+/* Amber deadline tint (soon-due) — soften too */
+.dashboard-widget-card--tasks .task-card-shell.\!bg-amber-50\/70 {
+  background: var(--tk-paper) !important;
+}
+.dashboard-widget-card--tasks .task-card-shell.\!border-amber-200\/70 {
+  border-color: var(--tk-rule) !important;
+}
+
+/* ── Action bar (hover-revealed) — already styled by base rules; just
+   recolor the icon buttons to fit the palette. ───────────────────────── */
+.dashboard-widget-card--tasks .task-card__action-btn {
+  color: var(--tk-ink-mute) !important;
+  border-radius: 6px !important;
+}
+.dashboard-widget-card--tasks .task-card__action-btn:hover {
+  background: var(--tk-paper-warm) !important;
+  color: var(--tk-ink) !important;
+}
+
+/* ── Dark theme survival ───────────────────────────────────────────────── */
+html[data-theme='dark'] .dashboard-widget-card--tasks {
+  --tk-ink:        #f3ece0;
+  --tk-ink-soft:   #d4c8b4;
+  --tk-ink-mute:   #8a7f70;
+  --tk-rule:       #3a342c;
+  --tk-rule-soft:  #2a2520;
+  --tk-paper:      #1a1714;
+  --tk-paper-warm: #221d18;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   TaskDrawer — editorial reskin
+   Scoped under .task-detail-theme. All sections except the tiptap note
+   editor surface are restyled. Interaction logic, autosave, keyboard
+   shortcuts, and animations are untouched.
+
+   Note: the note CONTENT editor (tiptap) is intentionally not styled here.
+   ────────────────────────────────────────────────────────────────────────── */
+
+.task-detail-theme {
+  --td-ink:        #1a1714;
+  --td-ink-soft:   #4a423a;
+  --td-ink-mute:   #8a7f70;
+  --td-rule:       #d8d3c6;
+  --td-rule-soft:  #ebe6da;
+  --td-paper:      #ffffff;
+  --td-paper-warm: #f5f3ee;
+  --td-rust:       #b54226;
+  --td-ochre:      #c98a1c;
+  --td-moss:       #4f6b2f;
+  --td-lamp:       #b8aea0;
+  --td-mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo, monospace;
+  --td-serif: "Fraunces", "Noto Serif SC", serif;
+}
+
+/* ── Topbar ────────────────────────────────────────────────────────────── */
+.task-detail-theme .task-detail-topbar {
+  padding: 14px 20px !important;
+  border-bottom-color: var(--td-rule-soft) !important;
+}
+
+.task-detail-status-badge,
+.task-detail-theme .task-detail-status-badge {
+  background: var(--td-paper-warm) !important;
+  border: 1px solid var(--td-rule-soft) !important;
+  color: var(--td-ink-soft) !important;
+  font-family: var(--td-serif) !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  padding: 3px 12px 3px 10px !important;
+}
+
+/* ── Section kicker (mono + rust + leading dot) ────────────────────────── */
+.task-detail-theme .task-detail-kicker {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--td-mono) !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.22em !important;
+  color: var(--td-rust) !important;
+  text-transform: uppercase;
+}
+.task-detail-theme .task-detail-kicker::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--td-rust);
+  box-shadow: 0 0 0 2.5px rgba(181, 66, 38, 0.15);
+}
+
+/* ── Section title (Fraunces serif) ────────────────────────────────────── */
+.task-detail-theme .task-detail-title {
+  font-family: var(--td-serif) !important;
+  font-variation-settings: "opsz" 60, "SOFT" 30 !important;
+  font-weight: 500 !important;
+  font-size: 17px !important;
+  letter-spacing: -0.01em !important;
+  color: var(--td-ink) !important;
+}
+
+/* ── Cards: soft warm border + light shadow ────────────────────────────── */
+.task-detail-theme .task-detail-card {
+  border-color: var(--td-rule-soft) !important;
+  box-shadow: 0 12px 32px -18px rgba(40, 28, 10, 0.10) !important;
+  background: var(--td-paper) !important;
+}
+
+/* Hero card: left rust stripe + slightly more shadow */
+.task-detail-theme .task-detail-card--hero {
+  position: relative;
+  padding-left: 28px !important;
+  box-shadow: 0 20px 50px -24px rgba(40, 28, 10, 0.16) !important;
+}
+.task-detail-theme .task-detail-card--hero::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 24px; bottom: 24px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--td-rust);
+}
+
+/* Hero title input — Fraunces */
+.task-detail-theme .task-detail-title-input {
+  font-family: var(--td-serif) !important;
+  font-variation-settings: "opsz" 96, "SOFT" 30 !important;
+  font-weight: 500 !important;
+  font-size: 26px !important;
+  line-height: 1.2 !important;
+  letter-spacing: -0.018em !important;
+  color: var(--td-ink) !important;
+}
+.task-detail-theme .task-detail-title-input::placeholder {
+  color: var(--td-ink-mute) !important;
+  font-style: italic;
+}
+
+/* ── Picker / select / textarea — paper-warm well, soft border ─────────── */
+.task-detail-theme .task-detail-picker,
+.task-detail-theme .task-detail-select-trigger {
+  background: var(--td-paper-warm) !important;
+  border-color: var(--td-rule-soft) !important;
+  color: var(--td-ink) !important;
+}
+
+/* ── Priority select pill ──────────────────────────────────────────────── */
+.task-detail-theme .tdv2-priority-select {
+  font-family: var(--td-sans, "Instrument Sans"), system-ui, sans-serif !important;
+  letter-spacing: 0.01em !important;
+}
+
+/* ── Tag chips — editorial palette ─────────────────────────────────────── */
+.task-detail-theme .task-detail-tag {
+  background: var(--td-paper-warm) !important;
+  color: var(--td-ink-soft) !important;
+  border: 1px solid var(--td-rule-soft) !important;
+  font-family: var(--td-sans, "Instrument Sans"), system-ui, sans-serif !important;
+  font-weight: 500 !important;
+  font-size: 11px !important;
+  letter-spacing: 0.01em !important;
+}
+
+/* ── Progress card — keep ochre/journal flavour, align tokens ──────────── */
+.task-detail-theme .task-detail-progress {
+  border-color: rgba(201, 138, 28, 0.30) !important;
+  background:
+    linear-gradient(180deg, rgba(201, 138, 28, 0.06) 0%, rgba(201, 138, 28, 0.02) 70%, transparent 100%),
+    var(--td-paper) !important;
+  box-shadow: 0 16px 40px -20px rgba(201, 138, 28, 0.16) !important;
+}
+.task-detail-theme .task-detail-progress h2 {
+  font-family: var(--td-serif) !important;
+  font-weight: 500 !important;
+  font-size: 16px !important;
+  color: var(--td-ink) !important;
+  letter-spacing: -0.005em !important;
+}
+.task-detail-theme .task-detail-progress textarea {
+  background: var(--td-paper) !important;
+  border-color: rgba(201, 138, 28, 0.30) !important;
+  color: var(--td-ink) !important;
+  font-family: var(--td-serif) !important;
+  font-size: 13.5px !important;
+  line-height: 1.55 !important;
+}
+.task-detail-theme .task-detail-progress textarea:focus {
+  border-color: var(--td-ochre) !important;
+  box-shadow: 0 0 0 3px rgba(201, 138, 28, 0.14) !important;
+}
+.task-detail-theme .task-detail-progress textarea::placeholder {
+  color: var(--td-ink-mute) !important;
+  font-style: italic;
+}
+/* progress save hint + history toggle in the ochre family */
+.task-detail-theme .task-detail-progress p,
+.task-detail-theme .task-detail-progress .text-amber-700,
+.task-detail-theme .task-detail-progress .text-amber-700\/70,
+.task-detail-theme .task-detail-progress .text-amber-700\/60 {
+  color: var(--td-ochre) !important;
+}
+
+/* ── Activity timeline dots — semantic colours ─────────────────────────── */
+.task-detail-theme .tdv2-timeline-dot {
+  background: var(--td-ochre) !important;
+  box-shadow: 0 0 0 3px rgba(201, 138, 28, 0.16) !important;
+}
+.task-detail-theme .tdv2-timeline-item--lined::before {
+  background: var(--td-rule-soft) !important;
+}
+
+/* ── Subtask filter pill (全部 / 未完成 / 已完成) ───────────────────────
+   Original markup uses inline tailwind: `bg-[#3a3733] text-[#f5f3f0]`
+   on the active button. Override via attribute selector. */
+.task-detail-theme .task-detail-aside button.bg-\[\#3a3733\] {
+  background: var(--td-paper) !important;
+  color: var(--td-ink) !important;
+  box-shadow:
+    0 2px 6px rgba(26, 23, 20, 0.08),
+    inset 0 0 0 1px var(--td-rule) !important;
+}
+
+/* ── Subtask item card ─────────────────────────────────────────────────── */
+.task-detail-theme .task-popup-detail__subtask-checkbox-row {
+  align-items: center;
+}
+.task-detail-theme .task-detail-aside .rounded-\[15px\] {
+  background: var(--td-paper) !important;
+  border-color: var(--td-rule-soft) !important;
+}
+.task-detail-theme .task-detail-aside .rounded-\[15px\]:hover {
+  background: var(--td-paper-warm) !important;
+  border-color: var(--td-rule) !important;
+}
+
+/* ── Subtask checkbox — moss when checked ───────────────────────────── */
+.task-detail-theme .widget-plan-checkbox-wrap {
+  background: var(--td-paper) !important;
+  border-color: var(--td-rule) !important;
+}
+.task-detail-theme .widget-plan-checkbox-wrap[data-checked='true'],
+.task-detail-theme .widget-plan-checkbox-wrap[data-state='checked'] {
+  background: var(--td-moss) !important;
+  border-color: var(--td-moss) !important;
+}
+.task-detail-theme .widget-plan-checkbox-wrap[data-checked='true'] .widget-plan-checkbox-icon path,
+.task-detail-theme .widget-plan-checkbox-wrap[data-state='checked'] .widget-plan-checkbox-icon path {
+  stroke: #fff !important;
+}
+
+/* Subtask title input — Fraunces */
+.task-detail-theme .task-popup-detail__subtask-title-input {
+  font-family: var(--td-serif) !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  color: var(--td-ink) !important;
+  letter-spacing: -0.003em;
+}
+.task-detail-theme .task-popup-detail__subtask-title-input.is-done {
+  text-decoration: line-through;
+  text-decoration-color: var(--td-lamp);
+  color: var(--td-ink-mute) !important;
+}
+
+/* ── Subtask composer (add subtask) — ochre dashed well ────────────────── */
+.task-detail-theme .task-detail-aside form .tasks-fg__hero-plus {
+  color: var(--td-ochre) !important;
+}
+
+/* ── Empty state for filtered subtasks ─────────────────────────────────── */
+.task-detail-theme .task-detail-aside .border-dashed {
+  border-color: var(--td-rule) !important;
+  background: var(--td-paper-warm) !important;
+  color: var(--td-ink-mute) !important;
+  font-family: var(--td-mono);
+  font-size: 10.5px !important;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* ── Notes "新建笔记" CTA — match its exact bg utility ──────────────────
+   Previously this used `[class*="3a3733"]` which over-matched and turned
+   the project-assign + attachments dropzones black (they both happen to
+   carry `border-[#3a3733]/15`). Narrow to the exact bg utility. */
+.task-detail-theme button[class*="bg-[#3a3733]"]:not([role="tab"]) {
+  background: var(--td-ink) !important;
+  color: #fff !important;
+}
+
+/* ── Section enter animation — keep, just nudge timing softer ──────────── */
+.task-detail-theme .tdv2-section-enter {
+  animation-duration: 0.55s !important;
+}
+
+/* ── Role-based typography system ────────────────────────────────────────
+   Editorial contrast comes from font ROLES, not picking one face:
+     • SERIF  (Fraunces + Noto Serif SC) — reading content
+     • SANS   (Manrope + system CJK)     — UI controls
+     • MONO   (JetBrains Mono)           — pure data (dates, counts, kbd)
+
+   Chinese mono effectively collapses to system CJK + tracking, so we
+   reserve mono for English/numeric data and use sans for Chinese UI. */
+
+.task-detail-theme {
+  --td-sans: "Manrope", system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+}
+
+/* ── KICKER: rust + dot. Sans-tracked so it reads as a small label on
+   both English (WIDGET) and Chinese (看板). ───────────────────────────── */
+.task-detail-theme .task-detail-kicker {
+  font-family: var(--td-sans) !important;
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.18em !important;
+}
+
+/* ── SANS for all UI controls ────────────────────────────────────────────
+   Status badge, save state, action buttons, filter tabs, view tabs,
+   composer buttons, swap/new-note CTAs, hint paragraphs. */
+
+/* Status badge in topbar */
+.task-detail-status-badge,
+.task-detail-theme .task-detail-status-badge {
+  font-family: var(--td-sans) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.01em !important;
+}
+
+/* Save state "已保存" / "正在保存…" */
+.task-detail-theme .task-detail-topbar__state > span:last-child {
+  font-family: var(--td-sans) !important;
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+}
+
+/* Topbar action buttons "开始" / "完成" */
+.task-detail-theme .task-detail-actions button {
+  font-family: var(--td-sans) !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em !important;
+}
+
+/* Subtask filter tabs (全部 / 未完成 / 已完成) */
+.task-detail-theme .task-detail-aside button.rounded-full {
+  font-family: var(--td-sans) !important;
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.01em !important;
+}
+.task-detail-theme .task-detail-aside button.bg-\[\#3a3733\] {
+  font-weight: 600 !important;
+}
+
+/* Notes view tabs (列表视图 / 卡片视图 / 聚焦视图) — leave their inline
+   class structure but normalize font. */
+.task-detail-theme .task-detail-aside [role="tab"] {
+  font-family: var(--td-sans) !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+}
+
+/* In-card buttons: 更换, 新建笔记, 添加 (composer), pickers when used as
+   text buttons. Exclude icon-only round buttons (handled by their own
+   classes). */
+.task-detail-theme .task-detail-card-shell button:not([aria-label]):not(.task-detail-action-button),
+.task-detail-theme .task-detail-card button[type="button"]:not(.task-detail-action-button):not([role="tab"]):not(.task-detail-select-trigger):not([aria-label*="Remove"]):not([aria-label*="移除"]) {
+  font-family: var(--td-sans) !important;
+  letter-spacing: 0.01em !important;
+}
+
+/* Progress card save hint "失焦或 ⌘ + Enter 保存" — sans italic small */
+.task-detail-theme .task-detail-progress > p {
+  font-family: var(--td-sans) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.01em !important;
+  text-transform: none !important;
+  font-style: normal !important;
+}
+
+/* Image dropzone subtitle "最多 10 张, 自动压缩" — sans small */
+.task-detail-theme .task-detail-card .text-\[10px\]:not(.tabular-nums),
+.task-detail-theme .task-detail-card .text-\[11px\]:not(.text-amber-700):not(.text-amber-700\/70):not(.text-amber-700\/60):not(button):not([class*="font-mono"]) {
+  font-family: var(--td-sans) !important;
+  letter-spacing: 0.005em !important;
+  text-transform: none !important;
+  font-style: normal;
+}
+
+/* Notes empty-state hint */
+.task-detail-theme .task-detail-aside p[class*="text-[12px]"],
+.task-detail-theme .task-detail-aside p[class*="text-[11px]"]:not([class*="text-amber"]) {
+  font-family: var(--td-sans) !important;
+  font-size: 11.5px !important;
+  letter-spacing: 0.005em !important;
+  text-transform: none !important;
+}
+
+/* ── Dark theme survival ───────────────────────────────────────────────── */
+html[data-theme='dark'] .task-detail-theme {
+  --td-ink:        #f3ece0;
+  --td-ink-soft:   #d4c8b4;
+  --td-ink-mute:   #8a7f70;
+  --td-rule:       #3a342c;
+  --td-rule-soft:  #2a2520;
+  --td-paper:      #1a1714;
+  --td-paper-warm: #221d18;
 }
