@@ -1069,6 +1069,33 @@ label input[type='checkbox'] {
   transform: translateY(-1px);
 }
 
+.wc-add-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-muted) 55%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  color: color-mix(in srgb, var(--text-secondary) 90%, transparent);
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, transform 0.18s var(--ease-emphasized);
+}
+
+.wc-add-icon-btn:hover {
+  background: color-mix(in srgb, var(--bg-muted) 90%, transparent);
+  border-color: color-mix(in srgb, var(--text-secondary) 32%, transparent);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.wc-add-icon-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent, var(--text-primary)) 35%, transparent);
+}
+
 .wc-composer {
   margin-top: 14px;
   position: relative;
@@ -2041,6 +2068,19 @@ html[data-motion='reduce'] .route-loader__mark {
 .dashboard .card.dashboard-widget-card--weather {
   position: relative;
   isolation: isolate;
+  /* Drop the 1px card border entirely. A transparent border still occupies
+     layout and produces a faint subpixel seam where the gradient meets the
+     rounded corner. Rely on the existing outer shadow for silhouette. */
+  border: 0;
+  overflow: hidden;
+  /* Kill the base .card inset top-highlight ("inset 0 1px 0 white"), which
+     reads as a bright line on the saturated tone. */
+  box-shadow: var(--shadow-soft);
+}
+
+.dashboard .card.dashboard-widget-card--weather:hover {
+  border: 0;
+  box-shadow: var(--shadow-soft), 0 8px 22px rgba(58, 55, 51, 0.10);
 }
 
 .card__header {
@@ -12387,16 +12427,87 @@ html[data-motion='reduce'] .spend-fg__track {
   outline: none;
 }
 
+/* ── Tone gradient lifted to the whole card section so header + body share
+   one seamless surface. Header chrome becomes transparent on top of it. ── */
+.weather-widget-card {
+  --tone-bg-1: #eef1f4;
+  --tone-bg-2: #d8dee6;
+  --tone-ink: #3a3733;
+  --tone-ink-soft: color-mix(in srgb, var(--tone-ink) 62%, transparent);
+  --tone-accent: color-mix(in srgb, var(--tone-ink) 86%, transparent);
+  --tone-surface: color-mix(in srgb, #ffffff 60%, transparent);
+  position: relative;
+  background:
+    radial-gradient(150% 110% at 18% 12%, color-mix(in srgb, var(--tone-bg-1) 96%, transparent) 0%, transparent 62%),
+    linear-gradient(168deg, var(--tone-bg-1) 0%, var(--tone-bg-2) 100%);
+  color: var(--tone-ink);
+  transition:
+    background 620ms cubic-bezier(0.16, 1, 0.3, 1),
+    color 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Tone-aware overrides on the card section, mirroring [data-tone] on the
+   inner div via :has(). All modern browsers support this. */
+.weather-widget-card:has(.weather-widget[data-tone='sun']) {
+  --tone-bg-1: #fef3c7;
+  --tone-bg-2: #f6c873;
+  --tone-accent: #b45309;
+}
+.weather-widget-card:has(.weather-widget[data-tone='cloud']) {
+  --tone-bg-1: #eef1f4;
+  --tone-bg-2: #c8cfd9;
+  --tone-accent: #475569;
+}
+.weather-widget-card:has(.weather-widget[data-tone='fog']) {
+  --tone-bg-1: #ece9e3;
+  --tone-bg-2: #c4beb1;
+  --tone-accent: #57534e;
+}
+.weather-widget-card:has(.weather-widget[data-tone='drizzle']) {
+  --tone-bg-1: #dde3ee;
+  --tone-bg-2: #9aa9c2;
+  --tone-accent: #1e40af;
+}
+.weather-widget-card:has(.weather-widget[data-tone='rain']) {
+  --tone-bg-1: #c9d6e7;
+  --tone-bg-2: #5b7796;
+  --tone-ink: #1f2933;
+  --tone-accent: #1d4ed8;
+  --tone-surface: color-mix(in srgb, #ffffff 50%, transparent);
+}
+.weather-widget-card:has(.weather-widget[data-tone='snow']) {
+  --tone-bg-1: #f6f9fd;
+  --tone-bg-2: #cfd9e7;
+  --tone-accent: #1e3a8a;
+}
+.weather-widget-card:has(.weather-widget[data-tone='storm']) {
+  --tone-bg-1: #6b6253;
+  --tone-bg-2: #2c2820;
+  --tone-ink: #f5f3f0;
+  --tone-ink-soft: color-mix(in srgb, #f5f3f0 70%, transparent);
+  --tone-accent: #fbbf24;
+  --tone-surface: color-mix(in srgb, #000000 28%, transparent);
+}
+
+/* Header chrome rides on top of the tone now — transparent + tone ink */
 .weather-widget-card .card__body {
   padding: 0;
-  /* let the tone bleed all the way to the card's rounded silhouette */
+  background: transparent;
 }
 
 .weather-widget-card .card__header {
-  /* tighten so the gradient's top fade reaches under the title chrome */
   padding-bottom: 4px;
   position: relative;
   z-index: 2;
+  background: transparent;
+}
+
+.weather-widget-card .card__eyebrow {
+  color: color-mix(in srgb, var(--tone-ink) 72%, transparent);
+}
+
+.weather-widget-card .card__title {
+  color: var(--tone-ink);
 }
 
 .weather-widget-card .card__actions {
@@ -12407,12 +12518,6 @@ html[data-motion='reduce'] .spend-fg__track {
 }
 
 .weather-widget {
-  --tone-bg-1: #eef1f4;
-  --tone-bg-2: #d8dee6;
-  --tone-ink: #3a3733;
-  --tone-ink-soft: color-mix(in srgb, var(--tone-ink) 62%, transparent);
-  --tone-accent: color-mix(in srgb, var(--tone-ink) 86%, transparent);
-  --tone-surface: color-mix(in srgb, #ffffff 60%, transparent);
   --atmos-opacity: 1;
   position: relative;
   display: grid;
@@ -12421,22 +12526,14 @@ html[data-motion='reduce'] .spend-fg__track {
   align-items: stretch;
   flex: 1;
   min-height: 0;
-  padding: 18px 18px 16px;
+  padding: 4px 18px 16px;
   margin: 0;
   border-radius: 0;
   overflow: hidden;
   isolation: isolate;
   color: var(--tone-ink);
-  background:
-    radial-gradient(150% 110% at 18% 12%, color-mix(in srgb, var(--tone-bg-1) 96%, transparent) 0%, transparent 62%),
-    linear-gradient(168deg, var(--tone-bg-1) 0%, var(--tone-bg-2) 100%);
-  /* soft-fade the top edge into the card's neutral header so there is no
-     hard horizontal seam between the white chrome and the tone */
-  -webkit-mask-image: linear-gradient(180deg, transparent 0, rgba(0, 0, 0, 0.55) 14px, #000 34px, #000 100%);
-  mask-image: linear-gradient(180deg, transparent 0, rgba(0, 0, 0, 0.55) 14px, #000 34px, #000 100%);
-  transition:
-    background 620ms cubic-bezier(0.16, 1, 0.3, 1),
-    color 420ms cubic-bezier(0.16, 1, 0.3, 1);
+  background: transparent;
+  transition: color 420ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .weather-widget[data-tone='sun'] {
@@ -12525,14 +12622,15 @@ html[data-motion='reduce'] .spend-fg__track {
   outline-offset: 2px;
 }
 
-/* atmosphere */
+/* atmosphere — positioned to the card section so it spans header + body */
 .weather-widget__atmos {
   position: absolute;
   inset: 0;
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
-  opacity: var(--atmos-opacity);
+  border-radius: inherit;
+  opacity: 1;
   transition: opacity 480ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -12547,7 +12645,7 @@ html[data-motion='reduce'] .spend-fg__track {
   transition: opacity 520ms ease;
 }
 
-.weather-widget[data-tone='sun'] .weather-widget__atmos-glow {
+.weather-widget__atmos[data-tone='sun'] .weather-widget__atmos-glow {
   opacity: 1;
   animation: atmos-sun-pulse 7s ease-in-out infinite;
 }
@@ -12575,18 +12673,18 @@ html[data-motion='reduce'] .spend-fg__track {
   animation: atmos-drift-b 22s ease-in-out infinite;
 }
 
-.weather-widget[data-tone='cloud'] .weather-widget__atmos-blob,
-.weather-widget[data-tone='fog'] .weather-widget__atmos-blob,
-.weather-widget[data-tone='storm'] .weather-widget__atmos-blob {
+.weather-widget__atmos[data-tone='cloud'] .weather-widget__atmos-blob,
+.weather-widget__atmos[data-tone='fog'] .weather-widget__atmos-blob,
+.weather-widget__atmos[data-tone='storm'] .weather-widget__atmos-blob {
   opacity: 0.55;
 }
 
-.weather-widget[data-tone='fog'] .weather-widget__atmos-blob {
+.weather-widget__atmos[data-tone='fog'] .weather-widget__atmos-blob {
   filter: blur(34px);
   opacity: 0.7;
 }
 
-.weather-widget[data-tone='storm'] .weather-widget__atmos-blob {
+.weather-widget__atmos[data-tone='storm'] .weather-widget__atmos-blob {
   background: color-mix(in srgb, #f5f3f0 18%, transparent);
 }
 
@@ -12594,38 +12692,149 @@ html[data-motion='reduce'] .spend-fg__track {
   position: absolute;
   top: -10%;
   left: var(--p-x, 50%);
-  width: 1px;
-  height: 14px;
+  width: 1.6px;
+  height: 18px;
   border-radius: 1px;
-  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--tone-accent) 60%, transparent));
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    color-mix(in srgb, #ffffff 70%, transparent) 60%,
+    color-mix(in srgb, #ffffff 95%, transparent) 100%
+  );
   opacity: 0;
+  /* slight backward slant inside the keyframe so drops feel like they
+     fall through wind (static transform here would be overridden) */
   animation: atmos-rainfall var(--p-duration, 1500ms) linear infinite;
   animation-delay: var(--p-delay, 0ms);
+  will-change: transform, opacity;
 }
 
-.weather-widget[data-tone='rain'] .weather-widget__atmos-particle,
-.weather-widget[data-tone='drizzle'] .weather-widget__atmos-particle,
-.weather-widget[data-tone='storm'] .weather-widget__atmos-particle {
-  opacity: 1;
+.weather-widget__atmos[data-tone='rain'] .weather-widget__atmos-particle,
+.weather-widget__atmos[data-tone='drizzle'] .weather-widget__atmos-particle,
+.weather-widget__atmos[data-tone='storm'] .weather-widget__atmos-particle {
+  opacity: 0.88;
 }
 
-.weather-widget[data-tone='drizzle'] .weather-widget__atmos-particle {
-  height: 8px;
-  animation-duration: calc(var(--p-duration, 1500ms) * 1.1);
+.weather-widget__atmos[data-tone='rain'] .weather-widget__atmos-particle {
+  width: 1.8px;
+  height: 22px;
+  animation-duration: calc(var(--p-duration, 1500ms) * 0.7);
 }
 
-.weather-widget[data-tone='snow'] .weather-widget__atmos-particle {
-  width: 4px;
-  height: 4px;
+.weather-widget__atmos[data-tone='drizzle'] .weather-widget__atmos-particle {
+  width: 1.4px;
+  height: 12px;
+  /* drizzle is softer + slightly slower */
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    color-mix(in srgb, #ffffff 55%, transparent) 65%,
+    color-mix(in srgb, #ffffff 85%, transparent) 100%
+  );
+  animation-duration: calc(var(--p-duration, 1500ms) * 1.0);
+}
+
+.weather-widget__atmos[data-tone='storm'] .weather-widget__atmos-particle {
+  width: 2px;
+  height: 26px;
+  animation-duration: calc(var(--p-duration, 1500ms) * 0.55);
+}
+
+.weather-widget__atmos[data-tone='snow'] .weather-widget__atmos-particle {
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
-  background: color-mix(in srgb, #ffffff 92%, transparent);
-  box-shadow: 0 0 4px color-mix(in srgb, #ffffff 60%, transparent);
-  opacity: 1;
+  background: #ffffff;
+  box-shadow: 0 0 6px color-mix(in srgb, #ffffff 80%, transparent);
+  opacity: 0.92;
+  transform: none;
   animation-name: atmos-snow;
   animation-duration: calc(var(--p-duration, 1500ms) * 2);
 }
 
-.weather-widget[data-tone='storm'] .weather-widget__atmos-glow {
+/* ── Atmospheric layers (rays / veil / flash / puddle) ─────────────────── */
+
+/* Sun rays: slow rotating sunburst behind the glow */
+.weather-widget__atmos-rays {
+  position: absolute;
+  top: -30%;
+  right: -25%;
+  width: 120%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      color-mix(in srgb, var(--tone-accent) 16%, transparent) 4deg,
+      transparent 8deg,
+      transparent 16deg,
+      color-mix(in srgb, var(--tone-accent) 12%, transparent) 20deg,
+      transparent 24deg,
+      transparent 36deg,
+      color-mix(in srgb, var(--tone-accent) 14%, transparent) 40deg,
+      transparent 44deg,
+      transparent 56deg,
+      color-mix(in srgb, var(--tone-accent) 10%, transparent) 60deg,
+      transparent 64deg,
+      transparent 360deg
+    );
+  -webkit-mask-image: radial-gradient(circle, #000 30%, transparent 75%);
+  mask-image: radial-gradient(circle, #000 30%, transparent 75%);
+  opacity: 0;
+  animation: atmos-rays-spin 60s linear infinite;
+}
+
+.weather-widget__atmos[data-tone='sun'] .weather-widget__atmos-rays {
+  opacity: 0.75;
+}
+
+
+/* Storm lightning flash overlay */
+.weather-widget__atmos-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    120% 80% at 65% 25%,
+    rgba(255, 247, 200, 0.85) 0%,
+    rgba(255, 247, 200, 0.25) 30%,
+    transparent 60%
+  );
+  mix-blend-mode: screen;
+}
+
+.weather-widget__atmos[data-tone='storm'] .weather-widget__atmos-flash {
+  animation: atmos-flash 6s steps(1, end) infinite;
+}
+
+/* Wet "puddle" sheen at the bottom edge for rain/drizzle/storm */
+.weather-widget__atmos-puddle {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 26%;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, #000000 24%, transparent) 0%,
+    transparent 100%
+  );
+  transition: opacity 480ms ease;
+}
+
+.weather-widget__atmos[data-tone='rain'] .weather-widget__atmos-puddle,
+.weather-widget__atmos[data-tone='storm'] .weather-widget__atmos-puddle {
+  opacity: 0.55;
+}
+.weather-widget__atmos[data-tone='drizzle'] .weather-widget__atmos-puddle {
+  opacity: 0.32;
+}
+
+.weather-widget__atmos[data-tone='storm'] .weather-widget__atmos-glow {
   opacity: 0.4;
   animation: atmos-storm-flicker 4s steps(1, end) infinite;
 }
@@ -12875,9 +13084,23 @@ html[data-motion='reduce'] .spend-fg__track {
 }
 
 @keyframes atmos-rainfall {
-  0% { transform: translate3d(0, -10%, 0); opacity: 0; }
-  20% { opacity: 1; }
-  100% { transform: translate3d(-12px, 240%, 0); opacity: 0; }
+  0%   { transform: translate3d(0, -20%, 0) skewX(-8deg);  opacity: 0; }
+  10%  { opacity: 0.95; }
+  90%  { opacity: 0.95; }
+  100% { transform: translate3d(-22px, 280%, 0) skewX(-8deg); opacity: 0; }
+}
+
+@keyframes atmos-rays-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes atmos-flash {
+  /* mostly dark, with quick double-strike every ~6s */
+  0%, 88%, 100%       { opacity: 0; }
+  89%                 { opacity: 0.95; }
+  90%                 { opacity: 0.05; }
+  91%                 { opacity: 0.75; }
+  92%                 { opacity: 0; }
 }
 
 @keyframes atmos-snow {
@@ -12905,6 +13128,8 @@ html[data-motion='reduce'] .spend-fg__track {
   .weather-widget__atmos-glow,
   .weather-widget__atmos-blob,
   .weather-widget__atmos-particle,
+  .weather-widget__atmos-rays,
+  .weather-widget__atmos-flash,
   .weather-widget__timeline-progress {
     animation: none !important;
     transition: none !important;
@@ -20545,4 +20770,427 @@ html[data-animations='paused'] *,
 html[data-animations='paused'] *::before,
 html[data-animations='paused'] *::after {
   animation-play-state: paused !important;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   WidgetTodosCard — editorial reskin
+   All overrides scoped under .dashboard-widget-card--todo so the rest of the
+   widget-todos__ machinery is preserved (swipe, drag, motion indicator).
+   Palette borrows from the recap card: rust accent, ochre warm, moss success.
+   ────────────────────────────────────────────────────────────────────────── */
+
+.dashboard-widget-card--todo {
+  --todo-ink:        #1a1714;
+  --todo-ink-soft:   #4a423a;
+  --todo-ink-mute:   #8a7f70;
+  --todo-rule:       #d8d3c6;
+  --todo-rule-soft:  #efeae0;
+  --todo-rust:       #b54226;
+  --todo-ochre:      #c98a1c;
+  --todo-moss:       #4f6b2f;
+  --todo-paper-warm: #f5f3ee;
+  --todo-mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo,
+               Consolas, monospace;
+}
+
+/* Eyebrow → rust + leading dot, matching the recap kicker */
+.dashboard-widget-card--todo > .card__header > div > .card__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--todo-rust);
+  font-family: var(--todo-mono);
+  letter-spacing: 0.14em;
+}
+
+.dashboard-widget-card--todo > .card__header > div > .card__eyebrow::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--todo-rust);
+  box-shadow: 0 0 0 3px rgba(181, 66, 38, 0.15);
+}
+
+/* Completion chip → mono "00 / 01" + thin progress bar */
+.dashboard-widget-card--todo .widget-todos__completed {
+  background: var(--todo-paper-warm);
+  box-shadow: inset 0 0 0 1px var(--todo-rule-soft);
+  color: var(--todo-ink-soft);
+  padding: 6px 12px;
+  gap: 10px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  font-family: var(--todo-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.dashboard-widget-card--todo .widget-todos__completed-stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.dashboard-widget-card--todo .widget-todos__completed-done {
+  color: var(--todo-ink);
+}
+
+.dashboard-widget-card--todo .widget-todos__completed-sep {
+  color: var(--todo-ink-mute);
+  margin: 0 1px;
+}
+
+.dashboard-widget-card--todo .widget-todos__completed-total {
+  color: var(--todo-ink-mute);
+}
+
+.dashboard-widget-card--todo .widget-todos__completed-bar {
+  --completion: 0;
+  position: relative;
+  display: inline-block;
+  width: 38px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--todo-rule-soft);
+  overflow: hidden;
+}
+
+.dashboard-widget-card--todo .widget-todos__completed-bar > i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(var(--completion, 0) * 1%);
+  background: linear-gradient(90deg, var(--todo-ochre), var(--todo-rust));
+  border-radius: 2px;
+  transition: width 420ms var(--ease-emphasized);
+}
+
+/* Tabs → cleaner cream pill, ink-on-warm active state */
+.dashboard-widget-card--todo .widget-todos__tabs {
+  background: var(--todo-paper-warm);
+  box-shadow: inset 0 0 0 1px var(--todo-rule-soft);
+  padding: 3px;
+}
+
+.dashboard-widget-card--todo .widget-todos__tab-indicator {
+  background: #ffffff;
+  box-shadow:
+    0 2px 6px rgba(26, 23, 20, 0.10),
+    0 1px 2px rgba(26, 23, 20, 0.06),
+    inset 0 0 0 1px var(--todo-rule);
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc((100% - 6px) / var(--tab-count, 4));
+}
+
+.dashboard-widget-card--todo .widget-todos__tab-indicator::after { display: none; }
+
+.dashboard-widget-card--todo .widget-todos__tab {
+  color: var(--todo-ink-mute);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.dashboard-widget-card--todo .widget-todos__tab:hover:not(.is-active) {
+  color: var(--todo-ink);
+}
+
+.dashboard-widget-card--todo .widget-todos__tab.is-active {
+  color: var(--todo-ink);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* List rows → paper-white, soft hairline, rust hover stripe (was teal) */
+.dashboard-widget-card--todo .widget-todos__item {
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px var(--todo-rule-soft);
+  padding: 11px 12px 11px 16px;
+}
+
+.dashboard-widget-card--todo .widget-todos__item:hover {
+  background: #ffffff;
+  box-shadow:
+    inset 0 0 0 1px var(--todo-rule),
+    0 4px 14px -8px rgba(26, 23, 20, 0.12);
+}
+
+.dashboard-widget-card--todo .widget-todos__item::before {
+  left: 7px;
+  background: linear-gradient(180deg, var(--todo-ochre) 0%, var(--todo-rust) 100%);
+}
+
+.dashboard-widget-card--todo .widget-todos__item.is-done {
+  background: var(--todo-paper-warm);
+  box-shadow: inset 0 0 0 1px var(--todo-rule-soft);
+}
+
+.dashboard-widget-card--todo .widget-todos__item.is-editing {
+  box-shadow:
+    inset 0 0 0 1px rgba(181, 66, 38, 0.30),
+    0 6px 18px -8px rgba(181, 66, 38, 0.18);
+  background: #fffdfa;
+}
+
+/* Checkbox → moss when checked (success semantic), neutral when empty */
+.dashboard-widget-card--todo .widget-plan-checkbox-wrap {
+  background: #ffffff;
+  border-color: var(--todo-rule);
+}
+
+.dashboard-widget-card--todo .widget-plan-checkbox-wrap[data-checked='true'],
+.dashboard-widget-card--todo .widget-plan-checkbox-wrap[data-state='checked'] {
+  background: var(--todo-moss);
+  border-color: var(--todo-moss);
+}
+
+.dashboard-widget-card--todo .widget-plan-checkbox-wrap[data-checked='true'] .widget-plan-checkbox-icon path,
+.dashboard-widget-card--todo .widget-plan-checkbox-wrap[data-state='checked'] .widget-plan-checkbox-icon path {
+  stroke: #fff;
+}
+
+/* Section headers → mono small-caps eyebrow */
+.dashboard-widget-card--todo .widget-todos__section-label {
+  font-family: var(--todo-mono);
+  color: var(--todo-ink-mute);
+  letter-spacing: 0.18em;
+  font-weight: 600;
+}
+
+.dashboard-widget-card--todo .widget-todos__section-count {
+  font-family: var(--todo-mono);
+  color: var(--todo-rust);
+  background: rgba(181, 66, 38, 0.10);
+}
+
+.dashboard-widget-card--todo .widget-todos__section-line {
+  background: linear-gradient(90deg, transparent, var(--todo-rule), transparent);
+}
+
+/* Rename caret + section underline accents → rust */
+.dashboard-widget-card--todo .widget-todos__rename-input {
+  caret-color: var(--todo-rust);
+}
+
+/* Empty state → soften, lean editorial */
+.dashboard-widget-card--todo .widget-todos__empty {
+  color: var(--todo-ink-soft);
+}
+
+.dashboard-widget-card--todo .widget-todos__empty-mark {
+  background: radial-gradient(circle at 30% 30%, #ffffff, var(--todo-paper-warm) 70%);
+  box-shadow: inset 0 0 0 1px var(--todo-rule-soft);
+}
+
+.dashboard-widget-card--todo .widget-todos__empty-title {
+  color: var(--todo-ink);
+  font-family: "Fraunces", "Noto Serif SC", serif;
+  font-weight: 500;
+  font-size: 13.5px;
+  letter-spacing: 0;
+}
+
+.dashboard-widget-card--todo .widget-todos__empty-hint {
+  color: var(--todo-ink-mute);
+}
+
+/* Swipe-delete affordance: keep red, just match palette */
+.dashboard-widget-card--todo .widget-todos__swipe-delete {
+  background: linear-gradient(100deg, #8a3422 0%, var(--todo-rust) 70%, #d76034 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 240, 220, 0.20),
+    0 4px 14px rgba(181, 66, 38, 0.18);
+}
+
+/* Dark theme survival */
+html[data-theme='dark'] .dashboard-widget-card--todo {
+  --todo-ink:        #f3ece0;
+  --todo-ink-soft:   #d4c8b4;
+  --todo-ink-mute:   #8a7f70;
+  --todo-rule:       #3a342c;
+  --todo-rule-soft:  #2a2520;
+  --todo-paper-warm: #221d18;
+}
+
+html[data-theme='dark'] .dashboard-widget-card--todo .widget-todos__tab-indicator {
+  background: #2e2822;
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.35),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+html[data-theme='dark'] .dashboard-widget-card--todo .widget-todos__item,
+html[data-theme='dark'] .dashboard-widget-card--todo .widget-todos__item:hover {
+  background: #1f1a16;
+}
+
+html[data-theme='dark'] .dashboard-widget-card--todo .widget-plan-checkbox-wrap {
+  background: #1f1a16;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   WorldClockCard — editorial reskin
+   Scoped under .dashboard-widget-card--worldclock. Per-row phase accent
+   colors (dawn/day/dusk/night) are kept — they encode meaningful info and
+   already harmonize with the editorial palette.
+   ────────────────────────────────────────────────────────────────────────── */
+
+.dashboard-widget-card--worldclock {
+  --wcc-ink:        #1a1714;
+  --wcc-ink-soft:   #4a423a;
+  --wcc-ink-mute:   #8a7f70;
+  --wcc-rule:       #d8d3c6;
+  --wcc-rule-soft:  #efeae0;
+  --wcc-rust:       #b54226;
+  --wcc-ochre:      #c98a1c;
+  --wcc-paper-warm: #f5f3ee;
+  --wcc-mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo,
+              Consolas, monospace;
+}
+
+/* Eyebrow → rust kicker + leading dot */
+.dashboard-widget-card--worldclock > .card__header > div > .card__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--wcc-rust);
+  font-family: var(--wcc-mono);
+  letter-spacing: 0.14em;
+}
+
+.dashboard-widget-card--worldclock > .card__header > div > .card__eyebrow::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--wcc-rust);
+  box-shadow: 0 0 0 3px rgba(181, 66, 38, 0.15);
+}
+
+/* Add-city + button → harmonize hover to rust */
+.dashboard-widget-card--worldclock .wc-add-icon-btn {
+  background: var(--wcc-paper-warm);
+  border-color: var(--wcc-rule-soft);
+  color: var(--wcc-ink-soft);
+}
+
+.dashboard-widget-card--worldclock .wc-add-icon-btn:hover {
+  background: var(--wcc-rust);
+  border-color: var(--wcc-rust);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+/* Summary line → keep italic Fraunces, just tune palette */
+.dashboard-widget-card--worldclock .wc-summary {
+  color: var(--wcc-ink-mute);
+}
+
+/* Empty state → lighter paper with editorial italic */
+.dashboard-widget-card--worldclock .wc-empty {
+  background:
+    radial-gradient(120% 60% at 50% 0%, rgba(201, 138, 28, 0.06) 0%, transparent 70%),
+    var(--wcc-paper-warm);
+  color: var(--wcc-ink-soft);
+  border: 1px solid var(--wcc-rule-soft);
+}
+
+.dashboard-widget-card--worldclock .wc-empty__meridian {
+  stroke: var(--wcc-ochre);
+  opacity: 0.55;
+}
+
+/* Row dividers → editorial hairline */
+.dashboard-widget-card--worldclock .wc-row {
+  border-bottom-color: var(--wcc-rule-soft);
+}
+
+/* Time numerals → match recap headline weight feel */
+.dashboard-widget-card--worldclock .wc-row__time {
+  color: var(--wcc-ink);
+}
+
+/* Meta line (PHASE · UTC+8) → mono small caps */
+.dashboard-widget-card--worldclock .wc-row__meta {
+  font-family: var(--wcc-mono);
+  color: var(--wcc-ink-mute);
+  letter-spacing: 0.18em;
+  font-weight: 600;
+}
+
+/* City name → keep weight, just ensure ink consistency */
+.dashboard-widget-card--worldclock .wc-row__city {
+  color: var(--wcc-ink);
+}
+
+/* Remove button → softer well, rust on hover */
+.dashboard-widget-card--worldclock .wc-row__remove {
+  background: var(--wcc-paper-warm);
+  color: var(--wcc-ink-mute);
+}
+
+.dashboard-widget-card--worldclock .wc-row__remove:hover {
+  background: rgba(181, 66, 38, 0.12);
+  color: var(--wcc-rust);
+}
+
+/* Composer (add-city) input → editorial paper feel */
+.dashboard-widget-card--worldclock .wc-composer__search {
+  background: var(--wcc-paper-warm);
+  border-color: var(--wcc-rule-soft);
+}
+
+.dashboard-widget-card--worldclock .wc-composer__input {
+  color: var(--wcc-ink);
+  caret-color: var(--wcc-rust);
+}
+
+.dashboard-widget-card--worldclock .wc-composer__input::placeholder {
+  color: var(--wcc-ink-mute);
+}
+
+.dashboard-widget-card--worldclock .wc-composer__icon {
+  color: var(--wcc-ink-mute);
+}
+
+.dashboard-widget-card--worldclock .wc-composer__dismiss {
+  color: var(--wcc-ink-mute);
+}
+
+.dashboard-widget-card--worldclock .wc-composer__dismiss:hover {
+  color: var(--wcc-rust);
+  background: rgba(181, 66, 38, 0.10);
+}
+
+.dashboard-widget-card--worldclock .wc-composer__suggestion:hover,
+.dashboard-widget-card--worldclock .wc-composer__suggestion.is-active {
+  background: var(--wcc-paper-warm);
+  color: var(--wcc-ink);
+}
+
+.dashboard-widget-card--worldclock .wc-composer__suggestion-source {
+  font-family: var(--wcc-mono);
+  color: var(--wcc-ink-mute);
+  letter-spacing: 0.12em;
+}
+
+.dashboard-widget-card--worldclock .wc-composer__no-results {
+  font-family: "Fraunces", "Noto Serif SC", serif;
+  font-style: italic;
+  color: var(--wcc-ink-mute);
+}
+
+/* Dark theme survival */
+html[data-theme='dark'] .dashboard-widget-card--worldclock {
+  --wcc-ink:        #f3ece0;
+  --wcc-ink-soft:   #d4c8b4;
+  --wcc-ink-mute:   #8a7f70;
+  --wcc-rule:       #3a342c;
+  --wcc-rule-soft:  #2a2520;
+  --wcc-paper-warm: #221d18;
 }

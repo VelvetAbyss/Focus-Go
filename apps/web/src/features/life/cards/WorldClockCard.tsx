@@ -242,10 +242,27 @@ const WorldClockCard = () => {
     ? t('worldClock.summaryCount', { count: items.length })
     : t('worldClock.summaryEmpty')
 
+  const canAddCity = !adding && items.length < MAX_WORLD_CLOCK_ITEMS
+
   return (
     <Card
+      className="dashboard-widget-card dashboard-widget-card--worldclock"
       eyebrow={t('worldClock.eyebrow')}
-      actions={pending ? <LoaderCircle size={13} className="wc-spinner" /> : undefined}
+      actions={
+        pending ? (
+          <LoaderCircle size={13} className="wc-spinner" />
+        ) : canAddCity ? (
+          <button
+            type="button"
+            className="wc-add-icon-btn"
+            onClick={() => { setAdding(true); setActiveIndex(0) }}
+            aria-label={t('worldClock.addCity')}
+            title={t('worldClock.addCity')}
+          >
+            <Plus size={14} aria-hidden />
+          </button>
+        ) : undefined
+      }
     >
       <p className="wc-summary">{summary}</p>
 
@@ -405,19 +422,6 @@ const WorldClockCard = () => {
               </div>
             )}
           </motion.div>
-        ) : items.length < MAX_WORLD_CLOCK_ITEMS ? (
-          <motion.button
-            key="add"
-            type="button"
-            className="wc-add-btn"
-            onClick={() => { setAdding(true); setActiveIndex(0) }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <Plus size={12} />
-            <span>{t('worldClock.addCity')}</span>
-          </motion.button>
         ) : null}
       </AnimatePresence>
     </Card>

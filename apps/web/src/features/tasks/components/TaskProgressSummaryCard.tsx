@@ -2,7 +2,6 @@ import { Check, Clipboard, ListChecks } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type { ProjectItem } from '../../../data/models/types'
 import { useI18n } from '../../../shared/i18n/useI18n'
-import Card from '../../../shared/ui/Card'
 import type { TaskItem } from '../tasks.types'
 import {
   buildTaskProgressSummary,
@@ -10,6 +9,7 @@ import {
   type TaskProgressPeriod,
   type TaskProgressSummary,
 } from '../domain/taskProgressSummary'
+import './TaskProgressSummaryCard.css'
 
 type TaskProgressSummaryCardProps = {
   tasks: readonly TaskItem[]
@@ -19,18 +19,30 @@ type TaskProgressSummaryCardProps = {
   now?: number
 }
 
-const Delta = ({ value }: { value: number }) => {
-  if (value === 0) return <span className="ml-1.5 text-[11px] font-medium text-[color:var(--text-secondary)]/55">—</span>
-  const positive = value > 0
+type TrendDirection = 'up' | 'down' | 'flat'
+
+const directionFromDelta = (delta?: number): TrendDirection => {
+  if (delta === undefined || delta === 0) return 'flat'
+  return delta > 0 ? 'up' : 'down'
+}
+
+const formatTwoDigit = (value: number) => (value < 10 ? `0${value}` : `${value}`)
+
+const formatDelta = (value?: number) => {
+  if (value === undefined || value === 0) return '—'
+  const arrow = value > 0 ? '↑' : '↓'
+  return `${arrow} ${Math.abs(value)}`
+}
+
+const TrendBars = ({ values }: { values: readonly number[] }) => {
+  const max = Math.max(1, ...values)
   return (
-    <span
-      className={[
-        'ml-1.5 inline-flex items-baseline gap-0.5 rounded-full px-1.5 py-px text-[10px] font-semibold tabular-nums',
-        positive ? 'bg-[#5A7A62]/12 text-[#3E5A48]' : 'bg-[color:var(--text-secondary)]/10 text-[color:var(--text-secondary)]/80',
-      ].join(' ')}
-    >
-      <span aria-hidden>{positive ? '↑' : '↓'}</span>
-      {Math.abs(value)}
+    <span className="recap-card__bars" aria-hidden>
+      {values.map((value, index) => {
+        const ratio = max === 0 ? 0 : value / max
+        const height = Math.max(8, Math.round(ratio * 100)) // floor at 8% so empty days are visible
+        return <i key={index} style={{ height: `${height}%` }} />
+      })}
     </span>
   )
 }
@@ -39,20 +51,29 @@ const Stat = ({
   label,
   value,
   delta,
+  trendValues,
+  direction,
 }: {
   label: string
   value: number
   delta?: number
+  trendValues?: readonly number[]
+  direction: TrendDirection
 }) => (
-  <div className="flex flex-col gap-1">
-    <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[color:var(--text-secondary)]/70">
-      {label}
-    </span>
-    <div className="flex items-baseline">
-      <span className="text-[22px] font-bold leading-none tabular-nums tracking-tight text-[color:var(--text-primary)]">
-        {value}
-      </span>
-      {delta !== undefined ? <Delta value={delta} /> : null}
+  <div className={`recap-card__stat recap-card__stat--${direction}`}>
+    <div className="recap-card__stat-label">{label}</div>
+    <div className="recap-card__stat-num">{formatTwoDigit(value)}</div>
+    <div className="recap-card__stat-trend">
+      {trendValues ? (
+        <TrendBars values={trendValues} />
+      ) : (
+        <span className="recap-card__bars" aria-hidden>
+          {Array.from({ length: 7 }).map((_, index) => (
+            <i key={index} style={{ height: '40%', opacity: 0.4 }} />
+          ))}
+        </span>
+      )}
+      <span className="recap-card__delta">{formatDelta(delta)}</span>
     </div>
   </div>
 )
@@ -109,77 +130,60 @@ const ProjectRow = ({
     day: 'numeric',
   })
   const displayTitle = project.projectId ? project.projectTitle : t('taskRecap.unassigned')
+  const clampedPct = Math.min(100, Math.max(0, project.progress))
 
   return (
-    <article className="py-3">
-      <header className="flex items-baseline justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <span
-            className="size-2 shrink-0 rounded-full"
-            style={{ background: project.projectColor }}
-            aria-hidden
-          />
-          <h4 className="truncate text-[13px] font-semibold leading-tight text-[color:var(--text-primary)]">
-            {displayTitle}
-          </h4>
-        </div>
-        <span className="shrink-0 text-[10px] font-medium uppercase tracking-[0.1em] tabular-nums text-[color:var(--text-secondary)]/65">
-          {dateLabel}
-        </span>
+    <article className="recap-card__row">
+      <header className="recap-card__row-head">
+        <span
+          className="recap-card__row-tag"
+          style={{ background: project.projectColor }}
+          aria-hidden
+        />
+        <h4 className="recap-card__row-name" title={displayTitle}>
+          {displayTitle}
+        </h4>
+        <span className="recap-card__row-date">{dateLabel}</span>
       </header>
 
-      <div className="mt-1.5 flex items-center gap-2 text-[11px] text-[color:var(--text-secondary)]/80">
-        <span className="tabular-nums">
-          <span className="font-semibold text-[color:var(--text-primary)]/85">{project.completedTaskCount}</span>{' '}
-          {t('taskRecap.row.tasks')}
+      <div className="recap-card__row-meta">
+        <span>
+          <b>{project.completedTaskCount}</b> {t('taskRecap.row.tasks')}
         </span>
-        <span className="text-[color:var(--text-secondary)]/35">·</span>
-        <span className="tabular-nums">
-          <span className="font-semibold text-[color:var(--text-primary)]/85">{project.completedSubtaskCount}</span>{' '}
-          {t('taskRecap.row.subtasks')}
+        <span className="sep" />
+        <span>
+          <b>{project.completedSubtaskCount}</b> {t('taskRecap.row.subtasks')}
         </span>
-        <span className="text-[color:var(--text-secondary)]/35">·</span>
-        <span className="tabular-nums font-semibold text-[color:var(--text-primary)]/85">{project.progress}%</span>
-      </div>
-
-      <div className="mt-2 h-[3px] w-full overflow-hidden rounded-full bg-[color:var(--text-primary)]/[0.06]">
-        <div
-          className="h-full rounded-full transition-[width] duration-500"
-          style={{
-            width: `${Math.min(100, Math.max(0, project.progress))}%`,
-            background: project.projectColor,
-          }}
-        />
+        <span className="recap-card__row-pct">
+          <span className="recap-card__pctbar">
+            <i style={{ width: `${clampedPct}%` }} />
+          </span>
+          <b>{project.progress}%</b>
+        </span>
       </div>
 
       {visibleTasks.length > 0 ? (
-        <ul className="mt-2.5 grid gap-1.5">
+        <ul className="recap-card__row-tasks">
           {visibleTasks.map((task) => (
-            <li key={task.id} className="flex items-start gap-2">
-              <Check className="mt-[3px] size-3 shrink-0 stroke-[2.5] text-[#5A7A62]" aria-hidden />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[12px] leading-snug text-[color:var(--text-primary)]/90">
-                  {task.title}
-                </p>
+            <li key={task.id} className="recap-card__row-task">
+              <Check className="recap-card__row-task-check" strokeWidth={2.5} aria-hidden />
+              <div className="recap-card__row-task-body">
+                <p className="recap-card__row-task-title">{task.title}</p>
                 {mode === 'detailed' ? (
-                  <div className="mt-1 grid gap-1">
+                  <div className="recap-card__row-subtasks">
                     {task.subtasks.length === 0 ? (
-                      <p className="text-[11px] text-[color:var(--text-secondary)]/55">
+                      <p className="recap-card__row-subtask-tag">
                         {t('taskRecap.row.noSubtaskLog')}
                       </p>
                     ) : (
                       task.subtasks.map((subtask) => (
-                        <div
-                          key={subtask.id}
-                          className="flex items-center gap-1.5 text-[11px] text-[color:var(--text-secondary)]/80"
-                        >
-                          <span
-                            className="size-1 rounded-full bg-[color:var(--text-secondary)]/40"
-                            aria-hidden
-                          />
-                          <span className="truncate">{subtask.title}</span>
+                        <div key={subtask.id} className="recap-card__row-subtask">
+                          <span className="recap-card__row-subtask-dot" aria-hidden />
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {subtask.title}
+                          </span>
                           {!subtask.precise ? (
-                            <span className="shrink-0 text-[10px] text-[color:var(--text-secondary)]/50">
+                            <span className="recap-card__row-subtask-tag">
                               {t('taskRecap.row.currentState')}
                             </span>
                           ) : null}
@@ -195,12 +199,44 @@ const ProjectRow = ({
       ) : null}
 
       {compact && project.tasks.length > visibleTasks.length ? (
-        <p className="mt-1.5 text-[11px] text-[color:var(--text-secondary)]/65">
+        <p className="recap-card__row-more">
           {t('taskRecap.row.more', { count: project.tasks.length - visibleTasks.length })}
         </p>
       ) : null}
     </article>
   )
+}
+
+const getIsoWeek = (date: Date) => {
+  const target = new Date(date.valueOf())
+  const dayNumber = (date.getDay() + 6) % 7
+  target.setDate(target.getDate() - dayNumber + 3)
+  const firstThursday = target.valueOf()
+  target.setMonth(0, 1)
+  if (target.getDay() !== 4) {
+    target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7)
+  }
+  return 1 + Math.ceil((firstThursday - target.valueOf()) / (7 * 24 * 60 * 60 * 1000))
+}
+
+const formatIssueLabel = (date: Date, period: TaskProgressPeriod, language: 'en' | 'zh') => {
+  if (period === 'week') {
+    const wk = formatTwoDigit(getIsoWeek(date))
+    const yr = `${date.getFullYear()}`.slice(-2)
+    return language === 'zh' ? `第 ${wk} 周 · ’${yr}` : `WK ${wk} · ’${yr}`
+  }
+  const monthLabel = date.toLocaleDateString(language === 'zh' ? 'zh-CN' : 'en-US', {
+    year: 'numeric',
+    month: language === 'zh' ? 'long' : 'short',
+  })
+  return monthLabel
+}
+
+const formatFiledTime = (timestamp: number) => {
+  const d = new Date(timestamp)
+  const hh = formatTwoDigit(d.getHours())
+  const mm = formatTwoDigit(d.getMinutes())
+  return `${hh}:${mm}`
 }
 
 export const TaskProgressSummaryCard = ({ tasks, projects, className, compact, now }: TaskProgressSummaryCardProps) => {
@@ -229,12 +265,6 @@ export const TaskProgressSummaryCard = ({ tasks, projects, className, compact, n
     [t],
   )
 
-  const localizedSummaryLine = t(period === 'week' ? 'taskRecap.summary.week' : 'taskRecap.summary.month', {
-    projects: summary.totals.projectCount,
-    tasks: summary.totals.completedTaskCount,
-    subtasks: summary.totals.completedSubtaskCount,
-  })
-
   const copyReport = async () => {
     try {
       if (globalThis.navigator?.clipboard?.writeText) {
@@ -257,32 +287,62 @@ export const TaskProgressSummaryCard = ({ tasks, projects, className, compact, n
     }
   }
 
+  const headlineText = t(period === 'week' ? 'taskRecap.title.week' : 'taskRecap.title.month')
+  // The last token of the headline (e.g. "week" / "本周") is italicized in rust.
+  // Simple split heuristic: emphasize the trailing word; fall back to whole headline.
+  const headlineParts = (() => {
+    const trimmed = headlineText.trim()
+    const lastSpace = trimmed.lastIndexOf(' ')
+    if (lastSpace > 0) {
+      return { lead: trimmed.slice(0, lastSpace), accent: trimmed.slice(lastSpace + 1) }
+    }
+    // Chinese fallback: emphasize last 2 chars
+    if (trimmed.length > 2) {
+      return { lead: trimmed.slice(0, trimmed.length - 2), accent: trimmed.slice(-2) }
+    }
+    return { lead: '', accent: trimmed }
+  })()
+
+  const tasksDirection = directionFromDelta(summary.delta.completedTaskCount)
+  const subtasksDirection = directionFromDelta(summary.delta.completedSubtaskCount)
+
+  const issueDate = new Date(summary.range.startAt)
+  const filedTs = Math.min(now ?? Date.now(), summary.range.endAt - 1)
+
   return (
-    <Card
-      eyebrow={t('taskRecap.eyebrow')}
-      title={t(period === 'week' ? 'taskRecap.title.week' : 'taskRecap.title.month')}
-      className={className}
+    <section
+      className={`card recap-card ${className ?? ''}`}
       data-testid="task-progress-summary-card"
-      actions={
-        <button
-          type="button"
-          className={[
-            'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold transition',
-            copied
-              ? 'bg-[#5A7A62]/12 text-[#3E5A48]'
-              : 'border border-[color:var(--border)] bg-white text-[color:var(--text-secondary)] hover:border-[color:var(--text-primary)]/40 hover:text-[color:var(--text-primary)]',
-          ].join(' ')}
-          aria-label={t('taskRecap.copyAria')}
-          title={t('taskRecap.copyAria')}
-          onClick={copyReport}
-        >
-          {copied ? <Check className="size-3" aria-hidden /> : <Clipboard className="size-3" aria-hidden />}
-          <span>{copied ? t('taskRecap.copied') : t('taskRecap.copy')}</span>
-        </button>
-      }
     >
-      <div className="flex min-h-0 flex-1 flex-col">
-        <div className="flex flex-wrap items-center justify-between gap-2 pb-3">
+      <div className="recap-card__body">
+        <header className="recap-card__masthead">
+          <div>
+            <span className="recap-card__kicker">
+              <span className="recap-card__kicker-dot" aria-hidden />
+              {t('taskRecap.eyebrow')}
+              <span className="recap-card__kicker-wk">
+                — {formatIssueLabel(issueDate, period, language)}
+              </span>
+            </span>
+            <h1 className="recap-card__headline">
+              {headlineParts.lead}
+              {headlineParts.lead ? ' ' : ''}
+              <em>{headlineParts.accent}</em>
+            </h1>
+          </div>
+          <button
+            type="button"
+            className={`recap-card__copy${copied ? ' is-copied' : ''}`}
+            aria-label={t('taskRecap.copyAria')}
+            title={t('taskRecap.copyAria')}
+            onClick={copyReport}
+          >
+            {copied ? <Check aria-hidden /> : <Clipboard aria-hidden />}
+            <span>{copied ? t('taskRecap.copied') : t('taskRecap.copy')}</span>
+          </button>
+        </header>
+
+        <div className="recap-card__controls">
           <SegmentControl
             value={period}
             options={periodOptions}
@@ -297,74 +357,79 @@ export const TaskProgressSummaryCard = ({ tasks, projects, className, compact, n
           />
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-          <p className="text-[13px] leading-[1.6] text-[color:var(--text-secondary)]">
-            {localizedSummaryLine}
-          </p>
+        <div className="recap-card__rule" role="presentation" />
 
-          <div className="mt-3 grid grid-cols-3 divide-x divide-[color:var(--border)] rounded-xl border border-[color:var(--border)] bg-[color:var(--text-primary)]/[0.02]">
-            <div className="px-3 py-2.5">
-              <Stat label={t('taskRecap.stat.projects')} value={summary.totals.projectCount} />
-            </div>
-            <div className="px-3 py-2.5">
-              <Stat
-                label={t('taskRecap.stat.tasks')}
-                value={summary.totals.completedTaskCount}
-                delta={summary.delta.completedTaskCount}
-              />
-            </div>
-            <div className="px-3 py-2.5">
-              <Stat
-                label={t('taskRecap.stat.subtasks')}
-                value={summary.totals.completedSubtaskCount}
-                delta={summary.delta.completedSubtaskCount}
-              />
-            </div>
+        <div className="recap-card__scroll">
+          <div className="recap-card__stats" aria-label={t('taskRecap.eyebrow')}>
+            <Stat
+              label={t('taskRecap.stat.projects')}
+              value={summary.totals.projectCount}
+              direction="flat"
+            />
+            <Stat
+              label={t('taskRecap.stat.tasks')}
+              value={summary.totals.completedTaskCount}
+              delta={summary.delta.completedTaskCount}
+              trendValues={summary.trend.tasks}
+              direction={tasksDirection}
+            />
+            <Stat
+              label={t('taskRecap.stat.subtasks')}
+              value={summary.totals.completedSubtaskCount}
+              delta={summary.delta.completedSubtaskCount}
+              trendValues={summary.trend.subtasks}
+              direction={subtasksDirection}
+            />
           </div>
 
           {copied ? (
-            <div className="mt-3 flex items-center justify-center gap-1.5 rounded-md bg-[#5A7A62]/10 px-3 py-1.5 text-[11px] font-semibold text-[#3E5A48]">
-              <Check className="size-3" aria-hidden />
+            <div className="recap-card__toast">
+              <Check size={12} aria-hidden />
               <span>{t('taskRecap.copyToast')}</span>
             </div>
           ) : null}
 
-          <div className="mt-4 flex items-baseline justify-between">
-            <h5 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[color:var(--text-secondary)]/70">
-              {t('taskRecap.byProject')}
-            </h5>
-            <span className="text-[10px] tabular-nums text-[color:var(--text-secondary)]/55">
-              {visibleProjects.length} / {summary.projects.length || 0}
-            </span>
-          </div>
+          <div className="recap-card__by-project">
+            <div className="recap-card__bp-head">
+              <span className="recap-card__bp-eyebrow">{t('taskRecap.byProject')}</span>
+              <span className="recap-card__bp-count">
+                {formatTwoDigit(visibleProjects.length)} / {formatTwoDigit(summary.projects.length || 0)}
+              </span>
+            </div>
 
-          {visibleProjects.length === 0 ? (
-            <div className="mt-2 flex min-h-[120px] flex-col items-center justify-center rounded-xl border border-dashed border-[color:var(--border)] px-4 text-center">
-              <ListChecks className="mb-2 size-5 text-[color:var(--text-secondary)]/45" aria-hidden />
-              <p className="text-[12px] font-semibold text-[color:var(--text-primary)]/75">
-                {t('taskRecap.empty.title')}
-              </p>
-              <p className="mt-0.5 text-[11px] text-[color:var(--text-secondary)]/65">
-                {t('taskRecap.empty.subtitle')}
-              </p>
-            </div>
-          ) : (
-            <div className="mt-1 divide-y divide-[color:var(--border)]">
-              {visibleProjects.map((project) => (
-                <ProjectRow
-                  key={project.projectId ?? '__unassigned'}
-                  project={project}
-                  mode={mode}
-                  compact={compact}
-                  t={t}
-                  language={language}
-                />
-              ))}
-            </div>
-          )}
+            {visibleProjects.length === 0 ? (
+              <div className="recap-card__empty">
+                <ListChecks className="recap-card__empty-icon" size={20} aria-hidden />
+                <p className="recap-card__empty-title">{t('taskRecap.empty.title')}</p>
+                <p className="recap-card__empty-sub">{t('taskRecap.empty.subtitle')}</p>
+              </div>
+            ) : (
+              <div>
+                {visibleProjects.map((project) => (
+                  <ProjectRow
+                    key={project.projectId ?? '__unassigned'}
+                    project={project}
+                    mode={mode}
+                    compact={compact}
+                    t={t}
+                    language={language}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
+
+        <footer className="recap-card__footer">
+          <span>
+            {language === 'zh' ? '期号' : 'Issue'} {formatIssueLabel(issueDate, period, language)}
+          </span>
+          <span className="recap-card__stamp">
+            {language === 'zh' ? '存档' : 'Filed'} {formatFiledTime(filedTs)}
+          </span>
+        </footer>
       </div>
-    </Card>
+    </section>
   )
 }
 
