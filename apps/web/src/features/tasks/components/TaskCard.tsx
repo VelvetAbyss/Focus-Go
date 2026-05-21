@@ -122,6 +122,8 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
           priorityStripeClass,
         )}
         style={style}
+        data-priority={priorityKey}
+        data-status={task.status}
         {...(interactive ? dragAttributes : undefined)}
         {...(interactive ? dragListeners : undefined)}
         role={interactive ? 'button' : undefined}
@@ -164,7 +166,10 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
 
           <div className="flex flex-wrap items-center gap-2">
             {priorityKey !== 'none' ? (
-              <span className={cn('inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-semibold', priorityCfg.badge)}>
+              <span
+                className={cn('task-card__priority-badge inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-semibold', priorityCfg.badge)}
+                data-priority={priorityKey}
+              >
                 <span className={cn('size-1.5 rounded-full', priorityCfg.dot)} />
                 {t(priorityCfg.labelKey)}
               </span>
@@ -176,7 +181,10 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
                 {deadline.label ? <span className={cn('rounded-full border px-1.5 py-0.5 text-[10px] font-semibold', deadline.badgeClass)}>{deadline.label}</span> : null}
               </span>
             ) : null}
-            <span className={cn('inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs font-semibold', statusCfg.badge)}>
+            <span
+              className={cn('task-card__status-badge inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs font-semibold', statusCfg.badge)}
+              data-status={task.status}
+            >
               {t(statusCfg.labelKey)}
             </span>
             {hasSubtasks ? (
@@ -210,7 +218,7 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
               {project ? (
                 <button
                   type="button"
-                  className="inline-flex max-w-[140px] items-center gap-1.5 rounded-full bg-[#F5F3F0] px-2 py-0.5 text-[11px] font-medium text-[#3A3733] transition-colors hover:bg-[#ECE8E1]"
+                  className="task-card__project-chip inline-flex max-w-[140px] items-center gap-1.5 rounded-full bg-[#F5F3F0] px-2 py-0.5 text-[11px] font-medium text-[#3A3733] transition-colors hover:bg-[#ECE8E1]"
                   aria-label={t('tasks.card.projectBadgeAria', { title: project.title })}
                   title={project.title}
                   onClick={(event) => {
@@ -229,7 +237,7 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
               {displayTags.map((tag) => {
                 const tone = getTaskTagTone(tag)
                 return (
-                  <span key={tag} className={cn('inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium', tone.badge)}>
+                  <span key={tag} className={cn('task-card__tag inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium', tone.badge)}>
                     <span className={cn('size-1.5 rounded-full', tone.dot)} />
                     {tag}
                   </span>

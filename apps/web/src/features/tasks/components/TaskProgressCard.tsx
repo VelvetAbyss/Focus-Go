@@ -73,7 +73,7 @@ export default function TaskProgressCard({ task, onUpdated }: TaskProgressCardPr
 
   return (
     <section
-      className="tdv2-section-enter rounded-[26px] border border-amber-300/40 bg-amber-50/40 p-5 shadow-[0_18px_50px_rgba(245,158,11,0.08)]"
+      className="task-detail-progress tdv2-section-enter rounded-[26px] border border-amber-300/40 bg-amber-50/40 p-5 shadow-[0_18px_50px_rgba(245,158,11,0.08)]"
       style={{ animationDelay: '20ms' }}
     >
       <div className="flex items-center justify-between gap-2">
