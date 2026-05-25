@@ -82,8 +82,36 @@ const NOW = () => Date.now()
 const MS_7D = 7 * 24 * 60 * 60 * 1000
 const MS_30D = 30 * 24 * 60 * 60 * 1000
 const MS_90D = 90 * 24 * 60 * 60 * 1000
+const MS_DAY = 24 * 60 * 60 * 1000
 
 const parseTagsSafe = (raw) => { try { return JSON.parse(raw || '[]') } catch { return [] } }
+
+const parseTime = (value) => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  const ts = new Date(value).getTime()
+  return Number.isFinite(ts) ? ts : 0
+}
+
+const startOfDay = (ts) => {
+  const d = new Date(ts)
+  d.setHours(0, 0, 0, 0)
+  return d.getTime()
+}
+
+const dayKey = (ts) => {
+  const d = new Date(ts)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+const pct = (part, total) => total > 0 ? Number(((part / total) * 100).toFixed(1)) : 0
+
+const growthPct = (current, previous) => {
+  if (previous <= 0) return current > 0 ? 100 : 0
+  return Number((((current - previous) / previous) * 100).toFixed(1))
+}
 
 const computeHealthScore = (user, stats) => {
   const now = NOW()
@@ -114,6 +142,146 @@ const serializeFeedback = (row) => ({
   title: row.title, body: row.body, pageContext: row.page_context,
   userAgent: row.user_agent, status: row.status, adminReply: row.admin_reply,
   priority: row.priority, createdAt: row.created_at, updatedAt: row.updated_at,
+})
+
+// ── GET /admin/analytics ─────────────────────────────────────────────────────
+
+router.get('/analytics', (_req, res) => {
+  try {
+    const now = NOW()
+    const todayStart = startOfDay(now)
+    const seriesStart = todayStart - 29 * MS_DAY
+    const users = getAllUsers()
+    const syncStats = buildSyncStatsPerUser()
+    const totalUsers = users.length
+
+    const days = Array.from({ length: 30 }, (_, index) => {
+      const key = dayKey(seriesStart + index * MS_DAY)
+      return {
+        date: key,
+        newUsers: 0,
+        activeUsers: 0,
+        paidOrders: 0,
+        revenueByCurrency: {},
+      }
+    })
+    const dayMap = Object.fromEntries(days.map((d) => [d.date, d]))
+
+    let newUsers7d = 0
+    let previousUsers7d = 0
+    let newUsers30d = 0
+    let previousUsers30d = 0
+
+    for (const user of users) {
+      const createdAt = parseTime(user.created_at)
+      if (!createdAt) continue
+      const key = dayKey(createdAt)
+      if (dayMap[key]) dayMap[key].newUsers += 1
+      if (createdAt >= now - MS_7D) newUsers7d += 1
+      else if (createdAt >= now - 2 * MS_7D) previousUsers7d += 1
+      if (createdAt >= now - MS_30D) newUsers30d += 1
+      else if (createdAt >= now - 2 * MS_30D) previousUsers30d += 1
+    }
+
+    const active7dCount = Object.values(syncStats).filter((stats) => stats.lastActiveAt > 0 && now - stats.lastActiveAt < MS_7D).length
+    const active30dCount = Object.values(syncStats).filter((stats) => stats.lastActiveAt > 0 && now - stats.lastActiveAt < MS_30D).length
+
+    const activeUsersByDay = {}
+    for (const tableName of Object.values(SYNC_TABLES)) {
+      let rows
+      try {
+        rows = db.prepare(`SELECT user_id, updated_at FROM ${tableName} WHERE updated_at >= ?`).all(seriesStart)
+      } catch { continue }
+      for (const row of rows) {
+        const key = dayKey(row.updated_at)
+        if (!dayMap[key]) continue
+        if (!activeUsersByDay[key]) activeUsersByDay[key] = new Set()
+        activeUsersByDay[key].add(row.user_id)
+      }
+    }
+    for (const [key, userIds] of Object.entries(activeUsersByDay)) {
+      dayMap[key].activeUsers = userIds.size
+    }
+
+    const orderUserRows = db.prepare(`
+      SELECT DISTINCT COALESCE(CAST(u.id AS TEXT), o.user_id) AS user_id
+      FROM payment_orders o
+      LEFT JOIN users u ON CAST(u.id AS TEXT) = o.user_id OR u.authing_id = o.user_id OR u.auth_user_id = o.user_id
+    `).all()
+    const paidUserRows = db.prepare(`
+      SELECT DISTINCT COALESCE(CAST(u.id AS TEXT), o.user_id) AS user_id
+      FROM payment_orders o
+      LEFT JOIN users u ON CAST(u.id AS TEXT) = o.user_id OR u.authing_id = o.user_id OR u.auth_user_id = o.user_id
+      WHERE o.status = 'paid' AND o.paid_at IS NOT NULL
+    `).all()
+    const orderUserCount = new Set(orderUserRows.map((row) => row.user_id).filter(Boolean)).size
+    const paidUserCount = new Set(paidUserRows.map((row) => row.user_id).filter(Boolean)).size
+
+    const paidOrders = db.prepare(`
+      SELECT
+        COALESCE(o.channel, o.pay_type) AS channel,
+        COALESCE(o.currency, 'CNY') AS currency,
+        COALESCE(o.gross_amount, o.amount) AS gross,
+        o.paid_at
+      FROM payment_orders o
+      WHERE o.status = 'paid' AND o.paid_at IS NOT NULL
+    `).all()
+
+    const revenueByCurrency = {}
+    const channelMap = {}
+    for (const order of paidOrders) {
+      const amount = Number(order.gross ?? 0) || 0
+      const currency = order.currency ?? 'CNY'
+      const channel = order.channel ?? 'unknown'
+      revenueByCurrency[currency] = (revenueByCurrency[currency] ?? 0) + amount
+
+      const key = `${channel}:${currency}`
+      if (!channelMap[key]) channelMap[key] = { channel, currency, paidOrders: 0, gross: 0, averageOrderValue: 0 }
+      channelMap[key].paidOrders += 1
+      channelMap[key].gross += amount
+
+      const date = dayKey(order.paid_at)
+      if (dayMap[date]) {
+        dayMap[date].paidOrders += 1
+        dayMap[date].revenueByCurrency[currency] = (dayMap[date].revenueByCurrency[currency] ?? 0) + amount
+      }
+    }
+
+    const channels = Object.values(channelMap).map((item) => ({
+      ...item,
+      gross: Number(item.gross.toFixed(2)),
+      averageOrderValue: item.paidOrders > 0 ? Number((item.gross / item.paidOrders).toFixed(2)) : 0,
+    })).sort((a, b) => b.gross - a.gross)
+
+    res.json({
+      summary: {
+        totalUsers,
+        newUsers7d,
+        newUsers30d,
+        userGrowth7d: growthPct(newUsers7d, previousUsers7d),
+        userGrowth30d: growthPct(newUsers30d, previousUsers30d),
+        premiumUsers: users.filter((u) => u.plan === 'premium').length,
+        payingUsers: paidUserCount,
+        paidOrders: paidOrders.length,
+        paidRate: pct(users.filter((u) => u.plan === 'premium').length, totalUsers),
+        paidConversionRate: pct(paidUserCount, totalUsers),
+        active7dRate: pct(active7dCount, totalUsers),
+        active30dRate: pct(active30dCount, totalUsers),
+        revenueByCurrency: Object.fromEntries(Object.entries(revenueByCurrency).map(([currency, amount]) => [currency, Number(amount.toFixed(2))])),
+      },
+      series: days,
+      funnels: {
+        registeredUsers: totalUsers,
+        activeUsers30d: active30dCount,
+        orderUsers: orderUserCount,
+        paidUsers: paidUserCount,
+      },
+      channels,
+    })
+  } catch (err) {
+    console.error('[admin/analytics]', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
 })
 
 // ── GET /admin/overview ───────────────────────────────────────────────────────
@@ -629,11 +797,14 @@ router.get('/orders', (req, res) => {
       LEFT JOIN users u ON CAST(u.id AS TEXT) = o.user_id OR u.authing_id = o.user_id OR u.auth_user_id = o.user_id
       ${where.sql}
     `).get(where.params)?.count ?? 0
+    const paidSummarySql = where.sql
+      ? `${where.sql} AND o.status = 'paid' AND o.paid_at IS NOT NULL`
+      : "WHERE o.status = 'paid' AND o.paid_at IS NOT NULL"
     const summaryRows = db.prepare(`
       SELECT COALESCE(o.channel, o.pay_type) as channel, COALESCE(o.currency, 'CNY') as currency, COUNT(*) as count, SUM(CAST(COALESCE(o.gross_amount, o.amount) AS REAL)) as gross
       FROM payment_orders o
       LEFT JOIN users u ON CAST(u.id AS TEXT) = o.user_id OR u.authing_id = o.user_id OR u.auth_user_id = o.user_id
-      ${where.sql} GROUP BY COALESCE(o.channel, o.pay_type), COALESCE(o.currency, 'CNY')
+      ${paidSummarySql} GROUP BY COALESCE(o.channel, o.pay_type), COALESCE(o.currency, 'CNY')
     `).all(where.params)
     res.json({
       total,

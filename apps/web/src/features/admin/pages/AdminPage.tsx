@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { fetchApi } from '../../../shared/apiBase'
 import { getAuth, useIsAdmin } from '../../../store/auth'
 import { ROUTES } from '../../../app/routes/routes'
@@ -84,7 +85,34 @@ type AdminOrdersResponse = {
   summary: Array<{ channel: string; currency: string; count: number; gross: string }>
 }
 
-type View = 'overview' | 'users' | 'orders' | 'server' | 'feedback'
+type AdminAnalytics = {
+  summary: {
+    totalUsers: number
+    newUsers7d: number
+    newUsers30d: number
+    userGrowth7d: number
+    userGrowth30d: number
+    premiumUsers: number
+    payingUsers: number
+    paidOrders: number
+    paidRate: number
+    paidConversionRate: number
+    active7dRate: number
+    active30dRate: number
+    revenueByCurrency: Record<string, number>
+  }
+  series: Array<{
+    date: string
+    newUsers: number
+    activeUsers: number
+    paidOrders: number
+    revenueByCurrency: Record<string, number>
+  }>
+  funnels: { registeredUsers: number; activeUsers30d: number; orderUsers: number; paidUsers: number }
+  channels: Array<{ channel: string; currency: string; paidOrders: number; gross: number; averageOrderValue: number }>
+}
+
+type View = 'overview' | 'growth' | 'users' | 'orders' | 'server' | 'feedback'
 type Sort = 'records' | 'newest' | 'sync'
 
 // ── Formatting helpers ────────────────────────────────────────────────────────
@@ -128,6 +156,26 @@ const fmtDateTime = (ts: number | null | undefined, lang: 'en' | 'zh'): string =
 const fmtPct = (used: number, total: number): string => {
   if (!total) return '0%'
   return `${((used / total) * 100).toFixed(1)}%`
+}
+
+const fmtRate = (value: number): string => `${Number.isFinite(value) ? value.toFixed(1) : '0.0'}%`
+
+const fmtSignedRate = (value: number): string => `${value > 0 ? '+' : ''}${fmtRate(value)}`
+
+const fmtMoney = (amount: number | string, currency: string): string => {
+  const value = typeof amount === 'string' ? Number(amount) : amount
+  return `${currency} ${(Number.isFinite(value) ? value : 0).toFixed(2)}`
+}
+
+const fmtRevenueMap = (values: Record<string, number>): string => {
+  const entries = Object.entries(values)
+  if (entries.length === 0) return '—'
+  return entries.map(([currency, amount]) => fmtMoney(amount, currency)).join(' · ')
+}
+
+const shortDate = (date: string, lang: 'en' | 'zh'): string => {
+  const d = new Date(`${date}T00:00:00`)
+  return d.toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en-US', { month: 'numeric', day: 'numeric' })
 }
 
 const planKey = (plan: string) => plan.toLowerCase()
@@ -534,6 +582,158 @@ const UserDetailPanel = ({
   )
 }
 
+// ── Growth analytics ─────────────────────────────────────────────────────────
+
+const GrowthTab = ({
+  analytics, loading, lang, t,
+}: {
+  analytics: AdminAnalytics | null
+  loading: boolean
+  lang: 'en' | 'zh'
+  t: ReturnType<typeof useAdminI18n>['t']
+}) => {
+  if (loading && !analytics) return <div className="admin-banner">{t.loading}</div>
+  if (!analytics) return <p className="admin-empty">{t.noGrowthData}</p>
+
+  const primaryCurrency = Object.keys(analytics.summary.revenueByCurrency)[0] ?? 'CNY'
+  const chartData = analytics.series.map((item) => ({
+    ...item,
+    label: shortDate(item.date, lang),
+    revenue: item.revenueByCurrency[primaryCurrency] ?? 0,
+  }))
+  const maxFunnel = Math.max(analytics.funnels.registeredUsers, 1)
+  const funnelItems = [
+    { label: t.registeredUsers, value: analytics.funnels.registeredUsers },
+    { label: t.activeUsers30d, value: analytics.funnels.activeUsers30d },
+    { label: t.orderUsers, value: analytics.funnels.orderUsers },
+    { label: t.paidUsers, value: analytics.funnels.paidUsers },
+  ]
+  const metricItems = [
+    { label: t.userGrowth7d, value: fmtSignedRate(analytics.summary.userGrowth7d), meta: `${analytics.summary.newUsers7d.toLocaleString()} ${t.newUsers7d}` },
+    { label: t.userGrowth30d, value: fmtSignedRate(analytics.summary.userGrowth30d), meta: `${analytics.summary.newUsers30d.toLocaleString()} ${t.newUsers30d}` },
+    { label: t.paidRate, value: fmtRate(analytics.summary.paidRate), meta: `${analytics.summary.premiumUsers.toLocaleString()} / ${analytics.summary.totalUsers.toLocaleString()}` },
+    { label: t.paidConversionRate, value: fmtRate(analytics.summary.paidConversionRate), meta: `${analytics.summary.payingUsers.toLocaleString()} ${t.paidUsers}` },
+    { label: t.active7dRate, value: fmtRate(analytics.summary.active7dRate), meta: t.activeRateHint },
+    { label: t.active30dRate, value: fmtRate(analytics.summary.active30dRate), meta: t.syncActivityHint },
+    { label: t.paidRevenue, value: fmtRevenueMap(analytics.summary.revenueByCurrency), meta: `${analytics.summary.paidOrders.toLocaleString()} ${t.paidOrdersOnly}` },
+  ]
+
+  return (
+    <section className="admin-panel admin-panel--enter">
+      <div className="admin-growth-hero">
+        <div>
+          <p className="admin-section-kicker">{t.growthKicker}</p>
+          <h2>{t.growthTitle}</h2>
+        </div>
+        <span className="admin-growth-hero__note">{t.paidRevenueHint}</span>
+      </div>
+
+      <div className="admin-kpis admin-kpis--growth">
+        {metricItems.map((item) => (
+          <article key={item.label} className="admin-kpi-card admin-kpi-card--growth">
+            <p>{item.label}</p>
+            <h3>{item.value}</h3>
+            <p>{item.meta}</p>
+          </article>
+        ))}
+      </div>
+
+      <div className="admin-growth-layout">
+        <article className="admin-growth-chart">
+          <div className="admin-card-heading">
+            <h3>{t.growthTrend}</h3>
+            <span>{t.last30Days}</span>
+          </div>
+          <div className="admin-chart-frame">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData} margin={{ top: 8, right: 12, bottom: 0, left: -18 }}>
+                <defs>
+                  <linearGradient id="adminNewUsers" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="5%" stopColor="#4F746C" stopOpacity={0.24} />
+                    <stop offset="95%" stopColor="#4F746C" stopOpacity={0.02} />
+                  </linearGradient>
+                  <linearGradient id="adminActiveUsers" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="5%" stopColor="#B9824B" stopOpacity={0.22} />
+                    <stop offset="95%" stopColor="#B9824B" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="rgba(58,55,51,0.1)" vertical={false} />
+                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#3A3733', fontSize: 11 }} minTickGap={14} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#3A3733', fontSize: 11 }} width={34} />
+                <Tooltip
+                  contentStyle={{ border: '1px solid rgba(58,55,51,0.12)', borderRadius: 8, color: '#3A3733', background: '#F5F3F0' }}
+                  formatter={(value, name) => [Number(value).toLocaleString(), name === 'newUsers' ? t.newUsers : t.activeUsers]}
+                />
+                <Area type="monotone" dataKey="newUsers" stroke="#4F746C" strokeWidth={2} fill="url(#adminNewUsers)" name="newUsers" />
+                <Area type="monotone" dataKey="activeUsers" stroke="#B9824B" strokeWidth={2} fill="url(#adminActiveUsers)" name="activeUsers" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </article>
+
+        <article className="admin-growth-chart admin-growth-chart--revenue">
+          <div className="admin-card-heading">
+            <h3>{t.revenueTrend}</h3>
+            <span>{primaryCurrency}</span>
+          </div>
+          <div className="admin-chart-frame admin-chart-frame--compact">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} margin={{ top: 8, right: 10, bottom: 0, left: -18 }}>
+                <CartesianGrid stroke="rgba(58,55,51,0.1)" vertical={false} />
+                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#3A3733', fontSize: 11 }} minTickGap={18} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#3A3733', fontSize: 11 }} width={34} />
+                <Tooltip
+                  contentStyle={{ border: '1px solid rgba(58,55,51,0.12)', borderRadius: 8, color: '#3A3733', background: '#F5F3F0' }}
+                  formatter={(value) => fmtMoney(Number(value), primaryCurrency)}
+                />
+                <Bar dataKey="revenue" fill="#4F746C" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </article>
+      </div>
+
+      <div className="admin-growth-bottom">
+        <article className="admin-growth-card">
+          <div className="admin-card-heading">
+            <h3>{t.conversionFunnel}</h3>
+            <span>{t.existingData}</span>
+          </div>
+          <div className="admin-funnel">
+            {funnelItems.map((item) => (
+              <div key={item.label} className="admin-funnel-row">
+                <span>{item.label}</span>
+                <strong>{item.value.toLocaleString()}</strong>
+                <i style={{ width: `${Math.max(4, (item.value / maxFunnel) * 100)}%` }} />
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="admin-growth-card">
+          <div className="admin-card-heading">
+            <h3>{t.channelPerformance}</h3>
+            <span>{t.paidOrdersOnly}</span>
+          </div>
+          {analytics.channels.length === 0 ? (
+            <p className="admin-empty-inline">{t.noPaidOrders}</p>
+          ) : (
+            <div className="admin-channel-list">
+              {analytics.channels.map((item) => (
+                <div key={`${item.channel}-${item.currency}`} className="admin-channel-row">
+                  <span>{item.channel} · {item.currency}</span>
+                  <strong>{fmtMoney(item.gross, item.currency)}</strong>
+                  <em>{item.paidOrders.toLocaleString()} · AOV {fmtMoney(item.averageOrderValue, item.currency)}</em>
+                </div>
+              ))}
+            </div>
+          )}
+        </article>
+      </div>
+    </section>
+  )
+}
+
 // ── Feedback Inbox ────────────────────────────────────────────────────────────
 
 const FeedbackTab = ({
@@ -701,6 +901,8 @@ const AdminPage = () => {
   const [sort, setSort] = useState<Sort>('records')
   const [autoRefresh, setAutoRefresh] = useState(false)
   const [expanded, setExpanded] = useState<number | null>(null)
+  const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null)
+  const [analyticsLoading, setAnalyticsLoading] = useState(false)
   const [ordersData, setOrdersData] = useState<AdminOrdersResponse | null>(null)
   const [ordersLoading, setOrdersLoading] = useState(false)
   const [orderQuery, setOrderQuery] = useState('')
@@ -744,6 +946,20 @@ const AdminPage = () => {
       .then((next) => { setOrdersData(next); setOrdersLoading(false) })
       .catch(() => { setOrdersLoading(false) })
   }, [isAdmin, orderChannel, orderQuery, orderStatus, tick, view])
+
+  useEffect(() => {
+    if (!isAdmin || view !== 'growth') return
+    const auth = getAuth()
+    const headers: HeadersInit = auth?.accessToken ? { Authorization: `Bearer ${auth.accessToken}` } : {}
+    setAnalyticsLoading(true)
+    fetchApi('/admin/analytics', { headers })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        return res.json() as Promise<AdminAnalytics>
+      })
+      .then((next) => { setAnalytics(next); setAnalyticsLoading(false) })
+      .catch(() => { setAnalyticsLoading(false) })
+  }, [isAdmin, tick, view])
 
   const adminFetch = useCallback(async (path: string, init?: RequestInit) => {
     const auth = getAuth()
@@ -813,7 +1029,7 @@ const AdminPage = () => {
   if (!isAdmin) return <Navigate to={ROUTES.DASHBOARD} replace />
 
   const viewLabels: Record<View, string> = {
-    overview: t.overview, users: t.users, orders: t.orders, server: t.server, feedback: t.feedback,
+    overview: t.overview, growth: t.growth, users: t.users, orders: t.orders, server: t.server, feedback: t.feedback,
   }
 
   const kpis = data ? kpiItems(data, t) : []
@@ -865,6 +1081,11 @@ const AdminPage = () => {
         </section>
       )}
 
+      {/* ── Growth ── */}
+      {view === 'growth' && (
+        <GrowthTab analytics={analytics} loading={analyticsLoading} lang={lang} t={t} />
+      )}
+
       {/* ── Users ── */}
       {data && view === 'users' && (
         <section className="admin-panel admin-panel--enter">
@@ -898,6 +1119,7 @@ const AdminPage = () => {
                 <thead>
                   <tr>
                     <th>{t.email}</th>
+                    <th>{t.latestNote}</th>
                     <th>{t.plan}</th>
                     <th>{t.status}</th>
                     <th>{t.health}</th>
@@ -923,15 +1145,18 @@ const AdminPage = () => {
                                 {u.tags.map((tag) => <span key={tag} className="admin-tag">{tag}</span>)}
                               </span>
                             )}
+                          </td>
+                          <td className="admin-note-cell">
                             {u.latestNote && (
                               <div className="admin-user-note-inline" title={u.latestNote.body}>
-                                <span className="admin-user-note-inline__body">📝 {u.latestNote.body}</span>
+                                <span className="admin-user-note-inline__body">{u.latestNote.body}</span>
                                 <span className="admin-user-note-inline__meta">
                                   {u.latestNote.adminEmail} · {fmtDateTime(u.latestNote.createdAt, lang)}
                                   {u.latestNote.count > 1 ? ` · +${u.latestNote.count - 1}` : ''}
                                 </span>
                               </div>
                             )}
+                            {!u.latestNote && '—'}
                           </td>
                           <td><span className={`admin-pill ${planKey(u.plan)}`}>{planKey(u.plan) === 'premium' ? t.premium : t.free}</span></td>
                           <td><StatusPill status={u.status} active7d={u.active7d} t={t} /></td>
@@ -949,7 +1174,7 @@ const AdminPage = () => {
                           </td>
                         </tr>
                         <tr className={`admin-row-detail ${opened ? 'is-open' : ''}`}>
-                          <td colSpan={11}>
+                          <td colSpan={12}>
                             <div className="admin-row-detail__body">
                               {opened && (
                                 <UserDetailPanel

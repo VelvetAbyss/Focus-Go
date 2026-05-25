@@ -320,7 +320,9 @@ const TripDetailPage = () => {
 
   const pageWrapper: CSSProperties = {
     margin: -18,
+    height: 'calc(100% + 36px)',
     minHeight: 'calc(100% + 36px)',
+    boxSizing: 'border-box',
     overflowY: 'auto',
     background: paper,
     padding: 46,
@@ -351,7 +353,7 @@ const TripDetailPage = () => {
     <div ref={containerRef} style={pageWrapper}>
       <AuthInteractionGate>
       <div style={{ display: 'grid', gridTemplateColumns: '220px minmax(0, 1fr)', gap: 24, maxWidth: 1480, margin: '0 auto' }}>
-        <aside style={{ position: 'sticky', top: 24, alignSelf: 'start', background: paper, borderRadius: 18, padding: 18 }}>
+        <aside style={{ position: 'sticky', top: 46, alignSelf: 'start', background: paper, borderRadius: 18, padding: 18 }}>
           <button type="button" onClick={() => navigate(ROUTES.TRIPS)} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18, border: 'none', background: 'transparent', cursor: 'pointer', ...tx(12, 500, muted) }}>
             <ArrowLeft size={14} /> {t('life.trips.detail.allTrips')}
           </button>

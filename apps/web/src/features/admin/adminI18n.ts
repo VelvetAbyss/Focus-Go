@@ -14,6 +14,7 @@ type Messages = {
   loading: string
   noUsers: string
   overview: string
+  growth: string
   users: string
   orders: string
   server: string
@@ -36,6 +37,7 @@ type Messages = {
   records: string
   syncSize: string
   health: string
+  latestNote: string
   details: string
   collapse: string
   noSyncDetails: string
@@ -60,6 +62,35 @@ type Messages = {
   grantReason: string
   revokeEntitlement: string
   revokeWarning: string
+  growthKicker: string
+  growthTitle: string
+  userGrowth7d: string
+  userGrowth30d: string
+  newUsers: string
+  newUsers7d: string
+  newUsers30d: string
+  paidRate: string
+  paidConversionRate: string
+  active7dRate: string
+  active30dRate: string
+  activeRateHint: string
+  syncActivityHint: string
+  paidRevenue: string
+  paidRevenueHint: string
+  paidOrdersOnly: string
+  paidOrders: string
+  growthTrend: string
+  revenueTrend: string
+  last30Days: string
+  activeUsers: string
+  registeredUsers: string
+  orderUsers: string
+  paidUsers: string
+  conversionFunnel: string
+  existingData: string
+  channelPerformance: string
+  noPaidOrders: string
+  noGrowthData: string
   totalUsers: string
   premiumUsers: string
   activeUsers7d: string
@@ -142,6 +173,7 @@ const messages: Record<AdminLanguage, Messages> = {
     loading: 'Loading command deck…',
     noUsers: 'No users yet.',
     overview: 'Overview',
+    growth: 'Growth',
     users: 'Users',
     orders: 'Orders',
     server: 'Server',
@@ -164,6 +196,7 @@ const messages: Record<AdminLanguage, Messages> = {
     records: 'Records',
     syncSize: 'Sync size',
     health: 'Health',
+    latestNote: 'Note',
     details: 'Details',
     collapse: 'Collapse',
     noSyncDetails: 'No sync type details.',
@@ -188,6 +221,35 @@ const messages: Record<AdminLanguage, Messages> = {
     grantReason: 'Reason (optional)',
     revokeEntitlement: 'Revoke',
     revokeWarning: 'This will not cancel any active payment orders.',
+    growthKicker: 'Existing-data analytics',
+    growthTitle: 'Growth, conversion, and paid revenue',
+    userGrowth7d: 'User growth 7d',
+    userGrowth30d: 'User growth 30d',
+    newUsers: 'New users',
+    newUsers7d: 'new users in 7d',
+    newUsers30d: 'new users in 30d',
+    paidRate: 'Paid rate',
+    paidConversionRate: 'Paid conversion',
+    active7dRate: 'Active rate 7d',
+    active30dRate: 'Active rate 30d',
+    activeRateHint: 'Based on sync activity',
+    syncActivityHint: 'Users active through synced records',
+    paidRevenue: 'Paid revenue',
+    paidRevenueHint: 'Revenue only includes orders that are actually paid.',
+    paidOrdersOnly: 'paid orders only',
+    paidOrders: 'paid orders',
+    growthTrend: 'User trend',
+    revenueTrend: 'Revenue trend',
+    last30Days: 'Last 30 days',
+    activeUsers: 'Active users',
+    registeredUsers: 'Registered',
+    orderUsers: 'Started order',
+    paidUsers: 'Paid users',
+    conversionFunnel: 'Conversion funnel',
+    existingData: 'Existing data',
+    channelPerformance: 'Channel performance',
+    noPaidOrders: 'No paid orders yet.',
+    noGrowthData: 'No analytics data yet.',
     totalUsers: 'Total users',
     premiumUsers: 'Premium users',
     activeUsers7d: 'Active 7d',
@@ -268,6 +330,7 @@ const messages: Record<AdminLanguage, Messages> = {
     loading: '正在加载管理指挥台…',
     noUsers: '暂无用户。',
     overview: '总览',
+    growth: '增长',
     users: '用户',
     orders: '订单',
     server: '服务端',
@@ -290,6 +353,7 @@ const messages: Record<AdminLanguage, Messages> = {
     records: '记录数',
     syncSize: '同步体积',
     health: '健康度',
+    latestNote: '备注',
     details: '详情',
     collapse: '收起',
     noSyncDetails: '暂无按类型同步明细。',
@@ -314,6 +378,35 @@ const messages: Record<AdminLanguage, Messages> = {
     grantReason: '授权原因（可选）',
     revokeEntitlement: '撤销',
     revokeWarning: '撤销权益不会取消任何有效的支付订单。',
+    growthKicker: '现有数据分析',
+    growthTitle: '增长、转化与已支付收入',
+    userGrowth7d: '7天用户增长率',
+    userGrowth30d: '30天用户增长率',
+    newUsers: '新增用户',
+    newUsers7d: '7天新增',
+    newUsers30d: '30天新增',
+    paidRate: '付费率',
+    paidConversionRate: '付费转化率',
+    active7dRate: '7天活跃率',
+    active30dRate: '30天活跃率',
+    activeRateHint: '基于同步活跃',
+    syncActivityHint: '按同步记录估算活跃',
+    paidRevenue: '已支付收入',
+    paidRevenueHint: '收入只统计真正付款的订单。',
+    paidOrdersOnly: '仅已支付订单',
+    paidOrders: '已支付订单',
+    growthTrend: '用户趋势',
+    revenueTrend: '收入趋势',
+    last30Days: '最近30天',
+    activeUsers: '活跃用户',
+    registeredUsers: '注册用户',
+    orderUsers: '发起订单',
+    paidUsers: '付费用户',
+    conversionFunnel: '转化漏斗',
+    existingData: '现有数据',
+    channelPerformance: '渠道表现',
+    noPaidOrders: '暂无已支付订单。',
+    noGrowthData: '暂无增长数据。',
     totalUsers: '总用户',
     premiumUsers: '高级用户',
     activeUsers7d: '7天活跃',

@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Focus&Go Post Template</title>
+    <style>
+      :root {
+        --canvas-w: 1080px;
+        --canvas-h: 1350px;
+        --bg: #f5f3f0;
+        --ink: #3a3733;
+        --muted: #5f706b;
+        --green: #2e665c;
+        --green-soft: #d9e4de;
+        --line: rgba(58, 55, 51, 0.14);
+        --paper: rgba(255, 252, 247, 0.86);
+        --shadow: 0 34px 88px rgba(58, 55, 51, 0.16);
+        --display-font: "Songti SC", "STSong", "Noto Serif CJK SC", serif;
+        --body-font: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: color-mix(in srgb, var(--bg), #d7d1c9 22%);
+        color: var(--ink);
+        font-family: var(--body-font);
+      }
+
+      .post {
+        position: relative;
+        width: min(100vw, var(--canvas-w));
+        aspect-ratio: 4 / 5;
+        overflow: hidden;
+        isolation: isolate;
+        background:
+          radial-gradient(circle at 25% 18%, rgba(255, 255, 255, 0.74), transparent 31%),
+          radial-gradient(circle at 75% 22%, rgba(255, 255, 255, 0.58), transparent 34%),
+          linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(245, 243, 240, 0.92) 45%, rgba(235, 231, 225, 0.88)),
+          var(--bg);
+      }
+
+      .post::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.28;
+        background-image:
+          linear-gradient(90deg, rgba(58, 55, 51, 0.035) 1px, transparent 1px),
+          linear-gradient(rgba(58, 55, 51, 0.026) 1px, transparent 1px);
+        background-size: 34px 34px;
+        mask-image: radial-gradient(circle at 20% 24%, var(--ink) 0 34%, transparent 70%);
+      }
+
+      .arc {
+        position: absolute;
+        pointer-events: none;
+        border: 2px solid color-mix(in srgb, var(--green), transparent 24%);
+        border-color: color-mix(in srgb, var(--green), transparent 24%) transparent transparent transparent;
+        border-radius: 50%;
+        opacity: 0.78;
+      }
+
+      .arc-a {
+        width: 900px;
+        height: 520px;
+        right: -420px;
+        top: 470px;
+        transform: rotate(-17deg);
+      }
+
+      .arc-b {
+        width: 1120px;
+        height: 500px;
+        left: -560px;
+        bottom: 235px;
+        transform: rotate(-9deg);
+      }
+
+      .guide-line {
+        position: absolute;
+        left: 420px;
+        right: -120px;
+        top: 670px;
+        height: 2px;
+        background: rgba(58, 55, 51, 0.12);
+        transform: rotate(-6.5deg);
+      }
+
+      .content {
+        position: relative;
+        z-index: 2;
+        height: 100%;
+        padding: 178px 0 70px 122px;
+      }
+
+      .headline {
+        width: 720px;
+        margin: 0;
+        font-family: var(--display-font);
+        font-size: 88px;
+        font-weight: 700;
+        line-height: 1.28;
+        letter-spacing: 0;
+        color: var(--ink);
+        white-space: pre-line;
+        text-wrap: balance;
+        filter: drop-shadow(0 3px 1px rgba(58, 55, 51, 0.04));
+      }
+
+      .underline {
+        width: 360px;
+        height: 54px;
+        margin: 18px 0 64px;
+      }
+
+      .subcopy {
+        display: grid;
+        grid-template-columns: 6px auto;
+        gap: 22px;
+        align-items: center;
+        color: var(--green);
+        font-size: 28px;
+        line-height: 1.74;
+        letter-spacing: 0.1em;
+        white-space: pre-line;
+      }
+
+      .subcopy::before {
+        content: "";
+        width: 5px;
+        height: 80px;
+        background: var(--green);
+      }
+
+      .product-frame {
+        position: absolute;
+        z-index: 1;
+        right: -190px;
+        bottom: -95px;
+        width: 760px;
+        height: 720px;
+        transform: rotate(-7.5deg);
+        border-radius: 38px;
+        border: 1px solid rgba(58, 55, 51, 0.1);
+        background: var(--paper);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .product-frame::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        pointer-events: none;
+        background:
+          linear-gradient(90deg, rgba(255, 255, 255, 0.74), transparent 24%),
+          linear-gradient(180deg, rgba(245, 243, 240, 0.08), rgba(245, 243, 240, 0.72));
+      }
+
+      .product-shot {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: 43% 50%;
+        transform: scale(1.04);
+        filter: saturate(0.88) contrast(0.98);
+      }
+
+      .brand {
+        position: absolute;
+        z-index: 3;
+        left: 52px;
+        bottom: 54px;
+        display: grid;
+        grid-template-columns: 84px auto;
+        gap: 18px;
+        align-items: center;
+      }
+
+      .brand-mark {
+        width: 84px;
+        height: 84px;
+        border-radius: 17px;
+        box-shadow: 0 18px 36px rgba(46, 102, 92, 0.2);
+      }
+
+      .brand-name {
+        display: block;
+        font-size: 26px;
+        font-weight: 800;
+        line-height: 1.05;
+      }
+
+      .brand-tagline {
+        display: block;
+        margin-top: 9px;
+        color: var(--green);
+        font-size: 17px;
+        font-weight: 600;
+        letter-spacing: 0.16em;
+      }
+
+      @media (max-width: 720px) {
+        body {
+          place-items: start;
+        }
+
+        .post {
+          width: 100vw;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="post" aria-label="Focus&Go social post template">
+      <div class="arc arc-a"></div>
+      <div class="arc arc-b"></div>
+      <div class="guide-line"></div>
+
+      <section class="content">
+        <h1 class="headline" data-field="headline"></h1>
+        <svg class="underline" viewBox="0 0 360 54" aria-hidden="true">
+          <path
+            d="M4 34 C72 24 164 20 270 23 C241 30 207 34 162 35 C229 31 293 30 350 31"
+            fill="none"
+            stroke="#2e665c"
+            stroke-width="5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <path d="M336 30 L344 30" fill="none" stroke="#2e665c" stroke-width="5" stroke-linecap="round" />
+        </svg>
+        <p class="subcopy" data-field="subcopy"></p>
+      </section>
+
+      <figure class="product-frame">
+        <img class="product-shot" data-field="productImage" alt="" />
+      </figure>
+
+      <footer class="brand">
+        <img class="brand-mark" data-field="logo" alt="" />
+        <p>
+          <span class="brand-name" data-field="brandName"></span>
+          <span class="brand-tagline" data-field="brandTagline"></span>
+        </p>
+      </footer>
+    </main>
+
+    <script>
+      window.POST_DATA = {
+        headline: "为什么任务软件\n越强大，\n我越不想打开？",
+        subcopy: "回归专注本质，\n让行动自然发生。",
+        brandName: "Focus&Go",
+        brandTagline: "专注 · 行动 · 成长",
+        logo: "./assets/focusgo-logo.png",
+        productImage: "./assets/product-preview.jpg",
+      };
+
+      const data = window.POST_DATA;
+      document.querySelectorAll("[data-field]").forEach((node) => {
+        const key = node.dataset.field;
+        const value = data[key] || "";
+
+        if (node instanceof HTMLImageElement) {
+          node.src = value;
+          node.alt = data[`${key}Alt`] || "";
+          return;
+        }
+
+        node.textContent = value;
+      });
+    </script>
+  </body>
+</html>
