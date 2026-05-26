@@ -1,10 +1,16 @@
 # Dependencies
 node_modules
+node_modules/
 .npm-cache/
+.venv/
+.venv_*/
 
 # Build output
 dist
+dist/
 dist-ssr
+build/
+.next/
 
 # Environment
 *.local
@@ -33,6 +39,7 @@ lerna-debug.log*
 
 # OS
 .DS_Store
+__pycache__/
 
 # Database files (runtime data, not committed)
 apps/web/focus-go-api/data/
