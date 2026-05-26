@@ -109,11 +109,6 @@ const buildNoteStats = (contentMd: string) => {
   }
 }
 
-const buildNoteBacklinks = (note: Pick<NoteItem, 'id' | 'title'>, allNotes: NoteItem[]) =>
-  allNotes
-    .filter((candidate) => candidate.id !== note.id && candidate.contentMd.toLowerCase().includes(note.title.trim().toLowerCase()))
-    .map((candidate) => ({ noteId: candidate.id, noteTitle: candidate.title.trim() || 'Untitled' }))
-
 const purgeExpiredTrashedNotes = async () => {
   const threshold = Date.now() - NOTE_TRASH_RETENTION_MS
   const rows = await db.notes.toArray()
@@ -154,43 +149,74 @@ const normalizeNoteTag = (value: NoteTag): NoteTag => ({
   sortOrder: typeof value.sortOrder === 'number' ? value.sortOrder : 0,
 })
 
-const normalizeNote = (note: NoteItem): NoteItem => ({
-  ...note,
-  title: typeof note.title === 'string' ? note.title : '',
-  contentMd: typeof note.contentMd === 'string' ? note.contentMd : '',
-  contentJson: note.contentJson && typeof note.contentJson === 'object' ? note.contentJson : null,
-  editorMode: 'document',
-  collection: note.collection ?? DEFAULT_NOTE_COLLECTION,
-  tags: normalizeTags(note.tags),
-  pinned: note.pinned === true,
-  excerpt:
-    typeof note.excerpt === 'string' && note.excerpt.trim().length > 0
-      ? note.excerpt.trim()
-      : buildNoteExcerpt(typeof note.contentMd === 'string' ? note.contentMd : ''),
-  wordCount:
-    typeof note.wordCount === 'number'
-      ? note.wordCount
-      : buildNoteStats(note.contentMd).wordCount,
-  charCount:
-    typeof note.charCount === 'number'
-      ? note.charCount
-      : buildNoteStats(note.contentMd).charCount,
-  paragraphCount:
-    typeof note.paragraphCount === 'number'
-      ? note.paragraphCount
-      : buildNoteStats(note.contentMd).paragraphCount,
-  imageCount:
-    typeof note.imageCount === 'number'
-      ? note.imageCount
-      : buildNoteStats(note.contentMd).imageCount,
-  fileCount:
-    typeof note.fileCount === 'number'
-      ? note.fileCount
-      : buildNoteStats(note.contentMd).fileCount,
-  headings: Array.isArray(note.headings) ? note.headings : buildNoteStats(note.contentMd).headings,
-  backlinks: Array.isArray(note.backlinks) ? note.backlinks : [],
-  deletedAt: typeof note.deletedAt === 'number' && Number.isFinite(note.deletedAt) ? note.deletedAt : null,
-})
+const normalizeNote = (note: NoteItem): NoteItem => {
+  const contentMd = typeof note.contentMd === 'string' ? note.contentMd : ''
+  const stats = buildNoteStats(contentMd)
+
+  return {
+    ...note,
+    title: typeof note.title === 'string' ? note.title : '',
+    contentMd,
+    contentJson: note.contentJson && typeof note.contentJson === 'object' ? note.contentJson : null,
+    editorMode: 'document',
+    collection: note.collection ?? DEFAULT_NOTE_COLLECTION,
+    tags: normalizeTags(note.tags),
+    pinned: note.pinned === true,
+    excerpt:
+      typeof note.excerpt === 'string' && note.excerpt.trim().length > 0
+        ? note.excerpt.trim()
+        : buildNoteExcerpt(contentMd),
+    wordCount: typeof note.wordCount === 'number' ? note.wordCount : stats.wordCount,
+    charCount: typeof note.charCount === 'number' ? note.charCount : stats.charCount,
+    paragraphCount: typeof note.paragraphCount === 'number' ? note.paragraphCount : stats.paragraphCount,
+    imageCount: typeof note.imageCount === 'number' ? note.imageCount : stats.imageCount,
+    fileCount: typeof note.fileCount === 'number' ? note.fileCount : stats.fileCount,
+    headings: Array.isArray(note.headings) ? note.headings : stats.headings,
+    backlinks: Array.isArray(note.backlinks) ? note.backlinks : [],
+    deletedAt: typeof note.deletedAt === 'number' && Number.isFinite(note.deletedAt) ? note.deletedAt : null,
+  }
+}
+
+const noteNeedsNormalizationWrite = (source: NoteItem | undefined, normalized: NoteItem) => {
+  if (!source) return true
+  return (
+    source.title !== normalized.title ||
+    source.contentMd !== normalized.contentMd ||
+    source.contentJson !== normalized.contentJson ||
+    source.editorMode !== normalized.editorMode ||
+    source.collection !== normalized.collection ||
+    source.pinned !== normalized.pinned ||
+    source.excerpt !== normalized.excerpt ||
+    source.wordCount !== normalized.wordCount ||
+    source.charCount !== normalized.charCount ||
+    source.paragraphCount !== normalized.paragraphCount ||
+    source.imageCount !== normalized.imageCount ||
+    source.fileCount !== normalized.fileCount ||
+    source.deletedAt !== normalized.deletedAt ||
+    JSON.stringify(source.tags) !== JSON.stringify(normalized.tags) ||
+    JSON.stringify(source.headings) !== JSON.stringify(normalized.headings) ||
+    JSON.stringify(source.backlinks) !== JSON.stringify(normalized.backlinks)
+  )
+}
+
+let normalizedNotesListPromise: Promise<NoteItem[]> | null = null
+
+const loadNormalizedNotes = async () => {
+  if (!normalizedNotesListPromise) {
+    normalizedNotesListPromise = (async () => {
+      await purgeExpiredTrashedNotes()
+      const notes = await db.notes.toArray()
+      const normalized = notes.map((note) => normalizeNote(note)).sort((left, right) => right.updatedAt - left.updatedAt)
+      const notesById = new Map(notes.map((note) => [note.id, note] as const))
+      const changed = normalized.some((note) => noteNeedsNormalizationWrite(notesById.get(note.id), note))
+      if (changed) await db.notes.bulkPut(normalized)
+      return normalized
+    })().finally(() => {
+      normalizedNotesListPromise = null
+    })
+  }
+  return normalizedNotesListPromise
+}
 
 const normalizeTask = (task: TaskItem): TaskItem => {
   const taskNote = resolveTaskNoteRichText({
@@ -710,31 +736,11 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
   },
   notes: {
     async list() {
-      await purgeExpiredTrashedNotes()
-      const notes = await db.notes.toArray()
-      const normalizedBase = notes.map((note) => normalizeNote(note))
-      const normalized = normalizedBase
-        .map((note) => ({
-          ...note,
-          backlinks: buildNoteBacklinks(note, normalizedBase),
-        }))
-        .sort((left, right) => right.updatedAt - left.updatedAt)
-      const changed = notes.some((note, index) => JSON.stringify(note) !== JSON.stringify(normalized[index]))
-      if (changed) await db.notes.bulkPut(normalized)
+      const normalized = await loadNormalizedNotes()
       return normalized.filter((note) => !note.deletedAt)
     },
     async listTrash() {
-      await purgeExpiredTrashedNotes()
-      const notes = await db.notes.toArray()
-      const normalizedBase = notes.map((note) => normalizeNote(note))
-      const normalized = normalizedBase
-        .map((note) => ({
-          ...note,
-          backlinks: buildNoteBacklinks(note, normalizedBase),
-        }))
-        .sort((left, right) => right.updatedAt - left.updatedAt)
-      const changed = notes.some((note, index) => JSON.stringify(note) !== JSON.stringify(normalized[index]))
-      if (changed) await db.notes.bulkPut(normalized)
+      const normalized = await loadNormalizedNotes()
       return normalized.filter((note) => Boolean(note.deletedAt))
     },
     async create(data?: NoteCreateInput) {

@@ -4,7 +4,7 @@ import {
   type WeatherStoredLocation,
   writeWeatherLastLocation,
 } from '../../shared/prefs/preferences'
-import { fetchThreeDayForecast, reverseGeocodeLocation, searchCityLocation, type WeatherDay, type WeatherLocation } from './weatherApi'
+import { fetchThreeDayForecast, reverseGeocodeLocation, searchCityLocation, type WeatherCurrent, type WeatherDay, type WeatherLocation } from './weatherApi'
 
 const BEIJING_LOCATION: WeatherLocation = {
   name: 'Beijing, China',
@@ -24,6 +24,7 @@ export type WeatherConfig = {
 
 export type WeatherLoadResult = {
   location: WeatherLocation
+  current: WeatherCurrent | null
   days: WeatherDay[]
 }
 
@@ -147,14 +148,15 @@ async function loadAndSchedule() {
 
   try {
     const location = await resolveLocation(configAtStart)
-    const days = await fetchThreeDayForecast(location, configAtStart.weatherTemperatureUnit)
+    const forecast = await fetchThreeDayForecast(location, configAtStart.weatherTemperatureUnit)
+    const { current, days } = forecast
     if (!days.length) throw new Error('Empty forecast')
 
     if (currentConfig && sameConfig(configAtStart, currentConfig)) {
       writeWeatherLastLocation(toStoredLocation(location))
       publish({
         status: 'ready',
-        data: { location, days },
+        data: { location, current, days },
       })
       retryAttempts = 0
       lastSuccessAt = Date.now()

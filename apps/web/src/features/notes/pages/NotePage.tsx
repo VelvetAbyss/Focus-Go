@@ -142,6 +142,7 @@ export default function NotePage() {
   const [importNotice, setImportNotice] = useState<string | null>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isInitialLoading, setIsInitialLoading] = useState(true)
+  const [isEditorReady, setIsEditorReady] = useState(false)
   const [todayKey, setTodayKey] = useState(() => dateKey(Date.now()))
   const [isAppDark, setIsAppDark] = useState(() => document.documentElement.classList.contains('dark'))
   const collectionLabelMap: Record<NoteSystemCollection, string> = {
@@ -340,6 +341,17 @@ export default function NotePage() {
         tags: activeNote.tags,
       }
     : { title: '', contentMd: '', contentJson: null, editorMode: 'document' as const, tags: [] }
+  const activeNoteForInfo = useMemo(() => {
+    if (!activeNote || openPanel !== 'info') return activeNote
+    const title = activeNote.title.trim().toLowerCase()
+    if (!title) return { ...activeNote, backlinks: [] }
+    return {
+      ...activeNote,
+      backlinks: notes
+        .filter((candidate) => candidate.id !== activeNote.id && candidate.contentMd.toLowerCase().includes(title))
+        .map((candidate) => ({ noteId: candidate.id, noteTitle: candidate.title.trim() || 'Untitled' })),
+    }
+  }, [activeNote, notes, openPanel])
 
   const noteCounts = useMemo(
     () => {
@@ -356,6 +368,15 @@ export default function NotePage() {
   const tagsWithCounts = useMemo(() => recomputeTagCounts(tags, notes.filter(Boolean)), [tags, notes])
 
   const effectiveTheme: 'paper' | 'graphite' = appearance.theme === 'graphite' || isAppDark ? 'graphite' : 'paper'
+
+  useEffect(() => {
+    setIsEditorReady(false)
+    if (!activeNote?.id) return
+    const timer = window.setTimeout(() => {
+      setIsEditorReady(true)
+    }, 32)
+    return () => window.clearTimeout(timer)
+  }, [activeNote?.id])
 
   const scheduleSave = (id: string, patch: Partial<NoteItem>) => {
     pendingSaveRef.current = { id, patch }
@@ -929,21 +950,32 @@ export default function NotePage() {
             <div className="note-page-column note-page-column--editor relative flex min-w-0 flex-1">
               {activeNote ? (
                 <div className="contents">
-                  <NoteEditor
-                    surfaceRef={editorSurfaceRef}
-                    value={activeNoteValue}
-                    appearance={appearance}
-                    isFullscreen={isFullscreen}
-                    onToggleFullscreen={() => setIsFullscreen((current) => !current)}
-                    onOpenInfo={() => setOpenPanel((current) => (current === 'info' ? null : 'info'))}
-                    onOpenAppearance={() => setOpenPanel((current) => (current === 'appearance' ? null : 'appearance'))}
-                    onImport={() => setOpenPanel((current) => (current === 'import' ? null : 'import'))}
-                    onExport={() => setOpenPanel((current) => (current === 'export' ? null : 'export'))}
-                    onChange={handleUpdateNote}
-                  />
+                  {isEditorReady ? (
+                    <NoteEditor
+                      surfaceRef={editorSurfaceRef}
+                      value={activeNoteValue}
+                      appearance={appearance}
+                      isFullscreen={isFullscreen}
+                      onToggleFullscreen={() => setIsFullscreen((current) => !current)}
+                      onOpenInfo={() => setOpenPanel((current) => (current === 'info' ? null : 'info'))}
+                      onOpenAppearance={() => setOpenPanel((current) => (current === 'appearance' ? null : 'appearance'))}
+                      onImport={() => setOpenPanel((current) => (current === 'import' ? null : 'import'))}
+                      onExport={() => setOpenPanel((current) => (current === 'export' ? null : 'export'))}
+                      onChange={handleUpdateNote}
+                    />
+                  ) : (
+                    <div className="note-page__loading" data-testid="note-editor-loader">
+                      <BrandLoader
+                        variant="inline"
+                        label={t('notes.loading')}
+                        showSignature={false}
+                        theme={effectiveTheme === 'graphite' ? 'dark' : 'light'}
+                      />
+                    </div>
+                  )}
                   <InfoPopover
                     open={openPanel === 'info'}
-                    note={activeNote}
+                    note={activeNoteForInfo}
                     onClose={() => setOpenPanel(null)}
                     onNavigateToHeading={handleNavigateToHeading}
                     onNavigateToNote={(id) => setSelectedNoteId(id)}

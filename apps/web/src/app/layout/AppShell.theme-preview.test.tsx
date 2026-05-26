@@ -31,6 +31,21 @@ vi.mock('../../features/tasks/useTaskReminderEngine', () => ({
   useTaskReminderEngine: vi.fn(),
 }))
 
+vi.mock('../../features/focus/SharedNoiseProvider', () => ({
+  useSharedNoise: () => ({
+    noise: {
+      tracks: {
+        cafe: { enabled: true, volume: 0.5 },
+        fireplace: { enabled: false, volume: 0.4 },
+        rain: { enabled: true, volume: 0.65 },
+        wind: { enabled: false, volume: 0.3 },
+        thunder: { enabled: false, volume: 0.2 },
+        ocean: { enabled: false, volume: 0.5 },
+      },
+    },
+  }),
+}))
+
 vi.mock('../../features/onboarding/ModuleGuideRuntime', () => ({
   default: () => null,
 }))
@@ -149,6 +164,26 @@ describe('AppShell theme preview event flow', () => {
     await waitFor(() => {
       expect(shell.style.getPropertyValue('--shell-scale')).toBe('0.9')
     })
+  })
+
+  it('renders the noise-scene ambient backdrop behind shell content', () => {
+    const { container } = render(
+      <MemoryRouter>
+        <AppShell>
+          <div>child</div>
+        </AppShell>
+      </MemoryRouter>,
+    )
+
+    const shell = container.querySelector('.focus-shell') as HTMLElement
+    const backdrop = shell.querySelector('.focus-shell__scene-backdrop') as HTMLElement
+    const scaleWrap = shell.querySelector('.focus-shell__scale-wrap') as HTMLElement
+
+    expect(shell).toHaveAttribute('data-ambient-scene', 'rainy-cafe')
+    expect(backdrop).toBeInTheDocument()
+    expect(backdrop).toHaveAttribute('aria-hidden', 'true')
+    expect(backdrop.nextElementSibling).toBe(scaleWrap)
+    expect(scaleWrap).toHaveTextContent('child')
   })
 
   it('keeps shell scale unchanged on same-width resize', async () => {

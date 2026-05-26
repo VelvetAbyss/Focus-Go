@@ -58,8 +58,15 @@ const WeatherWidgetCard = () => {
 
   const today = snapshot.data?.days[0]
   const rows = useMemo(() => snapshot.data?.days.slice(0, 3) ?? [], [snapshot.data?.days])
+  const currentWeather = snapshot.data?.current
   const selectedDay = rows[selectedIndex] ?? today
-  const selectedMeta = selectedDay ? getWeatherIconMeta(selectedDay.weatherCode) : null
+  const selectedWeatherCode = selectedIndex === 0 && currentWeather
+    ? currentWeather.weatherCode
+    : selectedDay?.weatherCode
+  const selectedTemperature = selectedIndex === 0 && currentWeather
+    ? currentWeather.temperature
+    : selectedDay?.tempMax
+  const selectedMeta = typeof selectedWeatherCode === 'number' ? getWeatherIconMeta(selectedWeatherCode) : null
 
   const effectiveTone = selectedMeta?.tone ?? 'cloud'
 
@@ -165,12 +172,12 @@ const WeatherWidgetCard = () => {
                 className="weather-widget__temp"
                 key={
                   selectedDay
-                    ? `${selectedDay.date}-${roundTemp(selectedDay.tempMax)}-${roundTemp(selectedDay.tempMin)}`
+                    ? `${selectedDay.date}-${roundTemp(selectedTemperature ?? selectedDay.tempMax)}-${roundTemp(selectedDay.tempMin)}`
                     : 'temp-empty'
                 }
               >
                 <span className="weather-widget__temp-value">
-                  {selectedDay ? roundTemp(selectedDay.tempMax) : '--'}
+                  {typeof selectedTemperature === 'number' ? roundTemp(selectedTemperature) : '--'}
                 </span>
                 <span className="weather-widget__temp-unit">°{unitSymbol}</span>
               </div>
@@ -193,7 +200,13 @@ const WeatherWidgetCard = () => {
               aria-label={t('weather.threeDayForecast')}
             >
               {rows.map((row, index) => {
-                const rowIcon = getWeatherIconMeta(row.weatherCode)
+                const rowWeatherCode = index === 0 && currentWeather
+                  ? currentWeather.weatherCode
+                  : row.weatherCode
+                const rowCondition = index === 0 && currentWeather
+                  ? currentWeather.condition
+                  : row.condition
+                const rowIcon = getWeatherIconMeta(rowWeatherCode)
                 const RowIcon = rowIcon.Icon
                 const active = selectedIndex === index
                 return (
@@ -212,8 +225,8 @@ const WeatherWidgetCard = () => {
                     </span>
                     <span
                       className={`weather-icon ${rowIcon.className}`}
-                      title={row.condition}
-                      aria-label={row.condition}
+                      title={rowCondition}
+                      aria-label={rowCondition}
                     >
                       <RowIcon size={15} strokeWidth={2.05} />
                     </span>
