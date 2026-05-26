@@ -13731,14 +13731,23 @@ textarea:focus-visible,
 .focus-shell {
   --shell-window-height: calc(100vh / var(--shell-scale, 1));
   --shell-content-height: calc((100vh - (var(--page-pad, 14px) * 2)) / var(--shell-scale, 1));
+  --scene-base: transparent;
+  --scene-wash: transparent;
+  --scene-accent: transparent;
+  --scene-shadow: transparent;
+  position: relative;
   min-height: 100vh;
   padding: 20px;
   display: flex;
   gap: 18px;
   background: var(--shell-page-bg, var(--bg));
+  overflow: hidden;
+  isolation: isolate;
 }
 
 .focus-shell__scale-wrap {
+  position: relative;
+  z-index: 2;
   min-height: var(--shell-content-height);
   width: calc(100% / var(--shell-scale, 1));
   display: flex;
@@ -15738,6 +15747,326 @@ textarea:focus-visible,
   min-height: 42px;
   justify-content: center;
   padding: 0;
+}
+
+/* Scene-driven ambient shell, tied to Focus white-noise presets. */
+.focus-shell__scene-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(1.035);
+  background:
+    radial-gradient(120% 80% at 18% 12%, var(--scene-wash), transparent 58%),
+    radial-gradient(110% 86% at 86% 74%, var(--scene-accent), transparent 62%),
+    linear-gradient(180deg, var(--scene-base) 0%, var(--shell-page-bg, var(--bg)) 100%);
+  transition:
+    opacity 1200ms cubic-bezier(0.19, 1, 0.22, 1),
+    filter 1200ms cubic-bezier(0.19, 1, 0.22, 1),
+    transform 1200ms cubic-bezier(0.19, 1, 0.22, 1);
+  contain: paint;
+}
+
+.focus-shell__scene-backdrop::before,
+.focus-shell__scene-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: -8%;
+  pointer-events: none;
+}
+
+.focus-shell__scene-backdrop::before {
+  opacity: 0.22;
+  background:
+    linear-gradient(100deg, transparent 0%, color-mix(in srgb, #F5F3F0 30%, transparent) 36%, transparent 58%),
+    repeating-linear-gradient(96deg, color-mix(in srgb, var(--scene-shadow) 16%, transparent) 0 1px, transparent 1px 17px);
+  filter: blur(0.4px);
+  animation: scene-silk-drift 24s cubic-bezier(0.19, 1, 0.22, 1) infinite alternate;
+}
+
+.focus-shell__scene-backdrop::after {
+  opacity: 0.18;
+  background-image:
+    radial-gradient(circle at 20% 30%, color-mix(in srgb, var(--scene-wash) 72%, transparent) 0 1px, transparent 2px),
+    radial-gradient(circle at 80% 70%, color-mix(in srgb, #3A3733 10%, transparent) 0 1px, transparent 2px);
+  background-size: 28px 28px, 34px 34px;
+  mix-blend-mode: multiply;
+}
+
+.focus-shell__scene-backdrop[data-scene='rainy-cafe'] {
+  --scene-base: color-mix(in srgb, #F5F3F0 88%, #C08552);
+  --scene-wash: color-mix(in srgb, #C08552 26%, transparent);
+  --scene-accent: color-mix(in srgb, #1F5C56 16%, transparent);
+  --scene-shadow: color-mix(in srgb, #3A3733 14%, transparent);
+}
+
+.focus-shell__scene-backdrop[data-scene='stormy-night'] {
+  --scene-base: color-mix(in srgb, #3A3733 78%, #253F5C);
+  --scene-wash: color-mix(in srgb, #86A7C7 24%, transparent);
+  --scene-accent: color-mix(in srgb, #F5F3F0 16%, transparent);
+  --scene-shadow: color-mix(in srgb, #3A3733 42%, transparent);
+}
+
+.focus-shell__scene-backdrop[data-scene='ocean-breeze'] {
+  --scene-base: color-mix(in srgb, #F5F3F0 78%, #89B9B6);
+  --scene-wash: color-mix(in srgb, #7EAFB5 30%, transparent);
+  --scene-accent: color-mix(in srgb, #D9C7A8 24%, transparent);
+  --scene-shadow: color-mix(in srgb, #1F5C56 10%, transparent);
+}
+
+.focus-shell__scene-backdrop[data-scene='cozy-fireside'] {
+  --scene-base: color-mix(in srgb, #F5F3F0 76%, #C08552);
+  --scene-wash: color-mix(in srgb, #C08552 42%, transparent);
+  --scene-accent: color-mix(in srgb, #8F4D2C 20%, transparent);
+  --scene-shadow: color-mix(in srgb, #3A3733 14%, transparent);
+}
+
+.focus-shell__scene-backdrop.is-current:not([data-scene='idle']) {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.focus-shell__scene-backdrop.is-exiting {
+  opacity: 0;
+  transform: scale(1.055);
+  filter: blur(10px) saturate(0.88);
+}
+
+.focus-shell:not([data-ambient-scene='idle']) .focus-shell__main,
+.focus-shell:not([data-ambient-scene='idle']) .focus-sidebar {
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  backdrop-filter: saturate(116%) blur(5px);
+}
+
+.focus-shell__scene-sky,
+.focus-shell__scene-orb,
+.focus-shell__scene-weather,
+.focus-shell__scene-fireflies,
+.focus-shell__scene-waves,
+.focus-shell__scene-lightning,
+.focus-shell__scene-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition:
+    opacity 900ms var(--ease-standard),
+    filter 900ms var(--ease-standard),
+    transform 900ms var(--ease-standard);
+}
+
+.focus-shell__scene-sky {
+  opacity: 0.8;
+  background:
+    conic-gradient(from 210deg at 76% 18%, transparent 0deg, color-mix(in srgb, var(--scene-accent) 28%, transparent) 16deg, transparent 38deg, transparent 360deg),
+    linear-gradient(112deg, transparent 0%, color-mix(in srgb, var(--scene-wash) 76%, transparent) 36%, transparent 62%),
+    linear-gradient(24deg, color-mix(in srgb, var(--scene-shadow) 60%, transparent), transparent 42%, color-mix(in srgb, #F5F3F0 20%, transparent) 100%);
+  transform: scale(1.08);
+  animation: scene-sky-drift 18s var(--ease-standard) infinite alternate;
+}
+
+.focus-shell__scene-orb {
+  inset: auto;
+  width: 52vw;
+  height: 52vw;
+  min-width: 520px;
+  min-height: 520px;
+  border-radius: 999px;
+  filter: blur(42px);
+  opacity: 0.42;
+  mix-blend-mode: multiply;
+  background: radial-gradient(circle, var(--scene-wash) 0%, transparent 68%);
+  animation: scene-orb-float 16s var(--ease-standard) infinite alternate;
+}
+
+.focus-shell__scene-orb--one {
+  top: -18%;
+  left: -12%;
+}
+
+.focus-shell__scene-orb--two {
+  right: -16%;
+  bottom: -24%;
+  background: radial-gradient(circle, var(--scene-accent) 0%, transparent 70%);
+  animation-duration: 22s;
+  animation-delay: -6s;
+}
+
+.focus-shell__scene-vignette {
+  opacity: 0.5;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--scene-shadow) 54%, transparent) 0%, transparent 18%, transparent 82%, color-mix(in srgb, var(--scene-shadow) 34%, transparent) 100%),
+    linear-gradient(180deg, color-mix(in srgb, #F5F3F0 20%, transparent) 0%, transparent 34%, color-mix(in srgb, var(--scene-shadow) 44%, transparent) 100%);
+}
+
+.focus-shell__scene-weather,
+.focus-shell__scene-fireflies,
+.focus-shell__scene-waves,
+.focus-shell__scene-lightning {
+  opacity: 0;
+}
+
+.focus-shell__scene-rain {
+  position: absolute;
+  top: -24%;
+  left: calc((var(--i) * 2.38) * 1%);
+  width: 1.5px;
+  height: 86px;
+  border-radius: 999px;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, #F5F3F0 74%, transparent), transparent);
+  opacity: 0.68;
+  transform: rotate(13deg);
+  animation: scene-rain-fall 920ms linear infinite;
+  animation-delay: calc(var(--i) * -83ms);
+}
+
+.focus-shell__scene-rain:nth-child(3n) {
+  height: 54px;
+  opacity: 0.4;
+  animation-duration: 1180ms;
+}
+
+.focus-shell__scene-rain:nth-child(4n) {
+  width: 2px;
+  opacity: 0.82;
+  animation-duration: 720ms;
+}
+
+.focus-shell__scene-backdrop[data-scene='rainy-cafe'] .focus-shell__scene-weather,
+.focus-shell__scene-backdrop[data-scene='stormy-night'] .focus-shell__scene-weather {
+  opacity: 1;
+}
+
+.focus-shell__scene-backdrop[data-scene='rainy-cafe'] .focus-shell__scene-rain {
+  height: 42px;
+  opacity: 0.28;
+  animation-duration: 1650ms;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, #3A3733 16%, transparent), transparent);
+}
+
+.focus-shell__scene-backdrop[data-scene='stormy-night'] .focus-shell__scene-rain {
+  height: 108px;
+  opacity: 0.78;
+  transform: rotate(18deg);
+  animation-duration: 560ms;
+}
+
+.focus-shell__scene-lightning {
+  background:
+    radial-gradient(72% 48% at 72% 12%, color-mix(in srgb, #F5F3F0 80%, transparent) 0%, transparent 58%),
+    linear-gradient(115deg, transparent 0%, color-mix(in srgb, #F5F3F0 38%, transparent) 48%, transparent 58%);
+  mix-blend-mode: screen;
+}
+
+.focus-shell__scene-backdrop[data-scene='stormy-night'] .focus-shell__scene-lightning {
+  opacity: 0;
+  animation: scene-lightning 8s steps(1, end) infinite;
+}
+
+.focus-shell__scene-waves {
+  inset: -12%;
+  background:
+    repeating-radial-gradient(ellipse at 50% 120%, color-mix(in srgb, #F5F3F0 34%, transparent) 0 2px, transparent 3px 38px),
+    linear-gradient(100deg, transparent 0%, color-mix(in srgb, #7EAFB5 18%, transparent) 42%, transparent 74%);
+  filter: blur(0.3px);
+  transform: translate3d(0, 0, 0) scale(1.05);
+  animation: scene-wave-slide 12s linear infinite;
+}
+
+.focus-shell__scene-backdrop[data-scene='ocean-breeze'] .focus-shell__scene-waves {
+  opacity: 0.72;
+}
+
+.focus-shell__scene-spark {
+  position: absolute;
+  left: calc((var(--i) * 5.35) * 1%);
+  bottom: calc(5% + var(--i) * 3.2%);
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, #C08552 82%, #F5F3F0);
+  box-shadow:
+    0 0 18px color-mix(in srgb, #C08552 80%, transparent),
+    0 0 42px color-mix(in srgb, #C08552 32%, transparent);
+  opacity: 0;
+  animation: scene-ember-rise 6.2s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -410ms);
+}
+
+.focus-shell__scene-spark:nth-child(3n) {
+  animation-duration: 5.2s;
+}
+
+.focus-shell__scene-spark:nth-child(4n) {
+  animation-duration: 7.4s;
+}
+
+.focus-shell__scene-backdrop[data-scene='cozy-fireside'] .focus-shell__scene-fireflies {
+  opacity: 1;
+}
+
+.focus-shell__scene-backdrop[data-scene='cozy-fireside'] .focus-shell__scene-sky {
+  animation-name: scene-fire-glow;
+  animation-duration: 4.5s;
+}
+
+html[data-theme='dark'] .focus-shell__scene-backdrop {
+  filter: saturate(0.92) brightness(0.82);
+}
+
+html[data-motion='reduce'] .focus-shell__scene-backdrop,
+html[data-motion='reduce'] .focus-shell__scene-backdrop::before,
+html[data-motion='reduce'] .focus-shell__scene-backdrop::after,
+html[data-motion='reduce'] .focus-shell__scene-backdrop * {
+  animation: none !important;
+  transition-duration: 0.01ms !important;
+}
+
+@keyframes scene-sky-drift {
+  0% { transform: translate3d(-2.8%, -1.6%, 0) scale(1.08); opacity: 0.66; }
+  100% { transform: translate3d(2.4%, 1.8%, 0) scale(1.12); opacity: 0.92; }
+}
+
+@keyframes scene-orb-float {
+  0% { transform: translate3d(-3%, -1%, 0) scale(0.98); opacity: 0.34; }
+  100% { transform: translate3d(4%, 3%, 0) scale(1.08); opacity: 0.54; }
+}
+
+@keyframes scene-silk-drift {
+  0% { transform: translate3d(-2%, -1%, 0) rotate(-0.4deg); opacity: 0.16; }
+  100% { transform: translate3d(2%, 1.5%, 0) rotate(0.5deg); opacity: 0.3; }
+}
+
+@keyframes scene-rain-fall {
+  0% { transform: translate3d(0, -18vh, 0) rotate(13deg); opacity: 0; }
+  12% { opacity: 0.72; }
+  100% { transform: translate3d(-18vw, 132vh, 0) rotate(13deg); opacity: 0; }
+}
+
+@keyframes scene-lightning {
+  0%, 72%, 77%, 100% { opacity: 0; }
+  73% { opacity: 0.72; }
+  74% { opacity: 0.08; }
+  75% { opacity: 0.55; }
+}
+
+@keyframes scene-wave-slide {
+  0% { transform: translate3d(-3%, 0, 0) scale(1.05); }
+  100% { transform: translate3d(3%, -1.5%, 0) scale(1.08); }
+}
+
+@keyframes scene-ember-rise {
+  0% { transform: translate3d(0, 18px, 0) scale(0.5); opacity: 0; }
+  16% { opacity: 0.75; }
+  70% { opacity: 0.42; }
+  100% { transform: translate3d(12px, -120px, 0) scale(1.25); opacity: 0; }
+}
+
+@keyframes scene-fire-glow {
+  0%, 100% { opacity: 0.68; filter: brightness(1) saturate(1); }
+  38% { opacity: 0.9; filter: brightness(1.08) saturate(1.08); }
+  62% { opacity: 0.74; filter: brightness(0.96) saturate(1.02); }
 }
 
 /* ── Sidebar Podcast Player ───────────────────────────────── */

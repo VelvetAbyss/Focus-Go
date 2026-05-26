@@ -8,6 +8,11 @@ export type WeatherLocation = {
 }
 
 type OpenMeteoForecastResponse = {
+  current?: {
+    time?: string
+    temperature_2m?: number
+    weather_code?: number
+  }
   daily?: {
     time?: string[]
     weather_code?: number[]
@@ -31,6 +36,18 @@ export type WeatherDay = {
   condition: string
   tempMax: number
   tempMin: number
+}
+
+export type WeatherCurrent = {
+  time: string
+  weatherCode: number
+  condition: string
+  temperature: number
+}
+
+export type WeatherForecast = {
+  current: WeatherCurrent | null
+  days: WeatherDay[]
 }
 
 const CJK_CHAR_RE = /[\u3400-\u9fff]/u
@@ -65,13 +82,13 @@ function buildCityQueryCandidates(input: string) {
 
 async function fetchJson<T>(url: string): Promise<T> {
   const controller = new AbortController()
-  const timeout = window.setTimeout(() => controller.abort(), 8000)
+  const timeout = globalThis.setTimeout(() => controller.abort(), 8000)
   try {
     const response = await fetch(url, { signal: controller.signal })
     if (!response.ok) throw new Error(`Request failed: ${response.status}`)
     return (await response.json()) as T
   } finally {
-    window.clearTimeout(timeout)
+    globalThis.clearTimeout(timeout)
   }
 }
 
@@ -126,6 +143,12 @@ export async function reverseGeocodeLocation(latitude: number, longitude: number
 }
 
 type WttrForecastResponse = {
+  current_condition?: Array<{
+    temp_C?: string
+    temp_F?: string
+    weatherCode?: string
+    localObsDateTime?: string
+  }>
   weather?: Array<{
     date?: string
     maxtempC?: string
@@ -153,13 +176,18 @@ function wttrCodeToWmoCode(code: number): number {
 async function fetchThreeDayForecastFallback(
   location: WeatherLocation,
   unit: TemperatureUnit
-): Promise<WeatherDay[]> {
+): Promise<WeatherForecast> {
   const response = await fetchJson<WttrForecastResponse>(
     `https://wttr.in/${location.latitude},${location.longitude}?format=j1`
   )
   const days = response.weather ?? []
   if (!days.length) throw new Error('wttr.in: empty response')
-  return days.slice(0, 3).map((day) => {
+  const currentCondition = response.current_condition?.[0]
+  const currentWeatherCode = wttrCodeToWmoCode(parseInt(currentCondition?.weatherCode ?? '', 10))
+  const currentTemperature = unit === 'fahrenheit'
+    ? parseInt(currentCondition?.temp_F ?? '', 10)
+    : parseInt(currentCondition?.temp_C ?? '', 10)
+  const forecastDays = days.slice(0, 3).map((day) => {
     const weatherCode = wttrCodeToWmoCode(parseInt(day.weatherCode ?? '0', 10))
     const tempMax = unit === 'fahrenheit'
       ? parseInt(day.maxtempF ?? '0', 10)
@@ -175,15 +203,25 @@ async function fetchThreeDayForecastFallback(
       tempMin,
     }
   })
+  const current = Number.isFinite(currentTemperature) && currentCondition?.weatherCode
+    ? {
+        time: currentCondition.localObsDateTime ?? '',
+        weatherCode: currentWeatherCode,
+        condition: getWeatherCodeMeta(currentWeatherCode).label,
+        temperature: currentTemperature,
+      }
+    : null
+
+  return { current, days: forecastDays }
 }
 
 export async function fetchThreeDayForecast(
   location: WeatherLocation,
   unit: TemperatureUnit
-): Promise<WeatherDay[]> {
+): Promise<WeatherForecast> {
   try {
     const response = await fetchJson<OpenMeteoForecastResponse>(
-      `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=3&timezone=auto&temperature_unit=${unit}`
+      `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=3&timezone=auto&temperature_unit=${unit}`
     )
     const times = response.daily?.time ?? []
     const codes = response.daily?.weather_code ?? []
@@ -192,7 +230,7 @@ export async function fetchThreeDayForecast(
 
     const length = Math.min(times.length, codes.length, max.length, min.length)
     if (!length) throw new Error('Open-Meteo: empty forecast')
-    return Array.from({ length }).map((_, index) => {
+    const days = Array.from({ length }).map((_, index) => {
       const weatherCode = codes[index] ?? 0
       return {
         date: times[index],
@@ -202,6 +240,17 @@ export async function fetchThreeDayForecast(
         tempMin: min[index] ?? 0,
       }
     })
+    const currentWeatherCode = response.current?.weather_code
+    const currentTemperature = response.current?.temperature_2m
+    const current = typeof currentWeatherCode === 'number' && typeof currentTemperature === 'number'
+      ? {
+          time: response.current?.time ?? '',
+          weatherCode: currentWeatherCode,
+          condition: getWeatherCodeMeta(currentWeatherCode).label,
+          temperature: currentTemperature,
+        }
+      : null
+    return { current, days }
   } catch {
     return fetchThreeDayForecastFallback(location, unit)
   }
