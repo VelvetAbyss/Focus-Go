@@ -1,6 +1,7 @@
 import { X, LogIn, UserPlus, Mail, KeyRound, Eye, EyeOff } from 'lucide-react'
 import type { FormEvent } from 'react'
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { authClient } from '../../config/authClient'
 import { finishBetterAuthSession, getGoogleAuthCallbackURL } from '../../config/authRuntime'
 import { consumePendingCheckout, startPremiumCheckout } from '../../features/payments/paymentFlow'
@@ -122,7 +123,7 @@ const LoginModal = ({ onClose }: LoginModalProps) => {
     }
   }
 
-  return (
+  return createPortal(
     <div className="login-modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
       <div className="login-modal login-modal--auth" onClick={(e) => e.stopPropagation()}>
         <button type="button" className="login-modal__close" onClick={onClose} aria-label="Close">
@@ -245,7 +246,8 @@ const LoginModal = ({ onClose }: LoginModalProps) => {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 

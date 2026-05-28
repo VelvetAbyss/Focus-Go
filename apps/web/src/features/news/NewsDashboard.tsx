@@ -25,6 +25,7 @@ const categoryLabels: Record<NewsCategory | 'all', string> = {
   hot: '热榜',
   tech: '科技',
   finance: '财经',
+  world: '国际',
 }
 
 const densityLabels: Record<NewsDensity, string> = {
@@ -229,7 +230,7 @@ const NewsCard = ({
 }
 
 // ─── Category filter with sliding indicator ────────────────────────────────────
-const CATEGORIES = ['all', 'hot', 'tech', 'finance'] as const
+const CATEGORIES = ['all', 'hot', 'tech', 'finance', 'world'] as const
 
 const CategoryFilter = ({
   selected,
@@ -295,6 +296,7 @@ const CATEGORY_GROUP_LABELS: Record<NewsCategory, string> = {
   hot: '热榜',
   tech: '科技',
   finance: '财经',
+  world: '国际',
 }
 
 const SourceManager = ({
@@ -311,7 +313,7 @@ const SourceManager = ({
   onDensityChange: (d: NewsDensity) => void
 }) => {
   const grouped = useMemo(() => {
-    const map: Record<NewsCategory, NewsSource[]> = { hot: [], tech: [], finance: [] }
+    const map: Record<NewsCategory, NewsSource[]> = { hot: [], tech: [], finance: [], world: [] }
     sources.forEach((s) => { map[s.category]?.push(s) })
     return map
   }, [sources])

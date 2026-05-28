@@ -60,32 +60,33 @@ const readShellScale = () => {
   return resolveShellScale(window.innerWidth)
 }
 
-const SCENE_RAINDROPS = Array.from({ length: 42 }, (_, index) => index)
-const SCENE_FIREFLIES = Array.from({ length: 18 }, (_, index) => index)
-const SCENE_CROSSFADE_MS = 1200
 type AmbientScene = NoiseScenePresetId | 'idle'
-type AmbientScenePhase = 'current' | 'exiting'
 
-const AmbientSceneBackdrop = ({ scene, phase }: { scene: AmbientScene; phase: AmbientScenePhase }) => (
-  <div className={`focus-shell__scene-backdrop is-${phase}`} data-scene={scene} aria-hidden="true">
-    <div className="focus-shell__scene-sky" />
-    <div className="focus-shell__scene-orb focus-shell__scene-orb--one" />
-    <div className="focus-shell__scene-orb focus-shell__scene-orb--two" />
-    <div className="focus-shell__scene-weather">
-      {SCENE_RAINDROPS.map((drop) => (
-        <span key={`drop-${drop}`} className="focus-shell__scene-rain" style={{ '--i': drop } as CSSProperties} />
-      ))}
+const SCENE_IMAGE_WALLPAPERS: Partial<Record<AmbientScene, string>> = {
+  'rainy-cafe': '/wallpapers/rainy-cafe.png',
+  'stormy-night': '/wallpapers/stormy-night.png',
+  'ocean-breeze': '/wallpapers/ocean-breeze.png',
+  'cozy-fireside': '/wallpapers/cozy-fireside.png',
+}
+
+const AmbientSceneBackdrop = ({ scene }: { scene: AmbientScene }) => {
+  const sceneImage = SCENE_IMAGE_WALLPAPERS[scene]
+
+  return (
+    <div className="focus-shell__scene-backdrop is-current" data-scene={scene} aria-hidden="true">
+      {sceneImage ? (
+        <img
+          className="focus-shell__scene-image"
+          src={sceneImage}
+          alt=""
+          decoding="async"
+          draggable={false}
+        />
+      ) : null}
+      <div className="focus-shell__scene-vignette" />
     </div>
-    <div className="focus-shell__scene-fireflies">
-      {SCENE_FIREFLIES.map((spark) => (
-        <span key={`spark-${spark}`} className="focus-shell__scene-spark" style={{ '--i': spark } as CSSProperties} />
-      ))}
-    </div>
-    <div className="focus-shell__scene-waves" />
-    <div className="focus-shell__scene-lightning" />
-    <div className="focus-shell__scene-vignette" />
-  </div>
-)
+  )
+}
 
 const AppShell = ({ children }: AppShellProps) => {
   const location = useLocation()
@@ -97,8 +98,6 @@ const AppShell = ({ children }: AppShellProps) => {
   const [shellScale, setShellScale] = useState(() => readShellScale())
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const ambientScene = findMatchingNoiseScenePreset(noise.tracks)?.id ?? 'idle'
-  const [currentScene, setCurrentScene] = useState<AmbientScene>(ambientScene)
-  const [exitingScene, setExitingScene] = useState<AmbientScene | null>(null)
   useTaskReminderEngine()
 
   useEffect(() => {
@@ -217,20 +216,11 @@ const AppShell = ({ children }: AppShellProps) => {
     '--shell-scale': shellScale,
   } as CSSProperties
 
-  useEffect(() => {
-    if (ambientScene === currentScene) return
-    setExitingScene(currentScene)
-    setCurrentScene(ambientScene)
-    const timer = window.setTimeout(() => setExitingScene(null), SCENE_CROSSFADE_MS)
-    return () => window.clearTimeout(timer)
-  }, [ambientScene, currentScene])
-
   return (
     <AuthGateProvider>
       <UpgradeModalProvider>
         <div className={`focus-shell ${sidebarDimmed ? 'focus-shell--sidebar-dimmed' : ''}`} data-ambient-scene={ambientScene} style={shellStyle}>
-          {exitingScene ? <AmbientSceneBackdrop scene={exitingScene} phase="exiting" /> : null}
-          <AmbientSceneBackdrop scene={currentScene} phase="current" />
+          <AmbientSceneBackdrop scene={ambientScene} />
           <div className="focus-shell__scale-wrap">
             <Sidebar
               collapsed={sidebarCollapsed}
