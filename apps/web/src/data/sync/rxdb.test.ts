@@ -78,6 +78,67 @@ describe('rxdb sync migration', () => {
     expect(body.rows[0].newDocumentState.id).toBe('task-local')
   })
 
+  it('backfills imported local notes into a non-empty RxDB notes queue', async () => {
+    const existingNote = {
+      id: 'note-online',
+      title: 'Online note',
+      contentMd: 'online',
+      contentJson: null,
+      editorMode: 'document' as const,
+      collection: 'all-notes' as const,
+      tags: [],
+      excerpt: '',
+      pinned: false,
+      wordCount: 1,
+      charCount: 6,
+      paragraphCount: 1,
+      imageCount: 0,
+      fileCount: 0,
+      headings: [],
+      backlinks: [],
+      deletedAt: null,
+      createdAt: 1,
+      updatedAt: 10,
+    }
+    const importedNote = {
+      ...existingNote,
+      id: 'note-imported',
+      title: 'Imported note',
+      contentMd: '# Imported',
+      tags: ['Imported'],
+      updatedAt: 20,
+    }
+    await db.notes.bulkPut([existingNote, importedNote])
+    await enqueueSyncOperation('notes', 'upsert', existingNote)
+
+    fetchMock.mockImplementation(async (input, init) => {
+      const url = String(input)
+      const body = init?.body ? JSON.parse(String(init.body)) : {}
+      if (url.includes('/sync/rxdb/pull')) {
+        return {
+          ok: true,
+          json: async () => ({ documents: [], checkpoint: body.checkpoint ?? null, blobs: [] }),
+        } as Response
+      }
+      return {
+        ok: true,
+        json: async () => ({ conflicts: [], blobs: [] }),
+      } as Response
+    })
+
+    await runRxdbSyncCycle()
+
+    const notePushCalls = fetchMock.mock.calls.filter(([url, init]) => {
+      const body = init?.body ? JSON.parse(String(init.body)) : {}
+      return String(url).includes('/sync/rxdb/push') && body.entityType === 'notes'
+    })
+    const pushedIds = notePushCalls.flatMap(([, init]) => {
+      const body = init?.body ? JSON.parse(String(init.body)) : {}
+      return (body.rows ?? []).map((row: { newDocumentState: { id: string } }) => row.newDocumentState.id)
+    })
+    expect(pushedIds).toContain('note-imported')
+  })
+
   it('pulls remote rows through the new endpoint and writes them back to Dexie tables', async () => {
     fetchMock.mockImplementation(async (input, init) => {
       const url = String(input)

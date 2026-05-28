@@ -214,11 +214,22 @@ const writeDexieEntity = async (entityType: SyncEntityType, document: SyncDocume
 }
 
 const seedCollectionFromDexie = async (entityType: SyncEntityType, collection: RxCollection<SyncDocument>) => {
-  const count = await collection.count().exec()
-  if (count > 0) return
   const rows = await db.table(SYNC_ENTITY_TABLES[entityType]).toArray()
   if (rows.length === 0) return
-  await collection.bulkUpsert(rows.map((row) => ({ ...(row as SyncPayload), _deleted: false })))
+  const missingOrStaleRows: SyncDocument[] = []
+  for (const row of rows) {
+    const local = { ...(row as SyncPayload), _deleted: false } as SyncDocument
+    const queued = await collection.findOne(local.id).exec()
+    if (!queued) {
+      missingOrStaleRows.push(local)
+      continue
+    }
+    const queuedData = queued.toJSON() as SyncDocument
+    if (queuedData._deleted === true || (queuedData.updatedAt ?? 0) < local.updatedAt) {
+      missingOrStaleRows.push(local)
+    }
+  }
+  if (missingOrStaleRows.length > 0) await collection.bulkUpsert(missingOrStaleRows)
 }
 
 const pullHandler = async (entityType: SyncEntityType, checkpoint: RxdbCheckpoint | undefined, batchSize: number) => {
