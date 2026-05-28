@@ -161,7 +161,10 @@ describe('TaskDrawer onboarding mode', () => {
     })
   })
 
-  it('autosaves the latest note content after rapid edits', async () => {
+  // Skipped: the single inline note textarea was replaced by TaskNotesPanel
+  // (multi-note system). The legacy taskNoteContentMd autosave flow this test
+  // covered no longer has a UI surface in TaskDrawer.
+  it.skip('autosaves the latest note content after rapid edits', async () => {
     vi.useFakeTimers()
     updateMock.mockImplementation(async (task: TaskItem) => ({
       ...task,
@@ -198,7 +201,8 @@ describe('TaskDrawer onboarding mode', () => {
     })
   })
 
-  it('rehydrates note content when reopening the same task', async () => {
+  // Skipped: see preceding skip — same legacy single-note UI removed.
+  it.skip('rehydrates note content when reopening the same task', async () => {
     const { rerender } = render(
       <TaskDrawer
         open
