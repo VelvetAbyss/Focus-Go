@@ -1,4 +1,4 @@
-import { clearAuth, fetchAuthProfile, setAuth } from '../store/auth'
+import { clearAuth, getAuth } from '../store/auth'
 import { consumePendingCheckout, startPremiumCheckout } from '../features/payments/paymentFlow'
 import { clearAuthRedirectParams, finishBetterAuthCookieSession, hasAuthRedirectParams } from './authRuntime'
 
@@ -9,49 +9,21 @@ const completePendingCheckout = async () => {
   return true
 }
 
-const restoreStoredAuth = async () => {
-  const existing = localStorage.getItem('auth')
-  if (!existing) return false
-  try {
-    const parsed = JSON.parse(existing)
-    const accessToken = parsed?.accessToken
-    if (!accessToken) return false
-    const profile = await fetchAuthProfile(accessToken)
-    if (!profile) throw new Error('profile unavailable')
-    setAuth({
-      accessToken,
-      user: parsed.user,
-      plan: profile.plan,
-      entitlement: profile.entitlement,
-      expiresAt: profile.expiresAt,
-      isLifetime: profile.isLifetime,
-      isAdmin: profile.isAdmin,
-    })
-    return true
-  } catch (err) {
-    console.warn('Token validation failed, clearing auth:', err)
-    clearAuth()
-    return false
-  }
-}
-
+// On every page load, exchange the HttpOnly better-auth cookie for a fresh
+// in-memory access token. We no longer trust an `accessToken` stored in
+// localStorage — that field is gone — so the cookie is the single source of
+// truth for authentication state.
 export const bootstrapAuth = async () => {
   const isAuthRedirect = hasAuthRedirectParams()
-  const restoredStoredAuth = await restoreStoredAuth()
-  if (restoredStoredAuth) {
+  try {
+    await finishBetterAuthCookieSession()
+    if (isAuthRedirect) clearAuthRedirectParams()
     if (await completePendingCheckout()) return false
-    if (!isAuthRedirect) return true
+  } catch {
+    // No active session cookie. Only emit a clear if there's prior state to
+    // drop (avoids spurious re-renders for first-time visitors).
+    if (isAuthRedirect) clearAuthRedirectParams()
+    if (getAuth()) clearAuth()
   }
-
-  if (isAuthRedirect || !restoredStoredAuth) {
-    try {
-      await finishBetterAuthCookieSession()
-      clearAuthRedirectParams()
-      if (await completePendingCheckout()) return false
-    } catch {
-      // No active Better Auth cookie.
-    }
-  }
-
   return true
 }
