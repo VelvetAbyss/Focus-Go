@@ -3,7 +3,6 @@ import { useAuthPlan, useIsLoggedIn } from '../../store/auth'
 import { dispatchSyncDataUpdated, SYNC_DATA_UPDATED_EVENT, SYNC_STATUS_CHANGED_EVENT, type SyncDataUpdatedDetail } from './constants'
 import type { SyncEntityType } from './types'
 import { syncStateRepo } from './repository'
-import { ensureRxdbSyncReady, runRxdbSyncCycle } from './rxdb'
 import type { SyncState } from './types'
 import { isLocalhostRuntime } from '../../shared/env/localhost'
 import { usePageActivity } from '../../shared/hooks/usePageActivity'
@@ -32,6 +31,8 @@ const writeCloudSyncEnabled = (enabled: boolean) => {
   if (typeof window === 'undefined') return
   window.localStorage.setItem(CLOUD_SYNC_ENABLED_KEY, enabled ? '1' : '0')
 }
+
+const loadRxdbSync = () => import('./rxdb')
 
 export const SyncProvider = ({ children }: { children: ReactNode }) => {
   const isLoggedIn = useIsLoggedIn()
@@ -80,6 +81,7 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
     runningRef.current = true
     let cycleError: unknown = null
     try {
+      const { runRxdbSyncCycle } = await loadRxdbSync()
       await runRxdbSyncCycle()
       consecutiveErrorsRef.current = 0
     } catch (error) {
@@ -109,6 +111,7 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
     }
     runningRef.current = true
     try {
+      const { ensureRxdbSyncReady } = await loadRxdbSync()
       await ensureRxdbSyncReady()
     } finally {
       runningRef.current = false

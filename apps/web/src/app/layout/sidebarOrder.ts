@@ -1,5 +1,3 @@
-import { arrayMove } from '@dnd-kit/sortable'
-
 export const SIDEBAR_ORDER_STORAGE_KEY = 'focusgo.sidebar.order.v1'
 
 const isStringArray = (value: unknown): value is string[] =>
@@ -36,5 +34,9 @@ export const moveSidebarOrder = (order: string[], activeId: string, overId: stri
   const activeIndex = order.indexOf(activeId)
   const overIndex = order.indexOf(overId)
   if (activeIndex < 0 || overIndex < 0 || activeIndex === overIndex) return order
-  return arrayMove(order, activeIndex, overIndex)
+
+  const next = [...order]
+  const [moved] = next.splice(activeIndex, 1)
+  next.splice(overIndex, 0, moved)
+  return next
 }

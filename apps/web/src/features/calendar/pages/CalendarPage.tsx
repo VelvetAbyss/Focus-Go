@@ -1018,11 +1018,15 @@ const CalendarPage = () => {
                       <Badge
                         key={item.id}
                         variant="secondary"
-                        className="calendar-chip calendar-chip--task"
-                        style={{
-                          background: `color-mix(in srgb, ${item.color} 24%, var(--bg-muted))`,
-                          color: `color-mix(in srgb, ${item.color} 88%, var(--text-primary))`,
-                        }}
+                        className={`calendar-chip calendar-chip--task${item.status === 'done' ? ' calendar-chip--task-done' : ''}`}
+                        style={
+                          item.status === 'done'
+                            ? undefined
+                            : {
+                                background: `color-mix(in srgb, ${item.color} 24%, var(--bg-muted))`,
+                                color: `color-mix(in srgb, ${item.color} 88%, var(--text-primary))`,
+                              }
+                        }
                       >
                         {item.title}
                       </Badge>
@@ -1103,7 +1107,7 @@ const CalendarPage = () => {
                 const taskTags = task.tags.slice(0, 2)
                 const hiddenTagCount = Math.max(0, task.tags.length - taskTags.length)
                 return (
-                  <article className="calendar-task-card">
+                  <article className={`calendar-task-card${task.status === 'done' ? ' is-done' : ''}`}>
                     <div className="calendar-task-card__header">
                       <Popover>
                         <PopoverTrigger asChild>
@@ -1129,7 +1133,7 @@ const CalendarPage = () => {
                           />
                         </PopoverContent>
                       </Popover>
-                      <span className={`calendar-side-row__text${hasCjk(taskTitle) ? ' is-cjk' : ''}`}>{taskTitle}</span>
+                      <span className={`calendar-side-row__text${hasCjk(taskTitle) ? ' is-cjk' : ''}${task.status === 'done' ? ' is-done' : ''}`}>{taskTitle}</span>
                       <div className="calendar-side-row__action">
                         <Button
                           type="button"

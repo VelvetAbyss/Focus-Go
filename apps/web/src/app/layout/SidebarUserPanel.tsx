@@ -20,13 +20,6 @@ import type { FocusSession } from '../../data/models/types'
 import { ROUTES } from '../routes/routes'
 import { db, requestCrossTabDbReset } from '../../data/db'
 import { DB_NAME, DB_VERSION, TABLES } from '../../data/db/schema'
-import {
-  createBackupDownload,
-  createBrowserStorageAdapter,
-  createTableDatabaseAdapter,
-  downloadBackupFile,
-  exportLocalBackup,
-} from '../../shared/backup/localBackup'
 
 const LoginModal = lazy(() => import('./LoginModal'))
 
@@ -548,6 +541,13 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
     if (exportState !== 'idle') return
     setExportState('exporting')
     try {
+      const {
+        createBackupDownload,
+        createBrowserStorageAdapter,
+        createTableDatabaseAdapter,
+        downloadBackupFile,
+        exportLocalBackup,
+      } = await import('../../shared/backup/localBackup')
       const tableNames = Object.values(TABLES)
       const payload = await exportLocalBackup({
         db: createTableDatabaseAdapter(db, tableNames),

@@ -14795,8 +14795,11 @@ textarea:focus-visible,
 }
 
 .calendar-chip--task-done {
-  color: color-mix(in srgb, var(--status-done) 82%, var(--text-primary));
-  background: color-mix(in srgb, var(--status-done) 24%, var(--bg-muted));
+  color: color-mix(in srgb, var(--text-secondary) 82%, transparent);
+  background: color-mix(in srgb, var(--text-secondary) 14%, var(--bg-muted));
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  text-decoration-color: color-mix(in srgb, var(--text-secondary) 70%, transparent);
 }
 
 .calendar-chip--more {
@@ -14863,6 +14866,11 @@ textarea:focus-visible,
     0 4px 8px color-mix(in srgb, #3a3733 8%, transparent),
     0 14px 30px color-mix(in srgb, #3a3733 10%, transparent);
   border-color: color-mix(in srgb, var(--border) 95%, transparent);
+}
+
+.calendar-task-card.is-done {
+  background: color-mix(in srgb, var(--text-secondary) 5%, var(--bg-elevated));
+  border-color: color-mix(in srgb, var(--text-secondary) 16%, transparent);
 }
 
 .calendar-task-card__header {
@@ -14987,6 +14995,13 @@ textarea:focus-visible,
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.calendar-side-row__text.is-done {
+  color: color-mix(in srgb, var(--text-secondary) 82%, transparent);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  text-decoration-color: color-mix(in srgb, var(--text-secondary) 70%, transparent);
 }
 
 .calendar-v2__right .calendar-side-row__text.is-cjk {
