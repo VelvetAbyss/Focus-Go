@@ -307,7 +307,10 @@ export const TaskProgressSummaryCard = ({ tasks, projects, className, compact, n
   const subtasksDirection = directionFromDelta(summary.delta.completedSubtaskCount)
 
   const issueDate = new Date(summary.range.startAt)
-  const filedTs = Math.min(now ?? Date.now(), summary.range.endAt - 1)
+  // Snapshot time at mount via useState lazy initializer — the canonical
+  // React pattern for capturing a non-pure value once per component instance.
+  const [nowAtMount] = useState(() => Date.now())
+  const filedTs = Math.min(now ?? nowAtMount, summary.range.endAt - 1)
 
   return (
     <section

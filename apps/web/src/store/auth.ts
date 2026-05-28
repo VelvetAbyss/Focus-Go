@@ -47,8 +47,10 @@ const persistHint = (value: Record<string, unknown> | null) => {
   localStorage.setItem('auth', JSON.stringify(hint))
 }
 
-// Returned as `any` to preserve the prior loose shape consumed across the app.
-// Keep this until callers migrate to a typed accessor.
+// Loose record shape preserved for the many call sites that read ad-hoc
+// fields (accessToken, user.name, country_code, etc.). Migrate callers to a
+// typed accessor over time.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const getAuth = (): any => inMemoryAuth ?? readHint()
 
 export const setAuth = (value: unknown) => {
