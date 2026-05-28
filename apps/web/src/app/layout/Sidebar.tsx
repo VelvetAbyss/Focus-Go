@@ -2,17 +2,6 @@ import { NavLink } from 'react-router-dom'
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { motion } from 'motion/react'
 import {
-  closestCenter,
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from '@dnd-kit/core'
-import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
-import {
   Bot,
   Beaker,
   CalendarDays,
@@ -51,6 +40,7 @@ import { markDiscoveryNewTargetSeen } from '../../shared/discovery/discoveryNewT
 import { SIDEBAR_DISCOVERY_TARGET_BY_ITEM_ID } from '../../shared/discovery/newTargets'
 
 const PodcastCard = lazy(() => import('../../features/life/cards/PodcastCard'))
+const SidebarDndNav = lazy(() => import('./SidebarDndNav'))
 
 type SidebarProps = {
   collapsed: boolean
@@ -73,7 +63,7 @@ const ICONS: Record<RouteKey, LucideIcon> = {
   admin: ShieldCheck,
 }
 
-type SidebarNavItem = {
+export type SidebarNavItem = {
   id: string
   to: string
   label: string
@@ -82,32 +72,23 @@ type SidebarNavItem = {
   extraClassName?: string
 }
 
-type SortableSidebarItemProps = {
+type StaticSidebarItemProps = {
   item: SidebarNavItem
   collapsed: boolean
 }
 
-const SortableSidebarItem = ({ item, collapsed }: SortableSidebarItemProps) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
+const StaticSidebarItem = ({ item, collapsed }: StaticSidebarItemProps) => {
   const discoveryTarget = SIDEBAR_DISCOVERY_TARGET_BY_ITEM_ID[item.id]
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  }
 
   return (
     <NavLink
-      ref={setNodeRef}
       to={item.to}
       end={item.end}
-      style={style}
       aria-label={item.label}
       className={({ isActive }) =>
-        `focus-sidebar__item${item.extraClassName ? ` ${item.extraClassName}` : ''}${isActive ? ' is-active' : ''}${isDragging ? ' is-dragging' : ''}`
+        `focus-sidebar__item${item.extraClassName ? ` ${item.extraClassName}` : ''}${isActive ? ' is-active' : ''}`
       }
       onClick={() => { if (discoveryTarget) markDiscoveryNewTargetSeen(discoveryTarget) }}
-      {...attributes}
-      {...listeners}
     >
       <item.Icon size={18} aria-hidden="true" />
       {!collapsed ? <span>{item.label}</span> : null}
@@ -115,6 +96,29 @@ const SortableSidebarItem = ({ item, collapsed }: SortableSidebarItemProps) => {
     </NavLink>
   )
 }
+
+const StaticSidebarNav = ({
+  items,
+  collapsed,
+  ariaLabel,
+  onRequestDragNav,
+}: {
+  items: SidebarNavItem[]
+  collapsed: boolean
+  ariaLabel: string
+  onRequestDragNav: () => void
+}) => (
+  <nav
+    className="focus-sidebar__nav"
+    aria-label={ariaLabel}
+    onPointerEnter={onRequestDragNav}
+    onFocus={onRequestDragNav}
+  >
+    {items.map((item) => (
+      <StaticSidebarItem key={item.id} item={item} collapsed={collapsed} />
+    ))}
+  </nav>
+)
 
 const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
   const { catalog } = useLabs()
@@ -126,6 +130,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
   const isPremium = plan === 'premium'
   const isAdmin = useIsAdmin()
   const { openModal: openUpgradeModal } = useUpgradeModal()
+  const [dragNavReady, setDragNavReady] = useState(false)
 
   const FEATURE_ICONS: Record<FeatureKey, LucideIcon> = {
     'habit-tracker': Flame,
@@ -211,21 +216,8 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
     [mergedOrder, visibleItemMap],
   )
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        delay: 300,
-        tolerance: 8,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  )
-
-  const handleDragEnd = ({ active, over }: DragEndEvent) => {
-    if (!over || active.id === over.id) return
-    const nextOrder = moveSidebarOrder(mergedOrder, String(active.id), String(over.id))
+  const handleOrderChange = (activeId: string, overId: string) => {
+    const nextOrder = moveSidebarOrder(mergedOrder, activeId, overId)
     setSavedOrder(nextOrder)
     writeSidebarOrder(nextOrder)
     void syncedPreferencesRepo.persistFromLocal()
@@ -236,6 +228,18 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
     window.addEventListener(SYNCED_PREFERENCES_UPDATED_EVENT, refreshSavedOrder)
     return () => window.removeEventListener(SYNCED_PREFERENCES_UPDATED_EVENT, refreshSavedOrder)
   }, [])
+
+  useEffect(() => {
+    if (dragNavReady || typeof window === 'undefined') return
+    if ('requestIdleCallback' in window) {
+      const idleId = window.requestIdleCallback(() => setDragNavReady(true), { timeout: 4000 })
+      return () => window.cancelIdleCallback(idleId)
+    }
+    const timeoutId = globalThis.setTimeout(() => setDragNavReady(true), 2500)
+    return () => globalThis.clearTimeout(timeoutId)
+  }, [dragNavReady])
+
+  const mainModulesLabel = t('shell.mainModules')
 
   return (
     <motion.aside
@@ -259,15 +263,32 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
         </button>
       </div>
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <nav className="focus-sidebar__nav" aria-label={t('shell.mainModules')}>
-          <SortableContext items={orderedVisibleItems.map((item) => item.id)} strategy={verticalListSortingStrategy}>
-            {orderedVisibleItems.map((item) => (
-              <SortableSidebarItem key={item.id} item={item} collapsed={collapsed} />
-            ))}
-          </SortableContext>
-        </nav>
-      </DndContext>
+      {dragNavReady ? (
+        <Suspense
+          fallback={(
+            <StaticSidebarNav
+              items={orderedVisibleItems}
+              collapsed={collapsed}
+              ariaLabel={mainModulesLabel}
+              onRequestDragNav={() => setDragNavReady(true)}
+            />
+          )}
+        >
+          <SidebarDndNav
+            items={orderedVisibleItems}
+            collapsed={collapsed}
+            ariaLabel={mainModulesLabel}
+            onOrderChange={handleOrderChange}
+          />
+        </Suspense>
+      ) : (
+        <StaticSidebarNav
+          items={orderedVisibleItems}
+          collapsed={collapsed}
+          ariaLabel={mainModulesLabel}
+          onRequestDragNav={() => setDragNavReady(true)}
+        />
+      )}
 
       <SidebarPodcastPlayer collapsed={collapsed} />
       <SidebarWhiteNoise collapsed={collapsed} />

@@ -1,10 +1,23 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
+import { visualizer } from 'rollup-plugin-visualizer'
 import { fileURLToPath, URL } from 'node:url'
+
+const shouldAnalyzeBundle = process.env.FOCUSGO_BUNDLE_ANALYZE === '1'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    shouldAnalyzeBundle
+      ? visualizer({
+          filename: 'dist/bundle-stats.html',
+          template: 'treemap',
+          gzipSize: true,
+          brotliSize: true,
+        })
+      : null,
+  ],
   test: {
     exclude: ['focus-go-api/**', '.claude/**', 'e2e/**'],
     setupFiles: ['./src/test/setup.ts'],

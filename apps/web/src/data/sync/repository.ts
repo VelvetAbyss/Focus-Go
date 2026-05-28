@@ -1,6 +1,5 @@
 import { db } from '../db'
 import { SYNC_ENTITY_TABLES, SYNC_STATE_ID, SYNC_STATUS_CHANGED_EVENT } from './constants'
-import { enqueueRxdbSyncChange, resetRxdbSyncDatabase, reseedRxdbFromSnapshot } from './rxdb'
 import type { SyncEntityType, SyncOp, SyncPayload, SyncState, SyncStatus } from './types'
 
 const now = () => Date.now()
@@ -62,7 +61,7 @@ export const enqueueSyncOperation = <T extends SyncEntityType>(
   op: SyncOp,
   payload: SyncPayload<T>,
   deletedAt?: number | null,
-) => enqueueRxdbSyncChange(entityType, op, payload, deletedAt)
+) => import('./rxdb').then(({ enqueueRxdbSyncChange }) => enqueueRxdbSyncChange(entityType, op, payload, deletedAt))
 
 export const enqueueSyncOperationInBackground = <T extends SyncEntityType>(
   entityType: T,
@@ -87,6 +86,7 @@ export const collectLocalSnapshot = async () => {
 
 export const seedOutboxFromSnapshot = async () => {
   const snapshot = await collectLocalSnapshot()
+  const { reseedRxdbFromSnapshot } = await import('./rxdb')
   await reseedRxdbFromSnapshot(snapshot)
 }
 
@@ -116,5 +116,6 @@ export const clearLocalUserData = async () => {
     await db.syncState.clear()
     await db.syncBlobCache.clear()
   })
+  const { resetRxdbSyncDatabase } = await import('./rxdb')
   await resetRxdbSyncDatabase()
 }
