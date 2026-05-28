@@ -99,9 +99,18 @@ jobs:
           sleep 2
 
           echo "=== [1/4] pull dist from OSS ==="
-          # Use :s3: on-the-fly remote so we don't depend on server rclone config
+          # Define a named remote via RCLONE_CONFIG_* env vars instead of the
+          # `:s3,...` inline syntax — newer rclone versions reject the inline
+          # form ("config name contains invalid characters"). Named remotes
+          # work across all rclone versions and still bypass any preexisting
+          # ~/.config/rclone/rclone.conf on the server.
+          export RCLONE_CONFIG_OSSDEPLOY_TYPE=s3
+          export RCLONE_CONFIG_OSSDEPLOY_PROVIDER=Alibaba
+          export RCLONE_CONFIG_OSSDEPLOY_ACCESS_KEY_ID="${OSS_KEY_ID}"
+          export RCLONE_CONFIG_OSSDEPLOY_SECRET_ACCESS_KEY="${OSS_KEY_SECRET}"
+          export RCLONE_CONFIG_OSSDEPLOY_ENDPOINT="${OSS_ENDPOINT}"
           rclone copyto \
-            ":s3,provider=Alibaba,access_key_id=${OSS_KEY_ID},secret_access_key=${OSS_KEY_SECRET},endpoint=${OSS_ENDPOINT}:${OSS_BUCKET}/deploys/dist-${GIT_SHA}.tar.gz" \
+            "ossdeploy:${OSS_BUCKET}/deploys/dist-${GIT_SHA}.tar.gz" \
             "/tmp/dist-${GIT_SHA}.tar.gz" \
             --timeout 120s --contimeout 30s --stats-one-line --stats 15s
 
