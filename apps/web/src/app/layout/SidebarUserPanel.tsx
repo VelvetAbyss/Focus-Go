@@ -1,4 +1,5 @@
 import { lazy, Suspense, useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import {
   User, LogOut, Crown, Zap, X, Timer, FileText, ArrowRight,
   ChevronRight, Flame, CheckSquare, Mail, Shield, CreditCard, Download,
@@ -626,7 +627,7 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
     { key: 'helpFeedback', icon: HelpCircle, onClick: () => setActivePanel('helpFeedback') },
   ]
 
-  return (
+  return createPortal(
     <div className="user-modal-backdrop" onClick={onClose} role="dialog" aria-modal="true" aria-label={t('auth.userInfo')}>
       <div className="user-modal user-modal--account-center" onClick={e => e.stopPropagation()}>
 
@@ -828,7 +829,8 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 
