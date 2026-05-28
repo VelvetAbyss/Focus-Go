@@ -5,6 +5,7 @@ const getSessionMock = vi.fn()
 const fetchAuthProfileMock = vi.fn()
 const setAuthMock = vi.fn()
 const clearAuthMock = vi.fn()
+const getAuthMock = vi.fn()
 const consumePendingCheckoutMock = vi.fn()
 const startPremiumCheckoutMock = vi.fn()
 
@@ -18,6 +19,7 @@ vi.mock('../store/auth', () => ({
   fetchAuthProfile: fetchAuthProfileMock,
   setAuth: setAuthMock,
   clearAuth: clearAuthMock,
+  getAuth: getAuthMock,
 }))
 
 vi.mock('../features/payments/paymentFlow', () => ({
@@ -34,6 +36,8 @@ describe('bootstrapAuth', () => {
     fetchAuthProfileMock.mockReset()
     setAuthMock.mockReset()
     clearAuthMock.mockReset()
+    getAuthMock.mockReset()
+    getAuthMock.mockReturnValue(null)
     consumePendingCheckoutMock.mockReset()
     startPremiumCheckoutMock.mockReset()
     consumePendingCheckoutMock.mockReturnValue(null)
@@ -70,11 +74,17 @@ describe('bootstrapAuth', () => {
     expect(window.location.search).toBe('')
   })
 
-  it('keeps a valid stored token and does not call get-session outside OAuth callbacks', async () => {
+  it('always exchanges the cookie session on boot — never trusts a token from localStorage', async () => {
+    // Even if a stale `auth` hint sits in localStorage, the source of truth is
+    // the HttpOnly cookie via get-session. accessToken is never persisted.
     localStorage.setItem('auth', JSON.stringify({
-      accessToken: 'stored-token',
       user: { id: 'user-1' },
+      plan: 'free',
     }))
+    getSessionMock.mockResolvedValue({
+      session: { token: 'cookie-token' },
+      user: { id: 'user-1', email: 'user@example.com' },
+    })
     fetchAuthProfileMock.mockResolvedValue({
       id: 'business-user-1',
       email: 'user@example.com',
@@ -86,18 +96,17 @@ describe('bootstrapAuth', () => {
 
     await expect(bootstrapAuth()).resolves.toBe(true)
 
-    expect(getSessionMock).not.toHaveBeenCalled()
-    expect(clearAuthMock).not.toHaveBeenCalled()
+    expect(getSessionMock).toHaveBeenCalledTimes(1)
     expect(setAuthMock).toHaveBeenCalledWith({
-      accessToken: 'stored-token',
-      user: { id: 'user-1' },
+      accessToken: 'cookie-token',
+      user: { id: 'user-1', email: 'user@example.com' },
       plan: 'free',
       expiresAt: null,
       isAdmin: false,
     })
   })
 
-  it('does not clear anonymous state when cookie session rehydrate fails', async () => {
+  it('does not clear anonymous state when cookie session rehydrate fails for a first-time visitor', async () => {
     getSessionMock.mockRejectedValue(new Error('no session'))
     const { bootstrapAuth } = await import('./authBootstrap')
 

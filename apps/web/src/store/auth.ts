@@ -18,22 +18,49 @@ export type AuthProfile = {
   country_code?: string | null
 }
 
-export const getAuth = () => {
+// Access token lives in memory only — never in localStorage — so an XSS payload
+// cannot exfiltrate it from persistent storage. The cookie session (HttpOnly,
+// set by better-auth) is the long-lived source of truth; on every page load
+// bootstrapAuth() exchanges that cookie for a fresh in-memory token.
+let inMemoryAuth: Record<string, unknown> | null = null
+
+// Keys safe to persist for instant UI prehydration before bootstrap completes.
+// Notably excludes `accessToken`.
+const HINT_KEYS = [
+  'user', 'plan', 'entitlement', 'expiresAt', 'isLifetime', 'isAdmin', 'country_code',
+] as const
+
+const readHint = (): Record<string, unknown> | null => {
   if (typeof localStorage === 'undefined') return null
   const raw = localStorage.getItem('auth')
-  return raw ? JSON.parse(raw) : null
+  if (!raw) return null
+  try { return JSON.parse(raw) } catch { return null }
 }
 
+const persistHint = (value: Record<string, unknown> | null) => {
+  if (typeof localStorage === 'undefined') return
+  if (!value) { localStorage.removeItem('auth'); return }
+  const hint: Record<string, unknown> = {}
+  for (const k of HINT_KEYS) {
+    if (value[k] !== undefined) hint[k] = value[k]
+  }
+  localStorage.setItem('auth', JSON.stringify(hint))
+}
+
+// Returned as `any` to preserve the prior loose shape consumed across the app.
+// Keep this until callers migrate to a typed accessor.
+export const getAuth = (): any => inMemoryAuth ?? readHint()
+
 export const setAuth = (value: unknown) => {
-  if (typeof localStorage === 'undefined' || typeof window === 'undefined') return
-  localStorage.setItem('auth', JSON.stringify(value))
-  window.dispatchEvent(new Event(AUTH_CHANGED_EVENT))
+  inMemoryAuth = (value && typeof value === 'object') ? (value as Record<string, unknown>) : null
+  persistHint(inMemoryAuth)
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(AUTH_CHANGED_EVENT))
 }
 
 export const clearAuth = () => {
-  if (typeof localStorage === 'undefined' || typeof window === 'undefined') return
-  localStorage.removeItem('auth')
-  window.dispatchEvent(new Event(AUTH_CHANGED_EVENT))
+  inMemoryAuth = null
+  if (typeof localStorage !== 'undefined') localStorage.removeItem('auth')
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(AUTH_CHANGED_EVENT))
 }
 
 export const subscribeAuth = (listener: () => void) => {
@@ -76,9 +103,10 @@ export const useIsAdmin = () =>
 
 export const refreshAuthProfile = async () => {
   const auth = getAuth()
-  if (!auth?.accessToken) return null
+  const accessToken = typeof auth?.accessToken === 'string' ? auth.accessToken : null
+  if (!accessToken) return null
   try {
-    const profile = await fetchAuthProfile(auth.accessToken)
+    const profile = await fetchAuthProfile(accessToken)
     if (!profile) return null
     setAuth({
       ...auth,

@@ -12,6 +12,11 @@ const rebuildMock = vi.fn()
 const pinMock = vi.fn()
 const hideMock = vi.fn()
 
+vi.mock('../../../shared/i18n/useI18n', async () => {
+  const { mockUseI18n } = await import('../../../shared/i18n/testMock')
+  return { useI18n: mockUseI18n }
+})
+
 vi.mock('../../../data/repositories/timelineRepo', () => ({
   timelineRepo: {
     list: (...args: unknown[]) => listMock(...args),

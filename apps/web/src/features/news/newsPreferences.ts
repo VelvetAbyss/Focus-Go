@@ -33,10 +33,51 @@ export const DEFAULT_ENABLED_SOURCE_IDS = [
   'xueqiu',
   'jin10',
   'gelonghui',
+  // foreign starter set
+  'bbc_world',
+  'guardian_world',
+  'npr_news',
+  'france24_en',
+  'aljazeera_en',
+  'techcrunch',
+  'theverge',
+  'cnbc_business',
 ]
 
 // Sources that are off by default but available to enable
-export const EXTRA_SOURCE_IDS = ['douyin', 'xiaoheihe']
+export const EXTRA_SOURCE_IDS = [
+  'douyin',
+  'xiaoheihe',
+  'bbc_top',
+  'nyt_world',
+  'france24_fr',
+  'cnn_top',
+  'cnn_world',
+  'dw_top',
+  'dw_world',
+  'nhk_world',
+  'japantimes',
+  'scmp',
+  'straits_times',
+  'cbc_top',
+  'abc_au',
+  'skynews_world',
+  'independent_world',
+  'hindu_world',
+  'ndtv_world',
+  'bbc_tech',
+  'bbc_science',
+  'guardian_tech',
+  'nyt_tech',
+  'arstechnica',
+  'wired',
+  'engadget',
+  'bbc_business',
+  'guardian_business',
+  'nyt_business',
+  'cnbc_world',
+  'marketwatch_top',
+]
 
 export const DEFAULT_NEWS_PREFERENCES: NewsPreferences = {
   enabledSourceIds: DEFAULT_ENABLED_SOURCE_IDS,
@@ -47,7 +88,7 @@ export const DEFAULT_NEWS_PREFERENCES: NewsPreferences = {
 
 const isDensity = (value: unknown): value is NewsDensity => value === 'comfortable' || value === 'compact'
 const isCategory = (value: unknown): value is NewsPreferences['selectedCategory'] =>
-  value === 'all' || value === 'hot' || value === 'tech' || value === 'finance'
+  value === 'all' || value === 'hot' || value === 'tech' || value === 'finance' || value === 'world'
 
 const readArray = (value: unknown, fallback: string[]) =>
   Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0) : fallback

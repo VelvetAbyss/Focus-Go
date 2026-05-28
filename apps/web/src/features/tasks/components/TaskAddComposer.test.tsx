@@ -10,6 +10,14 @@ vi.mock('../../../shared/i18n/useI18n', async () => {
   return { useI18n: mockUseI18n }
 })
 
+vi.mock('../../../shared/ui/toast/toast', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../shared/ui/toast/toast')>()
+  return {
+    ...actual,
+    useToast: () => ({ push: vi.fn() }),
+  }
+})
+
 import TaskAddComposer from './TaskAddComposer'
 
 describe('TaskAddComposer', () => {
@@ -23,7 +31,7 @@ describe('TaskAddComposer', () => {
     await user.type(input, '  New task  ')
     await user.click(screen.getByRole('button', { name: /Add/ }))
 
-    expect(onSubmit).toHaveBeenCalledWith('New task')
+    expect(onSubmit.mock.calls[0][0]).toBe('New task')
     expect(input).toHaveValue('')
   })
 })

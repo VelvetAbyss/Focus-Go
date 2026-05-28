@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createNewsService, ensureNewsTables } from './news.js'
+import { createNewsService, ensureNewsTables, fetchRssFeed } from './news.js'
 
 const createDb = () => {
   const rows = new Map()
@@ -140,5 +140,79 @@ test('falls back to stale cache when fetch fails', async () => {
   assert.equal(result.status, 'cache')
   assert.equal(result.items[0].id, 'a')
   assert.match(result.warning, /upstream down/)
+  db.close()
+})
+
+test('parses generic RSS feed items into normalized stories', async () => {
+  const feed = `<?xml version="1.0" encoding="UTF-8"?>
+    <rss><channel>
+      <item>
+        <title><![CDATA[First &amp; story]]></title>
+        <link>https://example.com/first</link>
+        <pubDate>Wed, 27 May 2026 10:00:00 GMT</pubDate>
+      </item>
+      <item>
+        <title>Second story</title>
+        <guid>https://example.com/second</guid>
+      </item>
+    </channel></rss>`
+  const fetchImpl = async () => new Response(feed, { status: 200 })
+
+  const items = await fetchRssFeed('https://example.com/rss.xml', 'https://example.com/', fetchImpl)
+
+  assert.equal(items.length, 2)
+  assert.equal(items[0].id, 'https://example.com/first')
+  assert.equal(items[0].title, 'First & story')
+  assert.equal(items[0].url, 'https://example.com/first')
+  assert.equal(items[0].pubDate, Date.parse('Wed, 27 May 2026 10:00:00 GMT'))
+  assert.equal(items[1].url, 'https://example.com/second')
+})
+
+test('keeps empty RSS feeds on the existing no stories failure path', async () => {
+  const db = createDb()
+  const service = createNewsService({
+    db,
+    now: () => 10_000,
+    fetchers: {
+      bbc_world: async () => [],
+    },
+  })
+
+  await assert.rejects(() => service.getSource({ id: 'bbc_world' }), /Source returned no stories/)
+  db.close()
+})
+
+test('supports foreign sources with the same cache behavior as existing sources', async () => {
+  const db = createDb()
+  let calls = 0
+  const service = createNewsService({
+    db,
+    now: () => 10_000,
+    fetchers: {
+      bbc_world: async () => {
+        calls += 1
+        return [story('bbc-a')]
+      },
+    },
+  })
+
+  const first = await service.getSource({ id: 'bbc_world' })
+  assert.equal(first.status, 'success')
+
+  const cachedService = createNewsService({
+    db,
+    now: () => 11_000,
+    fetchers: {
+      bbc_world: async () => {
+        calls += 1
+        return [story('bbc-b')]
+      },
+    },
+  })
+  const second = await cachedService.getSource({ id: 'bbc_world' })
+
+  assert.equal(second.status, 'cache')
+  assert.equal(second.items[0].id, 'bbc-a')
+  assert.equal(calls, 1)
   db.close()
 })

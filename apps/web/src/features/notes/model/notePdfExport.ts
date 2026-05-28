@@ -1,5 +1,6 @@
 import type { JSONContent } from '@tiptap/core'
 import { generateHTML } from '@tiptap/html'
+import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 import type { NoteAppearanceSettings, NoteItem } from '../../../data/models/types'
 import { createRichTextExtensions } from './richTextExtensions'
@@ -32,11 +33,14 @@ const escapeHtml = (value: string) =>
 
 export const buildNotePdfFileName = (title: string) => `${(title.trim() || 'untitled').replace(/\s+/g, '-').toLowerCase()}.pdf`
 
+const sanitize = (html: string) =>
+  DOMPurify.sanitize(html, { USE_PROFILES: { html: true } })
+
 export const buildNotePdfBodyHtml = (note: PdfNote) => {
   const contentJson = note.contentJson as JSONContent | null | undefined
   if (contentJson && typeof contentJson === 'object' && contentJson.type === 'doc') {
     try {
-      return generateHTML(contentJson, extensions)
+      return sanitize(generateHTML(contentJson, extensions))
     } catch {
       // Fall through to markdown below.
     }
@@ -44,7 +48,7 @@ export const buildNotePdfBodyHtml = (note: PdfNote) => {
 
   const source = note.contentMd.trim()
   if (!source) return '<p></p>'
-  return marked.parse(source, { async: false, gfm: true, breaks: true }) as string
+  return sanitize(marked.parse(source, { async: false, gfm: true, breaks: true }) as string)
 }
 
 export const buildNotePdfHtml = (note: PdfNote, appearance?: Partial<NoteAppearanceSettings>) => {
