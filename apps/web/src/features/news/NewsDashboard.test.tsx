@@ -16,6 +16,12 @@ const sources = [
   { id: 'github', name: 'GitHub', category: 'tech', type: 'hottest', interval: 600000, home: 'https://github.com/trending', accent: '#3A3733' },
 ]
 
+const sourcesWithForeign = [
+  ...sources,
+  { id: 'bbc_world', name: 'BBC World', category: 'world', type: 'realtime', interval: 600000, home: 'https://www.bbc.com/news/world', accent: '#8b2f3c', language: 'en', region: 'global', feedUrl: 'https://feeds.bbci.co.uk/news/world/rss.xml' },
+  { id: 'cnbc_business', name: 'CNBC Business', category: 'finance', type: 'realtime', interval: 600000, home: 'https://www.cnbc.com/business/', accent: '#4e6d88', language: 'en', region: 'us', feedUrl: 'https://www.cnbc.com/id/10001147/device/rss/rss.html' },
+]
+
 const jsonResponse = (payload: unknown, ok = true, status = 200) => ({
   ok,
   status,
@@ -133,5 +139,66 @@ describe('NewsDashboard', () => {
 
     const stored = JSON.parse(window.localStorage.getItem('focusgo.news.preferences.v1') ?? '{}')
     expect(stored.enabledSourceIds).not.toContain('github')
+  })
+
+  it('shows the international category and filters world sources', async () => {
+    fetchApiMock.mockImplementation((path: string) => {
+      if (path === '/news/sources') return Promise.resolve(jsonResponse({ sources: sourcesWithForeign }))
+      if (path.includes('id=bbc_world')) {
+        return Promise.resolve(jsonResponse({
+          status: 'success',
+          id: 'bbc_world',
+          updatedTime: 1000,
+          items: [{ id: '1', title: 'BBC story', url: 'https://www.bbc.com/news/world-1' }],
+        }))
+      }
+      return Promise.resolve(jsonResponse({ status: 'success', id: 'other', updatedTime: 1000, items: [] }))
+    })
+
+    render(<NewsDashboard />)
+
+    fireEvent.click(await screen.findByRole('tab', { name: /国际/ }))
+
+    expect(await screen.findByText('BBC World')).toBeInTheDocument()
+    expect(screen.queryByText('知乎')).not.toBeInTheDocument()
+  })
+
+  it('groups world, tech, and finance sources in the source manager', async () => {
+    fetchApiMock.mockImplementation((path: string) => {
+      if (path === '/news/sources') return Promise.resolve(jsonResponse({ sources: sourcesWithForeign }))
+      return Promise.resolve(jsonResponse({ status: 'success', id: 'source', updatedTime: 1000, items: [] }))
+    })
+
+    render(<NewsDashboard />)
+
+    const [sourceManagerButton] = await screen.findAllByRole('button', { name: '管理来源' })
+    fireEvent.click(sourceManagerButton)
+    const manager = screen.getByLabelText('Manage news sources')
+
+    expect(within(manager).getByText('国际')).toBeInTheDocument()
+    expect(within(manager).getByText('科技')).toBeInTheDocument()
+    expect(within(manager).getByText('财经')).toBeInTheDocument()
+    expect(within(manager).getByRole('button', { name: /BBC World/ })).toBeInTheDocument()
+    expect(within(manager).getByRole('button', { name: /GitHub/ })).toBeInTheDocument()
+    expect(within(manager).getByRole('button', { name: /CNBC Business/ })).toBeInTheDocument()
+  })
+
+  it('loads old stored preferences that do not include the world category', async () => {
+    window.localStorage.setItem('focusgo.news.preferences.v1', JSON.stringify({
+      enabledSourceIds: ['zhihu'],
+      sourceOrder: ['zhihu'],
+      density: 'compact',
+      selectedCategory: 'hot',
+    }))
+    fetchApiMock.mockImplementation((path: string) => {
+      if (path === '/news/sources') return Promise.resolve(jsonResponse({ sources: sourcesWithForeign }))
+      return Promise.resolve(jsonResponse({ status: 'success', id: 'zhihu', updatedTime: 1000, items: [] }))
+    })
+
+    render(<NewsDashboard />)
+
+    expect(await screen.findByRole('tab', { name: /热榜/, selected: true })).toBeInTheDocument()
+    expect(screen.getByText('知乎')).toBeInTheDocument()
+    expect(screen.queryByText('BBC World')).not.toBeInTheDocument()
   })
 })
