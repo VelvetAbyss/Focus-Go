@@ -46,14 +46,15 @@ describe('DateTimePicker', () => {
     expect(onDateChange).toHaveBeenCalledWith('2026-01-20')
   })
 
-  it('emits HH:mm time value from time picker list', async () => {
+  it('emits HH:mm time value via the typed-time input', async () => {
     const user = userEvent.setup()
     const onTimeChange = vi.fn()
 
     render(<DateTimePicker dateValue={null} timeValue={null} onDateChange={vi.fn()} onTimeChange={onTimeChange} />)
 
     await user.click(screen.getByRole('button', { name: /^time$/i }))
-    await user.click(screen.getByRole('button', { name: '10:30' }))
+    const typed = screen.getByPlaceholderText('HH:MM')
+    await user.type(typed, '10:30{Enter}')
 
     expect(onTimeChange).toHaveBeenCalledWith('10:30')
   })
@@ -74,13 +75,16 @@ describe('DateTimePicker', () => {
     expect(trigger.className).not.toContain('w-[212px]')
   })
 
-  it('renders 5-minute stepping options', async () => {
+  it('renders quick-time presets', async () => {
     const user = userEvent.setup()
     render(<DateTimePicker dateValue={null} timeValue={null} onDateChange={vi.fn()} onTimeChange={vi.fn()} />)
 
     await user.click(screen.getByRole('button', { name: /^time$/i }))
 
-    expect(screen.getByRole('button', { name: '00:05' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: '00:01' })).not.toBeInTheDocument()
+    // The picker now shows a small grid of curated presets instead of an
+    // exhaustive 5-minute list.
+    expect(screen.getByRole('button', { name: '09:00' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '12:00' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '00:05' })).not.toBeInTheDocument()
   })
 })
