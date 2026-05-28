@@ -10,6 +10,64 @@ const requestHeaders = {
   accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,application/json;q=0.8,*/*;q=0.7',
 }
 
+const rssSource = ({ id, name, category, type = 'realtime', interval = 10 * 60 * 1000, home, feedUrl, accent, language = 'en', region = 'global' }) => ({
+  id,
+  name,
+  category,
+  type,
+  interval,
+  home,
+  feedUrl,
+  accent,
+  language,
+  region,
+})
+
+const OFFICIAL_RSS_SOURCES = {
+  // ── International ───────────────────────────────────────────────────────
+  bbc_top: rssSource({ id: 'bbc_top', name: 'BBC Top Stories', category: 'world', home: 'https://www.bbc.com/news', feedUrl: 'https://feeds.bbci.co.uk/news/rss.xml', accent: '#8b2f3c', region: 'uk' }),
+  bbc_world: rssSource({ id: 'bbc_world', name: 'BBC World', category: 'world', home: 'https://www.bbc.com/news/world', feedUrl: 'https://feeds.bbci.co.uk/news/world/rss.xml', accent: '#8b2f3c', region: 'global' }),
+  guardian_world: rssSource({ id: 'guardian_world', name: 'The Guardian World', category: 'world', home: 'https://www.theguardian.com/world', feedUrl: 'https://www.theguardian.com/world/rss', accent: '#345c7d', region: 'uk' }),
+  npr_news: rssSource({ id: 'npr_news', name: 'NPR News', category: 'world', home: 'https://www.npr.org/sections/news/', feedUrl: 'https://feeds.npr.org/1001/rss.xml', accent: '#b5533b', region: 'us' }),
+  nyt_world: rssSource({ id: 'nyt_world', name: 'NYTimes World', category: 'world', home: 'https://www.nytimes.com/section/world', feedUrl: 'https://rss.nytimes.com/services/xml/rss/nyt/World.xml', accent: '#3A3733', region: 'us' }),
+  france24_en: rssSource({ id: 'france24_en', name: 'France24 English', category: 'world', home: 'https://www.france24.com/en/', feedUrl: 'https://www.france24.com/en/rss', accent: '#5f6f9d', region: 'france' }),
+  france24_fr: rssSource({ id: 'france24_fr', name: 'France24 Français', category: 'world', home: 'https://www.france24.com/fr/', feedUrl: 'https://www.france24.com/fr/rss', accent: '#5f6f9d', language: 'fr', region: 'france' }),
+  aljazeera_en: rssSource({ id: 'aljazeera_en', name: 'Al Jazeera English', category: 'world', home: 'https://www.aljazeera.com/', feedUrl: 'https://www.aljazeera.com/xml/rss/all.xml', accent: '#9a6a2f', region: 'global' }),
+  cnn_top: rssSource({ id: 'cnn_top', name: 'CNN Top Stories', category: 'world', home: 'https://edition.cnn.com/', feedUrl: 'http://rss.cnn.com/rss/edition.rss', accent: '#b93d35', region: 'us' }),
+  cnn_world: rssSource({ id: 'cnn_world', name: 'CNN World', category: 'world', home: 'https://edition.cnn.com/world', feedUrl: 'http://rss.cnn.com/rss/edition_world.rss', accent: '#b93d35', region: 'us' }),
+  dw_top: rssSource({ id: 'dw_top', name: 'DW Top Stories', category: 'world', home: 'https://www.dw.com/en/top-stories/s-9097', feedUrl: 'https://rss.dw.com/xml/rss-en-all', accent: '#53729a', region: 'germany' }),
+  dw_world: rssSource({ id: 'dw_world', name: 'DW World', category: 'world', home: 'https://www.dw.com/en/world/s-1429', feedUrl: 'https://rss.dw.com/xml/rss-en-world', accent: '#53729a', region: 'germany' }),
+  nhk_world: rssSource({ id: 'nhk_world', name: 'NHK World', category: 'world', home: 'https://www3.nhk.or.jp/nhkworld/', feedUrl: 'https://www3.nhk.or.jp/rss/news/cat0.xml', accent: '#6c7d8c', region: 'japan' }),
+  japantimes: rssSource({ id: 'japantimes', name: 'The Japan Times', category: 'world', home: 'https://www.japantimes.co.jp/', feedUrl: 'https://www.japantimes.co.jp/feed/', accent: '#8a4e4b', region: 'japan' }),
+  scmp: rssSource({ id: 'scmp', name: 'SCMP', category: 'world', home: 'https://www.scmp.com/news', feedUrl: 'https://www.scmp.com/rss/91/feed', accent: '#8a6b36', region: 'hong-kong' }),
+  straits_times: rssSource({ id: 'straits_times', name: 'The Straits Times World', category: 'world', home: 'https://www.straitstimes.com/world', feedUrl: 'https://www.straitstimes.com/news/world/rss.xml', accent: '#4e6d88', region: 'singapore' }),
+  cbc_top: rssSource({ id: 'cbc_top', name: 'CBC Top Stories', category: 'world', home: 'https://www.cbc.ca/news', feedUrl: 'https://www.cbc.ca/cmlink/rss-topstories', accent: '#b84a3a', region: 'canada' }),
+  abc_au: rssSource({ id: 'abc_au', name: 'ABC Australia', category: 'world', home: 'https://www.abc.net.au/news/', feedUrl: 'https://www.abc.net.au/news/feed/51120/rss.xml', accent: '#537f6b', region: 'australia' }),
+  skynews_world: rssSource({ id: 'skynews_world', name: 'Sky News World', category: 'world', home: 'https://news.sky.com/world', feedUrl: 'https://feeds.skynews.com/feeds/rss/world.xml', accent: '#8a4e4b', region: 'uk' }),
+  independent_world: rssSource({ id: 'independent_world', name: 'The Independent World', category: 'world', home: 'https://www.independent.co.uk/news/world', feedUrl: 'https://www.independent.co.uk/news/world/rss', accent: '#4e6d88', region: 'uk' }),
+  hindu_world: rssSource({ id: 'hindu_world', name: 'The Hindu International', category: 'world', home: 'https://www.thehindu.com/news/international/', feedUrl: 'https://www.thehindu.com/news/international/feeder/default.rss', accent: '#8a6b36', region: 'india' }),
+  ndtv_world: rssSource({ id: 'ndtv_world', name: 'NDTV World', category: 'world', home: 'https://www.ndtv.com/world-news', feedUrl: 'https://feeds.feedburner.com/ndtvnews-world-news', accent: '#5a7a8a', region: 'india' }),
+
+  // ── Foreign Tech ────────────────────────────────────────────────────────
+  bbc_tech: rssSource({ id: 'bbc_tech', name: 'BBC Technology', category: 'tech', home: 'https://www.bbc.com/news/technology', feedUrl: 'https://feeds.bbci.co.uk/news/technology/rss.xml', accent: '#8b2f3c', region: 'uk' }),
+  bbc_science: rssSource({ id: 'bbc_science', name: 'BBC Science', category: 'tech', home: 'https://www.bbc.com/news/science_and_environment', feedUrl: 'https://feeds.bbci.co.uk/news/science_and_environment/rss.xml', accent: '#8b2f3c', region: 'uk' }),
+  guardian_tech: rssSource({ id: 'guardian_tech', name: 'The Guardian Technology', category: 'tech', home: 'https://www.theguardian.com/technology', feedUrl: 'https://www.theguardian.com/technology/rss', accent: '#345c7d', region: 'uk' }),
+  nyt_tech: rssSource({ id: 'nyt_tech', name: 'NYTimes Technology', category: 'tech', home: 'https://www.nytimes.com/section/technology', feedUrl: 'https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml', accent: '#3A3733', region: 'us' }),
+  techcrunch: rssSource({ id: 'techcrunch', name: 'TechCrunch', category: 'tech', home: 'https://techcrunch.com/', feedUrl: 'https://techcrunch.com/feed/', accent: '#4f8c53', region: 'us' }),
+  theverge: rssSource({ id: 'theverge', name: 'The Verge', category: 'tech', home: 'https://www.theverge.com/', feedUrl: 'https://www.theverge.com/rss/index.xml', accent: '#7d4d87', region: 'us' }),
+  arstechnica: rssSource({ id: 'arstechnica', name: 'Ars Technica', category: 'tech', home: 'https://arstechnica.com/', feedUrl: 'https://feeds.arstechnica.com/arstechnica/index', accent: '#c77a32', region: 'us' }),
+  wired: rssSource({ id: 'wired', name: 'WIRED', category: 'tech', home: 'https://www.wired.com/', feedUrl: 'https://www.wired.com/feed/rss', accent: '#3A3733', region: 'us' }),
+  engadget: rssSource({ id: 'engadget', name: 'Engadget', category: 'tech', home: 'https://www.engadget.com/', feedUrl: 'https://www.engadget.com/rss.xml', accent: '#7d4d87', region: 'us' }),
+
+  // ── Foreign Finance ────────────────────────────────────────────────────
+  bbc_business: rssSource({ id: 'bbc_business', name: 'BBC Business', category: 'finance', home: 'https://www.bbc.com/news/business', feedUrl: 'https://feeds.bbci.co.uk/news/business/rss.xml', accent: '#8b2f3c', region: 'uk' }),
+  guardian_business: rssSource({ id: 'guardian_business', name: 'The Guardian Business', category: 'finance', home: 'https://www.theguardian.com/business', feedUrl: 'https://www.theguardian.com/business/rss', accent: '#345c7d', region: 'uk' }),
+  nyt_business: rssSource({ id: 'nyt_business', name: 'NYTimes Business', category: 'finance', home: 'https://www.nytimes.com/section/business', feedUrl: 'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml', accent: '#3A3733', region: 'us' }),
+  cnbc_business: rssSource({ id: 'cnbc_business', name: 'CNBC Business', category: 'finance', home: 'https://www.cnbc.com/business/', feedUrl: 'https://www.cnbc.com/id/10001147/device/rss/rss.html', accent: '#4e6d88', region: 'us' }),
+  cnbc_world: rssSource({ id: 'cnbc_world', name: 'CNBC World', category: 'finance', home: 'https://www.cnbc.com/world/', feedUrl: 'https://www.cnbc.com/id/100727362/device/rss/rss.html', accent: '#4e6d88', region: 'us' }),
+  marketwatch_top: rssSource({ id: 'marketwatch_top', name: 'MarketWatch Top Stories', category: 'finance', home: 'https://www.marketwatch.com/', feedUrl: 'https://feeds.content.dowjones.io/public/rss/mw_topstories', accent: '#537f6b', region: 'us' }),
+}
+
 export const NEWS_SOURCES = {
   // ── Hot ────────────────────────────────────────────────────────────────
   zhihu:       { id: 'zhihu',       name: '知乎',       category: 'hot',     type: 'hottest',  interval: 10 * 60 * 1000, home: 'https://www.zhihu.com/hot',              accent: '#2f6f9f' },
@@ -34,6 +92,7 @@ export const NEWS_SOURCES = {
   xueqiu:      { id: 'xueqiu',      name: '雪球',       category: 'finance', type: 'hottest',  interval:  2 * 60 * 1000, home: 'https://xueqiu.com/hq',                 accent: '#537f6b' },
   jin10:       { id: 'jin10',       name: '金十数据',   category: 'finance', type: 'realtime', interval:  5 * 60 * 1000, home: 'https://www.jin10.com/',                accent: '#7a6030' },
   gelonghui:   { id: 'gelonghui',   name: '格隆汇',     category: 'finance', type: 'realtime', interval:  5 * 60 * 1000, home: 'https://www.gelonghui.com/',            accent: '#6b5a2a' },
+  ...OFFICIAL_RSS_SOURCES,
 }
 
 export const ensureNewsTables = (db) => {
@@ -52,8 +111,10 @@ const decodeHtml = (value) =>
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, ' ')
+    .replace(/&gt;/g, '>')
     .replace(/&nbsp;/g, ' ')
+    .replace(/&#(\d+);/g, (_match, code) => String.fromCodePoint(Number(code)))
+    .replace(/&#x([0-9a-f]+);/gi, (_match, code) => String.fromCodePoint(Number.parseInt(code, 16)))
 
 const stripTags = (value) => decodeHtml(String(value ?? '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim())
 
@@ -88,21 +149,29 @@ const normalizeItems = (items) =>
       extra: item.extra && typeof item.extra === 'object' ? item.extra : undefined,
     }))
 
+const readXmlTag = (xml, tagName) => {
+  const match = xml.match(new RegExp(`<${tagName}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tagName}>`, 'i'))
+  if (!match) return undefined
+  return stripTags(match[1].replace(/^<!\[CDATA\[([\s\S]*?)\]\]>$/i, '$1'))
+}
+
 const parseRssItems = (xml, sourceUrl) =>
   [...xml.matchAll(/<item\b[\s\S]*?<\/item>/gi)].map((match, index) => {
     const raw = match[0]
-    const title = raw.match(/<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>|<title>([\s\S]*?)<\/title>/i)
-    const link = raw.match(/<link>([\s\S]*?)<\/link>/i)
-    const pubDate = raw.match(/<pubDate>([\s\S]*?)<\/pubDate>/i)
-    const resolvedTitle = title?.[1] ?? title?.[2]
-    const resolvedLink = stripTags(link?.[1] ?? sourceUrl)
+    const resolvedTitle = readXmlTag(raw, 'title')
+    const resolvedLink = readXmlTag(raw, 'link') || readXmlTag(raw, 'guid') || sourceUrl
+    const pubDate = readXmlTag(raw, 'pubDate') || readXmlTag(raw, 'dc:date') || readXmlTag(raw, 'updated')
+    const pubTime = pubDate ? new Date(pubDate).getTime() : undefined
     return {
       id: resolvedLink || `${sourceUrl}-${index}`,
       title: resolvedTitle,
       url: resolvedLink || sourceUrl,
-      pubDate: pubDate?.[1] ? new Date(stripTags(pubDate[1])).getTime() : undefined,
+      pubDate: Number.isFinite(pubTime) ? pubTime : undefined,
     }
   })
+
+export const fetchRssFeed = async (feedUrl, homeUrl, fetchImpl = fetch) =>
+  parseRssItems(await fetchText(feedUrl, {}, fetchImpl), homeUrl)
 
 // ─── newsnow proxy ─────────────────────────────────────────────────────────────
 // Maps our source IDs to newsnow source IDs (most are identical; override here if
@@ -224,6 +293,12 @@ export const createDefaultFetchers = (fetchImpl = fetch) => ({
       extra: { info: [item.author?.username, item.topic?.name].filter(Boolean).join(' · ') || undefined },
     }))
   },
+  ...Object.fromEntries(
+    Object.values(OFFICIAL_RSS_SOURCES).map((source) => [
+      source.id,
+      async () => fetchRssFeed(source.feedUrl, source.home, fetchImpl),
+    ]),
+  ),
 })
 
 const readCache = (db, sourceId) => {

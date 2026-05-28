@@ -114,6 +114,23 @@ vi.mock('../../../data/repositories/syncedPreferencesRepo', () => ({
   },
 }))
 
+vi.mock('../../premium/PremiumProvider', () => ({
+  usePremiumGate: () => ({
+    isPremium: false,
+    canUse: () => ({ allowed: true }),
+    openUpgradeModal: vi.fn(),
+    guard: vi.fn(async (_key: unknown, action: () => void) => { action(); return true }),
+  }),
+}))
+
+vi.mock('../../../shared/ui/toast/toast', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../shared/ui/toast/toast')>()
+  return {
+    ...actual,
+    useToast: () => ({ push: vi.fn() }),
+  }
+})
+
 import { tasksRepo } from '../../../data/repositories/tasksRepo'
 import CalendarPage from './CalendarPage'
 
@@ -406,6 +423,34 @@ describe('CalendarPage', () => {
       const chip = within(selectedCell as HTMLElement).getByText('Legacy task')
       expect(chip).toHaveAttribute('style', expect.stringContaining('#ef4444'))
     })
+  })
+
+  it('renders completed task as done in month grid and selected-day panel', async () => {
+    const today = toDateKey(new Date())
+    tasksDb = [
+      createTask({
+        id: 'completed-calendar-task',
+        title: 'Completed calendar task',
+        dueDate: today,
+        status: 'done',
+      }),
+    ]
+
+    const view = renderCalendar()
+
+    await waitFor(() => {
+      const selectedCell = view.container.querySelector('.calendar-month-grid__cell.is-selected')
+      expect(selectedCell).not.toBeNull()
+      const chip = within(selectedCell as HTMLElement).getByText('Completed calendar task')
+      expect(chip).toHaveClass('calendar-chip--task-done')
+      expect(chip).not.toHaveAttribute('style', expect.stringContaining('#ef4444'))
+    })
+
+    const tasksList = view.container.querySelector('[aria-label="Tasks list"]')
+    expect(tasksList).not.toBeNull()
+    const taskTitle = within(tasksList as HTMLElement).getByText('Completed calendar task')
+    expect(taskTitle).toHaveClass('is-done')
+    expect(taskTitle.closest('.calendar-task-card')).toHaveClass('is-done')
   })
 
   it('double-clicking a date creates a task (not calendar event)', async () => {

@@ -1,6 +1,6 @@
 import { fetchApi } from '../../shared/apiBase'
 
-export type NewsCategory = 'hot' | 'tech' | 'finance'
+export type NewsCategory = 'hot' | 'tech' | 'finance' | 'world'
 export type NewsSourceType = 'hottest' | 'realtime'
 
 export type NewsSource = {
@@ -11,6 +11,9 @@ export type NewsSource = {
   interval: number
   home: string
   accent: string
+  language?: string
+  region?: string
+  feedUrl?: string
 }
 
 export type NewsItem = {
