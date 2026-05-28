@@ -53,7 +53,7 @@ import { touch, withBase } from '../repositories/base'
 import { createId } from '../../shared/utils/ids'
 import { areTaskNoteBlocksEqual, normalizeTaskNoteBlocks } from '../../features/tasks/model/taskNote'
 import { resolveTaskNoteRichText } from '../../features/tasks/model/taskNoteRichText'
-import { enqueueSyncOperation, enqueueSyncOperationInBackground } from '../sync/repository'
+import { enqueueSyncOperation } from '../sync/repository'
 
 const statusLabelMap: Record<TaskStatus, string> = {
   todo: '待办',
