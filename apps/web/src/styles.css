@@ -18101,6 +18101,7 @@ html[data-theme='dark'] .sidebar-user-popover__badge--premium {
   position: absolute;
   top: 14px;
   right: 14px;
+  z-index: 2;
   width: 26px;
   height: 26px;
   border-radius: 8px;
