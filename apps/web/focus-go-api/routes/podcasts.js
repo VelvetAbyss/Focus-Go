@@ -8,6 +8,24 @@ const router = Router()
 
 const serializePodcast = (_req, podcast) => podcast
 
+// Hostname allowlist for Netease audio CDN. Prevents SSRF if the upstream
+// resolver ever returns an unexpected URL (compromise / redirect chain).
+const NETEASE_AUDIO_HOST_RE = /(^|\.)(music\.126\.net|music\.163\.com)$/i
+
+const isSafeUpstreamUrl = (raw) => {
+  try {
+    const u = new URL(raw)
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') return false
+    if (!NETEASE_AUDIO_HOST_RE.test(u.hostname)) return false
+    // Reject literal private/loopback IPs as belt-and-braces.
+    if (/^(127\.|10\.|192\.168\.|169\.254\.|::1|fc00:|fd00:)/i.test(u.hostname)) return false
+    if (/^172\.(1[6-9]|2\d|3[01])\./.test(u.hostname)) return false
+    return true
+  } catch {
+    return false
+  }
+}
+
 router.get('/netease/stream', async (req, res) => {
   const programId = typeof req.query?.programId === 'string' ? req.query.programId : ''
   if (!/^\d+$/.test(programId)) {
@@ -17,6 +35,10 @@ router.get('/netease/stream', async (req, res) => {
     const audioUrl = await resolveNeteaseProgramAudioUrl(programId)
     if (!audioUrl) {
       return res.status(404).send('No playable source')
+    }
+    if (!isSafeUpstreamUrl(audioUrl)) {
+      console.warn('[podcasts] rejected non-allowlisted upstream URL', { audioUrl })
+      return res.status(502).send('Upstream URL not allowed')
     }
     const upstream = await fetch(audioUrl, {
       headers: typeof req.headers.range === 'string' ? { Range: req.headers.range } : undefined,
@@ -44,13 +66,12 @@ router.get('/netease/stream', async (req, res) => {
   }
 })
 
+// Dev-only auth shortcut. Uses TCP peer address (not headers) and is
+// disabled in production.
 const isLocalhostRequest = (req) => {
-  const origin = String(req.headers.origin ?? '')
-  const host = String(req.headers.host ?? '')
-  return origin.startsWith('http://localhost:5174')
-    || origin.startsWith('http://localhost:5173')
-    || /^localhost:3000$/.test(host)
-    || /^127\.0\.0\.1:3000$/.test(host)
+  if (process.env.NODE_ENV === 'production') return false
+  const ip = req.socket?.remoteAddress ?? ''
+  return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1'
 }
 
 router.use(async (req, res, next) => {

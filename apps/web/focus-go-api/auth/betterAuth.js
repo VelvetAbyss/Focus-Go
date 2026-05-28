@@ -10,7 +10,15 @@ dotenv.config({ path: join(__dirname, '../.env') })
 
 const API_BASE_URL = process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 3000}`
 const APP_BASE_URL = process.env.APP_BASE_URL || 'http://localhost:5174'
+
+const isProd = process.env.NODE_ENV === 'production'
+if (isProd && !process.env.BETTER_AUTH_SECRET) {
+  throw new Error('[auth] BETTER_AUTH_SECRET is required in production')
+}
 const devSecret = 'focus-go-dev-better-auth-secret-change-me'
+if (!process.env.BETTER_AUTH_SECRET) {
+  console.warn('[auth] BETTER_AUTH_SECRET not set — using dev-only fallback. DO NOT use in production.')
+}
 const TRUSTED_ORIGINS = [
   APP_BASE_URL,
   'https://app.nestflow.art',

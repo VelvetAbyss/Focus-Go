@@ -1,6 +1,7 @@
 import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
+import helmet from 'helmet'
 import { toNodeHandler } from 'better-auth/node'
 import { auth } from './auth/betterAuth.js'
 import userRouter from './routes/user.js'
@@ -16,19 +17,26 @@ import { createNewsService } from './services/news.js'
 import db from './db/init.js'
 import { startNeteasePodcastSyncJob } from './services/podcasts.js'
 
-const ALLOWED_ORIGINS = [
+const PROD_ORIGINS = [
   'https://app.nestflow.art',
-  'http://app.nestflow.art',
   'https://api.nestflow.art',
-  'http://api.nestflow.art',
   'https://nestflow.art',
-  'http://nestflow.art',
   'https://www.nestflow.art',
-  'http://www.nestflow.art',
+]
+const DEV_ORIGINS = [
   'http://localhost:5173',
   'http://localhost:5174',
   'http://127.0.0.1:5173',
   'http://127.0.0.1:5174',
+]
+const EXTRA_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean)
+const ALLOWED_ORIGINS = [
+  ...PROD_ORIGINS,
+  ...(process.env.NODE_ENV === 'production' ? [] : DEV_ORIGINS),
+  ...EXTRA_ORIGINS,
 ]
 
 export const createApp = () => {
@@ -39,8 +47,18 @@ export const createApp = () => {
   // Required for accurate geoip-lite lookups in services/region.js.
   app.set('trust proxy', 1)
 
+  app.use(helmet({
+    contentSecurityPolicy: false, // SPA is served separately; CSP belongs on the static host
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  }))
+
   app.use(cors({
-    origin: ALLOWED_ORIGINS,
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true) // server-to-server / curl
+      if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true)
+      return cb(new Error(`Origin not allowed by CORS: ${origin}`))
+    },
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization'],
   }))
