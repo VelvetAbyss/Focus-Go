@@ -38,7 +38,12 @@ jobs:
       # ── 4. Upload tarball to Alibaba OSS ────────────────────────
       # Use OSS_ENDPOINT secret — bucket may not be in HK region.
       - name: Install rclone
-        run: sudo apt-get install -y rclone
+        # Ubuntu's apt cache occasionally serves a stale pinned rclone version
+        # that 404s on security.ubuntu.com. Refresh package lists first to pull
+        # the currently-published .deb.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rclone
 
       - name: Upload dist to OSS
         env:
