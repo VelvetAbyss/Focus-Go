@@ -264,6 +264,12 @@ export type LifeKey =
   | 'life.trips.view.grid'
   | 'life.trips.view.timeline'
   | 'life.trips.view.calendar'
+  | 'life.trips.view.atlas'
+  | 'life.trips.atlas.placed'
+  | 'life.trips.atlas.countries'
+  | 'life.trips.atlas.locating'
+  | 'life.trips.atlas.emptyTitle'
+  | 'life.trips.atlas.emptyDesc'
   | 'life.trips.calendar.prev'
   | 'life.trips.calendar.next'
   | 'life.trips.calendar.today'
@@ -618,6 +624,12 @@ const en: Record<LifeKey, string> = {
   'life.trips.view.grid': 'Grid',
   'life.trips.view.timeline': 'Timeline',
   'life.trips.view.calendar': 'Calendar',
+  'life.trips.view.atlas': 'Atlas',
+  'life.trips.atlas.placed': 'on the map',
+  'life.trips.atlas.countries': 'countries',
+  'life.trips.atlas.locating': 'Locating {{count}}…',
+  'life.trips.atlas.emptyTitle': 'No places to map yet',
+  'life.trips.atlas.emptyDesc': 'Add a destination to your trips and they will appear here.',
   'life.trips.calendar.prev': 'Previous month',
   'life.trips.calendar.next': 'Next month',
   'life.trips.calendar.today': 'Today',
@@ -967,6 +979,12 @@ const zh: Record<LifeKey, string> = {
   'life.trips.view.grid': '卡片',
   'life.trips.view.timeline': '时间轴',
   'life.trips.view.calendar': '日历',
+  'life.trips.view.atlas': '地图集',
+  'life.trips.atlas.placed': '已标注',
+  'life.trips.atlas.countries': '个国家',
+  'life.trips.atlas.locating': '正在定位 {{count}} 个…',
+  'life.trips.atlas.emptyTitle': '还没有可标注的地点',
+  'life.trips.atlas.emptyDesc': '为旅行添加目的地，它们就会出现在这里。',
   'life.trips.calendar.prev': '上个月',
   'life.trips.calendar.next': '下个月',
   'life.trips.calendar.today': '今天',
