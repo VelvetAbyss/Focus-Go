@@ -227,6 +227,18 @@ export type LifeKey =
   | 'life.trips.detail.estimated'
   | 'life.trips.detail.actual'
   | 'life.trips.detail.remaining'
+  | 'life.trips.detail.split.total'
+  | 'life.trips.detail.split.perPerson'
+  | 'life.trips.detail.split.perDay'
+  | 'life.trips.detail.split.perPersonNote'
+  | 'life.trips.detail.split.perDayNote'
+  | 'life.trips.detail.breakdown'
+  | 'life.trips.detail.balance'
+  | 'life.trips.detail.left'
+  | 'life.trips.detail.over'
+  | 'life.trips.detail.overrunWarn'
+  | 'life.trips.detail.addPackTemplate'
+  | 'life.trips.detail.packedCount'
   | 'life.trips.detail.tripMemo'
   | 'life.trips.filter.all'
   | 'life.trips.filter.planning'
@@ -569,6 +581,18 @@ const en: Record<LifeKey, string> = {
   'life.trips.detail.estimated': 'Estimated',
   'life.trips.detail.actual': 'Actual',
   'life.trips.detail.remaining': 'Remaining',
+  'life.trips.detail.split.total': 'Total',
+  'life.trips.detail.split.perPerson': 'Per person',
+  'life.trips.detail.split.perDay': 'Per day',
+  'life.trips.detail.split.perPersonNote': 'Split across {{count}} travelers',
+  'life.trips.detail.split.perDayNote': 'Split across {{count}} days',
+  'life.trips.detail.breakdown': 'Breakdown',
+  'life.trips.detail.balance': 'Balance',
+  'life.trips.detail.left': 'left',
+  'life.trips.detail.over': 'Over by ${{count}}',
+  'life.trips.detail.overrunWarn': 'Spending is {{count}}% of plan',
+  'life.trips.detail.addPackTemplate': 'Packing template',
+  'life.trips.detail.packedCount': '{{done}} of {{total}} packed',
   'life.trips.detail.tripMemo': 'Trip memo',
   'life.trips.filter.all': 'All',
   'life.trips.filter.planning': 'Planning',
@@ -906,6 +930,18 @@ const zh: Record<LifeKey, string> = {
   'life.trips.detail.estimated': '预估',
   'life.trips.detail.actual': '实际',
   'life.trips.detail.remaining': '剩余',
+  'life.trips.detail.split.total': '总计',
+  'life.trips.detail.split.perPerson': '按人均',
+  'life.trips.detail.split.perDay': '按每日',
+  'life.trips.detail.split.perPersonNote': '按 {{count}} 位旅客均摊',
+  'life.trips.detail.split.perDayNote': '按 {{count}} 天均摊',
+  'life.trips.detail.breakdown': '明细',
+  'life.trips.detail.balance': '结余',
+  'life.trips.detail.left': '剩余',
+  'life.trips.detail.over': '超支 ${{count}}',
+  'life.trips.detail.overrunWarn': '已花费预算的 {{count}}%',
+  'life.trips.detail.addPackTemplate': '打包模板',
+  'life.trips.detail.packedCount': '已打包 {{done}}/{{total}}',
   'life.trips.detail.tripMemo': '旅行备忘',
   'life.trips.filter.all': '全部',
   'life.trips.filter.planning': '规划中',
