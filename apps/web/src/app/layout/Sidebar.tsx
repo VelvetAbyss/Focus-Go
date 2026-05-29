@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'motion/react'
 import {
   Bot,
@@ -121,6 +121,7 @@ const StaticSidebarNav = ({
 )
 
 const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
+  const asideRef = useRef<HTMLElement | null>(null)
   const { catalog } = useLabs()
   const i18n = useLabsI18n()
   const { t } = useI18n()
@@ -131,6 +132,41 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
   const isAdmin = useIsAdmin()
   const { openModal: openUpgradeModal } = useUpgradeModal()
   const [dragNavReady, setDragNavReady] = useState(false)
+
+  useEffect(() => {
+    const el = asideRef.current
+    if (!el) return
+    let frame = 0
+    let pendingX = 50
+    let pendingY = 30
+    const flush = () => {
+      frame = 0
+      el.style.setProperty('--cursor-x', `${pendingX}%`)
+      el.style.setProperty('--cursor-y', `${pendingY}%`)
+    }
+    const onMove = (event: PointerEvent) => {
+      const rect = el.getBoundingClientRect()
+      if (rect.width === 0 || rect.height === 0) return
+      pendingX = ((event.clientX - rect.left) / rect.width) * 100
+      pendingY = ((event.clientY - rect.top) / rect.height) * 100
+      if (!frame) frame = requestAnimationFrame(flush)
+    }
+    const onLeave = () => {
+      pendingX = 50
+      pendingY = -40
+      if (!frame) frame = requestAnimationFrame(flush)
+    }
+    el.addEventListener('pointermove', onMove, { passive: true })
+    el.addEventListener('pointerleave', onLeave, { passive: true })
+    // Seed off-screen so the sweep is hidden until the cursor enters.
+    el.style.setProperty('--cursor-x', '50%')
+    el.style.setProperty('--cursor-y', '-40%')
+    return () => {
+      el.removeEventListener('pointermove', onMove)
+      el.removeEventListener('pointerleave', onLeave)
+      if (frame) cancelAnimationFrame(frame)
+    }
+  }, [])
 
   const FEATURE_ICONS: Record<FeatureKey, LucideIcon> = {
     'habit-tracker': Flame,
@@ -243,6 +279,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
 
   return (
     <motion.aside
+      ref={asideRef}
       className={`focus-sidebar ${collapsed ? 'is-collapsed' : ''}`}
       animate={{ width: collapsed ? 80 : 220 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}

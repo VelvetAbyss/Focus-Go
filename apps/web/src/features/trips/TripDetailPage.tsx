@@ -4,6 +4,7 @@ import type { TripUpdateInput } from '@focus-go/core'
 import { useLifeI18n } from '../life/lifeI18n'
 import {
   ArrowLeft,
+  BookOpen,
   Calendar,
   CalendarPlus,
   Download,
@@ -57,6 +58,7 @@ import { PACKING_TEMPLATES, mergePackingTemplate } from './packingTemplates'
 import { tripsRepo } from './tripsRepo'
 import AuthInteractionGate from '../auth/AuthInteractionGate'
 import { ItinerarySection, type ViewMode } from './sections/Itinerary'
+import { JourneyMode } from './sections/JourneyMode'
 import { setTripCommandContext } from './tripCommandRegistry'
 import { downloadTripIcs } from './export/ical'
 import { exportTripAsPdf } from './export/pdf'
@@ -156,6 +158,7 @@ const TripDetailPage = () => {
   const [exportMenuOpen, setExportMenuOpen] = useState(false)
   const [budgetSplit, setBudgetSplit] = useState<BudgetSplit>('total')
   const [packMenuOpen, setPackMenuOpen] = useState(false)
+  const [journeyOpen, setJourneyOpen] = useState(false)
 
   const sections: Array<{ id: SectionId; label: string; icon: ReactNode }> = [
     { id: 'overview', label: t('life.trips.detail.overview'), icon: <LayoutGrid size={14} /> },
@@ -409,6 +412,11 @@ const TripDetailPage = () => {
               <div><div style={{ ...tx(28, 600), lineHeight: 1 }}>{duration}</div><div style={{ ...tx(10, 600, muted), letterSpacing: '0.08em', textTransform: 'uppercase' }}>{t('life.trips.detail.daysLabel')}</div></div>
               <div><div style={{ ...tx(28, 600), lineHeight: 1 }}>{trip.travelers}</div><div style={{ ...tx(10, 600, muted), letterSpacing: '0.08em', textTransform: 'uppercase' }}>{t('life.trips.detail.travelersLabel')}</div></div>
               <div><div style={{ ...tx(28, 600), lineHeight: 1 }}>{progress.done}</div><div style={{ ...tx(10, 600, muted), letterSpacing: '0.08em', textTransform: 'uppercase' }}>{t('life.trips.detail.doneLabel')}</div></div>
+              {trip.status === 'Done' ? (
+                <InkButton onClick={() => setJourneyOpen(true)} ariaLabel={t('life.trips.journey.open')}>
+                  <BookOpen size={14} /> {t('life.trips.journey.open')}
+                </InkButton>
+              ) : null}
               <div style={{ position: 'relative' }}>
                 <InkButton onClick={() => setExportMenuOpen((v) => !v)} ariaLabel={t('life.trips.detail.export')}>
                   <Download size={14} /> {t('life.trips.detail.export')}
@@ -789,6 +797,15 @@ const TripDetailPage = () => {
           </section>
         </main>
       </div>
+      {journeyOpen ? (
+        <JourneyMode
+          trip={trip}
+          t={t}
+          onPatch={(patch) => patchTrip(patch)}
+          onClose={() => setJourneyOpen(false)}
+          onExport={exportPdf}
+        />
+      ) : null}
       </AuthInteractionGate>
     </div>
   )

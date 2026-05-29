@@ -25,6 +25,7 @@ vi.mock('../../shared/theme/theme', () => ({
   resolveInitialTheme: (...args: unknown[]) => mockResolveInitialTheme(...args),
   resolveTheme: (...args: unknown[]) => mockResolveTheme(...args),
   writeStoredThemePreference: (...args: unknown[]) => mockWriteStoredThemePreference(...args),
+  subscribeTheme: () => () => undefined,
 }))
 
 vi.mock('../../features/tasks/useTaskReminderEngine', () => ({

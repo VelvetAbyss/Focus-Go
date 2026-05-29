@@ -15778,19 +15778,26 @@ textarea:focus-visible,
   padding: 0;
 }
 
-/* Scene-driven ambient shell, tied to Focus white-noise presets. */
+/* ── Ambient scene stage ───────────────────────────────────
+   Replaces the legacy wallpaper PNGs. Always-on backdrop renders a
+   layered CSS gradient mesh + two stacked <canvas> layers driven by
+   AmbientSceneStage.tsx + a vignette overlay. Each scene also gets a
+   CSS/SVG motif via ::before/::after for effects too cheap to spend
+   canvas pixels on. */
+
 .focus-shell__scene-backdrop {
   position: absolute;
   inset: 0;
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
-  opacity: 0;
+  opacity: 1;
   background:
-    radial-gradient(120% 80% at 18% 12%, var(--scene-wash), transparent 58%),
-    radial-gradient(110% 86% at 86% 74%, var(--scene-accent), transparent 62%),
+    radial-gradient(120% 80% at var(--scene-wash-x, 18%) var(--scene-wash-y, 12%), var(--scene-wash), transparent 58%),
+    radial-gradient(110% 86% at var(--scene-accent-x, 86%) var(--scene-accent-y, 74%), var(--scene-accent), transparent 62%),
     linear-gradient(180deg, var(--scene-base) 0%, var(--shell-page-bg, var(--bg)) 100%);
   contain: paint;
+  transition: background 1200ms ease;
 }
 
 .focus-shell__scene-backdrop::before,
@@ -15799,6 +15806,7 @@ textarea:focus-visible,
   position: absolute;
   inset: -8%;
   pointer-events: none;
+  will-change: transform, opacity;
 }
 
 .focus-shell__scene-backdrop::before {
@@ -15818,27 +15826,81 @@ textarea:focus-visible,
   mix-blend-mode: multiply;
 }
 
-.focus-shell__scene-image {
+.focus-shell__scene-canvas {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  pointer-events: none;
   opacity: 0;
-  filter: blur(9px) saturate(0.64) contrast(0.84) brightness(1.04);
-  transform: scale(1.018);
 }
 
+/* Per-scene motif drift (cheap, GPU-composited). Each scene supplies
+   wash/accent positions that shift over time via the parent gradient
+   custom properties + a long-period @keyframes on the ::before/::after
+   so the moods feel alive without burning a paint. */
+
+@keyframes ambient-drift-slow {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(2%, -1.5%, 0) scale(1.04); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes ambient-drift-medium {
+  0%   { transform: translate3d(-1%, 0, 0) scale(1.02); }
+  50%  { transform: translate3d(2%, 2%, 0) scale(1.06); }
+  100% { transform: translate3d(-1%, 0, 0) scale(1.02); }
+}
+
+@keyframes ambient-conic-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes ambient-fire-breath {
+  0%   { opacity: 0.42; transform: translate3d(0, 6%, 0) scale(1.0); }
+  50%  { opacity: 0.62; transform: translate3d(0, 4%, 0) scale(1.06); }
+  100% { opacity: 0.42; transform: translate3d(0, 6%, 0) scale(1.0); }
+}
+
+@keyframes ambient-idle-mesh {
+  0%   { background-position: 0% 0%, 100% 100%, 50% 50%; }
+  50%  { background-position: 8% 6%, 92% 94%, 56% 48%; }
+  100% { background-position: 0% 0%, 100% 100%, 50% 50%; }
+}
+
+/* Idle: warm-paper mesh, always alive, no JS work. */
+.focus-shell__scene-backdrop[data-scene='idle'] {
+  --scene-base: color-mix(in srgb, #F5F3F0 92%, #E8DFCF);
+  --scene-wash: color-mix(in srgb, #D9C7A8 22%, transparent);
+  --scene-accent: color-mix(in srgb, #C08552 14%, transparent);
+  --scene-shadow: color-mix(in srgb, #3A3733 8%, transparent);
+  background:
+    radial-gradient(60% 50% at 18% 18%, color-mix(in srgb, #D9C7A8 30%, transparent), transparent 60%),
+    radial-gradient(70% 60% at 82% 78%, color-mix(in srgb, #C08552 14%, transparent), transparent 64%),
+    radial-gradient(120% 90% at 50% 50%, color-mix(in srgb, #F5F3F0 96%, transparent), color-mix(in srgb, #F5F3F0 80%, transparent) 60%, color-mix(in srgb, #E8DFCF 72%, transparent) 100%);
+  background-size: 140% 140%, 140% 140%, 100% 100%;
+  animation: ambient-idle-mesh 38s ease-in-out infinite;
+}
+
+html[data-theme='dark'] .focus-shell__scene-backdrop[data-scene='idle'] {
+  --scene-base: color-mix(in srgb, #1d1b18 90%, #2a2620);
+  --scene-wash: color-mix(in srgb, #4a3a28 36%, transparent);
+  --scene-accent: color-mix(in srgb, #8F4D2C 18%, transparent);
+  --scene-shadow: color-mix(in srgb, #000 50%, transparent);
+  background:
+    radial-gradient(60% 50% at 18% 18%, color-mix(in srgb, #4a3a28 36%, transparent), transparent 60%),
+    radial-gradient(70% 60% at 82% 78%, color-mix(in srgb, #8F4D2C 22%, transparent), transparent 64%),
+    radial-gradient(120% 90% at 50% 50%, color-mix(in srgb, #221e1a 100%, transparent), color-mix(in srgb, #1d1b18 92%, transparent) 60%, color-mix(in srgb, #0f0e0c 80%, transparent) 100%);
+  background-size: 140% 140%, 140% 140%, 100% 100%;
+  animation: ambient-idle-mesh 38s ease-in-out infinite;
+}
+
+/* Rainy-cafe: warm amber wash, drifting window-light, particles handle rain. */
 .focus-shell__scene-backdrop[data-scene='rainy-cafe'] {
   --scene-base: color-mix(in srgb, #F5F3F0 88%, #C08552);
   --scene-wash: color-mix(in srgb, #C08552 26%, transparent);
   --scene-accent: color-mix(in srgb, #1F5C56 16%, transparent);
   --scene-shadow: color-mix(in srgb, #3A3733 14%, transparent);
-}
-
-.focus-shell__scene-backdrop[data-scene='rainy-cafe'] .focus-shell__scene-image {
-  opacity: 0.7;
-  filter: blur(7px) saturate(0.62) contrast(0.84) brightness(1.1);
 }
 
 .focus-shell__scene-backdrop[data-scene='rainy-cafe']::before {
@@ -15847,27 +15909,24 @@ textarea:focus-visible,
     linear-gradient(180deg, color-mix(in srgb, #F5F3F0 74%, transparent) 0%, color-mix(in srgb, #F5F3F0 28%, transparent) 44%, color-mix(in srgb, #3A3733 6%, transparent) 100%),
     radial-gradient(120% 80% at 54% 22%, color-mix(in srgb, #F5F3F0 58%, transparent), transparent 66%);
   filter: none;
+  animation: ambient-drift-slow 32s ease-in-out infinite;
 }
 
 .focus-shell__scene-backdrop[data-scene='rainy-cafe']::after {
   opacity: 0.64;
   background:
-    radial-gradient(90% 70% at 50% 42%, color-mix(in srgb, #F5F3F0 58%, transparent) 0%, transparent 64%),
-    linear-gradient(90deg, color-mix(in srgb, #3A3733 7%, transparent) 0%, transparent 20%, transparent 80%, color-mix(in srgb, #3A3733 7%, transparent) 100%),
-    linear-gradient(180deg, color-mix(in srgb, #F5F3F0 44%, transparent), transparent 42%, color-mix(in srgb, #F5F3F0 18%, transparent));
+    radial-gradient(70% 55% at 50% 30%, color-mix(in srgb, #F5F3F0 64%, transparent) 0%, transparent 70%),
+    linear-gradient(90deg, color-mix(in srgb, #3A3733 7%, transparent) 0%, transparent 20%, transparent 80%, color-mix(in srgb, #3A3733 7%, transparent) 100%);
   mix-blend-mode: normal;
+  animation: ambient-drift-medium 44s ease-in-out infinite;
 }
 
+/* Stormy-night: deep slate-blue, lightning handled by canvas; mesh broods. */
 .focus-shell__scene-backdrop[data-scene='stormy-night'] {
   --scene-base: color-mix(in srgb, #3A3733 78%, #253F5C);
   --scene-wash: color-mix(in srgb, #86A7C7 24%, transparent);
   --scene-accent: color-mix(in srgb, #F5F3F0 16%, transparent);
   --scene-shadow: color-mix(in srgb, #3A3733 42%, transparent);
-}
-
-.focus-shell__scene-backdrop[data-scene='stormy-night'] .focus-shell__scene-image {
-  opacity: 0.78;
-  filter: blur(7px) saturate(0.58) contrast(0.84) brightness(0.92);
 }
 
 .focus-shell__scene-backdrop[data-scene='stormy-night']::before {
@@ -15876,6 +15935,7 @@ textarea:focus-visible,
     linear-gradient(180deg, color-mix(in srgb, #F5F3F0 22%, transparent), color-mix(in srgb, #3A3733 16%, transparent)),
     radial-gradient(110% 78% at 52% 30%, color-mix(in srgb, #F5F3F0 30%, transparent), transparent 68%);
   filter: none;
+  animation: ambient-drift-slow 28s ease-in-out infinite;
 }
 
 .focus-shell__scene-backdrop[data-scene='stormy-night']::after {
@@ -15884,8 +15944,10 @@ textarea:focus-visible,
     radial-gradient(82% 68% at 52% 40%, color-mix(in srgb, #F5F3F0 28%, transparent), transparent 66%),
     linear-gradient(90deg, color-mix(in srgb, #3A3733 18%, transparent) 0%, transparent 24%, transparent 76%, color-mix(in srgb, #3A3733 20%, transparent) 100%);
   mix-blend-mode: normal;
+  animation: ambient-drift-medium 40s ease-in-out infinite;
 }
 
+/* Ocean-breeze: rotating conic light-rays — pure CSS, free on the GPU. */
 .focus-shell__scene-backdrop[data-scene='ocean-breeze'] {
   --scene-base: color-mix(in srgb, #F5F3F0 78%, #89B9B6);
   --scene-wash: color-mix(in srgb, #7EAFB5 30%, transparent);
@@ -15893,17 +15955,24 @@ textarea:focus-visible,
   --scene-shadow: color-mix(in srgb, #1F5C56 10%, transparent);
 }
 
-.focus-shell__scene-backdrop[data-scene='ocean-breeze'] .focus-shell__scene-image {
-  opacity: 0.72;
-  filter: blur(8px) saturate(0.58) contrast(0.82) brightness(1.13);
-}
-
 .focus-shell__scene-backdrop[data-scene='ocean-breeze']::before {
-  opacity: 0.58;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, #F5F3F0 70%, transparent), color-mix(in srgb, #F5F3F0 30%, transparent) 58%, color-mix(in srgb, #7EAFB5 10%, transparent)),
-    radial-gradient(120% 90% at 48% 20%, color-mix(in srgb, #F5F3F0 52%, transparent), transparent 70%);
-  filter: none;
+  opacity: 0.52;
+  inset: -20%;
+  background: conic-gradient(
+    from 0deg at 38% 24%,
+    transparent 0deg,
+    color-mix(in srgb, #F5F3F0 48%, transparent) 18deg,
+    transparent 36deg,
+    color-mix(in srgb, #F5F3F0 38%, transparent) 96deg,
+    transparent 120deg,
+    color-mix(in srgb, #F5F3F0 30%, transparent) 220deg,
+    transparent 246deg,
+    color-mix(in srgb, #F5F3F0 36%, transparent) 320deg,
+    transparent 348deg
+  );
+  filter: blur(28px);
+  mix-blend-mode: screen;
+  animation: ambient-conic-spin 90s linear infinite;
 }
 
 .focus-shell__scene-backdrop[data-scene='ocean-breeze']::after {
@@ -15912,8 +15981,10 @@ textarea:focus-visible,
     radial-gradient(90% 62% at 50% 36%, color-mix(in srgb, #F5F3F0 44%, transparent), transparent 64%),
     linear-gradient(90deg, color-mix(in srgb, #3A3733 7%, transparent), transparent 20%, transparent 82%, color-mix(in srgb, #3A3733 8%, transparent));
   mix-blend-mode: normal;
+  animation: ambient-drift-medium 48s ease-in-out infinite;
 }
 
+/* Cozy-fireside: hearth glow that breathes from the bottom, embers via canvas. */
 .focus-shell__scene-backdrop[data-scene='cozy-fireside'] {
   --scene-base: color-mix(in srgb, #F5F3F0 76%, #C08552);
   --scene-wash: color-mix(in srgb, #C08552 42%, transparent);
@@ -15921,17 +15992,15 @@ textarea:focus-visible,
   --scene-shadow: color-mix(in srgb, #3A3733 14%, transparent);
 }
 
-.focus-shell__scene-backdrop[data-scene='cozy-fireside'] .focus-shell__scene-image {
-  opacity: 0.76;
-  filter: blur(7px) saturate(0.7) contrast(0.85) brightness(1.02);
-}
-
 .focus-shell__scene-backdrop[data-scene='cozy-fireside']::before {
-  opacity: 0.52;
+  opacity: 0.55;
+  inset: -10%;
   background:
-    linear-gradient(180deg, color-mix(in srgb, #F5F3F0 48%, transparent), color-mix(in srgb, #F5F3F0 18%, transparent) 48%, color-mix(in srgb, #3A3733 8%, transparent)),
-    radial-gradient(96% 78% at 52% 24%, color-mix(in srgb, #F5F3F0 34%, transparent), transparent 64%);
-  filter: none;
+    radial-gradient(70% 50% at 50% 95%, color-mix(in srgb, #FFA64D 60%, transparent), transparent 70%),
+    radial-gradient(90% 60% at 50% 100%, color-mix(in srgb, #8F4D2C 36%, transparent), transparent 80%);
+  filter: blur(2px);
+  mix-blend-mode: screen;
+  animation: ambient-fire-breath 5.6s ease-in-out infinite;
 }
 
 .focus-shell__scene-backdrop[data-scene='cozy-fireside']::after {
@@ -15940,14 +16009,46 @@ textarea:focus-visible,
     radial-gradient(88% 68% at 50% 38%, color-mix(in srgb, #F5F3F0 26%, transparent), transparent 64%),
     linear-gradient(90deg, color-mix(in srgb, #3A3733 10%, transparent), transparent 22%, transparent 78%, color-mix(in srgb, #3A3733 12%, transparent));
   mix-blend-mode: normal;
+  animation: ambient-drift-medium 50s ease-in-out infinite;
 }
 
-.focus-shell__scene-backdrop.is-current:not([data-scene='idle']) {
-  opacity: 1;
+/* Reduced motion: kill every keyframe animation. The canvas controller
+   already collapses to a single static frame. */
+@media (prefers-reduced-motion: reduce) {
+  .focus-shell__scene-backdrop,
+  .focus-shell__scene-backdrop::before,
+  .focus-shell__scene-backdrop::after {
+    animation: none !important;
+  }
 }
+
+/* Dev HUD: shown only when ?ambientHud=1 is on the URL. */
+.focus-shell__scene-hud {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font: 500 11px/1.25 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+  backdrop-filter: blur(6px);
+}
+
+/* ── Refined frosted glass on the active-scene chrome ──────
+   Idle keeps a sharp solid surface (legibility wins on the low-contrast
+   mesh). When a scene is active, sidebar + main get layered glass: blur
+   base, inset highlight ring, hairline outer sheen, faint noise tint,
+   and a cursor-tracked specular sweep on the sidebar. */
 
 .focus-shell:not([data-ambient-scene='idle']) .focus-shell__main,
 .focus-shell:not([data-ambient-scene='idle']) .focus-sidebar {
+  position: relative;
   border-color: color-mix(in srgb, #F5F3F0 52%, var(--border));
   background:
     linear-gradient(180deg, color-mix(in srgb, #F5F3F0 28%, transparent), transparent 42%),
@@ -15958,6 +16059,72 @@ textarea:focus-visible,
     0 24px 52px color-mix(in srgb, #3A3733 13%, transparent),
     inset 0 1px 0 color-mix(in srgb, #F5F3F0 72%, transparent),
     inset 0 0 0 1px color-mix(in srgb, #F5F3F0 18%, transparent);
+}
+
+/* Hairline outer sheen — 1px gradient border via double-background trick. */
+.focus-shell:not([data-ambient-scene='idle']) .focus-shell__main {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #F5F3F0 28%, transparent), transparent 42%) padding-box,
+    color-mix(in srgb, var(--surface) 78%, transparent) padding-box,
+    linear-gradient(155deg,
+      color-mix(in srgb, #F5F3F0 86%, transparent) 0%,
+      color-mix(in srgb, #F5F3F0 16%, transparent) 28%,
+      color-mix(in srgb, var(--scene-accent) 36%, transparent) 100%) border-box;
+  border: 1px solid transparent;
+}
+
+.focus-shell:not([data-ambient-scene='idle']) .focus-sidebar {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #F5F3F0 28%, transparent), transparent 42%) padding-box,
+    color-mix(in srgb, var(--surface) 78%, transparent) padding-box,
+    linear-gradient(160deg,
+      color-mix(in srgb, #F5F3F0 90%, transparent) 0%,
+      color-mix(in srgb, #F5F3F0 18%, transparent) 32%,
+      color-mix(in srgb, var(--scene-wash) 44%, transparent) 100%) border-box;
+  border: 1px solid transparent;
+}
+
+/* Subtle noise overlay tied to glass surfaces. SVG-noise data URI, ~3% opacity. */
+.focus-shell:not([data-ambient-scene='idle']) .focus-shell__main::after,
+.focus-shell:not([data-ambient-scene='idle']) .focus-sidebar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0.04;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: 160px 160px;
+}
+
+/* Cursor-tracked specular sweep on the sidebar. Uses CSS vars set by
+   the pointermove listener in Sidebar.tsx; off-screen when no pointer. */
+.focus-shell:not([data-ambient-scene='idle']) .focus-sidebar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0.55;
+  background: radial-gradient(
+    240px circle at var(--cursor-x, 50%) var(--cursor-y, -40%),
+    color-mix(in srgb, #FFFFFF 22%, transparent) 0%,
+    color-mix(in srgb, #FFFFFF 6%, transparent) 30%,
+    transparent 60%
+  );
+  mix-blend-mode: screen;
+  transition: opacity 600ms ease;
+}
+
+html[data-theme='dark'] .focus-shell:not([data-ambient-scene='idle']) .focus-sidebar::before {
+  opacity: 0.4;
+  background: radial-gradient(
+    240px circle at var(--cursor-x, 50%) var(--cursor-y, -40%),
+    color-mix(in srgb, #FFFFFF 14%, transparent) 0%,
+    color-mix(in srgb, #FFFFFF 4%, transparent) 32%,
+    transparent 62%
+  );
 }
 
 .focus-shell:not([data-ambient-scene='idle']) .dashboard .card:not(.dashboard-widget-card--weather) {

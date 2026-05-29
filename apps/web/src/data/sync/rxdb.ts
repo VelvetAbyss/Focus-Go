@@ -1,4 +1,4 @@
-import { createRxDatabase, type RxCollection } from 'rxdb'
+import { createRxDatabase, removeRxDatabase, type RxCollection } from 'rxdb'
 import { replicateRxCollection } from 'rxdb/plugins/replication'
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie'
 import { db } from '../db'
@@ -20,6 +20,7 @@ type SyncDocument = RxdbPullDocument
 
 let rxdbQueue = Promise.resolve()
 let syncValidationErrors: string[] = []
+let rxdbResetRequested = false
 
 const now = () => Date.now()
 const getCollectionName = (entityType: SyncEntityType) => `sync${entityType.toLowerCase()}`
@@ -120,6 +121,17 @@ const closeDatabase = async (database: unknown) => {
   }
 }
 
+export const requestRxdbSyncReset = () => {
+  rxdbResetRequested = true
+}
+
+const resetRxdbStorageDatabases = async () => {
+  const storage = getRxStorageDexie()
+  for (const entityType of SYNC_ENTITY_TYPES) {
+    await removeRxDatabase(getDatabaseName(entityType), storage, false)
+  }
+}
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
@@ -179,7 +191,9 @@ const withCollection = async <T>(entityType: SyncEntityType, task: (collection: 
 }
 
 const writeDexieEntity = async (entityType: SyncEntityType, document: SyncDocument) => {
+  if (rxdbResetRequested) return false
   const normalized = normalizeSyncDocument(entityType, document, 'pull')
+  if (rxdbResetRequested) return false
   const tableName = SYNC_ENTITY_TABLES[entityType]
   const table = db.table(tableName)
   if (normalized._deleted) {
@@ -388,15 +402,19 @@ const syncEntity = async (entityType: SyncEntityType) =>
       receivedSub.unsubscribe()
       sentSub.unsubscribe()
       errorSub.unsubscribe()
-      // Flush Dexie writes with a safety timeout — guards against db.close() leaving ops hanging
-      const writeResults = await Promise.race([
-        Promise.allSettled(pendingWrites),
-        new Promise<PromiseSettledResult<boolean>[]>(resolve => globalThis.setTimeout(() => resolve([]), 5_000)),
-      ])
-      if (writeResults.some((result) => result.status === 'fulfilled' && result.value)) {
+      // Flush Dexie writes with a safety timeout — guards against db.close() leaving ops hanging.
+      // During app reset, do not wait on or issue more Dexie writes because the local DB
+      // is being closed and deleted by the settings reset flow.
+      const writeResults = rxdbResetRequested
+        ? []
+        : await Promise.race([
+            Promise.allSettled(pendingWrites),
+            new Promise<PromiseSettledResult<boolean>[]>(resolve => globalThis.setTimeout(() => resolve([]), 5_000)),
+          ])
+      if (!rxdbResetRequested && writeResults.some((result) => result.status === 'fulfilled' && result.value)) {
         dispatchSyncDataUpdated(entityType)
       }
-      if (receivedDocumentCount > 0) {
+      if (!rxdbResetRequested && receivedDocumentCount > 0) {
         await buildStatePatch({ lastPulledAt: now(), missingBlobPull: false }).catch(() => {})
       }
       await Promise.race([replication.cancel(), timeoutAfter(2_000)])
@@ -430,6 +448,7 @@ export const runRxdbSyncCycle = async () =>
     const queue = [...SYNC_ENTITY_TYPES]
     const runWorker = async () => {
       while (queue.length > 0) {
+        if (rxdbResetRequested) return
         const entityType = queue.shift()
         if (!entityType) return
         try {
@@ -443,6 +462,8 @@ export const runRxdbSyncCycle = async () =>
     await Promise.all(
       Array.from({ length: Math.min(RXDB_SYNC_PARALLEL_LIMIT, SYNC_ENTITY_TYPES.length) }, runWorker),
     )
+
+    if (rxdbResetRequested) return
 
     const errors = [...entityErrors, ...syncValidationErrors]
     if (errors.length > 0) {
@@ -475,7 +496,12 @@ export const enqueueRxdbSyncChange = async <T extends SyncEntityType>(
 
 export const reseedRxdbFromSnapshot = async (snapshot: { [K in SyncEntityType]: Array<SyncPayload<K>> }) =>
   runQueued(async () => {
-    await resetRxdbSyncDatabase()
+    requestRxdbSyncReset()
+    try {
+      await resetRxdbStorageDatabases()
+    } finally {
+      rxdbResetRequested = false
+    }
     for (const entityType of SYNC_ENTITY_TYPES) {
       await withCollection(entityType, async (collection) => {
         const rows = snapshot[entityType]
@@ -485,15 +511,13 @@ export const reseedRxdbFromSnapshot = async (snapshot: { [K in SyncEntityType]: 
     }
   })
 
-export const resetRxdbSyncDatabase = async () =>
-  runQueued(async () => {
-    for (const entityType of SYNC_ENTITY_TYPES) {
-      const database = await createRxDatabase({
-        name: getDatabaseName(entityType),
-        storage: getRxStorageDexie(),
-        multiInstance: false,
-        closeDuplicates: true,
-      })
-      await database.remove()
+export const resetRxdbSyncDatabase = async () => {
+  requestRxdbSyncReset()
+  return runQueued(async () => {
+    try {
+      await resetRxdbStorageDatabases()
+    } finally {
+      rxdbResetRequested = false
     }
   })
+}
