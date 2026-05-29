@@ -33,10 +33,29 @@ export const resolveTheme = (selection: ThemeSelection = 'system'): ThemeMode =>
 
 export const resolveInitialTheme = (): ThemeMode => resolveTheme(readStoredThemePreference() ?? 'system')
 
+const themeListeners = new Set<(theme: ThemeMode) => void>()
+
 export const applyTheme = (theme: ThemeMode) => {
   if (typeof document === 'undefined') return
   const root = document.documentElement
+  const previous = root.dataset.theme
   root.dataset.theme = theme
   if (theme === 'dark') root.classList.add('dark')
   else root.classList.remove('dark')
+  if (previous !== theme) {
+    themeListeners.forEach((listener) => {
+      try {
+        listener(theme)
+      } catch {
+        // swallow listener errors to keep theme application atomic
+      }
+    })
+  }
+}
+
+export const subscribeTheme = (listener: (theme: ThemeMode) => void): (() => void) => {
+  themeListeners.add(listener)
+  return () => {
+    themeListeners.delete(listener)
+  }
 }

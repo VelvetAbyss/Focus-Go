@@ -1,6 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
-import { Check, Clock, ListFilter, RefreshCw, Settings2, WifiOff } from 'lucide-react'
+import { Check, Clock, ListFilter, RefreshCw, Settings2, Star, WifiOff } from 'lucide-react'
+import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import { arrayMove, rectSortingStrategy, SortableContext, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import {
   fetchNewsSource,
   fetchNewsSources,
@@ -10,7 +21,7 @@ import {
   type NewsSource,
   type NewsSourceResponse,
 } from './newsApi'
-import { readNewsPreferences, writeNewsPreferences, type NewsDensity, type NewsPreferences } from './newsPreferences'
+import { readNewsPreferences, writeNewsPreferences, type NewsCategoryTab, type NewsDensity, type NewsPreferences } from './newsPreferences'
 import BrandLoader from '../../shared/ui/loading/BrandLoader'
 import './news.css'
 
@@ -20,8 +31,9 @@ type SourceState = {
   error?: string
 }
 
-const categoryLabels: Record<NewsCategory | 'all', string> = {
+const categoryLabels: Record<NewsCategoryTab, string> = {
   all: '全部',
+  custom: '自定义',
   hot: '热榜',
   tech: '科技',
   finance: '财经',
@@ -130,9 +142,23 @@ const NewsCard = ({
   onVisible: (sourceId: string) => void
   onManageSources: () => void
 }) => {
-  const articleRef = useRef<HTMLElement>(null)
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: source.id })
+
+  const articleRef = useRef<HTMLElement | null>(null)
   const onVisibleRef = useRef(onVisible)
   onVisibleRef.current = onVisible
+
+  const assignRef = useCallback((node: HTMLElement | null) => {
+    articleRef.current = node
+    setNodeRef(node)
+  }, [setNodeRef])
 
   // Lazy-load: fetch data only when card enters the viewport
   useEffect(() => {
@@ -157,14 +183,19 @@ const NewsCard = ({
 
   return (
     <article
-      ref={articleRef}
-      className={`news-card news-card--${density}`}
-      style={{ '--news-accent': source.accent, '--card-index': cardIndex } as CSSProperties}
+      ref={assignRef}
+      className={`news-card news-card--${density}${isDragging ? ' is-dragging' : ''}`}
+      style={{
+        '--news-accent': source.accent,
+        '--card-index': cardIndex,
+        transform: CSS.Transform.toString(transform),
+        transition,
+      } as CSSProperties}
     >
       {/* Accent top stripe */}
       <div className="news-card__stripe" aria-hidden="true" />
 
-      <header className="news-card__header">
+      <header className="news-card__header" {...attributes} {...listeners}>
         <a className="news-card__source" href={source.home} target="_blank" rel="noopener noreferrer">
           <SourceIcon source={source} />
           <strong>{source.name}</strong>
@@ -230,14 +261,14 @@ const NewsCard = ({
 }
 
 // ─── Category filter with sliding indicator ────────────────────────────────────
-const CATEGORIES = ['all', 'hot', 'tech', 'finance', 'world'] as const
+const CATEGORIES = ['all', 'custom', 'hot', 'tech', 'finance', 'world'] as const
 
 const CategoryFilter = ({
   selected,
   onChange,
 }: {
-  selected: NewsCategory | 'all'
-  onChange: (cat: NewsCategory | 'all') => void
+  selected: NewsCategoryTab
+  onChange: (cat: NewsCategoryTab) => void
 }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const [indicatorStyle, setIndicatorStyle] = useState<{ left: number; width: number } | null>(null)
@@ -302,14 +333,18 @@ const CATEGORY_GROUP_LABELS: Record<NewsCategory, string> = {
 const SourceManager = ({
   sources,
   enabledIds,
+  customIds,
   density,
   onToggle,
+  onToggleCustom,
   onDensityChange,
 }: {
   sources: NewsSource[]
   enabledIds: Set<string>
+  customIds: Set<string>
   density: NewsDensity
   onToggle: (id: string) => void
+  onToggleCustom: (id: string) => void
   onDensityChange: (d: NewsDensity) => void
 }) => {
   const grouped = useMemo(() => {
@@ -317,6 +352,38 @@ const SourceManager = ({
     sources.forEach((s) => { map[s.category]?.push(s) })
     return map
   }, [sources])
+
+  const renderSourceButton = (source: NewsSource) => {
+    const enabled = enabledIds.has(source.id)
+    const isCustom = customIds.has(source.id)
+    return (
+      <div
+        key={source.id}
+        className={`news-dashboard__source-item${enabled ? ' is-enabled' : ''}`}
+        style={{ '--news-accent': source.accent } as CSSProperties}
+      >
+        <button
+          type="button"
+          className="news-dashboard__source-toggle"
+          onClick={() => onToggle(source.id)}
+          aria-pressed={enabled}
+        >
+          <span>{source.name}</span>
+          {enabled ? <Check size={13} aria-hidden="true" /> : null}
+        </button>
+        <button
+          type="button"
+          className={`news-dashboard__source-star${isCustom ? ' is-active' : ''}`}
+          onClick={() => onToggleCustom(source.id)}
+          aria-label={isCustom ? `从自定义移除 ${source.name}` : `加入自定义 ${source.name}`}
+          aria-pressed={isCustom}
+          title={isCustom ? '从自定义移除' : '加入自定义'}
+        >
+          <Star size={13} aria-hidden="true" fill={isCustom ? 'currentColor' : 'none'} />
+        </button>
+      </div>
+    )
+  }
 
   return (
     <aside className="news-dashboard__manager" aria-label="Manage news sources">
@@ -341,21 +408,7 @@ const SourceManager = ({
           <div key={cat} className="news-dashboard__source-group">
             <p className="news-dashboard__source-group-label">{CATEGORY_GROUP_LABELS[cat]}</p>
             <div className="news-dashboard__source-grid">
-              {catSources.map((source) => {
-                const enabled = enabledIds.has(source.id)
-                return (
-                  <button
-                    key={source.id}
-                    type="button"
-                    className={enabled ? 'is-enabled' : undefined}
-                    onClick={() => onToggle(source.id)}
-                    style={{ '--news-accent': source.accent } as CSSProperties}
-                  >
-                    <span>{source.name}</span>
-                    {enabled ? <Check size={13} aria-hidden="true" /> : null}
-                  </button>
-                )
-              })}
+              {catSources.map(renderSourceButton)}
             </div>
           </div>
         ) : null
@@ -381,15 +434,63 @@ const NewsDashboard = () => {
 
   const orderedSources = useMemo(() => mergeSourceOrder(sources, preferences), [preferences, sources])
   const enabledSourceIds = useMemo(() => new Set(preferences.enabledSourceIds), [preferences.enabledSourceIds])
+  const customSourceIds = useMemo(() => new Set(preferences.customSourceIds), [preferences.customSourceIds])
   const visibleSources = useMemo(
-    () =>
-      orderedSources.filter((source) => {
+    () => {
+      if (preferences.selectedCategory === 'custom') {
+        const map = new Map(sources.map((s) => [s.id, s]))
+        return preferences.customSourceIds
+          .map((id) => map.get(id))
+          .filter((s): s is NewsSource => Boolean(s))
+      }
+      return orderedSources.filter((source) => {
         if (!enabledSourceIds.has(source.id)) return false
         if (preferences.selectedCategory === 'all') return true
         return source.category === preferences.selectedCategory
-      }),
-    [enabledSourceIds, orderedSources, preferences.selectedCategory],
+      })
+    },
+    [enabledSourceIds, orderedSources, preferences.selectedCategory, preferences.customSourceIds, sources],
   )
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { delay: 300, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
+  const handleDragEnd = useCallback(({ active, over }: DragEndEvent) => {
+    if (!over || active.id === over.id) return
+    const activeId = String(active.id)
+    const overId = String(over.id)
+    const currentIds = visibleSources.map((s) => s.id)
+    const oldIndex = currentIds.indexOf(activeId)
+    const newIndex = currentIds.indexOf(overId)
+    if (oldIndex === -1 || newIndex === -1) return
+    const newOrder = arrayMove(currentIds, oldIndex, newIndex)
+
+    if (preferences.selectedCategory === 'custom') {
+      const next: NewsPreferences = { ...preferences, customSourceIds: newOrder }
+      setPreferences(next)
+      writeNewsPreferences(next)
+      return
+    }
+
+    // For all/category tabs: write back to global sourceOrder.
+    // Replace the positions of the visible source ids in the existing order.
+    const visibleSet = new Set(currentIds)
+    const baseOrder = orderedSources.map((s) => s.id)
+    let cursor = 0
+    const merged = baseOrder.map((id) => {
+      if (visibleSet.has(id)) {
+        const replacement = newOrder[cursor]
+        cursor += 1
+        return replacement
+      }
+      return id
+    })
+    const next: NewsPreferences = { ...preferences, sourceOrder: merged }
+    setPreferences(next)
+    writeNewsPreferences(next)
+  }, [orderedSources, preferences, visibleSources])
 
   const loadSource = useCallback(async (sourceId: string, latest = false, signal?: AbortSignal) => {
     setSourceStates((prev) => ({ ...prev, [sourceId]: { ...prev[sourceId], loading: true, error: undefined } }))
@@ -470,7 +571,25 @@ const NewsDashboard = () => {
     persistPreferences({ ...preferences, enabledSourceIds: [...enabled] })
   }
 
-  const setCategory = (category: NewsCategory | 'all') => {
+  const toggleCustom = (sourceId: string) => {
+    const inCustom = preferences.customSourceIds.includes(sourceId)
+    if (inCustom) {
+      persistPreferences({
+        ...preferences,
+        customSourceIds: preferences.customSourceIds.filter((id) => id !== sourceId),
+      })
+      return
+    }
+    const enabled = new Set(preferences.enabledSourceIds)
+    enabled.add(sourceId)
+    persistPreferences({
+      ...preferences,
+      customSourceIds: [...preferences.customSourceIds, sourceId],
+      enabledSourceIds: [...enabled],
+    })
+  }
+
+  const setCategory = (category: NewsCategoryTab) => {
     persistPreferences({ ...preferences, selectedCategory: category })
   }
 
@@ -520,8 +639,10 @@ const NewsDashboard = () => {
         <SourceManager
           sources={orderedSources}
           enabledIds={enabledSourceIds}
+          customIds={customSourceIds}
           density={preferences.density}
           onToggle={toggleSource}
+          onToggleCustom={toggleCustom}
           onDensityChange={setDensity}
         />
       ) : null}
@@ -529,20 +650,24 @@ const NewsDashboard = () => {
       {sourcesLoading ? (
         <BrandLoader variant="inline" className="news-dashboard__page-loader" data-testid="news-source-loader" />
       ) : visibleSources.length ? (
-        <div className="news-dashboard__grid">
-          {visibleSources.map((source, index) => (
-            <NewsCard
-              key={source.id}
-              source={source}
-              state={sourceStates[source.id] ?? { loading: true }}
-              density={preferences.density}
-              cardIndex={index}
-              onRefresh={(sourceId) => void loadSource(sourceId, true)}
-              onVisible={handleCardVisible}
-              onManageSources={() => setManageOpen(true)}
-            />
-          ))}
-        </div>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={visibleSources.map((s) => s.id)} strategy={rectSortingStrategy}>
+            <div className="news-dashboard__grid">
+              {visibleSources.map((source, index) => (
+                <NewsCard
+                  key={source.id}
+                  source={source}
+                  state={sourceStates[source.id] ?? { loading: true }}
+                  density={preferences.density}
+                  cardIndex={index}
+                  onRefresh={(sourceId) => void loadSource(sourceId, true)}
+                  onVisible={handleCardVisible}
+                  onManageSources={() => setManageOpen(true)}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       ) : (
         <NewsEmpty onManageSources={() => setManageOpen(true)} />
       )}

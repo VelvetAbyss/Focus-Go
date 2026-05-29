@@ -87,6 +87,28 @@ const staysBlock = (trip: TripRecord) => {
   return `<section class="trip-pdf__section"><h2 class="trip-pdf__h2">Stays</h2>${rows}</section>`
 }
 
+const journalBlock = (trip: TripRecord) => {
+  const written = (trip.journal ?? []).filter((entry) => entry.body.trim())
+  if (!written.length) return ''
+  const byKey = new Map(written.map((entry) => [entry.date, entry]))
+  const rows = trip.itinerary
+    .map((day) => {
+      const key = day.date?.trim() ? day.date.trim() : `#day-${day.day}`
+      const entry = byKey.get(key)
+      if (!entry) return ''
+      const head = `Day ${day.day}${day.date ? ` · ${esc(day.date)}` : ''}${entry.mood ? ` ${esc(entry.mood)}` : ''}`
+      return `
+        <div class="trip-pdf__journal">
+          <div class="trip-pdf__journal-head">${head}</div>
+          <div class="trip-pdf__journal-body">${esc(entry.body).replace(/\n/g, '<br/>')}</div>
+        </div>`
+    })
+    .filter(Boolean)
+    .join('')
+  if (!rows) return ''
+  return `<section class="trip-pdf__section"><h2 class="trip-pdf__h2">Travel journal</h2>${rows}</section>`
+}
+
 const notesBlock = (trip: TripRecord) => {
   if (!trip.notes.trim()) return ''
   return `<section class="trip-pdf__section"><h2 class="trip-pdf__h2">Notes</h2><div class="trip-pdf__notes">${esc(trip.notes).replace(/\n/g, '<br/>')}</div></section>`
@@ -131,6 +153,9 @@ export const buildTripPdfHtml = (trip: TripRecord) => {
       .trip-pdf__stay-meta { font-size: 12px; color: ${MUTED}; margin-top: 3px; }
       .trip-pdf__stay-addr { font-size: 12px; color: ${MUTED}; margin-top: 2px; }
       .trip-pdf__notes { font-size: 13px; line-height: 1.7; background: ${CARD_BG}; border: 1px solid ${BORDER}; border-radius: 12px; padding: 16px 18px; }
+      .trip-pdf__journal { background: ${CARD_BG}; border: 1px solid ${BORDER}; border-radius: 12px; padding: 14px 18px; margin-bottom: 12px; break-inside: avoid; }
+      .trip-pdf__journal-head { font-family: ${SERIF}; font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+      .trip-pdf__journal-body { font-family: ${SERIF}; font-size: 13px; line-height: 1.8; color: ${TEXT_COLOR}; }
     </style>
     <article class="trip-pdf">
       <header class="trip-pdf__cover">
@@ -147,6 +172,7 @@ export const buildTripPdfHtml = (trip: TripRecord) => {
       <section class="trip-pdf__section"><h2 class="trip-pdf__h2">Itinerary</h2>${days || '<div class="trip-pdf__empty">No days planned yet.</div>'}</section>
       ${transportBlock(trip)}
       ${staysBlock(trip)}
+      ${journalBlock(trip)}
       ${notesBlock(trip)}
     </article>`
 }

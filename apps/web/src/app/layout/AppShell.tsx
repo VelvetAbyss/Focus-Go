@@ -7,6 +7,7 @@ import {
   resolveTheme,
 } from '../../shared/theme/theme'
 import Sidebar from './Sidebar'
+import AmbientSceneStage from './AmbientSceneStage'
 import { useTaskReminderEngine } from '../../features/tasks/useTaskReminderEngine'
 import TaskReminderModal from '../../features/tasks/TaskReminderModal'
 import { UpgradeModalProvider } from '../../features/labs/UpgradeModalContext'
@@ -18,7 +19,7 @@ import { isLocalhostRuntime } from '../../shared/env/localhost'
 import { clearLocalUserData } from '../../data/sync/repository'
 import CommandPalette from '../../shared/ui/CommandPalette'
 import { useSharedNoise } from '../../features/focus/SharedNoiseProvider'
-import { findMatchingNoiseScenePreset, type NoiseScenePresetId } from '../../features/focus/noise'
+import { findMatchingNoiseScenePreset } from '../../features/focus/noise'
 
 type AppShellProps = {
   children: ReactNode
@@ -60,33 +61,6 @@ const readShellScale = () => {
   return resolveShellScale(window.innerWidth)
 }
 
-type AmbientScene = NoiseScenePresetId | 'idle'
-
-const SCENE_IMAGE_WALLPAPERS: Partial<Record<AmbientScene, string>> = {
-  'rainy-cafe': '/wallpapers/rainy-cafe.png',
-  'stormy-night': '/wallpapers/stormy-night.png',
-  'ocean-breeze': '/wallpapers/ocean-breeze.png',
-  'cozy-fireside': '/wallpapers/cozy-fireside.png',
-}
-
-const AmbientSceneBackdrop = ({ scene }: { scene: AmbientScene }) => {
-  const sceneImage = SCENE_IMAGE_WALLPAPERS[scene]
-
-  return (
-    <div className="focus-shell__scene-backdrop is-current" data-scene={scene} aria-hidden="true">
-      {sceneImage ? (
-        <img
-          className="focus-shell__scene-image"
-          src={sceneImage}
-          alt=""
-          decoding="async"
-          draggable={false}
-        />
-      ) : null}
-      <div className="focus-shell__scene-vignette" />
-    </div>
-  )
-}
 
 const AppShell = ({ children }: AppShellProps) => {
   const location = useLocation()
@@ -220,7 +194,7 @@ const AppShell = ({ children }: AppShellProps) => {
     <AuthGateProvider>
       <UpgradeModalProvider>
         <div className={`focus-shell ${sidebarDimmed ? 'focus-shell--sidebar-dimmed' : ''}`} data-ambient-scene={ambientScene} style={shellStyle}>
-          <AmbientSceneBackdrop scene={ambientScene} />
+          <AmbientSceneStage scene={ambientScene} />
           <div className="focus-shell__scale-wrap">
             <Sidebar
               collapsed={sidebarCollapsed}

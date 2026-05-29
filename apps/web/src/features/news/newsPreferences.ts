@@ -2,11 +2,14 @@ import type { NewsCategory } from './newsApi'
 
 export type NewsDensity = 'comfortable' | 'compact'
 
+export type NewsCategoryTab = NewsCategory | 'all' | 'custom'
+
 export type NewsPreferences = {
   enabledSourceIds: string[]
   sourceOrder: string[]
+  customSourceIds: string[]
   density: NewsDensity
-  selectedCategory: NewsCategory | 'all'
+  selectedCategory: NewsCategoryTab
 }
 
 const STORAGE_KEY = 'focusgo.news.preferences.v1'
@@ -82,13 +85,14 @@ export const EXTRA_SOURCE_IDS = [
 export const DEFAULT_NEWS_PREFERENCES: NewsPreferences = {
   enabledSourceIds: DEFAULT_ENABLED_SOURCE_IDS,
   sourceOrder: DEFAULT_ENABLED_SOURCE_IDS,
+  customSourceIds: [],
   density: 'comfortable',
   selectedCategory: 'all',
 }
 
 const isDensity = (value: unknown): value is NewsDensity => value === 'comfortable' || value === 'compact'
 const isCategory = (value: unknown): value is NewsPreferences['selectedCategory'] =>
-  value === 'all' || value === 'hot' || value === 'tech' || value === 'finance' || value === 'world'
+  value === 'all' || value === 'hot' || value === 'tech' || value === 'finance' || value === 'world' || value === 'custom'
 
 const readArray = (value: unknown, fallback: string[]) =>
   Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0) : fallback
@@ -102,6 +106,7 @@ export const readNewsPreferences = (): NewsPreferences => {
     return {
       enabledSourceIds: readArray(parsed.enabledSourceIds, DEFAULT_ENABLED_SOURCE_IDS),
       sourceOrder: readArray(parsed.sourceOrder, DEFAULT_ENABLED_SOURCE_IDS),
+      customSourceIds: readArray(parsed.customSourceIds, []),
       density: isDensity(parsed.density) ? parsed.density : DEFAULT_NEWS_PREFERENCES.density,
       selectedCategory: isCategory(parsed.selectedCategory) ? parsed.selectedCategory : DEFAULT_NEWS_PREFERENCES.selectedCategory,
     }

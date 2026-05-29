@@ -270,6 +270,15 @@ export type LifeKey =
   | 'life.trips.atlas.locating'
   | 'life.trips.atlas.emptyTitle'
   | 'life.trips.atlas.emptyDesc'
+  | 'life.trips.journey.open'
+  | 'life.trips.journey.title'
+  | 'life.trips.journey.close'
+  | 'life.trips.journey.exportMemory'
+  | 'life.trips.journey.summary'
+  | 'life.trips.journey.emptyTitle'
+  | 'life.trips.journey.emptyDesc'
+  | 'life.trips.journey.noActivities'
+  | 'life.trips.journey.reflectionPlaceholder'
   | 'life.trips.calendar.prev'
   | 'life.trips.calendar.next'
   | 'life.trips.calendar.today'
@@ -630,6 +639,15 @@ const en: Record<LifeKey, string> = {
   'life.trips.atlas.locating': 'Locating {{count}}…',
   'life.trips.atlas.emptyTitle': 'No places to map yet',
   'life.trips.atlas.emptyDesc': 'Add a destination to your trips and they will appear here.',
+  'life.trips.journey.open': 'Open journal',
+  'life.trips.journey.title': 'Travel journal',
+  'life.trips.journey.close': 'Close',
+  'life.trips.journey.exportMemory': 'Export memory',
+  'life.trips.journey.summary': '{{count}} of {{total}} days written',
+  'life.trips.journey.emptyTitle': 'Nothing to look back on yet',
+  'life.trips.journey.emptyDesc': 'Once this trip has days and activities, they appear here to journal.',
+  'life.trips.journey.noActivities': 'No activities recorded for this day.',
+  'life.trips.journey.reflectionPlaceholder': 'How was this day? Write a memory…',
   'life.trips.calendar.prev': 'Previous month',
   'life.trips.calendar.next': 'Next month',
   'life.trips.calendar.today': 'Today',
@@ -985,6 +1003,15 @@ const zh: Record<LifeKey, string> = {
   'life.trips.atlas.locating': '正在定位 {{count}} 个…',
   'life.trips.atlas.emptyTitle': '还没有可标注的地点',
   'life.trips.atlas.emptyDesc': '为旅行添加目的地，它们就会出现在这里。',
+  'life.trips.journey.open': '打开日记',
+  'life.trips.journey.title': '旅行日记',
+  'life.trips.journey.close': '关闭',
+  'life.trips.journey.exportMemory': '导出回忆',
+  'life.trips.journey.summary': '已记录 {{count}}/{{total}} 天',
+  'life.trips.journey.emptyTitle': '还没有可回顾的内容',
+  'life.trips.journey.emptyDesc': '当这次旅行有了行程和活动后，就能在这里写日记了。',
+  'life.trips.journey.noActivities': '这一天没有记录活动。',
+  'life.trips.journey.reflectionPlaceholder': '这一天怎么样？写下一段回忆…',
   'life.trips.calendar.prev': '上个月',
   'life.trips.calendar.next': '下个月',
   'life.trips.calendar.today': '今天',

@@ -64,7 +64,7 @@ import {
 } from '../../shared/backup/localBackup'
 import { useSyncActions, useSyncStatus } from '../../data/sync/service'
 import { restampLocalSnapshotForRestore } from '../../data/sync/repository'
-import { resetRxdbSyncDatabase } from '../../data/sync/rxdb'
+import { requestRxdbSyncReset, resetRxdbSyncDatabase } from '../../data/sync/rxdb'
 import { wipeServerData } from '../../data/sync/wipeServerData'
 import { getAuth } from '../../store/auth'
 import { ROUTES } from './routes'
@@ -82,7 +82,7 @@ import {
 } from '../../shared/location/citySuggestions'
 import { readLayoutLocked, writeLayoutLocked } from '../../shared/prefs/dashboardLayoutLock'
 import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../data/repositories/syncedPreferencesRepo'
-const RESET_TIMEOUT_MS = 4_000
+const RESET_TIMEOUT_MS = 30_000
 
 type ThemeSelection = 'system' | 'light' | 'dark'
 type SettingsSection = 'appearance' | 'experience' | 'weather' | 'data' | 'legal' | 'feedback'
@@ -924,6 +924,7 @@ const SettingsRoute = () => {
           )
         }
       }
+      requestRxdbSyncReset()
       requestCrossTabDbReset()
       await new Promise((resolve) => window.setTimeout(resolve, 150))
       await Promise.race([
