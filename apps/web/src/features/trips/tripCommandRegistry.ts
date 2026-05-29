@@ -21,6 +21,8 @@ export type TripCommandContext = {
   switchItineraryView: (view: ViewMode) => void
   addActivity: (dayNum: number) => void
   deleteTrip: () => void
+  exportPdf: () => void
+  exportIcal: () => void
 }
 
 let current: TripCommandContext | null = null
