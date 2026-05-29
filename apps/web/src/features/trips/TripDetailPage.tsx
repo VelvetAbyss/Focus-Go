@@ -5,8 +5,6 @@ import { useLifeI18n } from '../life/lifeI18n'
 import {
   ArrowLeft,
   Calendar,
-  ChevronDown,
-  ChevronUp,
   FileText,
   Home,
   LayoutGrid,
@@ -24,7 +22,6 @@ import type {
   TripChecklistGroup,
   TripFoodItem,
   TripItineraryDay,
-  TripItineraryItem,
   TripRecord,
   TripStayItem,
   TripTransportItem,
@@ -36,7 +33,6 @@ import {
   checklistProgress,
   foodStatusColor,
   fmtUSD,
-  itineraryTypeStyle,
   tripDuration,
 } from './tripData'
 import {
@@ -45,12 +41,9 @@ import {
   createChecklistGroup,
   createChecklistItem,
   createFoodItem,
-  createItineraryDay,
-  createItineraryItem,
   createStayItem,
   createTransportItem,
   foodStatusOptions,
-  itineraryTypeOptions,
   priceRangeOptions,
   transportCategoryOptions,
   transportMethodOptions,
@@ -58,9 +51,9 @@ import {
 } from './tripEditorModel'
 import { tripsRepo } from './tripsRepo'
 import AuthInteractionGate from '../auth/AuthInteractionGate'
+import { ItinerarySection } from './sections/Itinerary'
 import {
   DangerButton,
-  Hairline,
   InkButton,
   JournalLabel as Label,
   PaperCard as Card,
@@ -116,20 +109,6 @@ function patchIn<T extends { id: string }>(list: T[], id: string, patch: Partial
 /** Remove one item by id from an array. */
 function removeFrom<T extends { id: string }>(list: T[], id: string): T[] {
   return list.filter((item) => item.id !== id)
-}
-
-/** Patch top-level fields on an itinerary day. */
-function patchDay(days: TripItineraryDay[], dayNum: number, patch: Partial<TripItineraryDay>): TripItineraryDay[] {
-  return days.map((d) => (d.day === dayNum ? { ...d, ...patch } : d))
-}
-
-/** Patch one activity inside a specific itinerary day. */
-function patchDayItem(days: TripItineraryDay[], dayNum: number, itemId: string, patch: Partial<TripItineraryItem>): TripItineraryDay[] {
-  return days.map((d) =>
-    d.day === dayNum
-      ? { ...d, items: d.items.map((it) => (it.id === itemId ? { ...it, ...patch } : it)) }
-      : d,
-  )
 }
 
 /** Patch one item inside a checklist group. */
@@ -427,64 +406,15 @@ const TripDetailPage = () => {
             </Card>
           </section>
 
-          <section ref={(node) => { sectionRefs.current.itinerary = node }} data-section="itinerary" style={{ display: 'grid', gap: 14 }}>
-            <SectionHeading title={t('life.trips.detail.itinerary')} meta={`${trip.itinerary.length} days · ${trip.itinerary.reduce((sum, day) => sum + day.items.length, 0)} activities`} action={<ActionButton onClick={() => updateItinerary([...trip.itinerary, createItineraryDay(trip.itinerary.length + 1)])}><Plus size={14} /> {t('life.trips.detail.addDay')}</ActionButton>} />
-            {trip.itinerary.map((day) => {
-              const isCollapsed = collapsedDays.includes(day.day)
-              const patchD = (p: Partial<TripItineraryDay>) => updateItinerary(patchDay(trip.itinerary, day.day, p))
-              const patchItem = (itemId: string, p: Partial<TripItineraryItem>) =>
-                updateItinerary(patchDayItem(trip.itinerary, day.day, itemId, p))
-              return (
-                <Card key={day.day}>
-                  <button
-                    type="button"
-                    onClick={() => setCollapsedDays((c) => c.includes(day.day) ? c.filter((v) => v !== day.day) : [...c, day.day])}
-                    style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', border: 'none', background: 'transparent', cursor: 'pointer' }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ width: 32, height: 32, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(58,55,51,0.07)', ...tx(11, 600) }}>{day.day}</div>
-                      <div style={{ textAlign: 'left' }}>
-                        <p style={pf(15, 500)}>{day.label}</p>
-                        <p style={tx(11, 400, 'rgba(58,55,51,0.40)')}>{day.date || 'Date pending'} · {day.items.length} items</p>
-                      </div>
-                    </div>
-                    {isCollapsed ? <ChevronDown size={15} color={muted} /> : <ChevronUp size={15} color={muted} />}
-                  </button>
-                  {!isCollapsed ? (
-                    <>
-                      <Hairline />
-                      <div style={{ padding: 20, display: 'grid', gap: 14 }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr auto', gap: 12 }}>
-                          <input value={day.date} onChange={(e) => patchD({ date: e.target.value })} style={inputStyle} placeholder="Apr 18" />
-                          <input value={day.label} onChange={(e) => patchD({ label: e.target.value })} style={inputStyle} placeholder="Day label" />
-                          <ActionButton danger onClick={() => updateItinerary(normalizeDays(trip.itinerary.filter((d) => d.day !== day.day)))}><Trash2 size={14} /> {t('life.trips.detail.removeDay')}</ActionButton>
-                        </div>
-                        {day.items.map((item) => {
-                          const badge = itineraryTypeStyle(item.type)
-                          return (
-                            <Card key={item.id} style={{ padding: 14 }}>
-                              <div style={{ display: 'grid', gap: 10 }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 120px 120px auto', gap: 10 }}>
-                                  <input value={item.title} onChange={(e) => patchItem(item.id, { title: e.target.value })} style={inputStyle} placeholder="Activity" />
-                                  <input value={item.time} onChange={(e) => patchItem(item.id, { time: e.target.value })} style={inputStyle} placeholder="09:00" />
-                                  <select value={item.type} onChange={(e) => patchItem(item.id, { type: e.target.value as TripItineraryItem['type'] })} style={inputStyle}>{itineraryTypeOptions.map((t) => <option key={t} value={t}>{t}</option>)}</select>
-                                  <ActionButton danger onClick={() => patchD({ items: day.items.filter((it) => it.id !== item.id) })}><Trash2 size={14} /> {t('life.trips.detail.remove')}</ActionButton>
-                                </div>
-                                <input value={item.location} onChange={(e) => patchItem(item.id, { location: e.target.value })} style={inputStyle} placeholder="Location" />
-                                <textarea value={item.notes ?? ''} onChange={(e) => patchItem(item.id, { notes: e.target.value })} style={textareaStyle} placeholder="Notes" />
-                                <span style={{ ...tx(10, 600, badge.text), background: badge.bg, borderRadius: 999, padding: '4px 8px', alignSelf: 'start', textTransform: 'capitalize', letterSpacing: '0.05em' }}>{item.type}</span>
-                              </div>
-                            </Card>
-                          )
-                        })}
-                        <div><ActionButton onClick={() => patchD({ items: [...day.items, createItineraryItem()] })}><Plus size={14} /> {t('life.trips.detail.addActivity')}</ActionButton></div>
-                      </div>
-                    </>
-                  ) : null}
-                </Card>
-              )
-            })}
-          </section>
+          <div ref={(node) => { sectionRefs.current.itinerary = node as HTMLElement | null }} data-section="itinerary">
+            <ItinerarySection
+              trip={trip}
+              t={t}
+              collapsedDays={collapsedDays}
+              setCollapsedDays={setCollapsedDays}
+              onChange={updateItinerary}
+            />
+          </div>
 
           <section ref={(node) => { sectionRefs.current.transport = node }} data-section="transport" style={{ display: 'grid', gap: 14 }}>
             <SectionHeading title={t('life.trips.detail.transport')} meta={`${trip.transport.length} routes`} action={<ActionButton onClick={() => updateTransport([...trip.transport, createTransportItem()])}><Plus size={14} /> {t('life.trips.detail.addRoute')}</ActionButton>} />
