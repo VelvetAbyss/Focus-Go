@@ -448,7 +448,11 @@ const TripCard = ({ trip, index, statusLabel, onOpen, onDelete, t }: TripCardPro
     >
       {/* Hero strip */}
       <div className="trips-journal__card-hero">
-        <img className="trips-journal__card-image" src={trip.heroImage} alt={trip.destination || trip.title} />
+        {trip.heroImage ? (
+          <img className="trips-journal__card-image" src={trip.heroImage} alt={trip.destination || trip.title} />
+        ) : (
+          <div className="trips-journal__card-image" style={{ background: 'linear-gradient(135deg, #6E7F73, #3A4A42)' }} />
+        )}
         <div className="trips-journal__card-hero-row">
           <span
             className="trips-journal__card-status"

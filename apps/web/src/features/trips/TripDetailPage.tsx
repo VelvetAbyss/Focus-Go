@@ -52,6 +52,8 @@ import {
   transportMethodOptions,
   tripStatusOptions,
 } from './tripEditorModel'
+import { budgetBreakdown, splitBudget, tripDays, type BudgetSplit } from './budgetInsights'
+import { PACKING_TEMPLATES, mergePackingTemplate } from './packingTemplates'
 import { tripsRepo } from './tripsRepo'
 import AuthInteractionGate from '../auth/AuthInteractionGate'
 import { ItinerarySection, type ViewMode } from './sections/Itinerary'
@@ -60,10 +62,13 @@ import { downloadTripIcs } from './export/ical'
 import { exportTripAsPdf } from './export/pdf'
 import {
   AttachmentStrip,
+  CHART_PALETTE,
   DangerButton,
+  Donut,
   InkButton,
   JournalLabel as Label,
   PaperCard as Card,
+  ProgressRing,
   SectionHeading,
   cardBg,
   inputStyle,
@@ -149,6 +154,8 @@ const TripDetailPage = () => {
   const [collapsedDays, setCollapsedDays] = useState<number[]>([])
   const [itineraryView, setItineraryView] = useState<ViewMode>('list')
   const [exportMenuOpen, setExportMenuOpen] = useState(false)
+  const [budgetSplit, setBudgetSplit] = useState<BudgetSplit>('total')
+  const [packMenuOpen, setPackMenuOpen] = useState(false)
 
   const sections: Array<{ id: SectionId; label: string; icon: ReactNode }> = [
     { id: 'overview', label: t('life.trips.detail.overview'), icon: <LayoutGrid size={14} /> },
@@ -307,6 +314,8 @@ const TripDetailPage = () => {
   const actual = useMemo(() => (trip ? budgetActual(trip) : 0), [trip])
   const progress = useMemo(() => (trip ? checklistProgress(trip) : { done: 0, total: 0 }), [trip])
   const percent = progress.total ? Math.round((progress.done / progress.total) * 100) : 0
+  const breakdown = useMemo(() => (trip ? budgetBreakdown(trip) : null), [trip])
+  const splitDays = useMemo(() => (trip ? tripDays(trip) : 1), [trip])
 
   const nextActions = useMemo(() => {
     if (!trip) return []
@@ -605,19 +614,87 @@ const TripDetailPage = () => {
 
           <section ref={(node) => { sectionRefs.current.budget = node }} data-section="budget" style={{ display: 'grid', gap: 14 }}>
             <SectionHeading title={t('life.trips.detail.budget')} meta={`Planned ${fmtUSD(trip.budgetPlanned)} · Actual ${fmtUSD(actual)}`} action={<ActionButton onClick={() => updateBudget([...trip.budget, createBudgetItem()])}><Plus size={14} /> {t('life.trips.detail.addBudgetItem')}</ActionButton>} />
+            <div style={{ display: 'flex', gap: 4, padding: 4, background: 'rgba(58,55,51,0.05)', borderRadius: 10, width: 'fit-content' }}>
+              {([
+                ['total', t('life.trips.detail.split.total')],
+                ['perPerson', t('life.trips.detail.split.perPerson')],
+                ['perDay', t('life.trips.detail.split.perDay')],
+              ] as Array<[BudgetSplit, string]>).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setBudgetSplit(key)}
+                  style={{
+                    ...tx(11, 600, budgetSplit === key ? ink : muted),
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '6px 12px',
+                    borderRadius: 7,
+                    background: budgetSplit === key ? cardBg : 'transparent',
+                    boxShadow: budgetSplit === key ? '0 1px 3px rgba(58,55,51,0.12)' : 'none',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {budgetSplit !== 'total' ? (
+              <p style={tx(11, 400, muted)}>
+                {budgetSplit === 'perPerson'
+                  ? t('life.trips.detail.split.perPersonNote', { count: Math.max(1, trip.travelers) })
+                  : t('life.trips.detail.split.perDayNote', { count: splitDays })}
+              </p>
+            ) : null}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 }}>
-              {[
+              {([
                 [t('life.trips.detail.planned'), trip.budgetPlanned, ink],
                 [t('life.trips.detail.estimated'), estimated, '#2E6EA6'],
                 [t('life.trips.detail.actual'), actual, '#3D7A4E'],
                 [t('life.trips.detail.remaining'), trip.budgetPlanned - actual, trip.budgetPlanned - actual >= 0 ? ink : '#C05050'],
-              ].map(([label, value, color]) => (
+              ] as Array<[string, number, string]>).map(([label, value, color]) => (
                 <Card key={String(label)} style={{ padding: '16px 18px' }}>
                   <p style={{ ...tx(10, 600, muted), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 6 }}>{label}</p>
-                  <p style={{ ...tx(22, 600, color as string), lineHeight: 1 }}>${Number(value).toLocaleString()}</p>
+                  <p style={{ ...tx(22, 600, color), lineHeight: 1 }}>${Math.round(splitBudget(value, budgetSplit, trip.travelers, splitDays)).toLocaleString()}</p>
                 </Card>
               ))}
             </div>
+            {breakdown && breakdown.slices.length > 0 ? (
+              <Card style={{ padding: 22, display: 'flex', gap: 28, alignItems: 'center', flexWrap: 'wrap' }}>
+                <Donut
+                  segments={breakdown.slices.map((slice, i) => ({ id: slice.id, value: slice.planned, color: CHART_PALETTE[i % CHART_PALETTE.length] }))}
+                >
+                  <span style={tx(10, 600, muted)}>{t('life.trips.detail.breakdown')}</span>
+                  <span style={{ ...pf(22, 600, ink), lineHeight: 1.1 }}>${Math.round(splitBudget(breakdown.planned, budgetSplit, trip.travelers, splitDays)).toLocaleString()}</span>
+                </Donut>
+                <div style={{ flex: 1, minWidth: 220, display: 'grid', gap: 12 }}>
+                  <div style={{ display: 'grid', gap: 7 }}>
+                    {breakdown.slices.map((slice, i) => (
+                      <div key={slice.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ width: 10, height: 10, borderRadius: 3, background: CHART_PALETTE[i % CHART_PALETTE.length], flexShrink: 0 }} />
+                        <span style={{ ...tx(12, 500, ink), flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{slice.emoji} {slice.label}</span>
+                        <span style={tx(11, 400, muted)}>{Math.round(slice.share * 100)}%</span>
+                        <span style={tx(12, 600, ink)}>${Math.round(splitBudget(slice.planned, budgetSplit, trip.travelers, splitDays)).toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ display: 'grid', gap: 6 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                      <span style={tx(11, 500, muted)}>{t('life.trips.detail.balance')}</span>
+                      <span style={tx(12, 600, breakdown.overrun ? '#C05050' : '#3D7A4E')}>
+                        {breakdown.overrun
+                          ? t('life.trips.detail.over', { count: Math.round(splitBudget(breakdown.actual - breakdown.planned, budgetSplit, trip.travelers, splitDays)) })
+                          : `$${Math.round(splitBudget(breakdown.remaining, budgetSplit, trip.travelers, splitDays)).toLocaleString()} ${t('life.trips.detail.left')}`}
+                      </span>
+                    </div>
+                    <div style={{ height: 8, borderRadius: 999, overflow: 'hidden', background: 'rgba(58,55,51,0.08)' }}>
+                      <div style={{ width: `${Math.min(100, breakdown.percent)}%`, height: '100%', background: breakdown.overrun ? '#C05050' : '#5B8C5A', transition: 'width 0.4s ease' }} />
+                    </div>
+                    {breakdown.overrun ? (
+                      <p style={tx(11, 500, '#C05050')}>⚠️ {t('life.trips.detail.overrunWarn', { count: breakdown.percent })}</p>
+                    ) : null}
+                  </div>
+                </div>
+              </Card>
+            ) : null}
             {trip.budget.map((item) => {
               const patch = (p: Partial<TripBudgetCategory>) => updateBudget(patchIn(trip.budget, item.id, p))
               return (
@@ -638,13 +715,47 @@ const TripDetailPage = () => {
           </section>
 
           <section ref={(node) => { sectionRefs.current.checklist = node }} data-section="checklist" style={{ display: 'grid', gap: 14 }}>
-            <SectionHeading title={t('life.trips.checklist')} meta={`${progress.done} of ${progress.total} complete`} action={<ActionButton onClick={() => updateChecklist([...trip.checklist, createChecklistGroup()])}><Plus size={14} /> {t('life.trips.detail.addGroup')}</ActionButton>} />
-            <Card style={{ padding: '18px 22px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <p style={tx(12, 400, muted)}>{t('life.trips.detail.overallProgress')}</p>
-                <p style={tx(12, 600)}>{percent}%</p>
+            <SectionHeading
+              title={t('life.trips.checklist')}
+              meta={`${progress.done} of ${progress.total} complete`}
+              action={
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <div style={{ position: 'relative' }}>
+                    <ActionButton onClick={() => setPackMenuOpen((v) => !v)}><Plus size={14} /> {t('life.trips.detail.addPackTemplate')}</ActionButton>
+                    {packMenuOpen ? (
+                      <>
+                        <div onClick={() => setPackMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 30 }} />
+                        <div style={{ position: 'absolute', top: '110%', right: 0, zIndex: 31, background: cardBg, border: `1px solid ${subtleBorder}`, borderRadius: 12, boxShadow: '0 8px 28px rgba(58,55,51,0.16)', padding: 6, minWidth: 200, display: 'grid', gap: 2 }}>
+                          {PACKING_TEMPLATES.map((tpl) => (
+                            <button
+                              key={tpl.id}
+                              onClick={() => { updateChecklist(mergePackingTemplate(trip.checklist, tpl)); setPackMenuOpen(false) }}
+                              style={{ ...tx(12, 500, ink), display: 'flex', alignItems: 'center', gap: 10, border: 'none', background: 'transparent', cursor: 'pointer', padding: '9px 10px', borderRadius: 8, textAlign: 'left', width: '100%' }}
+                              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(58,55,51,0.05)' }}
+                              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+                            >
+                              <span style={{ fontSize: 16 }}>{tpl.emoji}</span>
+                              <span style={{ flex: 1 }}>{tpl.label}</span>
+                              <span style={tx(10, 400, muted)}>{tpl.items.length}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    ) : null}
+                  </div>
+                  <ActionButton onClick={() => updateChecklist([...trip.checklist, createChecklistGroup()])}><Plus size={14} /> {t('life.trips.detail.addGroup')}</ActionButton>
+                </div>
+              }
+            />
+            <Card style={{ padding: '18px 22px', display: 'flex', alignItems: 'center', gap: 22 }}>
+              <ProgressRing percent={percent} size={68} thickness={8} color={percent === 100 ? '#3D7A4E' : ink} />
+              <div style={{ flex: 1, display: 'grid', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+                  <p style={tx(12, 400, muted)}>{t('life.trips.detail.overallProgress')}</p>
+                  <p style={tx(12, 600)}>{t('life.trips.detail.packedCount', { done: progress.done, total: progress.total })}</p>
+                </div>
+                <div style={{ height: 6, borderRadius: 999, overflow: 'hidden', background: 'rgba(58,55,51,0.08)' }}><div style={{ width: `${percent}%`, height: '100%', background: percent === 100 ? '#6EAB7A' : '#3A3733', transition: 'width 0.4s ease' }} /></div>
               </div>
-              <div style={{ height: 6, borderRadius: 999, overflow: 'hidden', background: 'rgba(58,55,51,0.08)' }}><div style={{ width: `${percent}%`, height: '100%', background: percent === 100 ? '#6EAB7A' : '#3A3733' }} /></div>
             </Card>
             {trip.checklist.map((group) => {
               const groupDone = group.items.filter((item) => item.done).length
