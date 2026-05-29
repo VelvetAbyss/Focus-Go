@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { NewTripPicker, type NewTripChoice } from './NewTripPicker'
 import type { CSSProperties } from 'react'
 import {
   ArrowLeft,
@@ -87,10 +88,32 @@ const TripsPage = () => {
     void loadTrips()
   }, ['trips'])
 
-  const handleCreate = async () => {
+  const [pickerOpen, setPickerOpen] = useState(false)
+
+  const handleCreate = () => {
+    setPickerOpen(true)
+  }
+
+  const handlePickerChoice = async (choice: NewTripChoice) => {
+    setPickerOpen(false)
     setCreating(true)
     try {
-      const created = await tripsRepo.create()
+      const overrides = choice.kind === 'template'
+        ? {
+            title: choice.data.title,
+            destination: choice.data.destination,
+            countryCode: choice.data.countryCode,
+            coverEmoji: choice.data.coverEmoji,
+            startDate: choice.data.startDate,
+            endDate: choice.data.endDate,
+            itinerary: choice.data.itinerary,
+            budget: choice.data.budget,
+            checklist: choice.data.checklist,
+            tags: choice.data.tags,
+            templateId: choice.data.templateId,
+          }
+        : undefined
+      const created = await tripsRepo.create(overrides as Parameters<typeof tripsRepo.create>[0])
       navigate(buildTripDetailRoute(created.id))
     } finally {
       setCreating(false)
@@ -266,6 +289,7 @@ const TripsPage = () => {
           ) : null}
         </div>
       </AuthInteractionGate>
+      <NewTripPicker open={pickerOpen} onClose={() => setPickerOpen(false)} onPick={handlePickerChoice} />
     </div>
   )
 }
