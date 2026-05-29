@@ -59,6 +59,7 @@ import { setTripCommandContext } from './tripCommandRegistry'
 import { downloadTripIcs } from './export/ical'
 import { exportTripAsPdf } from './export/pdf'
 import {
+  AttachmentStrip,
   DangerButton,
   InkButton,
   JournalLabel as Label,
@@ -544,6 +545,7 @@ const TripDetailPage = () => {
                     <input type="number" min={0} value={item.cost} onChange={(e) => patch({ cost: Math.max(0, Number(e.target.value) || 0) })} style={numberStyle} placeholder="Cost" />
                   </div>
                   <textarea value={item.notes ?? ''} onChange={(e) => patch({ notes: e.target.value })} style={textareaStyle} placeholder="Notes" />
+                  <AttachmentStrip tripId={trip.id} attachmentIds={item.attachmentIds ?? []} onChange={(next) => patch({ attachmentIds: next })} />
                 </Card>
               )
             })}
@@ -571,6 +573,7 @@ const TripDetailPage = () => {
                     <input type="number" min={0} value={stay.cost} onChange={(e) => patch({ cost: Math.max(0, Number(e.target.value) || 0) })} style={numberStyle} />
                   </div>
                   <textarea value={stay.notes ?? ''} onChange={(e) => patch({ notes: e.target.value })} style={textareaStyle} placeholder="Notes" />
+                  <AttachmentStrip tripId={trip.id} attachmentIds={stay.attachmentIds ?? []} onChange={(next) => patch({ attachmentIds: next })} />
                 </Card>
               )
             })}

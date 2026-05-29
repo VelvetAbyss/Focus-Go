@@ -2,6 +2,7 @@ import type { TripRecord } from '../../data/models/types'
 import type { TripCreateInput, TripUpdateInput } from '@focus-go/core'
 import { tripsRepo as persistedTripsRepo } from '../../data/repositories/tripsRepo'
 import { createEmptyTripInput } from './tripData'
+import { tripAttachmentsRepo } from './tripAttachmentsRepo'
 
 const sortTrips = (rows: TripRecord[]) => [...rows].sort((left, right) => right.updatedAt - left.updatedAt || left.startDate.localeCompare(right.startDate))
 
@@ -29,6 +30,10 @@ export const tripsRepo = {
     return persistedTripsRepo.update(id, patch)
   },
   async remove(id: string) {
-    return persistedTripsRepo.remove(id)
+    await persistedTripsRepo.remove(id)
+    // Attachments are local-only blobs (outside the sync queue) — cascade clean.
+    await tripAttachmentsRepo.removeByTrip(id).catch((error) => {
+      console.error('[trips] failed to clean up attachments', error)
+    })
   },
 }
