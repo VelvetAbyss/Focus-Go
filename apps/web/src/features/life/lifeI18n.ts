@@ -257,6 +257,18 @@ export type LifeKey =
   | 'life.trips.calendar.today'
   | 'life.trips.calendar.empty'
   | 'life.trips.timeline.undated'
+  | 'life.trips.card.now'
+  | 'life.trips.card.next'
+  | 'life.trips.card.freeDay'
+  | 'life.trips.card.dayOf'
+  | 'life.trips.card.inMinutes'
+  | 'life.trips.card.inHours'
+  | 'life.trips.card.packing'
+  | 'life.trips.card.todo'
+  | 'life.trips.card.allSet'
+  | 'life.trips.card.openTrip'
+  | 'life.trips.card.templates'
+  | 'life.trips.card.startTemplate'
   | 'life.trips.nextDeparture'
   | 'life.trips.shape'
   | 'life.trips.summary.upcoming'
@@ -587,6 +599,18 @@ const en: Record<LifeKey, string> = {
   'life.trips.calendar.today': 'Today',
   'life.trips.calendar.empty': 'No trips this month',
   'life.trips.timeline.undated': 'Dates pending',
+  'life.trips.card.now': 'Now',
+  'life.trips.card.next': 'Next',
+  'life.trips.card.freeDay': 'No plans today — explore freely',
+  'life.trips.card.dayOf': 'Day {{count}}',
+  'life.trips.card.inMinutes': 'in {{count}} min',
+  'life.trips.card.inHours': 'in {{count}} h',
+  'life.trips.card.packing': 'Packing',
+  'life.trips.card.todo': 'To do',
+  'life.trips.card.allSet': "You're all set",
+  'life.trips.card.openTrip': 'Open trip',
+  'life.trips.card.templates': 'Start from a template',
+  'life.trips.card.startTemplate': 'Plan your next escape',
   'life.trips.nextDeparture': 'Next departure',
   'life.trips.shape': 'Trip shape',
   'life.trips.summary.upcoming': 'Upcoming',
@@ -912,6 +936,18 @@ const zh: Record<LifeKey, string> = {
   'life.trips.calendar.today': '今天',
   'life.trips.calendar.empty': '本月没有行程',
   'life.trips.timeline.undated': '日期待定',
+  'life.trips.card.now': '正在进行',
+  'life.trips.card.next': '接下来',
+  'life.trips.card.freeDay': '今天没有安排，自由探索',
+  'life.trips.card.dayOf': '第 {{count}} 天',
+  'life.trips.card.inMinutes': '{{count}} 分钟后',
+  'life.trips.card.inHours': '{{count}} 小时后',
+  'life.trips.card.packing': '打包进度',
+  'life.trips.card.todo': '待办',
+  'life.trips.card.allSet': '一切就绪',
+  'life.trips.card.openTrip': '打开行程',
+  'life.trips.card.templates': '从模板开始',
+  'life.trips.card.startTemplate': '规划下一次出发',
   'life.trips.nextDeparture': '即将出发',
   'life.trips.shape': '行程节奏',
   'life.trips.summary.upcoming': '即将出发',

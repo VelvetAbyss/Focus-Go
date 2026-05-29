@@ -1,7 +1,7 @@
 import type { TripRecord } from '../../data/models/types'
 import type { TripCreateInput, TripUpdateInput } from '@focus-go/core'
 import { tripsRepo as persistedTripsRepo } from '../../data/repositories/tripsRepo'
-import { createEmptyTripInput } from './tripData'
+import { createEmptyTripInput, pickDashboardTrip } from './tripData'
 import { tripAttachmentsRepo } from './tripAttachmentsRepo'
 
 const sortTrips = (rows: TripRecord[]) => [...rows].sort((left, right) => right.updatedAt - left.updatedAt || left.startDate.localeCompare(right.startDate))
@@ -17,7 +17,7 @@ export const tripsRepo = {
   },
   async getDashboardTrip(): Promise<TripRecord | null> {
     const rows = await this.list()
-    return rows[0] ?? null
+    return pickDashboardTrip(rows)
   },
   async getById(id: string): Promise<TripRecord | null> {
     const rows = await this.list()
