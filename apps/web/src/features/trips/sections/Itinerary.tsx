@@ -52,7 +52,7 @@ import { ItineraryMapView } from './ItineraryMapView'
 import { useTripWeather } from '../useTripWeather'
 import type { WeatherDay } from '../../../lib/services/weather'
 
-type ViewMode = 'list' | 'timeline' | 'map'
+export type ViewMode = 'list' | 'timeline' | 'map'
 
 export type ItineraryT = LifeTranslate
 
@@ -62,6 +62,9 @@ type Props = {
   collapsedDays: number[]
   setCollapsedDays: (updater: (current: number[]) => number[]) => void
   onChange: (days: TripItineraryDay[]) => void
+  /** Optional controlled view mode. When omitted, the section manages it internally. */
+  view?: ViewMode
+  onViewChange?: (view: ViewMode) => void
 }
 
 const normalizeDays = (days: TripItineraryDay[]): TripItineraryDay[] =>
@@ -502,8 +505,13 @@ const patchDayItems = (days: TripItineraryDay[], dayNum: number, mapper: (items:
  * gap detection. State (collapse, view mode, drag id) lives here; persistence
  * goes through the onChange prop.
  */
-export const ItinerarySection = ({ trip, t, collapsedDays, setCollapsedDays, onChange }: Props) => {
-  const [view, setView] = useState<ViewMode>('list')
+export const ItinerarySection = ({ trip, t, collapsedDays, setCollapsedDays, onChange, view: controlledView, onViewChange }: Props) => {
+  const [internalView, setInternalView] = useState<ViewMode>('list')
+  const view = controlledView ?? internalView
+  const setView = (next: ViewMode) => {
+    if (onViewChange) onViewChange(next)
+    else setInternalView(next)
+  }
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
   const { weatherByDate } = useTripWeather(trip)
 

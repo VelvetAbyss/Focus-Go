@@ -1,10 +1,26 @@
 import { useEffect, useState } from 'react'
 import { Command } from 'cmdk'
-import { FolderKanban, ListTodo, Play, Plus, Search } from 'lucide-react'
+import {
+  Calendar,
+  Compass,
+  FolderKanban,
+  LayoutList,
+  ListTodo,
+  Map as MapIcon,
+  MapPin,
+  Plane,
+  Play,
+  Plus,
+  Search,
+  Trash2,
+} from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { tasksRepo } from '../../data/repositories/tasksRepo'
-import { ROUTES } from '../../app/routes/routes'
+import { buildTripDetailRoute, ROUTES } from '../../app/routes/routes'
 import { emitTasksChanged } from '../../features/tasks/taskSync'
+import { useTripCommandContext } from '../../features/trips/tripCommandRegistry'
+import { tripsRepo } from '../../features/trips/tripsRepo'
+import type { TripRecord } from '../../data/models/types'
 
 type CommandPaletteProps = {
   open: boolean
@@ -14,12 +30,21 @@ type CommandPaletteProps = {
 const ACTIONS = [
   { id: 'tasks', label: 'Open Tasks', icon: ListTodo, to: ROUTES.TASKS },
   { id: 'projects', label: 'Open Projects', icon: FolderKanban, to: ROUTES.PROJECTS },
+  { id: 'trips', label: 'Open Trips', icon: Plane, to: ROUTES.TRIPS },
   { id: 'focus', label: 'Open Focus', icon: Play, to: ROUTES.FOCUS },
 ]
+
+const VIEW_OPTIONS = [
+  { id: 'list', label: 'Itinerary · List view', icon: LayoutList },
+  { id: 'timeline', label: 'Itinerary · Timeline view', icon: Calendar },
+  { id: 'map', label: 'Itinerary · Map view', icon: MapIcon },
+] as const
 
 const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
+  const tripCtx = useTripCommandContext()
+  const [trips, setTrips] = useState<TripRecord[]>([])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -35,6 +60,17 @@ const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
 
   useEffect(() => {
     if (!open) setQuery('')
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
+    let cancelled = false
+    void tripsRepo.list().then((rows) => {
+      if (!cancelled) setTrips(rows)
+    })
+    return () => {
+      cancelled = true
+    }
   }, [open])
 
   const createTask = async () => {
@@ -54,9 +90,16 @@ const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
     navigate(ROUTES.TASKS)
   }
 
+  const run = (fn: () => void) => {
+    onOpenChange(false)
+    fn()
+  }
+
   if (!open) return null
 
   const trimmed = query.trim()
+  const currentTripId = tripCtx?.trip.id
+  const otherTrips = trips.filter((trip) => trip.id !== currentTripId)
 
   return (
     <div className="command-palette" role="dialog" aria-modal="true" aria-label="Command palette">
@@ -77,13 +120,13 @@ const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
             autoFocus
             value={query}
             onValueChange={setQuery}
-            placeholder="Capture a task or type a destination"
+            placeholder={tripCtx ? 'Jump, switch view, add activity…' : 'Capture a task or type a destination'}
             onKeyDown={(event) => {
               if (event.key === 'Enter' && trimmed && !event.defaultPrevented) {
                 const hasMatch = ACTIONS.some((action) =>
                   action.label.toLowerCase().includes(trimmed.toLowerCase()),
                 )
-                if (!hasMatch) {
+                if (!hasMatch && !tripCtx) {
                   event.preventDefault()
                   void createTask()
                 }
@@ -104,23 +147,92 @@ const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
               <strong>{trimmed}</strong>
             </Command.Item>
           ) : null}
-          {ACTIONS.map((action) => {
-            const Icon = action.icon
-            return (
-              <Command.Item
-                key={action.id}
-                value={action.label}
-                className="command-palette__item"
-                onSelect={() => {
-                  onOpenChange(false)
-                  navigate(action.to)
-                }}
-              >
-                <Icon className="size-4" />
-                <span>{action.label}</span>
-              </Command.Item>
-            )
-          })}
+
+          {tripCtx ? (
+            <>
+              <Command.Group heading="This trip" className="command-palette__group">
+                {tripCtx.sections.map((section) => (
+                  <Command.Item
+                    key={`section:${section.id}`}
+                    value={`Go to ${section.label}`}
+                    className="command-palette__item"
+                    onSelect={() => run(() => tripCtx.scrollToSection(section.id))}
+                  >
+                    <Compass className="size-4" />
+                    <span>Go to {section.label}</span>
+                  </Command.Item>
+                ))}
+                {VIEW_OPTIONS.map((view) => {
+                  const Icon = view.icon
+                  return (
+                    <Command.Item
+                      key={`view:${view.id}`}
+                      value={`Switch to ${view.label}`}
+                      className="command-palette__item"
+                      onSelect={() => run(() => tripCtx.switchItineraryView(view.id))}
+                    >
+                      <Icon className="size-4" />
+                      <span>{view.label}</span>
+                    </Command.Item>
+                  )
+                })}
+                {tripCtx.trip.itinerary.map((day) => (
+                  <Command.Item
+                    key={`add:${day.day}`}
+                    value={`Add activity to Day ${day.day} ${day.label}`}
+                    className="command-palette__item"
+                    onSelect={() => run(() => tripCtx.addActivity(day.day))}
+                  >
+                    <Plus className="size-4" />
+                    <span>Add activity to Day {day.day}</span>
+                    <strong>{day.label}</strong>
+                  </Command.Item>
+                ))}
+                <Command.Item
+                  value="Delete this trip"
+                  className="command-palette__item"
+                  onSelect={() => run(() => tripCtx.deleteTrip())}
+                >
+                  <Trash2 className="size-4" />
+                  <span>Delete this trip</span>
+                </Command.Item>
+              </Command.Group>
+            </>
+          ) : null}
+
+          {otherTrips.length > 0 ? (
+            <Command.Group heading="Trips" className="command-palette__group">
+              {otherTrips.map((trip) => (
+                <Command.Item
+                  key={`trip:${trip.id}`}
+                  value={`Open trip ${trip.title} ${trip.destination}`}
+                  className="command-palette__item"
+                  onSelect={() => run(() => navigate(buildTripDetailRoute(trip.id)))}
+                >
+                  <MapPin className="size-4" />
+                  <span>{trip.title}</span>
+                  {trip.destination ? <strong>{trip.destination}</strong> : null}
+                </Command.Item>
+              ))}
+            </Command.Group>
+          ) : null}
+
+          <Command.Group heading="Navigate" className="command-palette__group">
+            {ACTIONS.map((action) => {
+              const Icon = action.icon
+              return (
+                <Command.Item
+                  key={action.id}
+                  value={action.label}
+                  className="command-palette__item"
+                  onSelect={() => run(() => navigate(action.to))}
+                >
+                  <Icon className="size-4" />
+                  <span>{action.label}</span>
+                </Command.Item>
+              )
+            })}
+          </Command.Group>
         </Command.List>
       </Command>
     </div>

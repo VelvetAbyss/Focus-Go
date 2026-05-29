@@ -41,6 +41,7 @@ import {
   createChecklistGroup,
   createChecklistItem,
   createFoodItem,
+  createItineraryItem,
   createStayItem,
   createTransportItem,
   foodStatusOptions,
@@ -51,7 +52,8 @@ import {
 } from './tripEditorModel'
 import { tripsRepo } from './tripsRepo'
 import AuthInteractionGate from '../auth/AuthInteractionGate'
-import { ItinerarySection } from './sections/Itinerary'
+import { ItinerarySection, type ViewMode } from './sections/Itinerary'
+import { setTripCommandContext } from './tripCommandRegistry'
 import {
   DangerButton,
   InkButton,
@@ -140,6 +142,7 @@ const TripDetailPage = () => {
   const [loading, setLoading] = useState(true)
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [collapsedDays, setCollapsedDays] = useState<number[]>([])
+  const [itineraryView, setItineraryView] = useState<ViewMode>('list')
 
   const sections: Array<{ id: SectionId; label: string; icon: ReactNode }> = [
     { id: 'overview', label: t('life.trips.detail.overview'), icon: <LayoutGrid size={14} /> },
@@ -240,6 +243,41 @@ const TripDetailPage = () => {
   }
 
   const updateItinerary = (days: TripItineraryDay[]) => patchTrip({ itinerary: normalizeDays(days) })
+
+  const deleteTrip = async () => {
+    if (!trip) return
+    if (!window.confirm(t('life.trips.detail.deleteConfirm'))) return
+    await tripsRepo.remove(trip.id)
+    navigate(ROUTES.TRIPS)
+  }
+
+  const addActivityToDay = (dayNum: number) => {
+    if (!trip) return
+    setItineraryView('list')
+    const days = trip.itinerary.map((d) =>
+      d.day === dayNum ? { ...d, items: [...d.items, createItineraryItem()] } : d,
+    )
+    updateItinerary(days)
+    setCollapsedDays((c) => c.filter((v) => v !== dayNum))
+    scrollTo('itinerary')
+  }
+  useEffect(() => {
+    if (!trip) return
+    setTripCommandContext({
+      trip,
+      sections: sections.map((s) => ({ id: s.id, label: s.label })),
+      scrollToSection: (id) => scrollTo(id as SectionId),
+      switchItineraryView: (view) => {
+        setItineraryView(view)
+        scrollTo('itinerary')
+      },
+      addActivity: (dayNum) => addActivityToDay(dayNum),
+      deleteTrip: () => void deleteTrip(),
+    })
+    return () => setTripCommandContext(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trip])
+
   const updateTransport = (transport: TripTransportItem[]) => patchTrip({ transport })
   const updateStays = (stays: TripStayItem[]) => patchTrip({ stays })
   const updateFood = (food: TripFoodItem[]) => patchTrip({ food })
@@ -393,11 +431,7 @@ const TripDetailPage = () => {
                 </div>
                 <ActionButton
                   danger
-                  onClick={async () => {
-                    if (!window.confirm(t('life.trips.detail.deleteConfirm'))) return
-                    await tripsRepo.remove(trip.id)
-                    navigate(ROUTES.TRIPS)
-                  }}
+                  onClick={() => void deleteTrip()}
                 >
                   <Trash2 size={14} />
                   {t('life.trips.detail.deleteTrip')}
@@ -413,6 +447,8 @@ const TripDetailPage = () => {
               collapsedDays={collapsedDays}
               setCollapsedDays={setCollapsedDays}
               onChange={updateItinerary}
+              view={itineraryView}
+              onViewChange={setItineraryView}
             />
           </div>
 
