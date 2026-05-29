@@ -28,7 +28,7 @@ import type {
   ProjectNoteLink,
   ProjectPerson,
   TaskNoteLink,
-  TripAttachmentMeta,
+  TripAttachmentRecord,
   TripRecord,
   UserSubscription,
   WidgetTodo,
@@ -99,7 +99,7 @@ export class WorkbenchDb extends Dexie {
   lifePodcasts!: Table<LifePodcast, string>
   lifePeople!: Table<LifePerson, string>
   trips!: Table<TripRecord, string>
-  tripAttachments!: Table<TripAttachmentMeta, string>
+  tripAttachments!: Table<TripAttachmentRecord, string>
   syncedPreferences!: Table<SyncedPreferences, string>
   domainEvents!: Table<DomainEvent, string>
   timelineItems!: Table<TimelineItem, string>

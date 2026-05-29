@@ -30,6 +30,7 @@ import {
   parseHHMM,
 } from '../tripScheduling'
 import {
+  AttachmentStrip,
   DangerButton,
   Hairline,
   InkButton,
@@ -219,6 +220,7 @@ const SortableItemRow = ({
   item,
   conflicting,
   countryCode,
+  tripId,
   onPatch,
   onRemove,
   t,
@@ -227,6 +229,7 @@ const SortableItemRow = ({
   item: TripItineraryItem
   conflicting: boolean
   countryCode?: string
+  tripId: string
   onPatch: (patch: Partial<TripItineraryItem>) => void
   onRemove: () => void
   t: ItineraryT
@@ -307,6 +310,11 @@ const SortableItemRow = ({
               </span>
             ) : null}
           </div>
+          <AttachmentStrip
+            tripId={tripId}
+            attachmentIds={item.attachmentIds ?? []}
+            onChange={(next) => onPatch({ attachmentIds: next })}
+          />
         </div>
       </PaperCard>
     </div>
@@ -396,6 +404,7 @@ const DayCard = ({
   t,
   view,
   countryCode,
+  tripId,
   weather,
   collapsed,
   onToggleCollapse,
@@ -409,6 +418,7 @@ const DayCard = ({
   t: ItineraryT
   view: ViewMode
   countryCode?: string
+  tripId: string
   weather?: WeatherDay
   collapsed: boolean
   onToggleCollapse: () => void
@@ -474,6 +484,7 @@ const DayCard = ({
                           item={item}
                           conflicting={conflictIds.has(item.id)}
                           countryCode={countryCode}
+                          tripId={tripId}
                           onPatch={(p) => onPatchItem(item.id, p)}
                           onRemove={() => onRemoveItem(item.id)}
                           t={t}
@@ -597,6 +608,7 @@ export const ItinerarySection = ({ trip, t, collapsedDays, setCollapsedDays, onC
                 t={t}
                 view={view}
                 countryCode={trip.countryCode}
+                tripId={trip.id}
                 weather={day.date ? weatherByDate[day.date] : undefined}
                 collapsed={isCollapsed}
                 onToggleCollapse={() => setCollapsedDays((c) => (c.includes(day.day) ? c.filter((v) => v !== day.day) : [...c, day.day]))}

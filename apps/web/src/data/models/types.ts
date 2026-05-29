@@ -486,6 +486,11 @@ export type TripAttachmentMeta = {
   blobKey: string
 }
 
+/** Stored row in the local `trip_attachments` Dexie table — meta plus the raw Blob. */
+export type TripAttachmentRecord = TripAttachmentMeta & {
+  blob: Blob
+}
+
 export type TripAIDraftMeta = {
   provider: 'claude' | 'openai' | 'deepseek' | 'template'
   model?: string
