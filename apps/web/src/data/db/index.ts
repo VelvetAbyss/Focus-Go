@@ -28,6 +28,7 @@ import type {
   ProjectNoteLink,
   ProjectPerson,
   TaskNoteLink,
+  TripAttachmentMeta,
   TripRecord,
   UserSubscription,
   WidgetTodo,
@@ -56,6 +57,7 @@ import {
   schemaV41,
   schemaV42,
   schemaV43,
+  schemaV44,
   schemaV2,
   schemaV3,
   schemaV4,
@@ -97,6 +99,7 @@ export class WorkbenchDb extends Dexie {
   lifePodcasts!: Table<LifePodcast, string>
   lifePeople!: Table<LifePerson, string>
   trips!: Table<TripRecord, string>
+  tripAttachments!: Table<TripAttachmentMeta, string>
   syncedPreferences!: Table<SyncedPreferences, string>
   domainEvents!: Table<DomainEvent, string>
   timelineItems!: Table<TimelineItem, string>
@@ -253,7 +256,11 @@ export class WorkbenchDb extends Dexie {
       .stores(schemaV43)
       .upgrade(async () => {})
 
-    this.version(DB_VERSION).stores(schemaV43)
+    this.version(44)
+      .stores(schemaV44)
+      .upgrade(async () => {})
+
+    this.version(DB_VERSION).stores(schemaV44)
 
     this.tasks = this.table(TABLES.tasks)
     this.notes = this.table(TABLES.notes)
@@ -284,6 +291,7 @@ export class WorkbenchDb extends Dexie {
     this.lifePodcasts = this.table(TABLES.lifePodcasts)
     this.lifePeople = this.table(TABLES.lifePeople)
     this.trips = this.table(TABLES.trips)
+    this.tripAttachments = this.table(TABLES.tripAttachments)
     this.syncedPreferences = this.table(TABLES.syncedPreferences)
     this.domainEvents = this.table(TABLES.domainEvents)
     this.timelineItems = this.table(TABLES.timelineItems)

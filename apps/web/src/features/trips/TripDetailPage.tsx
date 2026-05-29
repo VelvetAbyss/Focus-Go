@@ -58,30 +58,32 @@ import {
 } from './tripEditorModel'
 import { tripsRepo } from './tripsRepo'
 import AuthInteractionGate from '../auth/AuthInteractionGate'
+import {
+  DangerButton,
+  Hairline,
+  InkButton,
+  JournalLabel as Label,
+  PaperCard as Card,
+  SectionHeading,
+  cardBg,
+  inputStyle,
+  ink,
+  muted,
+  paper,
+  pf,
+  skeletonBlock,
+  subtleBorder,
+  textareaStyle,
+  tx,
+} from './ui'
 
 type SectionId = 'overview' | 'itinerary' | 'transport' | 'stay' | 'food' | 'budget' | 'checklist' | 'notes'
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
-const paper = '#F5F3F0'
-const cardBg = '#FDFAF7'
-const ink = '#3A3733'
-const muted = 'rgba(58,55,51,0.45)'
-const subtleBorder = 'rgba(58,55,51,0.09)'
-
-const tx = (size = 13, weight = 400, color = ink): CSSProperties => ({ fontFamily: 'Inter, sans-serif', fontSize: size, fontWeight: weight, color })
-const pf = (size = 16, weight = 500, color = ink): CSSProperties => ({ fontFamily: 'Playfair Display, serif', fontSize: size, fontWeight: weight, color })
-
-const inputStyle: CSSProperties = { width: '100%', borderRadius: 12, border: `1px solid ${subtleBorder}`, background: '#FFFCF9', padding: '10px 12px', outline: 'none', ...tx(13, 400) }
-const textareaStyle: CSSProperties = { ...inputStyle, minHeight: 88, resize: 'vertical' }
 const numberStyle: CSSProperties = { ...inputStyle }
 
-const skeletonBlock = (style?: CSSProperties): CSSProperties => ({
-  borderRadius: 18,
-  background: 'linear-gradient(90deg, rgba(58,55,51,0.05) 0%, rgba(58,55,51,0.11) 50%, rgba(58,55,51,0.05) 100%)',
-  backgroundSize: '200% 100%',
-  animation: 'life-loader-shimmer 1.35s ease-in-out infinite',
-  ...style,
-})
+const ActionButton = ({ children, onClick, danger = false }: { children: ReactNode; onClick?: () => void; danger?: boolean }) =>
+  danger ? <DangerButton onClick={onClick}>{children}</DangerButton> : <InkButton onClick={onClick}>{children}</InkButton>
 
 const TripDetailSkeleton = () => (
   <div style={{ display: 'grid', gap: 18 }}>
@@ -102,43 +104,7 @@ const TripDetailSkeleton = () => (
 )
 
 
-const Card = ({ children, style }: { children: ReactNode; style?: CSSProperties }) => (
-  <div style={{ background: cardBg, border: `1px solid ${subtleBorder}`, borderRadius: 16, boxShadow: '0 1px 6px rgba(58,55,51,0.05)', ...style }}>{children}</div>
-)
-
-const Hairline = () => <div style={{ height: 1, background: subtleBorder }} />
-
-const SectionHeading = ({ title, meta, action }: { title: string; meta?: string; action?: ReactNode }) => (
-  <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', gap: 16 }}>
-    <div>
-      <h2 style={pf(22, 500)}>{title}</h2>
-      {meta ? <p style={{ ...tx(12, 400, muted), marginTop: 6 }}>{meta}</p> : null}
-    </div>
-    {action}
-  </div>
-)
-
-const Label = ({ children }: { children: ReactNode }) => <span style={{ ...tx(10, 600, muted), letterSpacing: '0.08em', textTransform: 'uppercase' }}>{children}</span>
-
-const ActionButton = ({ children, onClick, danger = false }: { children: ReactNode; onClick?: () => void; danger?: boolean }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: 8,
-      borderRadius: 999,
-      border: `1px solid ${danger ? 'rgba(192,80,80,0.22)' : subtleBorder}`,
-      background: danger ? 'rgba(192,80,80,0.08)' : '#FFFCF9',
-      padding: '9px 12px',
-      cursor: 'pointer',
-      ...tx(12, 600, danger ? '#C05050' : ink),
-    }}
-  >
-    {children}
-  </button>
-)
+// Card, Hairline, SectionHeading, Label, ActionButton imported from ./ui
 
 // ─── List-mutation helpers ────────────────────────────────────────────────────
 
