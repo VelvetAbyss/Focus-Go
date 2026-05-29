@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { Command } from 'cmdk'
 import {
   Calendar,
+  CalendarPlus,
   Compass,
+  FileDown,
   FolderKanban,
   LayoutList,
   ListTodo,
@@ -188,6 +190,22 @@ const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
                     <strong>{day.label}</strong>
                   </Command.Item>
                 ))}
+                <Command.Item
+                  value="Export trip as PDF"
+                  className="command-palette__item"
+                  onSelect={() => run(() => tripCtx.exportPdf())}
+                >
+                  <FileDown className="size-4" />
+                  <span>Export trip as PDF</span>
+                </Command.Item>
+                <Command.Item
+                  value="Export trip as iCal ics calendar"
+                  className="command-palette__item"
+                  onSelect={() => run(() => tripCtx.exportIcal())}
+                >
+                  <CalendarPlus className="size-4" />
+                  <span>Export trip as iCal (.ics)</span>
+                </Command.Item>
                 <Command.Item
                   value="Delete this trip"
                   className="command-palette__item"

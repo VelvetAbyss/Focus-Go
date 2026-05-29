@@ -5,6 +5,8 @@ import { useLifeI18n } from '../life/lifeI18n'
 import {
   ArrowLeft,
   Calendar,
+  CalendarPlus,
+  Download,
   FileText,
   Home,
   LayoutGrid,
@@ -54,6 +56,8 @@ import { tripsRepo } from './tripsRepo'
 import AuthInteractionGate from '../auth/AuthInteractionGate'
 import { ItinerarySection, type ViewMode } from './sections/Itinerary'
 import { setTripCommandContext } from './tripCommandRegistry'
+import { downloadTripIcs } from './export/ical'
+import { exportTripAsPdf } from './export/pdf'
 import {
   DangerButton,
   InkButton,
@@ -143,6 +147,7 @@ const TripDetailPage = () => {
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [collapsedDays, setCollapsedDays] = useState<number[]>([])
   const [itineraryView, setItineraryView] = useState<ViewMode>('list')
+  const [exportMenuOpen, setExportMenuOpen] = useState(false)
 
   const sections: Array<{ id: SectionId; label: string; icon: ReactNode }> = [
     { id: 'overview', label: t('life.trips.detail.overview'), icon: <LayoutGrid size={14} /> },
@@ -251,6 +256,16 @@ const TripDetailPage = () => {
     navigate(ROUTES.TRIPS)
   }
 
+  const exportPdf = () => {
+    if (!trip) return
+    void exportTripAsPdf(trip)
+  }
+
+  const exportIcal = () => {
+    if (!trip) return
+    downloadTripIcs(trip)
+  }
+
   const addActivityToDay = (dayNum: number) => {
     if (!trip) return
     setItineraryView('list')
@@ -273,6 +288,8 @@ const TripDetailPage = () => {
       },
       addActivity: (dayNum) => addActivityToDay(dayNum),
       deleteTrip: () => void deleteTrip(),
+      exportPdf,
+      exportIcal,
     })
     return () => setTripCommandContext(null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -382,6 +399,57 @@ const TripDetailPage = () => {
               <div><div style={{ ...tx(28, 600), lineHeight: 1 }}>{duration}</div><div style={{ ...tx(10, 600, muted), letterSpacing: '0.08em', textTransform: 'uppercase' }}>{t('life.trips.detail.daysLabel')}</div></div>
               <div><div style={{ ...tx(28, 600), lineHeight: 1 }}>{trip.travelers}</div><div style={{ ...tx(10, 600, muted), letterSpacing: '0.08em', textTransform: 'uppercase' }}>{t('life.trips.detail.travelersLabel')}</div></div>
               <div><div style={{ ...tx(28, 600), lineHeight: 1 }}>{progress.done}</div><div style={{ ...tx(10, 600, muted), letterSpacing: '0.08em', textTransform: 'uppercase' }}>{t('life.trips.detail.doneLabel')}</div></div>
+              <div style={{ position: 'relative' }}>
+                <InkButton onClick={() => setExportMenuOpen((v) => !v)} ariaLabel={t('life.trips.detail.export')}>
+                  <Download size={14} /> {t('life.trips.detail.export')}
+                </InkButton>
+                {exportMenuOpen ? (
+                  <>
+                    <div
+                      onClick={() => setExportMenuOpen(false)}
+                      style={{ position: 'fixed', inset: 0, zIndex: 40 }}
+                    />
+                    <div
+                      role="menu"
+                      style={{
+                        position: 'absolute',
+                        top: 'calc(100% + 6px)',
+                        right: 0,
+                        zIndex: 41,
+                        minWidth: 200,
+                        background: cardBg,
+                        border: `1px solid ${subtleBorder}`,
+                        borderRadius: 12,
+                        boxShadow: '0 12px 32px rgba(40,36,30,0.18)',
+                        padding: 6,
+                        display: 'grid',
+                        gap: 2,
+                      }}
+                    >
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => { setExportMenuOpen(false); exportPdf() }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 8, padding: '9px 10px', textAlign: 'left', ...tx(13, 500, ink) }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(58,55,51,0.06)' }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+                      >
+                        <FileText size={14} /> {t('life.trips.detail.exportPdf')}
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => { setExportMenuOpen(false); exportIcal() }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 8, padding: '9px 10px', textAlign: 'left', ...tx(13, 500, ink) }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(58,55,51,0.06)' }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+                      >
+                        <CalendarPlus size={14} /> {t('life.trips.detail.exportIcal')}
+                      </button>
+                    </div>
+                  </>
+                ) : null}
+              </div>
               <span style={{ ...tx(11, 600, saveState === 'error' ? '#C05050' : ink), minWidth: 62, textAlign: 'right' }}>
                 {saveState === 'saving' ? t('life.trips.detail.saving') : saveState === 'saved' ? t('life.trips.detail.saved') : saveState === 'error' ? t('life.trips.detail.retry') : ''}
               </span>

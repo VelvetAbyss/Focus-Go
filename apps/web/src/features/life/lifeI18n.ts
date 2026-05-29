@@ -207,6 +207,9 @@ export type LifeKey =
   | 'life.trips.detail.destinationPending'
   | 'life.trips.detail.deleteConfirm'
   | 'life.trips.detail.deleteTrip'
+  | 'life.trips.detail.export'
+  | 'life.trips.detail.exportPdf'
+  | 'life.trips.detail.exportIcal'
   | 'life.trips.detail.nextActions'
   | 'life.trips.detail.addDay'
   | 'life.trips.detail.addActivity'
@@ -528,6 +531,9 @@ const en: Record<LifeKey, string> = {
   'life.trips.detail.destinationPending': 'Destination pending',
   'life.trips.detail.deleteConfirm': 'Delete this trip?',
   'life.trips.detail.deleteTrip': 'Delete Trip',
+  'life.trips.detail.export': 'Export',
+  'life.trips.detail.exportPdf': 'Export PDF',
+  'life.trips.detail.exportIcal': 'Export iCal (.ics)',
   'life.trips.detail.nextActions': 'Next Actions',
   'life.trips.detail.addDay': 'Add Day',
   'life.trips.detail.addActivity': 'Add Activity',
@@ -844,6 +850,9 @@ const zh: Record<LifeKey, string> = {
   'life.trips.detail.destinationPending': '目的地待定',
   'life.trips.detail.deleteConfirm': '确认删除此旅行？',
   'life.trips.detail.deleteTrip': '删除旅行',
+  'life.trips.detail.export': '导出',
+  'life.trips.detail.exportPdf': '导出 PDF',
+  'life.trips.detail.exportIcal': '导出 iCal（.ics）',
   'life.trips.detail.nextActions': '下一步行动',
   'life.trips.detail.addDay': '添加天数',
   'life.trips.detail.addActivity': '添加活动',
