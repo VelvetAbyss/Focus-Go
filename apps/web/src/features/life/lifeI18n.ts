@@ -251,6 +251,12 @@ export type LifeKey =
   | 'life.trips.openWorkspace'
   | 'life.trips.view.grid'
   | 'life.trips.view.timeline'
+  | 'life.trips.view.calendar'
+  | 'life.trips.calendar.prev'
+  | 'life.trips.calendar.next'
+  | 'life.trips.calendar.today'
+  | 'life.trips.calendar.empty'
+  | 'life.trips.timeline.undated'
   | 'life.trips.nextDeparture'
   | 'life.trips.shape'
   | 'life.trips.summary.upcoming'
@@ -575,6 +581,12 @@ const en: Record<LifeKey, string> = {
   'life.trips.openWorkspace': 'Open workspace →',
   'life.trips.view.grid': 'Grid',
   'life.trips.view.timeline': 'Timeline',
+  'life.trips.view.calendar': 'Calendar',
+  'life.trips.calendar.prev': 'Previous month',
+  'life.trips.calendar.next': 'Next month',
+  'life.trips.calendar.today': 'Today',
+  'life.trips.calendar.empty': 'No trips this month',
+  'life.trips.timeline.undated': 'Dates pending',
   'life.trips.nextDeparture': 'Next departure',
   'life.trips.shape': 'Trip shape',
   'life.trips.summary.upcoming': 'Upcoming',
@@ -894,6 +906,12 @@ const zh: Record<LifeKey, string> = {
   'life.trips.openWorkspace': '查看工作区 →',
   'life.trips.view.grid': '卡片',
   'life.trips.view.timeline': '时间轴',
+  'life.trips.view.calendar': '日历',
+  'life.trips.calendar.prev': '上个月',
+  'life.trips.calendar.next': '下个月',
+  'life.trips.calendar.today': '今天',
+  'life.trips.calendar.empty': '本月没有行程',
+  'life.trips.timeline.undated': '日期待定',
   'life.trips.nextDeparture': '即将出发',
   'life.trips.shape': '行程节奏',
   'life.trips.summary.upcoming': '即将出发',

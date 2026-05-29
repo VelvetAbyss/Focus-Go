@@ -35,11 +35,15 @@ import {
 import { tripsRepo } from './tripsRepo'
 import { useLifeI18n } from '../life/lifeI18n'
 import AuthInteractionGate from '../auth/AuthInteractionGate'
+import { TripsTimelineView } from './views/TripsTimelineView'
+import { TripsCalendarView } from './views/TripsCalendarView'
 
-type ViewMode = 'grid' | 'timeline'
+type ViewMode = 'grid' | 'timeline' | 'calendar'
 type FilterKey = 'all' | 'planning' | 'booked' | 'ongoing' | 'done'
 
 const STORAGE_VIEW_KEY = 'trips_view_mode'
+const isViewMode = (value: string | null): value is ViewMode =>
+  value === 'grid' || value === 'timeline' || value === 'calendar'
 
 const TripsPage = () => {
   const navigate = useNavigate()
@@ -51,7 +55,7 @@ const TripsPage = () => {
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     if (typeof window === 'undefined') return 'grid'
     const stored = window.localStorage.getItem(STORAGE_VIEW_KEY)
-    return stored === 'timeline' || stored === 'grid' ? stored : 'grid'
+    return isViewMode(stored) ? stored : 'grid'
   })
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -206,6 +210,15 @@ const TripsPage = () => {
                 >
                   <ListIcon size={13} /> {t('life.trips.view.timeline')}
                 </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={viewMode === 'calendar'}
+                  className="trips-journal__view-tab"
+                  onClick={() => switchView('calendar')}
+                >
+                  <CalendarIcon size={13} /> {t('life.trips.view.calendar')}
+                </button>
               </div>
               <button
                 type="button"
@@ -272,7 +285,7 @@ const TripsPage = () => {
           ) : null}
 
           {/* Grid */}
-          {!loading && filteredTrips.length > 0 ? (
+          {!loading && filteredTrips.length > 0 && viewMode === 'grid' ? (
             <div className="trips-journal__grid">
               {filteredTrips.map((trip, i) => (
                 <TripCard
@@ -286,6 +299,16 @@ const TripsPage = () => {
                 />
               ))}
             </div>
+          ) : null}
+
+          {/* Timeline */}
+          {!loading && filteredTrips.length > 0 && viewMode === 'timeline' ? (
+            <TripsTimelineView trips={filteredTrips} t={t} onOpen={(id) => navigate(buildTripDetailRoute(id))} />
+          ) : null}
+
+          {/* Calendar */}
+          {!loading && trips.length > 0 && viewMode === 'calendar' ? (
+            <TripsCalendarView trips={filteredTrips} t={t} onOpen={(id) => navigate(buildTripDetailRoute(id))} />
           ) : null}
         </div>
       </AuthInteractionGate>

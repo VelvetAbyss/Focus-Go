@@ -184,6 +184,9 @@ const parseDateKey = (key: string) => {
   return new Date(y, m - 1, d)
 }
 
+/** Parse a `YYYY-MM-DD` trip date into a local Date, or null when unparseable. */
+export const parseTripDateKey = (key: string): Date | null => parseDateKey(key)
+
 const startOfToday = () => {
   const now = new Date()
   return new Date(now.getFullYear(), now.getMonth(), now.getDate())
