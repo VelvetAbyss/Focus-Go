@@ -339,6 +339,18 @@ export type BookingStatus = 'Confirmed' | 'Pending' | 'Not booked'
 export type FoodStatus = 'Saved' | 'Planned' | 'Visited'
 export type ItineraryType = 'spot' | 'food' | 'transport' | 'hotel'
 
+export type TripGeoPoint = {
+  lat?: number
+  lng?: number
+  address?: string
+  placeId?: string
+}
+
+export type TripMoney = {
+  amount: number
+  currency: string
+}
+
 export type TripItineraryItem = {
   id: string
   title: string
@@ -346,6 +358,22 @@ export type TripItineraryItem = {
   location: string
   type: ItineraryType
   notes?: string
+  startTime?: string
+  endTime?: string
+  durationMin?: number
+  geo?: TripGeoPoint
+  cost?: TripMoney
+  bookingRef?: string
+  attachmentIds?: string[]
+  dayNoteIcon?: string
+  category?: string
+}
+
+export type TripDayNote = {
+  id: string
+  icon?: string
+  text: string
+  createdAt?: string
 }
 
 export type TripItineraryDay = {
@@ -353,6 +381,14 @@ export type TripItineraryDay = {
   date: string
   label: string
   items: TripItineraryItem[]
+  dayNotes?: TripDayNote[]
+  weatherCache?: {
+    fetchedAt: string
+    icon: string
+    tempHigh: number
+    tempLow: number
+    source: 'forecast' | 'climate'
+  }
 }
 
 export type TripTransportItem = {
@@ -368,6 +404,10 @@ export type TripTransportItem = {
   cost: number
   currency: string
   notes?: string
+  fromGeo?: TripGeoPoint
+  toGeo?: TripGeoPoint
+  bookingRef?: string
+  attachmentIds?: string[]
 }
 
 export type TripStayItem = {
@@ -381,6 +421,9 @@ export type TripStayItem = {
   cost: number
   currency: string
   notes?: string
+  geo?: TripGeoPoint
+  bookingRef?: string
+  attachmentIds?: string[]
 }
 
 export type TripFoodItem = {
@@ -391,6 +434,18 @@ export type TripFoodItem = {
   status: FoodStatus
   priceRange: '¥' | '¥¥' | '¥¥¥'
   notes?: string
+  geo?: TripGeoPoint
+  attachmentIds?: string[]
+}
+
+export type TripExpense = {
+  id: string
+  label: string
+  amount: number
+  currency: string
+  date?: string
+  payerId?: string
+  splitWith?: string[]
 }
 
 export type TripBudgetCategory = {
@@ -399,12 +454,15 @@ export type TripBudgetCategory = {
   emoji: string
   planned: number
   actual: number
+  expenses?: TripExpense[]
 }
 
 export type TripChecklistItem = {
   id: string
   label: string
   done: boolean
+  ownerId?: string
+  category?: string
 }
 
 export type TripChecklistGroup = {
@@ -412,6 +470,35 @@ export type TripChecklistGroup = {
   label: string
   emoji: string
   items: TripChecklistItem[]
+  fromTemplateId?: string
+}
+
+export type TripAttachmentKind = 'image' | 'pdf' | 'other'
+
+export type TripAttachmentMeta = {
+  id: string
+  tripId: string
+  kind: TripAttachmentKind
+  name: string
+  size: number
+  mime: string
+  createdAt: string
+  blobKey: string
+}
+
+export type TripAIDraftMeta = {
+  provider: 'claude' | 'openai' | 'deepseek' | 'template'
+  model?: string
+  promptHash?: string
+  generatedAt: string
+}
+
+export type TripJournalEntry = {
+  id: string
+  date: string
+  body: string
+  photoIds?: string[]
+  mood?: string
 }
 
 export type TripRecord = BaseEntity & {
@@ -432,6 +519,28 @@ export type TripRecord = BaseEntity & {
   budget: TripBudgetCategory[]
   checklist: TripChecklistGroup[]
   notes: string
+  countryCode?: string
+  homeCurrency?: string
+  destinationGeo?: TripGeoPoint
+  attachmentIds?: string[]
+  templateId?: string
+  aiDraft?: TripAIDraftMeta
+  tags?: string[]
+  journal?: TripJournalEntry[]
+}
+
+export type TripTemplate = {
+  id: string
+  title: string
+  destination: string
+  countryCode?: string
+  days: number
+  coverEmoji: string
+  tags: string[]
+  itinerary: TripItineraryDay[]
+  budget?: TripBudgetCategory[]
+  checklist?: TripChecklistGroup[]
+  summary?: string
 }
 
 export type BookSource = 'manual' | 'open-library' | 'google-books' | 'crossref' | 'gutendex'

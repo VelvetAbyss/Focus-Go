@@ -19,6 +19,7 @@ import type {
 } from '@focus-go/core'
 import { db } from '../db'
 import '../events/timelineProjection'
+import { migrateTripIn } from '../migrations/tripMigration'
 import type {
   BookItem,
   DashboardLayout,
@@ -478,7 +479,9 @@ const normalizeLifePerson = (person: LifePerson): LifePerson => ({
   sourceProjectPersonId: typeof person.sourceProjectPersonId === 'string' && person.sourceProjectPersonId ? person.sourceProjectPersonId : undefined,
 })
 
-const normalizeTrip = (trip: TripRecord): TripRecord => ({
+const normalizeTrip = (input: TripRecord): TripRecord => {
+  const trip = migrateTripIn(input)
+  return {
   ...trip,
   title: typeof trip.title === 'string' ? trip.title.trim() : '',
   destination: typeof trip.destination === 'string' ? trip.destination.trim() : '',
@@ -497,7 +500,8 @@ const normalizeTrip = (trip: TripRecord): TripRecord => ({
   budget: Array.isArray(trip.budget) ? trip.budget : [],
   checklist: Array.isArray(trip.checklist) ? trip.checklist : [],
   notes: typeof trip.notes === 'string' ? trip.notes : '',
-})
+  }
+}
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000
 
