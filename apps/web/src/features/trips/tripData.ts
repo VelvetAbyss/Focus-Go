@@ -3,6 +3,7 @@ import type {
   FoodStatus,
   ItineraryType,
   TransportMethod,
+  TripItineraryItem,
   TripRecord,
   TripStatus,
 } from '../../data/models/types'
@@ -274,6 +275,85 @@ export const tripHighlights = (trip: TripRecord, max = 2) => {
     .slice(0, max)
     .map((idx) => trip.itinerary[idx])
     .filter(Boolean)
+}
+
+/** Minutes-of-day from a `HH:MM` clock or an ISO datetime (`...THH:MM`), else null. */
+const clockToMinutes = (raw?: string): number | null => {
+  if (!raw) return null
+  const tIdx = raw.indexOf('T')
+  const clock = tIdx >= 0 ? raw.slice(tIdx + 1) : raw
+  const m = clock.match(/^(\d{1,2}):(\d{2})/)
+  if (!m) return null
+  const h = Number(m[1])
+  const min = Number(m[2])
+  if (Number.isNaN(h) || Number.isNaN(min)) return null
+  return h * 60 + min
+}
+
+export type TripDayMoment = {
+  /** 1-based itinerary day the trip is on today. */
+  dayIndex: number
+  dayLabel: string
+  /** Most recent item whose time has already passed today. */
+  current: TripItineraryItem | null
+  /** Soonest upcoming item today, if any. */
+  next: TripItineraryItem | null
+  /** Minutes until `next` starts, when both `next` and a time are known. */
+  minutesToNext: number | null
+}
+
+/**
+ * For a trip that's underway, work out which itinerary day "today" is and the
+ * current/next activity based on the wall clock. Returns null when the trip
+ * hasn't started or the date is unparseable.
+ */
+export const ongoingMoment = (trip: TripRecord, now: Date = new Date()): TripDayMoment | null => {
+  const start = parseDateKey(trip.startDate)
+  if (!start) return null
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const dayIndex = Math.floor((today.getTime() - start.getTime()) / 86_400_000) + 1
+  if (dayIndex < 1) return null
+  const day = trip.itinerary.find((d) => d.day === dayIndex) ?? null
+  if (!day) return { dayIndex, dayLabel: '', current: null, next: null, minutesToNext: null }
+
+  const nowMin = now.getHours() * 60 + now.getMinutes()
+  const timed = day.items
+    .map((item) => ({ item, min: clockToMinutes(item.startTime ?? item.time) }))
+    .filter((entry): entry is { item: TripItineraryItem; min: number } => entry.min != null)
+    .sort((a, b) => a.min - b.min)
+
+  let current: TripItineraryItem | null = null
+  let next: TripItineraryItem | null = null
+  let minutesToNext: number | null = null
+  for (const entry of timed) {
+    if (entry.min <= nowMin) current = entry.item
+    else if (next == null) {
+      next = entry.item
+      minutesToNext = entry.min - nowMin
+    }
+  }
+  // No usable times — surface the first untimed item as the "next" thing to do.
+  if (!current && !next && day.items.length) next = day.items[0]
+  return { dayIndex, dayLabel: day.label, current, next, minutesToNext }
+}
+
+/**
+ * Choose the single most dashboard-worthy trip: an in-progress trip wins,
+ * then the nearest upcoming departure, then the most recent past trip.
+ */
+export const pickDashboardTrip = (trips: TripRecord[]): TripRecord | null => {
+  if (!trips.length) return null
+  const ongoing = trips.filter((trip) => tripPhase(trip) === 'ongoing')
+  if (ongoing.length) return ongoing.sort((a, b) => daysUntilStart(a) - daysUntilStart(b))[0]
+  const future = trips
+    .filter((trip) => {
+      const phase = tripPhase(trip)
+      return phase === 'imminent' || phase === 'upcoming'
+    })
+    .sort((a, b) => daysUntilStart(a) - daysUntilStart(b))
+  if (future.length) return future[0]
+  // Everything is in the past — surface the most recent.
+  return [...trips].sort((a, b) => daysUntilStart(b) - daysUntilStart(a))[0] ?? null
 }
 
 export const transportMethodEmoji = (method: TransportMethod) => {
