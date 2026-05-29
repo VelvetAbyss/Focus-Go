@@ -49,6 +49,8 @@ import {
 } from '../ui'
 import { pickMapProvider, type SearchResult } from '../../../lib/maps'
 import { ItineraryMapView } from './ItineraryMapView'
+import { useTripWeather } from '../useTripWeather'
+import type { WeatherDay } from '../../../lib/services/weather'
 
 type ViewMode = 'list' | 'timeline' | 'map'
 
@@ -367,11 +369,31 @@ const TimelineBlocks = ({ day, conflictIds, onPatch }: { day: TripItineraryDay; 
   )
 }
 
+const WeatherChip = ({ weather }: { weather: WeatherDay }) => (
+  <span
+    title={weather.source === 'climate' ? 'Historical climate average' : 'Forecast'}
+    style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 4,
+      padding: '2px 8px',
+      borderRadius: 999,
+      background: 'rgba(124,90,58,0.08)',
+      ...tx(11, 600, '#7C5A3A'),
+    }}
+  >
+    <span aria-hidden style={{ fontSize: 13 }}>{weather.icon}</span>
+    {weather.tempHigh}°/{weather.tempLow}°
+    {weather.source === 'climate' ? <span style={{ ...tx(9, 500, muted), marginLeft: 2 }}>avg</span> : null}
+  </span>
+)
+
 const DayCard = ({
   day,
   t,
   view,
   countryCode,
+  weather,
   collapsed,
   onToggleCollapse,
   onPatchDay,
@@ -384,6 +406,7 @@ const DayCard = ({
   t: ItineraryT
   view: ViewMode
   countryCode?: string
+  weather?: WeatherDay
   collapsed: boolean
   onToggleCollapse: () => void
   onPatchDay: (patch: Partial<TripItineraryDay>) => void
@@ -420,7 +443,10 @@ const DayCard = ({
             <p style={tx(11, 400, 'rgba(58,55,51,0.40)')}>{day.date || 'Date pending'} · {day.items.length} items{conflicts.length ? ` · ${conflicts.length} conflict${conflicts.length > 1 ? 's' : ''}` : ''}</p>
           </div>
         </div>
-        {collapsed ? <ChevronDown size={15} color={muted} /> : <ChevronUp size={15} color={muted} />}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {weather ? <WeatherChip weather={weather} /> : null}
+          {collapsed ? <ChevronDown size={15} color={muted} /> : <ChevronUp size={15} color={muted} />}
+        </div>
       </button>
       {!collapsed ? (
         <>
@@ -479,6 +505,7 @@ const patchDayItems = (days: TripItineraryDay[], dayNum: number, mapper: (items:
 export const ItinerarySection = ({ trip, t, collapsedDays, setCollapsedDays, onChange }: Props) => {
   const [view, setView] = useState<ViewMode>('list')
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
+  const { weatherByDate } = useTripWeather(trip)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -562,6 +589,7 @@ export const ItinerarySection = ({ trip, t, collapsedDays, setCollapsedDays, onC
                 t={t}
                 view={view}
                 countryCode={trip.countryCode}
+                weather={day.date ? weatherByDate[day.date] : undefined}
                 collapsed={isCollapsed}
                 onToggleCollapse={() => setCollapsedDays((c) => (c.includes(day.day) ? c.filter((v) => v !== day.day) : [...c, day.day]))}
                 onPatchDay={(p) => onChange(trip.itinerary.map((d) => (d.day === day.day ? { ...d, ...p } : d)))}
