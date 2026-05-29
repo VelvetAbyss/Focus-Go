@@ -6,6 +6,7 @@ import {
   ArrowRight,
   Calendar as CalendarIcon,
   Circle,
+  Globe as GlobeIcon,
   LayoutGrid,
   List as ListIcon,
   Plus,
@@ -37,13 +38,14 @@ import { useLifeI18n } from '../life/lifeI18n'
 import AuthInteractionGate from '../auth/AuthInteractionGate'
 import { TripsTimelineView } from './views/TripsTimelineView'
 import { TripsCalendarView } from './views/TripsCalendarView'
+import { TripsAtlasView } from './views/TripsAtlasView'
 
-type ViewMode = 'grid' | 'timeline' | 'calendar'
+type ViewMode = 'grid' | 'timeline' | 'calendar' | 'atlas'
 type FilterKey = 'all' | 'planning' | 'booked' | 'ongoing' | 'done'
 
 const STORAGE_VIEW_KEY = 'trips_view_mode'
 const isViewMode = (value: string | null): value is ViewMode =>
-  value === 'grid' || value === 'timeline' || value === 'calendar'
+  value === 'grid' || value === 'timeline' || value === 'calendar' || value === 'atlas'
 
 const TripsPage = () => {
   const navigate = useNavigate()
@@ -219,6 +221,15 @@ const TripsPage = () => {
                 >
                   <CalendarIcon size={13} /> {t('life.trips.view.calendar')}
                 </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={viewMode === 'atlas'}
+                  className="trips-journal__view-tab"
+                  onClick={() => switchView('atlas')}
+                >
+                  <GlobeIcon size={13} /> {t('life.trips.view.atlas')}
+                </button>
               </div>
               <button
                 type="button"
@@ -309,6 +320,11 @@ const TripsPage = () => {
           {/* Calendar */}
           {!loading && trips.length > 0 && viewMode === 'calendar' ? (
             <TripsCalendarView trips={filteredTrips} t={t} onOpen={(id) => navigate(buildTripDetailRoute(id))} />
+          ) : null}
+
+          {/* Atlas */}
+          {!loading && trips.length > 0 && viewMode === 'atlas' ? (
+            <TripsAtlasView trips={filteredTrips} t={t} onOpen={(id) => navigate(buildTripDetailRoute(id))} />
           ) : null}
         </div>
       </AuthInteractionGate>
