@@ -1,5 +1,5 @@
-import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
-import { ChevronDown, ChevronUp, Clock, GripVertical, Plus, Trash2, AlertTriangle, ArrowRight } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { ChevronDown, ChevronUp, Clock, GripVertical, MapPin, Plus, Trash2, AlertTriangle, ArrowRight, Loader2 } from 'lucide-react'
 import {
   DndContext,
   DragOverlay,
@@ -47,8 +47,10 @@ import {
   textareaStyle,
   tx,
 } from '../ui'
+import { pickMapProvider, type SearchResult } from '../../../lib/maps'
+import { ItineraryMapView } from './ItineraryMapView'
 
-type ViewMode = 'list' | 'timeline'
+type ViewMode = 'list' | 'timeline' | 'map'
 
 export type ItineraryT = LifeTranslate
 
@@ -81,10 +83,137 @@ const parseDndItemId = (id: string): { dayNum: number; itemId: string } | null =
   return { dayNum: Number(m[1]), itemId: m[2] }
 }
 
+const LocationPicker = ({
+  initialQuery,
+  countryCode,
+  onPick,
+  onClose,
+}: {
+  initialQuery: string
+  countryCode?: string
+  onPick: (result: SearchResult) => void
+  onClose: () => void
+}) => {
+  const [query, setQuery] = useState(initialQuery)
+  const [results, setResults] = useState<SearchResult[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const adapter = useMemo(() => pickMapProvider(countryCode), [countryCode])
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    inputRef.current?.focus()
+  }, [])
+
+  useEffect(() => {
+    const trimmed = query.trim()
+    if (trimmed.length < 2) {
+      setResults([])
+      setError(null)
+      return
+    }
+    let cancelled = false
+    setLoading(true)
+    setError(null)
+    const handle = window.setTimeout(async () => {
+      try {
+        const found = await adapter.searchPOI(trimmed)
+        if (!cancelled) setResults(found)
+      } catch {
+        if (!cancelled) setError('Search failed — check your connection.')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }, 380)
+    return () => {
+      cancelled = true
+      window.clearTimeout(handle)
+    }
+  }, [query, adapter])
+
+  return (
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        position: 'absolute',
+        top: 36,
+        right: 0,
+        zIndex: 50,
+        width: 320,
+        background: '#FDFAF7',
+        border: `1px solid ${subtleBorder}`,
+        borderRadius: 12,
+        boxShadow: '0 6px 24px rgba(58,55,51,0.14)',
+        padding: 12,
+        display: 'grid',
+        gap: 10,
+      }}
+    >
+      <input
+        ref={inputRef}
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search a place (e.g. Tokyo Tower)"
+        style={inputStyle}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') onClose()
+          if (e.key === 'Enter' && results[0]) {
+            e.preventDefault()
+            onPick(results[0])
+          }
+        }}
+      />
+      {loading ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, ...tx(11, 500, muted) }}>
+          <Loader2 size={12} /> Searching…
+        </div>
+      ) : null}
+      {error ? <div style={{ ...tx(11, 500, '#C05050') }}>{error}</div> : null}
+      {!loading && !error && results.length === 0 && query.trim().length >= 2 ? (
+        <div style={{ ...tx(11, 500, muted) }}>No results.</div>
+      ) : null}
+      {results.length > 0 ? (
+        <div style={{ display: 'grid', gap: 4, maxHeight: 260, overflowY: 'auto' }}>
+          {results.map((r) => (
+            <button
+              key={r.id}
+              type="button"
+              onClick={() => onPick(r)}
+              style={{
+                textAlign: 'left',
+                padding: '8px 10px',
+                borderRadius: 8,
+                border: `1px solid transparent`,
+                background: 'transparent',
+                cursor: 'pointer',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(58,55,51,0.05)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+            >
+              <div style={tx(12, 600, ink)}>{r.name}</div>
+              {r.address ? <div style={{ ...tx(11, 400, muted), marginTop: 2 }}>{r.address}</div> : null}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+        <button
+          type="button"
+          onClick={onClose}
+          style={{ ...tx(11, 600, muted), border: 'none', background: 'transparent', cursor: 'pointer' }}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  )
+}
+
 const SortableItemRow = ({
   dayNum,
   item,
   conflicting,
+  countryCode,
   onPatch,
   onRemove,
   t,
@@ -92,18 +221,21 @@ const SortableItemRow = ({
   dayNum: number
   item: TripItineraryItem
   conflicting: boolean
+  countryCode?: string
   onPatch: (patch: Partial<TripItineraryItem>) => void
   onRemove: () => void
   t: ItineraryT
 }) => {
   const sortable = useSortable({ id: dndItemId(dayNum, item.id) })
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = sortable
+  const [pickerOpen, setPickerOpen] = useState(false)
   const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.4 : 1,
   }
   const badge = itineraryTypeStyle(item.type)
+  const pinned = item.geo?.lat != null && item.geo?.lng != null
   return (
     <div ref={setNodeRef} style={style}>
       <PaperCard style={{ padding: 14, borderColor: conflicting ? 'rgba(192,80,80,0.45)' : subtleBorder, boxShadow: conflicting ? '0 0 0 1px rgba(192,80,80,0.18)' : undefined }}>
@@ -124,7 +256,43 @@ const SortableItemRow = ({
             <select value={item.type} onChange={(e) => onPatch({ type: e.target.value as TripItineraryItem['type'] })} style={inputStyle}>{itineraryTypeOptions.map((typeOpt) => <option key={typeOpt} value={typeOpt}>{typeOpt}</option>)}</select>
             <DangerButton onClick={onRemove}><Trash2 size={14} /> {t('life.trips.detail.remove')}</DangerButton>
           </div>
-          <input value={item.location} onChange={(e) => onPatch({ location: e.target.value })} style={inputStyle} placeholder="Location" />
+          <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: '1fr auto', gap: 8 }}>
+            <input value={item.location} onChange={(e) => onPatch({ location: e.target.value })} style={inputStyle} placeholder="Location" />
+            <button
+              type="button"
+              aria-label="Pick location on map"
+              onClick={() => setPickerOpen((v) => !v)}
+              style={{
+                ...tx(11, 600, pinned ? '#5B8C5A' : ink),
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '0 12px',
+                border: `1px solid ${subtleBorder}`,
+                borderRadius: 12,
+                background: '#FFFCF9',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <MapPin size={13} />
+              {pinned ? 'Pinned' : 'Pin'}
+            </button>
+            {pickerOpen ? (
+              <LocationPicker
+                initialQuery={item.location || ''}
+                countryCode={countryCode}
+                onPick={(result) => {
+                  onPatch({
+                    location: result.name,
+                    geo: { lat: result.position.lat, lng: result.position.lng, address: result.address },
+                  })
+                  setPickerOpen(false)
+                }}
+                onClose={() => setPickerOpen(false)}
+              />
+            ) : null}
+          </div>
           <textarea value={item.notes ?? ''} onChange={(e) => onPatch({ notes: e.target.value })} style={textareaStyle} placeholder="Notes" />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ ...tx(10, 600, badge.text), background: badge.bg, borderRadius: 999, padding: '4px 8px', textTransform: 'capitalize', letterSpacing: '0.05em' }}>{item.type}</span>
@@ -203,6 +371,7 @@ const DayCard = ({
   day,
   t,
   view,
+  countryCode,
   collapsed,
   onToggleCollapse,
   onPatchDay,
@@ -214,6 +383,7 @@ const DayCard = ({
   day: TripItineraryDay
   t: ItineraryT
   view: ViewMode
+  countryCode?: string
   collapsed: boolean
   onToggleCollapse: () => void
   onPatchDay: (patch: Partial<TripItineraryDay>) => void
@@ -274,6 +444,7 @@ const DayCard = ({
                           dayNum={day.day}
                           item={item}
                           conflicting={conflictIds.has(item.id)}
+                          countryCode={countryCode}
                           onPatch={(p) => onPatchItem(item.id, p)}
                           onRemove={() => onRemoveItem(item.id)}
                           t={t}
@@ -375,8 +546,13 @@ export const ItinerarySection = ({ trip, t, collapsedDays, setCollapsedDays, onC
           </div>
         )}
       />
+      {view === 'map' ? (
+        <PaperCard style={{ padding: 16 }}>
+          <ItineraryMapView trip={trip} />
+        </PaperCard>
+      ) : null}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div style={{ display: 'grid', gap: 14 }}>
+        <div style={{ display: view === 'map' ? 'none' : 'grid', gap: 14 }}>
           {trip.itinerary.map((day) => {
             const isCollapsed = collapsedDays.includes(day.day)
             return (
@@ -385,6 +561,7 @@ export const ItinerarySection = ({ trip, t, collapsedDays, setCollapsedDays, onC
                 day={day}
                 t={t}
                 view={view}
+                countryCode={trip.countryCode}
                 collapsed={isCollapsed}
                 onToggleCollapse={() => setCollapsedDays((c) => (c.includes(day.day) ? c.filter((v) => v !== day.day) : [...c, day.day]))}
                 onPatchDay={(p) => onChange(trip.itinerary.map((d) => (d.day === day.day ? { ...d, ...p } : d)))}
@@ -414,7 +591,7 @@ export const ItinerarySection = ({ trip, t, collapsedDays, setCollapsedDays, onC
 
 const ViewToggle = ({ value, onChange }: { value: ViewMode; onChange: (v: ViewMode) => void }) => (
   <div style={{ display: 'inline-flex', border: `1px solid ${subtleBorder}`, borderRadius: 999, padding: 2, background: '#FFFCF9' }} role="tablist" aria-label="View mode">
-    {(['list', 'timeline'] as const).map((mode) => {
+    {(['list', 'timeline', 'map'] as const).map((mode) => {
       const active = mode === value
       return (
         <button
