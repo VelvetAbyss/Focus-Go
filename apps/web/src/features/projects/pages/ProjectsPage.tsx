@@ -226,7 +226,7 @@ const ProjectsPage = () => {
       {/* ── Loading ─────────────────────────────────────────────── */}
       {loading ? (
         <div className="pj-empty">
-          <p style={{ color: 'rgba(58,55,51,0.4)', fontSize: 13 }}>{i18n.page.loading}</p>
+          <p style={{ color: 'color-mix(in srgb, var(--text-primary) 40%, transparent)', fontSize: 13 }}>{i18n.page.loading}</p>
         </div>
       ) : null}
 

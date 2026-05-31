@@ -105,18 +105,18 @@ const QrModal = ({
   }, [order.orderNo, navigate])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#3A3733]/40 px-4">
-      <div className="relative w-full max-w-sm rounded-[28px] border border-[#3A3733]/10 bg-[#F5F3F0] p-7 shadow-[0_30px_100px_rgba(58,55,51,0.20)] text-[#3A3733]">
-        <button type="button" onClick={onClose} className="absolute right-5 top-5 rounded-full p-1.5 text-[#3A3733]/44 hover:bg-[#3A3733]/8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[color-mix(in_srgb,var(--text-primary)_40%,transparent)] px-4">
+      <div className="relative w-full max-w-sm rounded-[28px] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[var(--bg-elevated)] p-7 shadow-[var(--shadow-card-lg)] text-[var(--text-primary)]">
+        <button type="button" onClick={onClose} className="absolute right-5 top-5 rounded-full p-1.5 text-[color-mix(in_srgb,var(--text-primary)_44%,transparent)] hover:bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)]">
           <X size={16} />
         </button>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#3A3733]/56">支付宝</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color-mix(in_srgb,var(--text-primary)_56%,transparent)]">支付宝</p>
         <h2 className="mt-1 text-2xl font-semibold">{order.amount} {order.currency}</h2>
-        <p className="mt-1 text-sm text-[#3A3733]/64">用支付宝扫描下方二维码完成支付</p>
-        <div className="mt-5 flex items-center justify-center rounded-[20px] border border-[#3A3733]/10 bg-white p-5">
+        <p className="mt-1 text-sm text-[color-mix(in_srgb,var(--text-primary)_64%,transparent)]">用支付宝扫描下方二维码完成支付</p>
+        <div className="mt-5 flex items-center justify-center rounded-[20px] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[var(--bg-elevated)] p-5">
           <QRCode value={order.qrcode!} size={176} />
         </div>
-        <div className="mt-4 flex items-center gap-2 text-sm text-[#3A3733]/60">
+        <div className="mt-4 flex items-center gap-2 text-sm text-[color-mix(in_srgb,var(--text-primary)_60%,transparent)]">
           {pollStatus === 'polling' && <><LoaderCircle size={14} className="animate-spin shrink-0" />等待支付确认…</>}
           {pollStatus === 'paid' && <><CheckCircle2 size={14} className="shrink-0 text-green-600" />支付成功，正在跳转…</>}
           {pollStatus === 'error' && '查询失败，请稍后重试或刷新页面。'}
@@ -199,17 +199,17 @@ const PremiumPricingPage = () => {
 
   return (
     <>
-      <section className="min-h-full bg-[#F5F3F0] px-6 py-10 text-[#3A3733]">
+      <section className="min-h-full bg-[var(--bg-elevated)] px-6 py-10 text-[var(--text-primary)]">
         <div className="mx-auto flex max-w-6xl flex-col gap-8">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-3">
-              <Link to={ROUTES.LABS} className="inline-flex items-center gap-2 text-sm text-[#3A3733]/68">
+              <Link to={ROUTES.LABS} className="inline-flex items-center gap-2 text-sm text-[color-mix(in_srgb,var(--text-primary)_68%,transparent)]">
                 <ArrowLeft size={14} />返回 Labs
               </Link>
               <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#3A3733]/56">Premium</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color-mix(in_srgb,var(--text-primary)_56%,transparent)]">Premium</p>
                 <h1 className="text-4xl font-semibold">选择会员套餐</h1>
-                <p className="max-w-2xl text-sm leading-7 text-[#3A3733]/72">
+                <p className="max-w-2xl text-sm leading-7 text-[color-mix(in_srgb,var(--text-primary)_72%,transparent)]">
                   {isDomestic ? '已根据地区为你显示人民币价格和支付宝支付。' : 'Prices are shown in USD for PayPal Checkout.'}
                 </p>
               </div>
@@ -218,34 +218,34 @@ const PremiumPricingPage = () => {
 
           <div className="grid gap-5 lg:grid-cols-3">
             {plans.map((plan) => (
-              <article key={plan.id} className="rounded-[8px] border border-[#3A3733]/10 bg-white/78 p-6 shadow-[0_18px_60px_rgba(58,55,51,0.08)]">
+              <article key={plan.id} className="rounded-[8px] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color-mix(in_srgb,var(--bg-elevated)_78%,transparent)] p-6 shadow-[var(--shadow-card-lg)]">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[#3A3733]/56">{plan.badge}</span>
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[color-mix(in_srgb,var(--text-primary)_56%,transparent)]">{plan.badge}</span>
                     {plan.highlights?.length ? (
                       <div className="mt-2 flex flex-wrap gap-2">
                         {plan.highlights.map((item) => (
-                          <span key={item} className="rounded-[6px] border border-[#3A3733]/10 bg-[#3A3733] px-2 py-1 text-xs font-semibold text-[#F5F3F0]">{item}</span>
+                          <span key={item} className="rounded-[6px] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[var(--text-primary)] px-2 py-1 text-xs font-semibold text-[var(--bg-elevated)]">{item}</span>
                         ))}
                       </div>
                     ) : null}
                     <h2 className="mt-2 text-2xl font-semibold">{plan.title}</h2>
-                    <p className="mt-2 text-sm leading-6 text-[#3A3733]/68">{plan.description}</p>
+                    <p className="mt-2 text-sm leading-6 text-[color-mix(in_srgb,var(--text-primary)_68%,transparent)]">{plan.description}</p>
                   </div>
                   <ShieldCheck size={20} />
                 </div>
                 <div className="mt-6">
                   {isDomestic ? (
-                    <div className="rounded-[8px] border border-[#3A3733]/10 bg-[#F5F3F0] p-4">
-                      <div className="text-xs text-[#3A3733]/56">支付宝</div>
+                    <div className="rounded-[8px] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[var(--bg-elevated)] p-4">
+                      <div className="text-xs text-[color-mix(in_srgb,var(--text-primary)_56%,transparent)]">支付宝</div>
                       <div className="mt-1 text-2xl font-semibold">{plan.cny}</div>
-                      <Button type="button" className="mt-4 h-11 w-full rounded-[8px] bg-[#3A3733] text-[#F5F3F0] hover:bg-[#3A3733]/92" disabled={loading !== null} onClick={() => void handleAlipay(plan.id)}>
+                      <Button type="button" className="mt-4 h-11 w-full rounded-[8px] bg-[var(--text-primary)] text-[var(--bg-elevated)] hover:bg-[color-mix(in_srgb,var(--text-primary)_92%,transparent)]" disabled={loading !== null} onClick={() => void handleAlipay(plan.id)}>
                         {loading === plan.id ? '请求中…' : '支付宝支付'}
                       </Button>
                     </div>
                   ) : (
-                    <div className="rounded-[8px] border border-[#3A3733]/10 bg-[#F5F3F0] p-4">
-                      <div className="flex items-center gap-2 text-xs text-[#3A3733]/56"><CreditCard size={14} />PayPal</div>
+                    <div className="rounded-[8px] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[var(--bg-elevated)] p-4">
+                      <div className="flex items-center gap-2 text-xs text-[color-mix(in_srgb,var(--text-primary)_56%,transparent)]"><CreditCard size={14} />PayPal</div>
                       <div className="mt-1 text-2xl font-semibold">{plan.usd}</div>
                       <div className="mt-4">
                         <PayPalButton planId={plan.id} disabled={loading !== null} />

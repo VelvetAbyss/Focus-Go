@@ -13,7 +13,7 @@ type ProgressTrackProps = {
   color?: string
 }
 
-const ProgressTrack = ({ value, onChange, label, showLabel = true, color = '#3A3733' }: ProgressTrackProps) => {
+const ProgressTrack = ({ value, onChange, label, showLabel = true, color = 'var(--text-primary)' }: ProgressTrackProps) => {
   const trackRef = useRef<HTMLDivElement>(null)
   const dragging = useRef(false)
   const safeValue = clampValue(value)

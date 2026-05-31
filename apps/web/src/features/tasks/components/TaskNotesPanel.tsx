@@ -182,7 +182,7 @@ const TaskNotesPanel = ({ taskId, taskTitle }: TaskNotesPanelProps) => {
 
   return (
     <section
-      className="task-detail-card task-detail-card--side tdv2-section-enter rounded-[24px] border border-[#3a3733]/6 p-4 shadow-[0_14px_40px_rgba(15,23,42,0.05)]"
+      className="task-detail-card task-detail-card--side tdv2-section-enter rounded-[24px] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] p-4 shadow-[var(--shadow-card)]"
       style={{ animationDelay: '100ms' }}
     >
       <div className="mb-3 flex items-start justify-between gap-2">
@@ -200,14 +200,14 @@ const TaskNotesPanel = ({ taskId, taskTitle }: TaskNotesPanelProps) => {
         <Button
           size="sm"
           onClick={() => void handleCreate()}
-          className="h-8 shrink-0 rounded-full bg-[#3a3733] px-3 text-[11px] font-semibold text-[#f5f3f0] hover:bg-[#2a2724]"
+          className="h-8 shrink-0 rounded-full bg-[var(--text-primary)] px-3 text-[11px] font-semibold text-[var(--bg-elevated)] hover:bg-[#2a2724]"
         >
           <Plus className="mr-1 h-3.5 w-3.5" />
           {t('tasks.notes.createNote')}
         </Button>
       </div>
 
-      <div className="mb-3 inline-flex items-center gap-0.5 rounded-full border border-[#3a3733]/8 bg-[color:var(--bg-muted)] p-0.5">
+      <div className="mb-3 inline-flex items-center gap-0.5 rounded-full border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[color:var(--bg-muted)] p-0.5">
         {([
           { key: 'stack', label: t('tasks.notes.viewStack'), Icon: List },
           { key: 'cards', label: t('tasks.notes.viewCards'), Icon: LayoutGrid },
@@ -220,7 +220,7 @@ const TaskNotesPanel = ({ taskId, taskTitle }: TaskNotesPanelProps) => {
             className={cn(
               'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold transition-all duration-200',
               view === key
-                ? 'bg-[#3a3733] text-[#f5f3f0] shadow-sm'
+                ? 'bg-[var(--text-primary)] text-[var(--bg-elevated)] shadow-sm'
                 : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]',
             )}
             title={label}
@@ -232,11 +232,11 @@ const TaskNotesPanel = ({ taskId, taskTitle }: TaskNotesPanelProps) => {
       </div>
 
       {loading ? (
-        <div className="rounded-[14px] border border-dashed border-[#3a3733]/10 bg-[color:var(--bg-muted)] px-4 py-6 text-center text-[12px] text-[color:var(--text-secondary)]">
+        <div className="rounded-[14px] border border-dashed border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color:var(--bg-muted)] px-4 py-6 text-center text-[12px] text-[color:var(--text-secondary)]">
           …
         </div>
       ) : items.length === 0 ? (
-        <div className="rounded-[14px] border border-dashed border-[#3a3733]/10 bg-[color:var(--bg-muted)] px-4 py-6 text-center">
+        <div className="rounded-[14px] border border-dashed border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color:var(--bg-muted)] px-4 py-6 text-center">
           <FileText className="mx-auto h-6 w-6 text-[color:var(--text-secondary)]" />
           <p className="mt-2 text-[13px] font-semibold text-[color:var(--text-primary)]">
             {t('tasks.notes.empty')}
@@ -312,7 +312,7 @@ const StackView = ({
         return (
           <div
             key={note.id}
-            className="rounded-[16px] border border-[#3a3733]/6 bg-[color:var(--bg-muted)] p-3 transition-colors hover:border-[#3a3733]/12"
+            className="rounded-[16px] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] bg-[color:var(--bg-muted)] p-3 transition-colors hover:border-[color-mix(in_srgb,var(--text-primary)_12%,transparent)]"
           >
             <div className="flex items-start gap-2">
               <button
@@ -345,7 +345,7 @@ const StackView = ({
                   value={note.title}
                   onChange={(event) => onChange(note.id, { title: event.target.value })}
                   placeholder={t('tasks.notes.untitled')}
-                  className="h-8 rounded-[10px] border-[#3a3733]/8 bg-white text-[13px]"
+                  className="h-8 rounded-[10px] border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[var(--bg-elevated)] text-[13px]"
                 />
                 <ClickToContinueTextarea
                   value={note.contentMd}
@@ -376,7 +376,7 @@ const CardsView = ({ items, onOpen, onUnlink, onDelete }: CardsViewProps) => {
       {items.map(({ note }) => (
         <div
           key={note.id}
-          className="group relative rounded-[16px] border border-[#3a3733]/6 bg-[color:var(--bg-muted)] p-3 transition-all hover:border-[#3a3733]/15 hover:shadow-sm"
+          className="group relative rounded-[16px] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] bg-[color:var(--bg-muted)] p-3 transition-all hover:border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] hover:shadow-sm"
         >
           <button type="button" onClick={() => onOpen(note.id)} className="block w-full text-left">
             <p className="truncate text-[13px] font-semibold text-[color:var(--text-primary)]">
@@ -426,7 +426,7 @@ const FocusView = ({
   const active = items.find((entry) => entry.note.id === activeNoteId) ?? items[0]
 
   return (
-    <div className="rounded-[16px] border border-[#3a3733]/6 bg-[color:var(--bg-muted)] p-2">
+    <div className="rounded-[16px] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] bg-[color:var(--bg-muted)] p-2">
       <div className="mb-2 flex items-center justify-between gap-2">
         <button
           type="button"
@@ -457,8 +457,8 @@ const FocusView = ({
               className={cn(
                 'rounded-[10px] border px-1.5 py-2 text-center text-[10px] font-semibold leading-tight transition-colors',
                 active?.note.id === note.id
-                  ? 'border-[#3a3733]/20 bg-white text-[color:var(--text-primary)]'
-                  : 'border-transparent text-[color:var(--text-secondary)] hover:bg-white/60',
+                  ? 'border-[color-mix(in_srgb,var(--text-primary)_20%,transparent)] bg-[var(--bg-elevated)] text-[color:var(--text-primary)]'
+                  : 'border-transparent text-[color:var(--text-secondary)] hover:bg-[color-mix(in_srgb,var(--bg-elevated)_60%,transparent)]',
               )}
             >
               <FileText className="mx-auto h-3 w-3" />
@@ -476,7 +476,7 @@ const FocusView = ({
                 value={active.note.title}
                 onChange={(event) => onChange(active.note.id, { title: event.target.value })}
                 placeholder={t('tasks.notes.untitled')}
-                className="h-9 rounded-[10px] border-[#3a3733]/8 bg-white text-[14px] font-semibold"
+                className="h-9 rounded-[10px] border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[var(--bg-elevated)] text-[14px] font-semibold"
               />
               <ClickToContinueTextarea
                 value={active.note.contentMd}
@@ -511,7 +511,7 @@ const ClickToContinueTextarea = ({ value, onChange, minRows, fillHeight }: Click
   return (
     <div
       className={cn(
-        'group/wrap relative cursor-text rounded-[12px] border border-[#3a3733]/8 bg-white p-0 transition-colors focus-within:ring-1 focus-within:ring-slate-300',
+        'group/wrap relative cursor-text rounded-[12px] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[var(--bg-elevated)] p-0 transition-colors focus-within:ring-1 focus-within:ring-slate-300',
         fillHeight && 'flex min-h-[360px] flex-1',
       )}
       onMouseDown={(event) => {
@@ -567,7 +567,7 @@ const NoteCardMenu = ({ onOpenFocus, onUnlink, onDelete, hideOpenFocus }: NoteCa
       <PopoverContent
         align="end"
         sideOffset={4}
-        className="w-[200px] rounded-[14px] border border-[#3a3733]/8 p-1 shadow-[0_20px_50px_rgba(15,23,42,0.12)]"
+        className="w-[200px] rounded-[14px] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] p-1 shadow-[var(--shadow-card-lg)]"
       >
         {!hideOpenFocus ? (
           <button

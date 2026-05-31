@@ -24,7 +24,7 @@ export const Donut = ({ segments, size = 132, thickness = 18, children }: DonutP
   return (
     <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(58,55,51,0.07)" strokeWidth={thickness} />
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="color-mix(in srgb, var(--text-primary) 7%, transparent)" strokeWidth={thickness} />
         {total > 0
           ? segments.map((seg) => {
               const value = Math.max(0, seg.value)
@@ -75,7 +75,7 @@ export const ProgressRing = ({
   size = 64,
   thickness = 7,
   color = ink,
-  trackColor = 'rgba(58,55,51,0.10)',
+  trackColor = 'color-mix(in srgb, var(--text-primary) 10%, transparent)',
   children,
 }: ProgressRingProps) => {
   const radius = (size - thickness) / 2

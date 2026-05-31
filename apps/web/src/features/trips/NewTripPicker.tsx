@@ -50,7 +50,7 @@ const TemplateCard = ({ template, onPick }: { template: TripTemplate; onPick: ()
     }}
     onMouseEnter={(e) => {
       e.currentTarget.style.transform = 'translateY(-1px)'
-      e.currentTarget.style.boxShadow = '0 6px 18px rgba(58,55,51,0.12)'
+      e.currentTarget.style.boxShadow = '0 6px 18px rgba(0, 0, 0, 0.12)'
     }}
     onMouseLeave={(e) => {
       e.currentTarget.style.transform = ''
@@ -67,7 +67,7 @@ const TemplateCard = ({ template, onPick }: { template: TripTemplate; onPick: ()
     {template.summary ? <p style={{ ...tx(12, 400, ink), lineHeight: 1.5 }}>{template.summary}</p> : null}
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
       {template.tags.map((tag) => (
-        <span key={tag} style={{ ...tx(10, 600, muted), padding: '2px 8px', borderRadius: 999, background: 'rgba(58,55,51,0.06)' }}>{tag}</span>
+        <span key={tag} style={{ ...tx(10, 600, muted), padding: '2px 8px', borderRadius: 999, background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)' }}>{tag}</span>
       ))}
     </div>
   </button>
@@ -145,7 +145,7 @@ export const NewTripPicker = ({ open, onClose, onPick }: Props) => {
               border: `1px solid ${subtleBorder}`,
               borderRadius: 10,
               padding: '6px 10px',
-              background: '#FFFCF9',
+              background: 'var(--bg-elevated)',
               outline: 'none',
             }}
           />

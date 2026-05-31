@@ -50,7 +50,7 @@ const DayPhotos = ({ day }: { day: TripItineraryDay }) => {
           key={i}
           src={url}
           alt=""
-          style={{ width: 132, height: 96, objectFit: 'cover', borderRadius: 10, border: `1px solid ${subtleBorder}`, boxShadow: '0 1px 5px rgba(58,55,51,0.10)' }}
+          style={{ width: 132, height: 96, objectFit: 'cover', borderRadius: 10, border: `1px solid ${subtleBorder}`, boxShadow: '0 1px 5px rgba(0, 0, 0, 0.10)' }}
         />
       ))}
     </div>
@@ -75,7 +75,7 @@ export const JourneyMode = ({ trip, t, onPatch, onClose, onExport }: Props) => {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: paper, overflowY: 'auto' }}>
       {/* Sticky top bar */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '14px 24px', background: 'rgba(245,243,240,0.92)', backdropFilter: 'blur(8px)', borderBottom: `1px solid ${subtleBorder}` }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '14px 24px', background: 'color-mix(in srgb, var(--bg-elevated) 92%, transparent)', backdropFilter: 'blur(8px)', borderBottom: `1px solid ${subtleBorder}` }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9, ...tx(12, 600, muted), letterSpacing: '0.10em', textTransform: 'uppercase' }}>
           <BookOpen size={15} /> {t('life.trips.journey.title')}
         </span>

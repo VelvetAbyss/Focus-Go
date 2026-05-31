@@ -472,7 +472,7 @@ const TripCard = ({ trip, index, statusLabel, onOpen, onDelete, t }: TripCardPro
         <div className="trips-journal__card-hero-row">
           <span
             className="trips-journal__card-status"
-            style={{ color: status.text, borderColor: status.border, background: 'rgba(253,250,247,0.94)' }}
+            style={{ color: status.text, borderColor: status.border, background: 'color-mix(in srgb, var(--bg-elevated) 94%, transparent)' }}
           >
             <span className="trips-journal__card-status-dot" />
             {statusLabel(trip.status)}

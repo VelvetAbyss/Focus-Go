@@ -9,7 +9,7 @@ export const Ticket = ({ children, style }: { children: ReactNode; style?: CSSPr
       border: `1px solid ${subtleBorder}`,
       borderRadius: 12,
       padding: 14,
-      boxShadow: '0 1px 4px rgba(58,55,51,0.04)',
+      boxShadow: '0 1px 4px rgba(0, 0, 0, 0.04)',
       ...style,
     }}
   >

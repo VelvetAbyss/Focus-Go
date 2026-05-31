@@ -401,7 +401,7 @@ const FeedbackForm = () => {
   if (submitted) {
     return (
       <motion.div
-        className="flex flex-col items-center gap-4 rounded-2xl border border-[#3A3733]/10 bg-[#F5F3F0]/90 p-8 text-center text-[#3A3733] shadow-sm dark:border-white/10 dark:bg-background/50 dark:text-foreground"
+        className="flex flex-col items-center gap-4 rounded-2xl border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color-mix(in_srgb,var(--bg-elevated)_90%,transparent)] p-8 text-center text-[var(--text-primary)] shadow-sm dark:border-white/10 dark:bg-background/50 dark:text-foreground"
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
@@ -409,7 +409,7 @@ const FeedbackForm = () => {
         <CheckCircle2 className="h-10 w-10 text-[#4F746C]" />
         <div className="space-y-1">
           <h3 className="text-base font-semibold">{t('settings.feedback.success.title')}</h3>
-          <p className="text-sm text-[#3A3733]/68 dark:text-muted-foreground">{t('settings.feedback.success.body')}</p>
+          <p className="text-sm text-[color-mix(in_srgb,var(--text-primary)_68%,transparent)] dark:text-muted-foreground">{t('settings.feedback.success.body')}</p>
         </div>
         <Button type="button" variant="outline" onClick={reset}>
           {t('settings.feedback.success.again')}
@@ -420,19 +420,19 @@ const FeedbackForm = () => {
 
   return (
     <motion.div
-      className="space-y-5 rounded-2xl border border-[#3A3733]/10 bg-[#F5F3F0]/90 p-6 text-[#3A3733] shadow-sm dark:border-white/10 dark:bg-background/50 dark:text-foreground"
+      className="space-y-5 rounded-2xl border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color-mix(in_srgb,var(--bg-elevated)_90%,transparent)] p-6 text-[var(--text-primary)] shadow-sm dark:border-white/10 dark:bg-background/50 dark:text-foreground"
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
     >
       <div>
         <h2 className="text-xl font-semibold tracking-tight">{t('settings.feedback.title')}</h2>
-        <p className="mt-1 text-sm leading-6 text-[#3A3733]/68 dark:text-muted-foreground">{t('settings.feedback.description')}</p>
+        <p className="mt-1 text-sm leading-6 text-[color-mix(in_srgb,var(--text-primary)_68%,transparent)] dark:text-muted-foreground">{t('settings.feedback.description')}</p>
       </div>
 
       <div className="space-y-4">
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold uppercase tracking-wide text-[#3A3733]/52 dark:text-muted-foreground">
+          <label className="text-xs font-semibold uppercase tracking-wide text-[color-mix(in_srgb,var(--text-primary)_52%,transparent)] dark:text-muted-foreground">
             {t('settings.feedback.type.label')}
           </label>
           <div className="flex flex-wrap gap-2">
@@ -443,8 +443,8 @@ const FeedbackForm = () => {
                 onClick={() => setFbType(type)}
                 className={`rounded-full border px-3 py-1 text-sm font-semibold transition ${
                   fbType === type
-                    ? 'border-[#3A3733]/60 bg-[#3A3733] text-[#F5F3F0] dark:border-white/60 dark:bg-white dark:text-background'
-                    : 'border-[#3A3733]/14 bg-white/60 text-[#3A3733]/72 hover:border-[#3A3733]/28 dark:border-white/14 dark:bg-white/10 dark:text-foreground/72'
+                    ? 'border-[color-mix(in_srgb,var(--text-primary)_60%,transparent)] bg-[var(--text-primary)] text-[var(--bg-elevated)] dark:border-white/60 dark:bg-white dark:text-background'
+                    : 'border-[color-mix(in_srgb,var(--text-primary)_14%,transparent)] bg-[color-mix(in_srgb,var(--bg-elevated)_60%,transparent)] text-[color-mix(in_srgb,var(--text-primary)_72%,transparent)] hover:border-[color-mix(in_srgb,var(--text-primary)_28%,transparent)] dark:border-white/14 dark:bg-white/10 dark:text-foreground/72'
                 }`}
               >
                 {t(`settings.feedback.type.${type}`)}
@@ -454,7 +454,7 @@ const FeedbackForm = () => {
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold uppercase tracking-wide text-[#3A3733]/52 dark:text-muted-foreground">
+          <label className="text-xs font-semibold uppercase tracking-wide text-[color-mix(in_srgb,var(--text-primary)_52%,transparent)] dark:text-muted-foreground">
             {t('settings.feedback.title.label')}
           </label>
           <Input
@@ -462,12 +462,12 @@ const FeedbackForm = () => {
             onChange={(e) => { setFbTitle(e.target.value); setError(null) }}
             placeholder={t('settings.feedback.title.placeholder')}
             maxLength={200}
-            className="border-[#3A3733]/14 bg-white/70 dark:bg-white/10"
+            className="border-[color-mix(in_srgb,var(--text-primary)_14%,transparent)] bg-[color-mix(in_srgb,var(--bg-elevated)_70%,transparent)] dark:bg-white/10"
           />
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold uppercase tracking-wide text-[#3A3733]/52 dark:text-muted-foreground">
+          <label className="text-xs font-semibold uppercase tracking-wide text-[color-mix(in_srgb,var(--text-primary)_52%,transparent)] dark:text-muted-foreground">
             {t('settings.feedback.body.label')}
           </label>
           <textarea
@@ -476,12 +476,12 @@ const FeedbackForm = () => {
             placeholder={t('settings.feedback.body.placeholder')}
             maxLength={5000}
             rows={5}
-            className="w-full resize-y rounded-md border border-[#3A3733]/14 bg-white/70 px-3 py-2 text-sm text-[#3A3733] placeholder-[#3A3733]/38 outline-none transition focus-visible:ring-2 focus-visible:ring-[#4F746C]/30 dark:border-white/14 dark:bg-white/10 dark:text-foreground dark:placeholder-white/38"
+            className="w-full resize-y rounded-md border border-[color-mix(in_srgb,var(--text-primary)_14%,transparent)] bg-[color-mix(in_srgb,var(--bg-elevated)_70%,transparent)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[color-mix(in_srgb,var(--text-primary)_38%,transparent)] outline-none transition focus-visible:ring-2 focus-visible:ring-[#4F746C]/30 dark:border-white/14 dark:bg-white/10 dark:text-foreground dark:placeholder-white/38"
           />
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold uppercase tracking-wide text-[#3A3733]/52 dark:text-muted-foreground">
+          <label className="text-xs font-semibold uppercase tracking-wide text-[color-mix(in_srgb,var(--text-primary)_52%,transparent)] dark:text-muted-foreground">
             {t('settings.feedback.email.label')}
           </label>
           <Input
@@ -489,7 +489,7 @@ const FeedbackForm = () => {
             value={fbEmail}
             onChange={(e) => setFbEmail(e.target.value)}
             placeholder={t('settings.feedback.email.placeholder')}
-            className="border-[#3A3733]/14 bg-white/70 dark:bg-white/10"
+            className="border-[color-mix(in_srgb,var(--text-primary)_14%,transparent)] bg-[color-mix(in_srgb,var(--bg-elevated)_70%,transparent)] dark:bg-white/10"
           />
         </div>
 
@@ -598,22 +598,22 @@ const LegalEntryCard = ({
   <motion.button
     type="button"
     onClick={onClick}
-    className="w-full rounded-2xl border border-[#3A3733]/10 bg-[#F5F3F0]/90 p-5 text-left text-[#3A3733] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-white/10 dark:bg-background/50 dark:text-foreground"
+    className="w-full rounded-2xl border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color-mix(in_srgb,var(--bg-elevated)_90%,transparent)] p-5 text-left text-[var(--text-primary)] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-white/10 dark:bg-background/50 dark:text-foreground"
     initial={{ opacity: 0, y: 18, scale: 0.98 }}
     animate={{ opacity: 1, y: 0, scale: 1 }}
     transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
   >
     <div className="flex items-start justify-between gap-4">
       <div className="space-y-2">
-        <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#3A3733]/10 bg-white/70 text-[#3A3733] dark:border-white/10 dark:bg-white/10 dark:text-foreground">
+        <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color-mix(in_srgb,var(--bg-elevated)_70%,transparent)] text-[var(--text-primary)] dark:border-white/10 dark:bg-white/10 dark:text-foreground">
           <Icon className="h-5 w-5" />
         </div>
         <div>
           <h3 className="text-base font-semibold">{title}</h3>
-          <p className="mt-1 text-sm leading-6 text-[#3A3733]/72 dark:text-muted-foreground">{summary}</p>
+          <p className="mt-1 text-sm leading-6 text-[color-mix(in_srgb,var(--text-primary)_72%,transparent)] dark:text-muted-foreground">{summary}</p>
         </div>
       </div>
-      <ArrowLeft className="h-4 w-4 rotate-180 text-[#3A3733]/48 dark:text-muted-foreground" />
+      <ArrowLeft className="h-4 w-4 rotate-180 text-[color-mix(in_srgb,var(--text-primary)_48%,transparent)] dark:text-muted-foreground" />
     </div>
   </motion.button>
 )
@@ -639,7 +639,7 @@ const LegalDocumentView = ({
       <Button
         type="button"
         variant="outline"
-        className="rounded-full border-[#3A3733]/12 bg-[#F5F3F0]/70 text-[#3A3733] hover:bg-[#F5F3F0] dark:border-white/10 dark:bg-background/40 dark:text-foreground"
+        className="rounded-full border-[color-mix(in_srgb,var(--text-primary)_12%,transparent)] bg-[color-mix(in_srgb,var(--bg-elevated)_70%,transparent)] text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] dark:border-white/10 dark:bg-background/40 dark:text-foreground"
         onClick={onBack}
       >
         <ArrowLeft className="mr-1 h-4 w-4" />
@@ -647,13 +647,13 @@ const LegalDocumentView = ({
       </Button>
     </div>
 
-    <div className="rounded-[28px] border border-[#3A3733]/10 bg-[#F5F3F0]/92 p-6 text-[#3A3733] shadow-lg dark:border-white/10 dark:bg-background/50 dark:text-foreground">
+    <div className="rounded-[28px] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color-mix(in_srgb,var(--bg-elevated)_92%,transparent)] p-6 text-[var(--text-primary)] shadow-lg dark:border-white/10 dark:bg-background/50 dark:text-foreground">
       <div className="mx-auto max-w-3xl space-y-8">
         <div className="space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#3A3733]/52 dark:text-muted-foreground">Focus & Go</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color-mix(in_srgb,var(--text-primary)_52%,transparent)] dark:text-muted-foreground">Focus & Go</p>
           <h2 className="text-3xl font-semibold tracking-tight">{title}</h2>
-          <p className="max-w-2xl text-sm leading-7 text-[#3A3733]/72 dark:text-muted-foreground">{summary}</p>
-          <div className="inline-flex rounded-full border border-[#3A3733]/10 bg-white/70 px-3 py-1 text-xs text-[#3A3733]/72 dark:border-white/10 dark:bg-white/10 dark:text-muted-foreground">
+          <p className="max-w-2xl text-sm leading-7 text-[color-mix(in_srgb,var(--text-primary)_72%,transparent)] dark:text-muted-foreground">{summary}</p>
+          <div className="inline-flex rounded-full border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color-mix(in_srgb,var(--bg-elevated)_70%,transparent)] px-3 py-1 text-xs text-[color-mix(in_srgb,var(--text-primary)_72%,transparent)] dark:border-white/10 dark:bg-white/10 dark:text-muted-foreground">
             {updatedAt}
           </div>
         </div>
@@ -664,7 +664,7 @@ const LegalDocumentView = ({
               <h3 className="text-lg font-semibold tracking-tight">{section.heading}</h3>
               <div className="space-y-3">
                 {section.paragraphs.map((paragraph) => (
-                  <p key={paragraph} className="text-sm leading-7 text-[#3A3733]/78 dark:text-muted-foreground">
+                  <p key={paragraph} className="text-sm leading-7 text-[color-mix(in_srgb,var(--text-primary)_78%,transparent)] dark:text-muted-foreground">
                     {paragraph}
                   </p>
                 ))}
@@ -1121,13 +1121,13 @@ const SettingsRoute = () => {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
                           >
-                            <div className="rounded-[28px] border border-[#3A3733]/10 bg-[#F5F3F0]/92 p-6 text-[#3A3733] shadow-lg dark:border-white/10 dark:bg-background/50 dark:text-foreground">
+                            <div className="rounded-[28px] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color-mix(in_srgb,var(--bg-elevated)_92%,transparent)] p-6 text-[var(--text-primary)] shadow-lg dark:border-white/10 dark:bg-background/50 dark:text-foreground">
                               <div className="space-y-2">
-                                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#3A3733]/52 dark:text-muted-foreground">
+                                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color-mix(in_srgb,var(--text-primary)_52%,transparent)] dark:text-muted-foreground">
                                   {t('settings.module.legal.title')}
                                 </p>
                                 <h2 className="text-2xl font-semibold tracking-tight">{t('settings.legal.title')}</h2>
-                                <p className="max-w-2xl text-sm leading-7 text-[#3A3733]/72 dark:text-muted-foreground">
+                                <p className="max-w-2xl text-sm leading-7 text-[color-mix(in_srgb,var(--text-primary)_72%,transparent)] dark:text-muted-foreground">
                                   {t('settings.legal.description')}
                                 </p>
                               </div>

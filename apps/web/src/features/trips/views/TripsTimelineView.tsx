@@ -120,9 +120,9 @@ const TimelineRow = ({ trip, t, onOpen }: { trip: TripRecord; t: LifeTranslate; 
           gap: 14,
           borderRadius: 16,
           border: `1px solid ${subtleBorder}`,
-          background: '#FDFAF7',
+          background: 'var(--bg-elevated)',
           padding: '14px 18px',
-          boxShadow: '0 1px 2px rgba(58,55,51,0.04)',
+          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
         }}
       >
         <span style={{ fontSize: 28, lineHeight: 1 }}>{trip.coverEmoji || '🧭'}</span>

@@ -61,11 +61,11 @@ const ReviewHistoryPanel = ({
 
   const header = (
     <div className="mb-5 flex items-center gap-2.5">
-      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#f0f0f0]">
-        <BookOpen size={14} className="text-[#999]" />
+      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--bg-muted)]">
+        <BookOpen size={14} className="text-[var(--text-secondary)]" />
       </div>
       <h2
-        className="text-[#555]"
+        className="text-[var(--text-secondary)]"
         style={{ fontFamily: "'Lora', 'Georgia', serif", fontSize: '1rem', fontWeight: 500 }}
       >
         Your reflections
@@ -75,10 +75,10 @@ const ReviewHistoryPanel = ({
 
   if (loading) {
     return (
-      <div className={cn('review-history-panel h-full rounded-2xl border border-[#eee] bg-[#fafafa] p-5 lg:p-6', className)}>
+      <div className={cn('review-history-panel h-full rounded-2xl border border-[var(--border)] bg-[var(--bg-muted)] p-5 lg:p-6', className)}>
         {header}
         <p
-          className="text-[#bbb]"
+          className="text-[var(--text-secondary)]"
           style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.85rem', fontWeight: 300 }}
         >
           Loading your review history...
@@ -89,17 +89,17 @@ const ReviewHistoryPanel = ({
 
   if (rows.length === 0) {
     return (
-      <div className={cn('review-history-panel h-full rounded-2xl border border-[#eee] bg-[#fafafa] p-5 lg:p-6', className)}>
+      <div className={cn('review-history-panel h-full rounded-2xl border border-[var(--border)] bg-[var(--bg-muted)] p-5 lg:p-6', className)}>
         {header}
         <div className="py-10 text-center">
           <p
-            className="text-[#bbb]"
+            className="text-[var(--text-secondary)]"
             style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.85rem', fontWeight: 300 }}
           >
             Your past reflections will appear here.
           </p>
           <p
-            className="mt-1 text-[#ddd]"
+            className="mt-1 text-[var(--text-secondary)]"
             style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.75rem', fontWeight: 300 }}
           >
             One day at a time.
@@ -110,7 +110,7 @@ const ReviewHistoryPanel = ({
   }
 
   return (
-    <div className={cn('review-history-panel h-full rounded-2xl border border-[#eee] bg-[#fafafa] p-5 lg:p-6', className)}>
+    <div className={cn('review-history-panel h-full rounded-2xl border border-[var(--border)] bg-[var(--bg-muted)] p-5 lg:p-6', className)}>
       {header}
 
       <div className={cn('review-history-scrollbar space-y-1.5 overflow-y-auto pr-1', maxHeightClassName)}>
@@ -136,27 +136,27 @@ const ReviewHistoryPanel = ({
               >
                 <div
                   className={`rounded-xl px-4 py-3 transition-all duration-300 ${
-                    expanded ? 'bg-white shadow-[0_1px_4px_rgba(58, 55, 51, 0.04)]' : 'hover:bg-white/60'
+                    expanded ? 'bg-[var(--bg-elevated)] shadow-[var(--shadow-pop)]' : 'hover:bg-[color-mix(in_srgb,var(--bg-elevated)_60%,transparent)]'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <div className="mb-0.5 flex items-center gap-2">
                         <span
-                          className="shrink-0 text-[#999]"
+                          className="shrink-0 text-[var(--text-secondary)]"
                           style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.7rem', fontWeight: 400 }}
                         >
                           {dayLabel}
                         </span>
-                        <span className="text-[#ccc]" style={{ fontSize: '0.65rem' }}>
+                        <span className="text-[var(--text-secondary)]" style={{ fontSize: '0.65rem' }}>
                           {dateLabel}
                         </span>
                       </div>
                       <p
-                        className="truncate text-[#444]"
+                        className="truncate text-[var(--text-secondary)]"
                         style={{ fontFamily: "'Lora', 'Georgia', serif", fontSize: '0.88rem', fontWeight: 400 }}
                       >
-                        {summaryLine || <span className="italic text-[#ccc]">No summary</span>}
+                        {summaryLine || <span className="italic text-[var(--text-secondary)]">No summary</span>}
                       </p>
                     </div>
                     <motion.div
@@ -164,7 +164,7 @@ const ReviewHistoryPanel = ({
                       transition={{ duration: 0.2 }}
                       className="mt-1 shrink-0"
                     >
-                      <ChevronDown size={13} className="text-[#ccc] transition-colors group-hover:text-[#999]" />
+                      <ChevronDown size={13} className="text-[var(--text-secondary)] transition-colors group-hover:text-[var(--text-secondary)]" />
                     </motion.div>
                   </div>
 
@@ -177,11 +177,11 @@ const ReviewHistoryPanel = ({
                         transition={{ duration: 0.25 }}
                         className="overflow-hidden"
                       >
-                        <div className="mt-2.5 space-y-2 border-t border-[#f0f0f0] pt-2.5">
+                        <div className="mt-2.5 space-y-2 border-t border-[var(--bg-muted)] pt-2.5">
                           {row.blocks.map((block) => (
                             <div key={`${row.entryId}-${block.submittedAt}`} className="space-y-2">
                               <p
-                                className="text-[#aaa]"
+                                className="text-[var(--text-secondary)]"
                                 style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.7rem', fontWeight: 400 }}
                               >
                                 Saved at {formatSubmittedAt(block.submittedAt)}
@@ -189,13 +189,13 @@ const ReviewHistoryPanel = ({
                               {block.summary.tomorrow ? (
                                 <div>
                                   <span
-                                    className="text-[#aaa]"
+                                    className="text-[var(--text-secondary)]"
                                     style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.7rem', fontWeight: 400 }}
                                   >
                                     Tomorrow&apos;s focus
                                   </span>
                                   <p
-                                    className="mt-0.5 text-[#555]"
+                                    className="mt-0.5 text-[var(--text-secondary)]"
                                     style={{ fontFamily: "'Lora', 'Georgia', serif", fontSize: '0.85rem' }}
                                   >
                                     {block.summary.tomorrow}
@@ -205,7 +205,7 @@ const ReviewHistoryPanel = ({
                               {block.summary.focusScore ? (
                                 <div className="flex items-center gap-2">
                                   <span
-                                    className="text-[#aaa]"
+                                    className="text-[var(--text-secondary)]"
                                     style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.7rem', fontWeight: 400 }}
                                   >
                                     Focus
@@ -215,7 +215,7 @@ const ReviewHistoryPanel = ({
                                       <div
                                         key={value}
                                         className={`h-1.5 w-1.5 rounded-full ${
-                                          value <= Number(block.summary.focusScore) ? 'bg-[#3a3733]' : 'bg-[#e5e5e5]'
+                                          value <= Number(block.summary.focusScore) ? 'bg-[var(--text-primary)]' : 'bg-[var(--bg-muted)]'
                                         }`}
                                       />
                                     ))}
@@ -225,13 +225,13 @@ const ReviewHistoryPanel = ({
                               {block.summary.reflectionPreview ? (
                                 <div>
                                   <span
-                                    className="text-[#aaa]"
+                                    className="text-[var(--text-secondary)]"
                                     style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.7rem', fontWeight: 400 }}
                                   >
                                     Reflection
                                   </span>
                                   <p
-                                    className="mt-0.5 text-[#555]"
+                                    className="mt-0.5 text-[var(--text-secondary)]"
                                     style={{
                                       fontFamily: "'Lora', 'Georgia', serif",
                                       fontSize: '0.82rem',

@@ -236,7 +236,7 @@ const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted
   }
 
   return (
-    <section className={cn('mt-4 flex min-h-0 flex-1 flex-col rounded-[24px] border border-[#3a3733]/6 bg-white/88 p-4 shadow-[0_18px_60px_rgba(15,23,42,0.06)]', compact && 'rounded-[20px] p-3', plain && 'mt-0 rounded-none border-0 bg-transparent p-0 shadow-none')}>
+    <section className={cn('mt-4 flex min-h-0 flex-1 flex-col rounded-[24px] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] bg-[color-mix(in_srgb,var(--bg-elevated)_88%,transparent)] p-4 shadow-[var(--shadow-card-lg)]', compact && 'rounded-[20px] p-3', plain && 'mt-0 rounded-none border-0 bg-transparent p-0 shadow-none')}>
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Calendar</p>
@@ -275,7 +275,7 @@ const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted
           return (
             <div
               key={dateKey}
-              className={cn('min-h-[120px] rounded-[18px] border border-[#3a3733]/6 bg-slate-50/70 p-2.5 transition hover:border-slate-300 hover:bg-white', !inMonth && 'bg-slate-100/60 opacity-60', isToday && 'border-sky-200 bg-sky-50/60')}
+              className={cn('min-h-[120px] rounded-[18px] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] p-2.5 transition hover:border-[color-mix(in_srgb,var(--text-primary)_22%,transparent)] hover:bg-[var(--bg-elevated)]', !inMonth && 'bg-[color-mix(in_srgb,var(--text-primary)_7%,transparent)] opacity-60', isToday && 'border-sky-200 bg-sky-50/60')}
               onDoubleClick={inMonth ? () => openCreate(dateKey) : undefined}
               onDragOver={(event) => {
                 if (!inMonth) return
@@ -307,13 +307,13 @@ const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted
               }}
             >
               <div className="mb-2 flex items-center justify-between">
-                <span className={cn('inline-flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-semibold', isToday ? 'bg-sky-600 text-white' : 'text-slate-700')}>
+                <span className={cn('inline-flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-semibold', isToday ? 'bg-sky-600 text-white' : 'text-foreground')}>
                   {inMonth ? date.getDate() : ''}
                 </span>
                 {inMonth ? (
                   <button
                     type="button"
-                    className="inline-flex h-6 w-6 items-center justify-center rounded-full text-slate-400 opacity-0 transition hover:bg-slate-100 hover:text-slate-700 group-hover:opacity-100"
+                    className="inline-flex h-6 w-6 items-center justify-center rounded-full text-slate-400 opacity-0 transition hover:bg-slate-100 hover:text-foreground group-hover:opacity-100"
                     onClick={(event) => {
                       event.stopPropagation()
                       openCreate(dateKey)
@@ -369,7 +369,7 @@ const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted
         >
           <div className="grid gap-2">
             <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Title</label>
-            <input ref={createTitleRef} value={createTitle} onChange={(event) => setCreateTitle(event.target.value)} placeholder="Task title" className="h-11 rounded-[14px] border border-[#3a3733]/8 bg-slate-50/80 px-3 text-[13px]" />
+            <input ref={createTitleRef} value={createTitle} onChange={(event) => setCreateTitle(event.target.value)} placeholder="Task title" className="h-11 rounded-[14px] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] px-3 text-[13px]" />
           </div>
           <div className="grid gap-2">
             <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Due date</label>

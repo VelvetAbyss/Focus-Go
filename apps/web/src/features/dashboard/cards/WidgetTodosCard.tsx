@@ -19,7 +19,7 @@ import {
   writeWidgetTodoResetBucket,
 } from '../model/widgetTodoRefresh'
 
-const DEFAULT_HABIT_COLOR = '#3a3733'
+const DEFAULT_HABIT_COLOR = 'var(--text-primary)'
 const DEFAULT_HABIT_ICON = '🎯'
 const RESET_SCOPES: WidgetTodoScope[] = ['day', 'week', 'month']
 const SWIPE_DELETE_THRESHOLD = 72

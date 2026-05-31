@@ -113,11 +113,11 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
       <div
         ref={ref}
         className={cn(
-          'task-card-shell group relative overflow-hidden cursor-pointer rounded-lg bg-card shadow-[0_2px_6px_rgba(58,55,51,0.08)]',
-          'hover:-translate-y-[2px] hover:shadow-[0_10px_24px_rgba(58,55,51,0.14)]',
+          'task-card-shell group relative overflow-hidden cursor-pointer rounded-lg bg-card shadow-[var(--shadow-pop)]',
+          'hover:-translate-y-[2px] hover:shadow-[var(--shadow-card)]',
           task.status === 'done' && 'opacity-70',
           compact && 'rounded-md',
-          selected && 'ring-2 ring-[#3A3733]/35',
+          selected && 'ring-2 ring-[color-mix(in_srgb,var(--text-primary)_35%,transparent)] dark:ring-white/40',
           deadline.shellClass,
           priorityStripeClass,
         )}
@@ -143,7 +143,7 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
           <span
             className={cn(
               'absolute left-2 top-2 z-[2] inline-flex h-5 min-w-5 items-center justify-center rounded-full border px-1 text-[10px] font-semibold',
-              selected ? 'border-[#3A3733]/35 bg-[#3A3733] text-[#F5F3F0]' : 'border-[#3A3733]/18 bg-white text-[#3A3733]',
+              selected ? 'border-[color-mix(in_srgb,var(--text-primary)_35%,transparent)] bg-[var(--text-primary)] text-[var(--bg-elevated)]' : 'border-[color-mix(in_srgb,var(--text-primary)_18%,transparent)] bg-[var(--bg-elevated)] text-[var(--text-primary)]',
             )}
           >
             {selected ? '✓' : ''}
@@ -157,7 +157,7 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
             <h4
               className={cn(
                 'task-card__title flex-1 text-[0.95rem] font-semibold leading-[1.35] tracking-[0.005em] line-clamp-2 transition-colors duration-300',
-                task.status === 'done' ? 'text-muted-foreground line-through decoration-[#3A3733]/30' : 'text-foreground',
+                task.status === 'done' ? 'text-muted-foreground line-through decoration-[color-mix(in_srgb,var(--text-primary)_30%,transparent)]' : 'text-foreground',
               )}
             >
               {task.title}
@@ -193,7 +193,7 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
                   'task-card__subtask-progress inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium',
                   doneSubtasks === totalSubtasks
                     ? 'bg-emerald-50 text-emerald-700'
-                    : 'bg-[#3A3733]/6 text-muted-foreground',
+                    : 'bg-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] text-muted-foreground',
                 )}
               >
                 <ListChecks className="size-3" />
@@ -206,7 +206,7 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
                 Blocked by {blockedCount || dependencyCount}
               </span>
             ) : dependencyCount > 0 ? (
-              <span className="inline-flex items-center gap-1 rounded border border-[#3A3733]/10 px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
+              <span className="inline-flex items-center gap-1 rounded border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
                 <GitBranch className="size-3" />
                 {dependencyCount} dep
               </span>
@@ -218,7 +218,7 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
               {project ? (
                 <button
                   type="button"
-                  className="task-card__project-chip inline-flex max-w-[140px] items-center gap-1.5 rounded-full bg-[#F5F3F0] px-2 py-0.5 text-[11px] font-medium text-[#3A3733] transition-colors hover:bg-[#ECE8E1]"
+                  className="task-card__project-chip inline-flex max-w-[140px] items-center gap-1.5 rounded-full bg-[var(--bg-elevated)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-primary)] transition-colors hover:bg-[#ECE8E1]"
                   aria-label={t('tasks.card.projectBadgeAria', { title: project.title })}
                   title={project.title}
                   onClick={(event) => {
@@ -228,7 +228,7 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
                 >
                   <span
                     className="size-1.5 shrink-0 rounded-full"
-                    style={{ background: project.color ?? '#3A3733' }}
+                    style={{ background: project.color ?? 'var(--text-primary)' }}
                     aria-hidden
                   />
                   <span className="truncate">{project.title}</span>
@@ -272,13 +272,13 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
               aria-hidden={!showHoverPanel}
             >
               <div className="min-h-0 overflow-hidden">
-                <ul className="flex flex-col gap-1 border-t border-[#3A3733]/8 pt-1.5">
+                <ul className="flex flex-col gap-1 border-t border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] pt-1.5">
                   {visibleSubtasks.map((subtask) => (
                     <li
                       key={subtask.id}
                       className="flex items-start gap-1.5 text-[12.5px] leading-[1.4] text-muted-foreground"
                     >
-                      <Circle className="mt-[3px] size-3 shrink-0 text-[#3A3733]/35" />
+                      <Circle className="mt-[3px] size-3 shrink-0 text-[color-mix(in_srgb,var(--text-primary)_35%,transparent)]" />
                       <span className="line-clamp-1 flex-1">{subtask.title}</span>
                     </li>
                   ))}
@@ -302,7 +302,7 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
               onClick={(event) => event.stopPropagation()}
             >
               <div className="min-h-0 overflow-hidden">
-                <div className="flex items-center gap-0.5 border-t border-[#3A3733]/8 pt-1.5">
+                <div className="flex items-center gap-0.5 border-t border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] pt-1.5">
                   {statusActions?.map((action) => {
                     const icon =
                       action.key === 'doing' || action.key === 'start' ? Play :

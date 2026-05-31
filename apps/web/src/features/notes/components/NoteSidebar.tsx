@@ -271,8 +271,8 @@ function TagRow({
         className={cn(
           'group relative flex cursor-pointer items-center gap-1.5 rounded-lg py-[6px] transition-[background-color,color,transform,box-shadow,opacity] duration-150 ease-out',
           isActive ? 'bg-[rgba(30,28,24,0.06)] text-[#2e2b27] dark:bg-slate-700/40 dark:text-slate-100' : 'text-[#66615b] hover:bg-[rgba(30,28,24,0.04)] dark:hover:bg-slate-700/25 dark:text-slate-300',
-          dragPlacement === 'inside' && 'ring-1 ring-[#3a3733]/25 bg-[#f0eeeb]/70',
-          isNoteHover && 'ring-1 ring-[#3a3733]/30 bg-[#f0eeeb]/70',
+          dragPlacement === 'inside' && 'ring-1 ring-[#3a3733]/25 bg-[#f0eeeb]/70 dark:ring-slate-400/30 dark:bg-slate-700/40',
+          isNoteHover && 'ring-1 ring-[#3a3733]/30 bg-[#f0eeeb]/70 dark:ring-slate-400/35 dark:bg-slate-700/40',
         )}
         draggable={enableTagDnd}
         onDragStart={(event) => {

@@ -60,8 +60,8 @@ type PersonFormDialogProps = {
   }) => Promise<void> | void
 }
 
-const inputClassName = 'h-11 rounded-2xl border-[#3A3733]/12 bg-white text-[#3A3733] shadow-none'
-const textareaClassName = 'min-h-[112px] rounded-3xl border-[#3A3733]/12 bg-white text-[#3A3733] shadow-none'
+const inputClassName = 'h-11 rounded-2xl border-[color-mix(in_srgb,var(--text-primary)_12%,transparent)] bg-[var(--bg-elevated)] text-[var(--text-primary)] shadow-none'
+const textareaClassName = 'min-h-[112px] rounded-3xl border-[color-mix(in_srgb,var(--text-primary)_12%,transparent)] bg-[var(--bg-elevated)] text-[var(--text-primary)] shadow-none'
 
 const GROUP_COLORS: Record<string, string> = {
   Family: '#f59e0b',
@@ -78,7 +78,7 @@ const STATUS_COLORS: Record<ProjectStatus, string> = {
   planning: '#B0AAA1',
   active: '#4F8A5E',
   blocked: '#B5361B',
-  done: '#3A3733',
+  done: 'var(--text-primary)',
   archived: '#8A8478',
 }
 
@@ -319,7 +319,7 @@ export const ProjectFormDialog = ({ open, project, people, onClose, onAutoSave, 
     <Dialog
       open={open}
       onClose={onClose}
-      panelClassName="w-[min(620px,calc(100vw-32px))] rounded-[24px] border border-[#3A3733]/10 bg-[#F5F3F0]"
+      panelClassName="w-[min(620px,calc(100vw-32px))] rounded-[24px] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[var(--bg-elevated)]"
       contentClassName="p-0"
     >
       <div
@@ -567,7 +567,7 @@ export const ProjectFormDialog = ({ open, project, people, onClose, onAutoSave, 
                   </button>
                 ))}
                 {filteredPeople.length === 0 && ownerQuery ? (
-                  <p style={{ padding: '8px 10px', fontSize: 12, color: 'rgba(58,55,51,0.5)' }}>
+                  <p style={{ padding: '8px 10px', fontSize: 12, color: 'color-mix(in srgb, var(--text-primary) 50%, transparent)' }}>
                     {i18n.dialog.noContactsMatch}
                   </p>
                 ) : null}
@@ -786,7 +786,7 @@ export const PersonFormDialog = ({ open, person, onClose, onSubmit }: PersonForm
     <Dialog
       open={open}
       onClose={onClose}
-      panelClassName="w-[min(560px,calc(100vw-32px))] rounded-[32px] border border-[#3A3733]/10 bg-[#F5F3F0]"
+      panelClassName="w-[min(560px,calc(100vw-32px))] rounded-[32px] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[var(--bg-elevated)]"
       contentClassName="p-0"
     >
       <div className="project-dialog">
@@ -1023,7 +1023,7 @@ export const ProjectTaskDialog = ({ open, task, people, onClose, onAutoSave, onS
     <Dialog
       open={open}
       onClose={onClose}
-      panelClassName="w-[min(620px,calc(100vw-32px))] rounded-[32px] border border-[#3A3733]/10 bg-[#F5F3F0]"
+      panelClassName="w-[min(620px,calc(100vw-32px))] rounded-[32px] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[var(--bg-elevated)]"
       contentClassName="p-0"
     >
       <div className="project-dialog">

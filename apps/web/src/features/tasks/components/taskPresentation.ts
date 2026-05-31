@@ -65,7 +65,7 @@ const buildDeadlineState = (daysRemaining: number): TaskDeadlineState => {
     daysRemaining,
     label: `+${daysRemaining}d`,
     shellClass: '',
-    badgeClass: 'border-[#3A3733]/10 bg-white text-[#3A3733]/70',
+    badgeClass: 'border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[var(--bg-elevated)] text-[color-mix(in_srgb,var(--text-primary)_70%,transparent)]',
     textClass: 'text-muted-foreground',
   }
 }
@@ -77,7 +77,7 @@ export const getTaskDeadlineState = (task: Pick<TaskItem, 'dueDate' | 'status'>,
       daysRemaining: null,
       label: null,
       shellClass: '',
-      badgeClass: 'border-[#3A3733]/10 bg-white text-[#3A3733]/70',
+      badgeClass: 'border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[var(--bg-elevated)] text-[color-mix(in_srgb,var(--text-primary)_70%,transparent)]',
       textClass: 'text-muted-foreground',
     }
   }

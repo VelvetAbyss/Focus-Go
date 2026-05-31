@@ -50,7 +50,7 @@ const ClickHandler = ({ onMapClick }: { onMapClick?: (p: { lat: number; lng: num
 const buildColoredIcon = (color: string): L.DivIcon =>
   L.divIcon({
     className: 'fg-map-pin',
-    html: `<span style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:${color};box-shadow:0 1px 4px rgba(58,55,51,0.25),0 0 0 2px #FDFAF7;color:#fff;font:600 11px/1 Inter,sans-serif;">●</span>`,
+    html: `<span style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:${color};box-shadow:0 1px 4px color-mix(in srgb, var(--text-primary) 25%, transparent),0 0 0 2px #FDFAF7;color:var(--bg-elevated);font:600 11px/1 Inter,sans-serif;">●</span>`,
     iconSize: [26, 26],
     iconAnchor: [13, 13],
     popupAnchor: [0, -12],
@@ -65,7 +65,7 @@ export const OSMMapView = ({ markers, routes, center, zoom = 12, onMarkerClick, 
     ? [center.lat, center.lng]
     : positions[0] ?? [35.6762, 139.6503] // Tokyo as a friendly default
   return (
-    <div className={className} style={{ height, width: '100%', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(58,55,51,0.09)' }}>
+    <div className={className} style={{ height, width: '100%', borderRadius: 12, overflow: 'hidden', border: '1px solid color-mix(in srgb, var(--text-primary) 9%, transparent)' }}>
       <MapContainer center={fallbackCenter} zoom={zoom} style={{ height: '100%', width: '100%' }} scrollWheelZoom>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

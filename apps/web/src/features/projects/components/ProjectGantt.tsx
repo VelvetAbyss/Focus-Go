@@ -408,7 +408,7 @@ const ProjectGantt = ({ tasks, projectColor, viewMode, onTaskClick, onEmptySlotC
                       ? { background: 'rgba(61, 122, 78, 0.18)', borderColor: 'rgba(61, 122, 78, 0.42)' }
                       : isDoing
                         ? { background: accent, borderColor: accent, color: '#FFFCF6' }
-                        : { background: 'transparent', borderColor: accent, color: 'rgba(58,55,51,0.78)' }
+                        : { background: 'transparent', borderColor: accent, color: 'color-mix(in srgb, var(--text-primary) 78%, transparent)' }
                     const trailGradient = !range.hasExplicitStart && !isDone
                       ? `linear-gradient(90deg, transparent 0%, ${accent}10 30%, ${accent}30 80%, ${accent}55 100%)`
                       : undefined

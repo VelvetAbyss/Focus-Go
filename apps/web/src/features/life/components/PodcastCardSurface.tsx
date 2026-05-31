@@ -191,9 +191,9 @@ export const PodcastCardSurface = ({
     display: 'inline-flex',
     alignItems: 'center',
     gap: 6,
-    background: playbackMode === mode ? 'rgba(58,55,51,0.10)' : smallButtonStyle.background,
-    borderColor: playbackMode === mode ? 'rgba(58,55,51,0.22)' : smallButtonStyle.borderColor,
-    color: playbackMode === mode ? '#3A3733' : smallButtonStyle.color,
+    background: playbackMode === mode ? 'color-mix(in srgb, var(--text-primary) 10%, transparent)' : smallButtonStyle.background,
+    borderColor: playbackMode === mode ? 'color-mix(in srgb, var(--text-primary) 22%, transparent)' : smallButtonStyle.borderColor,
+    color: playbackMode === mode ? 'var(--text-primary)' : smallButtonStyle.color,
   })
 
   return (
@@ -202,8 +202,8 @@ export const PodcastCardSurface = ({
         <div style={cardHeaderStyle}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-              <Headphones size={13} color="rgba(58,55,51,0.38)" />
-              <span style={{ ...inter(10, 600, 'rgba(58,55,51,0.38)'), letterSpacing: '0.10em', textTransform: 'uppercase' }}>{t('life.card.podcast')}</span>
+              <Headphones size={13} color="color-mix(in srgb, var(--text-primary) 38%, transparent)" />
+              <span style={{ ...inter(10, 600, 'color-mix(in srgb, var(--text-primary) 38%, transparent)'), letterSpacing: '0.10em', textTransform: 'uppercase' }}>{t('life.card.podcast')}</span>
             </div>
             <h3 style={{ ...playfair(18, 500), lineHeight: 1.2 }}>{t('life.card.podcast')}</h3>
           </div>
@@ -237,11 +237,11 @@ export const PodcastCardSurface = ({
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <span
                     style={{
-                      ...inter(9, 600, model.nowPlaying.isPlaying ? '#3D7A4E' : 'rgba(58,55,51,0.40)'),
+                      ...inter(9, 600, model.nowPlaying.isPlaying ? '#3D7A4E' : 'color-mix(in srgb, var(--text-primary) 40%, transparent)'),
                       display: 'inline-flex',
                       padding: '2px 6px',
                       borderRadius: 6,
-                      background: model.nowPlaying.isPlaying ? 'rgba(110,171,122,0.12)' : 'rgba(58,55,51,0.06)',
+                      background: model.nowPlaying.isPlaying ? 'rgba(110,171,122,0.12)' : 'color-mix(in srgb, var(--text-primary) 6%, transparent)',
                       marginBottom: 6,
                       letterSpacing: '0.05em',
                     }}
@@ -249,7 +249,7 @@ export const PodcastCardSurface = ({
                     {model.nowPlaying.isPlaying ? t('life.podcast.playing') : t('life.podcast.lastPlayed')}
                   </span>
                   <p style={{ ...playfair(13, 500), lineHeight: 1.3, marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{model.nowPlaying.title}</p>
-                  <p style={{ ...inter(11, 400, 'rgba(58,55,51,0.50)'), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <p style={{ ...inter(11, 400, 'color-mix(in srgb, var(--text-primary) 50%, transparent)'), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {model.nowPlaying.podcastName}{model.nowPlaying.duration ? ` · ${model.nowPlaying.duration}` : ''}
                   </p>
                 </div>
@@ -272,26 +272,26 @@ export const PodcastCardSurface = ({
               {progress && progress.duration > 0 && (
                 <div style={{ marginTop: 10, flexShrink: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                    <span style={{ ...inter(9, 400, 'rgba(58,55,51,0.35)') }}>{fmt(progress.currentTime)}</span>
-                    <span style={{ ...inter(9, 400, 'rgba(58,55,51,0.25)') }}>{fmt(progress.duration)}</span>
+                    <span style={{ ...inter(9, 400, 'color-mix(in srgb, var(--text-primary) 35%, transparent)') }}>{fmt(progress.currentTime)}</span>
+                    <span style={{ ...inter(9, 400, 'color-mix(in srgb, var(--text-primary) 25%, transparent)') }}>{fmt(progress.duration)}</span>
                   </div>
-                  <div style={{ height: 3, borderRadius: 999, background: 'rgba(58,55,51,0.08)', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', borderRadius: 999, background: 'rgba(58,55,51,0.28)', width: `${(progress.currentTime / progress.duration) * 100}%`, transition: 'width 0.25s linear' }} />
+                  <div style={{ height: 3, borderRadius: 999, background: 'color-mix(in srgb, var(--text-primary) 8%, transparent)', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', borderRadius: 999, background: 'color-mix(in srgb, var(--text-primary) 28%, transparent)', width: `${(progress.currentTime / progress.duration) * 100}%`, transition: 'width 0.25s linear' }} />
                   </div>
                 </div>
               )}
 
               <div style={{ marginTop: 14, borderTop: `1px solid ${sectionBorder}`, paddingTop: 14, flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                <p style={{ ...inter(10, 600, 'rgba(58,55,51,0.35)'), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 10, flexShrink: 0 }}>{t('life.podcast.recentEpisodes')}</p>
+                <p style={{ ...inter(10, 600, 'color-mix(in srgb, var(--text-primary) 35%, transparent)'), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 10, flexShrink: 0 }}>{t('life.podcast.recentEpisodes')}</p>
                 <div ref={setEpisodesEl} style={{ flex: 1, overflow: 'hidden' }}>
                   {model.recentEpisodes.slice(0, visibleEpisodeCount).map((episode, index) => (
                     <div key={episode.id}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0' }}>
                         <span style={{ fontSize: 12 }}>{episode.coverEmoji}</span>
-                        <p style={{ ...inter(12, 400, 'rgba(58,55,51,0.65)'), flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{episode.title}</p>
-                        <span style={{ ...inter(10, 400, 'rgba(58,55,51,0.30)') }}>{episode.duration}</span>
+                        <p style={{ ...inter(12, 400, 'color-mix(in srgb, var(--text-primary) 65%, transparent)'), flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{episode.title}</p>
+                        <span style={{ ...inter(10, 400, 'color-mix(in srgb, var(--text-primary) 30%, transparent)') }}>{episode.duration}</span>
                       </div>
-                      {index < visibleEpisodeCount - 1 ? <div style={{ height: 1, background: 'rgba(58,55,51,0.05)' }} /> : null}
+                      {index < visibleEpisodeCount - 1 ? <div style={{ height: 1, background: 'color-mix(in srgb, var(--text-primary) 5%, transparent)' }} /> : null}
                     </div>
                   ))}
                 </div>
@@ -299,8 +299,8 @@ export const PodcastCardSurface = ({
             </>
           ) : (
             <div style={{ display: 'flex', minHeight: 180, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
-              <div style={{ width: 48, height: 48, marginBottom: 16, borderRadius: 999, background: 'rgba(58,55,51,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Headphones size={20} color="rgba(58,55,51,0.30)" />
+              <div style={{ width: 48, height: 48, marginBottom: 16, borderRadius: 999, background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Headphones size={20} color="color-mix(in srgb, var(--text-primary) 30%, transparent)" />
               </div>
               <p style={{ ...playfair(14, 500), marginBottom: 6 }}>{t('life.podcast.emptyTitle')}</p>
               <p style={{ ...inter(12, 400, mutedText), lineHeight: 1.6, marginBottom: 18 }}>{t('life.podcast.emptyDescription')}</p>
@@ -313,7 +313,7 @@ export const PodcastCardSurface = ({
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderTop: `1px solid ${sectionBorder}` }}>
-          <p style={{ ...inter(11, 400, 'rgba(58,55,51,0.38)') }}>{model.statsLabel}</p>
+          <p style={{ ...inter(11, 400, 'color-mix(in srgb, var(--text-primary) 38%, transparent)') }}>{model.statsLabel}</p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, ...inter(11, 500) }}>
             <span>{model.nowPlaying?.source === 'netease' && !neteaseExperimentalPlaybackEnabled ? t('life.podcast.openOriginal') : t('life.podcast.openPlayer')}</span>
             <ChevronRight size={11} />
@@ -325,7 +325,7 @@ export const PodcastCardSurface = ({
         <div style={modalLayoutStyle}>
           <div style={modalHeaderStyle}>
             <div>
-              <p style={{ ...inter(10, 600, 'rgba(58,55,51,0.38)'), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 4 }}>{t('life.card.podcast')}</p>
+              <p style={{ ...inter(10, 600, 'color-mix(in srgb, var(--text-primary) 38%, transparent)'), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 4 }}>{t('life.card.podcast')}</p>
               <h2 style={{ ...playfair(22, 500) }}>{t('life.card.podcast')}</h2>
             </div>
             <button type="button" onClick={onClose} style={iconButtonStyle}><X size={18} /></button>
@@ -349,7 +349,7 @@ export const PodcastCardSurface = ({
                         position: 'absolute',
                         right: 6,
                         ...inter(11, 600, ink),
-                        background: 'rgba(58,55,51,0.08)',
+                        background: 'color-mix(in srgb, var(--text-primary) 8%, transparent)',
                         border: 'none',
                         borderRadius: 7,
                         padding: '5px 10px',
@@ -377,7 +377,7 @@ export const PodcastCardSurface = ({
                         position: 'absolute',
                         right: 6,
                         ...inter(11, 600, ink),
-                        background: 'rgba(58,55,51,0.08)',
+                        background: 'color-mix(in srgb, var(--text-primary) 8%, transparent)',
                         border: 'none',
                         borderRadius: 7,
                         padding: '5px 10px',
@@ -401,7 +401,7 @@ export const PodcastCardSurface = ({
                         padding: '12px 14px',
                         borderRadius: 16,
                         border: `1px solid ${subtleBorder}`,
-                        background: '#fff',
+                        background: 'var(--bg-elevated)',
                         cursor: 'pointer',
                       }}
                     >
@@ -421,8 +421,8 @@ export const PodcastCardSurface = ({
                     {results.map((result) => {
                       const formattedDate = fmtDate(result.releaseDate)
                       return (
-                        <div key={result.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 12px', borderRadius: 16, border: `1px solid ${subtleBorder}`, background: '#fff', minWidth: 0, width: '100%' }}>
-                          <div style={{ width: 44, height: 44, borderRadius: 12, overflow: 'hidden', background: 'rgba(58,55,51,0.06)', flexShrink: 0, marginTop: 1 }}>
+                        <div key={result.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 12px', borderRadius: 16, border: `1px solid ${subtleBorder}`, background: 'var(--bg-elevated)', minWidth: 0, width: '100%' }}>
+                          <div style={{ width: 44, height: 44, borderRadius: 12, overflow: 'hidden', background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', flexShrink: 0, marginTop: 1 }}>
                             {result.artworkUrl ? <img src={result.artworkUrl} alt={result.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
@@ -430,12 +430,12 @@ export const PodcastCardSurface = ({
                             <p style={{ ...inter(10, 400, mutedText), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 4 }}>{result.author}{result.genre ? ` · ${result.genre}` : ''}</p>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                               {result.trackCount != null && (
-                                <span style={{ ...inter(9, 500, 'rgba(58,55,51,0.50)'), background: 'rgba(58,55,51,0.06)', borderRadius: 5, padding: '2px 6px' }}>
+                                <span style={{ ...inter(9, 500, 'color-mix(in srgb, var(--text-primary) 50%, transparent)'), background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', borderRadius: 5, padding: '2px 6px' }}>
                                   {result.trackCount} 期
                                 </span>
                               )}
                               {formattedDate && (
-                                <span style={{ ...inter(9, 400, 'rgba(58,55,51,0.40)') }}>
+                                <span style={{ ...inter(9, 400, 'color-mix(in srgb, var(--text-primary) 40%, transparent)') }}>
                                   最新 {formattedDate}
                                 </span>
                               )}
@@ -450,15 +450,15 @@ export const PodcastCardSurface = ({
                               width: 28,
                               height: 28,
                               borderRadius: '50%',
-                              border: '1px solid rgba(58,55,51,0.12)',
-                              background: 'rgba(58,55,51,0.06)',
+                              border: '1px solid color-mix(in srgb, var(--text-primary) 12%, transparent)',
+                              background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)',
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               fontSize: 18,
                               lineHeight: 1,
-                              color: 'rgba(58,55,51,0.55)',
+                              color: 'color-mix(in srgb, var(--text-primary) 55%, transparent)',
                               padding: 0,
                               alignSelf: 'center',
                             }}
@@ -482,8 +482,8 @@ export const PodcastCardSurface = ({
                           padding: '12px 14px',
                           paddingRight: 40,
                           borderRadius: 16,
-                          border: selectedId === item.id ? '1px solid rgba(58,55,51,0.12)' : '1px solid transparent',
-                          background: selectedId === item.id ? 'rgba(58,55,51,0.06)' : 'transparent',
+                          border: selectedId === item.id ? '1px solid color-mix(in srgb, var(--text-primary) 12%, transparent)' : '1px solid transparent',
+                          background: selectedId === item.id ? 'color-mix(in srgb, var(--text-primary) 6%, transparent)' : 'transparent',
                           cursor: 'pointer',
                         }}
                       >
@@ -514,7 +514,7 @@ export const PodcastCardSurface = ({
                       position: 'relative',
                       padding: '20px 20px 16px', borderBottom: `1px solid ${sectionBorder}`,
                       overflow: 'hidden',
-                      '--pod-color': selected.coverColor ?? 'rgba(58,55,51,0.15)',
+                      '--pod-color': selected.coverColor ?? 'color-mix(in srgb, var(--text-primary) 15%, transparent)',
                     } as React.CSSProperties}
                   >
                     {/* Album art blurred background */}
@@ -530,12 +530,12 @@ export const PodcastCardSurface = ({
                     <div
                       className={`podcast-ambient-glow${selected.isPlaying ? ' is-playing' : ''}`}
                       style={{
-                        background: `radial-gradient(ellipse 220% 200% at -8% 50%, ${selected.coverColor ?? 'rgba(58,55,51,0.12)'} 0%, transparent 62%)`,
+                        background: `radial-gradient(ellipse 220% 200% at -8% 50%, ${selected.coverColor ?? 'color-mix(in srgb, var(--text-primary) 12%, transparent)'} 0%, transparent 62%)`,
                       }}
                     />
                     <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', position: 'relative' }}>
                       <div className={`podcast-cover-outer${selected.isPlaying ? ' is-playing' : ''}`}>
-                        <div style={{ width: 88, height: 88, borderRadius: 24, overflow: 'hidden', background: selected.coverColor ?? 'rgba(58,55,51,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 34 }}>
+                        <div style={{ width: 88, height: 88, borderRadius: 24, overflow: 'hidden', background: selected.coverColor ?? 'color-mix(in srgb, var(--text-primary) 6%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 34 }}>
                           {selected.artworkUrl ? <img src={selected.artworkUrl} alt={selected.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : selected.coverEmoji ?? '🎙'}
                         </div>
                       </div>
@@ -552,7 +552,7 @@ export const PodcastCardSurface = ({
                         ) : null}
                         <h3 style={{ ...playfair(24, 500), marginBottom: 4 }}>{selected.name}</h3>
                         <p style={{ ...inter(13, 400, mutedText), marginBottom: 10 }}>{selected.author}</p>
-                        <p style={{ ...inter(10, 500, 'rgba(58,55,51,0.42)'), marginBottom: 10 }}>{selectedSourceLabel}</p>
+                        <p style={{ ...inter(10, 500, 'color-mix(in srgb, var(--text-primary) 42%, transparent)'), marginBottom: 10 }}>{selectedSourceLabel}</p>
                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                           <button type="button" onClick={() => onTogglePlaying(selected.id)} style={{ ...smallButtonStyle, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                             {selected.isPlaying && !isNeteaseDefaultMode ? <Pause size={11} /> : <Play size={11} />}
@@ -595,17 +595,17 @@ export const PodcastCardSurface = ({
                         {progress && progress.duration > 0 && (
                           <div style={{ marginTop: 14 }}>
                             <div
-                              style={{ height: 4, borderRadius: 999, background: 'rgba(58,55,51,0.09)', cursor: 'pointer', overflow: 'hidden' }}
+                              style={{ height: 4, borderRadius: 999, background: 'color-mix(in srgb, var(--text-primary) 9%, transparent)', cursor: 'pointer', overflow: 'hidden' }}
                               onClick={(e) => {
                                 const rect = e.currentTarget.getBoundingClientRect()
                                 seekTo((e.clientX - rect.left) / rect.width)
                               }}
                             >
-                              <div style={{ height: '100%', borderRadius: 999, background: 'rgba(58,55,51,0.32)', width: `${(progress.currentTime / progress.duration) * 100}%`, transition: 'width 0.25s linear' }} />
+                              <div style={{ height: '100%', borderRadius: 999, background: 'color-mix(in srgb, var(--text-primary) 32%, transparent)', width: `${(progress.currentTime / progress.duration) * 100}%`, transition: 'width 0.25s linear' }} />
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5 }}>
-                              <span style={{ ...inter(9, 400, 'rgba(58,55,51,0.38)') }}>{fmt(progress.currentTime)}</span>
-                              <span style={{ ...inter(9, 400, 'rgba(58,55,51,0.28)') }}>{fmt(progress.duration)}</span>
+                              <span style={{ ...inter(9, 400, 'color-mix(in srgb, var(--text-primary) 38%, transparent)') }}>{fmt(progress.currentTime)}</span>
+                              <span style={{ ...inter(9, 400, 'color-mix(in srgb, var(--text-primary) 28%, transparent)') }}>{fmt(progress.duration)}</span>
                             </div>
                           </div>
                         )}
@@ -620,7 +620,7 @@ export const PodcastCardSurface = ({
                         <p style={{ ...inter(10, 400, mutedText), marginBottom: 6 }}>{t('life.podcast.metadataApple')}</p>
                       ) : null}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <p style={{ ...inter(10, 600, 'rgba(58,55,51,0.35)'), letterSpacing: '0.10em', textTransform: 'uppercase', flex: 1, margin: 0 }}>
+                        <p style={{ ...inter(10, 600, 'color-mix(in srgb, var(--text-primary) 35%, transparent)'), letterSpacing: '0.10em', textTransform: 'uppercase', flex: 1, margin: 0 }}>
                           {t('life.podcast.episodes')}{selected.episodes.length > 0 ? ` · ${filteredEpisodes.length}${filteredEpisodes.length < selected.episodes.length ? `/${selected.episodes.length}` : ''}` : ''}
                         </p>
                         {/* Search toggle */}
@@ -680,8 +680,8 @@ export const PodcastCardSurface = ({
                               gap: 12,
                               padding: '10px 12px',
                               borderRadius: 16,
-                              border: selected.selectedEpisodeId === episode.id ? '1px solid rgba(58,55,51,0.12)' : `1px solid ${subtleBorder}`,
-                              background: selected.selectedEpisodeId === episode.id ? 'rgba(58,55,51,0.06)' : '#fff',
+                              border: selected.selectedEpisodeId === episode.id ? '1px solid color-mix(in srgb, var(--text-primary) 12%, transparent)' : `1px solid ${subtleBorder}`,
+                              background: selected.selectedEpisodeId === episode.id ? 'color-mix(in srgb, var(--text-primary) 6%, transparent)' : 'var(--bg-elevated)',
                               textAlign: 'left',
                             }}
                           >

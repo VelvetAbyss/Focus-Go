@@ -27,18 +27,18 @@ const EmptyState = ({
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center rounded-[28px] border border-[#3A3733]/8 px-6 py-10 text-center text-[#3A3733]',
-        variant === 'onboarding' ? 'bg-[#F5F3F0] shadow-[0_20px_60px_rgba(58,55,51,0.08)]' : 'bg-white/88',
+        'flex flex-col items-center justify-center rounded-[28px] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] px-6 py-10 text-center text-[var(--text-primary)]',
+        variant === 'onboarding' ? 'bg-[var(--bg-elevated)] shadow-[var(--shadow-card-lg)]' : 'bg-[color-mix(in_srgb,var(--bg-elevated)_88%,transparent)]',
         className,
       )}
     >
-      <div className="mb-4 flex size-12 items-center justify-center rounded-2xl bg-[#3A3733]/6 text-[#3A3733]">
+      <div className="mb-4 flex size-12 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] text-[var(--text-primary)]">
         {icon}
       </div>
       <h3 className="text-base font-semibold">{title}</h3>
-      <p className="mt-2 max-w-sm text-sm text-[#3A3733]/72">{description}</p>
+      <p className="mt-2 max-w-sm text-sm text-[color-mix(in_srgb,var(--text-primary)_72%,transparent)]">{description}</p>
       {actionLabel && onAction ? (
-        <Button type="button" className="mt-5 rounded-full bg-[#3A3733] px-5 text-[#F5F3F0] hover:bg-[#3A3733]/90" onClick={onAction}>
+        <Button type="button" className="mt-5 rounded-full bg-[var(--text-primary)] px-5 text-[var(--bg-elevated)] hover:bg-[color-mix(in_srgb,var(--text-primary)_90%,transparent)]" onClick={onAction}>
           {actionLabel}
         </Button>
       ) : null}

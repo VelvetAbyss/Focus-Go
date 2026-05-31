@@ -228,7 +228,7 @@ const TaskAddComposer = forwardRef<TaskAddComposerHandle, TaskAddComposerProps>(
   return (
     <form
       className={cn(
-        'tasks-fg__composer mt-4 rounded-[22px] border border-[#3a3733]/6 bg-transparent p-3 shadow-none backdrop-blur-none transition-all duration-300',
+        'tasks-fg__composer mt-4 rounded-[22px] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] bg-transparent p-3 shadow-none backdrop-blur-none transition-all duration-300',
         compact ? 'mt-3 rounded-[18px] p-2.5' : '',
         plain && !hero ? 'mt-0 rounded-none border-x-0 border-b-0 border-t bg-transparent px-4 py-3 shadow-none backdrop-blur-none' : '',
         hero ? 'tasks-fg__composer--hero mt-0 rounded-none border-0 bg-transparent px-4 py-3 shadow-none backdrop-blur-none' : '',
@@ -236,7 +236,7 @@ const TaskAddComposer = forwardRef<TaskAddComposerHandle, TaskAddComposerProps>(
         hero && phase === 'breathing' ? 'is-breathing' : '',
         hero && justSubmitted ? 'just-submitted' : '',
         hero && isDragOver ? 'is-drag-over' : '',
-        isFocused && !plain && !hero && 'border-slate-300/80 shadow-[0_2px_12px_rgba(58,55,51,0.06)]',
+        isFocused && !plain && !hero && 'border-slate-300/80 shadow-[var(--shadow-pop)]',
         isFocused && plain && !hero && 'border-t-primary/20 bg-transparent',
       )}
       onSubmit={(event) => {
@@ -274,18 +274,18 @@ const TaskAddComposer = forwardRef<TaskAddComposerHandle, TaskAddComposerProps>(
       ) : null}
       <div
         className={cn(
-          'flex items-center gap-3 rounded-[18px] border border-slate-200/80 bg-slate-50/85 px-3 py-2 transition-all duration-300',
+          'flex items-center gap-3 rounded-[18px] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] px-3 py-2 transition-all duration-300',
           compact ? 'rounded-[15px] px-2.5 py-2' : '',
           plain && !hero ? 'flex-1 gap-2 rounded-lg bg-transparent px-3 py-1.5' : '',
-          hero ? 'flex-1 gap-3 rounded-xl border-[color:color-mix(in_srgb,var(--accent-action)_22%,transparent)] bg-[color:color-mix(in_srgb,var(--accent-action)_5%,white)] px-3.5 py-2.5' : '',
-          isFocused && !plain && !hero && 'border-slate-300 bg-white shadow-[0_0_0_3px_rgba(148,163,184,0.15)]',
+          hero ? 'flex-1 gap-3 rounded-xl border-[color:color-mix(in_srgb,var(--accent-action)_22%,transparent)] bg-[color:color-mix(in_srgb,var(--accent-action)_5%,var(--bg-elevated))] px-3.5 py-2.5' : '',
+          isFocused && !plain && !hero && 'border-slate-300 bg-[var(--bg-elevated)] shadow-[0_0_0_3px_rgba(148,163,184,0.15)]',
           isFocused && plain && !hero && 'border-ring/60 bg-transparent ring-2 ring-ring/15',
           isFocused && hero && 'border-[color:color-mix(in_srgb,var(--accent-action)_60%,transparent)] shadow-[0_0_0_4px_rgba(139,94,52,0.16)]',
         )}
       >
         <span
           className={cn(
-            'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-slate-400 shadow-sm transition-all duration-300',
+            'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--bg-elevated)] text-slate-400 shadow-sm transition-all duration-300',
             plain && !hero && 'h-4 w-4 rounded-none bg-transparent text-muted-foreground shadow-none',
             hero && 'tasks-fg__hero-plus h-5 w-5 rounded-none bg-transparent text-[color:var(--accent-action)] shadow-none',
             isFocused && !plain && !hero && 'bg-primary/8 text-primary shadow-none',
@@ -325,7 +325,7 @@ const TaskAddComposer = forwardRef<TaskAddComposerHandle, TaskAddComposerProps>(
         <input
           ref={inputRef}
           className={cn(
-            'tasks-fg__input h-auto min-h-0 border-0 bg-transparent px-0 py-0 text-[13px] shadow-none outline-none placeholder:text-slate-400 focus-visible:ring-0',
+            'tasks-fg__input h-auto min-h-0 border-0 bg-transparent px-0 py-0 text-[13px] shadow-none outline-none placeholder:text-muted-foreground focus-visible:ring-0',
             compact ? 'text-[12px]' : '',
             plain && !hero ? 'flex-1 text-sm placeholder:text-muted-foreground/60' : '',
             hero ? 'flex-1 text-[15px] font-medium placeholder:text-muted-foreground/85 placeholder:transition-colors placeholder:duration-300 caret-[color:var(--accent-action)]' : '',
@@ -363,7 +363,7 @@ const TaskAddComposer = forwardRef<TaskAddComposerHandle, TaskAddComposerProps>(
             hero
               ? cn(
                   'rounded-md px-3 text-xs bg-[color:var(--accent-action)] text-white',
-                  'hover:bg-[color:color-mix(in_srgb,var(--accent-action)_88%,white)] hover:shadow-[0_6px_16px_-6px_rgba(139,94,52,0.5)]',
+                  'hover:bg-[color:color-mix(in_srgb,var(--accent-action)_88%,var(--bg-elevated))] hover:shadow-[0_6px_16px_-6px_rgba(139,94,52,0.5)]',
                   'active:scale-[0.96]',
                   hasText
                     ? 'opacity-100 scale-100 shadow-[0_2px_10px_-2px_rgba(139,94,52,0.4)]'

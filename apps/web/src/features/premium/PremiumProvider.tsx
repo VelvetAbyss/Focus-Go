@@ -50,28 +50,28 @@ const UpgradeModal = ({
     <Dialog
       open={state.open}
       onClose={onClose}
-      panelClassName="w-[min(520px,calc(100vw-32px))] rounded-[28px] border border-[#3A3733]/10 bg-[#F5F3F0] shadow-[0_30px_100px_rgba(58,55,51,0.18)]"
+      panelClassName="w-[min(520px,calc(100vw-32px))] rounded-[28px] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[var(--bg-elevated)] shadow-[var(--shadow-card-lg)]"
       contentClassName="p-0"
     >
-      <div className="space-y-5 p-6 text-[#3A3733]">
+      <div className="space-y-5 p-6 text-[var(--text-primary)]">
         <div className="space-y-2">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#3A3733]/56">Premium</div>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color-mix(in_srgb,var(--text-primary)_56%,transparent)]">Premium</div>
           <h2 className="text-[28px] font-semibold tracking-[-0.03em]">Upgrade to Premium</h2>
-          <p className="text-sm leading-6 text-[#3A3733]/72">{gate.description}</p>
+          <p className="text-sm leading-6 text-[color-mix(in_srgb,var(--text-primary)_72%,transparent)]">{gate.description}</p>
         </div>
 
-        <div className="rounded-[22px] border border-[#3A3733]/8 bg-white/72 p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#3A3733]/56">Locked feature</p>
+        <div className="rounded-[22px] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[color-mix(in_srgb,var(--bg-elevated)_72%,transparent)] p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[color-mix(in_srgb,var(--text-primary)_56%,transparent)]">Locked feature</p>
           <p className="mt-2 text-sm font-medium">{gate.title}</p>
         </div>
 
         <div className="flex items-center justify-end gap-3">
-          <Button type="button" variant="outline" className="rounded-full border-[#3A3733]/12 bg-transparent text-[#3A3733]" onClick={onClose} disabled={loading}>
+          <Button type="button" variant="outline" className="rounded-full border-[color-mix(in_srgb,var(--text-primary)_12%,transparent)] bg-transparent text-[var(--text-primary)]" onClick={onClose} disabled={loading}>
             Maybe later
           </Button>
           <Button
             type="button"
-            className="rounded-full bg-[#3A3733] text-[#F5F3F0] hover:bg-[#3A3733]/90"
+            className="rounded-full bg-[var(--text-primary)] text-[var(--bg-elevated)] hover:bg-[color-mix(in_srgb,var(--text-primary)_90%,transparent)]"
             onClick={handleUpgrade}
             disabled={loading}
           >

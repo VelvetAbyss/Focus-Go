@@ -102,8 +102,8 @@ export default function AppearanceModal({ open, settings, onClose, onUpdate }: P
 }
 
 const BG_OPTIONS: Array<{ value: NotePaperBg; swatch: string; label: string }> = [
-  { value: 'beige', swatch: '#f5f3f0', label: '米色' },
-  { value: 'white', swatch: '#ffffff', label: '白色' },
+  { value: 'beige', swatch: 'var(--bg-elevated)', label: '米色' },
+  { value: 'white', swatch: 'var(--bg-elevated)', label: '白色' },
 ]
 
 function BgSetting({ label, value, onChange }: { label: string; value: NotePaperBg; onChange: (value: NotePaperBg) => void }) {

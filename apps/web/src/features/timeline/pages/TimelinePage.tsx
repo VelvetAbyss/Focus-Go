@@ -226,7 +226,7 @@ const TimelinePage = () => {
                 const Icon = ICONS[item.kind]
                 return (
                   <article className="timeline-item" key={item.id} data-kind={item.kind}>
-                    <div className="timeline-item__mark" style={{ '--timeline-accent': item.accent ?? '#3A3733' } as CSSProperties}>
+                    <div className="timeline-item__mark" style={{ '--timeline-accent': item.accent ?? 'var(--text-primary)' } as CSSProperties}>
                       <Icon size={16} aria-hidden="true" />
                     </div>
                     <div className="timeline-item__body">

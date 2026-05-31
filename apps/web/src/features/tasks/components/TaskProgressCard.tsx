@@ -97,7 +97,7 @@ export default function TaskProgressCard({ task, onUpdated }: TaskProgressCardPr
           }
         }}
         placeholder={t('tasks.drawer.progressPlaceholder')}
-        className="mt-3 min-h-[88px] resize-y rounded-[16px] border-amber-300/50 bg-white/80 text-[14px] leading-6 shadow-none focus-visible:border-amber-400 focus-visible:ring-amber-200"
+        className="mt-3 min-h-[88px] resize-y rounded-[16px] border-amber-300/50 bg-[color-mix(in_srgb,var(--bg-elevated)_80%,transparent)] text-[14px] leading-6 shadow-none focus-visible:border-amber-400 focus-visible:ring-amber-200"
       />
       <p className="mt-1.5 px-1 text-[11px] text-amber-700/60">{t('tasks.drawer.progressSaveHint')}</p>
 
@@ -119,7 +119,7 @@ export default function TaskProgressCard({ task, onUpdated }: TaskProgressCardPr
                 <li
                   key={entry.id}
                   className={cn(
-                    'group rounded-[14px] border border-amber-200/60 bg-white/70 px-3 py-2 text-[13px] leading-6',
+                    'group rounded-[14px] border border-amber-200/60 bg-[color-mix(in_srgb,var(--bg-elevated)_70%,transparent)] px-3 py-2 text-[13px] leading-6',
                   )}
                 >
                   <div className="flex items-start justify-between gap-2">

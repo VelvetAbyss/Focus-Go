@@ -95,7 +95,7 @@ type SubtaskCompletionEvent = {
 }
 
 const UNASSIGNED_PROJECT_TITLE = '未归属'
-const UNASSIGNED_PROJECT_COLOR = '#3A3733'
+const UNASSIGNED_PROJECT_COLOR = '#8A8580'
 const DAY_MS = 24 * 60 * 60 * 1000
 
 export const isTaskDoneActivityLog = (log: Pick<TaskActivityLog, 'type' | 'message'>) => {

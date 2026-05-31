@@ -39,8 +39,8 @@ export function DatePicker({
           variant="outline"
           data-empty={!selectedDate}
           className={cn(
-            'h-auto min-h-11 w-full min-w-0 max-w-full justify-start rounded-[6px] border-[#e5e5e5] bg-[#fafafa] px-3 py-2.5 text-left text-[14px] font-normal text-[#3a3733] shadow-none',
-            'data-[empty=true]:text-[#737373] hover:bg-[#fafafa] hover:text-[#3a3733]',
+            'h-auto min-h-11 w-full min-w-0 max-w-full justify-start rounded-[6px] border-[var(--border)] bg-[var(--bg-muted)] px-3 py-2.5 text-left text-[14px] font-normal text-[var(--text-primary)] shadow-none',
+            'data-[empty=true]:text-[#737373] hover:bg-[var(--bg-muted)] hover:text-[var(--text-primary)]',
             className,
           )}
           aria-label={ariaLabel}
@@ -50,7 +50,7 @@ export function DatePicker({
       </PopoverTrigger>
       <PopoverContent
         className={cn(
-          'overflow-hidden rounded-xl border border-[#e5e5e5] bg-[#fafafa] p-4',
+          'overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-muted)] p-4',
           'data-[state=open]:duration-300 data-[state=closed]:duration-200 data-[state=open]:zoom-in-90 data-[state=closed]:zoom-out-90 data-[side=bottom]:slide-in-from-top-3 data-[side=top]:slide-in-from-bottom-3',
           popoverClassName,
         )}

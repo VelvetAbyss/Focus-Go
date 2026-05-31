@@ -110,7 +110,7 @@ const TasksAnalyticsView = ({ tasks, projects = [] }: TasksAnalyticsViewProps) =
     <section className="tasks-analytics-v2 flex h-full min-h-0 flex-col gap-4">
       {/* Toolbar — granularity tabs + context tagline */}
       <div className="flex items-center justify-between gap-3 flex-none">
-        <div className="flex items-center gap-1 rounded-xl border border-[color:var(--ts-line)] bg-white/70 p-1">
+        <div className="flex items-center gap-1 rounded-xl border border-[color:var(--ts-line)] bg-[color-mix(in_srgb,var(--bg-elevated)_70%,transparent)] p-1">
           {granularityOptions.map((option) => (
             <button
               key={option}

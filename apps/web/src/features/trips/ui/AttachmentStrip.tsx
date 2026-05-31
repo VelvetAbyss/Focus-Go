@@ -121,7 +121,7 @@ export const AttachmentStrip = ({ tripId, attachmentIds, onChange, label }: Atta
             gap: 6,
             borderRadius: 10,
             border: `1px solid ${subtleBorder}`,
-            background: '#FFFCF9',
+            background: 'var(--bg-elevated)',
             padding: preview.meta.kind === 'image' ? 0 : '6px 8px',
             overflow: 'hidden',
           }}

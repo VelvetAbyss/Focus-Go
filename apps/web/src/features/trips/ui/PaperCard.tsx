@@ -8,7 +8,7 @@ export const PaperCard = ({ children, style, tape }: { children: ReactNode; styl
       background: cardBg,
       border: `1px solid ${subtleBorder}`,
       borderRadius: 16,
-      boxShadow: '0 1px 6px rgba(58,55,51,0.05)',
+      boxShadow: '0 1px 6px rgba(0, 0, 0, 0.05)',
       ...style,
     }}
   >
@@ -24,7 +24,7 @@ export const PaperCard = ({ children, style, tape }: { children: ReactNode; styl
           height: 18,
           background: 'rgba(212,180,120,0.32)',
           borderRadius: 2,
-          boxShadow: '0 1px 2px rgba(58,55,51,0.08)',
+          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.08)',
         }}
       />
     ) : null}

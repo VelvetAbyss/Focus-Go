@@ -689,7 +689,7 @@
 
 .note-page__unselected-action--secondary {
   background: transparent;
-  color: #3a3733;
+  color: var(--note-foreground, #3a3733);
 }
 
 .note-page__unselected-action:hover {
@@ -831,6 +831,25 @@
 .note-editor__surface::-webkit-scrollbar {
   width: 0;
   height: 0;
+}
+
+/* Dark mode: the top white sheen (0.36 alpha) reads as a bright fog over the
+   dark writing surface, and the ink-colored scrollbar disappears. Soften the
+   sheen to a barely-there top light and recolor the scrollbar for dark. */
+html[data-theme='dark'] .note-editor__surface,
+html.dark .note-editor__surface {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0px, rgba(255, 255, 255, 0.012) 80px, transparent 180px),
+    var(--note-workspace-bg);
+  scrollbar-color: rgba(245, 243, 240, 0.16) transparent;
+}
+html[data-theme='dark'] .note-editor__surface::-webkit-scrollbar-thumb,
+html.dark .note-editor__surface::-webkit-scrollbar-thumb {
+  background: rgba(245, 243, 240, 0.16);
+}
+html[data-theme='dark'] .note-editor__surface::-webkit-scrollbar-thumb:hover,
+html.dark .note-editor__surface::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 243, 240, 0.28);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1218,10 +1237,10 @@
   place-items: center;
   gap: 8px;
   min-height: 112px;
-  border: 1px dashed rgba(58, 55, 51, 0.26);
+  border: 1px dashed var(--note-border-strong, rgba(58, 55, 51, 0.26));
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.38);
-  color: #3a3733;
+  background: color-mix(in srgb, var(--note-foreground, #3a3733) 4%, transparent);
+  color: var(--note-foreground, #3a3733);
   cursor: pointer;
   text-align: center;
   padding: 18px;
@@ -1229,8 +1248,8 @@
 }
 
 .note-import-panel__dropzone:hover {
-  border-color: rgba(58, 55, 51, 0.46);
-  background: rgba(255, 255, 255, 0.58);
+  border-color: color-mix(in srgb, var(--note-foreground, #3a3733) 40%, transparent);
+  background: color-mix(in srgb, var(--note-foreground, #3a3733) 7%, transparent);
   transform: translateY(-1px);
 }
 
@@ -1298,7 +1317,7 @@
   place-items: center;
   width: 24px;
   height: 24px;
-  color: #3a3733;
+  color: var(--note-foreground, #3a3733);
 }
 
 .note-import-panel__item[data-status='imported'] .note-import-panel__item-icon,
