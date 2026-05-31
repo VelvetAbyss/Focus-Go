@@ -102,6 +102,10 @@ html[data-theme='light'] {
   --surface: #ffffff;
   --surface-hover: #f5f5f5;
   --shadow-md: 0 4px 12px rgba(58, 55, 51, 0.08);
+  /* Semantic card/pop shadows — replace scattered hard-coded shadow-[…rgba…]. */
+  --shadow-card: 0 12px 28px rgba(58, 55, 51, 0.08);
+  --shadow-card-lg: 0 30px 100px rgba(15, 23, 42, 0.18);
+  --shadow-pop: 0 8px 24px rgba(58, 55, 51, 0.12);
 }
 
 html[data-theme='dark'] {
@@ -116,6 +120,14 @@ html[data-theme='dark'] {
   --surface: #2d2b27;
   --surface-hover: #3a3733;
   --shadow-md: 0 12px 28px rgba(0, 0, 0, 0.32);
+  /* Semantic card/pop shadows — deeper, cooler, lower-spread for dark surfaces. */
+  --shadow-card: 0 12px 28px rgba(0, 0, 0, 0.42);
+  --shadow-card-lg: 0 30px 90px rgba(0, 0, 0, 0.55);
+  --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.5);
+  /* Dark overrides for the :root light-only soft/lift/drawer shadows. */
+  --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.4);
+  --shadow-lift: 0 16px 40px rgba(0, 0, 0, 0.5);
+  --shadow-drawer: 0 22px 70px rgba(0, 0, 0, 0.6), 0 3px 12px rgba(0, 0, 0, 0.45);
   --status-todo: hsl(var(--status-todo-hsl));
   --status-doing: hsl(var(--status-doing-hsl));
   --status-blocked: hsl(var(--status-blocked-hsl));

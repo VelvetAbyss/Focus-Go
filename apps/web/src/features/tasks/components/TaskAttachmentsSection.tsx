@@ -123,7 +123,7 @@ const TaskAttachmentsSection = ({ attachments, onChange }: TaskAttachmentsSectio
     >
       <div
         className={cn(
-          'task-detail-card rounded-[26px] border border-[#3a3733]/6 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.04)] transition-colors',
+          'task-detail-card rounded-[26px] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] p-5 shadow-[var(--shadow-card-lg)] transition-colors',
           isDragging && !limitReached && 'border-emerald-400/60 bg-emerald-50/40',
         )}
       >
@@ -140,7 +140,7 @@ const TaskAttachmentsSection = ({ attachments, onChange }: TaskAttachmentsSectio
               onClick={handlePick}
               disabled={limitReached}
               className={cn(
-                'inline-flex h-8 items-center gap-1.5 rounded-full border border-[#3a3733]/12 px-3 text-[11px] font-semibold transition-colors',
+                'inline-flex h-8 items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--text-primary)_12%,transparent)] px-3 text-[11px] font-semibold transition-colors',
                 limitReached
                   ? 'cursor-not-allowed opacity-50'
                   : 'hover:border-emerald-400/60 hover:bg-emerald-50/40 hover:text-emerald-700',
@@ -168,7 +168,7 @@ const TaskAttachmentsSection = ({ attachments, onChange }: TaskAttachmentsSectio
                 <button
                   type="button"
                   onClick={handlePick}
-                  className="task-attachment-add flex h-24 w-24 shrink-0 items-center justify-center rounded-xl border-2 border-dashed border-[#3a3733]/15 text-[color:var(--text-secondary)] transition-colors hover:border-emerald-400/60 hover:bg-emerald-50/40 hover:text-emerald-600"
+                  className="task-attachment-add flex h-24 w-24 shrink-0 items-center justify-center rounded-xl border-2 border-dashed border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] text-[color:var(--text-secondary)] transition-colors hover:border-emerald-400/60 hover:bg-emerald-50/40 hover:text-emerald-600"
                   aria-label={t('tasks.attachments.addMore')}
                 >
                   <Plus className="h-5 w-5" />
@@ -181,11 +181,11 @@ const TaskAttachmentsSection = ({ attachments, onChange }: TaskAttachmentsSectio
             type="button"
             onClick={handlePick}
             className={cn(
-              'mt-4 flex w-full items-center gap-3 rounded-[18px] border-2 border-dashed border-[#3a3733]/15 bg-[color:var(--bg-muted)] px-4 py-5 text-left transition-colors',
+              'mt-4 flex w-full items-center gap-3 rounded-[18px] border-2 border-dashed border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] bg-[color:var(--bg-muted)] px-4 py-5 text-left transition-colors',
               !limitReached && 'hover:border-emerald-400/60 hover:bg-emerald-50/40',
             )}
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-white text-[color:var(--text-secondary)]">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[var(--bg-elevated)] text-[color:var(--text-secondary)]">
               <ImagePlus className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">

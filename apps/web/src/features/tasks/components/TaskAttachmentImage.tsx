@@ -19,7 +19,7 @@ const TaskAttachmentImage = ({ attachment, onRemove, removeLabel, className }: T
     <div
       className={cn(
         'task-attachment-image group relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border',
-        'border-[color:color-mix(in_srgb,var(--accent-action)_22%,transparent)] bg-[color:color-mix(in_srgb,var(--accent-action)_5%,white)]',
+        'border-[color:color-mix(in_srgb,var(--accent-action)_22%,transparent)] bg-[color:color-mix(in_srgb,var(--accent-action)_5%,var(--bg-elevated))]',
         'transition-shadow hover:shadow-[0_6px_18px_-10px_rgba(139,94,52,0.45)]',
         className,
       )}

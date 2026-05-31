@@ -36,9 +36,15 @@ const defaultTracks: SoundTrack[] = [
   { id: "ocean", icon: <Waves size={15} />, enabled: false, volume: 0.5, color: "#7BA5B5" },
 ];
 
+// Cap the visualizer to ~30fps. On 120Hz ProMotion displays the RAF would
+// otherwise redraw (and re-allocate 36 gradients) up to 120×/sec — invisible
+// extra work for a soft ambient bar animation.
+const VISUALIZER_FRAME_MS = 1000 / 30;
+
 function SoundBarVisualizer({ tracks, isPlaying }: { tracks: SoundTrack[]; isPlaying: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const barsRef = useRef<number[]>([]);
+  const lastDrawRef = useRef(0);
 
   const activeTrackCount = useMemo(() => tracks.filter((t) => t.enabled).length, [tracks]);
   const avgVol = useMemo(() => {
@@ -63,6 +69,8 @@ function SoundBarVisualizer({ tracks, isPlaying }: { tracks: SoundTrack[]; isPla
   }, []);
 
   const draw = useCallback((now: number) => {
+    if (now - lastDrawRef.current < VISUALIZER_FRAME_MS) return;
+    lastDrawRef.current = now;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -107,6 +115,7 @@ function SoundBarVisualizer({ tracks, isPlaying }: { tracks: SoundTrack[]; isPla
     syncCanvasSize();
     const handleResize = () => {
       syncCanvasSize();
+      lastDrawRef.current = 0; // force a repaint past the fps throttle
       draw(performance.now());
     };
     window.addEventListener("resize", handleResize);
@@ -165,7 +174,7 @@ function PremiumSlider({
     <div
       ref={trackRef}
       className="relative h-[5px] rounded-full cursor-pointer group"
-      style={{ background: disabled ? "rgba(58, 55, 51, 0.04)" : "rgba(58, 55, 51, 0.06)" }}
+      style={{ background: disabled ? "color-mix(in srgb, var(--text-primary) 4%, transparent)" : "color-mix(in srgb, var(--text-primary) 6%, transparent)" }}
       onMouseDown={(e) => {
         setDragging(true);
         updateValue(e.clientX);
@@ -175,7 +184,7 @@ function PremiumSlider({
         className="absolute left-0 top-0 h-full rounded-full"
         style={{
           width: `${value * 100}%`,
-          background: disabled ? "rgba(58, 55, 51, 0.08)" : color,
+          background: disabled ? "color-mix(in srgb, var(--text-primary) 8%, transparent)" : color,
           opacity: disabled ? 0.4 : 0.5,
         }}
         layout
@@ -187,11 +196,11 @@ function PremiumSlider({
           left: `${value * 100}%`,
           width: 13,
           height: 13,
-          background: disabled ? "rgba(58, 55, 51, 0.12)" : color,
+          background: disabled ? "color-mix(in srgb, var(--text-primary) 12%, transparent)" : color,
           opacity: disabled ? 0.4 : 0.8,
           boxShadow: dragging
-            ? `0 0 0 4px ${color}20, 0 1px 3px rgba(58, 55, 51, 0.1)`
-            : "0 1px 3px rgba(58, 55, 51, 0.08)",
+            ? `0 0 0 4px ${color}20, 0 1px 3px color-mix(in srgb, var(--text-primary) 10%, transparent)`
+            : "0 1px 3px color-mix(in srgb, var(--text-primary) 8%, transparent)",
         }}
         initial={false}
         animate={{ x: -6.5, y: "-50%", scale: 1 }}
@@ -321,11 +330,11 @@ export function WhiteNoise() {
         <div>
           <h2
             style={{ fontFamily: "'DM Serif Display', serif" }}
-            className="text-[1.15rem] text-[#3a3733] tracking-[-0.01em]"
+            className="text-[1.15rem] text-[var(--text-primary)] tracking-[-0.01em]"
           >
             {t("focus.whiteNoise")}
           </h2>
-          <p className="text-[0.7rem] text-[#a09a90] mt-0.5 tracking-wide">
+          <p className="text-[0.7rem] text-[var(--text-secondary)] mt-0.5 tracking-wide">
             {language === "zh" ? `已启用 ${activeTracks} 个声音` : `${activeTracks} sound${activeTracks === 1 ? "" : "s"} enabled`}
           </p>
         </div>
@@ -351,7 +360,7 @@ export function WhiteNoise() {
             >
               <Moon
                 size={13}
-                className={sleepTimer ? "text-[#7A9A78]" : "text-[#a09a90]"}
+                className={sleepTimer ? "text-[#7A9A78]" : "text-[var(--text-secondary)]"}
               />
               {sleepRemaining !== null && (
                 <span className="absolute -bottom-0.5 -right-0.5 text-[0.5rem] text-[#7A9A78] tabular-nums">
@@ -376,11 +385,11 @@ export function WhiteNoise() {
                       background: "rgba(255,255,255,0.95)",
                       backdropFilter: "blur(20px)",
                       boxShadow:
-                        "0 6px 24px rgba(58, 55, 51, 0.06), 0 1px 3px rgba(58, 55, 51, 0.04)",
+                        "0 6px 24px color-mix(in srgb, var(--text-primary) 6%, transparent), 0 1px 3px color-mix(in srgb, var(--text-primary) 4%, transparent)",
                     }}
                   >
                     <div className="px-3 pt-2.5 pb-1">
-                      <p className="text-[0.62rem] text-[#918b80] uppercase tracking-[0.08em]">
+                      <p className="text-[0.62rem] text-[var(--text-secondary)] uppercase tracking-[0.08em]">
                          {language === "zh" ? "睡眠定时" : "Sleep timer"}
                       </p>
                     </div>
@@ -388,7 +397,7 @@ export function WhiteNoise() {
                       <button
                         key={m}
                         onClick={() => startSleepTimer(m)}
-                        className="w-full text-left px-3.5 py-1.5 text-[0.72rem] text-[#5a5650] transition-colors cursor-pointer hover:bg-[#3a3733]/[0.03] whitespace-nowrap"
+                        className="w-full text-left px-3.5 py-1.5 text-[0.72rem] text-[var(--text-secondary)] transition-colors cursor-pointer hover:bg-[var(--text-primary)]/[0.03] whitespace-nowrap"
                       >
                         {language === "zh" ? `${m} 分钟` : `${m} min`}
                       </button>
@@ -411,9 +420,9 @@ export function WhiteNoise() {
             }}
           >
             {isPlaying ? (
-              <Pause size={14} className="text-[#7a7568]" />
+              <Pause size={14} className="text-[var(--text-secondary)]" />
             ) : (
-              <Play size={14} className="text-[#7a7568] ml-0.5" />
+              <Play size={14} className="text-[var(--text-secondary)] ml-0.5" />
             )}
           </motion.button>
         </div>
@@ -422,7 +431,7 @@ export function WhiteNoise() {
       {/* Visualizer */}
       <div
         className="mb-4 rounded-xl overflow-hidden"
-        style={{ background: "rgba(58, 55, 51, 0.015)" }}
+        style={{ background: "color-mix(in srgb, var(--text-primary) 1.5%, transparent)" }}
       >
         <SoundBarVisualizer tracks={tracks} isPlaying={isPlaying} />
       </div>
@@ -430,8 +439,8 @@ export function WhiteNoise() {
       {/* Scene Presets */}
       <div className="mb-4">
         <div className="flex items-center gap-1.5 mb-2.5">
-          <Sparkles size={11} className="text-[#b0aa9e]" />
-          <span className="text-[0.66rem] text-[#918b80] uppercase tracking-[0.08em]">
+          <Sparkles size={11} className="text-[var(--text-secondary)]" />
+          <span className="text-[0.66rem] text-[var(--text-secondary)] uppercase tracking-[0.08em]">
              {t("focus.scenes")}
           </span>
         </div>
@@ -446,7 +455,7 @@ export function WhiteNoise() {
                 background:
                   activePreset === preset.id
                     ? "rgba(139,168,138,0.08)"
-                    : "rgba(58, 55, 51, 0.018)",
+                    : "color-mix(in srgb, var(--text-primary) 1.8%, transparent)",
                 border:
                   activePreset === preset.id
                     ? "1px solid rgba(139,168,138,0.15)"
@@ -471,10 +480,10 @@ export function WhiteNoise() {
       {/* Master Volume */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[0.66rem] text-[#918b80] uppercase tracking-[0.08em]">
+          <span className="text-[0.66rem] text-[var(--text-secondary)] uppercase tracking-[0.08em]">
             {t("focus.masterVolume")}
           </span>
-          <span className="text-[0.66rem] text-[#b0aa9e] tabular-nums">
+          <span className="text-[0.66rem] text-[var(--text-secondary)] tabular-nums">
             {Math.round(masterVolume * 100)}%
           </span>
         </div>
@@ -482,7 +491,7 @@ export function WhiteNoise() {
       </div>
 
       {/* Divider */}
-      <div className="h-px mb-3" style={{ background: "rgba(58, 55, 51, 0.04)" }} />
+      <div className="h-px mb-3" style={{ background: "color-mix(in srgb, var(--text-primary) 4%, transparent)" }} />
 
       {/* Tracks */}
       <div
@@ -497,7 +506,7 @@ export function WhiteNoise() {
             transition={{ delay: idx * 0.04, duration: 0.3 }}
             className="py-2.5 px-2.5 rounded-xl transition-colors"
             style={{
-              background: track.enabled ? "rgba(58, 55, 51, 0.015)" : "transparent",
+              background: track.enabled ? "color-mix(in srgb, var(--text-primary) 1.5%, transparent)" : "transparent",
             }}
           >
             <div className="flex items-center gap-2.5 mb-2">
@@ -506,15 +515,15 @@ export function WhiteNoise() {
                 style={{
                   width: 26,
                   height: 26,
-                  background: track.enabled ? `${track.color}18` : "rgba(58, 55, 51, 0.025)",
-                  color: track.enabled ? track.color : "#c0bab0",
+                  background: track.enabled ? `${track.color}18` : "color-mix(in srgb, var(--text-primary) 2.5%, transparent)",
+                  color: track.enabled ? track.color : "var(--text-secondary)",
                 }}
               >
                 {track.icon}
               </div>
               <span
                 className="flex-1 text-[0.76rem] transition-colors"
-                style={{ color: track.enabled ? "#4a4640" : "#b0aa9e" }}
+                style={{ color: track.enabled ? "var(--text-primary)" : "var(--text-secondary)" }}
               >
                 {trackNameMap[track.id]}
               </span>
@@ -523,7 +532,7 @@ export function WhiteNoise() {
                 onClick={() => toggleTrack(track.id)}
                 className="w-7 h-[16px] rounded-full relative transition-colors cursor-pointer"
                 style={{
-                  background: track.enabled ? `${track.color}40` : "rgba(58, 55, 51, 0.06)",
+                  background: track.enabled ? `${track.color}40` : "color-mix(in srgb, var(--text-primary) 6%, transparent)",
                 }}
               >
                 <motion.div
@@ -569,7 +578,7 @@ export function WhiteNoise() {
             </div>
             <button
               onClick={cancelSleepTimer}
-              className="text-[0.62rem] text-[#a09a90] cursor-pointer hover:text-[#7a7568] transition-colors"
+              className="text-[0.62rem] text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-secondary)] transition-colors"
             >
                {language === "zh" ? "取消" : "Cancel"}
             </button>

@@ -146,10 +146,10 @@ const LocationPicker = ({
         right: 0,
         zIndex: 50,
         width: 320,
-        background: '#FDFAF7',
+        background: 'var(--bg-elevated)',
         border: `1px solid ${subtleBorder}`,
         borderRadius: 12,
-        boxShadow: '0 6px 24px rgba(58,55,51,0.14)',
+        boxShadow: '0 6px 24px rgba(0, 0, 0, 0.14)',
         padding: 12,
         display: 'grid',
         gap: 10,
@@ -193,7 +193,7 @@ const LocationPicker = ({
                 background: 'transparent',
                 cursor: 'pointer',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(58,55,51,0.05)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'color-mix(in srgb, var(--text-primary) 5%, transparent)' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
             >
               <div style={tx(12, 600, ink)}>{r.name}</div>
@@ -278,7 +278,7 @@ const SortableItemRow = ({
                 padding: '0 12px',
                 border: `1px solid ${subtleBorder}`,
                 borderRadius: 12,
-                background: '#FFFCF9',
+                background: 'var(--bg-elevated)',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
               }}
@@ -360,7 +360,7 @@ const TimelineBlocks = ({ day, conflictIds, onPatch }: { day: TripItineraryDay; 
               borderRadius: 10,
               background: badge.bg,
               border: `1px solid ${conflict ? 'rgba(192,80,80,0.45)' : subtleBorder}`,
-              boxShadow: '0 1px 3px rgba(58,55,51,0.06)',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)',
               overflow: 'hidden',
               cursor: 'pointer',
             }}
@@ -450,10 +450,10 @@ const DayCard = ({
         style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', border: 'none', background: 'transparent', cursor: 'pointer' }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(58,55,51,0.07)', ...tx(11, 600) }}>{day.day}</div>
+          <div style={{ width: 32, height: 32, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'color-mix(in srgb, var(--text-primary) 7%, transparent)', ...tx(11, 600) }}>{day.day}</div>
           <div style={{ textAlign: 'left' }}>
             <p style={pf(15, 500)}>{day.label}</p>
-            <p style={tx(11, 400, 'rgba(58,55,51,0.40)')}>{day.date || 'Date pending'} · {day.items.length} items{conflicts.length ? ` · ${conflicts.length} conflict${conflicts.length > 1 ? 's' : ''}` : ''}</p>
+            <p style={tx(11, 400, 'color-mix(in srgb, var(--text-primary) 40%, transparent)')}>{day.date || 'Date pending'} · {day.items.length} items{conflicts.length ? ` · ${conflicts.length} conflict${conflicts.length > 1 ? 's' : ''}` : ''}</p>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -638,7 +638,7 @@ export const ItinerarySection = ({ trip, t, collapsedDays, setCollapsedDays, onC
 }
 
 const ViewToggle = ({ value, onChange }: { value: ViewMode; onChange: (v: ViewMode) => void }) => (
-  <div style={{ display: 'inline-flex', border: `1px solid ${subtleBorder}`, borderRadius: 999, padding: 2, background: '#FFFCF9' }} role="tablist" aria-label="View mode">
+  <div style={{ display: 'inline-flex', border: `1px solid ${subtleBorder}`, borderRadius: 999, padding: 2, background: 'var(--bg-elevated)' }} role="tablist" aria-label="View mode">
     {(['list', 'timeline', 'map'] as const).map((mode) => {
       const active = mode === value
       return (
@@ -651,7 +651,7 @@ const ViewToggle = ({ value, onChange }: { value: ViewMode; onChange: (v: ViewMo
           style={{
             ...tx(11, 600, active ? ink : muted),
             border: 'none',
-            background: active ? 'rgba(58,55,51,0.08)' : 'transparent',
+            background: active ? 'color-mix(in srgb, var(--text-primary) 8%, transparent)' : 'transparent',
             padding: '6px 12px',
             borderRadius: 999,
             cursor: 'pointer',

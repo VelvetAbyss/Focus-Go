@@ -28,7 +28,7 @@ export const InkButton = ({ children, onClick, disabled, ariaLabel, style, type 
     aria-label={ariaLabel}
     style={{
       ...base,
-      background: '#FFFCF9',
+      background: 'var(--bg-elevated)',
       ...tx(12, 600, ink),
       opacity: disabled ? 0.5 : 1,
       cursor: disabled ? 'not-allowed' : 'pointer',

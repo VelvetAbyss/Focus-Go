@@ -657,11 +657,11 @@ const GrowthTab = ({
                     <stop offset="95%" stopColor="#B9824B" stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid stroke="rgba(58,55,51,0.1)" vertical={false} />
-                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#3A3733', fontSize: 11 }} minTickGap={14} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#3A3733', fontSize: 11 }} width={34} />
+                <CartesianGrid stroke="color-mix(in srgb, var(--text-primary) 10%, transparent)" vertical={false} />
+                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: 'var(--text-primary)', fontSize: 11 }} minTickGap={14} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--text-primary)', fontSize: 11 }} width={34} />
                 <Tooltip
-                  contentStyle={{ border: '1px solid rgba(58,55,51,0.12)', borderRadius: 8, color: '#3A3733', background: '#F5F3F0' }}
+                  contentStyle={{ border: '1px solid color-mix(in srgb, var(--text-primary) 12%, transparent)', borderRadius: 8, color: 'var(--text-primary)', background: 'var(--bg-elevated)' }}
                   formatter={(value, name) => [Number(value).toLocaleString(), name === 'newUsers' ? t.newUsers : t.activeUsers]}
                 />
                 <Area type="monotone" dataKey="newUsers" stroke="#4F746C" strokeWidth={2} fill="url(#adminNewUsers)" name="newUsers" />
@@ -679,11 +679,11 @@ const GrowthTab = ({
           <div className="admin-chart-frame admin-chart-frame--compact">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 8, right: 10, bottom: 0, left: -18 }}>
-                <CartesianGrid stroke="rgba(58,55,51,0.1)" vertical={false} />
-                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#3A3733', fontSize: 11 }} minTickGap={18} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#3A3733', fontSize: 11 }} width={34} />
+                <CartesianGrid stroke="color-mix(in srgb, var(--text-primary) 10%, transparent)" vertical={false} />
+                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: 'var(--text-primary)', fontSize: 11 }} minTickGap={18} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--text-primary)', fontSize: 11 }} width={34} />
                 <Tooltip
-                  contentStyle={{ border: '1px solid rgba(58,55,51,0.12)', borderRadius: 8, color: '#3A3733', background: '#F5F3F0' }}
+                  contentStyle={{ border: '1px solid color-mix(in srgb, var(--text-primary) 12%, transparent)', borderRadius: 8, color: 'var(--text-primary)', background: 'var(--bg-elevated)' }}
                   formatter={(value) => fmtMoney(Number(value), primaryCurrency)}
                 />
                 <Bar dataKey="revenue" fill="#4F746C" radius={[4, 4, 0, 0]} />

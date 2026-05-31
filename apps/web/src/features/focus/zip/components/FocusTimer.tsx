@@ -129,20 +129,15 @@ function TimerDisplay({ time }: { time: number }) {
         style={{
           fontFamily: "'DM Serif Display', serif",
           fontSize: "clamp(3.8rem, 6.5vw, 6rem)",
-          color: "#3a3733",
+          color: "var(--text-primary)",
           lineHeight: 1,
         }}
       >
         {chars.map((char, i) =>
           char === ":" ? (
-            <motion.span
-              key="colon"
-              className="mx-1 opacity-40"
-              animate={{ opacity: [0.2, 0.45, 0.2] }}
-              transition={{ repeat: 9999, duration: 2, ease: "easeInOut" }}
-            >
+            <span key="colon" className="focus-zip-timer__colon mx-1">
               :
-            </motion.span>
+            </span>
           ) : (
             <RollingDigit key={`d${i}`} digit={char} prevDigit={prevChars[i] || char} />
           )
@@ -180,10 +175,10 @@ function DurationPicker({
         style={{
           background: "rgba(255,255,255,0.95)",
           backdropFilter: "blur(20px)",
-          boxShadow: "0 8px 40px rgba(58, 55, 51, 0.06), 0 1px 3px rgba(58, 55, 51, 0.04)",
+          boxShadow: "0 8px 40px color-mix(in srgb, var(--text-primary) 6%, transparent), 0 1px 3px color-mix(in srgb, var(--text-primary) 4%, transparent)",
         }}
       >
-        <p className="text-[0.68rem] text-[#918b80] uppercase tracking-[0.08em] mb-3">
+        <p className="text-[0.68rem] text-[var(--text-secondary)] uppercase tracking-[0.08em] mb-3">
           {customDurationLabel}
         </p>
         <div className="flex items-center justify-center gap-3 mb-4">
@@ -191,24 +186,24 @@ function DurationPicker({
             whileTap={{ scale: 0.9 }}
             onClick={() => onChange(Math.max(5, value - 5))}
             className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
-            style={{ background: "rgba(58, 55, 51, 0.04)" }}
+            style={{ background: "color-mix(in srgb, var(--text-primary) 4%, transparent)" }}
           >
-            <ChevronDown size={15} className="text-[#7a7568]" />
+            <ChevronDown size={15} className="text-[var(--text-secondary)]" />
           </motion.button>
           <span
             className="text-[1.8rem] tabular-nums"
-            style={{ fontFamily: "'DM Serif Display', serif", color: "#3a3733" }}
+            style={{ fontFamily: "'DM Serif Display', serif", color: "var(--text-primary)" }}
           >
             {value}
           </span>
-          <span className="text-[0.75rem] text-[#a09a90] -ml-1">{minLabel}</span>
+          <span className="text-[0.75rem] text-[var(--text-secondary)] -ml-1">{minLabel}</span>
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={() => onChange(Math.min(120, value + 5))}
             className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
-            style={{ background: "rgba(58, 55, 51, 0.04)" }}
+            style={{ background: "color-mix(in srgb, var(--text-primary) 4%, transparent)" }}
           >
-            <ChevronUp size={15} className="text-[#7a7568]" />
+            <ChevronUp size={15} className="text-[var(--text-secondary)]" />
           </motion.button>
         </div>
         <div className="flex flex-wrap gap-1.5 justify-center">
@@ -222,8 +217,8 @@ function DurationPicker({
               }}
               className="px-3 py-1.5 rounded-lg text-[0.72rem] transition-colors cursor-pointer"
               style={{
-                background: p === value ? "rgba(138,132,120,0.12)" : "rgba(58, 55, 51, 0.03)",
-                color: p === value ? "#4a4640" : "#918b80",
+                background: p === value ? "rgba(138,132,120,0.12)" : "color-mix(in srgb, var(--text-primary) 3%, transparent)",
+                color: p === value ? "var(--text-primary)" : "var(--text-secondary)",
               }}
             >
               {p}{minLabel}
@@ -308,7 +303,7 @@ function BreathingGuide({ onComplete, phaseLabels }: { onComplete: () => void; p
       >
         {phaseLabels[phase]}
       </motion.p>
-      <p className="text-[0.66rem] text-[#b0aa9e] mt-3">
+      <p className="text-[0.66rem] text-[var(--text-secondary)] mt-3">
         {count + 1} / {totalCycles}
       </p>
     </motion.div>
@@ -337,7 +332,7 @@ function DailyGoalRing({
           cy={34}
           r={radius}
           fill="none"
-          stroke="rgba(58, 55, 51, 0.04)"
+          stroke="color-mix(in srgb, var(--text-primary) 4%, transparent)"
           strokeWidth={3}
         />
         <motion.circle
@@ -355,10 +350,10 @@ function DailyGoalRing({
         />
       </svg>
       <div className="flex flex-col items-center z-10">
-        <span className="text-[0.85rem] text-[#3a3733] tabular-nums" style={{ fontFamily: "'DM Serif Display', serif" }}>
+        <span className="text-[0.85rem] text-[var(--text-primary)] tabular-nums" style={{ fontFamily: "'DM Serif Display', serif" }}>
           {completedMinutes}
         </span>
-        <span className="text-[0.5rem] text-[#b0aa9e] -mt-0.5">/ {goalMinutes}{minLabel}</span>
+        <span className="text-[0.5rem] text-[var(--text-secondary)] -mt-0.5">/ {goalMinutes}{minLabel}</span>
       </div>
     </div>
   );
@@ -473,21 +468,12 @@ export function FocusTimer({
       </AnimatePresence>
 
       {/* Breathing ambient ring */}
-      <motion.div
-        className="absolute rounded-full pointer-events-none"
+      <div
+        className={`focus-zip-timer__breathe-ring absolute rounded-full pointer-events-none${status === "running" ? " is-running" : ""}`}
         style={{
           width: 380,
           height: 380,
           background: "radial-gradient(circle, rgba(168,162,150,0.04) 0%, transparent 70%)",
-        }}
-        animate={{
-          scale: status === "running" ? [1, 1.08, 1] : [1, 1.03, 1],
-          opacity: status === "running" ? [0.5, 1, 0.5] : [0.2, 0.4, 0.2],
-        }}
-        transition={{
-          repeat: 9999,
-          duration: status === "running" ? 4 : 6,
-          ease: "easeInOut",
         }}
       />
 
@@ -496,10 +482,10 @@ export function FocusTimer({
         <div className="flex items-center gap-3">
           <DailyGoalRing completedMinutes={todayMinutes} goalMinutes={dailyGoal} minLabel={t("focus.minUnit")} />
           <div>
-            <p className="text-[0.66rem] text-[#918b80] uppercase tracking-[0.06em]">
+            <p className="text-[0.66rem] text-[var(--text-secondary)] uppercase tracking-[0.06em]">
               {t("focus.dailyGoal")}
             </p>
-            <p className="text-[0.72rem] text-[#5a5650] mt-0.5">
+            <p className="text-[0.72rem] text-[var(--text-secondary)] mt-0.5">
               {t("focus.sessionsToday", { count: todaySessions })}
             </p>
           </div>
@@ -513,9 +499,9 @@ export function FocusTimer({
           whileTap={{ scale: 0.95 }}
           onClick={() => setShowShortcuts(!showShortcuts)}
           className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer"
-          style={{ background: "rgba(58, 55, 51, 0.025)" }}
+          style={{ background: "color-mix(in srgb, var(--text-primary) 2.5%, transparent)" }}
         >
-          <Keyboard size={14} className="text-[#b0aa9e]" />
+          <Keyboard size={14} className="text-[var(--text-secondary)]" />
         </motion.button>
         <AnimatePresence>
           {showShortcuts && (
@@ -529,10 +515,10 @@ export function FocusTimer({
                 style={{
                   background: "rgba(255,255,255,0.95)",
                   backdropFilter: "blur(20px)",
-                  boxShadow: "0 6px 24px rgba(58, 55, 51, 0.06), 0 1px 3px rgba(58, 55, 51, 0.04)",
+                  boxShadow: "0 6px 24px color-mix(in srgb, var(--text-primary) 6%, transparent), 0 1px 3px color-mix(in srgb, var(--text-primary) 4%, transparent)",
                 }}
               >
-                <p className="text-[0.62rem] text-[#918b80] uppercase tracking-[0.08em] mb-2.5">
+                <p className="text-[0.62rem] text-[var(--text-secondary)] uppercase tracking-[0.08em] mb-2.5">
                   {t("focus.shortcuts")}
                 </p>
                 {[
@@ -541,12 +527,12 @@ export function FocusTimer({
                   { key: "B", action: t("focus.shortcutBreathe") },
                 ].map((s) => (
                   <div key={s.key} className="flex items-center justify-between py-1">
-                    <span className="text-[0.68rem] text-[#5a5650]">{s.action}</span>
+                    <span className="text-[0.68rem] text-[var(--text-secondary)]">{s.action}</span>
                     <span
                       className="text-[0.6rem] px-1.5 py-0.5 rounded"
                       style={{
-                        background: "rgba(58, 55, 51, 0.04)",
-                        color: "#918b80",
+                        background: "color-mix(in srgb, var(--text-primary) 4%, transparent)",
+                        color: "var(--text-secondary)",
                       }}
                     >
                       {s.key}
@@ -574,12 +560,12 @@ export function FocusTimer({
                 background:
                   selectedMode.id === mode.id
                     ? `${mode.color}14`
-                    : "rgba(58, 55, 51, 0.02)",
+                    : "color-mix(in srgb, var(--text-primary) 2%, transparent)",
                 border:
                   selectedMode.id === mode.id
                     ? `1px solid ${mode.color}25`
                     : "1px solid transparent",
-                color: selectedMode.id === mode.id ? mode.color : "#b0aa9e",
+                color: selectedMode.id === mode.id ? mode.color : "var(--text-secondary)",
                 opacity: status === "running" || status === "paused" ? 0.5 : 1,
               }}
             >
@@ -601,7 +587,7 @@ export function FocusTimer({
           ) : status === "running" ? (
             <Zap size={13} className="text-[#C4A882]" />
           ) : (
-            <Target size={13} className="text-[#a09a90]" />
+            <Target size={13} className="text-[var(--text-secondary)]" />
           )}
           <span
             className="text-[0.74rem] tracking-[0.04em] uppercase"
@@ -611,7 +597,7 @@ export function FocusTimer({
                   ? "#8BA88A"
                   : status === "running"
                   ? "#C4A882"
-                  : "#a09a90",
+                  : "var(--text-secondary)",
             }}
           >
             {statusLabels[status]}
@@ -624,7 +610,7 @@ export function FocusTimer({
         {/* Progress line */}
         <div
           className="w-56 h-[2px] mt-7 mb-8 rounded-full overflow-hidden"
-          style={{ background: "rgba(58, 55, 51, 0.04)" }}
+          style={{ background: "color-mix(in srgb, var(--text-primary) 4%, transparent)" }}
         >
           <motion.div
             className="h-full rounded-full"
@@ -655,12 +641,9 @@ export function FocusTimer({
                   color: "#7A9A78",
                 }}
               >
-                <motion.div
-                  animate={{ scale: [1, 1.15, 1] }}
-                  transition={{ repeat: 9999, duration: 3, ease: "easeInOut" }}
-                >
+                <span className="focus-zip-timer__breathe-icon">
                   <span className="text-[0.82rem]">○</span>
-                </motion.div>
+                </span>
                 <span className="text-[0.78rem]">{t("focus.breathe")}</span>
               </motion.button>
 
@@ -670,7 +653,7 @@ export function FocusTimer({
                 whileTap={{ scale: 0.97 }}
                 onClick={() => void handleStart()}
                 className="px-7 py-2.5 rounded-2xl flex items-center gap-2.5 cursor-pointer"
-                style={{ background: "#3a3733", color: "#f5f3ef" }}
+                style={{ background: "var(--text-primary)", color: "var(--bg-elevated)" }}
               >
                 <Play size={15} />
                 <span className="text-[0.82rem] tracking-[0.02em]">{t("focus.startFocus")}</span>
@@ -683,7 +666,7 @@ export function FocusTimer({
                 whileTap={{ scale: 0.97 }}
                 onClick={() => void (status === "running" ? handlePause() : handleResume())}
                 className="px-6 py-2.5 rounded-2xl flex items-center gap-2 cursor-pointer"
-                style={{ background: "#3a3733", color: "#f5f3ef" }}
+                style={{ background: "var(--text-primary)", color: "var(--bg-elevated)" }}
               >
                 {status === "running" ? (
                   <>
@@ -702,9 +685,9 @@ export function FocusTimer({
                 whileTap={{ scale: 0.95 }}
                 onClick={() => void handleReset()}
                 className="w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer"
-                style={{ background: "rgba(58, 55, 51, 0.04)" }}
+                style={{ background: "color-mix(in srgb, var(--text-primary) 4%, transparent)" }}
               >
-                <RotateCcw size={15} className="text-[#918b80]" />
+                <RotateCcw size={15} className="text-[var(--text-secondary)]" />
               </motion.button>
             </>
           )}
@@ -718,11 +701,11 @@ export function FocusTimer({
               disabled={status === "running" || status === "paused"}
               className="w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer"
               style={{
-                background: "rgba(58, 55, 51, 0.04)",
+                background: "color-mix(in srgb, var(--text-primary) 4%, transparent)",
                 opacity: status === "running" || status === "paused" ? 0.4 : 1,
               }}
             >
-              <Clock size={15} className="text-[#918b80]" />
+              <Clock size={15} className="text-[var(--text-secondary)]" />
             </motion.button>
             <AnimatePresence>
               {showDuration && (
@@ -746,12 +729,12 @@ export function FocusTimer({
             whileTap={{ scale: 0.95 }}
             onClick={() => setCompletionSound(!completionSound)}
             className="w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer"
-            style={{ background: "rgba(58, 55, 51, 0.04)" }}
+            style={{ background: "color-mix(in srgb, var(--text-primary) 4%, transparent)" }}
           >
             {completionSound ? (
-              <Bell size={15} className="text-[#918b80]" />
+              <Bell size={15} className="text-[var(--text-secondary)]" />
             ) : (
-              <BellOff size={15} className="text-[#b0aa9e]" />
+              <BellOff size={15} className="text-[var(--text-secondary)]" />
             )}
           </motion.button>
         </div>
@@ -767,20 +750,20 @@ export function FocusTimer({
                     ? selectedMode.color
                     : status === "paused"
                     ? "#D4956A"
-                    : "rgba(58, 55, 51, 0.08)",
+                    : "color-mix(in srgb, var(--text-primary) 8%, transparent)",
               }}
             />
-            <span className="text-[0.66rem] text-[#b0aa9e]">
+            <span className="text-[0.66rem] text-[var(--text-secondary)]">
               {t(selectedMode.nameKey)} · {duration}{t("focus.minUnit")}
             </span>
           </div>
           <div className="flex items-center gap-1.5">
             {completionSound ? (
-              <Bell size={10} className="text-[#b0aa9e]" />
+              <Bell size={10} className="text-[var(--text-secondary)]" />
             ) : (
-              <BellOff size={10} className="text-[#c8c2b8]" />
+              <BellOff size={10} className="text-[var(--text-secondary)]" />
             )}
-            <span className="text-[0.66rem] text-[#b0aa9e]">
+            <span className="text-[0.66rem] text-[var(--text-secondary)]">
               {completionSound ? t("focus.soundOn") : t("focus.soundOff")}
             </span>
           </div>
@@ -797,12 +780,12 @@ export function FocusTimer({
               transition={{ duration: 0.5 }}
             >
               <p
-                className="text-[0.76rem] text-[#b0aa9e] italic"
+                className="text-[0.76rem] text-[var(--text-secondary)] italic"
                 style={{ fontFamily: "'DM Serif Display', serif" }}
               >
                 "{quote.text}"
               </p>
-              <p className="text-[0.62rem] text-[#c8c2b8] mt-1.5">— {quote.author}</p>
+              <p className="text-[0.62rem] text-[var(--text-secondary)] mt-1.5">— {quote.author}</p>
             </motion.div>
           </AnimatePresence>
         </div>

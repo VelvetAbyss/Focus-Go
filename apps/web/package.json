@@ -4,12 +4,12 @@
   "version": "0.1.0-beta.5",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "analyze": "FOCUSGO_BUNDLE_ANALYZE=1 vite build",
-    "lint": "eslint .",
-    "preview": "vite preview",
-    "test": "vitest run"
+    "dev": "npm exec -- vite",
+    "build": "tsc -b && npm exec -- vite build",
+    "analyze": "FOCUSGO_BUNDLE_ANALYZE=1 npm exec -- vite build",
+    "lint": "npm exec -- eslint .",
+    "preview": "npm exec -- vite preview",
+    "test": "npm exec -- vitest run"
   },
   "dependencies": {
     "@dicebear/collection": "^9.4.2",

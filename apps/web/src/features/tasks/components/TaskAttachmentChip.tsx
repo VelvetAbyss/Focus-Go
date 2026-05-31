@@ -27,7 +27,7 @@ const TaskAttachmentChip = ({
   return (
     <div
       className={cn(
-        'tasks-fg__chip group relative shrink-0 overflow-hidden rounded-[10px] border bg-[color:color-mix(in_srgb,var(--accent-action)_4%,white)]',
+        'tasks-fg__chip group relative shrink-0 overflow-hidden rounded-[10px] border bg-[color:color-mix(in_srgb,var(--accent-action)_4%,var(--bg-elevated))]',
         'border-[color:color-mix(in_srgb,var(--accent-action)_22%,transparent)] transition-shadow',
         'hover:shadow-[0_4px_12px_-6px_rgba(139,94,52,0.35)]',
         className,
@@ -42,7 +42,7 @@ const TaskAttachmentChip = ({
           draggable={false}
         />
       ) : (
-        <div className="flex h-full w-full items-center justify-center bg-[color:color-mix(in_srgb,var(--accent-action)_8%,white)]">
+        <div className="flex h-full w-full items-center justify-center bg-[color:color-mix(in_srgb,var(--accent-action)_8%,var(--bg-elevated))]">
           <span className="h-3 w-3 animate-pulse rounded-full bg-[color:color-mix(in_srgb,var(--accent-action)_55%,transparent)]" />
         </div>
       )}

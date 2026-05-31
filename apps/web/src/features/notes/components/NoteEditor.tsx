@@ -231,7 +231,7 @@ const NoteEditor = ({
   const widthScale = Math.max(0, Math.min(100, appearance?.contentWidth ?? 0)) / 100
   const contentWidthPercent = 100 - widthScale * 42
   const zoomLevel = Math.max(50, Math.min(200, appearance?.zoom ?? 100)) / 100
-  const surfaceBg = appearance?.paperBg === 'white' ? '#ffffff' : undefined
+  const surfaceBg = appearance?.paperBg === 'white' ? 'var(--bg-elevated)' : undefined
   const [headings, setHeadings] = useState<HeadingNavItem[]>([])
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null)
   const MAX_NAV_ITEMS = 12

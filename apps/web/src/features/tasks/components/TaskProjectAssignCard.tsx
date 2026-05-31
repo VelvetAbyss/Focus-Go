@@ -43,7 +43,7 @@ const TaskProjectAssignCard = ({ projectId, projects, onChange }: TaskProjectAss
   if (currentProject && !isOrphan) {
     return (
       <section
-        className="task-detail-card tdv2-section-enter rounded-[22px] border border-[#3a3733]/8 bg-[color:var(--bg)] p-4 shadow-[0_14px_40px_rgba(15,23,42,0.04)]"
+        className="task-detail-card tdv2-section-enter rounded-[22px] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[color:var(--bg)] p-4 shadow-[var(--shadow-card)]"
         style={{ animationDelay: '20ms' }}
       >
         <div className="flex items-center justify-between gap-3">
@@ -64,7 +64,7 @@ const TaskProjectAssignCard = ({ projectId, projects, onChange }: TaskProjectAss
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 rounded-full border-[#3a3733]/15 px-3 text-[11px] font-semibold"
+                  className="h-8 rounded-full border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] px-3 text-[11px] font-semibold"
                 >
                   <ChevronDown className="mr-1 h-3.5 w-3.5" />
                   {t('tasks.drawer.changeProject')}
@@ -73,7 +73,7 @@ const TaskProjectAssignCard = ({ projectId, projects, onChange }: TaskProjectAss
               <PopoverContent
                 align="end"
                 sideOffset={8}
-                className="w-[280px] rounded-[18px] border border-[#3a3733]/8 p-2 shadow-[0_20px_50px_rgba(15,23,42,0.12)]"
+                className="w-[280px] rounded-[18px] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] p-2 shadow-[var(--shadow-card-lg)]"
               >
                 <ProjectPickerList
                   projects={filtered}
@@ -128,7 +128,7 @@ const TaskProjectAssignCard = ({ projectId, projects, onChange }: TaskProjectAss
             <PopoverContent
               align="end"
               sideOffset={8}
-              className="w-[280px] rounded-[18px] border border-[#3a3733]/8 p-2 shadow-[0_20px_50px_rgba(15,23,42,0.12)]"
+              className="w-[280px] rounded-[18px] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] p-2 shadow-[var(--shadow-card-lg)]"
             >
               <ProjectPickerList
                 projects={filtered}
@@ -152,11 +152,11 @@ const TaskProjectAssignCard = ({ projectId, projects, onChange }: TaskProjectAss
         <button
           type="button"
           className={cn(
-            'task-detail-card tdv2-section-enter group flex w-full items-center gap-3 rounded-[22px] border-2 border-dashed border-[#3a3733]/15 bg-[color:var(--bg-muted)] p-4 text-left transition-all duration-200 hover:border-emerald-400/60 hover:bg-emerald-50/40',
+            'task-detail-card tdv2-section-enter group flex w-full items-center gap-3 rounded-[22px] border-2 border-dashed border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] bg-[color:var(--bg-muted)] p-4 text-left transition-all duration-200 hover:border-emerald-400/60 hover:bg-emerald-50/40',
           )}
           style={{ animationDelay: '20ms' }}
         >
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-white text-[color:var(--text-secondary)] transition-colors group-hover:bg-emerald-100 group-hover:text-emerald-600">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-[var(--bg-elevated)] text-[color:var(--text-secondary)] transition-colors group-hover:bg-emerald-100 group-hover:text-emerald-600">
             <FolderPlus className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
@@ -173,7 +173,7 @@ const TaskProjectAssignCard = ({ projectId, projects, onChange }: TaskProjectAss
       <PopoverContent
         align="start"
         sideOffset={8}
-        className="w-[320px] rounded-[18px] border border-[#3a3733]/8 p-2 shadow-[0_20px_50px_rgba(15,23,42,0.12)]"
+        className="w-[320px] rounded-[18px] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] p-2 shadow-[var(--shadow-card-lg)]"
       >
         <ProjectPickerList
           projects={filtered}
@@ -215,7 +215,7 @@ const ProjectPickerList = ({
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={t('tasks.drawer.searchProject')}
-            className="h-8 rounded-[12px] border-[#3a3733]/8 bg-[color:var(--bg-muted)] pl-7 text-[12px]"
+            className="h-8 rounded-[12px] border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[color:var(--bg-muted)] pl-7 text-[12px]"
             autoFocus
           />
         </div>

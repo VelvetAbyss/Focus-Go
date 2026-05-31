@@ -1,10 +1,10 @@
 import type { CSSProperties } from 'react'
 
-export const paper = '#F5F3F0'
-export const cardBg = '#FDFAF7'
-export const ink = '#3A3733'
-export const muted = 'rgba(58,55,51,0.45)'
-export const subtleBorder = 'rgba(58,55,51,0.09)'
+export const paper = 'var(--bg-elevated)'
+export const cardBg = 'var(--bg-elevated)'
+export const ink = 'var(--text-primary)'
+export const muted = 'color-mix(in srgb, var(--text-primary) 45%, transparent)'
+export const subtleBorder = 'color-mix(in srgb, var(--text-primary) 9%, transparent)'
 export const accent = '#7C5A3A'
 export const danger = '#C05050'
 export const success = '#5B8C5A'
@@ -27,7 +27,7 @@ export const inputStyle: CSSProperties = {
   width: '100%',
   borderRadius: 12,
   border: `1px solid ${subtleBorder}`,
-  background: '#FFFCF9',
+  background: 'color-mix(in srgb, var(--text-primary) 4%, transparent)',
   padding: '10px 12px',
   outline: 'none',
   ...tx(13, 400),
@@ -37,7 +37,7 @@ export const textareaStyle: CSSProperties = { ...inputStyle, minHeight: 88, resi
 
 export const skeletonBlock = (style?: CSSProperties): CSSProperties => ({
   borderRadius: 18,
-  background: 'linear-gradient(90deg, rgba(58,55,51,0.05) 0%, rgba(58,55,51,0.11) 50%, rgba(58,55,51,0.05) 100%)',
+  background: 'linear-gradient(90deg, color-mix(in srgb, var(--text-primary) 5%, transparent) 0%, color-mix(in srgb, var(--text-primary) 11%, transparent) 50%, color-mix(in srgb, var(--text-primary) 5%, transparent) 100%)',
   backgroundSize: '200% 100%',
   animation: 'life-loader-shimmer 1.35s ease-in-out infinite',
   ...style,

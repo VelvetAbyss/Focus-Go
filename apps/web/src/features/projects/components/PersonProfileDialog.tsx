@@ -38,7 +38,7 @@ const PersonProfileDialog = ({
     <Dialog
       open={open}
       onClose={onClose}
-      panelClassName="w-[min(560px,calc(100vw-32px))] overflow-hidden rounded-[32px] border border-[#3A3733]/10 bg-[#F5F3F0]"
+      panelClassName="w-[min(560px,calc(100vw-32px))] overflow-hidden rounded-[32px] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[var(--bg-elevated)]"
       contentClassName="p-0"
     >
       <div className="pd-person-profile">
@@ -111,7 +111,7 @@ const PersonProfileDialog = ({
                       {task.status === 'done' ? (
                         <CheckCircle2 size={14} className="text-emerald-600" />
                       ) : (
-                        <Circle size={14} className="text-[color:rgba(58,55,51,0.35)]" />
+                        <Circle size={14} className="text-[color:color-mix(in srgb, var(--text-primary) 35%, transparent)]" />
                       )}
                       <span className="pd-person-profile__task-title">{task.title}</span>
                     </button>

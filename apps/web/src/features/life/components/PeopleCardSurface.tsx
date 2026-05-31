@@ -72,9 +72,9 @@ const avatarColorPalette = [
 
 const primarySaveStyle = {
   ...smallButtonStyle,
-  background: '#3A3733',
-  color: '#F5F3F0',
-  border: '1px solid #3A3733',
+  background: 'var(--text-primary)',
+  color: 'var(--bg-elevated)',
+  border: '1px solid var(--text-primary)',
   fontWeight: 600 as const,
   padding: '8px 16px',
 }
@@ -128,8 +128,8 @@ export const PeopleCardSurface = ({
         <div style={cardHeaderStyle}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-              <Users size={13} color="rgba(58,55,51,0.38)" />
-              <span style={{ ...inter(10, 600, 'rgba(58,55,51,0.38)'), letterSpacing: '0.10em', textTransform: 'uppercase' }}>{t('life.card.people')}</span>
+              <Users size={13} color="color-mix(in srgb, var(--text-primary) 38%, transparent)" />
+              <span style={{ ...inter(10, 600, 'color-mix(in srgb, var(--text-primary) 38%, transparent)'), letterSpacing: '0.10em', textTransform: 'uppercase' }}>{t('life.card.people')}</span>
             </div>
             <h3 style={{ ...playfair(18, 500), lineHeight: 1.2 }}>{t('life.card.people')}</h3>
           </div>
@@ -143,7 +143,7 @@ export const PeopleCardSurface = ({
               {categories.length > 1 ? (
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '0 4px 10px' }}>
                   {categories.map((category) => (
-                    <button key={category} type="button" onClick={(event) => { event.stopPropagation(); setCategoryFilter(category) }} style={{ ...smallButtonStyle, background: categoryFilter === category ? 'rgba(58,55,51,0.10)' : 'rgba(58,55,51,0.06)', padding: '4px 10px' }}>
+                    <button key={category} type="button" onClick={(event) => { event.stopPropagation(); setCategoryFilter(category) }} style={{ ...smallButtonStyle, background: categoryFilter === category ? 'color-mix(in srgb, var(--text-primary) 10%, transparent)' : 'color-mix(in srgb, var(--text-primary) 6%, transparent)', padding: '4px 10px' }}>
                       {category}
                     </button>
                   ))}
@@ -152,26 +152,26 @@ export const PeopleCardSurface = ({
               {visibleRows.slice(0, 3).map((person, index) => (
               <div key={person.id}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 4px' }}>
-                  <div style={{ width: 38, height: 38, borderRadius: '50%', background: person.avatarColor, border: '1px solid rgba(58,55,51,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', ...inter(13, 500, 'rgba(58,55,51,0.70)'), flexShrink: 0 }}>
+                  <div style={{ width: 38, height: 38, borderRadius: '50%', background: person.avatarColor, border: '1px solid color-mix(in srgb, var(--text-primary) 8%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', ...inter(13, 500, 'color-mix(in srgb, var(--text-primary) 70%, transparent)'), flexShrink: 0 }}>
                     {person.avatarInitials}
                   </div>
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                       <p style={{ ...inter(13, 500), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{person.name}</p>
-                      <span style={{ ...inter(9, 500, '#3A3733'), background: 'rgba(58,55,51,0.08)', borderRadius: 999, padding: '2px 8px' }}>{person.group}</span>
-                      {person.category ? <span style={{ ...inter(9, 500, '#3A3733'), background: 'rgba(212,136,43,0.10)', borderRadius: 999, padding: '2px 8px' }}>{person.category}</span> : null}
+                      <span style={{ ...inter(9, 500, 'var(--text-primary)'), background: 'color-mix(in srgb, var(--text-primary) 8%, transparent)', borderRadius: 999, padding: '2px 8px' }}>{person.group}</span>
+                      {person.category ? <span style={{ ...inter(9, 500, 'var(--text-primary)'), background: 'rgba(212,136,43,0.10)', borderRadius: 999, padding: '2px 8px' }}>{person.category}</span> : null}
                     </div>
                     <p style={{ ...inter(11, 400, person.birthdaySoon ? '#8C7355' : mutedText), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{person.secondary}</p>
                   </div>
                 </div>
-                {index < Math.min(visibleRows.length, 3) - 1 ? <div style={{ height: 1, background: 'rgba(58,55,51,0.05)', marginLeft: 50 }} /> : null}
+                {index < Math.min(visibleRows.length, 3) - 1 ? <div style={{ height: 1, background: 'color-mix(in srgb, var(--text-primary) 5%, transparent)', marginLeft: 50 }} /> : null}
               </div>
               ))}
             </>
           ) : (
             <div style={{ display: 'flex', minHeight: 180, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
-              <div style={{ width: 48, height: 48, marginBottom: 16, borderRadius: 999, background: 'rgba(58,55,51,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Users size={20} color="rgba(58,55,51,0.30)" />
+              <div style={{ width: 48, height: 48, marginBottom: 16, borderRadius: 999, background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Users size={20} color="color-mix(in srgb, var(--text-primary) 30%, transparent)" />
               </div>
               <p style={{ ...playfair(14, 500), marginBottom: 6 }}>{t('life.people.emptyTitle')}</p>
               <p style={{ ...inter(12, 400, mutedText), lineHeight: 1.6, marginBottom: 18 }}>{t('life.people.emptyDescription')}</p>
@@ -187,7 +187,7 @@ export const PeopleCardSurface = ({
             <Plus size={12} />
             <span>{t('life.people.addPerson')}</span>
           </button>
-          <p style={{ ...inter(11, 400, 'rgba(58,55,51,0.38)') }}>{model.statsLabel}</p>
+          <p style={{ ...inter(11, 400, 'color-mix(in srgb, var(--text-primary) 38%, transparent)') }}>{model.statsLabel}</p>
         </div>
       </div>
 
@@ -196,7 +196,7 @@ export const PeopleCardSurface = ({
           {/* Modal header */}
           <div style={modalHeaderStyle}>
             <div>
-              <p style={{ ...inter(10, 600, 'rgba(58,55,51,0.38)'), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 4 }}>
+              <p style={{ ...inter(10, 600, 'color-mix(in srgb, var(--text-primary) 38%, transparent)'), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 4 }}>
                 {items.length > 0 ? t('life.people.count', { count: items.length }) : t('life.people.title')}
               </p>
               <h2 style={{ ...playfair(22, 500) }}>{t('life.people.title')}</h2>
@@ -220,7 +220,7 @@ export const PeopleCardSurface = ({
                 <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 12 }}>
                   {categories.map((category) => (
                     <button key={category} type="button" onClick={() => setCategoryFilter(category)}
-                      style={{ ...smallButtonStyle, padding: '4px 10px', background: categoryFilter === category ? 'rgba(58,55,51,0.12)' : 'rgba(58,55,51,0.05)' }}>
+                      style={{ ...smallButtonStyle, padding: '4px 10px', background: categoryFilter === category ? 'color-mix(in srgb, var(--text-primary) 12%, transparent)' : 'color-mix(in srgb, var(--text-primary) 5%, transparent)' }}>
                       {category}
                     </button>
                   ))}
@@ -241,21 +241,21 @@ export const PeopleCardSurface = ({
                           padding: '9px 10px',
                           paddingRight: 36,
                           borderRadius: 14,
-                          border: isActive ? '1px solid rgba(58,55,51,0.13)' : '1px solid transparent',
-                          background: isActive ? '#fff' : 'transparent',
+                          border: isActive ? '1px solid color-mix(in srgb, var(--text-primary) 13%, transparent)' : '1px solid transparent',
+                          background: isActive ? 'var(--bg-elevated)' : 'transparent',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           gap: 10,
-                          boxShadow: isActive ? '0 1px 4px rgba(58,55,51,0.07)' : 'none',
+                          boxShadow: isActive ? '0 1px 4px rgba(0, 0, 0, 0.07)' : 'none',
                         }}
                       >
                         <div style={{
                           width: 34, height: 34, borderRadius: '50%',
                           background: item.avatarColor ?? '#D8CFC7',
-                          border: '1px solid rgba(58,55,51,0.08)',
+                          border: '1px solid color-mix(in srgb, var(--text-primary) 8%, transparent)',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          ...inter(12, 600, 'rgba(58,55,51,0.65)'),
+                          ...inter(12, 600, 'color-mix(in srgb, var(--text-primary) 65%, transparent)'),
                           flexShrink: 0,
                           letterSpacing: '0.02em',
                         }}>
@@ -271,7 +271,7 @@ export const PeopleCardSurface = ({
                           <div style={{
                             width: 8, height: 8, borderRadius: '50%',
                             background: groupColorMap[item.group],
-                            border: '1px solid rgba(58,55,51,0.12)',
+                            border: '1px solid color-mix(in srgb, var(--text-primary) 12%, transparent)',
                             flexShrink: 0,
                           }} />
                         ) : null}
@@ -293,13 +293,13 @@ export const PeopleCardSurface = ({
             {/* Detail pane */}
             <div style={{ ...detailPaneStyle, background: paper, padding: '20px 24px', overflowY: 'auto' }}>
               {/* Avatar preview header */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 22, paddingBottom: 20, borderBottom: '1px solid rgba(58,55,51,0.07)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 22, paddingBottom: 20, borderBottom: '1px solid color-mix(in srgb, var(--text-primary) 7%, transparent)' }}>
                 <div style={{
                   width: 58, height: 58, borderRadius: '50%',
                   background: draft.avatarColor,
-                  border: '1.5px solid rgba(58,55,51,0.10)',
+                  border: '1.5px solid color-mix(in srgb, var(--text-primary) 10%, transparent)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  ...inter(20, 600, 'rgba(58,55,51,0.65)'),
+                  ...inter(20, 600, 'color-mix(in srgb, var(--text-primary) 65%, transparent)'),
                   flexShrink: 0,
                   letterSpacing: '0.02em',
                   transition: 'background 200ms ease',
@@ -336,10 +336,10 @@ export const PeopleCardSurface = ({
                           onClick={() => setDraft((current) => ({ ...current, group }))}
                           style={{
                             ...smallButtonStyle,
-                            background: isSelected ? groupColorMap[group] : 'rgba(58,55,51,0.05)',
-                            border: isSelected ? '1px solid rgba(58,55,51,0.18)' : '1px solid rgba(58,55,51,0.09)',
+                            background: isSelected ? groupColorMap[group] : 'color-mix(in srgb, var(--text-primary) 5%, transparent)',
+                            border: isSelected ? '1px solid color-mix(in srgb, var(--text-primary) 18%, transparent)' : '1px solid color-mix(in srgb, var(--text-primary) 9%, transparent)',
                             fontWeight: isSelected ? 600 : 500,
-                            color: isSelected ? 'rgba(58,55,51,0.85)' : 'rgba(58,55,51,0.55)',
+                            color: isSelected ? 'color-mix(in srgb, var(--text-primary) 85%, transparent)' : 'color-mix(in srgb, var(--text-primary) 55%, transparent)',
                             transition: 'background 150ms ease, color 150ms ease',
                           }}
                         >
@@ -396,7 +396,7 @@ export const PeopleCardSurface = ({
                             border: 'none',
                             cursor: 'pointer',
                             flexShrink: 0,
-                            outline: draft.avatarColor === color ? `3px solid rgba(58,55,51,0.45)` : '2px solid transparent',
+                            outline: draft.avatarColor === color ? `3px solid color-mix(in srgb, var(--text-primary) 45%, transparent)` : '2px solid transparent',
                             outlineOffset: 2,
                             transition: 'outline 120ms ease, transform 120ms ease',
                             transform: draft.avatarColor === color ? 'scale(1.15)' : 'scale(1)',

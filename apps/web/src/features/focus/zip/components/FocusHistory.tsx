@@ -70,8 +70,8 @@ function FilterChip({
         onClick={() => setOpen(!open)}
         className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[0.68rem] cursor-pointer transition-colors"
         style={{
-          background: value !== "all" ? "rgba(138,132,120,0.1)" : "rgba(58, 55, 51, 0.025)",
-          color: value !== "all" ? "#5a5650" : "#918b80",
+          background: value !== "all" ? "rgba(138,132,120,0.1)" : "color-mix(in srgb, var(--text-primary) 2.5%, transparent)",
+          color: value !== "all" ? "var(--text-secondary)" : "var(--text-secondary)",
         }}
       >
         <Filter size={10} />
@@ -91,7 +91,7 @@ function FilterChip({
               style={{
                 background: "rgba(255,255,255,0.95)",
                 backdropFilter: "blur(20px)",
-                boxShadow: "0 6px 24px rgba(58, 55, 51, 0.06), 0 1px 3px rgba(58, 55, 51, 0.04)",
+                boxShadow: "0 6px 24px color-mix(in srgb, var(--text-primary) 6%, transparent), 0 1px 3px color-mix(in srgb, var(--text-primary) 4%, transparent)",
               }}
             >
               {options.map((opt) => (
@@ -101,8 +101,8 @@ function FilterChip({
                     onChange(opt.value);
                     setOpen(false);
                   }}
-                  className="w-full text-left px-3 py-1.5 text-[0.68rem] transition-colors cursor-pointer hover:bg-[#3a3733]/[0.03]"
-                  style={{ color: opt.value === value ? "#3a3733" : "#918b80" }}
+                  className="w-full text-left px-3 py-1.5 text-[0.68rem] transition-colors cursor-pointer hover:bg-[var(--text-primary)]/[0.03]"
+                  style={{ color: opt.value === value ? "var(--text-primary)" : "var(--text-secondary)" }}
                 >
                   {opt.label}
                 </button>
@@ -152,7 +152,7 @@ function WeeklyChart({ sessions }: { sessions: FocusSession[] }) {
                   ? "rgba(139,168,138,0.35)"
                   : d.minutes > 0
                   ? "rgba(168,162,150,0.2)"
-                  : "rgba(58, 55, 51, 0.04)",
+                  : "color-mix(in srgb, var(--text-primary) 4%, transparent)",
               }}
               initial={{ height: 4 }}
               animate={{ height }}
@@ -162,7 +162,7 @@ function WeeklyChart({ sessions }: { sessions: FocusSession[] }) {
                 <div
                   className="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
                   style={{
-                    background: "rgba(58,55,51,0.9)",
+                    background: "color-mix(in srgb, var(--text-primary) 90%, transparent)",
                     padding: "2px 6px",
                     borderRadius: 6,
                     whiteSpace: "nowrap",
@@ -177,7 +177,7 @@ function WeeklyChart({ sessions }: { sessions: FocusSession[] }) {
             <span
               className="text-[0.55rem] tabular-nums"
               style={{
-                color: isToday ? "#7A9A78" : "#c0bab0",
+                color: isToday ? "#7A9A78" : "var(--text-secondary)",
               }}
             >
               {d.label}
@@ -223,12 +223,12 @@ function StatsCard({ sessions }: { sessions: FocusSession[] }) {
         style={{ background: "rgba(139,168,138,0.05)" }}
       >
         <p
-          className="text-[1rem] text-[#3a3733] tabular-nums"
+          className="text-[1rem] text-[var(--text-primary)] tabular-nums"
           style={{ fontFamily: "'DM Serif Display', serif" }}
         >
           {todayMinutes}
         </p>
-        <p className="text-[0.55rem] text-[#a09a90] uppercase tracking-[0.06em] mt-0.5">
+        <p className="text-[0.55rem] text-[var(--text-secondary)] uppercase tracking-[0.06em] mt-0.5">
           {t("focus.stats.minToday")}
         </p>
       </div>
@@ -237,12 +237,12 @@ function StatsCard({ sessions }: { sessions: FocusSession[] }) {
         style={{ background: "rgba(196,168,130,0.05)" }}
       >
         <p
-          className="text-[1rem] text-[#3a3733] tabular-nums"
+          className="text-[1rem] text-[var(--text-primary)] tabular-nums"
           style={{ fontFamily: "'DM Serif Display', serif" }}
         >
           {completionRate}%
         </p>
-        <p className="text-[0.55rem] text-[#a09a90] uppercase tracking-[0.06em] mt-0.5">
+        <p className="text-[0.55rem] text-[var(--text-secondary)] uppercase tracking-[0.06em] mt-0.5">
           {t("focus.stats.rate")}
         </p>
       </div>
@@ -253,13 +253,13 @@ function StatsCard({ sessions }: { sessions: FocusSession[] }) {
         <div className="flex items-center justify-center gap-1">
           <Flame size={12} className="text-[#D4956A]" />
           <p
-            className="text-[1rem] text-[#3a3733] tabular-nums"
+            className="text-[1rem] text-[var(--text-primary)] tabular-nums"
             style={{ fontFamily: "'DM Serif Display', serif" }}
           >
             {streak}
           </p>
         </div>
-        <p className="text-[0.55rem] text-[#a09a90] uppercase tracking-[0.06em] mt-0.5">
+        <p className="text-[0.55rem] text-[var(--text-secondary)] uppercase tracking-[0.06em] mt-0.5">
           {t("focus.stats.streak")}
         </p>
       </div>
@@ -317,11 +317,11 @@ export function FocusHistory({ externalSessions }: { externalSessions?: FocusSes
       <div className="mb-4">
         <h2
           style={{ fontFamily: "'DM Serif Display', serif" }}
-          className="text-[1.15rem] text-[#3a3733] tracking-[-0.01em]"
+          className="text-[1.15rem] text-[var(--text-primary)] tracking-[-0.01em]"
         >
           {t("focus.history")}
         </h2>
-        <p className="text-[0.7rem] text-[#a09a90] mt-0.5 tracking-wide">
+        <p className="text-[0.7rem] text-[var(--text-secondary)] mt-0.5 tracking-wide">
           {language === "zh" ? `${completedToday} 次 · 今日 ${totalMinutesToday} 分钟` : `${completedToday} sessions today · ${totalMinutesToday} min`}
         </p>
       </div>
@@ -332,14 +332,14 @@ export function FocusHistory({ externalSessions }: { externalSessions?: FocusSes
       {/* Weekly chart */}
       <div className="mb-4">
         <div className="flex items-center gap-1.5 mb-2.5">
-          <TrendingUp size={11} className="text-[#b0aa9e]" />
-          <span className="text-[0.62rem] text-[#918b80] uppercase tracking-[0.08em]">
+          <TrendingUp size={11} className="text-[var(--text-secondary)]" />
+          <span className="text-[0.62rem] text-[var(--text-secondary)] uppercase tracking-[0.08em]">
             {t("focus.stats.thisWeek")}
           </span>
         </div>
         <div
           className="rounded-xl px-3 py-3"
-          style={{ background: "rgba(58, 55, 51, 0.015)" }}
+          style={{ background: "color-mix(in srgb, var(--text-primary) 1.5%, transparent)" }}
         >
           <WeeklyChart sessions={allSessions} />
         </div>
@@ -352,8 +352,8 @@ export function FocusHistory({ externalSessions }: { externalSessions?: FocusSes
           onClick={() => setSelectedTag(null)}
           className="px-2 py-0.5 rounded-md text-[0.62rem] cursor-pointer transition-colors"
           style={{
-            background: !selectedTag ? "rgba(138,132,120,0.1)" : "rgba(58, 55, 51, 0.02)",
-            color: !selectedTag ? "#5a5650" : "#b0aa9e",
+            background: !selectedTag ? "rgba(138,132,120,0.1)" : "color-mix(in srgb, var(--text-primary) 2%, transparent)",
+            color: !selectedTag ? "var(--text-secondary)" : "var(--text-secondary)",
           }}
         >
           {t("focus.filter.all")}
@@ -366,8 +366,8 @@ export function FocusHistory({ externalSessions }: { externalSessions?: FocusSes
             className="px-2 py-0.5 rounded-md text-[0.62rem] cursor-pointer transition-colors"
             style={{
               background:
-                selectedTag === tag.id ? `${tag.color}18` : "rgba(58, 55, 51, 0.02)",
-              color: selectedTag === tag.id ? tag.color : "#b0aa9e",
+                selectedTag === tag.id ? `${tag.color}18` : "color-mix(in srgb, var(--text-primary) 2%, transparent)",
+              color: selectedTag === tag.id ? tag.color : "var(--text-secondary)",
             }}
           >
             {sessionTagLabels[tag.id] ?? tag.id}
@@ -406,7 +406,7 @@ export function FocusHistory({ externalSessions }: { externalSessions?: FocusSes
       >
         {Object.entries(grouped).map(([dateLabel, sessions]) => (
           <div key={dateLabel} className="mb-4">
-            <p className="text-[0.6rem] text-[#c0bab0] uppercase tracking-[0.1em] mb-2 px-1">
+            <p className="text-[0.6rem] text-[var(--text-secondary)] uppercase tracking-[0.1em] mb-2 px-1">
               {dateLabel}
             </p>
             <div className="space-y-1">
@@ -424,7 +424,7 @@ export function FocusHistory({ externalSessions }: { externalSessions?: FocusSes
                         background:
                           session.status === "completed"
                             ? "rgba(139,168,138,0.035)"
-                            : "rgba(58, 55, 51, 0.012)",
+                            : "color-mix(in srgb, var(--text-primary) 1.2%, transparent)",
                       }}
                     >
                       <div className="flex items-center justify-between mb-1">
@@ -434,11 +434,11 @@ export function FocusHistory({ externalSessions }: { externalSessions?: FocusSes
                           ) : (
                             <XCircle size={12} className="text-[#C4A882]" />
                           )}
-                          <span className="text-[0.74rem] text-[#4a4640] tabular-nums">
+                          <span className="text-[0.74rem] text-[var(--text-secondary)] tabular-nums">
                             {formatTime(session.startTime)} – {formatTime(session.endTime)}
                           </span>
                         </div>
-                        <span className="flex items-center gap-1 text-[0.62rem] text-[#b0aa9e] tabular-nums">
+                        <span className="flex items-center gap-1 text-[0.62rem] text-[var(--text-secondary)] tabular-nums">
                           <Clock size={9} />
                           {session.durationMinutes}m
                         </span>
@@ -469,7 +469,7 @@ export function FocusHistory({ externalSessions }: { externalSessions?: FocusSes
                           </span>
                         )}
                         {session.mode && (
-                          <span className="text-[0.58rem] text-[#c8c2b8]">
+                          <span className="text-[0.58rem] text-[var(--text-secondary)]">
                             {session.mode}
                           </span>
                         )}
@@ -485,8 +485,8 @@ export function FocusHistory({ externalSessions }: { externalSessions?: FocusSes
         {filtered.length === 0 && (
           <div className="flex flex-col items-center justify-center py-10 text-center">
             <Award size={22} className="text-[#d0cac0] mb-2.5" />
-            <p className="text-[0.76rem] text-[#b0aa9e]">{t("focus.empty.noSessions")}</p>
-            <p className="text-[0.66rem] text-[#c8c2b8] mt-1">
+            <p className="text-[0.76rem] text-[var(--text-secondary)]">{t("focus.empty.noSessions")}</p>
+            <p className="text-[0.66rem] text-[var(--text-secondary)] mt-1">
               {t("focus.empty.adjustFilters")}
             </p>
           </div>

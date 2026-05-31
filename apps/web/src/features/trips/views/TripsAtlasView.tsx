@@ -143,7 +143,7 @@ export const TripsAtlasView = ({ trips, t, onOpen }: Props) => {
                   alignItems: 'center',
                   gap: 8,
                   border: `1px solid ${subtleBorder}`,
-                  background: '#FDFAF7',
+                  background: 'var(--bg-elevated)',
                   borderRadius: 999,
                   padding: '7px 12px',
                   cursor: 'pointer',

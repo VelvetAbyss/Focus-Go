@@ -62,7 +62,7 @@ const SpendChart = () => {
   return (
     <div className="flex flex-col h-full">
       <div className="flex justify-end mb-4">
-        <span className="px-3 py-1 text-xs rounded-full bg-gray-100 text-gray-600">30D</span>
+        <span className="px-3 py-1 text-xs rounded-full bg-[color-mix(in_srgb,var(--text-primary)_7%,transparent)] text-muted-foreground">30D</span>
       </div>
 
       <div className="min-h-[160px] h-[clamp(160px,24vh,220px)] w-full">

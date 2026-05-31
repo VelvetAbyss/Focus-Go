@@ -6,10 +6,14 @@ type AmbientSceneStageProps = {
   scene: SceneId
 }
 
-const TARGET_FPS = 30
+// The ambient canvas is always viewed through the panels' 22px backdrop blur,
+// so sub-pixel detail and high frame rates are imperceptible — but each frame
+// forces a full-viewport backdrop-filter re-blur. Keeping FPS/DPR modest here
+// is the single biggest CPU/GPU win with no visible change.
+const TARGET_FPS = 20
 const FRAME_BUDGET = 1000 / TARGET_FPS
 const CROSSFADE_MS = 600
-const MAX_DPR = 1.5
+const MAX_DPR = 1
 
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' &&
@@ -47,6 +51,7 @@ const AmbientSceneStage = ({ scene }: AmbientSceneStageProps) => {
   const lastTsRef = useRef<number>(0)
   const accumulatorRef = useRef<number>(0)
   const visibleRef = useRef<boolean>(true)
+  const inViewportRef = useRef<boolean>(true)
   const themeRef = useRef<ThemeMode>(resolveInitialTheme())
   const generationRef = useRef<number>(0)
   const fadeTimerRef = useRef<number | null>(null)
@@ -98,18 +103,66 @@ const AmbientSceneStage = ({ scene }: AmbientSceneStageProps) => {
 
     reducedRef.current = prefersReducedMotion() || isSaveData()
 
-    // Visibility pause.
-    const onVisibility = () => {
-      visibleRef.current = !document.hidden
-      if (visibleRef.current) {
-        lastTsRef.current = 0
-        startLoop()
-      } else if (rafRef.current) {
+    const isAwake = () => visibleRef.current && inViewportRef.current
+
+    const sleep = () => {
+      if (rafRef.current) {
         cancelAnimationFrame(rafRef.current)
         rafRef.current = 0
       }
+      // Clear both canvases so any wake-up paints a fresh frame instead of
+      // a stale one peeking through during the next opacity transition.
+      const layers = layersRef.current
+      if (!layers) return
+      ;[layers.a.canvas, layers.b.canvas].forEach((canvas) => {
+        const ctx = canvas.getContext('2d')
+        if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height)
+      })
+    }
+
+    const wake = () => {
+      if (!isAwake()) return
+      const layers = layersRef.current
+      if (!layers) return
+      // Re-size in case the viewport changed while we slept.
+      sizeCanvases()
+      // Re-init the active strategy so particles spawn fresh, avoiding the
+      // visible "snap" of very old positions.
+      const active = layers[activeKeyRef.current]
+      if (active.strategy && active.sceneId) {
+        active.strategy.cleanup()
+        active.strategy = createSceneStrategy(active.sceneId)
+        active.strategy.init(active.canvas, themeRef.current)
+      }
+      lastTsRef.current = 0
+      accumulatorRef.current = 0
+      startLoop()
+    }
+
+    // Visibility (document.hidden): tab switch, window minimize.
+    const onVisibility = () => {
+      visibleRef.current = !document.hidden
+      if (visibleRef.current) wake()
+      else sleep()
     }
     document.addEventListener('visibilitychange', onVisibility)
+
+    // IntersectionObserver: shell scrolled out of view, route swap, etc.
+    let io: IntersectionObserver | null = null
+    if (typeof IntersectionObserver !== 'undefined' && rootRef.current) {
+      io = new IntersectionObserver(
+        (entries) => {
+          const entry = entries[0]
+          const next = entry ? entry.intersectionRatio > 0.02 : true
+          if (next === inViewportRef.current) return
+          inViewportRef.current = next
+          if (next) wake()
+          else sleep()
+        },
+        { threshold: [0, 0.02, 0.2] },
+      )
+      io.observe(rootRef.current)
+    }
 
     // Resize.
     let resizeFrame = 0
@@ -161,6 +214,7 @@ const AmbientSceneStage = ({ scene }: AmbientSceneStageProps) => {
       document.removeEventListener('visibilitychange', onVisibility)
       window.removeEventListener('resize', onResize)
       if (ro) ro.disconnect()
+      if (io) io.disconnect()
       if (resizeFrame) cancelAnimationFrame(resizeFrame)
       dprMq?.removeEventListener?.('change', onDpr)
       unsubscribeTheme()
@@ -192,7 +246,7 @@ const AmbientSceneStage = ({ scene }: AmbientSceneStageProps) => {
 
     const step = (ts: number) => {
       rafRef.current = requestAnimationFrame(step)
-      if (!visibleRef.current) return
+      if (!visibleRef.current || !inViewportRef.current) return
       const layers = layersRef.current
       if (!layers) return
       const last = lastTsRef.current || ts

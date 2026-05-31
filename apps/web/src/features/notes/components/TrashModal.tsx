@@ -25,7 +25,7 @@ export default function TrashModal({ open, trashedNotes, onClose, onRestore, onD
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-[#3a3733]/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-[color-mix(in_srgb,var(--text-primary)_40%,transparent)] backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-popover shadow-2xl">
         <div className="flex items-center justify-between px-6 pb-3 pt-5">
           <div>

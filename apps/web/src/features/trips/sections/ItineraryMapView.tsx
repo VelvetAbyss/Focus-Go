@@ -109,7 +109,7 @@ export const ItineraryMapView = ({ trip }: Props) => {
                 padding: '4px 10px',
                 borderRadius: 999,
                 border: `1px solid ${subtleBorder}`,
-                background: selectedDay === day.day ? 'rgba(58,55,51,0.08)' : '#FFFCF9',
+                background: selectedDay === day.day ? 'color-mix(in srgb, var(--text-primary) 8%, transparent)' : 'var(--bg-elevated)',
                 cursor: 'pointer',
               }}
             >
@@ -140,7 +140,7 @@ const DaySelect = ({
       padding: '6px 10px',
       borderRadius: 999,
       border: `1px solid ${subtleBorder}`,
-      background: '#FFFCF9',
+      background: 'var(--bg-elevated)',
       cursor: 'pointer',
     }}
     aria-label="Select day"

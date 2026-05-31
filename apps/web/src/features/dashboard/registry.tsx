@@ -23,8 +23,8 @@ const TripsCard = lazy(() => import('../life/cards/TripsCard'))
 const cardFallbackStyle = {
   height: '100%',
   borderRadius: 24,
-  background: 'var(--color-surface, #ffffff)',
-  boxShadow: '0 12px 28px rgba(58, 55, 51, 0.05)',
+  background: 'var(--bg-elevated)',
+  boxShadow: 'var(--shadow-card)',
 } satisfies CSSProperties
 
 const renderLazyCard = (node: ReactNode) => (

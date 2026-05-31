@@ -268,12 +268,12 @@ const QrModal = ({ order, onClose, lang }: { order: CreatePaymentOrderResponse; 
         initial={{ opacity: 0, y: 12, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ type: 'spring', stiffness: 220, damping: 22 }}
-        className="relative w-full max-w-[380px] overflow-hidden rounded-[8px] border border-[#3A3733]/12 bg-[#F5F3F0] p-7 text-[#3A3733] shadow-[0_40px_120px_rgba(26,24,21,0.32)]"
+        className="relative w-full max-w-[380px] overflow-hidden rounded-[8px] border border-[color-mix(in_srgb,var(--text-primary)_12%,transparent)] bg-[var(--bg-elevated)] p-7 text-[var(--text-primary)] shadow-[var(--shadow-card-lg)]"
       >
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-full p-1.5 text-[#3A3733]/50 transition hover:bg-[#3A3733]/8 hover:text-[#3A3733]"
+          className="absolute right-4 top-4 rounded-full p-1.5 text-[color-mix(in_srgb,var(--text-primary)_50%,transparent)] transition hover:bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] hover:text-[var(--text-primary)]"
           aria-label="close"
         >
           <X size={16} />
@@ -283,13 +283,13 @@ const QrModal = ({ order, onClose, lang }: { order: CreatePaymentOrderResponse; 
         </p>
         <h2 className="mt-2 font-display text-[34px] leading-none tracking-tight">
           ¥{order.amount}
-          <span className="ml-2 text-[14px] font-normal tracking-[0.18em] text-[#3A3733]/55">{order.currency}</span>
+          <span className="ml-2 text-[14px] font-normal tracking-[0.18em] text-[color-mix(in_srgb,var(--text-primary)_55%,transparent)]">{order.currency}</span>
         </h2>
-        <p className="mt-1.5 text-[13px] leading-6 text-[#3A3733]/64">{COPY.alipayHeading[lang]}</p>
-        <div className="mt-5 grid place-items-center rounded-[6px] border border-[#3A3733]/12 bg-white p-5">
+        <p className="mt-1.5 text-[13px] leading-6 text-[color-mix(in_srgb,var(--text-primary)_64%,transparent)]">{COPY.alipayHeading[lang]}</p>
+        <div className="mt-5 grid place-items-center rounded-[6px] border border-[color-mix(in_srgb,var(--text-primary)_12%,transparent)] bg-[var(--bg-elevated)] p-5">
           <QRCode value={order.qrcode!} size={184} />
         </div>
-        <div className="mt-4 flex items-center gap-2 text-[12px] text-[#3A3733]/60">
+        <div className="mt-4 flex items-center gap-2 text-[12px] text-[color-mix(in_srgb,var(--text-primary)_60%,transparent)]">
           {pollStatus === 'polling' && (
             <>
               <LoaderCircle size={13} className="shrink-0 animate-spin" />
@@ -304,7 +304,7 @@ const QrModal = ({ order, onClose, lang }: { order: CreatePaymentOrderResponse; 
           )}
           {pollStatus === 'error' && COPY.pollFailed[lang]}
         </div>
-        <div className="mt-4 border-t border-dashed border-[#3A3733]/15 pt-3 font-mono text-[10px] uppercase tracking-[0.24em] text-[#3A3733]/40">
+        <div className="mt-4 border-t border-dashed border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] pt-3 font-mono text-[10px] uppercase tracking-[0.24em] text-[color-mix(in_srgb,var(--text-primary)_40%,transparent)]">
           ORDER · {order.orderNo}
         </div>
       </motion.div>
@@ -443,14 +443,14 @@ const MembershipPage = () => {
   return (
     <>
       <section
-        className="relative -m-[18px] flex flex-col overflow-hidden bg-[#F5F3F0] text-[#3A3733]"
+        className="relative -m-[18px] flex flex-col overflow-hidden bg-[var(--bg-elevated)] text-[var(--text-primary)]"
         style={{ height: 'calc(var(--shell-content-height) + 36px)' }}
       >
         {/* warm vignette */}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 z-0"
-          style={{ background: 'radial-gradient(120% 60% at 80% -10%, rgba(194,83,46,0.10), transparent 55%), radial-gradient(120% 80% at -10% 110%, rgba(58,55,51,0.08), transparent 60%)' }}
+          style={{ background: 'radial-gradient(120% 60% at 80% -10%, rgba(194,83,46,0.10), transparent 55%), radial-gradient(120% 80% at -10% 110%, color-mix(in srgb, var(--text-primary) 8%, transparent), transparent 60%)' }}
         />
 
         {/* two-column layout */}
@@ -461,16 +461,16 @@ const MembershipPage = () => {
             <div className="flex flex-col gap-14 px-8 pb-24 pt-12 lg:px-12">
 
               {/* masthead */}
-              <header className="flex items-center justify-between border-b border-[#3A3733]/15 pb-5">
+              <header className="flex items-center justify-between border-b border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] pb-5">
                 <Link
                   to={ROUTES.DASHBOARD}
-                  className="font-mono text-[11px] uppercase tracking-[0.28em] text-[#3A3733]/60 transition hover:text-[#3A3733]"
+                  className="font-mono text-[11px] uppercase tracking-[0.28em] text-[color-mix(in_srgb,var(--text-primary)_60%,transparent)] transition hover:text-[var(--text-primary)]"
                 >
                   ← {COPY.back[lang]}
                 </Link>
-                <div className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.28em] text-[#3A3733]/45">
+                <div className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.28em] text-[color-mix(in_srgb,var(--text-primary)_45%,transparent)]">
                   <span>{COPY.edition[lang]}</span>
-                  <span className="h-1 w-1 rounded-full bg-[#3A3733]/40" />
+                  <span className="h-1 w-1 rounded-full bg-[color-mix(in_srgb,var(--text-primary)_40%,transparent)]" />
                   <span>FG · MEMBERSHIP</span>
                 </div>
               </header>
@@ -491,14 +491,14 @@ const MembershipPage = () => {
                     <Crown size={12} strokeWidth={2.2} />
                     {COPY.eyebrow[lang]}
                   </span>
-                  <span className="h-px flex-1 bg-[#3A3733]/15" />
-                  <span className="font-mono text-[10px] tracking-[0.28em] text-[#3A3733]/45">03 PLANS</span>
+                  <span className="h-px flex-1 bg-[color-mix(in_srgb,var(--text-primary)_15%,transparent)]" />
+                  <span className="font-mono text-[10px] tracking-[0.28em] text-[color-mix(in_srgb,var(--text-primary)_45%,transparent)]">03 PLANS</span>
                 </motion.p>
 
                 <motion.h1
                   variants={fadeUp}
                   transition={{ duration: 0.55 }}
-                  className="max-w-[14ch] whitespace-pre-line font-display text-[52px] leading-[0.96] tracking-[-0.025em] text-[#3A3733] md:text-[72px]"
+                  className="max-w-[14ch] whitespace-pre-line font-display text-[52px] leading-[0.96] tracking-[-0.025em] text-[var(--text-primary)] md:text-[72px]"
                   style={{ fontFamily: 'var(--font-display, "Fraunces", serif)', fontVariationSettings: '"opsz" 144' }}
                 >
                   {COPY.headline[lang]}
@@ -509,12 +509,12 @@ const MembershipPage = () => {
                   transition={{ duration: 0.5 }}
                   className="flex flex-col items-start gap-4"
                 >
-                  <p className="max-w-[52ch] text-[15px] leading-7 text-[#3A3733]/70">
+                  <p className="max-w-[52ch] text-[15px] leading-7 text-[color-mix(in_srgb,var(--text-primary)_70%,transparent)]">
                     {COPY.lede[lang]}
                   </p>
                   {/* current plan status */}
                   {(isLifetime || entitlement === 'lifetime') ? (
-                    <div className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[#3A3733]/20 bg-[#3A3733] px-3 py-1.5 text-[12px] text-[#F5F3F0]">
+                    <div className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--text-primary)_20%,transparent)] bg-[var(--text-primary)] px-3 py-1.5 text-[12px] text-[var(--bg-elevated)]">
                       <InfinityIcon size={13} />
                       {COPY.statusLifetime[lang]}
                     </div>
@@ -526,7 +526,7 @@ const MembershipPage = () => {
                         : COPY.statusPro[lang]}
                     </div>
                   ) : (
-                    <div className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[#3A3733]/15 bg-[#3A3733]/6 px-3 py-1.5 text-[12px] text-[#3A3733]/65">
+                    <div className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] bg-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] px-3 py-1.5 text-[12px] text-[color-mix(in_srgb,var(--text-primary)_65%,transparent)]">
                       <Crown size={13} />
                       {COPY.statusFree[lang]}
                     </div>
@@ -539,11 +539,11 @@ const MembershipPage = () => {
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.18 }}
-                className="overflow-hidden rounded-[8px] border border-[#3A3733]/12 bg-[#FBFAF7]"
+                className="overflow-hidden rounded-[8px] border border-[color-mix(in_srgb,var(--text-primary)_12%,transparent)] bg-[var(--bg-elevated)]"
               >
-                <div className="grid grid-cols-[1fr_80px_80px] items-center border-b border-[#3A3733]/10 px-6 py-4">
-                  <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#3A3733]/45">{COPY.compareTitle[lang]}</span>
-                  <span className="text-center font-mono text-[10px] uppercase tracking-[0.2em] text-[#3A3733]/45">{COPY.compareFree[lang]}</span>
+                <div className="grid grid-cols-[1fr_80px_80px] items-center border-b border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] px-6 py-4">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-[color-mix(in_srgb,var(--text-primary)_45%,transparent)]">{COPY.compareTitle[lang]}</span>
+                  <span className="text-center font-mono text-[10px] uppercase tracking-[0.2em] text-[color-mix(in_srgb,var(--text-primary)_45%,transparent)]">{COPY.compareFree[lang]}</span>
                   <span className="text-center font-mono text-[10px] uppercase tracking-[0.2em] text-[#C2532E]">{COPY.comparePro[lang]}</span>
                 </div>
                 {COMPARE_ROWS.map((row, i) => (
@@ -551,20 +551,20 @@ const MembershipPage = () => {
                     key={row.en}
                     className={[
                       'grid grid-cols-[1fr_80px_80px] items-center px-6 py-3',
-                      i < COMPARE_ROWS.length - 1 ? 'border-b border-[#3A3733]/6' : '',
-                      !row.free ? 'bg-[#F5F3F0]/40' : '',
+                      i < COMPARE_ROWS.length - 1 ? 'border-b border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)]' : '',
+                      !row.free ? 'bg-[color-mix(in_srgb,var(--bg-elevated)_40%,transparent)]' : '',
                     ].join(' ')}
                   >
-                    <span className="text-[13px] text-[#3A3733]/78">{row[lang]}</span>
+                    <span className="text-[13px] text-[color-mix(in_srgb,var(--text-primary)_78%,transparent)]">{row[lang]}</span>
                     <span className="flex justify-center">
                       {row.free
-                        ? <CheckCircle2 size={14} className="text-[#3A3733]/55" />
-                        : <span className="inline-block h-px w-4 bg-[#3A3733]/20" />}
+                        ? <CheckCircle2 size={14} className="text-[color-mix(in_srgb,var(--text-primary)_55%,transparent)]" />
+                        : <span className="inline-block h-px w-4 bg-[color-mix(in_srgb,var(--text-primary)_20%,transparent)]" />}
                     </span>
                     <span className="flex justify-center">
                       {row.pro
                         ? <CheckCircle2 size={14} className="text-[#C2532E]" />
-                        : <span className="inline-block h-px w-4 bg-[#3A3733]/20" />}
+                        : <span className="inline-block h-px w-4 bg-[color-mix(in_srgb,var(--text-primary)_20%,transparent)]" />}
                     </span>
                   </div>
                 ))}
@@ -589,23 +589,23 @@ const MembershipPage = () => {
                       transition={{ duration: 0.5 }}
                       whileHover={{ y: -3 }}
                       className={[
-                        'group relative flex flex-col items-stretch rounded-[6px] border bg-[#FBFAF7] p-7 text-left transition-all',
-                        'shadow-[0_2px_0_rgba(58,55,51,0.04),0_18px_46px_-28px_rgba(58,55,51,0.35)]',
+                        'group relative flex flex-col items-stretch rounded-[6px] border bg-[var(--bg-elevated)] p-7 text-left transition-all',
+                        'shadow-[var(--shadow-card)]',
                         active
-                          ? 'border-[#3A3733] ring-1 ring-[#3A3733]'
-                          : 'border-[#3A3733]/12 hover:border-[#3A3733]/30',
+                          ? 'border-[var(--text-primary)] ring-1 ring-[var(--text-primary)]'
+                          : 'border-[color-mix(in_srgb,var(--text-primary)_12%,transparent)] hover:border-[color-mix(in_srgb,var(--text-primary)_30%,transparent)]',
                         recommended ? 'sm:-translate-y-2 sm:py-9' : '',
                       ].join(' ')}
                     >
                       {recommended ? (
-                        <div className="absolute -right-3 -top-3 rotate-[8deg] select-none rounded-[2px] border border-[#C2532E] bg-[#C2532E] px-3.5 py-1 font-mono text-[10px] uppercase tracking-[0.32em] text-[#F5F3F0] shadow-[0_10px_24px_rgba(194,83,46,0.35)]">
+                        <div className="absolute -right-3 -top-3 rotate-[8deg] select-none rounded-[2px] border border-[#C2532E] bg-[#C2532E] px-3.5 py-1 font-mono text-[10px] uppercase tracking-[0.32em] text-[var(--bg-elevated)] shadow-[0_10px_24px_rgba(194,83,46,0.35)]">
                           ★ {COPY.recommended[lang]}
                         </div>
                       ) : null}
 
                       <div className="flex items-start justify-between">
-                        <span className="font-mono text-[11px] uppercase tracking-[0.28em] text-[#3A3733]/45">{p.number}</span>
-                        <span className="rounded-full border border-[#3A3733]/15 px-2.5 py-0.5 text-[10px] uppercase tracking-[0.18em] text-[#3A3733]/60">
+                        <span className="font-mono text-[11px] uppercase tracking-[0.28em] text-[color-mix(in_srgb,var(--text-primary)_45%,transparent)]">{p.number}</span>
+                        <span className="rounded-full border border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] px-2.5 py-0.5 text-[10px] uppercase tracking-[0.18em] text-[color-mix(in_srgb,var(--text-primary)_60%,transparent)]">
                           {p.badge[lang]}
                         </span>
                       </div>
@@ -624,23 +624,23 @@ const MembershipPage = () => {
                         >
                           {channel === 'alipay' ? `¥${p.cny}` : `$${p.usd}`}
                         </span>
-                        <span className="text-[12px] uppercase tracking-[0.18em] text-[#3A3733]/55">
+                        <span className="text-[12px] uppercase tracking-[0.18em] text-[color-mix(in_srgb,var(--text-primary)_55%,transparent)]">
                           {p.cadence[lang]}
                         </span>
                       </div>
                       {p.cnyEach && channel === 'alipay' ? (
-                        <p className="mt-1 font-mono text-[11px] tracking-[0.18em] text-[#3A3733]/50">{p.cnyEach[lang]}</p>
+                        <p className="mt-1 font-mono text-[11px] tracking-[0.18em] text-[color-mix(in_srgb,var(--text-primary)_50%,transparent)]">{p.cnyEach[lang]}</p>
                       ) : null}
 
-                      <p className="mt-5 text-[13.5px] leading-6 text-[#3A3733]/68">{p.blurb[lang]}</p>
+                      <p className="mt-5 text-[13.5px] leading-6 text-[color-mix(in_srgb,var(--text-primary)_68%,transparent)]">{p.blurb[lang]}</p>
 
-                      <div className="mt-6 border-t border-dashed border-[#3A3733]/15 pt-5">
-                        <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#3A3733]/45">
+                      <div className="mt-6 border-t border-dashed border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] pt-5">
+                        <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-[color-mix(in_srgb,var(--text-primary)_45%,transparent)]">
                           {COPY.perks[lang]}
                         </p>
                         <ul className="mt-3 space-y-2.5">
                           {p.perks.map((perk) => (
-                            <li key={perk.en} className="flex items-start gap-2.5 text-[13.5px] leading-6 text-[#3A3733]/82">
+                            <li key={perk.en} className="flex items-start gap-2.5 text-[13.5px] leading-6 text-[color-mix(in_srgb,var(--text-primary)_82%,transparent)]">
                               <span className="mt-2 inline-block h-1 w-1 shrink-0 rounded-full bg-[#C2532E]" />
                               {perk[lang]}
                             </li>
@@ -652,7 +652,7 @@ const MembershipPage = () => {
                         <span
                           className={[
                             'inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.24em]',
-                            active ? 'text-[#3A3733]' : 'text-[#3A3733]/50',
+                            active ? 'text-[var(--text-primary)]' : 'text-[color-mix(in_srgb,var(--text-primary)_50%,transparent)]',
                           ].join(' ')}
                         >
                           {active ? (
@@ -681,15 +681,15 @@ const MembershipPage = () => {
             initial={{ opacity: 0, x: 24 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.55, delay: 0.3 }}
-            className="flex shrink-0 flex-col border-t border-[#3A3733]/12 bg-[#3A3733] text-[#F5F3F0] lg:w-[360px] lg:border-l lg:border-t-0"
+            className="flex shrink-0 flex-col border-t border-[color-mix(in_srgb,var(--text-primary)_12%,transparent)] bg-[var(--text-primary)] text-[var(--bg-elevated)] lg:w-[360px] lg:border-l lg:border-t-0"
           >
             <div className="flex flex-col p-8 gap-8">
               {/* header */}
               <div className="flex items-baseline justify-between">
-                <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-[#F5F3F0]/50">
+                <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-[color-mix(in_srgb,var(--bg-elevated)_50%,transparent)]">
                   {lang === 'zh' ? '结算' : 'Checkout'}
                 </p>
-                <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#F5F3F0]/35">02 / 02</span>
+                <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-[color-mix(in_srgb,var(--bg-elevated)_35%,transparent)]">02 / 02</span>
               </div>
 
               {/* order summary */}
@@ -700,10 +700,10 @@ const MembershipPage = () => {
                 >
                   {selectedPlan.title[lang]}
                 </h3>
-                <p className="mt-1 text-[12.5px] text-[#F5F3F0]/55">{selectedPlan.cadence[lang]}</p>
+                <p className="mt-1 text-[12.5px] text-[color-mix(in_srgb,var(--bg-elevated)_55%,transparent)]">{selectedPlan.cadence[lang]}</p>
 
-                <div className="mt-6 flex items-end justify-between border-t border-dashed border-[#F5F3F0]/18 pt-5">
-                  <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#F5F3F0]/50">
+                <div className="mt-6 flex items-end justify-between border-t border-dashed border-[color-mix(in_srgb,var(--bg-elevated)_18%,transparent)] pt-5">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-[color-mix(in_srgb,var(--bg-elevated)_50%,transparent)]">
                     {selectedChannel.label[lang]} · {selectedChannel.currency}
                   </span>
                   <span className="font-sans text-[42px] font-semibold leading-none tracking-[-0.03em]">
@@ -714,13 +714,13 @@ const MembershipPage = () => {
 
               {/* channel picker */}
               <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#F5F3F0]/50">
+                <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-[color-mix(in_srgb,var(--bg-elevated)_50%,transparent)]">
                   {COPY.channelTitle[lang]}
                 </p>
-                <p className="mt-1.5 text-[12px] leading-5 text-[#F5F3F0]/45">
+                <p className="mt-1.5 text-[12px] leading-5 text-[color-mix(in_srgb,var(--bg-elevated)_45%,transparent)]">
                   {COPY.channelLede[lang]}
                 </p>
-                <div className="mt-4 inline-flex rounded-[6px] border border-[#F5F3F0]/15 bg-[#F5F3F0]/8 p-1">
+                <div className="mt-4 inline-flex rounded-[6px] border border-[color-mix(in_srgb,var(--bg-elevated)_15%,transparent)] bg-[color-mix(in_srgb,var(--bg-elevated)_8%,transparent)] p-1">
                   {CHANNELS.map((c) => {
                     const active = channel === c.id
                     const disabledForGlobal = c.id === 'alipay' && isGlobalUser
@@ -735,8 +735,8 @@ const MembershipPage = () => {
                           disabledForGlobal
                             ? 'cursor-not-allowed opacity-30'
                             : active
-                              ? 'bg-[#F5F3F0] text-[#3A3733] shadow-[0_4px_14px_-6px_rgba(0,0,0,0.35)]'
-                              : 'text-[#F5F3F0]/55 hover:text-[#F5F3F0]',
+                              ? 'bg-[var(--bg-elevated)] text-[var(--text-primary)] shadow-[var(--shadow-pop)]'
+                              : 'text-[color-mix(in_srgb,var(--bg-elevated)_55%,transparent)] hover:text-[var(--bg-elevated)]',
                         ].join(' ')}
                       >
                         {c.id === 'alipay' ? <ScanLine size={13} /> : <Globe2 size={13} />}
@@ -745,27 +745,27 @@ const MembershipPage = () => {
                     )
                   })}
                 </div>
-                <p className="mt-3 text-[12px] text-[#F5F3F0]/40">{selectedChannel.hint[lang]}</p>
+                <p className="mt-3 text-[12px] text-[color-mix(in_srgb,var(--bg-elevated)_40%,transparent)]">{selectedChannel.hint[lang]}</p>
               </div>
 
               {/* assurances */}
-              <div className="space-y-3 border-t border-dashed border-[#F5F3F0]/15 pt-6">
+              <div className="space-y-3 border-t border-dashed border-[color-mix(in_srgb,var(--bg-elevated)_15%,transparent)] pt-6">
                 {ASSURANCES.map((a) => (
-                  <div key={a.en} className="flex items-start gap-2.5 text-[12px] leading-5 text-[#F5F3F0]/50">
-                    <a.icon size={13} className="mt-0.5 shrink-0 text-[#F5F3F0]/40" />
+                  <div key={a.en} className="flex items-start gap-2.5 text-[12px] leading-5 text-[color-mix(in_srgb,var(--bg-elevated)_50%,transparent)]">
+                    <a.icon size={13} className="mt-0.5 shrink-0 text-[color-mix(in_srgb,var(--bg-elevated)_40%,transparent)]" />
                     <span>{a[lang]}</span>
                   </div>
                 ))}
               </div>
 
               {/* pay button */}
-              <div className="border-t border-dashed border-[#F5F3F0]/15 pt-6">
+              <div className="border-t border-dashed border-[color-mix(in_srgb,var(--bg-elevated)_15%,transparent)] pt-6">
                 {channel === 'alipay' ? (
                   <button
                     type="button"
                     onClick={handleAlipay}
                     disabled={loading}
-                    className="group inline-flex w-full items-center justify-between gap-3 rounded-[4px] bg-[#F5F3F0] px-5 py-4 text-[#3A3733] transition hover:bg-white disabled:opacity-70"
+                    className="group inline-flex w-full items-center justify-between gap-3 rounded-[4px] bg-[var(--bg-elevated)] px-5 py-4 text-[var(--text-primary)] transition hover:bg-[var(--bg-elevated)] disabled:opacity-70"
                   >
                     <span className="inline-flex items-center gap-2 font-mono text-[12px] uppercase tracking-[0.24em]">
                       {loading ? <LoaderCircle size={14} className="animate-spin" /> : <Sparkles size={14} className="text-[#C2532E]" />}
@@ -774,14 +774,14 @@ const MembershipPage = () => {
                     <ArrowUpRight size={16} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                   </button>
                 ) : (
-                  <div className="rounded-[4px] bg-[#F5F3F0] p-3">
+                  <div className="rounded-[4px] bg-[var(--bg-elevated)] p-3">
                     <PayPalCheckoutButton planId={selectedPlan.id} />
                   </div>
                 )}
 
                 {errorMsg ? <p className="mt-3 text-[12px] text-[#F1A488]">{errorMsg}</p> : null}
 
-                <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.22em] text-[#F5F3F0]/35">
+                <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.22em] text-[color-mix(in_srgb,var(--bg-elevated)_35%,transparent)]">
                   {COPY.fineprint[lang]}
                 </p>
               </div>

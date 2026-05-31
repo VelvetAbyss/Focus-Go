@@ -161,7 +161,7 @@ export default function NoteBrowser({
         <button
           type="button"
           onClick={onNewNote}
-          className="rounded-lg p-1.5 text-[#3a3733] transition-[background-color,transform,box-shadow] [transition-duration:160ms] hover:-translate-y-0.5 hover:bg-[rgba(30,28,24,0.06)] hover:shadow-[0_6px_14px_rgba(58,55,51,0.07)] active:translate-y-0 dark:text-[#f5f3f0] dark:hover:bg-[#f5f3f0]/10"
+          className="rounded-lg p-1.5 text-[#3a3733] transition-[background-color,transform,box-shadow] [transition-duration:160ms] hover:-translate-y-0.5 hover:bg-[rgba(30,28,24,0.06)] hover:shadow-[var(--shadow-pop)] active:translate-y-0 dark:text-[#f5f3f0] dark:hover:bg-[#f5f3f0]/10"
           title={t('modules.note.new')}
         >
           <Plus size={15} strokeWidth={2.2} />
@@ -179,7 +179,7 @@ export default function NoteBrowser({
             <ChevronDown size={11} strokeWidth={2.4} />
           </button>
           {showSortMenu ? (
-            <div className="absolute left-0 top-full z-20 mt-1 w-32 rounded-lg border border-[rgba(58,55,51,0.1)] bg-[#f8f6f2] p-1 shadow-[0_16px_38px_rgba(58,55,51,0.12),0_2px_8px_rgba(58,55,51,0.06)] dark:border-[#f5f3f0]/15 dark:bg-[#3a3733]">
+            <div className="absolute left-0 top-full z-20 mt-1 w-32 rounded-lg border border-[rgba(58,55,51,0.1)] bg-[#f8f6f2] p-1 shadow-[var(--shadow-card)] dark:border-[#f5f3f0]/15 dark:bg-[#3a3733]">
               {(['edited', 'created', 'title'] as NoteSortOption[]).map((option) => (
                 <button
                   key={option}
@@ -205,7 +205,7 @@ export default function NoteBrowser({
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
             placeholder={t('notes.searchPlaceholder')}
-            className="w-full rounded-lg border border-transparent bg-[rgba(30,28,24,0.04)] py-[5px] pl-7 pr-2.5 text-[0.6875rem] text-[#3a3733] outline-none transition-[background-color,border-color,box-shadow] placeholder:text-[#8d867f]/60 focus:border-[rgba(58,55,51,0.1)] focus:bg-white/72 focus:shadow-[0_2px_8px_rgba(58,55,51,0.06)] dark:bg-[#f5f3f0]/10 dark:text-[#f5f3f0] dark:placeholder:text-[#f5f3f0]/40 dark:focus:bg-[#f5f3f0]/15"
+            className="w-full rounded-lg border border-transparent bg-[rgba(30,28,24,0.04)] py-[5px] pl-7 pr-2.5 text-[0.6875rem] text-[#3a3733] outline-none transition-[background-color,border-color,box-shadow] placeholder:text-[#8d867f]/60 focus:border-[rgba(58,55,51,0.1)] focus:bg-white/72 focus:shadow-[var(--shadow-pop)] dark:bg-[#f5f3f0]/10 dark:text-[#f5f3f0] dark:placeholder:text-[#f5f3f0]/40 dark:focus:bg-[#f5f3f0]/15"
           />
         </div>
       </div>
@@ -318,8 +318,8 @@ function NoteCard({
       className={cn(
         'group relative mb-1 cursor-pointer rounded-[11px] border px-3 py-2.5 transition-[background-color,border-color,box-shadow,transform] [transition-duration:180ms]',
         selected
-          ? 'translate-x-[1px] border-[rgba(58,55,51,0.10)] bg-[rgba(30,28,24,0.055)] shadow-[inset_2.5px_0_0_rgba(58,55,51,0.22),0_10px_24px_rgba(58,55,51,0.07)] dark:border-[#f5f3f0]/15 dark:bg-[#f5f3f0]/10 dark:shadow-none'
-          : 'border-transparent hover:-translate-y-[1px] hover:border-[rgba(58,55,51,0.06)] hover:bg-[rgba(30,28,24,0.038)] hover:shadow-[0_6px_16px_rgba(58,55,51,0.05)] dark:hover:bg-[#f5f3f0]/10 dark:hover:border-[#f5f3f0]/10',
+          ? 'translate-x-[1px] border-[rgba(58,55,51,0.10)] bg-[rgba(30,28,24,0.055)] shadow-[inset_2.5px_0_0_var(--accent),var(--shadow-card)] dark:border-[#f5f3f0]/15 dark:bg-[#f5f3f0]/10 dark:shadow-none'
+          : 'border-transparent hover:-translate-y-[1px] hover:border-[rgba(58,55,51,0.06)] hover:bg-[rgba(30,28,24,0.038)] hover:shadow-[var(--shadow-pop)] dark:hover:bg-[#f5f3f0]/10 dark:hover:border-[#f5f3f0]/10',
       )}
       style={{ minHeight: '101px' }}
     >

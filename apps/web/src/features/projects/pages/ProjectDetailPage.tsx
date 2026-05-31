@@ -629,7 +629,7 @@ const ProjectDetailPage = () => {
                   const linkedCount = tasks.filter(
                     (t) => t.ownerId === person.id || t.collaboratorIds?.includes(person.id),
                   ).length
-                  const roleColor = ROLE_COLORS[person.roleType] ?? '#3A3733'
+                  const roleColor = ROLE_COLORS[person.roleType] ?? 'var(--text-primary)'
                   return (
                     <motion.article
                       key={person.id}

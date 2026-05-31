@@ -11,6 +11,7 @@ import {
 import { useI18n } from '../../shared/i18n/useI18n'
 import { usePremiumGate } from '../../features/premium/PremiumProvider'
 import { useAuthGate } from '../../features/auth/AuthGateContext'
+import AmbientSettingsPopover from './AmbientSettingsPopover'
 
 type Props = { collapsed: boolean }
 
@@ -95,23 +96,26 @@ const SidebarWhiteNoise = ({ collapsed }: Props) => {
             exit={{ opacity: 0, x: -6 }}
             transition={{ duration: 0.16, ease: [0.2, 0, 0, 1] }}
           >
-            <select
-              className="sidebar-noise-mini__preset"
-              value={activeScene?.id ?? ''}
-              onChange={(event) => handleSceneChange(event.target.value as NoiseScenePresetId)}
-              aria-label={t('focus.scenes')}
-            >
-              {!activeScene ? (
-                <option value="" disabled hidden>
-                  {t('focus.scenes')}
-                </option>
-              ) : null}
-              {NOISE_SCENE_PRESETS.map((scene) => (
-                <option key={scene.id} value={scene.id}>
-                  {scene.emoji} {t(scene.labelKey)}
-                </option>
-              ))}
-            </select>
+            <div className="sidebar-noise-mini__preset-row">
+              <select
+                className="sidebar-noise-mini__preset"
+                value={activeScene?.id ?? ''}
+                onChange={(event) => handleSceneChange(event.target.value as NoiseScenePresetId)}
+                aria-label={t('focus.scenes')}
+              >
+                {!activeScene ? (
+                  <option value="" disabled hidden>
+                    {t('focus.scenes')}
+                  </option>
+                ) : null}
+                {NOISE_SCENE_PRESETS.map((scene) => (
+                  <option key={scene.id} value={scene.id}>
+                    {scene.emoji} {t(scene.labelKey)}
+                  </option>
+                ))}
+              </select>
+              <AmbientSettingsPopover />
+            </div>
 
             <div
               ref={sliderRef}

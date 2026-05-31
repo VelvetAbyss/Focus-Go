@@ -44,7 +44,7 @@ const PRIORITY_DOT_COLOR: Record<string, string> = {
   high: '#B83333',
   medium: '#B07830',
   low: '#4F746C',
-  none: 'rgba(58, 55, 51, 0.25)',
+  none: 'color-mix(in srgb, var(--text-primary) 25%, transparent)',
 }
 
 const TaskRow = ({

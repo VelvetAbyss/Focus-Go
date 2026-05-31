@@ -1,13 +1,13 @@
 /* eslint-disable react-refresh/only-export-components */
 import type { CSSProperties, ReactNode } from 'react'
 
-export const paper = '#F5F3F0'
-export const ink = '#3A3733'
-export const cardBg = '#ffffff'
-export const mutedText = 'rgba(58,55,51,0.45)'
-export const subtleText = 'rgba(58,55,51,0.32)'
-export const subtleBorder = 'rgba(58,55,51,0.09)'
-export const sectionBorder = 'rgba(58,55,51,0.07)'
+export const paper = 'var(--bg-elevated)'
+export const ink = 'var(--text-primary)'
+export const cardBg = 'var(--bg-elevated)'
+export const mutedText = 'color-mix(in srgb, var(--text-primary) 45%, transparent)'
+export const subtleText = 'color-mix(in srgb, var(--text-primary) 32%, transparent)'
+export const subtleBorder = 'color-mix(in srgb, var(--text-primary) 9%, transparent)'
+export const sectionBorder = 'color-mix(in srgb, var(--text-primary) 7%, transparent)'
 
 export const inter = (size = 13, weight = 400, color = ink): CSSProperties => ({
   fontFamily: 'Inter, sans-serif',
@@ -35,7 +35,7 @@ export const cardShellStyle: CSSProperties = {
   cursor: 'pointer',
   background: cardBg,
   border: '1px solid transparent',
-  boxShadow: '0 12px 28px rgba(58, 55, 51, 0.08)',
+  boxShadow: 'var(--shadow-card)',
 }
 
 export const cardHeaderStyle: CSSProperties = {
@@ -54,7 +54,7 @@ export const cardArrowStyle: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  color: 'rgba(58,55,51,0.4)',
+  color: 'color-mix(in srgb, var(--text-primary) 40%, transparent)',
   flexShrink: 0,
 }
 
@@ -110,8 +110,8 @@ export const inputStyle: CSSProperties = {
   ...inter(14, 400, ink),
   width: '100%',
   borderRadius: 10,
-  border: '1px solid rgba(58,55,51,0.10)',
-  background: 'rgba(58,55,51,0.04)',
+  border: '1px solid color-mix(in srgb, var(--text-primary) 10%, transparent)',
+  background: 'color-mix(in srgb, var(--text-primary) 4%, transparent)',
   padding: '10px 12px',
   outline: 'none',
 }
@@ -124,8 +124,8 @@ export const textareaStyle: CSSProperties = {
 
 export const smallButtonStyle: CSSProperties = {
   ...inter(11, 500, ink),
-  border: '1px solid rgba(58,55,51,0.10)',
-  background: 'rgba(58,55,51,0.06)',
+  border: '1px solid color-mix(in srgb, var(--text-primary) 10%, transparent)',
+  background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)',
   borderRadius: 999,
   padding: '7px 12px',
   cursor: 'pointer',

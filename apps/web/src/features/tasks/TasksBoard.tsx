@@ -520,7 +520,7 @@ const TasksBoard = ({
         { id: 'done', title: 'Done', color: '#0D7A54', tasks: filteredTasks.filter((task) => task.status === 'done') },
       ].filter((section) => section.tasks.length > 0)
     }
-    return [{ id: activeStatus, title: t(TASK_STATUS_CONFIG[activeStatus].labelKey), color: '#3A3733', tasks: filteredTasks }]
+    return [{ id: activeStatus, title: t(TASK_STATUS_CONFIG[activeStatus].labelKey), color: 'var(--text-primary)', tasks: filteredTasks }]
   }, [activeProjects, activeStatus, effectiveGroupBy, filteredTasks, scope.kind, t, topView])
 
   const renderTaskCard = (task: TaskItem) => {
@@ -727,7 +727,7 @@ const TasksBoard = ({
                   })}
                 </div>
               ) : topView === 'list' ? null : (
-                <div className="rounded-full border border-[#3A3733]/10 bg-[#F5F3F0] px-3 py-1.5 text-xs text-[#3A3733]/72">
+                <div className="rounded-full border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[var(--bg-elevated)] px-3 py-1.5 text-xs text-[color-mix(in_srgb,var(--text-primary)_72%,transparent)]">
                   {t('tasks.today.badge')}
                 </div>
               )}
@@ -818,8 +818,8 @@ const TasksBoard = ({
             <div className="flex items-center gap-2">
               {!asCard ? (
                 bulkMode ? (
-                  <div className="tasks-fg__bulk-bar flex items-center gap-1.5 rounded-md border border-[#3a3733]/10 bg-white px-2 py-1">
-                    <button type="button" aria-label={t('tasks.selectAll')} className="tasks-fg__bulk-btn inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-[#3A3733]" onClick={toggleSelectAllVisible}>
+                  <div className="tasks-fg__bulk-bar flex items-center gap-1.5 rounded-md border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[var(--bg-elevated)] px-2 py-1">
+                    <button type="button" aria-label={t('tasks.selectAll')} className="tasks-fg__bulk-btn inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-[var(--text-primary)]" onClick={toggleSelectAllVisible}>
                       {filteredTaskIds.length > 0 && filteredTaskIds.every((id) => selectedTaskIds.has(id)) ? <CheckSquare className="size-3.5" /> : <Square className="size-3.5" />}
                       全选
                     </button>
@@ -827,7 +827,7 @@ const TasksBoard = ({
                     <div className="h-4 w-px bg-border" />
                     <div className="inline-flex items-center gap-1">
                       <ShadcnSelect value={bulkTagDraft} onValueChange={setBulkTagDraft}>
-                        <SelectTrigger aria-label={t('tasks.bulkTag')} className="h-7 min-w-[108px] rounded border-[#3a3733]/12 bg-white px-2 text-xs">
+                        <SelectTrigger aria-label={t('tasks.bulkTag')} className="h-7 min-w-[108px] rounded border-[color-mix(in_srgb,var(--text-primary)_12%,transparent)] bg-[var(--bg-elevated)] px-2 text-xs">
                           <SelectValue placeholder={t('tasks.selectTag')} />
                         </SelectTrigger>
                         <SelectContent>
@@ -838,7 +838,7 @@ const TasksBoard = ({
                           ))}
                         </SelectContent>
                       </ShadcnSelect>
-                      <button type="button" aria-label={t('tasks.applyTag')} className="tasks-fg__bulk-btn inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-[#3A3733]" onClick={() => void handleBulkAddTag()} disabled={selectedCount === 0 || !bulkTagDraft.trim()}>
+                      <button type="button" aria-label={t('tasks.applyTag')} className="tasks-fg__bulk-btn inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-[var(--text-primary)]" onClick={() => void handleBulkAddTag()} disabled={selectedCount === 0 || !bulkTagDraft.trim()}>
                         <Plus className="size-3.5" />
                         <Tag className="size-3.5" />
                       </button>
@@ -852,7 +852,7 @@ const TasksBoard = ({
                         }}
                         disabled={selectedCount === 0}
                       >
-                        <SelectTrigger aria-label={t('tasks.bulk.assignProject')} className="h-7 min-w-[128px] rounded border-[#3a3733]/12 bg-white px-2 text-xs">
+                        <SelectTrigger aria-label={t('tasks.bulk.assignProject')} className="h-7 min-w-[128px] rounded border-[color-mix(in_srgb,var(--text-primary)_12%,transparent)] bg-[var(--bg-elevated)] px-2 text-xs">
                           <SelectValue placeholder={t('tasks.bulk.assignProject')} />
                         </SelectTrigger>
                         <SelectContent>
@@ -865,7 +865,7 @@ const TasksBoard = ({
                         </SelectContent>
                       </ShadcnSelect>
                     </div>
-                    <button type="button" aria-label={t('tasks.markDone')} className="tasks-fg__bulk-btn inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-[#3A3733]" onClick={() => void handleBulkMarkDone()} disabled={selectedCount === 0}>
+                    <button type="button" aria-label={t('tasks.markDone')} className="tasks-fg__bulk-btn inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-[var(--text-primary)]" onClick={() => void handleBulkMarkDone()} disabled={selectedCount === 0}>
                       <CheckSquare className="size-3.5" />
                       {t('tasks.markDone').split(' ').pop()}
                     </button>

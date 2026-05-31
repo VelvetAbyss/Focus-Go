@@ -578,7 +578,7 @@ const TaskDrawer = ({
       open={open}
       title=""
       onClose={requestClose}
-      panelClassName="task-drawer-panel task-detail-theme !h-[calc(100vh-40px)] !max-h-none rounded-[30px] border border-[#3a3733]/8 shadow-[0_30px_100px_rgba(15,23,42,0.18)]"
+      panelClassName="task-drawer-panel task-detail-theme !h-[calc(100vh-40px)] !max-h-none rounded-[30px] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] shadow-[var(--shadow-card-lg)]"
       panelStyle={{ width: `${panelWidth}px`, maxWidth: 'calc(100vw - 48px)' }}
       contentClassName="!h-full !p-0"
     >
@@ -590,7 +590,7 @@ const TaskDrawer = ({
           <div className="absolute bottom-1 right-1 z-20 h-4 w-4 cursor-ew-resize" onPointerDown={(event) => beginWidthResize(event, 'right')} />
 
           {/* ─── TOPBAR ─── */}
-          <div className="task-detail-topbar flex items-center justify-between gap-3 border-b border-[#3a3733]/6 px-5 py-3.5">
+          <div className="task-detail-topbar flex items-center justify-between gap-3 border-b border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] px-5 py-3.5">
             <div className="task-detail-topbar__state flex min-w-0 items-center gap-2.5">
               <span
                 className={cn(
@@ -618,7 +618,7 @@ const TaskDrawer = ({
                 {currentTask.status === 'todo' ? (
                   <>
                     <Button variant="outline" size="sm"
-                      className="h-8 rounded-full border-[#3a3733]/15 px-3.5 text-[11px] font-semibold hover:border-[#3a3733]/25 hover:bg-[color:var(--surface-hover)]"
+                      className="h-8 rounded-full border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] px-3.5 text-[11px] font-semibold hover:border-[color-mix(in_srgb,var(--text-primary)_25%,transparent)] hover:bg-[color:var(--surface-hover)]"
                       onClick={() => void handleStatusChange('doing')} disabled={isSaving}>
                       <Target className="mr-1.5 h-3.5 w-3.5" />
                       {t('tasks.action.start')}
@@ -641,7 +641,7 @@ const TaskDrawer = ({
                 ) : null}
                 {currentTask.status === 'done' ? (
                   <Button variant="outline" size="sm"
-                    className="h-8 rounded-full border-[#3a3733]/15 px-3.5 text-[11px] font-semibold hover:border-[#3a3733]/25"
+                    className="h-8 rounded-full border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] px-3.5 text-[11px] font-semibold hover:border-[color-mix(in_srgb,var(--text-primary)_25%,transparent)]"
                     onClick={() => void handleStatusChange('todo')} disabled={isSaving}>
                     <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
                     {t('tasks.status.reopen')}
@@ -673,7 +673,7 @@ const TaskDrawer = ({
 
                 {/* ── HERO CARD ── */}
                 <div
-                  className="task-detail-card task-detail-card--hero tdv2-section-enter relative overflow-hidden rounded-[28px] border border-[#3a3733]/6 p-7 shadow-[0_24px_60px_rgba(15,23,42,0.06)]"
+                  className="task-detail-card task-detail-card--hero tdv2-section-enter relative overflow-hidden rounded-[28px] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] p-7 shadow-[var(--shadow-card-lg)]"
                   style={{ animationDelay: '0ms' }}
                 >
                   {/* Priority left accent bar */}
@@ -748,7 +748,7 @@ const TaskDrawer = ({
                       </ShadcnSelect>
 
                       {reminderAtIso !== '—' && (
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-[#3a3733]/8 bg-[color:var(--bg-muted)] px-2.5 py-0.5 text-[11px] font-medium text-[color:var(--text-secondary)]">
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[color:var(--bg-muted)] px-2.5 py-0.5 text-[11px] font-medium text-[color:var(--text-secondary)]">
                           <Clock3 className="h-3 w-3" />
                           {reminderAtIso}
                         </span>
@@ -772,7 +772,7 @@ const TaskDrawer = ({
 
                 {/* ── CORE PROPERTIES ── */}
                 <section
-                  className="task-detail-card tdv2-section-enter rounded-[26px] border border-[#3a3733]/6 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.04)]"
+                  className="task-detail-card tdv2-section-enter rounded-[26px] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] p-5 shadow-[var(--shadow-card-lg)]"
                   style={{ animationDelay: '40ms' }}
                 >
                   <p className="task-detail-kicker">{t('tasks.drawer.details')}</p>
@@ -780,7 +780,7 @@ const TaskDrawer = ({
 
                   <div className="mt-4 space-y-3">
                     {/* Today toggle */}
-                    <div className="flex items-center justify-between rounded-[18px] border border-[#3a3733]/6 bg-[color:var(--bg-muted)] px-4 py-3">
+                    <div className="flex items-center justify-between rounded-[18px] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] bg-[color:var(--bg-muted)] px-4 py-3">
                       <div className="min-w-0">
                         <p className="text-[13px] font-semibold text-[color:var(--text-primary)]">{t('tasks.today.title')}</p>
                         <p className="mt-0.5 text-[11px] text-[color:var(--text-secondary)]">{t('tasks.today.switchHint')}</p>
@@ -832,7 +832,7 @@ const TaskDrawer = ({
                       <Textarea
                         value={description}
                         onChange={(event) => setDescription(event.target.value)}
-                        className="min-h-[90px] resize-none rounded-[16px] border-[#3a3733]/8 bg-[color:var(--bg-muted)] text-[13px] leading-6 shadow-none"
+                        className="min-h-[90px] resize-none rounded-[16px] border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[color:var(--bg-muted)] text-[13px] leading-6 shadow-none"
                         placeholder={t('tasks.drawer.summaryPlaceholder')}
                       />
                     </label>
@@ -841,7 +841,7 @@ const TaskDrawer = ({
 
                 {/* ── TAGS ── */}
                 <section
-                  className="task-detail-card tdv2-section-enter rounded-[26px] border border-[#3a3733]/6 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.04)]"
+                  className="task-detail-card tdv2-section-enter rounded-[26px] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] p-5 shadow-[var(--shadow-card-lg)]"
                   style={{ animationDelay: '80ms' }}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
@@ -852,12 +852,12 @@ const TaskDrawer = ({
                     <Popover open={tagPickerOpen} onOpenChange={setTagPickerOpen}>
                       <PopoverTrigger asChild>
                         <Button type="button" variant="outline" size="sm"
-                          className="h-8 rounded-full border-[#3a3733]/12 px-3.5 text-[11px] font-semibold hover:bg-[color:var(--surface-hover)]">
+                          className="h-8 rounded-full border-[color-mix(in_srgb,var(--text-primary)_12%,transparent)] px-3.5 text-[11px] font-semibold hover:bg-[color:var(--surface-hover)]">
                           <Plus className="mr-1.5 h-3.5 w-3.5" />
                           {t('tasks.drawer.newTag')}
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-[260px] rounded-[20px] border border-[#3a3733]/8 p-3 shadow-[0_20px_50px_rgba(15,23,42,0.12)]" align="end" sideOffset={10}>
+                      <PopoverContent className="w-[260px] rounded-[20px] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] p-3 shadow-[var(--shadow-card-lg)]" align="end" sideOffset={10}>
                         <div className="space-y-2.5">
                           <div className="space-y-0.5">
                             {tagOptions.map((tagName) => {
@@ -890,7 +890,7 @@ const TaskDrawer = ({
                               value={tagDraft}
                               onChange={(event) => setTagDraft(event.target.value)}
                               placeholder={t('tasks.drawer.customTag')}
-                              className="h-9 rounded-[12px] border-[#3a3733]/8 bg-[color:var(--bg-muted)] text-[13px]"
+                              className="h-9 rounded-[12px] border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[color:var(--bg-muted)] text-[13px]"
                             />
                             <Button type="submit" size="sm" className="h-9 shrink-0 rounded-full px-3.5 text-[11px] font-semibold" disabled={!tagDraft.trim()}>
                               {t('tasks.drawer.add')}
@@ -922,12 +922,12 @@ const TaskDrawer = ({
                   className="task-detail-card-shell tdv2-section-enter"
                   style={{ animationDelay: '120ms' }}
                 >
-                  <div className="task-detail-card rounded-[26px] border border-[#3a3733]/6 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.04)]">
+                  <div className="task-detail-card rounded-[26px] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] p-5 shadow-[var(--shadow-card-lg)]">
                     <p className="task-detail-kicker">{t('tasks.drawer.activity')}</p>
                     <h2 className="task-detail-title mt-0.5">{t('tasks.drawer.systemTimeline')}</h2>
                     <div className="mt-4">
                       {activityLogs.length === 0 ? (
-                        <div className="rounded-[16px] border border-dashed border-[#3a3733]/10 bg-[color:var(--bg-muted)] px-4 py-5 text-center text-[13px] text-[color:var(--text-secondary)]">
+                        <div className="rounded-[16px] border border-dashed border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color:var(--bg-muted)] px-4 py-5 text-center text-[13px] text-[color:var(--text-secondary)]">
                           {t('tasks.drawer.noActivity')}
                         </div>
                       ) : (
@@ -958,11 +958,11 @@ const TaskDrawer = ({
             <button
               type="button"
               aria-label={t('tasks.drawer.resizeColumns')}
-              className="group relative h-full cursor-col-resize border-x border-[#3a3733]/6 bg-[color:var(--bg-muted)] transition-colors hover:bg-[color:var(--surface-hover)]"
+              className="group relative h-full cursor-col-resize border-x border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] bg-[color:var(--bg-muted)] transition-colors hover:bg-[color:var(--surface-hover)]"
               onPointerDown={beginSplitResize}
               onDoubleClick={toggleSplitPreset}
             >
-              <span className="absolute left-1/2 top-1/2 h-14 w-[2px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#3a3733]/12 transition-all duration-200 group-hover:h-20 group-hover:bg-[#3a3733]/28" />
+              <span className="absolute left-1/2 top-1/2 h-14 w-[2px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[color-mix(in_srgb,var(--text-primary)_12%,transparent)] transition-all duration-200 group-hover:h-20 group-hover:bg-[color-mix(in_srgb,var(--text-primary)_28%,transparent)]" />
             </button>
 
             {/* ════ RIGHT PANE ════ */}
@@ -972,7 +972,7 @@ const TaskDrawer = ({
 
                   {/* ── SUBTASKS ── */}
                   <section
-                    className="task-detail-card task-detail-card--side tdv2-section-enter rounded-[24px] border border-[#3a3733]/6 p-4 shadow-[0_14px_40px_rgba(15,23,42,0.05)]"
+                    className="task-detail-card task-detail-card--side tdv2-section-enter rounded-[24px] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] p-4 shadow-[var(--shadow-card)]"
                     style={{ animationDelay: '60ms' }}
                   >
                     {/* Header row */}
@@ -1002,7 +1002,7 @@ const TaskDrawer = ({
                         {subtasks.length > 0 && (
                           <div className="tdv2-progress-ring">
                             <svg viewBox="0 0 36 36" className="h-9 w-9 -rotate-90">
-                              <circle cx="18" cy="18" r="14" fill="none" stroke="currentColor" strokeWidth="3" className="text-[#3a3733]/8" />
+                              <circle cx="18" cy="18" r="14" fill="none" stroke="currentColor" strokeWidth="3" className="text-[color-mix(in_srgb,var(--text-primary)_8%,transparent)]" />
                               <circle
                                 cx="18" cy="18" r="14"
                                 fill="none" stroke="currentColor" strokeWidth="3"
@@ -1018,7 +1018,7 @@ const TaskDrawer = ({
                           </div>
                         )}
                         {/* Filter tabs */}
-                        <div className="inline-flex items-center gap-0.5 rounded-full border border-[#3a3733]/8 bg-[color:var(--bg-muted)] p-0.5">
+                        <div className="inline-flex items-center gap-0.5 rounded-full border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[color:var(--bg-muted)] p-0.5">
                           {([
                             { key: 'all', label: t('tasks.drawer.subtaskFilterAll') },
                             { key: 'todo', label: t('tasks.drawer.subtaskFilterTodo') },
@@ -1031,7 +1031,7 @@ const TaskDrawer = ({
                               className={cn(
                                 'rounded-full px-2.5 py-1 text-[10px] font-semibold transition-all duration-200',
                                 subtaskFilter === option.key
-                                  ? 'bg-[#3a3733] text-[#f5f3f0] shadow-sm'
+                                  ? 'bg-[var(--text-primary)] text-[var(--bg-elevated)] shadow-sm'
                                   : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]',
                               )}
                             >
@@ -1048,7 +1048,7 @@ const TaskDrawer = ({
                         visibleSubtasks.map((subtask) => (
                           <div
                             key={subtask.id}
-                            className="group rounded-[15px] border border-[#3a3733]/6 bg-[color:var(--bg-muted)] px-3 py-2.5 transition-all duration-150 hover:border-[#3a3733]/12 hover:shadow-sm"
+                            className="group rounded-[15px] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] bg-[color:var(--bg-muted)] px-3 py-2.5 transition-all duration-150 hover:border-[color-mix(in_srgb,var(--text-primary)_12%,transparent)] hover:shadow-sm"
                           >
                             <div className="task-popup-detail__subtask-checkbox-row flex items-center gap-2.5">
                               <AnimatedPlanCheckbox
@@ -1089,7 +1089,7 @@ const TaskDrawer = ({
                           </div>
                         ))
                       ) : (
-                        <div className="rounded-[14px] border border-dashed border-[#3a3733]/10 bg-[color:var(--bg-muted)] px-4 py-5 text-center text-[12px] text-[color:var(--text-secondary)]">
+                        <div className="rounded-[14px] border border-dashed border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color:var(--bg-muted)] px-4 py-5 text-center text-[12px] text-[color:var(--text-secondary)]">
                           {subtasks.length === 0 ? t('tasks.drawer.noSubtasks') : t('tasks.drawer.noSubtasksInFilter')}
                         </div>
                       )}
@@ -1106,7 +1106,7 @@ const TaskDrawer = ({
                     >
                       <div
                         className={cn(
-                          'flex w-full items-center gap-3 rounded-xl border bg-[color:color-mix(in_srgb,var(--accent-action)_5%,white)] px-3.5 py-2 transition-all duration-300',
+                          'flex w-full items-center gap-3 rounded-xl border bg-[color:color-mix(in_srgb,var(--accent-action)_5%,var(--bg-elevated))] px-3.5 py-2 transition-all duration-300',
                           'border-[color:color-mix(in_srgb,var(--accent-action)_22%,transparent)]',
                           subtaskComposer.value.trim().length > 0
                             ? 'border-[color:color-mix(in_srgb,var(--accent-action)_50%,transparent)] shadow-[0_0_0_3px_rgba(139,94,52,0.10)]'
@@ -1143,7 +1143,7 @@ const TaskDrawer = ({
                           disabled={!subtaskComposer.canSubmit}
                           className={cn(
                             'tasks-fg__add-btn h-8 shrink-0 gap-1.5 rounded-md px-3 text-xs font-semibold text-white shadow-none transition-all duration-300',
-                            'bg-[color:var(--accent-action)] hover:bg-[color:color-mix(in_srgb,var(--accent-action)_88%,white)] hover:shadow-[0_6px_16px_-6px_rgba(139,94,52,0.5)] active:scale-[0.96]',
+                            'bg-[color:var(--accent-action)] hover:bg-[color:color-mix(in_srgb,var(--accent-action)_88%,var(--bg-elevated))] hover:shadow-[0_6px_16px_-6px_rgba(139,94,52,0.5)] active:scale-[0.96]',
                             subtaskComposer.value.trim().length > 0
                               ? 'opacity-100 scale-100 shadow-[0_2px_10px_-2px_rgba(139,94,52,0.4)]'
                               : 'opacity-60 scale-[0.94]',

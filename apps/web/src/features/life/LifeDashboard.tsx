@@ -50,8 +50,8 @@ const DeferredLifeCard = ({ id, eager, children }: { id: string; eager: boolean;
             width: '100%',
             height: '100%',
             borderRadius: 24,
-            background: '#ffffff',
-            boxShadow: '0 12px 28px rgba(58, 55, 51, 0.05)',
+            background: 'var(--bg-elevated)',
+            boxShadow: 'var(--shadow-card)',
           }}
         />
       )}

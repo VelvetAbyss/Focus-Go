@@ -318,7 +318,7 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
   ]
 
   return (
-    <div className="diary-page flex h-full flex-col overflow-hidden bg-[color:var(--app-bg,#F5F3F0)]" data-diary-font={diaryFont}>
+    <div className="diary-page flex h-full flex-col overflow-hidden bg-[color:var(--app-bg,var(--bg-elevated))]" data-diary-font={diaryFont}>
       <div className="diary-page__atmosphere" aria-hidden="true" />
       {/* Header */}
       <header className="diary-page__header z-10 shrink-0 bg-background/72 px-4 py-5 backdrop-blur md:px-6 md:py-6">
@@ -356,14 +356,14 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
               {topStats.map((item) => (
                 <div key={item.label} className="rounded-xl bg-[color:rgba(245,243,240,0.7)] px-3 py-2">
                   <p className="diary-page__microcopy text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{item.label}</p>
-                  <p className="diary-page__numeric mt-1 text-sm font-semibold leading-none text-[color:#3A3733]">{item.value}</p>
+                  <p className="diary-page__numeric mt-1 text-sm font-semibold leading-none text-[color:var(--text-primary)]">{item.value}</p>
                 </div>
               ))}
             </div>
             <div className="flex items-center justify-end">
               <button
                 type="button"
-                className="flex items-center justify-center gap-2 rounded-full bg-[color:#3A3733] px-4 py-2.5 text-sm font-semibold text-[color:#F5F3F0] shadow-sm transition-all hover:opacity-95 active:scale-95"
+                className="flex items-center justify-center gap-2 rounded-full bg-[color:var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[color:var(--bg-elevated)] shadow-sm transition-all hover:opacity-95 active:scale-95"
                 onClick={handleNewEntry}
               >
                 <Plus size={16} />
@@ -389,7 +389,7 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
               >
                 <ChevronLeft size={16} />
               </button>
-              <span className="diary-page__period-label flex-1 truncate text-center text-sm font-semibold text-[color:#3A3733]">
+              <span className="diary-page__period-label flex-1 truncate text-center text-sm font-semibold text-[color:var(--text-primary)]">
                 {formatDateLabel(selectedDateKey, view, today)
                   .replace('__TODAY__', t('diary.today'))
                   .replace('__YESTERDAY__', t('diary.yesterday'))}
@@ -447,10 +447,10 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
                         <div className={cn(
                           'flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
                           isSelected
-                            ? 'border-[color:#3A3733] bg-background'
-                            : 'border-border bg-background group-hover:border-[color:#3A3733]/45',
+                            ? 'border-[color:var(--text-primary)] bg-background'
+                            : 'border-border bg-background group-hover:border-[color:var(--text-primary)]/45',
                         )}>
-                          {isSelected && <div className="h-1.5 w-1.5 rounded-full bg-[color:#3A3733]" />}
+                          {isSelected && <div className="h-1.5 w-1.5 rounded-full bg-[color:var(--text-primary)]" />}
                         </div>
                         {idx < entries.length - 1 && (
                           <div className="my-1 min-h-[1rem] w-px flex-1 bg-border/40" />
@@ -461,8 +461,8 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
                       <div className={cn(
                         'relative mb-3 flex-1 rounded-[1.25rem] border transition-all',
                         isSelected
-                          ? 'diary-page__entry-card diary-page__entry-card--active border-[color:#3A3733]/10 bg-[color:rgba(237,232,225,0.96)] shadow-[0_14px_40px_rgba(58,55,51,0.10)]'
-                          : 'diary-page__entry-card border-transparent bg-[color:rgba(241,237,231,0.72)] shadow-[0_10px_28px_rgba(58,55,51,0.08)] hover:bg-[color:rgba(238,233,226,0.92)] hover:shadow-[0_14px_34px_rgba(58,55,51,0.12)]',
+                          ? 'diary-page__entry-card diary-page__entry-card--active border-[color:var(--text-primary)]/10 bg-[color:rgba(237,232,225,0.96)] shadow-[var(--shadow-card)]'
+                          : 'diary-page__entry-card border-transparent bg-[color:rgba(241,237,231,0.72)] shadow-[var(--shadow-card)] hover:bg-[color:rgba(238,233,226,0.92)] hover:shadow-[var(--shadow-card)]',
                       )}>
                         <button
                           type="button"
@@ -472,7 +472,7 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
                           <div className="mb-2 flex items-center gap-2">
                             <span className={cn(
                               'diary-page__microcopy diary-page__numeric text-[11px] font-semibold uppercase tracking-[0.16em]',
-                              isSelected ? 'text-[color:#3A3733]' : 'text-muted-foreground',
+                              isSelected ? 'text-[color:var(--text-primary)]' : 'text-muted-foreground',
                             )}>
                               {formatTime(entry.entryAt)}
                             </span>
