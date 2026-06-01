@@ -14,9 +14,27 @@ import { SyncProvider } from './data/sync/service'
 import { useIsLoggedIn, refreshAuthProfile } from './store/auth'
 import { SYNC_DATA_UPDATED_EVENT } from './data/sync/constants'
 import { syncedPreferencesRepo } from './data/repositories/syncedPreferencesRepo'
+import { useDesktopAuthDeepLink } from './config/desktopAuth'
+import { getPlatform } from './platform'
 
 const App = () => {
   const isLoggedIn = useIsLoggedIn()
+
+  // Desktop-only: complete Google sign-in when the focusgo:// callback returns.
+  useDesktopAuthDeepLink()
+
+  // Desktop-only: reveal the window after first paint (created hidden → no flash),
+  // then check for updates a few seconds later (non-blocking).
+  useEffect(() => {
+    const platform = getPlatform()
+    if (!platform.isDesktop) return
+    const frame = requestAnimationFrame(() => void platform.showAppWindow())
+    const updateTimer = window.setTimeout(() => void platform.checkForUpdates(), 5000)
+    return () => {
+      cancelAnimationFrame(frame)
+      window.clearTimeout(updateTimer)
+    }
+  }, [])
 
   useEffect(() => {
     if (isLoggedIn) void refreshAuthProfile()

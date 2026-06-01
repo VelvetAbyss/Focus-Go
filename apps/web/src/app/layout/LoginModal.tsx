@@ -2,9 +2,10 @@ import { X, LogIn, UserPlus, Mail, KeyRound, Eye, EyeOff } from 'lucide-react'
 import type { FormEvent } from 'react'
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { authClient } from '../../config/authClient'
+import { authClient, desktopOAuthCallbackURL } from '../../config/authClient'
 import { finishBetterAuthSession, getGoogleAuthCallbackURL } from '../../config/authRuntime'
 import { consumePendingCheckout, startPremiumCheckout } from '../../features/payments/paymentFlow'
+import { getPlatform } from '../../platform'
 import { useI18n } from '../../shared/i18n/useI18n'
 
 type LoginModalProps = {
@@ -111,8 +112,18 @@ const LoginModal = ({ onClose }: LoginModalProps) => {
     setError(null)
     setLoading(true)
     try {
-      const result = await authClient.signInGoogle(getGoogleAuthCallbackURL())
+      // Desktop: route the callback to the server endpoint that deep-links back,
+      // and open the provider in the system browser (Google blocks embedded
+      // webviews). The global deep-link handler completes the session on return.
+      const platform = getPlatform()
+      const callbackURL = platform.isDesktop ? desktopOAuthCallbackURL() : getGoogleAuthCallbackURL()
+      const result = await authClient.signInGoogle(callbackURL)
       if (result.url) {
+        if (platform.isDesktop) {
+          await platform.openExternal(result.url)
+          setLoading(false)
+          return
+        }
         window.location.href = result.url
         return
       }

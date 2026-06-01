@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "npm exec -- vite",
+    "dev:host": "npm exec -- vite --port 5180 --strictPort --mode desktop",
     "build": "tsc -b && npm exec -- vite build",
+    "build:tauri": "tsc -b && npm exec -- vite build --mode desktop",
     "analyze": "FOCUSGO_BUNDLE_ANALYZE=1 npm exec -- vite build",
     "lint": "npm exec -- eslint .",
     "preview": "npm exec -- vite preview",

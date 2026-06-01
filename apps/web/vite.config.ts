@@ -5,10 +5,33 @@ import { fileURLToPath, URL } from 'node:url'
 
 const shouldAnalyzeBundle = process.env.FOCUSGO_BUNDLE_ANALYZE === '1'
 
+// Injects the platform implementation behind `virtual:platform`:
+//   - desktop build (`--mode desktop`) → the Tauri bridge in apps/desktop
+//   - any other build → null (web app falls back to its no-op webPlatform)
+// This keeps the web source/bundle free of any desktop/Tauri code.
+const platformInjection = (mode: string) => {
+  const VIRTUAL = 'virtual:platform'
+  const RESOLVED = '\0virtual:platform'
+  const desktopImpl = fileURLToPath(new URL('../desktop/src/tauriPlatform.ts', import.meta.url))
+  return {
+    name: 'focusgo-platform-injection',
+    resolveId(id: string) {
+      if (id === VIRTUAL) return RESOLVED
+    },
+    load(id: string) {
+      if (id !== RESOLVED) return undefined
+      return mode === 'desktop'
+        ? `export { default } from ${JSON.stringify(desktopImpl)}`
+        : 'export default null'
+    },
+  }
+}
+
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
+    platformInjection(mode),
     shouldAnalyzeBundle
       ? visualizer({
           filename: 'dist/bundle-stats.html',
@@ -60,4 +83,4 @@ export default defineConfig({
       },
     },
   },
-})
+}))

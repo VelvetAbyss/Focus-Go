@@ -1,5 +1,6 @@
 import { authClient } from './authClient'
 import { fetchAuthProfile, setAuth } from '../store/auth'
+import { getPlatform } from '../platform'
 
 export type BetterAuthUser = {
   id: string
@@ -53,6 +54,9 @@ export const finishBetterAuthSession = async (token?: string, user?: unknown): P
     isAdmin: profile?.isAdmin ?? false,
   } satisfies StoredAuth
   setAuth(nextAuth)
+  // Desktop: persist the Bearer token to the OS keychain so the session survives
+  // a restart (the in-memory token and third-party cookie do not). No-op on web.
+  void getPlatform().saveAuthToken(token)
   return nextAuth
 }
 

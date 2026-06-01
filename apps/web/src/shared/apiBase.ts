@@ -1,3 +1,5 @@
+import { getPlatform } from '../platform'
+
 const PROD_PROXY_PREFIX = '/api'
 
 const normalizePath = (path: string) => (path.startsWith('/') ? path : `/${path}`)
@@ -7,6 +9,10 @@ const isProductionRuntime = () => import.meta.env.PROD || import.meta.env.MODE =
 export const getApiBase = () => {
   const configured = getConfiguredApiBase()
   if (!configured) return ''
+  // Desktop (Tauri) build: the webview origin is tauri://localhost with no
+  // same-origin reverse proxy, so the `/api` prefix can't resolve. Always talk
+  // to the configured absolute API base (set in .env.desktop) directly.
+  if (getPlatform().isDesktop) return configured
   if (!isProductionRuntime() || typeof window === 'undefined') return configured
   try {
     const url = new URL(configured)

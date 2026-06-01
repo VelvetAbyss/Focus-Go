@@ -1,5 +1,33 @@
+/******************
+Self-hosted fonts (offline + fast first paint, no Google Fonts round-trip).
+Subsetted variable woff2 in /public/fonts: Latin for Manrope/Fraunces, GB2312
+for Noto Serif SC. Decorative/display fonts (Ma Shan Zheng, ZCOOL, etc.) still
+load from Google with a system-font fallback offline.
+******************/
+@font-face {
+  font-family: 'Manrope';
+  src: url('/fonts/Manrope-variable.woff2') format('woff2');
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Fraunces';
+  src: url('/fonts/Fraunces-variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Serif SC';
+  src: url('/fonts/NotoSerifSC-variable.woff2') format('woff2');
+  font-weight: 200 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
-  /****************** 
+  /******************
   Basics
   ******************/
 
