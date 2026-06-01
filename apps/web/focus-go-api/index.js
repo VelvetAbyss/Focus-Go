@@ -4,6 +4,7 @@ import cors from 'cors'
 import helmet from 'helmet'
 import { toNodeHandler } from 'better-auth/node'
 import { auth } from './auth/betterAuth.js'
+import { ensureDesktopAuthTable, registerDesktopAuthRoutes } from './auth/desktopAuth.js'
 import userRouter from './routes/user.js'
 import syncRouter from './routes/sync.js'
 import paymentsRouter from './routes/payments.js'
@@ -26,8 +27,18 @@ const PROD_ORIGINS = [
 const DEV_ORIGINS = [
   'http://localhost:5173',
   'http://localhost:5174',
+  'http://localhost:5180',
   'http://127.0.0.1:5173',
   'http://127.0.0.1:5174',
+  'http://127.0.0.1:5180',
+]
+// Tauri desktop webview origins. macOS/Linux use the custom `tauri://` scheme;
+// Windows (WebView2) uses `http(s)://tauri.localhost`. Allowed in all envs
+// because the packaged desktop app talks to the production API.
+const DESKTOP_ORIGINS = [
+  'tauri://localhost',
+  'http://tauri.localhost',
+  'https://tauri.localhost',
 ]
 const EXTRA_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
   .split(',')
@@ -35,6 +46,7 @@ const EXTRA_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
   .filter(Boolean)
 const ALLOWED_ORIGINS = [
   ...PROD_ORIGINS,
+  ...DESKTOP_ORIGINS,
   ...(process.env.NODE_ENV === 'production' ? [] : DEV_ORIGINS),
   ...EXTRA_ORIGINS,
 ]
@@ -62,6 +74,11 @@ export const createApp = () => {
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization'],
   }))
+
+  // Desktop (Tauri) Google sign-in routes. MUST be registered before the
+  // better-auth catch-all below, or they'd be swallowed by it.
+  ensureDesktopAuthTable(db)
+  registerDesktopAuthRoutes(app, db)
 
   const authHandler = toNodeHandler(auth)
   app.all('/api/auth/*', authHandler)

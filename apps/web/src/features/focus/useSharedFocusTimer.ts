@@ -2,6 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FocusTimerSnapshot, FocusTimerStatus } from '../../data/models/types'
 import { focusRepo } from '../../data/repositories/focusRepo'
 import { usePageActivity, useVisibleInterval } from '../../shared/hooks/usePageActivity'
+import { getPlatform } from '../../platform'
+import { t } from '../../shared/i18n/translator'
+import { readLanguage } from '../../shared/prefs/preferences'
 
 const FOCUS_TIMER_EVENT = 'focus:timer-updated'
 const SESSION_KEY = 'focusgo.timer.sessionId'
@@ -170,6 +173,9 @@ export const useSharedFocusTimer = ({ defaultDurationMinutes }: UseSharedFocusTi
       setSnapshot(next)
       await persistSnapshot(next)
       emitTimerUpdate()
+      // Desktop-only: native OS notification when a focus session finishes.
+      // No-op in the browser build (webPlatform.notify is a no-op).
+      void getPlatform().notify('Focus & Go', t('focus.sessionComplete', readLanguage()))
     } finally {
       completingRef.current = false
     }

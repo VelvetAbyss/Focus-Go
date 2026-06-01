@@ -14,6 +14,7 @@ import {
   updateProfile, processAvatarFile, useUserProfile,
 } from '../../store/userProfile'
 import { authClient } from '../../config/authClient'
+import { getPlatform } from '../../platform'
 import { clearLocalUserData } from '../../data/sync/repository'
 import { useI18n } from '../../shared/i18n/useI18n'
 import { dbService } from '../../data/services/dbService'
@@ -71,6 +72,8 @@ const signOutBestEffort = async () => {
   } catch {
     // local logout should still complete if the auth server is unavailable
   }
+  // Desktop: drop the persisted keychain token so the next launch is logged out.
+  await getPlatform().clearAuthToken()
 }
 
 function computeStreak(sessions: FocusSession[]): number {

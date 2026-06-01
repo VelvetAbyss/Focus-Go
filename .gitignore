@@ -88,3 +88,7 @@ progress.md
 task_plan.md
 CONTRIBUTING.md
 .gstack/
+
+# Desktop (Tauri) app — local-only, kept out of the repo for now
+/apps/desktop/
+/.github/workflows/desktop-release.yml

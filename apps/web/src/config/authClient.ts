@@ -43,6 +43,11 @@ const authBasePath = () => {
   return `${apiBase}/api/auth`
 }
 
+// Desktop Google sign-in routes the OAuth callback through this same-origin server
+// endpoint (so it carries the session cookie); the server then deep-links the
+// one-time code back to the app. See apps/desktop/DESKTOP_AUTH.md.
+export const desktopOAuthCallbackURL = () => `${authBasePath()}/desktop/callback`
+
 const parseAuthPayload = (text: string, contentType: string | null) => {
   if (!text) return null
   if (!contentType?.includes('application/json')) {
@@ -98,6 +103,16 @@ export const authClient = {
         callbackURL,
         disableRedirect: true,
       }),
+    }),
+
+  // Desktop deep-link flow: exchange the one-time code delivered to
+  // focusgo://auth-callback?code=... for a Bearer token + user. Requires the
+  // server-side endpoint (POST /desktop/exchange) that mints the OTC during the
+  // social-login callback. See apps/desktop deep-link auth docs.
+  exchangeDesktopCode: (code: string) =>
+    requestAuth<AuthResponse>('/desktop/exchange', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
     }),
 
   getSession: () => requestAuth<AuthResponse>('/get-session'),
