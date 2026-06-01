@@ -78,6 +78,7 @@ type BuildTaskProgressSummaryInput = {
   tasks: readonly TaskItem[]
   projects: readonly ProjectItem[]
   now?: number
+  anchorAt?: number
   period: TaskProgressPeriod
   mode?: TaskProgressDetailMode
 }
@@ -358,10 +359,11 @@ export const buildTaskProgressSummary = ({
   tasks,
   projects,
   now = Date.now(),
+  anchorAt,
   period,
   mode = 'compact',
 }: BuildTaskProgressSummaryInput): TaskProgressSummary => {
-  const range = getTaskProgressRange(now, period)
+  const range = getTaskProgressRange(anchorAt ?? now, period)
   const previousRange = getPreviousRange(range, period)
   const current = summarizeRange(tasks, projects, range)
   const previous = summarizeRange(tasks, projects, previousRange)

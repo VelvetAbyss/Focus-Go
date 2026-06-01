@@ -1,4 +1,4 @@
-import { Check, Clipboard, ListChecks } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, Clipboard, ListChecks, RotateCcw } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type { ProjectItem } from '../../../data/models/types'
 import { useI18n } from '../../../shared/i18n/useI18n'
@@ -239,14 +239,28 @@ const formatFiledTime = (timestamp: number) => {
   return `${hh}:${mm}`
 }
 
+const addLocalMonths = (value: number, amount: number) => {
+  const date = new Date(value)
+  return new Date(date.getFullYear(), date.getMonth() + amount, 1, date.getHours(), date.getMinutes(), date.getSeconds(), date.getMilliseconds()).getTime()
+}
+
+const shiftPeriodAnchor = (value: number, period: TaskProgressPeriod, offset: number) =>
+  period === 'week' ? value + offset * 7 * 24 * 60 * 60 * 1000 : addLocalMonths(value, offset)
+
 export const TaskProgressSummaryCard = ({ tasks, projects, className, compact, now }: TaskProgressSummaryCardProps) => {
   const { t, language } = useI18n()
   const [period, setPeriod] = useState<TaskProgressPeriod>('week')
   const [mode, setMode] = useState<TaskProgressDetailMode>('compact')
+  const [periodOffset, setPeriodOffset] = useState(0)
   const [copied, setCopied] = useState(false)
+  // Snapshot time at mount via useState lazy initializer — the canonical
+  // React pattern for capturing a non-pure value once per component instance.
+  const [nowAtMount] = useState(() => Date.now())
+  const effectiveNow = now ?? nowAtMount
+  const anchorAt = useMemo(() => shiftPeriodAnchor(effectiveNow, period, periodOffset), [effectiveNow, period, periodOffset])
   const summary = useMemo(
-    () => buildTaskProgressSummary({ tasks, projects, now, period, mode }),
-    [mode, now, period, projects, tasks],
+    () => buildTaskProgressSummary({ tasks, projects, now: effectiveNow, anchorAt, period, mode }),
+    [anchorAt, effectiveNow, mode, period, projects, tasks],
   )
   const visibleProjects = compact ? summary.projects.slice(0, 3) : summary.projects
 
@@ -257,6 +271,11 @@ export const TaskProgressSummaryCard = ({ tasks, projects, className, compact, n
     ],
     [t],
   )
+
+  const changePeriod = (next: TaskProgressPeriod) => {
+    setPeriod(next)
+    setPeriodOffset(0)
+  }
   const modeOptions = useMemo(
     () => [
       { value: 'compact' as const, label: t('taskRecap.mode.compact') },
@@ -287,7 +306,12 @@ export const TaskProgressSummaryCard = ({ tasks, projects, className, compact, n
     }
   }
 
-  const headlineText = t(period === 'week' ? 'taskRecap.title.week' : 'taskRecap.title.month')
+  const headlineText =
+    periodOffset === 0
+      ? t(period === 'week' ? 'taskRecap.title.week' : 'taskRecap.title.month')
+      : periodOffset === -1
+        ? t(period === 'week' ? 'taskRecap.title.lastWeek' : 'taskRecap.title.lastMonth')
+        : t(period === 'week' ? 'taskRecap.title.weeksAgo' : 'taskRecap.title.monthsAgo', { count: Math.abs(periodOffset) })
   // The last token of the headline (e.g. "week" / "本周") is italicized in rust.
   // Simple split heuristic: emphasize the trailing word; fall back to whole headline.
   const headlineParts = (() => {
@@ -307,10 +331,7 @@ export const TaskProgressSummaryCard = ({ tasks, projects, className, compact, n
   const subtasksDirection = directionFromDelta(summary.delta.completedSubtaskCount)
 
   const issueDate = new Date(summary.range.startAt)
-  // Snapshot time at mount via useState lazy initializer — the canonical
-  // React pattern for capturing a non-pure value once per component instance.
-  const [nowAtMount] = useState(() => Date.now())
-  const filedTs = Math.min(now ?? nowAtMount, summary.range.endAt - 1)
+  const filedTs = Math.min(effectiveNow, summary.range.endAt - 1)
 
   return (
     <section
@@ -349,9 +370,39 @@ export const TaskProgressSummaryCard = ({ tasks, projects, className, compact, n
           <SegmentControl
             value={period}
             options={periodOptions}
-            onChange={setPeriod}
+            onChange={changePeriod}
             ariaLabel={t('taskRecap.aria.period')}
           />
+          <div className="recap-card__period-nav" aria-label={t('taskRecap.aria.history')}>
+            <button
+              type="button"
+              className="recap-card__nav-btn"
+              aria-label={t('taskRecap.history.previous')}
+              title={t('taskRecap.history.previous')}
+              onClick={() => setPeriodOffset((value) => value - 1)}
+            >
+              <ChevronLeft aria-hidden />
+            </button>
+            <button
+              type="button"
+              className="recap-card__current-btn"
+              disabled={periodOffset === 0}
+              onClick={() => setPeriodOffset(0)}
+            >
+              <RotateCcw aria-hidden />
+              <span>{t(period === 'week' ? 'taskRecap.history.thisWeek' : 'taskRecap.history.thisMonth')}</span>
+            </button>
+            <button
+              type="button"
+              className="recap-card__nav-btn"
+              aria-label={t('taskRecap.history.next')}
+              title={t('taskRecap.history.next')}
+              disabled={periodOffset === 0}
+              onClick={() => setPeriodOffset((value) => Math.min(0, value + 1))}
+            >
+              <ChevronRight aria-hidden />
+            </button>
+          </div>
           <SegmentControl
             value={mode}
             options={modeOptions}

@@ -137,6 +137,66 @@
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  align-items: center;
+}
+
+.recap-card__period-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--recap-rule-soft);
+  border-radius: 999px;
+  background: var(--recap-paper-warm);
+}
+
+.recap-card__nav-btn,
+.recap-card__current-btn {
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--recap-ink-soft);
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+}
+
+.recap-card__nav-btn {
+  width: 26px;
+  padding: 0;
+}
+
+.recap-card__current-btn {
+  gap: 5px;
+  padding: 0 8px;
+  font-family: var(--recap-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.recap-card__nav-btn:hover:not(:disabled),
+.recap-card__current-btn:hover:not(:disabled) {
+  background: var(--recap-paper);
+  color: #3A3733;
+}
+
+.recap-card__nav-btn:disabled,
+.recap-card__current-btn:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.recap-card__nav-btn svg,
+.recap-card__current-btn svg {
+  width: 13px;
+  height: 13px;
 }
 
 /* ── Dashed rule ────────────────────────────────────────────────────────── */
