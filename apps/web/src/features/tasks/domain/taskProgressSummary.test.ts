@@ -73,6 +73,29 @@ describe('task progress summary', () => {
     expect(summary.projects.map((project) => project.projectTitle)).toEqual(expect.arrayContaining(['Launch', '未归属']))
   })
 
+  it('can summarize a historical range anchored before now', () => {
+    const now = new Date(2026, 5, 1, 12).getTime()
+    const anchorAt = new Date(2026, 4, 13, 12).getTime()
+    const tasks = [
+      createTask({
+        id: 'task-may',
+        title: 'May completion',
+        activityLogs: [{ id: 'a', type: 'status', message: 'Status changed to Done', createdAt: new Date(2026, 4, 12, 9).getTime() }],
+      }),
+      createTask({
+        id: 'task-june',
+        title: 'June completion',
+        activityLogs: [{ id: 'b', type: 'status', message: 'Status changed to Done', createdAt: new Date(2026, 5, 1, 9).getTime() }],
+      }),
+    ]
+
+    const summary = buildTaskProgressSummary({ tasks, projects: [], now, anchorAt, period: 'week' })
+
+    expect(summary.range.label).toContain('May')
+    expect(summary.totals.completedTaskCount).toBe(1)
+    expect(summary.projects[0]?.tasks[0]?.title).toBe('May completion')
+  })
+
   it('dedupes repeated task completions for report rows while retaining event counts', () => {
     const now = new Date(2026, 4, 13, 12).getTime()
     const tasks = [

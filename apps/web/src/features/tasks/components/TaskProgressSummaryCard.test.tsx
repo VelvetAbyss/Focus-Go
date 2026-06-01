@@ -90,4 +90,44 @@ describe('TaskProgressSummaryCard', () => {
     await user.click(screen.getByRole('tab', { name: 'Detailed' }))
     expect(screen.getByText('Write summary model')).toBeInTheDocument()
   })
+
+  it('navigates to previous weeks and back to the current week', async () => {
+    const user = userEvent.setup()
+    const tasks = [
+      createTask({
+        id: 'task-current',
+        title: 'Current week task',
+        activityLogs: [{ id: 'a', type: 'status', message: 'Status changed to Done', createdAt: new Date(2026, 4, 12, 9).getTime() }],
+      }),
+      createTask({
+        id: 'task-previous',
+        title: 'Previous week task',
+        activityLogs: [{ id: 'b', type: 'status', message: 'Status changed to Done', createdAt: new Date(2026, 4, 5, 9).getTime() }],
+      }),
+    ]
+
+    render(
+      <div style={{ height: 620 }}>
+        <TaskProgressSummaryCard
+          tasks={tasks}
+          projects={[]}
+          now={new Date(2026, 4, 13, 12).getTime()}
+        />
+      </div>,
+    )
+
+    expect(screen.getByText('Current week task')).toBeInTheDocument()
+    expect(screen.queryByText('Previous week task')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Previous period' }))
+
+    expect(screen.getByRole('heading', { name: 'Last week' })).toBeInTheDocument()
+    expect(screen.getByText('Previous week task')).toBeInTheDocument()
+    expect(screen.queryByText('Current week task')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'This week' }))
+
+    expect(screen.getByText('Current week task')).toBeInTheDocument()
+    expect(screen.queryByText('Previous week task')).not.toBeInTheDocument()
+  })
 })
