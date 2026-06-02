@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { ink, muted, tx } from './tokens'
 
 /** Muted journal-friendly palette cycled across donut segments. */
+// eslint-disable-next-line react-refresh/only-export-components -- palette constant colocated with the chart components that use it
 export const CHART_PALETTE = ['#7C5A3A', '#5B8C5A', '#2E6EA6', '#B07830', '#7A3A7A', '#C0793A', '#3D7A4E', '#9A6A6A']
 
 export type DonutSegment = { id: string; value: number; color: string; label?: string }
