@@ -82,6 +82,7 @@ import {
 } from '../../shared/location/citySuggestions'
 import { readLayoutLocked, writeLayoutLocked } from '../../shared/prefs/dashboardLayoutLock'
 import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../data/repositories/syncedPreferencesRepo'
+import AmbientSettingsSection from './AmbientSettingsSection'
 const RESET_TIMEOUT_MS = 30_000
 
 type ThemeSelection = 'system' | 'light' | 'dark'
@@ -1262,6 +1263,8 @@ const SettingsRoute = () => {
                               </SelectContent>
                             </Select>
                           </SettingRow>
+
+                          <AmbientSettingsSection />
                         </>
                       ) : null}
 

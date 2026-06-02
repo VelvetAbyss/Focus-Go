@@ -1,4 +1,4 @@
-import type { SceneStrategy, SceneTheme } from './types'
+import type { SceneSignals, SceneStrategy, SceneTheme } from './types'
 
 type Drop = {
   x: number
@@ -17,9 +17,11 @@ type WindStreak = {
   alpha: number
 }
 
-const COUNT = 220
+const BASE_DROPS = 220
 const ANGLE = 0.32
 const WIND_COUNT = 6
+const CURSOR_AVOID_RADIUS = 80
+const CURSOR_AVOID_RADIUS_SQ = CURSOR_AVOID_RADIUS * CURSOR_AVOID_RADIUS
 
 export const createStormyNightScene = (): SceneStrategy => {
   let ctx: CanvasRenderingContext2D | null = null
@@ -29,12 +31,13 @@ export const createStormyNightScene = (): SceneStrategy => {
   const drops: Drop[] = []
   const winds: WindStreak[] = []
 
-  // Lightning flash state, JS-driven so timing feels organic.
   let flashAlpha = 0
   let preFlashAlpha = 0
   let nextFlashIn = 4_000 + Math.random() * 7_000
   let flashOriginX = 0.5
   let flashOriginY = 0.25
+  // Track flash transitions for emitting shell events.
+  let lastFlashAlpha = 0
 
   const spawnDrop = (initial = false): Drop => {
     const len = 14 + Math.random() * 20
@@ -57,46 +60,69 @@ export const createStormyNightScene = (): SceneStrategy => {
   })
 
   return {
-    init(canvas, nextTheme) {
+    init(canvas, runtime) {
       ctx = canvas.getContext('2d')
       width = canvas.clientWidth
       height = canvas.clientHeight
-      theme = nextTheme
+      theme = runtime.theme
       drops.length = 0
       winds.length = 0
       flashAlpha = 0
       preFlashAlpha = 0
+      lastFlashAlpha = 0
       nextFlashIn = 4_000 + Math.random() * 7_000
       if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height)
-      for (let i = 0; i < COUNT; i += 1) drops.push(spawnDrop(true))
+      for (let i = 0; i < BASE_DROPS; i += 1) drops.push(spawnDrop(true))
       for (let i = 0; i < WIND_COUNT; i += 1) winds.push(spawnWind(true))
     },
-    tick(dtMs) {
+    tick(dtMs, runtime, signals: SceneSignals) {
       if (!ctx) return
       const dt = dtMs / 1000
       ctx.clearRect(0, 0, width, height)
 
-      // Wind streaks — long, very faint horizontal trails.
+      const flags = runtime.prefs.effects.stormyNight
+      const intensity = signals.intensity
+      const thunderVol = signals.noise.thunder.enabled ? signals.noise.thunder.volume : 0
+      const windVol = signals.noise.wind.enabled ? signals.noise.wind.volume : 0
+      const rainVol = signals.noise.rain.enabled ? signals.noise.rain.volume : 0
+
+      // Audio-reactive density.
+      const densityMul = 0.65 + rainVol * 0.55
+      const targetCount = Math.round(BASE_DROPS * densityMul * intensity)
+      while (drops.length < targetCount) drops.push(spawnDrop())
+      if (drops.length > targetCount) drops.length = targetCount
+
+      const windTargetCount = Math.round(WIND_COUNT + windVol * 6)
+      while (winds.length < windTargetCount) winds.push(spawnWind())
+      if (winds.length > windTargetCount) winds.length = windTargetCount
+
+      // ── Wind streaks ──
       const windColor = theme === 'dark' ? '220, 230, 245' : '160, 175, 200'
       ctx.lineCap = 'round'
       ctx.lineWidth = 1.0
       for (let i = 0; i < winds.length; i += 1) {
         const w = winds[i]
-        w.x += w.vx * dt
+        w.x += w.vx * dt * (1 + windVol * 0.5)
         if (w.x - w.len > width) {
           winds[i] = spawnWind()
           continue
         }
-        ctx.strokeStyle = `rgba(${windColor}, ${w.alpha})`
+        ctx.strokeStyle = `rgba(${windColor}, ${w.alpha * intensity})`
         ctx.beginPath()
         ctx.moveTo(w.x, w.y)
         ctx.lineTo(w.x - w.len, w.y + 6)
         ctx.stroke()
       }
 
-      // Rain
-      const baseColor = theme === 'dark' ? '210, 220, 235' : '90, 110, 140'
+      // ── Rain ──
+      const rainBaseColor = theme === 'dark' ? '210, 220, 235' : '90, 110, 140'
+      const rainFlashColor = '255, 255, 250'
+      // During flash peak, draw rain brighter + whiter — feature #1 of this task.
+      const flashRainBoost = flags.lightningFlashOnRain && flashAlpha > 0.02
       ctx.lineWidth = 1.15
+      const cursorOn = runtime.prefs.cursorReactivity && signals.cursor.inside
+      const cx = signals.cursor.x
+      const cy = signals.cursor.y
       for (let i = 0; i < drops.length; i += 1) {
         const d = drops[i]
         const vy = d.speed * dt
@@ -107,17 +133,53 @@ export const createStormyNightScene = (): SceneStrategy => {
           drops[i].y = -drops[i].len
           continue
         }
-        ctx.strokeStyle = `rgba(${baseColor}, ${d.alpha})`
+        if (cursorOn) {
+          const dx = d.x - cx
+          const dy = d.y - cy
+          const distSq = dx * dx + dy * dy
+          if (distSq < CURSOR_AVOID_RADIUS_SQ && distSq > 1) {
+            const force = (1 - distSq / CURSOR_AVOID_RADIUS_SQ) * 3
+            const dist = Math.sqrt(distSq)
+            d.x += (dx / dist) * force
+          }
+        }
+        const color = flashRainBoost ? rainFlashColor : rainBaseColor
+        const alpha = flashRainBoost ? Math.min(0.95, d.alpha * 3.5 * flashAlpha) : d.alpha * intensity
+        ctx.strokeStyle = `rgba(${color}, ${alpha})`
         ctx.beginPath()
         ctx.moveTo(d.x, d.y)
         ctx.lineTo(d.x - d.len * ANGLE, d.y - d.len)
         ctx.stroke()
       }
 
-      // Lightning: pre-flash micro-glow at origin, then full-screen flash.
-      nextFlashIn -= dtMs
+      // ── Wet-ground reflection: mirrored rain at bottom 10% ──
+      if (flags.wetGroundReflection) {
+        const refHeight = height * 0.1
+        const refTop = height - refHeight
+        ctx.save()
+        ctx.beginPath()
+        ctx.rect(0, refTop, width, refHeight)
+        ctx.clip()
+        ctx.translate(0, height * 2 - refHeight * 0.4)
+        ctx.scale(1, -0.45)
+        ctx.filter = 'blur(2px)'
+        for (let i = 0; i < drops.length; i += 1) {
+          const d = drops[i]
+          if (d.y < height - refHeight * 4) continue
+          ctx.strokeStyle = `rgba(${rainBaseColor}, ${d.alpha * 0.25 * intensity})`
+          ctx.beginPath()
+          ctx.moveTo(d.x, d.y)
+          ctx.lineTo(d.x - d.len * ANGLE, d.y - d.len)
+          ctx.stroke()
+        }
+        ctx.restore()
+      }
+
+      // ── Lightning: pre-flash glow → full flash → shell emits ──
+      // Frequency modulated by thunder volume.
+      const flashFreqMul = 1 - thunderVol * 0.55
+      nextFlashIn -= dtMs / flashFreqMul
       if (nextFlashIn <= -120 && preFlashAlpha === 0 && flashAlpha === 0) {
-        // schedule next flash, generate origin
         flashOriginX = 0.2 + Math.random() * 0.6
         flashOriginY = 0.15 + Math.random() * 0.35
         preFlashAlpha = 0.7
@@ -135,13 +197,24 @@ export const createStormyNightScene = (): SceneStrategy => {
         if (preFlashAlpha === 0) {
           flashAlpha = 0.55 + Math.random() * 0.25
           nextFlashIn = 6_000 + Math.random() * 9_000
+          // Emit thunder shake at flash trigger.
+          runtime.emit({
+            type: 'shell-shake',
+            magnitude: 3 + Math.random() * 2.5,
+            durationMs: 260 + Math.random() * 180,
+          })
         }
       }
       if (flashAlpha > 0) {
         ctx.fillStyle = `rgba(245, 244, 232, ${flashAlpha})`
         ctx.fillRect(0, 0, width, height)
         flashAlpha = Math.max(0, flashAlpha - dt * 2.4)
+        // When flash decays past threshold, emit purple after-flash once.
+        if (lastFlashAlpha > 0.04 && flashAlpha <= 0.04) {
+          runtime.emit({ type: 'shell-purple-flash', intensity: 0.4 })
+        }
       }
+      lastFlashAlpha = flashAlpha
     },
     cleanup() {
       drops.length = 0
