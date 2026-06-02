@@ -262,7 +262,7 @@ describe('TaskDrawer onboarding mode', () => {
       />,
     )
 
-    expect(screen.getByRole('button', { name: '未完成' })).toHaveClass('bg-[#3a3733]')
+    expect(screen.getByRole('button', { name: '未完成' })).toHaveClass('bg-[var(--text-primary)]')
     expect(screen.getByDisplayValue('Todo item')).toBeInTheDocument()
     expect(screen.queryByDisplayValue('Done item')).not.toBeInTheDocument()
   })

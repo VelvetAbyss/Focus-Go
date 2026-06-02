@@ -37,12 +37,22 @@ const SidebarWhiteNoise = ({ collapsed }: Props) => {
     requireAuth(() => toggleNoisePlaying())
   }
 
-  const handleSceneChange = (nextId: NoiseScenePresetId) => {
+  const handleSceneChange = (nextId: NoiseScenePresetId | '') => {
     if (!allowed) {
       openUpgradeModal('button', 'focus.white-noise')
       return
     }
     requireAuth(() => {
+      // Empty value = "return to default background" — disable every noise track
+      // so no preset matches, ambient scene falls back to 'idle'.
+      if (nextId === '') {
+        const cleared = cloneNoiseTracks(noise.tracks)
+        for (const key of Object.keys(cleared) as Array<keyof typeof cleared>) {
+          cleared[key] = { ...cleared[key], enabled: false }
+        }
+        setNoise({ ...noise, tracks: cleared })
+        return
+      }
       const nextScene = NOISE_SCENE_PRESETS.find((scene) => scene.id === nextId)
       if (!nextScene) return
       setNoise({
@@ -100,14 +110,12 @@ const SidebarWhiteNoise = ({ collapsed }: Props) => {
               <select
                 className="sidebar-noise-mini__preset"
                 value={activeScene?.id ?? ''}
-                onChange={(event) => handleSceneChange(event.target.value as NoiseScenePresetId)}
+                onChange={(event) => handleSceneChange(event.target.value as NoiseScenePresetId | '')}
                 aria-label={t('focus.scenes')}
               >
-                {!activeScene ? (
-                  <option value="" disabled hidden>
-                    {t('focus.scenes')}
-                  </option>
-                ) : null}
+                <option value="">
+                  ✨ {activeScene ? '返回默认背景' : t('focus.scenes')}
+                </option>
                 {NOISE_SCENE_PRESETS.map((scene) => (
                   <option key={scene.id} value={scene.id}>
                     {scene.emoji} {t(scene.labelKey)}

@@ -5,7 +5,9 @@ export const RAIL_HOUR_HEIGHT = 56
 export const RAIL_START_HOUR = 6
 export const RAIL_END_HOUR = 24
 
+// eslint-disable-next-line react-refresh/only-export-components -- pure time<->Y helpers colocated with the rail component
 export const minutesToY = (minutes: number) => ((minutes / 60) - RAIL_START_HOUR) * RAIL_HOUR_HEIGHT
+// eslint-disable-next-line react-refresh/only-export-components -- pure time<->Y helpers colocated with the rail component
 export const hhmmToMinutes = (hhmm: string): number | null => {
   const m = hhmm.match(/^([01]?\d|2[0-3]):([0-5]\d)$/)
   if (!m) return null
