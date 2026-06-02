@@ -1,4 +1,5 @@
 import { drawGlow, makeRadialGlowSprite } from './glowSprite'
+import { makeSceneRng } from './rng'
 import type { SceneSignals, SceneStrategy, SceneTheme } from './types'
 
 type Drop = {
@@ -72,6 +73,7 @@ const clearSteamFog = () => {
 }
 
 export const createRainyCafeScene = (): SceneStrategy => {
+  let rng: () => number = Math.random
   let ctx: CanvasRenderingContext2D | null = null
   let width = 0
   let height = 0
@@ -82,63 +84,64 @@ export const createRainyCafeScene = (): SceneStrategy => {
   const glints: Glint[] = []
   const condensation: Condensation[] = []
   const silhouettes: Silhouette[] = []
-  let nextSilhouetteIn = 30_000 + Math.random() * 40_000
+  let nextSilhouetteIn = 30_000 + rng() * 40_000
 
   const spawnDrop = (initial = false): Drop => {
-    const len = 10 + Math.random() * 16
+    const len = 10 + rng() * 16
     return {
-      x: Math.random() * (width + 100) - 50,
-      y: initial ? Math.random() * height : -len,
+      x: rng() * (width + 100) - 50,
+      y: initial ? rng() * height : -len,
       len,
-      speed: 220 + Math.random() * 260,
-      alpha: 0.12 + Math.random() * 0.22,
-      drift: 0.85 + Math.random() * 0.3,
+      speed: 220 + rng() * 260,
+      alpha: 0.12 + rng() * 0.22,
+      drift: 0.85 + rng() * 0.3,
     }
   }
 
   const spawnGlint = (): Glint => ({
-    x: Math.random() * width,
-    y: height * (0.05 + Math.random() * 0.25),
-    r: 70 + Math.random() * 70,
-    vx: 4 + Math.random() * 8,
-    alpha: 0.04 + Math.random() * 0.06,
+    x: rng() * width,
+    y: height * (0.05 + rng() * 0.25),
+    r: 70 + rng() * 70,
+    vx: 4 + rng() * 8,
+    alpha: 0.04 + rng() * 0.06,
   })
 
   const spawnCondensation = (initial = false): Condensation => ({
-    x: Math.random() * width,
-    y: initial ? Math.random() * height : -30,
-    r: 8 + Math.random() * 14,
-    vy: 14 + Math.random() * 22,
-    wobblePhase: Math.random() * Math.PI * 2,
-    alpha: 0.06 + Math.random() * 0.08,
+    x: rng() * width,
+    y: initial ? rng() * height : -30,
+    r: 8 + rng() * 14,
+    vy: 14 + rng() * 22,
+    wobblePhase: rng() * Math.PI * 2,
+    alpha: 0.06 + rng() * 0.08,
     resetY: height + 40,
   })
 
   const spawnSilhouette = (): Silhouette => ({
     x: -120,
-    width: 24 + Math.random() * 28,
-    height: 60 + Math.random() * 80,
-    speed: 40 + Math.random() * 30,
-    alpha: 0.08 + Math.random() * 0.06,
+    width: 24 + rng() * 28,
+    height: 60 + rng() * 80,
+    speed: 40 + rng() * 30,
+    alpha: 0.08 + rng() * 0.06,
     delay: 0,
   })
 
   const trySpawnRipple = (drop: Drop) => {
     if (ripples.length >= MAX_RIPPLES) return
-    if (Math.random() > 0.15) return
+    if (rng() > 0.15) return
     ripples.push({
       x: drop.x - drop.len * ANGLE * 0.3,
-      y: height - 8 - Math.random() * 18,
+      y: height - 8 - rng() * 18,
       r: 0,
-      maxR: 6 + Math.random() * 12,
-      alpha: 0.18 + Math.random() * 0.16,
+      maxR: 6 + rng() * 12,
+      alpha: 0.18 + rng() * 0.16,
       age: 0,
-      life: 700 + Math.random() * 500,
+      life: 700 + rng() * 500,
     })
   }
 
   return {
     init(canvas, runtime) {
+      rng = makeSceneRng(runtime)
       ctx = canvas.getContext('2d')
       width = canvas.clientWidth
       height = canvas.clientHeight
@@ -150,7 +153,7 @@ export const createRainyCafeScene = (): SceneStrategy => {
       glints.length = 0
       condensation.length = 0
       silhouettes.length = 0
-      nextSilhouetteIn = 30_000 + Math.random() * 40_000
+      nextSilhouetteIn = 30_000 + rng() * 40_000
       if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height)
       for (let i = 0; i < BASE_DROPS; i += 1) drops.push(spawnDrop(true))
       for (let i = 0; i < GLINT_COUNT; i += 1) glints.push(spawnGlint())
@@ -186,8 +189,8 @@ export const createRainyCafeScene = (): SceneStrategy => {
         g.x += g.vx * dt
         if (g.x - g.r > width) {
           g.x = -g.r
-          g.y = height * (0.05 + Math.random() * 0.25)
-          g.r = 70 + Math.random() * 70
+          g.y = height * (0.05 + rng() * 0.25)
+          g.r = 70 + rng() * 70
         }
         const a = g.alpha * glintBoost * intensity
         if (!drawGlow(ctx, glintSprite, g.x, g.y, g.r, a)) {
@@ -287,7 +290,7 @@ export const createRainyCafeScene = (): SceneStrategy => {
         nextSilhouetteIn -= dtMs
         if (nextSilhouetteIn <= 0 && silhouettes.length < 2) {
           silhouettes.push(spawnSilhouette())
-          nextSilhouetteIn = 30_000 + Math.random() * 40_000
+          nextSilhouetteIn = 30_000 + rng() * 40_000
         }
         const sCol = theme === 'dark' ? '0, 0, 0' : '58, 55, 51'
         for (let i = silhouettes.length - 1; i >= 0; i -= 1) {

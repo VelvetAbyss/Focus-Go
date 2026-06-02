@@ -1,3 +1,4 @@
+import { makeSceneRng } from './rng'
 import type { SceneSignals, SceneStrategy, SceneTheme } from './types'
 
 type Mote = {
@@ -56,6 +57,7 @@ const sunPosForHour = (hour: number, minutes: number) => {
 }
 
 export const createOceanBreezeScene = (): SceneStrategy => {
+  let rng: () => number = Math.random
   let ctx: CanvasRenderingContext2D | null = null
   let width = 0
   let height = 0
@@ -64,15 +66,15 @@ export const createOceanBreezeScene = (): SceneStrategy => {
   const waves: Wave[] = []
 
   const spawn = (initial = false): Mote => {
-    const life = 4_000 + Math.random() * 5_000
+    const life = 4_000 + rng() * 5_000
     return {
-      x: Math.random() * width,
-      y: initial ? Math.random() * height : height + 12,
-      r: 1.4 + Math.random() * 2.6,
-      vx: -8 + Math.random() * 16,
-      vy: -(14 + Math.random() * 22),
+      x: rng() * width,
+      y: initial ? rng() * height : height + 12,
+      r: 1.4 + rng() * 2.6,
+      vx: -8 + rng() * 16,
+      vy: -(14 + rng() * 22),
       life,
-      age: initial ? Math.random() * life : 0,
+      age: initial ? rng() * life : 0,
     }
   }
 
@@ -83,10 +85,10 @@ export const createOceanBreezeScene = (): SceneStrategy => {
       for (let i = 0; i < FAR_WAVES; i += 1) {
         waves.push({
           yBase: height * (0.6 + i * 0.02),
-          amp: 3 + Math.random() * 4,
-          freq: 0.003 + Math.random() * 0.002,
-          phase: Math.random() * Math.PI * 2,
-          speed: 0.18 + Math.random() * 0.12,
+          amp: 3 + rng() * 4,
+          freq: 0.003 + rng() * 0.002,
+          phase: rng() * Math.PI * 2,
+          speed: 0.18 + rng() * 0.12,
           alpha: 0.04 + i * 0.012,
           thickness: 0.9,
           layer: 0,
@@ -95,10 +97,10 @@ export const createOceanBreezeScene = (): SceneStrategy => {
       for (let i = 0; i < MID_WAVES; i += 1) {
         waves.push({
           yBase: height * (0.75 + i * 0.04),
-          amp: 8 + Math.random() * 6,
-          freq: 0.005 + Math.random() * 0.002,
-          phase: Math.random() * Math.PI * 2,
-          speed: 0.5 + Math.random() * 0.3,
+          amp: 8 + rng() * 6,
+          freq: 0.005 + rng() * 0.002,
+          phase: rng() * Math.PI * 2,
+          speed: 0.5 + rng() * 0.3,
           alpha: 0.08 + i * 0.022,
           thickness: 1.1,
           layer: 1,
@@ -107,10 +109,10 @@ export const createOceanBreezeScene = (): SceneStrategy => {
       for (let i = 0; i < NEAR_WAVES; i += 1) {
         waves.push({
           yBase: height * (0.88 + i * 0.04),
-          amp: 12 + Math.random() * 8,
-          freq: 0.006 + Math.random() * 0.003,
-          phase: Math.random() * Math.PI * 2,
-          speed: 0.85 + Math.random() * 0.4,
+          amp: 12 + rng() * 8,
+          freq: 0.006 + rng() * 0.003,
+          phase: rng() * Math.PI * 2,
+          speed: 0.85 + rng() * 0.4,
           alpha: 0.13 + i * 0.026,
           thickness: 1.3,
           layer: 2,
@@ -121,12 +123,12 @@ export const createOceanBreezeScene = (): SceneStrategy => {
       for (let i = 0; i < 5; i += 1) {
         waves.push({
           yBase: height * (0.7 + i * 0.05),
-          amp: 6 + Math.random() * 10,
-          freq: 0.004 + Math.random() * 0.003,
-          phase: Math.random() * Math.PI * 2,
-          speed: 0.45 + Math.random() * 0.35,
+          amp: 6 + rng() * 10,
+          freq: 0.004 + rng() * 0.003,
+          phase: rng() * Math.PI * 2,
+          speed: 0.45 + rng() * 0.35,
           alpha: 0.07 + i * 0.022,
-          thickness: 1 + Math.random() * 0.5,
+          thickness: 1 + rng() * 0.5,
           layer: 1,
         })
       }
@@ -135,6 +137,7 @@ export const createOceanBreezeScene = (): SceneStrategy => {
 
   return {
     init(canvas, runtime) {
+      rng = makeSceneRng(runtime)
       ctx = canvas.getContext('2d')
       width = canvas.clientWidth
       height = canvas.clientHeight

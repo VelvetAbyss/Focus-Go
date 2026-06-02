@@ -1,3 +1,4 @@
+import { makeSceneRng } from './rng'
 import type { SceneSignals, SceneStrategy, SceneTheme } from './types'
 
 type Drop = {
@@ -24,6 +25,7 @@ const CURSOR_AVOID_RADIUS = 80
 const CURSOR_AVOID_RADIUS_SQ = CURSOR_AVOID_RADIUS * CURSOR_AVOID_RADIUS
 
 export const createStormyNightScene = (): SceneStrategy => {
+  let rng: () => number = Math.random
   let ctx: CanvasRenderingContext2D | null = null
   let width = 0
   let height = 0
@@ -33,34 +35,35 @@ export const createStormyNightScene = (): SceneStrategy => {
 
   let flashAlpha = 0
   let preFlashAlpha = 0
-  let nextFlashIn = 4_000 + Math.random() * 7_000
+  let nextFlashIn = 4_000 + rng() * 7_000
   let flashOriginX = 0.5
   let flashOriginY = 0.25
   // Track flash transitions for emitting shell events.
   let lastFlashAlpha = 0
 
   const spawnDrop = (initial = false): Drop => {
-    const len = 14 + Math.random() * 20
+    const len = 14 + rng() * 20
     return {
-      x: Math.random() * (width + 200) - 100,
-      y: initial ? Math.random() * height : -len,
+      x: rng() * (width + 200) - 100,
+      y: initial ? rng() * height : -len,
       len,
-      speed: 320 + Math.random() * 320,
-      alpha: 0.16 + Math.random() * 0.26,
-      drift: 0.9 + Math.random() * 0.25,
+      speed: 320 + rng() * 320,
+      alpha: 0.16 + rng() * 0.26,
+      drift: 0.9 + rng() * 0.25,
     }
   }
 
   const spawnWind = (initial = false): WindStreak => ({
-    x: initial ? Math.random() * width : -200,
-    y: height * (0.1 + Math.random() * 0.8),
-    len: 120 + Math.random() * 240,
-    vx: 90 + Math.random() * 120,
-    alpha: 0.05 + Math.random() * 0.08,
+    x: initial ? rng() * width : -200,
+    y: height * (0.1 + rng() * 0.8),
+    len: 120 + rng() * 240,
+    vx: 90 + rng() * 120,
+    alpha: 0.05 + rng() * 0.08,
   })
 
   return {
     init(canvas, runtime) {
+      rng = makeSceneRng(runtime)
       ctx = canvas.getContext('2d')
       width = canvas.clientWidth
       height = canvas.clientHeight
@@ -70,7 +73,7 @@ export const createStormyNightScene = (): SceneStrategy => {
       flashAlpha = 0
       preFlashAlpha = 0
       lastFlashAlpha = 0
-      nextFlashIn = 4_000 + Math.random() * 7_000
+      nextFlashIn = 4_000 + rng() * 7_000
       if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height)
       for (let i = 0; i < BASE_DROPS; i += 1) drops.push(spawnDrop(true))
       for (let i = 0; i < WIND_COUNT; i += 1) winds.push(spawnWind(true))
@@ -180,8 +183,8 @@ export const createStormyNightScene = (): SceneStrategy => {
       const flashFreqMul = 1 - thunderVol * 0.55
       nextFlashIn -= dtMs / flashFreqMul
       if (nextFlashIn <= -120 && preFlashAlpha === 0 && flashAlpha === 0) {
-        flashOriginX = 0.2 + Math.random() * 0.6
-        flashOriginY = 0.15 + Math.random() * 0.35
+        flashOriginX = 0.2 + rng() * 0.6
+        flashOriginY = 0.15 + rng() * 0.35
         preFlashAlpha = 0.7
       }
       if (preFlashAlpha > 0) {
@@ -195,13 +198,13 @@ export const createStormyNightScene = (): SceneStrategy => {
         ctx.fillRect(0, 0, width, height)
         preFlashAlpha = Math.max(0, preFlashAlpha - dt * 5.5)
         if (preFlashAlpha === 0) {
-          flashAlpha = 0.55 + Math.random() * 0.25
-          nextFlashIn = 6_000 + Math.random() * 9_000
+          flashAlpha = 0.55 + rng() * 0.25
+          nextFlashIn = 6_000 + rng() * 9_000
           // Emit thunder shake at flash trigger.
           runtime.emit({
             type: 'shell-shake',
-            magnitude: 3 + Math.random() * 2.5,
-            durationMs: 260 + Math.random() * 180,
+            magnitude: 3 + rng() * 2.5,
+            durationMs: 260 + rng() * 180,
           })
         }
       }

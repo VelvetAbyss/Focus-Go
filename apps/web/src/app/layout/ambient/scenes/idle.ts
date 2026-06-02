@@ -1,3 +1,4 @@
+import { makeSceneRng } from './rng'
 import type { SceneSignals, SceneStrategy, SceneTheme } from './types'
 
 type Mote = {
@@ -47,6 +48,7 @@ const clearIdleVars = () => {
 }
 
 export const createIdleScene = (): SceneStrategy => {
+  let rng: () => number = Math.random
   let ctx: CanvasRenderingContext2D | null = null
   let rootEl: HTMLElement | null = null
   let width = 0
@@ -58,17 +60,18 @@ export const createIdleScene = (): SceneStrategy => {
   const motes: Mote[] = []
 
   const spawn = (initial = false): Mote => ({
-    x: Math.random() * width,
-    y: initial ? Math.random() * height : height + 8,
-    r: 0.9 + Math.random() * 1.8,
-    vx: -4 + Math.random() * 8,
-    vy: -(3 + Math.random() * 8),
-    alpha: 0.06 + Math.random() * 0.1,
-    phase: Math.random() * Math.PI * 2,
+    x: rng() * width,
+    y: initial ? rng() * height : height + 8,
+    r: 0.9 + rng() * 1.8,
+    vx: -4 + rng() * 8,
+    vy: -(3 + rng() * 8),
+    alpha: 0.06 + rng() * 0.1,
+    phase: rng() * Math.PI * 2,
   })
 
   return {
     init(canvas, runtime) {
+      rng = makeSceneRng(runtime)
       ctx = canvas.getContext('2d')
       // The canvas's parent is .focus-shell__scene-backdrop, which is where the
       // brightness(var(--idle-breath)) rule lives. Writing the per-frame breath var

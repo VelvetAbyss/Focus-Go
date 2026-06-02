@@ -1,4 +1,5 @@
 import { drawGlow, makeRadialGlowSprite } from './glowSprite'
+import { makeSceneRng } from './rng'
 import type { SceneSignals, SceneStrategy, SceneTheme } from './types'
 
 type Ember = {
@@ -45,6 +46,7 @@ const clearLogSilhouette = () => {
 }
 
 export const createCozyFiresideScene = (): SceneStrategy => {
+  let rng: () => number = Math.random
   let ctx: CanvasRenderingContext2D | null = null
   let width = 0
   let height = 0
@@ -52,53 +54,54 @@ export const createCozyFiresideScene = (): SceneStrategy => {
   let smokeSprite: HTMLCanvasElement | null = null
   const embers: Ember[] = []
   const smoke: Smoke[] = []
-  let nextBurstIn = 4_000 + Math.random() * 4_000
-  let nextWarmTickIn = 600 + Math.random() * 700
+  let nextBurstIn = 4_000 + rng() * 4_000
+  let nextWarmTickIn = 600 + rng() * 700
   let nextCrackleIn = 0
 
   const spawn = (initial = false): Ember => {
-    const life = 2_400 + Math.random() * 3_200
+    const life = 2_400 + rng() * 3_200
     return {
-      x: Math.random() * width,
-      y: initial ? height * (0.3 + Math.random() * 0.7) : height + 8,
-      r: 0.9 + Math.random() * 1.8,
-      vy: -(24 + Math.random() * 40),
-      wobblePhase: Math.random() * Math.PI * 2,
-      wobbleAmp: 8 + Math.random() * 16,
+      x: rng() * width,
+      y: initial ? height * (0.3 + rng() * 0.7) : height + 8,
+      r: 0.9 + rng() * 1.8,
+      vy: -(24 + rng() * 40),
+      wobblePhase: rng() * Math.PI * 2,
+      wobbleAmp: 8 + rng() * 16,
       life,
-      age: initial ? Math.random() * life : 0,
-      hue: 18 + Math.random() * 22,
+      age: initial ? rng() * life : 0,
+      hue: 18 + rng() * 22,
       isSpark: false,
     }
   }
 
   const spawnSpark = (boost = 1): Ember => {
-    const life = (900 + Math.random() * 700) * boost
+    const life = (900 + rng() * 700) * boost
     return {
-      x: width * (0.25 + Math.random() * 0.5),
-      y: height - 20 - Math.random() * 60,
-      r: 1.8 + Math.random() * 1.6 * boost,
-      vy: -(80 + Math.random() * 100) * boost,
-      wobblePhase: Math.random() * Math.PI * 2,
-      wobbleAmp: 4 + Math.random() * 8,
+      x: width * (0.25 + rng() * 0.5),
+      y: height - 20 - rng() * 60,
+      r: 1.8 + rng() * 1.6 * boost,
+      vy: -(80 + rng() * 100) * boost,
+      wobblePhase: rng() * Math.PI * 2,
+      wobbleAmp: 4 + rng() * 8,
       life,
       age: 0,
-      hue: 12 + Math.random() * 18,
+      hue: 12 + rng() * 18,
       isSpark: true,
     }
   }
 
   const spawnSmoke = (initial = false): Smoke => ({
-    x: width * (0.3 + Math.random() * 0.4),
-    y: initial ? height * (0.5 + Math.random() * 0.5) : height + 20,
-    vy: -(8 + Math.random() * 10),
-    r: 36 + Math.random() * 28,
-    life: 8_000 + Math.random() * 4_000,
-    age: initial ? Math.random() * 4_000 : 0,
+    x: width * (0.3 + rng() * 0.4),
+    y: initial ? height * (0.5 + rng() * 0.5) : height + 20,
+    vy: -(8 + rng() * 10),
+    r: 36 + rng() * 28,
+    life: 8_000 + rng() * 4_000,
+    age: initial ? rng() * 4_000 : 0,
   })
 
   return {
     init(canvas, runtime) {
+      rng = makeSceneRng(runtime)
       ctx = canvas.getContext('2d')
       width = canvas.clientWidth
       height = canvas.clientHeight
@@ -107,8 +110,8 @@ export const createCozyFiresideScene = (): SceneStrategy => {
       smokeSprite = makeRadialGlowSprite(theme === 'dark' ? '60, 56, 50' : '120, 105, 88')
       embers.length = 0
       smoke.length = 0
-      nextBurstIn = 4_000 + Math.random() * 4_000
-      nextWarmTickIn = 600 + Math.random() * 700
+      nextBurstIn = 4_000 + rng() * 4_000
+      nextWarmTickIn = 600 + rng() * 700
       nextCrackleIn = 0
       if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height)
       for (let i = 0; i < COUNT; i += 1) embers.push(spawn(true))
@@ -131,10 +134,10 @@ export const createCozyFiresideScene = (): SceneStrategy => {
       if (flags.globalWarmFlicker) {
         nextWarmTickIn -= dtMs
         if (nextWarmTickIn <= 0) {
-          const strength = 0.4 + Math.random() * 0.6
+          const strength = 0.4 + rng() * 0.6
           runtime.emit({ type: 'shell-warm-tint', intensity: strength * (0.5 + fireVol * 0.5) })
           // Irregular cadence — short bursts followed by occasional longer pauses.
-          nextWarmTickIn = 280 + Math.random() * (Math.random() > 0.7 ? 1400 : 480)
+          nextWarmTickIn = 280 + rng() * (rng() > 0.7 ? 1400 : 480)
         }
       }
 
@@ -142,20 +145,20 @@ export const createCozyFiresideScene = (): SceneStrategy => {
       if (flags.crackleSparkSync && fireVol > 0.4) {
         nextCrackleIn -= dtMs
         if (nextCrackleIn <= 0 && embers.length < MAX_TOTAL) {
-          const count = 4 + Math.floor(Math.random() * 4)
+          const count = 4 + Math.floor(rng() * 4)
           for (let i = 0; i < count && embers.length < MAX_TOTAL; i += 1) {
             embers.push(spawnSpark(1 + fireVol * 0.4))
           }
-          nextCrackleIn = 1500 + Math.random() * 2500
+          nextCrackleIn = 1500 + rng() * 2500
         }
       }
 
       // ── Baseline spark bursts ──
       nextBurstIn -= dtMs
       if (nextBurstIn <= 0 && embers.length < MAX_TOTAL) {
-        const count = 3 + Math.floor(Math.random() * 4)
+        const count = 3 + Math.floor(rng() * 4)
         for (let i = 0; i < count && embers.length < MAX_TOTAL; i += 1) embers.push(spawnSpark())
-        nextBurstIn = 4_000 + Math.random() * 4_500
+        nextBurstIn = 4_000 + rng() * 4_500
       }
 
       // ── Embers + sparks ──
