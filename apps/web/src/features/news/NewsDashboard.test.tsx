@@ -135,7 +135,7 @@ describe('NewsDashboard', () => {
     const [sourceManagerButton] = await screen.findAllByRole('button', { name: '管理来源' })
     fireEvent.click(sourceManagerButton)
     const manager = screen.getByLabelText('Manage news sources')
-    fireEvent.click(within(manager).getByRole('button', { name: /GitHub/ }))
+    fireEvent.click(within(manager).getByRole('button', { name: 'GitHub' }))
 
     const stored = JSON.parse(window.localStorage.getItem('focusgo.news.preferences.v1') ?? '{}')
     expect(stored.enabledSourceIds).not.toContain('github')
@@ -178,9 +178,10 @@ describe('NewsDashboard', () => {
     expect(within(manager).getByText('国际')).toBeInTheDocument()
     expect(within(manager).getByText('科技')).toBeInTheDocument()
     expect(within(manager).getByText('财经')).toBeInTheDocument()
-    expect(within(manager).getByRole('button', { name: /BBC World/ })).toBeInTheDocument()
-    expect(within(manager).getByRole('button', { name: /GitHub/ })).toBeInTheDocument()
-    expect(within(manager).getByRole('button', { name: /CNBC Business/ })).toBeInTheDocument()
+    // Match the source toggle exactly — each row also has a "加入自定义 <name>" star button.
+    expect(within(manager).getByRole('button', { name: 'BBC World' })).toBeInTheDocument()
+    expect(within(manager).getByRole('button', { name: 'GitHub' })).toBeInTheDocument()
+    expect(within(manager).getByRole('button', { name: 'CNBC Business' })).toBeInTheDocument()
   })
 
   it('loads old stored preferences that do not include the world category', async () => {

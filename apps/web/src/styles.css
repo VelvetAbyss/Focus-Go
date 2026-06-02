@@ -16187,6 +16187,118 @@ html[data-theme='dark'] .focus-shell__scene-backdrop {
   filter: saturate(0.92) brightness(0.82);
 }
 
+/* ── Per-scene CSS-driven atmosphere overlays ─────────────────
+   Each driven by a single CSS var set by its strategy in JS, so
+   toggles in settings flip immediately with no DOM churn. */
+
+/* Idle: time-of-day palette override + slow breath */
+.focus-shell__scene-backdrop[data-scene='idle'] {
+  filter: brightness(var(--idle-breath, 1));
+  transition: filter 600ms ease;
+}
+
+html .focus-shell__scene-backdrop[data-scene='idle'][style*='--idle-tint-a'],
+html .focus-shell__scene-backdrop[data-scene='idle'] {
+  /* Strategy writes --idle-tint-a/b to <html>; we reference them here */
+}
+
+html:not([style*='--idle-tint-a']) .focus-shell__scene-backdrop[data-scene='idle'] {
+  /* Defaults already in the main idle block above; nothing to do. */
+}
+
+html[style*='--idle-tint-a'] .focus-shell__scene-backdrop[data-scene='idle'] {
+  background:
+    radial-gradient(60% 50% at 18% 18%, color-mix(in srgb, var(--idle-tint-a, #D9C7A8) 32%, transparent), transparent 60%),
+    radial-gradient(70% 60% at 82% 78%, color-mix(in srgb, var(--idle-tint-a, #C08552) 16%, transparent), transparent 64%),
+    radial-gradient(120% 90% at 50% 50%, var(--idle-tint-a, #F5F3F0), color-mix(in srgb, var(--idle-tint-a, #F5F3F0) 84%, transparent) 60%, var(--idle-tint-b, #E8DFCF) 100%);
+  background-size: 140% 140%, 140% 140%, 100% 100%;
+}
+
+/* Global shell effects (shake / warm flicker / purple after-flash).
+   PERF: each of these forces a whole-app composited layer (transform),
+   offscreen filter buffer (filter), or isolated blend group (mix-blend).
+   They are gated behind state classes that the stage adds ONLY while the
+   effect is actually active, so idle / rainy / ocean and the quiet moments
+   of storm/fire pay zero whole-app compositing cost. The gating is visually
+   identical: when a class is absent the value was already identity (0). */
+
+/* Stormy-night: shell shake — only while actively shaking. */
+.focus-shell.is-fx-shake {
+  transform: translate(var(--shell-shake-x, 0), var(--shell-shake-y, 0));
+}
+
+/* Stormy-night: purple after-flash overlay — only while flashing. */
+.focus-shell.is-fx-purple::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(120% 90% at 50% 30%, rgba(120, 90, 200, var(--shell-purple-flash, 0)), rgba(60, 40, 120, calc(var(--shell-purple-flash, 0) * 0.4)) 60%, transparent 80%);
+  mix-blend-mode: screen;
+  opacity: 1;
+}
+
+/* Cozy-fireside: global warm flicker — only while warm > 0. */
+.focus-shell.is-fx-warm {
+  filter: hue-rotate(calc(var(--shell-warm-flicker, 0) * 6deg))
+          brightness(calc(1 + var(--shell-warm-flicker, 0) * 0.06));
+  transition: filter 90ms ease;
+}
+
+/* Rainy-cafe: steam-fog band at bottom 12%, controlled by --rainy-cafe-steam-on */
+.focus-shell__scene-backdrop[data-scene='rainy-cafe']::before {
+  /* Existing ::before unchanged; we layer steam via a second pseudo on canvas wrapper */
+}
+
+.focus-shell__scene-backdrop[data-scene='rainy-cafe'] .focus-shell__scene-vignette {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--scene-shadow) 54%, transparent) 0%, transparent 18%, transparent 82%, color-mix(in srgb, var(--scene-shadow) 34%, transparent) 100%),
+    linear-gradient(180deg, color-mix(in srgb, #F5F3F0 20%, transparent) 0%, transparent 34%, color-mix(in srgb, var(--scene-shadow) 44%, transparent) 100%),
+    /* steam band */
+    linear-gradient(0deg,
+      color-mix(in srgb, #FFE8C8 calc(var(--rainy-cafe-steam-on, 0) * 18%), transparent) 0%,
+      color-mix(in srgb, #FFE8C8 calc(var(--rainy-cafe-steam-on, 0) * 6%), transparent) 12%,
+      transparent 18%
+    );
+}
+
+/* Cozy-fireside: log silhouette at bottom (CSS layer) */
+.focus-shell__scene-backdrop[data-scene='cozy-fireside'] .focus-shell__scene-vignette {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--scene-shadow) 54%, transparent) 0%, transparent 18%, transparent 82%, color-mix(in srgb, var(--scene-shadow) 34%, transparent) 100%),
+    linear-gradient(180deg, color-mix(in srgb, #F5F3F0 20%, transparent) 0%, transparent 34%, color-mix(in srgb, var(--scene-shadow) 44%, transparent) 100%),
+    /* log: dark warm band at bottom 6% */
+    linear-gradient(0deg,
+      color-mix(in srgb, #2C1A0E calc(var(--cozy-fireside-log-on, 0) * 70%), transparent) 0%,
+      color-mix(in srgb, #4A2A14 calc(var(--cozy-fireside-log-on, 0) * 40%), transparent) 4%,
+      transparent 8%
+    );
+}
+
+/* Ocean-breeze: caustic surface shimmer via SVG turbulence */
+.focus-shell__scene-backdrop[data-scene='ocean-breeze']::after {
+  /* enhance existing ::after with caustics tint when on */
+  opacity: calc(0.46 + var(--ocean-breeze-caustics-on, 0) * 0.2);
+}
+
+.focus-shell__scene-backdrop[data-scene='ocean-breeze'] .focus-shell__scene-vignette {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--scene-shadow) 54%, transparent) 0%, transparent 18%, transparent 82%, color-mix(in srgb, var(--scene-shadow) 34%, transparent) 100%),
+    linear-gradient(180deg, color-mix(in srgb, #F5F3F0 20%, transparent) 0%, transparent 34%, color-mix(in srgb, var(--scene-shadow) 44%, transparent) 100%),
+    /* caustics: layered conic-style ripples at low alpha when on */
+    radial-gradient(160% 60% at 30% 75%, color-mix(in srgb, #B4DCE4 calc(var(--ocean-breeze-caustics-on, 0) * 16%), transparent), transparent 60%),
+    radial-gradient(140% 50% at 70% 90%, color-mix(in srgb, #C8E8D0 calc(var(--ocean-breeze-caustics-on, 0) * 14%), transparent), transparent 65%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Suppress shake & warm flicker for reduced-motion users. */
+  .focus-shell {
+    transform: none !important;
+    filter: none !important;
+  }
+}
+
 /* ── Sidebar Podcast Player ───────────────────────────────── */
 
 .sidebar-podcast-player {

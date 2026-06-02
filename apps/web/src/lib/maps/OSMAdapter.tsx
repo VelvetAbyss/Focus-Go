@@ -134,6 +134,7 @@ const reverseGeocode = async (pos: { lat: number; lng: number }): Promise<Revers
   }
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- adapter object colocated with its MapView component
 export const osmAdapter: MapAdapter = {
   id: 'osm',
   isAvailable: () => true,

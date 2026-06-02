@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ImagePlus, Plus } from 'lucide-react'
 import { PhotoProvider } from 'react-photo-view'
 import { cn } from '@/lib/utils'
@@ -20,7 +20,7 @@ type TaskAttachmentsSectionProps = {
 const TaskAttachmentsSection = ({ attachments, onChange }: TaskAttachmentsSectionProps) => {
   const { t } = useI18n()
   const toast = useToast()
-  const list = attachments ?? []
+  const list = useMemo(() => attachments ?? [], [attachments])
   const count = list.length
   const limitReached = count >= TASK_ATTACHMENT_LIMIT
   const fileInputRef = useRef<HTMLInputElement | null>(null)
