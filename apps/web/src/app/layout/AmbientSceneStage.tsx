@@ -505,20 +505,23 @@ const AmbientSceneStage = ({ scene }: AmbientSceneStageProps) => {
       cursor.inside = false
     }
 
-    // Noise tracks: reuse one object, copy current values (or zero when audio off).
+    // Noise tracks: reuse one object. Pre-multiply each track by master volume so
+    // `signals.noise[id].volume` is the *effective audible* loudness — scenes couple
+    // their density/frequency to what the user actually hears, not the raw slider.
+    // (When the master volume is lowered or muted, the visuals quiet down with it.)
     const rt = reusableTracksRef.current
     const tracks = noiseRef.current.tracks
     const trackIds = ['cafe', 'fireplace', 'rain', 'wind', 'thunder', 'ocean'] as const
+    const masterVolume = audio ? noiseRef.current.masterVolume : 0
     for (const id of trackIds) {
       if (audio) {
         rt[id].enabled = tracks[id].enabled
-        rt[id].volume = tracks[id].volume
+        rt[id].volume = tracks[id].volume * masterVolume
       } else {
         rt[id].enabled = false
         rt[id].volume = 0
       }
     }
-    const masterVolume = audio ? noiseRef.current.masterVolume : 0
 
     // Reuse one signals object per slot.
     const ref = slot === 'active' ? signalsActiveRef : signalsInactiveRef
