@@ -1,6 +1,14 @@
 import type { TranslationMessages } from '../types'
 
 export const zhMessages: TranslationMessages = {
+  'error.title': '刚刚出了点小状况',
+  'error.body': '应用遇到了意外错误，没能完成渲染。你保存的内容都还在，重新加载通常就能恢复。',
+  'error.reload': '重新加载',
+  'error.home': '回到仪表盘',
+  'notFound.title': '这个页面走丢了',
+  'notFound.body': '链接可能已过期，或页面已经移动。东西都还在——从你离开的地方继续吧。',
+  'notFound.home': '回到仪表盘',
+  'notFound.back': '返回上一页',
   'nav.dashboard': '仪表盘',
   'nav.tasks': '任务',
   'nav.note': '笔记',

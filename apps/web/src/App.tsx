@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import AppShell from './app/layout/AppShell'
 import AppRoutes from './app/routes/AppRoutes'
 import AppBootGate from './app/AppBootGate'
+import ErrorBoundary from './shared/ui/ErrorBoundary'
 import { applyTheme, resolveInitialTheme } from './shared/theme/theme'
 import { BrowserRouter } from 'react-router-dom'
 import { PreferencesProvider } from './shared/prefs/PreferencesProvider'
@@ -51,6 +52,7 @@ const App = () => {
   }, [])
 
   return (
+    <ErrorBoundary>
     <BrowserRouter>
       <PreferencesProvider>
         <AppBootGate>
@@ -72,6 +74,7 @@ const App = () => {
         </AppBootGate>
       </PreferencesProvider>
     </BrowserRouter>
+    </ErrorBoundary>
   )
 }
 

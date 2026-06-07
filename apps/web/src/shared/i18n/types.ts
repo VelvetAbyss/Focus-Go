@@ -1,6 +1,14 @@
 export type LanguageCode = 'en' | 'zh'
 
 export type TranslationKey =
+  | 'error.title'
+  | 'error.body'
+  | 'error.reload'
+  | 'error.home'
+  | 'notFound.title'
+  | 'notFound.body'
+  | 'notFound.home'
+  | 'notFound.back'
   | 'nav.dashboard'
   | 'nav.tasks'
   | 'nav.note'

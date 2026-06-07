@@ -7,6 +7,11 @@
   box-sizing: border-box;
 }
 
+html {
+  /* Smooth anchor/in-page jumps. Overridden to `auto` under prefers-reduced-motion. */
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
   font-family: var(--font-body);

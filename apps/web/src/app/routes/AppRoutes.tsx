@@ -6,6 +6,7 @@ import { usePremiumGate } from '../../features/premium/PremiumProvider'
 import BrandLoader from '../../shared/ui/loading/BrandLoader'
 import { markDiscoveryNewSeen } from '../../shared/discovery/resetDiscovery'
 
+const NotFoundPage = lazy(() => import('./NotFoundPage'))
 const DashboardRoute = lazy(() => import('./DashboardRoute'))
 const TimelinePage = lazy(() => import('../../features/timeline/pages/TimelinePage'))
 const TasksPage = lazy(() => import('../../features/tasks/pages/TasksPage'))
@@ -103,6 +104,7 @@ const AppRoutes = () => {
       <Route path={ROUTES.PREMIUM_SUCCESS} element={<Suspense fallback={<RouteFallback />}><PaymentSuccessPage /></Suspense>} />
       <Route path={ROUTES.HABITS} element={<GuardedHabitsRoute />} />
       <Route path={ROUTES.ADMIN} element={<Suspense fallback={<RouteFallback />}><AdminPage /></Suspense>} />
+      <Route path="*" element={<Suspense fallback={<RouteFallback />}><NotFoundPage /></Suspense>} />
     </Routes>
   )
 }

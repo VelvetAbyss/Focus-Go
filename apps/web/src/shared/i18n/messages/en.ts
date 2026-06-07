@@ -1,6 +1,14 @@
 import type { TranslationMessages } from '../types'
 
 export const enMessages: TranslationMessages = {
+  'error.title': 'Something interrupted your flow',
+  'error.body': 'The app hit an unexpected error and couldn’t finish rendering. Your saved work is safe. Reloading usually clears it.',
+  'error.reload': 'Reload the app',
+  'error.home': 'Back to dashboard',
+  'notFound.title': 'This page wandered off',
+  'notFound.body': 'The link may be old, or the page moved. Nothing’s lost — pick up where you left off.',
+  'notFound.home': 'Back to dashboard',
+  'notFound.back': 'Go back',
   'nav.dashboard': 'Dashboard',
   'nav.tasks': 'Tasks',
   'nav.note': 'Note',
