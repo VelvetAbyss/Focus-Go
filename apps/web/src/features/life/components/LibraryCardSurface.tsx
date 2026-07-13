@@ -33,6 +33,7 @@ type Props = {
   onClose: () => void
   onQueryChange: (value: string) => void
   onSearch: () => void
+  onQuickAdd: () => void
   onClearResults: () => void
   onSelectBook: (id: string) => void
   onAddBook: (id: string) => void
@@ -177,6 +178,7 @@ export const LibraryCardSurface = ({
   open,
   loading,
   query,
+  searching,
   error,
   results,
   addingCandidateId,
@@ -184,6 +186,7 @@ export const LibraryCardSurface = ({
   onClose,
   onQueryChange,
   onSearch,
+  onQuickAdd,
   onClearResults,
   onSelectBook,
   onAddBook,
@@ -243,7 +246,7 @@ export const LibraryCardSurface = ({
           </div>
         </div>
 
-        <div style={{ flex: 1, padding: '0 20px' }}>
+        <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', padding: '0 20px' }}>
           {loading ? (
             <LifeCardLoader />
           ) : books.length === 0 ? (
@@ -276,7 +279,7 @@ export const LibraryCardSurface = ({
               </button>
             </div>
           ) : (
-            <div>
+            <div className="life-card-preview">
               {previewBooks.map((book, index) => (
                 <div key={book.id}>
                   <CardRow book={book} />
@@ -291,6 +294,29 @@ export const LibraryCardSurface = ({
             </div>
           )}
         </div>
+
+        <form
+          className="life-quick-add life-quick-add--library"
+          onClick={(event) => event.stopPropagation()}
+          onSubmit={(event) => {
+            event.preventDefault()
+            onQuickAdd()
+          }}
+        >
+          <div className="life-quick-add__bar">
+            <span className="life-quick-add__label">{t('life.library.add')}</span>
+            <Search size={13} aria-hidden />
+            <input
+              className="life-quick-add__input"
+              value={query}
+              onChange={(event) => onQueryChange(event.target.value)}
+              placeholder={t('life.library.searchPlaceholder')}
+            />
+            <button type="submit" className="life-quick-add__action">
+              {searching ? '...' : t('life.library.add')}
+            </button>
+          </div>
+        </form>
 
         {!loading && books.length > 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 20, padding: '16px 20px', marginTop: 'auto', borderTop: '1px solid color-mix(in srgb, var(--text-primary) 7%, transparent)' }}>

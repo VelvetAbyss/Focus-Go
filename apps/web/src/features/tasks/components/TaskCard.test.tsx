@@ -77,6 +77,20 @@ describe('TaskCard', () => {
     expect(card).not.toHaveFocus()
   })
 
+  it('keeps the today action active class inside dashboard task cards', () => {
+    const todayTask = { ...task, isToday: true }
+    const { container } = render(
+      <div className="dashboard-widget-card--tasks">
+        <TaskCard task={todayTask} onSelect={vi.fn()} onToggleToday={vi.fn()} />
+      </div>,
+    )
+
+    const button = container.querySelector('[data-today-active="true"]')
+
+    expect(button).toHaveClass('task-card__action-btn--today-active')
+    expect(button).toHaveClass('text-amber-600')
+  })
+
   it('highlights overdue deadlines with a stronger red treatment', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-03-12T00:00:00Z'))

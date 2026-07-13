@@ -367,9 +367,9 @@ const normalizeBook = (book: BookItem): BookItem => ({
 
 const normalizeMedia = (media: MediaItem): MediaItem => ({
   ...media,
-  source: 'tmdb',
+  source: media.source === 'manual' ? 'manual' : 'tmdb',
   sourceId: typeof media.sourceId === 'string' && media.sourceId ? media.sourceId : String(media.tmdbId ?? media.id),
-  tmdbId: typeof media.tmdbId === 'number' && Number.isFinite(media.tmdbId) ? media.tmdbId : Number(media.sourceId ?? 0),
+  tmdbId: typeof media.tmdbId === 'number' && Number.isFinite(media.tmdbId) ? media.tmdbId : undefined,
   mediaType: media.mediaType === 'tv' ? 'tv' : 'movie',
   title: typeof media.title === 'string' ? media.title : '',
   originalTitle: typeof media.originalTitle === 'string' && media.originalTitle.trim().length > 0 ? media.originalTitle : undefined,

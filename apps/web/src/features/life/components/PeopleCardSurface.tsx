@@ -19,7 +19,6 @@ import {
   mutedText,
   paper,
   playfair,
-  sectionBorder,
   sidebarStyle,
   smallButtonStyle,
   textareaStyle,
@@ -111,6 +110,8 @@ export const PeopleCardSurface = ({
   const [draft, setDraft] = useState<PersonDraft>(toDraft(selected))
   const [editingId, setEditingId] = useState<string | null>(selectedId)
   const [categoryFilter, setCategoryFilter] = useState<string>('All')
+  const [quickName, setQuickName] = useState('')
+  const [quickGroup, setQuickGroup] = useState<LifePerson['group']>('Friends')
   const editingPerson = editingId ? items.find((item) => item.id === editingId) ?? null : null
 
   const categories = ['All', ...Array.from(new Set(items.map((item) => item.category?.trim()).filter(Boolean) as string[]))]
@@ -135,11 +136,11 @@ export const PeopleCardSurface = ({
           </div>
           <div style={cardArrowStyle}><ChevronRight size={15} /></div>
         </div>
-        <div style={{ flex: 1, padding: '12px 16px' }}>
+        <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', padding: '12px 16px' }}>
           {loading ? (
             <LifeCardLoader />
           ) : visibleRows.length ? (
-            <>
+            <div className="life-card-preview">
               {categories.length > 1 ? (
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '0 4px 10px' }}>
                   {categories.map((category) => (
@@ -167,7 +168,7 @@ export const PeopleCardSurface = ({
                 {index < Math.min(visibleRows.length, 3) - 1 ? <div style={{ height: 1, background: 'color-mix(in srgb, var(--text-primary) 5%, transparent)', marginLeft: 50 }} /> : null}
               </div>
               ))}
-            </>
+            </div>
           ) : (
             <div style={{ display: 'flex', minHeight: 180, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
               <div style={{ width: 48, height: 48, marginBottom: 16, borderRadius: 999, background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -182,13 +183,54 @@ export const PeopleCardSurface = ({
             </div>
           )}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderTop: `1px solid ${sectionBorder}` }}>
-          <button type="button" onClick={(event) => { event.stopPropagation(); onOpen() }} style={{ ...inter(12, 400, mutedText), display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', border: 'none', cursor: 'pointer' }}>
-            <Plus size={12} />
-            <span>{t('life.people.addPerson')}</span>
-          </button>
-          <p style={{ ...inter(11, 400, 'color-mix(in srgb, var(--text-primary) 38%, transparent)') }}>{model.statsLabel}</p>
-        </div>
+        <form
+          className="life-quick-add life-quick-add--people"
+          onClick={(event) => event.stopPropagation()}
+          onSubmit={(event) => {
+            event.preventDefault()
+            const name = quickName.trim()
+            if (!name) return
+            onSaveItem({
+              ...toDraft(null),
+              name,
+              group: quickGroup,
+              category: categoryFilter === 'All' ? '' : categoryFilter,
+            })
+            setQuickName('')
+          }}
+        >
+          <div className="life-quick-add__bar">
+            <span className="life-quick-add__label">{t('life.people.addPerson')}</span>
+            <input
+              className="life-quick-add__input"
+              value={quickName}
+              onChange={(event) => setQuickName(event.target.value)}
+              placeholder={t('life.people.name')}
+            />
+            <button type="submit" className="life-quick-add__action">
+              <Plus size={11} />
+              <span>{t('life.people.addPerson')}</span>
+            </button>
+          </div>
+          <div className="life-quick-add__meta-row">
+            <div className="life-quick-add__segments" role="group" aria-label={t('life.people.group')}>
+              {groups.slice(0, 4).map((group) => (
+                <button
+                  key={group}
+                  type="button"
+                  className={`life-quick-add__segment${quickGroup === group ? ' is-active' : ''}`}
+                  onClick={() => setQuickGroup(group)}
+                  style={{
+                    background: quickGroup === group ? groupColorMap[group] : 'color-mix(in srgb, var(--text-primary) 5%, transparent)',
+                  }}
+                >
+                  {group}
+                </button>
+              ))}
+            </div>
+            <p className="life-quick-add__stats">{model.statsLabel}</p>
+          </div>
+        </form>
       </div>
 
       {open ? <Dialog open={open} onClose={onClose} panelClassName="life-modal__panel" contentClassName="life-modal__content">

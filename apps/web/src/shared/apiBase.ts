@@ -1,6 +1,8 @@
 import { getPlatform } from '../platform'
+import { isLocalhostHost } from './env/localhost'
 
 const PROD_PROXY_PREFIX = '/api'
+const LOCAL_DEV_API_BASE = 'http://localhost:3000'
 
 const normalizePath = (path: string) => (path.startsWith('/') ? path : `/${path}`)
 const getConfiguredApiBase = () => (import.meta.env.VITE_API_BASE ?? '').trim()
@@ -34,6 +36,20 @@ const getDirectApiUrl = (path: string) => {
 }
 
 const isProxyFailure = (status: number) => status === 404 || status >= 500
+const isAuthzFailure = (status: number) => status === 401 || status === 403
+const isAdminPath = (path: string) => {
+  const normalized = normalizePath(path)
+  return normalized === '/admin' || normalized.startsWith('/admin/') || normalized === '/api/admin' || normalized.startsWith('/api/admin/')
+}
+
+const getLocalAdminFallbackUrl = (path: string) => {
+  if (typeof window === 'undefined') return null
+  if (!isLocalhostHost(window.location.hostname)) return null
+  if (!isAdminPath(path)) return null
+  const configured = getConfiguredApiBase()
+  if (configured.startsWith(LOCAL_DEV_API_BASE)) return null
+  return `${LOCAL_DEV_API_BASE}${normalizePath(path)}`
+}
 
 export const fetchApi = async (path: string, init?: RequestInit) => {
   const primaryUrl = buildApiUrl(path)
@@ -46,6 +62,10 @@ export const fetchApi = async (path: string, init?: RequestInit) => {
     const fallbackUrl = getDirectApiUrl(path)
     if (!fallbackUrl) throw networkError
     return fetch(fallbackUrl, requestInit)
+  }
+  const localAdminFallbackUrl = getLocalAdminFallbackUrl(path)
+  if (localAdminFallbackUrl && localAdminFallbackUrl !== primaryUrl && isAuthzFailure(response.status)) {
+    return fetch(localAdminFallbackUrl, requestInit)
   }
   if (!isProxyFailure(response.status) || getApiBase() !== PROD_PROXY_PREFIX) return response
   const fallbackUrl = getDirectApiUrl(path)

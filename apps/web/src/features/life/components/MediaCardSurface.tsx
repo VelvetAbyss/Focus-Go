@@ -27,12 +27,15 @@ type Props = {
   query: string
   searching: boolean
   hint: string | null
+  quickMediaType: MediaItem['mediaType']
   results: SearchMedia[]
   addingCandidateId: string | null
   onOpen: () => void
   onClose: () => void
   onQueryChange: (value: string) => void
   onSearch: () => void
+  onQuickAdd: () => void
+  onQuickMediaTypeChange: (value: MediaItem['mediaType']) => void
   onDismissSearch: () => void
   onSelectItem: (id: string) => void
   onAddItem: (id: string) => void
@@ -74,12 +77,15 @@ export const MediaCardSurface = ({
   query,
   searching,
   hint,
+  quickMediaType,
   results,
   addingCandidateId,
   onOpen,
   onClose,
   onQueryChange,
   onSearch,
+  onQuickAdd,
+  onQuickMediaTypeChange,
   onDismissSearch,
   onSelectItem,
   onAddItem,
@@ -140,7 +146,7 @@ export const MediaCardSurface = ({
         </div>
       </div>
 
-      <div style={{ flex: 1, padding: '0 20px' }}>
+      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', padding: '0 20px' }}>
         {loading ? (
           <LifeCardLoader />
         ) : model.previewRows.length === 0 ? (
@@ -152,7 +158,7 @@ export const MediaCardSurface = ({
             <p style={{ ...inter(12, 400, mutedText), lineHeight: 1.5 }}>{t('life.media.emptyDescription')}</p>
           </div>
         ) : (
-          <div>
+          <div className="life-card-preview">
             {model.previewRows.map((item, index) => (
               <div key={item.id}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0' }}>
@@ -178,6 +184,45 @@ export const MediaCardSurface = ({
           </div>
         )}
       </div>
+
+      <form
+        className="life-quick-add life-quick-add--media"
+        onClick={(event) => event.stopPropagation()}
+        onSubmit={(event) => {
+          event.preventDefault()
+          onQuickAdd()
+        }}
+      >
+        <div className="life-quick-add__media-types" role="group" aria-label="Media type">
+          {([
+            ['movie', Film, 'Movie'],
+            ['tv', Tv, 'TV'],
+          ] as const).map(([value, Icon, label]) => (
+            <button
+              key={value}
+              type="button"
+              className={`life-quick-add__type${quickMediaType === value ? ' is-active' : ''}`}
+              onClick={() => onQuickMediaTypeChange(value)}
+            >
+              <Icon size={11} aria-hidden />
+              <span>{label}</span>
+            </button>
+          ))}
+        </div>
+        <div className="life-quick-add__bar">
+          <span className="life-quick-add__label">{t('life.library.add')}</span>
+          <input
+            className="life-quick-add__input"
+            value={query}
+            onChange={(event) => onQueryChange(event.target.value)}
+            placeholder={t('life.media.searchPlaceholder')}
+          />
+          <button type="submit" className="life-quick-add__action">
+            {searching ? '...' : t('life.library.add')}
+          </button>
+        </div>
+        {!open && hint ? <p className="life-quick-add__hint">{hint}</p> : null}
+      </form>
 
       {!loading && model.previewRows.length > 0 ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 20, padding: '16px 20px', marginTop: 'auto', borderTop: `1px solid ${sectionBorder}` }}>

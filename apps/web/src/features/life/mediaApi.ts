@@ -159,23 +159,31 @@ const mapDetails = (details: TmdbDetails, mediaType: TmdbMediaType): RemoteMedia
   voteAverage: typeof details.vote_average === 'number' ? details.vote_average : undefined,
 })
 
-export const dedupeMediaMatch = (rows: Array<Pick<RemoteMediaCandidate, 'tmdbId' | 'mediaType'>>, candidate: Pick<RemoteMediaCandidate, 'tmdbId' | 'mediaType'>) =>
-  rows.find((item) => item.tmdbId === candidate.tmdbId && item.mediaType === candidate.mediaType)
+export const dedupeMediaMatch = (rows: Array<{ tmdbId?: number; mediaType: TmdbMediaType }>, candidate: Pick<RemoteMediaCandidate, 'tmdbId' | 'mediaType'>) =>
+  rows.find((item) => typeof item.tmdbId === 'number' && item.tmdbId === candidate.tmdbId && item.mediaType === candidate.mediaType)
 
 export const hydrateRemoteMediaCandidate = async (candidate: RemoteMediaCandidate, signal?: AbortSignal): Promise<RemoteMediaCandidate> => {
   const key = getTmdbKey()
   if (!key) throw new Error('TMDb key missing')
-  const url = `https://api.themoviedb.org/3/${candidate.mediaType}/${candidate.tmdbId}?api_key=${encodeURIComponent(key)}&append_to_response=credits&language=en-US`
-  const details = await fetchJson<TmdbDetails>(url, signal)
-  return mapDetails(details, candidate.mediaType)
+  const zhUrl = `https://api.themoviedb.org/3/${candidate.mediaType}/${candidate.tmdbId}?api_key=${encodeURIComponent(key)}&append_to_response=credits&language=zh-CN`
+  const zhDetails = await fetchJson<TmdbDetails>(zhUrl, signal)
+  const zhCandidate = mapDetails(zhDetails, candidate.mediaType)
+  if (zhCandidate.overview || zhCandidate.genres.length || zhCandidate.posterUrl) return zhCandidate
+  const fallbackUrl = `https://api.themoviedb.org/3/${candidate.mediaType}/${candidate.tmdbId}?api_key=${encodeURIComponent(key)}&append_to_response=credits&language=en-US`
+  const fallbackDetails = await fetchJson<TmdbDetails>(fallbackUrl, signal).catch(() => null)
+  return fallbackDetails ? mapDetails(fallbackDetails, candidate.mediaType) : zhCandidate
 }
 
 export const searchRemoteMedia = async (query: string, signal?: AbortSignal): Promise<RemoteMediaCandidate[]> => {
   const key = getTmdbKey()
   if (!key) throw new Error('TMDb key missing')
-  const url = `https://api.themoviedb.org/3/search/multi?api_key=${encodeURIComponent(key)}&query=${encodeURIComponent(query)}&language=en-US&include_adult=false`
-  const payload = await fetchJson<{ results?: TmdbSearchResult[] }>(url, signal)
-  const results = (payload.results ?? [])
+  const buildUrl = (language: string) =>
+    `https://api.themoviedb.org/3/search/multi?api_key=${encodeURIComponent(key)}&query=${encodeURIComponent(query)}&language=${language}&include_adult=false`
+  const [zhPayload, fallbackPayload] = await Promise.all([
+    fetchJson<{ results?: TmdbSearchResult[] }>(buildUrl('zh-CN'), signal).catch(() => ({ results: [] })),
+    fetchJson<{ results?: TmdbSearchResult[] }>(buildUrl('en-US'), signal).catch(() => ({ results: [] })),
+  ])
+  const results = [...(zhPayload.results ?? []), ...(fallbackPayload.results ?? [])]
     .map(mapSearchResult)
     .filter((item): item is RemoteMediaCandidate => Boolean(item))
 

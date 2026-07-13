@@ -2,6 +2,7 @@
 import '@testing-library/jest-dom/vitest'
 import type { ReactNode } from 'react'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { MediaCardSurface } from './MediaCardSurface'
 import { buildMediaPresentationModel } from '../cards/lifeDesignAdapters'
@@ -44,12 +45,15 @@ describe('MediaCardSurface', () => {
           query=""
           searching={false}
           hint={null}
+          quickMediaType="movie"
           results={[]}
           addingCandidateId={null}
           onOpen={() => {}}
           onClose={() => {}}
           onQueryChange={() => {}}
           onSearch={() => {}}
+          onQuickAdd={() => {}}
+          onQuickMediaTypeChange={() => {}}
           onDismissSearch={() => {}}
           onSelectItem={() => {}}
           onAddItem={() => {}}
@@ -76,12 +80,15 @@ describe('MediaCardSurface', () => {
           query=""
           searching={false}
           hint={null}
+          quickMediaType="movie"
           results={[]}
           addingCandidateId={null}
           onOpen={() => {}}
           onClose={() => {}}
           onQueryChange={() => {}}
           onSearch={() => {}}
+          onQuickAdd={() => {}}
+          onQuickMediaTypeChange={() => {}}
           onDismissSearch={() => {}}
           onSelectItem={() => {}}
           onAddItem={() => {}}
@@ -96,5 +103,47 @@ describe('MediaCardSurface', () => {
 
     expect(sidebarTitle).toHaveStyle({ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' })
     expect(detailTitle).toHaveTextContent(longTitle)
+  })
+
+  it('submits quick-add and exposes the media type picker from the card surface', async () => {
+    const user = userEvent.setup()
+    const onQuickAdd = vi.fn()
+    const onQuickMediaTypeChange = vi.fn()
+
+    render(
+      <PreferencesProvider>
+        <MediaCardSurface
+          model={buildMediaPresentationModel([])}
+          items={[]}
+          selected={null}
+          selectedId={null}
+          open={false}
+          loading={false}
+          query="severance"
+          searching={false}
+          hint={null}
+          quickMediaType="movie"
+          results={[{ id: 'tv-1', title: 'Severance', mediaType: 'tv', releaseDate: '2022-02-18' }]}
+          addingCandidateId={null}
+          onOpen={() => {}}
+          onClose={() => {}}
+          onQueryChange={() => {}}
+          onSearch={() => {}}
+          onQuickAdd={onQuickAdd}
+          onQuickMediaTypeChange={onQuickMediaTypeChange}
+          onDismissSearch={() => {}}
+          onSelectItem={() => {}}
+          onAddItem={() => {}}
+          onPatchItem={() => {}}
+          onRemoveItem={() => {}}
+        />
+      </PreferencesProvider>,
+    )
+
+    await user.click(screen.getByRole('button', { name: /^TV$/i }))
+    await user.click(screen.getByRole('button', { name: /^Add$/i }))
+
+    expect(onQuickMediaTypeChange).toHaveBeenCalledWith('tv')
+    expect(onQuickAdd).toHaveBeenCalledTimes(1)
   })
 })

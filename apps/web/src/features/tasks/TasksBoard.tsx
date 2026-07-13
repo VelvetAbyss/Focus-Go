@@ -90,6 +90,7 @@ const TasksBoard = ({
   const [tasks, setTasks] = useState<TaskItem[]>([])
   const [projects, setProjects] = useState<ProjectItem[]>([])
   const [bulkProjectDraft, setBulkProjectDraft] = useState('')
+  const [composerProjectId, setComposerProjectId] = useState<string | undefined>(undefined)
   const [activeTask, setActiveTask] = useState<TaskItem | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<TaskItem | null>(null)
   const [sortMode, setSortMode] = useState<SortMode>(() => {
@@ -136,6 +137,8 @@ const TasksBoard = ({
   const composerRef = useRef<TaskAddComposerHandle | null>(null)
   const toast = useToast()
   const effectiveGroupBy = scope.kind === 'project' ? 'status' : groupBy
+  const scopeKind = scope.kind
+  const scopeProjectId = scope.kind === 'project' ? scope.projectId : undefined
 
   const loadTasks = useCallback(async () => {
     const token = tasksReloadTokenRef.current + 1
@@ -277,6 +280,8 @@ const TasksBoard = ({
     return map
   }, [projects])
   const activeProjects = useMemo(() => projects.filter((project) => project.status !== 'archived'), [projects])
+  const lockedComposerProjectId = scopeProjectId
+  const effectiveComposerProjectId = lockedComposerProjectId ?? composerProjectId
 
   useEffect(() => {
     if (projectFilterIds.size === 0 || activeProjects.length === 0) return
@@ -287,6 +292,20 @@ const TasksBoard = ({
       return new Set(next.slice(0, 1))
     })
   }, [activeProjects, projectFilterIds.size])
+
+  useEffect(() => {
+    if (scopeKind === 'project' && scopeProjectId) {
+      setComposerProjectId(scopeProjectId)
+      return
+    }
+    const validProjectIds = new Set(activeProjects.map((project) => project.id))
+    const filteredProjectId = !asCard && projectFilterIds.size === 1 ? [...projectFilterIds][0] : undefined
+    setComposerProjectId((current) => {
+      if (filteredProjectId && validProjectIds.has(filteredProjectId)) return filteredProjectId
+      if (current && validProjectIds.has(current)) return current
+      return undefined
+    })
+  }, [activeProjects, asCard, projectFilterIds, scopeKind, scopeProjectId])
 
   const taskById = useMemo(() => new Map(tasks.map((task) => [task.id, task] as const)), [tasks])
   const projectFilterBaseTasks = useMemo(() => {
@@ -378,10 +397,10 @@ const TasksBoard = ({
     setActiveTask((prev) => (prev?.id === updated.id ? updated : prev))
   }, [])
 
-  const handleAddTask = useCallback(async (rawTitle: string, attachments?: TaskItem['attachments']) => {
+  const handleAddTask = useCallback(async (rawTitle: string, attachments?: TaskItem['attachments'], selectedProjectId?: string) => {
     const fallbackProjectId = scope.kind === 'project'
       ? scope.projectId
-      : projectFilterIds.size === 1 ? [...projectFilterIds][0] : undefined
+      : selectedProjectId ?? (projectFilterIds.size === 1 ? [...projectFilterIds][0] : undefined)
     const parsed = await parseQuickAddTaskInput(rawTitle, { projects, fallbackProjectId })
     const created = await createTask({
       title: parsed.title,
@@ -921,15 +940,19 @@ const TasksBoard = ({
           ) : null}
           <TaskAddComposer
             ref={composerRef}
-            onSubmit={(title, attachments) => {
+            onSubmit={(title, attachments, projectId) => {
               if (isGated) {
                 requireAuth(() => undefined)
                 return Promise.resolve(false)
               }
-              return handleAddTask(title, attachments)
+              return handleAddTask(title, attachments, projectId)
             }}
             hero
             placeholder={topView === 'today' ? t('tasks.today.addPlaceholder') : undefined}
+            projects={activeProjects}
+            selectedProjectId={effectiveComposerProjectId}
+            onProjectChange={setComposerProjectId}
+            projectLocked={Boolean(lockedComposerProjectId)}
           />
         </div>
       ) : null}

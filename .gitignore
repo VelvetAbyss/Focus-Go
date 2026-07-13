@@ -17,6 +17,7 @@ build/
 .env
 .env.*
 !.env.example
+/tools/social-publisher-agent/config.local.json
 
 # Logs
 logs

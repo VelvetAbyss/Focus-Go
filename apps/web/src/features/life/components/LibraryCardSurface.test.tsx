@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest'
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import userEvent from '@testing-library/user-event'
+import { describe, expect, it, vi } from 'vitest'
 import { LibraryCardSurface } from './LibraryCardSurface'
 import { buildLibraryPresentationModel } from '../cards/lifeDesignAdapters'
 import type { BookItem } from '../../../data/models/types'
@@ -41,6 +42,7 @@ describe('LibraryCardSurface', () => {
           onClose={() => {}}
           onQueryChange={() => {}}
           onSearch={() => {}}
+          onQuickAdd={() => {}}
           onSelectBook={() => {}}
           onAddBook={() => {}}
           onPatchBook={() => {}}
@@ -73,6 +75,7 @@ describe('LibraryCardSurface', () => {
           onClose={() => {}}
           onQueryChange={() => {}}
           onSearch={() => {}}
+          onQuickAdd={() => {}}
           onSelectBook={() => {}}
           onAddBook={() => {}}
           onPatchBook={() => {}}
@@ -83,5 +86,42 @@ describe('LibraryCardSurface', () => {
     )
 
     expect(screen.getByText('The Creative Act')).toBeInTheDocument()
+  })
+
+  it('submits the quick-add form from the card surface', async () => {
+    const user = userEvent.setup()
+    const onQuickAdd = vi.fn()
+
+    render(
+      <PreferencesProvider>
+        <LibraryCardSurface
+          model={buildLibraryPresentationModel([])}
+          books={[]}
+          selectedBook={null}
+          selectedBookId={null}
+          open={false}
+          loading={false}
+          query="creative"
+          searching={false}
+          error={null}
+          results={[{ id: 'open-library-OL1M', title: 'The Creative Act', authors: ['Rick Rubin'] }]}
+          addingCandidateId={null}
+          onOpen={() => {}}
+          onClose={() => {}}
+          onQueryChange={() => {}}
+          onSearch={() => {}}
+          onQuickAdd={onQuickAdd}
+          onSelectBook={() => {}}
+          onAddBook={() => {}}
+          onPatchBook={() => {}}
+          onRemoveBook={() => {}}
+          onClearResults={() => {}}
+        />
+      </PreferencesProvider>,
+    )
+
+    await user.click(screen.getByRole('button', { name: /^Add$/i }))
+
+    expect(onQuickAdd).toHaveBeenCalledTimes(1)
   })
 })

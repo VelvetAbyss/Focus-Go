@@ -2458,6 +2458,11 @@ html[data-motion='reduce'] .route-loader__mark {
   transform: scale(0.95);
 }
 
+.task-card__action-btn--today-active,
+.task-card__action-btn[data-today-active="true"] {
+  color: rgb(217 119 6);
+}
+
 .task-card-shell:hover .task-card__priority-flag,
 .task-card-shell:focus-within .task-card__priority-flag {
   height: 56px;
@@ -8391,6 +8396,85 @@ html[data-motion='reduce'] .tasks-fg__list .task-card-shell {
   padding: 0 14px;
 }
 
+.tasks-fg__project-picker {
+  --project-picker-bg: color-mix(in srgb, #F5F3F0 82%, var(--bg-elevated));
+  --project-picker-border: color-mix(in srgb, #3A3733 12%, transparent);
+  inline-size: auto;
+  max-inline-size: min(190px, 34vw);
+  min-block-size: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border-radius: 12px;
+  border: 1px solid var(--project-picker-border);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--project-picker-bg) 94%, white), var(--project-picker-bg));
+  color: color-mix(in srgb, #3A3733 62%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 55%, transparent);
+  transition:
+    border-color var(--motion-duration-fast) var(--ease-standard),
+    background-color var(--motion-duration-fast) var(--ease-standard),
+    box-shadow var(--motion-duration-fast) var(--ease-standard),
+    transform var(--motion-duration-fast) var(--ease-emphasized);
+}
+
+.tasks-fg__project-picker:hover {
+  border-color: color-mix(in srgb, #3A3733 20%, transparent);
+  transform: translateY(-1px);
+}
+
+.tasks-fg__project-picker:focus-within {
+  border-color: color-mix(in srgb, var(--accent-action) 48%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 55%, transparent),
+    0 0 0 3px color-mix(in srgb, var(--accent-action) 14%, transparent);
+}
+
+.tasks-fg__project-picker.is-selected {
+  color: #3A3733;
+}
+
+.tasks-fg__project-picker--hero {
+  min-block-size: 34px;
+  border-radius: 13px;
+}
+
+.tasks-fg__project-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, #3A3733 42%, transparent);
+}
+
+.tasks-fg__project-marker {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  background: color-mix(in srgb, #3A3733 28%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, #F5F3F0 72%, transparent);
+}
+
+.tasks-fg__project-select {
+  min-width: 0;
+  max-width: 92px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tasks-fg__project-select:disabled {
+  cursor: not-allowed;
+}
+
 .tasks-fg__input.is-shaking {
   animation: widget-todos-shake 320ms ease;
 }
@@ -8612,6 +8696,25 @@ html[data-motion='reduce'] .tasks-fg__list .task-card-shell {
   }
   .tasks-fg__composer.is-drag-over > div:not(.tasks-fg__hero-shimmer):not(.tasks-fg__chip-strip) {
     transform: none;
+  }
+  .tasks-fg__project-picker,
+  .tasks-fg__project-picker:hover {
+    transition: none;
+    transform: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .tasks-fg__project-picker {
+    max-inline-size: 132px;
+  }
+
+  .tasks-fg__project-label {
+    display: none;
+  }
+
+  .tasks-fg__project-select {
+    max-width: 82px;
   }
 }
 
@@ -17737,6 +17840,25 @@ html[data-theme='dark'] .widget-todos__composer {
   box-shadow: none !important;
 }
 
+html[data-theme='dark'] .tasks-fg__project-picker {
+  --project-picker-bg: color-mix(in srgb, #3A3733 76%, #23201c);
+  --project-picker-border: color-mix(in srgb, #F5F3F0 9%, transparent);
+  color: color-mix(in srgb, #F5F3F0 68%, transparent);
+  box-shadow: none;
+}
+
+html[data-theme='dark'] .tasks-fg__project-picker.is-selected {
+  color: #F5F3F0;
+}
+
+html[data-theme='dark'] .tasks-fg__project-label {
+  color: color-mix(in srgb, #F5F3F0 48%, transparent);
+}
+
+html[data-theme='dark'] .tasks-fg__project-marker {
+  box-shadow: 0 0 0 3px color-mix(in srgb, #3A3733 72%, transparent);
+}
+
 html[data-theme='dark'] .widget-todos__completed {
   color: #cfe5dc;
   background: rgba(17, 79, 72, 0.22);
@@ -22258,6 +22380,10 @@ html[data-theme='dark'] .dashboard-widget-card--tasks .task-card-shell[data-prio
 .dashboard-widget-card--tasks .task-card__action-btn {
   color: var(--tk-ink-mute) !important;
   border-radius: 6px !important;
+}
+.dashboard-widget-card--tasks .task-card__action-btn--today-active,
+.dashboard-widget-card--tasks .task-card__action-btn[data-today-active="true"] {
+  color: rgb(217 119 6) !important;
 }
 .dashboard-widget-card--tasks .task-card__action-btn:hover {
   background: var(--tk-paper-warm) !important;

@@ -334,8 +334,9 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
                       title={task.isToday ? t('tasks.today.remove') : t('tasks.today.add')}
                       className={cn(
                         'task-card__action-btn size-7 hover:text-foreground',
-                        task.isToday ? 'text-amber-600' : 'text-muted-foreground',
+                        task.isToday ? 'task-card__action-btn--today-active text-amber-600' : 'text-muted-foreground',
                       )}
+                      data-today-active={task.isToday ? 'true' : 'false'}
                       onClick={() => onToggleToday(task)}
                     >
                       <SunMedium className="size-3.5" />

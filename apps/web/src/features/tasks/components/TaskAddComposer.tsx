@@ -3,7 +3,7 @@ import { Paperclip, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useI18n } from '../../../shared/i18n/useI18n'
-import type { TaskAttachment } from '../../../data/models/types'
+import type { ProjectItem, TaskAttachment } from '../../../data/models/types'
 import { useToast } from '../../../shared/ui/toast/toast'
 import { getDroppedImageFiles, getPastedImageFiles } from '../../../shared/util/clipboard'
 import {
@@ -18,11 +18,15 @@ export type TaskAddComposerHandle = {
 }
 
 type TaskAddComposerProps = {
-  onSubmit: (title: string, attachments?: TaskAttachment[]) => Promise<boolean> | boolean
+  onSubmit: (title: string, attachments?: TaskAttachment[], projectId?: string) => Promise<boolean> | boolean
   compact?: boolean
   plain?: boolean
   hero?: boolean
   placeholder?: string
+  projects?: ProjectItem[]
+  selectedProjectId?: string
+  onProjectChange?: (projectId: string | undefined) => void
+  projectLocked?: boolean
 }
 
 const DISCOVERY_STORAGE_KEY = 'focusgo.composer.discovered'
@@ -49,7 +53,17 @@ const writeDiscovered = () => {
 }
 
 const TaskAddComposer = forwardRef<TaskAddComposerHandle, TaskAddComposerProps>(function TaskAddComposer(
-  { onSubmit, compact = false, plain = false, hero = false, placeholder },
+  {
+    onSubmit,
+    compact = false,
+    plain = false,
+    hero = false,
+    placeholder,
+    projects = [],
+    selectedProjectId,
+    onProjectChange,
+    projectLocked = false,
+  },
   ref,
 ) {
   const { t } = useI18n()
@@ -207,7 +221,7 @@ const TaskAddComposer = forwardRef<TaskAddComposerHandle, TaskAddComposerProps>(
     if (isProcessing) return
 
     const submitAttachments = attachmentsEnabled && attachments.length > 0 ? attachments : undefined
-    const didCreate = await onSubmit(nextTitle, submitAttachments)
+    const didCreate = await onSubmit(nextTitle, submitAttachments, selectedProjectId)
     if (!didCreate) return
 
     markDiscovered()
@@ -224,6 +238,8 @@ const TaskAddComposer = forwardRef<TaskAddComposerHandle, TaskAddComposerProps>(
 
   const hasText = title.trim().length > 0
   const canAddMore = attachments.length < TASK_ATTACHMENT_LIMIT
+  const projectPickerEnabled = Boolean(onProjectChange) && projects.length > 0
+  const selectedProject = selectedProjectId ? projects.find((project) => project.id === selectedProjectId) : undefined
 
   return (
     <form
@@ -321,6 +337,41 @@ const TaskAddComposer = forwardRef<TaskAddComposerHandle, TaskAddComposerProps>(
           >
             <Paperclip className="h-[15px] w-[15px]" strokeWidth={2.2} />
           </button>
+        ) : null}
+        {projectPickerEnabled ? (
+          <label
+            className={cn(
+              'tasks-fg__project-picker',
+              selectedProject && 'is-selected',
+              hero && 'tasks-fg__project-picker--hero',
+              projectLocked && 'opacity-80',
+            )}
+            title={selectedProject?.title ?? t('tasks.drawer.projectUnassigned')}
+          >
+            <span className="tasks-fg__project-label">{t('tasks.drawer.project')}</span>
+            <span
+              className="tasks-fg__project-marker"
+              style={selectedProject?.color ? { background: selectedProject.color } : undefined}
+              aria-hidden
+            />
+            <select
+              value={selectedProjectId ?? '__none__'}
+              disabled={projectLocked}
+              aria-label={t('tasks.drawer.project')}
+              className="tasks-fg__project-select"
+              onChange={(event) => {
+                const value = event.target.value
+                onProjectChange?.(value === '__none__' ? undefined : value)
+              }}
+            >
+              <option value="__none__">{t('tasks.drawer.projectUnassigned')}</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.title}
+                </option>
+              ))}
+            </select>
+          </label>
         ) : null}
         <input
           ref={inputRef}

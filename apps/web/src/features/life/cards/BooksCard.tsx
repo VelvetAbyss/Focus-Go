@@ -14,6 +14,17 @@ const toCreatePayload = (candidate: RemoteBookCandidate) => ({
   lastSyncedAt: Date.now(),
 })
 
+const parseManualBook = (value: string) => {
+  const text = value.trim()
+  const separator = [' / ', ' - ', ' — ', ' -- '].find((item) => text.includes(item))
+  if (!separator) return { title: text, authors: [] as string[] }
+  const [title, authorLine] = text.split(separator, 2).map((item) => item.trim())
+  return {
+    title: title || text,
+    authors: authorLine ? authorLine.split(/[,，、]/).map((item) => item.trim()).filter(Boolean) : [],
+  }
+}
+
 const normalizeBookPatch = (patch: Partial<BookItem>): Partial<BookItem> => {
   if (typeof patch.progress !== 'number') return patch
   if (patch.progress >= 100) return { ...patch, progress: 100, status: 'finished' }
@@ -59,6 +70,26 @@ const BooksCard = () => {
     } finally {
       setSearching(false)
     }
+  }
+
+  const handleQuickAdd = async () => {
+    const parsed = parseManualBook(query)
+    if (!parsed.title) return
+    setError(null)
+    const created = await booksRepo.create({
+      source: 'manual',
+      sourceId: `manual:${crypto.randomUUID()}`,
+      title: parsed.title,
+      authors: parsed.authors,
+      status: 'want-to-read',
+      progress: 0,
+      subjects: [],
+      lastSyncedAt: Date.now(),
+    })
+    setBooks((current) => [created, ...current.filter((item) => item.id !== created.id)])
+    setSelectedBookId(created.id)
+    setQuery('')
+    setResults([])
   }
 
   const handleAddBook = async (candidateId: string) => {
@@ -149,6 +180,7 @@ const BooksCard = () => {
       onClose={() => setOpen(false)}
       onQueryChange={setQuery}
       onSearch={() => void handleSearch()}
+      onQuickAdd={() => void handleQuickAdd()}
       onClearResults={() => setResults([])}
       onSelectBook={setSelectedBookId}
       onAddBook={(id) => void handleAddBook(id)}

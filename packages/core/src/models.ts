@@ -510,7 +510,7 @@ export type TripRecord = BaseEntity & {
 
 export type BookSource = 'manual' | 'open-library' | 'google-books' | 'crossref' | 'gutendex'
 export type BookStatus = 'reading' | 'finished' | 'want-to-read'
-export type MediaSource = 'tmdb'
+export type MediaSource = 'tmdb' | 'manual'
 export type MediaType = 'movie' | 'tv'
 export type MediaStatus = 'watching' | 'completed' | 'want-to-watch'
 export type SubscriptionCycle = 'monthly' | 'yearly'
@@ -542,7 +542,7 @@ export type BookItem = BaseEntity & {
 export type MediaItem = BaseEntity & {
   source: MediaSource
   sourceId: string
-  tmdbId: number
+  tmdbId?: number
   mediaType: MediaType
   title: string
   originalTitle?: string

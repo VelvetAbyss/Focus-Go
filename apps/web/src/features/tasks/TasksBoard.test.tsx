@@ -36,6 +36,8 @@ const { mockT } = vi.hoisted(() => {
         'tasks.today.emptyTitle': 'No tasks lined up for today',
         'tasks.today.emptyDescription': 'Put the tasks you actually want to finish today here.',
         'tasks.today.addPlaceholder': 'Add a task for today...',
+        'tasks.drawer.project': 'Project',
+        'tasks.drawer.projectUnassigned': 'Unassigned',
         'tasks.board.emptyTitle': 'No tasks yet',
         'tasks.board.emptyDescription': 'Create a task to get started.',
         'emptyState.tasks.title': 'No tasks yet',
@@ -235,6 +237,35 @@ describe('TasksBoard sync', () => {
     expect(await screen.findByText('Created online task')).toBeInTheDocument()
   })
 
+  it('creates a task with the selected composer project', async () => {
+    const created = { ...makeTask('task-created', 'Project task'), projectId: 'project-1', createdAt: 2, updatedAt: 2 }
+    projectListMock.mockResolvedValueOnce([
+      {
+        id: 'project-1',
+        title: 'Lowes',
+        description: '',
+        goal: '',
+        status: 'active',
+        priority: 'high',
+        health: 'on-track',
+        progress: 0,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ])
+    listMock.mockResolvedValueOnce([])
+    addMock.mockResolvedValueOnce(created)
+
+    render(<TasksBoard asCard={false} />)
+
+    await waitFor(() => expect(projectListMock).toHaveBeenCalledTimes(1))
+    fireEvent.change(screen.getByLabelText('Project'), { target: { value: 'project-1' } })
+    fireEvent.change(screen.getByPlaceholderText('Add a new task...'), { target: { value: 'Project task' } })
+    fireEvent.click(screen.getByText('Add'))
+
+    await waitFor(() => expect(addMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'Project task', projectId: 'project-1' })))
+  })
+
   it('shows only today-marked tasks in today view', async () => {
     listMock.mockResolvedValueOnce([
       { ...makeTask('task-1', 'Today task'), isToday: true },
@@ -329,13 +360,13 @@ describe('TasksBoard sync', () => {
     expect(screen.getByText('Costco doing task')).toBeInTheDocument()
     expect(screen.queryByText('Lowes todo task')).not.toBeInTheDocument()
     expect(screen.getByText('All').parentElement).toHaveTextContent('2')
-    expect(screen.getByText('Lowes').parentElement).toHaveTextContent('1')
+    expect(screen.getByRole('button', { name: /Lowes1/ })).toHaveTextContent('1')
 
-    fireEvent.click(screen.getByText('Lowes'))
+    fireEvent.click(screen.getByRole('button', { name: /Lowes1/ }))
     expect(await screen.findByText('Lowes doing task')).toBeInTheDocument()
     expect(screen.queryByText('Costco doing task')).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByText('Costco'))
+    fireEvent.click(screen.getByRole('button', { name: /Costco1/ }))
     expect(await screen.findByText('Costco doing task')).toBeInTheDocument()
     expect(screen.queryByText('Lowes doing task')).not.toBeInTheDocument()
 

@@ -39,6 +39,7 @@ const MediaCard = () => {
   const [loading, setLoading] = useState(false)
   const [addingCandidateId, setAddingCandidateId] = useState<string | null>(null)
   const [hint, setHint] = useState<string | null>(null)
+  const [quickMediaType, setQuickMediaType] = useState<MediaItem['mediaType']>('movie')
 
   const selected = useMemo(() => media.find((item) => item.id === selectedId) ?? null, [media, selectedId])
   const designModel = useMemo(() => buildMediaPresentationModel(media, t), [media, t])
@@ -74,6 +75,29 @@ const MediaCard = () => {
 
   const handleDismissSearch = () => {
     setResults([])
+  }
+
+  const handleQuickAdd = async () => {
+    const title = query.trim()
+    if (!title) return
+    const created = await mediaRepo.create({
+      source: 'manual',
+      sourceId: `manual:${crypto.randomUUID()}`,
+      mediaType: quickMediaType,
+      title,
+      status: 'want-to-watch',
+      progress: 0,
+      cast: [],
+      genres: [],
+      watchedEpisodes: 0,
+      reflection: '',
+      lastSyncedAt: Date.now(),
+    })
+    setMedia((current) => [created, ...current.filter((item) => item.id !== created.id)])
+    setSelectedId(created.id)
+    setQuery('')
+    setResults([])
+    setHint(null)
   }
 
   const handleAdd = async (candidateId: string) => {
@@ -128,6 +152,7 @@ const MediaCard = () => {
       query={query}
       searching={searching}
       hint={hint}
+      quickMediaType={quickMediaType}
       results={results.map((item) => ({
         id: `${item.mediaType}-${item.tmdbId}`,
         title: item.title,
@@ -140,6 +165,8 @@ const MediaCard = () => {
       onClose={() => setOpen(false)}
       onQueryChange={setQuery}
       onSearch={() => void handleSearch()}
+      onQuickAdd={() => void handleQuickAdd()}
+      onQuickMediaTypeChange={setQuickMediaType}
       onDismissSearch={handleDismissSearch}
       onSelectItem={setSelectedId}
       onAddItem={(id) => void handleAdd(id)}

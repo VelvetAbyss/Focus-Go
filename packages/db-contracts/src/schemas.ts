@@ -849,11 +849,12 @@ const bookItemSchema = baseEntitySchema.extend({
 
 const mediaTypeSchema = z.enum(['movie', 'tv'])
 const mediaStatusSchema = z.enum(['watching', 'completed', 'want-to-watch'])
+const mediaSourceSchema = z.enum(['tmdb', 'manual'])
 
 const mediaItemSchema = baseEntitySchema.extend({
-  source: z.literal('tmdb'),
+  source: mediaSourceSchema,
   sourceId: z.string().min(1),
-  tmdbId: z.number(),
+  tmdbId: z.number().optional(),
   mediaType: mediaTypeSchema,
   title: z.string(),
   originalTitle: z.string().optional(),
@@ -881,9 +882,9 @@ const mediaItemSchema = baseEntitySchema.extend({
 
 const mediaCreateInputSchema = z
   .object({
-    source: z.literal('tmdb'),
+    source: mediaSourceSchema,
     sourceId: z.string().min(1),
-    tmdbId: z.number(),
+    tmdbId: z.number().optional(),
     mediaType: mediaTypeSchema,
     title: z.string(),
     originalTitle: z.string().optional(),
@@ -914,7 +915,7 @@ const mediaCreateInputSchema = z
 
 const mediaUpdateInputSchema = z
   .object({
-    source: z.literal('tmdb').optional(),
+    source: mediaSourceSchema.optional(),
     sourceId: z.string().min(1).optional(),
     tmdbId: z.number().optional(),
     mediaType: mediaTypeSchema.optional(),

@@ -40,4 +40,26 @@ describe('api base helpers', () => {
     expect(String(fetchMock.mock.calls[0]?.[0])).toBe('/api/auth/me')
     expect(String(fetchMock.mock.calls[1]?.[0])).toBe('https://api.nestflow.art/auth/me')
   })
+
+  it('falls back to the local dev api for localhost admin authorization failures', async () => {
+    vi.stubEnv('MODE', 'development')
+    vi.stubEnv('VITE_API_BASE', 'https://api.nestflow.art')
+    fetchMock
+      .mockResolvedValueOnce({ status: 401, ok: false } as Response)
+      .mockResolvedValueOnce({ status: 200, ok: true } as Response)
+    const { fetchApi } = await import('./apiBase')
+    await fetchApi('/admin/overview')
+    expect(String(fetchMock.mock.calls[0]?.[0])).toBe('https://api.nestflow.art/admin/overview')
+    expect(String(fetchMock.mock.calls[1]?.[0])).toBe('http://localhost:3000/admin/overview')
+  })
+
+  it('does not use the local dev api fallback for non-admin authorization failures', async () => {
+    vi.stubEnv('MODE', 'development')
+    vi.stubEnv('VITE_API_BASE', 'https://api.nestflow.art')
+    fetchMock.mockResolvedValueOnce({ status: 401, ok: false } as Response)
+    const { fetchApi } = await import('./apiBase')
+    const response = await fetchApi('/user/profile')
+    expect(response.status).toBe(401)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
 })

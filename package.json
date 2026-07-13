@@ -25,7 +25,20 @@
     "release:oss:verify": "node scripts/oss/verify-release.mjs",
     "release:oss:publish": "npm run release:bundle && npm run release:oss:upload && npm run release:oss:verify",
     "release:oss:restore": "node scripts/oss/restore-release.mjs",
-    "release:oss:latest": "node scripts/oss/resolve-latest-release.mjs"
+    "release:oss:latest": "node scripts/oss/resolve-latest-release.mjs",
+  "social:dry-run": "npm --prefix tools/social-publisher-agent run dry-run",
+  "social:weekly": "npm --prefix tools/social-publisher-agent run weekly",
+  "social:refresh-week": "npm --prefix tools/social-publisher-agent run refresh-week",
+  "social:reset-week-publish": "npm --prefix tools/social-publisher-agent run reset-week-publish",
+  "social:publish-week": "npm --prefix tools/social-publisher-agent run publish-week",
+  "social:prepare-xhs-aitoearn": "npm --prefix tools/social-publisher-agent run prepare-xhs-aitoearn",
+  "social:mark-xhs-aitoearn-scheduled": "npm --prefix tools/social-publisher-agent run mark-xhs-aitoearn-scheduled --",
+  "social:set-xhs-hold": "npm --prefix tools/social-publisher-agent run set-xhs-hold --",
+  "social:approve": "npm --prefix tools/social-publisher-agent run approve",
+    "social:publish-due": "npm --prefix tools/social-publisher-agent run publish-due",
+    "social:linkedin:verify": "npm --prefix tools/social-publisher-agent run linkedin:verify",
+    "social:xhs-publish": "npm --prefix tools/social-publisher-agent run xhs-publish",
+    "social:monday": "npm --prefix tools/social-publisher-agent run monday"
   },
   "devDependencies": {
     "shadcn": "^3.8.5"

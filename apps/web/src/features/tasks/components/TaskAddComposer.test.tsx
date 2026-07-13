@@ -34,4 +34,36 @@ describe('TaskAddComposer', () => {
     expect(onSubmit.mock.calls[0][0]).toBe('New task')
     expect(input).toHaveValue('')
   })
+
+  it('submits the selected project id when project picker is available', async () => {
+    const user = userEvent.setup()
+    const onSubmit = vi.fn(async () => true)
+
+    render(
+      <TaskAddComposer
+        onSubmit={onSubmit}
+        projects={[
+          {
+            id: 'project-1',
+            title: 'Lowes',
+            description: '',
+            goal: '',
+            status: 'active',
+            priority: null,
+            health: 'on-track',
+            progress: 0,
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        ]}
+        selectedProjectId="project-1"
+        onProjectChange={vi.fn()}
+      />,
+    )
+
+    await user.type(screen.getByPlaceholderText('Add a new task...'), 'Project task')
+    await user.click(screen.getByRole('button', { name: /Add/ }))
+
+    expect(onSubmit).toHaveBeenCalledWith('Project task', undefined, 'project-1')
+  })
 })
