@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { authClient, desktopOAuthCallbackURL } from '../../config/authClient'
 import { finishBetterAuthSession, getGoogleAuthCallbackURL } from '../../config/authRuntime'
-import { consumePendingCheckout, startPremiumCheckout } from '../../features/payments/paymentFlow'
 import { getPlatform } from '../../platform'
 import { useI18n } from '../../shared/i18n/useI18n'
 
@@ -61,11 +60,6 @@ const LoginModal = ({ onClose }: LoginModalProps) => {
   const finishAuth = async (token?: string, user?: unknown) => {
     if (!token || !user) throw new Error(language === 'zh' ? '登录响应缺少会话。' : 'Missing session in auth response.')
     await finishBetterAuthSession(token, user)
-    const pendingCheckout = consumePendingCheckout()
-    if (pendingCheckout) {
-      await startPremiumCheckout(pendingCheckout)
-      return
-    }
     onClose()
   }
 

@@ -11,7 +11,6 @@ const mockPushToast = vi.fn()
 const mockInstall = vi.fn(async () => undefined)
 const mockRemove = vi.fn(async () => undefined)
 const mockRestore = vi.fn(async () => undefined)
-const mockOpenUpgradeModal = vi.fn()
 
 const mockUseLabs = vi.fn()
 
@@ -21,10 +20,6 @@ vi.mock('../LabsContext', () => ({
 
 vi.mock('../../../shared/ui/toast/toast', () => ({
   useToast: () => ({ push: mockPushToast }),
-}))
-
-vi.mock('../UpgradeModalContext', () => ({
-  useUpgradeModal: () => ({ openModal: mockOpenUpgradeModal }),
 }))
 
 const i18n = {
@@ -112,7 +107,6 @@ describe('LabsPage', () => {
     mockInstall.mockClear()
     mockRemove.mockClear()
     mockRestore.mockClear()
-    mockOpenUpgradeModal.mockClear()
   })
 
   afterEach(() => {
@@ -135,7 +129,7 @@ describe('LabsPage', () => {
     await waitFor(() => expect(mockInstall).toHaveBeenCalledWith('habit-tracker'))
   })
 
-  it('shows upgrade dialog for free user', async () => {
+  it('installs a feature even when legacy metadata marks it premium', async () => {
     mockUseLabs.mockReturnValue({
       ready: true,
       catalog: [makeFeature('available', { requiresPremium: true })],
@@ -146,8 +140,8 @@ describe('LabsPage', () => {
     })
 
     renderPage()
-    await userEvent.click(screen.getByRole('button', { name: i18n.labs.upgrade }))
-    expect(mockOpenUpgradeModal).toHaveBeenCalledWith('Habit Tracker')
+    await userEvent.click(screen.getByRole('button', { name: i18n.labs.install }))
+    await waitFor(() => expect(mockInstall).toHaveBeenCalledWith('habit-tracker'))
   })
 
   it('removes and restores features with confirm flow', async () => {
@@ -173,7 +167,7 @@ describe('LabsPage', () => {
     await waitFor(() => expect(mockRestore).toHaveBeenCalledWith('ai-digest'))
   })
 
-  it('shows upgrade for removed premium features when user is free', async () => {
+  it('restores removed features regardless of legacy premium metadata', async () => {
     mockUseLabs.mockReturnValue({
       ready: true,
       catalog: [makeFeature('removed', { requiresPremium: true })],
@@ -184,10 +178,8 @@ describe('LabsPage', () => {
     })
 
     renderPage()
-    await userEvent.click(screen.getByRole('button', { name: i18n.labs.upgrade }))
-
-    expect(mockOpenUpgradeModal).toHaveBeenCalledWith('Habit Tracker')
-    expect(mockRestore).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByRole('button', { name: i18n.labs.restore }))
+    await waitFor(() => expect(mockRestore).toHaveBeenCalledWith('habit-tracker'))
   })
 
 })

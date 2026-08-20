@@ -14,10 +14,8 @@ export type BetterAuthUser = {
 export type StoredAuth = {
   accessToken: string
   user: unknown
-  plan: 'free' | 'premium'
-  entitlement?: 'free' | 'pro' | 'lifetime'
-  expiresAt: string | null
-  isLifetime?: boolean
+  isSupporter: boolean
+  cloudSync?: { usedBytes: number; payloadBytes: number; blobBytes: number; limitBytes: number }
   isAdmin: boolean
 }
 
@@ -47,10 +45,8 @@ export const finishBetterAuthSession = async (token?: string, user?: unknown): P
   const nextAuth = {
     accessToken: token,
     user,
-    plan: profile?.plan ?? 'free',
-    entitlement: profile?.entitlement,
-    expiresAt: profile?.expiresAt ?? null,
-    isLifetime: profile?.isLifetime,
+    isSupporter: profile?.isSupporter ?? false,
+    cloudSync: profile?.cloudSync,
     isAdmin: profile?.isAdmin ?? false,
   } satisfies StoredAuth
   setAuth(nextAuth)

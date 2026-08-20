@@ -2,8 +2,6 @@ import { db } from '../../data/db'
 import { enqueueSyncOperationInBackground } from '../../data/sync/repository'
 import { deriveFeatureState, nextFeatureInstallations, type FeatureState } from './labsModel'
 import type { AccountRole, FeatureKey } from '../../data/models/types'
-import { getAuth } from '../../store/auth'
-import { isLocalhostRuntime } from '../../shared/env/localhost'
 
 export const CURRENT_USER_ID = 'local-user'
 export const CURRENT_ACCOUNT_ROLE: AccountRole = 'admin'
@@ -52,14 +50,14 @@ const FEATURE_META: FeatureMeta[] = [
     featureKey: 'habit-tracker',
     title: 'Habit Tracker',
     description: 'Identity-first habit dashboard with streaks, progress ring, and heatmap.',
-    premiumOnly: true,
+    premiumOnly: false,
     comingSoon: false,
   },
   {
     featureKey: 'project-workspace',
     title: 'Project',
     description: 'Dedicated workspace for complex projects with clear goals and timelines.',
-    premiumOnly: true,
+    premiumOnly: false,
     comingSoon: false,
   },
 ]
@@ -73,7 +71,7 @@ const upsertSubscription = async (tier: SubscriptionTier, role: AccountRole = CU
       userId: CURRENT_USER_ID,
       tier,
       role,
-      expiresAt: getAuth()?.expiresAt ? Date.parse(getAuth()?.expiresAt as string) : null,
+      expiresAt: null,
       createdAt: now,
       updatedAt: now,
     }
@@ -86,7 +84,7 @@ const upsertSubscription = async (tier: SubscriptionTier, role: AccountRole = CU
     ...existing,
     tier,
     role: existing.role ?? role,
-    expiresAt: getAuth()?.expiresAt ? Date.parse(getAuth()?.expiresAt as string) : null,
+    expiresAt: null,
     updatedAt: now,
   }
   await db.userSubscriptions.put(next)
@@ -110,10 +108,7 @@ const removeLegacyRssInstallations = async () => {
   })
 }
 
-const readAuthPlan = (): SubscriptionTier => {
-  if (isLocalhostRuntime()) return 'premium'
-  return getAuth()?.plan === 'premium' ? 'premium' : 'free'
-}
+const readAuthPlan = (): SubscriptionTier => 'free'
 
 export const ensureLabsSeed = async () => {
   const existing = await db.userSubscriptions.where('userId').equals(CURRENT_USER_ID).first()
@@ -136,7 +131,7 @@ export const getSubscription = async () => {
 
 export const getFeatureCatalog = async (): Promise<FeatureCatalogItem[]> => {
   await ensureLabsSeed()
-  const [subscription, installations] = await Promise.all([
+  const [, installations] = await Promise.all([
     getSubscription(),
     db.featureInstallations.where('userId').equals(CURRENT_USER_ID).toArray(),
   ])
@@ -160,18 +155,12 @@ export const getFeatureCatalog = async (): Promise<FeatureCatalogItem[]> => {
     return {
       ...meta,
       state,
-      requiresPremium: meta.premiumOnly && subscription.tier !== 'premium',
+      requiresPremium: false,
     }
   })
 }
 
 const mutateFeature = async (featureKey: FeatureKey, action: 'install' | 'remove' | 'restore') => {
-  const subscription = await getSubscription()
-  const meta = FEATURE_META.find((item) => item.featureKey === featureKey)
-  if (meta?.premiumOnly && subscription.tier !== 'premium' && action !== 'remove') {
-    throw new Error('Premium required')
-  }
-
   const now = Date.now()
 
   const rows = await db.featureInstallations.where('userId').equals(CURRENT_USER_ID).toArray()
@@ -200,9 +189,8 @@ export const removeFeature = async (featureKey: FeatureKey) => mutateFeature(fea
 export const restoreFeature = async (featureKey: FeatureKey) => mutateFeature(featureKey, 'restore')
 
 export const canAccessFeature = async (featureKey: FeatureKey) => {
-  const [subscription, catalog] = await Promise.all([getSubscription(), getFeatureCatalog()])
+  const [, catalog] = await Promise.all([getSubscription(), getFeatureCatalog()])
   const feature = catalog.find((item) => item.featureKey === featureKey)
   if (!feature) return false
-  if (feature.premiumOnly && subscription.tier !== 'premium') return false
   return feature.state === 'installed'
 }

@@ -29,8 +29,7 @@ import { useLabsI18n } from '../../features/labs/labsI18n'
 import { useI18n } from '../../shared/i18n/useI18n'
 import type { FeatureKey } from '../../data/models/types'
 import { mergeSidebarOrder, moveSidebarOrder, readSidebarOrder, writeSidebarOrder } from './sidebarOrder'
-import { useIsLoggedIn, useAuthPlan, useIsAdmin } from '../../store/auth'
-import { useUpgradeModal } from '../../features/labs/UpgradeModalContext'
+import { useIsAdmin } from '../../store/auth'
 import SidebarPodcastPlayer from './SidebarPodcastPlayer'
 import SidebarWhiteNoise from './SidebarWhiteNoise'
 import SidebarFocusTimer from './SidebarFocusTimer'
@@ -126,11 +125,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
   const i18n = useLabsI18n()
   const { t } = useI18n()
   const [savedOrder, setSavedOrder] = useState<string[]>(() => readSidebarOrder())
-  const isLoggedIn = useIsLoggedIn()
-  const plan = useAuthPlan()
-  const isPremium = plan === 'premium'
   const isAdmin = useIsAdmin()
-  const { openModal: openUpgradeModal } = useUpgradeModal()
   const [dragNavReady, setDragNavReady] = useState(false)
 
   useEffect(() => {
@@ -334,23 +329,6 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
         <PodcastCard standalone />
       </Suspense>
 
-      <div className="focus-sidebar__bottom">
-        {isLoggedIn && !isPremium && (
-          <button
-            type="button"
-            className="focus-sidebar__upgrade"
-            onClick={() => {
-              markDiscoveryNewTargetSeen('nav-premium')
-              openUpgradeModal()
-            }}
-            aria-label={t('auth.upgradePlan')}
-          >
-            <Sparkles size={14} aria-hidden="true" />
-            {!collapsed && <span>{t('auth.upgradePlan')}</span>}
-            <DiscoveryNewBadge target="nav-premium" />
-          </button>
-        )}
-      </div>
     </motion.aside>
   )
 }

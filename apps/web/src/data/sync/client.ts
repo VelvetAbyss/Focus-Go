@@ -68,6 +68,10 @@ const fetchJson = async <T>(path: string, init?: RequestInit): Promise<T> => {
     try {
       const bodyText = await response.text()
       if (bodyText) {
+        const body = JSON.parse(bodyText) as { error?: string; usedBytes?: number; limitBytes?: number }
+        if (response.status === 413 && body.error === 'cloud_storage_quota_exceeded') {
+          throw new Error(`Cloud sync storage limit reached (${body.usedBytes ?? 0} / ${body.limitBytes ?? 0} bytes). Delete synced content or use a self-hosted server, then try again.`)
+        }
         const entityType = (() => {
           try {
             return JSON.parse(String(init?.body ?? '{}'))?.entityType

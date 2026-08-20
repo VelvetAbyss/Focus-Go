@@ -174,4 +174,5 @@ export type RxdbPushRequest<T extends SyncEntityType = SyncEntityType> = {
 export type RxdbPushResponse<T extends SyncEntityType = SyncEntityType> = {
   conflicts: Array<RxdbPullDocument<T>>
   blobs: SyncWireBlob[]
+  quota: { usedBytes: number; payloadBytes: number; blobBytes: number; limitBytes: number }
 }

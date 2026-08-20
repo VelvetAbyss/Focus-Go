@@ -518,16 +518,16 @@ describe('NotePage', () => {
     await waitFor(() => expect(hardDeleteMock).toHaveBeenCalledWith('trash-1'))
   })
 
-  it('blocks creating the 21st note for free users', async () => {
+  it('allows creating more than 20 notes for all users', async () => {
     listMock.mockResolvedValue(Array.from({ length: 20 }, (_, index) => createNote({ id: `note-${index + 1}`, title: `Note ${index + 1}` })))
     listTrashMock.mockResolvedValue([])
+    createMock.mockResolvedValue(createNote({ id: 'note-21', title: 'Untitled' }))
 
     renderPage()
 
     expect(await screen.findByText('Note 1')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'modules.note.new' }))
 
-    expect(createMock).not.toHaveBeenCalled()
-    expect(await screen.findByText('Upgrade to Premium')).toBeInTheDocument()
+    await waitFor(() => expect(createMock).toHaveBeenCalled())
   })
 })

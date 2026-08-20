@@ -1,10 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { useAuthPlan, useIsLoggedIn } from '../../store/auth'
+import { refreshAuthProfile, useIsLoggedIn } from '../../store/auth'
 import { dispatchSyncDataUpdated, SYNC_DATA_UPDATED_EVENT, SYNC_STATUS_CHANGED_EVENT, type SyncDataUpdatedDetail } from './constants'
 import type { SyncEntityType } from './types'
 import { syncStateRepo } from './repository'
 import type { SyncState } from './types'
-import { isLocalhostRuntime } from '../../shared/env/localhost'
 import { usePageActivity } from '../../shared/hooks/usePageActivity'
 import { seedDatabase } from '../seed'
 
@@ -36,11 +35,9 @@ const loadRxdbSync = () => import('./rxdb')
 
 export const SyncProvider = ({ children }: { children: ReactNode }) => {
   const isLoggedIn = useIsLoggedIn()
-  const plan = useAuthPlan()
   const [state, setState] = useState<SyncState | null>(null)
   const [enabled, setEnabledState] = useState(readCloudSyncEnabled)
   const runningRef = useRef(false)
-  const canUseCloudSync = isLocalhostRuntime() || plan === 'premium'
   const pageActivity = usePageActivity()
 
   const refreshState = useCallback(async () => {
@@ -56,13 +53,6 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
   const consecutiveErrorsRef = useRef(0)
   const syncNow = useCallback(async (trigger: string = 'manual') => {
     if (!enabled || !isLoggedIn || runningRef.current) return
-    if (!canUseCloudSync) {
-      await syncStateRepo.markStatus('blocked', 'Cloud sync requires Premium')
-      const seeded = await seedDatabase()
-      if (seeded) dispatchSyncDataUpdated('all')
-      await refreshState()
-      return
-    }
     // Cycle gate. Manual syncs (button click) bypass; everything else waits:
     //  - 10s minimum between successful cycles
     //  - exponential backoff after errors (30s, 60s, 120s, ..., capped 5min)
@@ -83,6 +73,7 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { runRxdbSyncCycle } = await loadRxdbSync()
       await runRxdbSyncCycle()
+      await refreshAuthProfile()
       consecutiveErrorsRef.current = 0
     } catch (error) {
       cycleError = error
@@ -98,17 +89,10 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
       })
       await refreshState()
     }
-  }, [canUseCloudSync, enabled, isLoggedIn, refreshState])
+  }, [enabled, isLoggedIn, refreshState])
 
   const initialize = useCallback(async () => {
     if (!enabled || !isLoggedIn || runningRef.current) return
-    if (!canUseCloudSync) {
-      await syncStateRepo.markStatus('blocked', 'Cloud sync requires Premium')
-      const seeded = await seedDatabase()
-      if (seeded) dispatchSyncDataUpdated('all')
-      await refreshState()
-      return
-    }
     runningRef.current = true
     try {
       const { ensureRxdbSyncReady } = await loadRxdbSync()
@@ -123,7 +107,7 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
       dispatchSyncDataUpdated('all')
       await syncNow('post-seed')
     }
-  }, [canUseCloudSync, enabled, isLoggedIn, refreshState, syncNow])
+  }, [enabled, isLoggedIn, refreshState, syncNow])
 
   useEffect(() => {
     void refreshState()
@@ -133,11 +117,6 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
     if (!enabled || !isLoggedIn) return
     void initialize()
   }, [enabled, initialize, isLoggedIn])
-
-  useEffect(() => {
-    if (!enabled || !isLoggedIn || canUseCloudSync) return
-    void syncStateRepo.markStatus('blocked', 'Cloud sync requires Premium')
-  }, [canUseCloudSync, enabled, isLoggedIn])
 
   useEffect(() => {
     const statusListener = () => {
@@ -150,26 +129,26 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
   }, [refreshState])
 
   useEffect(() => {
-    if (!enabled || !isLoggedIn || !canUseCloudSync || pageActivity !== 'visible') return
+    if (!enabled || !isLoggedIn || pageActivity !== 'visible') return
     const intervalId = window.setInterval(() => {
       void syncNow('interval')
     }, 30_000)
     return () => window.clearInterval(intervalId)
-  }, [canUseCloudSync, enabled, isLoggedIn, pageActivity, syncNow])
+  }, [enabled, isLoggedIn, pageActivity, syncNow])
 
   useEffect(() => {
-    if (!enabled || !isLoggedIn || !canUseCloudSync) return
+    if (!enabled || !isLoggedIn) return
     const handleOnline = () => void syncNow('online')
     window.addEventListener('online', handleOnline)
     return () => {
       window.removeEventListener('online', handleOnline)
     }
-  }, [canUseCloudSync, enabled, isLoggedIn, syncNow])
+  }, [enabled, isLoggedIn, syncNow])
 
   useEffect(() => {
-    if (!enabled || !isLoggedIn || !canUseCloudSync || pageActivity !== 'visible') return
+    if (!enabled || !isLoggedIn || pageActivity !== 'visible') return
     void syncNow('page-visible')
-  }, [canUseCloudSync, enabled, isLoggedIn, pageActivity, syncNow])
+  }, [enabled, isLoggedIn, pageActivity, syncNow])
 
   const value = useMemo<SyncContextValue>(
     () => ({

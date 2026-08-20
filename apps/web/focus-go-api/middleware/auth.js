@@ -1,32 +1,6 @@
 import { fromNodeHeaders } from 'better-auth/node'
 import db from '../db/init.js'
 import { auth } from '../auth/betterAuth.js'
-import { getMembershipStatus } from '../services/payments.js'
-
-const TRIAL_DAYS = 14
-const TRIAL_DURATION_MS = TRIAL_DAYS * 24 * 60 * 60 * 1000
-
-const normalizePremiumStatus = (user) => {
-  if (!user) return null
-  const membership = getMembershipStatus(db, user.id)
-  if (membership.plan === 'premium' && user.plan !== 'premium') {
-    db.prepare('UPDATE users SET plan = ? WHERE id = ?').run('premium', user.id)
-    return db.prepare('SELECT * FROM users WHERE id = ?').get(user.id)
-  }
-  if (user.plan !== 'premium') return user
-  if (membership.plan === 'premium') {
-    return { ...user, plan: 'premium' }
-  }
-  if (typeof user.premium_expires_at !== 'number' || user.premium_expires_at > Date.now()) return user
-
-  db.prepare(`
-    UPDATE users
-    SET plan = 'free', premium_expires_at = NULL
-    WHERE id = ?
-  `).run(user.id)
-
-  return db.prepare('SELECT * FROM users WHERE id = ?').get(user.id)
-}
 
 const upsertBusinessUser = (authUser) => {
   const email = authUser.email ?? null
@@ -44,11 +18,10 @@ const upsertBusinessUser = (authUser) => {
     }
   }
 
-  const trialExpiresAt = Date.now() + TRIAL_DURATION_MS
   db.prepare(`
-    INSERT INTO users (authing_id, auth_user_id, email, plan, premium_expires_at)
-    VALUES (?, ?, ?, 'premium', ?)
-  `).run(`better:${authUser.id}`, authUser.id, email, trialExpiresAt)
+    INSERT INTO users (authing_id, auth_user_id, email, plan)
+    VALUES (?, ?, ?, 'free')
+  `).run(`better:${authUser.id}`, authUser.id, email)
   return db.prepare('SELECT * FROM users WHERE auth_user_id = ?').get(authUser.id)
 }
 
@@ -85,7 +58,7 @@ export const requireAuth = async (req, res, next) => {
       return res.status(401).json({ error: 'Missing or invalid session' })
     }
 
-    const user = normalizePremiumStatus(upsertBusinessUser(authSession.user))
+    const user = upsertBusinessUser(authSession.user)
     req.auth = { authUser: authSession.user, session: authSession.session, user }
     return next()
   } catch (error) {

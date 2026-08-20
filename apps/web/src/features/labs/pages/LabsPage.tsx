@@ -9,8 +9,6 @@ import { useLabs } from '../LabsContext'
 import { useLabsI18n } from '../labsI18n'
 import type { FeatureCatalogItem } from '../labsApi'
 import { useToast } from '../../../shared/ui/toast/toast'
-import { useUpgradeModal } from '../UpgradeModalContext'
-import PremiumMark from '../../premium/PremiumMark'
 
 const FEATURE_ICONS: Record<string, React.ElementType> = {
   'ai-digest': Brain,
@@ -22,8 +20,7 @@ const FEATURE_ICONS: Record<string, React.ElementType> = {
 const LabsPage = () => {
   const i18n = useLabsI18n()
   const toast = useToast()
-  const { ready, catalog, subscription, install, remove, restore } = useLabs()
-  const { openModal: openUpgradeModal } = useUpgradeModal()
+  const { ready, catalog, install, remove, restore } = useLabs()
   const [removingFeature, setRemovingFeature] = useState<FeatureCatalogItem | null>(null)
 
   if (!ready) {
@@ -40,11 +37,9 @@ const LabsPage = () => {
         <div className="labs-page__header-inner">
           <div className="labs-page__intro">
             <div className="labs-page__eyebrow-row">
-              <span className="labs-page__eyebrow">
-                {subscription?.tier === 'premium' ? i18n.labs.eyebrowPremium : i18n.labs.eyebrow}
-              </span>
+              <span className="labs-page__eyebrow">{i18n.labs.eyebrow}</span>
               <Badge variant="secondary" className="labs-page__tier-badge">
-                {subscription?.tier === 'premium' ? i18n.labs.tierPremium : i18n.labs.tierFree}
+                {i18n.labs.tierFree}
               </Badge>
             </div>
             <h1 className="labs-page__title">{i18n.labs.title}</h1>
@@ -92,33 +87,23 @@ const LabsPage = () => {
                     {feature.comingSoon && (
                       <span className="labs-card__chip labs-card__chip--soon">{i18n.labs.comingSoon}</span>
                     )}
-                    {feature.requiresPremium && !feature.comingSoon && (
-                      <span className="labs-card__chip labs-card__chip--premium"><PremiumMark variant="dot" />{i18n.labs.premiumLocked}</span>
-                    )}
                   </div>
                   <div className="labs-card__body">
                     <h3 className="labs-card__title">{i18n.featureTitles[feature.featureKey] ?? feature.title}</h3>
                     <p className="labs-card__desc">{i18n.featureDescriptions[feature.featureKey] ?? feature.description}</p>
                   </div>
                   <div className="labs-card__foot">
-                    {feature.requiresPremium ? (
-                      <Button size="sm" onClick={() => openUpgradeModal(feature.title)}>
-                        <PremiumMark />
-                        {i18n.labs.upgrade}
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        disabled={feature.comingSoon}
-                        onClick={() => {
-                          void install(feature.featureKey).then(() => {
-                            toast.push({ variant: 'success', message: i18n.toast.installed })
-                          })
-                        }}
-                      >
-                        {feature.comingSoon ? i18n.labs.comingSoon : i18n.labs.install}
-                      </Button>
-                    )}
+                    <Button
+                      size="sm"
+                      disabled={feature.comingSoon}
+                      onClick={() => {
+                        void install(feature.featureKey).then(() => {
+                          toast.push({ variant: 'success', message: i18n.toast.installed })
+                        })
+                      }}
+                    >
+                      {feature.comingSoon ? i18n.labs.comingSoon : i18n.labs.install}
+                    </Button>
                   </div>
                 </div>
               )
@@ -151,26 +136,13 @@ const LabsPage = () => {
                   </div>
                   <div className="labs-row__actions">
                     {feature.featureKey === 'habit-tracker' ? (
-                      feature.requiresPremium ? (
-                        <Button size="sm" onClick={() => openUpgradeModal(feature.title)}>
-                          <PremiumMark />
-                          {i18n.labs.upgrade}
-                        </Button>
-                      ) : (
-                        <Button size="sm" asChild>
-                          <Link to={ROUTES.HABITS}>{i18n.labs.openHabits}</Link>
-                        </Button>
-                      )
+                      <Button size="sm" asChild>
+                        <Link to={ROUTES.HABITS}>{i18n.labs.openHabits}</Link>
+                      </Button>
                     ) : feature.featureKey === 'project-workspace' ? (
-                      feature.requiresPremium ? (
-                        <Button size="sm" onClick={() => openUpgradeModal(feature.title)}>
-                          {i18n.labs.upgrade}
-                        </Button>
-                      ) : (
-                        <Button size="sm" asChild>
-                          <Link to={ROUTES.PROJECTS}>{i18n.labs.openProject}</Link>
-                        </Button>
-                      )
+                      <Button size="sm" asChild>
+                        <Link to={ROUTES.PROJECTS}>{i18n.labs.openProject}</Link>
+                      </Button>
                     ) : (
                       <Button size="sm" disabled>{i18n.labs.comingSoon}</Button>
                     )}
@@ -210,11 +182,6 @@ const LabsPage = () => {
                   <div className="labs-row__actions">
                     {feature.comingSoon ? (
                       <Button size="sm" variant="secondary" disabled>{i18n.labs.comingSoon}</Button>
-                    ) : feature.requiresPremium ? (
-                      <Button size="sm" onClick={() => openUpgradeModal(feature.title)}>
-                        <PremiumMark />
-                        {i18n.labs.upgrade}
-                      </Button>
                     ) : (
                       <Button
                         size="sm"

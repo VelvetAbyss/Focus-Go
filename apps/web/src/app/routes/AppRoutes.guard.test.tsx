@@ -64,12 +64,11 @@ describe('AppRoutes guarded routes', () => {
     expect(await screen.findByText('Dashboard Page')).toBeInTheDocument()
   })
 
-  it('redirects /habits to /labs when access is denied', async () => {
+  it('renders /habits even when legacy access state is denied', async () => {
     mockUseLabs.mockReturnValue({ ready: true, canAccessHabitFeature: false })
     renderRoutes('/habits')
 
-    expect(await screen.findByText('Labs Page')).toBeInTheDocument()
-    expect(await screen.findByText('Upgrade to Premium')).toBeInTheDocument()
+    expect(await screen.findByText('Habits Page')).toBeInTheDocument()
   })
 
   it('renders habits page when access is allowed', async () => {

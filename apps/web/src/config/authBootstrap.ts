@@ -1,14 +1,6 @@
 import { clearAuth, fetchAuthProfile, getAuth, setAuth } from '../store/auth'
-import { consumePendingCheckout, startPremiumCheckout } from '../features/payments/paymentFlow'
 import { clearAuthRedirectParams, finishBetterAuthCookieSession, hasAuthRedirectParams } from './authRuntime'
 import { getPlatform } from '../platform'
-
-const completePendingCheckout = async () => {
-  const pendingCheckout = consumePendingCheckout()
-  if (!pendingCheckout) return false
-  await startPremiumCheckout(pendingCheckout)
-  return true
-}
 
 // Desktop session restore. The HttpOnly cookie is a dropped third-party cookie
 // under the tauri:// origin, so instead we restore the Bearer token from the OS
@@ -34,12 +26,9 @@ const bootstrapDesktopSession = async () => {
     ...hint,
     accessToken: token,
     user: hint.user ?? { id: profile.id, email: profile.email },
-    plan: profile.plan,
-    entitlement: profile.entitlement,
-    expiresAt: profile.expiresAt,
-    isLifetime: profile.isLifetime,
+    isSupporter: profile.isSupporter,
+    cloudSync: profile.cloudSync,
     isAdmin: profile.isAdmin,
-    ...(profile.country_code != null ? { country_code: profile.country_code } : {}),
   })
 }
 
@@ -52,7 +41,6 @@ export const bootstrapAuth = async () => {
   if (getPlatform().isDesktop) {
     try {
       await bootstrapDesktopSession()
-      if (await completePendingCheckout()) return false
     } catch {
       if (getAuth()) clearAuth()
     }
@@ -63,7 +51,6 @@ export const bootstrapAuth = async () => {
   try {
     await finishBetterAuthCookieSession()
     if (isAuthRedirect) clearAuthRedirectParams()
-    if (await completePendingCheckout()) return false
   } catch {
     // No active session cookie. Only emit a clear if there's prior state to
     // drop (avoids spurious re-renders for first-time visitors).

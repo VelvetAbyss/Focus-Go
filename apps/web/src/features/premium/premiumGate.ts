@@ -1,5 +1,3 @@
-import { isLocalhostRuntime } from '../../shared/env/localhost'
-
 export type PremiumGateKey =
   | 'dashboard.custom-layout'
   | 'dashboard.extra-widgets'
@@ -23,8 +21,6 @@ export type PremiumGateDefinition = {
   description: string
   limit?: number
 }
-
-export const PAYMENT_URL = 'https://focus-go.app/premium'
 
 export const PREMIUM_GATES: Record<PremiumGateKey, PremiumGateDefinition> = {
   'dashboard.custom-layout': {
@@ -76,15 +72,7 @@ export const canUsePremiumFeature = (
   gateKey: PremiumGateKey,
   payload: { isPremium: boolean; noteCount?: number },
 ): GateCheckResult => {
-  if (payload.isPremium || isLocalhostRuntime()) return { allowed: true, reason: null }
-
-  if (gateKey === 'notes.max-count') {
-    const limit = PREMIUM_GATES[gateKey].limit ?? 20
-    return {
-      allowed: (payload.noteCount ?? 0) <= limit,
-      reason: (payload.noteCount ?? 0) <= limit ? null : 'limit_reached',
-    }
-  }
-
-  return { allowed: false, reason: 'premium_required' }
+  void gateKey
+  void payload
+  return { allowed: true, reason: null }
 }

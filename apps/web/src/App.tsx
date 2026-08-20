@@ -57,7 +57,7 @@ const App = () => {
           <ToastProvider>
             <SyncProvider>
               <PremiumProvider>
-                <DiscoveryHintProvider>
+              <DiscoveryHintProvider>
                 <LabsProvider>
                   <SharedNoiseProvider>
                     <AppShell>

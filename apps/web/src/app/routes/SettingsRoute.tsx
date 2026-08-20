@@ -66,12 +66,10 @@ import { useSyncActions, useSyncStatus } from '../../data/sync/service'
 import { restampLocalSnapshotForRestore } from '../../data/sync/repository'
 import { requestRxdbSyncReset, resetRxdbSyncDatabase } from '../../data/sync/rxdb'
 import { wipeServerData } from '../../data/sync/wipeServerData'
-import { getAuth } from '../../store/auth'
+import { getAuth, useCloudSyncQuota } from '../../store/auth'
 import { ROUTES } from './routes'
-import { useUpgradeModal } from '../../features/labs/UpgradeModalContext'
 import { useDiscoveryReset } from '../../shared/discovery/useDiscoveryHint'
 import { useAuthGate } from '../../features/auth/AuthGateContext'
-import PremiumMark from '../../features/premium/PremiumMark'
 import {
   buildLocalSuggestions,
   MAX_CITY_SUGGESTIONS,
@@ -148,14 +146,14 @@ const LEGAL_DOCUMENTS: Record<LanguageCode, Record<LegalDocumentKey, LegalDocume
           heading: 'Information we collect',
           paragraphs: [
             'Focus & Go stores the content you create in the app, such as tasks, notes, focus sessions, diary entries, preferences, and other workspace data.',
-            'When you sign in, we may also receive basic account details such as your user ID, display name, email address, and subscription status.',
+            'When you sign in for official cloud sync, we may also receive basic account details such as your user ID, display name, email address, supporter acknowledgement, and sync-quota status.',
           ],
         },
         {
           heading: 'Local storage and cloud sync',
           paragraphs: [
             'Most product data is stored locally on your device so the app can work quickly and remain usable even when network conditions are unstable.',
-            'If cloud sync is enabled in the future for your account tier, synced copies of your workspace data may be transmitted to our servers or trusted infrastructure providers.',
+            'If you choose to enable official cloud sync, synced copies of your workspace data are transmitted to our servers or trusted infrastructure providers. Official sync requires an account and has a 250 MiB per-account allowance; local data remains available without it.',
           ],
         },
         {
@@ -214,10 +212,10 @@ const LEGAL_DOCUMENTS: Record<LanguageCode, Record<LegalDocumentKey, LegalDocume
           ],
         },
         {
-          heading: 'Subscriptions and premium features',
+          heading: 'Free features and cloud sync',
           paragraphs: [
-            'Some features may require a premium plan. Premium-only features can change over time as the product develops.',
-            'If billing is introduced or updated later, pricing, renewal terms, and cancellation rules will be presented at the time of purchase.',
+            'All current Focus & Go features are free. Local use does not require an account; an account is only needed for the optional official cloud sync service.',
+            'Official cloud sync includes 250 MiB of storage per account. Optional sponsorship does not unlock features or change this allowance.',
           ],
         },
         {
@@ -683,7 +681,7 @@ const SettingsRoute = () => {
   const navigate = useNavigate()
   const { language, t } = useI18n()
   const { requireAuth, isGated } = useAuthGate()
-  const { openModal: openUpgradeModal } = useUpgradeModal()
+  const cloudSyncQuota = useCloudSyncQuota()
   const toast = useToast()
   const syncState = useSyncStatus()
   const { enabled: cloudSyncEnabled, setEnabled: setCloudSyncEnabled, syncNow } = useSyncActions()
@@ -1549,6 +1547,7 @@ const SettingsRoute = () => {
                               </label>
                               <div className="text-sm text-muted-foreground">{syncStatusLabel}</div>
                               <div className="text-xs text-muted-foreground">{lastSyncedLabel}</div>
+                              {cloudSyncQuota ? <div className="text-xs text-muted-foreground">Cloud storage: {(cloudSyncQuota.usedBytes / 1024 / 1024).toFixed(1)} / {(cloudSyncQuota.limitBytes / 1024 / 1024).toFixed(0)} MiB</div> : null}
                               {cloudSyncEnabled && syncState?.lastError ? (
                                 <div className="max-w-[360px] text-right text-xs text-destructive">
                                   {t('settings.data.sync.error', { message: syncState.lastError })}
@@ -1557,15 +1556,8 @@ const SettingsRoute = () => {
                               <Button
                                 variant="outline"
                                 disabled={!cloudSyncEnabled || syncState?.status === 'syncing'}
-                                onClick={() => {
-                                  if (syncState?.status === 'blocked') {
-                                    openUpgradeModal()
-                                    return
-                                  }
-                                  void syncNow()
-                                }}
+                                onClick={() => { void syncNow() }}
                               >
-                                {syncState?.status === 'blocked' ? <PremiumMark /> : null}
                                 {t('settings.data.sync.action')}
                               </Button>
                             </div>

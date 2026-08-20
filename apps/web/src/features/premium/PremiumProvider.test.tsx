@@ -2,15 +2,8 @@
 import '@testing-library/jest-dom/vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { PremiumProvider, usePremiumGate } from './PremiumProvider'
-
-const upgradeMock = vi.fn().mockResolvedValue(true)
-
-vi.mock('../../store/auth', () => ({
-  useAuthPlan: () => 'free',
-  upgradeToPremium: (...args: unknown[]) => upgradeMock(...args),
-}))
 
 const Trigger = () => {
   const { openUpgradeModal } = usePremiumGate()
@@ -23,12 +16,10 @@ const Trigger = () => {
 
 describe('PremiumProvider', () => {
   beforeEach(() => {
-    upgradeMock.mockReset()
-    upgradeMock.mockResolvedValue(true)
     window.localStorage.clear()
   })
 
-  it('opens modal and calls upgradeToPremium after confirmation', async () => {
+  it('keeps legacy gate calls as no-ops while allowing the feature', async () => {
     render(
       <PremiumProvider>
         <Trigger />
@@ -36,9 +27,6 @@ describe('PremiumProvider', () => {
     )
 
     await userEvent.click(screen.getByRole('button', { name: 'Open upgrade' }))
-    expect(await screen.findByText('Upgrade to Premium')).toBeInTheDocument()
-
-    await userEvent.click(screen.getByRole('button', { name: 'Upgrade now' }))
-    expect(upgradeMock).toHaveBeenCalled()
+    expect(screen.queryByText('Upgrade to Premium')).not.toBeInTheDocument()
   })
 })

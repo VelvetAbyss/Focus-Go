@@ -1,15 +1,13 @@
 import { lazy, Suspense, useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  User, LogOut, Crown, Zap, X, Timer, FileText, ArrowRight,
-  ChevronRight, Flame, CheckSquare, Mail, Shield, CreditCard, Download,
+  User, LogOut, Crown, X, Timer, FileText, ArrowRight,
+  ChevronRight, Flame, CheckSquare, Mail, Shield, Download, Heart,
   HelpCircle, ArrowLeft, Check, Loader2, AlertTriangle, Copy,
   Camera, MapPin, Cake, Sparkles,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import {
-  clearAuth, getAuth, setAuth, useAuthPlan, useIsLoggedIn, upgradeToPremium,
-} from '../../store/auth'
+import { clearAuth, getAuth, setAuth, useIsLoggedIn } from '../../store/auth'
 import {
   updateProfile, processAvatarFile, useUserProfile,
 } from '../../store/userProfile'
@@ -19,9 +17,9 @@ import { clearLocalUserData } from '../../data/sync/repository'
 import { useI18n } from '../../shared/i18n/useI18n'
 import { dbService } from '../../data/services/dbService'
 import type { FocusSession } from '../../data/models/types'
-import { ROUTES } from '../routes/routes'
 import { db, requestCrossTabDbReset } from '../../data/db'
 import { DB_NAME, DB_VERSION, TABLES } from '../../data/db/schema'
+import { ROUTES } from '../routes/routes'
 
 const LoginModal = lazy(() => import('./LoginModal'))
 
@@ -455,13 +453,9 @@ const DeleteAccountPanel = ({ email }: { email: string }) => {
 const UserModal = ({ onClose }: { onClose: () => void }) => {
   const { t } = useI18n()
   const navigate = useNavigate()
-  const plan = useAuthPlan()
-  const isPremium = plan === 'premium'
   const authState = getAuth()
   const user = authState?.user
-  const expiresAt: string | null = authState?.expiresAt ?? null
   const [stats, setStats] = useState<ExtendedUserStats | null>(null)
-  const [upgrading, setUpgrading] = useState(false)
   const [activePanel, setActivePanel] = useState<ActivePanel>(null)
   const [exportState, setExportState] = useState<'idle' | 'exporting' | 'done'>('idle')
   const [accountAction, setAccountAction] = useState<'logout' | 'switch' | null>(null)
@@ -472,13 +466,6 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
   const userId: string = user?.id || user?.email || 'guest'
   const profile = useUserProfile(userId)
   const hasMeta = Boolean(profile.pronouns || profile.location)
-
-  const expiryLabel = (() => {
-    if (!expiresAt) return null
-    try {
-      return new Date(expiresAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-    } catch { return null }
-  })()
 
   useEffect(() => {
     let cancelled = false
@@ -529,18 +516,6 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
     window.location.href = '/'
   }
 
-  const handleUpgrade = async () => {
-    setUpgrading(true)
-    await upgradeToPremium()
-    setUpgrading(false)
-    onClose()
-  }
-
-  const handleBilling = () => {
-    navigate(ROUTES.PREMIUM)
-    onClose()
-  }
-
   const handleExport = async () => {
     if (exportState !== 'idle') return
     setExportState('exporting')
@@ -582,6 +557,11 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
     onClose()
   }
 
+  const handleSupport = () => {
+    navigate(ROUTES.SUPPORT)
+    onClose()
+  }
+
   const achievements = stats ? [
     { key: 'deepWorker', label: t('auth.account.badge.deepWorker'), unlocked: stats.focusHours >= 5 },
     { key: 'actionHero', label: t('auth.account.badge.actionHero'), unlocked: stats.tasksCompleted >= 10 },
@@ -612,7 +592,7 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
   }
 
   const settingsItems: {
-    key: 'editProfile' | 'emailLogin' | 'security' | 'billing' | 'exportData' | 'helpFeedback'
+    key: 'editProfile' | 'emailLogin' | 'security' | 'support' | 'exportData' | 'helpFeedback'
     icon: React.FC<{ size?: number; className?: string }>
     onClick: () => void
     trailingNode?: React.ReactNode
@@ -620,7 +600,7 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
     { key: 'editProfile', icon: User, onClick: () => setActivePanel('editProfile') },
     { key: 'emailLogin', icon: Mail, onClick: () => setActivePanel('emailLogin') },
     { key: 'security', icon: Shield, onClick: () => setActivePanel('security') },
-    { key: 'billing', icon: CreditCard, onClick: handleBilling },
+    { key: 'support', icon: Heart, onClick: handleSupport },
     {
       key: 'exportData',
       icon: () => exportIcon(),
@@ -712,19 +692,10 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
                   </div>
                 )}
                 <div className="acct-plan-row">
-                  {isPremium ? (
-                    <span className="acct-plan-badge acct-plan-badge--premium">
-                      <Crown size={11} />
-                      {t('auth.premium')}
-                      {expiryLabel && <span className="acct-plan-expiry">· {expiryLabel}</span>}
-                    </span>
-                  ) : (
-                    <button type="button" className="acct-plan-badge acct-plan-badge--free" onClick={handleUpgrade} disabled={upgrading}>
-                      <Zap size={11} />
-                      {t('auth.free')}
-                      <span className="acct-plan-upgrade-hint">{upgrading ? '…' : t('auth.upgradePlan')}</span>
-                    </button>
-                  )}
+                  <span className="acct-plan-badge acct-plan-badge--free">
+                    {authState?.isSupporter ? <Crown size={11} /> : null}
+                    {authState?.isSupporter ? 'Early supporter' : 'Free for everyone'}
+                  </span>
                   {stats && stats.streak > 1 && (
                     <span className="acct-streak-line acct-streak-line--inline">
                       <Flame size={13} />

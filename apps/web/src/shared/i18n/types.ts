@@ -905,6 +905,7 @@ export type TranslationKey =
   | 'auth.account.emailLogin'
   | 'auth.account.security'
   | 'auth.account.billing'
+  | 'auth.account.support'
   | 'auth.account.exportData'
   | 'auth.account.helpFeedback'
   | 'auth.account.switchAccount'

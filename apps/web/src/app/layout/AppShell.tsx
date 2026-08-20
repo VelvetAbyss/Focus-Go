@@ -10,8 +10,6 @@ import Sidebar from './Sidebar'
 import AmbientSceneStage from './AmbientSceneStage'
 import { useTaskReminderEngine } from '../../features/tasks/useTaskReminderEngine'
 import TaskReminderModal from '../../features/tasks/TaskReminderModal'
-import { UpgradeModalProvider } from '../../features/labs/UpgradeModalContext'
-import UpgradeModal from '../../features/labs/components/UpgradeModal'
 import { AuthGateProvider } from '../../features/auth/AuthGateContext'
 import AuthInteractionGate from '../../features/auth/AuthInteractionGate'
 import { getAuth, subscribeAuth } from '../../store/auth'
@@ -192,7 +190,7 @@ const AppShell = ({ children }: AppShellProps) => {
 
   return (
     <AuthGateProvider>
-      <UpgradeModalProvider>
+      <>
         <div className={`focus-shell ${sidebarDimmed ? 'focus-shell--sidebar-dimmed' : ''}`} data-ambient-scene={ambientScene} style={shellStyle}>
           <AmbientSceneStage scene={ambientScene} />
           <div className="focus-shell__scale-wrap">
@@ -210,9 +208,8 @@ const AppShell = ({ children }: AppShellProps) => {
           </div>
         </div>
         <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
-        <UpgradeModal />
         <TaskReminderModal />
-      </UpgradeModalProvider>
+      </>
     </AuthGateProvider>
   )
 }

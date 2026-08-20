@@ -3,40 +3,29 @@ import db from '../db/init.js'
 import { requireAuth } from '../middleware/auth.js'
 import { backfillRegion } from '../middleware/region.js'
 import { isAdminEmail } from '../middleware/admin.js'
-import { getMembershipStatus } from '../services/payments.js'
 import { SYNC_TABLES } from '../sync/config.js'
+import { getCloudStorageUsage } from '../sync/store.js'
+import { DEFAULT_CLOUD_SYNC_QUOTA_BYTES } from './sync.js'
 
 const router = Router()
 
-// GET /user/profile — validate Bearer token, return id + email + plan + isAdmin + country_code
+// GET /user/profile — profile for free local-first use and optional cloud sync.
 router.get('/profile', requireAuth, backfillRegion, async (req, res) => {
-  let { user } = req.auth
-  const now = Date.now()
-
-  if (user.plan === 'premium' && user.premium_expires_at && user.premium_expires_at <= now) {
-    db.prepare(`
-      UPDATE users
-      SET plan = 'free', premium_expires_at = NULL
-      WHERE id = ?
-    `).run(user.id)
-    user = db.prepare('SELECT * FROM users WHERE id = ?').get(user.id)
-  }
-
-  const membership = getMembershipStatus(db, user.id)
+  const { user } = req.auth
+  const limitBytes = Number.parseInt(process.env.FREE_SYNC_QUOTA_BYTES ?? '', 10) || DEFAULT_CLOUD_SYNC_QUOTA_BYTES
+  const usage = getCloudStorageUsage(db, String(user.id))
   res.json({
     id: user.id,
     email: user.email,
-    ...membership,
+    isSupporter: Boolean(user.is_supporter),
+    cloudSync: { ...usage, limitBytes },
     isAdmin: isAdminEmail(user.email),
-    // country_code: ISO 3166-1 alpha-2 (e.g. 'CN', 'US'). null = not yet detected.
-    // Frontend uses this to set the default payment channel.
-    country_code: user.country_code ?? null,
   })
 })
 
 // DELETE /user/data — wipe all sync rows + blobs for the authenticated user
 // and reset initial_seeded_at so a fresh "重置应用" returns to onboarding.
-// Keeps the user row, account, entitlements, payment history, and audit logs.
+// Keeps the user row, account, sync data, and audit logs.
 router.delete('/data', requireAuth, (req, res) => {
   try {
     // Explicit confirmation token. Prevents a stray DELETE (CSRF surface, dev

@@ -9,13 +9,8 @@
  * IMPORTANT: Express must have `app.set('trust proxy', true)` set so that
  * req.ip reflects the real client IP rather than the SLB internal address.
  *
- * Region buckets:
- *   'CN'                  → China region  → Alipay (CNY)
- *   HK / MO / TW / other → Global region → PayPal (USD)
- *
- * Gating rules (enforced in routes/payments.js):
- *   - BLOCK: global user (non-CN) attempts zpay_alipay → 400 + preferredChannel
- *   - ALLOW: CN user attempts paypal_checkout → permitted (foreign card / proxy payment)
+ * The result is retained only as optional account metadata. Focus&go no longer
+ * uses location to select payment methods or gate product features.
  */
 
 import geoip from 'geoip-lite'

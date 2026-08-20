@@ -885,6 +885,7 @@ export const enMessages: TranslationMessages = {
   'auth.account.emailLogin': 'Email & Login',
   'auth.account.security': 'Account Security',
   'auth.account.billing': 'Billing & Subscription',
+  'auth.account.support': 'Support Focus&go',
   'auth.account.exportData': 'Export Data',
   'auth.account.helpFeedback': 'Help & Feedback',
   'auth.account.switchAccount': 'Switch Account',

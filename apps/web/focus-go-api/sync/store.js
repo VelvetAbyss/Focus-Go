@@ -81,6 +81,80 @@ export const ensureSyncTables = (db) => {
   }
 }
 
+const getActiveRowsForUser = (db, userId) => {
+  const rows = []
+  for (const [entityType, tableName] of Object.entries(SYNC_TABLES)) {
+    rows.push(
+      ...db.prepare(`SELECT payload FROM ${tableName} WHERE user_id = ? AND deleted_at IS NULL`).all(userId).map((row) => ({
+        ...row,
+        entityType,
+      })),
+    )
+  }
+  return rows
+}
+
+/**
+ * Logical per-account storage usage. Payloads are owned by one account; shared
+ * content-addressed blobs are charged once to every account that references
+ * them. This keeps the public service predictable without making deduplication
+ * across users leak storage accounting details.
+ */
+export const getCloudStorageUsage = (db, userId) => {
+  let payloadBytes = 0
+  const hashes = new Set()
+  for (const row of getActiveRowsForUser(db, userId)) {
+    payloadBytes += Buffer.byteLength(row.payload, 'utf8')
+    try {
+      const payload = JSON.parse(row.payload)
+      for (const hash of collectBlobRefs(row.entityType, payload)) hashes.add(hash)
+    } catch {
+      // A malformed legacy payload is still charged by its stored byte length.
+    }
+  }
+
+  let blobBytes = 0
+  if (hashes.size > 0) {
+    const values = Array.from(hashes)
+    const placeholders = values.map(() => '?').join(',')
+    const result = db.prepare(`SELECT COALESCE(SUM(byte_length), 0) AS bytes FROM sync_blobs WHERE hash IN (${placeholders})`).get(...values)
+    blobBytes = Number(result?.bytes ?? 0)
+  }
+  return { usedBytes: payloadBytes + blobBytes, payloadBytes, blobBytes }
+}
+
+/**
+ * Compact expired tombstones and blobs that are no longer referenced by any
+ * remaining document. This is deliberately safe to run after a write: live
+ * tombstones keep their attachment references until their retention window
+ * passes, so a lagging client can still pull a consistent deletion record.
+ */
+export const pruneSyncStorage = (db, { tombstoneRetentionMs = 90 * 24 * 60 * 60 * 1000, now = Date.now() } = {}) => {
+  const expiresBefore = now - tombstoneRetentionMs
+  let tombstonesDeleted = 0
+  for (const tableName of Object.values(SYNC_TABLES)) {
+    tombstonesDeleted += db.prepare(`DELETE FROM ${tableName} WHERE deleted_at IS NOT NULL AND deleted_at < ?`).run(expiresBefore).changes
+  }
+
+  const referencedHashes = new Set()
+  for (const [entityType, tableName] of Object.entries(SYNC_TABLES)) {
+    for (const row of db.prepare(`SELECT payload FROM ${tableName}`).all()) {
+      try {
+        for (const hash of collectBlobRefs(entityType, JSON.parse(row.payload))) referencedHashes.add(hash)
+      } catch {
+        // Keep compacting other records if a legacy payload cannot be parsed.
+      }
+    }
+  }
+
+  let blobsDeleted = 0
+  const deleteBlob = db.prepare('DELETE FROM sync_blobs WHERE hash = ?')
+  for (const { hash } of db.prepare('SELECT hash FROM sync_blobs').all()) {
+    if (!referencedHashes.has(hash)) blobsDeleted += deleteBlob.run(hash).changes
+  }
+  return { tombstonesDeleted, blobsDeleted }
+}
+
 export const upsertSyncBlob = (db, blob) => {
   const timestamp = Date.now()
   db.prepare(`

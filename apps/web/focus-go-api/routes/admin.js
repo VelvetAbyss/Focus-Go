@@ -8,9 +8,18 @@ import db from '../db/init.js'
 import { requireAuth } from '../middleware/auth.js'
 import { requireAdmin, isLocalhostRequest } from '../middleware/admin.js'
 import { SYNC_TABLES } from '../sync/config.js'
-import { grantManualEntitlement, markOrderAbnormal } from '../services/payments.js'
 
 const router = Router()
+
+// Payment and entitlement administration ended with the free transition. The
+// legacy tables remain private migration evidence only and are not exposed by
+// this API.
+router.use((req, res, next) => {
+  if (req.path.includes('entitlement') || req.path.startsWith('/orders')) {
+    return res.status(410).json({ error: 'payment_features_removed' })
+  }
+  return next()
+})
 
 router.use((req, res, next) => {
   if (isLocalhostRequest(req)) return requireAdmin(req, res, next)

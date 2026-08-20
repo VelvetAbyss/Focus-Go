@@ -84,6 +84,9 @@ docs/
 !/docs/
 /docs/*
 !/docs/domain-boundaries.md
+!CONTRIBUTING.md
+!CODE_OF_CONDUCT.md
+!SUPPORT.md
 findings.md
 progress.md
 task_plan.md

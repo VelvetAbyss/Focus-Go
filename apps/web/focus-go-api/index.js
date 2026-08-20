@@ -7,8 +7,6 @@ import { auth } from './auth/betterAuth.js'
 import { ensureDesktopAuthTable, registerDesktopAuthRoutes } from './auth/desktopAuth.js'
 import userRouter from './routes/user.js'
 import syncRouter from './routes/sync.js'
-import paymentsRouter from './routes/payments.js'
-import membershipRouter from './routes/membership.js'
 import podcastsRouter from './routes/podcasts.js'
 import adminRouter from './routes/admin.js'
 import feedbackRouter from './routes/feedback.js'
@@ -17,6 +15,7 @@ import { createNewsRouter } from './routes/news.js'
 import { createNewsService } from './services/news.js'
 import db from './db/init.js'
 import { startNeteasePodcastSyncJob } from './services/podcasts.js'
+import { pruneSyncStorage } from './sync/store.js'
 
 const PROD_ORIGINS = [
   'https://app.nestflow.art',
@@ -86,7 +85,7 @@ export const createApp = () => {
     req.url = `/api${req.url}`
     authHandler(req, res)
   })
-  app.use(express.json({ limit: '10mb' }))
+  app.use(express.json({ limit: '8mb' }))
 
   app.get('/', (req, res) => {
     res.json({ status: 'ok' })
@@ -111,10 +110,6 @@ export const createApp = () => {
   app.use('/api/user', userRouter)
   app.use('/sync', syncRouter)
   app.use('/api/sync', syncRouter)
-  app.use('/payments', paymentsRouter)
-  app.use('/api/payments', paymentsRouter)
-  app.use('/membership', membershipRouter)
-  app.use('/api/membership', membershipRouter)
   app.use('/podcasts', podcastsRouter)
   app.use('/api/podcasts', podcastsRouter)
   const newsRouter = createNewsRouter({ service: createNewsService({ db }) })
@@ -133,6 +128,16 @@ export const createApp = () => {
 const PORT = process.env.PORT || 3000
 const app = createApp()
 startNeteasePodcastSyncJob(db)
+// Keep deletion tombstones long enough for lagging devices, then reclaim their
+// rows and unreachable blobs without doing maintenance in a user request.
+const syncCleanupTimer = setInterval(() => {
+  try {
+    pruneSyncStorage(db)
+  } catch (error) {
+    console.error('[sync] scheduled storage cleanup failed', error)
+  }
+}, 24 * 60 * 60 * 1000)
+syncCleanupTimer.unref?.()
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)

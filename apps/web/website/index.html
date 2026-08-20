@@ -323,7 +323,7 @@ footer{border-top:1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);pad
       <a href="#science" data-i18n="nav.science">The science</a>
       <a href="#how" data-i18n="nav.how">How</a>
       <a href="#modules" data-i18n="nav.modules">Modules</a>
-      <a href="#pricing" data-i18n="nav.pricing">Pricing</a>
+      <a href="#pricing" data-i18n="nav.pricing">Open source</a>
     </div>
     <div class="nav-right">
       <button class="lang-toggle" id="langToggle" type="button">中文</button>
@@ -504,30 +504,30 @@ footer{border-top:1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);pad
 <section class="section" id="pricing" data-ghost="04" style="overflow:hidden">
   <span class="blob drift" style="width:380px;height:380px;right:-140px;top:60px;background:radial-gradient(circle,var(--sage),transparent 65%)"></span>
   <div class="wrap">
-    <span class="kicker" data-i18n="price.kicker">Pricing</span>
-    <h2 class="section-title reveal" data-i18n="price.title">Start free. Stay free, if you like.</h2>
+    <span class="kicker" data-i18n="price.kicker">Open source</span>
+    <h2 class="section-title reveal" data-i18n="price.title">Every current feature is free.</h2>
     <div class="price-grid">
       <div class="price-card reveal">
-        <h4 data-i18n="price.free.t">Free</h4>
-        <div class="amt"><span data-price="free">$0</span></div>
-        <p data-i18n="price.free.p">The full core workspace: dashboard, tasks, notes, focus timer, diary, calendar. Your data stays in your browser until you choose to sync.</p>
+        <h4 data-i18n="price.free.t">Free, local-first</h4>
+        <div class="amt">$0</div>
+        <p data-i18n="price.free.p">Use every feature without an account. Your data stays on your device unless you choose to sign in for official cloud sync.</p>
         <a class="btn btn-ghost" href="https://app.nestflow.art" data-i18n="price.free.cta">Open the app</a>
       </div>
       <div class="price-card hot reveal">
-        <span class="hot-badge" data-i18n="price.badge">✳ Recommended</span>
-        <h4>Premium</h4>
-        <div class="amt"><span data-price="pm">$4.99</span> <i data-price="pmb">/ month</i></div>
-        <p data-i18n="price.pm.p"><span data-price="py">$39.99</span><span data-i18n="price.pm.yr"> / year if you'd rather pay once. Unlocks projects, habits and the extra widgets.</span></p>
-        <a class="btn btn-primary" href="https://app.nestflow.art/membership" data-i18n="price.pm.cta">Upgrade</a>
+        <span class="hot-badge" data-i18n="price.badge">✳ Included</span>
+        <h4 data-i18n="price.sync.t">Cloud sync</h4>
+        <div class="amt">250 MiB</div>
+        <p data-i18n="price.sync.p">Sign in only when you want official cloud sync. It is free, private to your account, and has a 250 MiB storage allowance.</p>
+        <a class="btn btn-primary" href="https://app.nestflow.art" data-i18n="price.sync.cta">Sync your workspace</a>
       </div>
       <div class="price-card reveal">
-        <h4 data-i18n="price.lt.t">Lifetime</h4>
-        <div class="amt"><span data-price="lt">$89</span> <i data-i18n="price.lt.b">one-time</i></div>
-        <p data-i18n="price.lt.p">Pay once, keep everything, forever. For people who hate subscriptions more than they hate procrastination.</p>
-        <a class="btn btn-ghost" href="https://app.nestflow.art/membership" data-i18n="price.lt.cta">Get lifetime</a>
+        <h4 data-i18n="price.support.t">Support the project</h4>
+        <div class="amt">♥</div>
+        <p data-i18n="price.support.p">Optional sponsorship helps maintain the project. It never unlocks features or changes your storage allowance.</p>
+        <a class="btn btn-ghost" href="https://app.nestflow.art/support" data-i18n="price.support.cta">Support Focus&amp;go</a>
       </div>
     </div>
-    <p class="price-note" data-i18n="price.note">Prices shown for your region. No trial timers, no feature bait — the free plan is a real workspace, not a demo.</p>
+    <p class="price-note" data-i18n="price.note">Focus&amp;go is MIT-licensed. You can inspect, contribute to, or self-host the Web and API code.</p>
   </div>
 </section>
 
@@ -569,7 +569,7 @@ document.documentElement.classList.add('js');
 
 /* ── i18n ─────────────────────────────────────────────────────── */
 const ZH = {
-  'nav.science':'启动的科学','nav.how':'怎么用','nav.modules':'模块','nav.pricing':'定价',
+  'nav.science':'启动的科学','nav.how':'怎么用','nav.modules':'模块','nav.pricing':'开源',
   'cta.open':'打开 Focus&go',
   'hero.badge':'现已可用 · Focus&go 模块',
   'hero.title':'打开。开始。<br><em>就这么简单。</em>',
@@ -623,17 +623,17 @@ const ZH = {
   'founder.kicker':'它为什么存在',
   'founder.note':'"我做 Focus&go 不是为了贩卖效率。是因为我受够了那些让我先设计一套系统、才允许我写下第一行字的工具。这里的每个功能，都是因为我在某个真实的周二早晨需要它。如果它哪天要求你先配置才能开始——那就是我失败了。"',
   'founder.sig':'—— 每天早上打开它的那个人',
-  'price.kicker':'定价',
-  'price.title':'免费开始。愿意的话，一直免费。',
-  'price.free.t':'免费','price.free.p':'完整核心工作台：仪表盘、任务、笔记、专注计时、日记、日历。在你选择同步之前，数据只存在你的浏览器里。','price.free.cta':'打开应用',
-  'price.pm.yr':' / 年更划算。解锁项目、习惯与更多小部件。','price.pm.cta':'升级',
-  'price.lt.t':'终身','price.lt.b':'一次性','price.lt.p':'付一次，永久保留全部功能。给比起拖延更讨厌订阅制的人。','price.lt.cta':'买断终身',
-  'price.note':'价格按你所在区域显示。没有试用倒计时，没有功能钓饵——免费版是真正的工作台，不是演示品。',
+  'price.kicker':'开源',
+  'price.title':'所有当前功能，全部免费。',
+  'price.free.t':'免费，本地优先','price.free.p':'无需账号即可使用所有功能。只有你选择登录使用官方云同步时，数据才会离开设备。','price.free.cta':'打开应用',
+  'price.sync.t':'云同步','price.sync.p':'只在需要官方云同步时登录。它免费、仅属于你的账号，并提供 250 MiB 存储额度。','price.sync.cta':'同步工作台',
+  'price.support.t':'支持项目','price.support.p':'可选赞助帮助项目持续维护，不会解锁功能，也不会改变你的存储额度。','price.support.cta':'支持 Focus&go',
+  'price.note':'Focus&go 采用 MIT 许可。你可以查看、贡献，或自行部署 Web 与 API 代码。',
   'final.title':'别再配置了。<br>开始<em>工作</em>。',
   'final.sub':'没有注册墙。在你选择同步之前，数据只存在你的浏览器里。',
   'foot.tag':'© 2026 Nestflow。一个安静的工作之地。',
   'foot.privacy':'隐私政策','foot.terms':'服务条款','foot.contact':'联系我们',
-  'chip.focus':'专注','chip.task':'写发布随笔','price.badge':'✳ 推荐',
+  'chip.focus':'专注','chip.task':'写发布随笔','price.badge':'✳ 已包含',
   'ck.ph':'在应用里，这样搜索一切——或者直接记下一个任务。',
   'ck.msg':'看，你已经会用这个产品了。',
   'ck.cta':'打开真正的它 →',
@@ -684,7 +684,6 @@ const TIPS = {
   distract:{en:'Highest friction: <b>the pull of easier things</b>. One screen, no feeds, nothing to scroll. The app is deliberately boring everywhere except your work.', zh:'阻力最高的一项：<b>更轻松事物的引力</b>。一块屏幕，没有信息流，没有可刷的东西。除了你的工作，这个应用处处刻意无聊。'},
   mood:   {en:'Highest friction: <b>pre-start tension</b>. Try the ambient scenes and diary — name the feeling, then start small.', zh:'阻力最高的一项：<b>开始前的紧绷</b>。试试环境音场景和日记——先给情绪命名，再从小处开始。'}
 };
-const PRICES = {global:{free:'$0',pm:'$4.99',pmb:'/ month',py:'$39.99',lt:'$89'}, cn:{free:'¥0',pm:'¥15',pmb:'/ 月',py:'¥148',lt:'¥249'}};
 
 let lang = localStorage.getItem('nestflow.lang') || (navigator.language||'').toLowerCase().startsWith('zh') ? (localStorage.getItem('nestflow.lang')||'zh') : (localStorage.getItem('nestflow.lang')||'en');
 const EN_CACHE = {};
@@ -702,8 +701,6 @@ function applyLang(){
     if(!(k in EN_CACHE)) EN_CACHE[k]=el.innerHTML;
     if(lang==='zh' && ZH[k]!==undefined) el.innerHTML=ZH[k]; else if(lang==='en') el.innerHTML=EN_CACHE[k];
   });
-  const region = lang==='zh' ? 'cn' : 'global';
-  document.querySelectorAll('[data-price]').forEach(el=>{ el.textContent = PRICES[region][el.getAttribute('data-price')]; });
   renderLoopNodes(); renderQuiz();
   document.title = lang==='zh' ? 'Nestflow — 打开。开始。就这么简单。' : "Nestflow — Open it. Start. That's it.";
 }

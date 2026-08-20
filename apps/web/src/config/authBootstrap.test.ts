@@ -6,8 +6,6 @@ const fetchAuthProfileMock = vi.fn()
 const setAuthMock = vi.fn()
 const clearAuthMock = vi.fn()
 const getAuthMock = vi.fn()
-const consumePendingCheckoutMock = vi.fn()
-const startPremiumCheckoutMock = vi.fn()
 
 vi.mock('./authClient', () => ({
   authClient: {
@@ -22,11 +20,6 @@ vi.mock('../store/auth', () => ({
   getAuth: getAuthMock,
 }))
 
-vi.mock('../features/payments/paymentFlow', () => ({
-  consumePendingCheckout: consumePendingCheckoutMock,
-  startPremiumCheckout: startPremiumCheckoutMock,
-}))
-
 describe('bootstrapAuth', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -38,9 +31,6 @@ describe('bootstrapAuth', () => {
     clearAuthMock.mockReset()
     getAuthMock.mockReset()
     getAuthMock.mockReturnValue(null)
-    consumePendingCheckoutMock.mockReset()
-    startPremiumCheckoutMock.mockReset()
-    consumePendingCheckoutMock.mockReturnValue(null)
   })
 
   afterEach(() => {
@@ -56,8 +46,8 @@ describe('bootstrapAuth', () => {
     fetchAuthProfileMock.mockResolvedValue({
       id: 'business-user-1',
       email: 'user@example.com',
-      plan: 'premium',
-      expiresAt: '2026-05-01T00:00:00.000Z',
+      isSupporter: true,
+      cloudSync: { usedBytes: 1024, payloadBytes: 512, blobBytes: 512, limitBytes: 262144000 },
       isAdmin: true,
     })
     const { bootstrapAuth } = await import('./authBootstrap')
@@ -67,8 +57,8 @@ describe('bootstrapAuth', () => {
     expect(setAuthMock).toHaveBeenCalledWith({
       accessToken: 'oauth-token',
       user: { id: 'user-1', email: 'user@example.com' },
-      plan: 'premium',
-      expiresAt: '2026-05-01T00:00:00.000Z',
+      isSupporter: true,
+      cloudSync: { usedBytes: 1024, payloadBytes: 512, blobBytes: 512, limitBytes: 262144000 },
       isAdmin: true,
     })
     expect(window.location.search).toBe('')
@@ -88,8 +78,7 @@ describe('bootstrapAuth', () => {
     fetchAuthProfileMock.mockResolvedValue({
       id: 'business-user-1',
       email: 'user@example.com',
-      plan: 'free',
-      expiresAt: null,
+      isSupporter: false,
       isAdmin: false,
     })
     const { bootstrapAuth } = await import('./authBootstrap')
@@ -100,8 +89,8 @@ describe('bootstrapAuth', () => {
     expect(setAuthMock).toHaveBeenCalledWith({
       accessToken: 'cookie-token',
       user: { id: 'user-1', email: 'user@example.com' },
-      plan: 'free',
-      expiresAt: null,
+      isSupporter: false,
+      cloudSync: undefined,
       isAdmin: false,
     })
   })

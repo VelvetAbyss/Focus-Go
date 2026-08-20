@@ -11,12 +11,13 @@ const createDb = () => {
   return db
 }
 
-const createServer = async () => {
+const createServer = async (options = {}) => {
   const db = createDb()
   const app = express()
   app.use(express.json({ limit: '10mb' }))
   app.use('/sync', createSyncRouter({
     database: db,
+    ...options,
     authMiddleware: (req, _res, next) => {
       req.auth = { user: { id: 'user-1', plan: 'premium' } }
       next()
@@ -37,6 +38,16 @@ const createServer = async () => {
       db.close()
     },
   }
+}
+
+const assertPushOk = async (response) => {
+  assert.equal(response.status, 200)
+  const body = await response.json()
+  assert.deepEqual(body.conflicts, [])
+  assert.deepEqual(body.blobs, [])
+  assert.equal(typeof body.quota?.usedBytes, 'number')
+  assert.equal(typeof body.quota?.limitBytes, 'number')
+  return body
 }
 
 test('sync route push/pull chain stores blobs and returns hydrated rows', async () => {
@@ -69,8 +80,7 @@ test('sync route push/pull chain stores blobs and returns hydrated rows', async 
       }),
     })
 
-    assert.equal(pushResponse.status, 200)
-    assert.deepEqual(await pushResponse.json(), { conflicts: [], blobs: [] })
+    await assertPushOk(pushResponse)
 
     const pullResponse = await fetch(`${ctx.baseUrl}/sync/rxdb/pull`, {
       method: 'POST',
@@ -215,8 +225,7 @@ test('sync route rejects stale writes when assumed master state does not match',
       }),
     })
 
-    assert.equal(initialResponse.status, 200)
-    assert.deepEqual(await initialResponse.json(), { conflicts: [], blobs: [] })
+    await assertPushOk(initialResponse)
 
     const staleResponse = await fetch(`${ctx.baseUrl}/sync/rxdb/push`, {
       method: 'POST',
@@ -281,8 +290,7 @@ test('sync route propagates a delete pushed with the previous master state', asy
         blobs: [],
       }),
     })
-    assert.equal(create.status, 200)
-    assert.deepEqual(await create.json(), { conflicts: [], blobs: [] })
+    await assertPushOk(create)
 
     // B pulls — payload is exactly what RxDB on B will cache as its last known master.
     const bPull = await fetch(`${ctx.baseUrl}/sync/rxdb/pull`, {
@@ -308,9 +316,8 @@ test('sync route propagates a delete pushed with the previous master state', asy
         blobs: [],
       }),
     })
-    assert.equal(del.status, 200)
-    const delJson = await del.json()
-    assert.deepEqual(delJson, { conflicts: [], blobs: [] }, 'delete must not be rejected as a conflict')
+    const delJson = await assertPushOk(del)
+    assert.equal(delJson.conflicts.length, 0, 'delete must not be rejected as a conflict')
 
     // B pulls again — must see the tombstone, not the live row.
     const bPull2 = await fetch(`${ctx.baseUrl}/sync/rxdb/pull`, {
@@ -375,8 +382,7 @@ test('sync route refuses to resurrect a tombstoned row from a stale upsert', asy
         blobs: [],
       }),
     })
-    assert.equal(revive.status, 200)
-    assert.deepEqual(await revive.json(), { conflicts: [], blobs: [] })
+    await assertPushOk(revive)
     const afterRevive = ctx.db.prepare('SELECT payload, deleted_at FROM sync_notes WHERE id = ?').get('note-1')
     assert.equal(afterRevive.deleted_at, null)
     assert.equal(JSON.parse(afterRevive.payload).title, 'genuinely recreated')
@@ -385,7 +391,7 @@ test('sync route refuses to resurrect a tombstoned row from a stale upsert', asy
   }
 })
 
-test('sync route requires premium plan', async () => {
+test('sync route permits free accounts', async () => {
   const db = createDb()
   const app = express()
   app.use(express.json({ limit: '10mb' }))
@@ -414,8 +420,8 @@ test('sync route requires premium plan', async () => {
       }),
     })
 
-    assert.equal(response.status, 403)
-    assert.deepEqual(await response.json(), { error: 'Cloud sync requires premium' })
+    assert.equal(response.status, 200)
+    assert.equal((await response.json()).documents.length, 0)
   } finally {
     await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())))
     db.close()
@@ -458,6 +464,50 @@ test('sync route serves taskNoteLinks entity', async () => {
     assert.equal(response.status, 200)
     const body = await response.json()
     assert.deepEqual(body.documents, [])
+  } finally {
+    await ctx.close()
+  }
+})
+
+test('sync route rolls back a write that would exceed the account quota', async () => {
+  const ctx = await createServer({ quotaBytes: 20 })
+  try {
+    const response = await fetch(`${ctx.baseUrl}/sync/rxdb/push`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'notes',
+        rows: [{ newDocumentState: { id: 'too-large', title: 'This exceeds a tiny quota', updatedAt: 1, _deleted: false }, assumedMasterState: null }],
+        blobs: [],
+      }),
+    })
+    assert.equal(response.status, 413)
+    const quotaError = await response.json()
+    assert.equal(quotaError.error, 'cloud_storage_quota_exceeded')
+    assert.equal(quotaError.limitBytes, 20)
+    assert.ok(quotaError.usedBytes > 20)
+
+    const pull = await fetch(`${ctx.baseUrl}/sync/rxdb/pull`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entityType: 'notes', checkpoint: null, limit: 100 }),
+    })
+    assert.equal((await pull.json()).documents.length, 0)
+  } finally {
+    await ctx.close()
+  }
+})
+
+test('sync route rate limits repeated pushes', async () => {
+  const ctx = await createServer({ rateLimiter: (() => { let calls = 0; return () => ({ allowed: ++calls === 1, retryAfterSeconds: 30 }) })() })
+  try {
+    const request = () => fetch(`${ctx.baseUrl}/sync/rxdb/push`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entityType: 'notes', rows: [], blobs: [] }),
+    })
+    await assertPushOk(await request())
+    const throttled = await request()
+    assert.equal(throttled.status, 429)
+    assert.deepEqual(await throttled.json(), { error: 'sync_rate_limited', retryAfterSeconds: 30 })
   } finally {
     await ctx.close()
   }

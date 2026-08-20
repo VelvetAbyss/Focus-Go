@@ -3,7 +3,6 @@ import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { mkdirSync } from 'fs'
 import { ensureSyncTables } from '../sync/store.js'
-import { ensurePaymentTables } from '../services/payments.js'
 import { ensureNeteasePodcastTables } from '../services/podcasts.js'
 import { ensureNewsTables } from '../services/news.js'
 
@@ -57,6 +56,15 @@ if (!userColumns.includes('tags')) {
 // NULL means not yet detected — frontend falls back to lang/timezone heuristic.
 if (!userColumns.includes('country_code')) {
   db.exec('ALTER TABLE users ADD COLUMN country_code TEXT')
+}
+if (!userColumns.includes('is_supporter')) {
+  db.exec('ALTER TABLE users ADD COLUMN is_supporter INTEGER NOT NULL DEFAULT 0')
+}
+// Preserve the goodwill of people who paid before the free transition, without
+// retaining a product entitlement or exposing payment history to the client.
+const legacyOrdersTable = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'payment_orders'").get()
+if (legacyOrdersTable) {
+  db.exec("UPDATE users SET is_supporter = 1 WHERE id IN (SELECT user_id FROM payment_orders WHERE status = 'paid')")
 }
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS users_auth_user_id_idx ON users(auth_user_id)')
 
@@ -158,7 +166,6 @@ db.exec(`
 `)
 
 ensureSyncTables(db)
-ensurePaymentTables(db)
 ensureNeteasePodcastTables(db)
 ensureNewsTables(db)
 

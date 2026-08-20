@@ -3,18 +3,23 @@
 [![Build](https://github.com/VelvetAbyss/Focus-Go/actions/workflows/verify.yml/badge.svg?branch=main)](https://github.com/VelvetAbyss/Focus-Go/actions/workflows/verify.yml)
 [![Release](https://github.com/VelvetAbyss/Focus-Go/actions/workflows/release-unsigned.yml/badge.svg)](https://github.com/VelvetAbyss/Focus-Go/actions/workflows/release-unsigned.yml)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Web%20%7C%20Desktop-blue.svg)](https://github.com/VelvetAbyss/Focus-Go/releases)
+[![Platform](https://img.shields.io/badge/platform-Web%20%7C%20API-blue.svg)](https://github.com/VelvetAbyss/Focus-Go)
 
 All-in-one personal productivity workspace that reduces context switching across planning, focus, reflection, and daily signals.
 
 [![Try Web](https://img.shields.io/badge/Try-Web-black?style=for-the-badge)](https://focus-go.vercel.app)
-[![Download Desktop](https://img.shields.io/badge/Download-Desktop-2d7ff9?style=for-the-badge)](https://github.com/VelvetAbyss/Focus-Go/releases)
 [![Quick Start](https://img.shields.io/badge/Quick-Start-0ea5e9?style=for-the-badge)](#quick-start)
 
 ## Why Focus&go
 
 Most productivity setups are fragmented: tasks in one app, timer in another, notes somewhere else, and no single view of progress.  
 Focus&go brings them together so individuals can plan, execute, and review in one continuous workflow.
+
+## Free and open source
+
+Every current product feature is free under the MIT license. Local use never requires an account. Signing in enables the optional official cloud-sync service, which includes **250 MiB per account** by default; self-hosted deployments control their own limits.
+
+Past paid users are recognised as early supporters. Optional GitHub Sponsors, PayPal, and Z-Pay links never unlock features or change account access.
 
 ## Core Features
 
@@ -24,8 +29,8 @@ Focus&go brings them together so individuals can plan, execute, and review in on
 - Daily diary entry panel to capture progress, outcomes, and reflection.
 - Spend tracking widgets for quick personal finance awareness.
 - Weather widget and city controls to keep daily context visible.
-- Persistent local-first data behavior with cloud sync hooks for layout state.
-- Web and desktop app delivery in a single monorepo.
+- Local-first data with optional authenticated cloud sync.
+- Web client and self-hostable API source.
 
 ## Product Preview
 
@@ -45,12 +50,14 @@ npm install
 npm run dev:web
 ```
 
-### Run Desktop App
+### Run the API locally
 
 ```bash
-npm install
-npm run dev:desktop
+cp apps/web/focus-go-api/.env.example apps/web/focus-go-api/.env
+npm --workspace focus-go-api start
 ```
+
+Configure `VITE_API_BASE` in `apps/web/.env.local` when the Web app should use a non-default API URL. Never commit `.env` files or real credentials.
 
 ### Verify
 
@@ -76,9 +83,8 @@ Version numbers follow the project rules in [VERSIONING.md](./VERSIONING.md).
 
 ```text
 apps/
-  web/        React + Vite web client
-  desktop/    Electron desktop client
-  ai-screenshot-tool/ Tauri v2 + React desktop screenshot tool
+  web/                    React + Vite web client
+  web/focus-go-api/       Node/Express API
 packages/
   core/       Shared domain models and interfaces
   db-contracts/ Shared database contracts and schemas
@@ -88,18 +94,25 @@ docs/
 
 ## Documentation
 
-- Docs index: [`docs/README.md`](./docs/README.md)
-- OSS release backup: [`docs/oss-backup.md`](./docs/oss-backup.md)
+- API configuration: [`apps/web/focus-go-api/.env.example`](./apps/web/focus-go-api/.env.example)
+- Security reporting: [`SECURITY.md`](./SECURITY.md)
+- Support links: [`SUPPORT.md`](./SUPPORT.md)
+
+## Self-hosting and third-party materials
+
+Deploy the Web client and API with your own environment values. The public API configuration is documented in [`apps/web/focus-go-api/.env.example`](./apps/web/focus-go-api/.env.example); configure your own authentication, storage, and allowed origins before exposing an instance.
+
+The repository's own code is MIT-licensed. Third-party npm packages, self-hosted fonts, images, and external APIs keep their respective licenses and terms. Do not assume that the MIT license grants rights to third-party assets, hosted services, or API data; review each dependency and provider before redistribution or production use.
 
 ## Contributing
 
-Contributions are welcome and low-friction. Start with [`CONTRIBUTING.md`](./CONTRIBUTING.md) for bug reports, feature ideas, and pull requests.
+Contributions are welcome. Read [`CONTRIBUTING.md`](./CONTRIBUTING.md), [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md), and [`SECURITY.md`](./SECURITY.md) before opening an issue or pull request.
 
 ## FAQ
 
-### Is Focus&go web-only?
+### Is the desktop source included?
 
-No. Focus&go provides both web and desktop experiences.
+Not in this release. This public repository contains the Web application and API only; it does not claim to publish the local-only desktop source.
 
 ### Is this suitable for teams?
 

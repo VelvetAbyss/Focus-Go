@@ -885,6 +885,7 @@ export const zhMessages: TranslationMessages = {
   'auth.account.emailLogin': '邮箱与登录方式',
   'auth.account.security': '账号安全',
   'auth.account.billing': '账单与订阅',
+  'auth.account.support': '支持 Focus&go',
   'auth.account.exportData': '导出数据',
   'auth.account.helpFeedback': '帮助与反馈',
   'auth.account.switchAccount': '切换账号',

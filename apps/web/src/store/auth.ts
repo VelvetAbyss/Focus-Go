@@ -4,18 +4,12 @@ import { fetchApi } from '../shared/apiBase'
 
 export const AUTH_CHANGED_EVENT = 'focusgo:auth-changed'
 
-export type AuthPlan = 'free' | 'premium'
-
 export type AuthProfile = {
   id: string
   email: string | null
-  plan: AuthPlan
-  entitlement?: 'free' | 'pro' | 'lifetime'
-  expiresAt: string | null
-  isLifetime?: boolean
+  isSupporter: boolean
+  cloudSync: { usedBytes: number; payloadBytes: number; blobBytes: number; limitBytes: number }
   isAdmin: boolean
-  /** ISO 3166-1 alpha-2 country code from IP geolocation, e.g. 'CN', 'US'. null = not yet detected. */
-  country_code?: string | null
 }
 
 // Access token lives in memory only — never in localStorage — so an XSS payload
@@ -27,7 +21,7 @@ let inMemoryAuth: Record<string, unknown> | null = null
 // Keys safe to persist for instant UI prehydration before bootstrap completes.
 // Notably excludes `accessToken`.
 const HINT_KEYS = [
-  'user', 'plan', 'entitlement', 'expiresAt', 'isLifetime', 'isAdmin', 'country_code',
+  'user', 'isSupporter', 'cloudSync', 'isAdmin',
 ] as const
 
 const readHint = (): Record<string, unknown> | null => {
@@ -76,17 +70,9 @@ export const subscribeAuth = (listener: () => void) => {
   }
 }
 
-export const isPro = (): boolean => {
-  return isLocalhostRuntime() || getAuth()?.plan === 'premium'
-}
-
 // Returns a boolean — safe for useSyncExternalStore (primitive comparison)
 export const useIsLoggedIn = () =>
   useSyncExternalStore(subscribeAuth, () => getAuth()?.user != null, () => false)
-
-export const useAuthPlan = () =>
-  useSyncExternalStore(subscribeAuth, () => (isLocalhostRuntime() ? 'premium' : (getAuth()?.plan ?? 'free')), () => 'free')
-
 
 export const fetchAuthProfile = async (accessToken?: string): Promise<AuthProfile | null> => {
   try {
@@ -103,6 +89,13 @@ export const fetchAuthProfile = async (accessToken?: string): Promise<AuthProfil
 export const useIsAdmin = () =>
   useSyncExternalStore(subscribeAuth, () => isLocalhostRuntime() || Boolean(getAuth()?.isAdmin), () => false)
 
+export const useCloudSyncQuota = () =>
+  useSyncExternalStore(
+    subscribeAuth,
+    () => (getAuth()?.cloudSync as AuthProfile['cloudSync'] | undefined) ?? null,
+    () => null,
+  )
+
 export const refreshAuthProfile = async () => {
   const auth = getAuth()
   const accessToken = typeof auth?.accessToken === 'string' ? auth.accessToken : null
@@ -112,23 +105,12 @@ export const refreshAuthProfile = async () => {
     if (!profile) return null
     setAuth({
       ...auth,
-      plan: profile.plan,
-      entitlement: profile.entitlement,
-      expiresAt: profile.expiresAt,
-      isLifetime: profile.isLifetime,
+      isSupporter: profile.isSupporter,
+      cloudSync: profile.cloudSync,
       isAdmin: profile.isAdmin,
-      // Persist country_code so MembershipPage and other consumers can read it
-      // without an extra fetch. Only overwrite when the server returns a value.
-      ...(profile.country_code != null ? { country_code: profile.country_code } : {}),
     })
     return profile
   } catch {
     return null
   }
-}
-
-export const upgradeToPremium = async (): Promise<boolean> => {
-  if (typeof window === 'undefined') return false
-  window.location.assign('/premium')
-  return true
 }
