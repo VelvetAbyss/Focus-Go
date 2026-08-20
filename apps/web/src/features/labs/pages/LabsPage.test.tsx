@@ -1,0 +1,185 @@
+// @vitest-environment jsdom
+import '@testing-library/jest-dom/vitest'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
+import { vi, describe, it, beforeEach, afterEach, expect } from 'vitest'
+import LabsPage from './LabsPage'
+import type { FeatureCatalogItem } from '../labsApi'
+
+const mockPushToast = vi.fn()
+const mockInstall = vi.fn(async () => undefined)
+const mockRemove = vi.fn(async () => undefined)
+const mockRestore = vi.fn(async () => undefined)
+
+const mockUseLabs = vi.fn()
+
+vi.mock('../LabsContext', () => ({
+  useLabs: () => mockUseLabs(),
+}))
+
+vi.mock('../../../shared/ui/toast/toast', () => ({
+  useToast: () => ({ push: mockPushToast }),
+}))
+
+const i18n = {
+  nav: {
+    dashboard: 'Dashboard',
+    projects: 'Project',
+    tasks: 'Tasks',
+    note: 'Note',
+    calendar: 'Calendar',
+    focus: 'Focus',
+    review: 'Review',
+    settings: 'Settings',
+    labs: 'Labs',
+  },
+  labs: {
+    title: 'Labs',
+    subtitle: 'subtitle',
+    loading: 'Loading',
+    eyebrow: 'Labs',
+    eyebrowPremium: 'Premium Labs',
+    tierFree: 'Free',
+    tierPremium: 'Premium',
+    available: 'Available',
+    installed: 'Installed',
+    removed: 'Removed',
+    premiumLocked: 'Premium required',
+    install: 'Install',
+    openHabits: 'Open Habits',
+    remove: 'Remove',
+    restore: 'Restore',
+    upgrade: 'Upgrade to Premium',
+    comingSoon: 'Coming soon',
+    upgradeTitle: 'Upgrade to Premium?',
+    upgradeDesc: 'desc',
+    upgradeConfirm: 'Activate mock Premium',
+    cancel: 'Cancel',
+    removeTitle: 'Remove feature?',
+    removeDesc: 'remove desc',
+  },
+  toast: {
+    habitAccessDenied: 'denied',
+    upgraded: 'upgraded',
+    installed: 'installed',
+    removed: 'removed',
+    restored: 'restored',
+  },
+  featureTitles: {
+    'habit-tracker': 'Habit Tracker',
+    'ai-digest': 'AI Digest',
+  },
+  featureDescriptions: {
+    'habit-tracker': 'desc',
+    'ai-digest': 'desc',
+  },
+}
+
+vi.mock('../labsI18n', () => ({
+  useLabsI18n: () => i18n,
+}))
+
+const makeFeature = (
+  state: FeatureCatalogItem['state'],
+  overrides: Partial<FeatureCatalogItem> = {},
+): FeatureCatalogItem => ({
+  featureKey: 'habit-tracker',
+  title: 'Habit Tracker',
+  description: 'desc',
+  premiumOnly: true,
+  comingSoon: false,
+  state,
+  requiresPremium: false,
+  ...overrides,
+})
+
+const renderPage = () =>
+  render(
+    <MemoryRouter>
+      <LabsPage />
+    </MemoryRouter>,
+  )
+
+describe('LabsPage', () => {
+  beforeEach(() => {
+    mockPushToast.mockReset()
+    mockInstall.mockClear()
+    mockRemove.mockClear()
+    mockRestore.mockClear()
+  })
+
+  afterEach(() => {
+    cleanup()
+  })
+
+  it('installs Habit Tracker', async () => {
+    mockUseLabs.mockReturnValue({
+      ready: true,
+      catalog: [makeFeature('available')],
+      subscription: { tier: 'premium', role: 'admin' },
+      install: mockInstall,
+      remove: mockRemove,
+      restore: mockRestore,
+    })
+
+    renderPage()
+    await userEvent.click(screen.getByRole('button', { name: i18n.labs.install }))
+
+    await waitFor(() => expect(mockInstall).toHaveBeenCalledWith('habit-tracker'))
+  })
+
+  it('installs a feature even when legacy metadata marks it premium', async () => {
+    mockUseLabs.mockReturnValue({
+      ready: true,
+      catalog: [makeFeature('available', { requiresPremium: true })],
+      subscription: { tier: 'free', role: 'member' },
+      install: mockInstall,
+      remove: mockRemove,
+      restore: mockRestore,
+    })
+
+    renderPage()
+    await userEvent.click(screen.getByRole('button', { name: i18n.labs.install }))
+    await waitFor(() => expect(mockInstall).toHaveBeenCalledWith('habit-tracker'))
+  })
+
+  it('removes and restores features with confirm flow', async () => {
+    mockUseLabs.mockReturnValue({
+      ready: true,
+      catalog: [makeFeature('installed'), makeFeature('removed', { featureKey: 'ai-digest', title: 'AI Digest' })],
+      subscription: { tier: 'premium', role: 'admin' },
+      install: mockInstall,
+      remove: mockRemove,
+      restore: mockRestore,
+    })
+
+    renderPage()
+
+    const habitCard = screen.getByText('Habit Tracker').closest('.rounded-xl')
+    expect(habitCard).not.toBeNull()
+    await userEvent.click(within(habitCard as HTMLElement).getByRole('button', { name: i18n.labs.remove }))
+    const dialog = await screen.findByRole('alertdialog')
+    await userEvent.click(within(dialog).getByRole('button', { name: i18n.labs.remove }))
+    await waitFor(() => expect(mockRemove).toHaveBeenCalledWith('habit-tracker'))
+
+    await userEvent.click(screen.getByRole('button', { name: i18n.labs.restore }))
+    await waitFor(() => expect(mockRestore).toHaveBeenCalledWith('ai-digest'))
+  })
+
+  it('restores removed features regardless of legacy premium metadata', async () => {
+    mockUseLabs.mockReturnValue({
+      ready: true,
+      catalog: [makeFeature('removed', { requiresPremium: true })],
+      subscription: { tier: 'free', role: 'member' },
+      install: mockInstall,
+      remove: mockRemove,
+      restore: mockRestore,
+    })
+
+    renderPage()
+    await userEvent.click(screen.getByRole('button', { name: i18n.labs.restore }))
+    await waitFor(() => expect(mockRestore).toHaveBeenCalledWith('habit-tracker'))
+  })
+
+})

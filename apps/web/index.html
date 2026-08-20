@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#F5F3F0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Focus & Go</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Fraunces, Manrope, Noto Serif SC are self-hosted (see _variables.scss).
+         Only decorative/display fonts are still loaded from Google. -->
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
+    </noscript>
+    <script>
+      // Fraunces, Manrope, Noto Serif SC are self-hosted (offline). Only the
+      // decorative/display fonts below are still fetched from Google at runtime.
+      const deferredFontHrefs = [
+        'https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&display=swap',
+        'https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=ZCOOL+XiaoWei&family=Liu+Jian+Mao+Cao&family=ZCOOL+KuaiLe&family=Long+Cang&display=swap',
+      ]
+      const loadDeferredFonts = () => {
+        deferredFontHrefs.forEach((href) => {
+          if (document.querySelector(`link[href="${href}"]`)) return
+          const link = document.createElement('link')
+          link.rel = 'stylesheet'
+          link.href = href
+          document.head.appendChild(link)
+        })
+      }
+      window.addEventListener('load', () => {
+        if ('requestIdleCallback' in window) {
+          window.requestIdleCallback(loadDeferredFonts, { timeout: 2000 })
+        } else {
+          window.setTimeout(loadDeferredFonts, 0)
+        }
+      }, { once: true })
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

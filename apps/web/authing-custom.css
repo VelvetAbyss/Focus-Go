@@ -1,0 +1,315 @@
+/* ============================================================
+   Focus&go — Authing 自定义登录页 CSS
+   作用域：Authing Guard v2（托管模式）
+   使用方式：粘贴到 控制台 → 整体样式 → 自定义 CSS
+   ============================================================ */
+
+/* ---------- 全局变量 ---------- */
+:root {
+  --bg:          #F5F3F0;
+  --bg-card:     #FFFFFF;
+  --ink:         #3A3733;
+  --ink-muted:   #7A756F;
+  --ink-faint:   #B0AAA3;
+  --border:      #E6E2DC;
+  --border-focus:#C4B89A;
+  --accent:      #3A3733;
+  --accent-hover:#5A5450;
+  --danger:      #C0543A;
+  --radius-card: 16px;
+  --radius-input: 10px;
+  --radius-btn:  10px;
+  --shadow-card: 0 4px 24px rgba(58,55,51,.08), 0 1px 4px rgba(58,55,51,.04);
+  --font:        -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif;
+  --transition:  180ms cubic-bezier(.4,0,.2,1);
+}
+
+/* ---------- 整页背景 ---------- */
+.authing-guard-layout {
+  background: var(--bg) !important;
+  font-family: var(--font) !important;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---------- 登录卡片容器 ---------- */
+.authing-guard-layout .authing-guard-container,
+.authing-guard-layout .g2-init-setting-layout {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-card) !important;
+  box-shadow: var(--shadow-card) !important;
+  padding: 40px 36px !important;
+  max-width: 420px !important;
+  width: 100% !important;
+  animation: cardIn 320ms cubic-bezier(.4,0,.2,1) both;
+}
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- 登录作用域（限定 .g2-view-login） ---------- */
+
+/* Logo / 标题 */
+.g2-view-login .authing-guard-logo img,
+.authing-guard-layout .authing-guard-logo img {
+  max-height: 40px;
+  object-fit: contain;
+}
+
+.g2-view-login .authing-guard-title,
+.authing-guard-layout .authing-guard-title {
+  color: var(--ink) !important;
+  font-size: 22px !important;
+  font-weight: 600 !important;
+  letter-spacing: -.3px;
+  margin-bottom: 4px !important;
+}
+
+.g2-view-login .authing-guard-desc,
+.authing-guard-layout .authing-guard-desc {
+  color: var(--ink-muted) !important;
+  font-size: 13px !important;
+}
+
+/* ---------- Tab 切换（手机号 / 邮箱 / 账号密码） ---------- */
+.g2-view-login .authing-guard-tabs .ant-tabs-nav::before,
+.authing-guard-layout .ant-tabs-nav::before {
+  border-bottom: 1px solid var(--border) !important;
+}
+
+.g2-view-login .ant-tabs-tab,
+.authing-guard-layout .ant-tabs-tab {
+  color: var(--ink-muted) !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  transition: color var(--transition) !important;
+  padding-bottom: 10px !important;
+}
+
+.g2-view-login .ant-tabs-tab-active .ant-tabs-tab-btn,
+.authing-guard-layout .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: var(--ink) !important;
+  font-weight: 600 !important;
+}
+
+.g2-view-login .ant-tabs-ink-bar,
+.authing-guard-layout .ant-tabs-ink-bar {
+  background: var(--ink) !important;
+  border-radius: 2px !important;
+  height: 2px !important;
+}
+
+/* ---------- 输入框 ---------- */
+.g2-view-login .ant-input,
+.g2-view-login .ant-input-affix-wrapper,
+.authing-guard-layout .ant-input,
+.authing-guard-layout .ant-input-affix-wrapper {
+  background: var(--bg) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-input) !important;
+  color: var(--ink) !important;
+  font-size: 14px !important;
+  height: 44px !important;
+  padding: 0 14px !important;
+  transition: border-color var(--transition), box-shadow var(--transition) !important;
+  box-shadow: none !important;
+}
+
+.g2-view-login .ant-input:focus,
+.g2-view-login .ant-input-affix-wrapper-focused,
+.authing-guard-layout .ant-input:focus,
+.authing-guard-layout .ant-input-affix-wrapper-focused {
+  border-color: var(--border-focus) !important;
+  box-shadow: 0 0 0 3px rgba(196,184,154,.18) !important;
+  background: #FAFAF8 !important;
+}
+
+.g2-view-login .ant-input::placeholder,
+.authing-guard-layout .ant-input::placeholder {
+  color: var(--ink-faint) !important;
+}
+
+/* 输入框内图标 */
+.g2-view-login .ant-input-prefix svg,
+.authing-guard-layout .ant-input-prefix svg {
+  color: var(--ink-faint) !important;
+}
+
+/* ---------- 验证码 / 发送按钮（inline） ---------- */
+.g2-view-login .ant-input-group-addon button,
+.authing-guard-layout .ant-input-group-addon button,
+.g2-view-login .authing-guard-send-code-btn,
+.authing-guard-layout .authing-guard-send-code-btn {
+  background: transparent !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-input) !important;
+  color: var(--ink-muted) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  height: 44px !important;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition), border-color var(--transition) !important;
+}
+
+.g2-view-login .ant-input-group-addon button:hover,
+.authing-guard-layout .ant-input-group-addon button:hover,
+.g2-view-login .authing-guard-send-code-btn:hover,
+.authing-guard-layout .authing-guard-send-code-btn:hover {
+  background: var(--bg) !important;
+  border-color: var(--border-focus) !important;
+  color: var(--ink) !important;
+}
+
+/* ---------- 主按钮（登录） ---------- */
+.g2-view-login .authing-guard-btn-login,
+.g2-view-login .ant-btn-primary,
+.authing-guard-layout .authing-guard-btn-login,
+.authing-guard-layout .ant-btn-primary {
+  background: var(--accent) !important;
+  border: none !important;
+  border-radius: var(--radius-btn) !important;
+  color: #FFFFFF !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  height: 48px !important;
+  width: 100% !important;
+  letter-spacing: .2px;
+  box-shadow: 0 2px 8px rgba(58,55,51,.20) !important;
+  transition: background var(--transition), transform var(--transition), box-shadow var(--transition) !important;
+}
+
+.g2-view-login .authing-guard-btn-login:hover,
+.g2-view-login .ant-btn-primary:hover,
+.authing-guard-layout .authing-guard-btn-login:hover,
+.authing-guard-layout .ant-btn-primary:hover {
+  background: var(--accent-hover) !important;
+  box-shadow: 0 4px 14px rgba(58,55,51,.28) !important;
+  transform: translateY(-1px);
+}
+
+.g2-view-login .authing-guard-btn-login:active,
+.g2-view-login .ant-btn-primary:active,
+.authing-guard-layout .authing-guard-btn-login:active,
+.authing-guard-layout .ant-btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(58,55,51,.16) !important;
+}
+
+/* ---------- 次要按钮 / 文字链接 ---------- */
+.g2-view-login .ant-btn-link,
+.authing-guard-layout .ant-btn-link,
+.g2-view-login a,
+.authing-guard-layout a {
+  color: var(--ink-muted) !important;
+  text-decoration: none !important;
+  transition: color var(--transition) !important;
+}
+
+.g2-view-login .ant-btn-link:hover,
+.authing-guard-layout .ant-btn-link:hover,
+.g2-view-login a:hover,
+.authing-guard-layout a:hover {
+  color: var(--ink) !important;
+  text-decoration: underline !important;
+  text-underline-offset: 2px;
+}
+
+/* ---------- 分隔线（「其他登录方式」） ---------- */
+.g2-view-login .authing-guard-identity-provider-divider,
+.authing-guard-layout .authing-guard-identity-provider-divider {
+  color: var(--ink-faint) !important;
+  font-size: 12px !important;
+}
+
+.g2-view-login .authing-guard-identity-provider-divider::before,
+.g2-view-login .authing-guard-identity-provider-divider::after,
+.authing-guard-layout .authing-guard-identity-provider-divider::before,
+.authing-guard-layout .authing-guard-identity-provider-divider::after {
+  border-color: var(--border) !important;
+}
+
+/* ---------- 第三方登录按钮（Google / 微信等） ---------- */
+.g2-view-login .authing-guard-identity-provider-item,
+.authing-guard-layout .authing-guard-identity-provider-item {
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-btn) !important;
+  background: var(--bg-card) !important;
+  transition: background var(--transition), border-color var(--transition), transform var(--transition) !important;
+}
+
+.g2-view-login .authing-guard-identity-provider-item:hover,
+.authing-guard-layout .authing-guard-identity-provider-item:hover {
+  background: var(--bg) !important;
+  border-color: var(--border-focus) !important;
+  transform: translateY(-1px);
+}
+
+/* ---------- 错误提示 ---------- */
+.g2-view-login .ant-form-item-explain-error,
+.authing-guard-layout .ant-form-item-explain-error {
+  color: var(--danger) !important;
+  font-size: 12px !important;
+}
+
+/* ---------- 语言切换 / Powered by（降噪） ---------- */
+.authing-guard-layout .authing-guard-locale-selector,
+.authing-guard-layout .authing-guard-powered-by {
+  opacity: 0.45;
+  font-size: 12px !important;
+  transition: opacity var(--transition) !important;
+}
+
+.authing-guard-layout .authing-guard-locale-selector:hover,
+.authing-guard-layout .authing-guard-powered-by:hover {
+  opacity: 0.8;
+}
+
+/* ---------- 协议勾选框 ---------- */
+.g2-view-login .ant-checkbox-inner,
+.authing-guard-layout .ant-checkbox-inner {
+  border-color: var(--border) !important;
+  border-radius: 4px !important;
+}
+
+.g2-view-login .ant-checkbox-checked .ant-checkbox-inner,
+.authing-guard-layout .ant-checkbox-checked .ant-checkbox-inner {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+}
+
+/* ---------- 移动端适配 ---------- */
+@media (max-width: 480px) {
+  .authing-guard-layout .authing-guard-container,
+  .authing-guard-layout .g2-init-setting-layout {
+    margin: 16px !important;
+    padding: 28px 20px !important;
+    border-radius: 14px !important;
+  }
+
+  .g2-view-login .authing-guard-btn-login,
+  .g2-view-login .ant-btn-primary,
+  .authing-guard-layout .authing-guard-btn-login,
+  .authing-guard-layout .ant-btn-primary {
+    height: 52px !important;
+    font-size: 16px !important;
+  }
+}
+
+/* ---------- 尊重「减少动效」偏好 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .authing-guard-layout .authing-guard-container,
+  .authing-guard-layout .g2-init-setting-layout {
+    animation: none !important;
+  }
+
+  * {
+    transition: none !important;
+    transform: none !important;
+  }
+}

@@ -1,0 +1,99 @@
+# Dependencies
+node_modules
+node_modules/
+.npm-cache/
+.venv/
+.venv_*/
+
+# Build output
+dist
+dist/
+dist-ssr
+build/
+.next/
+
+# Environment
+*.local
+.env
+.env.*
+!.env.example
+/tools/social-publisher-agent/config.local.json
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS
+.DS_Store
+__pycache__/
+
+# Database files (runtime data, not committed)
+apps/web/focus-go-api/data/
+
+# Deployment / cache
+.vercel
+.sisyphus/
+archive/
+
+# Temporary / prototype files
+.tmp/
+
+# AI coding tool directories
+.agent/
+.agents/
+.artifacts/
+.claude/
+.commandcode/
+.factory/
+.goose/
+.kilocode/
+.kiro/
+.neovate/
+.opencode/
+.openhands/
+.pi/
+.qoder/
+.roo/
+.trae/
+.windsurf/
+.zencoder/
+.impeccable.md
+
+# AI skill files
+skills/
+skills-lock.json
+SKILL.md
+
+# Documentation / planning files (not product code)
+docs/
+!/docs/
+/docs/*
+!/docs/domain-boundaries.md
+!/docs/SELF_HOSTING.md
+!CONTRIBUTING.md
+!CODE_OF_CONDUCT.md
+!SUPPORT.md
+findings.md
+progress.md
+task_plan.md
+CONTRIBUTING.md
+.gstack/
+
+# Desktop (Tauri) app — local-only, kept out of the repo for now
+/apps/desktop/
+/.github/workflows/desktop-release.yml

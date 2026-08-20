@@ -1,0 +1,369 @@
+import type {
+  BookingStatus,
+  FoodStatus,
+  ItineraryType,
+  TransportMethod,
+  TripItineraryItem,
+  TripRecord,
+  TripStatus,
+} from '../../data/models/types'
+import type { TripCreateInput } from '@focus-go/core'
+
+const toDateKey = (date: Date) => {
+  const year = date.getFullYear()
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const moveDateKey = (dateKey: string, offset: number) => {
+  const [year, month, day] = dateKey.split('-').map(Number)
+  const next = new Date(year, month - 1, day)
+  next.setDate(next.getDate() + offset)
+  return toDateKey(next)
+}
+
+export const demoTrip: TripCreateInput = {
+  title: 'Tokyo Trip',
+  destination: 'Tokyo, Japan',
+  startDate: '2026-05-08',
+  endDate: '2026-05-14',
+  status: 'Planning',
+  travelers: 2,
+  budgetPlanned: 3200,
+  budgetCurrency: 'USD',
+  heroImage: 'https://images.unsplash.com/photo-1612977420019-0284a333eefb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
+  coverEmoji: '🗼',
+  itinerary: [
+    { day: 1, date: 'Apr 18', label: 'Arrival · Shinjuku', items: [
+      { id: 'i1', title: 'Arrive at Narita Airport', time: '14:30', location: 'Narita International Airport', type: 'transport' },
+      { id: 'i2', title: 'Check in — Hotel Gracery Shinjuku', time: '18:00', location: 'Shinjuku, Tokyo', type: 'hotel' },
+      { id: 'i3', title: 'Kabukicho walk & Omoide Yokocho dinner', time: '19:30', location: 'Shinjuku', type: 'food', notes: 'Try yakitori at the alley' },
+    ] },
+    { day: 2, date: 'Apr 19', label: 'Harajuku · Shibuya', items: [
+      { id: 'i4', title: 'Meiji Shrine', time: '09:00', location: 'Harajuku', type: 'spot' },
+      { id: 'i5', title: 'Lunch at Afuri Ramen', time: '12:30', location: 'Harajuku', type: 'food' },
+      { id: 'i6', title: 'Shibuya Sky Observation', time: '17:00', location: 'Shibuya Scramble Square', type: 'spot' },
+    ] },
+    { day: 3, date: 'Apr 20', label: 'Asakusa · Ueno', items: [
+      { id: 'i7', title: 'Senso-ji Temple', time: '08:30', location: 'Asakusa', type: 'spot' },
+      { id: 'i8', title: 'Tokyo National Museum', time: '11:30', location: 'Ueno', type: 'spot' },
+    ] },
+    { day: 4, date: 'Apr 21', label: 'Day Trip · Nikko', items: [
+      { id: 'i9', title: 'Shinkansen to Nikko', time: '07:30', location: 'Ueno Station', type: 'transport' },
+      { id: 'i10', title: 'Tosho-gu Shrine', time: '10:00', location: 'Nikko', type: 'spot' },
+    ] },
+    { day: 5, date: 'Apr 22', label: 'Ginza · teamLab', items: [
+      { id: 'i11', title: 'teamLab Planets', time: '10:00', location: 'Toyosu', type: 'spot', notes: 'Pre-booked tickets required' },
+      { id: 'i12', title: 'Dinner at Sushi Saito', time: '19:00', location: 'Roppongi', type: 'food', notes: 'Dress smart casual' },
+    ] },
+    { day: 6, date: 'Apr 23', label: 'Yanaka · Shimokitazawa', items: [
+      { id: 'i13', title: 'Yanaka Ginza walk', time: '10:00', location: 'Yanaka', type: 'spot' },
+      { id: 'i14', title: 'Shimokitazawa vintage shops', time: '15:00', location: 'Shimokitazawa', type: 'spot' },
+    ] },
+    { day: 7, date: 'Apr 24', label: 'Departure', items: [
+      { id: 'i15', title: 'Morning checkout', time: '10:00', location: 'Hotel Gracery Shinjuku', type: 'hotel' },
+      { id: 'i16', title: 'Depart NRT', time: '17:30', location: 'Narita International Airport', type: 'transport' },
+    ] },
+  ],
+  transport: [
+    { id: 't1', category: 'intercity', method: 'Flight', from: 'San Francisco SFO', to: 'Tokyo NRT', departTime: '11:00', arriveTime: '14:30+1', date: 'Apr 18', status: 'Pending', cost: 980, currency: 'USD', notes: 'United UA837' },
+    { id: 't2', category: 'intercity', method: 'Train', from: 'Tokyo (Ueno)', to: 'Nikko', departTime: '07:30', arriveTime: '09:10', date: 'Apr 21', status: 'Not booked', cost: 55, currency: 'USD' },
+    { id: 't3', category: 'local', method: 'Subway', from: 'Hotel', to: 'Everywhere', departTime: '—', arriveTime: '—', date: 'Daily', status: 'Confirmed', cost: 60, currency: 'USD', notes: 'Suica — 7-day pass' },
+  ],
+  stays: [
+    { id: 's1', name: 'Hotel Gracery Shinjuku', address: '1 Chome-19-1 Kabukicho, Shinjuku City, Tokyo', checkIn: 'Apr 18', checkOut: 'Apr 24', nights: 6, status: 'Pending', cost: 960, currency: 'USD', notes: 'Superior room, Godzilla view floor preferred' },
+  ],
+  food: [
+    { id: 'f1', name: 'Omoide Yokocho', area: 'Shinjuku', cuisine: 'Yakitori', status: 'Planned', priceRange: '¥¥' },
+    { id: 'f2', name: 'Afuri Ramen', area: 'Harajuku', cuisine: 'Ramen', status: 'Saved', priceRange: '¥¥' },
+    { id: 'f3', name: 'Sushi Saito', area: 'Roppongi', cuisine: 'Omakase Sushi', status: 'Planned', priceRange: '¥¥¥', notes: 'Reservation confirmed for Apr 22' },
+  ],
+  budget: [
+    { id: 'b1', label: 'Flights', emoji: '✈️', planned: 1960, actual: 0 },
+    { id: 'b2', label: 'Stay', emoji: '🏨', planned: 960, actual: 0 },
+    { id: 'b3', label: 'Transport', emoji: '🚇', planned: 163, actual: 60 },
+    { id: 'b4', label: 'Food', emoji: '🍜', planned: 420, actual: 0 },
+    { id: 'b5', label: 'Activities', emoji: '🎟️', planned: 180, actual: 0 },
+  ],
+  checklist: [
+    { id: 'cl1', label: 'Before Trip', emoji: '📋', items: [
+      { id: 'cl1-1', label: 'Apply for Japan eVisa', done: true },
+      { id: 'cl1-2', label: 'Confirm travel insurance', done: false },
+      { id: 'cl1-3', label: 'Notify bank of travel dates', done: true },
+    ] },
+    { id: 'cl2', label: 'Packing', emoji: '🧳', items: [
+      { id: 'cl2-1', label: 'Portable charger', done: true },
+      { id: 'cl2-2', label: 'Walking shoes', done: false },
+      { id: 'cl2-3', label: 'Light rain jacket', done: false },
+    ] },
+  ],
+  notes: `Tokyo Trip\n\nSlow mornings, long walks, no rush. This is a reset trip.\n\n- Carry some cash for small restaurants.\n- Suica for transit.\n- Bring a light layer for evenings.`,
+}
+
+export const createEmptyTripInput = (overrides: Partial<TripCreateInput> = {}): TripCreateInput => {
+  const startDate = overrides.startDate ?? toDateKey(new Date())
+  const endDate = overrides.endDate ?? moveDateKey(startDate, 3)
+
+  return {
+    title: 'Untitled Trip',
+    destination: '',
+    startDate,
+    endDate,
+    status: 'Planning',
+    travelers: 1,
+    budgetPlanned: 0,
+    budgetCurrency: 'USD',
+    heroImage: demoTrip.heroImage,
+    coverEmoji: '✈️',
+    itinerary: [],
+    transport: [],
+    stays: [],
+    food: [],
+    budget: [],
+    checklist: [],
+    notes: '',
+    ...overrides,
+  }
+}
+
+export const fmtUSD = (n: number) => (n >= 1000 ? `$${(n / 1000).toFixed(1)}k` : `$${n}`)
+export const tripDuration = (trip: TripRecord) => trip.itinerary.length
+export const budgetEstimated = (trip: TripRecord) => trip.budget.reduce((sum, item) => sum + item.planned, 0)
+export const budgetActual = (trip: TripRecord) => trip.budget.reduce((sum, item) => sum + item.actual, 0)
+export const checklistProgress = (trip: TripRecord) => {
+  let done = 0
+  let total = 0
+  trip.checklist.forEach((group) => group.items.forEach((item) => {
+    total += 1
+    if (item.done) done += 1
+  }))
+  return { done, total }
+}
+
+export const statusColor = (status: TripStatus) => {
+  switch (status) {
+    case 'Planning': return { bg: 'rgba(232,168,95,0.14)', text: '#B07830', border: 'rgba(232,168,95,0.28)' }
+    case 'Booked': return { bg: 'rgba(110,171,122,0.14)', text: '#3D7A4E', border: 'rgba(110,171,122,0.28)' }
+    case 'Ready': return { bg: 'rgba(122,173,229,0.14)', text: '#2E6EA6', border: 'rgba(122,173,229,0.28)' }
+    case 'Ongoing': return { bg: 'rgba(192,122,192,0.14)', text: '#7A3A7A', border: 'rgba(192,122,192,0.28)' }
+    case 'Done': return { bg: 'rgba(58,55,51,0.07)', text: 'rgba(58,55,51,0.45)', border: 'rgba(58,55,51,0.12)' }
+  }
+}
+
+export const bookingStatusColor = (status: BookingStatus) => {
+  switch (status) {
+    case 'Confirmed': return { text: '#3D7A4E', dot: '#6EAB7A' }
+    case 'Pending': return { text: '#B07830', dot: '#E8A85F' }
+    case 'Not booked': return { text: 'rgba(58,55,51,0.40)', dot: 'rgba(58,55,51,0.20)' }
+  }
+}
+
+export const foodStatusColor = (status: FoodStatus) => {
+  switch (status) {
+    case 'Visited': return { bg: 'rgba(110,171,122,0.12)', text: '#3D7A4E' }
+    case 'Planned': return { bg: 'rgba(232,168,95,0.12)', text: '#B07830' }
+    case 'Saved': return { bg: 'rgba(58,55,51,0.06)', text: 'rgba(58,55,51,0.50)' }
+  }
+}
+
+export const itineraryTypeStyle = (type: ItineraryType) => {
+  switch (type) {
+    case 'spot': return { bg: 'rgba(122,173,229,0.14)', text: '#2E6EA6' }
+    case 'food': return { bg: 'rgba(232,168,95,0.14)', text: '#B07830' }
+    case 'transport': return { bg: 'rgba(58,55,51,0.08)', text: 'rgba(58,55,51,0.55)' }
+    case 'hotel': return { bg: 'rgba(192,122,192,0.14)', text: '#7A3A7A' }
+  }
+}
+
+export type TripPhase = 'upcoming' | 'imminent' | 'ongoing' | 'past'
+
+const parseDateKey = (key: string) => {
+  if (!key) return null
+  const [y, m, d] = key.split('-').map(Number)
+  if (!y || !m || !d) return null
+  return new Date(y, m - 1, d)
+}
+
+/** Parse a `YYYY-MM-DD` trip date into a local Date, or null when unparseable. */
+export const parseTripDateKey = (key: string): Date | null => parseDateKey(key)
+
+const startOfToday = () => {
+  const now = new Date()
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate())
+}
+
+export const daysUntilStart = (trip: TripRecord) => {
+  const start = parseDateKey(trip.startDate)
+  if (!start) return Infinity
+  const today = startOfToday()
+  const diff = (start.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+  return Math.round(diff)
+}
+
+export const tripPhase = (trip: TripRecord): TripPhase => {
+  const start = parseDateKey(trip.startDate)
+  const end = parseDateKey(trip.endDate)
+  const today = startOfToday()
+  if (!start || !end) return 'upcoming'
+  if (today < start) {
+    const diffDays = (start.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+    return diffDays <= 7 ? 'imminent' : 'upcoming'
+  }
+  if (today >= start && today <= end) return 'ongoing'
+  return 'past'
+}
+
+export const bookingReadiness = (trip: TripRecord) => {
+  const transport = trip.transport.reduce(
+    (acc, item) => {
+      acc.total += 1
+      if (item.status === 'Confirmed') acc.confirmed += 1
+      else if (item.status === 'Pending') acc.pending += 1
+      return acc
+    },
+    { confirmed: 0, pending: 0, total: 0 },
+  )
+  const stays = trip.stays.reduce(
+    (acc, item) => {
+      acc.total += 1
+      if (item.status === 'Confirmed') acc.confirmed += 1
+      else if (item.status === 'Pending') acc.pending += 1
+      return acc
+    },
+    { confirmed: 0, pending: 0, total: 0 },
+  )
+  const food = trip.food.reduce(
+    (acc, item) => {
+      acc.total += 1
+      if (item.status === 'Visited' || item.status === 'Planned') acc.confirmed += 1
+      return acc
+    },
+    { confirmed: 0, pending: 0, total: 0 },
+  )
+  return { transport, stays, food }
+}
+
+export type ReadinessTone = 'green' | 'amber' | 'grey'
+
+export const readinessTone = (cluster: { confirmed: number; pending: number; total: number }): ReadinessTone => {
+  if (cluster.total === 0) return 'grey'
+  if (cluster.confirmed === cluster.total) return 'green'
+  return 'amber'
+}
+
+export const budgetActualOverrun = (trip: TripRecord) => {
+  const planned = trip.budget.reduce((sum, item) => sum + item.planned, 0)
+  const actual = trip.budget.reduce((sum, item) => sum + item.actual, 0)
+  const percent = planned > 0 ? Math.round((actual / planned) * 100) : 0
+  return { planned, actual, percent, overrun: actual > planned && planned > 0 }
+}
+
+export const tripHighlights = (trip: TripRecord, max = 2) => {
+  if (!trip.itinerary.length) return []
+  const sorted = [...trip.itinerary]
+    .map((day, idx) => ({ day, idx, weight: day.items.length }))
+    .sort((a, b) => b.weight - a.weight)
+  const picks = new Set<number>()
+  picks.add(0)
+  for (const entry of sorted) {
+    if (picks.size >= max) break
+    picks.add(entry.idx)
+  }
+  return Array.from(picks)
+    .sort((a, b) => a - b)
+    .slice(0, max)
+    .map((idx) => trip.itinerary[idx])
+    .filter(Boolean)
+}
+
+/** Minutes-of-day from a `HH:MM` clock or an ISO datetime (`...THH:MM`), else null. */
+const clockToMinutes = (raw?: string): number | null => {
+  if (!raw) return null
+  const tIdx = raw.indexOf('T')
+  const clock = tIdx >= 0 ? raw.slice(tIdx + 1) : raw
+  const m = clock.match(/^(\d{1,2}):(\d{2})/)
+  if (!m) return null
+  const h = Number(m[1])
+  const min = Number(m[2])
+  if (Number.isNaN(h) || Number.isNaN(min)) return null
+  return h * 60 + min
+}
+
+export type TripDayMoment = {
+  /** 1-based itinerary day the trip is on today. */
+  dayIndex: number
+  dayLabel: string
+  /** Most recent item whose time has already passed today. */
+  current: TripItineraryItem | null
+  /** Soonest upcoming item today, if any. */
+  next: TripItineraryItem | null
+  /** Minutes until `next` starts, when both `next` and a time are known. */
+  minutesToNext: number | null
+}
+
+/**
+ * For a trip that's underway, work out which itinerary day "today" is and the
+ * current/next activity based on the wall clock. Returns null when the trip
+ * hasn't started or the date is unparseable.
+ */
+export const ongoingMoment = (trip: TripRecord, now: Date = new Date()): TripDayMoment | null => {
+  const start = parseDateKey(trip.startDate)
+  if (!start) return null
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const dayIndex = Math.floor((today.getTime() - start.getTime()) / 86_400_000) + 1
+  if (dayIndex < 1) return null
+  const day = trip.itinerary.find((d) => d.day === dayIndex) ?? null
+  if (!day) return { dayIndex, dayLabel: '', current: null, next: null, minutesToNext: null }
+
+  const nowMin = now.getHours() * 60 + now.getMinutes()
+  const timed = day.items
+    .map((item) => ({ item, min: clockToMinutes(item.startTime ?? item.time) }))
+    .filter((entry): entry is { item: TripItineraryItem; min: number } => entry.min != null)
+    .sort((a, b) => a.min - b.min)
+
+  let current: TripItineraryItem | null = null
+  let next: TripItineraryItem | null = null
+  let minutesToNext: number | null = null
+  for (const entry of timed) {
+    if (entry.min <= nowMin) current = entry.item
+    else if (next == null) {
+      next = entry.item
+      minutesToNext = entry.min - nowMin
+    }
+  }
+  // No usable times — surface the first untimed item as the "next" thing to do.
+  if (!current && !next && day.items.length) next = day.items[0]
+  return { dayIndex, dayLabel: day.label, current, next, minutesToNext }
+}
+
+/**
+ * Choose the single most dashboard-worthy trip: an in-progress trip wins,
+ * then the nearest upcoming departure, then the most recent past trip.
+ */
+export const pickDashboardTrip = (trips: TripRecord[]): TripRecord | null => {
+  if (!trips.length) return null
+  const ongoing = trips.filter((trip) => tripPhase(trip) === 'ongoing')
+  if (ongoing.length) return ongoing.sort((a, b) => daysUntilStart(a) - daysUntilStart(b))[0]
+  const future = trips
+    .filter((trip) => {
+      const phase = tripPhase(trip)
+      return phase === 'imminent' || phase === 'upcoming'
+    })
+    .sort((a, b) => daysUntilStart(a) - daysUntilStart(b))
+  if (future.length) return future[0]
+  // Everything is in the past — surface the most recent.
+  return [...trips].sort((a, b) => daysUntilStart(b) - daysUntilStart(a))[0] ?? null
+}
+
+export const transportMethodEmoji = (method: TransportMethod) => {
+  switch (method) {
+    case 'Flight': return '✈️'
+    case 'Train': return '🚄'
+    case 'Bus': return '🚌'
+    case 'Taxi': return '🚕'
+    case 'Subway': return '🚇'
+    case 'Walk': return '🚶'
+    case 'Car': return '🚗'
+  }
+}

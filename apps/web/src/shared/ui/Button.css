@@ -1,0 +1,34 @@
+.btn {
+  transition: transform var(--motion-duration-fast) var(--ease-standard),
+    box-shadow var(--motion-duration-fast) var(--ease-standard);
+  transform: translate3d(0, 0, 0) scale(1);
+  backface-visibility: hidden;
+}
+
+.btn--pressable:not(:disabled):hover {
+  box-shadow: var(--shadow-soft);
+  will-change: transform, box-shadow;
+}
+
+.btn--pressable:not(:disabled):active {
+  transform: translate3d(0, 1px, 0) scale(0.985);
+  box-shadow: none;
+}
+
+.btn--pressable:disabled {
+  box-shadow: none;
+  transform: translate3d(0, 0, 0) scale(1);
+}
+
+html[data-motion='reduce'] .btn {
+  transition: none;
+  transform: none;
+}
+
+html[data-motion='reduce'] .btn--pressable:not(:disabled):hover {
+  box-shadow: none;
+}
+
+html[data-motion='reduce'] .btn--pressable:not(:disabled):active {
+  transform: none;
+}

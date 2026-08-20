@@ -1,0 +1,135 @@
+/* Fonts loaded async via index.html — no render-blocking @import */
+
+:root {
+  --font-display: 'Fraunces', serif;
+  --font-body: 'Manrope', sans-serif;
+  --color-ink: #3a3733;
+  --control-height: 36px;
+  --page-pad: 20px;
+  --route-pad: 18px;
+  --panel-gap: 18px;
+  --surface-radius-lg: 24px;
+  --surface-radius-md: 20px;
+  --control-height-compact: 34px;
+  --headline-size-xl: clamp(1.75rem, 2.2vw, 2.4rem);
+  --headline-size-lg: clamp(1.4rem, 1.8vw, 1.9rem);
+  --focus-ring: color-mix(in srgb, var(--accent) 35%, transparent);
+  --shadow-soft: 0 10px 30px rgba(22, 24, 28, 0.1);
+  --shadow-lift: 0 16px 40px rgba(22, 24, 28, 0.18);
+  --shadow-drawer: 0 22px 70px rgba(22, 24, 28, 0.22), 0 3px 12px rgba(22, 24, 28, 0.12);
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-accelerate: cubic-bezier(0.4, 0, 1, 1);
+  --ease-decelerate: cubic-bezier(0, 0, 0.2, 1);
+  --motion-duration-fast: 140ms;
+  --motion-duration-base: 200ms;
+  --motion-duration-medium: 280ms;
+  --motion-duration-slow: 360ms;
+  --motion-shift-xs: 4px;
+  --motion-shift-sm: 8px;
+  --motion-shift-md: 14px;
+  --transition-base: var(--motion-duration-base) var(--ease-standard);
+  --grid-gap: 18px;
+  --z-drawer: 100;
+  --z-popover: 1000;
+  --shell-scale: 1;
+  /* Discovery components */
+  --hint-border: color-mix(in srgb, var(--accent) 25%, var(--border));
+  --hint-icon:   color-mix(in srgb, var(--accent) 65%, transparent);
+
+  --status-todo: #8b95a7;
+  --status-doing: #7ab8ff;
+  --status-blocked: #f2a65a;
+  --status-done: #7edbc7;
+
+  /* HSL variants for better color-mix and consistency */
+  --status-todo-hsl: 218 13% 60%;
+  --status-doing-hsl: 212 100% 74%;
+  --status-blocked-hsl: 30 84% 65%;
+  --status-done-hsl: 168 47% 68%;
+}
+
+@media (max-width: 1512px) {
+  :root {
+    --page-pad: 16px;
+    --route-pad: 14px;
+    --panel-gap: 14px;
+    --surface-radius-lg: 20px;
+    --surface-radius-md: 16px;
+    --control-height: var(--control-height-compact);
+  }
+}
+
+@media (max-width: 1536px) {
+  :root {
+    --page-pad: 14px;
+    --route-pad: 12px;
+    --panel-gap: 12px;
+    --surface-radius-lg: 18px;
+    --surface-radius-md: 14px;
+  }
+}
+
+@media (max-width: 1366px) {
+  :root {
+    --page-pad: 10px;
+    --route-pad: 10px;
+    --panel-gap: 10px;
+    --surface-radius-lg: 14px;
+    --surface-radius-md: 12px;
+  }
+}
+
+html[data-motion='reduce'] {
+  --motion-duration-fast: 1ms;
+  --motion-duration-base: 1ms;
+  --motion-duration-medium: 1ms;
+  --motion-duration-slow: 1ms;
+  --motion-shift-xs: 0px;
+  --motion-shift-sm: 0px;
+  --motion-shift-md: 0px;
+}
+
+html[data-theme='light'] {
+  --bg: #f6f5f2;
+  --bg-elevated: #ffffff;
+  --bg-muted: #efece7;
+  --text-primary: #3a3733;
+  --text-secondary: #5d6168;
+  --accent: #1b4f4a;
+  --accent-soft: #e0edea;
+  --border: rgba(58, 55, 51, 0.08);
+  --surface: #ffffff;
+  --surface-hover: #f5f5f5;
+  --shadow-md: 0 4px 12px rgba(58, 55, 51, 0.08);
+  /* Semantic card/pop shadows — replace scattered hard-coded shadow-[…rgba…]. */
+  --shadow-card: 0 12px 28px rgba(58, 55, 51, 0.08);
+  --shadow-card-lg: 0 30px 100px rgba(15, 23, 42, 0.18);
+  --shadow-pop: 0 8px 24px rgba(58, 55, 51, 0.12);
+}
+
+html[data-theme='dark'] {
+  --bg: #242320;
+  --bg-elevated: #2d2b27;
+  --bg-muted: #35322e;
+  --text-primary: #f2f0ec;
+  --text-secondary: #c8c1b7;
+  --accent: #7edbc7;
+  --accent-soft: #18322d;
+  --border: rgba(255, 255, 255, 0.14);
+  --surface: #2d2b27;
+  --surface-hover: #3a3733;
+  --shadow-md: 0 12px 28px rgba(0, 0, 0, 0.32);
+  /* Semantic card/pop shadows — deeper, cooler, lower-spread for dark surfaces. */
+  --shadow-card: 0 12px 28px rgba(0, 0, 0, 0.42);
+  --shadow-card-lg: 0 30px 90px rgba(0, 0, 0, 0.55);
+  --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.5);
+  /* Dark overrides for the :root light-only soft/lift/drawer shadows. */
+  --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.4);
+  --shadow-lift: 0 16px 40px rgba(0, 0, 0, 0.5);
+  --shadow-drawer: 0 22px 70px rgba(0, 0, 0, 0.6), 0 3px 12px rgba(0, 0, 0, 0.45);
+  --status-todo: hsl(var(--status-todo-hsl));
+  --status-doing: hsl(var(--status-doing-hsl));
+  --status-blocked: hsl(var(--status-blocked-hsl));
+  --status-done: hsl(var(--status-done-hsl));
+}

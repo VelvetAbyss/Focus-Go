@@ -1,0 +1,533 @@
+// @vitest-environment jsdom
+import '@testing-library/jest-dom/vitest'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { NoteAppearanceSettings, NoteItem, NoteTag } from '../../../data/models/types'
+import { PremiumProvider } from '../../premium/PremiumProvider'
+import NotePage from './NotePage'
+
+const mockUseLabs = vi.fn()
+const openMock = vi.fn()
+const exportNoteAsPdfMock = vi.hoisted(() => vi.fn<() => Promise<void>>(async () => {}))
+
+vi.mock('../../../shared/i18n/useI18n', () => ({
+  useI18n: () => ({
+    t: (key: string) =>
+      ({
+        'notes.infoPanel.statistics': 'Statistics',
+        'notes.infoPanel.words': 'Words',
+        'notes.appearancePanel.font.cnSans': 'CN Sans',
+      }[key] ?? key),
+    language: 'en' as const,
+  }),
+}))
+
+vi.mock('../../labs/LabsContext', () => ({
+  useLabs: () => mockUseLabs(),
+}))
+
+vi.mock('../model/notePdfExport', () => ({
+  exportNoteAsPdf: exportNoteAsPdfMock,
+}))
+
+const listMock = vi.fn<() => Promise<NoteItem[]>>()
+const listTrashMock = vi.fn<() => Promise<NoteItem[]>>()
+const createMock = vi.fn<(data?: unknown) => Promise<NoteItem>>()
+const updateMock = vi.fn<(id: string, patch: unknown) => Promise<NoteItem | undefined>>()
+const softDeleteMock = vi.fn<(id: string) => Promise<NoteItem | undefined>>()
+const restoreMock = vi.fn<(id: string) => Promise<NoteItem | undefined>>()
+const hardDeleteMock = vi.fn<(id: string) => Promise<void>>()
+const listTagsMock = vi.fn<() => Promise<NoteTag[]>>()
+const createTagMock = vi.fn<(data: unknown) => Promise<NoteTag>>()
+const updateTagMock = vi.fn<(id: string, patch: unknown) => Promise<NoteTag | undefined>>()
+const appearanceGetMock = vi.fn<() => Promise<NoteAppearanceSettings | null>>()
+const appearanceUpsertMock = vi.fn<(patch: unknown) => Promise<NoteAppearanceSettings>>()
+const projectsListMock = vi.fn<() => Promise<Array<{ id: string; title: string }>>>()
+
+vi.mock('../../../data/repositories/notesRepo', () => ({
+  notesRepo: {
+    list: () => listMock(),
+    listTrash: () => listTrashMock(),
+    create: (data?: unknown) => createMock(data),
+    update: (id: string, patch: unknown) => updateMock(id, patch),
+    softDelete: (id: string) => softDeleteMock(id),
+    restore: (id: string) => restoreMock(id),
+    hardDelete: (id: string) => hardDeleteMock(id),
+  },
+}))
+
+vi.mock('../../../data/repositories/noteTagsRepo', () => ({
+  noteTagsRepo: {
+    list: () => listTagsMock(),
+    create: (data: unknown) => createTagMock(data),
+    update: (id: string, patch: unknown) => updateTagMock(id, patch),
+    remove: vi.fn(),
+  },
+}))
+
+vi.mock('../../../data/repositories/noteAppearanceRepo', () => ({
+  noteAppearanceRepo: {
+    get: () => appearanceGetMock(),
+    upsert: (patch: unknown) => appearanceUpsertMock(patch),
+  },
+}))
+
+vi.mock('../../../data/repositories/projectsRepo', () => ({
+  projectsRepo: {
+    list: () => projectsListMock(),
+  },
+}))
+
+vi.mock('../../../data/sync/service', () => ({
+  useSyncDataRefresh: vi.fn(),
+  useSyncStatus: () => null,
+}))
+
+vi.mock('../../../store/auth', () => ({
+  useIsLoggedIn: () => false,
+  useAuthPlan: () => 'free',
+  upgradeToPremium: vi.fn(async () => true),
+}))
+
+vi.mock('../components/NoteEditor', () => ({
+  default: ({
+    value,
+    isFullscreen,
+    onToggleFullscreen,
+    onOpenInfo,
+    onOpenAppearance,
+    onImport,
+    onExport,
+    onChange,
+  }: {
+    value: { title: string; contentMd: string; tags: string[]; editorMode: 'document' }
+    isFullscreen?: boolean
+    onToggleFullscreen?: () => void
+    onOpenInfo?: () => void
+    onOpenAppearance?: () => void
+    onImport?: () => void
+    onExport?: () => void
+    onChange: (value: {
+      title: string
+      contentMd: string
+      tags: string[]
+      contentJson?: Record<string, unknown> | null
+      editorMode: 'document'
+    }) => void
+  }) => (
+    <div data-testid="note-editor">
+      <div>Editor:{value.title || 'Untitled'}</div>
+      <div>Mode:{value.editorMode}</div>
+      <div>Fullscreen:{isFullscreen ? 'on' : 'off'}</div>
+      <button type="button" onClick={onToggleFullscreen}>
+        Toggle fullscreen
+      </button>
+      <button type="button" onClick={onOpenInfo}>
+        Open info
+      </button>
+      <button type="button" onClick={onOpenAppearance}>
+        Open appearance
+      </button>
+      <button type="button" onClick={onImport}>
+        Import files
+      </button>
+      <button type="button" onClick={onExport}>
+        Export markdown
+      </button>
+      <button
+        type="button"
+        onClick={() =>
+          onChange({
+            title: 'Updated title',
+            contentMd: '# Heading\n\nBody copy',
+            contentJson: null,
+            editorMode: 'document',
+            tags: ['Research'],
+          })
+        }
+      >
+        Change note
+      </button>
+    </div>
+  ),
+}))
+
+const createNote = (overrides: Partial<NoteItem> = {}): NoteItem => ({
+  id: overrides.id ?? 'note-1',
+  createdAt: overrides.createdAt ?? Date.now() - 1000,
+  updatedAt: overrides.updatedAt ?? Date.now(),
+  title: overrides.title ?? '',
+  contentMd: overrides.contentMd ?? '',
+  contentJson: overrides.contentJson ?? null,
+  editorMode: overrides.editorMode ?? 'document',
+  collection: overrides.collection ?? 'all-notes',
+  tags: overrides.tags ?? [],
+  excerpt: overrides.excerpt ?? '',
+  pinned: overrides.pinned ?? false,
+  wordCount: overrides.wordCount ?? 0,
+  charCount: overrides.charCount ?? 0,
+  paragraphCount: overrides.paragraphCount ?? 0,
+  imageCount: overrides.imageCount ?? 0,
+  fileCount: overrides.fileCount ?? 0,
+  headings: overrides.headings ?? [],
+  backlinks: overrides.backlinks ?? [],
+  deletedAt: overrides.deletedAt ?? null,
+})
+
+const createTag = (overrides: Partial<NoteTag> = {}): NoteTag => ({
+  id: overrides.id ?? 'tag-1',
+  createdAt: overrides.createdAt ?? 1,
+  updatedAt: overrides.updatedAt ?? 1,
+  name: overrides.name ?? 'Research',
+  icon: overrides.icon,
+  pinned: overrides.pinned ?? false,
+  parentId: overrides.parentId ?? null,
+  noteCount: overrides.noteCount ?? 1,
+  sortOrder: overrides.sortOrder ?? 1,
+})
+
+const appearance: NoteAppearanceSettings = {
+  id: 'note_appearance',
+  createdAt: 1,
+  updatedAt: 1,
+  theme: 'paper',
+  font: 'uiSans',
+  fontSize: 16,
+  lineHeight: 1.7,
+  contentWidth: 0,
+  focusMode: false,
+  paperBg: 'beige',
+  zoom: 100,
+}
+
+describe('NotePage', () => {
+  const createObjectURLMock = vi.fn(() => 'blob:note')
+  const revokeObjectURLMock = vi.fn()
+  const anchorClickMock = vi.fn()
+
+  beforeEach(() => {
+    vi.resetAllMocks()
+    openMock.mockReset()
+    mockUseLabs.mockReturnValue({
+      subscription: { tier: 'free' as const, role: 'member' as const },
+    })
+    projectsListMock.mockResolvedValue([])
+    listTagsMock.mockResolvedValue([createTag({ name: 'Research', pinned: true })])
+    createTagMock.mockResolvedValue(createTag({ id: 'imported-tag', name: 'Imported', noteCount: 0, sortOrder: 2 }))
+    appearanceGetMock.mockResolvedValue(appearance)
+    appearanceUpsertMock.mockResolvedValue(appearance)
+    vi.stubGlobal('URL', {
+      createObjectURL: createObjectURLMock,
+      revokeObjectURL: revokeObjectURLMock,
+    })
+    vi.stubGlobal('open', openMock)
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(anchorClickMock)
+  })
+
+  afterEach(() => {
+    cleanup()
+    vi.unstubAllGlobals()
+  })
+
+  const renderPage = () =>
+    render(
+      <PremiumProvider>
+        <NotePage />
+      </PremiumProvider>,
+    )
+
+  it('does not auto create a blank note when the workspace is empty', async () => {
+    listMock.mockResolvedValueOnce([])
+    listTrashMock.mockResolvedValue([])
+
+    renderPage()
+
+    await waitFor(() => expect(createMock).not.toHaveBeenCalled())
+    expect(await screen.findByRole('heading', { name: 'notes.unselected.title' })).toBeInTheDocument()
+  })
+
+  it('shows the shared loader while notes are initially loading', async () => {
+    let resolveList: (notes: NoteItem[]) => void = () => {}
+    listMock.mockReturnValueOnce(new Promise((resolve) => {
+      resolveList = resolve
+    }))
+    listTrashMock.mockResolvedValue([])
+
+    renderPage()
+
+    expect(screen.getByTestId('note-page-loader')).toBeInTheDocument()
+    expect(screen.getByText('notes.loading')).toBeInTheDocument()
+
+    resolveList([])
+
+    expect(await screen.findByRole('heading', { name: 'notes.unselected.title' })).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByTestId('note-page-loader')).not.toBeInTheDocument())
+  })
+
+  it('auto creates the first note when user starts typing in an empty workspace', async () => {
+    const created = createNote({ id: 'created-1', title: 'Updated title', contentMd: '# Heading\n\nBody copy', tags: ['Research'] })
+    listMock.mockResolvedValueOnce([])
+    listTrashMock.mockResolvedValue([])
+    createMock.mockResolvedValue(created)
+
+    renderPage()
+
+    await userEvent.click((await screen.findAllByRole('button', { name: 'modules.note.new' }))[0]!)
+    await waitFor(() => expect(createMock).toHaveBeenCalledTimes(1))
+    expect(await screen.findByText('Editor:Updated title')).toBeInTheDocument()
+  })
+
+  it('opens the info popover and shows statistics', async () => {
+    listMock.mockResolvedValue([
+      createNote({
+        title: 'Design doc',
+        contentMd:
+          'one two three four five six seven eight nine ten eleven\n\n' +
+          'twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty twentyone twentytwo',
+        headings: [{ level: 1, text: 'Heading', id: 'heading' }],
+      }),
+    ])
+    listTrashMock.mockResolvedValue([])
+
+    renderPage()
+
+    expect(await screen.findByText('Editor:Design doc')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Open info' }))
+
+    expect(await screen.findByText('Statistics')).toBeInTheDocument()
+    expect(screen.getByText('Words')).toBeInTheDocument()
+    expect(screen.getByText('22')).toBeInTheDocument()
+  })
+
+  it('toggles note fullscreen mode and exits on escape', async () => {
+    listMock.mockResolvedValue([createNote({ title: 'Design doc' })])
+    listTrashMock.mockResolvedValue([])
+
+    const { container } = renderPage()
+
+    expect(await screen.findByText('Editor:Design doc')).toBeInTheDocument()
+    expect(screen.getByText('Fullscreen:off')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Toggle fullscreen' }))
+
+    expect(screen.getByText('Fullscreen:on')).toBeInTheDocument()
+    expect(container.querySelector('.note-page')?.getAttribute('data-fullscreen')).toBe('true')
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+
+    await waitFor(() => expect(screen.getByText('Fullscreen:off')).toBeInTheDocument())
+    expect(container.querySelector('.note-page')?.getAttribute('data-fullscreen')).toBe('false')
+  })
+
+  it('exports the active note as markdown', async () => {
+    listMock.mockResolvedValue([createNote({ title: 'Design doc', contentMd: '# Hello world' })])
+    listTrashMock.mockResolvedValue([])
+
+    renderPage()
+
+    expect(await screen.findByText('Editor:Design doc')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Export markdown' }))
+    await userEvent.click((await screen.findAllByRole('button', { name: /Markdown/i }))[1]!)
+
+    expect(createObjectURLMock).toHaveBeenCalledTimes(1)
+    expect(anchorClickMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('exports the active note as pdf and closes the export panel', async () => {
+    listMock.mockResolvedValue([createNote({ title: 'Design doc', contentMd: '# Hello world' })])
+    listTrashMock.mockResolvedValue([])
+
+    renderPage()
+
+    expect(await screen.findByText('Editor:Design doc')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Export markdown' }))
+    await userEvent.click(screen.getByRole('button', { name: /PDF/i }))
+
+    await waitFor(() => expect(exportNoteAsPdfMock).toHaveBeenCalledTimes(1))
+    expect(exportNoteAsPdfMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'Design doc', contentMd: '# Hello world' }), expect.objectContaining({ font: 'uiSans' }))
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'notes.exportModal.title' })).not.toBeInTheDocument())
+  })
+
+  it('flushes pending note edits before exporting pdf', async () => {
+    const note = createNote({ id: 'pdf-save-1', title: 'Draft', contentMd: 'Old copy' })
+    listMock.mockResolvedValue([note])
+    listTrashMock.mockResolvedValue([])
+    updateMock.mockResolvedValue(createNote({ ...note, title: 'Updated title', contentMd: '# Heading\n\nBody copy', tags: ['Research'] }))
+
+    renderPage()
+
+    expect(await screen.findByText('Editor:Draft')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Change note' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Export markdown' }))
+    await userEvent.click(screen.getByRole('button', { name: /PDF/i }))
+
+    await waitFor(() => expect(updateMock).toHaveBeenCalledWith('pdf-save-1', expect.objectContaining({ title: 'Updated title' })))
+    await waitFor(() => expect(exportNoteAsPdfMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'Updated title', contentMd: '# Heading\n\nBody copy' }), expect.anything()))
+    expect(updateMock.mock.invocationCallOrder[0]).toBeLessThan(exportNoteAsPdfMock.mock.invocationCallOrder[0])
+  })
+
+  it('imports multiple supported files as new notes with an Imported tag', async () => {
+    const existing = createNote({ id: 'existing-1', title: 'Current note', contentMd: '# Current note' })
+    let importedIndex = 0
+    listMock.mockResolvedValue([existing])
+    listTrashMock.mockResolvedValue([])
+    createMock.mockImplementation(async (data?: unknown) => {
+      importedIndex += 1
+      const input = data as { title?: string; contentMd?: string; contentJson?: Record<string, unknown> | null; tags?: string[] }
+      return createNote({
+        id: `imported-${importedIndex}`,
+        title: input.title,
+        contentMd: input.contentMd,
+        contentJson: input.contentJson ?? null,
+        tags: input.tags ?? [],
+      })
+    })
+
+    renderPage()
+
+    expect(await screen.findByText('Editor:Current note')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Import files' }))
+    await userEvent.upload(screen.getByLabelText('notes.importModal.fileInput'), [
+      new File(['# Lecture One\n\nLimits'], 'lecture-one.md', { type: 'text/markdown' }),
+      new File(['Remember formulas'], 'exam-plan.txt', { type: 'text/plain' }),
+    ])
+    await userEvent.click(screen.getByRole('button', { name: 'notes.importModal.import' }))
+
+    await waitFor(() => expect(createTagMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'Imported' })))
+    await waitFor(() => expect(createMock).toHaveBeenCalledTimes(2))
+    expect(createMock).toHaveBeenNthCalledWith(1, expect.objectContaining({ title: 'Lecture One', tags: ['Imported'] }))
+    expect(createMock).toHaveBeenNthCalledWith(2, expect.objectContaining({ title: 'exam plan', tags: ['Imported'] }))
+    expect(updateMock).not.toHaveBeenCalledWith('existing-1', expect.anything())
+    expect((await screen.findAllByText('Lecture One')).length).toBeGreaterThan(0)
+  })
+
+  it('imports valid files from a mixed batch and leaves unsupported files visible', async () => {
+    listMock.mockResolvedValue([createNote({ id: 'existing-1', title: 'Current note' })])
+    listTrashMock.mockResolvedValue([])
+    createMock.mockImplementation(async (data?: unknown) => {
+      const input = data as { title?: string; contentMd?: string; tags?: string[] }
+      return createNote({ id: 'imported-1', title: input.title, contentMd: input.contentMd, tags: input.tags ?? [] })
+    })
+
+    renderPage()
+
+    expect(await screen.findByText('Editor:Current note')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Import files' }))
+    await userEvent.upload(
+      screen.getByLabelText('notes.importModal.fileInput'),
+      [
+        new File(['# Valid'], 'valid.md', { type: 'text/markdown' }),
+        new File(['%PDF-1.4'], 'scan.pdf', { type: 'application/pdf' }),
+      ],
+      { applyAccept: false },
+    )
+
+    expect(await screen.findByText('scan.pdf')).toBeInTheDocument()
+    expect(screen.getByText(/notes\.importModal\.status\.unsupported/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'notes.importModal.import' }))
+
+    await waitFor(() => expect(createMock).toHaveBeenCalledTimes(1))
+    expect(createMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'Valid' }))
+    expect(screen.getByText(/notes\.importModal\.status\.unsupported/)).toBeInTheDocument()
+  })
+
+  it('opens appearance controls and persists settings', async () => {
+    listMock.mockResolvedValue([createNote({ title: 'Design doc' })])
+    listTrashMock.mockResolvedValue([])
+    appearanceUpsertMock.mockResolvedValue({ ...appearance, fontSize: 17 })
+
+    renderPage()
+
+    expect(await screen.findByText('Editor:Design doc')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Open appearance' }))
+    const fontSizeSlider = screen.getAllByRole('slider')[0]
+    fireEvent.change(fontSizeSlider, { target: { value: '17' } })
+
+    await waitFor(() => expect(appearanceUpsertMock).toHaveBeenCalled())
+    expect(appearanceUpsertMock.mock.calls.some((entry) => (entry[0] as { fontSize?: number })?.fontSize !== undefined)).toBe(true)
+  })
+
+  it('persists font and line-height changes from appearance modal', async () => {
+    listMock.mockResolvedValue([createNote({ title: 'Design doc' })])
+    listTrashMock.mockResolvedValue([])
+    appearanceUpsertMock.mockResolvedValue({ ...appearance, font: 'cnSans', lineHeight: 2 })
+
+    renderPage()
+
+    expect(await screen.findByText('Editor:Design doc')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Open appearance' }))
+    await userEvent.click(screen.getByRole('button', { name: 'CN Sans' }))
+
+    await waitFor(() =>
+      expect(appearanceUpsertMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'note_appearance',
+        }),
+      ),
+    )
+    expect(appearanceUpsertMock.mock.calls.some((entry) => (entry[0] as { font?: string })?.font === 'cnSans')).toBe(true)
+  })
+
+  it('filters by selected tag from the sidebar tree', async () => {
+    listMock.mockResolvedValue([
+      createNote({ id: 'a', title: 'Research note', tags: ['Research'] }),
+      createNote({ id: 'b', title: 'Personal note', tags: ['Personal'] }),
+    ])
+    listTrashMock.mockResolvedValue([])
+    listTagsMock.mockResolvedValue([createTag({ id: 'research', name: 'Research' }), createTag({ id: 'personal', name: 'Personal', sortOrder: 2 })])
+
+    renderPage()
+
+    expect(await screen.findByText('Research note')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Research' }))
+
+    await waitFor(() => expect(screen.queryByText('Personal note')).not.toBeInTheDocument())
+    expect(screen.getByText('Research note')).toBeInTheDocument()
+  })
+
+  it('schedules saves when the editor changes', async () => {
+    const note = createNote({ id: 'save-1', title: 'Draft' })
+    listMock.mockResolvedValue([note])
+    listTrashMock.mockResolvedValue([])
+    updateMock.mockResolvedValue(createNote({ ...note, title: 'Updated title', contentMd: '# Heading\n\nBody copy', tags: ['Research'], excerpt: '# Heading Body copy' }))
+
+    renderPage()
+
+    expect(await screen.findByText('Editor:Draft')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Change note' }))
+
+    await waitFor(() => expect(updateMock).toHaveBeenCalledWith('save-1', expect.objectContaining({ title: 'Updated title' })))
+  })
+
+  it('renders trash notes in editor layout and supports permanent delete from list', async () => {
+    const note = createNote({ id: 'trash-1', title: 'Trash me' })
+    const trashed = createNote({ ...note, deletedAt: Date.now() })
+    listMock.mockResolvedValue([note])
+    listTrashMock.mockResolvedValue([])
+    softDeleteMock.mockResolvedValue(trashed)
+
+    renderPage()
+
+    expect(await screen.findByText('Trash me')).toBeInTheDocument()
+    await userEvent.click((await screen.findAllByTitle('Move to trash'))[0]!)
+    await waitFor(() => expect(softDeleteMock).toHaveBeenCalledWith('trash-1'))
+
+    await userEvent.click(screen.getByRole('button', { name: /Trash/i }))
+    await userEvent.click((await screen.findAllByTitle('Delete permanently'))[0]!)
+    await waitFor(() => expect(hardDeleteMock).toHaveBeenCalledWith('trash-1'))
+  })
+
+  it('allows creating more than 20 notes for all users', async () => {
+    listMock.mockResolvedValue(Array.from({ length: 20 }, (_, index) => createNote({ id: `note-${index + 1}`, title: `Note ${index + 1}` })))
+    listTrashMock.mockResolvedValue([])
+    createMock.mockResolvedValue(createNote({ id: 'note-21', title: 'Untitled' }))
+
+    renderPage()
+
+    expect(await screen.findByText('Note 1')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'modules.note.new' }))
+
+    await waitFor(() => expect(createMock).toHaveBeenCalled())
+  })
+})

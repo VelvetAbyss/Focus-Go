@@ -1,0 +1,624 @@
+import { BookMarked, BookOpen, CheckCheck, ChevronRight, Clock, Plus, Search, Trash2, X } from 'lucide-react'
+
+import { useEffect, useMemo, useRef } from 'react'
+import Dialog from '../../../shared/ui/Dialog'
+import ImeTextarea from '../../../shared/ui/ImeTextarea'
+import { AppNumber } from '../../../shared/ui/AppNumber'
+import type { BookItem } from '../../../data/models/types'
+import type { LibraryPresentationModel } from '../cards/lifeDesignAdapters'
+import ProgressTrack from '../ProgressTrack'
+import { LifeCardLoader, LifePanelLoader } from './lifeDesignPrimitives'
+import { useLifeI18n } from '../lifeI18n'
+
+type SearchBook = {
+  id: string
+  title: string
+  authors: string[]
+  coverUrl?: string
+}
+
+type Props = {
+  model: LibraryPresentationModel
+  books: BookItem[]
+  selectedBook: BookItem | null
+  selectedBookId: string | null
+  open: boolean
+  loading: boolean
+  query: string
+  searching: boolean
+  error: string | null
+  results: SearchBook[]
+  addingCandidateId: string | null
+  onOpen: () => void
+  onClose: () => void
+  onQueryChange: (value: string) => void
+  onSearch: () => void
+  onQuickAdd: () => void
+  onClearResults: () => void
+  onSelectBook: (id: string) => void
+  onAddBook: (id: string) => void
+  onPatchBook: (patch: Partial<BookItem>) => void
+  onRemoveBook: (id: string) => void
+}
+
+const paper = 'var(--bg-elevated)'
+const ink = 'var(--text-primary)'
+const subtleBorder = 'color-mix(in srgb, var(--text-primary) 9%, transparent)'
+const mutedText = 'color-mix(in srgb, var(--text-primary) 45%, transparent)'
+const cardBg = 'var(--bg-elevated)'
+
+const inter = (size = 13, weight = 400, color = ink) => ({
+  fontFamily: 'Inter, sans-serif',
+  fontSize: size,
+  fontWeight: weight,
+  color,
+})
+
+const playfair = (size = 16, weight = 500, color = ink) => ({
+  fontFamily: '"Playfair Display", serif',
+  fontSize: size,
+  fontWeight: weight,
+  color,
+})
+
+const statusConfig = {
+  reading: { label: 'Reading', color: '#A0673A', bg: 'rgba(160,103,58,0.10)' },
+  finished: { label: 'Finished', color: '#5A7A62', bg: 'rgba(90,122,98,0.10)' },
+  'want-to-read': { label: 'Want to Read', color: '#6B6560', bg: 'rgba(107,101,96,0.10)' },
+} as const
+
+const StatusPill = ({ status }: { status: BookItem['status'] }) => {
+  const cfg = statusConfig[status]
+  return (
+    <span
+      style={{
+        ...inter(10, 500, cfg.color),
+        display: 'inline-flex',
+        alignItems: 'center',
+        padding: '2px 8px',
+        borderRadius: 999,
+        background: cfg.bg,
+        letterSpacing: '0.05em',
+        textTransform: 'uppercase',
+      }}
+    >
+      {cfg.label}
+    </span>
+  )
+}
+
+const CardRow = ({ book }: { book: LibraryPresentationModel['previewRows'][number] }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0' }}>
+    <div
+      style={{
+        width: 34,
+        height: 46,
+        flexShrink: 0,
+        overflow: 'hidden',
+        borderRadius: 3,
+        boxShadow: '2px 2px 8px rgba(0, 0, 0, 0.15), inset -1px 0 0 rgba(0,0,0,0.08)',
+        background: 'color-mix(in srgb, var(--text-primary) 8%, transparent)',
+      }}
+    >
+      {book.coverUrl ? <img src={book.coverUrl} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top' }} /> : null}
+    </div>
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
+        <p style={{ ...playfair(13, 500), lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{book.title}</p>
+      </div>
+      <p style={{ ...inter(11, 400, 'color-mix(in srgb, var(--text-primary) 50%, transparent)'), lineHeight: 1, marginBottom: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        {book.authorLine}
+      </p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ flex: 1, height: 2, overflow: 'hidden', borderRadius: 999, background: 'color-mix(in srgb, var(--text-primary) 10%, transparent)' }}>
+          <div style={{ width: `${book.progress}%`, height: '100%', borderRadius: 999, background: book.statusColor }} />
+        </div>
+      </div>
+    </div>
+  </div>
+)
+
+const SidebarBookItem = ({ book, selected, onClick, onRemove }: { book: BookItem; selected: boolean; onClick: () => void; onRemove: (id: string) => void }) => (
+  <div className="life-sidebar-item">
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        padding: '12px 14px',
+        paddingRight: 40,
+        borderRadius: 16,
+        textAlign: 'left',
+        background: selected ? 'color-mix(in srgb, var(--text-primary) 6%, transparent)' : 'transparent',
+        border: selected ? '1px solid color-mix(in srgb, var(--text-primary) 10%, transparent)' : '1px solid transparent',
+        cursor: 'pointer',
+      }}
+    >
+      <div
+        style={{
+          width: 36,
+          height: 50,
+          flexShrink: 0,
+          overflow: 'hidden',
+          borderRadius: 3,
+          boxShadow: '1px 2px 8px rgba(0, 0, 0, 0.18), inset -1px 0 0 rgba(0,0,0,0.07)',
+          background: 'color-mix(in srgb, var(--text-primary) 8%, transparent)',
+        }}
+      >
+        {book.coverUrl ? <img src={book.coverUrl} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top' }} /> : null}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ ...playfair(13, 500), marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{book.title}</p>
+        <p style={{ ...inter(11, 400, mutedText), marginBottom: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{book.authors.join(', ')}</p>
+        <div style={{ height: 2, overflow: 'hidden', borderRadius: 999, background: 'color-mix(in srgb, var(--text-primary) 8%, transparent)' }}>
+          <div style={{ width: `${book.progress}%`, height: '100%', borderRadius: 999, background: statusConfig[book.status].color }} />
+        </div>
+      </div>
+      <div style={{ width: 6, height: 6, flexShrink: 0, borderRadius: 999, background: statusConfig[book.status].color, opacity: 0.8 }} />
+    </button>
+    <button
+      type="button"
+      className="life-sidebar-item__delete"
+      title="Remove from library"
+      onClick={(event) => { event.stopPropagation(); onRemove(book.id) }}
+    >
+      <Trash2 size={12} />
+    </button>
+  </div>
+)
+
+export const LibraryCardSurface = ({
+  model,
+  books,
+  selectedBook,
+  selectedBookId,
+  open,
+  loading,
+  query,
+  searching,
+  error,
+  results,
+  addingCandidateId,
+  onOpen,
+  onClose,
+  onQueryChange,
+  onSearch,
+  onQuickAdd,
+  onClearResults,
+  onSelectBook,
+  onAddBook,
+  onPatchBook,
+  onRemoveBook,
+}: Props) => {
+  const { t } = useLifeI18n()
+  const sidebarRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open || results.length === 0) return
+    const handler = (event: MouseEvent) => {
+      if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
+        onClearResults()
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open, results.length, onClearResults])
+
+  const readingCount = books.filter((book) => book.status === 'reading').length
+  const finishedCount = books.filter((book) => book.status === 'finished').length
+  const wantToReadCount = books.filter((book) => book.status === 'want-to-read').length
+  const previewBooks = model.previewRows.slice(0, 3)
+
+  const filteredBooks = useMemo(() => books, [books])
+
+  return (
+    <>
+      <div
+        onClick={onOpen}
+        style={{
+          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
+          width: '100%',
+          height: '100%',
+          minHeight: books.length === 0 ? 280 : 0,
+          overflow: 'hidden',
+          borderRadius: 24,
+          cursor: 'pointer',
+          background: cardBg,
+          border: '1px solid transparent',
+          boxShadow: 'var(--shadow-card)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 20px 16px', borderBottom: '1px solid color-mix(in srgb, var(--text-primary) 7%, transparent)' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+              <BookOpen size={14} color="color-mix(in srgb, var(--text-primary) 40%, transparent)" />
+              <span style={{ ...inter(10, 600, 'color-mix(in srgb, var(--text-primary) 40%, transparent)'), letterSpacing: '0.10em', textTransform: 'uppercase' }}>{model.header.eyebrow}</span>
+            </div>
+            <h3 style={{ ...playfair(18, 500), lineHeight: 1.2 }}>{model.header.title}</h3>
+          </div>
+          <div style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 999, color: 'color-mix(in srgb, var(--text-primary) 40%, transparent)' }}>
+            <ChevronRight size={15} />
+          </div>
+        </div>
+
+        <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', padding: '0 20px' }}>
+          {loading ? (
+            <LifeCardLoader />
+          ) : books.length === 0 ? (
+            <div style={{ display: 'flex', flex: 1, minHeight: 180, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', textAlign: 'center' }}>
+              <div style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, borderRadius: 999, background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)' }}>
+                <BookOpen size={20} color="color-mix(in srgb, var(--text-primary) 35%, transparent)" />
+              </div>
+              <p style={{ ...playfair(14, 500), marginBottom: 6 }}>{t('life.library.emptyTitle')}</p>
+              <p style={{ ...inter(12, 400, mutedText), lineHeight: 1.5, marginBottom: 16 }}>{t('life.library.emptyDescription')}</p>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onOpen()
+                }}
+                style={{
+                  ...inter(11, 500),
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '6px 12px',
+                  borderRadius: 999,
+                  background: 'color-mix(in srgb, var(--text-primary) 8%, transparent)',
+                  border: '1px solid color-mix(in srgb, var(--text-primary) 12%, transparent)',
+                  letterSpacing: '0.03em',
+                }}
+              >
+                <Search size={11} />
+                <span>{t('life.library.browse')}</span>
+              </button>
+            </div>
+          ) : (
+            <div className="life-card-preview">
+              {previewBooks.map((book, index) => (
+                <div key={book.id}>
+                  <CardRow book={book} />
+                  {index < previewBooks.length - 1 ? <div style={{ height: 1, background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)' }} /> : null}
+                </div>
+              ))}
+              {books.length > 3 ? (
+                <div style={{ ...inter(11, 400, 'color-mix(in srgb, var(--text-primary) 38%, transparent)'), padding: '8px 0', textAlign: 'center', borderTop: '1px solid color-mix(in srgb, var(--text-primary) 6%, transparent)' }}>
+                  {t('life.library.moreBooks', { count: books.length - 3 })}
+                </div>
+              ) : null}
+            </div>
+          )}
+        </div>
+
+        <form
+          className="life-quick-add life-quick-add--library"
+          onClick={(event) => event.stopPropagation()}
+          onSubmit={(event) => {
+            event.preventDefault()
+            onQuickAdd()
+          }}
+        >
+          <div className="life-quick-add__bar">
+            <span className="life-quick-add__label">{t('life.library.add')}</span>
+            <Search size={13} aria-hidden />
+            <input
+              className="life-quick-add__input"
+              value={query}
+              onChange={(event) => onQueryChange(event.target.value)}
+              placeholder={t('life.library.searchPlaceholder')}
+            />
+            <button type="submit" className="life-quick-add__action">
+              {searching ? '...' : t('life.library.add')}
+            </button>
+          </div>
+        </form>
+
+        {!loading && books.length > 0 ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20, padding: '16px 20px', marginTop: 'auto', borderTop: '1px solid color-mix(in srgb, var(--text-primary) 7%, transparent)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 6, height: 6, borderRadius: 999, background: statusConfig.reading.color }} />
+              <span style={{ ...inter(11, 500, mutedText) }}>{t('life.library.reading')}</span>
+              <span style={{ ...inter(12, 600), marginLeft: 2 }}><AppNumber value={readingCount} animated /></span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 6, height: 6, borderRadius: 999, background: statusConfig.finished.color }} />
+              <span style={{ ...inter(11, 500, mutedText) }}>{t('life.library.finished')}</span>
+              <span style={{ ...inter(12, 600), marginLeft: 2 }}><AppNumber value={finishedCount} animated /></span>
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      {open ? <Dialog open={open} onClose={onClose} panelClassName="life-modal__panel" contentClassName="life-modal__content">
+        <div style={{ display: 'flex', flex: 1, minHeight: 0, flexDirection: 'column', background: paper }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 32px', borderBottom: `1px solid ${subtleBorder}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <BookOpen size={16} color="color-mix(in srgb, var(--text-primary) 40%, transparent)" />
+              <h1 style={{ ...playfair(22, 500) }}>{t('life.library.title')}</h1>
+              <span style={{ ...inter(11, 500, mutedText), marginLeft: 4, padding: '2px 8px', borderRadius: 999, background: 'color-mix(in srgb, var(--text-primary) 7%, transparent)' }}>
+                {t('life.library.bookCount', { count: books.length })}
+              </span>
+            </div>
+            <button type="button" onClick={onClose} aria-label="Close" style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: 999, background: 'transparent', color: 'color-mix(in srgb, var(--text-primary) 40%, transparent)', cursor: 'pointer' }}>
+              <X size={16} />
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', minHeight: 0, flex: 1 }}>
+            <div ref={sidebarRef} style={{ width: 300, display: 'flex', flexDirection: 'column', flexShrink: 0, borderRight: `1px solid ${subtleBorder}`, background: 'var(--bg-muted)' }}>
+              <div style={{ padding: '20px 16px 12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, height: 38, borderRadius: 12, padding: '0 12px', background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--text-primary) 9%, transparent)' }}>
+                  <Search size={13} color="color-mix(in srgb, var(--text-primary) 35%, transparent)" />
+                  <input
+                    value={query}
+                    onChange={(event) => onQueryChange(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') onSearch()
+                    }}
+                    placeholder={t('life.library.searchPlaceholder')}
+                    style={{ ...inter(13, 400), flex: 1, border: 'none', outline: 'none', background: 'transparent' }}
+                  />
+                  {query ? (
+                    <button type="button" onClick={() => onQueryChange('')} style={{ border: 'none', background: 'transparent', color: 'color-mix(in srgb, var(--text-primary) 35%, transparent)', cursor: 'pointer' }}>
+                      <X size={12} />
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+
+              {results.length > 0 ? (
+                <div style={{ padding: '0 16px 12px', borderBottom: `1px solid ${subtleBorder}` }}>
+                  <p style={{ ...inter(10, 500, 'color-mix(in srgb, var(--text-primary) 38%, transparent)'), letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8, paddingLeft: 4 }}>{t('life.library.searchResults')}</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto' }}>
+                    {results.map((book) => (
+                      <div key={book.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, borderRadius: 12, background: cardBg, border: `1px solid ${subtleBorder}` }}>
+                        <div style={{ width: 32, height: 44, flexShrink: 0, overflow: 'hidden', borderRadius: 3, background: 'color-mix(in srgb, var(--text-primary) 8%, transparent)' }}>
+                          {book.coverUrl ? <img src={book.coverUrl} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ ...playfair(13, 500), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{book.title}</p>
+                          <p style={{ ...inter(11, 400, mutedText), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{book.authors.join(', ')}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => onAddBook(book.id)}
+                          style={{
+                            ...inter(11, 500, addingCandidateId === book.id ? statusConfig['want-to-read'].color : ink),
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            padding: '6px 10px',
+                            borderRadius: 999,
+                            background: addingCandidateId === book.id ? statusConfig['want-to-read'].bg : 'color-mix(in srgb, var(--text-primary) 7%, transparent)',
+                            border: `1px solid ${addingCandidateId === book.id ? 'rgba(107,101,96,0.15)' : 'color-mix(in srgb, var(--text-primary) 10%, transparent)'}`,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {addingCandidateId === book.id ? <CheckCheck size={11} /> : <Plus size={11} />}
+                          <span>{addingCandidateId === book.id ? t('life.library.added') : t('life.library.add')}</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {error ? <p style={{ ...inter(12, 400, '#9D4C4C'), padding: '0 20px 12px' }}>{error}</p> : null}
+
+              <div style={{ padding: '0 16px 12px' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {[
+                    { key: 'all', label: t('life.library.all'), count: books.length },
+                    { key: 'reading', label: t('life.library.reading'), count: readingCount },
+                    { key: 'finished', label: t('life.library.finished'), count: finishedCount },
+                    { key: 'want-to-read', label: t('life.library.wantToRead'), count: wantToReadCount },
+                  ].map((item, index) => (
+                    <div
+                      key={item.key}
+                      style={{
+                        ...inter(11, 500, index === 0 ? ink : mutedText),
+                        padding: '4px 10px',
+                        borderRadius: 999,
+                        background: index === 0 ? 'color-mix(in srgb, var(--text-primary) 8%, transparent)' : 'transparent',
+                        border: index === 0 ? '1px solid color-mix(in srgb, var(--text-primary) 10%, transparent)' : '1px solid transparent',
+                      }}
+                    >
+                      {item.label} {item.count}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ minHeight: 0, flex: 1, overflowY: 'auto', padding: '0 12px 16px' }}>
+                {loading ? (
+                  <LifePanelLoader />
+                ) : filteredBooks.length === 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 24px', textAlign: 'center' }}>
+                    <div style={{ width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, borderRadius: 999, background: 'color-mix(in srgb, var(--text-primary) 5%, transparent)' }}>
+                      <BookOpen size={20} color="color-mix(in srgb, var(--text-primary) 25%, transparent)" />
+                    </div>
+                    <p style={{ ...playfair(16, 500, 'color-mix(in srgb, var(--text-primary) 60%, transparent)'), marginBottom: 6 }}>{t('life.library.shelfEmpty')}</p>
+                    <p style={{ ...inter(12, 400, 'color-mix(in srgb, var(--text-primary) 38%, transparent)'), lineHeight: 1.65, marginBottom: 16 }}>{t('life.library.searchAbove')}</p>
+                    <button type="button" onClick={onSearch} style={{ ...inter(12, 500), display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 999, background: 'color-mix(in srgb, var(--text-primary) 7%, transparent)', border: '1px solid color-mix(in srgb, var(--text-primary) 12%, transparent)', cursor: 'pointer' }}>
+                      <Search size={12} />
+                      <span>{t('life.library.searchForBooks')}</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {filteredBooks.map((book) => (
+                      <SidebarBookItem key={book.id} book={book} selected={selectedBookId === book.id} onClick={() => onSelectBook(book.id)} onRemove={onRemoveBook} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', minWidth: 0, minHeight: 0, flex: 1, flexDirection: 'column', overflow: 'hidden' }}>
+              {selectedBook ? (
+                <div style={{ display: 'flex', minHeight: 0, flex: 1, flexDirection: 'column', overflowY: 'auto' }}>
+                  <div style={{ position: 'relative', display: 'flex', gap: 32, padding: '40px 40px 32px', borderBottom: `1px solid ${subtleBorder}` }}>
+                    <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', opacity: 0.07 }}>
+                      {selectedBook.coverUrl ? <img src={selectedBook.coverUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(24px)', transform: 'scale(1.1)' }} /> : null}
+                    </div>
+                    <div style={{ position: 'relative', width: 110, height: 158, flexShrink: 0, overflow: 'hidden', borderRadius: 5, boxShadow: '4px 6px 20px rgba(0, 0, 0, 0.22), 2px 2px 6px rgba(0, 0, 0, 0.10), inset -2px 0 0 rgba(0,0,0,0.08)' }}>
+                      {selectedBook.coverUrl ? <img src={selectedBook.coverUrl} alt={selectedBook.title} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top' }} /> : null}
+                    </div>
+                    <div style={{ position: 'relative', display: 'flex', minWidth: 0, flex: 1, flexDirection: 'column', justifyContent: 'flex-end' }}>
+                      <StatusPill status={selectedBook.status} />
+                      <h2 style={{ ...playfair(22, 500), lineHeight: 1.25, marginTop: 8, marginBottom: 4 }}>{selectedBook.title}</h2>
+                      <p style={{ ...inter(14, 400, 'color-mix(in srgb, var(--text-primary) 60%, transparent)'), marginBottom: 12 }}>{selectedBook.authors.join(' & ')}</p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                        {selectedBook.publisher ? <span style={inter(11, 400, mutedText)}><span style={{ opacity: 0.6 }}>{t('life.library.publishedBy')}</span>{selectedBook.publisher}</span> : null}
+                        {selectedBook.publisher && selectedBook.publishedDate ? <span style={{ color: 'color-mix(in srgb, var(--text-primary) 20%, transparent)' }}>·</span> : null}
+                        {selectedBook.publishedDate ? <span style={inter(11, 400, mutedText)}>{selectedBook.publishedDate}</span> : null}
+                      </div>
+                      {selectedBook.subjects.length > 0 ? (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                          {selectedBook.subjects.map((subject) => (
+                            <span key={subject} style={{ ...inter(10, 400, 'color-mix(in srgb, var(--text-primary) 55%, transparent)'), padding: '2px 8px', borderRadius: 999, background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--text-primary) 9%, transparent)', letterSpacing: '0.03em' }}>
+                              {subject}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div style={{ padding: '24px 40px', borderBottom: `1px solid ${subtleBorder}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+                      <p style={{ ...inter(11, 500, mutedText), marginRight: 8, letterSpacing: '0.07em', textTransform: 'uppercase' }}>{t('life.library.status')}</p>
+                      {(['want-to-read', 'reading', 'finished'] as BookItem['status'][]).map((status) => {
+                        const cfg = statusConfig[status]
+                        const active = selectedBook.status === status
+                        const Icon = status === 'want-to-read' ? Clock : status === 'reading' ? BookOpen : CheckCheck
+                        return (
+                          <button
+                            key={status}
+                            type="button"
+                            onClick={() => onPatchBook({ status, progress: status === 'finished' ? 100 : selectedBook.progress })}
+                            style={{
+                              ...inter(11, active ? 500 : 400, active ? cfg.color : mutedText),
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              padding: '6px 12px',
+                              borderRadius: 999,
+                              background: active ? cfg.bg : 'transparent',
+                              border: `1px solid ${active ? 'color-mix(in srgb, var(--text-primary) 12%, transparent)' : 'color-mix(in srgb, var(--text-primary) 8%, transparent)'}`,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <Icon size={12} />
+                            <span>{cfg.label}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <p style={{ ...inter(11, 500, mutedText), letterSpacing: '0.07em', textTransform: 'uppercase' }}>{t('life.library.readingProgress')}</p>
+                        <span style={inter(12, 600)}>{selectedBook.progress}%</span>
+                      </div>
+                      <ProgressTrack
+                        value={selectedBook.progress}
+                        onChange={(progress) => onPatchBook({ progress })}
+                        label="Reading Progress"
+                        showLabel={false}
+                        color={statusConfig[selectedBook.status].color}
+                      />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                        <span style={inter(10, 400, 'color-mix(in srgb, var(--text-primary) 30%, transparent)')}>0%</span>
+                        <span style={inter(10, 400, 'color-mix(in srgb, var(--text-primary) 30%, transparent)')}>50%</span>
+                        <span style={inter(10, 400, 'color-mix(in srgb, var(--text-primary) 30%, transparent)')}>100%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ padding: '24px 40px', borderBottom: `1px solid ${subtleBorder}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                      <span style={{ color: mutedText }}><BookMarked size={13} /></span>
+                      <p style={{ ...inter(11, 500, mutedText), letterSpacing: '0.07em', textTransform: 'uppercase' }}>{t('life.library.myReflection')}</p>
+                    </div>
+                    <ImeTextarea
+                      value={selectedBook.reflection ?? ''}
+                      onChange={(val) => onPatchBook({ reflection: val })}
+                      placeholder="What stayed with you? A passage, a thought, a question this book left open..."
+                      rows={5}
+                      style={{
+                        width: '100%',
+                        resize: 'none',
+                        outline: 'none',
+                        borderRadius: 10,
+                        border: '1px solid color-mix(in srgb, var(--text-primary) 8%, transparent)',
+                        background: 'color-mix(in srgb, var(--text-primary) 2.5%, transparent)',
+                        padding: '14px 16px',
+                        fontFamily: '"Playfair Display", serif',
+                        fontSize: 13,
+                        fontStyle: selectedBook.reflection ? 'italic' : 'normal',
+                        lineHeight: 1.75,
+                        color: ink,
+                      }}
+                    />
+                  </div>
+
+                  {(selectedBook.description || selectedBook.summary) ? (
+                    <div style={{ padding: '24px 40px', borderBottom: `1px solid ${subtleBorder}` }}>
+                      <p style={{ ...inter(11, 500, mutedText), letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 12 }}>{t('life.library.aboutBook')}</p>
+                      {selectedBook.summary ? <p style={{ ...playfair(14, 400, 'color-mix(in srgb, var(--text-primary) 75%, transparent)'), fontStyle: 'italic', lineHeight: 1.65, marginBottom: 12 }}>"{selectedBook.summary}"</p> : null}
+                      {selectedBook.description ? <p style={{ ...inter(13, 400, 'color-mix(in srgb, var(--text-primary) 60%, transparent)'), lineHeight: 1.75 }}>{selectedBook.description}</p> : null}
+                    </div>
+                  ) : null}
+
+                  {(selectedBook.isbn10 || selectedBook.isbn13) ? (
+                    <div style={{ padding: '16px 40px', borderBottom: `1px solid ${subtleBorder}` }}>
+                      <p style={inter(11, 400, 'color-mix(in srgb, var(--text-primary) 35%, transparent)')}>
+                        <span style={{ opacity: 0.7 }}>ISBN </span>
+                        {selectedBook.isbn13 ?? selectedBook.isbn10}
+                      </p>
+                    </div>
+                  ) : null}
+
+                  <div style={{ padding: '24px 40px' }}>
+                    <button
+                      type="button"
+                      onClick={() => onRemoveBook(selectedBook.id)}
+                      style={{
+                        ...inter(12, 400, 'color-mix(in srgb, var(--text-primary) 35%, transparent)'),
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        padding: '8px 12px',
+                        borderRadius: 10,
+                        border: '1px solid color-mix(in srgb, var(--text-primary) 8%, transparent)',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <Trash2 size={12} />
+                      <span>{t('life.library.removeFromLibrary')}</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', height: '100%', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 32px', textAlign: 'center' }}>
+                  <div style={{ width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24, borderRadius: 18, background: 'color-mix(in srgb, var(--text-primary) 5%, transparent)', border: `1px solid ${subtleBorder}` }}>
+                    <BookMarked size={22} color="color-mix(in srgb, var(--text-primary) 25%, transparent)" />
+                  </div>
+                  <p style={{ ...playfair(18, 500, 'color-mix(in srgb, var(--text-primary) 55%, transparent)'), marginBottom: 8 }}>{t('life.library.selectBook')}</p>
+                  <p style={{ ...inter(13, 400, 'color-mix(in srgb, var(--text-primary) 35%, transparent)'), lineHeight: 1.65, maxWidth: 280 }}>{t('life.library.selectBookDesc')}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </Dialog> : null}
+    </>
+  )
+}

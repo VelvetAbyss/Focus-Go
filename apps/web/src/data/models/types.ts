@@ -1,0 +1,746 @@
+import type { CalendarSubscription } from '../../features/calendar/calendar.model'
+import type { DiaryFontId, LanguageCode, TemperatureUnit, WorldClockItem } from '../../shared/prefs/preferences'
+import type { ThemeSelection } from '../../shared/theme/theme'
+export type {
+  DomainEvent,
+  DomainEventPayloadMap,
+  DomainEventType,
+  EntityRef,
+  EntityRefDomain,
+  EventSource,
+  TimelineItem,
+  TimelineKind,
+  TimelineVisibility,
+} from '@focus-go/core'
+
+export type BaseEntity = {
+  id: string
+  createdAt: number
+  updatedAt: number
+  userId?: string
+  workspaceId?: string
+}
+
+export type TaskStatus = 'todo' | 'doing' | 'done'
+export type TaskPriority = 'high' | 'medium' | 'low'
+
+export type TaskSubtask = {
+  id: string
+  title: string
+  done: boolean
+}
+
+export type TaskActivityLog = {
+  id: string
+  type: 'status' | 'details' | 'subtask'
+  message: string
+  createdAt: number
+  subtaskId?: string
+  subtaskTitle?: string
+  subtaskDone?: boolean
+}
+
+export type TaskProgressEntry = {
+  id: string
+  text: string
+  createdAt: number
+}
+
+export type TaskNoteParagraphBlock = {
+  id: string
+  type: 'paragraph'
+  text: string
+}
+
+export type TaskNoteBlock = TaskNoteParagraphBlock
+
+export type NoteCollection = 'all-notes' | 'work' | 'personal' | 'ideas'
+
+export type NoteHeading = {
+  level: 1 | 2 | 3
+  text: string
+  id: string
+}
+
+export type NoteBacklink = {
+  noteId: string
+  noteTitle: string
+}
+
+export type NoteTag = BaseEntity & {
+  name: string
+  icon?: string
+  pinned: boolean
+  parentId?: string | null
+  noteCount: number
+  sortOrder: number
+}
+
+export type NoteThemeMode = 'paper' | 'graphite'
+export type NoteFontFamily = 'uiSans' | 'humanistSans' | 'cnSans' | 'serif' | 'cnSerif' | 'mono'
+export type NoteEditorMode = 'document'
+
+export type NotePaperBg = 'beige' | 'white'
+
+export type NoteAppearanceSettings = BaseEntity & {
+  id: 'note_appearance'
+  theme: NoteThemeMode
+  font: NoteFontFamily
+  fontSize: number
+  lineHeight: number
+  contentWidth: number
+  focusMode: boolean
+  paperBg: NotePaperBg
+  zoom: number
+}
+
+export type NoteItem = BaseEntity & {
+  title: string
+  contentMd: string
+  contentJson?: Record<string, unknown> | null
+  editorMode: NoteEditorMode
+  collection: NoteCollection
+  tags: string[]
+  excerpt: string
+  pinned: boolean
+  wordCount: number
+  charCount: number
+  paragraphCount: number
+  imageCount: number
+  fileCount: number
+  headings: NoteHeading[]
+  backlinks: NoteBacklink[]
+  deletedAt?: number | null
+}
+
+export type TaskAttachmentMime = 'image/webp' | 'image/png' | 'image/jpeg' | 'image/gif'
+
+export type TaskAttachment = {
+  id: string
+  hash: string
+  mime: TaskAttachmentMime
+  width: number
+  height: number
+  byteLength: number
+  name?: string
+  createdAt: number
+}
+
+export type TaskItem = BaseEntity & {
+  title: string
+  description: string
+  pinned: boolean
+  isToday: boolean
+  status: TaskStatus
+  priority: TaskPriority | null
+  projectId?: string
+  ownerId?: string
+  collaboratorIds?: string[]
+  dependencyTaskIds?: string[]
+  blockedByTaskIds?: string[]
+  isBlocked?: boolean
+  dueDate?: string
+  startDate?: string
+  endDate?: string
+  reminderAt?: number
+  reminderFiredAt?: number
+  tags: string[]
+  subtasks: TaskSubtask[]
+  taskNoteBlocks: TaskNoteBlock[]
+  taskNoteContentMd?: string
+  taskNoteContentJson?: Record<string, unknown> | null
+  activityLogs: TaskActivityLog[]
+  attachments?: TaskAttachment[]
+  progressNote?: string
+  progressNoteUpdatedAt?: number
+  progressHistory?: TaskProgressEntry[]
+}
+
+export type WidgetTodoScope = 'day' | 'week' | 'month' | 'custom'
+
+export type WidgetTodo = BaseEntity & {
+  scope: WidgetTodoScope
+  title: string
+  priority: TaskPriority
+  dueDate?: string
+  done: boolean
+  linkedHabitId?: string
+}
+
+export type FocusSettings = BaseEntity & {
+  focusMinutes: number
+  breakMinutes: number
+  longBreakMinutes: number
+  noise?: NoiseSettings
+  noisePreset?: NoisePreset
+  volume?: number
+  timer?: FocusTimerSnapshot
+}
+
+export type FocusTimerStatus = 'idle' | 'running' | 'paused' | 'completed'
+
+export type FocusTimerSnapshot = {
+  status: FocusTimerStatus
+  durationMinutes: number
+  remainingSeconds: number
+  startedAt?: number
+  endsAt?: number
+  pausedAt?: number
+  activeSessionId?: string | null
+  lastCompletedAt?: number
+  sessionId?: string
+}
+
+export type FocusSessionStatus = 'active' | 'completed' | 'interrupted'
+
+export type FocusSession = BaseEntity & {
+  taskId?: string
+  goal?: string
+  plannedMinutes: number
+  actualMinutes?: number
+  status: FocusSessionStatus
+  completedAt?: number
+  interruptedAt?: number
+  interruptionReason?: string
+}
+
+export type NoiseTrackId = 'cafe' | 'fireplace' | 'rain' | 'wind' | 'thunder' | 'ocean'
+
+export type NoiseTrackSettings = {
+  enabled: boolean
+  volume: number
+}
+
+export type NoiseSettings = {
+  playing: boolean
+  loop: boolean
+  masterVolume: number
+  sleepEndsAt?: number | null
+  sleepDurationMinutes?: number | null
+  tracks: Record<NoiseTrackId, NoiseTrackSettings>
+}
+
+export type NoisePreset = {
+  presetId: string
+  presetName: string
+  scope: 'focus-center'
+  isPlaying: boolean
+  loop: boolean
+  tracks: Record<NoiseTrackId, NoiseTrackSettings>
+}
+
+export type WeatherSnapshot = {
+  weatherCode: string
+  condition: string
+  temperatureMin?: number
+  temperatureMax?: number
+  locationName?: string
+  capturedAt: number
+}
+
+export type DiaryEntry = BaseEntity & {
+  dateKey: string
+  entryAt: number
+  contentMd: string
+  contentJson?: Record<string, unknown> | null
+  tags: string[]
+  weatherSnapshot?: WeatherSnapshot | null
+  deletedAt?: number | null
+  expiredAt?: number | null
+}
+
+export type SpendEntry = BaseEntity & {
+  amount: number
+  currency: string
+  categoryId: string
+  note?: string
+  dateKey: string
+}
+
+export type SpendCategory = BaseEntity & {
+  name: string
+  icon?: string
+}
+
+export type DashboardLayoutItem = {
+  key: string
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+export type DashboardLayout = BaseEntity & {
+  items: DashboardLayoutItem[]
+  hiddenCardIds?: string[]
+  themeOverride?: 'light' | 'dark' | null
+  layoutVersion?: number
+}
+
+export type LifeDashboardLayout = BaseEntity & {
+  items: DashboardLayoutItem[]
+  hiddenCardIds?: string[]
+}
+
+export type LifePodcastEpisode = {
+  id: string
+  title: string
+  description?: string
+  duration?: string
+  releaseDate?: string
+  audioUrl?: string
+  externalUrl?: string
+  savedPosition?: number
+}
+
+export type LifePodcast = BaseEntity & {
+  source: 'itunes' | 'netease'
+  sourceId: string
+  collectionId: number
+  name: string
+  author: string
+  artworkUrl?: string
+  feedUrl?: string
+  externalUrl?: string
+  primaryGenre?: string
+  releaseDate?: string
+  country?: string
+  coverColor?: string
+  coverEmoji?: string
+  episodes: LifePodcastEpisode[]
+  selectedEpisodeId?: string
+  isPlaying?: boolean
+  lastSyncedAt?: number
+}
+
+export type PersonGroup = 'Family' | 'Friends' | 'Work' | 'Community' | 'Other'
+
+export type LifePerson = BaseEntity & {
+  name: string
+  group: PersonGroup
+  category?: string
+  role?: string
+  city?: string
+  notes?: string
+  email?: string
+  phone?: string
+  birthday?: string
+  lastInteraction?: string
+  avatarInitials: string
+  avatarColor?: string
+  sourceProjectId?: string
+  sourceProjectPersonId?: string
+}
+
+export type TripStatus = 'Planning' | 'Booked' | 'Ready' | 'Ongoing' | 'Done'
+export type TransportMethod = 'Flight' | 'Train' | 'Bus' | 'Taxi' | 'Subway' | 'Walk' | 'Car'
+export type TransportCategory = 'intercity' | 'local'
+export type BookingStatus = 'Confirmed' | 'Pending' | 'Not booked'
+export type FoodStatus = 'Saved' | 'Planned' | 'Visited'
+export type ItineraryType = 'spot' | 'food' | 'transport' | 'hotel'
+
+export type TripGeoPoint = {
+  lat?: number
+  lng?: number
+  address?: string
+  placeId?: string
+}
+
+export type TripMoney = {
+  amount: number
+  currency: string
+}
+
+export type TripItineraryItem = {
+  id: string
+  title: string
+  time: string
+  location: string
+  type: ItineraryType
+  notes?: string
+  startTime?: string
+  endTime?: string
+  durationMin?: number
+  geo?: TripGeoPoint
+  cost?: TripMoney
+  bookingRef?: string
+  attachmentIds?: string[]
+  dayNoteIcon?: string
+  category?: string
+}
+
+export type TripDayNote = {
+  id: string
+  icon?: string
+  text: string
+  createdAt?: string
+}
+
+export type TripItineraryDay = {
+  day: number
+  date: string
+  label: string
+  items: TripItineraryItem[]
+  dayNotes?: TripDayNote[]
+  weatherCache?: {
+    fetchedAt: string
+    icon: string
+    tempHigh: number
+    tempLow: number
+    source: 'forecast' | 'climate'
+  }
+}
+
+export type TripTransportItem = {
+  id: string
+  category: TransportCategory
+  method: TransportMethod
+  from: string
+  to: string
+  departTime: string
+  arriveTime: string
+  date: string
+  status: BookingStatus
+  cost: number
+  currency: string
+  notes?: string
+  fromGeo?: TripGeoPoint
+  toGeo?: TripGeoPoint
+  bookingRef?: string
+  attachmentIds?: string[]
+}
+
+export type TripStayItem = {
+  id: string
+  name: string
+  address: string
+  checkIn: string
+  checkOut: string
+  nights: number
+  status: BookingStatus
+  cost: number
+  currency: string
+  notes?: string
+  geo?: TripGeoPoint
+  bookingRef?: string
+  attachmentIds?: string[]
+}
+
+export type TripFoodItem = {
+  id: string
+  name: string
+  area: string
+  cuisine: string
+  status: FoodStatus
+  priceRange: '¥' | '¥¥' | '¥¥¥'
+  notes?: string
+  geo?: TripGeoPoint
+  attachmentIds?: string[]
+}
+
+export type TripExpense = {
+  id: string
+  label: string
+  amount: number
+  currency: string
+  date?: string
+  payerId?: string
+  splitWith?: string[]
+}
+
+export type TripBudgetCategory = {
+  id: string
+  label: string
+  emoji: string
+  planned: number
+  actual: number
+  expenses?: TripExpense[]
+}
+
+export type TripChecklistItem = {
+  id: string
+  label: string
+  done: boolean
+  ownerId?: string
+  category?: string
+}
+
+export type TripChecklistGroup = {
+  id: string
+  label: string
+  emoji: string
+  items: TripChecklistItem[]
+  fromTemplateId?: string
+}
+
+export type TripAttachmentKind = 'image' | 'pdf' | 'other'
+
+export type TripAttachmentMeta = {
+  id: string
+  tripId: string
+  kind: TripAttachmentKind
+  name: string
+  size: number
+  mime: string
+  createdAt: string
+  blobKey: string
+}
+
+/** Stored row in the local `trip_attachments` Dexie table — meta plus the raw Blob. */
+export type TripAttachmentRecord = TripAttachmentMeta & {
+  blob: Blob
+}
+
+export type TripAIDraftMeta = {
+  provider: 'claude' | 'openai' | 'deepseek' | 'template'
+  model?: string
+  promptHash?: string
+  generatedAt: string
+}
+
+export type TripJournalEntry = {
+  id: string
+  date: string
+  body: string
+  photoIds?: string[]
+  mood?: string
+}
+
+export type TripRecord = BaseEntity & {
+  title: string
+  destination: string
+  startDate: string
+  endDate: string
+  status: TripStatus
+  travelers: number
+  budgetPlanned: number
+  budgetCurrency: string
+  heroImage: string
+  coverEmoji: string
+  itinerary: TripItineraryDay[]
+  transport: TripTransportItem[]
+  stays: TripStayItem[]
+  food: TripFoodItem[]
+  budget: TripBudgetCategory[]
+  checklist: TripChecklistGroup[]
+  notes: string
+  countryCode?: string
+  homeCurrency?: string
+  destinationGeo?: TripGeoPoint
+  attachmentIds?: string[]
+  templateId?: string
+  aiDraft?: TripAIDraftMeta
+  tags?: string[]
+  journal?: TripJournalEntry[]
+}
+
+export type TripTemplate = {
+  id: string
+  title: string
+  destination: string
+  countryCode?: string
+  days: number
+  coverEmoji: string
+  tags: string[]
+  itinerary: TripItineraryDay[]
+  budget?: TripBudgetCategory[]
+  checklist?: TripChecklistGroup[]
+  summary?: string
+}
+
+export type BookSource = 'manual' | 'open-library' | 'google-books' | 'crossref' | 'gutendex'
+export type BookStatus = 'reading' | 'finished' | 'want-to-read'
+export type SubscriptionCycle = 'monthly' | 'yearly'
+export type MediaSource = 'tmdb' | 'manual'
+export type MediaType = 'movie' | 'tv'
+export type MediaStatus = 'watching' | 'completed' | 'want-to-watch'
+export type SubscriptionPaymentStatus = 'paid' | 'unpaid'
+
+export type BookItem = BaseEntity & {
+  source: BookSource
+  sourceId: string
+  title: string
+  authors: string[]
+  status: BookStatus
+  progress: number
+  coverUrl?: string
+  description?: string
+  publisher?: string
+  publishedDate?: string
+  subjects: string[]
+  summary?: string
+  outline?: string[]
+  reflection?: string
+  isbn10?: string
+  isbn13?: string
+  openLibraryKey?: string
+  googleBooksId?: string
+  doi?: string
+  lastSyncedAt?: number
+}
+
+export type MediaItem = BaseEntity & {
+  source: MediaSource
+  sourceId: string
+  tmdbId?: number
+  mediaType: MediaType
+  title: string
+  originalTitle?: string
+  status: MediaStatus
+  progress: number
+  posterUrl?: string
+  backdropUrl?: string
+  overview?: string
+  releaseDate?: string
+  director?: string
+  creator?: string
+  cast: string[]
+  genres: string[]
+  duration?: string
+  seasons?: number
+  episodes?: number
+  country?: string
+  language?: string
+  rating?: string
+  watchedEpisodes?: number
+  reflection?: string
+  voteAverage?: number
+  lastSyncedAt?: number
+}
+
+export type LifeSubscription = BaseEntity & {
+  name: string
+  amount: number
+  currency: 'USD' | 'CNY'
+  cycle: SubscriptionCycle
+  color?: string
+  category?: string
+  billingDay?: number
+  billingMonth?: number
+  emoji?: string
+  reminder?: boolean
+  paymentStatus?: SubscriptionPaymentStatus
+}
+
+export type StockItem = BaseEntity & {
+  symbol: string
+  name: string
+  exchange?: string
+  currency: string
+  lastPrice?: number
+  change?: number
+  changePercent?: number
+  chartPoints?: number[]
+  note?: string
+  pinned: boolean
+  lastSyncedAt?: number
+}
+
+export type SubscriptionTier = 'free' | 'premium'
+export type AccountRole = 'member' | 'admin'
+export type ProjectStatus = 'planning' | 'active' | 'blocked' | 'done' | 'archived'
+export type ProjectHealth = 'on-track' | 'at-risk' | 'blocked'
+export type ProjectRoleType = 'owner' | 'collaborator' | 'reviewer' | 'external'
+
+export type UserSubscription = BaseEntity & {
+  userId: string
+  tier: SubscriptionTier
+  role: AccountRole
+}
+
+export type ProjectItem = BaseEntity & {
+  title: string
+  description: string
+  goal: string
+  color?: string
+  status: ProjectStatus
+  priority: TaskPriority | null
+  ownerId?: string
+  startDate?: string
+  dueDate?: string
+  health: ProjectHealth
+  progress: number
+  nextAction?: string
+  riskSummary?: string
+}
+
+export type ProjectPerson = BaseEntity & {
+  projectId: string
+  name: string
+  roleType: ProjectRoleType
+  phone?: string
+  email?: string
+  note?: string
+  avatarBlobHash?: string
+  avatarSeed?: string
+}
+
+export type ProjectNoteLink = BaseEntity & {
+  projectId: string
+  noteId: string
+  tagName: string
+}
+
+export type TaskNoteLink = BaseEntity & {
+  taskId: string
+  noteId: string
+  order: number
+}
+
+export type FeatureKey = 'ai-digest' | 'automation' | 'habit-tracker' | 'project-workspace'
+export type FeatureInstallState = 'installed' | 'removed'
+
+export type FeatureInstallation = BaseEntity & {
+  userId: string
+  featureKey: FeatureKey
+  state: FeatureInstallState
+  installedAt?: number
+  removedAt?: number | null
+}
+
+export type HabitType = 'boolean' | 'numeric' | 'timer'
+export type HabitStatus = 'completed' | 'failed' | 'frozen'
+
+export type Habit = BaseEntity & {
+  userId: string
+  title: string
+  description?: string
+  icon?: string
+  type: HabitType
+  color: string
+  archived: boolean
+  target?: number
+  freezesAllowed: number
+  sortOrder: number
+}
+
+export type HabitLog = BaseEntity & {
+  userId: string
+  habitId: string
+  dateKey: string
+  value?: number
+  status: HabitStatus
+}
+
+export type SyncedPreferences = BaseEntity & {
+  id: 'synced_preferences'
+  language: LanguageCode
+  uiAnimationsEnabled: boolean
+  numberAnimationsEnabled: boolean
+  defaultCurrency: 'CNY' | 'USD'
+  weatherAutoLocationEnabled: boolean
+  weatherManualCity: string
+  weatherTemperatureUnit: TemperatureUnit
+  worldClockItems: WorldClockItem[]
+  focusCompletionSoundEnabled: boolean
+  taskReminderEnabled: boolean
+  taskReminderLeadMinutes: number
+  diaryFont: DiaryFontId
+  neteaseExperimentalPlaybackEnabled: boolean
+  neteaseExperimentalPlaybackConfirmed: boolean
+  sidebarOrder: string[]
+  themeSelection: ThemeSelection
+  dashboardLayoutLocked: boolean
+  calendarSubscriptions: CalendarSubscription[]
+  initialSeedCompletedAt?: number | null
+}

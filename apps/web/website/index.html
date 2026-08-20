@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nestflow — Open it. Start. That's it.</title>
+<meta name="description" content="A calm, modular workspace built around one idea: lowering the friction of starting. Backed by research on start friction, procrastination and anxiety.">
+<meta property="og:title" content="Nestflow — Open it. Start. That's it.">
+<meta property="og:description" content="Procrastination isn't laziness. It's start friction. Focus&go is built to lower it.">
+<meta property="og:image" content="https://nestflow.art/assets/product-dashboard.png">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://nestflow.art/">
+<link rel="icon" href="/favicon.ico">
+<meta name="color-scheme" content="light dark">
+<link rel="preload" href="assets/Fraunces-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/Manrope-variable.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+/* Self-hosted fonts — same files as the app. No Google Fonts dependency,
+   so the page loads reliably in mainland China. Chinese text falls back
+   to system fonts (PingFang SC / Microsoft YaHei), which stay sharp. */
+@font-face{font-family:'Manrope';src:url('assets/Manrope-variable.woff2') format('woff2');font-weight:200 800;font-style:normal;font-display:swap}
+@font-face{font-family:'Fraunces';src:url('assets/Fraunces-variable.woff2') format('woff2');font-weight:100 900;font-style:normal;font-display:swap}
+
+/* ── Tokens (shared with the app's design system) ─────────────── */
+:root{
+  --bg:#f6f5f2; --bg-elevated:#fbfaf7; --bg-inset:#efece5;
+  --ink-1:#1f1d1a; --ink-2:#3a3733; --ink-3:#6b6862; --ink-4:#9b9790;
+  --accent:#1b4f4a; --accent-hover:#143a36; --accent-soft:#d8e6e2; --accent-ink:#fbfaf7;
+  --clay:#b1613f; --sand:#e8dfc8; --sage:#c8e6e0;
+  --radius-lg:24px; --radius-md:16px; --radius-sm:10px;
+  --font-display:'Fraunces','Noto Serif SC',serif;
+  --font-body:'Manrope','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+  --font-mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  --shadow-soft:0 10px 30px rgba(10,12,11,.09);
+  --shadow-lift:0 18px 48px rgba(10,12,11,.16);
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+/* ── Dark mode (follows system; tokens mapped from the app's dark theme) ── */
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#242320; --bg-elevated:#2d2b27; --bg-inset:#1d1c19;
+    --ink-1:#f2f0ec; --ink-2:#e4e0d9; --ink-3:#c8c1b7; --ink-4:#8d867f;
+    --accent:#7edbc7; --accent-hover:#96e4d3; --accent-soft:#18322d; --accent-ink:#16211f;
+    --clay:#d98a63; --sand:#4a4234; --sage:#22423c;
+    --shadow-soft:0 10px 30px rgba(0,0,0,.35);
+    --shadow-lift:0 18px 48px rgba(0,0,0,.5);
+  }
+  body::after{opacity:.05;filter:invert(1)}
+  .blob{opacity:.35}
+  .hero-shot{border-color:color-mix(in srgb, var(--ink-1) 14%, transparent)}
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink-2);font-family:var(--font-body);line-height:1.6;-webkit-font-smoothing:antialiased}
+:lang(zh) body, body.zh{letter-spacing:.01em}
+img,video{max-width:100%;height:auto;display:block}
+a{color:inherit}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+.kicker{font-family:var(--font-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:8px}
+.kicker::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--clay)}
+.section{padding:96px 0}
+.section-title{font-family:var(--font-display);font-size:clamp(1.8rem,3.6vw,2.6rem);font-weight:600;color:var(--ink-1);line-height:1.2;margin:14px 0 10px}
+.section-sub{color:var(--ink-3);max-width:560px;font-size:1.02rem}
+em.accent{font-style:italic;color:var(--accent)}
+.btn{display:inline-flex;align-items:center;gap:8px;height:46px;padding:0 22px;border-radius:999px;border:1px solid transparent;font:600 .92rem var(--font-body);cursor:pointer;text-decoration:none;transition:all .2s var(--ease)}
+.btn-primary{background:var(--accent);color:var(--accent-ink)}
+.btn-primary:hover{background:var(--accent-hover);transform:translateY(-1px)}
+.btn-ghost{border-color:color-mix(in srgb, var(--ink-1) 16%, transparent);color:var(--ink-2);background:var(--bg-elevated)}
+.btn-ghost:hover{background:var(--bg-inset)}
+
+/* reveal */
+.reveal{opacity:1;transform:none}
+.js .reveal{opacity:0;transform:translateY(14px);transition:opacity .5s var(--ease),transform .5s var(--ease)}
+.js .reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.js .reveal{opacity:1;transform:none;transition:none}}
+
+/* ── Decorative layer ─────────────────────────────────────────── */
+.progress{position:fixed;top:0;left:0;height:2px;width:0;background:var(--accent);z-index:100}
+body::after{content:'';position:fixed;inset:0;z-index:99;pointer-events:none;opacity:.035;background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2"/></filter><rect width="160" height="160" filter="url(%23n)"/></svg>')}
+.blob{position:absolute;border-radius:50%;pointer-events:none;opacity:.5}
+.section[data-ghost]{position:relative}
+.section[data-ghost]::before{content:attr(data-ghost);position:absolute;top:56px;right:3%;font-family:var(--font-display);font-weight:700;font-size:clamp(5rem,11vw,9.5rem);line-height:1;color:color-mix(in srgb, var(--ink-1) 4.5%, transparent);pointer-events:none}
+.watermark{font-family:var(--font-display);font-weight:700;font-size:clamp(4.5rem,14vw,11rem);line-height:.9;text-align:center;color:color-mix(in srgb, var(--ink-1) 5%, transparent);user-select:none;margin-top:44px}
+.friction-card,.stat,.chart-card,.how-card,.eco-chip,.price-card{transition:transform .25s var(--ease),box-shadow .25s var(--ease),border-color .25s}
+.friction-card:hover,.stat:hover,.chart-card:hover,.how-card:hover,.price-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-soft);border-color:rgba(27,79,74,.3)}
+.btn-primary{position:relative;overflow:hidden}
+.btn-primary::after{content:'';position:absolute;top:0;left:-70%;width:45%;height:100%;background:linear-gradient(100deg,transparent,rgba(251,250,247,.35),transparent);transform:skewX(-18deg);transition:left .55s var(--ease)}
+.btn-primary:hover::after{left:125%}
+/* hero intro sequence */
+.js .hero-badge,.js .hero h1,.js .hero-sub,.js .hero-ctas{opacity:0;transform:translateY(12px);transition:opacity .6s var(--ease),transform .6s var(--ease)}
+.js.ink .hero-badge{opacity:1;transform:none;transition-delay:.05s}
+.js.ink .hero h1{opacity:1;transform:none;transition-delay:.15s}
+.js.ink .hero-sub{opacity:1;transform:none;transition-delay:.28s}
+.js.ink .hero-ctas{opacity:1;transform:none;transition-delay:.4s}
+.hero h1 em{background:linear-gradient(var(--accent-soft),var(--accent-soft)) no-repeat left 86%/0% 28%;transition:background-size .8s .75s var(--ease);padding:0 .06em}
+.ink .hero h1 em{background-size:100% 28%}
+/* floating widget chips */
+.shot-wrap{position:relative}
+.chip{position:absolute;display:flex;align-items:center;gap:8px;background:var(--bg-elevated);border:1px solid color-mix(in srgb, var(--ink-1) 12%, transparent);border-radius:999px;padding:9px 16px;font:600 .82rem var(--font-body);color:var(--ink-2);box-shadow:var(--shadow-soft);z-index:2}
+.chip i{color:var(--clay);font-style:normal;font-size:.6rem}
+.chip b{font-family:var(--font-mono);font-weight:500}
+.chip-timer{top:18px;right:-12px}
+.chip-weather{left:-16px;top:38%}
+.chip-task{right:5%;bottom:-16px;color:var(--accent)}
+@media(max-width:880px){.chip{display:none}}
+/* marquee */
+.marquee{overflow:hidden;border-block:1px solid color-mix(in srgb, var(--ink-1) 7%, transparent);background:var(--bg-elevated);padding:13px 0}
+.marquee-track{display:flex;width:max-content}
+.marquee-track span{font-family:var(--font-display);font-style:italic;font-size:1rem;color:var(--ink-4);white-space:nowrap}
+/* founder ornaments */
+.founder{position:relative;overflow:hidden}
+.founder::before{content:'✳';position:absolute;right:5%;top:12%;font-size:10rem;line-height:1;color:rgba(200,230,224,.13);pointer-events:none}
+.founder-note::before{content:'“';display:block;font-family:var(--font-display);font-size:3.6rem;line-height:.4;color:#c8e6e0;margin-bottom:20px}
+/* scrollspy */
+.nav-links a{border-bottom:2px solid transparent;padding-bottom:3px;transition:border-color .25s,color .25s}
+.nav-links a.active{color:var(--ink-1);border-bottom-color:var(--accent)}
+/* ⌘K easter egg */
+.ck{position:fixed;inset:0;z-index:120;display:grid;place-items:start center;padding-top:min(16vh,140px)}
+.ck[hidden]{display:none}
+.ck-backdrop{position:absolute;inset:0;border:0;background:color-mix(in srgb, var(--ink-1) 20%, transparent);cursor:default;backdrop-filter:blur(3px)}
+.ck-panel{position:relative;width:min(520px,calc(100vw - 32px));background:var(--bg-elevated);border:1px solid color-mix(in srgb, var(--ink-1) 14%, transparent);border-radius:16px;box-shadow:var(--shadow-lift);padding:0 0 22px;text-align:center;animation:ck-in .28s var(--ease)}
+@keyframes ck-in{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+.ck-input{display:flex;align-items:center;gap:10px;padding:15px 18px;border-bottom:1px solid color-mix(in srgb, var(--ink-1) 9%, transparent);color:var(--ink-4);font-size:.9rem}
+.ck-input .ck-ph{flex:1;text-align:left}
+.ck-input kbd{border:1px solid color-mix(in srgb, var(--ink-1) 16%, transparent);border-radius:6px;padding:2px 7px;font-size:11px;font-family:var(--font-mono)}
+.ck-msg{font-family:var(--font-display);font-size:1.25rem;color:var(--ink-1);padding:26px 28px 18px}
+@media (prefers-reduced-motion:reduce){.ck-panel{animation:none}}
+/* pricing badge */
+.price-card{position:relative}
+.hot-badge{position:absolute;top:-13px;left:24px;background:var(--accent);color:var(--accent-ink);border-radius:999px;padding:4px 13px;font:600 .72rem var(--font-body)}
+/* continuous motion — only when the visitor is OK with it */
+@media (prefers-reduced-motion:no-preference){
+  .drift{animation:drift 28s ease-in-out infinite alternate}
+  .drift.slow{animation-duration:40s}
+  @keyframes drift{from{transform:translate(0,0) scale(1)}to{transform:translate(30px,-22px) scale(1.07)}}
+  .hero::before{animation:drift 32s ease-in-out infinite alternate}
+  .chip{animation:floaty 6s ease-in-out infinite alternate}
+  .chip-weather{animation-duration:7.5s;animation-delay:.8s}
+  .chip-task{animation-duration:8.5s;animation-delay:1.6s}
+  @keyframes floaty{from{transform:translateY(0)}to{transform:translateY(-8px)}}
+  .marquee-track{animation:mq 46s linear infinite}
+  @keyframes mq{to{transform:translateX(-50%)}}
+  .loop-ring{animation:spin 90s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loop-arrow{animation:apulse 2.6s ease-in-out infinite}
+  @keyframes apulse{0%,100%{opacity:.3}50%{opacity:1}}
+}
+@media (prefers-reduced-motion:reduce){
+  .js .hero-badge,.js .hero h1,.js .hero-sub,.js .hero-ctas{opacity:1;transform:none;transition:none}
+  .hero h1 em{background-size:100% 28%}
+}
+
+/* ── Nav ── */
+.nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb, var(--bg-elevated) 82%, transparent);backdrop-filter:blur(12px);border-bottom:1px solid color-mix(in srgb, var(--ink-1) 6%, transparent)}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;height:60px}
+.logo{font-family:var(--font-display);font-weight:700;font-size:1.1rem;color:var(--ink-1);text-decoration:none;display:flex;align-items:center;gap:7px}
+.logo img{width:24px;height:24px;border-radius:7px;display:block}
+.nav-links{display:flex;gap:26px;font-size:.88rem;color:var(--ink-3)}
+.nav-links a{text-decoration:none}
+.nav-links a:hover{color:var(--ink-1)}
+.nav-right{display:flex;align-items:center;gap:12px}
+.lang-toggle{border:1px solid color-mix(in srgb, var(--ink-1) 15%, transparent);border-radius:999px;background:transparent;height:32px;padding:0 12px;font:600 .78rem var(--font-body);color:var(--ink-3);cursor:pointer}
+.lang-toggle:hover{color:var(--ink-1)}
+.nav .btn{height:38px;padding:0 16px;font-size:.85rem}
+@media(max-width:760px){.nav-links{display:none}}
+
+/* ── Hero ── */
+.hero{padding:84px 0 60px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-160px;right:-120px;width:480px;height:480px;border-radius:50%;background:radial-gradient(circle,var(--sage),transparent 65%);opacity:.55;pointer-events:none}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(27,79,74,.25);background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:5px 14px;font:600 .76rem var(--font-body)}
+.hero-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.hero h1{font-family:var(--font-display);font-size:clamp(2.6rem,6.2vw,4.4rem);line-height:1.06;color:var(--ink-1);font-weight:700;margin:22px 0 18px}
+.hero h1 em{font-style:italic;color:var(--accent)}
+.hero-sub{font-size:1.08rem;color:var(--ink-3);max-width:460px}
+.hero-ctas{display:flex;gap:12px;margin-top:28px;flex-wrap:wrap}
+.hero-shot{margin-top:56px;border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-lift);border:1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);background:var(--bg-elevated)}
+.hero-shot .bar{display:flex;align-items:center;gap:6px;height:36px;padding:0 14px;background:var(--bg-inset);border-bottom:1px solid color-mix(in srgb, var(--ink-1) 6%, transparent)}
+.hero-shot .bar i{width:10px;height:10px;border-radius:50%;background:color-mix(in srgb, var(--ink-1) 14%, transparent)}
+.hero-shot .bar span{margin:0 auto;font:500 11px var(--font-mono);color:var(--ink-4)}
+.hero-note{margin-top:14px;font-size:.82rem;color:var(--ink-4);text-align:center}
+
+/* ── Friction ── */
+.friction{background:var(--bg-elevated);border-top:1px solid color-mix(in srgb, var(--ink-1) 6%, transparent);border-bottom:1px solid color-mix(in srgb, var(--ink-1) 6%, transparent)}
+.friction-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:40px}
+.friction-card{background:var(--bg);border:1px solid color-mix(in srgb, var(--ink-1) 7%, transparent);border-radius:var(--radius-md);padding:26px}
+.friction-card b{display:block;font-family:var(--font-display);font-size:2rem;color:var(--clay);font-weight:600}
+.friction-card span{color:var(--ink-3);font-size:.92rem}
+@media(max-width:720px){.friction-grid{grid-template-columns:1fr}}
+
+/* ── Science ── */
+.science{position:relative}
+.science-intro{max-width:640px}
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin:48px 0 12px}
+.stat{background:var(--bg-elevated);border:1px solid color-mix(in srgb, var(--ink-1) 7%, transparent);border-radius:var(--radius-md);padding:22px 20px}
+.stat b{display:block;font-family:var(--font-display);font-size:2.1rem;font-weight:600;color:var(--ink-1);font-variant-numeric:tabular-nums}
+.stat b i{font-style:normal;font-size:1.2rem;color:var(--ink-3)}
+.stat > span{font-size:.84rem;color:var(--ink-3);line-height:1.45;display:block;margin-top:4px}
+@media(max-width:900px){.stat-row{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){.stat-row{grid-template-columns:1fr}}
+
+/* loop */
+.loop-block{display:grid;grid-template-columns:1.05fr .95fr;gap:44px;align-items:center;margin-top:64px}
+@media(max-width:880px){.loop-block{grid-template-columns:1fr}}
+.loop-stage{position:relative;aspect-ratio:1;max-width:460px;margin:0 auto;width:100%}
+.loop-ring{position:absolute;inset:12%;border:2px dashed rgba(27,79,74,.28);border-radius:50%}
+.loop-node{position:absolute;transform:translate(-50%,-50%);background:var(--bg-elevated);border:1.5px solid color-mix(in srgb, var(--ink-1) 14%, transparent);border-radius:999px;padding:9px 15px;font:600 .8rem var(--font-body);color:var(--ink-2);cursor:pointer;white-space:nowrap;transition:all .2s var(--ease);box-shadow:var(--shadow-soft)}
+.loop-node:hover{border-color:var(--accent);transform:translate(-50%,-50%) scale(1.05)}
+.loop-node.active{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.loop-cut{position:absolute;transform:translate(-50%,-50%) rotate(-18deg);font-size:1.5rem;opacity:0;transition:opacity .3s;pointer-events:none}
+@media(max-width:520px){.loop-node{font-size:.68rem;padding:7px 10px}.loop-stage{max-width:330px}}
+.loop-cut.show{opacity:1}
+.loop-arrow{position:absolute;font-size:.95rem;color:var(--ink-4);transform:translate(-50%,-50%);pointer-events:none}
+.loop-detail{background:var(--bg-elevated);border:1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);border-radius:var(--radius-md);padding:26px;min-height:220px}
+.loop-detail h4{font-family:var(--font-display);font-size:1.2rem;color:var(--ink-1);margin-bottom:10px}
+.loop-detail p{font-size:.94rem;color:var(--ink-3)}
+.loop-detail .evidence{margin-top:14px;padding-top:12px;border-top:1px dashed color-mix(in srgb, var(--ink-1) 12%, transparent);font-size:.8rem;color:var(--ink-4)}
+.loop-detail .evidence b{color:var(--accent);font-weight:600}
+.loop-break{margin-top:16px}
+.loop-answer{display:none;margin-top:14px;background:var(--accent-soft);border-radius:var(--radius-sm);padding:14px 16px;font-size:.88rem;color:var(--accent)}
+.loop-answer.show{display:block}
+
+/* charts */
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:64px}
+@media(max-width:880px){.charts{grid-template-columns:1fr}}
+.chart-card{background:var(--bg-elevated);border:1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);border-radius:var(--radius-md);padding:26px}
+.chart-card h4{font-family:var(--font-display);font-size:1.12rem;color:var(--ink-1);margin-bottom:4px}
+.chart-card .cap{font-size:.82rem;color:var(--ink-4);margin-bottom:20px}
+.agebar{display:grid;grid-template-columns:78px 1fr 52px;align-items:center;gap:10px;margin:12px 0}
+.agebar label{font:600 .8rem var(--font-body);color:var(--ink-3)}
+.agebar .track{height:22px;background:var(--bg-inset);border-radius:6px;overflow:hidden}
+.agebar .fill{height:100%;width:0;background:linear-gradient(90deg,var(--accent),#4d8a80);border-radius:6px;transition:width 1s var(--ease)}
+.agebar b{font:600 .84rem var(--font-mono);color:var(--ink-1);text-align:right}
+.fx{margin:14px 0}
+.fx .fx-top{display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:6px}
+.fx .fx-top span{color:var(--ink-3)}
+.fx .fx-top b{font-family:var(--font-mono);color:var(--ink-1)}
+.fx .track{height:12px;background:var(--bg-inset);border-radius:6px;overflow:hidden}
+.fx .fill{height:100%;width:0;background:var(--clay);border-radius:6px;transition:width 1.1s var(--ease)}
+.fx .maps{font-size:.76rem;color:var(--accent);margin-top:4px}
+.chart-note{font-size:.76rem;color:var(--ink-4);margin-top:16px;line-height:1.5}
+
+/* quiz */
+.quiz{margin-top:72px;background:var(--bg-elevated);border:1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);border-radius:var(--radius-lg);padding:40px;box-shadow:var(--shadow-soft)}
+.quiz-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:44px;margin-top:26px}
+@media(max-width:880px){.quiz-grid{grid-template-columns:1fr}.quiz{padding:26px}}
+.q-item{margin-bottom:22px}
+.q-item label{display:flex;justify-content:space-between;font-size:.9rem;color:var(--ink-2);margin-bottom:8px;gap:12px}
+.q-item label output{font:600 .85rem var(--font-mono);color:var(--accent);min-width:2ch;text-align:right}
+.q-item input[type=range]{width:100%;accent-color:var(--accent);height:26px}
+.gauge-wrap{text-align:center}
+.gauge{width:230px;margin:0 auto}
+.gauge .dial{fill:none;stroke:var(--bg-inset);stroke-width:16;stroke-linecap:round}
+.gauge .val{fill:none;stroke:var(--accent);stroke-width:16;stroke-linecap:round;transition:stroke-dashoffset .6s var(--ease),stroke .4s}
+.gauge-score{font-family:var(--font-display);font-size:2.6rem;font-weight:600;color:var(--ink-1);margin-top:-56px}
+.gauge-band{font:600 .9rem var(--font-body);color:var(--accent);margin-top:2px}
+.gauge-tip{margin-top:18px;text-align:left;background:var(--bg);border:1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);border-radius:var(--radius-sm);padding:16px;font-size:.87rem;color:var(--ink-3)}
+.gauge-tip b{color:var(--ink-1)}
+.quiz-disclaim{margin-top:22px;font-size:.76rem;color:var(--ink-4)}
+.sources{margin-top:56px;font-size:.76rem;color:var(--ink-4);line-height:1.8}
+.sources a{color:var(--ink-3)}
+
+/* ── Anatomy ── */
+.anatomy{background:var(--bg-elevated);border-top:1px solid color-mix(in srgb, var(--ink-1) 6%, transparent);border-bottom:1px solid color-mix(in srgb, var(--ink-1) 6%, transparent)}
+.anatomy-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-top:44px}
+@media(max-width:880px){.anatomy-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:540px){.anatomy-grid{grid-template-columns:1fr}}
+.anatomy-card b{display:block;font-family:var(--font-mono);font-size:.75rem;color:var(--clay);margin-bottom:8px}
+.anatomy-card h4{font-family:var(--font-display);font-size:1.08rem;color:var(--ink-1);margin-bottom:6px}
+.anatomy-card p{font-size:.87rem;color:var(--ink-3)}
+
+/* ── How ── */
+.how-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:44px}
+@media(max-width:760px){.how-grid{grid-template-columns:1fr}}
+.how-card{background:var(--bg-elevated);border:1px solid color-mix(in srgb, var(--ink-1) 7%, transparent);border-radius:var(--radius-md);padding:28px}
+.how-card b{font-family:var(--font-mono);font-size:.8rem;color:var(--accent)}
+.how-card h4{font-family:var(--font-display);font-size:1.2rem;color:var(--ink-1);margin:10px 0 6px}
+.how-card p{font-size:.9rem;color:var(--ink-3)}
+
+/* ── Ecosystem ── */
+.eco-row{display:flex;gap:16px;flex-wrap:wrap;margin-top:40px}
+.eco-chip{display:flex;flex-direction:column;gap:2px;border:1px solid color-mix(in srgb, var(--ink-1) 10%, transparent);background:var(--bg-elevated);border-radius:var(--radius-md);padding:18px 24px;min-width:160px}
+.eco-chip b{font-family:var(--font-display);color:var(--ink-1)}
+.eco-chip span{font-size:.78rem;color:var(--ink-4)}
+.eco-chip.now{border-color:var(--accent);background:var(--accent-soft)}
+.eco-chip.now span{color:var(--accent)}
+
+/* ── Founder ── */
+.founder{background:#1b4f4a;color:#fbfaf7}
+.founder .kicker{color:#c8e6e0}
+.founder-note{font-family:var(--font-display);font-size:clamp(1.2rem,2.4vw,1.6rem);line-height:1.55;max-width:720px;margin-top:22px;font-weight:400}
+.founder-sig{margin-top:26px;font:500 .85rem var(--font-mono);color:#c8e6e0}
+
+/* ── Pricing ── */
+.price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:44px}
+@media(max-width:880px){.price-grid{grid-template-columns:1fr}}
+.price-card{background:var(--bg-elevated);border:1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);border-radius:var(--radius-md);padding:30px;display:flex;flex-direction:column;gap:8px}
+.price-card.hot{border-color:var(--accent);box-shadow:var(--shadow-soft)}
+.price-card h4{font-family:var(--font-body);font-weight:700;font-size:.95rem;color:var(--ink-1)}
+.price-card .amt{font-family:var(--font-display);font-size:2.2rem;font-weight:600;color:var(--ink-1)}
+.price-card .amt i{font-style:normal;font-size:.85rem;color:var(--ink-4);font-family:var(--font-body)}
+.price-card p{font-size:.86rem;color:var(--ink-3);flex:1}
+.price-card .btn{justify-content:center}
+.price-note{margin-top:18px;font-size:.78rem;color:var(--ink-4)}
+
+/* ── Final CTA / Footer ── */
+.final{text-align:center;padding:110px 0}
+.final h2{font-family:var(--font-display);font-size:clamp(2rem,4.6vw,3.2rem);color:var(--ink-1);font-weight:700}
+.final h2 em{font-style:italic;color:var(--accent)}
+.final p{margin:14px 0 30px;color:var(--ink-3)}
+footer{border-top:1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);padding:44px 0;font-size:.82rem;color:var(--ink-4)}
+.foot-inner{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.foot-inner a{color:var(--ink-3);text-decoration:none;margin-right:18px}
+.foot-inner a:hover{color:var(--ink-1)}
+</style>
+</head>
+<body>
+<div class="progress" id="progress" aria-hidden="true"></div>
+
+<nav class="nav">
+  <div class="wrap nav-inner">
+    <a class="logo" href="#"><img src="assets/logo.png" alt="" width="24" height="24">Nestflow</a>
+    <div class="nav-links">
+      <a href="#science" data-i18n="nav.science">The science</a>
+      <a href="#how" data-i18n="nav.how">How</a>
+      <a href="#modules" data-i18n="nav.modules">Modules</a>
+      <a href="#pricing" data-i18n="nav.pricing">Open source</a>
+    </div>
+    <div class="nav-right">
+      <button class="lang-toggle" id="langToggle" type="button">中文</button>
+      <a class="btn btn-primary" href="https://app.nestflow.art" data-i18n="cta.open">Open Focus&amp;go</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="hero-badge" data-i18n="hero.badge">Now available · Focus&amp;go</span>
+    <h1 data-i18n-html="hero.title">Open it. Start.<br><em>That's it.</em></h1>
+    <p class="hero-sub" data-i18n="hero.sub">No setup. No streaks. No guilt. A modular workspace that's ready before you are.</p>
+    <div class="hero-ctas">
+      <a class="btn btn-primary" href="https://app.nestflow.art" data-i18n="cta.open">Open Focus&amp;go</a>
+      <a class="btn btn-ghost" href="#science" data-i18n="hero.cta2">Why starting is hard ↓</a>
+    </div>
+    <div class="shot-wrap">
+      <figure class="hero-shot reveal">
+        <div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>app.nestflow.art</span></div>
+        <video id="heroDemo" src="assets/hero-demo.mp4" poster="assets/product-dashboard.png"
+          autoplay muted loop playsinline width="1440" height="900"
+          aria-label="Focus&go demo: open the dashboard, type a task, press Enter, start the focus timer"></video>
+      </figure>
+      <div class="chip chip-timer" aria-hidden="true"><i>●</i><b id="chipTimer">25:00</b><span data-i18n="chip.focus">Focus</span></div>
+      <div class="chip chip-weather" aria-hidden="true">☀️ 27°C</div>
+      <div class="chip chip-task" aria-hidden="true">✓ <span data-i18n="chip.task">Write the launch note</span></div>
+    </div>
+    <p class="hero-note" data-i18n="hero.note">One take, no cuts: open, type a task, start. That's the whole tutorial.</p>
+  </div>
+</header>
+
+<section class="section friction">
+  <div class="wrap">
+    <span class="kicker" data-i18n="friction.kicker">The friction</span>
+    <h2 class="section-title reveal" data-i18n-html="friction.title">You don't need another tool.<br>You need to <em class="accent">start</em>.</h2>
+    <div class="friction-grid">
+      <div class="friction-card reveal"><b>30 min</b><span data-i18n="friction.a">configuring the perfect setup</span></div>
+      <div class="friction-card reveal"><b data-i18n="friction.b.num">12 tabs</b><span data-i18n="friction.b">to track one task</span></div>
+      <div class="friction-card reveal"><b data-i18n="friction.c.num">0</b><span data-i18n="friction.c">actual work done</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="marquee" aria-hidden="true">
+  <div class="marquee-track">
+    <span>Open&nbsp;·&nbsp;开始&nbsp;·&nbsp;Start&nbsp;·&nbsp;就这么简单&nbsp;·&nbsp;That's it&nbsp;·&nbsp;✳&nbsp;·&nbsp;No setup&nbsp;·&nbsp;不用配置&nbsp;·&nbsp;No guilt&nbsp;·&nbsp;没有负罪感&nbsp;·&nbsp;✳&nbsp;·&nbsp;</span>
+    <span>Open&nbsp;·&nbsp;开始&nbsp;·&nbsp;Start&nbsp;·&nbsp;就这么简单&nbsp;·&nbsp;That's it&nbsp;·&nbsp;✳&nbsp;·&nbsp;No setup&nbsp;·&nbsp;不用配置&nbsp;·&nbsp;No guilt&nbsp;·&nbsp;没有负罪感&nbsp;·&nbsp;✳&nbsp;·&nbsp;</span>
+  </div>
+</div>
+
+<section class="section science" id="science" data-ghost="01" style="overflow:hidden">
+  <span class="blob drift slow" style="width:420px;height:420px;left:-160px;top:140px;background:radial-gradient(circle,var(--sand),transparent 65%)"></span>
+  <div class="wrap">
+    <span class="kicker" data-i18n="sci.kicker">The science of starting</span>
+    <h2 class="section-title reveal" data-i18n-html="sci.title">It's not laziness.<br>It's <em class="accent">start friction</em>.</h2>
+    <p class="section-sub reveal" data-i18n="sci.intro">Research on procrastination keeps landing on the same point: people don't lack intention — they get stuck at the exact moment of beginning. Scientists call it the intention–action gap. We call it start friction, and it's the one thing this product is built to lower.</p>
+
+    <div class="stat-row">
+      <div class="stat reveal"><b data-count="20"><span class="n">0</span><i>%</i></b><span data-i18n="stat.a">of adults are chronic procrastinators</span></div>
+      <div class="stat reveal"><b data-count="75"><span class="n">0</span><i>%</i></b><span data-i18n="stat.b">of students say procrastination is habitual for them</span></div>
+      <div class="stat reveal"><b data-count="301"><span class="n">0</span><i>M</i></b><span data-i18n="stat.c">people worldwide live with an anxiety disorder (WHO, 2019)</span></div>
+      <div class="stat reveal"><b>r&nbsp;=&nbsp;.34</b><span data-i18n="stat.d">the measured link between procrastination and anxiety — 88 studies, 63,323 people</span></div>
+    </div>
+
+    <div class="loop-block">
+      <div class="loop-stage reveal" id="loopStage" role="group" aria-label="The start-friction loop">
+        <div class="loop-ring"></div>
+        <span class="loop-cut" id="loopCut" style="left:71%;top:22%">✂️</span>
+      </div>
+      <div>
+        <div class="loop-detail reveal" id="loopDetail">
+          <h4 id="loopTitle"></h4>
+          <p id="loopBody"></p>
+          <p class="evidence" id="loopEvidence"></p>
+        </div>
+        <button class="btn btn-ghost loop-break" id="loopBreak" type="button" data-i18n="loop.break">Where does Focus&amp;go cut in? ✂️</button>
+        <div class="loop-answer" id="loopAnswer" data-i18n="loop.answer">Right between "friction rises" and "you put it off" — the only point research says is both measurable and changeable in the moment. A visible timer, a smallest-first-step task field, and nothing to configure: the loop never gets its first win.</div>
+      </div>
+    </div>
+
+    <div class="charts">
+      <div class="chart-card reveal">
+        <h4 data-i18n="chart1.title">It hits younger people hardest</h4>
+        <p class="cap" data-i18n="chart1.cap">Adults reporting anxiety symptoms, by age — US national survey (CDC/NHIS 2022)</p>
+        <div class="agebar"><label>18–29</label><div class="track"><div class="fill" data-w="100"></div></div><b>26.6%</b></div>
+        <div class="agebar"><label>30–44</label><div class="track"><div class="fill" data-w="68"></div></div><b>18.1%</b></div>
+        <div class="agebar"><label>45–64</label><div class="track"><div class="fill" data-w="60"></div></div><b>15.9%</b></div>
+        <p class="chart-note" data-i18n="chart1.note">The same age gradient shows up in procrastination studies: representative community samples find it highest between 14 and 29 — exactly when the anxiety–avoidance loop is easiest to fall into.</p>
+      </div>
+      <div class="chart-card reveal">
+        <h4 data-i18n="chart2.title">What actually works</h4>
+        <p class="cap" data-i18n="chart2.cap">Effect sizes from published intervention research — and the Focus&amp;go feature each one maps to</p>
+        <div class="fx"><div class="fx-top"><span data-i18n="fx.a">If–then start plans (implementation intentions)</span><b>d = 0.65</b></div><div class="track"><div class="fill" data-w="81"></div></div><p class="maps" data-i18n="fx.a.map">→ task reminders with a concrete next step</p></div>
+        <div class="fx"><div class="fx-top"><span data-i18n="fx.b">CBT-style procrastination programs</span><b>g = 0.55</b></div><div class="track"><div class="fill" data-w="69"></div></div><p class="maps" data-i18n="fx.b.map">→ weekly recap: see the pattern, not the guilt</p></div>
+        <div class="fx"><div class="fx-top"><span data-i18n="fx.c">Low-intensity online tools (RCT, kept at 6 months)</span><b>d = 0.40</b></div><div class="track"><div class="fill" data-w="50"></div></div><p class="maps" data-i18n="fx.c.map">→ exactly the category Focus&amp;go lives in</p></div>
+        <div class="fx"><div class="fx-top"><span data-i18n="fx.d">Behavioral activation — start first, mood follows</span><b>d ≈ 0.75</b></div><div class="track"><div class="fill" data-w="94"></div></div><p class="maps" data-i18n="fx.d.map">→ one-tap Pomodoro, always in the corner</p></div>
+      </div>
+    </div>
+
+    <div class="quiz reveal" id="quiz">
+      <span class="kicker" data-i18n="quiz.kicker">60-second self-check</span>
+      <h3 class="section-title" style="font-size:clamp(1.4rem,2.6vw,1.9rem)" data-i18n="quiz.title">How heavy is your start friction?</h3>
+      <p class="section-sub" data-i18n="quiz.sub">Five sliders. No signup, nothing leaves this page.</p>
+      <div class="quiz-grid">
+        <div>
+          <div class="q-item"><label><span data-i18n="q1">When it's time to begin, how hard is it to actually start?</span><output>5</output></label><input type="range" min="0" max="10" value="5" data-q="start"></div>
+          <div class="q-item"><label><span data-i18n="q2">How often do you stall because the first step is unclear?</span><output>5</output></label><input type="range" min="0" max="10" value="5" data-q="vague"></div>
+          <div class="q-item"><label><span data-i18n="q3">After an interruption, how hard is it to get back in?</span><output>5</output></label><input type="range" min="0" max="10" value="5" data-q="restart"></div>
+          <div class="q-item"><label><span data-i18n="q4">How strong is the pull of easier things right before you start?</span><output>5</output></label><input type="range" min="0" max="10" value="5" data-q="distract"></div>
+          <div class="q-item"><label><span data-i18n="q5">How tense or anxious do you feel in the minute before starting?</span><output>5</output></label><input type="range" min="0" max="10" value="5" data-q="mood"></div>
+        </div>
+        <div class="gauge-wrap">
+          <svg class="gauge" viewBox="0 0 200 120" aria-hidden="true">
+            <path class="dial" d="M20 110 A 80 80 0 0 1 180 110"></path>
+            <path class="val" id="gaugeVal" d="M20 110 A 80 80 0 0 1 180 110"></path>
+          </svg>
+          <div class="gauge-score"><span id="gaugeNum">50</span></div>
+          <div class="gauge-band" id="gaugeBand"></div>
+          <div class="gauge-tip" id="gaugeTip"></div>
+          <a class="btn btn-primary" style="margin-top:18px" href="https://app.nestflow.art" data-i18n="quiz.cta">Try the 2-minute version — open the app</a>
+        </div>
+      </div>
+      <p class="quiz-disclaim" data-i18n="quiz.disclaim">This is a reflection tool, not a diagnosis. Focus&go is a workspace, not therapy — if anxiety is weighing on you, a professional is the right next step.</p>
+    </div>
+
+    <p class="sources reveal" data-i18n-html="sources">Sources: <a href="https://www.who.int/news-room/fact-sheets/detail/anxiety-disorders" target="_blank" rel="noopener">WHO anxiety fact sheet (2019 estimates)</a> · <a href="https://www.cdc.gov/nchs/data/nhsr/nhsr213.pdf" target="_blank" rel="noopener">CDC/NHIS 2022 anxiety symptoms</a> · <a href="https://www.frontiersin.org/journals/psychiatry/articles/10.3389/fpsyt.2025.1624094/full" target="_blank" rel="noopener">2025 meta-analysis, 88 studies (r = .34)</a> · <a href="https://link.springer.com/article/10.1186/s40359-024-01761-2" target="_blank" rel="noopener">2024 three-wave longitudinal study (β = .16)</a> · <a href="https://link.springer.com/article/10.1186/s40359-026-04221-1" target="_blank" rel="noopener">2026 adult study: task initiation predicts procrastination</a> · <a href="https://cancercontrol.cancer.gov/brp/research/constructs/implementation-intentions" target="_blank" rel="noopener">Implementation intentions (d = 0.65)</a> · <a href="https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2018.01588/full" target="_blank" rel="noopener">Psychotherapy meta-analysis (CBT g = 0.55)</a> · <a href="https://www.sciencedirect.com/science/article/pii/S221478292500079X" target="_blank" rel="noopener">2025 RCT, online intervention (d = 0.40)</a></p>
+  </div>
+</section>
+
+<section class="section anatomy" id="modules" data-ghost="02">
+  <div class="wrap">
+    <span class="kicker" data-i18n="ana.kicker">Inside Focus&amp;go</span>
+    <h2 class="section-title reveal" data-i18n-html="ana.title">Your whole day, on <em class="accent">one screen</em>.</h2>
+    <p class="section-sub reveal" data-i18n="ana.sub">Pomodoro, tasks, notes, diary, habits, calendar, projects, trips. Open the parts you need; ignore the rest.</p>
+    <div class="anatomy-grid">
+      <div class="anatomy-card reveal"><b>01</b><h4 data-i18n="ana.a.t">A morning, not a dashboard</h4><p data-i18n="ana.a.p">Big quiet clock, the date, a thought for the day. Setup is the first thing you don't see.</p></div>
+      <div class="anatomy-card reveal"><b>02</b><h4 data-i18n="ana.b.t">Tasks the way you think</h4><p data-i18n="ana.b.p">A board today, a list tomorrow, an analysis at the end of the week. Same data, three angles.</p></div>
+      <div class="anatomy-card reveal"><b>03</b><h4 data-i18n="ana.c.t">Widgets in the margin</h4><p data-i18n="ana.c.p">Weather, world clock, weekly review. Drag what helps. Hide what doesn't.</p></div>
+      <div class="anatomy-card reveal"><b>04</b><h4 data-i18n="ana.d.t">A timer one tap away</h4><p data-i18n="ana.d.p">Wherever you are in the app, the Pomodoro lives in the corner. Click to start. That's the whole tutorial.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="how" data-ghost="03">
+  <div class="wrap">
+    <span class="kicker" data-i18n="how.kicker">How it works</span>
+    <h2 class="section-title reveal" data-i18n="how.title">Three steps. None of them are setup.</h2>
+    <div class="how-grid">
+      <div class="how-card reveal"><b>01</b><h4 data-i18n="how.a.t">Open</h4><p data-i18n="how.a.p">Nothing to configure. The dashboard is already a workspace.</p></div>
+      <div class="how-card reveal"><b>02</b><h4 data-i18n="how.b.t">Pick one thing</h4><p data-i18n="how.b.p">Start a timer. Write a line. Check off a task. Whatever's lightest.</p></div>
+      <div class="how-card reveal"><b>03</b><h4 data-i18n="how.c.t">Come back tomorrow</h4><p data-i18n="how.c.p">Nothing's lost. Nothing's demanding. It's just there.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" style="padding-top:0">
+  <div class="wrap">
+    <span class="kicker" data-i18n="eco.kicker">The Nestflow ecosystem</span>
+    <h2 class="section-title reveal" data-i18n="eco.title">One workspace. More modules over time.</h2>
+    <div class="eco-row">
+      <div class="eco-chip now reveal"><b>Focus&amp;go</b><span data-i18n="eco.now">Available now</span></div>
+      <div class="eco-chip reveal"><b>Notes&amp;go</b><span data-i18n="eco.preview">In preview</span></div>
+      <div class="eco-chip reveal"><b>Track&amp;go</b><span>2026 Q3</span></div>
+      <div class="eco-chip reveal"><b>?</b><span data-i18n="eco.tell"><a href="mailto:support@nestflow.art?subject=Nestflow%20module%20idea" style="text-decoration:none">Tell us</a></span></div>
+    </div>
+  </div>
+</section>
+
+<section class="section founder">
+  <div class="wrap">
+    <span class="kicker" data-i18n="founder.kicker">Why this exists</span>
+    <p class="founder-note reveal" data-i18n="founder.note">"I didn't build Focus&go to sell productivity. I built it because I kept losing my mornings to tools that asked me to design a system before I could write a single line. Every feature here exists because I needed it on an actual Tuesday. If it ever asks you to configure something before you can start, I've failed."</p>
+    <p class="founder-sig" data-i18n="founder.sig">— the person who opens it every morning</p>
+  </div>
+</section>
+
+<section class="section" id="pricing" data-ghost="04" style="overflow:hidden">
+  <span class="blob drift" style="width:380px;height:380px;right:-140px;top:60px;background:radial-gradient(circle,var(--sage),transparent 65%)"></span>
+  <div class="wrap">
+    <span class="kicker" data-i18n="price.kicker">Open source</span>
+    <h2 class="section-title reveal" data-i18n="price.title">Every current feature is free.</h2>
+    <div class="price-grid">
+      <div class="price-card reveal">
+        <h4 data-i18n="price.free.t">Free, local-first</h4>
+        <div class="amt">$0</div>
+        <p data-i18n="price.free.p">Use every feature without an account. Your data stays on your device unless you choose to sign in for official cloud sync.</p>
+        <a class="btn btn-ghost" href="https://app.nestflow.art" data-i18n="price.free.cta">Open the app</a>
+      </div>
+      <div class="price-card hot reveal">
+        <span class="hot-badge" data-i18n="price.badge">✳ Included</span>
+        <h4 data-i18n="price.sync.t">Cloud sync</h4>
+        <div class="amt">250 MiB</div>
+        <p data-i18n="price.sync.p">Sign in only when you want official cloud sync. It is free, private to your account, and has a 250 MiB storage allowance.</p>
+        <a class="btn btn-primary" href="https://app.nestflow.art" data-i18n="price.sync.cta">Sync your workspace</a>
+      </div>
+      <div class="price-card reveal">
+        <h4 data-i18n="price.support.t">Support the project</h4>
+        <div class="amt">♥</div>
+        <p data-i18n="price.support.p">Optional sponsorship helps maintain the project. It never unlocks features or changes your storage allowance.</p>
+        <a class="btn btn-ghost" href="https://app.nestflow.art/support" data-i18n="price.support.cta">Support Focus&amp;go</a>
+      </div>
+    </div>
+    <p class="price-note" data-i18n="price.note">Focus&amp;go is MIT-licensed. You can inspect, contribute to, or self-host the Web and API code.</p>
+  </div>
+</section>
+
+<section class="final">
+  <div class="wrap">
+    <h2 class="reveal" data-i18n-html="final.title">Stop configuring.<br>Start <em>working</em>.</h2>
+    <p class="reveal" data-i18n="final.sub">No signup wall. Your data stays in your browser until you choose to sync.</p>
+    <a class="btn btn-primary reveal" href="https://app.nestflow.art" data-i18n="cta.open">Open Focus&amp;go</a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-inner">
+    <span data-i18n="foot.tag">© <span id="year">2026</span> Nestflow. A calm place to work.</span>
+    <span>
+      <a href="https://app.nestflow.art/workspace/settings/legal/privacy-policy" data-i18n="foot.privacy">Privacy</a>
+      <a href="https://app.nestflow.art/workspace/settings/legal/terms-of-service" data-i18n="foot.terms">Terms</a>
+      <a href="mailto:support@nestflow.art" data-i18n="foot.contact">Contact</a>
+    </span>
+  </div>
+  <div class="wrap"><div class="watermark" aria-hidden="true">Nestflow</div></div>
+</footer>
+
+<div class="ck" id="ck" hidden>
+  <button class="ck-backdrop" id="ckBackdrop" aria-label="Close"></button>
+  <div class="ck-panel" role="dialog" aria-modal="true" aria-label="Command palette preview">
+    <div class="ck-input" aria-hidden="true">
+      <span>⌕</span>
+      <span class="ck-ph" data-i18n="ck.ph">In the app, this searches everything — or captures a task.</span>
+      <kbd>⌘K</kbd>
+    </div>
+    <p class="ck-msg" data-i18n="ck.msg">See? You already know how to use it.</p>
+    <a class="btn btn-primary" href="https://app.nestflow.art" data-i18n="ck.cta">Open the real one →</a>
+  </div>
+</div>
+
+<script>
+document.documentElement.classList.add('js');
+
+/* ── i18n ─────────────────────────────────────────────────────── */
+const ZH = {
+  'nav.science':'启动的科学','nav.how':'怎么用','nav.modules':'模块','nav.pricing':'开源',
+  'cta.open':'打开 Focus&go',
+  'hero.badge':'现已可用 · Focus&go 模块',
+  'hero.title':'打开。开始。<br><em>就这么简单。</em>',
+  'hero.sub':'不用配置，没有连胜打卡，没有负罪感。一个先于你准备好的模块化工作台。',
+  'hero.cta2':'为什么"开始"这么难 ↓',
+  'hero.note':'一镜到底：打开、输入任务、开始。整个教程就这么长。',
+  'friction.kicker':'那种熟悉的卡住',
+  'friction.title':'你缺的不是又一个工具，<br>是<em class="accent">开始</em>。',
+  'friction.a':'花在"搭完美系统"上','friction.b.num':'12 个标签页','friction.b':'只为追踪一件事','friction.c.num':'0','friction.c':'真正做完的工作',
+  'sci.kicker':'启动的科学',
+  'sci.title':'那不是懒。<br>是<em class="accent">启动阻力</em>。',
+  'sci.intro':'拖延研究反复指向同一个结论：人缺的不是意愿，而是卡在"开始"的那一瞬间。学术上叫"意图—行动缺口"，我们叫它启动阻力——这个产品就是为降低它而造的。',
+  'stat.a':'的成年人属于慢性拖延者','stat.b':'的学生承认拖延已成习惯','stat.c':'人正与焦虑障碍共处（WHO，2019）','stat.d':'拖延与焦虑的实测相关——88 项研究、63,323 人',
+  'loop.break':'Focus&go 从哪里剪断它？✂️',
+  'loop.answer':'就在"阻力升高"和"再拖一下"之间——研究表明这是整个循环里唯一既可测量、又能当场改变的节点。一个看得见的计时器、一个"最小第一步"输入框、零配置：这个循环拿不到它的第一次得逞。',
+  'chart1.title':'它对年轻人下手最重',
+  'chart1.cap':'报告焦虑症状的成年人比例，按年龄 — 美国全国调查（CDC/NHIS 2022）',
+  'chart1.note':'拖延研究里有同样的年龄梯度：代表性社区样本发现 14–29 岁最高——恰好是最容易掉进"焦虑—回避"循环的年纪。',
+  'chart2.title':'什么真的有用',
+  'chart2.cap':'已发表干预研究的效应量——以及每一条对应的 Focus&go 功能',
+  'fx.a':'如果—那么启动计划（实施意向）','fx.a.map':'→ 带具体下一步的任务提醒',
+  'fx.b':'CBT 取向的拖延干预','fx.b.map':'→ 周回顾：看见规律，而不是内疚',
+  'fx.c':'低强度在线工具（RCT，效果维持 6 个月）','fx.c.map':'→ Focus&go 正属于这一类',
+  'fx.d':'行为激活——先开始，情绪跟上','fx.d.map':'→ 一键番茄钟，永远在角落',
+  'quiz.kicker':'60 秒自测',
+  'quiz.title':'你的启动阻力有多重？',
+  'quiz.sub':'五个滑块。不用注册，数据不离开这个页面。',
+  'q1':'到了该开始的时候，真正动手有多难？',
+  'q2':'多少次卡住是因为不知道第一步是什么？',
+  'q3':'被打断之后，重新进入状态有多难？',
+  'q4':'开始前一刻，更轻松的事对你的引力有多强？',
+  'q5':'开始前的那一分钟，你有多紧绷/焦虑？',
+  'quiz.cta':'试试 2 分钟版本——打开应用',
+  'quiz.disclaim':'这是一个自我觉察工具，不是诊断。Focus&go 是工作台，不是心理治疗——如果焦虑已让你难以负荷，寻求专业帮助才是对的下一步。',
+  'sources':'数据来源：<a href="https://www.who.int/news-room/fact-sheets/detail/anxiety-disorders" target="_blank" rel="noopener">WHO 焦虑障碍概况（2019 估计）</a> · <a href="https://www.cdc.gov/nchs/data/nhsr/nhsr213.pdf" target="_blank" rel="noopener">CDC/NHIS 2022 焦虑症状</a> · <a href="https://www.frontiersin.org/journals/psychiatry/articles/10.3389/fpsyt.2025.1624094/full" target="_blank" rel="noopener">2025 元分析，88 项研究（r = .34）</a> · <a href="https://link.springer.com/article/10.1186/s40359-024-01761-2" target="_blank" rel="noopener">2024 三波纵向研究（β = .16）</a> · <a href="https://link.springer.com/article/10.1186/s40359-026-04221-1" target="_blank" rel="noopener">2026 成人研究：任务启动预测拖延</a> · <a href="https://cancercontrol.cancer.gov/brp/research/constructs/implementation-intentions" target="_blank" rel="noopener">实施意向（d = 0.65）</a> · <a href="https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2018.01588/full" target="_blank" rel="noopener">心理治疗元分析（CBT g = 0.55）</a> · <a href="https://www.sciencedirect.com/science/article/pii/S221478292500079X" target="_blank" rel="noopener">2025 RCT，在线干预（d = 0.40）</a>',
+  'ana.kicker':'Focus&go 内部',
+  'ana.title':'你的一整天，在<em class="accent">同一块屏幕</em>上。',
+  'ana.sub':'番茄钟、任务、笔记、日记、习惯、日历、项目、旅行。打开需要的部分，无视其余。',
+  'ana.a.t':'一个早晨，而不是仪表盘','ana.a.p':'安静的大时钟、日期、今日一句。"配置"是你第一个看不到的东西。',
+  'ana.b.t':'按你思考的方式管任务','ana.b.p':'今天是看板，明天是列表，周末是分析。同一份数据，三个视角。',
+  'ana.c.t':'边栏里的小部件','ana.c.p':'天气、世界时钟、周回顾。有用的拖过来，没用的藏起来。',
+  'ana.d.t':'一步之遥的计时器','ana.d.p':'无论在应用哪里，番茄钟都在角落。点击开始——教程到此结束。',
+  'how.kicker':'怎么用',
+  'how.title':'三步。没有一步是配置。',
+  'how.a.t':'打开','how.a.p':'没有要设置的东西。仪表盘本身就是工作台。',
+  'how.b.t':'挑一件事','how.b.p':'开个计时器，写一行字，勾掉一个任务。哪个最轻就从哪个开始。',
+  'how.c.t':'明天再来','how.c.p':'什么都不会丢，什么都不催你。它就在那里。',
+  'eco.kicker':'Nestflow 生态',
+  'eco.title':'一个工作台，模块逐步生长。',
+  'eco.now':'现已可用','eco.preview':'预览中','eco.tell':'<a href="mailto:support@nestflow.art?subject=Nestflow%20module%20idea" style="text-decoration:none">告诉我们</a>',
+  'founder.kicker':'它为什么存在',
+  'founder.note':'"我做 Focus&go 不是为了贩卖效率。是因为我受够了那些让我先设计一套系统、才允许我写下第一行字的工具。这里的每个功能，都是因为我在某个真实的周二早晨需要它。如果它哪天要求你先配置才能开始——那就是我失败了。"',
+  'founder.sig':'—— 每天早上打开它的那个人',
+  'price.kicker':'开源',
+  'price.title':'所有当前功能，全部免费。',
+  'price.free.t':'免费，本地优先','price.free.p':'无需账号即可使用所有功能。只有你选择登录使用官方云同步时，数据才会离开设备。','price.free.cta':'打开应用',
+  'price.sync.t':'云同步','price.sync.p':'只在需要官方云同步时登录。它免费、仅属于你的账号，并提供 250 MiB 存储额度。','price.sync.cta':'同步工作台',
+  'price.support.t':'支持项目','price.support.p':'可选赞助帮助项目持续维护，不会解锁功能，也不会改变你的存储额度。','price.support.cta':'支持 Focus&go',
+  'price.note':'Focus&go 采用 MIT 许可。你可以查看、贡献，或自行部署 Web 与 API 代码。',
+  'final.title':'别再配置了。<br>开始<em>工作</em>。',
+  'final.sub':'没有注册墙。在你选择同步之前，数据只存在你的浏览器里。',
+  'foot.tag':'© 2026 Nestflow。一个安静的工作之地。',
+  'foot.privacy':'隐私政策','foot.terms':'服务条款','foot.contact':'联系我们',
+  'chip.focus':'专注','chip.task':'写发布随笔','price.badge':'✳ 已包含',
+  'ck.ph':'在应用里，这样搜索一切——或者直接记下一个任务。',
+  'ck.msg':'看，你已经会用这个产品了。',
+  'ck.cta':'打开真正的它 →',
+};
+
+const LOOP_NODES = [
+  {id:'vague', x:50, y:6,  en:'Task feels vague & heavy', zh:'任务又大又模糊',
+   ben:'The single most robust predictor of procrastination is how aversive and unclear a task feels. You are not avoiding work — you are avoiding not knowing where to cut in.',
+   bzh:'拖延最稳健的预测因素，是任务让人多不舒服、多不清晰。你回避的不是工作本身，而是"不知道从哪一刀切下去"。',
+   een:'Task aversiveness correlates with procrastination at r ≈ .40; in one experience-sampling study, ~30% of planned study sessions were procrastinated when tasks felt ambiguous.',
+   ezh:'任务厌恶性与拖延相关约 r ≈ .40；一项体验取样研究中，任务模糊时约 30% 的预定学习会话最终被拖延。'},
+  {id:'friction', x:91, y:38, en:'Start friction rises', zh:'启动阻力升高',
+   ben:'Between intending and doing sits a threshold. Research on executive function calls it task initiation — and in adults, self-reported initiation difficulty predicts procrastination better than any lab test.',
+   bzh:'在"想做"与"做"之间隔着一道门槛。执行功能研究称之为任务启动——在成人样本里，自报的启动困难比任何实验室测验都更能预测拖延。',
+   een:'A 2026 adult study: the BRIEF-A Initiate subscale was among the strongest predictors; the model explained 55% of procrastination variance. Lab tasks showed no significant link.',
+   ezh:'2026 年成人研究：BRIEF-A"启动"分量表是最强预测因子之一，模型解释了 55% 的拖延方差；实验室任务与拖延无显著关联。'},
+  {id:'delay', x:79, y:84, en:'You put it off — instant relief', zh:'再拖一下——瞬间轻松',
+   ben:'Walking away feels good immediately. That relief is the trap: it rewards avoidance, so next time the threshold is a little higher.',
+   bzh:'逃开的那一刻确实很舒服。而这份舒服正是陷阱：它奖励了回避，于是下一次门槛又高了一点。',
+   een:'Functional analyses show escape from an aversive task brings immediate mood repair, negatively reinforcing the avoidance loop (Svartdal et al., 2022).',
+   ezh:'功能分析表明，逃离厌恶任务会带来即时情绪修复，从而对回避回路形成负强化（Svartdal 等，2022）。'},
+  {id:'pile', x:21, y:84, en:'Tasks pile up, guilt grows', zh:'任务堆积，内疚滋长',
+   ben:'The task did not disappear. It sits there collecting weight — unfinished work, self-blame, a shrinking sense of control.',
+   bzh:'任务并没有消失。它留在原地越变越重——没做完的事、自责、以及不断缩水的掌控感。',
+   een:'Longitudinal work (2024, three waves, 392 students): procrastination predicts later anxiety/depression symptoms, β = 0.16, p < .001.',
+   ezh:'纵向研究（2024，三波测量，392 名大学生）：拖延显著预测后续焦虑/抑郁症状，β = 0.16，p < .001。'},
+  {id:'anx', x:9, y:38, en:'Anxiety climbs', zh:'焦虑上升',
+   ben:'Anxiety is both a consequence and a cause: it makes the next start feel heavier, closing the loop. Which is why "just try harder" never works — the loop has to be cut, not pushed through.',
+   bzh:'焦虑既是结果也是原因：它让下一次开始显得更沉重，于是回路闭合。这就是为什么"再努力一点"从来没用——回路需要被剪断，而不是被硬闯。',
+   een:'2025 meta-analysis (88 studies, N = 63,323): procrastination × anxiety r = .338 — and negative emotion predicts future procrastination in turn.',
+   ezh:'2025 元分析（88 项研究，N = 63,323）：拖延与焦虑 r = .338——而负性情绪也会反过来预测未来的拖延。'},
+];
+
+const BANDS = {
+  en:[[25,'Light','Your starts are mostly frictionless. The dashboard will feel like home.'],
+      [50,'Noticeable','You lose real minutes at the threshold. A visible first step is your lever.'],
+      [75,'Heavy','The loop is taking a toll. Shrink every task to a two-minute first move.'],
+      [101,'In the loop','This is exactly the pattern the research describes — and the one this product exists for. Start with one timer, today.']],
+  zh:[[25,'轻微','你的启动大多顺滑。仪表盘会让你觉得像回家。'],
+      [50,'有感','你确实在门槛上流失时间。"看得见的第一步"是你的杠杆。'],
+      [75,'沉重','循环已经在消耗你。把每件事都缩成两分钟的第一步。'],
+      [101,'循环之中','这正是研究描述的模式——也正是这个产品存在的原因。今天，从一个计时器开始。']]
+};
+const TIPS = {
+  start:  {en:'Highest friction: <b>beginning itself</b>. Try the one-tap Pomodoro — starting the timer counts as starting.', zh:'阻力最高的一项：<b>动手本身</b>。试试一键番茄钟——按下计时就算开始。'},
+  vague:  {en:'Highest friction: <b>unclear first steps</b>. The quick-add field is built for "smallest possible move".', zh:'阻力最高的一项：<b>第一步不清晰</b>。快速添加框就是为"最小的一步"设计的。'},
+  restart:{en:'Highest friction: <b>getting back in</b>. Your board keeps yesterday exactly where you left it — re-entry is one glance.', zh:'阻力最高的一项：<b>重新进入</b>。看板把昨天原样留在原地——回来只需要看一眼。'},
+  distract:{en:'Highest friction: <b>the pull of easier things</b>. One screen, no feeds, nothing to scroll. The app is deliberately boring everywhere except your work.', zh:'阻力最高的一项：<b>更轻松事物的引力</b>。一块屏幕，没有信息流，没有可刷的东西。除了你的工作，这个应用处处刻意无聊。'},
+  mood:   {en:'Highest friction: <b>pre-start tension</b>. Try the ambient scenes and diary — name the feeling, then start small.', zh:'阻力最高的一项：<b>开始前的紧绷</b>。试试环境音场景和日记——先给情绪命名，再从小处开始。'}
+};
+
+let lang = localStorage.getItem('nestflow.lang') || (navigator.language||'').toLowerCase().startsWith('zh') ? (localStorage.getItem('nestflow.lang')||'zh') : (localStorage.getItem('nestflow.lang')||'en');
+const EN_CACHE = {};
+function applyLang(){
+  document.documentElement.lang = lang==='zh'?'zh-CN':'en';
+  document.body.classList.toggle('zh', lang==='zh');
+  document.getElementById('langToggle').textContent = lang==='zh' ? 'EN' : '中文';
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const k=el.getAttribute('data-i18n');
+    if(!(k in EN_CACHE)) EN_CACHE[k]=el.innerHTML;
+    if(lang==='zh' && ZH[k]!==undefined) el.innerHTML=ZH[k]; else if(lang==='en') el.innerHTML=EN_CACHE[k];
+  });
+  document.querySelectorAll('[data-i18n-html]').forEach(el=>{
+    const k=el.getAttribute('data-i18n-html');
+    if(!(k in EN_CACHE)) EN_CACHE[k]=el.innerHTML;
+    if(lang==='zh' && ZH[k]!==undefined) el.innerHTML=ZH[k]; else if(lang==='en') el.innerHTML=EN_CACHE[k];
+  });
+  renderLoopNodes(); renderQuiz();
+  document.title = lang==='zh' ? 'Nestflow — 打开。开始。就这么简单。' : "Nestflow — Open it. Start. That's it.";
+}
+document.getElementById('langToggle').addEventListener('click',()=>{ lang = lang==='zh'?'en':'zh'; localStorage.setItem('nestflow.lang',lang); applyLang(); });
+
+/* ── Loop diagram ─────────────────────────────────────────────── */
+const stage=document.getElementById('loopStage');
+let activeNode = 'friction';
+function renderLoopNodes(){
+  stage.querySelectorAll('.loop-node,.loop-arrow').forEach(n=>n.remove());
+  const arrows=[[71,14],[93,62],[50,96],[7,62],[22,14]];
+  arrows.forEach(([x,y],i)=>{ const a=document.createElement('span'); a.className='loop-arrow'; a.textContent='➤'; a.style.left=x+'%'; a.style.top=y+'%';
+    const angles={ '71,14':35,'93,62':115,'50,96':180,'7,62':245,'22,14':305 };
+    a.style.transform=`translate(-50%,-50%) rotate(${angles[x+','+y]}deg)`;
+    a.style.animationDelay=(i*.5)+'s';
+    stage.appendChild(a); });
+  LOOP_NODES.forEach(n=>{
+    const b=document.createElement('button'); b.type='button'; b.className='loop-node'+(n.id===activeNode?' active':'');
+    b.textContent = lang==='zh'?n.zh:n.en; b.style.left=n.x+'%'; b.style.top=n.y+'%';
+    b.addEventListener('click',()=>{ activeNode=n.id; renderLoopNodes(); });
+    stage.appendChild(b);
+  });
+  const n=LOOP_NODES.find(x=>x.id===activeNode);
+  document.getElementById('loopTitle').textContent = lang==='zh'?n.zh:n.en;
+  document.getElementById('loopBody').textContent = lang==='zh'?n.bzh:n.ben;
+  document.getElementById('loopEvidence').innerHTML = '<b>'+(lang==='zh'?'证据':'Evidence')+'</b> · '+(lang==='zh'?n.ezh:n.een);
+}
+document.getElementById('loopBreak').addEventListener('click',()=>{
+  document.getElementById('loopCut').classList.toggle('show');
+  document.getElementById('loopAnswer').classList.toggle('show');
+});
+
+/* ── Quiz ─────────────────────────────────────────────────────── */
+const gaugeVal=document.getElementById('gaugeVal');
+const GAUGE_LEN = gaugeVal.getTotalLength ? gaugeVal.getTotalLength() : 251;
+gaugeVal.style.strokeDasharray=GAUGE_LEN;
+function renderQuiz(){
+  const sliders=[...document.querySelectorAll('#quiz input[type=range]')];
+  let sum=0, top=null, topVal=-1;
+  sliders.forEach(s=>{ const v=+s.value; sum+=v; s.closest('.q-item').querySelector('output').textContent=v;
+    if(v>topVal){topVal=v; top=s.dataset.q;} });
+  const score=Math.round(sum/ sliders.length *10);
+  document.getElementById('gaugeNum').textContent=score;
+  gaugeVal.style.strokeDashoffset = GAUGE_LEN*(1-score/100);
+  gaugeVal.style.stroke = score>75?'#a85245':score>50?'#b58a3a':'var(--accent)';
+  const bands=BANDS[lang==='zh'?'zh':'en'];
+  const band=bands.find(b=>score<b[0]);
+  document.getElementById('gaugeBand').textContent=band[1];
+  document.getElementById('gaugeTip').innerHTML = band[2] + '<br><br>' + (TIPS[top]?.[lang==='zh'?'zh':'en'] ?? '');
+}
+document.querySelectorAll('#quiz input[type=range]').forEach(s=>s.addEventListener('input',renderQuiz));
+
+/* ── Reveal + charts + counters ───────────────────────────────── */
+const io=new IntersectionObserver(es=>es.forEach(e=>{
+  if(!e.isIntersecting) return;
+  e.target.classList.add('in');
+  e.target.querySelectorAll('.fill').forEach(f=>{ f.style.width=f.dataset.w+'%'; });
+  e.target.querySelectorAll('[data-count]').forEach(c=>{
+    const end=+c.dataset.count, n=c.querySelector('.n'); if(!n||n.dataset.done) return; n.dataset.done=1;
+    const t0=performance.now(), dur=1200;
+    const step=t=>{ const p=Math.min(1,(t-t0)/dur); n.textContent=Math.round(end*(1-Math.pow(1-p,3))); if(p<1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  });
+  io.unobserve(e.target);
+},{threshold:.18}));
+document.querySelectorAll('.reveal,.chart-card,.stat').forEach(el=>io.observe(el));
+
+/* ── Decorative layer ─────────────────────────────────────────── */
+const prog=document.getElementById('progress');
+addEventListener('scroll',()=>{ const h=document.documentElement;
+  prog.style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%'; },{passive:true});
+setTimeout(()=>document.documentElement.classList.add('ink'),80);
+/* respect reduced motion: freeze the hero video on its poster-like first frame */
+if(matchMedia('(prefers-reduced-motion: reduce)').matches){
+  const v=document.getElementById('heroDemo'); if(v){ v.removeAttribute('autoplay'); v.pause(); }
+}
+(function(){ const el=document.getElementById('chipTimer'); if(!el) return; let s=25*60;
+  setInterval(()=>{ s=s>0?s-1:25*60;
+    el.textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); },1000);
+})();
+
+/* scrollspy */
+const spyLinks=[...document.querySelectorAll('.nav-links a[href^="#"]')];
+const spy=new IntersectionObserver(es=>{
+  es.forEach(e=>{ if(!e.isIntersecting) return;
+    spyLinks.forEach(l=>l.classList.toggle('active', l.getAttribute('href')==='#'+e.target.id)); });
+},{rootMargin:'-30% 0px -60% 0px'});
+['science','how','modules','pricing'].forEach(id=>{ const s=document.getElementById(id); if(s) spy.observe(s); });
+
+/* ⌘K easter egg */
+const ck=document.getElementById('ck');
+addEventListener('keydown',e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){ e.preventDefault(); ck.hidden=!ck.hidden; }
+  if(e.key==='Escape') ck.hidden=true;
+});
+document.getElementById('ckBackdrop').addEventListener('click',()=>{ ck.hidden=true; });
+
+document.getElementById('year').textContent=new Date().getFullYear();
+applyLang();
+</script>
+</body>
+</html>

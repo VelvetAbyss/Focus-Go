@@ -1,0 +1,55 @@
+name: OSS Release Backup
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      APP_NAME: focus-go
+      OSS_PREFIX: releases
+      OSS_BUCKET: ${{ secrets.OSS_BUCKET }}
+      OSS_ENDPOINT: ${{ secrets.OSS_ENDPOINT }}
+      OSS_ACCESS_KEY_ID: ${{ secrets.OSS_ACCESS_KEY_ID }}
+      OSS_ACCESS_KEY_SECRET: ${{ secrets.OSS_ACCESS_KEY_SECRET }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build app
+        run: npm run build
+
+      - name: Prepare release metadata
+        run: |
+          echo "RELEASE_DATE=$(date -u +%F)" >> "$GITHUB_ENV"
+          echo "GIT_SHA=$(git rev-parse --short=12 HEAD)" >> "$GITHUB_ENV"
+
+      - name: Install ossutil
+        run: |
+          curl -fsSL https://gosspublic.alicdn.com/ossutil/1.7.16/ossutil64 -o ossutil64
+          chmod +x ossutil64
+          ./ossutil64 --version
+
+      - name: Bundle release assets
+        run: npm run release:bundle
+
+      - name: Upload to OSS
+        run: npm run release:oss:upload
+
+      - name: Verify uploaded release
+        run: npm run release:oss:verify

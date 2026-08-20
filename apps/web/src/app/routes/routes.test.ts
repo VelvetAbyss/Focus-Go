@@ -1,0 +1,36 @@
+import { describe, expect, it } from 'vitest'
+import { BASE_NAV_ITEMS, LEGACY_ROUTES, ROUTES, buildTripDetailRoute } from './routes'
+
+describe('routes config', () => {
+  it('defines note, labs, and habits routes', () => {
+    expect(ROUTES.NOTE).toBe('/note')
+    expect(ROUTES.LABS).toBe('/labs')
+    expect(ROUTES.HABITS).toBe('/habits')
+    expect(ROUTES.PROJECTS).toBe('/projects')
+  })
+
+  it('keeps dashboard first in base nav', () => {
+    expect(BASE_NAV_ITEMS[0]?.key).toBe('dashboard')
+  })
+
+  it('keeps only the supported primary modules in navigation', () => {
+    expect(BASE_NAV_ITEMS.map((item) => item.key)).toEqual([
+      'dashboard',
+      'timeline',
+      'tasks',
+      'note',
+      'calendar',
+      'trips',
+      'focus',
+      'diary',
+      'membership',
+      'settings',
+    ])
+    expect(LEGACY_ROUTES.KNOWLEDGE).toBe('/knowledge')
+  })
+
+  it('builds a trip detail route from a trip id', () => {
+    expect(ROUTES.TRIP_DETAIL).toBe('/trips/:tripId')
+    expect(buildTripDetailRoute('trip_123')).toBe('/trips/trip_123')
+  })
+})

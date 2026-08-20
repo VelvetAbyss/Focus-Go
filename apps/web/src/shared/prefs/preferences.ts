@@ -1,0 +1,273 @@
+export const NUMBER_ANIMATIONS_ENABLED_KEY = 'workbench.numberAnimations.enabled'
+export const UI_ANIMATIONS_ENABLED_KEY = 'workbench.uiAnimations.enabled'
+export const DEFAULT_CURRENCY_KEY = 'workbench.spend.defaultCurrency'
+export const WEATHER_AUTO_LOCATION_KEY = 'workbench.weather.autoLocation'
+export const WEATHER_MANUAL_CITY_KEY = 'workbench.weather.manualCity'
+export const WEATHER_TEMP_UNIT_KEY = 'workbench.weather.temperatureUnit'
+export const WEATHER_LAST_LOCATION_KEY = 'workbench.weather.lastLocation'
+export const WORLD_CLOCK_ITEMS_KEY = 'workbench.dashboard.worldClockItems'
+export const FOCUS_COMPLETION_SOUND_ENABLED_KEY = 'workbench.focus.completionSound.enabled'
+export const TASK_REMINDER_ENABLED_KEY = 'focusgo.tasks.reminder.enabled.v1'
+export const TASK_REMINDER_LEAD_MINUTES_KEY = 'focusgo.tasks.reminder.leadMinutes.v1'
+export const LANGUAGE_KEY = 'workbench.ui.language'
+export const DIARY_FONT_KEY = 'focusgo.diary.font.v1'
+export const NETEASE_EXPERIMENTAL_PLAYBACK_ENABLED_KEY = 'focusgo.podcast.neteaseExperimentalPlayback.enabled'
+export const NETEASE_EXPERIMENTAL_PLAYBACK_CONFIRMED_KEY = 'focusgo.podcast.neteaseExperimentalPlayback.confirmed'
+
+export type DiaryFontId =
+  | 'fraunces'
+  | 'lora'
+  | 'playfair'
+  | 'crimson'
+  | 'noto-serif-sc'
+  | 'zcool-xiaowei'
+  | 'ma-shan-zheng'
+  | 'liu-jian-mao-cao'
+  | 'zcool-kuaile'
+  | 'long-cang'
+
+const DIARY_FONT_IDS: DiaryFontId[] = [
+  'fraunces', 'lora', 'playfair', 'crimson', 'noto-serif-sc',
+  'zcool-xiaowei', 'ma-shan-zheng', 'liu-jian-mao-cao', 'zcool-kuaile', 'long-cang',
+]
+
+export function readDiaryFont(): DiaryFontId {
+  const raw = localStorage.getItem(DIARY_FONT_KEY)
+  if (raw && (DIARY_FONT_IDS as string[]).includes(raw)) return raw as DiaryFontId
+  return 'fraunces'
+}
+
+export function writeDiaryFont(id: DiaryFontId) {
+  localStorage.setItem(DIARY_FONT_KEY, id)
+}
+
+export type CurrencyCode = 'CNY' | 'USD'
+export type TemperatureUnit = 'celsius' | 'fahrenheit'
+export type LanguageCode = import('../i18n/types').LanguageCode
+export type WeatherStoredLocation = {
+  name: string
+  latitude: number
+  longitude: number
+}
+
+export type WorldClockItem = {
+  id: string
+  label: string
+  searchValue: string
+  latitude: number
+  longitude: number
+  timeZone: string
+}
+
+export const DEFAULT_WORLD_CLOCK_ITEMS: WorldClockItem[] = [
+  {
+    id: 'Los Angeles, United States:America/Los_Angeles',
+    label: 'Los Angeles, United States',
+    searchValue: 'Los Angeles, United States',
+    latitude: 34.05223,
+    longitude: -118.24368,
+    timeZone: 'America/Los_Angeles',
+  },
+  {
+    id: 'New York, United States:America/New_York',
+    label: 'New York, United States',
+    searchValue: 'New York, United States',
+    latitude: 40.71427,
+    longitude: -74.00597,
+    timeZone: 'America/New_York',
+  },
+  {
+    id: 'Vancouver, Canada:America/Vancouver',
+    label: 'Vancouver, Canada',
+    searchValue: 'Vancouver, British Columbia, Canada',
+    latitude: 49.24966,
+    longitude: -123.11934,
+    timeZone: 'America/Vancouver',
+  },
+]
+
+export function detectBrowserLanguage(raw: string | string[]): LanguageCode {
+  const first = Array.isArray(raw) ? raw.find((item) => typeof item === 'string' && item.trim().length > 0) : raw
+  if (typeof first !== 'string') return 'en'
+  const normalized = first.trim().toLowerCase()
+  if (normalized.startsWith('zh')) return 'zh'
+  return 'en'
+}
+
+export function readNumberAnimationsEnabled(): boolean {
+  const raw = localStorage.getItem(NUMBER_ANIMATIONS_ENABLED_KEY)
+  if (raw === null) return true
+  return raw === 'true'
+}
+
+export function writeNumberAnimationsEnabled(enabled: boolean) {
+  localStorage.setItem(NUMBER_ANIMATIONS_ENABLED_KEY, enabled ? 'true' : 'false')
+}
+
+export function readUiAnimationsEnabled(): boolean {
+  const raw = localStorage.getItem(UI_ANIMATIONS_ENABLED_KEY)
+  if (raw === null) return true
+  return raw === 'true'
+}
+
+export function writeUiAnimationsEnabled(enabled: boolean) {
+  localStorage.setItem(UI_ANIMATIONS_ENABLED_KEY, enabled ? 'true' : 'false')
+}
+
+export function readDefaultCurrency(): CurrencyCode {
+  const raw = localStorage.getItem(DEFAULT_CURRENCY_KEY)
+  if (raw === 'CNY' || raw === 'USD') return raw
+  return 'USD'
+}
+
+export function writeDefaultCurrency(currency: CurrencyCode) {
+  localStorage.setItem(DEFAULT_CURRENCY_KEY, currency)
+}
+
+export function readWeatherAutoLocation(): boolean {
+  const raw = localStorage.getItem(WEATHER_AUTO_LOCATION_KEY)
+  if (raw === null) return true
+  return raw === 'true'
+}
+
+export function writeWeatherAutoLocation(enabled: boolean) {
+  localStorage.setItem(WEATHER_AUTO_LOCATION_KEY, enabled ? 'true' : 'false')
+}
+
+export function readWeatherManualCity(): string {
+  return localStorage.getItem(WEATHER_MANUAL_CITY_KEY) ?? ''
+}
+
+export function writeWeatherManualCity(city: string) {
+  localStorage.setItem(WEATHER_MANUAL_CITY_KEY, city.trim())
+}
+
+export function readWeatherTemperatureUnit(): TemperatureUnit {
+  const raw = localStorage.getItem(WEATHER_TEMP_UNIT_KEY)
+  if (raw === 'celsius' || raw === 'fahrenheit') return raw
+  return 'celsius'
+}
+
+export function writeWeatherTemperatureUnit(unit: TemperatureUnit) {
+  localStorage.setItem(WEATHER_TEMP_UNIT_KEY, unit)
+}
+
+export function readFocusCompletionSoundEnabled(): boolean {
+  const raw = localStorage.getItem(FOCUS_COMPLETION_SOUND_ENABLED_KEY)
+  if (raw === null) return true
+  return raw === 'true'
+}
+
+export function writeFocusCompletionSoundEnabled(enabled: boolean) {
+  localStorage.setItem(FOCUS_COMPLETION_SOUND_ENABLED_KEY, enabled ? 'true' : 'false')
+}
+
+export function readTaskReminderEnabled(): boolean {
+  const raw = localStorage.getItem(TASK_REMINDER_ENABLED_KEY)
+  if (raw === null) return true
+  return raw === 'true'
+}
+
+export function writeTaskReminderEnabled(enabled: boolean) {
+  localStorage.setItem(TASK_REMINDER_ENABLED_KEY, enabled ? 'true' : 'false')
+}
+
+export function readTaskReminderLeadMinutes(): number {
+  const raw = localStorage.getItem(TASK_REMINDER_LEAD_MINUTES_KEY)
+  const next = Number(raw)
+  if (Number.isFinite(next) && next > 0) return Math.max(1, Math.floor(next))
+  return 10
+}
+
+export function writeTaskReminderLeadMinutes(minutes: number) {
+  const safe = Math.max(1, Math.floor(minutes))
+  localStorage.setItem(TASK_REMINDER_LEAD_MINUTES_KEY, String(safe))
+}
+
+export function readNeteaseExperimentalPlaybackEnabled(): boolean {
+  return localStorage.getItem(NETEASE_EXPERIMENTAL_PLAYBACK_ENABLED_KEY) === 'true'
+}
+
+export function writeNeteaseExperimentalPlaybackEnabled(enabled: boolean) {
+  localStorage.setItem(NETEASE_EXPERIMENTAL_PLAYBACK_ENABLED_KEY, enabled ? 'true' : 'false')
+}
+
+export function readNeteaseExperimentalPlaybackConfirmed(): boolean {
+  return localStorage.getItem(NETEASE_EXPERIMENTAL_PLAYBACK_CONFIRMED_KEY) === 'true'
+}
+
+export function writeNeteaseExperimentalPlaybackConfirmed(confirmed: boolean) {
+  localStorage.setItem(NETEASE_EXPERIMENTAL_PLAYBACK_CONFIRMED_KEY, confirmed ? 'true' : 'false')
+}
+
+export function readLanguage(): LanguageCode {
+  const raw = localStorage.getItem(LANGUAGE_KEY)
+  if (raw === 'en' || raw === 'zh') return raw
+
+  if (typeof navigator === 'undefined') return 'en'
+  const fallback = navigator.languages?.length ? [...navigator.languages] : navigator.language
+  return detectBrowserLanguage(fallback)
+}
+
+export function writeLanguage(language: LanguageCode) {
+  localStorage.setItem(LANGUAGE_KEY, language)
+}
+
+export function readWeatherLastLocation(): WeatherStoredLocation | null {
+  const raw = localStorage.getItem(WEATHER_LAST_LOCATION_KEY)
+  if (!raw) return null
+  try {
+    const parsed = JSON.parse(raw) as WeatherStoredLocation
+    if (
+      typeof parsed?.name === 'string' &&
+      typeof parsed?.latitude === 'number' &&
+      typeof parsed?.longitude === 'number'
+    ) {
+      return parsed
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+export function writeWeatherLastLocation(location: WeatherStoredLocation) {
+  localStorage.setItem(WEATHER_LAST_LOCATION_KEY, JSON.stringify(location))
+}
+
+export function readWorldClockItems(): WorldClockItem[] {
+  const raw = localStorage.getItem(WORLD_CLOCK_ITEMS_KEY)
+  if (!raw) return DEFAULT_WORLD_CLOCK_ITEMS
+  try {
+    const parsed = JSON.parse(raw) as WorldClockItem[]
+    if (!Array.isArray(parsed)) return []
+    return parsed
+      .filter(
+        (item): item is WorldClockItem =>
+          typeof item?.id === 'string' &&
+          typeof item?.label === 'string' &&
+          typeof item?.searchValue === 'string' &&
+          typeof item?.latitude === 'number' &&
+          typeof item?.longitude === 'number' &&
+          typeof item?.timeZone === 'string'
+      )
+      .slice(0, 4)
+  } catch {
+    return []
+  }
+}
+
+export function writeWorldClockItems(items: WorldClockItem[]) {
+  const safeItems = items
+    .filter(
+      (item): item is WorldClockItem =>
+        typeof item?.id === 'string' &&
+        typeof item?.label === 'string' &&
+        typeof item?.searchValue === 'string' &&
+        typeof item?.latitude === 'number' &&
+        typeof item?.longitude === 'number' &&
+        typeof item?.timeZone === 'string'
+    )
+    .slice(0, 4)
+  localStorage.setItem(WORLD_CLOCK_ITEMS_KEY, JSON.stringify(safeItems))
+}

@@ -1,0 +1,514 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import express from 'express'
+import Database from 'better-sqlite3'
+import { createSyncRouter } from './sync.js'
+import { ensureSyncTables } from '../sync/store.js'
+
+const createDb = () => {
+  const db = new Database(':memory:')
+  ensureSyncTables(db)
+  return db
+}
+
+const createServer = async (options = {}) => {
+  const db = createDb()
+  const app = express()
+  app.use(express.json({ limit: '10mb' }))
+  app.use('/sync', createSyncRouter({
+    database: db,
+    ...options,
+    authMiddleware: (req, _res, next) => {
+      req.auth = { user: { id: 'user-1', plan: 'premium' } }
+      next()
+    },
+  }))
+
+  const server = await new Promise((resolve) => {
+    const instance = app.listen(0, '127.0.0.1', () => resolve(instance))
+  })
+  const address = server.address()
+  const baseUrl = `http://127.0.0.1:${address.port}`
+
+  return {
+    db,
+    baseUrl,
+    close: async () => {
+      await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())))
+      db.close()
+    },
+  }
+}
+
+const assertPushOk = async (response) => {
+  assert.equal(response.status, 200)
+  const body = await response.json()
+  assert.deepEqual(body.conflicts, [])
+  assert.deepEqual(body.blobs, [])
+  assert.equal(typeof body.quota?.usedBytes, 'number')
+  assert.equal(typeof body.quota?.limitBytes, 'number')
+  return body
+}
+
+test('sync route push/pull chain stores blobs and returns hydrated rows', async () => {
+  const ctx = await createServer()
+
+  try {
+    const pushResponse = await fetch(`${ctx.baseUrl}/sync/rxdb/push`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'notes',
+        rows: [{
+          newDocumentState: {
+            id: 'note-1',
+            title: 'Route Note',
+            bodyRefs: { contentMd: 'blob-1' },
+            updatedAt: 10,
+            _deleted: false,
+          },
+          assumedMasterState: null,
+        }],
+        blobs: [{
+          hash: 'blob-1',
+          contentType: 'text/plain',
+          compression: 'gzip',
+          rawByteLength: 5,
+          byteLength: 5,
+          dataBase64: 'eA==',
+        }],
+      }),
+    })
+
+    await assertPushOk(pushResponse)
+
+    const pullResponse = await fetch(`${ctx.baseUrl}/sync/rxdb/pull`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'notes',
+        checkpoint: null,
+        limit: 100,
+      }),
+    })
+
+    assert.equal(pullResponse.status, 200)
+    const pullJson = await pullResponse.json()
+    assert.equal(pullJson.documents.length, 1)
+    assert.equal(pullJson.documents[0].id, 'note-1')
+    assert.equal(pullJson.documents[0].title, 'Route Note')
+    assert.equal(pullJson.blobs.length, 1)
+    assert.equal(pullJson.blobs[0].hash, 'blob-1')
+  } finally {
+    await ctx.close()
+  }
+})
+
+test('sync route supports syncedPreferences entity', async () => {
+  const ctx = await createServer()
+
+  try {
+    const pushResponse = await fetch(`${ctx.baseUrl}/sync/rxdb/push`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'syncedPreferences',
+        rows: [{
+          newDocumentState: {
+            id: 'synced_preferences',
+            language: 'zh',
+            defaultCurrency: 'CNY',
+            themeSelection: 'dark',
+            updatedAt: 10,
+            _deleted: false,
+          },
+          assumedMasterState: null,
+        }],
+        blobs: [],
+      }),
+    })
+
+    assert.equal(pushResponse.status, 200)
+
+    const pullResponse = await fetch(`${ctx.baseUrl}/sync/rxdb/pull`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'syncedPreferences',
+        checkpoint: null,
+        limit: 100,
+      }),
+    })
+
+    assert.equal(pullResponse.status, 200)
+    const pullJson = await pullResponse.json()
+    assert.equal(pullJson.documents.length, 1)
+    assert.equal(pullJson.documents[0].id, 'synced_preferences')
+    assert.equal(pullJson.documents[0].language, 'zh')
+    assert.equal(pullJson.documents[0].themeSelection, 'dark')
+  } finally {
+    await ctx.close()
+  }
+})
+
+test('sync route supports domainEvents entity', async () => {
+  const ctx = await createServer()
+
+  try {
+    const event = {
+      id: 'event-1',
+      type: 'task.completed',
+      actorId: null,
+      workspaceId: null,
+      occurredAt: 20,
+      source: { kind: 'user' },
+      subject: { domain: 'productivity', type: 'task', id: 'task-1' },
+      subjectKey: 'task:task-1',
+      related: [],
+      payload: { title: 'Task', previousStatus: 'doing', completedAt: 20 },
+      schemaVersion: 1,
+      dedupeKey: 'task.completed:task-1:20',
+      createdAt: 20,
+      updatedAt: 20,
+      _deleted: false,
+    }
+    const pushResponse = await fetch(`${ctx.baseUrl}/sync/rxdb/push`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'domainEvents',
+        rows: [{ newDocumentState: event, assumedMasterState: null }],
+        blobs: [],
+      }),
+    })
+
+    assert.equal(pushResponse.status, 200)
+
+    const pullResponse = await fetch(`${ctx.baseUrl}/sync/rxdb/pull`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'domainEvents',
+        checkpoint: null,
+        limit: 100,
+      }),
+    })
+
+    assert.equal(pullResponse.status, 200)
+    const pullJson = await pullResponse.json()
+    assert.equal(pullJson.documents.length, 1)
+    assert.equal(pullJson.documents[0].dedupeKey, 'task.completed:task-1:20')
+  } finally {
+    await ctx.close()
+  }
+})
+
+test('sync route rejects stale writes when assumed master state does not match', async () => {
+  const ctx = await createServer()
+
+  try {
+    const initialResponse = await fetch(`${ctx.baseUrl}/sync/rxdb/push`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'notes',
+        rows: [{
+          newDocumentState: {
+            id: 'note-1',
+            title: 'Cloud version',
+            updatedAt: 20,
+            _deleted: false,
+          },
+          assumedMasterState: null,
+        }],
+        blobs: [],
+      }),
+    })
+
+    await assertPushOk(initialResponse)
+
+    const staleResponse = await fetch(`${ctx.baseUrl}/sync/rxdb/push`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'notes',
+        rows: [{
+          newDocumentState: {
+            id: 'note-1',
+            title: 'Stale local overwrite',
+            updatedAt: 999999,
+            _deleted: false,
+          },
+          assumedMasterState: null,
+        }],
+        blobs: [],
+      }),
+    })
+
+    assert.equal(staleResponse.status, 200)
+    const staleJson = await staleResponse.json()
+    assert.equal(staleJson.conflicts.length, 1)
+    assert.equal(staleJson.conflicts[0].title, 'Cloud version')
+
+    const pullResponse = await fetch(`${ctx.baseUrl}/sync/rxdb/pull`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'notes',
+        checkpoint: null,
+        limit: 100,
+      }),
+    })
+
+    const pullJson = await pullResponse.json()
+    assert.equal(pullJson.documents[0].title, 'Cloud version')
+  } finally {
+    await ctx.close()
+  }
+})
+
+test('sync route propagates a delete pushed with the previous master state', async () => {
+  // Regression: documentsMatch used to strip _deleted:false from
+  // assumedMasterState while buildConflictDocument always emitted it, so every
+  // non-create push (especially deletes) hit the conflict path and RxDB
+  // master-wins resolution silently reverted the user's intent on the other
+  // device. End-to-end check: A creates → A deletes with the pulled master
+  // state → server stores the tombstone → B pulls and sees _deleted:true.
+  const ctx = await createServer()
+
+  try {
+    // A creates the task. assumedMasterState: null is the first-write case.
+    const create = await fetch(`${ctx.baseUrl}/sync/rxdb/push`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'tasks',
+        rows: [{
+          newDocumentState: { id: 'task-1', title: 'unfinished', updatedAt: 10, _deleted: false },
+          assumedMasterState: null,
+        }],
+        blobs: [],
+      }),
+    })
+    await assertPushOk(create)
+
+    // B pulls — payload is exactly what RxDB on B will cache as its last known master.
+    const bPull = await fetch(`${ctx.baseUrl}/sync/rxdb/pull`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entityType: 'tasks', checkpoint: null, limit: 100 }),
+    })
+    const bPullJson = await bPull.json()
+    assert.equal(bPullJson.documents.length, 1)
+    const lastKnownMasterOnA = bPullJson.documents[0]
+    assert.equal(lastKnownMasterOnA._deleted, false)
+
+    // A deletes. assumedMasterState mirrors what A pulled — _deleted:false explicit.
+    const del = await fetch(`${ctx.baseUrl}/sync/rxdb/push`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'tasks',
+        rows: [{
+          newDocumentState: { ...lastKnownMasterOnA, updatedAt: 20, _deleted: true },
+          assumedMasterState: lastKnownMasterOnA,
+        }],
+        blobs: [],
+      }),
+    })
+    const delJson = await assertPushOk(del)
+    assert.equal(delJson.conflicts.length, 0, 'delete must not be rejected as a conflict')
+
+    // B pulls again — must see the tombstone, not the live row.
+    const bPull2 = await fetch(`${ctx.baseUrl}/sync/rxdb/pull`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entityType: 'tasks', checkpoint: null, limit: 100 }),
+    })
+    const bPull2Json = await bPull2.json()
+    assert.equal(bPull2Json.documents.length, 1)
+    assert.equal(bPull2Json.documents[0]._deleted, true, 'B must see the row as deleted')
+  } finally {
+    await ctx.close()
+  }
+})
+
+test('sync route refuses to resurrect a tombstoned row from a stale upsert', async () => {
+  const ctx = await createServer()
+
+  try {
+    // Setup: seed a tombstoned row directly in the DB. Bypasses the push path
+    // because the existing documentsMatch helper is asymmetric on _deleted:false
+    // (a separate matter — covered by the "stale assumedMasterState" test);
+    // here we only need a tombstoned starting state to exercise the new check.
+    ctx.db.prepare(`
+      INSERT INTO sync_notes (id, user_id, payload, updated_at, deleted_at)
+      VALUES (?, ?, ?, ?, ?)
+    `).run('note-1', 'user-1', JSON.stringify({ id: 'note-1', title: 'v1', updatedAt: 50 }), 50, 50)
+
+    // Stale upsert with updatedAt <= tombstone deleted_at must be rejected.
+    const stale = await fetch(`${ctx.baseUrl}/sync/rxdb/push`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'notes',
+        rows: [{
+          newDocumentState: { id: 'note-1', title: 'resurrected!', updatedAt: 30, _deleted: false },
+          assumedMasterState: { id: 'note-1', title: 'v1', updatedAt: 50, _deleted: true },
+        }],
+        blobs: [],
+      }),
+    })
+    assert.equal(stale.status, 200)
+    const staleJson = await stale.json()
+    assert.equal(staleJson.conflicts.length, 1, 'tombstoned row must not be resurrected by a stale upsert')
+    assert.equal(staleJson.conflicts[0]._deleted, true, 'conflict returned should still be the tombstone')
+
+    // Verify the DB row is still a tombstone (deleted_at unchanged, title unchanged).
+    const afterStale = ctx.db.prepare('SELECT payload, deleted_at FROM sync_notes WHERE id = ?').get('note-1')
+    assert.equal(afterStale.deleted_at, 50)
+    assert.equal(JSON.parse(afterStale.payload).title, 'v1')
+
+    // A legit re-creation with updatedAt strictly newer than the tombstone IS allowed.
+    const revive = await fetch(`${ctx.baseUrl}/sync/rxdb/push`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'notes',
+        rows: [{
+          newDocumentState: { id: 'note-1', title: 'genuinely recreated', updatedAt: 100, _deleted: false },
+          assumedMasterState: { id: 'note-1', title: 'v1', updatedAt: 50, _deleted: true },
+        }],
+        blobs: [],
+      }),
+    })
+    await assertPushOk(revive)
+    const afterRevive = ctx.db.prepare('SELECT payload, deleted_at FROM sync_notes WHERE id = ?').get('note-1')
+    assert.equal(afterRevive.deleted_at, null)
+    assert.equal(JSON.parse(afterRevive.payload).title, 'genuinely recreated')
+  } finally {
+    await ctx.close()
+  }
+})
+
+test('sync route permits free accounts', async () => {
+  const db = createDb()
+  const app = express()
+  app.use(express.json({ limit: '10mb' }))
+  app.use('/sync', createSyncRouter({
+    database: db,
+    authMiddleware: (req, _res, next) => {
+      req.auth = { user: { id: 'user-1', plan: 'free' } }
+      next()
+    },
+  }))
+
+  const server = await new Promise((resolve) => {
+    const instance = app.listen(0, '127.0.0.1', () => resolve(instance))
+  })
+  const address = server.address()
+  const baseUrl = `http://127.0.0.1:${address.port}`
+
+  try {
+    const response = await fetch(`${baseUrl}/sync/rxdb/pull`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'notes',
+        checkpoint: null,
+        limit: 100,
+      }),
+    })
+
+    assert.equal(response.status, 200)
+    assert.equal((await response.json()).documents.length, 0)
+  } finally {
+    await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())))
+    db.close()
+  }
+})
+
+test('sync route returns JSON 400 for unknown entity types on pull and push', async () => {
+  const ctx = await createServer()
+  try {
+    const pull = await fetch(`${ctx.baseUrl}/sync/rxdb/pull`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entityType: 'definitelyNotAnEntity', checkpoint: null, limit: 100 }),
+    })
+    assert.equal(pull.status, 400)
+    const pullBody = await pull.json()
+    assert.match(pullBody.error, /Unsupported sync entity type/)
+
+    const push = await fetch(`${ctx.baseUrl}/sync/rxdb/push`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entityType: 'definitelyNotAnEntity', rows: [], blobs: [] }),
+    })
+    assert.equal(push.status, 400)
+    const pushBody = await push.json()
+    assert.match(pushBody.error, /Unsupported sync entity type/)
+  } finally {
+    await ctx.close()
+  }
+})
+
+test('sync route serves taskNoteLinks entity', async () => {
+  const ctx = await createServer()
+  try {
+    const response = await fetch(`${ctx.baseUrl}/sync/rxdb/pull`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entityType: 'taskNoteLinks', checkpoint: null, limit: 100 }),
+    })
+    assert.equal(response.status, 200)
+    const body = await response.json()
+    assert.deepEqual(body.documents, [])
+  } finally {
+    await ctx.close()
+  }
+})
+
+test('sync route rolls back a write that would exceed the account quota', async () => {
+  const ctx = await createServer({ quotaBytes: 20 })
+  try {
+    const response = await fetch(`${ctx.baseUrl}/sync/rxdb/push`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'notes',
+        rows: [{ newDocumentState: { id: 'too-large', title: 'This exceeds a tiny quota', updatedAt: 1, _deleted: false }, assumedMasterState: null }],
+        blobs: [],
+      }),
+    })
+    assert.equal(response.status, 413)
+    const quotaError = await response.json()
+    assert.equal(quotaError.error, 'cloud_storage_quota_exceeded')
+    assert.equal(quotaError.limitBytes, 20)
+    assert.ok(quotaError.usedBytes > 20)
+
+    const pull = await fetch(`${ctx.baseUrl}/sync/rxdb/pull`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entityType: 'notes', checkpoint: null, limit: 100 }),
+    })
+    assert.equal((await pull.json()).documents.length, 0)
+  } finally {
+    await ctx.close()
+  }
+})
+
+test('sync route rate limits repeated pushes', async () => {
+  const ctx = await createServer({ rateLimiter: (() => { let calls = 0; return () => ({ allowed: ++calls === 1, retryAfterSeconds: 30 }) })() })
+  try {
+    const request = () => fetch(`${ctx.baseUrl}/sync/rxdb/push`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entityType: 'notes', rows: [], blobs: [] }),
+    })
+    await assertPushOk(await request())
+    const throttled = await request()
+    assert.equal(throttled.status, 429)
+    assert.deepEqual(await throttled.json(), { error: 'sync_rate_limited', retryAfterSeconds: 30 })
+  } finally {
+    await ctx.close()
+  }
+})

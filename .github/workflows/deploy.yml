@@ -1,0 +1,133 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # ── 1. Install dependencies (cached on CI) ──────────────────
+      - name: Install dependencies
+        run: npm ci
+
+      # ── 2. Build web app on CI (fast machines, not the server) ──
+      - name: Build web app
+        run: npm run build:web
+        env:
+          VITE_API_BASE: https://api.nestflow.art
+          VITE_REDIRECT_URI: https://app.nestflow.art/
+
+      # ── 3. Pack dist into a single tarball ──────────────────────
+      - name: Package dist
+        run: tar czf dist.tar.gz -C apps/web/dist .
+
+      # ── 4. Upload tarball to Alibaba OSS ────────────────────────
+      # Use OSS_ENDPOINT secret — bucket may not be in HK region.
+      - name: Install rclone
+        # Ubuntu's apt cache occasionally serves a stale pinned rclone version
+        # that 404s on security.ubuntu.com. Refresh package lists first to pull
+        # the currently-published .deb.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rclone
+
+      - name: Upload dist to OSS
+        env:
+          RCLONE_CONFIG_ALIYUNOSS_TYPE: s3
+          RCLONE_CONFIG_ALIYUNOSS_PROVIDER: Alibaba
+          RCLONE_CONFIG_ALIYUNOSS_ACCESS_KEY_ID: ${{ secrets.OSS_ACCESS_KEY_ID }}
+          RCLONE_CONFIG_ALIYUNOSS_SECRET_ACCESS_KEY: ${{ secrets.OSS_ACCESS_KEY_SECRET }}
+          RCLONE_CONFIG_ALIYUNOSS_ENDPOINT: ${{ secrets.OSS_ENDPOINT }}
+        run: |
+          rclone copyto dist.tar.gz \
+            aliyunoss:${{ secrets.OSS_BUCKET }}/deploys/dist-${{ github.sha }}.tar.gz \
+            --no-check-dest
+
+      # ── 5. Configure SSH ────────────────────────────────────────
+      - name: Setup SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          # StrictHostKeyChecking=no in ssh command, so no keyscan needed
+          echo "SSH configured"
+
+      # ── 6. Deploy on server (native ssh → real-time output) ─────
+      # Pass OSS credentials inline via rclone :s3: on-the-fly remote.
+      # This bypasses the server's rclone config (which only knows HK),
+      # so the server can download from whichever region the bucket is in.
+      - name: Deploy on server
+        timeout-minutes: 20
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          OSS_BUCKET: ${{ secrets.OSS_BUCKET }}
+          OSS_ENDPOINT: ${{ secrets.OSS_ENDPOINT }}
+          OSS_KEY_ID: ${{ secrets.OSS_ACCESS_KEY_ID }}
+          OSS_KEY_SECRET: ${{ secrets.OSS_ACCESS_KEY_SECRET }}
+          GIT_SHA: ${{ github.sha }}
+          GIT_AUTH_TOKEN: ${{ github.token }}
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+            -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=6 \
+            -o ConnectTimeout=30 \
+            "$SERVER_USER@$SERVER_HOST" \
+            "OSS_BUCKET='$OSS_BUCKET' OSS_ENDPOINT='$OSS_ENDPOINT' OSS_KEY_ID='$OSS_KEY_ID' OSS_KEY_SECRET='$OSS_KEY_SECRET' GIT_SHA='$GIT_SHA' GIT_AUTH_TOKEN='$GIT_AUTH_TOKEN' bash -s" << 'DEPLOY'
+          set -euo pipefail
+
+          echo "=== [0/4] kill any stale deploy processes ==="
+          pkill -f "deploy.sh" 2>/dev/null || true
+          pkill -f "npm ci" 2>/dev/null || true
+          sleep 2
+
+          echo "=== [1/4] pull dist from OSS ==="
+          # Define a named remote via RCLONE_CONFIG_* env vars instead of the
+          # `:s3,...` inline syntax — newer rclone versions reject the inline
+          # form ("config name contains invalid characters"). Named remotes
+          # work across all rclone versions and still bypass any preexisting
+          # ~/.config/rclone/rclone.conf on the server.
+          export RCLONE_CONFIG_OSSDEPLOY_TYPE=s3
+          export RCLONE_CONFIG_OSSDEPLOY_PROVIDER=Alibaba
+          export RCLONE_CONFIG_OSSDEPLOY_ACCESS_KEY_ID="${OSS_KEY_ID}"
+          export RCLONE_CONFIG_OSSDEPLOY_SECRET_ACCESS_KEY="${OSS_KEY_SECRET}"
+          export RCLONE_CONFIG_OSSDEPLOY_ENDPOINT="${OSS_ENDPOINT}"
+          rclone copyto \
+            "ossdeploy:${OSS_BUCKET}/deploys/dist-${GIT_SHA}.tar.gz" \
+            "/tmp/dist-${GIT_SHA}.tar.gz" \
+            --timeout 120s --contimeout 30s --stats-one-line --stats 15s
+
+          echo "=== [2/4] unpack dist ==="
+          mkdir -p "/tmp/focus-go-dist-${GIT_SHA}"
+          tar xzf "/tmp/dist-${GIT_SHA}.tar.gz" -C "/tmp/focus-go-dist-${GIT_SHA}"
+          rm -f "/tmp/dist-${GIT_SHA}.tar.gz"
+
+          echo "=== [3/4] run deploy.sh ==="
+          cd /root/focus-go
+          git config --global --add safe.directory /root/focus-go
+          ORIGINAL_ORIGIN="$(git remote get-url origin)"
+          restore_origin() {
+            git remote set-url origin "${ORIGINAL_ORIGIN}" 2>/dev/null || true
+          }
+          trap restore_origin EXIT
+          git remote set-url origin "https://x-access-token:${GIT_AUTH_TOKEN}@github.com/VelvetAbyss/Focus-Go.git"
+          bash /root/focus-go/deploy.sh production "/tmp/focus-go-dist-${GIT_SHA}"
+
+          echo "=== [4/4] deploy complete ==="
+          DEPLOY

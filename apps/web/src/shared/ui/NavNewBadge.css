@@ -1,0 +1,26 @@
+.discovery-new-badge,
+.nav-new-badge {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px #F5F3F0;
+  margin-left: 4px;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+  pointer-events: none;
+}
+
+.discovery-new-badge--card {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 4;
+  margin-left: 0;
+  width: 7px;
+  height: 7px;
+  box-shadow: 0 0 0 3px #F5F3F0, 0 4px 10px rgba(58, 55, 51, 0.16);
+}

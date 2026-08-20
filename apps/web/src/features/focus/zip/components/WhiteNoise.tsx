@@ -1,0 +1,590 @@
+import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from "react";
+import { motion, AnimatePresence } from "motion/react";
+import {
+  Play,
+  Pause,
+  Coffee,
+  Flame,
+  CloudRain,
+  Wind,
+  CloudLightning,
+  Waves,
+  Moon,
+  Sparkles,
+} from "lucide-react";
+import { useSharedNoise } from "../../SharedNoiseProvider";
+import type { NoiseTrackId } from "../../../../data/models/types";
+import { useI18n } from "../../../../shared/i18n/useI18n";
+import { useVisibleInterval, useVisibleRaf } from "../../../../shared/hooks/usePageActivity";
+import { useAuthGate } from "../../../auth/AuthGateContext";
+import { cloneNoiseTracks, findMatchingNoiseScenePreset, NOISE_SCENE_PRESETS, type NoiseScenePreset } from "../../noise";
+
+interface SoundTrack {
+  id: NoiseTrackId;
+  icon: ReactNode;
+  enabled: boolean;
+  volume: number;
+  color: string;
+}
+
+const defaultTracks: SoundTrack[] = [
+  { id: "cafe", icon: <Coffee size={15} />, enabled: true, volume: 0.6, color: "#C4A882" },
+  { id: "fireplace", icon: <Flame size={15} />, enabled: true, volume: 0.4, color: "#D4956A" },
+  { id: "rain", icon: <CloudRain size={15} />, enabled: true, volume: 0.7, color: "#8BA4B8" },
+  { id: "wind", icon: <Wind size={15} />, enabled: false, volume: 0.5, color: "#A3B8A0" },
+  { id: "thunder", icon: <CloudLightning size={15} />, enabled: false, volume: 0.3, color: "#9A8EAF" },
+  { id: "ocean", icon: <Waves size={15} />, enabled: false, volume: 0.5, color: "#7BA5B5" },
+];
+
+// Cap the visualizer to ~30fps. On 120Hz ProMotion displays the RAF would
+// otherwise redraw (and re-allocate 36 gradients) up to 120×/sec — invisible
+// extra work for a soft ambient bar animation.
+const VISUALIZER_FRAME_MS = 1000 / 30;
+
+function SoundBarVisualizer({ tracks, isPlaying }: { tracks: SoundTrack[]; isPlaying: boolean }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const barsRef = useRef<number[]>([]);
+  const lastDrawRef = useRef(0);
+
+  const activeTrackCount = useMemo(() => tracks.filter((t) => t.enabled).length, [tracks]);
+  const avgVol = useMemo(() => {
+    const activeTracks = tracks.filter((t) => t.enabled);
+    return activeTracks.length > 0
+      ? activeTracks.reduce((sum, t) => sum + t.volume, 0) / activeTracks.length
+      : 0;
+  }, [tracks]);
+
+  const syncCanvasSize = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    const w = Math.floor(canvas.clientWidth);
+    const h = Math.floor(canvas.clientHeight);
+    const targetWidth = Math.max(1, Math.floor(w * dpr));
+    const targetHeight = Math.max(1, Math.floor(h * dpr));
+    if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+    }
+  }, []);
+
+  const draw = useCallback((now: number) => {
+    if (now - lastDrawRef.current < VISUALIZER_FRAME_MS) return;
+    lastDrawRef.current = now;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    const dpr = window.devicePixelRatio || 1;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    const barCount = 36;
+    const gap = 3;
+    const barWidth = (w - gap * (barCount - 1)) / barCount;
+
+    if (barsRef.current.length !== barCount) {
+      barsRef.current = Array.from({ length: barCount }, () => Math.random() * 0.3);
+    }
+
+    for (let i = 0; i < barCount; i++) {
+      const target =
+        isPlaying && activeTrackCount > 0
+          ? (Math.sin(now * 0.002 + i * 0.5) * 0.3 + 0.5) * avgVol
+          : 0.03;
+      barsRef.current[i] += (target - barsRef.current[i]) * 0.08;
+      const barH = Math.max(2, barsRef.current[i] * h * 0.85);
+      const x = i * (barWidth + gap);
+      const y = (h - barH) / 2;
+
+      const gradient = ctx.createLinearGradient(x, y, x, y + barH);
+      gradient.addColorStop(0, "rgba(168, 162, 150, 0.12)");
+      gradient.addColorStop(0.5, "rgba(168, 162, 150, 0.32)");
+      gradient.addColorStop(1, "rgba(168, 162, 150, 0.12)");
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.roundRect(x, y, barWidth, barH, barWidth / 2);
+      ctx.fill();
+    }
+  }, [activeTrackCount, avgVol, isPlaying]);
+
+  useEffect(() => {
+    syncCanvasSize();
+    const handleResize = () => {
+      syncCanvasSize();
+      lastDrawRef.current = 0; // force a repaint past the fps throttle
+      draw(performance.now());
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [draw, syncCanvasSize]);
+
+  useEffect(() => {
+    syncCanvasSize();
+  }, [syncCanvasSize]);
+
+  useVisibleRaf(draw, {
+    enabled: isPlaying && activeTrackCount > 0,
+    drawOnPause: true,
+  });
+
+  return <canvas ref={canvasRef} className="w-full" style={{ height: 44 }} />;
+}
+
+function PremiumSlider({
+  value,
+  onChange,
+  color,
+  disabled,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  color: string;
+  disabled?: boolean;
+}) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [dragging, setDragging] = useState(false);
+
+  const updateValue = useCallback(
+    (clientX: number) => {
+      if (!trackRef.current || disabled) return;
+      const rect = trackRef.current.getBoundingClientRect();
+      const pct = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+      onChange(pct);
+    },
+    [onChange, disabled]
+  );
+
+  useEffect(() => {
+    if (!dragging) return;
+    const onMove = (e: MouseEvent) => updateValue(e.clientX);
+    const onUp = () => setDragging(false);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [dragging, updateValue]);
+
+  return (
+    <div
+      ref={trackRef}
+      className="relative h-[5px] rounded-full cursor-pointer group"
+      style={{ background: disabled ? "color-mix(in srgb, var(--text-primary) 4%, transparent)" : "color-mix(in srgb, var(--text-primary) 6%, transparent)" }}
+      onMouseDown={(e) => {
+        setDragging(true);
+        updateValue(e.clientX);
+      }}
+    >
+      <motion.div
+        className="absolute left-0 top-0 h-full rounded-full"
+        style={{
+          width: `${value * 100}%`,
+          background: disabled ? "color-mix(in srgb, var(--text-primary) 8%, transparent)" : color,
+          opacity: disabled ? 0.4 : 0.5,
+        }}
+        layout
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+      />
+      <motion.div
+        className="absolute top-1/2 rounded-full"
+        style={{
+          left: `${value * 100}%`,
+          width: 13,
+          height: 13,
+          background: disabled ? "color-mix(in srgb, var(--text-primary) 12%, transparent)" : color,
+          opacity: disabled ? 0.4 : 0.8,
+          boxShadow: dragging
+            ? `0 0 0 4px ${color}20, 0 1px 3px color-mix(in srgb, var(--text-primary) 10%, transparent)`
+            : "0 1px 3px color-mix(in srgb, var(--text-primary) 8%, transparent)",
+        }}
+        initial={false}
+        animate={{ x: -6.5, y: "-50%", scale: 1 }}
+        whileHover={{ scale: 1.2 }}
+        transition={{ type: "spring", stiffness: 400, damping: 25 }}
+      />
+    </div>
+  );
+}
+
+export function WhiteNoise() {
+  const { language, t } = useI18n();
+  const { requireAuth } = useAuthGate();
+  const [activePreset, setActivePreset] = useState<string | null>(null);
+  const [sleepRemaining, setSleepRemaining] = useState<number | null>(null);
+  const [showSleepOptions, setShowSleepOptions] = useState(false);
+  const {
+    noise,
+    setNoise,
+    toggleNoisePlaying,
+    setNoiseTrackEnabled,
+    setNoiseTrackVolume,
+    setNoiseMasterVolume,
+    setNoiseSleepTimer,
+  } = useSharedNoise();
+
+  const isPlaying = noise.playing;
+  const masterVolume = noise.masterVolume;
+  const sleepTimer = noise.sleepDurationMinutes ?? null;
+  const tracks = useMemo(
+    () =>
+      defaultTracks.map((track) => ({
+        ...track,
+        enabled: noise.tracks[track.id].enabled,
+        volume: noise.tracks[track.id].volume,
+      })),
+    [noise.tracks]
+  );
+
+  useEffect(() => {
+    const matchedPreset = findMatchingNoiseScenePreset(noise.tracks);
+    setActivePreset(matchedPreset?.id ?? null);
+  }, [noise.tracks]);
+
+  const toggleTrack = (id: NoiseTrackId) => {
+    requireAuth(() => {
+      setActivePreset(null);
+      setNoiseTrackEnabled(id, !noise.tracks[id].enabled);
+    });
+  };
+
+  const setTrackVolume = (id: NoiseTrackId, volume: number) => {
+    requireAuth(() => {
+      setActivePreset(null);
+      setNoiseTrackVolume(id, volume);
+    });
+  };
+
+  const applyPreset = (preset: NoiseScenePreset) => {
+    requireAuth(() => {
+      if (activePreset === preset.id) {
+        setActivePreset(null);
+        return;
+      }
+      setActivePreset(preset.id);
+      setNoise({
+        ...noise,
+        playing: true,
+        tracks: cloneNoiseTracks(preset.tracks),
+      });
+    });
+  };
+
+  const startSleepTimer = (minutes: number) => {
+    requireAuth(() => {
+      setNoiseSleepTimer(minutes);
+      setShowSleepOptions(false);
+    });
+  };
+
+  const cancelSleepTimer = () => {
+    requireAuth(() => setNoiseSleepTimer(null));
+  };
+
+  const setMasterVolume = (volume: number) => {
+    requireAuth(() => setNoiseMasterVolume(volume));
+  };
+
+  const updateSleepRemaining = useCallback(() => {
+    if (!noise.sleepEndsAt) {
+      setSleepRemaining(null);
+      return;
+    }
+    setSleepRemaining(Math.max(0, Math.ceil((noise.sleepEndsAt - Date.now()) / 1000)));
+  }, [noise.sleepEndsAt]);
+
+  useEffect(() => {
+    updateSleepRemaining();
+  }, [updateSleepRemaining]);
+
+  useVisibleInterval(updateSleepRemaining, 1000, {
+    enabled: Boolean(noise.sleepEndsAt),
+    runOnVisible: true,
+  });
+
+  const activeTracks = tracks.filter((t) => t.enabled).length;
+  const trackNameMap: Record<NoiseTrackId, string> = {
+    cafe: language === "zh" ? "咖啡馆" : "Cafe",
+    fireplace: language === "zh" ? "壁炉" : "Fireplace",
+    rain: language === "zh" ? "雨声" : "Rain",
+    wind: language === "zh" ? "风声" : "Wind",
+    thunder: language === "zh" ? "雷声" : "Thunder",
+    ocean: language === "zh" ? "海浪" : "Ocean",
+  };
+
+  const handlePlayPause = () => {
+    if (!isPlaying && activeTracks === 0) {
+      return;
+    }
+    requireAuth(() => toggleNoisePlaying());
+  };
+
+  return (
+    <div className="focus-zip-noise h-full flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2
+            style={{ fontFamily: "'DM Serif Display', serif" }}
+            className="text-[1.15rem] text-[var(--text-primary)] tracking-[-0.01em]"
+          >
+            {t("focus.whiteNoise")}
+          </h2>
+          <p className="text-[0.7rem] text-[var(--text-secondary)] mt-0.5 tracking-wide">
+            {language === "zh" ? `已启用 ${activeTracks} 个声音` : `${activeTracks} sound${activeTracks === 1 ? "" : "s"} enabled`}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Sleep timer */}
+          <div className="relative">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                if (sleepTimer) {
+                  cancelSleepTimer();
+                  return;
+                }
+                requireAuth(() => setShowSleepOptions(!showSleepOptions));
+              }}
+              className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer relative"
+              style={{
+                background: sleepTimer
+                  ? "rgba(139,168,138,0.12)"
+                  : "rgba(168, 162, 150, 0.08)",
+              }}
+            >
+              <Moon
+                size={13}
+                className={sleepTimer ? "text-[#7A9A78]" : "text-[var(--text-secondary)]"}
+              />
+              {sleepRemaining !== null && (
+                <span className="absolute -bottom-0.5 -right-0.5 text-[0.5rem] text-[#7A9A78] tabular-nums">
+                  {Math.ceil(sleepRemaining / 60)}
+                </span>
+              )}
+            </motion.button>
+            <AnimatePresence>
+              {showSleepOptions && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowSleepOptions(false)}
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, y: 4, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 4, scale: 0.97 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute top-full right-0 mt-2 z-50 rounded-xl overflow-hidden"
+                    style={{
+                      background: "rgba(255,255,255,0.95)",
+                      backdropFilter: "blur(20px)",
+                      boxShadow:
+                        "0 6px 24px color-mix(in srgb, var(--text-primary) 6%, transparent), 0 1px 3px color-mix(in srgb, var(--text-primary) 4%, transparent)",
+                    }}
+                  >
+                    <div className="px-3 pt-2.5 pb-1">
+                      <p className="text-[0.62rem] text-[var(--text-secondary)] uppercase tracking-[0.08em]">
+                         {language === "zh" ? "睡眠定时" : "Sleep timer"}
+                      </p>
+                    </div>
+                    {[15, 30, 45, 60, 90].map((m) => (
+                      <button
+                        key={m}
+                        onClick={() => startSleepTimer(m)}
+                        className="w-full text-left px-3.5 py-1.5 text-[0.72rem] text-[var(--text-secondary)] transition-colors cursor-pointer hover:bg-[var(--text-primary)]/[0.03] whitespace-nowrap"
+                      >
+                        {language === "zh" ? `${m} 分钟` : `${m} min`}
+                      </button>
+                    ))}
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+          {/* Play/Pause */}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handlePlayPause}
+            className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
+            style={{
+              background: isPlaying
+                ? "rgba(168, 162, 150, 0.15)"
+                : "rgba(168, 162, 150, 0.08)",
+            }}
+          >
+            {isPlaying ? (
+              <Pause size={14} className="text-[var(--text-secondary)]" />
+            ) : (
+              <Play size={14} className="text-[var(--text-secondary)] ml-0.5" />
+            )}
+          </motion.button>
+        </div>
+      </div>
+
+      {/* Visualizer */}
+      <div
+        className="mb-4 rounded-xl overflow-hidden"
+        style={{ background: "color-mix(in srgb, var(--text-primary) 1.5%, transparent)" }}
+      >
+        <SoundBarVisualizer tracks={tracks} isPlaying={isPlaying} />
+      </div>
+
+      {/* Scene Presets */}
+      <div className="mb-4">
+        <div className="flex items-center gap-1.5 mb-2.5">
+          <Sparkles size={11} className="text-[var(--text-secondary)]" />
+          <span className="text-[0.66rem] text-[var(--text-secondary)] uppercase tracking-[0.08em]">
+             {t("focus.scenes")}
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-1.5">
+          {NOISE_SCENE_PRESETS.map((preset) => (
+            <motion.button
+              key={preset.id}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => applyPreset(preset)}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl text-left cursor-pointer transition-all"
+              style={{
+                background:
+                  activePreset === preset.id
+                    ? "rgba(139,168,138,0.08)"
+                    : "color-mix(in srgb, var(--text-primary) 1.8%, transparent)",
+                border:
+                  activePreset === preset.id
+                    ? "1px solid rgba(139,168,138,0.15)"
+                    : "1px solid transparent",
+              }}
+            >
+              <span className="text-[0.85rem]">{preset.emoji}</span>
+              <span
+                className="text-[0.68rem] truncate"
+                style={{
+                  color:
+                    activePreset === preset.id ? "#5a7a58" : "#8a8478",
+                }}
+              >
+                {t(preset.labelKey)}
+              </span>
+            </motion.button>
+          ))}
+        </div>
+      </div>
+
+      {/* Master Volume */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[0.66rem] text-[var(--text-secondary)] uppercase tracking-[0.08em]">
+            {t("focus.masterVolume")}
+          </span>
+          <span className="text-[0.66rem] text-[var(--text-secondary)] tabular-nums">
+            {Math.round(masterVolume * 100)}%
+          </span>
+        </div>
+        <PremiumSlider value={masterVolume} onChange={setMasterVolume} color="#8a8478" />
+      </div>
+
+      {/* Divider */}
+      <div className="h-px mb-3" style={{ background: "color-mix(in srgb, var(--text-primary) 4%, transparent)" }} />
+
+      {/* Tracks */}
+      <div
+        className="flex-1 overflow-y-auto space-y-0.5 pr-1 -mr-1"
+        style={{ scrollbarWidth: "none" }}
+      >
+        {tracks.map((track, idx) => (
+          <motion.div
+            key={track.id}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: idx * 0.04, duration: 0.3 }}
+            className="py-2.5 px-2.5 rounded-xl transition-colors"
+            style={{
+              background: track.enabled ? "color-mix(in srgb, var(--text-primary) 1.5%, transparent)" : "transparent",
+            }}
+          >
+            <div className="flex items-center gap-2.5 mb-2">
+              <div
+                className="w-6.5 h-6.5 rounded-lg flex items-center justify-center transition-all"
+                style={{
+                  width: 26,
+                  height: 26,
+                  background: track.enabled ? `${track.color}18` : "color-mix(in srgb, var(--text-primary) 2.5%, transparent)",
+                  color: track.enabled ? track.color : "var(--text-secondary)",
+                }}
+              >
+                {track.icon}
+              </div>
+              <span
+                className="flex-1 text-[0.76rem] transition-colors"
+                style={{ color: track.enabled ? "var(--text-primary)" : "var(--text-secondary)" }}
+              >
+                {trackNameMap[track.id]}
+              </span>
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => toggleTrack(track.id)}
+                className="w-7 h-[16px] rounded-full relative transition-colors cursor-pointer"
+                style={{
+                  background: track.enabled ? `${track.color}40` : "color-mix(in srgb, var(--text-primary) 6%, transparent)",
+                }}
+              >
+                <motion.div
+                  className="absolute top-[2px] w-[12px] h-[12px] rounded-full"
+                  style={{
+                    background: track.enabled ? track.color : "#d0cac0",
+                    opacity: track.enabled ? 0.85 : 0.5,
+                  }}
+                  animate={{ left: track.enabled ? 13 : 2 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                />
+              </motion.button>
+            </div>
+            <div className="pl-9">
+              <PremiumSlider
+                value={track.volume}
+                onChange={(v) => setTrackVolume(track.id, v)}
+                color={track.color}
+                disabled={!track.enabled}
+              />
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Sleep timer indicator */}
+      <AnimatePresence>
+        {sleepTimer !== null && sleepRemaining !== null && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            className="mt-3 flex items-center justify-between px-3 py-2 rounded-xl"
+            style={{ background: "rgba(139,168,138,0.06)" }}
+          >
+            <div className="flex items-center gap-2">
+              <Moon size={11} className="text-[#7A9A78]" />
+              <span className="text-[0.66rem] text-[#7A9A78]">
+                 {language === "zh"
+                   ? `将于 ${Math.floor(sleepRemaining / 60)}:${String(sleepRemaining % 60).padStart(2, "0")} 后停止`
+                   : `Stops in ${Math.floor(sleepRemaining / 60)}:${String(sleepRemaining % 60).padStart(2, "0")}`}
+              </span>
+            </div>
+            <button
+              onClick={cancelSleepTimer}
+              className="text-[0.62rem] text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-secondary)] transition-colors"
+            >
+               {language === "zh" ? "取消" : "Cancel"}
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}

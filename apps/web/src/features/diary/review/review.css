@@ -1,0 +1,86 @@
+.review-shadcn-scope {
+  --background: 0 0% 100%;
+  --foreground: 24 7% 10%;
+  --card: 0 0% 100%;
+  --card-foreground: 24 7% 10%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 24 7% 10%;
+  --primary: 24 7% 10%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 96%;
+  --secondary-foreground: 24 5% 20%;
+  --muted: 40 20% 96%;
+  --muted-foreground: 25 5% 56%;
+  --accent: 40 25% 94%;
+  --accent-foreground: 24 7% 10%;
+  --destructive: 0 64% 54%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 30 12% 90%;
+  --input: 30 12% 90%;
+  --ring: 24 7% 10%;
+  --radius: 1rem;
+}
+
+.review-page-shell {
+  position: relative;
+  isolation: isolate;
+  min-height: var(--shell-content-height, calc(100vh - (var(--page-pad, 14px) * 2)));
+}
+
+.review-page-shell::before {
+  content: '';
+  position: absolute;
+  inset: calc(var(--route-pad, 16px) * -1);
+  background: linear-gradient(180deg, #fff 0%, #fcfcfb 40%, #faf8f4 100%);
+  z-index: -1;
+}
+
+.review-page-shell__content {
+  position: relative;
+  z-index: 1;
+}
+
+.review-page-shell--themed {
+  color: #3a3733;
+}
+
+html[data-theme='dark'] .review-shadcn-scope {
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 0 0% 98%;
+  --primary-foreground: 240 5.9% 10%;
+  --secondary: 240 3.7% 15.9%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --accent: 240 3.7% 15.9%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --ring: 240 4.9% 83.9%;
+}
+
+html[data-theme='dark'] .review-page-shell::before {
+  background:
+    radial-gradient(circle at 18% 14%, rgba(126, 219, 199, 0.1) 0%, transparent 24%),
+    radial-gradient(circle at 84% 88%, rgba(123, 165, 181, 0.1) 0%, transparent 24%),
+    linear-gradient(180deg, #24292f 0%, #20252a 42%, #1e2328 100%);
+}
+
+html[data-theme='dark'] .review-page-shell--themed {
+  color: #f2f0ec;
+}
+
+.review-history-scrollbar {
+  scrollbar-width: none;
+}
+
+.review-history-scrollbar::-webkit-scrollbar {
+  display: none;
+}
