@@ -25,7 +25,7 @@ type QuotePayload = Record<string, unknown> & {
   percent_change?: string | number
 }
 
-const getTwelveDataKey = () => import.meta.env.VITE_TWELVEDATA_API_KEY?.trim()
+const getTwelveDataKey = () => readPersonalApiKey('twelveData')
 
 const fetchJson = async <T,>(url: string, signal?: AbortSignal): Promise<T> => {
   const response = await fetch(url, { signal })
@@ -88,3 +88,4 @@ export const searchRemoteStocks = async (query: string, signal?: AbortSignal): P
 
   return enriched.filter((item): item is RemoteStockCandidate => item !== null)
 }
+import { readPersonalApiKey } from '../../shared/integrations/personalApiKeys'

@@ -1,4 +1,5 @@
 import type { MediaCreateInput } from '@focus-go/core'
+import { readPersonalApiKey } from '../../shared/integrations/personalApiKeys'
 
 type TmdbMediaType = 'movie' | 'tv'
 
@@ -74,9 +75,8 @@ export type RemoteMediaCandidate = {
 }
 
 const IMAGE_BASE = 'https://image.tmdb.org/t/p'
-const DEFAULT_TMDB_API_KEY = '96bcf581fb874f8aa80bf5675dc00cd9'
 
-const getTmdbKey = () => import.meta.env.VITE_TMDB_API_KEY?.trim() || DEFAULT_TMDB_API_KEY
+const getTmdbKey = () => readPersonalApiKey('tmdb')
 
 export const hasTmdbKey = () => Boolean(getTmdbKey())
 

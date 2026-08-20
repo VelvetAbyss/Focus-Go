@@ -1,7 +1,6 @@
 # Focus&go
 
 [![Build](https://github.com/VelvetAbyss/Focus-Go/actions/workflows/verify.yml/badge.svg?branch=main)](https://github.com/VelvetAbyss/Focus-Go/actions/workflows/verify.yml)
-[![Release](https://github.com/VelvetAbyss/Focus-Go/actions/workflows/release-unsigned.yml/badge.svg)](https://github.com/VelvetAbyss/Focus-Go/actions/workflows/release-unsigned.yml)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Web%20%7C%20API-blue.svg)](https://github.com/VelvetAbyss/Focus-Go)
 
@@ -57,7 +56,7 @@ cp apps/web/focus-go-api/.env.example apps/web/focus-go-api/.env
 npm --workspace focus-go-api start
 ```
 
-Configure `VITE_API_BASE` in `apps/web/.env.local` when the Web app should use a non-default API URL. Never commit `.env` files or real credentials.
+Configure `VITE_API_BASE` in `apps/web/.env.local` when the Web app should use a non-default API URL. Never commit `.env` files or real credentials. For every deployment and optional user integration key, follow the [self-hosting and credentials guide](./docs/SELF_HOSTING.md).
 
 ### Verify
 
@@ -95,12 +94,13 @@ docs/
 ## Documentation
 
 - API configuration: [`apps/web/focus-go-api/.env.example`](./apps/web/focus-go-api/.env.example)
+- Self-hosting and credentials: [`docs/SELF_HOSTING.md`](./docs/SELF_HOSTING.md)
 - Security reporting: [`SECURITY.md`](./SECURITY.md)
 - Support links: [`SUPPORT.md`](./SUPPORT.md)
 
 ## Self-hosting and third-party materials
 
-Deploy the Web client and API with your own environment values. The public API configuration is documented in [`apps/web/focus-go-api/.env.example`](./apps/web/focus-go-api/.env.example); configure your own authentication, storage, and allowed origins before exposing an instance.
+Deploy the Web client and API with your own environment values. The complete key boundary and provider instructions are in [`docs/SELF_HOSTING.md`](./docs/SELF_HOSTING.md): browser-compatible integration keys belong to each user’s Settings, while OAuth, session signing, and storage credentials belong only in the server host’s encrypted environment settings.
 
 The repository's own code is MIT-licensed. Third-party npm packages, self-hosted fonts, images, and external APIs keep their respective licenses and terms. Do not assume that the MIT license grants rights to third-party assets, hosted services, or API data; review each dependency and provider before redistribution or production use.
 

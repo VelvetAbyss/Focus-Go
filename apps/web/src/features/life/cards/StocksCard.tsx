@@ -45,7 +45,7 @@ const StocksCard = () => {
 
   const handleSearch = async () => {
     if (!hasTwelveDataKey()) {
-      setHint('Set VITE_TWELVEDATA_API_KEY to enable live stock search.')
+      setHint('Add your Twelve Data API key in Settings → Integrations to enable live stock search.')
       return
     }
     const nextQuery = query.trim()

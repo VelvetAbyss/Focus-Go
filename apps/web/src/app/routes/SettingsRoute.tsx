@@ -7,6 +7,7 @@ import {
   Brush,
   CheckCircle2,
   Database,
+  KeyRound,
   LayoutGrid,
   LocateFixed,
   Scale,
@@ -81,10 +82,16 @@ import {
 import { readLayoutLocked, writeLayoutLocked } from '../../shared/prefs/dashboardLayoutLock'
 import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../data/repositories/syncedPreferencesRepo'
 import AmbientSettingsSection from './AmbientSettingsSection'
+import {
+  clearPersonalApiKey,
+  readPersonalApiKey,
+  writePersonalApiKey,
+  type PersonalApiKeyService,
+} from '../../shared/integrations/personalApiKeys'
 const RESET_TIMEOUT_MS = 30_000
 
 type ThemeSelection = 'system' | 'light' | 'dark'
-type SettingsSection = 'appearance' | 'experience' | 'weather' | 'data' | 'legal' | 'feedback'
+type SettingsSection = 'appearance' | 'experience' | 'weather' | 'integrations' | 'data' | 'legal' | 'feedback'
 type BaseSettingsSection = Exclude<SettingsSection, 'legal'>
 type LegalDocumentKey = 'privacy-policy' | 'terms-of-service'
 
@@ -94,6 +101,7 @@ const SECTION_META_KEYS: Array<{
     | 'settings.module.appearance.title'
     | 'settings.module.experience.title'
     | 'settings.module.weather.title'
+    | 'settings.module.integrations.title'
     | 'settings.module.data.title'
     | 'settings.module.legal.title'
     | 'settings.module.feedback.title'
@@ -101,6 +109,7 @@ const SECTION_META_KEYS: Array<{
     | 'settings.module.appearance.hint'
     | 'settings.module.experience.hint'
     | 'settings.module.weather.hint'
+    | 'settings.module.integrations.hint'
     | 'settings.module.data.hint'
     | 'settings.module.legal.hint'
     | 'settings.module.feedback.hint'
@@ -109,6 +118,7 @@ const SECTION_META_KEYS: Array<{
     | 'settings.badge.visual'
     | 'settings.badge.motion'
     | 'settings.badge.widget'
+    | 'settings.badge.private'
     | 'settings.badge.safety'
     | 'settings.badge.legal'
     | 'settings.badge.feedback'
@@ -116,6 +126,7 @@ const SECTION_META_KEYS: Array<{
   { key: 'appearance', titleKey: 'settings.module.appearance.title', hintKey: 'settings.module.appearance.hint', icon: Brush, badgeKey: 'settings.badge.visual' },
   { key: 'experience', titleKey: 'settings.module.experience.title', hintKey: 'settings.module.experience.hint', icon: Sparkles, badgeKey: 'settings.badge.motion' },
   { key: 'weather', titleKey: 'settings.module.weather.title', hintKey: 'settings.module.weather.hint', icon: SunMedium, badgeKey: 'settings.badge.widget' },
+  { key: 'integrations', titleKey: 'settings.module.integrations.title', hintKey: 'settings.module.integrations.hint', icon: KeyRound, badgeKey: 'settings.badge.private' },
   { key: 'data', titleKey: 'settings.module.data.title', hintKey: 'settings.module.data.hint', icon: Database, badgeKey: 'settings.badge.safety' },
   { key: 'legal', titleKey: 'settings.module.legal.title', hintKey: 'settings.module.legal.hint', icon: Shield, badgeKey: 'settings.badge.legal' },
   { key: 'feedback', titleKey: 'settings.module.feedback.title', hintKey: 'settings.module.feedback.hint', icon: Bell, badgeKey: 'settings.badge.feedback' },
@@ -734,6 +745,10 @@ const SettingsRoute = () => {
     suggestions: [],
   })
   const [manualCityActiveIndex, setManualCityActiveIndex] = useState(-1)
+  const [personalApiKeys, setPersonalApiKeys] = useState<Record<PersonalApiKeyService, string>>(() => ({
+    tmdb: readPersonalApiKey('tmdb'),
+    twelveData: readPersonalApiKey('twelveData'),
+  }))
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => setPageEntered(true))
@@ -776,6 +791,18 @@ const SettingsRoute = () => {
     }
     setActiveSection(section)
     if (isLegalSection) navigate(ROUTES.SETTINGS)
+  }
+
+  const savePersonalApiKey = (service: PersonalApiKeyService) => {
+    writePersonalApiKey(service, personalApiKeys[service])
+    setPersonalApiKeys((current) => ({ ...current, [service]: readPersonalApiKey(service) }))
+    toast.push({ variant: 'success', message: t('settings.integrations.saved') })
+  }
+
+  const removePersonalApiKey = (service: PersonalApiKeyService) => {
+    clearPersonalApiKey(service)
+    setPersonalApiKeys((current) => ({ ...current, [service]: '' }))
+    toast.push({ variant: 'success', message: t('settings.integrations.removed') })
   }
 
   const themeHelp = useMemo(() => {
@@ -1526,6 +1553,86 @@ const SettingsRoute = () => {
                               </SelectContent>
                             </Select>
                           </motion.div>
+                        </>
+                      ) : null}
+
+                      {resolvedSection === 'integrations' ? (
+                        <>
+                          <motion.div
+                            className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm text-muted-foreground"
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                          >
+                            <p className="font-medium text-foreground">{t('settings.integrations.localOnly.title')}</p>
+                            <p className="mt-1 leading-6">{t('settings.integrations.localOnly.description')}</p>
+                          </motion.div>
+
+                          <SettingRow
+                            icon={KeyRound}
+                            title={t('settings.integrations.tmdb.title')}
+                            description={t('settings.integrations.tmdb.description')}
+                          >
+                            <div className="flex w-full flex-col gap-2 sm:max-w-[420px]">
+                              <Input
+                                aria-label={t('settings.integrations.tmdb.title')}
+                                type="password"
+                                autoComplete="off"
+                                value={personalApiKeys.tmdb}
+                                onChange={(event) => setPersonalApiKeys((current) => ({ ...current, tmdb: event.target.value }))}
+                                placeholder={t('settings.integrations.keyPlaceholder')}
+                              />
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Button type="button" size="sm" onClick={() => savePersonalApiKey('tmdb')}>
+                                  {t('settings.integrations.save')}
+                                </Button>
+                                <Button type="button" size="sm" variant="outline" onClick={() => removePersonalApiKey('tmdb')}>
+                                  {t('settings.integrations.remove')}
+                                </Button>
+                                <a className="text-xs font-medium text-primary underline-offset-4 hover:underline" href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer">
+                                  {t('settings.integrations.getKey')}
+                                </a>
+                              </div>
+                            </div>
+                          </SettingRow>
+
+                          <SettingRow
+                            icon={KeyRound}
+                            title={t('settings.integrations.twelveData.title')}
+                            description={t('settings.integrations.twelveData.description')}
+                          >
+                            <div className="flex w-full flex-col gap-2 sm:max-w-[420px]">
+                              <Input
+                                aria-label={t('settings.integrations.twelveData.title')}
+                                type="password"
+                                autoComplete="off"
+                                value={personalApiKeys.twelveData}
+                                onChange={(event) => setPersonalApiKeys((current) => ({ ...current, twelveData: event.target.value }))}
+                                placeholder={t('settings.integrations.keyPlaceholder')}
+                              />
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Button type="button" size="sm" onClick={() => savePersonalApiKey('twelveData')}>
+                                  {t('settings.integrations.save')}
+                                </Button>
+                                <Button type="button" size="sm" variant="outline" onClick={() => removePersonalApiKey('twelveData')}>
+                                  {t('settings.integrations.remove')}
+                                </Button>
+                                <a className="text-xs font-medium text-primary underline-offset-4 hover:underline" href="https://twelvedata.com/account/api-keys" target="_blank" rel="noreferrer">
+                                  {t('settings.integrations.getKey')}
+                                </a>
+                              </div>
+                            </div>
+                          </SettingRow>
+
+                          <SettingRow
+                            icon={Shield}
+                            title={t('settings.integrations.server.title')}
+                            description={t('settings.integrations.server.description')}
+                          >
+                            <a className="text-sm font-medium text-primary underline-offset-4 hover:underline" href="https://github.com/VelvetAbyss/Focus-Go/blob/main/docs/SELF_HOSTING.md" target="_blank" rel="noreferrer">
+                              {t('settings.integrations.server.action')}
+                            </a>
+                          </SettingRow>
                         </>
                       ) : null}
 

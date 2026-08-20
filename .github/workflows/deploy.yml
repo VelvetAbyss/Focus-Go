@@ -29,7 +29,6 @@ jobs:
         env:
           VITE_API_BASE: https://api.nestflow.art
           VITE_REDIRECT_URI: https://app.nestflow.art/
-          VITE_PAYPAL_CLIENT_ID: ${{ secrets.VITE_PAYPAL_CLIENT_ID }}
 
       # ── 3. Pack dist into a single tarball ──────────────────────
       - name: Package dist
