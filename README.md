@@ -53,7 +53,7 @@ npm run dev:web
 
 ```bash
 cp apps/web/focus-go-api/.env.example apps/web/focus-go-api/.env
-npm --workspace focus-go-api start
+npm --prefix apps/web/focus-go-api start
 ```
 
 Configure `VITE_API_BASE` in `apps/web/.env.local` when the Web app should use a non-default API URL. Never commit `.env` files or real credentials. For every deployment and optional user integration key, follow the [self-hosting and credentials guide](./docs/SELF_HOSTING.md).

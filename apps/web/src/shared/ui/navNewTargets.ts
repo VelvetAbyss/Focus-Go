@@ -7,8 +7,6 @@ export const LEGACY_MODULE_TARGETS: Record<string, DiscoveryNewTargetId> = {
   trips: 'nav-trips',
   habits: 'nav-habits',
   projects: 'nav-projects',
-  membership: 'nav-premium',
-  premium: 'nav-premium',
   'tasks-analytics': 'tasks-analytics-tab',
 }
 

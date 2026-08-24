@@ -12,6 +12,7 @@
   },
   "scripts": {
     "dev:web": "npm run dev --workspace @focus-go/web",
+    "dev:web:local": "node scripts/dev-web-with-api.mjs",
     "dev:desktop": "npm run dev --workspace @focus-go/desktop",
     "dev:screenshot": "pnpm --dir ./apps/ai-screenshot-tool tauri dev",
     "build:web": "npm run build --workspace @focus-go/web",

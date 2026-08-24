@@ -29,7 +29,7 @@ export const LEGACY_ROUTES = {
   KNOWLEDGE: '/knowledge',
 } as const
 
-export type RouteKey = 'dashboard' | 'timeline' | 'projects' | 'tasks' | 'note' | 'calendar' | 'trips' | 'focus' | 'diary' | 'settings' | 'labs' | 'admin' | 'membership'
+export type RouteKey = 'dashboard' | 'timeline' | 'projects' | 'tasks' | 'note' | 'calendar' | 'trips' | 'focus' | 'diary' | 'settings' | 'labs' | 'admin'
 
 export type NavItem = {
   key: RouteKey
@@ -47,7 +47,6 @@ export const NAV_ITEMS: NavItem[] = [
   { key: 'trips', label: 'Trips', to: ROUTES.TRIPS },
   { key: 'focus', label: 'Focus', to: ROUTES.FOCUS },
   { key: 'diary', label: 'Diary', to: ROUTES.DIARY },
-  { key: 'membership', label: 'Membership', to: ROUTES.MEMBERSHIP },
   { key: 'settings', label: 'Settings', to: ROUTES.SETTINGS },
 ]
 
@@ -60,6 +59,5 @@ export const BASE_NAV_ITEMS: NavItem[] = [
   { key: 'trips', label: 'Trips', to: ROUTES.TRIPS },
   { key: 'focus', label: 'Focus', to: ROUTES.FOCUS },
   { key: 'diary', label: 'Diary', to: ROUTES.DIARY },
-  { key: 'membership', label: 'Membership', to: ROUTES.MEMBERSHIP },
   { key: 'settings', label: 'Settings', to: ROUTES.SETTINGS },
 ]

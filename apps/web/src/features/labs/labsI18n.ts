@@ -17,7 +17,6 @@ type LabsMessages = {
     trips: string
     focus: string
     diary: string
-    membership: string
     settings: string
     labs: string
     admin: string
@@ -81,7 +80,6 @@ const messages: Record<LabsLang, LabsMessages> = {
       trips: 'Trips',
       focus: 'Focus',
       diary: 'Diary',
-      membership: 'Membership',
       settings: 'Settings',
       labs: 'Labs',
       admin: 'Admin',
@@ -143,7 +141,6 @@ const messages: Record<LabsLang, LabsMessages> = {
       trips: '旅行',
       focus: '专注',
       diary: '日记',
-      membership: '会员',
       settings: '设置',
       labs: '实验室',
       admin: '管理后台',

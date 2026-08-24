@@ -8,7 +8,7 @@ script = ""
 [[actions]]
 name = "运行 web app"
 icon = "tool"
-command = "npm run dev --workspace @focus-go/web"
+command = "npm run dev:web:local"
 
 [[actions]]
 name = "部署到服务器"
