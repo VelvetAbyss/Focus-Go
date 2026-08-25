@@ -46,7 +46,6 @@ const AppRoutes = () => {
       <Route path={`${ROUTES.SETTINGS}/*`} element={<Suspense fallback={<RouteFallback />}><SettingsRoute /></Suspense>} />
       <Route path={ROUTES.LABS} element={<Suspense fallback={<RouteFallback />}><LabsPage /></Suspense>} />
       <Route path={ROUTES.SUPPORT} element={<Suspense fallback={<RouteFallback />}><SupportPage /></Suspense>} />
-      <Route path={ROUTES.MEMBERSHIP} element={<Navigate to={ROUTES.DASHBOARD} replace />} />
       <Route path={ROUTES.PREMIUM} element={<Navigate to={ROUTES.DASHBOARD} replace />} />
       <Route path={ROUTES.PREMIUM_SUCCESS} element={<Navigate to={ROUTES.DASHBOARD} replace />} />
       <Route path={ROUTES.HABITS} element={<Suspense fallback={<RouteFallback />}><HabitTrackerPage /></Suspense>} />

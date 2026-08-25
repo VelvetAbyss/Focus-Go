@@ -193,7 +193,6 @@ const mapEventToTimelineItem = (event: DomainEvent): TimelineItem | null => {
         summary: `${payload.entitlement} · ${payload.amount} ${payload.currency}`,
         icon: 'credit-card',
         accent: '#877159',
-        route: '/membership',
       })
       }
     case 'sync.finished':

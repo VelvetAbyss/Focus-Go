@@ -18,7 +18,6 @@ export const ROUTES = {
   SETTINGS_LEGAL_TERMS: '/workspace/settings/legal/terms-of-service',
   LABS: '/labs',
   SUPPORT: '/support',
-  MEMBERSHIP: '/membership',
   PREMIUM: '/premium',
   PREMIUM_SUCCESS: '/premium/success',
 } as const

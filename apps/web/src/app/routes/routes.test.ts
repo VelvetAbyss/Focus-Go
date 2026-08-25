@@ -7,6 +7,7 @@ describe('routes config', () => {
     expect(ROUTES.LABS).toBe('/labs')
     expect(ROUTES.HABITS).toBe('/habits')
     expect(ROUTES.PROJECTS).toBe('/projects')
+    expect(ROUTES).not.toHaveProperty('MEMBERSHIP')
   })
 
   it('keeps dashboard first in base nav', () => {
