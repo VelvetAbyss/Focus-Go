@@ -1,3 +1,4 @@
+import { useI18n } from '../../shared/i18n/useI18n'
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
 import { ROUTES } from '../routes/routes'
@@ -12,9 +13,6 @@ import { useTaskReminderEngine } from '../../features/tasks/useTaskReminderEngin
 import TaskReminderModal from '../../features/tasks/TaskReminderModal'
 import { AuthGateProvider } from '../../features/auth/AuthGateContext'
 import AuthInteractionGate from '../../features/auth/AuthInteractionGate'
-import { getAuth, subscribeAuth } from '../../store/auth'
-import { isLocalhostRuntime } from '../../shared/env/localhost'
-import { clearLocalUserData } from '../../data/sync/repository'
 import CommandPalette from '../../shared/ui/CommandPalette'
 import { useSharedNoise } from '../../features/focus/SharedNoiseProvider'
 import { findMatchingNoiseScenePreset } from '../../features/focus/noise'
@@ -26,9 +24,6 @@ type AppShellProps = {
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'focusgo.sidebar.collapsed.v1'
 const COMPACT_SIDEBAR_MEDIA_QUERY = '(max-width: 1536px)'
 const TABLET_AND_UP_MEDIA_QUERY = '(min-width: 768px)'
-const SHELL_SCALE_MIN_WIDTH = 1512
-const SHELL_SCALE_MAX_WIDTH = 1920
-const SHELL_SCALE_MIN = 0.8
 const SHELL_SCALE_MAX = 1
 
 const readSidebarCollapsed = () => {
@@ -45,12 +40,9 @@ const readCompactViewport = () =>
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const resolveShellScale = (viewportWidth: number) => {
-  const safeWidth = Number.isFinite(viewportWidth) ? viewportWidth : SHELL_SCALE_MAX_WIDTH
-  if (safeWidth <= SHELL_SCALE_MIN_WIDTH) return SHELL_SCALE_MIN
-  if (safeWidth >= SHELL_SCALE_MAX_WIDTH) return SHELL_SCALE_MAX
-  const progress = (safeWidth - SHELL_SCALE_MIN_WIDTH) / (SHELL_SCALE_MAX_WIDTH - SHELL_SCALE_MIN_WIDTH)
-  const next = SHELL_SCALE_MIN + progress * (SHELL_SCALE_MAX - SHELL_SCALE_MIN)
-  return Number(next.toFixed(4))
+  // Keep text and touch targets at their intended size on every viewport.
+  void viewportWidth
+  return 1
 }
 
 const readShellScale = () => {
@@ -62,6 +54,9 @@ const readShellScale = () => {
 
 const AppShell = ({ children }: AppShellProps) => {
   const location = useLocation()
+  const { t } = useI18n()
+  const [mobileNavRoute, setMobileNavRoute] = useState<string | null>(null)
+  const mobileNavOpen = mobileNavRoute === location.pathname
   const { noise } = useSharedNoise()
   const storedSidebarCollapsed = readSidebarCollapsed()
   const [compactViewport, setCompactViewport] = useState(() => readCompactViewport())
@@ -71,15 +66,6 @@ const AppShell = ({ children }: AppShellProps) => {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const ambientScene = findMatchingNoiseScenePreset(noise.tracks)?.id ?? 'idle'
   useTaskReminderEngine()
-
-  useEffect(() => {
-    if (isLocalhostRuntime()) return
-    const guard = () => {
-      if (!getAuth()?.user) void clearLocalUserData()
-    }
-    guard()
-    return subscribeAuth(guard)
-  }, [])
 
   const isNoteRoute = location.pathname === ROUTES.NOTE
   const isTimelineRoute = location.pathname === ROUTES.TIMELINE
@@ -194,10 +180,16 @@ const AppShell = ({ children }: AppShellProps) => {
         <div className={`focus-shell ${sidebarDimmed ? 'focus-shell--sidebar-dimmed' : ''}`} data-ambient-scene={ambientScene} style={shellStyle}>
           <AmbientSceneStage scene={ambientScene} />
           <div className="focus-shell__scale-wrap">
+            <div className="focus-mobile-bar">
+              <span>Focus &amp; Go</span>
+              <button type="button" aria-expanded={mobileNavOpen} aria-controls="focus-primary-navigation" onClick={() => setMobileNavRoute(mobileNavOpen ? null : location.pathname)}>{t(mobileNavOpen ? 'shell.collapseNav' : 'shell.expandNav')}</button>
+            </div>
+            <div id="focus-primary-navigation" className={`focus-navigation ${mobileNavOpen ? 'is-mobile-open' : ''}`} onKeyDown={(event) => { if (event.key === 'Escape') setMobileNavRoute(null) }} onClick={(event) => { if ((event.target as Element).closest('a[href]')) setMobileNavRoute(null) }}>
             <Sidebar
               collapsed={sidebarCollapsed}
               onToggle={() => setSidebarCollapsed((prev) => !prev)}
             />
+            </div>
             <main className={`focus-shell__main flex min-h-0 flex-1 flex-col ${isFullBleedRoute ? 'focus-shell__main--surface-less' : ''}`}>
               <section className={`focus-shell__route-layer flex min-h-0 flex-1 flex-col ${isFullBleedRoute ? 'focus-shell__route-layer--full-bleed' : ''}`}>
                 <AuthInteractionGate>

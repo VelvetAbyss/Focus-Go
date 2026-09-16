@@ -169,7 +169,7 @@ describe('DashboardPage onboarding', () => {
     await waitFor(() => expect(screen.getByText('Tasks card')).toBeInTheDocument())
     fireEvent.click(screen.getByRole('button', { name: 'News' }))
 
-    expect(screen.getByText('News dashboard')).toBeInTheDocument()
+    expect(await screen.findByText('News dashboard')).toBeInTheDocument()
     expect(screen.queryByText('Tasks card')).not.toBeInTheDocument()
   })
 })

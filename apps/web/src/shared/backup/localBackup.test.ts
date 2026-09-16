@@ -1,13 +1,14 @@
 import JSZip from 'jszip'
 import { describe, expect, it } from 'vitest'
-import { createBackupDownload, exportLocalBackup, importLocalBackup, type LocalBackupDatabaseAdapter, type LocalBackupStorageAdapter } from './localBackup'
+import { createBackupDownload, readBackupFile, exportLocalBackup, importLocalBackup, type LocalBackupDatabaseAdapter, type LocalBackupStorageAdapter } from './localBackup'
 
 const createDbAdapter = (tables: Record<string, unknown[]> = {}): LocalBackupDatabaseAdapter & { tables: Record<string, unknown[]> } => ({
   tables,
   async exportTables(names) {
     return Object.fromEntries(names.map((name) => [name, structuredClone(this.tables[name] ?? [])]))
   },
-  async replaceTables(nextTables) {
+  async replaceTables(nextTables, beforeCommit) {
+    beforeCommit?.()
     this.tables = structuredClone(nextTables)
   },
 })
@@ -128,7 +129,7 @@ describe('localBackup', () => {
     await importLocalBackup(
       {
         format: 'focus-go-local-backup',
-        schemaVersion: 99,
+        schemaVersion: 1,
         createdAt: 2,
         db: {
           name: 'workbench-app',
@@ -201,4 +202,43 @@ describe('localBackup', () => {
     expect(await zip.file('manifest.json')?.async('string')).toContain('focus-go-local-backup-v2')
     expect(await zip.file('localStorage/settings.json')?.async('string')).toContain('workbench.ui.language')
   })
+  it('round-trips a compressed note body and rejects corrupt blob metadata before writing', async () => {
+    const db = createDbAdapter({ notes: [{ id: 'note-1', title: 'Note', contentMd: 'Preserve this body' }] })
+    const storage = createStorageAdapter({ theme: 'light' })
+    const options = { db, storage, tableNames: ['notes'] }
+    const backup = await exportLocalBackup({ ...options, dbName: 'test', dbVersion: 1 })
+    const download = await createBackupDownload(backup)
+    const parsed = await readBackupFile(new File([download.blob], 'backup.zip'))
+    await importLocalBackup(parsed, options)
+    expect(db.tables.notes[0]).toMatchObject({ contentMd: 'Preserve this body' })
+    const hash = Object.keys(backup.blobs)[0]
+    backup.blobs[hash].rawByteLength += 1
+    await expect(importLocalBackup(backup, options)).rejects.toThrow('metadata mismatch')
+    expect(db.tables.notes[0]).toMatchObject({ contentMd: 'Preserve this body' })
+    URL.revokeObjectURL(download.url)
+  })
+
+  it('filters injected auth settings out of v2 backups even without an existing session', async () => {
+    const db = createDbAdapter({ tasks: [{ id: 'a', title: 'A' }] })
+    const storage = createStorageAdapter()
+    const options = { db, storage, tableNames: ['tasks'] }
+    const backup = await exportLocalBackup({ ...options, dbName: 'test', dbVersion: 1 })
+    backup.localStorage.auth = 'injected'
+    backup.localStorage['focusgo.local-data-owner.v1'] = 'other-account'
+    await importLocalBackup(backup, options)
+    expect(storage.entries).toEqual({})
+  })
+
+  it('accepts uncompressed attachment blobs used by task images', async () => {
+    const db = createDbAdapter({ tasks: [{ id: 'task', title: 'Image task' }] })
+    const storage = createStorageAdapter()
+    const options = { db, storage, tableNames: ['tasks'] }
+    const backup = await exportLocalBackup({ ...options, dbName: 'test', dbVersion: 1 })
+    const hash = 'a'.repeat(64)
+    const metadata = { contentType: 'image/png' as const, compression: 'none' as const, byteLength: 5, rawByteLength: 5 }
+    backup.manifest.blobs[hash] = metadata
+    backup.blobs[hash] = { ...metadata, hash, dataBase64: 'aGVsbG8=' }
+    await expect(importLocalBackup(backup, options)).resolves.toBeUndefined()
+  })
+
 })

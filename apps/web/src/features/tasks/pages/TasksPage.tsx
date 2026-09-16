@@ -45,7 +45,7 @@ const TasksPage = () => {
       data-ratio-band={viewportProfile.ratioBand}
       style={{ '--tasks-page-viewport-height': `${viewportProfile.viewportHeight}px` } as CSSProperties}
     >
-      <div className="flex items-center justify-between px-6 pb-0 pt-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 pb-0 pt-5 sm:px-6">
         <div className="flex items-center gap-4">
           <h1 className="tasks-page-shell__title text-xl tracking-tight text-foreground">{t('modules.tasks.title')}</h1>
         </div>
@@ -57,6 +57,18 @@ const TasksPage = () => {
                 type="button"
                 role="tab"
                 aria-selected={viewMode === key}
+                tabIndex={viewMode === key ? 0 : -1}
+                onKeyDown={(event) => {
+                  const current = VIEW_MODES.findIndex((mode) => mode.key === key)
+                  const next = event.key === 'Home' ? 0 : event.key === 'End' ? VIEW_MODES.length - 1
+                    : event.key === 'ArrowRight' ? (current + 1) % VIEW_MODES.length
+                    : event.key === 'ArrowLeft' ? (current + VIEW_MODES.length - 1) % VIEW_MODES.length : -1
+                  if (next < 0) return
+                  event.preventDefault()
+                  switchView(VIEW_MODES[next].key)
+                  const tabs = event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="tab"]')
+                  tabs?.[next]?.focus()
+                }}
                 className={cn(
                   'tasks-page-shell__tab flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs',
                   viewMode === key ? 'is-active' : 'text-muted-foreground hover:text-foreground',

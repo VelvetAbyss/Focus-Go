@@ -61,6 +61,7 @@ const parseAuthPayload = (text: string, contentType: string | null) => {
 const requestAuth = async <T>(path: string, init?: RequestInit): Promise<T> => {
   const response = await fetch(`${authBasePath()}${path}`, {
     credentials: 'include',
+    signal: AbortSignal.timeout(8_000),
     ...init,
     headers: {
       'Content-Type': 'application/json',

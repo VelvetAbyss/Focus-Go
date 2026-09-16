@@ -97,7 +97,7 @@ const TaskListView = ({
                   key={task.id}
                   initial={{ opacity: 0, x: -6 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.1 + i * 0.025, duration: 0.28 }}
+                  transition={{ delay: 0.1 + Math.min(i, 8) * 0.025, duration: 0.28 }}
                 >
                   <TaskRow
                     task={task}
@@ -149,7 +149,7 @@ const TaskListView = ({
                   key={task.id}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.16 + i * 0.04, duration: 0.36, ease: [0.16, 1, 0.3, 1] }}
+                  transition={{ delay: 0.16 + Math.min(i, 6) * 0.04, duration: 0.36, ease: [0.16, 1, 0.3, 1] }}
                 >
                   <TaskRow
                     task={task}
@@ -191,7 +191,7 @@ const TaskListView = ({
                   key={task.id}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.22 + i * 0.02, duration: 0.25 }}
+                  transition={{ delay: 0.22 + Math.min(i, 8) * 0.02, duration: 0.25 }}
                 >
                   <TaskRow
                     task={task}

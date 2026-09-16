@@ -1,0 +1,23 @@
+{
+  "name": "@focus-go/obsidian-plugin",
+  "version": "0.1.0",
+  "description": "Two-way sync between Focus & Go and an Obsidian vault",
+  "type": "module",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "build": "node esbuild.config.mjs production",
+    "dev": "node esbuild.config.mjs",
+    "test": "node --test --experimental-strip-types src/__tests__/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "esbuild": "^0.24.0",
+    "obsidian": "^1.7.2",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "fflate": "^0.8.2"
+  }
+}

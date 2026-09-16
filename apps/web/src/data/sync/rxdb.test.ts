@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { db } from '../db'
@@ -28,10 +29,11 @@ describe('rxdb sync migration', () => {
   })
 
   afterEach(async () => {
-    vi.unstubAllGlobals()
-    fetchMock.mockReset()
     await resetRxdbSyncDatabase()
     await db.delete({ disableAutoOpen: false })
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+    fetchMock.mockReset()
   })
 
   it('migrates existing Dexie rows into RxDB and pushes them through the new endpoint', async () => {
@@ -193,7 +195,7 @@ describe('rxdb sync migration', () => {
 
   it('batches pulled Dexie refresh notifications per entity', async () => {
     const eventTarget = new EventTarget()
-    vi.stubGlobal('window', eventTarget)
+    vi.spyOn(window, 'dispatchEvent').mockImplementation(eventTarget.dispatchEvent.bind(eventTarget))
     const syncDataUpdated = vi.fn()
     eventTarget.addEventListener(SYNC_DATA_UPDATED_EVENT, syncDataUpdated)
 
@@ -276,7 +278,7 @@ describe('rxdb sync migration', () => {
 
   it('does not emit pulled refresh notifications when Dexie data is unchanged', async () => {
     const eventTarget = new EventTarget()
-    vi.stubGlobal('window', eventTarget)
+    vi.spyOn(window, 'dispatchEvent').mockImplementation(eventTarget.dispatchEvent.bind(eventTarget))
     const syncDataUpdated = vi.fn()
     eventTarget.addEventListener(SYNC_DATA_UPDATED_EVENT, syncDataUpdated)
 
@@ -360,7 +362,7 @@ describe('rxdb sync migration', () => {
     // writeDexieEntity would see existing-with-defaults vs payload-without-defaults
     // as different, write every cycle, and dispatch a 'notes' refresh forever.
     const eventTarget = new EventTarget()
-    vi.stubGlobal('window', eventTarget)
+    vi.spyOn(window, 'dispatchEvent').mockImplementation(eventTarget.dispatchEvent.bind(eventTarget))
     const syncDataUpdated = vi.fn()
     eventTarget.addEventListener(SYNC_DATA_UPDATED_EVENT, syncDataUpdated)
 

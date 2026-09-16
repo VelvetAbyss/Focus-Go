@@ -150,7 +150,7 @@ describe('AppShell theme preview event flow', () => {
     window.removeEventListener(THEME_BEFORE_MODE_TOGGLE_EVENT, onBeforeModeToggle)
   })
 
-  it('updates shell scale css variable on viewport resize', async () => {
+  it('keeps controls at natural size across viewport resizes', async () => {
     const { container } = render(
       <MemoryRouter>
         <AppShell>
@@ -166,7 +166,7 @@ describe('AppShell theme preview event flow', () => {
     window.dispatchEvent(new Event('resize'))
 
     await waitFor(() => {
-      expect(shell.style.getPropertyValue('--shell-scale')).toBe('0.9')
+      expect(shell.style.getPropertyValue('--shell-scale')).toBe('1')
     })
   })
 
@@ -202,7 +202,7 @@ describe('AppShell theme preview event flow', () => {
     const shell = container.querySelector('.focus-shell') as HTMLElement
 
     await waitFor(() => {
-      expect(shell.style.getPropertyValue('--shell-scale')).toBe('0.9')
+      expect(shell.style.getPropertyValue('--shell-scale')).toBe('1')
     })
     const before = shell.style.cssText
 

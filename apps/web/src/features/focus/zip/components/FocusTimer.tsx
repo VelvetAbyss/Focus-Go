@@ -160,7 +160,7 @@ function DurationPicker({
   customDurationLabel: string;
   minLabel: string;
 }) {
-  const presets = [15, 25, 30, 45, 60, 90];
+  const presets = [10, 15, 25, 30, 45, 60, 90];
 
   return (
     <motion.div
@@ -184,8 +184,9 @@ function DurationPicker({
         <div className="flex items-center justify-center gap-3 mb-4">
           <motion.button
             whileTap={{ scale: 0.9 }}
-            onClick={() => onChange(Math.max(5, value - 5))}
-            className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
+            aria-label={`${customDurationLabel} −5 ${minLabel}`}
+            onClick={() => onChange(Math.max(10, value - 5))}
+            className="w-11 h-11 rounded-full flex items-center justify-center cursor-pointer"
             style={{ background: "color-mix(in srgb, var(--text-primary) 4%, transparent)" }}
           >
             <ChevronDown size={15} className="text-[var(--text-secondary)]" />
@@ -199,8 +200,9 @@ function DurationPicker({
           <span className="text-[0.75rem] text-[var(--text-secondary)] -ml-1">{minLabel}</span>
           <motion.button
             whileTap={{ scale: 0.9 }}
+            aria-label={`${customDurationLabel} +5 ${minLabel}`}
             onClick={() => onChange(Math.min(120, value + 5))}
-            className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
+            className="w-11 h-11 rounded-full flex items-center justify-center cursor-pointer"
             style={{ background: "color-mix(in srgb, var(--text-primary) 4%, transparent)" }}
           >
             <ChevronUp size={15} className="text-[var(--text-secondary)]" />
@@ -497,8 +499,10 @@ export function FocusTimer({
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
+          aria-label={t("focus.shortcuts")}
+          aria-expanded={showShortcuts}
           onClick={() => setShowShortcuts(!showShortcuts)}
-          className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer"
+          className="w-11 h-11 rounded-lg flex items-center justify-center cursor-pointer"
           style={{ background: "color-mix(in srgb, var(--text-primary) 2.5%, transparent)" }}
         >
           <Keyboard size={14} className="text-[var(--text-secondary)]" />
@@ -683,8 +687,9 @@ export function FocusTimer({
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
+                aria-label={t("focus.reset")}
                 onClick={() => void handleReset()}
-                className="w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer"
+                className="w-11 h-11 rounded-xl flex items-center justify-center cursor-pointer"
                 style={{ background: "color-mix(in srgb, var(--text-primary) 4%, transparent)" }}
               >
                 <RotateCcw size={15} className="text-[var(--text-secondary)]" />
@@ -697,9 +702,11 @@ export function FocusTimer({
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
+              aria-label={t("focus.editDuration")}
+              aria-expanded={showDuration}
               onClick={() => setShowDuration(!showDuration)}
               disabled={status === "running" || status === "paused"}
-              className="w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer"
+              className="w-11 h-11 rounded-xl flex items-center justify-center cursor-pointer"
               style={{
                 background: "color-mix(in srgb, var(--text-primary) 4%, transparent)",
                 opacity: status === "running" || status === "paused" ? 0.4 : 1,
@@ -727,8 +734,10 @@ export function FocusTimer({
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            aria-label={t(completionSound ? "focus.soundOff" : "focus.soundOn")}
+            aria-pressed={completionSound}
             onClick={() => setCompletionSound(!completionSound)}
-            className="w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer"
+            className="w-11 h-11 rounded-xl flex items-center justify-center cursor-pointer"
             style={{ background: "color-mix(in srgb, var(--text-primary) 4%, transparent)" }}
           >
             {completionSound ? (

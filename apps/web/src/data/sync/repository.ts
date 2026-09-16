@@ -1,3 +1,4 @@
+import { LOCAL_DATA_OWNER_KEY } from '../../store/authOwnership'
 import { db } from '../db'
 import { SYNC_ENTITY_TABLES, SYNC_STATE_ID, SYNC_STATUS_CHANGED_EVENT } from './constants'
 import type { SyncEntityType, SyncOp, SyncPayload, SyncState, SyncStatus } from './types'
@@ -63,15 +64,23 @@ export const enqueueSyncOperation = <T extends SyncEntityType>(
   deletedAt?: number | null,
 ) => import('./rxdb').then(({ enqueueRxdbSyncChange }) => enqueueRxdbSyncChange(entityType, op, payload, deletedAt))
 
+const pendingSyncOperations = new Set<Promise<void>>()
+
+export const drainPendingSyncOperations = async () => {
+  while (pendingSyncOperations.size) await Promise.all([...pendingSyncOperations])
+}
+
 export const enqueueSyncOperationInBackground = <T extends SyncEntityType>(
   entityType: T,
   op: SyncOp,
   payload: SyncPayload<T>,
   deletedAt?: number | null,
 ) => {
-  void enqueueSyncOperation(entityType, op, payload, deletedAt).catch((error) => {
+  const pending = enqueueSyncOperation(entityType, op, payload, deletedAt).then(() => undefined).catch((error) => {
     console.error(`[sync] ${entityType}/${payload.id} enqueue failed`, error)
   })
+  pendingSyncOperations.add(pending)
+  void pending.then(() => pendingSyncOperations.delete(pending))
 }
 
 export const collectLocalSnapshot = async () => {
@@ -108,14 +117,12 @@ export const restampLocalSnapshotForRestore = async () => {
 }
 
 export const clearLocalUserData = async () => {
-  const entityTableObjects = Object.values(SYNC_ENTITY_TABLES).map((name) => db.table(name))
-  await db.transaction('rw', [...entityTableObjects, db.syncState, db.syncBlobCache], async () => {
-    for (const tableName of Object.values(SYNC_ENTITY_TABLES)) {
-      await db.table(tableName).clear()
-    }
-    await db.syncState.clear()
-    await db.syncBlobCache.clear()
+  await drainPendingSyncOperations()
+  const { runRxdbMaintenance } = await import('./rxdb')
+  await runRxdbMaintenance(async () => {
+    await db.transaction('rw', db.tables, async () => {
+      for (const table of db.tables) await table.clear()
+    })
   })
-  const { resetRxdbSyncDatabase } = await import('./rxdb')
-  await resetRxdbSyncDatabase()
+  if (typeof localStorage !== 'undefined') localStorage.removeItem(LOCAL_DATA_OWNER_KEY)
 }

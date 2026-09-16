@@ -593,7 +593,7 @@ const TasksBoard = ({
 
   const isFirstTimeEmpty = tasks.length === 0
   const tasksEmptyState = isFirstTimeEmpty ? (
-    <div className="px-1 py-8">
+    <div className="tasks-fg__empty px-1 py-8">
       <DiscoveryEmptyState
         variant="first-time"
         title={t('emptyState.tasks.title')}
@@ -602,7 +602,7 @@ const TasksBoard = ({
       />
     </div>
   ) : (
-    <div className="px-1 py-8">
+    <div className="tasks-fg__empty px-1 py-8">
       <DiscoveryEmptyState
         variant="filtered"
         title={topView === 'today' ? t('tasks.today.emptyTitle') : t('emptyState.tasks.filtered.title')}
@@ -710,10 +710,10 @@ const TasksBoard = ({
               </div>
             ) : null}
 
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
+          <div className="tasks-fg__toolbar flex flex-wrap items-center justify-between gap-4">
+            <div className="tasks-fg__toolbar-group flex flex-wrap items-center gap-4">
               {topView === 'board' && effectiveGroupBy === 'status' ? (
-                <div className="flex items-center gap-0.5">
+                <div className="tasks-fg__status-tabs flex flex-wrap items-center gap-0.5">
                   {tabs.map((status) => {
                     const cfg = TASK_STATUS_CONFIG[status.key]
                     const count = statusCounts[status.key]
@@ -927,12 +927,12 @@ const TasksBoard = ({
         </div>
       )}
 
-      <div className="relative min-h-0 flex-1 overflow-visible pt-4">
+      <div className="tasks-fg__content relative min-h-0 flex-1 overflow-visible pt-4">
         {boardContent}
       </div>
 
       {topView !== 'analytics' ? (
-        <div className="flex flex-col">
+        <div className="tasks-fg__composer-section flex flex-col">
           {showTasksEmptyState ? (
             <div className="px-4 pt-2 pb-1 text-[12px] text-muted-foreground/80">
               {t('modules.tasks.addPlaceholder')} ↓

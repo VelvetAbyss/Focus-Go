@@ -5,8 +5,10 @@ import helmet from 'helmet'
 import { toNodeHandler } from 'better-auth/node'
 import { auth } from './auth/betterAuth.js'
 import { ensureDesktopAuthTable, registerDesktopAuthRoutes } from './auth/desktopAuth.js'
+import { ensureIntegrationTokenTable } from './auth/integrationTokens.js'
 import userRouter from './routes/user.js'
 import syncRouter from './routes/sync.js'
+import integrationsRouter from './routes/integrations.js'
 import podcastsRouter from './routes/podcasts.js'
 import adminRouter from './routes/admin.js'
 import feedbackRouter from './routes/feedback.js'
@@ -77,6 +79,7 @@ export const createApp = () => {
   // Desktop (Tauri) Google sign-in routes. MUST be registered before the
   // better-auth catch-all below, or they'd be swallowed by it.
   ensureDesktopAuthTable(db)
+  ensureIntegrationTokenTable(db)
   registerDesktopAuthRoutes(app, db)
 
   const authHandler = toNodeHandler(auth)
@@ -110,6 +113,8 @@ export const createApp = () => {
   app.use('/api/user', userRouter)
   app.use('/sync', syncRouter)
   app.use('/api/sync', syncRouter)
+  app.use('/integrations', integrationsRouter)
+  app.use('/api/integrations', integrationsRouter)
   app.use('/podcasts', podcastsRouter)
   app.use('/api/podcasts', podcastsRouter)
   const newsRouter = createNewsRouter({ service: createNewsService({ db }) })

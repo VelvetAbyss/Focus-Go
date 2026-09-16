@@ -987,9 +987,10 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
   },
   focusSessions: {
     async list(limit) {
-      const rows = await db.focusSessions.orderBy('createdAt').reverse().toArray()
-      if (!limit || limit <= 0) return rows
-      return rows.slice(0, limit)
+      const query = db.focusSessions.orderBy('createdAt').reverse()
+      return Number.isFinite(limit) && limit! > 0
+        ? query.limit(Math.max(1, Math.floor(limit!))).toArray()
+        : query.toArray()
     },
     async start(data) {
       const session: FocusSession = withBase({

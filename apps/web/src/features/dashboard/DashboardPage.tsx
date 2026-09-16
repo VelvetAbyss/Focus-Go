@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
@@ -21,8 +21,8 @@ import {
   DEFAULT_DASHBOARD_THEME_OVERRIDE,
 } from '../../data/defaultDashboardLayout'
 import { usePremiumGate } from '../premium/PremiumProvider'
-import LifeDashboard from '../life/LifeDashboard'
-import NewsDashboard from '../news/NewsDashboard'
+const LifeDashboard = lazy(() => import('../life/LifeDashboard'))
+const NewsDashboard = lazy(() => import('../news/NewsDashboard'))
 import { readLayoutLocked, writeLayoutLocked } from '../../shared/prefs/dashboardLayoutLock'
 import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../data/repositories/syncedPreferencesRepo'
 import { DiscoveryNewBadge } from '../../shared/ui/DiscoveryNewBadge'
@@ -337,10 +337,10 @@ const DashboardPage = () => {
         </div>
 
         {/* Life page */}
-        {page === 'life' && <LifeDashboard layoutEdit={layoutEdit} widgetsPanelOpen={widgetsPanelOpen} />}
+        {page === 'life' && <Suspense fallback={<DashboardSkeleton columns={columns} />}><LifeDashboard layoutEdit={layoutEdit} widgetsPanelOpen={widgetsPanelOpen} /></Suspense>}
 
         {/* News page */}
-        {page === 'news' && <NewsDashboard />}
+        {page === 'news' && <Suspense fallback={<DashboardSkeleton columns={columns} />}><NewsDashboard /></Suspense>}
 
         {/* Main dashboard */}
         {page === 'main' && layoutEdit && widgetsPanelOpen && (

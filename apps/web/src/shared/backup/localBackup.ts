@@ -1,12 +1,13 @@
 import JSZip from 'jszip'
-import { encodeSyncPayload, decodeSyncPayload, encodeBackupBlobBytes } from '../../data/sync/content'
+import type Dexie from 'dexie'
+import { encodeSyncPayload, decodeSyncPayload, encodeBackupBlobBytes, collectBlobRefs } from '../../data/sync/content'
 import { SYNC_ENTITY_TABLES } from '../../data/sync/constants'
 import type { SyncEntityType, SyncWireBlob } from '../../data/sync/types'
 
 export const LOCAL_BACKUP_FORMAT = 'focus-go-local-backup'
 export const LOCAL_BACKUP_V2_FORMAT = 'focus-go-local-backup-v2'
 export const LOCAL_BACKUP_SCHEMA_VERSION = 2
-export const PROTECTED_STORAGE_KEYS = new Set(['auth', 'oauth_state', 'pkce_verifier'])
+export const PROTECTED_STORAGE_KEYS = new Set(['auth', 'oauth_state', 'pkce_verifier', 'focusgo.local-data-owner.v1'])
 
 type SerializablePrimitive = string | number | boolean | null
 type SerializedBlob = {
@@ -60,22 +61,12 @@ export type BackupDownload = {
 
 export type LocalBackupDatabaseAdapter = {
   exportTables: (tableNames: string[]) => Promise<Record<string, unknown[]>>
-  replaceTables: (tables: Record<string, unknown[]>) => Promise<void>
+  replaceTables: (tables: Record<string, unknown[]>, beforeCommit?: () => void) => Promise<void>
 }
 
 export type LocalBackupStorageAdapter = {
   readAll: () => Record<string, string>
   replaceAll: (entries: Record<string, string>) => void
-}
-
-type TableLike = {
-  toArray: () => Promise<unknown[]>
-  clear: () => Promise<void>
-  bulkPut: (rows: readonly unknown[]) => Promise<unknown>
-}
-
-type TableDatabaseLike = {
-  table: (name: string) => TableLike
 }
 
 type StorageLike = Pick<Storage, 'length' | 'key' | 'getItem' | 'clear' | 'setItem'>
@@ -90,6 +81,7 @@ type ExportOptions = {
 }
 
 type ImportOptions = {
+  prepareTables?: (tables: Record<string, unknown[]>) => Record<string, unknown[]>
   db: LocalBackupDatabaseAdapter
   storage: LocalBackupStorageAdapter
   tableNames: string[]
@@ -248,25 +240,76 @@ export const exportLocalBackup = async ({
   }
 }
 
+const MAX_BACKUP_BYTES = 256 * 1024 * 1024
+const MAX_BACKUP_ENTRY_BYTES = 64 * 1024 * 1024
+const MAX_BACKUP_JSON_BYTES = 16 * 1024 * 1024
+
+const validateBlobBytes = async (blob: SyncWireBlob) => {
+  if (blob.compression === 'none') {
+    if (blob.byteLength !== blob.rawByteLength) throw new Error('Backup blob size mismatch')
+    return
+  }
+  const reader = new Blob([base64ToBytes(blob.dataBase64)]).stream().pipeThrough(new DecompressionStream('gzip')).getReader()
+  let size = 0
+  try {
+    while (true) {
+      const { value, done } = await reader.read()
+      if (done) break
+      size += value.byteLength
+      if (size > blob.rawByteLength || size > MAX_BACKUP_ENTRY_BYTES) {
+        await reader.cancel()
+        throw new Error('Backup blob exceeds declared size')
+      }
+    }
+    if (size !== blob.rawByteLength) throw new Error('Backup blob size mismatch')
+  } finally { reader.releaseLock() }
+}
+
+const readZipEntry = (entry: JSZip.JSZipObject | null, limit: number): Promise<Uint8Array> => {
+  if (!entry) return Promise.reject(new Error('Missing backup entry'))
+  return new Promise((resolve, reject) => {
+    const chunks: Uint8Array[] = []
+    let size = 0
+    // JSZip 3 exposes this browser stream API but omits it from JSZipObject's types.
+    const stream = (entry as JSZip.JSZipObject & { internalStream(type: 'uint8array'): JSZip.JSZipStreamHelper<Uint8Array> }).internalStream('uint8array')
+    stream.on('data', (chunk: Uint8Array) => {
+      size += chunk.byteLength
+      if (size > limit) { stream.pause(); reject(new Error('Backup entry exceeds size limit')); return }
+      chunks.push(chunk)
+    }).on('error', reject).on('end', () => {
+      const bytes = new Uint8Array(size)
+      let offset = 0
+      for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength }
+      resolve(bytes)
+    }).resume()
+  })
+}
+
 export const readBackupFile = async (file: File): Promise<ParsedLocalBackup> => {
-  if (file.name.endsWith('.json')) {
+  if (file.size > MAX_BACKUP_BYTES) throw new Error('Backup exceeds size limit')
+  if (file.name.toLowerCase().endsWith('.json')) {
+    if (file.size > MAX_BACKUP_JSON_BYTES) throw new Error('Backup JSON exceeds size limit')
     const parsed = JSON.parse(await file.text()) as unknown
     if (!isLegacyPayload(parsed)) throw new Error('Invalid backup file')
     return parsed
   }
 
-  const zip = await JSZip.loadAsync(file)
-  const manifestText = await zip.file('manifest.json')?.async('string')
-  const localStorageText = await zip.file('localStorage/settings.json')?.async('string')
+  const zip = await JSZip.loadAsync(await file.arrayBuffer())
+  const decoder = new TextDecoder()
+  const manifestText = decoder.decode(await readZipEntry(zip.file('manifest.json'), MAX_BACKUP_JSON_BYTES))
+  const localStorageText = decoder.decode(await readZipEntry(zip.file('localStorage/settings.json'), MAX_BACKUP_JSON_BYTES))
   if (!manifestText || !localStorageText) throw new Error('Invalid backup file')
   const manifest = JSON.parse(manifestText) as unknown
   const localStorage = JSON.parse(localStorageText) as unknown
   if (!isV2Manifest(manifest) || !isPlainObject(localStorage)) throw new Error('Invalid backup file')
 
   const blobs: Record<string, SyncWireBlob> = {}
+  let totalBytes = 0
   for (const [hash, meta] of Object.entries(manifest.blobs)) {
-    const bytes = await zip.file(`blobs/${hash}.bin`)?.async('uint8array')
-    if (!bytes) throw new Error(`Missing backup blob: ${hash}`)
+    if (!/^[a-f0-9]{64}$/.test(hash) || !isPlainObject(meta)) throw new Error('Invalid backup blob metadata')
+    const bytes = await readZipEntry(zip.file(`blobs/${hash}.bin`), MAX_BACKUP_ENTRY_BYTES)
+    totalBytes += bytes.byteLength
+    if (totalBytes > MAX_BACKUP_BYTES) throw new Error('Backup exceeds size limit')
     blobs[hash] = {
       hash,
       contentType: meta.contentType,
@@ -286,61 +329,77 @@ export const readBackupFile = async (file: File): Promise<ParsedLocalBackup> => 
   }
 }
 
-export const importLocalBackup = async (payload: ParsedLocalBackup, { db, storage, tableNames }: ImportOptions) => {
-  if (!isLegacyPayload(payload) && (!isPlainObject(payload) || !isV2Manifest(payload.manifest) || !isPlainObject(payload.localStorage) || !isPlainObject(payload.blobs))) {
+export const importLocalBackup = async (payload: ParsedLocalBackup, { db, storage, tableNames, prepareTables }: ImportOptions) => {
+  const legacy = isLegacyPayload(payload)
+  if (!legacy && (!isPlainObject(payload) || !isV2Manifest(payload.manifest) || !isPlainObject(payload.localStorage) || !isPlainObject(payload.blobs))) {
     throw new Error('Invalid backup file')
   }
-
-  if (isLegacyPayload(payload)) {
-    const knownTables = new Set(tableNames)
-    const restoredTables = Object.fromEntries(
-      Object.entries(payload.db.tables)
-        .filter(([tableName, rows]) => knownTables.has(tableName) && Array.isArray(rows))
-        .map(([tableName, rows]) => [tableName, rows.map((row: unknown) => deserializeValue(row))]),
-    )
-
-    await db.replaceTables(restoredTables)
-    const currentStorageEntries = storage.readAll()
-    const protectedStorageEntries = Object.fromEntries(
-      Object.entries(currentStorageEntries).filter(([key, value]) => PROTECTED_STORAGE_KEYS.has(key) && typeof value === 'string'),
-    ) as Record<string, string>
-    const nextStorageEntries = {
-      ...Object.fromEntries(
-        Object.entries(payload.localStorage).filter(([key, value]) => !PROTECTED_STORAGE_KEYS.has(key) && typeof value === 'string'),
-      ),
-      ...protectedStorageEntries,
-    }
-    storage.replaceAll(nextStorageEntries)
-    return
+  const envelope = legacy ? payload : payload.manifest
+  if (envelope.schemaVersion !== (legacy ? 1 : LOCAL_BACKUP_SCHEMA_VERSION)) {
+    throw new Error('Unsupported backup version')
   }
-
+  if (Object.values(payload.localStorage).some((value) => typeof value !== 'string')) {
+    throw new Error('Invalid backup settings')
+  }
+  if (!legacy) {
+    let totalRawBytes = 0
+    for (const [hash, blob] of Object.entries(payload.blobs)) {
+      if (!isPlainObject(blob) || blob.hash !== hash || !/^[a-f0-9]{64}$/.test(hash) || !['gzip', 'none'].includes(blob.compression) ||
+        typeof blob.dataBase64 !== 'string' || !Number.isSafeInteger(blob.rawByteLength) || blob.rawByteLength < 0 ||
+        blob.rawByteLength > MAX_BACKUP_ENTRY_BYTES || base64ToBytes(blob.dataBase64).byteLength !== blob.byteLength) {
+        throw new Error('Invalid backup blob')
+      }
+      totalRawBytes += blob.rawByteLength
+      if (totalRawBytes > MAX_BACKUP_BYTES) throw new Error('Backup exceeds size limit')
+      const metadata = payload.manifest.blobs[hash]
+      if (!metadata || metadata.byteLength !== blob.byteLength || metadata.rawByteLength !== blob.rawByteLength ||
+        metadata.compression !== blob.compression || metadata.contentType !== blob.contentType) throw new Error('Backup blob metadata mismatch')
+      await validateBlobBytes(blob)
+    }
+    if (Object.keys(payload.manifest.blobs).some((hash) => !payload.blobs[hash])) throw new Error('Missing backup blob')
+  }
   const knownTables = new Set(tableNames.filter((name) => !transientTables.has(name)))
-  const restoredEntries = await Promise.all(
-    Object.entries(payload.manifest.db.tables)
-      .filter(([tableName, rows]) => knownTables.has(tableName) && Array.isArray(rows))
-      .map(async ([tableName, rows]) => {
-        const entityType = tableToEntityType.get(tableName)
-        const nextRows = await Promise.all(
-          rows.map(async (row) => {
-            const deserialized = deserializeValue(row)
-            if (!entityType) return deserialized
-            return decodeSyncPayload(entityType, deserialized as Record<string, unknown>, new Map(Object.values(payload.blobs).map((blob) => [blob.hash, blob] as const)))
-          }),
-        )
-        return [tableName, nextRows] as const
-      }),
-  )
-
-  await db.replaceTables(Object.fromEntries(restoredEntries))
-
-  const currentStorageEntries = storage.readAll()
-  const protectedStorageEntries = Object.fromEntries(
-    Object.entries(currentStorageEntries).filter(([key, value]) => PROTECTED_STORAGE_KEYS.has(key) && typeof value === 'string'),
-  ) as Record<string, string>
-  storage.replaceAll({
-    ...payload.localStorage,
-    ...protectedStorageEntries,
-  })
+  const blobs = new Map(!legacy ? Object.values(payload.blobs).map((blob) => [blob.hash, blob] as const) : [])
+  // Decode and validate every row before opening a write transaction.
+  const entries = await Promise.all(Object.entries(envelope.db.tables).map(async ([name, rows]) => {
+    if (!Array.isArray(rows)) throw new Error(`Invalid backup table: ${name}`)
+    if (!knownTables.has(name)) return null
+    const ids = new Set<string>()
+    const restored = await Promise.all(rows.map(async (row: unknown) => {
+      if (!isPlainObject(row) || typeof row.id !== 'string' || !row.id.trim() || ids.has(row.id)) {
+        throw new Error(`Invalid or duplicate record in backup table: ${name}`)
+      }
+      ids.add(row.id)
+      const value = deserializeValue(row)
+      const entity = tableToEntityType.get(name)
+      if (!legacy && entity && collectBlobRefs(entity, value as Record<string, unknown>).some((hash) => !blobs.has(hash))) {
+        throw new Error(`Missing blob in backup table: ${name}`)
+      }
+      return !legacy && entity ? decodeSyncPayload(entity, value as Record<string, unknown>, blobs) : value
+    }))
+    return [name, restored] as const
+  }))
+  const decodedTables = Object.fromEntries(entries.filter((entry) => entry !== null))
+  const restoredTables = prepareTables ? prepareTables(decodedTables) : decodedTables
+  const previousStorage = storage.readAll()
+  const nextStorage = {
+    ...Object.fromEntries(Object.entries(payload.localStorage).filter(([key]) => !PROTECTED_STORAGE_KEYS.has(key))),
+    ...Object.fromEntries(Object.entries(previousStorage).filter(([key]) => PROTECTED_STORAGE_KEYS.has(key))),
+  }
+  let storageChanged = false
+  try {
+    await db.replaceTables(restoredTables, () => {
+      storageChanged = true
+      storage.replaceAll(nextStorage)
+    })
+  } catch (error) {
+    if (storageChanged) {
+      try { storage.replaceAll(previousStorage) } catch (rollbackError) {
+        throw new AggregateError([error, rollbackError], 'Restore failed; browser settings could not be recovered')
+      }
+    }
+    throw error
+  }
 }
 
 export const createBackupDownload = async (payload: LocalBackupPayload): Promise<BackupDownload> => {
@@ -369,7 +428,7 @@ export const downloadBackupFile = (download: BackupDownload) => {
 }
 
 export const createTableDatabaseAdapter = (
-  database: TableDatabaseLike,
+  database: Dexie,
   tableNames: string[],
 ): LocalBackupDatabaseAdapter => ({
   async exportTables(names) {
@@ -378,14 +437,15 @@ export const createTableDatabaseAdapter = (
     )
     return Object.fromEntries(entries)
   },
-  async replaceTables(tables) {
-    await Promise.all(tableNames.map((name) => database.table(name).clear()))
-    await Promise.all(
-      Object.entries(tables).map(async ([name, rows]) => {
-        if (rows.length === 0) return
-        await database.table(name).bulkPut(rows)
-      }),
-    )
+  async replaceTables(tables, beforeCommit) {
+    await database.transaction('rw', tableNames.map((name) => database.table(name)), async () => {
+      for (const name of tableNames) await database.table(name).clear()
+      for (const [name, rows] of Object.entries(tables)) {
+        if (!tableNames.includes(name)) throw new Error(`Unknown restore table: ${name}`)
+        if (rows.length) await database.table(name).bulkPut(rows)
+      }
+      beforeCommit?.()
+    })
   },
 })
 

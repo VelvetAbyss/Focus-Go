@@ -290,7 +290,7 @@ const TaskAddComposer = forwardRef<TaskAddComposerHandle, TaskAddComposerProps>(
       ) : null}
       <div
         className={cn(
-          'flex items-center gap-3 rounded-[18px] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] px-3 py-2 transition-all duration-300',
+          'tasks-fg__composer-row flex items-center gap-3 rounded-[18px] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] px-3 py-2 transition-all duration-300',
           compact ? 'rounded-[15px] px-2.5 py-2' : '',
           plain && !hero ? 'flex-1 gap-2 rounded-lg bg-transparent px-3 py-1.5' : '',
           hero ? 'flex-1 gap-3 rounded-xl border-[color:color-mix(in_srgb,var(--accent-action)_22%,transparent)] bg-[color:color-mix(in_srgb,var(--accent-action)_5%,var(--bg-elevated))] px-3.5 py-2.5' : '',

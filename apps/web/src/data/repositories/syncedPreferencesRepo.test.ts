@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
+import { drainPendingSyncOperations } from '../sync/repository'
+import { resetRxdbSyncDatabase } from '../sync/rxdb'
 
 import 'fake-indexeddb/auto'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { db } from '../db'
 import { syncedPreferencesRepo, SYNCED_PREFERENCES_ID } from './syncedPreferencesRepo'
 import { writeLanguage, writeWorldClockItems } from '../../shared/prefs/preferences'
@@ -11,6 +13,11 @@ import { writeLayoutLocked } from '../../shared/prefs/dashboardLayoutLock'
 import { writeStoredSubscriptions } from '../../features/calendar/calendarStorage'
 
 describe('syncedPreferencesRepo', () => {
+  afterEach(async () => {
+    await drainPendingSyncOperations()
+    await resetRxdbSyncDatabase()
+    await db.delete({ disableAutoOpen: false })
+  })
   beforeEach(async () => {
     window.localStorage.clear()
     await db.delete({ disableAutoOpen: false })

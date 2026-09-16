@@ -25,11 +25,21 @@ jobs:
           npm run build --workspace @focus-go/core
           npm run build --workspace @focus-go/db-contracts
 
+      - name: Install API dependencies
+        run: npm ci --prefix apps/web/focus-go-api
+
       - name: Run tests
         run: |
           npm run test --workspace @focus-go/core
           npm run test --workspace @focus-go/db-contracts
           npm run test --workspace @focus-go/web
+          npm test --prefix apps/web/focus-go-api
 
       - name: Verify web build
         run: npm run verify
+
+      - name: Install smoke test browser
+        run: npm exec --workspace @focus-go/web -- playwright install --with-deps chromium
+
+      - name: Smoke test production build
+        run: npm run test:smoke --workspace @focus-go/web

@@ -1,3 +1,4 @@
+import { diagnosticRoute, recordVital } from './diagnostics'
 const WEB_VITAL_EVENT = 'focusgo:web-vital'
 
 type MetricPayload = {
@@ -22,9 +23,10 @@ const emitMetric = (metric: {
     rating: metric.rating,
     delta: metric.delta,
     id: metric.id,
-    route: window.location.pathname,
+    route: diagnosticRoute(window.location.pathname),
   }
 
+  recordVital(payload)
   window.dispatchEvent(new CustomEvent(WEB_VITAL_EVENT, { detail: payload }))
 
   if (import.meta.env.DEV && window.localStorage.getItem('focusgo.perf.webVitalsLog') === '1') {

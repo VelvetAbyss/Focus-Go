@@ -11,7 +11,8 @@
     "analyze": "FOCUSGO_BUNDLE_ANALYZE=1 npm exec -- vite build",
     "lint": "npm exec -- eslint .",
     "preview": "npm exec -- vite preview",
-    "test": "npm exec -- vitest run"
+    "test": "npm exec -- vitest run",
+    "test:smoke": "playwright test --config playwright.smoke.config.ts"
   },
   "dependencies": {
     "@dicebear/collection": "^9.4.2",

@@ -95,11 +95,11 @@ describe('bootstrapAuth', () => {
     })
   })
 
-  it('does not clear anonymous state when cookie session rehydrate fails for a first-time visitor', async () => {
+  it('surfaces a failed cookie request without clearing local state', async () => {
     getSessionMock.mockRejectedValue(new Error('no session'))
     const { bootstrapAuth } = await import('./authBootstrap')
 
-    await expect(bootstrapAuth()).resolves.toBe(true)
+    await expect(bootstrapAuth()).rejects.toThrow('no session')
 
     expect(setAuthMock).not.toHaveBeenCalled()
     expect(clearAuthMock).not.toHaveBeenCalled()

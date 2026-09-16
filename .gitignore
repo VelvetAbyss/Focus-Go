@@ -45,6 +45,10 @@ __pycache__/
 # Database files (runtime data, not committed)
 apps/web/focus-go-api/data/
 
+# Test artifacts
+apps/web/test-results/
+apps/web/playwright-report/
+
 # Deployment / cache
 .vercel
 .sisyphus/

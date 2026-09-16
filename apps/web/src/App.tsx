@@ -27,7 +27,6 @@ const App = () => {
   // then check for updates a few seconds later (non-blocking).
   useEffect(() => {
     const platform = getPlatform()
-    if (!platform.isDesktop) return
     const frame = requestAnimationFrame(() => void platform.showAppWindow())
     const updateTimer = window.setTimeout(() => void platform.checkForUpdates(), 5000)
     return () => {

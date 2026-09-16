@@ -36,7 +36,10 @@ export const extractSyncErrorMessage = (error: unknown) => {
 }
 
 const runQueued = async <T>(task: () => Promise<T>) => {
-  const next = rxdbQueue.then(task, task)
+  const lockedTask = async (): Promise<T> => typeof navigator !== 'undefined' && navigator.locks
+    ? navigator.locks.request('focusgo-sync-maintenance', task)
+    : task()
+  const next = rxdbQueue.then(lockedTask, lockedTask)
   rxdbQueue = next.then(
     () => undefined,
     () => undefined,
@@ -521,3 +524,18 @@ export const resetRxdbSyncDatabase = async () => {
     }
   })
 }
+
+// Run destructive local maintenance only after active replication has drained.
+// Keep the whole restore and cache reset ahead of subsequent queued sync work.
+export const runRxdbMaintenance = async <T>(task: () => Promise<T>) =>
+  runQueued(async () => {
+    rxdbResetRequested = true
+    try {
+      // Reset replication metadata before committing local changes. If this
+      // fails, the existing local snapshot is still intact and can be retried.
+      await resetRxdbStorageDatabases()
+      return await task()
+    } finally {
+      rxdbResetRequested = false
+    }
+  })

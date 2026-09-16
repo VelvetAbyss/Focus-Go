@@ -1,0 +1,12 @@
+.first-focus { width: min(100%, 680px); margin: 2rem auto; padding: clamp(1.25rem, 4vw, 3rem); border: 1px solid hsl(var(--border)); border-radius: 1.25rem; background: hsl(var(--card)); color: hsl(var(--foreground)); }
+.first-focus__eyebrow { font-size: .875rem; opacity: .7; margin-bottom: .75rem; }
+.first-focus h1 { font-size: clamp(1.75rem, 4vw, 2.5rem); line-height: 1.2; font-weight: 600; margin-bottom: 1rem; }
+.first-focus p { line-height: 1.6; }
+.first-focus form { display: grid; gap: .75rem; margin: 1.5rem 0; }
+.first-focus input { width: 100%; min-height: 48px; border: 1px solid currentColor; border-radius: .5rem; padding: .75rem; background: transparent; }
+.first-focus button { min-height: 44px; padding: .625rem 1rem; border-radius: .5rem; }
+.first-focus button:disabled { opacity: .55; cursor: wait; }
+.first-focus__primary { background: #3d5647; color: #fff; }
+.first-focus__skip { display: block; margin-top: 1rem; text-decoration: underline; text-underline-offset: 4px; }
+.first-focus__timer { display: flex; align-items: center; gap: 1.5rem; margin: 1.5rem 0; }
+.first-focus__timer output { font-size: clamp(2.5rem, 10vw, 4rem); font-variant-numeric: tabular-nums; }

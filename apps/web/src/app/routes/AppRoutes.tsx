@@ -1,5 +1,6 @@
+import RecoveryBoundary from '../../shared/ui/RecoveryBoundary'
 import { lazy, Suspense } from 'react'
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { LEGACY_ROUTES, ROUTES } from './routes'
 import BrandLoader from '../../shared/ui/loading/BrandLoader'
 
@@ -28,7 +29,8 @@ const AppRoutes = () => {
   const location = useLocation()
 
   return (
-    <Routes key={location.pathname} location={location}>
+    <RecoveryBoundary key={location.pathname}>
+    <Routes location={location}>
       <Route path={LEGACY_ROUTES.KNOWLEDGE} element={<Navigate to={ROUTES.DASHBOARD} replace />} />
       <Route path="/rss" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
       <Route path={ROUTES.DASHBOARD} element={<Suspense fallback={<RouteFallback />}><DashboardRoute /></Suspense>} />
@@ -51,7 +53,13 @@ const AppRoutes = () => {
       <Route path={ROUTES.PREMIUM_SUCCESS} element={<Navigate to={ROUTES.DASHBOARD} replace />} />
       <Route path={ROUTES.HABITS} element={<Suspense fallback={<RouteFallback />}><HabitTrackerPage /></Suspense>} />
       <Route path={ROUTES.ADMIN} element={<Suspense fallback={<RouteFallback />}><AdminPage /></Suspense>} />
+      <Route path="*" element={<section className="startup-screen" data-auth-preview-allowed="true">
+        <h1>404</h1>
+        <p>{navigator.language.startsWith('zh') ? '这个页面不存在。' : 'This page does not exist.'}</p>
+        <Link to={ROUTES.DASHBOARD}>{navigator.language.startsWith('zh') ? '返回工作区' : 'Back to workspace'}</Link>
+      </section>} />
     </Routes>
+    </RecoveryBoundary>
   )
 }
 
