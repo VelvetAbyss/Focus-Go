@@ -25,15 +25,23 @@ A signing keypair lives at `apps/desktop/.tauri-keys/` (gitignored — never com
   auto-update again, because the public key is baked into shipped binaries.
 
 The update feed is `plugins.updater.endpoints` →
-`https://github.com/VelvetAbyss/Focus-Go/releases/latest/download/latest.json`.
+`https://github.com/VelvetAbyss/Focus-Go/releases/download/updater/latest.json`.
 
-> **Auto-update is inert while releases are prereleases.** GitHub's `releases/latest`
-> resolves only to the newest *non-prerelease, non-draft* release, so while
-> `desktop-release.yml` publishes drafts with `prerelease: true`, that URL 404s and
-> `checkForUpdates()` quietly returns false. This is harmless — the app just never
-> finds an update. It starts working the first time you publish a release with
-> `prerelease: false` (set `releaseDraft: false` / `prerelease: false` in the
-> workflow, or flip the flags on the release in the GitHub UI).
+That is a **fixed tag**, not `releases/latest`. GitHub resolves `releases/latest`
+only to a non-prerelease release, so while the project ships `-beta.N` prereleases
+every build would be invisible to the updater. Instead the `updater-feed` job in
+`desktop-release.yml` republishes each build's `latest.json` under the permanent
+`updater` tag, which installed apps poll. Direct `releases/download/<tag>/<asset>`
+URLs work for prereleases, so betas update normally.
+
+Two consequences worth knowing:
+
+- Versioned releases are published with `releaseDraft: false`. They have to be —
+  `latest.json` links straight at their assets, and a draft release's assets are
+  not downloadable. Review happens before the tag, not after.
+- **The repository must be public**, or the feed and the installers both 404 for
+  everyone but collaborators. There is no token in a shipped app to authenticate
+  with.
 
 ## 2. macOS signing + notarization (Phase 6)
 
@@ -73,7 +81,8 @@ plugin reads that `latest.json`. Flip `releaseDraft: false` when ready to auto-p
    rejects prerelease versions like `0.1.0-beta.5`. Add `msi` back only if you also
    drop the prerelease suffix.
 2. `git tag vX.Y.Z && git push origin vX.Y.Z` → CI runs `npm run verify`, builds macOS
-   (universal) and Windows, and opens a **draft prerelease**.
-3. Review the draft on GitHub, then publish it.
-4. To make auto-update live, publish a release that is not a prerelease (see the note
-   in section 1), then verify: install the older version, publish a higher one, relaunch.
+   (universal) and Windows, publishes the prerelease, then refreshes the `updater`
+   feed tag. The release is published immediately, not as a draft, so review before
+   tagging rather than after.
+3. Verify auto-update: install the previous version, tag a higher one, relaunch and
+   wait ~5s (App.tsx checks on a timer).
