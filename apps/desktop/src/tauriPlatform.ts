@@ -61,7 +61,11 @@ const tauriPlatform: PlatformBridge = {
       const { relaunch } = await import('@tauri-apps/plugin-process')
       await relaunch()
       return true
-    } catch {
+    } catch (error) {
+      // Never block startup on the updater, but do not swallow the reason either:
+      // an unreachable feed and a missing `updater:` capability both land here,
+      // and silence is what let both ship undetected.
+      console.warn('[updater] update check failed:', error)
       return false
     }
   },
