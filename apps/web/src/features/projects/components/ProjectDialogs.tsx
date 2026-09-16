@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
+import type { TaskStatus } from '../../tasks/tasks.types'
 import { Calendar, Check, ChevronDown, Flag, ImagePlus, Palette, RefreshCcw, Search, Tag, Trash2, User } from 'lucide-react'
 import Avatar from '../../../shared/ui/Avatar'
 import { uploadAvatar } from '../../../shared/avatars/avatarStorage'
@@ -959,7 +960,7 @@ export const PersonFormDialog = ({ open, person, onClose, onSubmit }: PersonForm
 type ProjectTaskPayload = {
   title: string
   description: string
-  status: 'todo' | 'doing' | 'done'
+  status: TaskStatus
   priority: 'high' | 'medium' | 'low'
   ownerId?: string
   dueDate?: string
@@ -979,7 +980,7 @@ export const ProjectTaskDialog = ({ open, task, people, onClose, onAutoSave, onS
   const i18n = useProjectsI18n()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [status, setStatus] = useState<'todo' | 'doing' | 'done'>('todo')
+  const [status, setStatus] = useState<TaskStatus>('todo')
   const [priority, setPriority] = useState<'high' | 'medium' | 'low'>('medium')
   const [ownerId, setOwnerId] = useState('unassigned')
   const [startDate, setStartDate] = useState('')
@@ -1049,11 +1050,13 @@ export const ProjectTaskDialog = ({ open, task, people, onClose, onAutoSave, onS
           <div className="project-dialog__grid">
             <label className="project-dialog__field">
               <span>{i18n.dialog.fieldStatus}</span>
-              <Select value={status} onValueChange={(value: 'todo' | 'doing' | 'done') => setStatus(value)}>
+              <Select value={status} onValueChange={(value: TaskStatus) => setStatus(value)}>
                 <SelectTrigger className={inputClassName}><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todo">{i18n.dialog.taskStatusTodo}</SelectItem>
                   <SelectItem value="doing">{i18n.dialog.taskStatusInProgress}</SelectItem>
+                  <SelectItem value="waiting">{i18n.dialog.taskStatusWaiting}</SelectItem>
+                  <SelectItem value="verify">{i18n.dialog.taskStatusVerify}</SelectItem>
                   <SelectItem value="done">{i18n.dialog.taskStatusDone}</SelectItem>
                 </SelectContent>
               </Select>

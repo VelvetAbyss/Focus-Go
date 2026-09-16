@@ -1,3 +1,4 @@
+import { TASK_AWAITING_STATUSES } from '@focus-go/core'
 import type { TaskItem, TaskPriority } from '../tasks.types'
 
 const DATE_KEY_RE = /^\d{4}-\d{2}-\d{2}$/
@@ -35,12 +36,46 @@ export const getTaskDaysUntilDue = (task: Pick<TaskItem, 'dueDate' | 'status'>, 
 
 export const isTaskDone = (task: Pick<TaskItem, 'status'>) => task.status === 'done'
 
+/** Open means not finished — `waiting` and `verify` are open, not resolved. */
+export const isTaskOpen = (task: Pick<TaskItem, 'status'>) => task.status !== 'done'
+
+/** Progress depends on someone or something outside this app. */
+export const isTaskAwaitingOthers = (task: Pick<TaskItem, 'status'>) =>
+  (TASK_AWAITING_STATUSES as readonly string[]).includes(task.status)
+
 export const isTaskBlocked = (task: Pick<TaskItem, 'isBlocked' | 'blockedByTaskIds'>) =>
   task.isBlocked === true || (task.blockedByTaskIds?.length ?? 0) > 0
 
+/**
+ * A task you cannot act on is never "overdue".
+ *
+ * Marking something red because a date passed while you were waiting on a
+ * supplier reports your counterparty's delay as your failure. That is the
+ * mechanism behind an accumulating list you stop opening, so `waiting` and
+ * `verify` are excluded here and measured with getTaskWaitingDays instead.
+ */
 export const isTaskOverdue = (task: Pick<TaskItem, 'dueDate' | 'status'>, now = Date.now()) => {
+  if (isTaskAwaitingOthers(task)) return false
   const daysUntilDue = getTaskDaysUntilDue(task, now)
   return daysUntilDue != null && daysUntilDue < 0
+}
+
+/** How long a task has sat unanswered. Null when it is not awaiting anyone. */
+export const getTaskWaitingDays = (
+  task: Pick<TaskItem, 'status' | 'waitingSince'>,
+  now = Date.now(),
+) => {
+  if (!isTaskAwaitingOthers(task) || task.waitingSince == null) return null
+  return Math.max(0, Math.floor((toLocalDayStart(now) - toLocalDayStart(task.waitingSince)) / DAY_MS))
+}
+
+/** Due for a chase: nextPollAt has arrived. */
+export const isTaskDueForPoll = (
+  task: Pick<TaskItem, 'status' | 'nextPollAt'>,
+  now = Date.now(),
+) => {
+  if (!isTaskAwaitingOthers(task) || task.nextPollAt == null) return false
+  return task.nextPollAt <= now
 }
 
 export const getTaskDateRange = (task: Pick<TaskItem, 'dueDate' | 'startDate' | 'endDate'>): TaskDateRange | null => {

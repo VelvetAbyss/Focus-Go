@@ -32,8 +32,20 @@ import { DiscoveryEmptyState } from '../../shared/ui/EmptyState'
 import { DiscoveryHint } from '../../shared/ui/DiscoveryHint'
 import { resolveProjectColor } from '../../shared/design/tokens'
 import { createTask, parseQuickAddTaskInput } from './application/taskActions'
+import { isTaskAwaitingOthers } from './domain/taskRules'
 
-const tabs: { key: TaskStatus }[] = [{ key: 'todo' }, { key: 'doing' }, { key: 'done' }]
+/**
+ * `waiting` and `verify` share one tab. To the person looking at the board they
+ * are the same bucket — "not on my desk right now" — and splitting them into two
+ * tabs would widen the board without telling anyone anything new. The distinction
+ * still exists on the task and shows in its badge.
+ */
+type BoardTab = 'todo' | 'doing' | 'waiting' | 'done'
+
+const tabs: { key: BoardTab }[] = [{ key: 'todo' }, { key: 'doing' }, { key: 'waiting' }, { key: 'done' }]
+
+const taskMatchesTab = (task: Pick<TaskItem, 'status'>, tab: BoardTab) =>
+  tab === 'waiting' ? isTaskAwaitingOthers(task) : task.status === tab
 
 type SortMode = 'importance' | 'time'
 type TagFilterMode = 'all' | 'work' | 'life' | 'health' | 'study' | 'finance' | 'family'
@@ -127,10 +139,10 @@ const TasksBoard = ({
       return new Set()
     }
   })
-  const [activeStatus, setActiveStatus] = useState<TaskStatus>(() => {
+  const [activeStatus, setActiveStatus] = useState<BoardTab>(() => {
     if (typeof window === 'undefined') return 'todo'
     const stored = window.localStorage.getItem(STORAGE_TAB_KEY)
-    return stored === 'todo' || stored === 'doing' || stored === 'done' ? stored : 'todo'
+    return tabs.some((tab) => tab.key === stored) ? (stored as BoardTab) : 'todo'
   })
   const statusActionSuccessTimerRef = useRef<number | null>(null)
   const tasksReloadTokenRef = useRef(0)
@@ -224,38 +236,41 @@ const TasksBoard = ({
   }, [])
 
   const statusCounts = useMemo(() => {
-    const counts: Record<TaskStatus, number> = { todo: 0, doing: 0, done: 0 }
+    const counts: Record<BoardTab, number> = { todo: 0, doing: 0, waiting: 0, done: 0 }
     const countBase = scope.kind === 'project'
       ? tasks.filter((task) => task.projectId === scope.projectId)
       : scope.kind === 'today' || topView === 'today'
         ? tasks.filter((task) => task.isToday)
         : tasks
-    countBase.forEach((task) => counts[task.status]++)
+    countBase.forEach((task) => {
+      const tab = tabs.find((item) => taskMatchesTab(task, item.key))
+      if (tab) counts[tab.key]++
+    })
     return counts
   }, [scope, tasks, topView])
 
   const statusDeadlineAlerts = useMemo(() => {
-    const alerts: Record<TaskStatus, ReturnType<typeof getUpcomingDeadlineAlert>> = { todo: null, doing: null, done: null }
+    const alerts: Record<BoardTab, ReturnType<typeof getUpcomingDeadlineAlert>> = { todo: null, doing: null, waiting: null, done: null }
     const alertBase = scope.kind === 'project'
       ? tasks.filter((task) => task.projectId === scope.projectId)
       : scope.kind === 'today' || topView === 'today'
         ? tasks.filter((task) => task.isToday)
         : tasks
     tabs.forEach((status) => {
-      alerts[status.key] = getUpcomingDeadlineAlert(alertBase.filter((task) => task.status === status.key))
+      alerts[status.key] = getUpcomingDeadlineAlert(alertBase.filter((task) => taskMatchesTab(task, status.key)))
     })
     return alerts
   }, [scope, tasks, topView])
 
   const filteredTasks = useMemo(() => {
     let result = scope.kind === 'project'
-      ? tasks.filter((task) => task.projectId === scope.projectId && (effectiveGroupBy !== 'status' || topView === 'list' || task.status === activeStatus))
+      ? tasks.filter((task) => task.projectId === scope.projectId && (effectiveGroupBy !== 'status' || topView === 'list' || taskMatchesTab(task, activeStatus)))
       : scope.kind === 'today' || topView === 'today'
         ? tasks.filter((task) => task.isToday)
         : topView === 'list'
           ? tasks
           : effectiveGroupBy === 'status'
-            ? tasks.filter((task) => task.status === activeStatus)
+            ? tasks.filter((task) => taskMatchesTab(task, activeStatus))
             : tasks
     if (scope.kind === 'all' && projectFilterIds.size > 0) {
       result = result.filter((task) => task.projectId && projectFilterIds.has(task.projectId))
@@ -311,7 +326,7 @@ const TasksBoard = ({
   const projectFilterBaseTasks = useMemo(() => {
     if (scope.kind !== 'all') return []
     if (topView === 'today') return tasks.filter((task) => task.isToday)
-    if (effectiveGroupBy === 'status') return tasks.filter((task) => task.status === activeStatus)
+    if (effectiveGroupBy === 'status') return tasks.filter((task) => taskMatchesTab(task, activeStatus))
     if (effectiveGroupBy === 'today') return tasks.filter((task) => task.status !== 'done')
     return tasks
   }, [activeStatus, effectiveGroupBy, scope.kind, tasks, topView])
@@ -404,7 +419,7 @@ const TasksBoard = ({
     const parsed = await parseQuickAddTaskInput(rawTitle, { projects, fallbackProjectId })
     const created = await createTask({
       title: parsed.title,
-      status: topView === 'today' || effectiveGroupBy !== 'status' ? 'todo' : activeStatus,
+      status: topView === 'today' || effectiveGroupBy !== 'status' || activeStatus === 'waiting' ? 'todo' : activeStatus,
       isToday: topView === 'today' || parsed.isToday === true,
       priority: parsed.priority,
       projectId: parsed.projectId,

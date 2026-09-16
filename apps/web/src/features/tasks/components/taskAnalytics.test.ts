@@ -142,7 +142,7 @@ describe('buildTaskAnalytics', () => {
     expect(analytics.summary.subtaskCompletionRate).toBe(50)
     expect(analytics.summary.overdueTasks).toBe(1)
     expect(analytics.summary.dueSoonTasks).toBe(1)
-    expect(analytics.summary.statusCounts).toEqual({ todo: 1, doing: 1, done: 1 })
+    expect(analytics.summary.statusCounts).toEqual({ todo: 1, doing: 1, waiting: 0, verify: 0, done: 1 })
     expect(analytics.summary.priorityCounts).toEqual({ high: 1, medium: 1, low: 0, none: 1 })
   })
 })

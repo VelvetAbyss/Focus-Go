@@ -103,7 +103,14 @@ export const getUpcomingDeadlineAlert = (
   }
 }
 
-export const TASK_STATUS_CONFIG: Record<TaskStatus, { labelKey: 'tasks.status.todo' | 'tasks.status.doing' | 'tasks.status.done'; dot: string; badge: string }> = {
+export const TASK_STATUS_CONFIG: Record<
+  TaskStatus,
+  {
+    labelKey: 'tasks.status.todo' | 'tasks.status.doing' | 'tasks.status.done' | 'tasks.status.waiting' | 'tasks.status.verify'
+    dot: string
+    badge: string
+  }
+> = {
   todo: {
     labelKey: 'tasks.status.todo',
     dot: 'bg-stone-400',
@@ -113,6 +120,17 @@ export const TASK_STATUS_CONFIG: Record<TaskStatus, { labelKey: 'tasks.status.to
     labelKey: 'tasks.status.doing',
     dot: 'bg-teal-500',
     badge: 'border-teal-200 bg-teal-50 text-teal-700',
+  },
+  // Amber, not red: these are open and un-actionable by you, not failing.
+  waiting: {
+    labelKey: 'tasks.status.waiting',
+    dot: 'bg-amber-400',
+    badge: 'border-amber-200 bg-amber-50 text-amber-700',
+  },
+  verify: {
+    labelKey: 'tasks.status.verify',
+    dot: 'bg-sky-400',
+    badge: 'border-sky-200 bg-sky-50 text-sky-700',
   },
   done: {
     labelKey: 'tasks.status.done',

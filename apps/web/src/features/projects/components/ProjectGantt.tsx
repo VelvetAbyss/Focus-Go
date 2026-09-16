@@ -39,6 +39,8 @@ const PRIORITY_TRAIL_DAYS: Record<TaskPriority | 'none', number> = {
 const STATUS_TONE: Record<TaskStatus, { dot: string; label: string }> = {
   todo: { dot: '#9A8F83', label: '待办' },
   doing: { dot: '#3D7A6C', label: '进行中' },
+  waiting: { dot: '#C08A2E', label: '在等' },
+  verify: { dot: '#3E7FA8', label: '待核对' },
   done: { dot: '#3D7A4E', label: '已完成' },
 }
 

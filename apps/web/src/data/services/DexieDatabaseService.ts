@@ -54,12 +54,15 @@ import { touch, withBase } from '../repositories/base'
 import { createId } from '../../shared/utils/ids'
 import { areTaskNoteBlocksEqual, normalizeTaskNoteBlocks } from '../../features/tasks/model/taskNote'
 import { resolveTaskNoteRichText } from '../../features/tasks/model/taskNoteRichText'
+import { isTaskAwaitingOthers } from '../../features/tasks/domain/taskRules'
 import { enqueueSyncOperation } from '../sync/repository'
 import type { SyncEntityType } from '../sync/types'
 
 const statusLabelMap: Record<TaskStatus, string> = {
   todo: '待办',
   doing: '进行中',
+  waiting: '在等',
+  verify: '待核对',
   done: '已完成',
 }
 
@@ -640,9 +643,16 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       const normalized = normalizeTask(task)
       if (normalized.status === status) return normalized
       const now = Date.now()
+      // waitingSince is owned by the status transition, not by the caller: a
+      // field the user has to remember to set is a field that is always stale,
+      // and "no answer for N days" is only meaningful if the clock is honest.
+      const wasAwaiting = isTaskAwaitingOthers(normalized)
+      const isAwaiting = isTaskAwaitingOthers({ status })
       const next = touch({
         ...normalized,
         status,
+        waitingSince: isAwaiting ? (wasAwaiting ? normalized.waitingSince : now) : undefined,
+        nextPollAt: isAwaiting ? normalized.nextPollAt : undefined,
         activityLogs: [
           ...normalized.activityLogs,
           {

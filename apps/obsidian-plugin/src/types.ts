@@ -2,10 +2,10 @@
 // Deliberately structural rather than imported: the plugin bundles standalone and
 // must not pull the web app's module graph in.
 
-export type TaskStatus = 'todo' | 'doing' | 'done'
+export type TaskStatus = 'todo' | 'doing' | 'waiting' | 'verify' | 'done'
 export type TaskPriority = 'high' | 'medium' | 'low'
 
-export const TASK_STATUSES: readonly TaskStatus[] = ['todo', 'doing', 'done']
+export const TASK_STATUSES: readonly TaskStatus[] = ['todo', 'doing', 'waiting', 'verify', 'done']
 export const TASK_PRIORITIES: readonly TaskPriority[] = ['high', 'medium', 'low']
 
 export type TaskSubtask = {
@@ -28,6 +28,9 @@ export type TaskItem = {
   dueDate?: string
   startDate?: string
   endDate?: string
+  waitingOn?: string
+  waitingSince?: number
+  nextPollAt?: number
   tags: string[]
   subtasks: TaskSubtask[]
   taskNoteBlocks: unknown[]
@@ -51,6 +54,8 @@ export type MappedTaskFields = {
   dueDate?: string
   startDate?: string
   endDate?: string
+  waitingOn?: string
+  nextPollAt?: number
   tags: string[]
   pinned: boolean
   isToday: boolean
@@ -66,6 +71,8 @@ export const MAPPED_FIELD_KEYS = [
   'dueDate',
   'startDate',
   'endDate',
+  'waitingOn',
+  'nextPollAt',
   'tags',
   'pinned',
   'isToday',

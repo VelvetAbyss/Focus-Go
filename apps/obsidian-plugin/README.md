@@ -29,10 +29,12 @@ the desktop app are three peers over one dataset.
 ```markdown
 ---
 focusgo-id: 0f8a…          # identity — do not edit
-status: doing              # todo | doing | done
+status: doing              # todo | doing | waiting | verify | done
 priority: high             # high | medium | low, or empty for none
 due: 2026-09-10
 start: 2026-09-04
+waiting-on: Mac Stephens   # who the ball is with, when status is waiting/verify
+next-poll: 2026-09-18      # when to chase
 tags: [work, deep]
 pinned: false
 today: true
@@ -58,7 +60,7 @@ file name cannot hold (`/`, `:`, `#`, …) keep their real value in a
 ### What round-trips, and what does not
 
 Editable from Obsidian: title, description, status, priority, due/start/end
-dates, tags, pinned, today, subtasks, and the note body.
+dates, waiting-on, next-poll, tags, pinned, today, subtasks, and the note body.
 
 Not represented in the file: attachments, activity log, progress history, task
 dependencies, collaborators and reminders. **These are preserved, not dropped** —

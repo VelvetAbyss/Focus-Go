@@ -182,6 +182,8 @@ type ProjectsMessages = {
     taskTitlePlaceholder: string
     taskDescPlaceholder: string
     taskStatusTodo: string
+    taskStatusWaiting: string
+    taskStatusVerify: string
     taskStatusInProgress: string
     taskStatusDone: string
     saveTask: string
@@ -398,6 +400,8 @@ const messages: Record<LanguageCode, ProjectsMessages> = {
       taskTitlePlaceholder: 'Complete API integration testing',
       taskDescPlaceholder: 'Describe what needs to happen next.',
       taskStatusTodo: 'Todo',
+      taskStatusWaiting: 'Waiting',
+      taskStatusVerify: 'To verify',
       taskStatusInProgress: 'In Progress',
       taskStatusDone: 'Done',
       saveTask: 'Save Task',
@@ -612,6 +616,8 @@ const messages: Record<LanguageCode, ProjectsMessages> = {
       taskTitlePlaceholder: '完成 API 集成测试',
       taskDescPlaceholder: '描述下一步需要做的事情。',
       taskStatusTodo: '待办',
+      taskStatusWaiting: '在等',
+      taskStatusVerify: '待核对',
       taskStatusInProgress: '进行中',
       taskStatusDone: '已完成',
       saveTask: '保存任务',

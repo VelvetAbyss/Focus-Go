@@ -113,11 +113,21 @@ export type TimelineItem = BaseEntity & {
   }
 }
 
-export const TASK_STATUSES = ['todo', 'doing', 'done'] as const
+// `waiting` and `verify` describe work you do not control:
+//   waiting — you have done your part, the ball is with someone else
+//   verify  — the claim exists but is not confirmed yet
+// They are open states, not done states, and crucially they are not "overdue"
+// when a date passes: painting red on something you cannot act on is how a task
+// list turns into a guilt machine.
+export const TASK_STATUSES = ['todo', 'doing', 'waiting', 'verify', 'done'] as const
 export const TASK_PRIORITIES = ['high', 'medium', 'low'] as const
 
 export type TaskStatus = (typeof TASK_STATUSES)[number]
 export type TaskPriority = (typeof TASK_PRIORITIES)[number]
+
+/** Statuses where progress depends on someone or something outside the app. */
+export const TASK_AWAITING_STATUSES = ['waiting', 'verify'] as const
+export type TaskAwaitingStatus = (typeof TASK_AWAITING_STATUSES)[number]
 
 export type TaskSubtask = {
   id: string
@@ -239,6 +249,12 @@ export type TaskItem = BaseEntity & {
   endDate?: string
   reminderAt?: number
   reminderFiredAt?: number
+  /** Who or what the task is waiting on. Free text: usually not an app user. */
+  waitingOn?: string
+  /** When the task entered `waiting`/`verify`, so "no answer for N days" is answerable. */
+  waitingSince?: number
+  /** When to surface it again — the "who to chase and when" that a due date cannot express. */
+  nextPollAt?: number
   tags: string[]
   subtasks: TaskSubtask[]
   taskNoteBlocks: TaskNoteBlock[]

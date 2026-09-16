@@ -59,6 +59,8 @@ export type ParsedTaskFile = {
     dueDate?: string
     startDate?: string
     endDate?: string
+    waitingOn?: string
+    nextPollAt?: number
     tags?: string[]
     pinned?: boolean
     isToday?: boolean
@@ -82,6 +84,11 @@ export const toMarkdown = (task: TaskItem): string => {
   if (task.dueDate) frontmatter.due = task.dueDate
   if (task.startDate) frontmatter.start = task.startDate
   if (task.endDate) frontmatter.end = task.endDate
+  // Who you are waiting on, and when to chase. A due date cannot say either.
+  if (task.waitingOn) frontmatter['waiting-on'] = task.waitingOn
+  if (typeof task.nextPollAt === 'number') {
+    frontmatter['next-poll'] = new Date(task.nextPollAt).toISOString().slice(0, 10)
+  }
   frontmatter.tags = task.tags ?? []
   frontmatter.pinned = Boolean(task.pinned)
   frontmatter.today = Boolean(task.isToday)
@@ -209,6 +216,15 @@ export const fromMarkdown = (content: string, baseName: string): ParsedTaskFile 
   const end = readDate(map, 'end')
   if (end !== undefined) fields.endDate = end
 
+  if (hasKey(map, 'waiting-on')) {
+    const waitingOn = readString(map, 'waiting-on')
+    fields.waitingOn = waitingOn === undefined ? undefined : waitingOn
+  }
+  if (hasKey(map, 'next-poll')) {
+    const nextPoll = readDate(map, 'next-poll')
+    fields.nextPollAt = nextPoll === undefined ? undefined : Date.parse(`${nextPoll}T00:00:00`)
+  }
+
   const tags = readStringList(map, 'tags')
   if (tags !== undefined) fields.tags = tags
 
@@ -297,6 +313,9 @@ export const applyMapped = (
   next.dueDate = parsed.dueDate
   next.startDate = parsed.startDate
   next.endDate = parsed.endDate
+  // Same rule for the waiting pair: clearing `waiting-on` in the vault clears it.
+  next.waitingOn = parsed.waitingOn
+  next.nextPollAt = parsed.nextPollAt
 
   if (parsed.subtasks !== undefined) {
     next.subtasks = reconcileSubtasks(parsed.subtasks, base.subtasks ?? [], newId)

@@ -212,7 +212,7 @@ export const buildTaskAnalytics = (tasks: TaskItem[], { now = Date.now(), granul
     const daysRemaining = Math.round((dueDay - nowDayStart) / DAY_MS)
     return daysRemaining >= 0 && daysRemaining <= DEADLINE_SOON_DAYS
   }).length
-  const statusCounts: Record<TaskStatus, number> = { todo: 0, doing: 0, done: 0 }
+  const statusCounts: Record<TaskStatus, number> = { todo: 0, doing: 0, waiting: 0, verify: 0, done: 0 }
   const priorityCounts: Record<TaskPriority | 'none', number> = { high: 0, medium: 0, low: 0, none: 0 }
 
   tasks.forEach((task) => {
