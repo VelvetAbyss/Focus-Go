@@ -1,13 +1,14 @@
 # Focus&go
 
 [![Build](https://github.com/VelvetAbyss/Focus-Go/actions/workflows/verify.yml/badge.svg?branch=main)](https://github.com/VelvetAbyss/Focus-Go/actions/workflows/verify.yml)
-[![Release](https://github.com/VelvetAbyss/Focus-Go/actions/workflows/release-unsigned.yml/badge.svg)](https://github.com/VelvetAbyss/Focus-Go/actions/workflows/release-unsigned.yml)
+[![Release](https://github.com/VelvetAbyss/Focus-Go/actions/workflows/desktop-release.yml/badge.svg)](https://github.com/VelvetAbyss/Focus-Go/actions/workflows/desktop-release.yml)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Web%20%7C%20API-blue.svg)](https://github.com/VelvetAbyss/Focus-Go)
+[![Platform](https://img.shields.io/badge/platform-Web%20%7C%20macOS%20%7C%20Windows-blue.svg)](https://github.com/VelvetAbyss/Focus-Go/releases/latest)
 
 All-in-one personal productivity workspace that reduces context switching across planning, focus, reflection, and daily signals.
 
 [![Try Web](https://img.shields.io/badge/Try-Web-black?style=for-the-badge)](https://focus-go.vercel.app)
+[![Download Desktop](https://img.shields.io/badge/Download-Desktop-1f2937?style=for-the-badge)](https://github.com/VelvetAbyss/Focus-Go/releases/latest)
 [![Quick Start](https://img.shields.io/badge/Quick-Start-0ea5e9?style=for-the-badge)](#quick-start)
 
 ## Why Focus&go
@@ -21,6 +22,21 @@ Every current product feature is free under the MIT license. Local use never req
 
 Past paid users are recognised as early supporters. Optional GitHub Sponsors, PayPal, and Z-Pay links never unlock features or change account access.
 
+## Desktop app
+
+Download the macOS `.dmg` or Windows `-setup.exe` from the
+[latest release](https://github.com/VelvetAbyss/Focus-Go/releases/latest). Builds are
+not code-signed yet, so the first launch needs one extra step: on macOS right-click the
+app → **Open**, and on Windows click **More info** → **Run anyway** past SmartScreen.
+
+On first launch the app asks where your data should live:
+
+- **Local only** — no account, nothing leaves your machine, works fully offline.
+- **Cloud sync** — sign in and the same workspace follows you across devices.
+
+Either choice is reversible in **Settings → Data → Storage mode**; both write to the
+device first, and cloud sync only adds a server copy on top.
+
 ## Core Features
 
 - Unified dashboard with configurable widgets for everyday planning and execution.
@@ -29,8 +45,8 @@ Past paid users are recognised as early supporters. Optional GitHub Sponsors, Pa
 - Daily diary entry panel to capture progress, outcomes, and reflection.
 - Spend tracking widgets for quick personal finance awareness.
 - Weather widget and city controls to keep daily context visible.
-- Local-first data with optional authenticated cloud sync.
-- Web client and self-hostable API source.
+- Local-first data that works with no account at all, plus optional authenticated cloud sync.
+- Web client, macOS/Windows desktop app, and self-hostable API source.
 
 ## Product Preview
 

@@ -6,14 +6,14 @@ Focus&go uses one product version across the monorepo. Git tags are the release 
 
 - Version format: `MAJOR.MINOR.PATCH[-prerelease.N]`
 - Tag format: `vMAJOR.MINOR.PATCH[-prerelease.N]`
-- Latest existing tag: `v0.1.0-beta.4`
-- Next beta default: `v0.1.0-beta.5`
+- Latest existing tag: `v0.1.0-beta.5`
+- Next beta default: `v0.1.0-beta.6`
 
 The project is still in the `0.x` phase. Treat `0.1.x` as the first public testing milestone, and reserve `1.0.0` for a stable core experience with clear data compatibility and reliable web/desktop release workflows.
 
 ## Version Plan
 
-- `v0.1.0-beta.5+`: continue current beta fixes, small feature completion, installer/CI/release fixes, and blocking bug fixes.
+- `v0.1.0-beta.6+`: continue current beta fixes, small feature completion, installer/CI/release fixes, and blocking bug fixes.
 - `v0.1.0-rc.1`: feature freeze candidate. Only blocking bugs, data safety fixes, install/startup issues, and sync issues should be accepted.
 - `v0.1.0`: first stable public release. Requires `npm run verify`, web smoke validation, and downloadable unsigned desktop release assets.
 - `v0.1.1`, `v0.1.2`: stable hotfixes only, including bug fixes, small UX fixes, copy fixes, and security dependency updates.
@@ -65,7 +65,10 @@ Patch releases must not change user expectations or require migration notes.
   - `apps/web/focus-go-api/package.json`
 - Keep `package-lock.json` files aligned with the package versions.
 - Internal data/schema versions are not product versions. Dexie, RxDB, backup metadata, and similar schema counters should only change when their own storage format changes.
-- Release workflows continue to use the existing `v*` tag trigger.
+- Release workflows continue to use the existing `v*` tag trigger. Since the Electron
+  path was removed, `.github/workflows/desktop-release.yml` is the only one that fires.
+- `apps/desktop/src-tauri/tauri.conf.json` carries its own `version` and must be bumped
+  with the packages above, or the installers ship the previous version number.
 
 ## Release Checklist
 

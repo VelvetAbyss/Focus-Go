@@ -15,19 +15,25 @@ npm run build:desktop   # from repo root
 (macOS/Windows *code signing* is optional locally — without an Apple/Windows identity
 the app is ad-hoc/unsigned but still runs on your machine.)
 
-## 1. Updater keys (Phase 7) — DONE, one action left
+## 1. Updater keys (Phase 7) — DONE
 
-A signing keypair was generated at `apps/desktop/.tauri-keys/` (gitignored):
-- Public key is already in `tauri.conf.json` → `plugins.updater.pubkey`.
-- **Move the private key out of the repo** into a password manager / CI secret, then
-  delete the local copy. Add to GitHub secrets:
-  - `TAURI_SIGNING_PRIVATE_KEY` = contents of `.tauri-keys/focusgo-updater.key`
-  - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` = `` (empty — generated with no password)
+A signing keypair lives at `apps/desktop/.tauri-keys/` (gitignored — never commit it):
+- The public key is in `tauri.conf.json` → `plugins.updater.pubkey`.
+- The private key is already uploaded to this repo's Actions secrets as
+  `TAURI_SIGNING_PRIVATE_KEY`, with an empty `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
+  Keep a copy in a password manager: losing it means no existing install can ever
+  auto-update again, because the public key is baked into shipped binaries.
 
-Set the real update feed URL in `tauri.conf.json` → `plugins.updater.endpoints`
-(replace `REPLACE_OWNER/REPLACE_REPO`). With the CI below it points at the GitHub
-release's `latest.json`. To use your existing OSS infra instead, host `latest.json`
-there and point the endpoint at it.
+The update feed is `plugins.updater.endpoints` →
+`https://github.com/VelvetAbyss/Focus-Go/releases/latest/download/latest.json`.
+
+> **Auto-update is inert while releases are prereleases.** GitHub's `releases/latest`
+> resolves only to the newest *non-prerelease, non-draft* release, so while
+> `desktop-release.yml` publishes drafts with `prerelease: true`, that URL 404s and
+> `checkForUpdates()` quietly returns false. This is harmless — the app just never
+> finds an update. It starts working the first time you publish a release with
+> `prerelease: false` (set `releaseDraft: false` / `prerelease: false` in the
+> workflow, or flip the flags on the release in the GitHub UI).
 
 ## 2. macOS signing + notarization (Phase 6)
 
@@ -62,10 +68,12 @@ creates a **draft** GitHub release with installers + `latest.json`, and the upda
 plugin reads that `latest.json`. Flip `releaseDraft: false` when ready to auto-publish.
 
 ### Release checklist
-1. Add all secrets above to the GitHub repo.
-2. Set `plugins.updater.endpoints` to your real `REPLACE_OWNER/REPLACE_REPO`.
-3. Bump `version` in `tauri.conf.json` (and keep `apps/desktop/package.json` in sync).
-   NOTE: Windows MSI needs a plain `major.minor.patch` — drop any `-beta.N` suffix for
-   the bundle version or the MSI build will fail.
-4. `git tag v0.1.0 && git push --tags` → CI builds, signs, publishes the draft release.
-5. Verify auto-update: install the prior version, publish a higher one, relaunch.
+1. Bump `version` in `tauri.conf.json` and keep `apps/desktop/package.json` in sync.
+   The bundle targets are `app`, `dmg`, `nsis` — deliberately not `msi`, because WiX
+   rejects prerelease versions like `0.1.0-beta.5`. Add `msi` back only if you also
+   drop the prerelease suffix.
+2. `git tag vX.Y.Z && git push origin vX.Y.Z` → CI runs `npm run verify`, builds macOS
+   (universal) and Windows, and opens a **draft prerelease**.
+3. Review the draft on GitHub, then publish it.
+4. To make auto-update live, publish a release that is not a prerelease (see the note
+   in section 1), then verify: install the older version, publish a higher one, relaunch.
