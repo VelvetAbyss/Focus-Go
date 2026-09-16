@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const ensureLabsSeedMock = vi.fn()
+const isLocalOnlyModeMock = vi.fn()
 const tasksListMock = vi.fn()
 const tasksAddMock = vi.fn()
 const widgetTodoListMock = vi.fn()
@@ -115,6 +116,10 @@ vi.mock('../store/auth', () => ({
   getAuth: (...args: unknown[]) => getAuthMock(...args),
 }))
 
+vi.mock('./storageMode', () => ({
+  isLocalOnlyMode: (...args: unknown[]) => isLocalOnlyModeMock(...args),
+}))
+
 vi.mock('../shared/prefs/preferences', () => ({
   readLanguage: (...args: unknown[]) => readLanguageMock(...args),
 }))
@@ -124,6 +129,8 @@ import { seedDatabase } from './seed'
 describe('seedDatabase', () => {
   beforeEach(() => {
     ensureLabsSeedMock.mockReset()
+    isLocalOnlyModeMock.mockReset()
+    isLocalOnlyModeMock.mockReturnValue(false)
     tasksListMock.mockReset()
     tasksAddMock.mockReset()
     widgetTodoListMock.mockReset()
@@ -319,5 +326,29 @@ describe('seedDatabase', () => {
 
     expect(tasksAddMock).not.toHaveBeenCalled()
     expect(markInitialSeedCompletedMock).not.toHaveBeenCalled()
+  })
+
+  describe('local-only devices', () => {
+    beforeEach(() => {
+      isLocalOnlyModeMock.mockReturnValue(true)
+      getAuthMock.mockReturnValue(null)
+    })
+
+    it('seeds the first-run workspace with no account and no server claim', async () => {
+      await seedDatabase()
+
+      expect(claimInitialSeedMock).not.toHaveBeenCalled()
+      expect(tasksAddMock).toHaveBeenCalled()
+      expect(markInitialSeedCompletedMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('still honours the local marker so it seeds exactly once', async () => {
+      getInitialSeedCompletedAtMock.mockResolvedValueOnce(123)
+
+      await seedDatabase()
+
+      expect(tasksAddMock).not.toHaveBeenCalled()
+      expect(markInitialSeedCompletedMock).not.toHaveBeenCalled()
+    })
   })
 })

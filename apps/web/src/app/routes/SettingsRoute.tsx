@@ -67,7 +67,8 @@ import { useSyncActions, useSyncStatus } from '../../data/sync/service'
 import { drainPendingSyncOperations } from '../../data/sync/repository'
 import { requestRxdbSyncReset, resetRxdbSyncDatabase, runRxdbMaintenance } from '../../data/sync/rxdb'
 import { wipeServerData } from '../../data/sync/wipeServerData'
-import { getAuth, useCloudSyncQuota } from '../../store/auth'
+import { getAuth, useCloudSyncQuota, useIsLoggedIn } from '../../store/auth'
+import { requestSignInPrompt } from '../../data/storageMode'
 import { ROUTES } from './routes'
 import { useDiscoveryReset } from '../../shared/discovery/useDiscoveryHint'
 import { useAuthGate } from '../../features/auth/AuthGateContext'
@@ -687,6 +688,7 @@ const SettingsRoute = () => {
   const toast = useToast()
   const syncState = useSyncStatus()
   const { enabled: cloudSyncEnabled, setEnabled: setCloudSyncEnabled, syncNow } = useSyncActions()
+  const isLoggedIn = useIsLoggedIn()
   const [activeSection, setActiveSection] = useState<BaseSettingsSection>('appearance')
   const [layoutLocked, setLayoutLocked] = useState(() => readLayoutLocked())
   const [theme, setTheme] = useState<ThemeSelection>('system')
@@ -764,6 +766,19 @@ const SettingsRoute = () => {
   const isLegalSection = location.pathname === LEGAL_ROOT_PATH || legalDocumentKey !== null
   const resolvedSection: SettingsSection = isLegalSection ? 'legal' : activeSection
   const legalDocument = legalDocumentKey ? LEGAL_DOCUMENTS[language][legalDocumentKey] : null
+  // Switching storage mode. Turning cloud sync ON without an account is a valid
+  // intent, not an error: flip the mode and ask for sign-in, the same hand-off
+  // the first-run chooser uses. Turning it OFF never deletes the server copy, so
+  // say so rather than letting the user assume it was wiped.
+  const handleStorageModeChange = (toCloud: boolean) => {
+    setCloudSyncEnabled(toCloud)
+    if (toCloud) {
+      if (!isLoggedIn) requestSignInPrompt()
+      return
+    }
+    toast.push({ variant: 'success', message: t('settings.data.storage.switchedToLocal') })
+  }
+
   const syncStatusLabel = !cloudSyncEnabled
     ? t('settings.data.sync.status.paused')
     : syncState ? t(`settings.data.sync.status.${syncState.status}`) : t('settings.data.sync.status.idle')
@@ -1524,33 +1539,43 @@ const SettingsRoute = () => {
                         <>
                           <SettingRow
                             icon={Database}
-                            title={t('settings.data.sync.title')}
-                            description={t('settings.data.sync.description')}
+                            title={t('settings.data.storage.title')}
+                            description={t('settings.data.storage.description')}
                           >
                             <div className="flex w-full flex-col gap-3 sm:items-end">
                               <label className="flex items-center gap-3 text-sm font-medium">
-                                <span>{cloudSyncEnabled ? t('settings.data.sync.enabled') : t('settings.data.sync.disabled')}</span>
+                                <span>{cloudSyncEnabled ? t('settings.data.storage.cloud.label') : t('settings.data.storage.local.label')}</span>
                                 <Switch
                                   checked={cloudSyncEnabled}
-                                  onCheckedChange={(checked) => setCloudSyncEnabled(checked)}
+                                  onCheckedChange={handleStorageModeChange}
                                   aria-label={t('settings.data.sync.toggle')}
                                 />
                               </label>
-                              <div className="text-sm text-muted-foreground">{syncStatusLabel}</div>
-                              <div className="text-xs text-muted-foreground">{lastSyncedLabel}</div>
-                              {cloudSyncQuota ? <div className="text-xs text-muted-foreground">Cloud storage: {(cloudSyncQuota.usedBytes / 1024 / 1024).toFixed(1)} / {(cloudSyncQuota.limitBytes / 1024 / 1024).toFixed(0)} MiB</div> : null}
-                              {cloudSyncEnabled && syncState?.lastError ? (
-                                <div className="max-w-[360px] text-right text-xs text-destructive">
-                                  {t('settings.data.sync.error', { message: syncState.lastError })}
-                                </div>
+                              <div className="max-w-[360px] text-xs text-muted-foreground sm:text-right">
+                                {cloudSyncEnabled ? t('settings.data.storage.cloud.hint') : t('settings.data.storage.local.hint')}
+                              </div>
+                              {cloudSyncEnabled ? (
+                                <>
+                                  {!isLoggedIn ? (
+                                    <div className="text-xs text-muted-foreground">{t('settings.data.storage.signInRequired')}</div>
+                                  ) : null}
+                                  <div className="text-sm text-muted-foreground">{syncStatusLabel}</div>
+                                  <div className="text-xs text-muted-foreground">{lastSyncedLabel}</div>
+                                  {cloudSyncQuota ? <div className="text-xs text-muted-foreground">Cloud storage: {(cloudSyncQuota.usedBytes / 1024 / 1024).toFixed(1)} / {(cloudSyncQuota.limitBytes / 1024 / 1024).toFixed(0)} MiB</div> : null}
+                                  {syncState?.lastError ? (
+                                    <div className="max-w-[360px] text-right text-xs text-destructive">
+                                      {t('settings.data.sync.error', { message: syncState.lastError })}
+                                    </div>
+                                  ) : null}
+                                  <Button
+                                    variant="outline"
+                                    disabled={!isLoggedIn || syncState?.status === 'syncing'}
+                                    onClick={() => { void syncNow() }}
+                                  >
+                                    {t('settings.data.sync.action')}
+                                  </Button>
+                                </>
                               ) : null}
-                              <Button
-                                variant="outline"
-                                disabled={!cloudSyncEnabled || syncState?.status === 'syncing'}
-                                onClick={() => { void syncNow() }}
-                              >
-                                {t('settings.data.sync.action')}
-                              </Button>
                             </div>
                           </SettingRow>
 

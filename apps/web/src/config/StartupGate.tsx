@@ -3,6 +3,8 @@ import { getPlatform } from '../platform'
 import { useEffect, useState, type ReactNode } from 'react'
 import { bootstrapAuth } from './authBootstrap'
 import { getAuth } from '../store/auth'
+import StorageModeChooser from './StorageModeChooser'
+import { readStorageMode, type StorageMode } from '../data/storageMode'
 
 // Share an in-flight restore across StrictMode's effect replay.
 let pending: Promise<boolean> | null = null
@@ -13,15 +15,30 @@ const restore = () => {
 
 export default function StartupGate({ children }: { children: ReactNode }) {
   useEffect(() => { void getPlatform().showAppWindow() }, [])
+  const [mode, setMode] = useState<StorageMode | null>(() => readStorageMode())
   const [attempt, setAttempt] = useState(0)
   const [status, setStatus] = useState<'checking' | 'ready' | 'error'>('checking')
   const [localOnly, setLocalOnly] = useState(false)
   const english = typeof navigator !== 'undefined' && !navigator.language.startsWith('zh')
   useEffect(() => {
     let active = true
+    // Local-only devices have no session to restore: skip the profile round-trip
+    // entirely so the app is interactive without ever touching the network. They
+    // do still need the first-run workspace, and it has to be written before the
+    // shell mounts — once the sidebar timer persists its focus settings, the
+    // seeder sees a non-empty database and skips forever.
+    if (mode === 'local') {
+      void import('../data/seed')
+        .then(({ seedDatabase }) => seedDatabase())
+        .catch((error) => { console.warn('[seed] local seed failed:', error) })
+        .finally(() => { if (active) setStatus('ready') })
+      return () => { active = false }
+    }
+    if (mode === null) return
     void restore().then(() => { if (active) setStatus('ready') }, () => { if (active) setStatus('error') })
     return () => { active = false }
-  }, [attempt])
+  }, [attempt, mode])
+  if (mode === null) return <StorageModeChooser onChoose={setMode} />
   if (status === 'ready') return children
   const retry = () => { setStatus('checking'); setLocalOnly(false); setAttempt((value) => value + 1) }
   if (localOnly) return <>
