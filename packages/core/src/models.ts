@@ -113,8 +113,11 @@ export type TimelineItem = BaseEntity & {
   }
 }
 
-export type TaskStatus = 'todo' | 'doing' | 'done'
-export type TaskPriority = 'high' | 'medium' | 'low'
+export const TASK_STATUSES = ['todo', 'doing', 'done'] as const
+export const TASK_PRIORITIES = ['high', 'medium', 'low'] as const
+
+export type TaskStatus = (typeof TASK_STATUSES)[number]
+export type TaskPriority = (typeof TASK_PRIORITIES)[number]
 
 export type TaskSubtask = {
   id: string

@@ -58,10 +58,6 @@ vi.mock('./DashboardHeader', () => ({
   ),
 }))
 
-vi.mock('./layoutSyncAdapter', () => ({
-  syncDashboardLayout: vi.fn(),
-}))
-
 vi.mock('../../data/repositories/dashboardRepo', () => ({
   dashboardRepo: {
     get: (...args: unknown[]) => getMock(...args),

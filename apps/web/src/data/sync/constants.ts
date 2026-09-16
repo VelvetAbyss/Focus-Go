@@ -45,4 +45,6 @@ export const SYNC_ENTITY_TABLES: Record<SyncEntityType, string> = {
   trips: TABLES.trips,
   syncedPreferences: TABLES.syncedPreferences,
   domainEvents: TABLES.domainEvents,
+  dashboardLayout: TABLES.dashboardLayout,
+  lifeDashboardLayout: TABLES.lifeDashboardLayout,
 }

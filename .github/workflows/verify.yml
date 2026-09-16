@@ -20,10 +20,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build core/contracts
-        run: |
-          npm run build --workspace @focus-go/core
-          npm run build --workspace @focus-go/db-contracts
+      - name: Build core
+        run: npm run build --workspace @focus-go/core
 
       - name: Install API dependencies
         run: npm ci --prefix apps/web/focus-go-api
@@ -31,9 +29,9 @@ jobs:
       - name: Run tests
         run: |
           npm run test --workspace @focus-go/core
-          npm run test --workspace @focus-go/db-contracts
           npm run test --workspace @focus-go/web
           npm test --prefix apps/web/focus-go-api
+          npm run test --workspace @focus-go/obsidian-plugin
 
       - name: Verify web build
         run: npm run verify
