@@ -190,27 +190,78 @@ jobs:
           args: ${{ matrix.args }}
           releaseBody: ${{ env.RELEASE_BODY }}
 
-  # Republish the finished latest.json under a fixed tag, which is what installed
-  # apps poll. Without this the updater would have to use releases/latest, which
-  # skips prereleases — so no beta would ever be offered as an update.
+  # Build the updater feed ourselves from the release's own signed assets.
+  #
+  # tauri-action can emit latest.json, but it gave up with "Signature not found
+  # for the updater JSON. Skipping upload..." on BOTH platforms — its discovery
+  # does not line up with an explicit `bundle.targets` list. Everything the feed
+  # needs is already on the release (the .tar.gz / -setup.exe plus their .sig
+  # files), so deriving it here is both shorter and one less thing to guess at.
+  #
+  # It is published under a fixed `updater` tag rather than relying on
+  # releases/latest, which resolves only to a non-prerelease release and would
+  # therefore never see a -beta.N build.
   updater-feed:
     needs: release
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Fetch the release's updater manifest
+      - name: Build latest.json from the release assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          gh release download "${GITHUB_REF_NAME}" \
-            --repo "${GITHUB_REPOSITORY}" \
-            --pattern 'latest.json' \
-            --output latest.json \
-            --clobber
-          echo "Platforms in this manifest:"
-          jq -r '.platforms | keys[]' latest.json
+          assets=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${GITHUB_REF_NAME}" --jq '.assets')
+
+          # Resolve an asset's download URL by suffix, failing loudly when absent.
+          url_for() {
+            local suffix="$1"
+            local found
+            found=$(jq -r --arg s "$suffix" '[.[] | select(.name | endswith($s))] | .[0].browser_download_url // empty' <<<"$assets")
+            if [ -z "$found" ]; then
+              echo "::error::No release asset ending in '$suffix'. The updater feed would be incomplete, so failing instead of publishing a half-built one." >&2
+              exit 1
+            fi
+            printf '%s' "$found"
+          }
+
+          # A .sig holds the detached minisign signature as a single line. Read it
+          # through the asset API rather than browser_download_url: the latter is
+          # unauthenticated-only and 404s on a private repo, so this keeps working
+          # both before and after the repo goes public.
+          sig_for() {
+            local suffix="$1" id
+            id=$(jq -r --arg s "$suffix" '[.[] | select(.name | endswith($s))] | .[0].id // empty' <<<"$assets")
+            if [ -z "$id" ]; then
+              echo "::error::No release asset ending in '$suffix'." >&2
+              exit 1
+            fi
+            gh api "repos/${GITHUB_REPOSITORY}/releases/assets/${id}" -H "Accept: application/octet-stream" | tr -d '\r\n'
+          }
+
+          mac_url=$(url_for '.app.tar.gz')
+          win_url=$(url_for '-setup.exe')
+          mac_sig=$(sig_for '.app.tar.gz.sig')
+          win_sig=$(sig_for '-setup.exe.sig')
+
+          # macOS ships a universal binary, so both arch keys point at it.
+          jq -n \
+            --arg version "${GITHUB_REF_NAME#v}" \
+            --arg pub_date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg notes "See https://github.com/${GITHUB_REPOSITORY}/releases/tag/${GITHUB_REF_NAME}" \
+            --arg mac_url "$mac_url" --arg mac_sig "$mac_sig" \
+            --arg win_url "$win_url" --arg win_sig "$win_sig" \
+            '{version: $version, notes: $notes, pub_date: $pub_date, platforms: {
+               "darwin-aarch64": {signature: $mac_sig, url: $mac_url},
+               "darwin-x86_64":  {signature: $mac_sig, url: $mac_url},
+               "windows-x86_64": {signature: $win_sig, url: $win_url}
+             }}' > latest.json
+
+          echo "Feed for ${GITHUB_REF_NAME}:"
+          jq '.platforms | map_values({url})' latest.json
+          test "$(jq -r '.platforms | length' latest.json)" = "3"
+          jq -e '[.platforms[].signature] | all(length > 0)' latest.json > /dev/null
 
       - name: Publish it under the fixed updater tag
         env:
@@ -221,7 +272,7 @@ jobs:
             gh release create "${UPDATER_TAG}" \
               --repo "${GITHUB_REPOSITORY}" \
               --title 'Updater feed' \
-              --notes 'Machine-readable feed for the in-app updater. Always points at the newest build; not a download. Grab installers from the versioned releases instead.' \
+              --notes 'Machine-readable feed for the in-app updater. Always points at the newest build; not a download. Installers live on the versioned releases.' \
               --prerelease
           fi
           gh release upload "${UPDATER_TAG}" latest.json --repo "${GITHUB_REPOSITORY}" --clobber
