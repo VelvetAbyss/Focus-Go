@@ -3,12 +3,12 @@
 [![Build](https://github.com/VelvetAbyss/Focus-Go/actions/workflows/verify.yml/badge.svg?branch=main)](https://github.com/VelvetAbyss/Focus-Go/actions/workflows/verify.yml)
 [![Release](https://github.com/VelvetAbyss/Focus-Go/actions/workflows/desktop-release.yml/badge.svg)](https://github.com/VelvetAbyss/Focus-Go/actions/workflows/desktop-release.yml)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Web%20%7C%20macOS%20%7C%20Windows-blue.svg)](https://github.com/VelvetAbyss/Focus-Go/releases/latest)
+[![Platform](https://img.shields.io/badge/platform-Web%20%7C%20macOS%20%7C%20Windows-blue.svg)](https://github.com/VelvetAbyss/Focus-Go/releases)
 
 All-in-one personal productivity workspace that reduces context switching across planning, focus, reflection, and daily signals.
 
 [![Try Web](https://img.shields.io/badge/Try-Web-black?style=for-the-badge)](https://focus-go.vercel.app)
-[![Download Desktop](https://img.shields.io/badge/Download-Desktop-1f2937?style=for-the-badge)](https://github.com/VelvetAbyss/Focus-Go/releases/latest)
+[![Download Desktop](https://img.shields.io/badge/Download-Desktop-1f2937?style=for-the-badge)](https://github.com/VelvetAbyss/Focus-Go/releases)
 [![Quick Start](https://img.shields.io/badge/Quick-Start-0ea5e9?style=for-the-badge)](#quick-start)
 
 ## Why Focus&go
@@ -25,7 +25,7 @@ Past paid users are recognised as early supporters. Optional GitHub Sponsors, Pa
 ## Desktop app
 
 Download the macOS `.dmg` or Windows `-setup.exe` from the
-[latest release](https://github.com/VelvetAbyss/Focus-Go/releases/latest). Builds are
+[releases page](https://github.com/VelvetAbyss/Focus-Go/releases). Builds are
 not code-signed yet, so the first launch needs one extra step: on macOS right-click the
 app → **Open**, and on Windows click **More info** → **Run anyway** past SmartScreen.
 
