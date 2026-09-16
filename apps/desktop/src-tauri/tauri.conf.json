@@ -1,0 +1,67 @@
+{
+  "$schema": "../../../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "Focus & Go",
+  "version": "0.1.0-beta.5",
+  "identifier": "art.nestflow.focusgo",
+  "build": {
+    "frontendDist": "../../web/dist",
+    "devUrl": "http://localhost:5180",
+    "beforeDevCommand": "npm --prefix ../web run dev:host",
+    "beforeBuildCommand": "npm --prefix ../web run build:tauri"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Focus & Go",
+        "width": 1280,
+        "height": 832,
+        "minWidth": 1024,
+        "minHeight": 680,
+        "resizable": true,
+        "fullscreen": false,
+        "backgroundColor": "#f6f5f2",
+        "visible": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["focusgo"]
+      }
+    },
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEMxQkEyRThDQTM0QkU2RTcKUldUbjVrdWpqQzY2d1R6aVlFWmJzVGRwd25NOWtPazFjbUJBbm91MEViKzlZYWlFeGtnY2tZUW4K",
+      "endpoints": [
+        "https://github.com/VelvetAbyss/Focus-Go/releases/latest/download/latest.json"
+      ]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app", "dmg", "nsis"],
+    "createUpdaterArtifacts": true,
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "macOS": {
+      "entitlements": "entitlements.plist",
+      "minimumSystemVersion": "10.15"
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    },
+    "android": {
+      "debugApplicationIdSuffix": ".debug"
+    }
+  }
+}

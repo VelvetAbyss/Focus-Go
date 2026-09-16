@@ -2,7 +2,8 @@
 
 This monorepo ships:
 - `apps/web` — the web app (React + Vite). The **shared source of truth**.
-- `apps/desktop` — the Tauri v2 desktop app. **Gitignored / local-only for now — do NOT commit it.**
+- `apps/desktop` — the Tauri v2 desktop app (macOS + Windows), released from this repo.
+  Its `.tauri-keys/` updater private key stays gitignored and must never be committed.
 - `apps/web/focus-go-api` — the Node/Express + better-auth backend.
 
 ## Web ⇄ Desktop: the one-way rule (IMPORTANT)
@@ -33,9 +34,23 @@ Never put desktop logic in `apps/web` behind an `isDesktop` / `isTauri` check.
   `virtual:platform` outside `apps/web/src/platform`. A violation fails `npm run lint`.
 - The web build mechanically excludes desktop code (the virtual module resolves to `null`).
 
+## Storage modes
+The app is local-first (Dexie/IndexedDB) and the cloud is optional. `apps/web/src/data/storageMode.ts`
+holds the per-device choice:
+- `local` — no account at all. The auth gate is off, the RxDB replication engine is never
+  loaded, and seeding runs from `StartupGate` before the shell mounts.
+- `cloud` — the same local writes, plus RxDB replication. Requires sign-in.
+
+The mode is a device decision in `localStorage`, never synced. Switching local → cloud needs no
+migration step: `syncEntity()` re-seeds each RxDB collection from Dexie at the start of every
+cycle, so existing local data is pushed on the first sync.
+
 ## Build / run
 - Web: `npm run dev:web`, `npm run build:web` (from repo root).
-- Desktop (local only): `npm run dev:desktop`, `npm run build:desktop`.
+- Desktop: `npm run dev:desktop`, `npm run build:desktop`. A local build signs the updater
+  artifact, so it needs `TAURI_SIGNING_PRIVATE_KEY` exported first — see `apps/desktop/SIGNING.md`.
+- Release: push a `vX.Y.Z` tag → `.github/workflows/desktop-release.yml` builds macOS + Windows
+  and opens a draft prerelease. Unsigned unless the Apple/Windows secrets are set.
   Docs: `apps/desktop/SIGNING.md`, `apps/desktop/DESKTOP_AUTH.md`.
 
 ## Also see

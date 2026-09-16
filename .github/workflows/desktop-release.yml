@@ -1,0 +1,156 @@
+name: Desktop Release
+
+# Builds and publishes the macOS + Windows desktop apps and the updater
+# `latest.json` feed. Triggered by pushing a tag like `v0.1.0-beta.5`.
+#
+# Signing is OPTIONAL and degrades gracefully:
+#   - No Apple/Windows certificates  → unsigned builds. They run, but macOS shows
+#     "unidentified developer" and Windows shows a SmartScreen warning. The
+#     release notes below tell users how to get past both.
+#   - Certificates present as secrets → the same workflow signs and notarizes,
+#     with no edits needed. See apps/desktop/SIGNING.md.
+#
+# REQUIRED SECRET (the one that is not optional — `bundle.createUpdaterArtifacts`
+# is true, so every build signs its updater artifact):
+#   TAURI_SIGNING_PRIVATE_KEY            contents of apps/desktop/.tauri-keys/focusgo-updater.key
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD   its password (empty string if none)
+#
+# OPTIONAL SIGNING SECRETS:
+#   APPLE_CERTIFICATE / APPLE_CERTIFICATE_PASSWORD / APPLE_SIGNING_IDENTITY
+#   APPLE_ID / APPLE_PASSWORD / APPLE_TEAM_ID        (notarization)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Run verify gates
+        run: npm run verify
+
+  release:
+    needs: verify
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            args: '--target universal-apple-darwin'
+          - platform: windows-latest
+            args: ''
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fail early without the updater signing key
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [ -z "${TAURI_SIGNING_PRIVATE_KEY}" ]; then
+            echo "::error::TAURI_SIGNING_PRIVATE_KEY is not set. bundle.createUpdaterArtifacts is true, so the build cannot sign its updater artifact. Add the secret (see apps/desktop/SIGNING.md) or set createUpdaterArtifacts to false."
+            exit 1
+          fi
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Env files are gitignored (not committed), so recreate the desktop build
+      # config here. These are public client-side values (not secrets). Move them
+      # to repo Variables if you prefer.
+      - name: Create desktop env
+        shell: bash
+        run: |
+          cat > apps/web/.env.desktop <<'EOF'
+          VITE_API_BASE=https://api.nestflow.art
+          VITE_AUTH_API_BASE=https://api.nestflow.art/api/auth
+          VITE_PAYPAL_CLIENT_ID=BAAdHj-pIZnP9ApcVi1wuj32UhHjpZ-QpsAyBWElmhQsnfuYJRjJMBFwtOM_8E0Sn1LmlF3syHjpSkAztY
+          EOF
+
+      - name: Report signing mode
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+        run: |
+          if [ "${{ matrix.platform }}" = "macos-latest" ] && [ -n "${APPLE_CERTIFICATE}" ]; then
+            echo "macOS: signing with Developer ID."
+          elif [ "${{ matrix.platform }}" = "macos-latest" ]; then
+            echo "::notice::macOS: building UNSIGNED (no APPLE_CERTIFICATE secret). Users will need to right-click → Open on first launch."
+          else
+            echo "::notice::Windows: building UNSIGNED. Users will see a SmartScreen warning."
+          fi
+
+      - name: Build & publish
+        uses: tauri-apps/tauri-action@v0
+        env:
+          # Updater signing (required — see the preflight check above).
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # macOS code signing + notarization. All optional: when these are empty
+          # tauri-action skips signing and emits an unsigned bundle.
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:
+          projectPath: apps/desktop
+          tagName: ${{ github.ref_name }}
+          releaseName: 'Focus & Go ${{ github.ref_name }}'
+          releaseDraft: true
+          prerelease: true
+          args: ${{ matrix.args }}
+          releaseBody: |
+            Desktop build of Focus & Go for macOS and Windows.
+
+            ### Install
+
+            **macOS** — download the `.dmg`, drag the app to Applications. The build
+            is not notarized yet, so the first launch needs one extra step:
+            right-click the app → **Open** → **Open**. If macOS instead says the app
+            is damaged, clear the download quarantine flag and open it again:
+
+            ```
+            xattr -dr com.apple.quarantine "/Applications/Focus & Go.app"
+            ```
+
+            **Windows** — download the `-setup.exe`. SmartScreen will warn about an
+            unrecognised publisher: click **More info** → **Run anyway**.
+
+            ### Your data
+
+            On first launch the app asks where your data should live:
+
+            - **Local only** — no account, nothing leaves your machine, works fully offline.
+            - **Cloud sync** — sign in and the same workspace follows you across devices.
+
+            You can switch at any time in **Settings → Data → Storage mode**.

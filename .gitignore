@@ -97,6 +97,7 @@ task_plan.md
 CONTRIBUTING.md
 .gstack/
 
-# Desktop (Tauri) app — local-only, kept out of the repo for now
-/apps/desktop/
-/.github/workflows/desktop-release.yml
+# Desktop (Tauri) app: the source ships, the updater signing key never does.
+# apps/desktop/.gitignore excludes .tauri-keys/ — do not weaken that.
+/apps/desktop/src-tauri/target/
+/apps/desktop/release/
