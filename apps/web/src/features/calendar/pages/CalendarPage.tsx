@@ -72,6 +72,7 @@ import {
   writeStoredSubscriptions,
 } from '../calendarStorage'
 import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../../data/repositories/syncedPreferencesRepo'
+import '../calendar.css'
 
 const calendarEventKindRank = { lunar: 0, holiday: 1, event: 2 } as const
 const CALENDAR_PRESET_COLORS = ['#9ca3af', '#60a5fa', '#2563eb', '#22d3ee', '#34d399', '#10b981', '#22c55e', '#f59e0b', '#ef4444', '#fb7185', '#6b7280', '#0f766e']

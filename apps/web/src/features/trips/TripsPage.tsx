@@ -39,6 +39,7 @@ import AuthInteractionGate from '../auth/AuthInteractionGate'
 import { TripsTimelineView } from './views/TripsTimelineView'
 import { TripsCalendarView } from './views/TripsCalendarView'
 import { TripsAtlasView } from './views/TripsAtlasView'
+import './trips.css'
 
 type ViewMode = 'grid' | 'timeline' | 'calendar' | 'atlas'
 type FilterKey = 'all' | 'planning' | 'booked' | 'ongoing' | 'done'
