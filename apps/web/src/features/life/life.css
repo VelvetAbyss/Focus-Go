@@ -53,6 +53,14 @@
   backdrop-filter: blur(10px);
 }
 
+/* Phones cannot fit the tab pill and its action buttons on one line, and the
+   header row is nowrap, so the trailing buttons were being clipped off-screen.
+   Matches the `sm` breakpoint in shared/responsive/breakpoints.ts. */
+@media (max-width: 639px) {
+  .header-pill { flex-wrap: wrap; justify-content: center; max-width: 100%; }
+  .header-pill__divider { display: none; }
+}
+
 .header-pill__divider {
   width: 1px;
   height: 16px;

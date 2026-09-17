@@ -2,9 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { GridLayout, useContainerWidth } from 'react-grid-layout'
 import { absoluteStrategy } from 'react-grid-layout/core'
+import { projectLayout, resolveDashboardGrid, useViewportWidth } from '../../shared/responsive/breakpoints'
+
+/** The column count Life layouts are authored and stored against. */
+const LIFE_BASE_COLUMNS = 24
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import { useIsBreakpoint } from '../../hooks/use-is-breakpoint'
 import { getLifeCards, type DashboardCard } from '../dashboard/registry'
 import type { DashboardLayoutItem } from '../../data/models/types'
 import { useDashboardGridEdit } from '../dashboard/useDashboardGridEdit'
@@ -73,9 +76,11 @@ const DEFAULT_LIFE_HIDDEN_CARD_IDS = ['stocks']
 
 const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => {
   const { t } = useLifeI18n()
-  const isMobile = useIsBreakpoint('max', 768)
-  const columns = isMobile ? 8 : 24
   const { width, containerRef, mounted } = useContainerWidth({ initialWidth: window.innerWidth })
+  const viewportWidth = useViewportWidth()
+  const grid = useMemo(() => resolveDashboardGrid({ viewportWidth, containerWidth: width, baseColumns: LIFE_BASE_COLUMNS }), [viewportWidth, width])
+  const columns = grid.columns
+  const isStacked = grid.mode === 'stacked'
   const [layout, setLayout] = useState<DashboardLayoutItem[]>([])
   const [hiddenCardIds, setHiddenCardIds] = useState<string[]>([])
   const layoutSnapshotRef = useRef<{ layout: DashboardLayoutItem[]; hiddenCardIds: string[] }>({ layout: [], hiddenCardIds: [] })
@@ -83,14 +88,10 @@ const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => 
   const cards = useMemo(() => getLifeCards(t), [t])
   const cardsById = useMemo(() => new Map<string, DashboardCard>(cards.map((c) => [c.id, c])), [cards])
 
-  const responsiveLayout = useMemo(() => {
-    if (!isMobile) return layout
-    return layout.map((item) => {
-      const mobileW = Math.max(4, Math.round((item.w / 24) * 8))
-      const mobileX = Math.min(8 - mobileW, Math.round((item.x / 24) * 8))
-      return { ...item, w: mobileW, x: mobileX }
-    })
-  }, [isMobile, layout])
+  const { items: responsiveLayout } = useMemo(
+    () => projectLayout(layout, grid, LIFE_BASE_COLUMNS),
+    [grid, layout],
+  )
 
   const persistLayout = useCallback(async (nextLayout: DashboardLayoutItem[], nextHiddenCardIds: string[]) => {
     setLayout(nextLayout)
@@ -116,7 +117,7 @@ const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => 
     margin: [18, 18] as [number, number],
     padding: [18, 18] as [number, number],
     width: Math.max(width, 320),
-    minW: isMobile ? 4 : 4,
+    minW: grid.minSpan,
     minH: 4,
     onUpdate: setLayout,
     onCommit: (finalLayout) => {
@@ -212,6 +213,29 @@ const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => 
           })}
         </section>
       ) : null}
+      {isStacked ? (
+        <section className="dashboard__stack">
+          {[...renderedCards]
+            .sort((a, b) => {
+              const pa = responsiveLayout.find((item) => item.key === a.id)
+              const pb = responsiveLayout.find((item) => item.key === b.id)
+              return (pa?.y ?? 0) - (pb?.y ?? 0)
+            })
+            .map((card) => {
+              const discoveryTarget = LIFE_CARD_DISCOVERY_TARGET_BY_ID[card.id]
+              return (
+                <div
+                  key={card.id}
+                  className="dashboard__item dashboard__item--stacked"
+                  onPointerDownCapture={() => { if (discoveryTarget) markDiscoveryNewTargetSeen(discoveryTarget) }}
+                >
+                  <DeferredLifeCard id={card.id} eager>{card.node}</DeferredLifeCard>
+                  {discoveryTarget ? <DiscoveryNewBadge target={discoveryTarget} className="discovery-new-badge--card" /> : null}
+                </div>
+              )
+            })}
+        </section>
+      ) : (
       <GridLayout
           className="life-dashboard__grid"
           layout={responsiveLayout.map((item) => ({
@@ -220,7 +244,7 @@ const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => 
             y: item.y,
             w: item.w,
             h: item.h,
-            minW: isMobile ? 2 : 2,
+            minW: grid.minSpan,
             minH: 4,
             maxW: columns,
           }))}
@@ -258,6 +282,7 @@ const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => 
             )
           })}
         </GridLayout>
+      )}
       </AuthInteractionGate>
     </div>
   )
