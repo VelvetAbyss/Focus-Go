@@ -15,6 +15,14 @@ const restore = () => {
 
 export default function StartupGate({ children }: { children: ReactNode }) {
   useEffect(() => { void getPlatform().showAppWindow() }, [])
+  // Check for updates from the gate, not from the app behind it. The first-run
+  // chooser and the "session unavailable" screen both render instead of <App/>,
+  // and someone stuck on the latter is precisely who a newer build might
+  // unstick — gating the check behind a healthy boot strands them.
+  useEffect(() => {
+    const timer = window.setTimeout(() => void getPlatform().checkForUpdates(), 5000)
+    return () => window.clearTimeout(timer)
+  }, [])
   const [mode, setMode] = useState<StorageMode | null>(() => readStorageMode())
   const [attempt, setAttempt] = useState(0)
   const [status, setStatus] = useState<'checking' | 'ready' | 'error'>('checking')
