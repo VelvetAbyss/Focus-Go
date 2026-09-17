@@ -6,14 +6,14 @@ Focus&go uses one product version across the monorepo. Git tags are the release 
 
 - Version format: `MAJOR.MINOR.PATCH[-prerelease.N]`
 - Tag format: `vMAJOR.MINOR.PATCH[-prerelease.N]`
-- Latest existing tag: `v0.1.0-beta.5`
-- Next beta default: `v0.1.0-beta.6`
+- Latest existing tag: `v0.1.0-beta.6`
+- Next beta default: `v0.1.0-beta.7`
 
 The project is still in the `0.x` phase. Treat `0.1.x` as the first public testing milestone, and reserve `1.0.0` for a stable core experience with clear data compatibility and reliable web/desktop release workflows.
 
 ## Version Plan
 
-- `v0.1.0-beta.6+`: continue current beta fixes, small feature completion, installer/CI/release fixes, and blocking bug fixes.
+- `v0.1.0-beta.7+`: continue current beta fixes, small feature completion, installer/CI/release fixes, and blocking bug fixes.
 - `v0.1.0-rc.1`: feature freeze candidate. Only blocking bugs, data safety fixes, install/startup issues, and sync issues should be accepted.
 - `v0.1.0`: first stable public release. Requires `npm run verify`, web smoke validation, and downloadable unsigned desktop release assets.
 - `v0.1.1`, `v0.1.2`: stable hotfixes only, including bug fixes, small UX fixes, copy fixes, and security dependency updates.
