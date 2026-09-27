@@ -18,22 +18,22 @@ import { useI18n } from "../../../../shared/i18n/useI18n";
 import { useVisibleInterval, useVisibleRaf } from "../../../../shared/hooks/usePageActivity";
 import { useAuthGate } from "../../../auth/AuthGateContext";
 import { cloneNoiseTracks, findMatchingNoiseScenePreset, NOISE_SCENE_PRESETS, type NoiseScenePreset } from "../../noise";
+import { DURATION } from '../../../../shared/motion/tokens'
 
 interface SoundTrack {
   id: NoiseTrackId;
   icon: ReactNode;
   enabled: boolean;
   volume: number;
-  color: string;
 }
 
 const defaultTracks: SoundTrack[] = [
-  { id: "cafe", icon: <Coffee size={15} />, enabled: true, volume: 0.6, color: "#C4A882" },
-  { id: "fireplace", icon: <Flame size={15} />, enabled: true, volume: 0.4, color: "#D4956A" },
-  { id: "rain", icon: <CloudRain size={15} />, enabled: true, volume: 0.7, color: "#8BA4B8" },
-  { id: "wind", icon: <Wind size={15} />, enabled: false, volume: 0.5, color: "#A3B8A0" },
-  { id: "thunder", icon: <CloudLightning size={15} />, enabled: false, volume: 0.3, color: "#9A8EAF" },
-  { id: "ocean", icon: <Waves size={15} />, enabled: false, volume: 0.5, color: "#7BA5B5" },
+  { id: "cafe", icon: <Coffee size={15} />, enabled: true, volume: 0.6 },
+  { id: "fireplace", icon: <Flame size={15} />, enabled: true, volume: 0.4 },
+  { id: "rain", icon: <CloudRain size={15} />, enabled: true, volume: 0.7 },
+  { id: "wind", icon: <Wind size={15} />, enabled: false, volume: 0.5 },
+  { id: "thunder", icon: <CloudLightning size={15} />, enabled: false, volume: 0.3 },
+  { id: "ocean", icon: <Waves size={15} />, enabled: false, volume: 0.5 },
 ];
 
 // Cap the visualizer to ~30fps. On 120Hz ProMotion displays the RAF would
@@ -199,7 +199,7 @@ function PremiumSlider({
           background: disabled ? "color-mix(in srgb, var(--text-primary) 12%, transparent)" : color,
           opacity: disabled ? 0.4 : 0.8,
           boxShadow: dragging
-            ? `0 0 0 4px ${color}20, 0 1px 3px color-mix(in srgb, var(--text-primary) 10%, transparent)`
+            ? `0 0 0 4px color-mix(in srgb, ${color} 13%, transparent), 0 1px 3px color-mix(in srgb, var(--text-primary) 10%, transparent)`
             : "0 1px 3px color-mix(in srgb, var(--text-primary) 8%, transparent)",
         }}
         initial={false}
@@ -329,12 +329,12 @@ export function WhiteNoise() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2
-            style={{ fontFamily: "'DM Serif Display', serif" }}
-            className="text-[1.15rem] text-[var(--text-primary)] tracking-[-0.01em]"
+            style={{ fontFamily: 'var(--font-display)' }}
+            className="text-subhead text-[var(--text-primary)] tracking-[-0.01em]"
           >
             {t("focus.whiteNoise")}
           </h2>
-          <p className="text-[0.7rem] text-[var(--text-secondary)] mt-0.5 tracking-wide">
+          <p className="text-meta text-[var(--text-secondary)] mt-0.5 tracking-wide">
             {language === "zh" ? `已启用 ${activeTracks} 个声音` : `${activeTracks} sound${activeTracks === 1 ? "" : "s"} enabled`}
           </p>
         </div>
@@ -354,16 +354,16 @@ export function WhiteNoise() {
               className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer relative"
               style={{
                 background: sleepTimer
-                  ? "rgba(139,168,138,0.12)"
-                  : "rgba(168, 162, 150, 0.08)",
+                  ? "var(--accent-wash)"
+                  : "color-mix(in srgb, var(--ink-1) 5%, transparent)",
               }}
             >
               <Moon
                 size={13}
-                className={sleepTimer ? "text-[#7A9A78]" : "text-[var(--text-secondary)]"}
+                className={sleepTimer ? "text-[color:var(--accent)]" : "text-[var(--text-secondary)]"}
               />
               {sleepRemaining !== null && (
-                <span className="absolute -bottom-0.5 -right-0.5 text-[0.5rem] text-[#7A9A78] tabular-nums">
+                <span className="absolute -bottom-0.5 -right-0.5 text-meta text-[color:var(--accent)] tabular-nums">
                   {Math.ceil(sleepRemaining / 60)}
                 </span>
               )}
@@ -379,17 +379,16 @@ export function WhiteNoise() {
                     initial={{ opacity: 0, y: 4, scale: 0.97 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 4, scale: 0.97 }}
-                    transition={{ duration: 0.15 }}
+                    transition={{ duration: DURATION.fast }}
                     className="absolute top-full right-0 mt-2 z-50 rounded-xl overflow-hidden"
                     style={{
-                      background: "rgba(255,255,255,0.95)",
-                      backdropFilter: "blur(20px)",
+                      background: "var(--paper-raised)",
                       boxShadow:
                         "0 6px 24px color-mix(in srgb, var(--text-primary) 6%, transparent), 0 1px 3px color-mix(in srgb, var(--text-primary) 4%, transparent)",
                     }}
                   >
                     <div className="px-3 pt-2.5 pb-1">
-                      <p className="text-[0.62rem] text-[var(--text-secondary)] uppercase tracking-[0.08em]">
+                      <p className="text-meta text-[var(--text-secondary)] uppercase tracking-[var(--tracking-caps)]">
                          {language === "zh" ? "睡眠定时" : "Sleep timer"}
                       </p>
                     </div>
@@ -397,7 +396,7 @@ export function WhiteNoise() {
                       <button
                         key={m}
                         onClick={() => startSleepTimer(m)}
-                        className="w-full text-left px-3.5 py-1.5 text-[0.72rem] text-[var(--text-secondary)] transition-colors cursor-pointer hover:bg-[var(--text-primary)]/[0.03] whitespace-nowrap"
+                        className="w-full text-left px-3.5 py-1.5 text-label text-[var(--text-secondary)] transition-colors cursor-pointer hover:bg-[var(--text-primary)]/[0.03] whitespace-nowrap"
                       >
                         {language === "zh" ? `${m} 分钟` : `${m} min`}
                       </button>
@@ -415,8 +414,8 @@ export function WhiteNoise() {
             className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
             style={{
               background: isPlaying
-                ? "rgba(168, 162, 150, 0.15)"
-                : "rgba(168, 162, 150, 0.08)",
+                ? "var(--accent-wash)"
+                : "color-mix(in srgb, var(--ink-1) 5%, transparent)",
             }}
           >
             {isPlaying ? (
@@ -440,7 +439,7 @@ export function WhiteNoise() {
       <div className="mb-4">
         <div className="flex items-center gap-1.5 mb-2.5">
           <Sparkles size={11} className="text-[var(--text-secondary)]" />
-          <span className="text-[0.66rem] text-[var(--text-secondary)] uppercase tracking-[0.08em]">
+          <span className="text-meta text-[var(--text-secondary)] uppercase tracking-[var(--tracking-caps)]">
              {t("focus.scenes")}
           </span>
         </div>
@@ -454,20 +453,22 @@ export function WhiteNoise() {
               style={{
                 background:
                   activePreset === preset.id
-                    ? "rgba(139,168,138,0.08)"
+                    ? "var(--accent-wash)"
                     : "color-mix(in srgb, var(--text-primary) 1.8%, transparent)",
                 border:
                   activePreset === preset.id
-                    ? "1px solid rgba(139,168,138,0.15)"
+                    ? "1px solid color-mix(in srgb, var(--accent) 18%, transparent)"
                     : "1px solid transparent",
               }}
             >
-              <span className="text-[0.85rem]">{preset.emoji}</span>
+              <span className="text-ui">{preset.emoji}</span>
               <span
-                className="text-[0.68rem] truncate"
+                className="text-meta truncate"
                 style={{
                   color:
-                    activePreset === preset.id ? "#5a7a58" : "#8a8478",
+                    activePreset === preset.id
+                      ? "var(--accent)"
+                      : "var(--text-tertiary)",
                 }}
               >
                 {t(preset.labelKey)}
@@ -480,14 +481,14 @@ export function WhiteNoise() {
       {/* Master Volume */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[0.66rem] text-[var(--text-secondary)] uppercase tracking-[0.08em]">
+          <span className="text-meta text-[var(--text-secondary)] uppercase tracking-[var(--tracking-caps)]">
             {t("focus.masterVolume")}
           </span>
-          <span className="text-[0.66rem] text-[var(--text-secondary)] tabular-nums">
+          <span className="text-meta text-[var(--text-secondary)] tabular-nums">
             {Math.round(masterVolume * 100)}%
           </span>
         </div>
-        <PremiumSlider value={masterVolume} onChange={setMasterVolume} color="#8a8478" />
+        <PremiumSlider value={masterVolume} onChange={setMasterVolume} color="var(--ink-2)" />
       </div>
 
       {/* Divider */}
@@ -503,7 +504,7 @@ export function WhiteNoise() {
             key={track.id}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.04, duration: 0.3 }}
+            transition={{ delay: idx * 0.04, duration: DURATION.medium }}
             className="py-2.5 px-2.5 rounded-xl transition-colors"
             style={{
               background: track.enabled ? "color-mix(in srgb, var(--text-primary) 1.5%, transparent)" : "transparent",
@@ -515,14 +516,15 @@ export function WhiteNoise() {
                 style={{
                   width: 26,
                   height: 26,
-                  background: track.enabled ? `${track.color}18` : "color-mix(in srgb, var(--text-primary) 2.5%, transparent)",
-                  color: track.enabled ? track.color : "var(--text-secondary)",
+                  // A playing sound is "now": the accent, not a per-sound category color.
+                  background: track.enabled ? "var(--accent-wash)" : "color-mix(in srgb, var(--text-primary) 2.5%, transparent)",
+                  color: track.enabled ? "var(--accent)" : "var(--text-secondary)",
                 }}
               >
                 {track.icon}
               </div>
               <span
-                className="flex-1 text-[0.76rem] transition-colors"
+                className="flex-1 text-label transition-colors"
                 style={{ color: track.enabled ? "var(--text-primary)" : "var(--text-secondary)" }}
               >
                 {trackNameMap[track.id]}
@@ -532,13 +534,13 @@ export function WhiteNoise() {
                 onClick={() => toggleTrack(track.id)}
                 className="w-7 h-[16px] rounded-full relative transition-colors cursor-pointer"
                 style={{
-                  background: track.enabled ? `${track.color}40` : "color-mix(in srgb, var(--text-primary) 6%, transparent)",
+                  background: track.enabled ? "color-mix(in srgb, var(--accent) 30%, transparent)" : "color-mix(in srgb, var(--text-primary) 6%, transparent)",
                 }}
               >
                 <motion.div
                   className="absolute top-[2px] w-[12px] h-[12px] rounded-full"
                   style={{
-                    background: track.enabled ? track.color : "#d0cac0",
+                    background: track.enabled ? "var(--accent)" : "var(--ink-4)",
                     opacity: track.enabled ? 0.85 : 0.5,
                   }}
                   animate={{ left: track.enabled ? 13 : 2 }}
@@ -550,7 +552,7 @@ export function WhiteNoise() {
               <PremiumSlider
                 value={track.volume}
                 onChange={(v) => setTrackVolume(track.id, v)}
-                color={track.color}
+                color="var(--accent)"
                 disabled={!track.enabled}
               />
             </div>
@@ -566,11 +568,11 @@ export function WhiteNoise() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
             className="mt-3 flex items-center justify-between px-3 py-2 rounded-xl"
-            style={{ background: "rgba(139,168,138,0.06)" }}
+            style={{ background: "var(--accent-wash)" }}
           >
             <div className="flex items-center gap-2">
-              <Moon size={11} className="text-[#7A9A78]" />
-              <span className="text-[0.66rem] text-[#7A9A78]">
+              <Moon size={11} className="text-[color:var(--accent)]" />
+              <span className="text-meta text-[color:var(--accent)]">
                  {language === "zh"
                    ? `将于 ${Math.floor(sleepRemaining / 60)}:${String(sleepRemaining % 60).padStart(2, "0")} 后停止`
                    : `Stops in ${Math.floor(sleepRemaining / 60)}:${String(sleepRemaining % 60).padStart(2, "0")}`}
@@ -578,7 +580,7 @@ export function WhiteNoise() {
             </div>
             <button
               onClick={cancelSleepTimer}
-              className="text-[0.62rem] text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-secondary)] transition-colors"
+              className="text-meta text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-secondary)] transition-colors"
             >
                {language === "zh" ? "取消" : "Cancel"}
             </button>

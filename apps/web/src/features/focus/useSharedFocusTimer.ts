@@ -4,11 +4,12 @@ import { focusRepo } from '../../data/repositories/focusRepo'
 import { usePageActivity, useVisibleInterval } from '../../shared/hooks/usePageActivity'
 import { getPlatform } from '../../platform'
 import { t } from '../../shared/i18n/translator'
-import { readLanguage } from '../../shared/prefs/preferences'
+import { readFocusCompletionSoundEnabled, readLanguage } from '../../shared/prefs/preferences'
+import { playChime } from '../../shared/utils/chime'
+import { readFocusTaskId } from './focusTask'
 
 const FOCUS_TIMER_EVENT = 'focus:timer-updated'
 const SESSION_KEY = 'focusgo.timer.sessionId'
-const PENDING_TASK_KEY = 'focusgo.pendingTaskId'
 
 const clampDuration = (value: number) => {
   if (!Number.isFinite(value)) return 25
@@ -36,11 +37,34 @@ const getOrCreateSessionId = () => {
   return next
 }
 
-const consumePendingTaskId = () => {
-  if (typeof window === 'undefined') return undefined
-  const taskId = window.localStorage.getItem(PENDING_TASK_KEY) ?? undefined
-  if (taskId) window.localStorage.removeItem(PENDING_TASK_KEY)
-  return taskId
+// Every mounted timer (sidebar + focus page) notices the end of the same session.
+let lastAnnouncedEndsAt: number | null = null
+
+/** Chime and, when the window isn't in front, a system notification — once per session. */
+const announceCompletion = (endsAt: number | undefined) => {
+  const key = endsAt ?? Date.now()
+  if (lastAnnouncedEndsAt === key) return
+  lastAnnouncedEndsAt = key
+  // A session that ran out while the app was closed is just recorded, not announced late.
+  if (endsAt && Date.now() - endsAt > 2 * 60 * 1000) return
+  const language = readLanguage()
+  if (readFocusCompletionSoundEnabled()) playChime()
+  const body = t('focus.sessionComplete', language)
+  const unseen = document.visibilityState !== 'visible' || !document.hasFocus()
+  if (unseen && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    try {
+      const notification = new Notification('Focus&go', { body, tag: 'focus-session-complete' })
+      notification.onclick = () => {
+        window.focus()
+        notification.close()
+      }
+      return
+    } catch {
+      // fall through to the platform notification
+    }
+  }
+  // Desktop: native OS notification (a no-op in the browser build).
+  void getPlatform().notify('Focus&go', body)
 }
 
 const buildIdleSnapshot = (durationMinutes: number, sessionId: string): FocusTimerSnapshot => ({
@@ -173,9 +197,7 @@ export const useSharedFocusTimer = ({ defaultDurationMinutes }: UseSharedFocusTi
       setSnapshot(next)
       await persistSnapshot(next)
       emitTimerUpdate()
-      // Desktop-only: native OS notification when a focus session finishes.
-      // No-op in the browser build (webPlatform.notify is a no-op).
-      void getPlatform().notify('Focus & Go', t('focus.sessionComplete', readLanguage()))
+      announceCompletion(current.endsAt)
     } finally {
       completingRef.current = false
     }
@@ -231,7 +253,7 @@ export const useSharedFocusTimer = ({ defaultDurationMinutes }: UseSharedFocusTi
     if (!activeSessionId) {
       const startedSession = await focusRepo.startSession({
         plannedMinutes: normalizedDuration,
-        taskId: consumePendingTaskId(),
+        taskId: readFocusTaskId(),
       })
       activeSessionId = startedSession.id
     }
@@ -280,7 +302,7 @@ export const useSharedFocusTimer = ({ defaultDurationMinutes }: UseSharedFocusTi
     if (!activeSessionId) {
       const startedSession = await focusRepo.startSession({
         plannedMinutes: targetDuration,
-        taskId: consumePendingTaskId(),
+        taskId: readFocusTaskId(),
       })
       activeSessionId = startedSession.id
     }

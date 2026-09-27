@@ -49,9 +49,9 @@ import { emitTasksChanged, subscribeTasksChanged } from '../../tasks/taskSync'
 import { useSyncDataRefresh } from '../../../data/sync/service'
 import type { TaskItem } from '../../tasks/tasks.types'
 import { formatTaskDateRange, taskCoversDate } from '../../tasks/taskDates'
+import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG } from '../../tasks/components/taskPresentation'
 import { fetchIcsEventsWithFallback, filterEventsInMonth } from '../calendar.ics'
 import {
-  buildSampleMonthEvents,
   type CalendarEvent,
   formatMonthLabel,
   getMonthGridDateKeys,
@@ -72,6 +72,11 @@ import {
   writeStoredSubscriptions,
 } from '../calendarStorage'
 import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../../data/repositories/syncedPreferencesRepo'
+import { appIntlLocale } from '../../../shared/i18n/format'
+
+// = --ink-4 in light; a mid-tone that also reads on dark paper. Hex (not a var) because the
+// task color popover feeds it to a color input.
+const DEFAULT_TASK_CHIP_COLOR = '#a8a298'
 
 const calendarEventKindRank = { lunar: 0, holiday: 1, event: 2 } as const
 const CALENDAR_PRESET_COLORS = ['#9ca3af', '#60a5fa', '#2563eb', '#22d3ee', '#34d399', '#10b981', '#22c55e', '#f59e0b', '#ef4444', '#fb7185', '#6b7280', '#0f766e']
@@ -133,6 +138,29 @@ const CALENDAR_PRESET_SUBSCRIPTIONS = [
     url: 'https://raw.githubusercontent.com/KaitoHH/24-jieqi-ics/master/23_solar_terms_2015-01-01_2050-12-31.ics',
   },
 ]
+
+// Chinese labels for the built-in presets. Stored subscriptions keep their
+// English name; it is only swapped at render time (and only while it still
+// matches the preset, so a user-renamed calendar is left alone).
+const CALENDAR_PRESET_LABELS_ZH: Record<string, { name: string; description: string }> = {
+  'preset-cn-holidays': { name: '中国法定节假日', description: '中国大陆法定节假日' },
+  'preset-cn-workdays': { name: '中国调休工作日', description: '中国大陆调休上班日' },
+  'preset-us-holidays': { name: '美国联邦假日', description: '美国法定节假日' },
+  'preset-uk-holidays': { name: '英国银行假日', description: '英国公共假日' },
+  'preset-jp-holidays': { name: '日本国民假日', description: '日本法定节假日' },
+  'preset-sg-holidays': { name: '新加坡公共假日', description: '新加坡节假日' },
+  'preset-moon': { name: '月相', description: '上弦、满月、下弦与新月' },
+  'preset-solar-terms': { name: '二十四节气', description: '二十四节气' },
+}
+
+const presetLabel = (preset: (typeof CALENDAR_PRESET_SUBSCRIPTIONS)[number], language: string) =>
+  (language === 'zh' ? CALENDAR_PRESET_LABELS_ZH[preset.id] : undefined) ?? { name: preset.name, description: preset.description }
+
+const subscriptionDisplayName = (sub: CalendarSubscription, language: string) => {
+  if (language !== 'zh') return sub.name
+  const preset = CALENDAR_PRESET_SUBSCRIPTIONS.find((item) => item.url === sub.url && item.name === sub.name)
+  return preset ? presetLabel(preset, language).name : sub.name
+}
 
 type SubscriptionSyncState = {
   status: 'idle' | 'loading' | 'ok' | 'error'
@@ -223,7 +251,7 @@ const ColorPalettePopoverContent = ({
 
 const formatReminderLabel = (value: number | undefined, language: 'en' | 'zh') => {
   if (typeof value !== 'number') return language === 'zh' ? '无提醒' : 'No reminder'
-  return new Date(value).toLocaleString(undefined, {
+  return new Date(value).toLocaleString(appIntlLocale(), {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -251,6 +279,29 @@ const getProviderLabel = (provider: CalendarProvider, language: 'en' | 'zh') => 
   if (provider === 'google') return 'Google'
   if (provider === 'apple') return 'Apple'
   return 'Outlook'
+}
+
+// When each feed last synced successfully. Holiday and lunar feeds change a few times a
+// year: cached events show at once and re-sync at most every few hours.
+const STORAGE_ICS_SYNCED_AT_KEY = 'focusgo.calendar.icsSyncedAt.v1'
+const ICS_RESYNC_MS = 6 * 60 * 60 * 1000
+
+const readIcsSyncedAt = (): Record<string, { url: string; at: number }> => {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(STORAGE_ICS_SYNCED_AT_KEY) ?? '{}')
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+const writeIcsSyncedAt = (subscriptionId: string, url: string) => {
+  try {
+    const next = { ...readIcsSyncedAt(), [subscriptionId]: { url, at: Date.now() } }
+    window.localStorage.setItem(STORAGE_ICS_SYNCED_AT_KEY, JSON.stringify(next))
+  } catch {
+    // ignore
+  }
 }
 
 const readStoredIcsEvents = () => {
@@ -285,6 +336,7 @@ const SortableSubscriptionItem = ({
   onRemoveSubscription,
   onMoveByStep,
 }: SortableSubscriptionItemProps) => {
+  const { t } = useI18n()
   const {
     attributes,
     listeners,
@@ -359,16 +411,16 @@ const SortableSubscriptionItem = ({
         </PopoverContent>
       </Popover>
       <div className="calendar-subscriptions__content">
-        <span className="calendar-subscriptions__name">{sub.name}</span>
+        <span className="calendar-subscriptions__name">{subscriptionDisplayName(sub, language)}</span>
         <div className="calendar-subscriptions__meta">
           {sub.provider === 'google' ? (
             <Badge variant="outline" className="calendar-provider-badge">
               {getProviderLabel(sub.provider, language)}
             </Badge>
           ) : null}
-          {syncState?.status === 'loading' ? <Badge variant="outline">Syncing</Badge> : null}
+          {syncState?.status === 'loading' ? <Badge variant="outline">{t('calendar.syncing')}</Badge> : null}
           {syncState?.status === 'error' ? (
-            <Badge variant="destructive" title={syncState.message} className="calendar-sync-error">
+            <Badge variant="destructive" title={syncState.message} aria-label={t('calendar.syncFailed')} className="calendar-sync-error">
               !
             </Badge>
           ) : null}
@@ -387,14 +439,19 @@ const SortableSubscriptionItem = ({
   )
 }
 
+const formatPanelDateKey = (dateKey: string) =>
+  new Date(`${dateKey}T12:00:00`).toLocaleDateString(appIntlLocale(), { month: 'short', day: 'numeric' })
+
 const CalendarPage = () => {
   const { language, t } = useI18n()
-  const weekLabels = [t('calendar.weekday.su'), t('calendar.weekday.mo'), t('calendar.weekday.tu'), t('calendar.weekday.we'), t('calendar.weekday.th'), t('calendar.weekday.fr'), t('calendar.weekday.sa')]
+  const weekLabels = [t('calendar.weekday.mo'), t('calendar.weekday.tu'), t('calendar.weekday.we'), t('calendar.weekday.th'), t('calendar.weekday.fr'), t('calendar.weekday.sa'), t('calendar.weekday.su')]
   const [anchorDate, setAnchorDate] = useState(() => new Date())
   const [selectedDateKey, setSelectedDateKey] = useState(() => toDateKey(new Date()))
   const [monthMotionDirection, setMonthMotionDirection] = useState<'forward' | 'back' | null>(null)
   const [subscriptions, setSubscriptions] = useState<CalendarSubscription[]>(readStoredSubscriptions)
   const [icsEventsBySubscription, setIcsEventsBySubscription] = useState<Record<string, CalendarEvent[]>>(readStoredIcsEvents)
+  const icsEventsRef = useRef(icsEventsBySubscription)
+  icsEventsRef.current = icsEventsBySubscription
   const [taskColorsById, setTaskColorsById] = useState<Record<string, string>>(readStoredTaskColors)
   const [syncStateBySubscription, setSyncStateBySubscription] = useState<Record<string, SubscriptionSyncState>>({})
   const [allTasks, setAllTasks] = useState<TaskItem[]>([])
@@ -405,7 +462,6 @@ const CalendarPage = () => {
   const [drawerTask, setDrawerTask] = useState<TaskItem | null>(null)
 
   const [isAccountDialogOpen, setIsAccountDialogOpen] = useState(false)
-  const [accountMode, setAccountMode] = useState<'google' | 'ics'>('google')
   const [icsName, setIcsName] = useState('')
   const [icsUrl, setIcsUrl] = useState('')
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(false)
@@ -437,15 +493,21 @@ const CalendarPage = () => {
   const syncSubscription = useCallback(async (subscription: CalendarSubscription) => {
     if (!subscription.url) return
 
-    setSyncStateBySubscription((prev) => ({ ...prev, [subscription.id]: { status: 'loading' } }))
+    const hasCachedEvents = (icsEventsRef.current[subscription.id]?.length ?? 0) > 0
+    const lastSync = readIcsSyncedAt()[subscription.id]
+    if (hasCachedEvents && lastSync?.url === subscription.url && Date.now() - lastSync.at < ICS_RESYNC_MS) return
+
+    // With cached events on screen, refresh quietly; the badge is for a first load.
+    if (!hasCachedEvents) setSyncStateBySubscription((prev) => ({ ...prev, [subscription.id]: { status: 'loading' } }))
 
     try {
       const events = await fetchIcsEventsWithFallback(subscription.url, subscription.id)
       setIcsEventsBySubscription((prev) => ({ ...prev, [subscription.id]: events }))
       setSyncStateBySubscription((prev) => ({ ...prev, [subscription.id]: { status: 'ok' } }))
+      writeIcsSyncedAt(subscription.id, subscription.url)
     } catch (error) {
-      const message = error instanceof Error ? error.message : '同步该日历源失败'
-      setIcsEventsBySubscription((prev) => ({ ...prev, [subscription.id]: [] }))
+      const message = error instanceof Error ? error.message : String(error)
+      // Keep the last good events: a flaky network shouldn't wipe the holidays off the grid.
       setSyncStateBySubscription((prev) => ({ ...prev, [subscription.id]: { status: 'error', message } }))
     }
   }, [])
@@ -537,10 +599,9 @@ const CalendarPage = () => {
   }, [allPeople, monthGridDateKeys, language])
 
   const monthEvents = useMemo(() => {
-    const seeded = buildSampleMonthEvents(anchorDate)
     const remoteEvents = filterEventsInMonth(Object.values(icsEventsBySubscription).flat(), anchorDate)
 
-    return [...seeded, ...remoteEvents, ...birthdayEvents].filter(
+    return [...remoteEvents, ...birthdayEvents].filter(
       (event) => event.subscriptionId === 'system-birthdays' || visibleSubscriptionIds.has(event.subscriptionId)
     )
   }, [anchorDate, icsEventsBySubscription, visibleSubscriptionIds, birthdayEvents])
@@ -601,7 +662,8 @@ const CalendarPage = () => {
 
   const resolveTaskChipColor = useCallback(
     (task: TaskItem) => {
-      return taskColorsById[task.id] ?? '#ef4444'
+      // Uncolored tasks get a neutral ink bar; vermilion means "overdue" app-wide (DESIGN.md).
+      return taskColorsById[task.id] ?? DEFAULT_TASK_CHIP_COLOR
     },
     [taskColorsById]
   )
@@ -738,25 +800,6 @@ const CalendarPage = () => {
 
       return sortSubscriptions([...prev, next])
     })
-  }
-
-  const addGoogleReadOnlyAccount = () => {
-    const hasGoogle = subscriptions.some((sub) => sub.provider === 'google')
-    if (!hasGoogle) {
-      const nextOrder = unifiedSubscriptions.length
-      const next: CalendarSubscription = {
-        id: `account-google-${Date.now()}`,
-        name: 'Google Calendar (M1 Read-Only)',
-        sourceType: 'account',
-        provider: 'google',
-        color: '#2563eb',
-        enabled: true,
-        syncPermission: 'read',
-        order: nextOrder,
-      }
-      setSubscriptions((prev) => sortSubscriptions([...prev, next]))
-    }
-    setIsAccountDialogOpen(false)
   }
 
   const openCreateEvent = (dateKey: string) => {
@@ -1019,14 +1062,8 @@ const CalendarPage = () => {
                         key={item.id}
                         variant="secondary"
                         className={`calendar-chip calendar-chip--task${item.status === 'done' ? ' calendar-chip--task-done' : ''}`}
-                        style={
-                          item.status === 'done'
-                            ? undefined
-                            : {
-                                background: `color-mix(in srgb, ${item.color} 24%, var(--bg-muted))`,
-                                color: `color-mix(in srgb, ${item.color} 88%, var(--text-primary))`,
-                              }
-                        }
+                        // Neutral chip; the source color is a 2px bar (DESIGN.md › Color = state).
+                        style={item.status === 'done' ? undefined : { ['--chip-color' as string]: item.color }}
                       >
                         {item.title}
                       </Badge>
@@ -1038,10 +1075,7 @@ const CalendarPage = () => {
                         className={`calendar-chip calendar-chip--${item.kind}`}
                         style={
                           subscriptionColorById.get(item.subscriptionId)
-                            ? {
-                                background: `color-mix(in srgb, ${subscriptionColorById.get(item.subscriptionId)} 22%, var(--bg-muted))`,
-                                color: `color-mix(in srgb, ${subscriptionColorById.get(item.subscriptionId)} 86%, var(--text-primary))`,
-                              }
+                            ? { ['--chip-color' as string]: subscriptionColorById.get(item.subscriptionId) }
                             : undefined
                         }
                       >
@@ -1165,15 +1199,15 @@ const CalendarPage = () => {
                     <div className="calendar-task-card__meta-lines">
                       <div className="calendar-task-card__meta-line">
                         <span className="calendar-task-card__meta-item">
-                          <strong>{t('calendar.status')}</strong> {task.status}
+                          <strong>{t('calendar.status')}</strong> {t(TASK_STATUS_CONFIG[task.status].labelKey)}
                         </span>
                         <span className="calendar-task-card__meta-item">
-                          <strong>{t('calendar.priority')}</strong> {task.priority ?? t('calendar.none')}
+                          <strong>{t('calendar.priority')}</strong> {task.priority ? t(TASK_PRIORITY_CONFIG[task.priority].labelKey) : t('calendar.none')}
                         </span>
                       </div>
                       <div className="calendar-task-card__meta-line calendar-task-card__meta-line--single">
                         <span className="calendar-task-card__meta-item">
-                          <strong>{t('tasks.drawer.date')}</strong> {formatTaskDateRange(task)}
+                          <strong>{t('tasks.drawer.date')}</strong> {formatTaskDateRange(task, formatPanelDateKey)}
                         </span>
                       </div>
                       <div className="calendar-task-card__meta-line">
@@ -1209,7 +1243,7 @@ const CalendarPage = () => {
           >
             <Input
               aria-label={t('calendar.newTaskTitle')}
-              placeholder=""
+              placeholder={t('calendar.addTaskForDayPlaceholder')}
               ref={selectedDayTaskComposer.inputRef}
               className={`widget-todos__input ${selectedDayTaskComposer.isShaking ? 'is-shaking' : ''}`}
               value={selectedDayTaskComposer.value}
@@ -1234,23 +1268,6 @@ const CalendarPage = () => {
             <DialogDescription>{t('calendar.addSubscriptionDesc')}</DialogDescription>
           </DialogHeader>
           <div className="calendar-dialog">
-            <div className="calendar-dialog__switch">
-              <Button
-                type="button"
-                variant={accountMode === 'google' ? 'default' : 'outline'}
-                onClick={() => setAccountMode('google')}
-              >
-                {t('calendar.google')}
-              </Button>
-              <Button
-                type="button"
-                variant={accountMode === 'ics' ? 'default' : 'outline'}
-                onClick={() => setAccountMode('ics')}
-              >
-                {t('calendar.icsWebcal')}
-              </Button>
-            </div>
-
             <section className="calendar-dialog__presets" aria-label={t('calendar.presetSubscriptions')}>
               <h4>{t('calendar.presetSubscriptions')}</h4>
               <div className="calendar-dialog__presets-list">
@@ -1259,8 +1276,8 @@ const CalendarPage = () => {
                   return (
                     <article key={preset.id} className="calendar-dialog__preset-card">
                       <div className="calendar-dialog__preset-meta">
-                        <p>{preset.name}</p>
-                        <small>{preset.description}</small>
+                        <p>{presetLabel(preset, language).name}</p>
+                        <small>{presetLabel(preset, language).description}</small>
                       </div>
                       <Button
                         type="button"
@@ -1278,40 +1295,31 @@ const CalendarPage = () => {
               </div>
             </section>
 
-            {accountMode === 'google' ? (
-              <div className="calendar-dialog__panel">
-                <p>以只读模式连接 Google 日历（M1）。</p>
-                <Button type="button" onClick={addGoogleReadOnlyAccount}>
-                  {t('calendar.connectGoogle')}
-                </Button>
-              </div>
-            ) : (
-              <div className="calendar-dialog__panel">
-                <section className="calendar-dialog__guide" aria-label={t('calendar.icsGuide')}>
-                  <p className="calendar-dialog__guide-title">{t('calendar.icsGuideTitle')}</p>
-                  <ol className="calendar-dialog__guide-list">
-                    <li>{t('calendar.icsGuideStep1')}</li>
-                    <li>{t('calendar.icsGuideStep2')}</li>
-                    <li>{t('calendar.icsGuideStep3')}</li>
-                  </ol>
-                  <p className="calendar-dialog__guide-note">
-                    {t('calendar.icsGuideNote')}
-                  </p>
-                </section>
-                <Label htmlFor="ics-name">{t('calendar.name')}</Label>
-                <Input id="ics-name" value={icsName} onChange={(event) => setIcsName(event.currentTarget.value)} />
-                <Label htmlFor="ics-url">{t('calendar.icsUrl')}</Label>
-                <Input
-                  id="ics-url"
-                  value={icsUrl}
-                  onChange={(event) => setIcsUrl(event.currentTarget.value)}
-                  placeholder={t('calendar.icsPlaceholder')}
-                />
-                <Button type="button" onClick={() => void addIcsSubscription()}>
-                  {t('calendar.addIcsSubscription')}
-                </Button>
-              </div>
-            )}
+            <div className="calendar-dialog__panel">
+              <section className="calendar-dialog__guide" aria-label={t('calendar.icsGuide')}>
+                <p className="calendar-dialog__guide-title">{t('calendar.icsGuideTitle')}</p>
+                <ol className="calendar-dialog__guide-list">
+                  <li>{t('calendar.icsGuideStep1')}</li>
+                  <li>{t('calendar.icsGuideStep2')}</li>
+                  <li>{t('calendar.icsGuideStep3')}</li>
+                </ol>
+                <p className="calendar-dialog__guide-note">
+                  {t('calendar.icsGuideNote')}
+                </p>
+              </section>
+              <Label htmlFor="ics-name">{t('calendar.name')}</Label>
+              <Input id="ics-name" value={icsName} onChange={(event) => setIcsName(event.currentTarget.value)} />
+              <Label htmlFor="ics-url">{t('calendar.icsUrl')}</Label>
+              <Input
+                id="ics-url"
+                value={icsUrl}
+                onChange={(event) => setIcsUrl(event.currentTarget.value)}
+                placeholder={t('calendar.icsPlaceholder')}
+              />
+              <Button type="button" onClick={() => void addIcsSubscription()}>
+                {t('calendar.addIcsSubscription')}
+              </Button>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setIsAccountDialogOpen(false)}>
@@ -1346,7 +1354,7 @@ const CalendarPage = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t('calendar.createTaskTitle')}</DialogTitle>
-            <DialogDescription>{t('tasks.drawer.date')}：{createDateKey}</DialogDescription>
+            <DialogDescription>{t('tasks.drawer.date')}{language === 'zh' ? '：' : ': '}{createDateKey}</DialogDescription>
           </DialogHeader>
           <div className="calendar-dialog__panel">
             <Label htmlFor="task-title">{t('calendar.title')}</Label>

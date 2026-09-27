@@ -30,8 +30,9 @@ describe('calendar.model', () => {
     expect(names).not.toContain('Chinese Lunar Calendar')
     expect(names).not.toContain('US Holidays & Major Observances')
 
-    const google = initial.find((item) => item.provider === 'google')
-    expect(google?.syncPermission).toBe('read')
+    // No placeholder account calendars: only real, syncable ICS presets.
+    expect(initial.some((item) => item.provider === 'google')).toBe(false)
+    expect(initial.every((item) => item.provider === 'ics' && item.syncPermission === 'read')).toBe(true)
   })
 
   it('removeAllSystemSubscriptions filters all system records', () => {

@@ -44,18 +44,16 @@ export const sortSubscriptions = <T extends { sourceType: CalendarSourceType; or
         a.name.localeCompare(b.name)
     )
 
+/**
+ * Account-backed calendars (Google) never had a sync backend — they only
+ * rendered placeholder events. Stored copies from older versions are dropped
+ * so the sidebar only lists calendars that can actually show data.
+ */
+export const removeUnsupportedAccountSubscriptions = (subscriptions: CalendarSubscription[]) =>
+  subscriptions.filter((item) => item.provider !== 'google')
+
 export const buildInitialCalendarSubscriptions = (): CalendarSubscription[] =>
   sortSubscriptions([
-    {
-      id: 'account-google',
-      name: 'Google Calendar',
-      sourceType: 'account',
-      provider: 'google',
-      color: '#34a853',
-      enabled: true,
-      syncPermission: 'read',
-      order: 0,
-    },
     {
       id: 'preset-cn-holidays',
       name: 'China Public Holidays',
@@ -64,7 +62,7 @@ export const buildInitialCalendarSubscriptions = (): CalendarSubscription[] =>
       color: '#ef4444',
       enabled: true,
       syncPermission: 'read',
-      order: 1,
+      order: 0,
       url: 'https://ical.muhan.org/rest.ics',
     },
     {
@@ -75,7 +73,7 @@ export const buildInitialCalendarSubscriptions = (): CalendarSubscription[] =>
       color: '#2563eb',
       enabled: true,
       syncPermission: 'read',
-      order: 2,
+      order: 1,
       url: 'https://calendar.google.com/calendar/ical/en.usa.official%23holiday%40group.v.calendar.google.com/public/basic.ics',
     },
   ])
@@ -145,17 +143,20 @@ const toDateKey = (date: Date) => {
   return `${y}-${m}-${d}`
 }
 
+// Weeks run Monday → Sunday, like the date picker, the habit weeks and the weekly recap.
+const mondayIndex = (date: Date) => (date.getDay() + 6) % 7
+
 const startOfMonthGrid = (date: Date) => {
   const first = new Date(date.getFullYear(), date.getMonth(), 1)
   first.setHours(0, 0, 0, 0)
-  first.setDate(first.getDate() - first.getDay())
+  first.setDate(first.getDate() - mondayIndex(first))
   return first
 }
 
 const endOfMonthGrid = (date: Date) => {
   const last = new Date(date.getFullYear(), date.getMonth() + 1, 0)
   last.setHours(0, 0, 0, 0)
-  last.setDate(last.getDate() + (6 - last.getDay()))
+  last.setDate(last.getDate() + (6 - mondayIndex(last)))
   return last
 }
 
@@ -169,47 +170,6 @@ export const getMonthGridDateKeys = (anchorDate: Date): string[] => {
     current.setDate(start.getDate() + index)
     return toDateKey(current)
   })
-}
-
-export const buildSampleMonthEvents = (anchorDate: Date): CalendarEvent[] => {
-  const y = anchorDate.getFullYear()
-  const m = anchorDate.getMonth() + 1
-  const monthKey = `${y}-${`${m}`.padStart(2, '0')}`
-
-  return [
-    {
-      id: `${monthKey}-holiday-1`,
-      subscriptionId: 'preset-cn-holidays',
-      title: '春节假期',
-      dateKey: `${monthKey}-16`,
-      timeLabel: 'All day',
-      kind: 'holiday',
-    },
-    {
-      id: `${monthKey}-holiday-2`,
-      subscriptionId: 'preset-us-holidays',
-      title: 'Presidents Day',
-      dateKey: `${monthKey}-20`,
-      timeLabel: 'All day',
-      kind: 'holiday',
-    },
-    {
-      id: `${monthKey}-google-1`,
-      subscriptionId: 'account-google',
-      title: 'Product standup',
-      dateKey: `${monthKey}-05`,
-      timeLabel: '10:00',
-      kind: 'event',
-    },
-    {
-      id: `${monthKey}-google-2`,
-      subscriptionId: 'account-google',
-      title: 'Design review',
-      dateKey: `${monthKey}-14`,
-      timeLabel: '16:00',
-      kind: 'event',
-    },
-  ]
 }
 
 export const formatMonthLabel = (anchorDate: Date, language: 'en' | 'zh' = 'zh') =>

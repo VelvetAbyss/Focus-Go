@@ -277,13 +277,14 @@ describe('CalendarPage', () => {
     const selectedCell = view.container.querySelector('.calendar-month-grid__cell.is-selected')
     expect(selectedCell).not.toBeNull()
     expect(within(selectedCell as HTMLElement).getByText(taskTitle)).toHaveClass('calendar-chip--task')
+    // Uncolored tasks get the neutral ink bar, not vermilion (vermilion means "overdue").
     expect(within(selectedCell as HTMLElement).getByText(taskTitle)).toHaveAttribute(
       'style',
-      expect.stringContaining('#ef4444')
+      expect.stringContaining('#a8a298')
     )
   })
 
-  it('today cell keeps red border while selected state remains', () => {
+  it('today cell keeps its today mark while selected state remains', () => {
     const view = renderCalendar()
     const selectedCell = view.container.querySelector('.calendar-month-grid__cell.is-selected')
     expect(selectedCell).not.toBeNull()
@@ -335,7 +336,7 @@ describe('CalendarPage', () => {
     })
     const card = (tasksList as HTMLElement).querySelector('.calendar-task-card')
     expect(card).not.toBeNull()
-    expect(within(card as HTMLElement).getByText('high')).toBeInTheDocument()
+    expect(within(card as HTMLElement).getByText('High')).toBeInTheDocument()
     expect(
       within(card as HTMLElement).getByText((content) => content.includes('work, urgent +1')),
     ).toBeInTheDocument()
@@ -407,7 +408,7 @@ describe('CalendarPage', () => {
     })
   })
 
-  it('renders existing selected-day task in red even without red tag', async () => {
+  it('renders an uncolored selected-day task with the neutral default bar', async () => {
     const today = toDateKey(new Date())
     tasksDb = [
       createTask({
@@ -424,7 +425,7 @@ describe('CalendarPage', () => {
       const selectedCell = view.container.querySelector('.calendar-month-grid__cell.is-selected')
       expect(selectedCell).not.toBeNull()
       const chip = within(selectedCell as HTMLElement).getByText('Legacy task')
-      expect(chip).toHaveAttribute('style', expect.stringContaining('#ef4444'))
+      expect(chip).toHaveAttribute('style', expect.stringContaining('#a8a298'))
     })
   })
 
@@ -446,7 +447,7 @@ describe('CalendarPage', () => {
       expect(selectedCell).not.toBeNull()
       const chip = within(selectedCell as HTMLElement).getByText('Completed calendar task')
       expect(chip).toHaveClass('calendar-chip--task-done')
-      expect(chip).not.toHaveAttribute('style', expect.stringContaining('#ef4444'))
+      expect(chip).not.toHaveAttribute('style', expect.stringContaining('#a8a298'))
     })
 
     const tasksList = view.container.querySelector('[aria-label="Tasks list"]')
@@ -676,7 +677,8 @@ describe('CalendarPage', () => {
     const scoped = within(view.container)
 
     expect(scoped.queryByText('Chinese Lunar Calendar')).not.toBeInTheDocument()
-    expect(scoped.getByText('Google Calendar (M1 Read-Only)')).toBeInTheDocument()
+    // Google "accounts" were placeholders with no sync backend; they are dropped.
+    expect(scoped.queryByText('Google Calendar (M1 Read-Only)')).not.toBeInTheDocument()
     expect(scoped.getByText('节假日')).toBeInTheDocument()
   })
 
@@ -696,14 +698,13 @@ describe('CalendarPage', () => {
     expect(scoped.queryByText('Google Calendar (M1 Read-Only)')).not.toBeInTheDocument()
   })
 
-  it('shows ics guide only in ics mode', async () => {
+  it('shows the ics guide in the subscription dialog', async () => {
     const user = userEvent.setup()
     const view = renderCalendar()
     const scoped = within(view.container)
     await user.click(scoped.getByRole('button', { name: 'Add subscription' }))
 
-    expect(screen.queryByLabelText('ICS guide')).not.toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'ICS / webcal' }))
+    expect(screen.queryByRole('button', { name: /Google/ })).not.toBeInTheDocument()
     expect(screen.getByLabelText('ICS guide')).toBeInTheDocument()
     expect(screen.getByText('How to get an ICS subscription URL')).toBeInTheDocument()
   })
@@ -807,7 +808,6 @@ describe('CalendarPage', () => {
     await user.click(accountSwatch)
 
     await user.click(scoped.getByRole('button', { name: 'Add subscription' }))
-    await user.click(screen.getByRole('button', { name: 'ICS / webcal' }))
     await user.type(screen.getByLabelText('Name'), 'Team Public Calendar')
     await user.type(screen.getByLabelText('ICS URL'), 'https://example.com/team.ics')
     await user.click(screen.getByRole('button', { name: 'Add ICS subscription' }))
@@ -818,10 +818,6 @@ describe('CalendarPage', () => {
 
     expect(getRowDot('US Federal Holidays')).toHaveStyle({ background: '#f59e0b' })
     expect(getRowDot('Team Public Calendar')).toHaveStyle({ background: '#10b981' })
-
-    const googleChip = view.container.querySelector('.calendar-chip[data-subscription-id="preset-us-holidays"]')
-    expect(googleChip).not.toBeNull()
-    expect(googleChip?.getAttribute('style')).toContain('#f59e0b')
   }, 15000)
 
   it('uses eye visibility toggles in subscription rows', async () => {
@@ -875,7 +871,6 @@ describe('CalendarPage', () => {
     const scoped = within(view.container)
 
     await user.click(scoped.getByRole('button', { name: 'Add subscription' }))
-    await user.click(screen.getByRole('button', { name: 'ICS / webcal' }))
     await user.type(screen.getByLabelText('Name'), 'Flow test calendar')
     await user.type(screen.getByLabelText('ICS URL'), 'https://example.com/flow.ics')
     await user.click(screen.getByRole('button', { name: 'Add ICS subscription' }))

@@ -1,4 +1,7 @@
 import type { CalendarEvent } from './calendar.model'
+import { appIntlLocale } from '../../shared/i18n/format'
+import { fetchApi } from '../../shared/apiBase'
+import { getAuth } from '../../store/auth'
 
 const DAY_MS = 86_400_000
 const RECURRENCE_PAST_DAYS = 365
@@ -41,7 +44,7 @@ const toDateKey = (date: Date) => {
 }
 
 const toTimeLabel = (date: Date) =>
-  date.toLocaleTimeString(undefined, {
+  date.toLocaleTimeString(appIntlLocale(), {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
@@ -137,41 +140,60 @@ export const parseIcsEvents = async (icsText: string, subscriptionId: string): P
 
 const readBody = async (response: Response) => response.text()
 
-const buildProxyUrls = (url: string) => {
-  const encoded = encodeURIComponent(url)
-  const nonProtocol = url.replace(/^https?:\/\//, '')
-  return [
-    `https://api.allorigins.win/raw?url=${encoded}`,
-    `https://r.jina.ai/http://${nonProtocol}`,
-  ]
+/**
+ * Most calendar hosts send no CORS headers, so a feed the browser can't read directly is
+ * fetched by our own API (focus-go-api /calendar/ics). A private calendar link never goes
+ * to a third-party proxy. The built-in presets work signed out; other feeds need a session.
+ */
+export const fetchIcsViaApi = (url: string, signal?: AbortSignal) => {
+  const accessToken = getAuth()?.accessToken
+  return fetchApi(`/calendar/ics?url=${encodeURIComponent(url)}`, {
+    signal,
+    headers: typeof accessToken === 'string' ? { Authorization: `Bearer ${accessToken}` } : undefined,
+  })
 }
 
-const fetchTextFrom = async (url: string, fetchImpl: typeof fetch) => {
-  const response = await fetchImpl(url)
-  if (!response.ok) {
-    throw new Error(`Request failed: ${response.status}`)
+// A blocked host (calendar.google.com from mainland China) otherwise hangs for minutes
+// per candidate before the next fallback is tried.
+const FETCH_TIMEOUT_MS = 10_000
+
+const fetchTextFrom = async (url: string, request: (url: string, signal?: AbortSignal) => Promise<Response>) => {
+  const controller = typeof AbortController === 'undefined' ? null : new AbortController()
+  const timer = controller ? setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS) : null
+  try {
+    const response = await request(url, controller?.signal)
+    if (!response.ok) {
+      throw new Error(`Request failed: ${response.status}`)
+    }
+    return await readBody(response)
+  } finally {
+    if (timer) clearTimeout(timer)
   }
-  return readBody(response)
 }
 
 export const fetchIcsEventsWithFallback = async (
   url: string,
   subscriptionId: string,
-  fetchImpl: typeof fetch = fetch
+  fetchImpl: typeof fetch = fetch,
+  viaApi: (url: string, signal?: AbortSignal) => Promise<Response> = fetchIcsViaApi,
 ): Promise<CalendarEvent[]> => {
-  const candidates = [url, ...buildProxyUrls(url)]
+  const feedUrl = url.trim().replace(/^webcals?:\/\//i, 'https://')
+  const candidates: Array<{ label: string; request: (url: string, signal?: AbortSignal) => Promise<Response> }> = [
+    { label: 'direct', request: (target, signal) => fetchImpl(target, signal ? { signal } : undefined) },
+    { label: 'api', request: viaApi },
+  ]
   const failures: string[] = []
 
   for (const candidate of candidates) {
     try {
-      const text = await fetchTextFrom(candidate, fetchImpl)
+      const text = await fetchTextFrom(feedUrl, candidate.request)
       const events = await parseIcsEvents(text, subscriptionId)
       if (events.length === 0) {
         throw new Error('No events found in ICS feed')
       }
       return events
     } catch (error) {
-      failures.push(`${candidate}: ${error instanceof Error ? error.message : String(error)}`)
+      failures.push(`${candidate.label}: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
