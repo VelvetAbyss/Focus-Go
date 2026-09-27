@@ -23,7 +23,11 @@ import { usePremiumGate } from '../../premium/PremiumProvider'
 import BrandLoader from '../../../shared/ui/loading/BrandLoader'
 import { createId } from '../../../shared/utils/ids'
 import { useVisibleInterval } from '../../../shared/hooks/usePageActivity'
+import { createUnsavedEditStore } from '../../../shared/utils/unsavedEdit'
+import { useOpenRequest } from '../../../shared/navigation/openRequest'
 import '../notes.css'
+
+const unsavedNoteEdit = createUnsavedEditStore<Partial<NoteItem>>('focusgo.notes.unsavedEdit')
 
 const DEFAULT_APPEARANCE: NoteAppearanceSettings = {
   id: 'note_appearance',
@@ -100,7 +104,7 @@ const sortNotes = (notes: NoteItem[], sortBy: NoteSortOption) => {
   const next = [...notes]
   next.sort((left, right) => {
     if (sortBy === 'created') return right.createdAt - left.createdAt
-    if (sortBy === 'title') return (left.title.trim() || 'Untitled').localeCompare(right.title.trim() || 'Untitled')
+    if (sortBy === 'title') return left.title.trim().localeCompare(right.title.trim())
     return right.updatedAt - left.updatedAt
   })
   return next
@@ -131,6 +135,8 @@ export default function NotePage() {
   const [linkedTaskTitles, setLinkedTaskTitles] = useState<Map<string, string>>(new Map())
   const [appearance, setAppearance] = useState<NoteAppearanceSettings>(DEFAULT_APPEARANCE)
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
+  // The note that was just created: its editor takes focus so typing starts right away.
+  const [focusNoteId, setFocusNoteId] = useState<string | null>(null)
   const [activeCollection, setActiveCollection] = useState<NoteSystemCollection>('notes')
   const [activeTagId, setActiveTagId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
@@ -153,6 +159,7 @@ export default function NotePage() {
   }
   const pendingSaveRef = useRef<{ id: string; patch: Partial<NoteItem> } | null>(null)
   const saveTimerRef = useRef<number | null>(null)
+  const pageHidingRef = useRef(false)
   const sidebarScrollRef = useRef<HTMLDivElement | null>(null)
   const browserScrollRef = useRef<HTMLDivElement | null>(null)
   const editorSurfaceRef = useRef<HTMLDivElement | null>(null)
@@ -177,6 +184,12 @@ export default function NotePage() {
 
   const refresh = useCallback(async () => {
     try {
+      // Replay an edit that was stashed while the page was closing (see unsavedEdit).
+      const unsaved = unsavedNoteEdit.take()
+      if (unsaved) {
+        const target = (await notesRepo.list()).find((note) => note.id === unsaved.id)
+        if (target && target.updatedAt <= unsaved.at) await notesRepo.update(unsaved.id, unsaved.patch)
+      }
       const [activeNotes, trashedNotes, storedTags, storedAppearance, projects, taskNoteLinks, tasks] = await Promise.all([
         notesRepo.list(),
         notesRepo.listTrash(),
@@ -274,7 +287,11 @@ export default function NotePage() {
       window.clearTimeout(saveTimerRef.current)
       saveTimerRef.current = null
     }
+    // The page may be unloading: keep a synchronous copy until the async write lands.
+    const stashedAt = pageHidingRef.current ? Date.now() : null
+    if (stashedAt !== null) unsavedNoteEdit.stash({ id: pending.id, patch: pending.patch, at: stashedAt })
     const updated = await notesRepo.update(pending.id, pending.patch)
+    if (stashedAt !== null) unsavedNoteEdit.clear(stashedAt)
     if (updated) {
       setNotes((current) => current.map((note) => (note.id === updated.id ? updated : note)))
       setTrash((current) => current.map((note) => (note.id === updated.id ? updated : note)))
@@ -282,6 +299,42 @@ export default function NotePage() {
   }
 
   useSyncDataRefresh(refresh, ['notes', 'noteTags', 'noteAppearance'])
+
+  // ⌘K search → "open this note": show it in the full list, whatever filter was active.
+  useOpenRequest('note', !isInitialLoading, (id) => {
+    if (!notes.some((note) => note.id === id)) return
+    setActiveCollection('notes')
+    setActiveTagId(null)
+    setSearch('')
+    setSelectedNoteId(id)
+  })
+
+  // A reload or quit inside the save debounce would drop the last edits. While the page
+  // is hiding, saves skip the debounce; the editor hands over its own pending keystrokes
+  // on the same events, in whichever order the listeners run.
+  const flushPendingSaveRef = useRef(flushPendingSave)
+  flushPendingSaveRef.current = flushPendingSave
+  useEffect(() => {
+    const onHide = () => {
+      pageHidingRef.current = true
+      void flushPendingSaveRef.current()
+    }
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') onHide()
+      else pageHidingRef.current = false
+    }
+    const onShow = () => {
+      pageHidingRef.current = false
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('pagehide', onHide)
+    window.addEventListener('pageshow', onShow)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('pagehide', onHide)
+      window.removeEventListener('pageshow', onShow)
+    }
+  }, [])
 
   // Re-run refresh once the first sync cycle finishes ('syncing' → 'idle').
   // At that point hasSyncedOnceRef is true, so refresh will create defaults
@@ -349,9 +402,9 @@ export default function NotePage() {
       ...activeNote,
       backlinks: notes
         .filter((candidate) => candidate.id !== activeNote.id && candidate.contentMd.toLowerCase().includes(title))
-        .map((candidate) => ({ noteId: candidate.id, noteTitle: candidate.title.trim() || 'Untitled' })),
+        .map((candidate) => ({ noteId: candidate.id, noteTitle: candidate.title.trim() || t('notes.trash.untitled') })),
     }
-  }, [activeNote, notes, openPanel])
+  }, [activeNote, notes, openPanel, t])
 
   const noteCounts = useMemo(
     () => {
@@ -380,6 +433,10 @@ export default function NotePage() {
 
   const scheduleSave = (id: string, patch: Partial<NoteItem>) => {
     pendingSaveRef.current = { id, patch }
+    if (pageHidingRef.current) {
+      void flushPendingSave()
+      return
+    }
     if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current)
     saveTimerRef.current = window.setTimeout(() => {
       void flushPendingSave()
@@ -388,15 +445,32 @@ export default function NotePage() {
 
   const handleCreate = async () => {
     await flushPendingSave()
+    const activeTagName = activeTagId ? tagNameById.get(activeTagId) : undefined
+    // Reuse a blank note instead of stacking up empty "untitled" cards.
+    const blank = notes.find(
+      (note) =>
+        !note.title.trim() &&
+        !note.contentMd.trim() &&
+        (activeTagName ? note.tags.includes(activeTagName) : note.tags.length === 0) &&
+        // The open note may hold keystrokes the editor hasn't handed over yet.
+        (note.id !== selectedNoteId || !editorSurfaceRef.current?.textContent?.trim()),
+    )
+    if (blank) {
+      setActiveCollection('notes')
+      setSelectedNoteId(blank.id)
+      setFocusNoteId(blank.id)
+      setSearch('')
+      return
+    }
     if (!canUse('notes.max-count', { noteCount: notes.length + 1 }).allowed) {
       openUpgradeModal('limit-reached', 'notes.max-count')
       return
     }
-    const activeTagName = activeTagId ? tagNameById.get(activeTagId) : undefined
     const created = await notesRepo.create(activeTagName ? { tags: [activeTagName] } : undefined)
     setNotes((current) => [created, ...current])
     setActiveCollection('notes')
     setSelectedNoteId(created.id)
+    setFocusNoteId(created.id)
     setSearch('')
   }
 
@@ -836,7 +910,10 @@ export default function NotePage() {
   const handleExportMarkdown = async () => {
     await flushPendingSave()
     if (!activeNote) return
-    const blob = new Blob([`# ${activeNote.title.trim() || 'Untitled'}\n\n${activeNote.contentMd}`], { type: 'text/markdown;charset=utf-8' })
+    // contentMd already opens with the title heading; only add one when it doesn't.
+    const title = activeNote.title.trim() || t('notes.trash.untitled')
+    const body = /^#{1,6}\s/.test(activeNote.contentMd.trimStart()) ? activeNote.contentMd : `# ${title}\n\n${activeNote.contentMd}`
+    const blob = new Blob([body], { type: 'text/markdown;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
@@ -962,6 +1039,7 @@ export default function NotePage() {
                       onImport={() => setOpenPanel((current) => (current === 'import' ? null : 'import'))}
                       onExport={() => setOpenPanel((current) => (current === 'export' ? null : 'export'))}
                       onChange={handleUpdateNote}
+                      autoFocus={focusNoteId === activeNote.id}
                     />
                   ) : (
                     <div className="note-page__loading" data-testid="note-editor-loader">
@@ -983,7 +1061,7 @@ export default function NotePage() {
                   <AppearanceModal open={openPanel === 'appearance'} settings={appearance} onClose={() => setOpenPanel(null)} onUpdate={handleUpdateAppearance} />
                   <ExportModal
                     open={openPanel === 'export'}
-                    noteTitle={activeNote?.title.trim() || 'Untitled'}
+                    noteTitle={activeNote?.title.trim() || t('notes.trash.untitled')}
                     onClose={() => setOpenPanel(null)}
                     onExportMarkdown={handleExportMarkdown}
                     onExportPdf={handleExportPdf}

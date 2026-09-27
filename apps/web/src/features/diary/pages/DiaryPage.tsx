@@ -11,7 +11,14 @@ import type { DiaryEditorValue } from '../components/DiaryEditor'
 import { ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { readDiaryFont } from '../../../shared/prefs/preferences'
+import ActiveIndicator from '../../../shared/motion/ActiveIndicator'
+import { SELECTED_TAB } from '../../../shared/motion/indicatorSelectors'
+import { markdownToPreview } from '../../../shared/utils/markdownPreview'
+import { createUnsavedEditStore } from '../../../shared/utils/unsavedEdit'
+import { useOpenRequest } from '../../../shared/navigation/openRequest'
 import './diary-page.css'
+
+const unsavedDiaryEdit = createUnsavedEditStore<DiaryEditorValue>('focusgo.diary.unsavedEdit')
 
 type ViewMode = 'day' | 'week' | 'month'
 
@@ -23,9 +30,10 @@ function addDays(dateKey: string, n: number): string {
   return toDateKey(d)
 }
 
+// Monday-first, like the calendar, the date picker and the weekly recap.
 function startOfWeek(dateKey: string): string {
   const d = new Date(`${dateKey}T00:00:00`)
-  const day = d.getDay()
+  const day = (d.getDay() + 6) % 7
   d.setDate(d.getDate() - day)
   return toDateKey(d)
 }
@@ -156,8 +164,8 @@ function getLocalizedWeatherLabel(code: number, fallback: string, locale: 'en' |
 // ── component ──────────────────────────────────────────────────────────────
 
 const DiaryPage = () => {
-  const { t } = useI18n()
-  const locale = t('diary.title') === '日记' ? 'zh' : 'en'
+  const { t, language } = useI18n()
+  const locale = language
   const today = toDateKey()
   const [view, setView] = useState<ViewMode>('day')
   const diaryFont = readDiaryFont()
@@ -165,15 +173,65 @@ const DiaryPage = () => {
 const [selectedDateKey, setSelectedDateKey] = useState(today)
   const [entries, setEntries] = useState<DiaryEntry[]>([])
   const [allEntries, setAllEntries] = useState<DiaryEntry[]>([])
+  const allEntriesRef = useRef<DiaryEntry[]>([])
+  allEntriesRef.current = allEntries
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [editorValue, setEditorValue] = useState<DiaryEditorValue>({ contentMd: '', contentJson: null })
   const [, setSaving] = useState(false)
   const pendingSaveRef = useRef<DiaryEditorValue | null>(null)
   const selectedIdRef = useRef<string | null>(null)
   const selectedEntryRef = useRef<DiaryEntry | null>(null)
+  // A freshly created entry takes the caret so writing starts without an extra click.
+  const [focusEntryId, setFocusEntryId] = useState<string | null>(null)
+  const [entriesReady, setEntriesReady] = useState(false)
+
+  // Saves are async; a reload or quit can land before the write does. While the page is
+  // hiding, the in-flight edit is also stashed synchronously (replayed on next load). The
+  // editor flushes on the same events, so both listener orders are covered.
+  const pageHidingRef = useRef(false)
+  const inflightWriteRef = useRef<{ id: string; patch: DiaryEditorValue; at: number } | null>(null)
+  useEffect(() => {
+    const onHide = () => {
+      pageHidingRef.current = true
+      if (inflightWriteRef.current) unsavedDiaryEdit.stash(inflightWriteRef.current)
+    }
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') onHide()
+      else pageHidingRef.current = false
+    }
+    const onShow = () => {
+      pageHidingRef.current = false
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('pagehide', onHide)
+    window.addEventListener('pageshow', onShow)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('pagehide', onHide)
+      window.removeEventListener('pageshow', onShow)
+    }
+  }, [])
 
   // Keep refs in sync
   useEffect(() => { selectedIdRef.current = selectedId }, [selectedId])
+
+  // "New entry" persists a row immediately so the editor has something to
+  // save into. If the user leaves it without writing anything, drop it —
+  // otherwise blank rows pile up in the list and inflate the stats.
+  const blankDraftIdsRef = useRef<Set<string>>(new Set())
+  const previousSelectedIdRef = useRef<string | null>(null)
+  useEffect(() => {
+    const previousId = previousSelectedIdRef.current
+    previousSelectedIdRef.current = selectedId
+    if (!previousId || previousId === selectedId || !blankDraftIdsRef.current.has(previousId)) return
+    blankDraftIdsRef.current.delete(previousId)
+    const latest = allEntriesRef.current.find((entry) => entry.id === previousId)
+    if (!latest || latest.contentMd.trim()) return
+    void diaryRepo.softDeleteById(previousId).then(() => {
+      setEntries((prev) => prev.filter((entry) => entry.id !== previousId))
+      setAllEntries((prev) => prev.filter((entry) => entry.id !== previousId))
+    })
+  }, [selectedId])
 
   // Load range entries for timeline
   useEffect(() => {
@@ -185,7 +243,17 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
 
   // Load all active entries once for stats
   useEffect(() => {
-    diaryRepo.listActive().then(setAllEntries)
+    void (async () => {
+      const unsaved = unsavedDiaryEdit.take()
+      if (unsaved) {
+        const target = (await diaryRepo.listActive()).find((entry) => entry.id === unsaved.id)
+        if (target && target.updatedAt <= unsaved.at) {
+          await diaryRepo.update({ ...target, contentMd: unsaved.patch.contentMd, contentJson: unsaved.patch.contentJson ?? null })
+        }
+      }
+      setAllEntries(await diaryRepo.listActive())
+      setEntriesReady(true)
+    })()
   }, [])
 
   // Flush pending save when selected entry or view changes
@@ -211,14 +279,28 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
     setEditorValue({ contentMd: entry.contentMd, contentJson: entry.contentJson ?? null })
   }, [flushSave])
 
+  // ⌘K search → "open this entry": jump to its day and select it.
+  useOpenRequest('diary', entriesReady, (id) => {
+    const entry = allEntries.find((item) => item.id === id)
+    if (!entry) return
+    setView('day')
+    setSelectedDateKey(entry.dateKey)
+    void selectEntry(entry)
+  })
+
   const handleEditorChange = useCallback((next: DiaryEditorValue) => {
     pendingSaveRef.current = next
     setEditorValue(next)
     const entry = selectedEntryRef.current
     if (!entry) return
     setSaving(true)
+    const write = { id: entry.id, patch: next, at: Date.now() }
+    inflightWriteRef.current = write
+    if (pageHidingRef.current) unsavedDiaryEdit.stash(write)
     diaryRepo.update({ ...entry, contentMd: next.contentMd, contentJson: next.contentJson ?? null })
       .then((updated) => {
+        if (inflightWriteRef.current === write) inflightWriteRef.current = null
+        unsavedDiaryEdit.clear(write.at)
         selectedEntryRef.current = updated
         pendingSaveRef.current = null
         setEntries((prev) => prev.map((e) => e.id === updated.id ? updated : e))
@@ -258,8 +340,10 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
     })
     setEntries((prev) => [newEntry, ...prev])
     setAllEntries((prev) => [newEntry, ...prev])
+    blankDraftIdsRef.current.add(newEntry.id)
     selectedEntryRef.current = newEntry
     setSelectedId(newEntry.id)
+    setFocusEntryId(newEntry.id)
     setEditorValue({ contentMd: '', contentJson: null })
   }, [selectedDateKey, flushSave])
 
@@ -278,9 +362,23 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
   // Flush on unmount
   useEffect(() => () => { void flushSave() }, [flushSave])
 
+  // Leaving the page with a blank "new entry" still open: drop it like switching away does.
+  // Checked a moment later against storage, after the editor's own unmount flush has landed.
+  useEffect(() => () => {
+    const id = selectedIdRef.current
+    if (!id || !blankDraftIdsRef.current.has(id)) return
+    window.setTimeout(() => {
+      void diaryRepo.listActive().then((rows) => {
+        const entry = rows.find((row) => row.id === id)
+        if (entry && !entry.contentMd.trim()) void diaryRepo.softDeleteById(id)
+      })
+    }, 1000)
+  }, [])
+
   // Stats
   const stats = useMemo(() => {
-    const active = allEntries.filter((e) => !e.deletedAt)
+    // A blank entry (just created, nothing written yet) is not a diary day.
+    const active = allEntries.filter((e) => !e.deletedAt && e.contentMd.trim())
     const weekStart = startOfWeek(today)
     const monthStart = startOfMonth(today)
     return {
@@ -312,32 +410,30 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
   const diaryMoment = useMemo(() => getDiaryMoment(), [])
 
   const topStats = [
-    { label: t('diary.streak'), value: `${stats.streak}d` },
+    { label: t('diary.streak'), value: language === 'zh' ? `${stats.streak} 天` : `${stats.streak}d` },
     { label: t('diary.entriesLabel'), value: `${stats.total}` },
     { label: t('diary.thisWeek'), value: `${stats.thisWeek}` },
   ]
 
   return (
-    <div className="diary-page flex h-full flex-col overflow-hidden bg-[color:var(--app-bg,var(--bg-elevated))]" data-diary-font={diaryFont}>
+    <div className="diary-page flex h-full flex-col overflow-hidden" data-diary-font={diaryFont}>
       <div className="diary-page__atmosphere" aria-hidden="true" />
       {/* Header */}
-      <header className="diary-page__header z-10 shrink-0 bg-background/72 px-4 py-5 backdrop-blur md:px-6 md:py-6">
+      <header className="diary-page__header z-10 shrink-0 bg-transparent px-4 py-5 md:px-6 md:py-6">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:gap-8">
             <div className="space-y-2 pl-2 md:pl-4">
-              <h2 className="diary-page__title text-xl font-semibold text-foreground">{t('diary.title')}</h2>
+              <h2 className="diary-page__title text-foreground">{t('diary.title')}</h2>
             </div>
-            <div className="flex w-fit gap-1 rounded-2xl bg-muted/50 p-1">
+            <div className="diary-page__view-switch" role="tablist" aria-label={t('diary.title')}>
+                <ActiveIndicator selector={SELECTED_TAB} />
                 {(['day', 'week', 'month'] as ViewMode[]).map((v) => (
               <button
                 key={v}
                 type="button"
-                className={cn(
-                    'rounded-xl px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] transition-colors',
-                  view === v
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:bg-background/70',
-                )}
+                role="tab"
+                aria-selected={view === v}
+                className="diary-page__view-tab"
                 onClick={() => {
                   void flushSave()
                   selectedEntryRef.current = null
@@ -354,8 +450,8 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between xl:justify-end">
             <div className="grid grid-cols-3 gap-2 rounded-2xl bg-background/75 p-2 sm:min-w-[18rem]">
               {topStats.map((item) => (
-                <div key={item.label} className="rounded-xl bg-[color:rgba(245,243,240,0.7)] px-3 py-2">
-                  <p className="diary-page__microcopy text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{item.label}</p>
+                <div key={item.label} className="rounded-xl bg-paper-sunken px-3 py-2">
+                  <p className="diary-page__microcopy text-meta font-semibold uppercase tracking-[var(--tracking-caps)] text-muted-foreground">{item.label}</p>
                   <p className="diary-page__numeric mt-1 text-sm font-semibold leading-none text-[color:var(--text-primary)]">{item.value}</p>
                 </div>
               ))}
@@ -363,10 +459,10 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
             <div className="flex items-center justify-end">
               <button
                 type="button"
-                className="flex items-center justify-center gap-2 rounded-full bg-[color:var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[color:var(--bg-elevated)] shadow-sm transition-all hover:opacity-95 active:scale-95"
+                className="diary-page__new"
                 onClick={handleNewEntry}
               >
-                <Plus size={16} />
+                <Plus size={15} />
                 {t('diary.newEntry')}
               </button>
             </div>
@@ -377,7 +473,7 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
       {/* Body */}
       <div className="flex flex-1 flex-col overflow-hidden xl:flex-row">
         {/* Left: Timeline */}
-        <section className="diary-page__rail flex h-[22rem] shrink-0 flex-col overflow-hidden bg-background/52 xl:h-auto xl:w-[24rem]">
+        <section className="diary-page__rail flex h-[22rem] shrink-0 flex-col overflow-hidden bg-transparent xl:h-auto xl:w-[24rem]">
           {/* Date nav */}
           <div className="shrink-0 px-4 py-4 md:px-5">
             <div className="flex items-center gap-2">
@@ -413,7 +509,7 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
                 <p className="text-sm">{t('diary.noEntriesPeriod')}</p>
                 <button
                   type="button"
-                  className="diary-page__period-empty-action flex items-center gap-2 rounded-full bg-background px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted"
+                  className="diary-page__period-empty-action diary-page__secondary-cta"
                   onClick={handleNewEntry}
                 >
                   <Plus size={14} />
@@ -435,11 +531,7 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
                       locale,
                     )
                     : ''
-                  const preview = entry.contentMd
-                    .replace(/^#{1,6}\s+/gm, '')
-                    .replace(/[*_`~>[()\]]/g, '')
-                    .trim()
-                    .slice(0, 100)
+                  const preview = markdownToPreview(entry.contentMd).slice(0, 100)
                   return (
                     <div key={entry.id} className="group flex gap-3">
                       {/* Timeline indicator */}
@@ -459,10 +551,10 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
 
                       {/* Card */}
                       <div className={cn(
-                        'relative mb-3 flex-1 rounded-[1.25rem] border transition-all',
+                        'relative mb-3 flex-1 rounded-[var(--radius-lg)] border transition-all',
                         isSelected
-                          ? 'diary-page__entry-card diary-page__entry-card--active border-[color:var(--text-primary)]/10 bg-[color:rgba(237,232,225,0.96)] shadow-[var(--shadow-card)]'
-                          : 'diary-page__entry-card border-transparent bg-[color:rgba(241,237,231,0.72)] shadow-[var(--shadow-card)] hover:bg-[color:rgba(238,233,226,0.92)] hover:shadow-[var(--shadow-card)]',
+                          ? 'diary-page__entry-card diary-page__entry-card--active border-rule-strong bg-paper-raised shadow-[var(--elev-1)]'
+                          : 'diary-page__entry-card border-transparent bg-paper-sunken shadow-none hover:bg-paper-raised hover:shadow-[var(--elev-1)]',
                       )}>
                         <button
                           type="button"
@@ -471,16 +563,16 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
                         >
                           <div className="mb-2 flex items-center gap-2">
                             <span className={cn(
-                              'diary-page__microcopy diary-page__numeric text-[11px] font-semibold uppercase tracking-[0.16em]',
+                              'diary-page__microcopy diary-page__numeric text-meta font-semibold uppercase tracking-[var(--tracking-caps)]',
                               isSelected ? 'text-[color:var(--text-primary)]' : 'text-muted-foreground',
                             )}>
                               {formatTime(entry.entryAt)}
                             </span>
                             {view !== 'day' && (
-                              <span className="diary-page__microcopy diary-page__numeric text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">{entry.dateKey}</span>
+                              <span className="diary-page__microcopy diary-page__numeric text-meta font-semibold uppercase tracking-[var(--tracking-caps)] text-muted-foreground/70">{entry.dateKey}</span>
                             )}
                             {entry.weatherSnapshot && (
-                              <span className="diary-page__timeline-weather max-w-[140px] truncate text-[10px] text-muted-foreground">
+                              <span className="diary-page__timeline-weather max-w-[140px] truncate text-meta text-muted-foreground">
                                 {weatherIconMeta && (
                                   <span className={`weather-icon ${weatherIconMeta.className}`} aria-hidden="true">
                                     <weatherIconMeta.Icon size={12} strokeWidth={2} />
@@ -503,9 +595,9 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
                               {preview}
                             </p>
                           ) : (
-                            <p className="diary-page__timeline-preview text-sm italic text-muted-foreground/50">{t('diary.emptyEntry')}</p>
+                            <p className="diary-page__timeline-preview text-sm italic text-muted-foreground/75">{t('diary.emptyEntry')}</p>
                           )}
-                          <p className="diary-page__microcopy diary-page__numeric mt-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground/50">{wordCount}{t('diary.wordsShort')}</p>
+                          <p className="diary-page__microcopy diary-page__numeric mt-2 text-meta uppercase tracking-[var(--tracking-caps)] text-muted-foreground/80">{wordCount}{t('diary.wordsShort')}</p>
                         </button>
                         <button
                           type="button"
@@ -526,11 +618,11 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
         </section>
 
         {/* Right: Editor */}
-        <main className="diary-page__editor-pane flex-1 overflow-hidden bg-[color:rgba(245,243,240,0.4)]">
+        <main className="diary-page__editor-pane flex-1 overflow-hidden">
           {selectedEntry ? (
             <>
               {/* Metadata bar */}
-              <div className="diary-page__meta-bar shrink-0 bg-background/50 py-4">
+              <div className="diary-page__meta-bar shrink-0 bg-transparent py-4">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                   <div className="flex flex-wrap items-start gap-3 md:gap-4">
                     <div className="diary-page__meta-hero rounded-2xl bg-background/72 px-4 py-3">
@@ -573,7 +665,7 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
                     </div>
                   </div>
                   <div className="flex items-center justify-between gap-3 lg:justify-end">
-                    <div className="diary-page__word-count diary-page__microcopy diary-page__numeric text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                    <div className="diary-page__word-count diary-page__microcopy diary-page__numeric text-xs uppercase tracking-[var(--tracking-caps)] text-muted-foreground">
                       {calcWordCount(editorValue.contentMd)} {t('diary.words')}
                     </div>
                     <button
@@ -593,22 +685,23 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
                 value={editorValue}
                 placeholder={t('diary.pagePlaceholder')}
                 onChange={handleEditorChange}
+                autoFocusKey={selectedId === focusEntryId ? focusEntryId : null}
               />
             </>
           ) : (
             <div className="diary-page__empty-state flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center text-muted-foreground">
               <div className="space-y-2">
-                <p className="diary-page__microcopy text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">{t('diary.workspace')}</p>
+                <p className="diary-page__microcopy text-meta font-semibold uppercase tracking-[var(--tracking-caps)] text-muted-foreground">{t('diary.workspace')}</p>
                 <p className="diary-page__empty-copy text-sm">{t('diary.selectOrCreate')}</p>
                 <p className="diary-page__empty-whisper text-sm text-muted-foreground/80">{t(diaryMoment.noteKey)}</p>
               </div>
               <button
                 type="button"
-                className="flex items-center gap-2 rounded-full bg-background px-4 py-2 text-sm text-foreground transition-colors hover:bg-muted"
+                className="diary-page__secondary-cta"
                 onClick={handleNewEntry}
               >
                 <Plus size={14} />
-                {t('diary.writeFirstEntry')}
+                {entries.length === 0 ? t('diary.writeFirstEntry') : t('diary.newEntry')}
               </button>
             </div>
           )}

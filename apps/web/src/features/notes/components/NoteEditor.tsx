@@ -73,6 +73,8 @@ type NoteEditorProps = {
   onChange: (next: NoteEditorValue) => void
   isFullscreen?: boolean
   surfaceRef?: RefObject<HTMLDivElement | null>
+  /** Put the caret in the document once the editor mounts (a note that was just created). */
+  autoFocus?: boolean
 }
 
 type HeadingNavItem = {
@@ -95,7 +97,8 @@ const fontFamilyMap = {
   uiSans: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif',
   humanistSans: '"Avenir Next", "Nunito", "Trebuchet MS", "Gill Sans", "Segoe UI", sans-serif',
   cnSans: '"PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", sans-serif',
-  serif: '"Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif',
+  // The app's reading serif (DESIGN.md › Serif where you write), bundled offline.
+  serif: '"Fraunces", "Noto Serif SC", "Iowan Old Style", Georgia, serif',
   cnSerif: '"Songti SC", "STSong", "Noto Serif CJK SC", "Source Han Serif SC", "SimSun", serif',
   mono: '"SF Mono", "JetBrains Mono", "Fira Code", Consolas, monospace',
 } as const
@@ -224,6 +227,7 @@ const NoteEditor = ({
   onChange,
   isFullscreen = false,
   surfaceRef,
+  autoFocus = false,
 }: NoteEditorProps) => {
   const { t } = useI18n()
   const initialDoc = useMemo(() => ensureRichDoc(value.contentJson, value.contentMd), [value.contentJson, value.contentMd])
@@ -310,6 +314,20 @@ const NoteEditor = ({
     [flushEmitChange],
   )
 
+  // Reload, tab close and app quit skip the unmount flush above: hand the last keystrokes
+  // to the page's save queue as soon as the page is being hidden.
+  useEffect(() => {
+    const onHide = () => {
+      if (document.visibilityState === 'hidden') flushEmitChange()
+    }
+    document.addEventListener('visibilitychange', onHide)
+    window.addEventListener('pagehide', flushEmitChange)
+    return () => {
+      document.removeEventListener('visibilitychange', onHide)
+      window.removeEventListener('pagehide', flushEmitChange)
+    }
+  }, [flushEmitChange])
+
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -395,6 +413,10 @@ const NoteEditor = ({
       scheduleTocRefresh()
     },
   })
+
+  useEffect(() => {
+    if (autoFocus && editor) editor.commands.focus('end')
+  }, [autoFocus, editor])
 
   useEffect(() => {
     if (!editor) return

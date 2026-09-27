@@ -90,16 +90,16 @@ export default function NoteSidebar({
     <aside
       ref={scrollContainerRef}
       className={cn(
-        'flex h-full w-[240px] min-w-[240px] flex-col overflow-y-auto overscroll-contain border-r border-[rgba(58,55,51,0.09)] bg-[#f5f3f0] scrollbar-thin scrollbar-thumb-[rgba(58,55,51,0.1)] scrollbar-track-transparent dark:border-slate-700/40 dark:bg-[#3a3733]',
+        'flex h-full w-[240px] min-w-[240px] flex-col overflow-y-auto overscroll-contain border-r border-[color-mix(in_srgb,var(--ink-1)_9%,transparent)] bg-paper-sunken scrollbar-thin scrollbar-thumb-[rgba(58,55,51,0.1)] scrollbar-track-transparent dark:border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)]',
         className,
       )}
     >
       <div className="px-5 pb-3 pt-5">
         <div className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-foreground">
-            <span className="text-[11px] font-bold tracking-tight text-background">F</span>
+            <span className="text-meta font-bold tracking-tight text-background">F</span>
           </div>
-          <span className="text-[0.9375rem] font-semibold tracking-[-0.015em] text-foreground">Focus&amp;Go</span>
+          <span className="text-body font-semibold tracking-[-0.015em] text-foreground">Focus&amp;go</span>
         </div>
       </div>
 
@@ -137,7 +137,7 @@ export default function NoteSidebar({
           <SectionTitle className="mb-0 px-0">{t('modules.note.tagTitle')}</SectionTitle>
           <button
             type="button"
-            className="rounded p-1 text-[#8d867f] transition-colors hover:bg-[#f0eeeb] dark:text-slate-300 dark:hover:bg-slate-700/30"
+            className="rounded p-1 text-[var(--text-tertiary)] transition-colors hover:bg-paper-sunken dark:text-[color-mix(in_srgb,var(--text-primary)_82%,transparent)] dark:hover:bg-[color-mix(in_srgb,var(--text-primary)_10%,transparent)]"
             title={t('notes.newTag')}
             onClick={() => {
               const parentId = activeTagId && tags.some((tag) => tag.id === activeTagId) ? activeTagId : null
@@ -181,7 +181,7 @@ export default function NoteSidebar({
 }
 
 function SectionTitle({ children, className }: { children: string; className?: string }) {
-  return <div className={cn('mb-1.5 px-2 text-[0.625rem] font-semibold uppercase tracking-[0.18em] text-[#8d867f]/85 dark:text-slate-400', className)}>{children}</div>
+  return <div className={cn('mb-1.5 px-2 text-meta font-semibold uppercase tracking-[var(--tracking-caps)] text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)]', className)}>{children}</div>
 }
 
 function CollectionButton({
@@ -204,18 +204,18 @@ function CollectionButton({
       className={cn(
         'relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-left transition-[background-color,color] duration-150',
         active
-          ? 'bg-[rgba(30,28,24,0.06)] text-[#2e2b27] dark:bg-slate-700/40 dark:text-slate-100'
-          : 'text-[#66615b] hover:bg-[rgba(30,28,24,0.04)] dark:text-slate-300 dark:hover:bg-slate-700/25',
+          ? 'bg-[color-mix(in_srgb,var(--ink-1)_6%,transparent)] text-ink-1 dark:bg-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] dark:text-[var(--text-primary)]'
+          : 'text-ink-2 hover:bg-[color-mix(in_srgb,var(--ink-1)_4%,transparent)] dark:text-[color-mix(in_srgb,var(--text-primary)_82%,transparent)] dark:hover:bg-[color-mix(in_srgb,var(--text-primary)_10%,transparent)]',
       )}
     >
       {active ? (
-        <span className="absolute left-[3px] top-1/2 h-3.5 w-[3px] -translate-y-1/2 rounded-full bg-[rgba(46,43,39,0.38)] dark:bg-slate-300/40" />
+        <span className="absolute left-[3px] top-1/2 h-3.5 w-[3px] -translate-y-1/2 rounded-full bg-[var(--accent)]" />
       ) : null}
-      <Icon size={15} strokeWidth={active ? 2.1 : 1.8} className={active ? 'text-[#2e2b27] dark:text-slate-100' : 'text-[#8d867f] dark:text-slate-400'} />
-      <span className="flex-1 text-[0.8125rem] tracking-[-0.005em]" style={{ fontWeight: active ? 530 : 400 }}>
+      <Icon size={15} strokeWidth={active ? 2.1 : 1.8} className={active ? 'text-ink-1 dark:text-[var(--text-primary)]' : 'text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)]'} />
+      <span className="flex-1 text-ui tracking-[-0.005em]" style={{ fontWeight: active ? 530 : 400 }}>
         {label}
       </span>
-      <span className="text-[0.625rem] tabular-nums text-[#8d867f]/80 dark:text-slate-400">{count}</span>
+      <span className="text-meta tabular-nums text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)]">{count}</span>
     </button>
   )
 }
@@ -270,9 +270,9 @@ function TagRow({
       <div
         className={cn(
           'group relative flex cursor-pointer items-center gap-1.5 rounded-lg py-[6px] transition-[background-color,color,transform,box-shadow,opacity] duration-150 ease-out',
-          isActive ? 'bg-[rgba(30,28,24,0.06)] text-[#2e2b27] dark:bg-slate-700/40 dark:text-slate-100' : 'text-[#66615b] hover:bg-[rgba(30,28,24,0.04)] dark:hover:bg-slate-700/25 dark:text-slate-300',
-          dragPlacement === 'inside' && 'ring-1 ring-[#3a3733]/25 bg-[#f0eeeb]/70 dark:ring-slate-400/30 dark:bg-slate-700/40',
-          isNoteHover && 'ring-1 ring-[#3a3733]/30 bg-[#f0eeeb]/70 dark:ring-slate-400/35 dark:bg-slate-700/40',
+          isActive ? 'bg-[color-mix(in_srgb,var(--ink-1)_6%,transparent)] text-ink-1 dark:bg-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] dark:text-[var(--text-primary)]' : 'text-ink-2 hover:bg-[color-mix(in_srgb,var(--ink-1)_4%,transparent)] dark:hover:bg-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] dark:text-[color-mix(in_srgb,var(--text-primary)_82%,transparent)]',
+          dragPlacement === 'inside' && 'ring-1 ring-rule-strong bg-paper-sunken',
+          isNoteHover && 'ring-1 ring-rule-strong bg-paper-sunken',
         )}
         draggable={enableTagDnd}
         onDragStart={(event) => {
@@ -365,15 +365,15 @@ function TagRow({
               event.stopPropagation()
               setExpanded((current) => !current)
             }}
-            className="rounded p-0.5 hover:bg-[#3a3733]/5 dark:hover:bg-white/10"
+            className="rounded p-0.5 hover:bg-[color-mix(in_srgb,var(--ink-1)_5%,transparent)] dark:hover:bg-white/10"
           >
             {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
           </button>
         ) : (
           <div className="w-4" />
         )}
-        {isActive ? <span className="absolute left-[3px] top-1/2 h-3 w-[3px] -translate-y-1/2 rounded-full bg-[rgba(46,43,39,0.35)] dark:bg-slate-300/40" /> : null}
-        <Icon size={14} strokeWidth={isActive ? 2 : 1.75} className={isActive ? 'text-[#2e2b27] dark:text-slate-200' : 'text-[#8d867f] dark:text-slate-400'} />
+        {isActive ? <span className="absolute left-[3px] top-1/2 h-3 w-[3px] -translate-y-1/2 rounded-full bg-[var(--accent)]" /> : null}
+        <Icon size={14} strokeWidth={isActive ? 2 : 1.75} className={isActive ? 'text-ink-1 dark:text-[var(--text-primary)]' : 'text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)]'} />
         {isRenaming ? (
           <input
             autoFocus
@@ -393,11 +393,11 @@ function TagRow({
                 setIsRenaming(false)
               }
             }}
-            className="h-6 flex-1 rounded border border-[#3a3733]/20 bg-transparent px-1 text-[0.875rem] outline-none"
+            className="h-6 flex-1 rounded border border-rule-strong bg-transparent px-1 text-body outline-none"
           />
         ) : (
           <span
-            className="flex-1 truncate text-[0.8125rem] tracking-[-0.005em]"
+            className="flex-1 truncate text-ui tracking-[-0.005em]"
             style={{ fontWeight: isActive ? 520 : 400 }}
             onDoubleClick={(event) => {
               event.stopPropagation()
@@ -407,12 +407,12 @@ function TagRow({
             {tagLabel}
           </span>
         )}
-        {dragPlacement === 'before' ? <span className="pointer-events-none absolute left-2 right-2 top-0 h-[2px] rounded-full bg-[#3a3733]/45" /> : null}
-        {dragPlacement === 'after' ? <span className="pointer-events-none absolute bottom-0 left-2 right-2 h-[2px] rounded-full bg-[#3a3733]/45" /> : null}
+        {dragPlacement === 'before' ? <span className="pointer-events-none absolute left-2 right-2 top-0 h-[2px] rounded-full bg-[color-mix(in_srgb,var(--ink-1)_45%,transparent)]" /> : null}
+        {dragPlacement === 'after' ? <span className="pointer-events-none absolute bottom-0 left-2 right-2 h-[2px] rounded-full bg-[color-mix(in_srgb,var(--ink-1)_45%,transparent)]" /> : null}
         {dragPlacement === 'inside' || isNoteHover ? (
-          <span className="mr-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#3a3733] px-1 text-[10px] font-semibold leading-none text-white">+</span>
+          <span className="mr-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--cta-bg)] px-1 text-meta font-semibold leading-none text-[color:var(--cta-fg)]">+</span>
         ) : null}
-        <span className="text-[0.75rem] tabular-nums text-[#8d867f] transition-opacity group-hover:opacity-0 dark:text-slate-400">{tag.noteCount}</span>
+        <span className="text-label tabular-nums text-[var(--text-tertiary)] transition-opacity group-hover:opacity-0 dark:text-[var(--text-tertiary)]">{tag.noteCount}</span>
         <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
           <button
             type="button"
@@ -420,7 +420,7 @@ function TagRow({
               event.stopPropagation()
               onTogglePin(tag.id)
             }}
-            className="rounded p-1 hover:bg-[#3a3733]/5 dark:hover:bg-white/10"
+            className="rounded p-1 hover:bg-[color-mix(in_srgb,var(--ink-1)_5%,transparent)] dark:hover:bg-white/10"
             title={tag.pinned ? 'Unpin' : 'Pin'}
           >
             {tag.pinned ? <PinOff size={12} /> : <Pin size={12} />}

@@ -87,11 +87,11 @@ describe('DiaryPage', () => {
     })
   })
 
-  it('renders view switcher buttons', async () => {
+  it('renders the day / week / month view switcher as tabs', async () => {
     renderPage()
-    expect(screen.getByRole('button', { name: /Day/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Week/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Month/i })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: /Day/i })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('tab', { name: /Week/i })).toHaveAttribute('aria-selected', 'false')
+    expect(screen.getByRole('tab', { name: /Month/i })).toBeInTheDocument()
   })
 
   it('shows empty state when no entries', async () => {

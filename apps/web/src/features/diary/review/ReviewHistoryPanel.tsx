@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import { diaryRepo } from '../../../data/repositories/diaryRepo'
 import type { DiaryEntry } from '../../../data/models/types'
 import { extractReviewBlocks, hasReviewBlock } from './reviewDiaryBridge'
+import { DURATION } from '../../../shared/motion/tokens'
 
 type HistoryRow = {
   dateKey: string
@@ -66,7 +67,7 @@ const ReviewHistoryPanel = ({
       </div>
       <h2
         className="text-[var(--text-secondary)]"
-        style={{ fontFamily: "'Lora', 'Georgia', serif", fontSize: '1rem', fontWeight: 500 }}
+        style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 500 }}
       >
         Your reflections
       </h2>
@@ -79,7 +80,7 @@ const ReviewHistoryPanel = ({
         {header}
         <p
           className="text-[var(--text-secondary)]"
-          style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.85rem', fontWeight: 300 }}
+          style={{ fontFamily: 'var(--font-body)', fontSize: '0.85rem', fontWeight: 300 }}
         >
           Loading your review history...
         </p>
@@ -94,13 +95,13 @@ const ReviewHistoryPanel = ({
         <div className="py-10 text-center">
           <p
             className="text-[var(--text-secondary)]"
-            style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.85rem', fontWeight: 300 }}
+            style={{ fontFamily: 'var(--font-body)', fontSize: '0.85rem', fontWeight: 300 }}
           >
             Your past reflections will appear here.
           </p>
           <p
             className="mt-1 text-[var(--text-secondary)]"
-            style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.75rem', fontWeight: 300 }}
+            style={{ fontFamily: 'var(--font-body)', fontSize: '0.75rem', fontWeight: 300 }}
           >
             One day at a time.
           </p>
@@ -127,7 +128,7 @@ const ReviewHistoryPanel = ({
               key={row.entryId}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: DURATION.medium }}
             >
               <button
                 type="button"
@@ -144,7 +145,7 @@ const ReviewHistoryPanel = ({
                       <div className="mb-0.5 flex items-center gap-2">
                         <span
                           className="shrink-0 text-[var(--text-secondary)]"
-                          style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.7rem', fontWeight: 400 }}
+                          style={{ fontFamily: 'var(--font-body)', fontSize: '0.7rem', fontWeight: 400 }}
                         >
                           {dayLabel}
                         </span>
@@ -154,14 +155,14 @@ const ReviewHistoryPanel = ({
                       </div>
                       <p
                         className="truncate text-[var(--text-secondary)]"
-                        style={{ fontFamily: "'Lora', 'Georgia', serif", fontSize: '0.88rem', fontWeight: 400 }}
+                        style={{ fontFamily: 'var(--font-display)', fontSize: '0.88rem', fontWeight: 400 }}
                       >
                         {summaryLine || <span className="italic text-[var(--text-secondary)]">No summary</span>}
                       </p>
                     </div>
                     <motion.div
                       animate={{ rotate: expanded ? 180 : 0 }}
-                      transition={{ duration: 0.2 }}
+                      transition={{ duration: DURATION.base }}
                       className="mt-1 shrink-0"
                     >
                       <ChevronDown size={13} className="text-[var(--text-secondary)] transition-colors group-hover:text-[var(--text-secondary)]" />
@@ -174,7 +175,7 @@ const ReviewHistoryPanel = ({
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.25 }}
+                        transition={{ duration: DURATION.medium }}
                         className="overflow-hidden"
                       >
                         <div className="mt-2.5 space-y-2 border-t border-[var(--bg-muted)] pt-2.5">
@@ -182,7 +183,7 @@ const ReviewHistoryPanel = ({
                             <div key={`${row.entryId}-${block.submittedAt}`} className="space-y-2">
                               <p
                                 className="text-[var(--text-secondary)]"
-                                style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.7rem', fontWeight: 400 }}
+                                style={{ fontFamily: 'var(--font-body)', fontSize: '0.7rem', fontWeight: 400 }}
                               >
                                 Saved at {formatSubmittedAt(block.submittedAt)}
                               </p>
@@ -190,13 +191,13 @@ const ReviewHistoryPanel = ({
                                 <div>
                                   <span
                                     className="text-[var(--text-secondary)]"
-                                    style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.7rem', fontWeight: 400 }}
+                                    style={{ fontFamily: 'var(--font-body)', fontSize: '0.7rem', fontWeight: 400 }}
                                   >
                                     Tomorrow&apos;s focus
                                   </span>
                                   <p
                                     className="mt-0.5 text-[var(--text-secondary)]"
-                                    style={{ fontFamily: "'Lora', 'Georgia', serif", fontSize: '0.85rem' }}
+                                    style={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem' }}
                                   >
                                     {block.summary.tomorrow}
                                   </p>
@@ -206,7 +207,7 @@ const ReviewHistoryPanel = ({
                                 <div className="flex items-center gap-2">
                                   <span
                                     className="text-[var(--text-secondary)]"
-                                    style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.7rem', fontWeight: 400 }}
+                                    style={{ fontFamily: 'var(--font-body)', fontSize: '0.7rem', fontWeight: 400 }}
                                   >
                                     Focus
                                   </span>
@@ -226,14 +227,14 @@ const ReviewHistoryPanel = ({
                                 <div>
                                   <span
                                     className="text-[var(--text-secondary)]"
-                                    style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.7rem', fontWeight: 400 }}
+                                    style={{ fontFamily: 'var(--font-body)', fontSize: '0.7rem', fontWeight: 400 }}
                                   >
                                     Reflection
                                   </span>
                                   <p
                                     className="mt-0.5 text-[var(--text-secondary)]"
                                     style={{
-                                      fontFamily: "'Lora', 'Georgia', serif",
+                                      fontFamily: 'var(--font-display)',
                                       fontSize: '0.82rem',
                                       lineHeight: '1.6',
                                     }}
