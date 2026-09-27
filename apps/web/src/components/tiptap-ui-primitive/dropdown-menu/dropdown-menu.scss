@@ -32,7 +32,7 @@
   color: var(--tt-dropdown-menu-text-color);
   box-shadow: var(--tt-shadow-elevated-md);
   transform-origin: var(--radix-dropdown-menu-content-transform-origin);
-  transition-duration: 100ms;
+  transition-duration: var(--motion-duration-instant);
 }
 
 .tiptap-dropdown-menu-content[data-side="bottom"] {
@@ -49,11 +49,11 @@
 }
 
 .tiptap-dropdown-menu-content[data-state="open"] {
-  animation: dropdown-in 100ms ease forwards;
+  animation: dropdown-in var(--motion-duration-instant) var(--ease-standard) forwards;
 }
 
 .tiptap-dropdown-menu-content[data-state="closed"] {
-  animation: dropdown-out 100ms ease forwards;
+  animation: dropdown-out var(--motion-duration-instant) var(--ease-standard) forwards;
   overflow: hidden;
 }
 
@@ -73,7 +73,7 @@
   box-shadow: var(--tt-shadow-elevated-md);
   color: var(--tt-dropdown-menu-text-color);
   transform-origin: var(--radix-dropdown-menu-content-transform-origin);
-  transition-duration: 100ms;
+  transition-duration: var(--motion-duration-instant);
 }
 
 .tiptap-dropdown-menu-sub-content[data-side="bottom"] {
@@ -90,11 +90,11 @@
 }
 
 .tiptap-dropdown-menu-sub-content[data-state="open"] {
-  animation: dropdown-in 100ms ease forwards;
+  animation: dropdown-in var(--motion-duration-instant) var(--ease-standard) forwards;
 }
 
 .tiptap-dropdown-menu-sub-content[data-state="closed"] {
-  animation: dropdown-out 100ms ease forwards;
+  animation: dropdown-out var(--motion-duration-instant) var(--ease-standard) forwards;
 }
 
 /* Shared enter/exit keyframes — slide direction driven by --slide-x/y on the element */

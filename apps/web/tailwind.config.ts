@@ -44,6 +44,27 @@ const config = {
       'fluid-3xl': fluidRadius['3xl'],
     },
     extend: {
+      // Bare `border` / `divide` classes get the themed hairline instead of
+      // Tailwind's cool gray-200 (which glowed in dark mode).
+      borderColor: {
+        DEFAULT: 'hsl(var(--ui-border))',
+      },
+      // Tailwind transition utilities share the app motion tokens (tokens.css),
+      // so they also honour the in-app "reduce motion" switch.
+      transitionDuration: {
+        DEFAULT: 'var(--motion-duration-fast)',
+        75: 'var(--motion-duration-instant)',
+        100: 'var(--motion-duration-instant)',
+        150: 'var(--motion-duration-fast)',
+        200: 'var(--motion-duration-base)',
+        300: 'var(--motion-duration-medium)',
+      },
+      transitionTimingFunction: {
+        DEFAULT: 'var(--ease-standard)',
+        standard: 'var(--ease-standard)',
+        emphasized: 'var(--ease-emphasized)',
+        sheet: 'var(--ease-sheet)',
+      },
       spacing: {
         page: 'var(--page-pad)',
         route: 'var(--route-pad)',
@@ -56,7 +77,39 @@ const config = {
         shell: 'var(--surface-radius-lg)',
         panel: 'var(--surface-radius-md)',
       },
+      // Paper & Ink tokens (apps/web/DESIGN.md). Prefer these over Tailwind's
+      // stock palettes (rose/amber/teal/slate…) anywhere in app chrome.
+      fontSize: {
+        meta: ['var(--fs-meta)', { lineHeight: '1.4' }],
+        label: ['var(--fs-label)', { lineHeight: '1.45' }],
+        ui: ['var(--fs-ui)', { lineHeight: '1.5' }],
+        body: ['var(--fs-body)', { lineHeight: '1.55' }],
+        section: ['var(--fs-section)', { lineHeight: '1.45' }],
+        subhead: ['var(--fs-subhead)', { lineHeight: '1.3' }],
+        title: ['var(--fs-title)', { lineHeight: '1.08' }],
+        hero: ['var(--fs-hero)', { lineHeight: '1.04' }],
+        display: ['var(--fs-display)', { lineHeight: '1' }],
+      },
       colors: {
+        'ink-1': 'var(--ink-1)',
+        'ink-2': 'var(--ink-2)',
+        'ink-3': 'var(--ink-3)',
+        'ink-4': 'var(--ink-4)',
+        'paper-desk': 'var(--paper-desk)',
+        'paper-sheet': 'var(--paper-sheet)',
+        'paper-raised': 'var(--paper-raised)',
+        'paper-sunken': 'var(--paper-sunken)',
+        rule: 'var(--rule)',
+        'rule-strong': 'var(--rule-strong)',
+        'tone-urgent': 'var(--tone-urgent)',
+        'tone-warn': 'var(--tone-warn)',
+        'tone-done': 'var(--tone-done)',
+        'tone-info': 'var(--tone-info)',
+        'tone-urgent-wash': 'var(--tone-urgent-wash)',
+        'tone-warn-wash': 'var(--tone-warn-wash)',
+        'tone-done-wash': 'var(--tone-done-wash)',
+        'tone-info-wash': 'var(--tone-info-wash)',
+        'accent-wash': 'var(--accent-wash)',
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {
@@ -80,14 +133,14 @@ const config = {
           foreground: 'hsl(var(--muted-foreground))',
         },
         accent: {
-          DEFAULT: 'hsl(var(--accent))',
+          DEFAULT: 'hsl(var(--ui-accent))',
           foreground: 'hsl(var(--accent-foreground))',
         },
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',
           foreground: 'hsl(var(--destructive-foreground))',
         },
-        border: 'hsl(var(--border))',
+        border: 'hsl(var(--ui-border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
         chart: {

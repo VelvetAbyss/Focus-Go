@@ -1,24 +1,5 @@
-export const APP_SURFACE = '#F5F3F0'
-export const APP_INK = '#3A3733'
-export const ACCENT_ACTION = '#8B5E34'
-
-export const HEALTH = {
-  onTrack: '#3D7A4E',
-  atRisk: '#B07830',
-  blocked: '#B83333',
-} as const
-
-export const STATUS = {
-  todo: '#9A8F83',
-  doing: '#1E5BFF',
-  done: '#0D7A54',
-} as const
-
-export const PRIORITY = {
-  high: '#B83333',
-  medium: '#B07830',
-  low: '#3D7A4E',
-} as const
+// UI colors live in CSS tokens (src/shared/theme/tokens.css, apps/web/DESIGN.md).
+// This module only holds user-content colors: roles and project swatches.
 
 export const ROLE = {
   owner: '#B07830',

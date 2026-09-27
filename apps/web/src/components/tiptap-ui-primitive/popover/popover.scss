@@ -26,38 +26,38 @@
   /* Animation states */
   &[data-state="open"] {
     animation:
-      fadeIn 150ms cubic-bezier(0.16, 1, 0.3, 1),
-      zoomIn 150ms cubic-bezier(0.16, 1, 0.3, 1);
+      fadeIn var(--motion-duration-fast) var(--ease-out-expo),
+      zoomIn var(--motion-duration-fast) var(--ease-out-expo);
   }
 
   &[data-state="closed"] {
     animation:
-      fadeOut 150ms cubic-bezier(0.16, 1, 0.3, 1),
-      zoomOut 150ms cubic-bezier(0.16, 1, 0.3, 1);
+      fadeOut var(--motion-duration-fast) var(--ease-out-expo),
+      zoomOut var(--motion-duration-fast) var(--ease-out-expo);
   }
 
   /* Position-based animations */
   &[data-side="top"],
   &[data-side="top-start"],
   &[data-side="top-end"] {
-    animation: slideFromBottom 150ms cubic-bezier(0.16, 1, 0.3, 1);
+    animation: slideFromBottom var(--motion-duration-fast) var(--ease-out-expo);
   }
 
   &[data-side="right"],
   &[data-side="right-start"],
   &[data-side="right-end"] {
-    animation: slideFromLeft 150ms cubic-bezier(0.16, 1, 0.3, 1);
+    animation: slideFromLeft var(--motion-duration-fast) var(--ease-out-expo);
   }
 
   &[data-side="bottom"],
   &[data-side="bottom-start"],
   &[data-side="bottom-end"] {
-    animation: slideFromTop 150ms cubic-bezier(0.16, 1, 0.3, 1);
+    animation: slideFromTop var(--motion-duration-fast) var(--ease-out-expo);
   }
 
   &[data-side="left"],
   &[data-side="left-start"],
   &[data-side="left-end"] {
-    animation: slideFromRight 150ms cubic-bezier(0.16, 1, 0.3, 1);
+    animation: slideFromRight var(--motion-duration-fast) var(--ease-out-expo);
   }
 }
