@@ -33,11 +33,14 @@ export const requireAdmin = (req, res, next) => {
   if (isAdminEmail(email)) return next()
   if (isLocalhostRequest(req)) return next()
 
-  // Dev workstation escape hatch. Requires (a) a logged-in user (requireAuth
+  // Dev workstation escape hatch. Gated behind NODE_ENV !== 'production' for
+  // the same reason isLocalhostRequest is: without that gate, pointing
+  // DEV_ADMIN_BYPASS_ORIGINS at a real front-end origin would silently promote
+  // every logged-in user to admin. Requires (a) a logged-in user (requireAuth
   // already populated req.auth above) AND (b) the request's browser Origin to
-  // be in DEV_ADMIN_BYPASS_ORIGINS. Browsers can't spoof Origin from JS, so
-  // this is safe against a passive XSS; an attacker would still need a stolen
-  // session token to exploit via curl. Leave the env unset to disable.
+  // be in DEV_ADMIN_BYPASS_ORIGINS. Leave the env unset to disable.
+  if (process.env.NODE_ENV === 'production') return res.status(403).json({ error: 'Forbidden' })
+
   const origin = req.headers.origin
   const bypassOrigins = getDevAdminBypassOrigins()
   if (req.auth?.user && origin && bypassOrigins.has(origin)) {
