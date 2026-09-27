@@ -28,7 +28,7 @@ import TasksBoard from '../../tasks/TasksBoard'
 import { emitTasksChanged, subscribeTasksChanged } from '../../tasks/taskSync'
 import { createProjectTask } from '../../tasks/application/taskActions'
 import { isTaskDone, isTaskOverdue } from '../../tasks/domain/taskRules'
-import { EASE_OUT } from '../../../shared/motion/tokens'
+import { DURATION, EASE_OUT } from '../../../shared/motion/tokens'
 import { ROLE } from '../../../shared/design/tokens'
 import '../projects.css'
 
@@ -52,6 +52,7 @@ const ROLE_COLORS: Record<string, string> = {
 }
 
 import ProgressRing from '../../../shared/ui/ProgressRing'
+import { appIntlLocale } from '../../../shared/i18n/format'
 
 // ── Animation variants ────────────────────────────────────────
 const stagger = {
@@ -60,18 +61,21 @@ const stagger = {
 }
 const slideUp = {
   hidden: { opacity: 0, y: 14 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: EASE_OUT } },
+  show: { opacity: 1, y: 0, transition: { duration: DURATION.slow, ease: EASE_OUT } },
 }
 const tabContent = {
   hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.32, ease: EASE_OUT } },
-  exit: { opacity: 0, y: -6, transition: { duration: 0.18 } },
+  show: { opacity: 1, y: 0, transition: { duration: DURATION.medium, ease: EASE_OUT } },
+  exit: { opacity: 0, y: -6, transition: { duration: DURATION.base } },
 }
 
-function activityColor(id: string): string {
-  if (id.startsWith('task:')) return '#0D7A54'
-  if (id.startsWith('person:')) return '#D4882B'
-  return '#6B5FF5'
+// "15:50" today, otherwise "9月24日 15:50": seconds and the year are noise in an activity list.
+const formatActivityTime = (time: number) => {
+  const date = new Date(time)
+  const locale = appIntlLocale()
+  const clock = date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: false })
+  if (date.toDateString() === new Date().toDateString()) return clock
+  return `${date.toLocaleDateString(locale, { month: 'short', day: 'numeric' })} ${clock}`
 }
 
 // ── Main component ────────────────────────────────────────────
@@ -257,7 +261,7 @@ const ProjectDetailPage = () => {
         className="pd-hero"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.4 }}
+        transition={{ duration: DURATION.slow }}
       >
         {/* Top nav */}
         <div className="pd-hero__topbar">
@@ -308,7 +312,7 @@ const ProjectDetailPage = () => {
               <span className={hCfg.cls}>{hCfg.label}</span>
               {project.priority ? (
                 <span className={`pd-priority pd-priority--${project.priority}`}>
-                  {project.priority.toUpperCase()}
+                  {i18n.filter[project.priority]}
                 </span>
               ) : null}
             </motion.div>
@@ -357,7 +361,7 @@ const ProjectDetailPage = () => {
                 <CalendarDays size={12} />
                 {(project.startDate || project.dueDate)
                   ? `${project.startDate ?? '—'} → ${project.dueDate ?? '—'}`
-                  : i18n.detail.noDescription === '暂无项目描述。' ? '设置日期' : 'Set dates'}
+                  : i18n.detail.setDates}
                 <ChevronDown size={10} className="pd-meta-chip__chevron" />
               </button>
 
@@ -365,7 +369,7 @@ const ProjectDetailPage = () => {
               <Popover>
                 <PopoverTrigger asChild>
                   <button type="button" className="pd-meta-chip pd-meta-chip--status pd-meta-chip--btn">
-                    {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
+                    {i18n.status[project.status]}
                     <ChevronDown size={10} className="pd-meta-chip__chevron" />
                   </button>
                 </PopoverTrigger>
@@ -446,15 +450,8 @@ const ProjectDetailPage = () => {
           {/* ── OVERVIEW ──────────────────────────────────────── */}
           {tab === 'overview' ? (
             <motion.div key="overview" variants={tabContent} initial="hidden" animate="show" exit="exit">
-              <motion.div className="pd-inline-stats" variants={slideUp} initial="hidden" animate="show">
-                <span>{tasks.length} {i18n.detail.statTotalTasks}</span>
-                <span>{completedCount} {i18n.detail.statCompleted}</span>
-                <span>{activeCount} {i18n.detail.statInProgress}</span>
-                {overdueCount > 0 ? (
-                  <span className="pd-inline-stats__danger">{overdueCount} {i18n.detail.statOverdueLabel}</span>
-                ) : null}
-              </motion.div>
-
+              {/* Counts and the progress ring live in the header above; the overview starts
+                  with what to do next instead of repeating them. */}
               <motion.article
                 variants={slideUp}
                 initial="hidden"
@@ -495,7 +492,6 @@ const ProjectDetailPage = () => {
                     />
                   </p>
                 </div>
-                <ProgressRing progress={project.progress} size={104} label="Project progress" />
               </motion.article>
 
               {/* Activity feed */}
@@ -503,7 +499,7 @@ const ProjectDetailPage = () => {
                 className="pd-activity"
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.2 }}
+                transition={{ duration: DURATION.slow, delay: 0.2 }}
               >
                 <h3 className="pd-activity__heading">{i18n.detail.recentActivity}</h3>
                 {activity.length === 0 ? (
@@ -516,12 +512,12 @@ const ProjectDetailPage = () => {
                         className="pd-activity__item"
                         initial={{ opacity: 0, x: -8 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.25 + idx * 0.04, duration: 0.3 }}
+                        transition={{ delay: 0.25 + idx * 0.04, duration: DURATION.medium }}
                       >
-                        <span className="pd-activity__bar" style={{ background: activityColor(item.id) }} aria-hidden />
+                        <span className="pd-activity__bar" aria-hidden />
                         <div className="pd-activity__text">
                           <p>{item.title}</p>
-                          <time>{new Date(item.createdAt).toLocaleString()}</time>
+                          <time>{formatActivityTime(item.createdAt)}</time>
                         </div>
                       </motion.div>
                     ))}
@@ -635,7 +631,7 @@ const ProjectDetailPage = () => {
                       key={person.id}
                       variants={slideUp}
                       className="pd-person-card"
-                      whileHover={{ y: -2, transition: { duration: 0.15 } }}
+                      whileHover={{ y: -2, transition: { duration: DURATION.fast } }}
                       onClick={() => setViewingPerson(person)}
                     >
                       <div
@@ -655,7 +651,7 @@ const ProjectDetailPage = () => {
                           className="pd-person-card__role"
                           style={{ color: roleColor, background: `${roleColor}14` }}
                         >
-                          {person.roleType.charAt(0).toUpperCase() + person.roleType.slice(1)}
+                          {i18n.roles[person.roleType]}
                         </span>
                         <div className="pd-person-card__contact">
                           {person.email ? (
@@ -749,7 +745,7 @@ const ProjectDetailPage = () => {
                       key={note.id}
                       variants={slideUp}
                       className="pd-note-card"
-                      whileHover={{ y: -1, transition: { duration: 0.15 } }}
+                      whileHover={{ y: -1, transition: { duration: DURATION.fast } }}
                     >
                       <button
                         type="button"
@@ -764,7 +760,7 @@ const ProjectDetailPage = () => {
                         ) : null}
                         <div className="pd-note-card__meta">
                           <time>
-                            {new Date(note.updatedAt).toLocaleDateString(undefined, {
+                            {new Date(note.updatedAt).toLocaleDateString(appIntlLocale(), {
                               year: 'numeric',
                               month: 'short',
                               day: 'numeric',

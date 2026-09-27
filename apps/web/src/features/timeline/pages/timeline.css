@@ -1,14 +1,15 @@
+/* Every surface derives from the app theme tokens so the page follows
+   light/dark and sits on the shared shell canvas (no page-level fill). */
 .timeline-page {
-  --tl-paper: #F5F3F0;
-  --tl-ink: #3A3733;
+  --tl-ink: var(--text-primary);
   --tl-muted: color-mix(in srgb, var(--tl-ink) 62%, transparent);
   --tl-line: color-mix(in srgb, var(--tl-ink) 10%, transparent);
-  --tl-panel: color-mix(in srgb, var(--tl-paper) 88%, white 12%);
+  --tl-panel: var(--bg-elevated);
+  --tl-field: color-mix(in srgb, var(--tl-ink) 4%, var(--bg-elevated));
+  --tl-field-hover: color-mix(in srgb, var(--tl-ink) 8%, var(--bg-elevated));
   min-height: 100%;
   overflow: auto;
-  background:
-    linear-gradient(90deg, color-mix(in srgb, #6B8C7A 7%, transparent), transparent 28%),
-    var(--tl-paper);
+  background: transparent;
   color: var(--tl-ink);
   padding: clamp(18px, 3vw, 38px);
 }
@@ -24,20 +25,18 @@
 
 .timeline-page__eyebrow {
   margin: 0 0 5px;
-  color: color-mix(in srgb, #4F746C 78%, var(--tl-ink));
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  color: var(--ink-3);
+  font-size: var(--fs-label);
+  font-weight: 600;
 }
 
 .timeline-page h1 {
   margin: 0;
-  font-family: ui-serif, Georgia, Cambria, "Times New Roman", serif;
-  font-size: clamp(34px, 4vw, 56px);
-  font-weight: 520;
-  letter-spacing: 0;
-  line-height: 0.95;
+  font-family: var(--page-title-font);
+  font-size: var(--page-title-size);
+  font-weight: var(--page-title-weight);
+  letter-spacing: var(--page-title-tracking);
+  line-height: var(--page-title-leading);
 }
 
 .timeline-page button,
@@ -56,34 +55,33 @@
   gap: 8px;
   min-height: 38px;
   border: 1px solid var(--tl-line);
-  background: color-mix(in srgb, white 58%, var(--tl-paper));
+  background: var(--tl-field);
   color: var(--tl-ink);
   border-radius: 999px;
   padding: 0 14px;
-  font-size: 13px;
+  font-size: var(--fs-ui);
   font-weight: 650;
-  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+  transition: transform var(--motion-duration-base) var(--ease-standard), border-color var(--motion-duration-base) var(--ease-standard), background var(--motion-duration-base) var(--ease-standard);
 }
 
 .timeline-page__repair:hover,
 .timeline-page__toolbar button:hover,
 .timeline-empty button:hover {
-  transform: translateY(-1px);
   border-color: color-mix(in srgb, var(--tl-ink) 22%, transparent);
-  background: color-mix(in srgb, white 76%, var(--tl-paper));
+  background: var(--tl-field-hover);
 }
 
 .timeline-page__toolbar {
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) 170px 150px auto auto;
+  grid-template-columns: minmax(240px, 1fr) 170px 150px auto auto auto;
   gap: 10px;
   align-items: center;
   max-width: 1180px;
   margin: 0 auto 14px;
   padding: 8px;
   border: 1px solid var(--tl-line);
-  border-radius: 22px;
-  background: color-mix(in srgb, var(--tl-panel) 92%, transparent);
+  border-radius: var(--radius-lg);
+  background: var(--tl-panel);
   box-shadow: 0 18px 50px -42px color-mix(in srgb, var(--tl-ink) 38%, transparent);
 }
 
@@ -94,7 +92,7 @@
   min-height: 38px;
   border: 1px solid var(--tl-line);
   border-radius: 999px;
-  background: color-mix(in srgb, white 64%, var(--tl-paper));
+  background: var(--tl-field);
   padding: 0 13px;
   color: var(--tl-muted);
 }
@@ -105,7 +103,7 @@
   border: 0;
   background: transparent;
   color: var(--tl-ink);
-  font-size: 14px;
+  font-size: var(--fs-body);
 }
 
 .timeline-page__search input::placeholder {
@@ -120,16 +118,16 @@
   min-height: 38px;
   border: 1px solid var(--tl-line);
   border-radius: 999px;
-  background: color-mix(in srgb, white 64%, var(--tl-paper));
+  background: var(--tl-field);
   color: var(--tl-ink);
   padding: 0 12px;
-  font-size: 13px;
+  font-size: var(--fs-ui);
   font-weight: 620;
 }
 
 .timeline-page__toolbar button.is-active {
   background: var(--tl-ink);
-  color: var(--tl-paper);
+  color: var(--bg-elevated);
   border-color: var(--tl-ink);
 }
 
@@ -141,14 +139,69 @@
   overflow: hidden;
   margin: 0 auto 24px;
   border: 1px solid var(--tl-line);
-  border-radius: 18px;
+  border-radius: var(--radius-lg);
   background: var(--tl-line);
 }
 
 .timeline-page__progress-summary {
   max-width: 1180px;
+  margin: 0 auto 20px;
+}
+
+.timeline-page__recap-toggle {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  background: var(--paper-raised);
+  color: var(--ink-1);
+  padding: 10px 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.timeline-page__recap-toggle svg {
+  align-self: center;
+  color: var(--ink-3);
+}
+
+.timeline-page__recap-toggle span {
+  font-size: var(--fs-ui);
+  font-weight: 600;
+}
+
+.timeline-page__recap-toggle small {
+  color: var(--ink-3);
+  font-size: var(--fs-label);
+}
+
+.timeline-page__recap-toggle:hover {
+  background: var(--paper-sunken);
+}
+
+.timeline-page__progress-summary[data-open='true'] .timeline-page__recap-toggle {
+  margin-bottom: 10px;
+}
+
+.timeline-page__recap-body {
   height: min(520px, 72vh);
-  margin: 0 auto 24px;
+}
+
+/* Rebuild sits at the end of the toolbar as a quiet icon. */
+.timeline-page__toolbar .timeline-page__repair {
+  margin-left: auto;
+  width: 38px;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  color: var(--ink-3);
+}
+
+.timeline-page__toolbar .timeline-page__repair:hover {
+  border-color: var(--rule);
+  color: var(--ink-1);
 }
 
 .timeline-page__stats div {
@@ -158,7 +211,7 @@
   gap: 12px;
   min-width: 0;
   padding: 12px 16px;
-  background: color-mix(in srgb, var(--tl-paper) 82%, white 18%);
+  background: var(--tl-panel);
 }
 
 .timeline-page__stats strong {
@@ -169,7 +222,7 @@
 .timeline-page__stats span {
   overflow: hidden;
   color: var(--tl-muted);
-  font-size: 12px;
+  font-size: var(--fs-label);
   font-weight: 650;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -182,20 +235,19 @@
 
 .timeline-group {
   display: grid;
-  grid-template-columns: 132px minmax(0, 1fr);
-  gap: 22px;
-  margin-bottom: 28px;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 20px;
+  margin-bottom: 24px;
 }
 
 .timeline-group__label {
   position: sticky;
   top: 18px;
   align-self: start;
-  color: color-mix(in srgb, var(--tl-ink) 48%, transparent);
-  font-size: 12px;
-  font-weight: 760;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  padding-top: 12px;
+  color: var(--ink-3);
+  font-size: var(--fs-label);
+  font-weight: 600;
 }
 
 .timeline-group__items {
@@ -203,30 +255,37 @@
   gap: 0;
 }
 
+/* One dense row per event (DESIGN.md › Metadata): ink icon, title, one meta line,
+   actions on hover. Activity kinds are categories, so they stay ink, not color. */
 .timeline-item {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto;
-  gap: 14px;
-  align-items: start;
-  min-height: 82px;
-  border-top: 1px solid var(--tl-line);
-  padding: 16px 0;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border-top: 1px solid var(--rule);
+  padding: 10px 0;
 }
 
-.timeline-item:last-child {
-  border-bottom: 1px solid var(--tl-line);
+.timeline-group__items > :last-child .timeline-item:last-child,
+.timeline-group__items > .timeline-item:last-child {
+  border-bottom: 1px solid var(--rule);
 }
 
 .timeline-item__mark {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  border: 1px solid color-mix(in srgb, var(--timeline-accent) 26%, transparent);
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--rule);
   border-radius: 50%;
-  background: color-mix(in srgb, var(--timeline-accent) 13%, var(--tl-paper));
-  color: color-mix(in srgb, var(--timeline-accent) 78%, var(--tl-ink));
+  background: var(--paper-raised);
+  color: var(--ink-3);
+}
+
+.timeline-item[data-pinned='true'] .timeline-item__mark {
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  color: var(--accent);
 }
 
 .timeline-item__body {
@@ -241,49 +300,57 @@
 }
 
 .timeline-item h2 {
+  min-width: 0;
   margin: 0;
-  color: var(--tl-ink);
-  font-size: clamp(16px, 1.3vw, 19px);
-  font-weight: 720;
+  font-family: var(--font-body);
+  overflow: hidden;
+  color: var(--ink-1);
+  font-size: var(--fs-body);
+  font-weight: 600;
   letter-spacing: 0;
-  line-height: 1.25;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .timeline-item time {
   flex: 0 0 auto;
-  color: color-mix(in srgb, var(--tl-ink) 48%, transparent);
-  font-size: 12px;
-  font-weight: 650;
+  color: var(--ink-3);
+  font-size: var(--fs-meta);
+  font-variant-numeric: tabular-nums;
 }
 
-.timeline-item p {
-  margin: 5px 0 0;
-  color: color-mix(in srgb, var(--tl-ink) 72%, transparent);
-  font-size: 14px;
-  line-height: 1.55;
-}
-
-.timeline-item__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-  margin-top: 10px;
-}
-
-.timeline-item__meta span {
-  border: 1px solid var(--tl-line);
-  border-radius: 999px;
-  color: color-mix(in srgb, var(--tl-ink) 56%, transparent);
-  font-size: 11px;
-  font-weight: 650;
-  line-height: 1;
-  padding: 5px 8px;
+.timeline-item .timeline-item__meta {
+  margin: 2px 0 0;
+  overflow: hidden;
+  color: var(--ink-3);
+  font-size: var(--fs-label);
+  line-height: 1.5;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .timeline-item__actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity var(--motion-duration-fast) var(--ease-standard);
+}
+
+.timeline-item:hover .timeline-item__actions,
+.timeline-item:focus-within .timeline-item__actions,
+.timeline-item__actions--always {
+  opacity: 1;
+}
+
+/* A folded run of the same event; its items indent under it when shown. */
+.timeline-burst__items {
+  padding-left: 40px;
+}
+
+.timeline-burst__items .timeline-item {
+  border-top-style: dashed;
 }
 
 .timeline-item__actions button,
@@ -291,16 +358,16 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 34px;
-  height: 34px;
+  min-width: 30px;
+  height: 30px;
   border: 1px solid transparent;
   border-radius: 999px;
   background: transparent;
   color: color-mix(in srgb, var(--tl-ink) 58%, transparent);
-  font-size: 12px;
+  font-size: var(--fs-label);
   font-weight: 720;
   text-decoration: none;
-  transition: background 160ms ease, color 160ms ease, border-color 160ms ease;
+  transition: background var(--motion-duration-fast) var(--ease-standard), color var(--motion-duration-fast) var(--ease-standard), border-color var(--motion-duration-fast) var(--ease-standard);
 }
 
 .timeline-item__actions a {
@@ -310,7 +377,7 @@
 .timeline-item__actions button:hover,
 .timeline-item__actions a:hover {
   border-color: var(--tl-line);
-  background: color-mix(in srgb, white 58%, var(--tl-paper));
+  background: var(--tl-field-hover);
   color: var(--tl-ink);
 }
 
@@ -320,41 +387,28 @@
   gap: 10px;
   max-width: 560px;
   border: 1px solid var(--tl-line);
-  border-radius: 22px;
-  background: color-mix(in srgb, var(--tl-paper) 86%, white 14%);
+  border-radius: var(--radius-lg);
+  background: var(--tl-panel);
   padding: clamp(22px, 5vw, 44px);
 }
 
 .timeline-empty h2 {
   margin: 0;
-  font-size: 22px;
+  font-size: var(--fs-subhead);
   font-weight: 740;
 }
 
 .timeline-empty p {
   margin: 0;
   color: var(--tl-muted);
-  font-size: 14px;
+  font-size: var(--fs-body);
   line-height: 1.7;
-}
-
-html[data-theme='dark'] .timeline-page {
-  --tl-paper: color-mix(in srgb, #3A3733 92%, #23201d);
-  --tl-ink: #F5F3F0;
-  --tl-panel: color-mix(in srgb, #3A3733 72%, #F5F3F0 4%);
-  background:
-    linear-gradient(90deg, color-mix(in srgb, #6B8C7A 12%, transparent), transparent 30%),
-    var(--tl-paper);
 }
 
 @media (max-width: 860px) {
   .timeline-page__header,
   .timeline-group {
     display: block;
-  }
-
-  .timeline-page__repair {
-    margin-top: 16px;
   }
 
   .timeline-page__toolbar {
@@ -403,4 +457,9 @@ html[data-theme='dark'] .timeline-page {
   .timeline-item__actions a {
     transition: none;
   }
+}
+
+.timeline-item__actions--always button {
+  padding: 0 10px;
+  color: var(--ink-2);
 }

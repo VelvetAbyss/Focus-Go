@@ -319,7 +319,7 @@ export const ProjectFormDialog = ({ open, project, people, onClose, onAutoSave, 
     <Dialog
       open={open}
       onClose={onClose}
-      panelClassName="w-[min(620px,calc(100vw-32px))] rounded-[24px] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[var(--bg-elevated)]"
+      panelClassName="w-[min(620px,calc(100vw-32px))] rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[var(--bg-elevated)]"
       contentClassName="p-0"
     >
       <div
@@ -516,7 +516,7 @@ export const ProjectFormDialog = ({ open, project, people, onClose, onAutoSave, 
                 aria-label={i18n.dialog.pillOwner}
               >
                 {ownerName ? (
-                  <span className="pd-owner-avatar" style={{ width: 18, height: 18, fontSize: 9 }}>
+                  <span className="pd-owner-avatar" style={{ width: 18, height: 18, fontSize: 'var(--fs-meta)' }}>
                     {initialsFromName(ownerName)}
                   </span>
                 ) : (
@@ -567,7 +567,7 @@ export const ProjectFormDialog = ({ open, project, people, onClose, onAutoSave, 
                   </button>
                 ))}
                 {filteredPeople.length === 0 && ownerQuery ? (
-                  <p style={{ padding: '8px 10px', fontSize: 12, color: 'color-mix(in srgb, var(--text-primary) 50%, transparent)' }}>
+                  <p style={{ padding: '8px 10px', fontSize: 'var(--fs-label)', color: 'color-mix(in srgb, var(--text-primary) 50%, transparent)' }}>
                     {i18n.dialog.noContactsMatch}
                   </p>
                 ) : null}
@@ -786,7 +786,7 @@ export const PersonFormDialog = ({ open, person, onClose, onSubmit }: PersonForm
     <Dialog
       open={open}
       onClose={onClose}
-      panelClassName="w-[min(560px,calc(100vw-32px))] rounded-[32px] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[var(--bg-elevated)]"
+      panelClassName="w-[min(560px,calc(100vw-32px))] rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[var(--bg-elevated)]"
       contentClassName="p-0"
     >
       <div className="project-dialog">
@@ -1023,7 +1023,7 @@ export const ProjectTaskDialog = ({ open, task, people, onClose, onAutoSave, onS
     <Dialog
       open={open}
       onClose={onClose}
-      panelClassName="w-[min(620px,calc(100vw-32px))] rounded-[32px] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[var(--bg-elevated)]"
+      panelClassName="w-[min(620px,calc(100vw-32px))] rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[var(--bg-elevated)]"
       contentClassName="p-0"
     >
       <div className="project-dialog">

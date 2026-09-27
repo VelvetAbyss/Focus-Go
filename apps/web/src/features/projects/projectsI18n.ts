@@ -29,12 +29,15 @@ type ProjectsMessages = {
     cardNextActionDefault: string
     cardOpenWorkspace: string
     cardOverdue: string
+    cardPriority: string
   }
   filter: {
     statusLabel: string
     priorityLabel: string
     healthLabel: string
     all: string
+    allPriorities: string
+    allHealth: string
     planning: string
     active: string
     blocked: string
@@ -58,8 +61,15 @@ type ProjectsMessages = {
     done: string
     archived: string
   }
+  roles: {
+    owner: string
+    collaborator: string
+    reviewer: string
+    external: string
+  }
   detail: {
     back: string
+    setDates: string,
     editTitle: string
     edit: string
     archiveTitle: string
@@ -245,12 +255,15 @@ const messages: Record<LanguageCode, ProjectsMessages> = {
       cardNextActionDefault: 'Review current plan',
       cardOpenWorkspace: 'Open project workspace',
       cardOverdue: 'overdue',
+      cardPriority: '{p} priority',
     },
     filter: {
       statusLabel: 'Status',
       priorityLabel: 'Priority',
       healthLabel: 'Health',
       all: 'All',
+      allPriorities: 'All priorities',
+      allHealth: 'Any health',
       planning: 'Planning',
       active: 'Active',
       blocked: 'Blocked',
@@ -274,8 +287,15 @@ const messages: Record<LanguageCode, ProjectsMessages> = {
       done: 'Done',
       archived: 'Archived',
     },
+    roles: {
+      owner: 'Owner',
+      collaborator: 'Collaborator',
+      reviewer: 'Reviewer',
+      external: 'External',
+    },
     detail: {
       back: 'Projects',
+      setDates: 'Set dates',
       editTitle: 'Edit project',
       edit: 'Edit',
       archiveTitle: 'Archive project',
@@ -459,12 +479,15 @@ const messages: Record<LanguageCode, ProjectsMessages> = {
       cardNextActionDefault: '回顾当前计划',
       cardOpenWorkspace: '打开项目工作区',
       cardOverdue: '逾期',
+      cardPriority: '{p}优先级',
     },
     filter: {
       statusLabel: '状态',
       priorityLabel: '优先级',
       healthLabel: '健康度',
       all: '全部',
+      allPriorities: '全部优先级',
+      allHealth: '全部健康度',
       planning: '规划中',
       active: '进行中',
       blocked: '受阻',
@@ -488,8 +511,15 @@ const messages: Record<LanguageCode, ProjectsMessages> = {
       done: '已完成',
       archived: '已归档',
     },
+    roles: {
+      owner: '负责人',
+      collaborator: '协作者',
+      reviewer: '审阅人',
+      external: '外部成员',
+    },
     detail: {
       back: '项目',
+      setDates: '设置日期',
       editTitle: '编辑项目',
       edit: '编辑',
       archiveTitle: '归档项目',

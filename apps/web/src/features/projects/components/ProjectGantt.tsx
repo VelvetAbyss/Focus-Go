@@ -2,6 +2,9 @@ import { useMemo, useRef, useEffect, useLayoutEffect, useState } from 'react'
 import { motion } from 'motion/react'
 import type { CSSProperties } from 'react'
 import type { TaskItem, TaskPriority, TaskStatus } from '../../../data/models/types'
+import { useI18n } from '../../../shared/i18n/useI18n'
+import type { TranslationKey } from '../../../shared/i18n/types'
+import { DURATION, EASE } from '../../../shared/motion/tokens'
 
 type ProjectGanttViewMode = 'week' | 'month' | 'year'
 
@@ -36,10 +39,10 @@ const PRIORITY_TRAIL_DAYS: Record<TaskPriority | 'none', number> = {
   none: 3,
 }
 
-const STATUS_TONE: Record<TaskStatus, { dot: string; label: string }> = {
-  todo: { dot: '#9A8F83', label: '待办' },
-  doing: { dot: '#3D7A6C', label: '进行中' },
-  done: { dot: '#3D7A4E', label: '已完成' },
+const STATUS_TONE: Record<TaskStatus, { dot: string; labelKey: TranslationKey }> = {
+  todo: { dot: '#9A8F83', labelKey: 'tasks.list.todo' },
+  doing: { dot: '#3D7A6C', labelKey: 'tasks.list.doing' },
+  done: { dot: '#3D7A4E', labelKey: 'tasks.list.done' },
 }
 
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
@@ -98,13 +101,18 @@ const resolveTaskRange = (task: TaskItem): ResolvedRange | null => {
 
 type AxisTick = { date: Date; x: number; bold: boolean; label: string; sub?: string }
 
-const MONTH_LABELS = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
+const localeOf = (language: string) => (language === 'zh' ? 'zh-CN' : 'en-US')
+const monthLabel = (language: string, date: Date) =>
+  new Intl.DateTimeFormat(localeOf(language), { month: 'short' }).format(date)
+const weekdayLabel = (language: string, date: Date) =>
+  new Intl.DateTimeFormat(localeOf(language), { weekday: 'narrow' }).format(date)
 
 const buildAxisTicks = (
   rangeStart: Date,
   rangeDays: number,
   viewMode: ProjectGanttViewMode,
   dayWidth: number,
+  language: string,
 ): AxisTick[] => {
   const ticks: AxisTick[] = []
   if (viewMode === 'week') {
@@ -116,7 +124,7 @@ const buildAxisTicks = (
         x: i * dayWidth,
         bold: dow === 1,
         label: String(date.getDate()),
-        sub: i === 0 || date.getDate() === 1 ? MONTH_LABELS[date.getMonth()] : ['日', '一', '二', '三', '四', '五', '六'][dow],
+        sub: i === 0 || date.getDate() === 1 ? monthLabel(language, date) : weekdayLabel(language, date),
       })
     }
   } else if (viewMode === 'month') {
@@ -130,7 +138,7 @@ const buildAxisTicks = (
           date,
           x: i * dayWidth,
           bold: isMonthStart,
-          label: isMonthStart ? MONTH_LABELS[date.getMonth()] : String(dayOfMonth),
+          label: isMonthStart ? monthLabel(language, date) : String(dayOfMonth),
           sub: isMonthStart ? String(date.getFullYear()) : undefined,
         })
       }
@@ -144,7 +152,7 @@ const buildAxisTicks = (
           date: cursor,
           x: offset * dayWidth,
           bold: cursor.getMonth() === 0,
-          label: MONTH_LABELS[cursor.getMonth()],
+          label: monthLabel(language, cursor),
           sub: cursor.getMonth() === 0 ? String(cursor.getFullYear()) : undefined,
         })
       }
@@ -155,6 +163,7 @@ const buildAxisTicks = (
 }
 
 const ProjectGantt = ({ tasks, projectColor, viewMode, onTaskClick, onEmptySlotClick }: ProjectGanttProps) => {
+  const { t, language } = useI18n()
   const accent = projectColor?.trim() || '#B07830'
   const dayWidth = DAY_WIDTH[viewMode]
 
@@ -222,7 +231,7 @@ const ProjectGantt = ({ tasks, projectColor, viewMode, onTaskClick, onEmptySlotC
     }
   }, [scheduled, today, viewMode, dayWidth, viewportWidth, stickyColWidth])
 
-  const ticks = useMemo(() => buildAxisTicks(rangeStart, rangeDays, viewMode, dayWidth), [rangeStart, rangeDays, viewMode, dayWidth])
+  const ticks = useMemo(() => buildAxisTicks(rangeStart, rangeDays, viewMode, dayWidth, language), [rangeStart, rangeDays, viewMode, dayWidth, language])
   const chartWidth = Math.max(rangeDays * dayWidth + dayWidth, Math.max(0, viewportWidth - stickyColWidth))
   const canvasWidth = chartWidth + stickyColWidth
 
@@ -277,9 +286,9 @@ const ProjectGantt = ({ tasks, projectColor, viewMode, onTaskClick, onEmptySlotC
   if (scheduled.length === 0) {
     return (
       <div className="fg-timeline fg-timeline--empty">
-        <p className="fg-timeline__empty-eyebrow">时间线</p>
-        <p className="fg-timeline__empty-title">这里还空着</p>
-        <p className="fg-timeline__empty-hint">为任务添加截止日期，它们会按时序在此显现。</p>
+        <p className="fg-timeline__empty-eyebrow">{t('projects.gantt.eyebrow')}</p>
+        <p className="fg-timeline__empty-title">{t('projects.gantt.emptyTitle')}</p>
+        <p className="fg-timeline__empty-hint">{t('projects.gantt.emptyHint')}</p>
       </div>
     )
   }
@@ -292,11 +301,11 @@ const ProjectGantt = ({ tasks, projectColor, viewMode, onTaskClick, onEmptySlotC
       <div className="fg-timeline__inner">
         <header className="fg-timeline__sticky-head">
           <div className="fg-timeline__sticky-head__title">
-            <span className="fg-timeline__eyebrow">{scheduled.length} 项任务</span>
+            <span className="fg-timeline__eyebrow">{t('projects.gantt.taskCount', { count: scheduled.length })}</span>
             <span className="fg-timeline__legend">
-              <span className="fg-timeline__legend-dot" style={{ background: 'transparent', borderColor: accent }} />待办
-              <span className="fg-timeline__legend-dot" style={{ background: accent }} />进行中
-              <span className="fg-timeline__legend-dot fg-timeline__legend-dot--done" />已完成
+              <span className="fg-timeline__legend-dot" style={{ background: 'transparent', borderColor: accent }} />{t('tasks.list.todo')}
+              <span className="fg-timeline__legend-dot" style={{ background: accent }} />{t('tasks.list.doing')}
+              <span className="fg-timeline__legend-dot fg-timeline__legend-dot--done" />{t('tasks.list.done')}
             </span>
           </div>
         </header>
@@ -323,11 +332,11 @@ const ProjectGantt = ({ tasks, projectColor, viewMode, onTaskClick, onEmptySlotC
                     type="button"
                     initial={{ opacity: 0, x: -8 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.08 + i * 0.04, duration: 0.32 }}
+                    transition={{ delay: 0.08 + i * 0.04, duration: DURATION.medium }}
                     className="fg-timeline__row-head"
                     style={{ height }}
                     onClick={() => onTaskClick?.(task)}
-                    aria-label={`${task.title} — ${tone.label}`}
+                    aria-label={`${task.title} — ${t(tone.labelKey)}`}
                   >
                     <span className="fg-timeline__row-head__title">
                       {task.pinned ? <span className="fg-timeline__pin" aria-hidden>✦</span> : null}
@@ -335,8 +344,8 @@ const ProjectGantt = ({ tasks, projectColor, viewMode, onTaskClick, onEmptySlotC
                     </span>
                     <span className="fg-timeline__row-head__status">
                       <span className="fg-timeline__row-head__dot" style={{ background: tone.dot }} />
-                      <span>{tone.label}</span>
-                      {task.priority === 'high' ? <span className="fg-timeline__row-head__priority">高优</span> : null}
+                      <span>{t(tone.labelKey)}</span>
+                      {task.priority === 'high' ? <span className="fg-timeline__row-head__priority">{t('projects.gantt.highPriority')}</span> : null}
                     </span>
                   </motion.button>
                 )
@@ -354,7 +363,7 @@ const ProjectGantt = ({ tasks, projectColor, viewMode, onTaskClick, onEmptySlotC
                     key={tick.date.toISOString()}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ delay: 0.04 + i * 0.012, duration: 0.4 }}
+                    transition={{ delay: 0.04 + i * 0.012, duration: DURATION.slow }}
                     className={`fg-timeline__axis-tick${tick.bold ? ' is-bold' : ''}`}
                     style={{ left: tick.x }}
                   >
@@ -388,10 +397,10 @@ const ProjectGantt = ({ tasks, projectColor, viewMode, onTaskClick, onEmptySlotC
                     className="fg-timeline__today"
                     initial={{ scaleY: 0, opacity: 0 }}
                     animate={{ scaleY: 1, opacity: 1 }}
-                    transition={{ delay: 0.5, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                    transition={{ delay: 0.5, duration: 0.6, ease: EASE.outExpo }}
                     style={{ left: todayOffset, transformOrigin: 'top center' }}
                   >
-                    <span className="fg-timeline__today-label">今</span>
+                    <span className="fg-timeline__today-label">{t('projects.gantt.today')}</span>
                     <span className="fg-timeline__today-line" />
                   </motion.div>
                 ) : null}
@@ -419,14 +428,14 @@ const ProjectGantt = ({ tasks, projectColor, viewMode, onTaskClick, onEmptySlotC
                         style={{ height }}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        transition={{ delay: 0.12 + i * 0.04, duration: 0.3 }}
+                        transition={{ delay: 0.12 + i * 0.04, duration: DURATION.medium }}
                       >
                         {trailGradient ? (
                           <motion.div
                             className="fg-timeline__trail"
                             initial={{ scaleX: 0, opacity: 0 }}
                             animate={{ scaleX: 1, opacity: 1 }}
-                            transition={{ delay: 0.18 + i * 0.04, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+                            transition={{ delay: 0.18 + i * 0.04, duration: 0.55, ease: EASE.outExpo }}
                             style={{
                               left: startOffset + dayWidth * 0.4,
                               width: Math.max(0, dueOffset - startOffset - dayWidth * 0.3),
@@ -442,7 +451,7 @@ const ProjectGantt = ({ tasks, projectColor, viewMode, onTaskClick, onEmptySlotC
                           className={`fg-timeline__bar fg-timeline__bar--${task.status}`}
                           initial={{ opacity: 0, x: -12 }}
                           animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.2 + i * 0.04, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                          transition={{ delay: 0.2 + i * 0.04, duration: DURATION.slow, ease: EASE.outExpo }}
                           onClick={() => onTaskClick?.(task)}
                           style={{
                             left: startOffset + dayWidth * 0.2,

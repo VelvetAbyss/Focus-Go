@@ -6,10 +6,12 @@ import { db } from '../../../data/db'
 import { projectsRepo } from '../../../data/repositories/projectsRepo'
 import type { ProjectHealth, ProjectItem, ProjectPerson } from '../../../data/models/types'
 import { resolveProjectColor } from '../../../shared/design/tokens'
-import { EASE_OUT, STAGGER_SLOW } from '../../../shared/motion/tokens'
+import { DURATION, EASE_OUT, STAGGER_SLOW } from '../../../shared/motion/tokens'
 import { ProjectFormDialog } from '../components/ProjectDialogs'
 import ProjectCardHero from '../components/ProjectCardHero'
 import { useProjectsI18n } from '../projectsI18n'
+import ActiveIndicator from '../../../shared/motion/ActiveIndicator'
+import { PRESSED_BUTTON } from '../../../shared/motion/indicatorSelectors'
 import '../projects.css'
 
 const listStagger = {
@@ -19,7 +21,7 @@ const listStagger = {
 
 const cardVariant = {
   hidden: { opacity: 0, y: 14 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.42, ease: EASE_OUT } },
+  show: { opacity: 1, y: 0, transition: { duration: DURATION.slow, ease: EASE_OUT } },
 }
 
 const heroVariant = {
@@ -137,7 +139,7 @@ const ProjectsPage = () => {
         className="pj-controls"
         initial={shouldAnimateIn ? { opacity: 0, y: 8 } : false}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.38, ease: EASE_OUT, delay: 0.12 }}
+        transition={{ duration: DURATION.slow, ease: EASE_OUT, delay: 0.12 }}
       >
         {/* Top: search + secondary filters */}
         <div className="pj-controls-top">
@@ -153,25 +155,28 @@ const ProjectsPage = () => {
           <div className="pj-secondary-filters">
             <select
               className="pj-select"
+              aria-label={i18n.filter.priorityLabel}
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value as typeof priorityFilter)}
             >
-              <option value="all">{i18n.filter.all}</option>
+              <option value="all">{i18n.filter.allPriorities}</option>
               <option value="high">{i18n.filter.high}</option>
               <option value="medium">{i18n.filter.medium}</option>
               <option value="low">{i18n.filter.low}</option>
             </select>
             <select
               className="pj-select"
+              aria-label={i18n.filter.healthLabel}
               value={healthFilter}
               onChange={(e) => setHealthFilter(e.target.value as typeof healthFilter)}
             >
-              <option value="all">{i18n.filter.all}</option>
+              <option value="all">{i18n.filter.allHealth}</option>
               <option value="on-track">{i18n.filter.onTrack}</option>
               <option value="at-risk">{i18n.filter.atRisk}</option>
               <option value="blocked">{i18n.filter.blocked}</option>
             </select>
             <div className="pj-view-toggle" role="group" aria-label="View mode">
+              <ActiveIndicator selector={PRESSED_BUTTON} />
               <button
                 type="button"
                 className={`pj-view-toggle__btn${viewMode === 'detail' ? ' is-active' : ''}`}
@@ -226,7 +231,7 @@ const ProjectsPage = () => {
       {/* ── Loading ─────────────────────────────────────────────── */}
       {loading ? (
         <div className="pj-empty">
-          <p style={{ color: 'color-mix(in srgb, var(--text-primary) 40%, transparent)', fontSize: 13 }}>{i18n.page.loading}</p>
+          <p style={{ color: 'color-mix(in srgb, var(--text-primary) 40%, transparent)', fontSize: 'var(--fs-ui)' }}>{i18n.page.loading}</p>
         </div>
       ) : null}
 
@@ -237,7 +242,7 @@ const ProjectsPage = () => {
             className="pj-empty"
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.32, ease: EASE_OUT }}
+            transition={{ duration: DURATION.medium, ease: EASE_OUT }}
           >
             <h2>{i18n.page.emptyTitle}</h2>
             <p>{i18n.page.emptyDesc}</p>
