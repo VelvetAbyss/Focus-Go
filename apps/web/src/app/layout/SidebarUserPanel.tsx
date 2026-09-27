@@ -322,7 +322,7 @@ const EmailLoginPanel = ({ email }: { email: string }) => {
         </div>
         <div className="acct-info-row">
           <span className="acct-info-label">{t('auth.account.loginProvider')}</span>
-          <span className="acct-info-value">Focus & Go / Google</span>
+          <span className="acct-info-value">Focus&go / Google</span>
         </div>
       </div>
       <p className="acct-subpanel-hint">{t('auth.account.providerManaged')}</p>
@@ -349,8 +349,8 @@ const SecurityPanel = () => {
       </div>
       <p className="acct-subpanel-hint">
         {language === 'zh'
-          ? '密码登录已由 Focus & Go 托管。邮箱验证、手机号验证和设备管理会在后续版本开放。'
-          : 'Password sign-in is now managed by Focus & Go. Email verification, phone verification, and device management will arrive later.'}
+          ? '密码登录已由 Focus&go 托管。邮箱验证、手机号验证和设备管理会在后续版本开放。'
+          : 'Password sign-in is now managed by Focus&go. Email verification, phone verification, and device management will arrive later.'}
       </p>
     </div>
   )

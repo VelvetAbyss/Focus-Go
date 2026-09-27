@@ -92,6 +92,7 @@ const chooseThemePack = async (optionText: string) => {
 
 describe('SettingsRoute theme pack preview', () => {
   beforeEach(() => {
+    window.localStorage.clear()
     globalThis.ResizeObserver = class ResizeObserver {
       observe() {}
       unobserve() {}
@@ -162,5 +163,17 @@ describe('SettingsRoute theme pack preview', () => {
     unmount()
 
     expect(document.documentElement.style.getPropertyValue('--bg')).toBe('')
+  })
+
+  it('stores a personal integration key locally when the user saves it', async () => {
+    const user = userEvent.setup()
+    renderRoute()
+
+    await user.click(screen.getByRole('tab', { name: /settings\.module\.integrations\.title/ }))
+    const input = await screen.findByLabelText('settings.integrations.tmdb.title')
+    await user.type(input, 'my-tmdb-key')
+    await user.click(screen.getAllByRole('button', { name: 'settings.integrations.save' })[0])
+
+    expect(window.localStorage.getItem('focusgo.personal-api-key.tmdb')).toBe('my-tmdb-key')
   })
 })

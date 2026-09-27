@@ -3,14 +3,14 @@
    See: design/loading/brand-loader.html for the source spec. */
 
 .brand-loader {
-  /* scoped tokens — do not leak onto the surrounding app */
-  --bl-accent: #e8a25a;
-  --bl-accent-wash: rgba(232, 162, 90, 0.14);
-  --bl-text-hi: #ede6da;
-  --bl-text-lo: rgba(237, 230, 218, 0.56);
-  --bl-text-xlo: rgba(237, 230, 218, 0.3);
-  --bl-hairline-strong: rgba(237, 230, 218, 0.18);
-  --bl-surface: #141210;
+  /* scoped tokens, drawn from the app's Paper & Ink tokens (one pen: the accent) */
+  --bl-accent: var(--accent, #1b4f4a);
+  --bl-accent-wash: var(--accent-wash, #e4edeb);
+  --bl-text-hi: var(--ink-1, #3a3733);
+  --bl-text-lo: var(--ink-3, #77726b);
+  --bl-text-xlo: var(--ink-4, #a8a298);
+  --bl-hairline-strong: var(--rule-strong, rgba(84, 70, 48, 0.22));
+  --bl-surface: var(--paper-desk, #f6f5f2);
   color: var(--bl-text-hi);
   display: flex;
   flex-direction: column;
@@ -19,15 +19,29 @@
   gap: 28px;
 }
 
-:root[data-theme='light'] .brand-loader,
-.brand-loader[data-theme='light'] {
-  --bl-accent: #b95814;
-  --bl-accent-wash: rgba(185, 88, 20, 0.09);
-  --bl-text-hi: #3A3733;
-  --bl-text-lo: rgba(58, 55, 51, 0.56);
-  --bl-text-xlo: rgba(58, 55, 51, 0.32);
-  --bl-hairline-strong: rgba(58, 55, 51, 0.2);
-  --bl-surface: #F5F3F0;
+
+/* The boot gate paints before html[data-theme] exists: follow the OS until it does. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .brand-loader {
+    --bl-accent: #7edbc7;
+    --bl-accent-wash: rgba(126, 219, 199, 0.12);
+    --bl-text-hi: #f2f0ec;
+    --bl-text-lo: #a39c91;
+    --bl-text-xlo: #6f6a62;
+    --bl-hairline-strong: rgba(255, 244, 225, 0.19);
+    --bl-surface: #242320;
+  }
+}
+
+/* Forced dark (e.g. the notes Graphite theme on a fixed dark surface, in either app theme). */
+.brand-loader[data-theme='dark'] {
+  --bl-accent: #7edbc7;
+  --bl-accent-wash: rgba(126, 219, 199, 0.12);
+  --bl-text-hi: #f2f0ec;
+  --bl-text-lo: rgba(242, 240, 236, 0.62);
+  --bl-text-xlo: rgba(242, 240, 236, 0.34);
+  --bl-hairline-strong: rgba(242, 240, 236, 0.18);
+  --bl-surface: #3a3733;
 }
 
 /* Variants */
@@ -49,13 +63,13 @@
 
 /* Entry / exit choreography */
 .brand-loader[data-state='entry'] {
-  animation: bl-entry 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: bl-entry var(--motion-duration-base) var(--ease-emphasized) both;
   /* Promote the whole loader to its own compositor layer during entry so the
      animation is immune to main-thread work (React mounting a new route). */
   will-change: transform, opacity;
 }
 .brand-loader[data-state='exit'] {
-  animation: bl-exit 320ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  animation: bl-exit var(--motion-duration-medium) var(--ease-accelerate) forwards;
   will-change: transform, opacity;
 }
 @keyframes bl-entry {
@@ -89,7 +103,7 @@
   /* Wider gradient replaces filter:blur — no filter means the element can be
      GPU-composited independently, so the animation never drops frames under
      main-thread load (e.g. React mounting a heavy page). */
-  background: radial-gradient(circle at 50% 50%, var(--bl-accent-wash) 0%, rgba(232,162,90,0.06) 45%, transparent 70%);
+  background: radial-gradient(circle at 50% 50%, var(--bl-accent-wash) 0%, color-mix(in srgb, var(--bl-accent) 6%, transparent) 45%, transparent 70%);
   animation: bl-breathe 1150ms cubic-bezier(0.4, 0, 0.3, 1) infinite;
   will-change: transform, opacity;
 }
@@ -155,27 +169,27 @@
   align-items: center;
   gap: 6px;
   font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px;
-  letter-spacing: 0.22em;
+  font-size: var(--fs-meta);
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: var(--bl-text-lo);
-  animation: bl-label-in 320ms 80ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+  animation: bl-label-in var(--motion-duration-medium) 80ms var(--ease-emphasized) backwards;
 }
 .brand-loader--inline .brand-loader__label {
-  font-size: 9px;
+  font-size: var(--fs-meta);
 }
 .brand-loader__label em {
   font-family: 'Fraunces', serif;
   font-style: italic;
   font-weight: 400;
-  font-size: 13px;
+  font-size: var(--fs-ui);
   letter-spacing: 0;
   text-transform: none;
   color: var(--bl-text-hi);
   font-variation-settings: 'opsz' 144;
 }
 .brand-loader--inline .brand-loader__label em {
-  font-size: 11px;
+  font-size: var(--fs-meta);
 }
 .brand-loader__dotline {
   display: flex;
@@ -208,7 +222,7 @@
   left: 24px;
   bottom: 20px;
   font-family: 'Fraunces', serif;
-  font-size: 15px;
+  font-size: var(--fs-body);
   letter-spacing: -0.01em;
   color: var(--bl-text-lo);
   font-variation-settings: 'opsz' 144;
@@ -221,8 +235,8 @@
   display: block;
   margin-top: 2px;
   font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 9px;
-  letter-spacing: 0.22em;
+  font-size: var(--fs-meta);
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: var(--bl-text-xlo);
 }

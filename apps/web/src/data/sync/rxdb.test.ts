@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { db } from '../db'
@@ -19,6 +20,19 @@ import { ensureRxdbSyncReady, resetRxdbSyncDatabase, runRxdbSyncCycle } from './
 
 describe('rxdb sync migration', () => {
   const fetchMock = vi.fn<typeof fetch>()
+  const syncDataUpdatedSpies: Array<(event: Event) => void> = []
+
+  // Listen on the real jsdom window. Replacing the global `window` with a bare
+  // EventTarget (the previous approach) starves RxDB's replication plugin of the
+  // window APIs it expects: the cycle never reaches in-sync, burns its full
+  // RXDB_SYNC_TIMEOUT_MS, and — because every rxdb entry point serialises on one
+  // module-level queue — leaves that queue blocked for every later `beforeEach`.
+  const listenForSyncDataUpdated = () => {
+    const spy = vi.fn()
+    window.addEventListener(SYNC_DATA_UPDATED_EVENT, spy)
+    syncDataUpdatedSpies.push(spy)
+    return spy
+  }
 
   beforeEach(async () => {
     await resetRxdbSyncDatabase()
@@ -28,6 +42,9 @@ describe('rxdb sync migration', () => {
   })
 
   afterEach(async () => {
+    while (syncDataUpdatedSpies.length > 0) {
+      window.removeEventListener(SYNC_DATA_UPDATED_EVENT, syncDataUpdatedSpies.pop()!)
+    }
     vi.unstubAllGlobals()
     fetchMock.mockReset()
     await resetRxdbSyncDatabase()
@@ -192,10 +209,7 @@ describe('rxdb sync migration', () => {
   })
 
   it('batches pulled Dexie refresh notifications per entity', async () => {
-    const eventTarget = new EventTarget()
-    vi.stubGlobal('window', eventTarget)
-    const syncDataUpdated = vi.fn()
-    eventTarget.addEventListener(SYNC_DATA_UPDATED_EVENT, syncDataUpdated)
+    const syncDataUpdated = listenForSyncDataUpdated()
 
     fetchMock.mockImplementation(async (input, init) => {
       const url = String(input)
@@ -275,10 +289,7 @@ describe('rxdb sync migration', () => {
   })
 
   it('does not emit pulled refresh notifications when Dexie data is unchanged', async () => {
-    const eventTarget = new EventTarget()
-    vi.stubGlobal('window', eventTarget)
-    const syncDataUpdated = vi.fn()
-    eventTarget.addEventListener(SYNC_DATA_UPDATED_EVENT, syncDataUpdated)
+    const syncDataUpdated = listenForSyncDataUpdated()
 
     await db.notes.put({
       id: 'note-remote',
@@ -359,10 +370,7 @@ describe('rxdb sync migration', () => {
     // re-adds on read (e.g. excerpt, wordCount, charCount). Without the merge fix,
     // writeDexieEntity would see existing-with-defaults vs payload-without-defaults
     // as different, write every cycle, and dispatch a 'notes' refresh forever.
-    const eventTarget = new EventTarget()
-    vi.stubGlobal('window', eventTarget)
-    const syncDataUpdated = vi.fn()
-    eventTarget.addEventListener(SYNC_DATA_UPDATED_EVENT, syncDataUpdated)
+    const syncDataUpdated = listenForSyncDataUpdated()
 
     // Local row with all normalized defaults present (matches what list() bulkPuts).
     await db.notes.put({

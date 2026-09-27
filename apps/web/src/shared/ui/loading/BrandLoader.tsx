@@ -1,4 +1,5 @@
 import './BrandLoader.css'
+import { readLanguage } from '../../prefs/preferences'
 
 type Variant = 'fullscreen' | 'inline'
 type State = 'entry' | 'exit'
@@ -15,6 +16,23 @@ interface BrandLoaderProps {
   'data-testid'?: string
 }
 
+// The loader shows during boot, before translation tables are loaded, so its
+// two default phrases are resolved synchronously from the stored language.
+const DEFAULT_LABELS = {
+  en: { fullscreen: 'Preparing your workspace', inline: 'Loading' },
+  zh: { fullscreen: '正在准备你的工作台', inline: '加载中' },
+} as const
+
+const defaultLabel = (variant: Variant) => {
+  let language: 'en' | 'zh' = 'en'
+  try {
+    language = readLanguage()
+  } catch {
+    // storage unavailable — keep English
+  }
+  return DEFAULT_LABELS[language][variant]
+}
+
 const BrandLoader = ({
   variant = 'fullscreen',
   state = 'entry',
@@ -24,7 +42,7 @@ const BrandLoader = ({
   className,
   'data-testid': testId,
 }: BrandLoaderProps) => {
-  const resolvedLabel = label ?? (variant === 'fullscreen' ? 'Preparing your workspace' : 'Loading')
+  const resolvedLabel = label ?? defaultLabel(variant)
   const renderSignature = showSignature ?? variant === 'fullscreen'
 
   return (

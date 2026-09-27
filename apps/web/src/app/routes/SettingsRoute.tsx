@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from 'react'
 import { motion } from 'motion/react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
@@ -7,6 +7,7 @@ import {
   Brush,
   CheckCircle2,
   Database,
+  KeyRound,
   LayoutGrid,
   LocateFixed,
   Scale,
@@ -66,7 +67,7 @@ import { useSyncActions, useSyncStatus } from '../../data/sync/service'
 import { restampLocalSnapshotForRestore } from '../../data/sync/repository'
 import { requestRxdbSyncReset, resetRxdbSyncDatabase } from '../../data/sync/rxdb'
 import { wipeServerData } from '../../data/sync/wipeServerData'
-import { getAuth, useCloudSyncQuota } from '../../store/auth'
+import { getAuth, useCloudSyncQuota, useIsLoggedIn } from '../../store/auth'
 import { ROUTES } from './routes'
 import { useDiscoveryReset } from '../../shared/discovery/useDiscoveryHint'
 import { useAuthGate } from '../../features/auth/AuthGateContext'
@@ -81,10 +82,21 @@ import {
 import { readLayoutLocked, writeLayoutLocked } from '../../shared/prefs/dashboardLayoutLock'
 import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../data/repositories/syncedPreferencesRepo'
 import AmbientSettingsSection from './AmbientSettingsSection'
+import {
+  clearPersonalApiKey,
+  readPersonalApiKey,
+  writePersonalApiKey,
+  type PersonalApiKeyService,
+} from '../../shared/integrations/personalApiKeys'
+
+const LoginModal = lazy(() => import('../layout/LoginModal'))
+import { appIntlLocale } from '../../shared/i18n/format'
+import ActiveIndicator from '../../shared/motion/ActiveIndicator'
+import { DURATION, EASE } from '../../shared/motion/tokens'
 const RESET_TIMEOUT_MS = 30_000
 
 type ThemeSelection = 'system' | 'light' | 'dark'
-type SettingsSection = 'appearance' | 'experience' | 'weather' | 'data' | 'legal' | 'feedback'
+type SettingsSection = 'appearance' | 'experience' | 'weather' | 'integrations' | 'data' | 'legal' | 'feedback'
 type BaseSettingsSection = Exclude<SettingsSection, 'legal'>
 type LegalDocumentKey = 'privacy-policy' | 'terms-of-service'
 
@@ -94,6 +106,7 @@ const SECTION_META_KEYS: Array<{
     | 'settings.module.appearance.title'
     | 'settings.module.experience.title'
     | 'settings.module.weather.title'
+    | 'settings.module.integrations.title'
     | 'settings.module.data.title'
     | 'settings.module.legal.title'
     | 'settings.module.feedback.title'
@@ -101,6 +114,7 @@ const SECTION_META_KEYS: Array<{
     | 'settings.module.appearance.hint'
     | 'settings.module.experience.hint'
     | 'settings.module.weather.hint'
+    | 'settings.module.integrations.hint'
     | 'settings.module.data.hint'
     | 'settings.module.legal.hint'
     | 'settings.module.feedback.hint'
@@ -109,6 +123,7 @@ const SECTION_META_KEYS: Array<{
     | 'settings.badge.visual'
     | 'settings.badge.motion'
     | 'settings.badge.widget'
+    | 'settings.badge.private'
     | 'settings.badge.safety'
     | 'settings.badge.legal'
     | 'settings.badge.feedback'
@@ -116,6 +131,7 @@ const SECTION_META_KEYS: Array<{
   { key: 'appearance', titleKey: 'settings.module.appearance.title', hintKey: 'settings.module.appearance.hint', icon: Brush, badgeKey: 'settings.badge.visual' },
   { key: 'experience', titleKey: 'settings.module.experience.title', hintKey: 'settings.module.experience.hint', icon: Sparkles, badgeKey: 'settings.badge.motion' },
   { key: 'weather', titleKey: 'settings.module.weather.title', hintKey: 'settings.module.weather.hint', icon: SunMedium, badgeKey: 'settings.badge.widget' },
+  { key: 'integrations', titleKey: 'settings.module.integrations.title', hintKey: 'settings.module.integrations.hint', icon: KeyRound, badgeKey: 'settings.badge.private' },
   { key: 'data', titleKey: 'settings.module.data.title', hintKey: 'settings.module.data.hint', icon: Database, badgeKey: 'settings.badge.safety' },
   { key: 'legal', titleKey: 'settings.module.legal.title', hintKey: 'settings.module.legal.hint', icon: Shield, badgeKey: 'settings.badge.legal' },
   { key: 'feedback', titleKey: 'settings.module.feedback.title', hintKey: 'settings.module.feedback.hint', icon: Bell, badgeKey: 'settings.badge.feedback' },
@@ -139,13 +155,13 @@ const LEGAL_DOCUMENTS: Record<LanguageCode, Record<LegalDocumentKey, LegalDocume
   en: {
     'privacy-policy': {
       title: 'Privacy Policy',
-      summary: 'How Focus & Go collects, stores, and uses information when you use the app.',
+      summary: 'How Focus&go collects, stores, and uses information when you use the app.',
       updatedAt: 'March 30, 2026',
       sections: [
         {
           heading: 'Information we collect',
           paragraphs: [
-            'Focus & Go stores the content you create in the app, such as tasks, notes, focus sessions, diary entries, preferences, and other workspace data.',
+            'Focus&go stores the content you create in the app, such as tasks, notes, focus sessions, diary entries, preferences, and other workspace data.',
             'When you sign in for official cloud sync, we may also receive basic account details such as your user ID, display name, email address, supporter acknowledgement, and sync-quota status.',
           ],
         },
@@ -187,13 +203,13 @@ const LEGAL_DOCUMENTS: Record<LanguageCode, Record<LegalDocumentKey, LegalDocume
     },
     'terms-of-service': {
       title: 'Terms of Service',
-      summary: 'The basic rules, responsibilities, and limitations that apply when you use Focus & Go.',
+      summary: 'The basic rules, responsibilities, and limitations that apply when you use Focus&go.',
       updatedAt: 'March 30, 2026',
       sections: [
         {
           heading: 'Service overview',
           paragraphs: [
-            'Focus & Go is a productivity workspace for managing tasks, notes, focus sessions, diary entries, and related personal workflows.',
+            'Focus&go is a productivity workspace for managing tasks, notes, focus sessions, diary entries, and related personal workflows.',
             'We may update, improve, limit, or discontinue features at any time as the product evolves.',
           ],
         },
@@ -214,7 +230,7 @@ const LEGAL_DOCUMENTS: Record<LanguageCode, Record<LegalDocumentKey, LegalDocume
         {
           heading: 'Free features and cloud sync',
           paragraphs: [
-            'All current Focus & Go features are free. Local use does not require an account; an account is only needed for the optional official cloud sync service.',
+            'All current Focus&go features are free. Local use does not require an account; an account is only needed for the optional official cloud sync service.',
             'Official cloud sync includes 250 MiB of storage per account. Optional sponsorship does not unlock features or change this allowance.',
           ],
         },
@@ -244,13 +260,13 @@ const LEGAL_DOCUMENTS: Record<LanguageCode, Record<LegalDocumentKey, LegalDocume
   zh: {
     'privacy-policy': {
       title: '隐私政策',
-      summary: '说明 Focus & Go 在你使用产品时会收集、存储和使用哪些信息。',
+      summary: '说明 Focus&go 在你使用产品时会收集、存储和使用哪些信息。',
       updatedAt: '2026 年 3 月 30 日',
       sections: [
         {
           heading: '我们收集的信息',
           paragraphs: [
-            'Focus & Go 会保存你在产品中创建的内容，例如任务、笔记、专注记录、日记、偏好设置及其他工作台数据。',
+            'Focus&go 会保存你在产品中创建的内容，例如任务、笔记、专注记录、日记、偏好设置及其他工作台数据。',
             '当你登录时，我们也可能接收基础账号信息，例如用户 ID、显示名称、邮箱地址和订阅状态。',
           ],
         },
@@ -292,13 +308,13 @@ const LEGAL_DOCUMENTS: Record<LanguageCode, Record<LegalDocumentKey, LegalDocume
     },
     'terms-of-service': {
       title: '服务条款',
-      summary: '说明你在使用 Focus & Go 时需要遵守的基本规则、责任和限制。',
+      summary: '说明你在使用 Focus&go 时需要遵守的基本规则、责任和限制。',
       updatedAt: '2026 年 3 月 30 日',
       sections: [
         {
           heading: '服务说明',
           paragraphs: [
-            'Focus & Go 是一个用于管理任务、笔记、专注、日记及相关个人工作流的效率工作台。',
+            'Focus&go 是一个用于管理任务、笔记、专注、日记及相关个人工作流的效率工作台。',
             '随着产品演进，我们可能会随时更新、增强、限制或下线部分功能。',
           ],
         },
@@ -403,9 +419,9 @@ const FeedbackForm = () => {
         className="flex flex-col items-center gap-4 rounded-2xl border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color-mix(in_srgb,var(--bg-elevated)_90%,transparent)] p-8 text-center text-[var(--text-primary)] shadow-sm dark:border-white/10 dark:bg-background/50 dark:text-foreground"
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: DURATION.medium, ease: EASE.emphasized }}
       >
-        <CheckCircle2 className="h-10 w-10 text-[#4F746C]" />
+        <CheckCircle2 className="h-10 w-10 text-[color:var(--accent)]" />
         <div className="space-y-1">
           <h3 className="text-base font-semibold">{t('settings.feedback.success.title')}</h3>
           <p className="text-sm text-[color-mix(in_srgb,var(--text-primary)_68%,transparent)] dark:text-muted-foreground">{t('settings.feedback.success.body')}</p>
@@ -422,7 +438,7 @@ const FeedbackForm = () => {
       className="space-y-5 rounded-2xl border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color-mix(in_srgb,var(--bg-elevated)_90%,transparent)] p-6 text-[var(--text-primary)] shadow-sm dark:border-white/10 dark:bg-background/50 dark:text-foreground"
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: DURATION.slow, ease: EASE.emphasized }}
     >
       <div>
         <h2 className="text-xl font-semibold tracking-tight">{t('settings.feedback.title')}</h2>
@@ -431,7 +447,7 @@ const FeedbackForm = () => {
 
       <div className="space-y-4">
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold uppercase tracking-wide text-[color-mix(in_srgb,var(--text-primary)_52%,transparent)] dark:text-muted-foreground">
+          <label className="text-xs font-semibold uppercase tracking-[var(--tracking-caps)] text-[var(--text-tertiary)] dark:text-muted-foreground">
             {t('settings.feedback.type.label')}
           </label>
           <div className="flex flex-wrap gap-2">
@@ -453,7 +469,7 @@ const FeedbackForm = () => {
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold uppercase tracking-wide text-[color-mix(in_srgb,var(--text-primary)_52%,transparent)] dark:text-muted-foreground">
+          <label className="text-xs font-semibold uppercase tracking-[var(--tracking-caps)] text-[var(--text-tertiary)] dark:text-muted-foreground">
             {t('settings.feedback.title.label')}
           </label>
           <Input
@@ -466,7 +482,7 @@ const FeedbackForm = () => {
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold uppercase tracking-wide text-[color-mix(in_srgb,var(--text-primary)_52%,transparent)] dark:text-muted-foreground">
+          <label className="text-xs font-semibold uppercase tracking-[var(--tracking-caps)] text-[var(--text-tertiary)] dark:text-muted-foreground">
             {t('settings.feedback.body.label')}
           </label>
           <textarea
@@ -475,12 +491,12 @@ const FeedbackForm = () => {
             placeholder={t('settings.feedback.body.placeholder')}
             maxLength={5000}
             rows={5}
-            className="w-full resize-y rounded-md border border-[color-mix(in_srgb,var(--text-primary)_14%,transparent)] bg-[color-mix(in_srgb,var(--bg-elevated)_70%,transparent)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[color-mix(in_srgb,var(--text-primary)_38%,transparent)] outline-none transition focus-visible:ring-2 focus-visible:ring-[#4F746C]/30 dark:border-white/14 dark:bg-white/10 dark:text-foreground dark:placeholder-white/38"
+            className="w-full resize-y rounded-md border border-[color-mix(in_srgb,var(--text-primary)_14%,transparent)] bg-[color-mix(in_srgb,var(--bg-elevated)_70%,transparent)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[color-mix(in_srgb,var(--text-primary)_38%,transparent)] outline-none transition focus-visible:ring-2 focus-visible:ring-[color:var(--focus-ring)] dark:border-white/14 dark:bg-white/10 dark:text-foreground dark:placeholder-white/38"
           />
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold uppercase tracking-wide text-[color-mix(in_srgb,var(--text-primary)_52%,transparent)] dark:text-muted-foreground">
+          <label className="text-xs font-semibold uppercase tracking-[var(--tracking-caps)] text-[var(--text-tertiary)] dark:text-muted-foreground">
             {t('settings.feedback.email.label')}
           </label>
           <Input
@@ -537,10 +553,10 @@ const DesktopNotificationRow = () => {
   if (permission === 'unsupported') {
     content = <span className="text-xs text-muted-foreground">—</span>
   } else if (permission === 'granted') {
-    content = <span className="text-xs font-semibold text-emerald-600">✓</span>
+    content = <span className="text-xs font-semibold text-tone-done">✓</span>
   } else if (permission === 'denied') {
     content = (
-      <span className="text-xs text-rose-600">{t('tasks.reminder.desktopBlocked')}</span>
+      <span className="text-xs text-tone-urgent">{t('tasks.reminder.desktopBlocked')}</span>
     )
   } else {
     content = (
@@ -567,7 +583,7 @@ const SettingRow = ({ icon: Icon, title, description, children }: SettingRowProp
     className="grid gap-4 rounded-xl bg-background/40 p-4 shadow-sm backdrop-blur-sm transition-shadow hover:shadow-md lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center"
     initial={{ opacity: 0, y: 18, scale: 0.98 }}
     animate={{ opacity: 1, y: 0, scale: 1 }}
-    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+    transition={{ duration: DURATION.slow, ease: EASE.emphasized }}
     whileHover={{ y: -2 }}
   >
     <div className="flex gap-3">
@@ -600,7 +616,7 @@ const LegalEntryCard = ({
     className="w-full rounded-2xl border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color-mix(in_srgb,var(--bg-elevated)_90%,transparent)] p-5 text-left text-[var(--text-primary)] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-white/10 dark:bg-background/50 dark:text-foreground"
     initial={{ opacity: 0, y: 18, scale: 0.98 }}
     animate={{ opacity: 1, y: 0, scale: 1 }}
-    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+    transition={{ duration: DURATION.slow, ease: EASE.emphasized }}
   >
     <div className="flex items-start justify-between gap-4">
       <div className="space-y-2">
@@ -632,7 +648,7 @@ const LegalDocumentView = ({
     className="space-y-5"
     initial={{ opacity: 0, y: 18 }}
     animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+    transition={{ duration: DURATION.slow, ease: EASE.emphasized }}
   >
     <div className="sticky top-0 z-10 pb-1">
       <Button
@@ -646,10 +662,10 @@ const LegalDocumentView = ({
       </Button>
     </div>
 
-    <div className="rounded-[28px] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color-mix(in_srgb,var(--bg-elevated)_92%,transparent)] p-6 text-[var(--text-primary)] shadow-lg dark:border-white/10 dark:bg-background/50 dark:text-foreground">
+    <div className="rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color-mix(in_srgb,var(--bg-elevated)_92%,transparent)] p-6 text-[var(--text-primary)] shadow-lg dark:border-white/10 dark:bg-background/50 dark:text-foreground">
       <div className="mx-auto max-w-3xl space-y-8">
         <div className="space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color-mix(in_srgb,var(--text-primary)_52%,transparent)] dark:text-muted-foreground">Focus & Go</p>
+          <p className="text-xs font-semibold uppercase tracking-[var(--tracking-caps)] text-[var(--text-tertiary)] dark:text-muted-foreground">Focus&go</p>
           <h2 className="text-3xl font-semibold tracking-tight">{title}</h2>
           <p className="max-w-2xl text-sm leading-7 text-[color-mix(in_srgb,var(--text-primary)_72%,transparent)] dark:text-muted-foreground">{summary}</p>
           <div className="inline-flex rounded-full border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color-mix(in_srgb,var(--bg-elevated)_70%,transparent)] px-3 py-1 text-xs text-[color-mix(in_srgb,var(--text-primary)_72%,transparent)] dark:border-white/10 dark:bg-white/10 dark:text-muted-foreground">
@@ -681,6 +697,8 @@ const SettingsRoute = () => {
   const navigate = useNavigate()
   const { language, t } = useI18n()
   const { requireAuth, isGated } = useAuthGate()
+  const isLoggedIn = useIsLoggedIn()
+  const [showLoginModal, setShowLoginModal] = useState(false)
   const cloudSyncQuota = useCloudSyncQuota()
   const toast = useToast()
   const syncState = useSyncStatus()
@@ -734,6 +752,10 @@ const SettingsRoute = () => {
     suggestions: [],
   })
   const [manualCityActiveIndex, setManualCityActiveIndex] = useState(-1)
+  const [personalApiKeys, setPersonalApiKeys] = useState<Record<PersonalApiKeyService, string>>(() => ({
+    tmdb: readPersonalApiKey('tmdb'),
+    twelveData: readPersonalApiKey('twelveData'),
+  }))
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => setPageEntered(true))
@@ -743,13 +765,17 @@ const SettingsRoute = () => {
   useEffect(() => {
     dashboardRepo.get().then((stored) => {
       setDashboard(stored)
-      const override = stored?.themeOverride
-      if (override === 'light' || override === 'dark') {
-        setTheme(override)
+      // The applied theme comes from the local (synced) preference, so the
+      // selector must mirror it. dashboard.themeOverride is a legacy mirror
+      // that new layouts seed with 'light' — reading it first made Settings
+      // show "Light" while the app was actually dark.
+      const storedPreference = readStoredThemePreference()
+      if (storedPreference) {
+        setTheme(storedPreference)
         return
       }
-      const storedPreference = readStoredThemePreference()
-      setTheme(storedPreference ?? 'system')
+      const override = stored?.themeOverride
+      setTheme(override === 'light' || override === 'dark' ? override : 'system')
     })
   }, [])
 
@@ -766,7 +792,7 @@ const SettingsRoute = () => {
     ? t('settings.data.sync.status.paused')
     : syncState ? t(`settings.data.sync.status.${syncState.status}`) : t('settings.data.sync.status.idle')
   const lastSyncedLabel = syncState?.lastPulledAt
-    ? t('settings.data.sync.lastSynced', { time: new Date(syncState.lastPulledAt).toLocaleString() })
+    ? t('settings.data.sync.lastSynced', { time: new Date(syncState.lastPulledAt).toLocaleString(appIntlLocale()) })
     : t('settings.data.sync.lastSynced.never')
 
   const openSection = (section: SettingsSection) => {
@@ -778,9 +804,21 @@ const SettingsRoute = () => {
     if (isLegalSection) navigate(ROUTES.SETTINGS)
   }
 
+  const savePersonalApiKey = (service: PersonalApiKeyService) => {
+    writePersonalApiKey(service, personalApiKeys[service])
+    setPersonalApiKeys((current) => ({ ...current, [service]: readPersonalApiKey(service) }))
+    toast.push({ variant: 'success', message: t('settings.integrations.saved') })
+  }
+
+  const removePersonalApiKey = (service: PersonalApiKeyService) => {
+    clearPersonalApiKey(service)
+    setPersonalApiKeys((current) => ({ ...current, [service]: '' }))
+    toast.push({ variant: 'success', message: t('settings.integrations.removed') })
+  }
+
   const themeHelp = useMemo(() => {
     if (theme === 'system') return t('settings.theme.systemHelp')
-    return t('settings.theme.forceHelp', { theme })
+    return t('settings.theme.forceHelp', { theme: t(theme === 'dark' ? 'settings.theme.dark' : 'settings.theme.light').toLowerCase() })
   }, [theme, t])
   const resolvedThemeMode = useMemo(() => (theme === 'system' ? resolveTheme() : theme), [theme])
 
@@ -1052,12 +1090,12 @@ const SettingsRoute = () => {
         <motion.header
           initial={pageEntered ? { opacity: 0, y: -16 } : false}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: DURATION.slow, ease: EASE.emphasized }}
           className="flex flex-wrap items-end justify-between gap-4 rounded-xl bg-background/20 p-5 shadow-lg backdrop-blur"
         >
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">{t('settings.pageEyebrow')}</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">{t('settings.pageTitle')}</h1>
+            <p className="text-xs font-semibold uppercase tracking-[var(--tracking-caps)] text-muted-foreground">{t('settings.pageEyebrow')}</p>
+            <h1 className="page-title mt-2 text-foreground">{t('settings.pageTitle')}</h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{t('settings.pageDescription')}</p>
           </div>
         </motion.header>
@@ -1069,7 +1107,8 @@ const SettingsRoute = () => {
               <CardDescription>{t('settings.modulesDescription')}</CardDescription>
             </CardHeader>
             <CardContent className="pt-0">
-              <TabsList className="h-auto w-full flex-col items-stretch gap-2 bg-transparent p-0">
+              <TabsList className="settings-nav h-auto w-full flex-col items-stretch gap-2 bg-transparent p-0">
+                <ActiveIndicator selector=':scope > div > [role="tab"][data-state="active"]' />
                 {SECTION_META_KEYS.map((section) => {
                   const Icon = section.icon
                   const active = resolvedSection === section.key
@@ -1085,7 +1124,7 @@ const SettingsRoute = () => {
                             <div className="text-sm font-semibold">{t(section.titleKey)}</div>
                             <div className="truncate text-xs text-muted-foreground">{t(section.hintKey)}</div>
                           </div>
-                          <Badge variant={active ? 'default' : 'secondary'} className="h-6 px-2 text-[11px]">
+                          <Badge variant={active ? 'default' : 'secondary'} className="h-6 px-2 text-meta">
                             {t(section.badgeKey)}
                           </Badge>
                         </div>
@@ -1118,11 +1157,11 @@ const SettingsRoute = () => {
                             className="space-y-4"
                             initial={{ opacity: 0, y: 18 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                            transition={{ duration: DURATION.slow, ease: EASE.emphasized }}
                           >
-                            <div className="rounded-[28px] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color-mix(in_srgb,var(--bg-elevated)_92%,transparent)] p-6 text-[var(--text-primary)] shadow-lg dark:border-white/10 dark:bg-background/50 dark:text-foreground">
+                            <div className="rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color-mix(in_srgb,var(--bg-elevated)_92%,transparent)] p-6 text-[var(--text-primary)] shadow-lg dark:border-white/10 dark:bg-background/50 dark:text-foreground">
                               <div className="space-y-2">
-                                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color-mix(in_srgb,var(--text-primary)_52%,transparent)] dark:text-muted-foreground">
+                                <p className="text-xs font-semibold uppercase tracking-[var(--tracking-caps)] text-[var(--text-tertiary)] dark:text-muted-foreground">
                                   {t('settings.module.legal.title')}
                                 </p>
                                 <h2 className="text-2xl font-semibold tracking-tight">{t('settings.legal.title')}</h2>
@@ -1398,7 +1437,7 @@ const SettingsRoute = () => {
                             className="space-y-3 rounded-xl bg-background/40 p-4 shadow-sm"
                             initial={{ opacity: 0, y: 18 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.35, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
+                            transition={{ duration: DURATION.slow, delay: 0.05, ease: EASE.emphasized }}
                           >
                             <div>
                               <h3 className="text-sm font-semibold text-foreground">{t('settings.weather.manualCity.title')}</h3>
@@ -1529,6 +1568,86 @@ const SettingsRoute = () => {
                         </>
                       ) : null}
 
+                      {resolvedSection === 'integrations' ? (
+                        <>
+                          <motion.div
+                            className="rounded-md border border-rule bg-[var(--paper-sunken)] p-4 text-sm text-muted-foreground"
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: DURATION.medium, ease: EASE.emphasized }}
+                          >
+                            <p className="font-medium text-foreground">{t('settings.integrations.localOnly.title')}</p>
+                            <p className="mt-1 leading-6">{t('settings.integrations.localOnly.description')}</p>
+                          </motion.div>
+
+                          <SettingRow
+                            icon={KeyRound}
+                            title={t('settings.integrations.tmdb.title')}
+                            description={t('settings.integrations.tmdb.description')}
+                          >
+                            <div className="flex w-full flex-col gap-2 sm:max-w-[420px]">
+                              <Input
+                                aria-label={t('settings.integrations.tmdb.title')}
+                                type="password"
+                                autoComplete="off"
+                                value={personalApiKeys.tmdb}
+                                onChange={(event) => setPersonalApiKeys((current) => ({ ...current, tmdb: event.target.value }))}
+                                placeholder={t('settings.integrations.keyPlaceholder')}
+                              />
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Button type="button" size="sm" onClick={() => savePersonalApiKey('tmdb')}>
+                                  {t('settings.integrations.save')}
+                                </Button>
+                                <Button type="button" size="sm" variant="outline" onClick={() => removePersonalApiKey('tmdb')}>
+                                  {t('settings.integrations.remove')}
+                                </Button>
+                                <a className="text-xs font-medium text-primary underline-offset-4 hover:underline" href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer">
+                                  {t('settings.integrations.getKey')}
+                                </a>
+                              </div>
+                            </div>
+                          </SettingRow>
+
+                          <SettingRow
+                            icon={KeyRound}
+                            title={t('settings.integrations.twelveData.title')}
+                            description={t('settings.integrations.twelveData.description')}
+                          >
+                            <div className="flex w-full flex-col gap-2 sm:max-w-[420px]">
+                              <Input
+                                aria-label={t('settings.integrations.twelveData.title')}
+                                type="password"
+                                autoComplete="off"
+                                value={personalApiKeys.twelveData}
+                                onChange={(event) => setPersonalApiKeys((current) => ({ ...current, twelveData: event.target.value }))}
+                                placeholder={t('settings.integrations.keyPlaceholder')}
+                              />
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Button type="button" size="sm" onClick={() => savePersonalApiKey('twelveData')}>
+                                  {t('settings.integrations.save')}
+                                </Button>
+                                <Button type="button" size="sm" variant="outline" onClick={() => removePersonalApiKey('twelveData')}>
+                                  {t('settings.integrations.remove')}
+                                </Button>
+                                <a className="text-xs font-medium text-primary underline-offset-4 hover:underline" href="https://twelvedata.com/account/api-keys" target="_blank" rel="noreferrer">
+                                  {t('settings.integrations.getKey')}
+                                </a>
+                              </div>
+                            </div>
+                          </SettingRow>
+
+                          <SettingRow
+                            icon={Shield}
+                            title={t('settings.integrations.server.title')}
+                            description={t('settings.integrations.server.description')}
+                          >
+                            <a className="text-sm font-medium text-primary underline-offset-4 hover:underline" href="https://github.com/VelvetAbyss/Focus-Go/blob/main/docs/SELF_HOSTING.md" target="_blank" rel="noreferrer">
+                              {t('settings.integrations.server.action')}
+                            </a>
+                          </SettingRow>
+                        </>
+                      ) : null}
+
                       {resolvedSection === 'data' ? (
                         <>
                           <SettingRow
@@ -1536,6 +1655,16 @@ const SettingsRoute = () => {
                             title={t('settings.data.sync.title')}
                             description={t('settings.data.sync.description')}
                           >
+                            {!isLoggedIn ? (
+                              // Signed out there is nothing to sync with: say so and offer the way in,
+                              // instead of an "enabled · idle · never synced" status.
+                              <div className="flex w-full flex-col gap-3 sm:items-end">
+                                <p className="max-w-[360px] text-sm text-muted-foreground sm:text-right">{t('settings.data.sync.signedOut')}</p>
+                                <Button variant="outline" onClick={() => setShowLoginModal(true)}>
+                                  {t('auth.signIn')}
+                                </Button>
+                              </div>
+                            ) : (
                             <div className="flex w-full flex-col gap-3 sm:items-end">
                               <label className="flex items-center gap-3 text-sm font-medium">
                                 <span>{cloudSyncEnabled ? t('settings.data.sync.enabled') : t('settings.data.sync.disabled')}</span>
@@ -1547,7 +1676,7 @@ const SettingsRoute = () => {
                               </label>
                               <div className="text-sm text-muted-foreground">{syncStatusLabel}</div>
                               <div className="text-xs text-muted-foreground">{lastSyncedLabel}</div>
-                              {cloudSyncQuota ? <div className="text-xs text-muted-foreground">Cloud storage: {(cloudSyncQuota.usedBytes / 1024 / 1024).toFixed(1)} / {(cloudSyncQuota.limitBytes / 1024 / 1024).toFixed(0)} MiB</div> : null}
+                              {cloudSyncQuota ? <div className="text-xs text-muted-foreground">{t('settings.data.sync.quota', { used: (cloudSyncQuota.usedBytes / 1024 / 1024).toFixed(1), limit: (cloudSyncQuota.limitBytes / 1024 / 1024).toFixed(0) })}</div> : null}
                               {cloudSyncEnabled && syncState?.lastError ? (
                                 <div className="max-w-[360px] text-right text-xs text-destructive">
                                   {t('settings.data.sync.error', { message: syncState.lastError })}
@@ -1561,6 +1690,7 @@ const SettingsRoute = () => {
                                 {t('settings.data.sync.action')}
                               </Button>
                             </div>
+                            )}
                           </SettingRow>
 
                           <SettingRow
@@ -1607,7 +1737,7 @@ const SettingsRoute = () => {
                             className="space-y-4 rounded-xl bg-destructive/5 p-4 shadow-sm ring-1 ring-destructive/20"
                             initial={{ opacity: 0, y: 16 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.35, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
+                            transition={{ duration: DURATION.slow, delay: 0.06, ease: EASE.emphasized }}
                           >
                             <div className="flex items-start gap-3">
                               <AlertTriangle className="mt-0.5 h-5 w-5 text-destructive" />
@@ -1670,6 +1800,11 @@ const SettingsRoute = () => {
           </Card>
         </Tabs>
       </div>
+      {showLoginModal ? (
+        <Suspense fallback={null}>
+          <LoginModal onClose={() => setShowLoginModal(false)} />
+        </Suspense>
+      ) : null}
     </div>
   )
 }

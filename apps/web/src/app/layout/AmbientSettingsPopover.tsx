@@ -1,5 +1,6 @@
 import * as Popover from '@radix-ui/react-popover'
 import { RotateCcw, Settings2 } from 'lucide-react'
+import { useI18n } from '../../shared/i18n/useI18n'
 import {
   AMBIENT_PREFERENCES_DEFAULTS,
   resetAmbientPreferences,
@@ -14,6 +15,7 @@ import {
  * onto <html>.
  */
 const AmbientSettingsPopover = () => {
+  const { t } = useI18n()
   const prefs = useAmbientPreferences()
 
   return (
@@ -22,8 +24,8 @@ const AmbientSettingsPopover = () => {
         <button
           type="button"
           className="sidebar-noise-mini__gear"
-          aria-label="调节背景显示"
-          title="调节背景显示"
+          aria-label={t('ambient.popover.aria')}
+          title={t('ambient.popover.aria')}
         >
           <Settings2 size={13} aria-hidden="true" />
         </button>
@@ -37,20 +39,20 @@ const AmbientSettingsPopover = () => {
           collisionPadding={12}
         >
           <header className="ambient-prefs-popover__header">
-            <span>背景显示</span>
+            <span>{t('ambient.popover.title')}</span>
             <button
               type="button"
               className="ambient-prefs-popover__reset"
               onClick={resetAmbientPreferences}
-              aria-label="恢复默认"
-              title="恢复默认"
+              aria-label={t('ambient.popover.reset')}
+              title={t('ambient.popover.reset')}
             >
               <RotateCcw size={12} aria-hidden="true" />
             </button>
           </header>
 
           <label className="ambient-prefs-popover__row">
-            <span className="ambient-prefs-popover__label">面板不透明度</span>
+            <span className="ambient-prefs-popover__label">{t('ambient.popover.opacity')}</span>
             <input
               type="range"
               min={0}
@@ -60,7 +62,7 @@ const AmbientSettingsPopover = () => {
               onChange={(event) =>
                 setAmbientPreferences({ surfaceOpacity: Number(event.target.value) / 100 })
               }
-              aria-label="面板不透明度"
+              aria-label={t('ambient.popover.opacity')}
             />
             <span className="ambient-prefs-popover__value">
               {Math.round(prefs.surfaceOpacity * 100)}%
@@ -68,7 +70,7 @@ const AmbientSettingsPopover = () => {
           </label>
 
           <label className="ambient-prefs-popover__row">
-            <span className="ambient-prefs-popover__label">毛玻璃强度</span>
+            <span className="ambient-prefs-popover__label">{t('ambient.popover.blur')}</span>
             <input
               type="range"
               min={0}
@@ -78,7 +80,7 @@ const AmbientSettingsPopover = () => {
               onChange={(event) =>
                 setAmbientPreferences({ glassBlur: Number(event.target.value) })
               }
-              aria-label="毛玻璃强度"
+              aria-label={t('ambient.popover.blur')}
             />
             <span className="ambient-prefs-popover__value">
               {Math.round(prefs.glassBlur)}px
@@ -86,7 +88,7 @@ const AmbientSettingsPopover = () => {
           </label>
 
           <footer className="ambient-prefs-popover__hint">
-            默认 {Math.round(AMBIENT_PREFERENCES_DEFAULTS.surfaceOpacity * 100)}% ·{' '}
+            {t('ambient.popover.defaultHint')} {Math.round(AMBIENT_PREFERENCES_DEFAULTS.surfaceOpacity * 100)}% ·{' '}
             {AMBIENT_PREFERENCES_DEFAULTS.glassBlur}px
           </footer>
 

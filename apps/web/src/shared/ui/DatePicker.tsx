@@ -1,11 +1,11 @@
 import * as React from 'react'
-import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { useI18n } from '../i18n/useI18n'
 import { parseDateKeyToLocalDate, toDateKey } from './datePicker/dateKey'
+import { formatPickedDate } from './datePicker/dateLocale'
 
 export interface DatePickerProps {
   value?: string | null
@@ -25,7 +25,7 @@ export function DatePicker({
   ariaLabel,
   popoverClassName,
 }: DatePickerProps) {
-  const { t } = useI18n()
+  const { t, language } = useI18n()
   const [open, setOpen] = React.useState(false)
   const selectedDate = React.useMemo(() => parseDateKeyToLocalDate(value), [value])
   void placeholder
@@ -39,13 +39,13 @@ export function DatePicker({
           variant="outline"
           data-empty={!selectedDate}
           className={cn(
-            'h-auto min-h-11 w-full min-w-0 max-w-full justify-start rounded-[6px] border-[var(--border)] bg-[var(--bg-muted)] px-3 py-2.5 text-left text-[14px] font-normal text-[var(--text-primary)] shadow-none',
-            'data-[empty=true]:text-[#737373] hover:bg-[var(--bg-muted)] hover:text-[var(--text-primary)]',
+            'h-auto min-h-11 w-full min-w-0 max-w-full justify-start rounded-[var(--radius-xs)] border-[var(--border)] bg-[var(--bg-muted)] px-3 py-2.5 text-left text-body font-normal text-[var(--text-primary)] shadow-none',
+            'data-[empty=true]:text-ink-3 hover:bg-[var(--bg-muted)] hover:text-[var(--text-primary)]',
             className,
           )}
           aria-label={ariaLabel}
         >
-          <span className="truncate">{selectedDate ? format(selectedDate, 'PPP') : emptyLabel}</span>
+          <span className="truncate">{selectedDate ? formatPickedDate(selectedDate, language) : emptyLabel}</span>
         </Button>
       </PopoverTrigger>
       <PopoverContent

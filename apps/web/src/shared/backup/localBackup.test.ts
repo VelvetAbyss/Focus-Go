@@ -1,6 +1,7 @@
 import JSZip from 'jszip'
 import { describe, expect, it } from 'vitest'
 import { createBackupDownload, exportLocalBackup, importLocalBackup, type LocalBackupDatabaseAdapter, type LocalBackupStorageAdapter } from './localBackup'
+import { PERSONAL_API_KEY_STORAGE_KEYS } from '../integrations/personalApiKeys'
 
 const createDbAdapter = (tables: Record<string, unknown[]> = {}): LocalBackupDatabaseAdapter & { tables: Record<string, unknown[]> } => ({
   tables,
@@ -57,7 +58,7 @@ describe('localBackup', () => {
     })
   })
 
-  it('excludes protected auth keys from backup export and preserves current auth on restore', async () => {
+  it('excludes protected auth and personal API keys from backup export and preserves them on restore', async () => {
     const db = createDbAdapter({
       tasks: [{ id: 'task-1', title: 'Keep auth' }],
     })
@@ -65,6 +66,8 @@ describe('localBackup', () => {
       auth: '{"accessToken":"current-token"}',
       oauth_state: 'state-1',
       pkce_verifier: 'verifier-1',
+      [PERSONAL_API_KEY_STORAGE_KEYS.tmdb]: 'current-tmdb-key',
+      [PERSONAL_API_KEY_STORAGE_KEYS.twelveData]: 'current-twelve-data-key',
       'workbench.ui.language': 'zh',
     })
 
@@ -98,6 +101,8 @@ describe('localBackup', () => {
           auth: '{"accessToken":"stale-token"}',
           oauth_state: 'state-2',
           pkce_verifier: 'verifier-2',
+          [PERSONAL_API_KEY_STORAGE_KEYS.tmdb]: 'stale-tmdb-key',
+          [PERSONAL_API_KEY_STORAGE_KEYS.twelveData]: 'stale-twelve-data-key',
         },
       },
       {
@@ -112,6 +117,8 @@ describe('localBackup', () => {
       auth: '{"accessToken":"current-token"}',
       oauth_state: 'state-1',
       pkce_verifier: 'verifier-1',
+      [PERSONAL_API_KEY_STORAGE_KEYS.tmdb]: 'current-tmdb-key',
+      [PERSONAL_API_KEY_STORAGE_KEYS.twelveData]: 'current-twelve-data-key',
       'workbench.ui.language': 'en',
     })
   })

@@ -2,11 +2,17 @@ import JSZip from 'jszip'
 import { encodeSyncPayload, decodeSyncPayload, encodeBackupBlobBytes } from '../../data/sync/content'
 import { SYNC_ENTITY_TABLES } from '../../data/sync/constants'
 import type { SyncEntityType, SyncWireBlob } from '../../data/sync/types'
+import { PERSONAL_API_KEY_STORAGE_KEYS } from '../integrations/personalApiKeys'
 
 export const LOCAL_BACKUP_FORMAT = 'focus-go-local-backup'
 export const LOCAL_BACKUP_V2_FORMAT = 'focus-go-local-backup-v2'
 export const LOCAL_BACKUP_SCHEMA_VERSION = 2
-export const PROTECTED_STORAGE_KEYS = new Set(['auth', 'oauth_state', 'pkce_verifier'])
+export const PROTECTED_STORAGE_KEYS = new Set([
+  'auth',
+  'oauth_state',
+  'pkce_verifier',
+  ...Object.values(PERSONAL_API_KEY_STORAGE_KEYS),
+])
 
 type SerializablePrimitive = string | number | boolean | null
 type SerializedBlob = {

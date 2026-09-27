@@ -1,3 +1,4 @@
+import Dexie from 'dexie'
 import { TABLES } from '../db/schema'
 import type { SyncEntityType } from './types'
 
@@ -12,9 +13,21 @@ export type SyncDataUpdatedDetail = { topic: SyncDataUpdatedTopic | 'all' }
 
 export const dispatchSyncDataUpdated = (topic: SyncDataUpdatedTopic | 'all') => {
   if (typeof window === 'undefined') return
-  window.dispatchEvent(
-    new CustomEvent<SyncDataUpdatedDetail>(SYNC_DATA_UPDATED_EVENT, { detail: { topic } }),
-  )
+  const fire = () => {
+    window.dispatchEvent(
+      new CustomEvent<SyncDataUpdatedDetail>(SYNC_DATA_UPDATED_EVENT, { detail: { topic } }),
+    )
+  }
+  // Listeners run synchronously and read other tables. Fired inside a Dexie
+  // transaction they would inherit its table scope (NotFoundError for any
+  // table outside it — e.g. App re-hydrating synced_preferences after a
+  // note/task write) and could observe uncommitted data. Notify on commit.
+  const transaction = Dexie.currentTransaction
+  if (transaction) {
+    transaction.on('complete', fire)
+    return
+  }
+  fire()
 }
 export const SYNC_ENTITY_TABLES: Record<SyncEntityType, string> = {
   tasks: TABLES.tasks,

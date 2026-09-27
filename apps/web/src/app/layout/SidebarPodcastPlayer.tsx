@@ -16,6 +16,7 @@ import {
 } from '../../features/life/podcastPlayback'
 import { usePreferences } from '../../shared/prefs/usePreferences'
 import { subscribeAuth } from '../../store/auth'
+import { DURATION, EASE } from '../../shared/motion/tokens'
 
 type Props = { collapsed: boolean }
 
@@ -141,7 +142,7 @@ const SidebarPodcastPlayer = ({ collapsed }: Props) => {
             initial={{ opacity: 0, x: -8 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -8 }}
-            transition={{ duration: 0.16, ease: [0.2, 0, 0, 1] }}
+            transition={{ duration: DURATION.fast, ease: EASE.standard }}
             onClick={handleOpenDetail}
             style={{ cursor: 'pointer' }}
           >
@@ -173,7 +174,7 @@ const SidebarPodcastPlayer = ({ collapsed }: Props) => {
               initial={{ scale: 0.5, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.5, opacity: 0 }}
-              transition={{ duration: 0.1 }}
+              transition={{ duration: DURATION.instant }}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
               {isPlaying ? <Pause size={12} /> : <Play size={12} />}

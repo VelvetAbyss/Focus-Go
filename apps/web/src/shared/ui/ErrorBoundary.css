@@ -1,0 +1,109 @@
+.error-boundary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--page-pad, 20px);
+}
+
+.error-boundary--app {
+  min-height: 100vh;
+  background: var(--bg, #faf9f7);
+}
+
+.error-boundary--route {
+  min-height: 60vh;
+}
+
+.error-boundary__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  max-width: 360px;
+  padding: 36px 32px;
+  border-radius: var(--surface-radius-lg, 24px);
+  background: var(--surface, #fff);
+  box-shadow: var(--shadow-soft, 0 10px 30px rgba(22, 24, 28, 0.1));
+}
+
+.error-boundary__glyph {
+  width: 56px;
+  height: 56px;
+  margin-bottom: 6px;
+  color: var(--text-secondary, #8b95a7);
+}
+
+.error-boundary__glyph svg {
+  width: 100%;
+  height: 100%;
+}
+
+.error-boundary__ring {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 4;
+  opacity: 0.35;
+}
+
+.error-boundary__cross {
+  stroke: currentColor;
+  stroke-width: 6;
+  stroke-linecap: round;
+  opacity: 0.7;
+}
+
+.error-boundary__title {
+  margin: 0;
+  font-family: var(--font-display, serif);
+  font-size: var(--fs-subhead);
+  color: var(--text-primary, #3a3733);
+}
+
+.error-boundary__body {
+  margin: 0;
+  font-size: var(--fs-ui);
+  line-height: 1.5;
+  color: var(--text-secondary, #6f6a63);
+}
+
+.error-boundary__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.error-boundary__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--control-height-compact, 34px);
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border, #e4e1db);
+  background: var(--surface, #fff);
+  color: var(--text-primary, #3a3733);
+  font-size: var(--fs-ui);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background var(--transition-base, 200ms ease);
+}
+
+.error-boundary__btn:hover {
+  background: var(--surface-hover, #f5f5f5);
+}
+
+.error-boundary__btn:focus-visible {
+  outline: 2px solid var(--focus-ring, rgba(27, 79, 74, 0.35));
+  outline-offset: 2px;
+}
+
+.error-boundary__btn--primary {
+  border-color: transparent;
+  background: var(--accent, #1b4f4a);
+  color: var(--bg, #fff);
+}
+
+.error-boundary__btn--primary:hover {
+  background: color-mix(in srgb, var(--accent, #1b4f4a) 88%, black);
+}

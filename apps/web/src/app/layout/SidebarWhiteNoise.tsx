@@ -12,6 +12,7 @@ import { useI18n } from '../../shared/i18n/useI18n'
 import { usePremiumGate } from '../../features/premium/PremiumProvider'
 import { useAuthGate } from '../../features/auth/AuthGateContext'
 import AmbientSettingsPopover from './AmbientSettingsPopover'
+import { DURATION, EASE } from '../../shared/motion/tokens'
 
 type Props = { collapsed: boolean }
 
@@ -87,7 +88,7 @@ const SidebarWhiteNoise = ({ collapsed }: Props) => {
             initial={{ scale: 0.6, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.6, opacity: 0 }}
-            transition={{ duration: 0.12 }}
+            transition={{ duration: DURATION.fast }}
             style={{ display: 'flex' }}
           >
             {isPlaying ? <Pause size={12} /> : <Waves size={12} />}
@@ -104,7 +105,7 @@ const SidebarWhiteNoise = ({ collapsed }: Props) => {
             initial={{ opacity: 0, x: -6 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -6 }}
-            transition={{ duration: 0.16, ease: [0.2, 0, 0, 1] }}
+            transition={{ duration: DURATION.fast, ease: EASE.standard }}
           >
             <div className="sidebar-noise-mini__preset-row">
               <select
@@ -114,7 +115,7 @@ const SidebarWhiteNoise = ({ collapsed }: Props) => {
                 aria-label={t('focus.scenes')}
               >
                 <option value="">
-                  ✨ {activeScene ? '返回默认背景' : t('focus.scenes')}
+                  ✨ {activeScene ? t('focus.scenes.returnDefault') : t('focus.scenes')}
                 </option>
                 {NOISE_SCENE_PRESETS.map((scene) => (
                   <option key={scene.id} value={scene.id}>

@@ -184,6 +184,16 @@ const AppShell = ({ children }: AppShellProps) => {
     return () => media.removeListener(handleSystemThemeChange)
   }, [])
 
+  // Overlays portal to <body>, outside the zoomed wrapper: give them the same scale
+  // (shared/theme/overlay-scale.css).
+  useEffect(() => {
+    const root = document.documentElement
+    root.style.setProperty('--overlay-scale', String(shellScale))
+    return () => {
+      root.style.removeProperty('--overlay-scale')
+    }
+  }, [shellScale])
+
   const shellStyle = {
     '--shell-scale': shellScale,
   } as CSSProperties
@@ -198,7 +208,7 @@ const AppShell = ({ children }: AppShellProps) => {
               collapsed={sidebarCollapsed}
               onToggle={() => setSidebarCollapsed((prev) => !prev)}
             />
-            <main className={`focus-shell__main flex min-h-0 flex-1 flex-col ${isFullBleedRoute ? 'focus-shell__main--surface-less' : ''}`}>
+            <main className="focus-shell__main flex min-h-0 flex-1 flex-col">
               <section className={`focus-shell__route-layer flex min-h-0 flex-1 flex-col ${isFullBleedRoute ? 'focus-shell__route-layer--full-bleed' : ''}`}>
                 <AuthInteractionGate>
                   {children}

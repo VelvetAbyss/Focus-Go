@@ -3,8 +3,21 @@ import type { NoteItem, TaskNoteLink } from '../models/types'
 import { enqueueSyncOperationInBackground } from '../sync/repository'
 import { withBase } from './base'
 import { notesRepo } from './notesRepo'
+import { readLanguage } from '../../shared/prefs/preferences'
 
 const buildLinkId = (taskId: string, noteId: string) => `${taskId}:${noteId}`
+
+// Title for a note spun out of a task, in the app language.
+const taskNoteTitle = (taskTitle: string | undefined) => {
+  const seed = (taskTitle ?? '').trim().slice(0, 40)
+  if (!seed) return ''
+  return `${seed} · ${readLanguage() === 'zh' ? '笔记' : 'Note'}`
+}
+
+// Per-task in-flight migrations. Opening a task can call listByTask from
+// more than one place at once (and twice under StrictMode); without this
+// each caller saw "no links yet" and created its own copy of the note.
+const legacyMigrations = new Map<string, Promise<boolean>>()
 
 const sortByOrder = (links: TaskNoteLink[]) =>
   links.slice().sort((a, b) => {
@@ -49,9 +62,8 @@ export const taskNoteLinksRepo = {
   async createForTask(taskId: string, taskTitle?: string): Promise<{ link: TaskNoteLink; note: NoteItem }> {
     const existing = await db.taskNoteLinks.where('taskId').equals(taskId).toArray()
     const nextOrder = existing.length === 0 ? 0 : Math.max(...existing.map((item) => item.order)) + 1
-    const fallbackTitle = taskTitle && taskTitle.trim().length > 0 ? taskTitle.trim().slice(0, 40) : ''
     const note = await notesRepo.create({
-      title: fallbackTitle ? `${fallbackTitle} · 笔记` : '',
+      title: taskNoteTitle(taskTitle),
       contentMd: '',
       collection: 'all-notes',
     })
@@ -104,14 +116,26 @@ export const taskNoteLinksRepo = {
    * Lazy per-task migration. Returns true if a NoteItem+link was created from the legacy field.
    */
   async migrateLegacyForTask(taskId: string): Promise<boolean> {
+    const pending = legacyMigrations.get(taskId)
+    if (pending) return pending
+    const run = this.runLegacyMigration(taskId)
+    legacyMigrations.set(taskId, run)
+    try {
+      return await run
+    } finally {
+      legacyMigrations.delete(taskId)
+    }
+  },
+
+  async runLegacyMigration(taskId: string): Promise<boolean> {
     const task = await db.tasks.get(taskId)
     if (!task) return false
     const md = task.taskNoteContentMd?.trim()
     if (!md) return false
-    const titleSeed = (task.title ?? '').trim().slice(0, 40)
+    if ((await db.taskNoteLinks.where('taskId').equals(taskId).count()) > 0) return false
     try {
       const note = await notesRepo.create({
-        title: titleSeed ? `${titleSeed} · 笔记` : '',
+        title: taskNoteTitle(task.title),
         contentMd: task.taskNoteContentMd ?? '',
         contentJson: task.taskNoteContentJson ?? null,
         collection: 'all-notes',
@@ -142,9 +166,8 @@ export const taskNoteLinksRepo = {
       const md = task.taskNoteContentMd?.trim()
       if (!md) continue
       try {
-        const titleSeed = (task.title ?? '').trim().slice(0, 40)
         const note = await notesRepo.create({
-          title: titleSeed ? `${titleSeed} · 笔记` : '',
+          title: taskNoteTitle(task.title),
           contentMd: task.taskNoteContentMd ?? '',
           contentJson: task.taskNoteContentJson ?? null,
           collection: 'all-notes',

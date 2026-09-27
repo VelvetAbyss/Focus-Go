@@ -27,7 +27,7 @@ const EmptyState = ({
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center rounded-[28px] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] px-6 py-10 text-center text-[var(--text-primary)]',
+        'flex flex-col items-center justify-center rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] px-6 py-10 text-center text-[var(--text-primary)]',
         variant === 'onboarding' ? 'bg-[var(--bg-elevated)] shadow-[var(--shadow-card-lg)]' : 'bg-[color-mix(in_srgb,var(--bg-elevated)_88%,transparent)]',
         className,
       )}
