@@ -1,46 +1,30 @@
 /* ───────────────────────────────────────────────────────────────────────────
-   Recap card — editorial magazine treatment
-   Light theme: cream-accented white. Dark theme overrides at the bottom.
+   Recap card — Paper & Ink (see apps/web/DESIGN.md).
+   Tones appear only as trend marks; everything else is ink on paper.
    ─────────────────────────────────────────────────────────────────────────── */
 
 .recap-card {
-  --recap-paper:      #ffffff;
-  --recap-paper-warm: #f5f3ee;
-  --recap-ink:        #1a1714;
-  --recap-ink-soft:   #4a423a;
-  --recap-ink-mute:   #8a7f70;
-  --recap-rule:       #d8d3c6;
-  --recap-rule-soft:  #efeae0;
-  --recap-ochre:      #c98a1c;
-  --recap-rust:       #b54226;
-  --recap-moss:       #4f6b2f;
-  --recap-mono:       ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo,
-                      Consolas, monospace;
+  --recap-paper: var(--paper-raised);
+  --recap-paper-warm: var(--paper-sunken);
+  --recap-ink: var(--ink-1);
+  --recap-ink-soft: var(--ink-2);
+  --recap-ink-mute: var(--ink-3);
+  --recap-rule: var(--rule-strong);
+  --recap-rule-soft: var(--rule);
+  --recap-ochre: var(--tone-warn);
+  --recap-rust: var(--tone-urgent);
+  --recap-moss: var(--tone-done);
+  --recap-mono: var(--font-body);
 
   position: relative;
   background: var(--recap-paper);
-  border-color: #ebe6da;
+  border-color: var(--rule);
   /* keep `.card` flex column + overflow so existing dashboard layout works */
-}
-
-/* ── Deckle stripe: ochre→rust vertical accent on the left ──────────────── */
-.recap-card::before {
-  content: "";
-  position: absolute;
-  left: 10px;
-  top: 20px;
-  bottom: 20px;
-  width: 2px;
-  background: linear-gradient(var(--recap-ochre), transparent 60%, var(--recap-rust));
-  border-radius: 2px;
-  opacity: 0.85;
-  pointer-events: none;
 }
 
 /* The component skips the shared Card chrome and rolls its own padding */
 .recap-card__body {
   padding: 22px 22px 20px;
-  padding-left: 26px; /* clear the deckle */
   flex: 1;
   min-height: 0;
   display: flex;
@@ -56,35 +40,31 @@
   gap: 12px;
 }
 
+/* Kicker = the app-wide eyebrow (see .card__eyebrow). */
 .recap-card__kicker {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  font-family: var(--recap-mono);
-  font-size: 10.5px;
+  font-family: var(--font-body);
+  font-size: var(--fs-meta);
   font-weight: 600;
-  letter-spacing: 0.14em;
-  color: var(--recap-rust);
+  letter-spacing: var(--tracking-caps);
+  color: var(--ink-3);
   text-transform: uppercase;
 }
 
 .recap-card__kicker-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--recap-rust);
-  box-shadow: 0 0 0 3px rgba(181, 66, 38, 0.15);
+  display: none;
 }
 
 .recap-card__kicker-wk {
-  color: var(--recap-ink-mute);
-  letter-spacing: 0.18em;
+  color: var(--ink-3);
 }
 
 .recap-card__headline {
   margin: 4px 0 0;
-  font-family: "Fraunces", "Noto Serif SC", serif;
+  font-family: var(--font-display);
   font-variation-settings: "opsz" 36, "SOFT" 30;
   font-weight: 700;
   font-size: var(--dash-type-title, 1.26rem);
@@ -96,18 +76,18 @@
 .recap-card__headline em {
   font-style: italic;
   font-variation-settings: "opsz" 36, "SOFT" 80;
-  color: var(--recap-rust);
+  color: inherit;
 }
 
 .recap-card__copy {
   appearance: none;
-  border: 1px solid var(--recap-ink);
-  background: var(--recap-ink);
-  color: var(--recap-paper);
+  border: 1px solid var(--cta2-border);
+  background: var(--cta2-bg);
+  color: var(--cta2-fg);
   font-family: var(--recap-mono);
-  font-size: 10.5px;
+  font-size: var(--fs-meta);
   font-weight: 600;
-  letter-spacing: 0.18em;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   padding: 7px 12px;
   border-radius: 999px;
@@ -115,18 +95,16 @@
   align-items: center;
   gap: 7px;
   cursor: pointer;
-  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  transition: transform var(--motion-duration-fast) var(--ease-standard), background var(--motion-duration-fast) var(--ease-standard), border-color var(--motion-duration-fast) var(--ease-standard);
 }
 
 .recap-card__copy:hover {
-  transform: translateY(-1px);
-  background: var(--recap-rust);
-  border-color: var(--recap-rust);
+  background: var(--cta2-bg-hover);
 }
 
 .recap-card__copy.is-copied {
-  background: var(--recap-moss);
-  border-color: var(--recap-moss);
+  color: var(--tone-done);
+  border-color: color-mix(in srgb, var(--tone-done) 40%, transparent);
 }
 
 .recap-card__copy svg { width: 12px; height: 12px; }
@@ -162,7 +140,7 @@
   color: var(--recap-ink-soft);
   background: transparent;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+  transition: background var(--motion-duration-fast) var(--ease-standard), color var(--motion-duration-fast) var(--ease-standard), opacity var(--motion-duration-fast) var(--ease-standard);
 }
 
 .recap-card__nav-btn {
@@ -174,9 +152,9 @@
   gap: 5px;
   padding: 0 8px;
   font-family: var(--recap-mono);
-  font-size: 9.5px;
+  font-size: var(--fs-meta);
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -184,13 +162,20 @@
 .recap-card__nav-btn:hover:not(:disabled),
 .recap-card__current-btn:hover:not(:disabled) {
   background: var(--recap-paper);
-  color: #3A3733;
+  color: var(--ink-1);
 }
 
 .recap-card__nav-btn:disabled,
 .recap-card__current-btn:disabled {
   opacity: 0.42;
   cursor: not-allowed;
+}
+
+/* "This week" is disabled only because you're already on it — it's a
+   location label, not a dead control, so it stays readable. */
+.recap-card__current-btn:disabled {
+  opacity: 0.78;
+  cursor: default;
 }
 
 .recap-card__nav-btn svg,
@@ -216,6 +201,12 @@
   flex: 1;
   overflow-y: auto;
   overscroll-behavior: contain;
+  /* At compact card sizes the next section is only partly in view; fade the
+     edge so it reads as "scroll for more" instead of a sliced text row. The
+     bottom padding lets the last row scroll clear of the fade. */
+  padding-bottom: 14px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent);
 }
 
 .recap-card__stats {
@@ -233,8 +224,8 @@
 
 .recap-card__stat-label {
   font-family: var(--recap-mono);
-  font-size: 10px;
-  letter-spacing: 0.22em;
+  font-size: var(--fs-meta);
+  letter-spacing: var(--tracking-caps);
   font-weight: 600;
   color: var(--recap-ink-mute);
   text-transform: uppercase;
@@ -242,13 +233,14 @@
 
 .recap-card__stat-num {
   margin-top: 4px;
-  font-family: var(--recap-mono);
-  font-weight: 700;
-  font-size: 36px;
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 72;
+  font-weight: 600;
+  font-size: 34px;
   line-height: 1;
   color: var(--recap-ink);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.03em;
+  font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: -0.02em;
 }
 
 .recap-card__stat-trend {
@@ -273,7 +265,7 @@
   border-radius: 1px;
   opacity: 0.85;
   transform-origin: bottom;
-  animation: recapBarGrow 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation: recapBarGrow 0.6s var(--ease-emphasized) both;
 }
 
 .recap-card__bars i:nth-child(1) { animation-delay: 0.05s; }
@@ -290,7 +282,7 @@
 
 .recap-card__delta {
   font-family: var(--recap-mono);
-  font-size: 10.5px;
+  font-size: var(--fs-meta);
   font-weight: 600;
   color: var(--recap-ink-mute);
   letter-spacing: 0.04em;
@@ -309,18 +301,18 @@
 }
 
 .recap-card__bp-eyebrow {
-  font-family: "Fraunces", "Noto Serif SC", serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 500;
-  font-size: 13px;
+  font-size: var(--fs-ui);
   letter-spacing: 0.01em;
   color: var(--recap-ink-soft);
 }
 
 .recap-card__bp-count {
   font-family: var(--recap-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.14em;
+  font-size: var(--fs-meta);
+  letter-spacing: var(--tracking-caps);
   color: var(--recap-ink-mute);
 }
 
@@ -345,9 +337,9 @@
 }
 
 .recap-card__row-name {
-  font-family: "Fraunces", "Noto Serif SC", serif;
+  font-family: var(--font-display);
   font-weight: 500;
-  font-size: 16px;
+  font-size: var(--fs-section);
   letter-spacing: -0.005em;
   color: var(--recap-ink);
   min-width: 0;
@@ -358,8 +350,8 @@
 
 .recap-card__row-date {
   font-family: var(--recap-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.14em;
+  font-size: var(--fs-meta);
+  letter-spacing: var(--tracking-caps);
   color: var(--recap-ink-mute);
   text-transform: uppercase;
 }
@@ -370,7 +362,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 12px;
+  font-size: var(--fs-label);
   color: var(--recap-ink-soft);
 }
 
@@ -406,8 +398,8 @@
   display: block;
   height: 100%;
   border-radius: 2px;
-  background: linear-gradient(90deg, var(--recap-ochre), var(--recap-rust));
-  animation: recapPctFill 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both 0.2s;
+  background: var(--ink-2);
+  animation: recapPctFill 0.9s var(--ease-emphasized) both 0.2s;
 }
 
 .recap-card__row-tasks {
@@ -421,7 +413,7 @@
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--fs-label);
   color: var(--recap-ink-soft);
 }
 
@@ -436,9 +428,9 @@
 .recap-card__row-task-body { min-width: 0; flex: 1; }
 
 .recap-card__row-task-title {
-  font-size: 12px;
+  font-size: var(--fs-label);
   line-height: 1.35;
-  color: rgba(26, 23, 20, 0.9);
+  color: var(--ink-1);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -454,28 +446,28 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
-  color: rgba(74, 66, 58, 0.8);
+  font-size: var(--fs-meta);
+  color: var(--ink-2);
 }
 
 .recap-card__row-subtask-dot {
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: rgba(138, 127, 112, 0.5);
+  background: var(--ink-4);
   flex-shrink: 0;
 }
 
 .recap-card__row-subtask-tag {
-  font-size: 10px;
-  color: rgba(138, 127, 112, 0.7);
+  font-size: var(--fs-meta);
+  color: var(--ink-3);
   flex-shrink: 0;
 }
 
 .recap-card__row-more {
   margin-top: 6px;
   padding-left: 24px;
-  font-size: 11px;
+  font-size: var(--fs-meta);
   color: var(--recap-ink-mute);
 }
 
@@ -490,19 +482,19 @@
   text-align: center;
   padding: 12px;
   border: 1px dashed var(--recap-rule);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   color: var(--recap-ink-soft);
 }
 
 .recap-card__empty-icon { color: var(--recap-ink-mute); margin-bottom: 6px; }
 .recap-card__empty-title {
-  font-family: "Fraunces", "Noto Serif SC", serif;
+  font-family: var(--font-display);
   font-weight: 500;
-  font-size: 14px;
+  font-size: var(--fs-body);
   color: var(--recap-ink);
 }
 .recap-card__empty-sub {
-  font-size: 11.5px;
+  font-size: var(--fs-label);
   color: var(--recap-ink-mute);
   margin-top: 2px;
 }
@@ -514,16 +506,16 @@
   justify-content: space-between;
   align-items: center;
   font-family: var(--recap-mono);
-  font-size: 9.5px;
-  letter-spacing: 0.22em;
+  font-size: var(--fs-meta);
+  letter-spacing: var(--tracking-caps);
   color: var(--recap-ink-mute);
   text-transform: uppercase;
 }
 
 .recap-card__stamp {
-  border: 1px solid var(--recap-ink-mute);
-  padding: 3px 7px;
-  border-radius: 3px;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--paper-sunken);
   color: var(--recap-ink-soft);
 }
 
@@ -535,10 +527,10 @@
   justify-content: center;
   gap: 6px;
   padding: 6px 12px;
-  border-radius: 6px;
-  background: rgba(79, 107, 47, 0.1);
+  border-radius: var(--radius-xs);
+  background: var(--tone-done-wash);
   color: var(--recap-moss);
-  font-size: 11px;
+  font-size: var(--fs-meta);
   font-weight: 600;
 }
 
@@ -550,30 +542,3 @@
 @keyframes recapPctFill {
   from { width: 0; }
 }
-
-/* ── Dark theme: minimal survival overrides ─────────────────────────────── */
-html[data-theme='dark'] .recap-card {
-  --recap-paper:      #1a1714;
-  --recap-paper-warm: #221d18;
-  --recap-ink:        #f3ece0;
-  --recap-ink-soft:   #d4c8b4;
-  --recap-ink-mute:   #8a7f70;
-  --recap-rule:       #3a342c;
-  --recap-rule-soft:  #2a2520;
-  border-color: #2a2520;
-}
-
-html[data-theme='dark'] .recap-card__copy {
-  background: var(--recap-paper);
-  color: var(--recap-ink);
-  border-color: var(--recap-ink);
-}
-
-html[data-theme='dark'] .recap-card__copy:hover {
-  background: var(--recap-rust);
-  color: #fff;
-  border-color: var(--recap-rust);
-}
-
-html[data-theme='dark'] .recap-card__row-task-title { color: rgba(243, 236, 224, 0.9); }
-html[data-theme='dark'] .recap-card__row-subtask    { color: rgba(212, 200, 180, 0.8); }

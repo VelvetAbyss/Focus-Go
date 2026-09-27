@@ -4,6 +4,7 @@ import 'react-photo-view/dist/react-photo-view.css'
 import { cn } from '@/lib/utils'
 import type { TaskAttachment } from '../../../data/models/types'
 import { useAttachmentUrl } from './useAttachmentUrl'
+import { useI18n } from '../../../shared/i18n/useI18n'
 
 type TaskAttachmentImageProps = {
   attachment: TaskAttachment
@@ -13,6 +14,7 @@ type TaskAttachmentImageProps = {
 }
 
 const TaskAttachmentImage = ({ attachment, onRemove, removeLabel, className }: TaskAttachmentImageProps) => {
+  const { t } = useI18n()
   const url = useAttachmentUrl(attachment.hash)
 
   return (
@@ -20,7 +22,7 @@ const TaskAttachmentImage = ({ attachment, onRemove, removeLabel, className }: T
       className={cn(
         'task-attachment-image group relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border',
         'border-[color:color-mix(in_srgb,var(--accent-action)_22%,transparent)] bg-[color:color-mix(in_srgb,var(--accent-action)_5%,var(--bg-elevated))]',
-        'transition-shadow hover:shadow-[0_6px_18px_-10px_rgba(139,94,52,0.45)]',
+        'transition-shadow hover:shadow-[0_6px_18px_-10px_color-mix(in_srgb,var(--ink-1)_45%,transparent)]',
         className,
       )}
     >
@@ -28,7 +30,7 @@ const TaskAttachmentImage = ({ attachment, onRemove, removeLabel, className }: T
         <PhotoView src={url}>
           <img
             src={url}
-            alt={attachment.name ?? '任务附件'}
+            alt={attachment.name ?? t('tasks.attachment.imageAlt')}
             className="h-full w-full cursor-zoom-in object-cover transition-transform duration-300 group-hover:scale-[1.03]"
             draggable={false}
           />

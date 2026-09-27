@@ -12,6 +12,8 @@ import {
   processFilesForComposer,
 } from '../application/taskAttachments'
 import TaskAttachmentChip from './TaskAttachmentChip'
+import { parseQuickAdd, type ParsedQuickAdd } from '../parseQuickAdd'
+import { appIntlLocale } from '../../../shared/i18n/format'
 
 export type TaskAddComposerHandle = {
   focus: () => void
@@ -237,6 +239,45 @@ const TaskAddComposer = forwardRef<TaskAddComposerHandle, TaskAddComposerProps>(
   }
 
   const hasText = title.trim().length > 0
+
+  // Show what the quick-add syntax picked up ("明天", "#工作", "!1", "下午3点") before
+  // the task is created, so a date that wasn't meant as one can be fixed first.
+  const [parsedFor, setParsedFor] = useState<{ text: string; result: ParsedQuickAdd } | null>(null)
+  useEffect(() => {
+    const text = title.trim()
+    if (!text) return
+    let cancelled = false
+    const timer = window.setTimeout(() => {
+      void parseQuickAdd(text, projects, selectedProjectId).then((result) => {
+        if (!cancelled) setParsedFor({ text, result })
+      })
+    }, 160)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [title, projects, selectedProjectId])
+  const parseHints = useMemo(() => {
+    const result = parsedFor && parsedFor.text === title.trim() ? parsedFor.result : null
+    if (!result) return []
+    const locale = appIntlLocale()
+    const hints: string[] = []
+    if (result.dueDate) {
+      const date = new Date(`${result.dueDate}T12:00:00`).toLocaleDateString(locale, { month: 'short', day: 'numeric', weekday: 'short' })
+      hints.push(t('tasks.quickAdd.due', { date }))
+    }
+    if (result.reminderAt) {
+      const time = new Date(result.reminderAt).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: false })
+      hints.push(t('tasks.quickAdd.reminder', { time }))
+    }
+    if (result.priority) hints.push(t('tasks.quickAdd.priority', { level: t(`tasks.priority.${result.priority}`) }))
+    result.tags.forEach((tag) => hints.push(`#${tag}`))
+    if (result.projectId && result.projectId !== selectedProjectId) {
+      const project = projects.find((item) => item.id === result.projectId)
+      if (project) hints.push(project.title)
+    }
+    return hints
+  }, [parsedFor, projects, selectedProjectId, t, title])
   const canAddMore = attachments.length < TASK_ATTACHMENT_LIMIT
   const projectPickerEnabled = Boolean(onProjectChange) && projects.length > 0
   const selectedProject = selectedProjectId ? projects.find((project) => project.id === selectedProjectId) : undefined
@@ -244,15 +285,15 @@ const TaskAddComposer = forwardRef<TaskAddComposerHandle, TaskAddComposerProps>(
   return (
     <form
       className={cn(
-        'tasks-fg__composer mt-4 rounded-[22px] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] bg-transparent p-3 shadow-none backdrop-blur-none transition-all duration-300',
-        compact ? 'mt-3 rounded-[18px] p-2.5' : '',
+        'tasks-fg__composer mt-4 rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] bg-transparent p-3 shadow-none backdrop-blur-none transition-all duration-300',
+        compact ? 'mt-3 rounded-[var(--radius-lg)] p-2.5' : '',
         plain && !hero ? 'mt-0 rounded-none border-x-0 border-b-0 border-t bg-transparent px-4 py-3 shadow-none backdrop-blur-none' : '',
         hero ? 'tasks-fg__composer--hero mt-0 rounded-none border-0 bg-transparent px-4 py-3 shadow-none backdrop-blur-none' : '',
         hero && phase === 'attracting' ? 'is-attracting' : '',
         hero && phase === 'breathing' ? 'is-breathing' : '',
         hero && justSubmitted ? 'just-submitted' : '',
         hero && isDragOver ? 'is-drag-over' : '',
-        isFocused && !plain && !hero && 'border-slate-300/80 shadow-[var(--shadow-pop)]',
+        isFocused && !plain && !hero && 'border-[color-mix(in_srgb,var(--text-primary)_14%,transparent)] shadow-[var(--shadow-pop)]',
         isFocused && plain && !hero && 'border-t-primary/20 bg-transparent',
       )}
       onSubmit={(event) => {
@@ -290,18 +331,18 @@ const TaskAddComposer = forwardRef<TaskAddComposerHandle, TaskAddComposerProps>(
       ) : null}
       <div
         className={cn(
-          'flex items-center gap-3 rounded-[18px] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] px-3 py-2 transition-all duration-300',
-          compact ? 'rounded-[15px] px-2.5 py-2' : '',
+          'flex items-center gap-3 rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] px-3 py-2 transition-all duration-300',
+          compact ? 'rounded-[var(--radius-md)] px-2.5 py-2' : '',
           plain && !hero ? 'flex-1 gap-2 rounded-lg bg-transparent px-3 py-1.5' : '',
           hero ? 'flex-1 gap-3 rounded-xl border-[color:color-mix(in_srgb,var(--accent-action)_22%,transparent)] bg-[color:color-mix(in_srgb,var(--accent-action)_5%,var(--bg-elevated))] px-3.5 py-2.5' : '',
-          isFocused && !plain && !hero && 'border-slate-300 bg-[var(--bg-elevated)] shadow-[0_0_0_3px_rgba(148,163,184,0.15)]',
+          isFocused && !plain && !hero && 'border-[color-mix(in_srgb,var(--text-primary)_18%,transparent)] bg-[var(--bg-elevated)] shadow-[0_0_0_3px_rgba(148,163,184,0.15)]',
           isFocused && plain && !hero && 'border-ring/60 bg-transparent ring-2 ring-ring/15',
-          isFocused && hero && 'border-[color:color-mix(in_srgb,var(--accent-action)_60%,transparent)] shadow-[0_0_0_4px_rgba(139,94,52,0.16)]',
+          isFocused && hero && 'border-[color:color-mix(in_srgb,var(--accent-action)_60%,transparent)] shadow-[0_0_0_4px_color-mix(in_srgb,var(--ink-1)_16%,transparent)]',
         )}
       >
         <span
           className={cn(
-            'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--bg-elevated)] text-slate-400 shadow-sm transition-all duration-300',
+            'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--bg-elevated)] text-[var(--text-tertiary)] shadow-sm transition-all duration-300',
             plain && !hero && 'h-4 w-4 rounded-none bg-transparent text-muted-foreground shadow-none',
             hero && 'tasks-fg__hero-plus h-5 w-5 rounded-none bg-transparent text-[color:var(--accent-action)] shadow-none',
             isFocused && !plain && !hero && 'bg-primary/8 text-primary shadow-none',
@@ -376,10 +417,10 @@ const TaskAddComposer = forwardRef<TaskAddComposerHandle, TaskAddComposerProps>(
         <input
           ref={inputRef}
           className={cn(
-            'tasks-fg__input h-auto min-h-0 border-0 bg-transparent px-0 py-0 text-[13px] shadow-none outline-none placeholder:text-muted-foreground focus-visible:ring-0',
-            compact ? 'text-[12px]' : '',
+            'tasks-fg__input h-auto min-h-0 border-0 bg-transparent px-0 py-0 text-ui shadow-none outline-none placeholder:text-muted-foreground focus-visible:ring-0',
+            compact ? 'text-label' : '',
             plain && !hero ? 'flex-1 text-sm placeholder:text-muted-foreground/60' : '',
-            hero ? 'flex-1 text-[15px] font-medium placeholder:text-muted-foreground/85 placeholder:transition-colors placeholder:duration-300 caret-[color:var(--accent-action)]' : '',
+            hero ? 'flex-1 text-body font-medium placeholder:text-muted-foreground/85 placeholder:transition-colors placeholder:duration-300 caret-[color:var(--accent-action)]' : '',
             inputShaking ? 'is-shaking' : '',
           )}
           value={title}
@@ -395,7 +436,7 @@ const TaskAddComposer = forwardRef<TaskAddComposerHandle, TaskAddComposerProps>(
         {hero ? (
           <kbd
             className={cn(
-              'hidden sm:inline-flex items-center justify-center rounded border border-[color:color-mix(in_srgb,var(--accent-action)_30%,transparent)] bg-[color:color-mix(in_srgb,var(--accent-action)_10%,transparent)] px-1.5 py-0.5 font-mono text-[10px] font-medium leading-none text-[color:var(--accent-action)] transition-all duration-300 ease-out',
+              'hidden sm:inline-flex items-center justify-center rounded border border-[color:color-mix(in_srgb,var(--accent-action)_30%,transparent)] bg-[color:color-mix(in_srgb,var(--accent-action)_10%,transparent)] px-1.5 py-0.5 font-mono text-meta font-medium leading-none text-[color:var(--accent-action)] transition-all duration-300 ease-out',
               hasText ? 'pointer-events-none opacity-0 -translate-x-1 scale-90' : 'opacity-90 translate-x-0 scale-100 hover:bg-[color:color-mix(in_srgb,var(--accent-action)_18%,transparent)] hover:scale-105',
             )}
             style={{ letterSpacing: 0, transitionTimingFunction: 'cubic-bezier(0.22,1,0.36,1)' }}
@@ -407,17 +448,17 @@ const TaskAddComposer = forwardRef<TaskAddComposerHandle, TaskAddComposerProps>(
         <Button
           type="submit"
           className={cn(
-            'tasks-fg__add-btn h-8 shrink-0 rounded-full px-3 text-[11px] font-semibold shadow-none gap-1.5',
+            'tasks-fg__add-btn h-8 shrink-0 rounded-full px-3 text-meta font-semibold shadow-none gap-1.5',
             'transition-all duration-300',
-            compact ? 'h-7 px-2.5 text-[10px]' : '',
+            compact ? 'h-7 px-2.5 text-meta' : '',
             plain && !hero ? 'rounded-md px-3 text-xs' : '',
             hero
               ? cn(
-                  'rounded-md px-3 text-xs bg-[color:var(--accent-action)] text-white',
-                  'hover:bg-[color:color-mix(in_srgb,var(--accent-action)_88%,var(--bg-elevated))] hover:shadow-[0_6px_16px_-6px_rgba(139,94,52,0.5)]',
+                  'rounded-md px-3 text-xs bg-[color:var(--accent-action)] text-[color:var(--cta-fg)]',
+                  'hover:bg-[color:color-mix(in_srgb,var(--accent-action)_88%,var(--bg-elevated))] hover:shadow-[0_6px_16px_-6px_color-mix(in_srgb,var(--ink-1)_50%,transparent)]',
                   'active:scale-[0.96]',
                   hasText
-                    ? 'opacity-100 scale-100 shadow-[0_2px_10px_-2px_rgba(139,94,52,0.4)]'
+                    ? 'opacity-100 scale-100 shadow-[0_2px_10px_-2px_color-mix(in_srgb,var(--ink-1)_40%,transparent)]'
                     : 'opacity-60 scale-[0.94] shadow-none',
                 )
               : hasText
@@ -430,13 +471,21 @@ const TaskAddComposer = forwardRef<TaskAddComposerHandle, TaskAddComposerProps>(
         >
           {t('modules.tasks.add')}
           <kbd
-            className="inline-flex items-center justify-center rounded border border-current/25 bg-current/10 px-1 font-mono text-[10px] font-normal leading-none opacity-80"
+            className="inline-flex items-center justify-center rounded border border-current/25 bg-current/10 px-1 font-mono text-meta font-normal leading-none opacity-80"
             style={{ letterSpacing: 0 }}
           >
             ⏎
           </kbd>
         </Button>
       </div>
+      {hasText && parseHints.length > 0 ? (
+        <p className="tasks-fg__parse-hint relative z-[1] mt-1.5 truncate px-1 text-meta text-ink-3" aria-live="polite">
+          <span className="text-ink-2">{t('tasks.quickAdd.recognized')}</span>
+          {parseHints.map((hint) => (
+            <span key={hint}> · {hint}</span>
+          ))}
+        </p>
+      ) : null}
     </form>
   )
 })

@@ -12,6 +12,7 @@ import { buildTaskAnalytics, type AnalyticsGranularity } from './taskAnalytics'
 import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG } from './taskPresentation'
 import { useI18n } from '../../../shared/i18n/useI18n'
 import TaskProgressSummaryCard from './TaskProgressSummaryCard'
+import '../tasks-analytics.css'
 
 type TasksAnalyticsViewProps = {
   tasks: TaskItem[]
@@ -128,8 +129,8 @@ const TasksAnalyticsView = ({ tasks, projects = [] }: TasksAnalyticsViewProps) =
           ))}
         </div>
 
-        <p className="text-[11px] font-medium tracking-wide" style={{ color: 'var(--ts-ink-soft)' }}>
-          {t(granularityLabelKeys[granularity])} · {analytics.buckets.length} {t('modules.tasks.analytics.totalCompletions').includes('总') ? '段' : 'buckets'} · {t('modules.tasks.analytics.completionRate')} {analytics.summary.completionRate}%
+        <p className="text-meta font-medium tracking-wide" style={{ color: 'var(--ts-ink-soft)' }}>
+          {t(granularityLabelKeys[granularity])} · {analytics.buckets.length} {t('modules.tasks.analytics.buckets')} · {t('modules.tasks.analytics.completionRate')} {analytics.summary.completionRate}%
         </p>
       </div>
 
@@ -221,7 +222,7 @@ const TasksAnalyticsView = ({ tasks, projects = [] }: TasksAnalyticsViewProps) =
               <p className="tasks-analytics-v2__eyebrow">{t('modules.tasks.analytics.trendTitle')}</p>
               <h2 className="tasks-analytics-v2__title">{t(granularityLabelKeys[granularity])}</h2>
             </div>
-            <div className="flex gap-4 text-[11px]" style={{ color: 'var(--ts-ink-soft)' }}>
+            <div className="flex gap-4 text-meta" style={{ color: 'var(--ts-ink-soft)' }}>
               <span>{t('modules.tasks.analytics.peak')}: <span style={{ color: 'var(--ts-ink)', fontWeight: 600 }}>{maxCompletion}</span></span>
             </div>
           </div>
@@ -342,7 +343,7 @@ const TasksAnalyticsView = ({ tasks, projects = [] }: TasksAnalyticsViewProps) =
                 {analytics.summary.subtaskCompletionRate}
                 <span className="tasks-analytics-v2__hero-rate-suffix">%</span>
               </p>
-              <p className="text-[11px] mt-1 font-variant-numeric tabular-nums" style={{ color: 'var(--ts-ink-soft)' }}>
+              <p className="text-meta mt-1 font-variant-numeric tabular-nums" style={{ color: 'var(--ts-ink-soft)' }}>
                 {analytics.summary.subtasksCompleted} / {analytics.summary.subtasksTotal}
               </p>
             </div>

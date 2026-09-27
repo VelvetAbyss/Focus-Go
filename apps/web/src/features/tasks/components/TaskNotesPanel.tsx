@@ -19,6 +19,7 @@ import type { NoteItem, TaskNoteLink } from '../../../data/models/types'
 import { taskNoteLinksRepo } from '../../../data/repositories/taskNoteLinksRepo'
 import { notesRepo } from '../../../data/repositories/notesRepo'
 import { useI18n } from '../../../shared/i18n/useI18n'
+import { formatRelativeTime } from '../../../shared/i18n/format'
 import { useToast } from '../../../shared/ui/toast/toast'
 
 type TaskNotesPanelProps = {
@@ -44,18 +45,6 @@ const truncate = (input: string, max: number) =>
 const previewOf = (note: NoteItem) => {
   const source = note.excerpt?.trim() || note.contentMd?.trim() || ''
   return source.replace(/\n+/g, ' ')
-}
-
-const formatRelative = (timestamp: number) => {
-  const diff = Date.now() - timestamp
-  const minute = 60_000
-  const hour = 60 * minute
-  const day = 24 * hour
-  if (diff < minute) return 'just now'
-  if (diff < hour) return `${Math.floor(diff / minute)}m ago`
-  if (diff < day) return `${Math.floor(diff / hour)}h ago`
-  if (diff < 30 * day) return `${Math.floor(diff / day)}d ago`
-  return new Date(timestamp).toLocaleDateString()
 }
 
 const TaskNotesPanel = ({ taskId, taskTitle }: TaskNotesPanelProps) => {
@@ -182,7 +171,7 @@ const TaskNotesPanel = ({ taskId, taskTitle }: TaskNotesPanelProps) => {
 
   return (
     <section
-      className="task-detail-card task-detail-card--side tdv2-section-enter rounded-[24px] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] p-4 shadow-[var(--shadow-card)]"
+      className="task-detail-card task-detail-card--side tdv2-section-enter rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] p-4 shadow-[var(--shadow-card)]"
       style={{ animationDelay: '100ms' }}
     >
       <div className="mb-3 flex items-start justify-between gap-2">
@@ -191,7 +180,7 @@ const TaskNotesPanel = ({ taskId, taskTitle }: TaskNotesPanelProps) => {
           <div className="mt-0.5 flex items-center gap-2">
             <h2 className="task-detail-title">{t('tasks.notes.title')}</h2>
             {items.length > 0 ? (
-              <span className="rounded-full bg-[color:var(--bg-muted)] px-2 py-0.5 text-[10px] font-bold tabular-nums text-[color:var(--text-secondary)]">
+              <span className="rounded-full bg-[color:var(--bg-muted)] px-2 py-0.5 text-meta font-bold tabular-nums text-[color:var(--text-secondary)]">
                 {items.length}
               </span>
             ) : null}
@@ -200,7 +189,7 @@ const TaskNotesPanel = ({ taskId, taskTitle }: TaskNotesPanelProps) => {
         <Button
           size="sm"
           onClick={() => void handleCreate()}
-          className="h-8 shrink-0 rounded-full bg-[var(--text-primary)] px-3 text-[11px] font-semibold text-[var(--bg-elevated)] hover:bg-[#2a2724]"
+          className="h-8 shrink-0 rounded-full bg-[var(--text-primary)] px-3 text-meta font-semibold text-[var(--bg-elevated)] hover:bg-[var(--cta-bg-hover)]"
         >
           <Plus className="mr-1 h-3.5 w-3.5" />
           {t('tasks.notes.createNote')}
@@ -218,7 +207,7 @@ const TaskNotesPanel = ({ taskId, taskTitle }: TaskNotesPanelProps) => {
             type="button"
             onClick={() => setView(key)}
             className={cn(
-              'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold transition-all duration-200',
+              'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-meta font-semibold transition-all duration-200',
               view === key
                 ? 'bg-[var(--text-primary)] text-[var(--bg-elevated)] shadow-sm'
                 : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]',
@@ -232,16 +221,16 @@ const TaskNotesPanel = ({ taskId, taskTitle }: TaskNotesPanelProps) => {
       </div>
 
       {loading ? (
-        <div className="rounded-[14px] border border-dashed border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color:var(--bg-muted)] px-4 py-6 text-center text-[12px] text-[color:var(--text-secondary)]">
+        <div className="rounded-[var(--radius-md)] border border-dashed border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color:var(--bg-muted)] px-4 py-6 text-center text-label text-[color:var(--text-secondary)]">
           …
         </div>
       ) : items.length === 0 ? (
-        <div className="rounded-[14px] border border-dashed border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color:var(--bg-muted)] px-4 py-6 text-center">
+        <div className="rounded-[var(--radius-md)] border border-dashed border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color:var(--bg-muted)] px-4 py-6 text-center">
           <FileText className="mx-auto h-6 w-6 text-[color:var(--text-secondary)]" />
-          <p className="mt-2 text-[13px] font-semibold text-[color:var(--text-primary)]">
+          <p className="mt-2 text-ui font-semibold text-[color:var(--text-primary)]">
             {t('tasks.notes.empty')}
           </p>
-          <p className="mt-1 text-[11px] text-[color:var(--text-secondary)]">
+          <p className="mt-1 text-meta text-[color:var(--text-secondary)]">
             {t('tasks.notes.emptyHint')}
           </p>
         </div>
@@ -303,7 +292,7 @@ const StackView = ({
   onDelete,
   onFocus,
 }: StackViewProps) => {
-  const { t } = useI18n()
+  const { t, language } = useI18n()
   return (
     <div className="space-y-2">
       {items.map(({ note }) => {
@@ -312,7 +301,7 @@ const StackView = ({
         return (
           <div
             key={note.id}
-            className="rounded-[16px] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] bg-[color:var(--bg-muted)] p-3 transition-colors hover:border-[color-mix(in_srgb,var(--text-primary)_12%,transparent)]"
+            className="rounded-[var(--radius-md)] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] bg-[color:var(--bg-muted)] p-3 transition-colors hover:border-[color-mix(in_srgb,var(--text-primary)_12%,transparent)]"
           >
             <div className="flex items-start gap-2">
               <button
@@ -320,16 +309,16 @@ const StackView = ({
                 onClick={() => onToggleExpand(note.id)}
                 className="min-w-0 flex-1 text-left"
               >
-                <p className="truncate text-[13px] font-semibold text-[color:var(--text-primary)]">
+                <p className="truncate text-ui font-semibold text-[color:var(--text-primary)]">
                   {note.title?.trim() || t('tasks.notes.untitled')}
                 </p>
                 {!expanded ? (
-                  <p className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-[color:var(--text-secondary)]">
+                  <p className="mt-1 line-clamp-2 text-label leading-relaxed text-[color:var(--text-secondary)]">
                     {preview || ' '}
                   </p>
                 ) : null}
-                <div className="mt-1.5 flex items-center gap-2 text-[10px] text-[color:var(--text-secondary)]">
-                  <span>{formatRelative(note.updatedAt)}</span>
+                <div className="mt-1.5 flex items-center gap-2 text-meta text-[color:var(--text-secondary)]">
+                  <span>{formatRelativeTime(note.updatedAt, language, { maxDays: 30 })}</span>
                   {note.wordCount ? <span>· {note.wordCount}w</span> : null}
                 </div>
               </button>
@@ -345,7 +334,7 @@ const StackView = ({
                   value={note.title}
                   onChange={(event) => onChange(note.id, { title: event.target.value })}
                   placeholder={t('tasks.notes.untitled')}
-                  className="h-8 rounded-[10px] border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[var(--bg-elevated)] text-[13px]"
+                  className="h-8 rounded-[var(--radius-sm)] border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[var(--bg-elevated)] text-ui"
                 />
                 <ClickToContinueTextarea
                   value={note.contentMd}
@@ -370,23 +359,23 @@ type CardsViewProps = {
 }
 
 const CardsView = ({ items, onOpen, onUnlink, onDelete }: CardsViewProps) => {
-  const { t } = useI18n()
+  const { t, language } = useI18n()
   return (
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
       {items.map(({ note }) => (
         <div
           key={note.id}
-          className="group relative rounded-[16px] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] bg-[color:var(--bg-muted)] p-3 transition-all hover:border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] hover:shadow-sm"
+          className="group relative rounded-[var(--radius-md)] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] bg-[color:var(--bg-muted)] p-3 transition-all hover:border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] hover:shadow-sm"
         >
           <button type="button" onClick={() => onOpen(note.id)} className="block w-full text-left">
-            <p className="truncate text-[13px] font-semibold text-[color:var(--text-primary)]">
+            <p className="truncate text-ui font-semibold text-[color:var(--text-primary)]">
               {note.title?.trim() || t('tasks.notes.untitled')}
             </p>
-            <p className="mt-1.5 line-clamp-4 text-[11px] leading-relaxed text-[color:var(--text-secondary)]">
+            <p className="mt-1.5 line-clamp-4 text-meta leading-relaxed text-[color:var(--text-secondary)]">
               {truncate(previewOf(note), 200) || ' '}
             </p>
-            <p className="mt-2 text-[10px] text-[color:var(--text-secondary)]">
-              {formatRelative(note.updatedAt)}
+            <p className="mt-2 text-meta text-[color:var(--text-secondary)]">
+              {formatRelativeTime(note.updatedAt, language, { maxDays: 30 })}
             </p>
           </button>
           <div className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
@@ -426,12 +415,12 @@ const FocusView = ({
   const active = items.find((entry) => entry.note.id === activeNoteId) ?? items[0]
 
   return (
-    <div className="rounded-[16px] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] bg-[color:var(--bg-muted)] p-2">
+    <div className="rounded-[var(--radius-md)] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] bg-[color:var(--bg-muted)] p-2">
       <div className="mb-2 flex items-center justify-between gap-2">
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
+          className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-meta font-semibold text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
         >
           <ChevronLeft className="h-3.5 w-3.5" />
           {t('tasks.notes.backToList')}
@@ -455,7 +444,7 @@ const FocusView = ({
               onClick={() => onSelect(note.id)}
               title={note.title || t('tasks.notes.untitled')}
               className={cn(
-                'rounded-[10px] border px-1.5 py-2 text-center text-[10px] font-semibold leading-tight transition-colors',
+                'rounded-[var(--radius-sm)] border px-1.5 py-2 text-center text-meta font-semibold leading-tight transition-colors',
                 active?.note.id === note.id
                   ? 'border-[color-mix(in_srgb,var(--text-primary)_20%,transparent)] bg-[var(--bg-elevated)] text-[color:var(--text-primary)]'
                   : 'border-transparent text-[color:var(--text-secondary)] hover:bg-[color-mix(in_srgb,var(--bg-elevated)_60%,transparent)]',
@@ -476,7 +465,7 @@ const FocusView = ({
                 value={active.note.title}
                 onChange={(event) => onChange(active.note.id, { title: event.target.value })}
                 placeholder={t('tasks.notes.untitled')}
-                className="h-9 rounded-[10px] border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[var(--bg-elevated)] text-[14px] font-semibold"
+                className="h-9 rounded-[var(--radius-sm)] border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[var(--bg-elevated)] text-body font-semibold"
               />
               <ClickToContinueTextarea
                 value={active.note.contentMd}
@@ -486,7 +475,7 @@ const FocusView = ({
               />
             </div>
           ) : (
-            <p className="px-4 py-8 text-center text-[12px] text-[color:var(--text-secondary)]">
+            <p className="px-4 py-8 text-center text-label text-[color:var(--text-secondary)]">
               {t('tasks.notes.noNoteSelected')}
             </p>
           )}
@@ -511,7 +500,7 @@ const ClickToContinueTextarea = ({ value, onChange, minRows, fillHeight }: Click
   return (
     <div
       className={cn(
-        'group/wrap relative cursor-text rounded-[12px] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[var(--bg-elevated)] p-0 transition-colors focus-within:ring-1 focus-within:ring-slate-300',
+        'group/wrap relative cursor-text rounded-[var(--radius-md)] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[var(--bg-elevated)] p-0 transition-colors focus-within:ring-1 focus-within:ring-rule-strong',
         fillHeight && 'flex min-h-[360px] flex-1',
       )}
       onMouseDown={(event) => {
@@ -533,7 +522,7 @@ const ClickToContinueTextarea = ({ value, onChange, minRows, fillHeight }: Click
         onChange={(event) => onChange(event.target.value)}
         rows={minRows}
         className={cn(
-          'block w-full resize-none rounded-[12px] border-0 bg-transparent px-3 py-2 text-[13px] leading-6 text-slate-700 outline-none focus-visible:ring-0',
+          'block w-full resize-none rounded-[var(--radius-md)] border-0 bg-transparent px-3 py-2 text-ui leading-6 text-[var(--text-primary)] outline-none focus-visible:ring-0',
           fillHeight && 'flex-1',
         )}
       />
@@ -567,13 +556,13 @@ const NoteCardMenu = ({ onOpenFocus, onUnlink, onDelete, hideOpenFocus }: NoteCa
       <PopoverContent
         align="end"
         sideOffset={4}
-        className="w-[200px] rounded-[14px] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] p-1 shadow-[var(--shadow-card-lg)]"
+        className="w-[200px] rounded-[var(--radius-md)] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] p-1 shadow-[var(--shadow-card-lg)]"
       >
         {!hideOpenFocus ? (
           <button
             type="button"
             onClick={() => { setOpen(false); onOpenFocus() }}
-            className="flex w-full items-center gap-2 rounded-[10px] px-2.5 py-2 text-left text-[12px] hover:bg-[color:var(--surface-hover)]"
+            className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2.5 py-2 text-left text-label hover:bg-[color:var(--surface-hover)]"
           >
             <ExternalLink className="h-3.5 w-3.5" />
             {t('tasks.notes.openInNotes')}
@@ -582,7 +571,7 @@ const NoteCardMenu = ({ onOpenFocus, onUnlink, onDelete, hideOpenFocus }: NoteCa
         <button
           type="button"
           onClick={() => { setOpen(false); onUnlink() }}
-          className="flex w-full items-center gap-2 rounded-[10px] px-2.5 py-2 text-left text-[12px] hover:bg-[color:var(--surface-hover)]"
+          className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2.5 py-2 text-left text-label hover:bg-[color:var(--surface-hover)]"
         >
           <Link2Off className="h-3.5 w-3.5" />
           {t('tasks.notes.unlink')}
@@ -590,7 +579,7 @@ const NoteCardMenu = ({ onOpenFocus, onUnlink, onDelete, hideOpenFocus }: NoteCa
         <button
           type="button"
           onClick={() => { setOpen(false); onDelete() }}
-          className="flex w-full items-center gap-2 rounded-[10px] px-2.5 py-2 text-left text-[12px] text-rose-600 hover:bg-rose-50"
+          className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2.5 py-2 text-left text-label text-tone-urgent hover:bg-tone-urgent-wash"
         >
           <Trash2 className="h-3.5 w-3.5" />
           {t('tasks.notes.deleteNote')}

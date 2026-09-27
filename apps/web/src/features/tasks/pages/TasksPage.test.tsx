@@ -46,19 +46,19 @@ describe('TasksPage viewport adaptation', () => {
     render(<TasksPage />)
 
     const switcher = screen.getByRole('tablist', { name: 'Tasks page view' })
-    expect(within(switcher).getByRole('tab', { name: 'Board' })).toBeInTheDocument()
+    expect(within(switcher).getByRole('tab', { name: 'Cards' })).toBeInTheDocument()
     expect(within(switcher).getByRole('tab', { name: 'Today' })).toBeInTheDocument()
-    expect(within(switcher).getByRole('tab', { name: 'List' })).toBeInTheDocument()
+    expect(within(switcher).getByRole('tab', { name: 'Board' })).toBeInTheDocument()
     expect(within(switcher).getByRole('tab', { name: 'Analytics' })).toBeInTheDocument()
   })
 
-  it('preserves a stored list mode preference', () => {
+  it('preserves a stored list mode preference (the three-column Board view)', () => {
     window.localStorage.setItem('tasks_page_view_mode', 'list')
 
     render(<TasksPage />)
 
     const switcher = screen.getByRole('tablist', { name: 'Tasks page view' })
-    expect(within(switcher).getByRole('tab', { name: 'List' })).toHaveAttribute('aria-selected', 'true')
+    expect(within(switcher).getByRole('tab', { name: 'Board' })).toHaveAttribute('aria-selected', 'true')
     expect(window.localStorage.getItem('tasks_page_view_mode')).toBe('list')
   })
 

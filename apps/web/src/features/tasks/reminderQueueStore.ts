@@ -48,5 +48,9 @@ export const reminderQueueStore = {
   },
 }
 
-export const useReminderQueue = () =>
-  useSyncExternalStore(reminderQueueStore.subscribe, reminderQueueStore.getSnapshot).queue
+// Subscribe to the queue array itself: it is replaced on every change, whereas
+// `state` is the same object forever — using it as the snapshot meant React
+// never re-rendered on dismiss, so "Got it" left the reminder on screen.
+const getQueueSnapshot = () => state.queue
+
+export const useReminderQueue = () => useSyncExternalStore(reminderQueueStore.subscribe, getQueueSnapshot)

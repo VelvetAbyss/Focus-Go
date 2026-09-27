@@ -2,6 +2,7 @@ import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { TaskAttachment } from '../../../data/models/types'
 import { useAttachmentUrl } from './useAttachmentUrl'
+import { useI18n } from '../../../shared/i18n/useI18n'
 
 type TaskAttachmentChipProps = {
   attachment: TaskAttachment
@@ -21,15 +22,16 @@ const TaskAttachmentChip = ({
   removeLabel,
   className,
 }: TaskAttachmentChipProps) => {
+  const { t } = useI18n()
   const resolved = useAttachmentUrl(previewUrl ? null : attachment.hash)
   const url = previewUrl ?? resolved
 
   return (
     <div
       className={cn(
-        'tasks-fg__chip group relative shrink-0 overflow-hidden rounded-[10px] border bg-[color:color-mix(in_srgb,var(--accent-action)_4%,var(--bg-elevated))]',
+        'tasks-fg__chip group relative shrink-0 overflow-hidden rounded-[var(--radius-sm)] border bg-[color:color-mix(in_srgb,var(--accent-action)_4%,var(--bg-elevated))]',
         'border-[color:color-mix(in_srgb,var(--accent-action)_22%,transparent)] transition-shadow',
-        'hover:shadow-[0_4px_12px_-6px_rgba(139,94,52,0.35)]',
+        'hover:shadow-[0_4px_12px_-6px_color-mix(in_srgb,var(--ink-1)_35%,transparent)]',
         className,
       )}
       style={{ width: size, height: size }}
@@ -37,7 +39,7 @@ const TaskAttachmentChip = ({
       {url ? (
         <img
           src={url}
-          alt={attachment.name ?? '附件'}
+          alt={attachment.name ?? t('tasks.attachment.alt')}
           className="h-full w-full object-cover"
           draggable={false}
         />

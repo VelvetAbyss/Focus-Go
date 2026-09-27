@@ -1,4 +1,5 @@
 import type { ProjectItem, TaskActivityLog, TaskItem, TaskSubtask } from '../../../data/models/types'
+import { appIntlLocale } from '../../../shared/i18n/format'
 
 export type TaskProgressPeriod = 'week' | 'month'
 export type TaskProgressDetailMode = 'compact' | 'detailed'
@@ -137,10 +138,10 @@ const addLocalMonths = (value: number, amount: number) => {
 const formatRangeLabel = (startAt: number, endAt: number, period: TaskProgressPeriod) => {
   const start = new Date(startAt)
   if (period === 'month') {
-    return start.toLocaleDateString(undefined, { year: 'numeric', month: 'long' })
+    return start.toLocaleDateString(appIntlLocale(), { year: 'numeric', month: 'long' })
   }
   const inclusiveEnd = new Date(endAt - DAY_MS)
-  return `${start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} - ${inclusiveEnd.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+  return `${start.toLocaleDateString(appIntlLocale(), { month: 'short', day: 'numeric' })} - ${inclusiveEnd.toLocaleDateString(appIntlLocale(), { month: 'short', day: 'numeric' })}`
 }
 
 export const getTaskProgressRange = (now: number, period: TaskProgressPeriod): TaskProgressRange => {

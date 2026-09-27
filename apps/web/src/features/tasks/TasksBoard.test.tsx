@@ -47,6 +47,8 @@ const { mockT } = vi.hoisted(() => {
         'dashboard.widget.tasks': 'Tasks',
         'modules.tasks.addPlaceholder': 'Add a new task...',
         'modules.tasks.add': 'Add',
+        'tasks.board.allProjects': 'All',
+        'tasks.board.sectionInbox': 'Inbox',
       }
       const msg = msgs[key]
       if (!msg) return key

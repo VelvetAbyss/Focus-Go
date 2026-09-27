@@ -88,10 +88,10 @@ describe('TaskCard', () => {
     const button = container.querySelector('[data-today-active="true"]')
 
     expect(button).toHaveClass('task-card__action-btn--today-active')
-    expect(button).toHaveClass('text-amber-600')
+    expect(button).toHaveClass('text-[var(--accent)]')
   })
 
-  it('highlights overdue deadlines with a stronger red treatment', () => {
+  it('marks an overdue deadline in the meta line without tinting the card', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-03-12T00:00:00Z'))
 
@@ -106,11 +106,11 @@ describe('TaskCard', () => {
     )
 
     const card = container.querySelector('.task-card-shell')
-    const deadlineBadge = Array.from(container.querySelectorAll('span')).find((element) => element.textContent === '-1d')
+    const due = container.querySelector('.task-card__due')
 
-    expect(card?.className).toContain('!bg-rose-50/80')
-    expect(card?.className).toContain('!border-rose-300/70')
-    expect(deadlineBadge?.className).toContain('border-rose-300')
-    expect(deadlineBadge?.className).toContain('text-rose-700')
+    // Paper & Ink: color means state, and only the date carries it.
+    expect(card?.className).not.toMatch(/bg-rose|border-rose/)
+    expect(due).toHaveClass('text-tone-urgent')
+    expect(due?.textContent).toContain('1d overdue')
   })
 })

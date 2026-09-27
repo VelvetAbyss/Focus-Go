@@ -3,7 +3,9 @@ import type { TaskItem } from '../tasks.types'
 import {
   getTaskCompletion,
   getTaskDateRange,
+  taskCoversDate,
   isTaskBlocked,
+  isTaskInToday,
   isTaskOverdue,
   rankNextActionTask,
 } from './taskRules'
@@ -42,6 +44,23 @@ describe('task domain rules', () => {
     expect(getTaskDateRange(task({ dueDate: '2026-03-12' }))).toEqual({ startDate: '2026-03-12', endDate: '2026-03-12' })
     expect(getTaskDateRange(task({ startDate: '2026-03-10', endDate: '2026-03-12' }))).toEqual({ startDate: '2026-03-10', endDate: '2026-03-12' })
     expect(getTaskDateRange(task({ startDate: '2026-03-12', endDate: '2026-03-10' }))).toEqual({ startDate: '2026-03-10', endDate: '2026-03-12' })
+  })
+
+  it('puts marked, due-today and open overdue tasks in 今日', () => {
+    const now = new Date(2026, 2, 12, 8).getTime()
+    expect(isTaskInToday({ ...task(), isToday: true }, now)).toBe(true)
+    expect(isTaskInToday(task({ dueDate: '2026-03-12' }), now)).toBe(true)
+    expect(isTaskInToday(task({ dueDate: '2026-03-12', status: 'done' }), now)).toBe(true)
+    expect(isTaskInToday(task({ dueDate: '2026-03-10' }), now)).toBe(true)
+    expect(isTaskInToday(task({ dueDate: '2026-03-10', status: 'done' }), now)).toBe(false)
+    expect(isTaskInToday(task({ dueDate: '2026-03-13' }), now)).toBe(false)
+    expect(isTaskInToday(task(), now)).toBe(false)
+  })
+
+  it('spans a start date to a later due date when no end date is set', () => {
+    expect(getTaskDateRange(task({ startDate: '2026-03-10', dueDate: '2026-03-13' }))).toEqual({ startDate: '2026-03-10', endDate: '2026-03-13' })
+    expect(getTaskDateRange(task({ startDate: '2026-03-10', dueDate: '2026-03-08' }))).toEqual({ startDate: '2026-03-10', endDate: '2026-03-10' })
+    expect(taskCoversDate(task({ startDate: '2026-03-10', dueDate: '2026-03-13' }), '2026-03-13')).toBe(true)
   })
 
   it('computes subtask completion', () => {

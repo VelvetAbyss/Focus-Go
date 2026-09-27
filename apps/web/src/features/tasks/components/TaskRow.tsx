@@ -9,6 +9,8 @@ import {
   getTaskDeadlineState,
   getTaskPriorityKey,
 } from './taskPresentation'
+import { useI18n } from '../../../shared/i18n/useI18n'
+import { DURATION, EASE } from '../../../shared/motion/tokens'
 
 type TaskRowProject = {
   id: string
@@ -58,6 +60,7 @@ const TaskRow = ({
   onDelete,
   onTogglePin,
 }: TaskRowProps) => {
+  const { t } = useI18n()
   const [hover, setHover] = useState(false)
   const [stamping, setStamping] = useState(false)
   const priorityKey = getTaskPriorityKey(task.priority)
@@ -155,7 +158,7 @@ const TaskRow = ({
             className="fg-task-row__check-glyph"
             initial={false}
             animate={stamping ? { scale: [1, 1.6, 1], opacity: [1, 0.4, 1] } : { scale: 1, opacity: 1 }}
-            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: DURATION.slow, ease: EASE.outExpo }}
           />
         </button>
 
@@ -174,7 +177,7 @@ const TaskRow = ({
           <div className="fg-task-row__meta">
             {dueLabel ? (
               <span className={cn('fg-task-row__meta-piece', isOverdue && 'is-overdue')}>
-                {isOverdue ? '逾期 ' : '截 '}
+                {isOverdue ? `${t('tasks.row.overdue')} ` : `${t('tasks.row.due')} `}
                 {dueLabel}
               </span>
             ) : null}
@@ -254,7 +257,7 @@ const TaskRow = ({
           className="fg-task-row__check-fill"
           initial={false}
           animate={stamping ? { scale: [0, 0.9, 0.7], opacity: [0, 1, 0.85] } : { scale: 0, opacity: 0 }}
-          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: DURATION.slow, ease: EASE.outExpo }}
           style={{ background: accent }}
         />
       </button>
