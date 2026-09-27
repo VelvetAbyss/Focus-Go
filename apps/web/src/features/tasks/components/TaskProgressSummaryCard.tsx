@@ -9,7 +9,10 @@ import {
   type TaskProgressPeriod,
   type TaskProgressSummary,
 } from '../domain/taskProgressSummary'
+import '../../../shared/ui/HeaderPill.css'
 import './TaskProgressSummaryCard.css'
+import ActiveIndicator from '../../../shared/motion/ActiveIndicator'
+import { SELECTED_TAB } from '../../../shared/motion/indicatorSelectors'
 
 type TaskProgressSummaryCardProps = {
   tasks: readonly TaskItem[]
@@ -90,6 +93,7 @@ const SegmentControl = <T extends string>({
   ariaLabel?: string
 }) => (
   <div role="tablist" aria-label={ariaLabel} className="header-pill is-compact">
+    <ActiveIndicator selector={SELECTED_TAB} />
     {options.map((option) => {
       const selected = value === option.value
       return (

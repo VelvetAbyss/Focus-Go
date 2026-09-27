@@ -11,6 +11,7 @@ import { emitTasksChanged } from '../taskSync'
 import { getTaskDisplayRange } from '../taskDates'
 import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, getTaskPriorityKey } from './taskPresentation'
 import { createTask } from '../application/taskActions'
+import { appIntlLocale } from '../../../shared/i18n/format'
 
 type CalendarEntry = {
   id: string
@@ -35,7 +36,7 @@ const weekLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const priorityOrder: Record<'high' | 'medium' | 'low' | 'none', number> = { high: 0, medium: 1, low: 2, none: 3 }
 
 const formatMonthLabel = (date: Date) =>
-  date.toLocaleDateString(undefined, {
+  date.toLocaleDateString(appIntlLocale(), {
     year: 'numeric',
     month: 'long',
   })
@@ -236,17 +237,17 @@ const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted
   }
 
   return (
-    <section className={cn('mt-4 flex min-h-0 flex-1 flex-col rounded-[24px] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] bg-[color-mix(in_srgb,var(--bg-elevated)_88%,transparent)] p-4 shadow-[var(--shadow-card-lg)]', compact && 'rounded-[20px] p-3', plain && 'mt-0 rounded-none border-0 bg-transparent p-0 shadow-none')}>
+    <section className={cn('mt-4 flex min-h-0 flex-1 flex-col rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] bg-[color-mix(in_srgb,var(--bg-elevated)_88%,transparent)] p-4 shadow-[var(--shadow-card-lg)]', compact && 'rounded-[var(--radius-lg)] p-3', plain && 'mt-0 rounded-none border-0 bg-transparent p-0 shadow-none')}>
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Calendar</p>
-          <h3 className="mt-1 text-[22px] font-semibold tracking-[-0.03em] text-slate-950">{formatMonthLabel(visibleMonth)}</h3>
+          <p className="text-meta font-semibold uppercase tracking-[var(--tracking-caps)] text-[var(--text-secondary)]">Calendar</p>
+          <h3 className="mt-1 text-subhead font-semibold tracking-[-0.03em] text-[var(--text-primary)]">{formatMonthLabel(visibleMonth)}</h3>
         </div>
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => setVisibleMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="sm" className="h-8 rounded-full px-3 text-[11px] font-semibold" onClick={() => {
+          <Button variant="outline" size="sm" className="h-8 rounded-full px-3 text-meta font-semibold" onClick={() => {
             const now = new Date()
             setVisibleMonth(new Date(now.getFullYear(), now.getMonth(), 1))
           }}>
@@ -260,7 +261,7 @@ const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted
 
       <div className="grid grid-cols-7 gap-2">
         {weekLabels.map((label) => (
-          <div key={label} className="px-1 py-2 text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+          <div key={label} className="px-1 py-2 text-center text-meta font-semibold uppercase tracking-[var(--tracking-caps)] text-[var(--text-secondary)]">
             {label}
           </div>
         ))}
@@ -275,7 +276,7 @@ const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted
           return (
             <div
               key={dateKey}
-              className={cn('min-h-[120px] rounded-[18px] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] p-2.5 transition hover:border-[color-mix(in_srgb,var(--text-primary)_22%,transparent)] hover:bg-[var(--bg-elevated)]', !inMonth && 'bg-[color-mix(in_srgb,var(--text-primary)_7%,transparent)] opacity-60', isToday && 'border-sky-200 bg-sky-50/60')}
+              className={cn('min-h-[120px] rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] p-2.5 transition hover:border-[color-mix(in_srgb,var(--text-primary)_22%,transparent)] hover:bg-[var(--bg-elevated)]', !inMonth && 'bg-[color-mix(in_srgb,var(--text-primary)_7%,transparent)] opacity-60', isToday && 'border-[color-mix(in_srgb,var(--tone-info)_35%,transparent)] bg-tone-info-wash')}
               onDoubleClick={inMonth ? () => openCreate(dateKey) : undefined}
               onDragOver={(event) => {
                 if (!inMonth) return
@@ -307,13 +308,13 @@ const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted
               }}
             >
               <div className="mb-2 flex items-center justify-between">
-                <span className={cn('inline-flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-semibold', isToday ? 'bg-sky-600 text-white' : 'text-foreground')}>
+                <span className={cn('inline-flex h-7 w-7 items-center justify-center rounded-full text-meta font-semibold', isToday ? 'bg-[var(--accent)] text-[color:var(--accent-ink)]' : 'text-foreground')}>
                   {inMonth ? date.getDate() : ''}
                 </span>
                 {inMonth ? (
                   <button
                     type="button"
-                    className="inline-flex h-6 w-6 items-center justify-center rounded-full text-slate-400 opacity-0 transition hover:bg-slate-100 hover:text-foreground group-hover:opacity-100"
+                    className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[var(--text-tertiary)] opacity-0 transition hover:bg-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] hover:text-foreground group-hover:opacity-100"
                     onClick={(event) => {
                       event.stopPropagation()
                       openCreate(dateKey)
@@ -334,7 +335,7 @@ const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted
                       key={entry.id}
                       type="button"
                       draggable
-                      className={cn('w-full rounded-[14px] border px-2 py-1.5 text-left text-[10px] font-medium transition hover:shadow-sm', status.badge)}
+                      className={cn('w-full rounded-[var(--radius-md)] border px-2 py-1.5 text-left text-meta font-medium transition hover:shadow-sm', status.badge)}
                       onDragStart={(event) => {
                         event.dataTransfer.setData('application/x-task-calendar-entry', JSON.stringify({ taskId: entry.taskId, fromDateKey: entry.dateKey }))
                         event.dataTransfer.effectAllowed = 'move'
@@ -352,7 +353,7 @@ const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted
                     </button>
                   )
                 })}
-                {entries.length > (compact ? 2 : 3) ? <p className="px-1 text-[10px] font-medium text-slate-500">+{entries.length - (compact ? 2 : 3)} more</p> : null}
+                {entries.length > (compact ? 2 : 3) ? <p className="px-1 text-meta font-medium text-[var(--text-secondary)]">+{entries.length - (compact ? 2 : 3)} more</p> : null}
               </div>
             </div>
           )
@@ -368,11 +369,11 @@ const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted
           }}
         >
           <div className="grid gap-2">
-            <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Title</label>
-            <input ref={createTitleRef} value={createTitle} onChange={(event) => setCreateTitle(event.target.value)} placeholder="Task title" className="h-11 rounded-[14px] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] px-3 text-[13px]" />
+            <label className="text-meta font-semibold uppercase tracking-[var(--tracking-caps)] text-[var(--text-secondary)]">Title</label>
+            <input ref={createTitleRef} value={createTitle} onChange={(event) => setCreateTitle(event.target.value)} placeholder="Task title" className="h-11 rounded-[var(--radius-md)] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] px-3 text-ui" />
           </div>
           <div className="grid gap-2">
-            <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Due date</label>
+            <label className="text-meta font-semibold uppercase tracking-[var(--tracking-caps)] text-[var(--text-secondary)]">Due date</label>
             <DatePicker value={createDueDate || null} onChange={(next) => setCreateDueDate(next ?? '')} />
           </div>
           <div className="flex items-center justify-end gap-2">
@@ -389,11 +390,11 @@ const TaskCalendarWidget = ({ tasks, onTaskCreated, onTaskUpdated, onTaskDeleted
       <Dialog open={Boolean(activeEntry)} title="Edit task date" onClose={closeEdit}>
         <div className="space-y-4">
           <div>
-            <p className="text-[15px] font-semibold text-slate-950">{activeEntry?.title.trim() || 'Untitled'}</p>
-            <p className="mt-1 text-[12px] text-slate-500">Move this task to another day or delete it from the workspace.</p>
+            <p className="text-body font-semibold text-[var(--text-primary)]">{activeEntry?.title.trim() || 'Untitled'}</p>
+            <p className="mt-1 text-label text-[var(--text-secondary)]">Move this task to another day or delete it from the workspace.</p>
           </div>
           <div className="grid gap-2">
-            <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Date</label>
+            <label className="text-meta font-semibold uppercase tracking-[var(--tracking-caps)] text-[var(--text-secondary)]">Date</label>
             <DatePicker value={editDateKey || null} onChange={(next) => setEditDateKey(next ?? '')} />
           </div>
           <div className="flex items-center justify-between gap-2">

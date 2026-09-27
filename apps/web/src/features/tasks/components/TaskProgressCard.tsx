@@ -28,6 +28,26 @@ export default function TaskProgressCard({ task, onUpdated }: TaskProgressCardPr
     lastSavedRef.current = task.progressNote ?? ''
   }, [task.id, task.progressNote])
 
+  // Saving is on blur, but Esc closes the drawer without blurring the textarea.
+  // Whatever is still unsaved when this card goes away (or switches task) is kept.
+  const draftRef = useRef(draft)
+  draftRef.current = draft
+  useEffect(() => {
+    const taskId = task.id
+    return () => {
+      const pending = draftRef.current.trim()
+      if (pending === lastSavedRef.current.trim()) return
+      lastSavedRef.current = pending
+      void (async () => {
+        // Re-read so a stale copy can't overwrite edits made elsewhere in the drawer.
+        const latest = (await tasksRepo.list()).find((item) => item.id === taskId)
+        if (!latest) return
+        await tasksRepo.setProgressNote(latest, pending)
+        emitTasksChanged('task-progress:update')
+      })().catch((error) => console.error('[TaskProgressCard] save on close failed', error))
+    }
+  }, [task.id])
+
   const history = useMemo(
     () => (task.progressHistory ?? []).slice().sort((a, b) => b.createdAt - a.createdAt),
     [task.progressHistory],
@@ -73,15 +93,15 @@ export default function TaskProgressCard({ task, onUpdated }: TaskProgressCardPr
 
   return (
     <section
-      className="task-detail-progress tdv2-section-enter rounded-[26px] border border-amber-300/40 bg-amber-50/40 p-5 shadow-[0_18px_50px_rgba(245,158,11,0.08)]"
+      className="task-detail-progress tdv2-section-enter rounded-[var(--radius-lg)] border border-rule bg-paper-sunken p-5"
       style={{ animationDelay: '20ms' }}
     >
       <div className="flex items-center justify-between gap-2">
-        <div className="inline-flex items-center gap-2 text-amber-700">
+        <div className="inline-flex items-center gap-2 text-ink-2">
           <Sparkles className="h-4 w-4" />
-          <h2 className="text-[15px] font-bold tracking-tight">{t('tasks.drawer.progressTitle')}</h2>
+          <h2 className="text-body font-bold tracking-tight">{t('tasks.drawer.progressTitle')}</h2>
         </div>
-        <div className="text-[11px] text-amber-700/70">
+        <div className="text-meta text-ink-3">
           {saving ? t('tasks.drawer.progressSaving') : updatedLabel}
         </div>
       </div>
@@ -97,9 +117,9 @@ export default function TaskProgressCard({ task, onUpdated }: TaskProgressCardPr
           }
         }}
         placeholder={t('tasks.drawer.progressPlaceholder')}
-        className="mt-3 min-h-[88px] resize-y rounded-[16px] border-amber-300/50 bg-[color-mix(in_srgb,var(--bg-elevated)_80%,transparent)] text-[14px] leading-6 shadow-none focus-visible:border-amber-400 focus-visible:ring-amber-200"
+        className="mt-3 min-h-[88px] resize-y rounded-[var(--radius-md)] border-rule bg-[color-mix(in_srgb,var(--bg-elevated)_80%,transparent)] text-body leading-6 shadow-none focus-visible:border-rule-strong focus-visible:ring-rule-strong"
       />
-      <p className="mt-1.5 px-1 text-[11px] text-amber-700/60">{t('tasks.drawer.progressSaveHint')}</p>
+      <p className="mt-1.5 px-1 text-meta text-ink-3">{t('tasks.drawer.progressSaveHint')}</p>
 
       {history.length > 0 ? (
         <div className="mt-3">
@@ -108,7 +128,7 @@ export default function TaskProgressCard({ task, onUpdated }: TaskProgressCardPr
             variant="ghost"
             size="sm"
             onClick={() => setHistoryOpen((value) => !value)}
-            className="h-7 gap-1.5 px-2 text-[12px] font-semibold text-amber-700 hover:bg-amber-100/60"
+            className="h-7 gap-1.5 px-2 text-label font-semibold text-ink-2 hover:bg-paper-sunken"
           >
             <History className="h-3.5 w-3.5" />
             {t('tasks.drawer.progressHistoryToggle', { count: history.length })}
@@ -119,7 +139,7 @@ export default function TaskProgressCard({ task, onUpdated }: TaskProgressCardPr
                 <li
                   key={entry.id}
                   className={cn(
-                    'group rounded-[14px] border border-amber-200/60 bg-[color-mix(in_srgb,var(--bg-elevated)_70%,transparent)] px-3 py-2 text-[13px] leading-6',
+                    'group rounded-[var(--radius-md)] border border-rule bg-[color-mix(in_srgb,var(--bg-elevated)_70%,transparent)] px-3 py-2 text-ui leading-6',
                   )}
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -128,12 +148,12 @@ export default function TaskProgressCard({ task, onUpdated }: TaskProgressCardPr
                       type="button"
                       onClick={() => void handleRemoveEntry(entry.id)}
                       aria-label={t('tasks.drawer.progressRemoveEntry')}
-                      className="text-amber-700/40 opacity-0 transition hover:text-rose-600 group-hover:opacity-100"
+                      className="text-ink-3 opacity-0 transition hover:text-tone-urgent group-hover:opacity-100"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
-                  <p className="mt-1 text-[11px] text-amber-700/60">{formatTaskDateTime(entry.createdAt)}</p>
+                  <p className="mt-1 text-meta text-ink-3">{formatTaskDateTime(entry.createdAt)}</p>
                 </li>
               ))}
             </ul>

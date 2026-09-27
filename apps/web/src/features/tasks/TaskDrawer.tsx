@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useInRouterContext } from 'react-router-dom'
 import { CalendarDays, Check, Clock3, Flag, LoaderCircle, Pin, Plus, RotateCcw, Target, Trash2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -37,6 +38,8 @@ import { HelpBadge } from '../../shared/ui/HelpBadge'
 import { useAuthGate } from '../auth/AuthGateContext'
 import { usePremiumGate } from '../premium/PremiumProvider'
 import PremiumMark from '../premium/PremiumMark'
+import FocusOnTaskButton from '../focus/FocusOnTaskButton'
+import './task-detail-theme.css'
 
 type TaskDrawerProps = {
   open: boolean
@@ -113,6 +116,9 @@ const localizeActivityMessage = (
   return message
 }
 
+const toReminderMinute = (value: number | null | undefined) =>
+  typeof value === 'number' ? Math.floor(value / 60_000) : null
+
 const TaskDrawer = ({
   open,
   task,
@@ -122,7 +128,7 @@ const TaskDrawer = ({
   onDeleted,
   onRequestDelete,
 }: TaskDrawerProps) => {
-  const { t } = useI18n()
+  const { t, language } = useI18n()
   const { requireAuth, isGated } = useAuthGate()
   const { canUse, openUpgradeModal } = usePremiumGate()
   const [title, setTitle] = useState('')
@@ -282,7 +288,10 @@ const TaskDrawer = ({
     if ((nextDraft.dueDate ?? '') !== (baseline.dueDate ?? '')) return true
     if ((nextDraft.startDate ?? '') !== (baseline.startDate ?? '')) return true
     if ((nextDraft.endDate ?? '') !== (baseline.endDate ?? '')) return true
-    if (nextDraft.reminderAt !== baseline.reminderAt) return true
+    // The editor rebuilds reminderAt from date + HH:mm, so compare at minute
+    // precision — otherwise a stored reminder with seconds made every open
+    // look dirty and silently re-saved the task.
+    if (toReminderMinute(nextDraft.reminderAt) !== toReminderMinute(baseline.reminderAt)) return true
     if ((nextDraft.projectId ?? undefined) !== (baseline.projectId ?? undefined)) return true
     if (!equalStringArrays(nextDraft.tags, baseline.tags)) return true
     if (!equalSubtasks(nextDraft.subtasks, baseline.subtasks)) return true
@@ -486,6 +495,13 @@ const TaskDrawer = ({
     onClose()
   }
 
+  // The focus shortcut navigates, so it only exists inside the app's router.
+  const canLaunchFocus = useInRouterContext()
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  useEffect(() => {
+    setConfirmingDelete(false)
+  }, [currentTask?.id, open])
+
   const handleStatusChange = async (status: TaskItem['status']) => {
     if (!currentTask) return
     setIsSaving(true)
@@ -509,7 +525,12 @@ const TaskDrawer = ({
       onClose()
       return
     }
-    if (!window.confirm(`Delete task "${currentTask.title}"?`)) return
+    // No board-level dialog to hand off to (calendar, project pages): confirm in the topbar.
+    if (!confirmingDelete) {
+      setConfirmingDelete(true)
+      return
+    }
+    setConfirmingDelete(false)
     await tasksRepo.remove(currentTask.id)
     emitTasksChanged('task-drawer:delete')
     onDeleted(currentTask.id)
@@ -543,10 +564,18 @@ const TaskDrawer = ({
   )
   const statusConfig = currentTask ? TASK_STATUS_CONFIG[currentTask.status] : TASK_STATUS_CONFIG.todo
   const priorityConfig = TASK_PRIORITY_CONFIG[priority ?? 'none']
-  const reminderAtIso = useMemo(() => {
+  // Human-readable reminder chip in the app language (it used to print a raw
+  // UTC ISO string like 2026-09-24T10:50:00.000Z).
+  const reminderLabel = useMemo(() => {
     const reminderAt = combineReminderDateTime(reminderDate, reminderTime)
-    return reminderAt ? new Date(reminderAt).toISOString() : '—'
-  }, [reminderDate, reminderTime])
+    if (!reminderAt) return null
+    return new Date(reminderAt).toLocaleString(language === 'zh' ? 'zh-CN' : 'en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }, [language, reminderDate, reminderTime])
 
   const toggleTag = (tagName: string) => {
     setTags((prev) => {
@@ -578,8 +607,8 @@ const TaskDrawer = ({
       open={open}
       title=""
       onClose={requestClose}
-      panelClassName="task-drawer-panel task-detail-theme !h-[calc(100vh-40px)] !max-h-none rounded-[30px] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] shadow-[var(--shadow-card-lg)]"
-      panelStyle={{ width: `${panelWidth}px`, maxWidth: 'calc(100vw - 48px)' }}
+      panelClassName="task-drawer-panel task-detail-theme !h-[calc((100vh-40px)/var(--overlay-scale,1))] !max-h-none rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] shadow-[var(--shadow-card-lg)]"
+      panelStyle={{ width: `calc(${panelWidth}px / var(--overlay-scale, 1))`, maxWidth: 'calc((100vw - 48px) / var(--overlay-scale, 1))' }}
       contentClassName="!h-full !p-0"
     >
       {currentTask ? (
@@ -596,35 +625,59 @@ const TaskDrawer = ({
                 className={cn(
                   'h-2 w-2 shrink-0 rounded-full ring-2 ring-offset-1 ring-offset-[color:var(--bg)]',
                   priorityConfig.dot,
-                  priority === 'high' ? 'ring-rose-300/50' :
-                  priority === 'medium' ? 'ring-amber-300/50' :
-                  priority === 'low' ? 'ring-cyan-300/50' : 'ring-transparent',
+                  priority === 'high' ? 'ring-[color-mix(in_srgb,var(--tone-urgent)_40%,transparent)]' :
+                  priority === 'medium' ? 'ring-[color-mix(in_srgb,var(--tone-warn)_40%,transparent)]' :
+                  priority === 'low' ? 'ring-rule-strong' : 'ring-transparent',
                 )}
               />
-              <Badge variant="outline" className={cn('task-detail-status-badge rounded-full border px-2.5 py-0.5 text-[11px] font-semibold', statusConfig.badge)}>
+              <Badge variant="outline" className={cn('task-detail-status-badge rounded-full border px-2.5 py-0.5 text-meta font-semibold', statusConfig.badge)}>
                 <span className={cn('mr-1.5 h-1.5 w-1.5 rounded-full', statusConfig.dot)} />
                 {t(statusConfig.labelKey)}
               </Badge>
-              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[color:var(--text-secondary)]">
+              <span className="inline-flex items-center gap-1 text-meta font-medium text-[color:var(--text-secondary)]">
                 {isSaving
                   ? <LoaderCircle className="h-3 w-3 animate-spin" />
-                  : <Check className="h-3 w-3 text-emerald-500" />}
+                  : <Check className="h-3 w-3 text-tone-done" />}
                 {isSaving ? t('modules.note.saveState.saving') : t('tasks.status.saved')}
               </span>
             </div>
 
             <div className="flex items-center gap-1.5">
-              <div className="task-detail-actions flex items-center gap-1.5">
+              {confirmingDelete ? (
+                <div className="flex items-center gap-1.5" role="group" aria-label={t('tasks.deleteTitle')}>
+                  <span className="max-w-[260px] truncate text-meta font-medium text-tone-urgent">
+                    {t('tasks.deleteConfirm', { title: currentTask.title })}
+                  </span>
+                  <Button variant="outline" size="sm" className="h-8 rounded-full px-3 text-meta" onClick={() => setConfirmingDelete(false)}>
+                    {t('tasks.cancel')}
+                  </Button>
+                  <Button variant="destructive" size="sm" className="h-8 rounded-full px-3 text-meta" onClick={() => void handleDelete()}>
+                    {t('tasks.delete')}
+                  </Button>
+                </div>
+              ) : null}
+              <div className={cn('task-detail-actions flex items-center gap-1.5', confirmingDelete && 'hidden')}>
+                {canLaunchFocus && currentTask.status !== 'done' ? (
+                  <FocusOnTaskButton
+                    taskId={currentTask.id}
+                    className="border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] hover:border-[color-mix(in_srgb,var(--text-primary)_25%,transparent)] hover:bg-[color:var(--surface-hover)]"
+                    onLaunch={() => {
+                      // Focusing on a task means working on it.
+                      if (currentTask.status === 'todo') void handleStatusChange('doing')
+                      requestClose()
+                    }}
+                  />
+                ) : null}
                 {currentTask.status === 'todo' ? (
                   <>
                     <Button variant="outline" size="sm"
-                      className="h-8 rounded-full border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] px-3.5 text-[11px] font-semibold hover:border-[color-mix(in_srgb,var(--text-primary)_25%,transparent)] hover:bg-[color:var(--surface-hover)]"
+                      className="h-8 rounded-full border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] px-3.5 text-meta font-semibold hover:border-[color-mix(in_srgb,var(--text-primary)_25%,transparent)] hover:bg-[color:var(--surface-hover)]"
                       onClick={() => void handleStatusChange('doing')} disabled={isSaving}>
                       <Target className="mr-1.5 h-3.5 w-3.5" />
                       {t('tasks.action.start')}
                     </Button>
                     <Button size="sm"
-                      className="h-8 rounded-full border-0 bg-emerald-600 px-3.5 text-[11px] font-semibold text-white hover:bg-emerald-700"
+                      className="h-8 rounded-full border-0 bg-[var(--cta-bg)] px-3.5 text-meta font-semibold text-[color:var(--cta-fg)] hover:bg-[var(--cta-bg-hover)]"
                       onClick={() => void handleStatusChange('done')} disabled={isSaving}>
                       <Check className="mr-1.5 h-3.5 w-3.5" />
                       {t('tasks.action.done')}
@@ -633,7 +686,7 @@ const TaskDrawer = ({
                 ) : null}
                 {currentTask.status === 'doing' ? (
                   <Button size="sm"
-                    className="h-8 rounded-full border-0 bg-emerald-600 px-3.5 text-[11px] font-semibold text-white hover:bg-emerald-700"
+                    className="h-8 rounded-full border-0 bg-[var(--cta-bg)] px-3.5 text-meta font-semibold text-[color:var(--cta-fg)] hover:bg-[var(--cta-bg-hover)]"
                     onClick={() => void handleStatusChange('done')} disabled={isSaving}>
                     <Check className="mr-1.5 h-3.5 w-3.5" />
                     {t('tasks.action.done')}
@@ -641,19 +694,19 @@ const TaskDrawer = ({
                 ) : null}
                 {currentTask.status === 'done' ? (
                   <Button variant="outline" size="sm"
-                    className="h-8 rounded-full border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] px-3.5 text-[11px] font-semibold hover:border-[color-mix(in_srgb,var(--text-primary)_25%,transparent)]"
+                    className="h-8 rounded-full border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] px-3.5 text-meta font-semibold hover:border-[color-mix(in_srgb,var(--text-primary)_25%,transparent)]"
                     onClick={() => void handleStatusChange('todo')} disabled={isSaving}>
                     <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
                     {t('tasks.status.reopen')}
                   </Button>
                 ) : null}
               </div>
-              <Button aria-label="Delete task" variant="ghost" size="icon"
-                className="h-8 w-8 rounded-full text-[color:var(--text-secondary)] transition-colors hover:bg-rose-50 hover:text-rose-500"
+              <Button aria-label={t('tasks.card.delete')} variant="ghost" size="icon"
+                className="h-8 w-8 rounded-full text-[color:var(--text-secondary)] transition-colors hover:bg-tone-urgent-wash hover:text-tone-urgent"
                 onClick={() => requireAuth(() => { void handleDelete() })} disabled={isSaving}>
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
-              <Button aria-label="Close task detail" variant="ghost" size="icon"
+              <Button aria-label={t('common.close')} variant="ghost" size="icon"
                 className="h-8 w-8 rounded-full text-[color:var(--text-secondary)] transition-colors hover:bg-[color:var(--surface-hover)] hover:text-[color:var(--text-primary)]"
                 onClick={requestClose}>
                 <X className="h-3.5 w-3.5" />
@@ -673,16 +726,9 @@ const TaskDrawer = ({
 
                 {/* ── HERO CARD ── */}
                 <div
-                  className="task-detail-card task-detail-card--hero tdv2-section-enter relative overflow-hidden rounded-[28px] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] p-7 shadow-[var(--shadow-card-lg)]"
+                  className="task-detail-card task-detail-card--hero tdv2-section-enter relative overflow-hidden rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] p-7 shadow-[var(--shadow-card-lg)]"
                   style={{ animationDelay: '0ms' }}
                 >
-                  {/* Priority left accent bar */}
-                  <div className={cn(
-                    'absolute bottom-0 left-0 top-0 w-1.5 rounded-r-full transition-colors duration-300',
-                    priority === 'high' ? 'bg-rose-500' :
-                    priority === 'medium' ? 'bg-amber-400' :
-                    priority === 'low' ? 'bg-cyan-500' : 'bg-transparent',
-                  )} />
 
                   <div className="pl-3">
                     <Input
@@ -691,7 +737,7 @@ const TaskDrawer = ({
                       className="task-detail-title-input h-auto border-0 bg-transparent px-0 py-0 text-[30px] font-bold leading-[1.15] tracking-[-0.04em] text-[color:var(--text-primary)] shadow-none focus-visible:ring-0"
                       placeholder={t('tasks.drawer.title')}
                     />
-                    <div className="mt-3 flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-[11px] font-medium text-[color:var(--text-secondary)]">
+                    <div className="mt-3 flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-meta font-medium text-[color:var(--text-secondary)]">
                       <span className="inline-flex items-center gap-1.5">
                         <CalendarDays className="h-3 w-3" />
                         {t('tasks.drawer.created')} {formatTaskDateTime(currentTask.createdAt)}
@@ -704,7 +750,7 @@ const TaskDrawer = ({
                       {currentTask.pinned ? (
                         <>
                           <span className="h-[3px] w-[3px] rounded-full bg-[color:var(--text-secondary)] opacity-30" />
-                          <span className="inline-flex items-center gap-1 text-amber-600">
+                          <span className="inline-flex items-center gap-1 text-tone-warn">
                             <Pin className="h-3 w-3 fill-current" />
                             {t('tasks.drawer.pinned')}
                           </span>
@@ -714,7 +760,7 @@ const TaskDrawer = ({
 
                     {/* Status · Priority selector · Reminder inline row */}
                     <div className="mt-5 flex flex-wrap items-center gap-2">
-                      <Badge variant="outline" className={cn('rounded-full border px-2.5 py-0.5 text-[11px] font-semibold', statusConfig.badge)}>
+                      <Badge variant="outline" className={cn('rounded-full border px-2.5 py-0.5 text-meta font-semibold', statusConfig.badge)}>
                         <span className={cn('mr-1.5 h-1.5 w-1.5 rounded-full', statusConfig.dot)} />
                         {t(statusConfig.labelKey)}
                       </Badge>
@@ -723,15 +769,15 @@ const TaskDrawer = ({
                         <SelectTrigger
                           aria-label={t('tasks.drawer.priority')}
                           className={cn(
-                            'task-detail-select-trigger tdv2-priority-select h-7 w-auto min-w-0 gap-1.5 rounded-full border px-3 text-[11px] font-semibold transition-colors',
-                            priority === 'high' && 'border-rose-300/60 bg-rose-50/60 text-rose-700 hover:bg-rose-50',
-                            priority === 'medium' && 'border-amber-300/60 bg-amber-50/60 text-amber-700 hover:bg-amber-50',
-                            priority === 'low' && 'border-cyan-300/60 bg-cyan-50/60 text-cyan-700 hover:bg-cyan-50',
+                            'task-detail-select-trigger tdv2-priority-select h-7 w-auto min-w-0 gap-1.5 rounded-full border px-3 text-meta font-semibold transition-colors',
+                            priority === 'high' && 'border-[color-mix(in_srgb,var(--tone-urgent)_35%,transparent)] bg-tone-urgent-wash text-tone-urgent hover:bg-tone-urgent-wash',
+                            priority === 'medium' && 'border-[color-mix(in_srgb,var(--tone-warn)_35%,transparent)] bg-tone-warn-wash text-tone-warn hover:bg-tone-warn-wash',
+                            priority === 'low' && 'border-rule-strong bg-paper-sunken text-ink-3 hover:bg-paper-sunken',
                             !priority && 'border-dashed text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-hover)]',
                           )}
                         >
                           <Flag className="h-3 w-3 shrink-0" />
-                          <span className="text-[10px] font-semibold uppercase tracking-[0.08em] opacity-70">
+                          <span className="text-meta font-semibold uppercase tracking-[var(--tracking-caps)] opacity-70">
                             {t('tasks.drawer.priority')}
                           </span>
                           <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', priorityConfig.dot)} />
@@ -747,32 +793,20 @@ const TaskDrawer = ({
                         </SelectContent>
                       </ShadcnSelect>
 
-                      {reminderAtIso !== '—' && (
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[color:var(--bg-muted)] px-2.5 py-0.5 text-[11px] font-medium text-[color:var(--text-secondary)]">
+                      {reminderLabel && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[color:var(--bg-muted)] px-2.5 py-0.5 text-meta font-medium text-[color:var(--text-secondary)]">
                           <Clock3 className="h-3 w-3" />
-                          {reminderAtIso}
+                          {reminderLabel}
                         </span>
                       )}
                     </div>
                   </div>
                 </div>
 
-                <TaskProgressCard task={currentTask} onUpdated={onUpdated} />
-
-                <TaskProjectAssignCard
-                  projectId={projectId}
-                  projects={projects}
-                  onChange={(next) => setProjectId(next)}
-                />
-
-                <TaskAttachmentsSection
-                  attachments={attachments}
-                  onChange={(next) => setAttachments(next)}
-                />
-
+                {/* Order: what/when first (dates, reminder, today), then context, then media. */}
                 {/* ── CORE PROPERTIES ── */}
                 <section
-                  className="task-detail-card tdv2-section-enter rounded-[26px] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] p-5 shadow-[var(--shadow-card-lg)]"
+                  className="task-detail-card tdv2-section-enter rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] p-5 shadow-[var(--shadow-card-lg)]"
                   style={{ animationDelay: '40ms' }}
                 >
                   <p className="task-detail-kicker">{t('tasks.drawer.details')}</p>
@@ -780,10 +814,10 @@ const TaskDrawer = ({
 
                   <div className="mt-4 space-y-3">
                     {/* Today toggle */}
-                    <div className="flex items-center justify-between rounded-[18px] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] bg-[color:var(--bg-muted)] px-4 py-3">
+                    <div className="flex items-center justify-between rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] bg-[color:var(--bg-muted)] px-4 py-3">
                       <div className="min-w-0">
-                        <p className="text-[13px] font-semibold text-[color:var(--text-primary)]">{t('tasks.today.title')}</p>
-                        <p className="mt-0.5 text-[11px] text-[color:var(--text-secondary)]">{t('tasks.today.switchHint')}</p>
+                        <p className="text-ui font-semibold text-[color:var(--text-primary)]">{t('tasks.today.title')}</p>
+                        <p className="mt-0.5 text-meta text-[color:var(--text-secondary)]">{t('tasks.today.switchHint')}</p>
                       </div>
                       <Switch checked={isToday} onCheckedChange={setIsToday} aria-label={t('tasks.today.title')} />
                     </div>
@@ -791,11 +825,11 @@ const TaskDrawer = ({
                     {/* Due date + reminder */}
                     <div className="grid gap-3 md:grid-cols-2">
                       <label className="grid gap-1.5">
-                        <span className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--text-secondary)]">{t('tasks.drawer.dueDate')}</span>
-                        <DatePicker value={dueDate} onChange={(date) => setDueDate(date ?? '')} placeholder={t('tasks.drawer.setDate')} className="task-detail-picker rounded-[14px]" />
+                        <span className="px-1 text-meta font-semibold uppercase tracking-[var(--tracking-caps)] text-[color:var(--text-secondary)]">{t('tasks.drawer.dueDate')}</span>
+                        <DatePicker value={dueDate} onChange={(date) => setDueDate(date ?? '')} placeholder={t('tasks.drawer.setDate')} className="task-detail-picker rounded-[var(--radius-md)]" />
                       </label>
                       <label className="grid gap-1.5">
-                        <span className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--text-secondary)]">{t('tasks.drawer.reminder')}</span>
+                        <span className="px-1 text-meta font-semibold uppercase tracking-[var(--tracking-caps)] text-[color:var(--text-secondary)]">{t('tasks.drawer.reminder')}</span>
                         <DateTimePicker
                           dateValue={reminderDate}
                           timeValue={reminderTime}
@@ -808,17 +842,17 @@ const TaskDrawer = ({
                           placeholder={t('tasks.drawer.setReminder')}
                           ariaLabel={t('tasks.drawer.reminder')}
                           className="w-full"
-                          triggerClassName="task-detail-picker rounded-[14px]"
+                          triggerClassName="task-detail-picker rounded-[var(--radius-md)]"
                         />
                       </label>
                     </div>
 
                     {/* Date range */}
                     <label className="grid gap-1.5">
-                      <span className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--text-secondary)]">{t('tasks.drawer.dateRange')}</span>
+                      <span className="px-1 text-meta font-semibold uppercase tracking-[var(--tracking-caps)] text-[color:var(--text-secondary)]">{t('tasks.drawer.dateRange')}</span>
                       <DateRangePicker
                         value={{ startDate, endDate }}
-                        className="task-detail-picker rounded-[14px]"
+                        className="task-detail-picker rounded-[var(--radius-md)]"
                         onChange={({ startDate: nextStartDate, endDate: nextEndDate }) => {
                           setStartDate(nextStartDate ?? '')
                           setEndDate(nextEndDate ?? '')
@@ -828,20 +862,28 @@ const TaskDrawer = ({
 
                     {/* Summary */}
                     <label className="grid gap-1.5">
-                      <span className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--text-secondary)]">{t('tasks.drawer.summary')}</span>
+                      <span className="px-1 text-meta font-semibold uppercase tracking-[var(--tracking-caps)] text-[color:var(--text-secondary)]">{t('tasks.drawer.summary')}</span>
                       <Textarea
                         value={description}
                         onChange={(event) => setDescription(event.target.value)}
-                        className="min-h-[90px] resize-none rounded-[16px] border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[color:var(--bg-muted)] text-[13px] leading-6 shadow-none"
+                        className="min-h-[90px] resize-none rounded-[var(--radius-md)] border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[color:var(--bg-muted)] text-ui leading-6 shadow-none"
                         placeholder={t('tasks.drawer.summaryPlaceholder')}
                       />
                     </label>
                   </div>
                 </section>
 
+                <TaskProgressCard task={currentTask} onUpdated={onUpdated} />
+
+                <TaskProjectAssignCard
+                  projectId={projectId}
+                  projects={projects}
+                  onChange={(next) => setProjectId(next)}
+                />
+
                 {/* ── TAGS ── */}
                 <section
-                  className="task-detail-card tdv2-section-enter rounded-[26px] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] p-5 shadow-[var(--shadow-card-lg)]"
+                  className="task-detail-card tdv2-section-enter rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] p-5 shadow-[var(--shadow-card-lg)]"
                   style={{ animationDelay: '80ms' }}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
@@ -852,12 +894,12 @@ const TaskDrawer = ({
                     <Popover open={tagPickerOpen} onOpenChange={setTagPickerOpen}>
                       <PopoverTrigger asChild>
                         <Button type="button" variant="outline" size="sm"
-                          className="h-8 rounded-full border-[color-mix(in_srgb,var(--text-primary)_12%,transparent)] px-3.5 text-[11px] font-semibold hover:bg-[color:var(--surface-hover)]">
+                          className="h-8 rounded-full border-[color-mix(in_srgb,var(--text-primary)_12%,transparent)] px-3.5 text-meta font-semibold hover:bg-[color:var(--surface-hover)]">
                           <Plus className="mr-1.5 h-3.5 w-3.5" />
                           {t('tasks.drawer.newTag')}
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-[260px] rounded-[20px] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] p-3 shadow-[var(--shadow-card-lg)]" align="end" sideOffset={10}>
+                      <PopoverContent className="w-[260px] rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] p-3 shadow-[var(--shadow-card-lg)]" align="end" sideOffset={10}>
                         <div className="space-y-2.5">
                           <div className="space-y-0.5">
                             {tagOptions.map((tagName) => {
@@ -868,12 +910,12 @@ const TaskDrawer = ({
                                   key={tagName}
                                   type="button"
                                   className={cn(
-                                    'flex w-full items-center justify-between rounded-[13px] px-3 py-2 text-left transition-colors',
+                                    'flex w-full items-center justify-between rounded-[var(--radius-md)] px-3 py-2 text-left transition-colors',
                                     selected ? 'bg-[color:var(--surface-hover)]' : 'hover:bg-[color:var(--surface-hover)]',
                                   )}
                                   onClick={() => toggleTag(tagName)}
                                 >
-                                  <span className={cn('task-detail-tag inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium', tone.badge)}>
+                                  <span className={cn('task-detail-tag inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-meta font-medium', tone.badge)}>
                                     <span className={cn('h-1.5 w-1.5 rounded-full', tone.dot)} />
                                     {tagName}
                                   </span>
@@ -890,9 +932,9 @@ const TaskDrawer = ({
                               value={tagDraft}
                               onChange={(event) => setTagDraft(event.target.value)}
                               placeholder={t('tasks.drawer.customTag')}
-                              className="h-9 rounded-[12px] border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[color:var(--bg-muted)] text-[13px]"
+                              className="h-9 rounded-[var(--radius-md)] border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[color:var(--bg-muted)] text-ui"
                             />
-                            <Button type="submit" size="sm" className="h-9 shrink-0 rounded-full px-3.5 text-[11px] font-semibold" disabled={!tagDraft.trim()}>
+                            <Button type="submit" size="sm" className="h-9 shrink-0 rounded-full px-3.5 text-meta font-semibold" disabled={!tagDraft.trim()}>
                               {t('tasks.drawer.add')}
                             </Button>
                           </form>
@@ -905,29 +947,34 @@ const TaskDrawer = ({
                       tags.map((tagName) => {
                         const tone = getTaskTagTone(tagName)
                         return (
-                          <span key={tagName} className={cn('task-detail-tag inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium', tone.badge)}>
+                          <span key={tagName} className={cn('task-detail-tag inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-meta font-medium', tone.badge)}>
                             <span className={cn('h-1.5 w-1.5 rounded-full', tone.dot)} />
                             {tagName}
                           </span>
                         )
                       })
                     ) : (
-                      <p className="text-[13px] text-[color:var(--text-secondary)]">{t('tasks.drawer.noTags')}</p>
+                      <p className="text-ui text-[color:var(--text-secondary)]">{t('tasks.drawer.noTags')}</p>
                     )}
                   </div>
                 </section>
+
+                <TaskAttachmentsSection
+                  attachments={attachments}
+                  onChange={(next) => setAttachments(next)}
+                />
 
                 {/* ── ACTIVITY ── */}
                 <section
                   className="task-detail-card-shell tdv2-section-enter"
                   style={{ animationDelay: '120ms' }}
                 >
-                  <div className="task-detail-card rounded-[26px] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] p-5 shadow-[var(--shadow-card-lg)]">
+                  <div className="task-detail-card rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] p-5 shadow-[var(--shadow-card-lg)]">
                     <p className="task-detail-kicker">{t('tasks.drawer.activity')}</p>
                     <h2 className="task-detail-title mt-0.5">{t('tasks.drawer.systemTimeline')}</h2>
                     <div className="mt-4">
                       {activityLogs.length === 0 ? (
-                        <div className="rounded-[16px] border border-dashed border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color:var(--bg-muted)] px-4 py-5 text-center text-[13px] text-[color:var(--text-secondary)]">
+                        <div className="rounded-[var(--radius-md)] border border-dashed border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color:var(--bg-muted)] px-4 py-5 text-center text-ui text-[color:var(--text-secondary)]">
                           {t('tasks.drawer.noActivity')}
                         </div>
                       ) : (
@@ -939,10 +986,10 @@ const TaskDrawer = ({
                             >
                               <div className="tdv2-timeline-dot" />
                               <div className="tdv2-timeline-content">
-                                <p className="text-[13px] font-medium leading-[1.4] text-[color:var(--text-primary)]">
+                                <p className="text-ui font-medium leading-[1.4] text-[color:var(--text-primary)]">
                                   {localizeActivityMessage(log.message, t)}
                                 </p>
-                                <p className="mt-1 text-[11px] text-[color:var(--text-secondary)]">{formatTaskDateTime(log.createdAt)}</p>
+                                <p className="mt-1 text-meta text-[color:var(--text-secondary)]">{formatTaskDateTime(log.createdAt)}</p>
                               </div>
                             </div>
                           ))}
@@ -972,7 +1019,7 @@ const TaskDrawer = ({
 
                   {/* ── SUBTASKS ── */}
                   <section
-                    className="task-detail-card task-detail-card--side tdv2-section-enter rounded-[24px] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] p-4 shadow-[var(--shadow-card)]"
+                    className="task-detail-card task-detail-card--side tdv2-section-enter rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] p-4 shadow-[var(--shadow-card)]"
                     style={{ animationDelay: '60ms' }}
                   >
                     {/* Header row */}
@@ -988,8 +1035,8 @@ const TaskDrawer = ({
                           <h2 className="task-detail-title">{t('tasks.drawer.executionChecklist')}</h2>
                           {subtasks.length > 0 && (
                             <span className={cn(
-                              'rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums transition-colors duration-300',
-                              allDone ? 'bg-emerald-100 text-emerald-700' : 'bg-[color:var(--bg-muted)] text-[color:var(--text-secondary)]',
+                              'rounded-full px-2 py-0.5 text-meta font-bold tabular-nums transition-colors duration-300',
+                              allDone ? 'bg-tone-done-wash text-tone-done' : 'bg-[color:var(--bg-muted)] text-[color:var(--text-secondary)]',
                             )}>
                               {doneCount}/{subtasks.length}
                             </span>
@@ -1011,7 +1058,7 @@ const TaskDrawer = ({
                                 strokeLinecap="round"
                                 className={cn(
                                   'transition-all duration-500',
-                                  allDone ? 'text-emerald-500' : 'text-teal-500',
+                                  allDone ? 'text-tone-done' : 'text-ink-2',
                                 )}
                               />
                             </svg>
@@ -1029,7 +1076,7 @@ const TaskDrawer = ({
                               type="button"
                               onClick={() => setSubtaskFilter(option.key)}
                               className={cn(
-                                'rounded-full px-2.5 py-1 text-[10px] font-semibold transition-all duration-200',
+                                'rounded-full px-2.5 py-1 text-meta font-semibold transition-all duration-200',
                                 subtaskFilter === option.key
                                   ? 'bg-[var(--text-primary)] text-[var(--bg-elevated)] shadow-sm'
                                   : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]',
@@ -1048,7 +1095,7 @@ const TaskDrawer = ({
                         visibleSubtasks.map((subtask) => (
                           <div
                             key={subtask.id}
-                            className="group rounded-[15px] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] bg-[color:var(--bg-muted)] px-3 py-2.5 transition-all duration-150 hover:border-[color-mix(in_srgb,var(--text-primary)_12%,transparent)] hover:shadow-sm"
+                            className="group rounded-[var(--radius-md)] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] bg-[color:var(--bg-muted)] px-3 py-2.5 transition-all duration-150 hover:border-[color-mix(in_srgb,var(--text-primary)_12%,transparent)] hover:shadow-sm"
                           >
                             <div className="task-popup-detail__subtask-checkbox-row flex items-center gap-2.5">
                               <AnimatedPlanCheckbox
@@ -1077,7 +1124,7 @@ const TaskDrawer = ({
                               <button
                                 type="button"
                                 aria-label="Remove subtask"
-                                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[color:var(--text-secondary)] opacity-0 transition-all duration-150 hover:bg-rose-50 hover:text-rose-500 group-hover:opacity-100"
+                                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[color:var(--text-secondary)] opacity-0 transition-all duration-150 hover:bg-tone-urgent-wash hover:text-tone-urgent group-hover:opacity-100"
                                 onClick={() => {
                                   if (!guardSubtasks()) return
                                   setSubtasks((prev) => prev.filter((item) => item.id !== subtask.id))
@@ -1089,7 +1136,7 @@ const TaskDrawer = ({
                           </div>
                         ))
                       ) : (
-                        <div className="rounded-[14px] border border-dashed border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color:var(--bg-muted)] px-4 py-5 text-center text-[12px] text-[color:var(--text-secondary)]">
+                        <div className="rounded-[var(--radius-md)] border border-dashed border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color:var(--bg-muted)] px-4 py-5 text-center text-label text-[color:var(--text-secondary)]">
                           {subtasks.length === 0 ? t('tasks.drawer.noSubtasks') : t('tasks.drawer.noSubtasksInFilter')}
                         </div>
                       )}
@@ -1109,7 +1156,7 @@ const TaskDrawer = ({
                           'flex w-full items-center gap-3 rounded-xl border bg-[color:color-mix(in_srgb,var(--accent-action)_5%,var(--bg-elevated))] px-3.5 py-2 transition-all duration-300',
                           'border-[color:color-mix(in_srgb,var(--accent-action)_22%,transparent)]',
                           subtaskComposer.value.trim().length > 0
-                            ? 'border-[color:color-mix(in_srgb,var(--accent-action)_50%,transparent)] shadow-[0_0_0_3px_rgba(139,94,52,0.10)]'
+                            ? 'border-[color:color-mix(in_srgb,var(--accent-action)_50%,transparent)] shadow-[0_0_0_3px_color-mix(in_srgb,var(--ink-1)_10%,transparent)]'
                             : '',
                         )}
                       >
@@ -1133,7 +1180,7 @@ const TaskDrawer = ({
                           onAnimationEnd={subtaskComposer.clearShake}
                           placeholder={t('tasks.drawer.addSubtask')}
                           className={cn(
-                            'tasks-fg__input flex-1 h-auto min-h-0 border-0 bg-transparent px-0 py-0 text-[13px] font-medium shadow-none outline-none placeholder:text-muted-foreground/85 caret-[color:var(--accent-action)] focus-visible:ring-0',
+                            'tasks-fg__input flex-1 h-auto min-h-0 border-0 bg-transparent px-0 py-0 text-ui font-medium shadow-none outline-none placeholder:text-muted-foreground/85 caret-[color:var(--accent-action)] focus-visible:ring-0',
                             subtaskComposer.isShaking && 'is-shaking',
                           )}
                         />
@@ -1142,10 +1189,10 @@ const TaskDrawer = ({
                           size="sm"
                           disabled={!subtaskComposer.canSubmit}
                           className={cn(
-                            'tasks-fg__add-btn h-8 shrink-0 gap-1.5 rounded-md px-3 text-xs font-semibold text-white shadow-none transition-all duration-300',
-                            'bg-[color:var(--accent-action)] hover:bg-[color:color-mix(in_srgb,var(--accent-action)_88%,var(--bg-elevated))] hover:shadow-[0_6px_16px_-6px_rgba(139,94,52,0.5)] active:scale-[0.96]',
+                            'tasks-fg__add-btn h-8 shrink-0 gap-1.5 rounded-md px-3 text-xs font-semibold text-[color:var(--cta-fg)] shadow-none transition-all duration-300',
+                            'bg-[color:var(--accent-action)] hover:bg-[color:color-mix(in_srgb,var(--accent-action)_88%,var(--bg-elevated))] hover:shadow-[0_6px_16px_-6px_color-mix(in_srgb,var(--ink-1)_50%,transparent)] active:scale-[0.96]',
                             subtaskComposer.value.trim().length > 0
-                              ? 'opacity-100 scale-100 shadow-[0_2px_10px_-2px_rgba(139,94,52,0.4)]'
+                              ? 'opacity-100 scale-100 shadow-[0_2px_10px_-2px_color-mix(in_srgb,var(--ink-1)_40%,transparent)]'
                               : 'opacity-60 scale-[0.94]',
                           )}
                           style={{ transitionTimingFunction: 'cubic-bezier(0.34,1.56,0.64,1)' }}
@@ -1153,7 +1200,7 @@ const TaskDrawer = ({
                           {subtasksLocked ? <PremiumMark /> : null}
                           {t('tasks.drawer.add')}
                           <kbd
-                            className="inline-flex items-center justify-center rounded border border-current/25 bg-current/10 px-1 font-mono text-[10px] font-normal leading-none opacity-80"
+                            className="inline-flex items-center justify-center rounded border border-current/25 bg-current/10 px-1 font-mono text-meta font-normal leading-none opacity-80"
                             style={{ letterSpacing: 0 }}
                           >
                             ⏎

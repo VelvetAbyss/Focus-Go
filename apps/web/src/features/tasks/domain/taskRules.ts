@@ -35,6 +35,18 @@ export const getTaskDaysUntilDue = (task: Pick<TaskItem, 'dueDate' | 'status'>, 
 
 export const isTaskDone = (task: Pick<TaskItem, 'status'>) => task.status === 'done'
 
+/**
+ * Whether a task belongs in the 今日 view: marked for today by hand, due today (done or
+ * not, so today's finished work stays visible), or overdue and still open.
+ */
+export const isTaskInToday = (task: Pick<TaskItem, 'isToday' | 'dueDate' | 'status'>, now = Date.now()) => {
+  if (task.isToday) return true
+  const dueDay = parseDateOnlyToLocalDayStart(task.dueDate)
+  if (dueDay == null) return false
+  const today = toLocalDayStart(now)
+  return dueDay === today || (dueDay < today && !isTaskDone(task))
+}
+
 export const isTaskBlocked = (task: Pick<TaskItem, 'isBlocked' | 'blockedByTaskIds'>) =>
   task.isBlocked === true || (task.blockedByTaskIds?.length ?? 0) > 0
 
@@ -51,7 +63,9 @@ export const getTaskDateRange = (task: Pick<TaskItem, 'dueDate' | 'startDate' | 
   if (startDate && endDate) {
     return startDate <= endDate ? { startDate, endDate } : { startDate: endDate, endDate: startDate }
   }
-  if (startDate) return { startDate, endDate: startDate }
+  // A start date with a later due date spans to the due date (the calendar shows the
+  // whole stretch, ending on the day it's due), rather than only the start day.
+  if (startDate) return { startDate, endDate: dueDate && dueDate > startDate ? dueDate : startDate }
   if (endDate) return { startDate: endDate, endDate }
   if (dueDate) return { startDate: dueDate, endDate: dueDate }
   return null
@@ -63,11 +77,14 @@ export const taskCoversDate = (task: Pick<TaskItem, 'dueDate' | 'startDate' | 'e
   return range.startDate <= dateKey && dateKey <= range.endDate
 }
 
-export const formatTaskDateRange = (task: Pick<TaskItem, 'dueDate' | 'startDate' | 'endDate'>) => {
+export const formatTaskDateRange = (
+  task: Pick<TaskItem, 'dueDate' | 'startDate' | 'endDate'>,
+  formatDateKey: (dateKey: string) => string = (dateKey) => dateKey,
+) => {
   const range = getTaskDateRange(task)
-  if (!range) return 'No date'
-  if (range.startDate === range.endDate) return range.startDate
-  return `${range.startDate} -> ${range.endDate}`
+  if (!range) return '—'
+  if (range.startDate === range.endDate) return formatDateKey(range.startDate)
+  return `${formatDateKey(range.startDate)} – ${formatDateKey(range.endDate)}`
 }
 
 export const getTaskCompletion = (task: Pick<TaskItem, 'subtasks'>) => {

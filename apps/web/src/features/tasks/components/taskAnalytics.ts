@@ -1,6 +1,7 @@
 import type { TaskItem, TaskPriority, TaskStatus } from '../tasks.types'
 import { getTaskCompletion, isTaskDone } from '../domain/taskRules'
 import { isTaskDoneActivityLog } from '../domain/taskProgressSummary'
+import { appIntlLocale } from '../../../shared/i18n/format'
 
 export type AnalyticsGranularity = 'day' | 'week' | 'month'
 
@@ -99,13 +100,13 @@ const shiftBucketStart = (value: number, granularity: AnalyticsGranularity, amou
 const formatBucketLabel = (startAt: number, granularity: AnalyticsGranularity) => {
   const date = new Date(startAt)
   if (granularity === 'day') {
-    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' })
+    return date.toLocaleDateString(appIntlLocale(), { month: 'short', day: 'numeric', timeZone: 'UTC' })
   }
   if (granularity === 'week') {
     const end = new Date(addUtcDays(startAt, 6))
-    return `${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' })} - ${end.toLocaleDateString(undefined, { day: 'numeric', timeZone: 'UTC' })}`
+    return `${date.toLocaleDateString(appIntlLocale(), { month: 'short', day: 'numeric', timeZone: 'UTC' })} - ${end.toLocaleDateString(appIntlLocale(), { day: 'numeric', timeZone: 'UTC' })}`
   }
-  return date.toLocaleDateString(undefined, { month: 'short', year: 'numeric', timeZone: 'UTC' })
+  return date.toLocaleDateString(appIntlLocale(), { month: 'short', year: 'numeric', timeZone: 'UTC' })
 }
 
 const extractCompletionEvents = (tasks: TaskItem[]) =>

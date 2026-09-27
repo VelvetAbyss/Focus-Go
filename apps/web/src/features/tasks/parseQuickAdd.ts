@@ -8,15 +8,26 @@ export type ParsedQuickAdd = {
   dueDate?: string
   isToday?: boolean
   projectId?: string
+  /** Set when the text named a clock time ("今天下午3点", "at 3pm"). */
+  reminderAt?: number
 }
 
-type ChronoLike = {
+type ChronoComponent = 'day' | 'weekday' | 'hour' | 'minute' | 'month'
+
+type ChronoParser = {
   parse: (text: string, ref?: Date, opts?: { forwardDate?: boolean }) => Array<{
     index: number
     text: string
-    start: { date: () => Date }
+    start: { date: () => Date; isCertain: (component: ChronoComponent) => boolean }
   }>
 }
+
+type ChronoLike = ChronoParser & { zh?: { hans?: ChronoParser } }
+
+// Part-of-day words mean something on their own in a title ("早上跑步"); only parse them
+// next to a date or a clock time.
+const BARE_PART_OF_DAY = new Set(['早上', '早晨', '上午', '中午', '下午', '傍晚', '晚上', '夜里', '凌晨'])
+const CJK = /[\u3400-\u9fff]/
 
 const toDateKey = (date: Date) => {
   const year = date.getFullYear()
@@ -110,18 +121,39 @@ export const parseQuickAdd = async (
     .split(/\s+/)
     .some((t) => FAST_DATE_TOKENS.has(t))
 
+  let reminderAt: number | undefined
   if (!dueDate && !hasFastDateToken && titleText) {
     const chrono = await loadChrono()
-    if (chrono) {
-      const results = chrono.parse(titleText, new Date(), { forwardDate: true })
-      if (results.length > 0) {
-        const first = results[0]
-        const date = first.start.date()
+    const parser = chrono && CJK.test(titleText) ? chrono.zh?.hans ?? chrono : chrono
+    if (parser) {
+      const now = new Date()
+      const results = parser
+        .parse(titleText, now, { forwardDate: true })
+        .filter(
+          (result) =>
+            // A bare month ("整理12月账单", "march on") is part of the title, not a due date.
+            (result.start.isCertain('day') || result.start.isCertain('weekday') || result.start.isCertain('hour')) &&
+            !BARE_PART_OF_DAY.has(result.text.trim()),
+        )
+      const match = results[0]
+      if (match) {
+        const date = match.start.date()
+        let hasTime = match.start.isCertain('hour')
+        // "周五前交报告 下午3点": the day and the time came as two phrases; join them.
+        const timeOnly = hasTime
+          ? undefined
+          : results.find((result) => result !== match && result.start.isCertain('hour') && !result.start.isCertain('day') && !result.start.isCertain('weekday'))
+        if (timeOnly) {
+          const time = timeOnly.start.date()
+          date.setHours(time.getHours(), time.getMinutes(), 0, 0)
+          hasTime = true
+        }
         dueDate = toDateKey(date)
-        if (toDateKey(date) === toDateKey(new Date())) isToday = true
-        titleText = (titleText.slice(0, first.index) + titleText.slice(first.index + first.text.length))
-          .replace(/\s+/g, ' ')
-          .trim()
+        if (dueDate === toDateKey(now)) isToday = true
+        if (hasTime && date.getTime() > now.getTime()) reminderAt = date.getTime()
+        // Cut the later phrase first so the earlier index stays valid.
+        const cuts = [match, timeOnly].filter((cut): cut is NonNullable<typeof cut> => Boolean(cut)).sort((a, b) => b.index - a.index)
+        for (const cut of cuts) titleText = removeDatePhrase(titleText, cut.index, cut.text.length)
       }
     }
   }
@@ -133,5 +165,20 @@ export const parseQuickAdd = async (
     dueDate,
     isToday,
     projectId: tokenized.projectId,
+    reminderAt,
   }
+}
+
+/** Cut the date phrase out of the title, with the words that only served it. */
+const removeDatePhrase = (text: string, index: number, length: number) => {
+  const before = text
+    .slice(0, index)
+    // "report by friday", "交报告 在周五"
+    .replace(/\s*\b(?:by|on|at|before|due)\s*$/i, '')
+    .replace(/(?:在|于)\s*$/, '')
+  const after = text
+    .slice(index + length)
+    // "周五前提交", "明天的会", "3号之前交"
+    .replace(/^\s*(?:之前|以前|前|的)/, '')
+  return `${before} ${after}`.replace(/\s+/g, ' ').trim()
 }

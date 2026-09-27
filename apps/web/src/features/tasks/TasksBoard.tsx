@@ -25,13 +25,18 @@ import { useToast } from '../../shared/ui/toast/toast'
 import { emitTasksChanged, subscribeTasksChanged } from './taskSync'
 import { useSyncDataRefresh } from '../../data/sync/service'
 import { readTaskTodayBucket, shouldClearTodayDoneTasks, writeTaskTodayBucket } from './taskTodayRefresh'
-import { TASK_STATUS_CONFIG, getUpcomingDeadlineAlert } from './components/taskPresentation'
+import { TASK_STATUS_CONFIG, getUpcomingDeadlineAlert, type TaskDeadlineAlert } from './components/taskPresentation'
 import { useI18n } from '../../shared/i18n/useI18n'
 import { useAuthGate } from '../auth/AuthGateContext'
 import { DiscoveryEmptyState } from '../../shared/ui/EmptyState'
 import { DiscoveryHint } from '../../shared/ui/DiscoveryHint'
 import { resolveProjectColor } from '../../shared/design/tokens'
 import { createTask, parseQuickAddTaskInput } from './application/taskActions'
+import ActiveIndicator from '../../shared/motion/ActiveIndicator'
+import { PRESSED_BUTTON, SELECTED_TAB } from '../../shared/motion/indicatorSelectors'
+import { AppNumber } from '../../shared/ui/AppNumber'
+import { isTaskInToday, isTaskOverdue } from './domain/taskRules'
+import { useOpenRequest } from '../../shared/navigation/openRequest'
 
 const tabs: { key: TaskStatus }[] = [{ key: 'todo' }, { key: 'doing' }, { key: 'done' }]
 
@@ -93,6 +98,7 @@ const TasksBoard = ({
   const [composerProjectId, setComposerProjectId] = useState<string | undefined>(undefined)
   const [activeTask, setActiveTask] = useState<TaskItem | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<TaskItem | null>(null)
+  const [tasksLoaded, setTasksLoaded] = useState(false)
   const [sortMode, setSortMode] = useState<SortMode>(() => {
     if (typeof window === 'undefined') return 'importance'
     const stored = window.localStorage.getItem(STORAGE_SORT_KEY)
@@ -147,11 +153,18 @@ const TasksBoard = ({
     if (tasksReloadTokenRef.current !== token) return
     setTasks(items)
     setProjects(projectItems)
+    setTasksLoaded(true)
     setActiveTask((prev) => (prev ? items.find((item) => item.id === prev.id) ?? null : prev))
     setDeleteTarget((prev) => (prev ? items.find((item) => item.id === prev.id) ?? null : prev))
   }, [])
 
   useSyncDataRefresh(loadTasks, ['tasks', 'projects'])
+
+  // ⌘K search → "open this task": the tasks page (not a dashboard or project embed) opens its drawer.
+  useOpenRequest('task', tasksLoaded && !asCard && scope.kind === 'all', (id) => {
+    const task = tasks.find((item) => item.id === id)
+    if (task) setActiveTask(task)
+  })
 
   useEffect(() => {
     const bootstrap = async () => {
@@ -228,18 +241,31 @@ const TasksBoard = ({
     const countBase = scope.kind === 'project'
       ? tasks.filter((task) => task.projectId === scope.projectId)
       : scope.kind === 'today' || topView === 'today'
-        ? tasks.filter((task) => task.isToday)
+        ? tasks.filter((task) => isTaskInToday(task))
         : tasks
     countBase.forEach((task) => counts[task.status]++)
     return counts
   }, [scope, tasks, topView])
+
+  const deadlineAlertTitle = (alert: TaskDeadlineAlert) =>
+    alert.kind === 'overdue'
+      ? t('tasks.deadlineAlert.overdue', { n: alert.overdueCount })
+      : alert.kind === 'today'
+        ? t('tasks.deadlineAlert.today')
+        : t('tasks.deadlineAlert', { days: alert.daysRemaining })
+  const deadlineAlertBadge = (alert: TaskDeadlineAlert) =>
+    alert.kind === 'overdue'
+      ? t('tasks.deadlineAlert.overdueBadge')
+      : alert.kind === 'today'
+        ? t('tasks.deadlineAlert.todayBadge')
+        : t('tasks.deadlineAlert.daysBadge', { days: alert.daysRemaining })
 
   const statusDeadlineAlerts = useMemo(() => {
     const alerts: Record<TaskStatus, ReturnType<typeof getUpcomingDeadlineAlert>> = { todo: null, doing: null, done: null }
     const alertBase = scope.kind === 'project'
       ? tasks.filter((task) => task.projectId === scope.projectId)
       : scope.kind === 'today' || topView === 'today'
-        ? tasks.filter((task) => task.isToday)
+        ? tasks.filter((task) => isTaskInToday(task))
         : tasks
     tabs.forEach((status) => {
       alerts[status.key] = getUpcomingDeadlineAlert(alertBase.filter((task) => task.status === status.key))
@@ -251,7 +277,7 @@ const TasksBoard = ({
     let result = scope.kind === 'project'
       ? tasks.filter((task) => task.projectId === scope.projectId && (effectiveGroupBy !== 'status' || topView === 'list' || task.status === activeStatus))
       : scope.kind === 'today' || topView === 'today'
-        ? tasks.filter((task) => task.isToday)
+        ? tasks.filter((task) => isTaskInToday(task))
         : topView === 'list'
           ? tasks
           : effectiveGroupBy === 'status'
@@ -310,7 +336,7 @@ const TasksBoard = ({
   const taskById = useMemo(() => new Map(tasks.map((task) => [task.id, task] as const)), [tasks])
   const projectFilterBaseTasks = useMemo(() => {
     if (scope.kind !== 'all') return []
-    if (topView === 'today') return tasks.filter((task) => task.isToday)
+    if (topView === 'today') return tasks.filter((task) => isTaskInToday(task))
     if (effectiveGroupBy === 'status') return tasks.filter((task) => task.status === activeStatus)
     if (effectiveGroupBy === 'today') return tasks.filter((task) => task.status !== 'done')
     return tasks
@@ -341,10 +367,26 @@ const TasksBoard = ({
     if (statusActionLoadingTaskId) return
     setStatusActionLoadingTaskId(taskId)
     setStatusActionLoadingKey(nextStatus)
+    const previousStatus = tasks.find((item) => item.id === taskId)?.status
     try {
       const updated = await tasksRepo.updateStatus(taskId, nextStatus)
       if (!updated) return
       emitTasksChanged('tasks-board:update-status')
+      // A completed task leaves the list at once; one click away from undoing a mis-click.
+      if (nextStatus === 'done' && previousStatus && previousStatus !== 'done') {
+        toast.push({
+          message: t('tasks.completedToast', { title: updated.title }),
+          variant: 'success',
+          actionLabel: t('tasks.undo'),
+          onAction: () => {
+            void tasksRepo.updateStatus(taskId, previousStatus).then((reverted) => {
+              if (!reverted) return
+              emitTasksChanged('tasks-board:undo-complete')
+              setTasks((prev) => prev.map((item) => (item.id === taskId ? reverted : item)))
+            })
+          },
+        })
+      }
       setTasks((prev) => prev.map((item) => (item.id === taskId ? updated : item)))
       setActiveTask((prev) => (prev?.id === taskId ? updated : prev))
       setStatusActionSuccessTaskId(taskId)
@@ -359,7 +401,7 @@ const TasksBoard = ({
       setStatusActionLoadingTaskId(null)
       setStatusActionLoadingKey(null)
     }
-  }, [statusActionLoadingTaskId])
+  }, [statusActionLoadingTaskId, t, tasks, toast])
 
   const handleDelete = useCallback(async (taskId: string) => {
     await tasksRepo.remove(taskId)
@@ -409,6 +451,7 @@ const TasksBoard = ({
       priority: parsed.priority,
       projectId: parsed.projectId,
       dueDate: parsed.dueDate,
+      reminderAt: parsed.reminderAt,
       tags: parsed.tags,
       subtasks: [],
       attachments,
@@ -518,25 +561,32 @@ const TasksBoard = ({
   const showTasksEmptyState = filteredTasks.length === 0 && topView !== 'analytics'
   const groupSections = useMemo(() => {
     if (effectiveGroupBy === 'project' || topView === 'today' || scope.kind === 'project') {
+      // 今日 leads with what's already late; the rest groups by project as before.
+      const overdueTasks = topView === 'today' ? filteredTasks.filter((task) => isTaskOverdue(task)) : []
+      const overdueIds = new Set(overdueTasks.map((task) => task.id))
+      const remaining = filteredTasks.filter((task) => !overdueIds.has(task.id))
       const sections = activeProjects
         .map((project) => ({
           id: project.id,
           title: project.title,
           color: resolveProjectColor(project),
-          tasks: filteredTasks.filter((task) => task.projectId === project.id),
+          tasks: remaining.filter((task) => task.projectId === project.id),
         }))
         .filter((section) => section.tasks.length > 0)
-      const inboxTasks = filteredTasks.filter((task) => !task.projectId)
+      const inboxTasks = remaining.filter((task) => !task.projectId)
       if (inboxTasks.length > 0 && scope.kind !== 'project') {
-        sections.push({ id: '__inbox__', title: 'Inbox', color: '#9A8F83', tasks: inboxTasks })
+        sections.push({ id: '__inbox__', title: t('tasks.board.sectionInbox'), color: 'var(--ink-4)', tasks: inboxTasks })
+      }
+      if (overdueTasks.length > 0) {
+        sections.unshift({ id: '__overdue__', title: t('tasks.board.sectionOverdue'), color: 'var(--tone-urgent)', tasks: overdueTasks })
       }
       return sections
     }
     if (effectiveGroupBy === 'today') {
       return [
-        { id: 'today', title: 'Today', color: '#B07830', tasks: filteredTasks.filter((task) => task.isToday) },
-        { id: 'next', title: 'Next', color: '#3D7A4E', tasks: filteredTasks.filter((task) => !task.isToday && task.status !== 'done') },
-        { id: 'done', title: 'Done', color: '#0D7A54', tasks: filteredTasks.filter((task) => task.status === 'done') },
+        { id: 'today', title: t('tasks.board.sectionToday'), color: 'var(--accent)', tasks: filteredTasks.filter((task) => isTaskInToday(task)) },
+        { id: 'next', title: t('tasks.board.sectionNext'), color: 'var(--ink-3)', tasks: filteredTasks.filter((task) => !isTaskInToday(task) && task.status !== 'done') },
+        { id: 'done', title: t('tasks.board.sectionDone'), color: 'var(--tone-done)', tasks: filteredTasks.filter((task) => task.status === 'done' && !isTaskInToday(task)) },
       ].filter((section) => section.tasks.length > 0)
     }
     return [{ id: activeStatus, title: t(TASK_STATUS_CONFIG[activeStatus].labelKey), color: 'var(--text-primary)', tasks: filteredTasks }]
@@ -635,6 +685,7 @@ const TasksBoard = ({
               onCycleStatus={cycleTaskStatus}
               onDelete={(task) => setDeleteTarget(task)}
               onTogglePin={(task) => { void handlePin(task.id) }}
+              onMoveTask={bulkMode ? undefined : (task, status) => { void handleStatusChange(task.id, status) }}
             />
           )}
         </div>
@@ -677,14 +728,14 @@ const TasksBoard = ({
         <div className="mb-0 border-b pb-3">
           <div className="flex flex-col gap-3">
             {!asCard && scope.kind === 'all' ? (
-              <div className="tasks-fg__project-filter" aria-label="Project filters">
+              <div className="tasks-fg__project-filter" aria-label={t('tasks.board.projectFiltersAria')}>
                 <button
                   type="button"
                   className={cn('tasks-fg__project-chip', projectFilterIds.size === 0 && 'tasks-fg__project-chip--active')}
                   aria-pressed={projectFilterIds.size === 0}
                   onClick={() => setProjectFilterIds(new Set())}
                 >
-                  <span className="tasks-fg__project-chip__label">All</span>
+                  <span className="tasks-fg__project-chip__label">{t('tasks.board.allProjects')}</span>
                   <span className="tasks-fg__project-chip__count">{projectFilterBaseTasks.length}</span>
                 </button>
                 {activeProjects.map((project) => {
@@ -713,7 +764,8 @@ const TasksBoard = ({
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               {topView === 'board' && effectiveGroupBy === 'status' ? (
-                <div className="flex items-center gap-0.5">
+                <div className="tasks-fg__status-group flex items-center gap-0.5">
+                  <ActiveIndicator selector={SELECTED_TAB} />
                   {tabs.map((status) => {
                     const cfg = TASK_STATUS_CONFIG[status.key]
                     const count = statusCounts[status.key]
@@ -730,15 +782,15 @@ const TasksBoard = ({
                           'tasks-fg__status-tab',
                           alert && `deadline-alert deadline-alert--${alert.level}`,
                         )}
-                        title={alert ? t('tasks.deadlineAlert', { days: alert.daysRemaining }) : undefined}
+                        title={alert ? deadlineAlertTitle(alert) : undefined}
                         onClick={() => setActiveStatus(status.key)}
                       >
                         <span aria-hidden="true" />
                         {t(cfg.labelKey)}
-                        <span>{count}</span>
+                        <span><AppNumber value={count} /></span>
                         {alert ? (
-                          <span className="deadline-alert__badge" aria-label={t('tasks.deadlineAlert', { days: alert.daysRemaining })}>
-                            {alert.label}
+                          <span className="deadline-alert__badge" aria-label={deadlineAlertTitle(alert)}>
+                            {deadlineAlertBadge(alert)}
                           </span>
                         ) : null}
                       </button>
@@ -756,11 +808,12 @@ const TasksBoard = ({
                   <div className="h-5 w-px bg-border" />
 
                   {topView === 'board' && scope.kind === 'all' ? (
-                    <div className="tasks-fg__group-toggle" role="group" aria-label="Group tasks">
+                    <div className="tasks-fg__group-toggle" role="group" aria-label={t('tasks.board.groupAria')}>
+                      <ActiveIndicator selector={PRESSED_BUTTON} />
                       {([
-                        { key: 'status', label: 'Status', Icon: LayoutGrid },
-                        { key: 'project', label: 'Project', Icon: FolderKanban },
-                        { key: 'today', label: 'Today', Icon: SunMedium },
+                        { key: 'status', label: t('tasks.board.groupStatus'), Icon: LayoutGrid },
+                        { key: 'project', label: t('tasks.board.groupProject'), Icon: FolderKanban },
+                        { key: 'today', label: t('tasks.board.groupToday'), Icon: SunMedium },
                       ] satisfies Array<{ key: BoardGroupBy; label: string; Icon: typeof LayoutGrid }>).map(({ key, label, Icon }) => (
                         <button
                           key={key}
@@ -840,7 +893,7 @@ const TasksBoard = ({
                   <div className="tasks-fg__bulk-bar flex items-center gap-1.5 rounded-md border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[var(--bg-elevated)] px-2 py-1">
                     <button type="button" aria-label={t('tasks.selectAll')} className="tasks-fg__bulk-btn inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-[var(--text-primary)]" onClick={toggleSelectAllVisible}>
                       {filteredTaskIds.length > 0 && filteredTaskIds.every((id) => selectedTaskIds.has(id)) ? <CheckSquare className="size-3.5" /> : <Square className="size-3.5" />}
-                      全选
+                      {t('tasks.selectAll')}
                     </button>
                     <span className="px-1 text-xs text-muted-foreground">{t('tasks.selected', { count: selectedCount })}</span>
                     <div className="h-4 w-px bg-border" />
@@ -888,7 +941,7 @@ const TasksBoard = ({
                       <CheckSquare className="size-3.5" />
                       {t('tasks.markDone').split(' ').pop()}
                     </button>
-                    <button type="button" aria-label={t('tasks.delete')} className="tasks-fg__bulk-btn inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-rose-600" onClick={() => void handleBulkDelete()} disabled={selectedCount === 0}>
+                    <button type="button" aria-label={t('tasks.delete')} className="tasks-fg__bulk-btn inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-tone-urgent" onClick={() => void handleBulkDelete()} disabled={selectedCount === 0}>
                       <Trash2 className="size-3.5" />
                       {t('tasks.delete')}
                     </button>
@@ -934,7 +987,7 @@ const TasksBoard = ({
       {topView !== 'analytics' ? (
         <div className="flex flex-col">
           {showTasksEmptyState ? (
-            <div className="px-4 pt-2 pb-1 text-[12px] text-muted-foreground/80">
+            <div className="px-4 pt-2 pb-1 text-label text-muted-foreground/80">
               {t('modules.tasks.addPlaceholder')} ↓
             </div>
           ) : null}

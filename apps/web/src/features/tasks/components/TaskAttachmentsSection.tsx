@@ -123,8 +123,8 @@ const TaskAttachmentsSection = ({ attachments, onChange }: TaskAttachmentsSectio
     >
       <div
         className={cn(
-          'task-detail-card rounded-[26px] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] p-5 shadow-[var(--shadow-card-lg)] transition-colors',
-          isDragging && !limitReached && 'border-emerald-400/60 bg-emerald-50/40',
+          'task-detail-card rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] p-5 shadow-[var(--shadow-card-lg)] transition-colors',
+          isDragging && !limitReached && 'border-rule-strong bg-paper-sunken',
         )}
       >
         <div className="flex items-center justify-between gap-3">
@@ -140,10 +140,10 @@ const TaskAttachmentsSection = ({ attachments, onChange }: TaskAttachmentsSectio
               onClick={handlePick}
               disabled={limitReached}
               className={cn(
-                'inline-flex h-8 items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--text-primary)_12%,transparent)] px-3 text-[11px] font-semibold transition-colors',
+                'inline-flex h-8 items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--text-primary)_12%,transparent)] px-3 text-meta font-semibold transition-colors',
                 limitReached
                   ? 'cursor-not-allowed opacity-50'
-                  : 'hover:border-emerald-400/60 hover:bg-emerald-50/40 hover:text-emerald-700',
+                  : 'hover:border-rule-strong hover:bg-paper-sunken hover:text-ink-2',
               )}
               title={limitReached ? t('tasks.attachments.limitReached') : t('tasks.attachments.addMore')}
             >
@@ -168,7 +168,7 @@ const TaskAttachmentsSection = ({ attachments, onChange }: TaskAttachmentsSectio
                 <button
                   type="button"
                   onClick={handlePick}
-                  className="task-attachment-add flex h-24 w-24 shrink-0 items-center justify-center rounded-xl border-2 border-dashed border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] text-[color:var(--text-secondary)] transition-colors hover:border-emerald-400/60 hover:bg-emerald-50/40 hover:text-emerald-600"
+                  className="task-attachment-add flex h-24 w-24 shrink-0 items-center justify-center rounded-xl border-2 border-dashed border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] text-[color:var(--text-secondary)] transition-colors hover:border-rule-strong hover:bg-paper-sunken hover:text-ink-3"
                   aria-label={t('tasks.attachments.addMore')}
                 >
                   <Plus className="h-5 w-5" />
@@ -181,18 +181,18 @@ const TaskAttachmentsSection = ({ attachments, onChange }: TaskAttachmentsSectio
             type="button"
             onClick={handlePick}
             className={cn(
-              'mt-4 flex w-full items-center gap-3 rounded-[18px] border-2 border-dashed border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] bg-[color:var(--bg-muted)] px-4 py-5 text-left transition-colors',
-              !limitReached && 'hover:border-emerald-400/60 hover:bg-emerald-50/40',
+              'mt-4 flex w-full items-center gap-3 rounded-[var(--radius-lg)] border-2 border-dashed border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] bg-[color:var(--bg-muted)] px-4 py-5 text-left transition-colors',
+              !limitReached && 'hover:border-rule-strong hover:bg-paper-sunken',
             )}
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[var(--bg-elevated)] text-[color:var(--text-secondary)]">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--bg-elevated)] text-[color:var(--text-secondary)]">
               <ImagePlus className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[13px] font-semibold text-[color:var(--text-primary)]">
+              <p className="text-ui font-semibold text-[color:var(--text-primary)]">
                 {t('tasks.attachments.dropHint')}
               </p>
-              <p className="mt-0.5 text-[11px] text-[color:var(--text-secondary)]">
+              <p className="mt-0.5 text-meta text-[color:var(--text-secondary)]">
                 {t('tasks.attachments.dropSubhint', { limit: TASK_ATTACHMENT_LIMIT })}
               </p>
             </div>

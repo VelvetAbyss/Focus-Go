@@ -43,17 +43,17 @@ const TaskProjectAssignCard = ({ projectId, projects, onChange }: TaskProjectAss
   if (currentProject && !isOrphan) {
     return (
       <section
-        className="task-detail-card tdv2-section-enter rounded-[22px] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[color:var(--bg)] p-4 shadow-[var(--shadow-card)]"
+        className="task-detail-card tdv2-section-enter rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[color:var(--bg)] p-4 shadow-[var(--shadow-card)]"
         style={{ animationDelay: '20ms' }}
       >
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-emerald-50 text-emerald-600">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-paper-sunken text-ink-3">
               <Folder className="h-5 w-5" />
             </div>
             <div className="min-w-0">
               <p className="task-detail-kicker">{t('tasks.drawer.project')}</p>
-              <p className="mt-0.5 truncate text-[15px] font-semibold text-[color:var(--text-primary)]">
+              <p className="mt-0.5 truncate text-body font-semibold text-[color:var(--text-primary)]">
                 {currentProject.title}
               </p>
             </div>
@@ -64,7 +64,7 @@ const TaskProjectAssignCard = ({ projectId, projects, onChange }: TaskProjectAss
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 rounded-full border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] px-3 text-[11px] font-semibold"
+                  className="h-8 rounded-full border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] px-3 text-meta font-semibold"
                 >
                   <ChevronDown className="mr-1 h-3.5 w-3.5" />
                   {t('tasks.drawer.changeProject')}
@@ -73,7 +73,7 @@ const TaskProjectAssignCard = ({ projectId, projects, onChange }: TaskProjectAss
               <PopoverContent
                 align="end"
                 sideOffset={8}
-                className="w-[280px] rounded-[18px] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] p-2 shadow-[var(--shadow-card-lg)]"
+                className="w-[280px] rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] p-2 shadow-[var(--shadow-card-lg)]"
               >
                 <ProjectPickerList
                   projects={filtered}
@@ -89,7 +89,7 @@ const TaskProjectAssignCard = ({ projectId, projects, onChange }: TaskProjectAss
               variant="ghost"
               size="icon"
               aria-label={t('tasks.drawer.removeProject')}
-              className="h-8 w-8 rounded-full text-[color:var(--text-secondary)] hover:bg-rose-50 hover:text-rose-500"
+              className="h-8 w-8 rounded-full text-[color:var(--text-secondary)] hover:bg-tone-urgent-wash hover:text-tone-urgent"
               onClick={() => select(undefined)}
             >
               <X className="h-3.5 w-3.5" />
@@ -104,31 +104,31 @@ const TaskProjectAssignCard = ({ projectId, projects, onChange }: TaskProjectAss
   if (isOrphan && currentProject) {
     return (
       <section
-        className="task-detail-card tdv2-section-enter rounded-[22px] border border-amber-300/40 bg-amber-50/40 p-4"
+        className="task-detail-card tdv2-section-enter rounded-[var(--radius-lg)] border border-rule bg-paper-sunken p-4"
         style={{ animationDelay: '20ms' }}
       >
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-amber-100 text-amber-700">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-paper-sunken text-ink-2">
               <Folder className="h-5 w-5" />
             </div>
             <div className="min-w-0">
               <p className="task-detail-kicker">{t('tasks.drawer.project')}</p>
-              <p className="mt-0.5 truncate text-[15px] font-semibold text-[color:var(--text-primary)]">
+              <p className="mt-0.5 truncate text-body font-semibold text-[color:var(--text-primary)]">
                 {currentProject.title} {t('tasks.drawer.projectArchivedSuffix')}
               </p>
             </div>
           </div>
           <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 rounded-full px-3 text-[11px] font-semibold">
+              <Button variant="outline" size="sm" className="h-8 rounded-full px-3 text-meta font-semibold">
                 {t('tasks.drawer.changeProject')}
               </Button>
             </PopoverTrigger>
             <PopoverContent
               align="end"
               sideOffset={8}
-              className="w-[280px] rounded-[18px] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] p-2 shadow-[var(--shadow-card-lg)]"
+              className="w-[280px] rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] p-2 shadow-[var(--shadow-card-lg)]"
             >
               <ProjectPickerList
                 projects={filtered}
@@ -152,18 +152,18 @@ const TaskProjectAssignCard = ({ projectId, projects, onChange }: TaskProjectAss
         <button
           type="button"
           className={cn(
-            'task-detail-card tdv2-section-enter group flex w-full items-center gap-3 rounded-[22px] border-2 border-dashed border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] bg-[color:var(--bg-muted)] p-4 text-left transition-all duration-200 hover:border-emerald-400/60 hover:bg-emerald-50/40',
+            'task-detail-card tdv2-section-enter group flex w-full items-center gap-3 rounded-[var(--radius-lg)] border-2 border-dashed border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] bg-[color:var(--bg-muted)] p-4 text-left transition-all duration-200 hover:border-rule-strong hover:bg-paper-sunken',
           )}
           style={{ animationDelay: '20ms' }}
         >
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-[var(--bg-elevated)] text-[color:var(--text-secondary)] transition-colors group-hover:bg-emerald-100 group-hover:text-emerald-600">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--bg-elevated)] text-[color:var(--text-secondary)] transition-colors group-hover:bg-paper-sunken group-hover:text-ink-3">
             <FolderPlus className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[14px] font-semibold text-[color:var(--text-primary)]">
+            <p className="text-body font-semibold text-[color:var(--text-primary)]">
               {t('tasks.drawer.assignProjectTitle')}
             </p>
-            <p className="mt-0.5 text-[12px] text-[color:var(--text-secondary)]">
+            <p className="mt-0.5 text-label text-[color:var(--text-secondary)]">
               {t('tasks.drawer.assignProjectHint')}
             </p>
           </div>
@@ -173,7 +173,7 @@ const TaskProjectAssignCard = ({ projectId, projects, onChange }: TaskProjectAss
       <PopoverContent
         align="start"
         sideOffset={8}
-        className="w-[320px] rounded-[18px] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] p-2 shadow-[var(--shadow-card-lg)]"
+        className="w-[320px] rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] p-2 shadow-[var(--shadow-card-lg)]"
       >
         <ProjectPickerList
           projects={filtered}
@@ -215,7 +215,7 @@ const ProjectPickerList = ({
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={t('tasks.drawer.searchProject')}
-            className="h-8 rounded-[12px] border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[color:var(--bg-muted)] pl-7 text-[12px]"
+            className="h-8 rounded-[var(--radius-md)] border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[color:var(--bg-muted)] pl-7 text-label"
             autoFocus
           />
         </div>
@@ -224,7 +224,7 @@ const ProjectPickerList = ({
         type="button"
         onClick={() => onSelect(undefined)}
         className={cn(
-          'flex w-full items-center justify-between rounded-[12px] px-3 py-2 text-left text-[13px] transition-colors hover:bg-[color:var(--surface-hover)]',
+          'flex w-full items-center justify-between rounded-[var(--radius-md)] px-3 py-2 text-left text-ui transition-colors hover:bg-[color:var(--surface-hover)]',
           !currentProjectId && 'bg-[color:var(--surface-hover)] font-semibold',
         )}
       >
@@ -232,11 +232,11 @@ const ProjectPickerList = ({
           <X className="h-3.5 w-3.5" />
           {t('tasks.drawer.projectUnassigned')}
         </span>
-        {!currentProjectId ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : null}
+        {!currentProjectId ? <Check className="h-3.5 w-3.5 text-ink-3" /> : null}
       </button>
       <div className="max-h-[260px] space-y-0.5 overflow-y-auto">
         {projects.length === 0 ? (
-          <p className="px-3 py-4 text-center text-[12px] text-[color:var(--text-secondary)]">
+          <p className="px-3 py-4 text-center text-label text-[color:var(--text-secondary)]">
             {t('tasks.drawer.noMatchingProjects')}
           </p>
         ) : (
@@ -246,15 +246,15 @@ const ProjectPickerList = ({
               type="button"
               onClick={() => onSelect(project.id)}
               className={cn(
-                'flex w-full items-center justify-between rounded-[12px] px-3 py-2 text-left text-[13px] transition-colors hover:bg-[color:var(--surface-hover)]',
+                'flex w-full items-center justify-between rounded-[var(--radius-md)] px-3 py-2 text-left text-ui transition-colors hover:bg-[color:var(--surface-hover)]',
                 currentProjectId === project.id && 'bg-[color:var(--surface-hover)] font-semibold',
               )}
             >
               <span className="inline-flex items-center gap-2 truncate">
-                <Folder className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                <Folder className="h-3.5 w-3.5 shrink-0 text-ink-3" />
                 <span className="truncate">{project.title}</span>
               </span>
-              {currentProjectId === project.id ? <Check className="h-3.5 w-3.5 shrink-0 text-emerald-600" /> : null}
+              {currentProjectId === project.id ? <Check className="h-3.5 w-3.5 shrink-0 text-ink-3" /> : null}
             </button>
           ))
         )}

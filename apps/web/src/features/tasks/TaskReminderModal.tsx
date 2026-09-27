@@ -16,7 +16,7 @@ import { tasksRepo } from '../../data/repositories/tasksRepo'
 import { useI18n } from '../../shared/i18n/useI18n'
 import { emitTasksChanged } from './taskSync'
 import { reminderQueueStore, useReminderQueue } from './reminderQueueStore'
-import { formatTaskDateTime } from './components/taskPresentation'
+import { appIntlLocale } from '../../shared/i18n/format'
 
 const FIVE_MIN = 5 * 60 * 1000
 const FIFTEEN_MIN = 15 * 60 * 1000
@@ -24,7 +24,7 @@ const ONE_HOUR = 60 * 60 * 1000
 const ONE_DAY = 24 * 60 * 60 * 1000
 
 const TaskReminderModal = () => {
-  const { t } = useI18n()
+  const { t, language } = useI18n()
   const queue = useReminderQueue()
   const [busy, setBusy] = useState(false)
   const [snoozeOpen, setSnoozeOpen] = useState(false)
@@ -81,30 +81,30 @@ const TaskReminderModal = () => {
         <DialogHeader>
           <div className="flex items-center justify-between gap-2">
             <DialogTitle className="flex items-center gap-2 text-base">
-              <AlarmClock className="h-4 w-4 text-amber-500" />
+              <AlarmClock className="h-4 w-4 text-tone-warn" />
               {t('tasks.reminder.modalTitle')}
             </DialogTitle>
             {totalLabel ? <span className="text-muted-foreground text-xs">{totalLabel}</span> : null}
           </div>
           <DialogDescription className="text-foreground mt-1 text-base font-semibold">
-            {head.task.title?.trim() || 'Untitled task'}
+            {head.task.title?.trim() || t('calendar.untitled')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 text-sm">
           {dueLabel ? (
             <p className="text-muted-foreground">
-              <span className="font-semibold">{t('tasks.reminder.dueLabel')}：</span>
-              {dueLabel}
-              {head.task.reminderAt ? <span className="ml-2 opacity-70">· {formatTaskDateTime(head.task.reminderAt)}</span> : null}
+              <span className="font-semibold">{t('tasks.reminder.dueLabel')}{language === 'zh' ? '：' : ': '}</span>
+              {new Date(`${dueLabel}T12:00:00`).toLocaleDateString(appIntlLocale(), { month: 'long', day: 'numeric', weekday: 'short' })}
+              {head.task.reminderAt ? <span className="ml-2 opacity-70">· {t('tasks.quickAdd.reminder', { time: new Date(head.task.reminderAt).toLocaleTimeString(appIntlLocale(), { hour: '2-digit', minute: '2-digit', hour12: false }) })}</span> : null}
             </p>
           ) : null}
           {progressPreview ? (
-            <div className="rounded-md border border-amber-300/40 bg-amber-50/60 px-3 py-2">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-700/80">
+            <div className="rounded-md border border-[color-mix(in_srgb,var(--tone-warn)_35%,transparent)] bg-tone-warn-wash px-3 py-2">
+              <p className="text-meta font-semibold uppercase tracking-[var(--tracking-caps)] text-tone-warn">
                 {t('tasks.drawer.progressTitle')}
               </p>
-              <p className="mt-1 line-clamp-4 whitespace-pre-wrap text-[13px] leading-6 text-[color:var(--text-primary)]">
+              <p className="mt-1 line-clamp-4 whitespace-pre-wrap text-ui leading-6 text-[color:var(--text-primary)]">
                 {progressPreview}
               </p>
             </div>

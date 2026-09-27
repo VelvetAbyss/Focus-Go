@@ -1,12 +1,12 @@
 import { forwardRef, useState } from 'react'
-import { Calendar, CircleCheck, Circle, GitBranch, ListChecks, LockKeyhole, Pin, PinOff, Play, RotateCcw, SunMedium, Trash2, Undo2 } from 'lucide-react'
-import type { CSSProperties, HTMLAttributes } from 'react'
+import { CircleCheck, Circle, GitBranch, LockKeyhole, Pin, PinOff, Play, RotateCcw, SunMedium, Trash2, Undo2 } from 'lucide-react'
+import type { CSSProperties, HTMLAttributes, ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useI18n } from '../../../shared/i18n/useI18n'
 import { useVisibleInterval } from '../../../shared/hooks/usePageActivity'
 import type { TaskItem } from '../tasks.types'
-import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, getTaskDeadlineState, getTaskPriorityKey, getTaskTagTone } from './taskPresentation'
+import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, getTaskDeadlineState, getTaskPriorityKey } from './taskPresentation'
 
 type TaskCardProject = {
   id: string
@@ -41,8 +41,8 @@ type TaskCardProps = {
   selectionMode?: boolean
 }
 
-const formatDate = (value: string) =>
-  new Date(value).toLocaleDateString('en-US', {
+const formatDate = (value: string, language: string) =>
+  new Date(value).toLocaleDateString(language === 'zh' ? 'zh-CN' : 'en-US', {
     month: 'short',
     day: 'numeric',
   })
@@ -71,12 +71,11 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
     },
     ref,
     ) => {
-    const { t } = useI18n()
+    const { t, language } = useI18n()
     const [isHovered, setIsHovered] = useState(false)
     const [now, setNow] = useState(() => Date.now())
     const priorityKey = getTaskPriorityKey(task.priority)
     const priorityCfg = TASK_PRIORITY_CONFIG[priorityKey]
-    const statusCfg = TASK_STATUS_CONFIG[task.status]
     const displayTags = task.tags.slice(0, 2)
     const extraTagCount = task.tags.length - 2
 
@@ -104,22 +103,80 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
       handler(task)
     }
 
-    const priorityStripeClass =
-      priorityKey === 'high' ? 'task-card--priority-high' :
-      priorityKey === 'medium' ? 'task-card--priority-medium' :
-      priorityKey === 'low' ? 'task-card--priority-low' : ''
+    const deadlineText =
+      deadline.daysRemaining == null || deadline.daysRemaining > 3
+        ? null
+        : deadline.daysRemaining < 0
+          ? t('tasks.card.overdue', { n: -deadline.daysRemaining })
+          : deadline.daysRemaining === 0
+            ? t('tasks.card.dueToday')
+            : t('tasks.card.dueSoon', { n: deadline.daysRemaining })
+
+    const metaItems: { key: string; node: ReactNode }[] = []
+    if (priorityKey !== 'none') {
+      metaItems.push({
+        key: 'priority',
+        node: (
+          <span className="task-card__priority-badge" data-priority={priorityKey}>
+            <span className={cn('task-card__priority-dot', priorityCfg.dot)} aria-hidden />
+            {t(priorityCfg.labelKey)}
+          </span>
+        ),
+      })
+    }
+    if (task.dueDate) {
+      metaItems.push({
+        key: 'due',
+        node: (
+          <span className={cn('task-card__due', task.status !== 'done' && deadline.textClass)}>
+            {formatDate(task.dueDate, language)}
+            {deadlineText && task.status !== 'done' ? <> · {deadlineText}</> : null}
+          </span>
+        ),
+      })
+    }
+    if (hasSubtasks) {
+      metaItems.push({
+        key: 'subtasks',
+        node: (
+          <span className={cn('task-card__subtask-progress tabular-nums', doneSubtasks === totalSubtasks && 'text-tone-done')}>
+            {doneSubtasks}/{totalSubtasks}
+          </span>
+        ),
+      })
+    }
+    if (isBlocked) {
+      metaItems.push({
+        key: 'blocked',
+        node: (
+          <span className="task-card__blocked-chip">
+            <LockKeyhole className="size-3" aria-hidden />
+            {blockedCount || dependencyCount
+              ? t('tasks.card.blockedBy', { n: blockedCount || dependencyCount })
+              : t('tasks.card.blocked')}
+          </span>
+        ),
+      })
+    } else if (dependencyCount > 0) {
+      metaItems.push({
+        key: 'deps',
+        node: (
+          <span className="inline-flex items-center gap-1">
+            <GitBranch className="size-3" aria-hidden />
+            {t('tasks.card.dependencies', { n: dependencyCount })}
+          </span>
+        ),
+      })
+    }
 
     return (
       <div
         ref={ref}
         className={cn(
-          'task-card-shell group relative overflow-hidden cursor-pointer rounded-lg bg-card shadow-[var(--shadow-pop)]',
-          'hover:-translate-y-[2px] hover:shadow-[var(--shadow-card)]',
+          'task-card-shell group relative overflow-hidden cursor-pointer',
           task.status === 'done' && 'opacity-70',
           compact && 'rounded-md',
           selected && 'ring-2 ring-[color-mix(in_srgb,var(--text-primary)_35%,transparent)] dark:ring-white/40',
-          deadline.shellClass,
-          priorityStripeClass,
         )}
         style={style}
         data-priority={priorityKey}
@@ -142,83 +199,46 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
         {selectionMode ? (
           <span
             className={cn(
-              'absolute left-2 top-2 z-[2] inline-flex h-5 min-w-5 items-center justify-center rounded-full border px-1 text-[10px] font-semibold',
+              'absolute left-2 top-2 z-[2] inline-flex h-5 min-w-5 items-center justify-center rounded-full border px-1 text-meta font-semibold',
               selected ? 'border-[color-mix(in_srgb,var(--text-primary)_35%,transparent)] bg-[var(--text-primary)] text-[var(--bg-elevated)]' : 'border-[color-mix(in_srgb,var(--text-primary)_18%,transparent)] bg-[var(--bg-elevated)] text-[var(--text-primary)]',
             )}
           >
             {selected ? '✓' : ''}
           </span>
         ) : null}
-        {priorityKey !== 'none' ? <div className={cn('task-card__priority-flag', priorityCfg.dot)} aria-hidden /> : null}
 
         <div className="space-y-2.5 p-3.5">
           <div className="flex items-start gap-2">
-            {task.pinned ? <Pin className="mt-0.5 size-3.5 shrink-0 fill-amber-500 text-amber-500" /> : null}
+            {task.pinned ? <Pin className="mt-0.5 size-3.5 shrink-0 fill-current text-ink-3" aria-hidden /> : null}
             <h4
               className={cn(
-                'task-card__title flex-1 text-[0.95rem] font-semibold leading-[1.35] tracking-[0.005em] line-clamp-2 transition-colors duration-300',
-                task.status === 'done' ? 'text-muted-foreground line-through decoration-[color-mix(in_srgb,var(--text-primary)_30%,transparent)]' : 'text-foreground',
+                'task-card__title flex-1 text-body font-semibold line-clamp-2 transition-colors duration-300',
+                task.status === 'done' ? 'text-ink-3 line-through decoration-[color-mix(in_srgb,var(--ink-1)_30%,transparent)]' : 'text-ink-1',
               )}
             >
               {task.title}
             </h4>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {priorityKey !== 'none' ? (
-              <span
-                className={cn('task-card__priority-badge inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-semibold', priorityCfg.badge)}
-                data-priority={priorityKey}
-              >
-                <span className={cn('size-1.5 rounded-full', priorityCfg.dot)} />
-                {t(priorityCfg.labelKey)}
-              </span>
-            ) : null}
-            {task.dueDate ? (
-              <span className={cn('inline-flex items-center gap-1 text-xs', deadline.textClass)}>
-                <Calendar className="size-3" />
-                <span>{formatDate(task.dueDate)}</span>
-                {deadline.label ? <span className={cn('rounded-full border px-1.5 py-0.5 text-[10px] font-semibold', deadline.badgeClass)}>{deadline.label}</span> : null}
-              </span>
-            ) : null}
-            <span
-              className={cn('task-card__status-badge inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs font-semibold', statusCfg.badge)}
-              data-status={task.status}
-            >
-              {t(statusCfg.labelKey)}
-            </span>
-            {hasSubtasks ? (
-              <span
-                className={cn(
-                  'task-card__subtask-progress inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium',
-                  doneSubtasks === totalSubtasks
-                    ? 'bg-emerald-50 text-emerald-700'
-                    : 'bg-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] text-muted-foreground',
-                )}
-              >
-                <ListChecks className="size-3" />
-                <span className="tabular-nums">{doneSubtasks}/{totalSubtasks}</span>
-              </span>
-            ) : null}
-            {isBlocked ? (
-              <span className="task-card__blocked-chip inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs font-semibold">
-                <LockKeyhole className="size-3" />
-                Blocked by {blockedCount || dependencyCount}
-              </span>
-            ) : dependencyCount > 0 ? (
-              <span className="inline-flex items-center gap-1 rounded border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
-                <GitBranch className="size-3" />
-                {dependencyCount} dep
-              </span>
-            ) : null}
-          </div>
+          {/* Paper & Ink meta line: one quiet row joined by "·". Only what needs
+              action carries a tone (an overdue or imminent date, a blocker). */}
+          {metaItems.length > 0 ? (
+            <div className="task-card__meta">
+              {metaItems.map((item, index) => (
+                <span key={item.key} className="task-card__meta-item">
+                  {index > 0 ? <span className="task-card__meta-sep" aria-hidden>·</span> : null}
+                  {item.node}
+                </span>
+              ))}
+            </div>
+          ) : null}
 
           {task.tags.length > 0 || project ? (
-            <div className="flex flex-wrap items-center gap-1.5">
+            <div className="task-card__context">
               {project ? (
                 <button
                   type="button"
-                  className="task-card__project-chip inline-flex max-w-[140px] items-center gap-1.5 rounded-full bg-[var(--bg-elevated)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-primary)] transition-colors hover:bg-[#ECE8E1]"
+                  className="task-card__project-chip"
                   aria-label={t('tasks.card.projectBadgeAria', { title: project.title })}
                   title={project.title}
                   onClick={(event) => {
@@ -227,37 +247,31 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
                   }}
                 >
                   <span
-                    className="size-1.5 shrink-0 rounded-full"
-                    style={{ background: project.color ?? 'var(--text-primary)' }}
+                    className="task-card__project-mark"
+                    style={{ background: project.color ?? 'var(--ink-3)' }}
                     aria-hidden
                   />
                   <span className="truncate">{project.title}</span>
                 </button>
               ) : null}
-              {displayTags.map((tag) => {
-                const tone = getTaskTagTone(tag)
-                return (
-                  <span key={tag} className={cn('task-card__tag inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium', tone.badge)}>
-                    <span className={cn('size-1.5 rounded-full', tone.dot)} />
-                    {tag}
-                  </span>
-                )
-              })}
-              {extraTagCount > 0 ? <span className="px-1 text-xs text-muted-foreground">+{extraTagCount}</span> : null}
+              {displayTags.map((tag) => (
+                <span key={tag} className="task-card__tag">#{tag}</span>
+              ))}
+              {extraTagCount > 0 ? <span className="task-card__tag task-card__tag--more">+{extraTagCount}</span> : null}
             </div>
           ) : null}
 
           {isBlocked && dependencyTasks.length > 0 && !selectionMode ? (
-            <div className="task-card__dependency-mini" aria-label={`Blocked by ${dependencyTasks.length} tasks`}>
+            <div className="task-card__dependency-mini" aria-label={t('tasks.card.blockedAria', { n: dependencyTasks.length })}>
               {dependencyTasks.slice(0, 3).map((dependency) => (
                 <div key={dependency.id} className="task-card__dependency-row">
                   <span className={`task-card__dependency-status task-card__dependency-status--${dependency.status}`} aria-hidden />
                   <span className="truncate">{dependency.title}</span>
-                  <span>{dependency.status}</span>
+                  <span>{t(TASK_STATUS_CONFIG[dependency.status].labelKey)}</span>
                 </div>
               ))}
               {dependencyTasks.length > 3 ? (
-                <div className="task-card__dependency-more">+{dependencyTasks.length - 3} more blockers</div>
+                <div className="task-card__dependency-more">{t('tasks.card.moreBlockers', { n: dependencyTasks.length - 3 })}</div>
               ) : null}
             </div>
           ) : null}
@@ -276,14 +290,14 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
                   {visibleSubtasks.map((subtask) => (
                     <li
                       key={subtask.id}
-                      className="flex items-start gap-1.5 text-[12.5px] leading-[1.4] text-muted-foreground"
+                      className="flex items-start gap-1.5 text-label leading-[1.4] text-muted-foreground"
                     >
                       <Circle className="mt-[3px] size-3 shrink-0 text-[color-mix(in_srgb,var(--text-primary)_35%,transparent)]" />
                       <span className="line-clamp-1 flex-1">{subtask.title}</span>
                     </li>
                   ))}
                   {remainingSubtasks > 0 ? (
-                    <li className="pl-[18px] text-[11.5px] font-medium text-muted-foreground/80">
+                    <li className="pl-[18px] text-label font-medium text-muted-foreground/80">
                       {t('tasks.card.subtaskMore', { n: remainingSubtasks })}
                     </li>
                   ) : null}
@@ -334,7 +348,7 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
                       title={task.isToday ? t('tasks.today.remove') : t('tasks.today.add')}
                       className={cn(
                         'task-card__action-btn size-7 hover:text-foreground',
-                        task.isToday ? 'task-card__action-btn--today-active text-amber-600' : 'text-muted-foreground',
+                        task.isToday ? 'task-card__action-btn--today-active text-[var(--accent)]' : 'text-muted-foreground',
                       )}
                       data-today-active={task.isToday ? 'true' : 'false'}
                       onClick={() => onToggleToday(task)}

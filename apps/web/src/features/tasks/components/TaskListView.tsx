@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { motion } from 'motion/react'
+import { DndContext, DragOverlay, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core'
 import { Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ProjectItem } from '../../../data/models/types'
@@ -7,6 +8,8 @@ import type { TaskItem, TaskStatus } from '../tasks.types'
 import { resolveProjectColor } from '../../../shared/design/tokens'
 import TaskRow from './TaskRow'
 import '../tasks-ledger.css'
+import { useI18n } from '../../../shared/i18n/useI18n'
+import { DURATION, EASE } from '../../../shared/motion/tokens'
 
 const DONE_COLLAPSED_LIMIT = 4
 const STORAGE_DONE_EXPANDED_KEY = 'tasks_list_done_expanded'
@@ -20,6 +23,33 @@ type TaskListViewProps = {
   onDelete?: (task: TaskItem) => void
   onTogglePin?: (task: TaskItem) => void
   onAddTask?: (status: TaskStatus) => void
+  /** Dropping a row on another column moves the task to that status. */
+  onMoveTask?: (task: TaskItem, status: TaskStatus) => void
+}
+
+/** A column that accepts dropped rows; highlights while a row from another column hovers it. */
+const DropColumn = ({ status, dragStatus, className, children }: { status: TaskStatus; dragStatus: TaskStatus | null; className: string; children: ReactNode }) => {
+  const { setNodeRef, isOver } = useDroppable({ id: status })
+  return (
+    <div ref={setNodeRef} className={cn(className, 'fg-task-list__drop', isOver && dragStatus && dragStatus !== status && 'is-drop-target')}>
+      {children}
+    </div>
+  )
+}
+
+/** A row that can be picked up; a short drag threshold keeps plain clicks opening the task. */
+const DraggableRow = ({ task, enabled, children }: { task: TaskItem; enabled: boolean; children: ReactNode }) => {
+  const { setNodeRef, listeners, attributes, isDragging } = useDraggable({ id: task.id, disabled: !enabled })
+  return (
+    <div
+      ref={setNodeRef}
+      {...(enabled ? listeners : {})}
+      {...(enabled ? { 'aria-roledescription': attributes['aria-roledescription'] } : {})}
+      className={cn(enabled && 'fg-task-list__draggable', isDragging && 'is-dragging')}
+    >
+      {children}
+    </div>
+  )
 }
 
 const TaskListView = ({
@@ -31,7 +61,21 @@ const TaskListView = ({
   onDelete,
   onTogglePin,
   onAddTask,
+  onMoveTask,
 }: TaskListViewProps) => {
+  const { t } = useI18n()
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
+  const [draggingTask, setDraggingTask] = useState<TaskItem | null>(null)
+  const canDrag = Boolean(onMoveTask)
+  const handleDragStart = (event: DragStartEvent) => {
+    setDraggingTask(tasks.find((task) => task.id === event.active.id) ?? null)
+  }
+  const handleDragEnd = (event: DragEndEvent) => {
+    const task = tasks.find((item) => item.id === event.active.id)
+    setDraggingTask(null)
+    const target = event.over?.id as TaskStatus | undefined
+    if (task && target && target !== task.status) onMoveTask?.(task, target)
+  }
   const [doneExpanded, setDoneExpanded] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
     return window.localStorage.getItem(STORAGE_DONE_EXPANDED_KEY) === '1'
@@ -61,6 +105,7 @@ const TaskListView = ({
   }
 
   return (
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => setDraggingTask(null)}>
     <div className="fg-task-list">
       <div className="fg-task-list__board">
         {/* ── TODO ───────────────────────────────── */}
@@ -68,12 +113,12 @@ const TaskListView = ({
           className="fg-task-list__col fg-task-list__col--todo"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.06, duration: 0.36 }}
+          transition={{ delay: 0.06, duration: DURATION.slow }}
         >
           <header className="fg-task-list__col-head">
             <div className="fg-task-list__col-head__title">
               <span className="fg-task-list__col-glyph" aria-hidden />
-              <span className="fg-task-list__col-name">待办</span>
+              <span className="fg-task-list__col-name">{t('tasks.list.todo')}</span>
               <span className="fg-task-list__col-count">{byStatus.todo.length}</span>
             </div>
             {onAddTask ? (
@@ -88,18 +133,19 @@ const TaskListView = ({
             ) : null}
           </header>
 
-          <div className="fg-task-list__rows">
+          <DropColumn status="todo" dragStatus={draggingTask?.status ?? null} className="fg-task-list__rows">
             {byStatus.todo.length === 0 ? (
-              <p className="fg-task-list__empty">无待办</p>
+              <p className="fg-task-list__empty">{t('tasks.list.todoEmpty')}</p>
             ) : (
               byStatus.todo.map((task, i) => (
                 <motion.div
                   key={task.id}
                   initial={{ opacity: 0, x: -6 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.1 + i * 0.025, duration: 0.28 }}
+                  transition={{ delay: 0.1 + i * 0.025, duration: DURATION.medium }}
                 >
-                  <TaskRow
+                  <DraggableRow task={task} enabled={canDrag}>
+<TaskRow
                     task={task}
                     project={resolveProjectForRow(task)}
                     index={i}
@@ -109,10 +155,11 @@ const TaskListView = ({
                     onDelete={onDelete}
                     onTogglePin={onTogglePin}
                   />
+                  </DraggableRow>
                 </motion.div>
               ))
             )}
-          </div>
+          </DropColumn>
         </motion.section>
 
         {/* ── DOING (hero) ───────────────────────── */}
@@ -120,12 +167,12 @@ const TaskListView = ({
           className="fg-task-list__col fg-task-list__col--doing"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.12, duration: 0.36 }}
+          transition={{ delay: 0.12, duration: DURATION.slow }}
         >
           <header className="fg-task-list__col-head fg-task-list__col-head--hero">
             <div className="fg-task-list__col-head__title">
               <span className="fg-task-list__col-glyph fg-task-list__col-glyph--hero" aria-hidden />
-              <span className="fg-task-list__col-name fg-task-list__col-name--hero">进行中</span>
+              <span className="fg-task-list__col-name fg-task-list__col-name--hero">{t('tasks.list.doing')}</span>
               <span className="fg-task-list__col-count fg-task-list__col-count--hero">{byStatus.doing.length}</span>
             </div>
             {onAddTask ? (
@@ -140,18 +187,19 @@ const TaskListView = ({
             ) : null}
           </header>
 
-          <div className="fg-task-list__rows fg-task-list__rows--hero">
+          <DropColumn status="doing" dragStatus={draggingTask?.status ?? null} className="fg-task-list__rows fg-task-list__rows--hero">
             {byStatus.doing.length === 0 ? (
-              <p className="fg-task-list__empty">没有在进行的任务</p>
+              <p className="fg-task-list__empty">{t('tasks.list.doingEmpty')}</p>
             ) : (
               byStatus.doing.map((task, i) => (
                 <motion.div
                   key={task.id}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.16 + i * 0.04, duration: 0.36, ease: [0.16, 1, 0.3, 1] }}
+                  transition={{ delay: 0.16 + i * 0.04, duration: DURATION.slow, ease: EASE.outExpo }}
                 >
-                  <TaskRow
+                  <DraggableRow task={task} enabled={canDrag}>
+<TaskRow
                     task={task}
                     project={resolveProjectForRow(task)}
                     ownerName={ownerName?.(task)}
@@ -161,10 +209,11 @@ const TaskListView = ({
                     onDelete={onDelete}
                     onTogglePin={onTogglePin}
                   />
+                  </DraggableRow>
                 </motion.div>
               ))
             )}
-          </div>
+          </DropColumn>
         </motion.section>
 
         {/* ── DONE (archive) ─────────────────────── */}
@@ -172,28 +221,29 @@ const TaskListView = ({
           className={cn('fg-task-list__col fg-task-list__col--done', doneExpanded && 'is-expanded')}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.18, duration: 0.36 }}
+          transition={{ delay: 0.18, duration: DURATION.slow }}
         >
           <header className="fg-task-list__col-head fg-task-list__col-head--archive">
             <div className="fg-task-list__col-head__title">
               <span className="fg-task-list__col-glyph" aria-hidden />
-              <span className="fg-task-list__col-name">已完成</span>
+              <span className="fg-task-list__col-name">{t('tasks.list.done')}</span>
               <span className="fg-task-list__col-count">{byStatus.done.length}</span>
             </div>
           </header>
 
-          <div className="fg-task-list__rows fg-task-list__rows--archive">
+          <DropColumn status="done" dragStatus={draggingTask?.status ?? null} className="fg-task-list__rows fg-task-list__rows--archive">
             {byStatus.done.length === 0 ? (
-              <p className="fg-task-list__empty">尚未归档</p>
+              <p className="fg-task-list__empty">{t('tasks.list.doneEmpty')}</p>
             ) : (
               visibleDone.map((task, i) => (
                 <motion.div
                   key={task.id}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.22 + i * 0.02, duration: 0.25 }}
+                  transition={{ delay: 0.22 + i * 0.02, duration: DURATION.medium }}
                 >
-                  <TaskRow
+                  <DraggableRow task={task} enabled={canDrag}>
+<TaskRow
                     task={task}
                     project={resolveProjectForRow(task)}
                     variant="done"
@@ -201,23 +251,32 @@ const TaskListView = ({
                     onCycleStatus={onCycleStatus}
                     onDelete={onDelete}
                   />
+                  </DraggableRow>
                 </motion.div>
               ))
             )}
-          </div>
+          </DropColumn>
           {hiddenDoneCount > 0 ? (
             <button
               type="button"
               className="fg-task-list__expand"
               onClick={() => setDoneExpanded((v) => !v)}
             >
-              {doneExpanded ? '折叠归档' : `查看全部 ${byStatus.done.length} 项`}
+              {doneExpanded ? t('tasks.list.collapse') : t('tasks.list.showAll', { count: byStatus.done.length })}
               <span aria-hidden>{doneExpanded ? ' ↑' : ' →'}</span>
             </button>
           ) : null}
         </motion.section>
       </div>
     </div>
+    <DragOverlay dropAnimation={null}>
+      {draggingTask ? (
+        <div className="fg-task-list__drag-overlay">
+          <TaskRow task={draggingTask} project={resolveProjectForRow(draggingTask)} variant={draggingTask.status === 'doing' ? 'doing' : draggingTask.status === 'done' ? 'done' : 'todo'} />
+        </div>
+      ) : null}
+    </DragOverlay>
+    </DndContext>
   )
 }
 

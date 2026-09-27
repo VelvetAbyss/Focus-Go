@@ -22,8 +22,8 @@ const TaskNoteEditor = ({ value, onChange }: TaskNoteEditorProps) => {
   return (
     <div className="task-note-editor">
       <textarea
-        aria-label="任务备注编辑器"
-        className="task-note-editor__textarea min-h-[260px] w-full resize-none rounded-[18px] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] px-4 py-3 text-[13px] leading-6 text-foreground shadow-none outline-none placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-[color-mix(in_srgb,var(--text-primary)_25%,transparent)]"
+        aria-label={t('tasks.noteEditor.aria')}
+        className="task-note-editor__textarea min-h-[260px] w-full resize-none rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] px-4 py-3 text-ui leading-6 text-foreground shadow-none outline-none placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-[color-mix(in_srgb,var(--text-primary)_25%,transparent)]"
         value={draft}
         onChange={(event) => {
           const next = event.target.value
