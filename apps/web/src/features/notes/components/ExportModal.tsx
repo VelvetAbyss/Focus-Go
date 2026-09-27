@@ -45,8 +45,8 @@ export default function ExportModal({ open, noteTitle, onClose, onExportMarkdown
     <div data-note-floating-panel="export" data-state={visible ? 'open' : 'closed'} className="note-page__panel">
       <div className="flex items-center justify-between px-4 pb-2 pt-3">
         <div>
-          <h2 className="text-[16px] font-semibold">{t('notes.exportModal.title')}</h2>
-          <p className="mt-0.5 max-w-[200px] truncate text-[12px] text-muted-foreground">{noteTitle}</p>
+          <h2 className="text-section font-semibold">{t('notes.exportModal.title')}</h2>
+          <p className="mt-0.5 max-w-[200px] truncate text-label text-muted-foreground">{noteTitle}</p>
         </div>
         <button type="button" onClick={onClose} className="rounded-lg p-1.5 transition-colors hover:bg-accent">
           <X size={16} />
@@ -65,10 +65,10 @@ export default function ExportModal({ open, noteTitle, onClose, onExportMarkdown
               <format.icon size={16} className="text-muted-foreground" />
             </div>
             <div className="flex-1">
-              <div className="text-[13px] font-medium text-foreground">{format.label}</div>
-              <div className="text-[11px] text-muted-foreground">{format.unavailable ? `${format.desc} · ${t('notes.exportModal.soon')}` : format.desc}</div>
+              <div className="text-ui font-medium text-foreground">{format.label}</div>
+              <div className="text-meta text-muted-foreground">{format.unavailable ? `${format.desc} · ${t('notes.exportModal.soon')}` : format.desc}</div>
             </div>
-            <span className="text-[11px] text-muted-foreground">{format.ext}</span>
+            <span className="text-meta text-muted-foreground">{format.ext}</span>
           </button>
         ))}
       </div>

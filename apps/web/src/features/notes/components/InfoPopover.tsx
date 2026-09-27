@@ -44,7 +44,7 @@ export default function InfoPopover({ open, note, onClose, onNavigateToHeading, 
   return (
     <div data-note-floating-panel="info" data-state={visible ? 'open' : 'closed'} className="note-page__panel">
       <div className="flex items-center justify-between px-4 pb-2 pt-3">
-        <h3 className="text-[13px] font-semibold">{t('notes.info')}</h3>
+        <h3 className="text-ui font-semibold">{t('notes.info')}</h3>
         <button type="button" onClick={onClose} className="rounded p-1 transition-colors hover:bg-accent">
           <X size={14} />
         </button>
@@ -60,7 +60,7 @@ export default function InfoPopover({ open, note, onClose, onNavigateToHeading, 
             type="button"
             onClick={() => setTab(item.id)}
             className={cn(
-              'border-b-2 px-2.5 py-2 text-[11px] font-medium transition-colors',
+              'border-b-2 px-2.5 py-2 text-meta font-medium transition-colors',
               tab === item.id ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground',
             )}
           >
@@ -87,7 +87,7 @@ export default function InfoPopover({ open, note, onClose, onNavigateToHeading, 
 
         {tab === 'toc' ? (
           note.headings.length === 0 ? (
-            <p className="py-4 text-center text-[12px] text-muted-foreground">{t('notes.infoPanel.noHeadings')}</p>
+            <p className="py-4 text-center text-label text-muted-foreground">{t('notes.infoPanel.noHeadings')}</p>
           ) : (
             <div className="space-y-0.5">
               {note.headings.map((heading) => (
@@ -95,7 +95,7 @@ export default function InfoPopover({ open, note, onClose, onNavigateToHeading, 
                   key={heading.id}
                   type="button"
                   onClick={() => onNavigateToHeading(heading.id, heading.text)}
-                  className="w-full truncate rounded-md px-2 py-1.5 text-left text-[12px] transition-colors hover:bg-accent"
+                  className="w-full truncate rounded-md px-2 py-1.5 text-left text-label transition-colors hover:bg-accent"
                   style={{ paddingLeft: `${8 + (heading.level - 1) * 12}px`, fontWeight: heading.level === 1 ? 500 : 400 }}
                 >
                   {heading.text}
@@ -107,7 +107,7 @@ export default function InfoPopover({ open, note, onClose, onNavigateToHeading, 
 
         {tab === 'backlinks' ? (
           note.backlinks.length === 0 ? (
-            <p className="py-4 text-center text-[12px] text-muted-foreground">{t('notes.infoPanel.noBacklinks')}</p>
+            <p className="py-4 text-center text-label text-muted-foreground">{t('notes.infoPanel.noBacklinks')}</p>
           ) : (
             <div className="space-y-0.5">
               {note.backlinks.map((backlink) => (
@@ -115,7 +115,7 @@ export default function InfoPopover({ open, note, onClose, onNavigateToHeading, 
                   key={backlink.noteId}
                   type="button"
                   onClick={() => onNavigateToNote(backlink.noteId)}
-                  className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-[12px] transition-colors hover:bg-accent"
+                  className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-label transition-colors hover:bg-accent"
                 >
                   <FileText size={13} className="shrink-0 text-muted-foreground" />
                   <span className="truncate">{backlink.noteTitle}</span>
@@ -132,11 +132,11 @@ export default function InfoPopover({ open, note, onClose, onNavigateToHeading, 
 function StatRow({ label, value, icon: Icon }: { label: string; value: string; icon?: React.ElementType }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+      <span className="flex items-center gap-1.5 text-label text-muted-foreground">
         {Icon ? <Icon size={12} /> : null}
         {label}
       </span>
-      <span className="text-[12px] text-foreground">{value}</span>
+      <span className="text-label text-foreground">{value}</span>
     </div>
   )
 }

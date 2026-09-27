@@ -40,21 +40,21 @@ export default function AppearanceModal({ open, settings, onClose, onUpdate }: P
   return (
     <div data-note-floating-panel="appearance" data-state={visible ? 'open' : 'closed'} className="note-page__panel note-page__panel--wide">
       <div className="flex items-center justify-between px-4 pb-2 pt-3">
-        <h2 className="text-[16px] font-semibold">{t('notes.appearance')}</h2>
+        <h2 className="text-section font-semibold">{t('notes.appearance')}</h2>
         <button type="button" onClick={onClose} className="rounded-lg p-1.5 transition-colors hover:bg-accent">
           <X size={16} />
         </button>
       </div>
       <div className="note-page__panel-scroll space-y-5 px-4 pb-4">
         <div>
-          <label className="mb-2 block text-[12px] font-medium text-muted-foreground">{t('notes.appearancePanel.font')}</label>
+          <label className="mb-2 block text-label font-medium text-muted-foreground">{t('notes.appearancePanel.font')}</label>
           <div className="grid grid-cols-3 gap-2">
             {FONT_OPTIONS.map((font) => (
               <button
                 key={font.value}
                 type="button"
                 onClick={() => onUpdate({ font: font.value })}
-                className={`rounded-lg border px-2 py-2 text-[11px] transition-colors ${
+                className={`rounded-lg border px-2 py-2 text-meta transition-colors ${
                   settings.font === font.value ? 'border-foreground bg-accent' : 'border-border hover:border-foreground/30'
                 }`}
               >
@@ -101,22 +101,23 @@ export default function AppearanceModal({ open, settings, onClose, onUpdate }: P
   )
 }
 
-const BG_OPTIONS: Array<{ value: NotePaperBg; swatch: string; label: string }> = [
-  { value: 'beige', swatch: 'var(--bg-elevated)', label: '米色' },
-  { value: 'white', swatch: 'var(--bg-elevated)', label: '白色' },
+const BG_OPTIONS: Array<{ value: NotePaperBg; swatch: string; labelKey: 'notes.appearancePanel.bg.beige' | 'notes.appearancePanel.bg.white' }> = [
+  { value: 'beige', swatch: 'var(--bg-elevated)', labelKey: 'notes.appearancePanel.bg.beige' },
+  { value: 'white', swatch: 'var(--bg-elevated)', labelKey: 'notes.appearancePanel.bg.white' },
 ]
 
 function BgSetting({ label, value, onChange }: { label: string; value: NotePaperBg; onChange: (value: NotePaperBg) => void }) {
+  const { t } = useI18n()
   return (
     <div>
-      <label className="mb-2 block text-[12px] font-medium text-muted-foreground">{label}</label>
+      <label className="mb-2 block text-label font-medium text-muted-foreground">{label}</label>
       <div className="flex gap-2">
         {BG_OPTIONS.map((opt) => (
           <button
             key={opt.value}
             type="button"
             onClick={() => onChange(opt.value)}
-            className={`flex items-center gap-2 flex-1 rounded-lg border px-3 py-2 text-[11px] transition-colors ${
+            className={`flex items-center gap-2 flex-1 rounded-lg border px-3 py-2 text-meta transition-colors ${
               value === opt.value ? 'border-foreground bg-accent' : 'border-border hover:border-foreground/30'
             }`}
           >
@@ -124,7 +125,7 @@ function BgSetting({ label, value, onChange }: { label: string; value: NotePaper
               className="inline-block h-4 w-4 shrink-0 rounded-sm border border-border shadow-sm"
               style={{ background: opt.swatch }}
             />
-            <span className="font-medium">{opt.label}</span>
+            <span className="font-medium">{t(opt.labelKey)}</span>
           </button>
         ))}
       </div>
@@ -152,8 +153,8 @@ function SliderSetting({
   return (
     <div>
       <div className="mb-2 flex items-center justify-between">
-        <label className="text-[12px] font-medium text-muted-foreground">{label}</label>
-        <span className="text-[11px] text-muted-foreground">{display}</span>
+        <label className="text-label font-medium text-muted-foreground">{label}</label>
+        <span className="text-meta text-muted-foreground">{display}</span>
       </div>
       <input type="range" min={min} max={max} step={step} value={value} onChange={(event) => onChange(parseFloat(event.target.value))} className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-accent accent-foreground" />
     </div>

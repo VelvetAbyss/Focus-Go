@@ -3,25 +3,13 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { CheckSquare2, ChevronDown, Pin, PinOff, Plus, RotateCcw, Search, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useI18n } from '../../../shared/i18n/useI18n'
+import { formatRelativeTime } from '../../../shared/i18n/format'
 import type { NoteItem } from '../../../data/models/types'
+import { markdownToPreview } from '../../../shared/utils/markdownPreview'
 
 export type NoteSortOption = 'edited' | 'created' | 'title'
 export type NoteBrowserMode = 'notes' | 'trash'
 
-const stripMarkdown = (text: string): string =>
-  text
-    .replace(/^#{1,6}\s+/gm, '')
-    .replace(/\*\*(.+?)\*\*/gs, '$1')
-    .replace(/__(.+?)__/gs, '$1')
-    .replace(/\*(.+?)\*/gs, '$1')
-    .replace(/_(.+?)_/gs, '$1')
-    .replace(/~~(.+?)~~/gs, '$1')
-    .replace(/`(.+?)`/gs, '$1')
-    .replace(/!\[.*?\]\(.*?\)/g, '')
-    .replace(/\[(.+?)\]\(.*?\)/g, '$1')
-    .replace(/^>\s*/gm, '')
-    .replace(/\s+/g, ' ')
-    .trim()
 
 type Props = {
   notes: NoteItem[]
@@ -42,18 +30,6 @@ type Props = {
   onSearchChange: (value: string) => void
   className?: string
   scrollContainerRef?: RefObject<HTMLDivElement | null>
-}
-
-const formatTime = (time: number) => {
-  const diff = Date.now() - time
-  const minutes = Math.floor(diff / 60000)
-  const hours = Math.floor(diff / 3600000)
-  const days = Math.floor(diff / 86400000)
-  if (minutes < 1) return 'Just now'
-  if (minutes < 60) return `${minutes}m ago`
-  if (hours < 24) return `${hours}h ago`
-  if (days < 7) return `${days}d ago`
-  return new Date(time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 const VIRTUALIZE_NOTE_COUNT = 40
@@ -149,19 +125,19 @@ export default function NoteBrowser({
   return (
     <section
       className={cn(
-        'flex h-full min-h-0 w-[300px] min-w-[300px] flex-col overflow-hidden border-r border-[#e5e2dd] bg-[#f5f3f0] dark:border-[#f5f3f0]/15 dark:bg-[#3a3733]',
+        'flex h-full min-h-0 w-[300px] min-w-[300px] flex-col overflow-hidden border-r border-rule bg-paper-sunken',
         className,
       )}
     >
       <div className="flex items-center gap-2 px-4 pb-2 pt-4">
         <div className="flex flex-1 items-center gap-2">
-          <span className="rounded-md bg-[rgba(30,28,24,0.055)] px-2.5 py-[3px] text-[0.75rem] font-[530] tracking-[-0.01em] text-[#3a3733] dark:bg-slate-700/40 dark:text-slate-100">{collectionLabel}</span>
-          <span className="text-[0.6875rem] tabular-nums text-[#8d867f]/80 dark:text-slate-400">{notes.length}</span>
+          <span className="rounded-md bg-[color-mix(in_srgb,var(--ink-1)_5.5%,transparent)] px-2.5 py-[3px] text-label font-[530] tracking-[-0.01em] text-ink-1 dark:bg-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] dark:text-[var(--text-primary)]">{collectionLabel}</span>
+          <span className="text-meta tabular-nums text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)]">{notes.length}</span>
         </div>
         <button
           type="button"
           onClick={onNewNote}
-          className="rounded-lg p-1.5 text-[#3a3733] transition-[background-color,transform,box-shadow] [transition-duration:160ms] hover:-translate-y-0.5 hover:bg-[rgba(30,28,24,0.06)] hover:shadow-[var(--shadow-pop)] active:translate-y-0 dark:text-[#f5f3f0] dark:hover:bg-[#f5f3f0]/10"
+          className="rounded-lg p-1.5 text-ink-1 transition-[background-color,transform,box-shadow] [transition-duration:160ms] hover:-translate-y-0.5 hover:bg-[color-mix(in_srgb,var(--ink-1)_6%,transparent)] hover:shadow-[var(--shadow-pop)] active:translate-y-0"
           title={t('modules.note.new')}
         >
           <Plus size={15} strokeWidth={2.2} />
@@ -173,13 +149,13 @@ export default function NoteBrowser({
           <button
             type="button"
             onClick={() => setShowSortMenu((current) => !current)}
-            className="flex items-center gap-1 rounded-md px-2 py-1 text-[0.6875rem] font-medium text-[#66615b] transition-colors hover:bg-[rgba(30,28,24,0.05)] dark:text-[#f5f3f0]/80 dark:hover:bg-[#f5f3f0]/10"
+            className="flex items-center gap-1 rounded-md px-2 py-1 text-meta font-medium text-ink-2 transition-colors hover:bg-[color-mix(in_srgb,var(--ink-1)_5%,transparent)]"
           >
             {sortLabels[sortBy]}
             <ChevronDown size={11} strokeWidth={2.4} />
           </button>
           {showSortMenu ? (
-            <div className="absolute left-0 top-full z-20 mt-1 w-32 rounded-lg border border-[rgba(58,55,51,0.1)] bg-[#f8f6f2] p-1 shadow-[var(--shadow-card)] dark:border-[#f5f3f0]/15 dark:bg-[#3a3733]">
+            <div className="absolute left-0 top-full z-20 mt-1 w-32 rounded-lg border border-[color-mix(in_srgb,var(--ink-1)_10%,transparent)] bg-paper-raised p-1 shadow-[var(--shadow-card)]">
               {(['edited', 'created', 'title'] as NoteSortOption[]).map((option) => (
                 <button
                   key={option}
@@ -189,8 +165,8 @@ export default function NoteBrowser({
                     setShowSortMenu(false)
                   }}
                   className={cn(
-                    'w-full rounded-md px-2.5 py-1.5 text-left text-[0.6875rem] font-medium text-[#3a3733] transition-colors hover:bg-[rgba(30,28,24,0.06)] dark:text-[#f5f3f0] dark:hover:bg-[#f5f3f0]/10',
-                    sortBy === option && 'bg-[rgba(30,28,24,0.06)] dark:bg-[#f5f3f0]/15',
+                    'w-full rounded-md px-2.5 py-1.5 text-left text-meta font-medium text-ink-1 transition-colors hover:bg-[color-mix(in_srgb,var(--ink-1)_6%,transparent)]',
+                    sortBy === option && 'bg-[color-mix(in_srgb,var(--ink-1)_6%,transparent)]',
                   )}
                 >
                   {sortLabels[option]}
@@ -200,12 +176,12 @@ export default function NoteBrowser({
           ) : null}
         </div>
         <div className="relative flex-1">
-          <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#8d867f]/70 dark:text-[#f5f3f0]/45" />
+          <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)]" />
           <input
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
             placeholder={t('notes.searchPlaceholder')}
-            className="w-full rounded-lg border border-transparent bg-[rgba(30,28,24,0.04)] py-[5px] pl-7 pr-2.5 text-[0.6875rem] text-[#3a3733] outline-none transition-[background-color,border-color,box-shadow] placeholder:text-[#8d867f]/60 focus:border-[rgba(58,55,51,0.1)] focus:bg-white/72 focus:shadow-[var(--shadow-pop)] dark:bg-[#f5f3f0]/10 dark:text-[#f5f3f0] dark:placeholder:text-[#f5f3f0]/40 dark:focus:bg-[#f5f3f0]/15"
+            className="w-full rounded-lg border border-transparent bg-[color-mix(in_srgb,var(--ink-1)_4%,transparent)] py-[5px] pl-7 pr-2.5 text-meta text-ink-1 outline-none transition-[background-color,border-color,box-shadow] placeholder:text-[var(--text-tertiary)] focus:border-[color-mix(in_srgb,var(--ink-1)_10%,transparent)] focus:bg-white/72 focus:shadow-[var(--shadow-pop)]"
           />
         </div>
       </div>
@@ -237,8 +213,8 @@ export default function NoteBrowser({
           </div>
         ) : null}
         {filtered.length === 0 ? (
-          <div className="mx-2 mt-4 rounded-xl border border-dashed border-[rgba(58,55,51,0.14)] px-4 py-10 text-center dark:border-[#f5f3f0]/12">
-            <p className="text-[0.8125rem] font-medium text-[#8d867f] dark:text-[#f5f3f0]/50">{t('notes.noNotesFound')}</p>
+          <div className="mx-2 mt-4 rounded-xl border border-dashed border-[color-mix(in_srgb,var(--ink-1)_14%,transparent)] px-4 py-10 text-center">
+            <p className="text-ui font-medium text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)]">{t('notes.noNotesFound')}</p>
           </div>
         ) : null}
       </div>
@@ -249,10 +225,10 @@ export default function NoteBrowser({
 function SectionLabel({ children }: { children: string }) {
   return (
     <div className="mb-0.5 flex items-center gap-2 px-2 py-1.5">
-      <span className="text-[0.625rem] font-semibold uppercase tracking-[0.18em] text-[#8d867f]/90 dark:text-[#f5f3f0]/50">
+      <span className="text-meta font-semibold uppercase tracking-[var(--tracking-caps)] text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)]">
         {children}
       </span>
-      <span className="h-px flex-1 bg-[rgba(58,55,51,0.07)] dark:bg-[#f5f3f0]/8" />
+      <span className="h-px flex-1 bg-[color-mix(in_srgb,var(--ink-1)_7%,transparent)]" />
     </div>
   )
 }
@@ -281,6 +257,8 @@ function NoteCard({
   onDelete: () => void
 }) {
   const dragImageRef = useRef<HTMLElement | null>(null)
+  const { language, t } = useI18n()
+  const preview = note.excerpt ? markdownToPreview(note.excerpt, note.title) : ''
 
   return (
     <div
@@ -316,25 +294,25 @@ function NoteCard({
       }}
       onClick={onSelect}
       className={cn(
-        'group relative mb-1 cursor-pointer rounded-[11px] border px-3 py-2.5 transition-[background-color,border-color,box-shadow,transform] [transition-duration:180ms]',
+        'group relative mb-1 cursor-pointer rounded-[var(--radius-sm)] border px-3 py-2.5 transition-[background-color,border-color,box-shadow,transform] [transition-duration:180ms]',
         selected
-          ? 'translate-x-[1px] border-[rgba(58,55,51,0.10)] bg-[rgba(30,28,24,0.055)] shadow-[inset_2.5px_0_0_var(--accent),var(--shadow-card)] dark:border-[#f5f3f0]/15 dark:bg-[#f5f3f0]/10 dark:shadow-none'
-          : 'border-transparent hover:-translate-y-[1px] hover:border-[rgba(58,55,51,0.06)] hover:bg-[rgba(30,28,24,0.038)] hover:shadow-[var(--shadow-pop)] dark:hover:bg-[#f5f3f0]/10 dark:hover:border-[#f5f3f0]/10',
+          ? 'translate-x-[1px] border-[color-mix(in_srgb,var(--ink-1)_10%,transparent)] bg-[color-mix(in_srgb,var(--ink-1)_5.5%,transparent)] shadow-[inset_2.5px_0_0_var(--accent),var(--shadow-card)] dark:shadow-none'
+          : 'border-transparent hover:-translate-y-[1px] hover:border-[color-mix(in_srgb,var(--ink-1)_6%,transparent)] hover:bg-[color-mix(in_srgb,var(--ink-1)_3.8%,transparent)] hover:shadow-[var(--shadow-pop)]',
       )}
       style={{ minHeight: '101px' }}
     >
       {/* Title row */}
       <div className="flex items-start gap-1.5 pr-12">
-        {note.pinned ? <Pin size={9} className="mt-[3px] shrink-0 text-[#8d867f] dark:text-[#f5f3f0]/45" /> : null}
-        <h4 className="line-clamp-2 text-[0.8125rem] font-[550] leading-[1.42] tracking-[-0.012em] text-[#2e2b27] dark:text-[#f5f3f0]">
-          {stripMarkdown(note.title) || <span className="text-[#8d867f] dark:text-[#f5f3f0]/45">Untitled</span>}
+        {note.pinned ? <Pin size={9} className="mt-[3px] shrink-0 text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)]" /> : null}
+        <h4 className="line-clamp-2 text-ui font-[550] leading-[1.42] tracking-[-0.012em] text-ink-1">
+          {markdownToPreview(note.title) || <span className="text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)]">{t('notes.trash.untitled')}</span>}
         </h4>
       </div>
 
       {/* Excerpt */}
-      {note.excerpt ? (
-        <p className="mt-0.5 line-clamp-2 text-[0.75rem] leading-[1.58] text-[#7a7570] dark:text-[#f5f3f0]/65">
-          {stripMarkdown(note.excerpt)}
+      {preview ? (
+        <p className="mt-0.5 line-clamp-2 text-label leading-[1.58] text-ink-3">
+          {preview}
         </p>
       ) : null}
 
@@ -344,22 +322,22 @@ function NoteCard({
           {note.tags.slice(0, 2).map((tag) => (
             <span
               key={tag}
-              className="inline-flex h-[18px] items-center rounded-[5px] border border-[rgba(58,55,51,0.07)] bg-[rgba(30,28,24,0.045)] px-[7px] text-[10px] font-medium leading-none tracking-[0.015em] text-[#8d867f] dark:border-[#f5f3f0]/10 dark:bg-[#f5f3f0]/8 dark:text-[#f5f3f0]/55"
+              className="inline-flex h-[18px] items-center rounded-[var(--radius-xs)] border border-[color-mix(in_srgb,var(--ink-1)_7%,transparent)] bg-[color-mix(in_srgb,var(--ink-1)_4.5%,transparent)] px-[7px] text-meta font-medium leading-none tracking-[0.015em] text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)]"
             >
               {tagLabelMap?.get(tag) ?? tag}
             </span>
           ))}
           {note.tags.length > 2 ? (
-            <span className="inline-flex h-[18px] items-center text-[10px] text-[#8d867f]/70 dark:text-[#f5f3f0]/35">
+            <span className="inline-flex h-[18px] items-center text-meta text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)]">
               +{note.tags.length - 2}
             </span>
           ) : null}
         </div>
-        <span className="shrink-0 text-[0.625rem] tabular-nums text-[#8d867f] dark:text-[#f5f3f0]/45">{formatTime(note.updatedAt)}</span>
+        <span className="shrink-0 text-meta tabular-nums text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)]">{formatRelativeTime(note.updatedAt, language)}</span>
       </div>
 
       {linkedTaskTitle ? (
-        <div className="mt-1.5 flex items-center gap-1 text-[10px] text-[#8d867f] dark:text-[#f5f3f0]/55">
+        <div className="mt-1.5 flex items-center gap-1 text-meta text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)]">
           <CheckSquare2 size={10} className="shrink-0" />
           <span className="truncate">{linkedTaskTitle}</span>
         </div>
@@ -371,7 +349,7 @@ function NoteCard({
           <button
             type="button"
             onClick={(event) => { event.stopPropagation(); onTogglePin() }}
-            className="rounded-md p-1.5 text-[#8d867f] transition-colors hover:bg-[#3a3733]/8 hover:text-[#3a3733] dark:text-[#f5f3f0]/50 dark:hover:bg-white/10 dark:hover:text-[#f5f3f0]"
+            className="rounded-md p-1.5 text-[var(--text-tertiary)] transition-colors hover:bg-[color-mix(in_srgb,var(--ink-1)_8%,transparent)] hover:text-ink-1 dark:text-[var(--text-tertiary)] dark:hover:bg-white/10"
             title={note.pinned ? 'Unpin' : 'Pin'}
           >
             {note.pinned ? <PinOff size={11} /> : <Pin size={11} />}
@@ -381,7 +359,7 @@ function NoteCard({
           <button
             type="button"
             onClick={(event) => { event.stopPropagation(); onRestore() }}
-            className="rounded-md p-1.5 text-[#8d867f] transition-colors hover:bg-[#3a3733]/8 hover:text-[#3a3733] dark:text-slate-200 dark:hover:bg-white/10"
+            className="rounded-md p-1.5 text-[var(--text-tertiary)] transition-colors hover:bg-[color-mix(in_srgb,var(--ink-1)_8%,transparent)] hover:text-ink-1 dark:text-[var(--text-primary)] dark:hover:bg-white/10"
             title="Restore"
           >
             <RotateCcw size={11} />
@@ -394,7 +372,7 @@ function NoteCard({
             if (mode === 'trash') { onDelete(); return }
             onTrash()
           }}
-          className="rounded-md p-1.5 text-[#b05050] transition-colors hover:bg-red-500/8 dark:text-red-400/80 dark:hover:bg-red-500/10"
+          className="rounded-md p-1.5 text-tone-urgent transition-colors hover:bg-tone-urgent-wash"
           title={mode === 'trash' ? 'Delete permanently' : 'Move to trash'}
         >
           <Trash2 size={11} />

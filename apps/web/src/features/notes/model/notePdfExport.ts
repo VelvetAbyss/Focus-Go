@@ -16,7 +16,8 @@ const fontFamilyMap: Record<NoteAppearanceSettings['font'], string> = {
   uiSans: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif',
   humanistSans: '"Avenir Next", "Nunito", "Trebuchet MS", "Gill Sans", "Segoe UI", sans-serif',
   cnSans: '"PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", sans-serif',
-  serif: '"Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif',
+  // The app's reading serif (DESIGN.md › Serif where you write), bundled offline.
+  serif: '"Fraunces", "Noto Serif SC", "Iowan Old Style", Georgia, serif',
   cnSerif: '"Songti SC", "STSong", "Noto Serif CJK SC", "Source Han Serif SC", "SimSun", serif',
   mono: '"SF Mono", "JetBrains Mono", "Fira Code", Consolas, monospace',
 }

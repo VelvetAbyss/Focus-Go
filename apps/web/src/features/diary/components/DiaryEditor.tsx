@@ -38,6 +38,8 @@ type DiaryEditorProps = {
   placeholder?: string
   onChange: (next: DiaryEditorValue) => void
   onFlush?: () => void
+  /** Changes to a new id when a freshly created entry should take the caret. */
+  autoFocusKey?: string | null
 }
 
 const DEBOUNCE_MS = 600
@@ -55,7 +57,7 @@ const uploadImageAsDataUrl = async (file: File): Promise<string> => {
   })
 }
 
-const DiaryEditor = ({ value, placeholder, onChange, onFlush }: DiaryEditorProps) => {
+const DiaryEditor = ({ value, placeholder, onChange, onFlush, autoFocusKey = null }: DiaryEditorProps) => {
   const initialDoc = useMemo(() => ensureRichDoc(value.contentJson, value.contentMd), [value.contentJson, value.contentMd])
   const pendingDocRef = useRef<JSONContent | null | undefined>(undefined)
   const emitTimerRef = useRef<number | null>(null)
@@ -94,6 +96,19 @@ const DiaryEditor = ({ value, placeholder, onChange, onFlush }: DiaryEditorProps
   )
 
   useEffect(() => () => { flushEmit() }, [flushEmit])
+
+  // Reload, tab close and app quit skip unmount: hand over the last keystrokes as the page hides.
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') flushEmit()
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('pagehide', flushEmit)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('pagehide', flushEmit)
+    }
+  }, [flushEmit])
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -147,6 +162,11 @@ const DiaryEditor = ({ value, placeholder, onChange, onFlush }: DiaryEditorProps
     const nextDoc = ensureRichDoc(value.contentJson, value.contentMd)
     editor.commands.setContent(nextDoc, { emitUpdate: false })
   }, [editor, flushEmit, value.contentJson, value.contentMd])
+
+  // Declared after the content sync so the caret lands in the new entry's document.
+  useEffect(() => {
+    if (autoFocusKey && editor) editor.commands.focus('end')
+  }, [autoFocusKey, editor])
 
   return (
     <div className="note-editor diary-editor">

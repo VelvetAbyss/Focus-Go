@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Check, ChevronDown, Feather } from 'lucide-react'
 import { useI18n } from '../../../shared/i18n/useI18n'
+import { appIntlLocale } from '../../../shared/i18n/format'
+import { DURATION, EASE } from '../../../shared/motion/tokens'
 
 type ReviewDeckProps = {
   summary: string
@@ -29,13 +31,13 @@ type ReviewDeckProps = {
 }
 
 const fieldLabelStyle = {
-  fontFamily: "'Lora', 'Georgia', serif",
+  fontFamily: 'var(--font-display)',
   fontSize: '0.95rem',
   fontWeight: 400,
 }
 
 const helperTextStyle = {
-  fontFamily: "'Inter', 'IBM Plex Sans', sans-serif",
+  fontFamily: 'var(--font-body)',
   fontSize: '0.76rem',
   fontWeight: 300,
 }
@@ -75,7 +77,7 @@ const ReviewDeck = ({
   const currentHour = new Date().getHours()
   const greeting =
     currentHour >= 17 ? t('review.goodEvening') : currentHour >= 12 ? t('review.goodAfternoon') : t('review.goodMorning')
-  const today = new Date().toLocaleDateString('en-US', {
+  const today = new Date().toLocaleDateString(appIntlLocale(), {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
@@ -83,20 +85,20 @@ const ReviewDeck = ({
   const disabled = isComplete || isSubmittingDiary
 
   return (
-    <section className="review-deck min-h-0 rounded-[24px] border border-[var(--border)] bg-[var(--bg-elevated)] p-6 text-[var(--text-primary)] shadow-[var(--shadow-card)] sm:p-8 lg:p-10">
+    <section className="review-deck min-h-0 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-elevated)] p-6 text-[var(--text-primary)] shadow-[var(--shadow-card)] sm:p-8 lg:p-10">
       <div className="flex h-full flex-col">
         <div className="mb-8 lg:mb-10">
           <div className="mb-4 flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--text-primary)]">
-              <Feather size={13} className="text-white" />
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--cta-bg)]">
+              <Feather size={13} className="text-[color:var(--cta-fg)]" />
             </div>
             <span
               className="text-[var(--text-secondary)]"
               style={{
-                fontFamily: "'Inter', 'IBM Plex Sans', sans-serif",
+                fontFamily: 'var(--font-body)',
                 fontSize: '0.75rem',
                 fontWeight: 400,
-                letterSpacing: '0.08em',
+                letterSpacing: 'var(--tracking-caps)',
                 textTransform: 'uppercase',
               }}
             >
@@ -105,13 +107,13 @@ const ReviewDeck = ({
           </div>
           <h1
             className="mb-1 text-[var(--text-primary)]"
-            style={{ fontFamily: "'Lora', 'Georgia', serif", fontSize: '1.6rem', fontWeight: 500 }}
+            style={{ fontFamily: 'var(--font-display)', fontSize: '1.6rem', fontWeight: 500 }}
           >
             {greeting}
           </h1>
           <p
             className="text-[var(--text-secondary)]"
-            style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.88rem', fontWeight: 300 }}
+            style={{ fontFamily: 'var(--font-body)', fontSize: '0.88rem', fontWeight: 300 }}
           >
             {today} {t('review.subtitle')}
           </p>
@@ -131,7 +133,7 @@ const ReviewDeck = ({
                 placeholder={t('review.summaryPlaceholder')}
                 disabled={disabled}
                 className={inputClassName}
-                style={{ fontFamily: "'Lora', 'Georgia', serif", fontSize: '1rem', fontWeight: 400 }}
+                style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--fs-section)', fontWeight: 400 }}
               />
             </div>
 
@@ -147,7 +149,7 @@ const ReviewDeck = ({
                 placeholder={t('review.tomorrowPlaceholder')}
                 disabled={disabled}
                 className={inputClassName}
-                style={{ fontFamily: "'Lora', 'Georgia', serif", fontSize: '1rem', fontWeight: 400 }}
+                style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--fs-section)', fontWeight: 400 }}
               />
             </div>
 
@@ -161,17 +163,17 @@ const ReviewDeck = ({
               <button
                 type="button"
                 onClick={() => setIsOpen((current) => !current)}
-                className="group mx-auto flex cursor-pointer items-center gap-2 rounded-full bg-[#f7f7f7] px-5 py-2.5 transition-all duration-300 hover:bg-[var(--bg-muted)]"
+                className="group mx-auto flex cursor-pointer items-center gap-2 rounded-full bg-paper-sunken px-5 py-2.5 transition-all duration-300 hover:bg-[var(--bg-muted)]"
               >
                 <span
                   className="text-[var(--text-secondary)] transition-colors duration-300 group-hover:text-[var(--text-secondary)]"
-                  style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.85rem', fontWeight: 400 }}
+                  style={{ fontFamily: 'var(--font-body)', fontSize: '0.85rem', fontWeight: 400 }}
                 >
                   {isOpen ? t('review.enough') : t('review.deeper')}
                 </span>
                 <motion.div
                   animate={{ rotate: isOpen ? 180 : 0 }}
-                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  transition={{ duration: DURATION.medium, ease: EASE.inOut }}
                 >
                   <ChevronDown size={14} className="text-[var(--text-secondary)]" />
                 </motion.div>
@@ -184,7 +186,7 @@ const ReviewDeck = ({
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                    transition={{ duration: DURATION.slow, ease: EASE.standard }}
                     className="overflow-hidden"
                   >
                     <div className="space-y-5 pt-6">
@@ -193,10 +195,10 @@ const ReviewDeck = ({
                         <span
                           className="shrink-0 text-[var(--text-secondary)]"
                           style={{
-                            fontFamily: "'Inter', 'IBM Plex Sans', sans-serif",
+                            fontFamily: 'var(--font-body)',
                             fontSize: '0.7rem',
                             fontWeight: 400,
-                            letterSpacing: '0.08em',
+                            letterSpacing: 'var(--tracking-caps)',
                             textTransform: 'uppercase',
                           }}
                         >
@@ -209,7 +211,7 @@ const ReviewDeck = ({
                         <label
                           htmlFor="review-inbox-snapshot"
                           className="block pl-1 text-[var(--text-secondary)]"
-                          style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.8rem', fontWeight: 400 }}
+                          style={{ fontFamily: 'var(--font-body)', fontSize: '0.8rem', fontWeight: 400 }}
                         >
                           {t('review.inboxSnapshot')}
                         </label>
@@ -221,7 +223,7 @@ const ReviewDeck = ({
                           placeholder={t('review.inboxPlaceholder')}
                           disabled={disabled}
                           className={subtleInputClassName}
-                          style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.9rem', fontWeight: 300 }}
+                          style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--fs-body)', fontWeight: 400 }}
                         />
                       </div>
 
@@ -251,7 +253,7 @@ const ReviewDeck = ({
                         </div>
                         <span
                           className="text-[var(--text-secondary)] transition-colors group-hover:text-[var(--text-secondary)]"
-                          style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.85rem', fontWeight: 400 }}
+                          style={{ fontFamily: 'var(--font-body)', fontSize: '0.85rem', fontWeight: 400 }}
                         >
                           {t('review.inboxCleared')}
                         </span>
@@ -260,7 +262,7 @@ const ReviewDeck = ({
                       <div className="space-y-2">
                         <label
                           className="block pl-1 text-[var(--text-secondary)]"
-                          style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.8rem', fontWeight: 400 }}
+                          style={{ fontFamily: 'var(--font-body)', fontSize: '0.8rem', fontWeight: 400 }}
                         >
                           {t('review.focusedLabel')}
                         </label>
@@ -273,14 +275,14 @@ const ReviewDeck = ({
                               disabled={disabled}
                               className={`flex-1 cursor-pointer rounded-lg py-2 transition-all duration-300 ${
                                 focusScore === score
-                                  ? 'bg-[var(--text-primary)] text-white'
-                                  : 'bg-[#f7f7f7] text-[var(--text-secondary)] hover:bg-[var(--bg-muted)] hover:text-[var(--text-secondary)]'
+                                  ? 'bg-[var(--cta-bg)] text-[color:var(--cta-fg)]'
+                                  : 'bg-paper-sunken text-[var(--text-secondary)] hover:bg-[var(--bg-muted)] hover:text-[var(--text-secondary)]'
                               }`}
-                              style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.75rem', fontWeight: 400 }}
+                              style={{ fontFamily: 'var(--font-body)', fontSize: '0.75rem', fontWeight: 400 }}
                             >
                               <div>{score}</div>
                               {score === 1 || score === 3 || score === 5 ? (
-                                <div className="mt-0.5 text-[0.6rem] opacity-70">
+                                <div className="mt-0.5 text-meta opacity-70">
                                   {score === 1 ? t('review.low') : score === 3 ? t('review.okay') : t('review.deep')}
                                 </div>
                               ) : null}
@@ -292,7 +294,7 @@ const ReviewDeck = ({
                       <div className="space-y-2">
                         <label
                           className="block pl-1 text-[var(--text-secondary)]"
-                          style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.8rem', fontWeight: 400 }}
+                          style={{ fontFamily: 'var(--font-body)', fontSize: '0.8rem', fontWeight: 400 }}
                         >
                           {t('review.mustDoTomorrow')}
                           <span className="ml-1.5 text-[var(--text-secondary)]" style={{ fontSize: '0.7rem' }}>
@@ -308,7 +310,7 @@ const ReviewDeck = ({
                             <div key={item.num} className="flex items-center gap-2">
                               <span
                                 className="w-4 shrink-0 text-center text-[var(--text-secondary)]"
-                                style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.75rem' }}
+                                style={{ fontFamily: 'var(--font-body)', fontSize: '0.75rem' }}
                               >
                                 {item.num}
                               </span>
@@ -319,7 +321,7 @@ const ReviewDeck = ({
                                  placeholder={item.num === 1 ? t('review.mostImportant') : ''}
                                 disabled={disabled}
                                 className="flex-1 rounded-lg border border-[var(--bg-muted)] bg-[var(--bg-muted)] px-3.5 py-2 text-[var(--text-secondary)] placeholder:text-[var(--text-secondary)] transition-all duration-300 focus:border-[var(--border)] focus:bg-[var(--bg-elevated)] focus:outline-none"
-                                style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.85rem', fontWeight: 300 }}
+                                style={{ fontFamily: 'var(--font-body)', fontSize: '0.85rem', fontWeight: 300 }}
                               />
                             </div>
                           ))}
@@ -330,7 +332,7 @@ const ReviewDeck = ({
                         <label
                           htmlFor="review-longer-reflection"
                           className="block pl-1 text-[var(--text-secondary)]"
-                          style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.8rem', fontWeight: 400 }}
+                          style={{ fontFamily: 'var(--font-body)', fontSize: '0.8rem', fontWeight: 400 }}
                         >
                           {t('review.anythingElse')}
                         </label>
@@ -343,10 +345,10 @@ const ReviewDeck = ({
                           disabled={disabled}
                           className="w-full resize-none rounded-lg border border-[var(--bg-muted)] bg-[var(--bg-muted)] px-4 py-3 text-[var(--text-secondary)] placeholder:text-[var(--text-secondary)] transition-all duration-300 focus:border-[var(--border)] focus:bg-[var(--bg-elevated)] focus:outline-none"
                           style={{
-                            fontFamily: "'Inter', 'IBM Plex Sans', sans-serif",
-                            fontSize: '0.9rem',
-                            fontWeight: 300,
-                            lineHeight: '1.7',
+                            fontFamily: 'var(--font-display)',
+                            fontSize: 'var(--fs-section)',
+                            fontWeight: 400,
+                            lineHeight: '1.8',
                           }}
                         />
                       </div>
@@ -365,23 +367,23 @@ const ReviewDeck = ({
                   initial={{ opacity: 0, scale: 0.9, y: 5 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.4, ease: 'easeOut' }}
+                  transition={{ duration: DURATION.slow, ease: EASE.emphasized }}
                   className="flex flex-col items-center gap-3"
                 >
                   <div className="flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-muted)] px-5 py-2.5">
-                    <div className="flex h-4 w-4 items-center justify-center rounded-full bg-[var(--text-primary)]">
-                      <Check size={10} className="text-white" />
+                    <div className="flex h-4 w-4 items-center justify-center rounded-full bg-tone-done">
+                      <Check size={10} className="text-[color:var(--paper-raised)]" />
                     </div>
                     <span
                       className="text-[var(--text-secondary)]"
-                      style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.85rem', fontWeight: 400 }}
+                      style={{ fontFamily: 'var(--font-body)', fontSize: '0.85rem', fontWeight: 400 }}
                     >
                       {t('review.savedToday')}
                     </span>
                   </div>
                   <p
                     className="text-[var(--text-secondary)]"
-                    style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.76rem', fontWeight: 300 }}
+                    style={{ fontFamily: 'var(--font-body)', fontSize: '0.76rem', fontWeight: 300 }}
                   >
                     {t('review.restWell')}
                   </p>
@@ -389,7 +391,7 @@ const ReviewDeck = ({
                     type="button"
                     onClick={onRestart}
                     className="text-[var(--text-secondary)] underline-offset-4 transition-colors hover:text-[var(--text-secondary)] hover:underline"
-                    style={{ fontFamily: "'Inter', 'IBM Plex Sans', sans-serif", fontSize: '0.82rem', fontWeight: 400 }}
+                    style={{ fontFamily: 'var(--font-body)', fontSize: '0.82rem', fontWeight: 400 }}
                   >
                     {t('review.newReflection')}
                   </button>
@@ -402,9 +404,9 @@ const ReviewDeck = ({
                   whileHover={{ scale: isSubmittingDiary ? 1 : 1.02 }}
                   whileTap={{ scale: isSubmittingDiary ? 1 : 0.98 }}
                   disabled={isSubmittingDiary}
-                  className="cursor-pointer rounded-xl bg-[var(--text-primary)] px-8 py-3 text-white/90 transition-all duration-300 hover:bg-[var(--bg-muted)] disabled:cursor-default disabled:opacity-60"
+                  className="cursor-pointer rounded-full bg-[var(--cta-bg)] px-8 py-3 text-[color:var(--cta-fg)] transition-all duration-300 hover:bg-[var(--cta-bg-hover)] disabled:cursor-default disabled:opacity-60"
                   style={{
-                    fontFamily: "'Inter', 'IBM Plex Sans', sans-serif",
+                    fontFamily: 'var(--font-body)',
                     fontSize: '0.9rem',
                     fontWeight: 400,
                     letterSpacing: '0.02em',
