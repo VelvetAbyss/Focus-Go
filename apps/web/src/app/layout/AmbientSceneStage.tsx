@@ -490,7 +490,9 @@ const AmbientSceneStage = ({ scene }: AmbientSceneStageProps) => {
   const buildSignals = (ts: number, layer: Layer, slot: 'active' | 'inactive'): SceneSignals => {
     const enteredAt = layer.enteredAt ?? ts
     const elapsed = ts - enteredAt
-    const intensity = prefsRef.current.intensityRamp ? Math.min(1, elapsed / INTENSITY_RAMP_MS) : 1
+    // rAF timestamps can land a hair *before* enteredAt on a layer's first
+    // frame; a negative ramp gave scenes negative particle counts (RangeError).
+    const intensity = prefsRef.current.intensityRamp ? Math.min(1, Math.max(0, elapsed / INTENSITY_RAMP_MS)) : 1
     const audio = prefsRef.current.audioReactivity
 
     // Cursor: reuse a stable object; mirror the live cursor or park it off-screen.

@@ -1,0 +1,116 @@
+/* Unified header pill — the segmented control shared by the dashboard
+   header (Focus/Life/News) and the task recap card. Lives in shared/ui so
+   every route that renders it gets the styles (it used to ship only with
+   the Life dashboard chunk, leaving the recap card unstyled elsewhere). */
+
+/* ─────────────────────────────────────────
+   Unified header pill (Focus/Life + actions)
+───────────────────────────────────────── */
+
+.header-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--segmented-track-border);
+  background: var(--segmented-track);
+}
+
+.header-pill__divider {
+  width: 1px;
+  height: 16px;
+  background: color-mix(in srgb, var(--ink-1) 13%, transparent);
+  margin: 0 4px;
+  flex-shrink: 0;
+  border-radius: 1px;
+}
+
+.header-pill__btn {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--segmented-fg);
+  font-size: var(--fs-ui);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background var(--motion-duration-fast) var(--ease-standard),
+    color var(--motion-duration-fast) var(--ease-standard),
+    box-shadow var(--motion-duration-fast) var(--ease-standard);
+  -webkit-font-smoothing: antialiased;
+}
+
+.header-pill__btn:hover {
+  background: color-mix(in srgb, var(--ink-1) 6%, transparent);
+  color: var(--ink-1);
+}
+
+.header-pill__btn.is-active,
+.header-pill__btn[aria-selected='true'] {
+  background: var(--segmented-thumb);
+  color: var(--segmented-fg-active);
+  box-shadow: var(--segmented-thumb-shadow);
+}
+
+.header-pill__btn:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.header-pill__btn svg {
+  flex-shrink: 0;
+}
+
+/* Compact modifier — for in-card toggles (e.g., TaskProgressSummary segments) */
+.header-pill.is-compact {
+  gap: 1px;
+  padding: 2px;
+  border-radius: 999px;
+}
+
+.header-pill.is-compact .header-pill__btn {
+  height: 22px;
+  padding: 0 10px;
+  font-size: var(--fs-meta);
+  border-radius: 999px;
+}
+
+.header-pill.is-compact .header-pill__btn.is-active,
+.header-pill.is-compact .header-pill__btn[aria-selected='true'] {
+  box-shadow: 0 1px 2px rgba(58, 55, 51, 0.08);
+}
+
+/* Sliding selection (shared/motion/ActiveIndicator): the pill carries the
+   selected surface; the selected tab itself goes transparent. */
+.header-pill {
+  --indicator-radius: 9px;
+  --indicator-bg: var(--segmented-thumb);
+  --indicator-shadow: var(--segmented-thumb-shadow);
+}
+
+.header-pill.is-compact {
+  --indicator-radius: 999px;
+}
+
+.header-pill[data-active-indicator] > .header-pill__btn[role='tab'][aria-selected='true'],
+html[data-theme='dark'] .header-pill[data-active-indicator] > .header-pill__btn[role='tab'][aria-selected='true'] {
+  background: transparent;
+  box-shadow: none;
+}
+
+.header-pill[data-active-indicator] > .header-pill__btn[role='tab'] {
+  transition:
+    color var(--motion-duration-medium) var(--ease-emphasized),
+    background-color var(--motion-duration-fast) var(--ease-standard),
+    transform var(--motion-duration-fast) var(--ease-standard);
+}

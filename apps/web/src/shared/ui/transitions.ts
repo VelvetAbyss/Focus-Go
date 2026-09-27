@@ -1,4 +1,5 @@
 import type { Transition, Variants } from 'motion/react'
+import { DURATION, EASE } from '../motion/tokens'
 
 export const pageTransitionVariants: Variants = {
   initial: { opacity: 0 },
@@ -7,8 +8,8 @@ export const pageTransitionVariants: Variants = {
 }
 
 export const pageTransitionTiming: Transition = {
-  duration: 0.24,
-  ease: [0.22, 1, 0.36, 1],
+  duration: DURATION.base,
+  ease: EASE.emphasized,
 }
 
 export const habitPageTransitionVariants: Variants = {
@@ -18,8 +19,8 @@ export const habitPageTransitionVariants: Variants = {
 }
 
 export const habitPageTransitionTiming: Transition = {
-  duration: 0.18,
-  ease: [0.22, 1, 0.36, 1],
+  duration: DURATION.base,
+  ease: EASE.emphasized,
 }
 
 export const microInteractionSpring: Transition = {

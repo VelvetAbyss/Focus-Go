@@ -117,7 +117,8 @@ export function writeUiAnimationsEnabled(enabled: boolean) {
 export function readDefaultCurrency(): CurrencyCode {
   const raw = localStorage.getItem(DEFAULT_CURRENCY_KEY)
   if (raw === 'CNY' || raw === 'USD') return raw
-  return 'USD'
+  // Unset: follow the app language (a zh user tracks subscriptions in yuan).
+  return readLanguage() === 'zh' ? 'CNY' : 'USD'
 }
 
 export function writeDefaultCurrency(currency: CurrencyCode) {

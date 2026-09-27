@@ -91,7 +91,7 @@ export const createStormyNightScene = (): SceneStrategy => {
 
       // Audio-reactive density.
       const densityMul = 0.65 + rainVol * 0.55
-      const targetCount = Math.round(BASE_DROPS * densityMul * intensity)
+      const targetCount = Math.max(0, Math.round(BASE_DROPS * densityMul * intensity) || 0)
       while (drops.length < targetCount) drops.push(spawnDrop())
       if (drops.length > targetCount) drops.length = targetCount
 

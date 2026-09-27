@@ -13,6 +13,8 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import { useI18n } from '../../shared/i18n/useI18n'
+import type { TranslationKey } from '../../shared/i18n/types'
 import {
   resetAmbientPreferences,
   setAmbientPreferences,
@@ -20,6 +22,7 @@ import {
   useAmbientPreferences,
   type AmbientFrameRate,
 } from '../../features/focus/ambientPreferences'
+import { DURATION, EASE } from '../../shared/motion/tokens'
 
 type RowProps = {
   icon: typeof Gauge
@@ -34,7 +37,7 @@ const Row = ({ icon: Icon, title, description, children }: RowProps) => (
     className="grid gap-4 rounded-xl bg-background/40 p-4 shadow-sm backdrop-blur-sm transition-shadow hover:shadow-md lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center"
     initial={{ opacity: 0, y: 18, scale: 0.98 }}
     animate={{ opacity: 1, y: 0, scale: 1 }}
-    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+    transition={{ duration: DURATION.slow, ease: EASE.emphasized }}
     whileHover={{ y: -2 }}
   >
     <div className="flex gap-3">
@@ -59,29 +62,30 @@ type GroupProps = {
 const Group = ({ title, description, children }: GroupProps) => (
   <div className="space-y-2">
     <div className="px-1">
-      <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</h4>
+      <h4 className="text-xs font-semibold uppercase tracking-[var(--tracking-caps)]r text-muted-foreground">{title}</h4>
       <p className="text-xs text-muted-foreground/80">{description}</p>
     </div>
     <div className="space-y-2">{children}</div>
   </div>
 )
 
-const FRAME_RATE_OPTIONS: { value: AmbientFrameRate; label: string; hint: string }[] = [
-  { value: 24, label: '24 FPS', hint: '电影感 · 最省电' },
-  { value: 30, label: '30 FPS', hint: '默认 · 平衡' },
-  { value: 60, label: '60 FPS', hint: '丝滑 · 耗电较高' },
+const FRAME_RATE_OPTIONS: { value: AmbientFrameRate; label: string; hintKey: TranslationKey }[] = [
+  { value: 24, label: '24 FPS', hintKey: 'settings.ambient.fps.24.hint' },
+  { value: 30, label: '30 FPS', hintKey: 'settings.ambient.fps.30.hint' },
+  { value: 60, label: '60 FPS', hintKey: 'settings.ambient.fps.60.hint' },
 ]
 
 const AmbientSettingsSection = () => {
+  const { t } = useI18n()
   const prefs = useAmbientPreferences()
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-2 px-1">
         <div>
-          <h3 className="text-base font-semibold text-foreground">背景氛围</h3>
+          <h3 className="text-base font-semibold text-foreground">{t('settings.ambient.heading')}</h3>
           <p className="text-sm text-muted-foreground">
-            控制动画场景的节奏、声画耦合，以及每个场景下的细节效果。
+            {t('settings.ambient.intro')}
           </p>
         </div>
         <Button
@@ -91,15 +95,15 @@ const AmbientSettingsSection = () => {
           onClick={resetAmbientPreferences}
           className="text-xs"
         >
-          <RotateCcw className="mr-1 h-3 w-3" /> 全部重置
+          <RotateCcw className="mr-1 h-3 w-3" /> {t('settings.ambient.resetAll')}
         </Button>
       </div>
 
-      <Group title="全局" description="跨所有场景生效">
+      <Group title={t('settings.ambient.group.global')} description={t('settings.ambient.group.globalDesc')}>
         <Row
           icon={Gauge}
-          title="背景帧率"
-          description="动画刷新频率。低帧率更省电，高帧率更顺滑。"
+          title={t('settings.ambient.fps.title')}
+          description={t('settings.ambient.fps.desc')}
         >
           <Select
             value={String(prefs.frameRate)}
@@ -114,7 +118,7 @@ const AmbientSettingsSection = () => {
               {FRAME_RATE_OPTIONS.map((opt) => (
                 <SelectItem key={opt.value} value={String(opt.value)}>
                   <span className="font-medium">{opt.label}</span>
-                  <span className="ml-2 text-xs text-muted-foreground">{opt.hint}</span>
+                  <span className="ml-2 text-xs text-muted-foreground">{t(opt.hintKey)}</span>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -123,8 +127,8 @@ const AmbientSettingsSection = () => {
 
         <Row
           icon={Wind}
-          title="声画耦合"
-          description="让雨/风/海/火的音量驱动粒子密度、闪电频率与火光跳动。"
+          title={t('settings.ambient.audioCoupling.title')}
+          description={t('settings.ambient.audioCoupling.desc')}
         >
           <Switch
             checked={prefs.audioReactivity}
@@ -134,8 +138,8 @@ const AmbientSettingsSection = () => {
 
         <Row
           icon={Sparkles}
-          title="进出场缓动"
-          description="切换场景时粒子由稀到密渐入，避免一秒变天的突兀感。"
+          title={t('settings.ambient.easing.title')}
+          description={t('settings.ambient.easing.desc')}
         >
           <Switch
             checked={prefs.intensityRamp}
@@ -145,8 +149,8 @@ const AmbientSettingsSection = () => {
 
         <Row
           icon={Sparkles}
-          title="鼠标互动"
-          description="鼠标周围雨/雪粒子自动避让,火星和泡沫被鼠标牵引。"
+          title={t('settings.ambient.pointer.title')}
+          description={t('settings.ambient.pointer.desc')}
         >
           <Switch
             checked={prefs.cursorReactivity}
@@ -156,8 +160,8 @@ const AmbientSettingsSection = () => {
 
         <Row
           icon={Sparkles}
-          title="每日随机化"
-          description="每次打开应用,风向、闪电频率、火光节奏都会有细微变化。"
+          title={t('settings.ambient.daily.title')}
+          description={t('settings.ambient.daily.desc')}
         >
           <Switch
             checked={prefs.sessionVariation}
@@ -166,11 +170,11 @@ const AmbientSettingsSection = () => {
         </Row>
       </Group>
 
-      <Group title="🌧 雨天咖啡馆" description="">
+      <Group title={t('settings.ambient.group.rainCafe')} description="">
         <Row
           icon={CloudRain}
-          title="窗上凝水滴"
-          description="大水珠顺着「玻璃」缓慢蜿蜒滑落,有重力感。"
+          title={t('settings.ambient.condensation.title')}
+          description={t('settings.ambient.condensation.desc')}
         >
           <Switch
             checked={prefs.effects.rainyCafe.condensationDrops}
@@ -179,8 +183,8 @@ const AmbientSettingsSection = () => {
         </Row>
         <Row
           icon={CloudRain}
-          title="底部暖雾"
-          description="屏幕底端一条暖色雾气,像杯口蒸汽糊住了视线下沿。"
+          title={t('settings.ambient.warmHaze.title')}
+          description={t('settings.ambient.warmHaze.desc')}
         >
           <Switch
             checked={prefs.effects.rainyCafe.steamFog}
@@ -189,8 +193,8 @@ const AmbientSettingsSection = () => {
         </Row>
         <Row
           icon={CloudRain}
-          title="窗外人影"
-          description="偶尔有半透明的剪影从窗外走过(每分钟一次以下)。"
+          title={t('settings.ambient.passersby.title')}
+          description={t('settings.ambient.passersby.desc')}
         >
           <Switch
             checked={prefs.effects.rainyCafe.passerbySilhouettes}
@@ -199,11 +203,11 @@ const AmbientSettingsSection = () => {
         </Row>
       </Group>
 
-      <Group title="⛈ 暴风雨之夜" description="">
+      <Group title={t('settings.ambient.group.storm')} description="">
         <Row
           icon={CloudLightning}
-          title="闪电同步打亮雨滴"
-          description="每次闪光的 100 毫秒里,雨滴瞬间变白变亮,真实暴雨的视觉签名。"
+          title={t('settings.ambient.lightningRain.title')}
+          description={t('settings.ambient.lightningRain.desc')}
         >
           <Switch
             checked={prefs.effects.stormyNight.lightningFlashOnRain}
@@ -212,8 +216,8 @@ const AmbientSettingsSection = () => {
         </Row>
         <Row
           icon={CloudLightning}
-          title="雷鸣震屏"
-          description="闪光峰值后整个仪表盘会有一次微震,模拟雷声冲击。"
+          title={t('settings.ambient.thunderShake.title')}
+          description={t('settings.ambient.thunderShake.desc')}
         >
           <Switch
             checked={prefs.effects.stormyNight.thunderShake}
@@ -222,8 +226,8 @@ const AmbientSettingsSection = () => {
         </Row>
         <Row
           icon={CloudLightning}
-          title="闪后紫光残影"
-          description="闪光结束后留一层淡紫余韵,慢慢褪去。"
+          title={t('settings.ambient.afterglow.title')}
+          description={t('settings.ambient.afterglow.desc')}
         >
           <Switch
             checked={prefs.effects.stormyNight.afterFlashPurple}
@@ -232,8 +236,8 @@ const AmbientSettingsSection = () => {
         </Row>
         <Row
           icon={CloudLightning}
-          title="湿地反射"
-          description="屏幕底部一道镜像模糊的雨痕,营造「地面湿了」的反射感(较耗性能)。"
+          title={t('settings.ambient.wetReflection.title')}
+          description={t('settings.ambient.wetReflection.desc')}
         >
           <Switch
             checked={prefs.effects.stormyNight.wetGroundReflection}
@@ -242,11 +246,11 @@ const AmbientSettingsSection = () => {
         </Row>
       </Group>
 
-      <Group title="🌊 海风" description="">
+      <Group title={t('settings.ambient.group.seaBreeze')} description="">
         <Row
           icon={Waves}
-          title="三层视差波纹"
-          description="远、中、近三层不同速度的波纹叠加,海面有了深度。"
+          title={t('settings.ambient.parallax.title')}
+          description={t('settings.ambient.parallax.desc')}
         >
           <Switch
             checked={prefs.effects.oceanBreeze.parallaxLayers}
@@ -255,8 +259,8 @@ const AmbientSettingsSection = () => {
         </Row>
         <Row
           icon={Waves}
-          title="海面焦散"
-          description="水面反射的浮动光斑,叠加在波纹上(略耗 GPU)。"
+          title={t('settings.ambient.caustics.title')}
+          description={t('settings.ambient.caustics.desc')}
         >
           <Switch
             checked={prefs.effects.oceanBreeze.surfaceCaustics}
@@ -265,8 +269,8 @@ const AmbientSettingsSection = () => {
         </Row>
         <Row
           icon={Sun}
-          title="日月光晕"
-          description="根据本地时间出现的太阳/月亮高光,每小时移动一点。"
+          title={t('settings.ambient.halo.title')}
+          description={t('settings.ambient.halo.desc')}
         >
           <Switch
             checked={prefs.effects.oceanBreeze.sunMoonHighlight}
@@ -275,11 +279,11 @@ const AmbientSettingsSection = () => {
         </Row>
       </Group>
 
-      <Group title="🔥 壁炉暖意" description="">
+      <Group title={t('settings.ambient.group.fireplace')} description="">
         <Row
           icon={Flame}
-          title="全场暖色闪烁"
-          description="整个仪表盘跟着火光呼吸,色温随机微偏暖——氛围灵魂。"
+          title={t('settings.ambient.warmFlicker.title')}
+          description={t('settings.ambient.warmFlicker.desc')}
         >
           <Switch
             checked={prefs.effects.cozyFireside.globalWarmFlicker}
@@ -288,8 +292,8 @@ const AmbientSettingsSection = () => {
         </Row>
         <Row
           icon={Flame}
-          title="炉膛木柴剪影"
-          description="屏幕最底部一道深色木柴轮廓,锚定火焰来源。"
+          title={t('settings.ambient.logs.title')}
+          description={t('settings.ambient.logs.desc')}
         >
           <Switch
             checked={prefs.effects.cozyFireside.logSilhouette}
@@ -298,8 +302,8 @@ const AmbientSettingsSection = () => {
         </Row>
         <Row
           icon={Flame}
-          title="烟丝"
-          description="缓慢上升的几道模糊垂直烟带(较耗性能)。"
+          title={t('settings.ambient.smoke.title')}
+          description={t('settings.ambient.smoke.desc')}
         >
           <Switch
             checked={prefs.effects.cozyFireside.smokeWisps}
@@ -308,8 +312,8 @@ const AmbientSettingsSection = () => {
         </Row>
         <Row
           icon={Flame}
-          title="木柴爆裂"
-          description="火炉音量较高时,自动生成更密的火星迸发。"
+          title={t('settings.ambient.crackle.title')}
+          description={t('settings.ambient.crackle.desc')}
         >
           <Switch
             checked={prefs.effects.cozyFireside.crackleSparkSync}
@@ -318,11 +322,11 @@ const AmbientSettingsSection = () => {
         </Row>
       </Group>
 
-      <Group title="✨ 默认 (无场景)" description="未选择白噪音时的环境氛围">
+      <Group title={t('settings.ambient.group.default')} description={t('settings.ambient.group.defaultDesc')}>
         <Row
           icon={Sun}
-          title="昼夜调色"
-          description="背景色根据本地时间在「晨黄 → 午象牙 → 暮琥珀 → 夜胡桃」间漂移。"
+          title={t('settings.ambient.dayNight.title')}
+          description={t('settings.ambient.dayNight.desc')}
         >
           <Switch
             checked={prefs.effects.idle.timeOfDayPalette}
@@ -331,8 +335,8 @@ const AmbientSettingsSection = () => {
         </Row>
         <Row
           icon={Sparkles}
-          title="极慢呼吸"
-          description="整个背景以 14 秒为周期几乎察觉不到的亮度脉动。"
+          title={t('settings.ambient.breathe.title')}
+          description={t('settings.ambient.breathe.desc')}
         >
           <Switch
             checked={prefs.effects.idle.slowBreath}

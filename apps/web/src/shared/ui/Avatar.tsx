@@ -55,7 +55,7 @@ const Avatar = ({
   }, [blobHash])
 
   const src = resolvedUrl ?? fallbackSrc
-  const radiusClass = shape === 'circle' ? 'rounded-full' : 'rounded-[8px]'
+  const radiusClass = shape === 'circle' ? 'rounded-full' : 'rounded-[var(--radius-sm)]'
 
   return (
     <img

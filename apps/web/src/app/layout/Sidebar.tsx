@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import { BASE_NAV_ITEMS, ROUTES, type RouteKey } from '../routes/routes'
 import SidebarUserPanel from './SidebarUserPanel'
+import ActiveIndicator from '../../shared/motion/ActiveIndicator'
 import { useLabs } from '../../features/labs/LabsContext'
 import { useLabsI18n } from '../../features/labs/labsI18n'
 import { useI18n } from '../../shared/i18n/useI18n'
@@ -113,6 +114,7 @@ const StaticSidebarNav = ({
     onPointerEnter={onRequestDragNav}
     onFocus={onRequestDragNav}
   >
+    <ActiveIndicator selector=":scope > .focus-sidebar__item.is-active" />
     {items.map((item) => (
       <StaticSidebarItem key={item.id} item={item} collapsed={collapsed} />
     ))}

@@ -1,5 +1,4 @@
 import * as React from 'react'
-import { format } from 'date-fns'
 import type { DateRange } from 'react-day-picker'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -10,6 +9,7 @@ import {
   parseDateKeyToLocalDate,
   toDateKey,
 } from './datePicker/dateKey'
+import { formatRangeEnd } from './datePicker/dateLocale'
 import { useI18n } from '../i18n/useI18n'
 
 type DateRangeValue = {
@@ -39,7 +39,7 @@ export function DateRangePicker({
   popoverClassName,
   allowOpenEnd = true,
 }: DateRangePickerProps) {
-  const { t } = useI18n()
+  const { t, language } = useI18n()
   const [open, setOpen] = React.useState(false)
   void placeholder
   void allowOpenEnd
@@ -64,9 +64,9 @@ export function DateRangePicker({
 
   const triggerText =
     committedSelection?.from && committedSelection.to
-      ? `${format(committedSelection.from, 'LLL dd, y')} - ${format(committedSelection.to, 'LLL dd, y')}`
+      ? `${formatRangeEnd(committedSelection.from, language)} – ${formatRangeEnd(committedSelection.to, language)}`
       : committedSelection?.from
-        ? format(committedSelection.from, 'LLL dd, y')
+        ? formatRangeEnd(committedSelection.from, language)
         : t('tasks.drawer.selectRange')
 
   const handleSelect = React.useCallback(
@@ -104,8 +104,8 @@ export function DateRangePicker({
           variant="outline"
           data-empty={!committedSelection?.from}
           className={cn(
-            'h-auto min-h-11 w-full min-w-0 max-w-full justify-start rounded-[6px] border-[var(--border)] bg-[var(--bg-muted)] px-3 py-2.5 text-left text-[14px] font-normal text-[var(--text-primary)] shadow-none',
-            'data-[empty=true]:text-[#737373] hover:bg-[var(--bg-muted)] hover:text-[var(--text-primary)]',
+            'h-auto min-h-11 w-full min-w-0 max-w-full justify-start rounded-[var(--radius-xs)] border-[var(--border)] bg-[var(--bg-muted)] px-3 py-2.5 text-left text-body font-normal text-[var(--text-primary)] shadow-none',
+            'data-[empty=true]:text-ink-3 hover:bg-[var(--bg-muted)] hover:text-[var(--text-primary)]',
             className,
           )}
           aria-label={ariaLabel}

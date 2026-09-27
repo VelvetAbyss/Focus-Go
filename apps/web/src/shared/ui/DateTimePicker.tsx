@@ -1,5 +1,4 @@
 import * as React from 'react'
-import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
@@ -8,6 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { useI18n } from '../i18n/useI18n'
 import { normalizeTimeKey, parseDateKeyToLocalDate, toDateKey } from './datePicker/dateKey'
+import { formatPickedDate } from './datePicker/dateLocale'
 
 export interface DateTimePickerProps {
   dateValue?: string | null
@@ -66,14 +66,14 @@ export function DateTimePicker({
   ariaLabel,
   popoverClassName,
 }: DateTimePickerProps) {
-  const { t } = useI18n()
+  const { t, language } = useI18n()
   const [dateOpen, setDateOpen] = React.useState(false)
   const [timeOpen, setTimeOpen] = React.useState(false)
   const [showAllTimes, setShowAllTimes] = React.useState(false)
   const selectedDate = React.useMemo(() => parseDateKeyToLocalDate(dateValue), [dateValue])
   const normalizedTime = normalizeTimeKey(timeValue)
   const [typedTime, setTypedTime] = React.useState<string>(normalizedTime ?? '')
-  const dateLabel = selectedDate ? format(selectedDate, 'PPP') : placeholder ?? t('tasks.drawer.selectDatePlaceholder')
+  const dateLabel = selectedDate ? formatPickedDate(selectedDate, language) : placeholder ?? t('tasks.drawer.selectDatePlaceholder')
   const timeLabel = normalizedTime ?? t('tasks.drawer.selectTime')
 
   React.useEffect(() => {
@@ -179,9 +179,9 @@ export function DateTimePicker({
                 onBlur={commitTyped}
                 className="border-input bg-background focus-visible:ring-ring h-9 w-full rounded-md border px-3 text-center text-sm tracking-wider focus-visible:outline-none focus-visible:ring-1"
               />
-              <p className="text-muted-foreground px-1 text-[11px]">{t('tasks.drawer.timeInputHint')}</p>
+              <p className="text-muted-foreground px-1 text-meta">{t('tasks.drawer.timeInputHint')}</p>
               <div>
-                <p className="text-muted-foreground mb-1 px-1 text-[11px] uppercase tracking-wide">
+                <p className="text-muted-foreground mb-1 px-1 text-meta uppercase tracking-[var(--tracking-caps)]">
                   {t('tasks.drawer.timeQuickPresets')}
                 </p>
                 <div className="grid grid-cols-3 gap-1">

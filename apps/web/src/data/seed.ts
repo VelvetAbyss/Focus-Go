@@ -203,7 +203,7 @@ const getSeedCopy = (language: LanguageCode) => {
           '| 项目标签 | 关联到 Project |',
           '| 外观 | 调整阅读体验 |',
           '',
-          '> 给笔记添加 project:<项目ID> 标签后，它会出现在对应项目的 Notes 标签页。',
+          '> 在项目工作区的「笔记」标签页新建笔记，它会自动关联到该项目。',
         ].join('\n'),
       },
     }
@@ -349,7 +349,7 @@ const getSeedCopy = (language: LanguageCode) => {
         '| Project tags | Link notes to Project |',
         '| Appearance | Tune the reading experience |',
         '',
-        '> Add a project:<projectId> tag to make a note appear in the matching Project Notes tab.',
+        '> Create a note from a project\'s Notes tab and it is linked to that project automatically.',
       ].join('\n'),
     },
   }

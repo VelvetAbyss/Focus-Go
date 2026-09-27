@@ -26,7 +26,7 @@
   height: 22px;
   pointer-events: none;
   z-index: 2;
-  transition: opacity 160ms ease;
+  transition: opacity var(--motion-duration-fast) var(--ease-standard);
 }
 
 .animated-scroll-list__gradient--top {

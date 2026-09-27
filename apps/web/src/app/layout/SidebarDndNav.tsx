@@ -14,6 +14,7 @@ import { DiscoveryNewBadge } from '../../shared/ui/DiscoveryNewBadge'
 import { markDiscoveryNewTargetSeen } from '../../shared/discovery/discoveryNewTargetActions'
 import { SIDEBAR_DISCOVERY_TARGET_BY_ITEM_ID } from '../../shared/discovery/newTargets'
 import type { SidebarNavItem } from './Sidebar'
+import ActiveIndicator from '../../shared/motion/ActiveIndicator'
 
 type SidebarDndNavProps = {
   items: SidebarNavItem[]
@@ -77,6 +78,7 @@ const SidebarDndNav = ({ items, collapsed, ariaLabel, onOrderChange }: SidebarDn
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <nav className="focus-sidebar__nav" aria-label={ariaLabel}>
+        <ActiveIndicator selector=":scope > .focus-sidebar__item.is-active" />
         <SortableContext items={items.map((item) => item.id)} strategy={verticalListSortingStrategy}>
           {items.map((item) => (
             <SortableSidebarItem key={item.id} item={item} collapsed={collapsed} />

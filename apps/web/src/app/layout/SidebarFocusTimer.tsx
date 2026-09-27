@@ -5,6 +5,7 @@ import { useSharedFocusTimer } from '../../features/focus/useSharedFocusTimer'
 import { useI18n } from '../../shared/i18n/useI18n'
 import type { TranslationKey } from '../../shared/i18n/types'
 import { useAuthGate } from '../../features/auth/AuthGateContext'
+import { DURATION, EASE } from '../../shared/motion/tokens'
 
 type Props = { collapsed: boolean }
 
@@ -106,7 +107,7 @@ const SidebarFocusTimer = ({ collapsed }: Props) => {
               initial={{ scale: 0.6, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.6, opacity: 0 }}
-              transition={{ duration: 0.12 }}
+              transition={{ duration: DURATION.fast }}
               style={{ display: 'flex' }}
             >
               {isRunning ? <Pause size={11} /> : <Play size={11} />}
@@ -124,7 +125,7 @@ const SidebarFocusTimer = ({ collapsed }: Props) => {
             initial={{ opacity: 0, x: -6 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -6 }}
-            transition={{ duration: 0.16, ease: [0.2, 0, 0, 1] }}
+            transition={{ duration: DURATION.fast, ease: EASE.standard }}
           >
             <div className="sidebar-timer-mini__time" aria-live="polite">
               <span className="sidebar-timer-mini__time-text">{timeText}</span>

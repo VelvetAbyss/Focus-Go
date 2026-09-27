@@ -110,7 +110,8 @@ const mapEventToTimelineItem = (event: DomainEvent): TimelineItem | null => {
       return createTimelineItem(event, {
         kind: 'note',
         title: 'Created note',
-        summary: [payload.title || 'Untitled', payload.collection, ...payload.tagNames].filter(Boolean).join(' · '),
+        // Title and user tags only: the collection id and project-link tags are internals.
+        summary: [payload.title, ...payload.tagNames.filter((tag) => !tag.startsWith('project:'))].filter(Boolean).join(' · '),
         icon: 'notebook',
         accent: '#9B7E55',
       })

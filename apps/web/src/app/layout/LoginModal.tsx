@@ -36,7 +36,7 @@ const LoginModal = ({ onClose }: LoginModalProps) => {
   }, [])
 
   const copy = {
-    eyebrow: 'FOCUS & GO',
+    eyebrow: 'Focus&go',
     title: language === 'zh' ? '登录你的账号' : 'Sign in to your account',
     subtitle: language === 'zh'
       ? '使用邮箱、用户名或 Google 继续。'

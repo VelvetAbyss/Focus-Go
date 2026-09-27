@@ -175,7 +175,7 @@ export const createRainyCafeScene = (): SceneStrategy => {
       const cafeVol = signals.noise.cafe.enabled ? signals.noise.cafe.volume : 0
       // Audio drives density — clamp to 0.6..1.2 of base, so quiet rain still rains.
       const densityMul = 0.6 + rainVol * 0.6
-      const targetCount = Math.round(BASE_DROPS * densityMul * intensity)
+      const targetCount = Math.max(0, Math.round(BASE_DROPS * densityMul * intensity) || 0)
 
       // Resize drops array toward target.
       while (drops.length < targetCount) drops.push(spawnDrop())

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type Key, type ReactNode } from 'react'
 import { motion, useInView } from 'motion/react'
 import { useMotionPreference } from '../prefs/useMotionPreference'
+import { DURATION, EASE, SPRING } from '../motion/tokens'
 import './AnimatedScrollList.css'
 
 type AnimatedScrollListProps<T> = {
@@ -42,14 +43,10 @@ const AnimatedItem = ({ index, delay, className, children }: AnimatedItemProps) 
         reduceMotion
           ? { duration: 0 }
           : {
-              duration: 0.24,
+              duration: DURATION.base,
               delay: staggerDelay,
-              ease: [0.22, 1, 0.36, 1],
-              layout: {
-                type: 'spring',
-                stiffness: 420,
-                damping: 34,
-              },
+              ease: EASE.emphasized,
+              layout: SPRING.layout,
             }
       }
     >

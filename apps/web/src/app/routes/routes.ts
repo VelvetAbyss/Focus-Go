@@ -60,6 +60,6 @@ export const BASE_NAV_ITEMS: NavItem[] = [
   { key: 'trips', label: 'Trips', to: ROUTES.TRIPS },
   { key: 'focus', label: 'Focus', to: ROUTES.FOCUS },
   { key: 'diary', label: 'Diary', to: ROUTES.DIARY },
-  { key: 'membership', label: 'Membership', to: ROUTES.MEMBERSHIP },
+  // No "membership" entry: Focus&go is free, /membership only redirects home.
   { key: 'settings', label: 'Settings', to: ROUTES.SETTINGS },
 ]
