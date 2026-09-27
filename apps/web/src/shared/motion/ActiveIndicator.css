@@ -1,0 +1,37 @@
+/* Sliding selection pill (see ActiveIndicator.tsx).
+   Each control tunes it through custom properties on its container:
+   --indicator-bg, --indicator-border, --indicator-shadow, --indicator-radius. */
+/* Zero specificity: a container or item that already sets its own position
+   (sticky bars, absolutely placed badges) keeps it. */
+:where([data-active-indicator]) {
+  position: relative;
+  isolation: isolate;
+}
+
+:where([data-active-indicator]) > :where(:not(.ui-active-indicator)) {
+  position: relative;
+  z-index: 1;
+}
+
+.ui-active-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+  border-radius: var(--indicator-radius, 10px);
+  background: var(--indicator-bg, var(--bg-elevated));
+  border: 1px solid var(--indicator-border, transparent);
+  box-shadow: var(--indicator-shadow, none);
+  box-sizing: border-box;
+  will-change: transform, width;
+  transition:
+    transform var(--motion-duration-medium) var(--ease-emphasized),
+    width var(--motion-duration-medium) var(--ease-emphasized),
+    height var(--motion-duration-medium) var(--ease-emphasized),
+    opacity var(--motion-duration-fast) var(--ease-standard),
+    background-color var(--motion-duration-base) var(--ease-standard);
+}

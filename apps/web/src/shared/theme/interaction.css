@@ -1,0 +1,90 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Interaction layer — the app-wide tactile language.
+
+   Everything here is zero-specificity (`:where`) or root-level, so any
+   component rule still wins. It gives the ~400 hand-rolled controls the same
+   baseline: smooth colour changes, a visible keyboard focus ring, themed native
+   widgets and scrollbars. Press feedback lives in shared/motion/pressFeedback.ts
+   (it has to measure element size, which CSS cannot).
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Native widgets (scrollbars, date pickers, <select> popups, autofill) follow
+   the app theme instead of the OS theme. */
+html[data-theme='light'] {
+  color-scheme: light;
+}
+
+html[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+/* Quiet, thin, theme-tinted scrollbars (Chromium / WebView2 / Firefox). WebKit
+   ignores these and keeps its native overlay scrollbars, which is what we want
+   on macOS. */
+html {
+  scrollbar-color: color-mix(in srgb, var(--text-primary) 22%, transparent) transparent;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:where(*) {
+  scrollbar-width: thin;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+/* Colour-type properties ease on hover/press/selection everywhere unless a
+   component sets its own transition. Menu rows and listbox options are left
+   instant: keyboard-driven highlight must never lag behind the key. */
+:where(
+  button,
+  [role='button'],
+  [role='tab'],
+  [role='switch'],
+  [role='checkbox'],
+  [role='radio'],
+  a[href],
+  summary,
+  label,
+  input,
+  select,
+  textarea
+) {
+  transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke,
+    box-shadow, opacity;
+  transition-duration: var(--motion-duration-fast);
+  transition-timing-function: var(--ease-standard);
+}
+
+/* Keyboard focus is always visible. Components that draw their own focus
+   treatment override this with a more specific rule. */
+:where(
+  button,
+  [role='button'],
+  [role='tab'],
+  [role='switch'],
+  [role='checkbox'],
+  [role='radio'],
+  [role='menuitem'],
+  [role='option'],
+  a[href],
+  summary,
+  [tabindex]:not([tabindex='-1'])
+):focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 62%, transparent);
+  outline-offset: 2px;
+}
+
+/* The app-level "reduce motion" switch gets the same safety net as the OS
+   setting (see the end of styles.css): state still changes, it just doesn't
+   travel. */
+html[data-motion='reduce'] *,
+html[data-motion='reduce'] *::before,
+html[data-motion='reduce'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  transition-delay: 0ms !important;
+  scroll-behavior: auto !important;
+}

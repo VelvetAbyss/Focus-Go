@@ -1,0 +1,34 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Overlay scale
+   Below 1920px wide the shell renders the page through `zoom: var(--shell-scale)`
+   (0.8 on a 13–14" laptop, see AppShell). Overlays portal to <body>, outside that
+   wrapper, so they used to render at 100%: type ~25% larger than the page behind
+   them, and tall panels ran off the bottom of the window. AppShell publishes the
+   same factor as --overlay-scale on <html>; overlay panels adopt it here.
+
+   Two rules keep this engine-safe (Chromium and WebKit):
+   - zoom the panel, never an element positioned by pixel transforms (floating-ui
+     writes those on the Radix popper *wrapper*, so we zoom its child);
+   - lengths inside a zoomed panel shrink with it, so a panel meant to use the
+     viewport divides its vh/px caps by the scale (see the height rules below).
+   ───────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --overlay-scale: 1;
+}
+
+[data-radix-popper-content-wrapper] > *,
+.overlay-panel,
+.dialog__panel,
+.drawer__panel,
+.command-palette__panel,
+.login-modal,
+.user-modal,
+.toast-viewport {
+  zoom: var(--overlay-scale, 1);
+}
+
+/* Radix sizes popper content from the trigger, measured in on-screen px. */
+.select__menuPortal {
+  width: calc(var(--radix-select-trigger-width) / var(--overlay-scale, 1));
+}

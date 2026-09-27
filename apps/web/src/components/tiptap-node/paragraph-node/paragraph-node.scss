@@ -175,22 +175,24 @@
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
-    border: 1px solid rgba(58, 55, 51, 0.16);
-    color: #3A3733;
+    /* Theme-aware: ink and hairlines derive from --text-primary so tables
+       read correctly in dark mode (headers were a light fill with light ink). */
+    border: 1px solid color-mix(in srgb, var(--text-primary) 16%, transparent);
+    color: var(--text-primary);
     font-size: 0.9em;
     overflow: hidden;
 
     th,
     td {
       position: relative;
-      border: 1px solid rgba(58, 55, 51, 0.16);
+      border: 1px solid color-mix(in srgb, var(--text-primary) 16%, transparent);
       padding: 0.5rem 0.75rem;
       text-align: left;
       vertical-align: top;
     }
 
     th {
-      background: rgba(245, 243, 240, 0.72);
+      background: color-mix(in srgb, var(--text-primary) 4%, transparent);
       font-weight: 650;
     }
 

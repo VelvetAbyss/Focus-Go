@@ -42,3 +42,9 @@ Never put desktop logic in `apps/web` behind an `isDesktop` / `isTauri` check.
 `apps/web/CLAUDE.md` — web-specific rules: gstack `/browse` skill, **protected auth files**
 (`src/config/auth.ts`, `src/main.tsx`, `.env*` redirect URIs, Authing callback) — do not touch
 those without explicit instruction — and skill routing.
+
+## Design System
+Always read `apps/web/DESIGN.md` before making any visual or UI decisions.
+All font choices, colors, spacing, and aesthetic direction are defined there.
+Do not deviate without explicit user approval.
+In QA mode, flag any code that doesn't match DESIGN.md.
