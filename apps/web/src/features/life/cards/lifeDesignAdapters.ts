@@ -1,20 +1,21 @@
 import type { BookItem, LifePerson, LifePodcast, LifeSubscription, MediaItem } from '../../../data/models/types'
 import type { DailyReviewAnalytics } from './dailyReviewAnalytics'
-import { lifeT, type LifeTranslate } from '../lifeI18n'
+import { lifeT, type LifeKey, type LifeTranslate } from '../lifeI18n'
+import { appIntlLocale } from '../../../shared/i18n/format'
 
 const INK = '#3A3733'
 const defaultT: LifeTranslate = (key, values) => lifeT('en', key, values)
 
 const bookStatusConfig = {
-  reading: { label: 'Reading', color: '#A0673A', bg: 'rgba(160, 103, 58, 0.10)' },
-  finished: { label: 'Finished', color: '#5A7A62', bg: 'rgba(90, 122, 98, 0.10)' },
-  'want-to-read': { label: 'Want to Read', color: '#6B6560', bg: 'rgba(107, 101, 96, 0.10)' },
+  reading: { label: 'Reading', color: 'var(--tone-warn)', bg: 'var(--tone-warn-wash)' },
+  finished: { label: 'Finished', color: 'var(--tone-done)', bg: 'var(--tone-done-wash)' },
+  'want-to-read': { label: 'Want to Read', color: 'var(--ink-3)', bg: 'var(--paper-sunken)' },
 } as const
 
 const mediaStatusConfig = {
-  watching: { label: 'Watching', color: '#7A6A9E', bg: 'rgba(122, 106, 158, 0.10)' },
-  completed: { label: 'Finished', color: '#5A7A62', bg: 'rgba(90, 122, 98, 0.10)' },
-  'want-to-watch': { label: 'Want to Watch', color: '#6B6560', bg: 'rgba(107, 101, 96, 0.10)' },
+  watching: { label: 'Watching', color: 'var(--tone-warn)', bg: 'rgba(122, 106, 158, 0.10)' },
+  completed: { label: 'Finished', color: 'var(--tone-done)', bg: 'var(--tone-done-wash)' },
+  'want-to-watch': { label: 'Want to Watch', color: 'var(--ink-3)', bg: 'var(--paper-sunken)' },
 } as const
 
 const subscriptionPalette = ['#E87070', '#6EAB7A', '#7AADE5', '#E8A85F', '#C07AC0', '#7ABDE5', '#89C0A0', '#D4A06A']
@@ -31,7 +32,7 @@ const pickColor = (value: string) => subscriptionPalette[Math.abs(hashValue(valu
 const formatMoney = (value: number) => (Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/\.?0+$/, ''))
 const currencySymbol = (currency: 'USD' | 'CNY') => (currency === 'CNY' ? '¥' : '$')
 const yearlyToMonthly = (item: Pick<LifeSubscription, 'amount' | 'cycle'>) => (item.cycle === 'yearly' ? item.amount / 12 : item.amount)
-const formatDate = (value: number) => new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+const formatDate = (value: number) => new Date(value).toLocaleDateString(appIntlLocale(), { month: 'short', day: 'numeric', year: 'numeric' })
 const average = (values: number[]) => (values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length) : 0)
 const yearFromDate = (value?: string) => (value ? value.slice(0, 4) : 'TBA')
 const fallbackTaskTitle = (value?: string) => {
@@ -360,6 +361,17 @@ export const buildPodcastPresentationModel = (items: readonly LifePodcast[], t: 
   }
 }
 
+// People groups and project-derived roles are stored as English enum-like
+// strings; render the known ones in the app language, pass custom ones through.
+const PEOPLE_GROUPS = ['Family', 'Friends', 'Work', 'Community', 'Other']
+const PROJECT_ROLES = ['Owner', 'Collaborator', 'Reviewer', 'External']
+
+export const lifeGroupLabel = (group: string, t: LifeTranslate) =>
+  PEOPLE_GROUPS.includes(group) ? t(`life.people.groupLabel.${group}` as LifeKey) : group
+
+export const lifeRoleLabel = (role: string | undefined, t: LifeTranslate) =>
+  role && PROJECT_ROLES.includes(role) ? t(`life.people.roleLabel.${role}` as LifeKey) : role
+
 export const buildPeoplePresentationModel = (items: readonly LifePerson[], t: LifeTranslate = defaultT): PeoplePresentationModel => {
   const rows = [...items]
     .sort((left, right) => {
@@ -370,7 +382,7 @@ export const buildPeoplePresentationModel = (items: readonly LifePerson[], t: Li
     })
     .map((person) => {
       const birthdayDelta = daysUntilBirthday(person.birthday)
-      const locationLine = [person.role, person.city].filter(Boolean).join(' · ')
+      const locationLine = [lifeRoleLabel(person.role, t), person.city].filter(Boolean).join(' · ')
       return {
         id: person.id,
         name: person.name,

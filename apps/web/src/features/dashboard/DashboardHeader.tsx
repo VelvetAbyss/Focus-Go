@@ -10,6 +10,9 @@ import LiveClock from './LiveClock'
 import { getDashboardQuote, getLocalDashboardQuote } from './quote/quoteService'
 import PremiumMark from '../premium/PremiumMark'
 import '../life/life.css'
+import '../../shared/ui/HeaderPill.css'
+import ActiveIndicator from '../../shared/motion/ActiveIndicator'
+import { SELECTED_TAB } from '../../shared/motion/indicatorSelectors'
 
 type DashboardPage = 'main' | 'life' | 'news'
 
@@ -191,6 +194,7 @@ const DashboardHeader = ({
         <div className="header-pill">
           {onSetPage ? (
             <>
+              <ActiveIndicator selector={SELECTED_TAB} />
               <button
                 role="tab"
                 aria-selected={page === 'main'}

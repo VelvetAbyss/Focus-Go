@@ -76,7 +76,7 @@ export const JourneyMode = ({ trip, t, onPatch, onClose, onExport }: Props) => {
     <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: paper, overflowY: 'auto' }}>
       {/* Sticky top bar */}
       <div style={{ position: 'sticky', top: 0, zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '14px 24px', background: 'color-mix(in srgb, var(--bg-elevated) 92%, transparent)', backdropFilter: 'blur(8px)', borderBottom: `1px solid ${subtleBorder}` }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9, ...tx(12, 600, muted), letterSpacing: '0.10em', textTransform: 'uppercase' }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9, ...tx(12, 600, muted), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase' }}>
           <BookOpen size={15} /> {t('life.trips.journey.title')}
         </span>
         <div style={{ display: 'flex', gap: 10 }}>
@@ -107,7 +107,7 @@ export const JourneyMode = ({ trip, t, onPatch, onClose, onExport }: Props) => {
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 30%, rgba(40,36,30,0.7) 100%)' }} />
           <div style={{ position: 'absolute', left: 28, bottom: 24, right: 28 }}>
             <div style={{ fontSize: 40, lineHeight: 1, marginBottom: 8 }}>{trip.coverEmoji || '✈️'}</div>
-            <p style={{ fontFamily: 'Playfair Display, serif', fontSize: 34, fontWeight: 600, color: 'rgba(255,255,255,0.97)', lineHeight: 1.1 }}>{trip.title}</p>
+            <p style={{ fontFamily: 'var(--font-display)', fontSize: 34, fontWeight: 600, color: 'rgba(255,255,255,0.97)', lineHeight: 1.1 }}>{trip.title}</p>
             <p style={{ ...tx(13, 400, 'rgba(255,255,255,0.78)'), marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
               {trip.destination ? <><MapPin size={13} /> {trip.destination} · </> : null}
               {trip.startDate} — {trip.endDate}
@@ -176,7 +176,7 @@ export const JourneyMode = ({ trip, t, onPatch, onClose, onExport }: Props) => {
                             key={mood}
                             onClick={() => setEntry(key, { mood: active ? undefined : mood })}
                             aria-pressed={active}
-                            style={{ fontSize: 16, lineHeight: 1, padding: '5px 8px', borderRadius: 9, cursor: 'pointer', background: active ? 'rgba(124,90,58,0.14)' : 'transparent', border: `1px solid ${active ? 'rgba(124,90,58,0.35)' : subtleBorder}`, opacity: active ? 1 : 0.6 }}
+                            style={{ fontSize: 'var(--fs-section)', lineHeight: 1, padding: '5px 8px', borderRadius: 9, cursor: 'pointer', background: active ? 'color-mix(in srgb, var(--ink-1) 14%, transparent)' : 'transparent', border: `1px solid ${active ? 'color-mix(in srgb, var(--ink-1) 35%, transparent)' : subtleBorder}`, opacity: active ? 1 : 0.6 }}
                           >
                             {mood}
                           </button>
@@ -187,7 +187,7 @@ export const JourneyMode = ({ trip, t, onPatch, onClose, onExport }: Props) => {
                       value={entry?.body ?? ''}
                       onChange={(e) => setEntry(key, { body: e.target.value })}
                       placeholder={t('life.trips.journey.reflectionPlaceholder')}
-                      style={{ ...textareaStyle, minHeight: 92, fontFamily: 'Playfair Display, Georgia, serif', fontSize: 15, lineHeight: 1.7 }}
+                      style={{ ...textareaStyle, minHeight: 92, fontFamily: 'var(--font-display)', fontSize: 'var(--fs-body)', lineHeight: 1.7 }}
                     />
                   </div>
                 </article>

@@ -156,7 +156,7 @@ export const buildTripIcs = (trip: TripRecord): string => {
   const lines: string[] = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Focus&Go//Trip Planner//EN',
+    'PRODID:-//Focus&go//Trip Planner//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     `X-WR-CALNAME:${esc(trip.title || 'Trip')}`,

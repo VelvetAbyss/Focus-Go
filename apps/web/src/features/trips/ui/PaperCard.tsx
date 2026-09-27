@@ -39,7 +39,7 @@ export const SerifHeading = ({ children, size = 22 }: { children: ReactNode; siz
 )
 
 export const JournalLabel = ({ children }: { children: ReactNode }) => (
-  <span style={{ ...tx(10, 600, muted), letterSpacing: '0.08em', textTransform: 'uppercase' }}>{children}</span>
+  <span style={{ ...tx(10, 600, muted), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase' }}>{children}</span>
 )
 
 export const SectionHeading = ({ title, meta, action }: { title: string; meta?: string; action?: ReactNode }) => (

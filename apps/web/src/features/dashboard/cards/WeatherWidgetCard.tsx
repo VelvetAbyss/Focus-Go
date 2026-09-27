@@ -164,7 +164,7 @@ const WeatherWidgetCard = () => {
                       </span>
                     </>
                   ) : (
-                    'Loading weather...'
+                    language === 'zh' ? '正在获取天气…' : 'Loading weather…'
                   )}
                 </p>
               </div>

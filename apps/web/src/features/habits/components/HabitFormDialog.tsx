@@ -4,6 +4,7 @@ import { X } from 'lucide-react'
 import type { Habit } from '../../../data/models/types'
 import { HABIT_COLORS, HABIT_ICONS, type HabitDraft } from '../model/habitSchema'
 import { useHabitsI18n } from '../habitsI18n'
+import { DURATION, EASE } from '../../../shared/motion/tokens'
 
 type HabitFormDialogProps = {
   open: boolean
@@ -60,7 +61,7 @@ export const HabitFormDialog = ({ open, onOpenChange, onSubmit, initialHabit }: 
           className="habit-dialog"
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
+          transition={{ duration: DURATION.base }}
           onClick={(event) => {
             if (event.target === event.currentTarget && !saving) onOpenChange(false)
           }}
@@ -69,14 +70,14 @@ export const HabitFormDialog = ({ open, onOpenChange, onSubmit, initialHabit }: 
             className="habit-dialog__panel"
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.93, y: 20 }}
-            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+            transition={{ duration: DURATION.medium, ease: EASE.standard }}
           >
             <div className="habit-dialog__content">
               <div className="habit-dialog__header">
                 <motion.h2
                   className="habit-dialog__title"
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.1, duration: 0.3 }}
+                  transition={{ delay: 0.1, duration: DURATION.medium }}
                 >
                   {initialHabit ? i18n.formTitleEdit : i18n.formTitleCreate}
                 </motion.h2>
@@ -86,14 +87,14 @@ export const HabitFormDialog = ({ open, onOpenChange, onSubmit, initialHabit }: 
                   className="habit-dialog__close"
                   whileHover={{ scale: 1.15, rotate: 90 }}
                   whileTap={{ scale: 0.9 }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: DURATION.base }}
                 >
                   <X size={24} />
                 </motion.button>
               </div>
 
               <form onSubmit={(event) => void handleSubmit(event)}>
-                <motion.div className="habit-dialog__field" animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.3 }}>
+                <motion.div className="habit-dialog__field" animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: DURATION.medium }}>
                   <label className="habit-dialog__label" htmlFor="habit-name-input">{i18n.formName}</label>
                   <input
                     id="habit-name-input"
@@ -109,7 +110,7 @@ export const HabitFormDialog = ({ open, onOpenChange, onSubmit, initialHabit }: 
                   {error ? <p className="habit-dialog__error">{error}</p> : null}
                 </motion.div>
 
-                <motion.div className="habit-dialog__field" animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.3 }}>
+                <motion.div className="habit-dialog__field" animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: DURATION.medium }}>
                   <label className="habit-dialog__label" htmlFor="habit-description-input">{i18n.formDescription}</label>
                   <textarea
                     id="habit-description-input"
@@ -121,7 +122,7 @@ export const HabitFormDialog = ({ open, onOpenChange, onSubmit, initialHabit }: 
                   />
                 </motion.div>
 
-                <motion.div className="habit-dialog__field" animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.3 }}>
+                <motion.div className="habit-dialog__field" animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: DURATION.medium }}>
                   <label className="habit-dialog__label">{i18n.formIcon}</label>
                   <div className="habit-dialog__icon-grid">
                     {HABIT_ICONS.map((icon, index) => (
@@ -131,7 +132,7 @@ export const HabitFormDialog = ({ open, onOpenChange, onSubmit, initialHabit }: 
                         onClick={() => setSelectedIcon(icon)}
                         className={`habit-dialog__icon-swatch ${selectedIcon === icon ? 'is-active' : ''}`}
                         animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.2 + index * 0.015, duration: 0.2 }}
+                        transition={{ delay: 0.2 + index * 0.015, duration: DURATION.base }}
                         whileHover={{ scale: 1.15 }}
                         whileTap={{ scale: 0.9 }}
                       >
@@ -141,7 +142,7 @@ export const HabitFormDialog = ({ open, onOpenChange, onSubmit, initialHabit }: 
                   </div>
                 </motion.div>
 
-                <motion.div className="habit-dialog__field" animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25, duration: 0.3 }}>
+                <motion.div className="habit-dialog__field" animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25, duration: DURATION.medium }}>
                   <label className="habit-dialog__label">{i18n.formColor}</label>
                   <div className="habit-dialog__color-grid">
                     {HABIT_COLORS.map((color, index) => (
@@ -152,7 +153,7 @@ export const HabitFormDialog = ({ open, onOpenChange, onSubmit, initialHabit }: 
                         className={`habit-dialog__color-swatch ${selectedColor === color ? 'is-active' : ''}`}
                         style={{ backgroundColor: color }}
                         animate={{ opacity: 1, scale: selectedColor === color ? 1.1 : 1 }}
-                        transition={{ delay: 0.25 + index * 0.02, duration: 0.2 }}
+                        transition={{ delay: 0.25 + index * 0.02, duration: DURATION.base }}
                         whileHover={{ scale: 1.15 }}
                         whileTap={{ scale: 0.9 }}
                       />
@@ -160,7 +161,7 @@ export const HabitFormDialog = ({ open, onOpenChange, onSubmit, initialHabit }: 
                   </div>
                 </motion.div>
 
-                <motion.div className="habit-dialog__preview" animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.3 }}>
+                <motion.div className="habit-dialog__preview" animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: DURATION.medium }}>
                   <div className="habit-dialog__preview-label">{i18n.formPreview}</div>
                   <div className="habit-dialog__preview-row">
                     <motion.span
@@ -178,7 +179,7 @@ export const HabitFormDialog = ({ open, onOpenChange, onSubmit, initialHabit }: 
                   </div>
                 </motion.div>
 
-                <motion.div className="habit-dialog__actions" animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.3 }}>
+                <motion.div className="habit-dialog__actions" animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: DURATION.medium }}>
                   <motion.button type="button" onClick={() => onOpenChange(false)} className="habit-dialog__button habit-dialog__button--secondary" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                     {i18n.formCancel}
                   </motion.button>

@@ -1,9 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { searchRemoteMedia } from './mediaApi'
+import { clearPersonalApiKey, writePersonalApiKey } from '../../shared/integrations/personalApiKeys'
 
 describe('mediaApi', () => {
+  const entries = new Map<string, string>()
+
   beforeEach(() => {
     vi.restoreAllMocks()
+    entries.clear()
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => entries.get(key) ?? null,
+      setItem: (key: string, value: string) => void entries.set(key, value),
+      removeItem: (key: string) => void entries.delete(key),
+    })
+    clearPersonalApiKey('tmdb')
+    writePersonalApiKey('tmdb', 'test-tmdb-key')
   })
 
   it('searches TMDB in zh-CN first and merges the en-US fallback without duplicates', async () => {
@@ -31,5 +42,14 @@ describe('mediaApi', () => {
     expect(fetchMock.mock.calls[1]?.[0]).toContain('language=en-US')
     expect(results.map((item) => item.tmdbId)).toEqual([1, 2])
     expect(results[0]?.title).toBe('繁花')
+  })
+
+  it('does not issue a TMDb request until the current user adds a key', async () => {
+    clearPersonalApiKey('tmdb')
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(searchRemoteMedia('繁花')).rejects.toThrow('TMDb key missing')
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 })

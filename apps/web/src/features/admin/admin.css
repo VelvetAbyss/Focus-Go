@@ -1,19 +1,23 @@
 .admin-deck {
-  --deck-ink: #3A3733;
-  --deck-muted: color-mix(in srgb, #3A3733 62%, transparent);
-  --deck-faint: color-mix(in srgb, #3A3733 9%, transparent);
-  --deck-line: color-mix(in srgb, #3A3733 11%, transparent);
-  --deck-surface: color-mix(in srgb, var(--bg-elevated) 92%, #F5F3F0);
-  --deck-wash: color-mix(in srgb, #F5F3F0 62%, var(--bg-elevated));
-  --deck-sage: #4F746C;
-  --deck-amber: #B9824B;
+  /* Derived from theme tokens (identical to the old hardcoded values in
+     light; readable in dark, where the title used to be dark-on-dark). */
+  --deck-ink: var(--text-primary);
+  --deck-muted: color-mix(in srgb, var(--text-primary) 62%, transparent);
+  --deck-faint: color-mix(in srgb, var(--text-primary) 9%, transparent);
+  --deck-line: color-mix(in srgb, var(--text-primary) 11%, transparent);
+  --deck-surface: color-mix(in srgb, var(--bg-elevated) 96%, var(--text-primary) 4%);
+  --deck-wash: color-mix(in srgb, var(--text-primary) 4%, var(--bg-elevated));
+  --deck-sage: var(--accent);
+  --deck-amber: var(--tone-warn);
+  /* Paper for tinted chips and panels. */
+  --deck-paper: var(--paper-sunken);
   width: 100%;
   min-width: 0;
   min-height: calc(100vh - 104px);
   padding: clamp(22px, 3vw, 42px);
   color: var(--deck-ink);
   background: transparent;
-  animation: admin-fade-in 280ms cubic-bezier(0.19, 1, 0.22, 1);
+  animation: admin-fade-in var(--motion-duration-medium) var(--ease-out-expo);
 }
 
 .admin-deck__hero {
@@ -73,19 +77,18 @@
 .admin-btn {
   min-height: 34px;
   border: 1px solid var(--deck-line);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 0 14px;
   background: var(--deck-wash);
   color: var(--deck-ink);
   font: 700 13px/1 var(--font-body);
   cursor: pointer;
-  transition: transform 180ms cubic-bezier(0.19, 1, 0.22, 1), border-color 180ms ease, background 180ms ease;
+  transition: transform var(--motion-duration-base) var(--ease-out-expo), border-color var(--motion-duration-base) var(--ease-standard), background var(--motion-duration-base) var(--ease-standard);
 }
 
 .admin-btn:hover {
-  transform: translateY(-1px);
   border-color: color-mix(in srgb, var(--deck-sage) 42%, var(--deck-line));
-  background: color-mix(in srgb, #F5F3F0 76%, var(--bg-elevated));
+  background: color-mix(in srgb, var(--deck-paper) 76%, var(--bg-elevated));
 }
 
 .admin-btn:disabled {
@@ -103,22 +106,22 @@
   gap: 4px;
   margin: 18px 0 22px;
   padding: 3px;
-  border: 1px solid var(--deck-line);
-  border-radius: 8px;
-  background: color-mix(in srgb, #F5F3F0 48%, transparent);
+  border: 1px solid var(--segmented-track-border);
+  border-radius: var(--radius-pill);
+  background: var(--segmented-track);
 }
 
 .admin-tab {
   min-height: 30px;
   min-width: 74px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--radius-pill);
   padding: 0 12px;
   background: transparent;
-  color: var(--deck-muted);
-  font: 700 13px/1 var(--font-body);
+  color: var(--segmented-fg);
+  font: 600 var(--fs-ui)/1 var(--font-body);
   cursor: pointer;
-  transition: color 180ms ease, background 180ms ease, transform 180ms cubic-bezier(0.19, 1, 0.22, 1);
+  transition: color var(--motion-duration-base) var(--ease-standard), background var(--motion-duration-base) var(--ease-standard), transform var(--motion-duration-base) var(--ease-out-expo);
 }
 
 .admin-tab:hover,
@@ -129,23 +132,28 @@
 }
 
 .admin-tab.is-active {
-  background: var(--deck-ink);
-  color: #F5F3F0;
+  background: var(--segmented-thumb);
+  box-shadow: var(--segmented-thumb-shadow);
+  color: var(--segmented-fg-active);
 }
 
 .admin-banner {
   margin-bottom: 14px;
   border: 1px solid var(--deck-line);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 10px 12px;
-  background: color-mix(in srgb, #F5F3F0 56%, transparent);
+  background: color-mix(in srgb, var(--deck-paper) 56%, transparent);
   color: var(--deck-muted);
   font: 600 13px/1.45 var(--font-body);
 }
 
 .admin-banner--error {
-  border-color: color-mix(in srgb, #B95A4F 42%, var(--deck-line));
-  color: color-mix(in srgb, #9E4036 78%, var(--deck-ink));
+  border-color: color-mix(in srgb, var(--tone-urgent) 42%, var(--deck-line));
+  color: color-mix(in srgb, var(--tone-urgent) 78%, var(--deck-ink));
+}
+
+html[data-theme='dark'] .admin-banner--error {
+  color: var(--tone-urgent);
 }
 
 .admin-panel {
@@ -155,7 +163,7 @@
 }
 
 .admin-panel--enter {
-  animation: admin-rise-in 240ms cubic-bezier(0.19, 1, 0.22, 1);
+  animation: admin-rise-in var(--motion-duration-base) var(--ease-out-expo);
 }
 
 .admin-kpis {
@@ -180,10 +188,10 @@
   flex-direction: column;
   justify-content: space-between;
   border: 1px solid var(--deck-line);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 14px;
-  background: linear-gradient(180deg, var(--deck-surface), color-mix(in srgb, #F5F3F0 48%, var(--bg-elevated)));
-  transition: transform 180ms cubic-bezier(0.19, 1, 0.22, 1), border-color 180ms ease;
+  background: linear-gradient(180deg, var(--deck-surface), color-mix(in srgb, var(--deck-paper) 48%, var(--bg-elevated)));
+  transition: transform var(--motion-duration-base) var(--ease-out-expo), border-color var(--motion-duration-base) var(--ease-standard);
 }
 
 .admin-kpi-card:hover {
@@ -232,9 +240,9 @@
   width: 100%;
   min-height: 38px;
   border: 1px solid var(--deck-line);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 0 12px;
-  background: color-mix(in srgb, var(--bg-elevated) 94%, #F5F3F0);
+  background: color-mix(in srgb, var(--bg-elevated) 94%, var(--deck-paper));
   color: var(--deck-ink);
   font: 600 13px/1.2 var(--font-body);
 }
@@ -248,8 +256,8 @@
   width: 100%;
   overflow-x: auto;
   border: 1px solid var(--deck-line);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--bg-elevated) 96%, #F5F3F0);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--bg-elevated) 96%, var(--deck-paper));
 }
 
 .admin-table {
@@ -277,7 +285,7 @@
 }
 
 .admin-row {
-  transition: background 160ms ease;
+  transition: background var(--motion-duration-fast) var(--ease-standard);
 }
 
 .admin-row:hover {
@@ -308,7 +316,7 @@
 
 .admin-pill.premium {
   border-color: color-mix(in srgb, var(--deck-amber) 34%, var(--deck-line));
-  background: color-mix(in srgb, var(--deck-amber) 15%, #F5F3F0);
+  background: color-mix(in srgb, var(--deck-amber) 15%, var(--deck-paper));
   color: color-mix(in srgb, var(--deck-amber) 72%, var(--deck-ink));
 }
 
@@ -322,26 +330,26 @@
 .admin-pill.lifetime,
 .admin-pill.paid {
   border-color: color-mix(in srgb, var(--deck-sage) 34%, var(--deck-line));
-  background: color-mix(in srgb, var(--deck-sage) 12%, #F5F3F0);
+  background: color-mix(in srgb, var(--deck-sage) 12%, var(--deck-paper));
   color: color-mix(in srgb, var(--deck-sage) 76%, var(--deck-ink));
 }
 
 .admin-pill.pending {
   border-color: color-mix(in srgb, var(--deck-amber) 34%, var(--deck-line));
-  background: color-mix(in srgb, var(--deck-amber) 12%, #F5F3F0);
+  background: color-mix(in srgb, var(--deck-amber) 12%, var(--deck-paper));
 }
 
 .admin-pill.abnormal,
 .admin-pill.failed {
-  border-color: color-mix(in srgb, #9E4036 38%, var(--deck-line));
-  background: color-mix(in srgb, #9E4036 10%, #F5F3F0);
-  color: #9E4036;
+  border-color: color-mix(in srgb, var(--tone-urgent) 38%, var(--deck-line));
+  background: color-mix(in srgb, var(--tone-urgent) 10%, var(--deck-paper));
+  color: var(--tone-urgent);
 }
 
 .admin-row__toggle {
   min-height: 26px;
   border: 1px solid var(--deck-line);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 0 9px;
   background: transparent;
   color: var(--deck-sage);
@@ -363,7 +371,7 @@
 .admin-row-detail__body {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows 240ms cubic-bezier(0.19, 1, 0.22, 1);
+  transition: grid-template-rows var(--motion-duration-base) var(--ease-out-expo);
 }
 
 .admin-row-detail.is-open .admin-row-detail__body {
@@ -419,9 +427,9 @@
 .admin-server-card {
   min-height: 96px;
   border: 1px solid var(--deck-line);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 14px;
-  background: linear-gradient(180deg, var(--deck-surface), color-mix(in srgb, #F5F3F0 42%, var(--bg-elevated)));
+  background: linear-gradient(180deg, var(--deck-surface), color-mix(in srgb, var(--deck-paper) 42%, var(--bg-elevated)));
 }
 
 .admin-server-card p {
@@ -448,7 +456,7 @@
 }
 
 .admin-health-badge--healthy {
-  background: color-mix(in srgb, var(--deck-sage) 14%, #F5F3F0);
+  background: color-mix(in srgb, var(--deck-sage) 14%, var(--deck-paper));
   color: color-mix(in srgb, var(--deck-sage) 82%, var(--deck-ink));
 }
 
@@ -458,12 +466,12 @@
 }
 
 .admin-health-badge--risk {
-  background: color-mix(in srgb, #B95A4F 10%, #F5F3F0);
-  color: #9E4036;
+  background: color-mix(in srgb, var(--tone-urgent) 10%, var(--deck-paper));
+  color: var(--tone-urgent);
 }
 
 .admin-health-badge--empty {
-  background: color-mix(in srgb, var(--deck-amber) 10%, #F5F3F0);
+  background: color-mix(in srgb, var(--deck-amber) 10%, var(--deck-paper));
   color: color-mix(in srgb, var(--deck-amber) 72%, var(--deck-ink));
 }
 
@@ -563,9 +571,9 @@
 .admin-growth-card {
   min-width: 0;
   border: 1px solid var(--deck-line);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 14px;
-  background: linear-gradient(180deg, var(--deck-surface), color-mix(in srgb, #F5F3F0 42%, var(--bg-elevated)));
+  background: linear-gradient(180deg, var(--deck-surface), color-mix(in srgb, var(--deck-paper) 42%, var(--bg-elevated)));
 }
 
 .admin-card-heading {
@@ -621,7 +629,7 @@
   bottom: 0;
   height: 5px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--deck-sage) 58%, #F5F3F0);
+  background: color-mix(in srgb, var(--deck-sage) 58%, var(--deck-paper));
 }
 
 .admin-channel-list {
@@ -667,8 +675,8 @@
 }
 
 .admin-detail-section--danger {
-  background: color-mix(in srgb, #B95A4F 5%, transparent);
-  border-color: color-mix(in srgb, #B95A4F 22%, var(--deck-line));
+  background: color-mix(in srgb, var(--tone-urgent) 5%, transparent);
+  border-color: color-mix(in srgb, var(--tone-urgent) 22%, var(--deck-line));
 }
 
 .admin-detail-section__title {
@@ -700,8 +708,8 @@
   gap: 8px;
   padding: 8px 10px;
   border: 1px solid var(--deck-line);
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--bg-elevated) 90%, #F5F3F0);
+  border-radius: var(--radius-xs);
+  background: color-mix(in srgb, var(--bg-elevated) 90%, var(--deck-paper));
 }
 
 .admin-entitlement-meta {
@@ -726,7 +734,7 @@
 
 .admin-pill--status.active {
   border-color: color-mix(in srgb, var(--deck-sage) 34%, var(--deck-line));
-  background: color-mix(in srgb, var(--deck-sage) 12%, #F5F3F0);
+  background: color-mix(in srgb, var(--deck-sage) 12%, var(--deck-paper));
   color: color-mix(in srgb, var(--deck-sage) 76%, var(--deck-ink));
 }
 
@@ -737,14 +745,14 @@
 
 .admin-pill--status.suspended {
   border-color: color-mix(in srgb, var(--deck-amber) 34%, var(--deck-line));
-  background: color-mix(in srgb, var(--deck-amber) 12%, #F5F3F0);
+  background: color-mix(in srgb, var(--deck-amber) 12%, var(--deck-paper));
   color: color-mix(in srgb, var(--deck-amber) 72%, var(--deck-ink));
 }
 
 .admin-pill--status.deletion_pending {
-  border-color: color-mix(in srgb, #B95A4F 38%, var(--deck-line));
-  background: color-mix(in srgb, #B95A4F 10%, #F5F3F0);
-  color: #9E4036;
+  border-color: color-mix(in srgb, var(--tone-urgent) 38%, var(--deck-line));
+  background: color-mix(in srgb, var(--tone-urgent) 10%, var(--deck-paper));
+  color: var(--tone-urgent);
 }
 
 /* ── Deletion preview + purge zone ──────────────────────────────────────── */
@@ -752,7 +760,7 @@
 .admin-deletion-preview {
   margin-top: 12px;
   border: 1px solid var(--deck-line);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
@@ -770,8 +778,8 @@
   flex-direction: column;
   gap: 8px;
   padding: 12px 14px;
-  background: color-mix(in srgb, #B95A4F 6%, transparent);
-  border-top: 1px solid color-mix(in srgb, #B95A4F 22%, var(--deck-line));
+  background: color-mix(in srgb, var(--tone-urgent) 6%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--tone-urgent) 22%, var(--deck-line));
 }
 
 .admin-warning-hint {
@@ -781,7 +789,7 @@
 }
 
 .admin-warning-hint--danger {
-  color: #9E4036;
+  color: var(--tone-urgent);
 }
 
 /* ── Admin notes ─────────────────────────────────────────────────────────── */
@@ -796,8 +804,8 @@
 .admin-note-row {
   padding: 8px 10px;
   border: 1px solid var(--deck-line);
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--bg-elevated) 88%, #F5F3F0);
+  border-radius: var(--radius-xs);
+  background: color-mix(in srgb, var(--bg-elevated) 88%, var(--deck-paper));
 }
 
 .admin-note-body {
@@ -833,7 +841,7 @@
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
-  border-radius: 6px;
+  border-radius: var(--radius-xs);
   background: color-mix(in srgb, var(--deck-faint) 40%, transparent);
 }
 
@@ -872,32 +880,32 @@
 
 /* ── Pill variants for feedback ──────────────────────────────────────────── */
 
-.admin-pill--feedback-type.feature_request { background: color-mix(in srgb, var(--deck-sage) 12%, #F5F3F0); color: color-mix(in srgb, var(--deck-sage) 76%, var(--deck-ink)); }
-.admin-pill--feedback-type.bug             { background: color-mix(in srgb, #B95A4F 10%, #F5F3F0); color: #9E4036; }
-.admin-pill--feedback-type.confusion       { background: color-mix(in srgb, var(--deck-amber) 12%, #F5F3F0); color: color-mix(in srgb, var(--deck-amber) 72%, var(--deck-ink)); }
-.admin-pill--feedback-type.praise         { background: color-mix(in srgb, var(--deck-sage) 8%, #F5F3F0); color: color-mix(in srgb, var(--deck-sage) 60%, var(--deck-ink)); }
+.admin-pill--feedback-type.feature_request { background: color-mix(in srgb, var(--deck-sage) 12%, var(--deck-paper)); color: color-mix(in srgb, var(--deck-sage) 76%, var(--deck-ink)); }
+.admin-pill--feedback-type.bug             { background: color-mix(in srgb, var(--tone-urgent) 10%, var(--deck-paper)); color: var(--tone-urgent); }
+.admin-pill--feedback-type.confusion       { background: color-mix(in srgb, var(--deck-amber) 12%, var(--deck-paper)); color: color-mix(in srgb, var(--deck-amber) 72%, var(--deck-ink)); }
+.admin-pill--feedback-type.praise         { background: color-mix(in srgb, var(--deck-sage) 8%, var(--deck-paper)); color: color-mix(in srgb, var(--deck-sage) 60%, var(--deck-ink)); }
 
-.admin-pill--feedback-status.new       { background: color-mix(in srgb, var(--deck-amber) 12%, #F5F3F0); color: color-mix(in srgb, var(--deck-amber) 72%, var(--deck-ink)); }
-.admin-pill--feedback-status.reviewing { background: color-mix(in srgb, #6A8FBF 12%, #F5F3F0); color: color-mix(in srgb, #4A6EA8 72%, var(--deck-ink)); }
-.admin-pill--feedback-status.planned   { background: color-mix(in srgb, var(--deck-sage) 12%, #F5F3F0); color: color-mix(in srgb, var(--deck-sage) 72%, var(--deck-ink)); }
-.admin-pill--feedback-status.shipped   { background: color-mix(in srgb, var(--deck-sage) 20%, #F5F3F0); color: color-mix(in srgb, var(--deck-sage) 82%, var(--deck-ink)); border-color: color-mix(in srgb, var(--deck-sage) 28%, var(--deck-line)); }
+.admin-pill--feedback-status.new       { background: color-mix(in srgb, var(--deck-amber) 12%, var(--deck-paper)); color: color-mix(in srgb, var(--deck-amber) 72%, var(--deck-ink)); }
+.admin-pill--feedback-status.reviewing { background: color-mix(in srgb, #6A8FBF 12%, var(--deck-paper)); color: color-mix(in srgb, #4A6EA8 72%, var(--deck-ink)); }
+.admin-pill--feedback-status.planned   { background: color-mix(in srgb, var(--deck-sage) 12%, var(--deck-paper)); color: color-mix(in srgb, var(--deck-sage) 72%, var(--deck-ink)); }
+.admin-pill--feedback-status.shipped   { background: color-mix(in srgb, var(--deck-sage) 20%, var(--deck-paper)); color: color-mix(in srgb, var(--deck-sage) 82%, var(--deck-ink)); border-color: color-mix(in srgb, var(--deck-sage) 28%, var(--deck-line)); }
 .admin-pill--feedback-status.closed    { background: color-mix(in srgb, var(--deck-faint) 60%, transparent); color: var(--deck-muted); }
 
-.admin-pill--priority.high   { background: color-mix(in srgb, #B95A4F 10%, #F5F3F0); color: #9E4036; }
+.admin-pill--priority.high   { background: color-mix(in srgb, var(--tone-urgent) 10%, var(--deck-paper)); color: var(--tone-urgent); }
 .admin-pill--priority.normal { background: color-mix(in srgb, var(--deck-faint) 60%, transparent); color: var(--deck-muted); }
 .admin-pill--priority.low    { background: color-mix(in srgb, var(--deck-faint) 40%, transparent); color: var(--deck-muted); opacity: 0.8; }
 
 /* ── Button variants ─────────────────────────────────────────────────────── */
 
 .admin-btn--danger {
-  border-color: color-mix(in srgb, #9E4036 38%, var(--deck-line));
-  background: color-mix(in srgb, #9E4036 88%, transparent);
-  color: #F5F3F0;
+  border-color: color-mix(in srgb, var(--tone-urgent) 38%, var(--deck-line));
+  background: color-mix(in srgb, var(--tone-urgent) 88%, transparent);
+  color: var(--deck-paper);
 }
 
 .admin-btn--danger:hover {
-  background: #9E4036;
-  border-color: #9E4036;
+  background: var(--tone-urgent);
+  border-color: var(--tone-urgent);
 }
 
 .admin-btn--danger:disabled {
@@ -906,13 +914,13 @@
 }
 
 .admin-btn--danger-lite {
-  border-color: color-mix(in srgb, #9E4036 28%, var(--deck-line));
-  background: color-mix(in srgb, #9E4036 8%, #F5F3F0);
-  color: #9E4036;
+  border-color: color-mix(in srgb, var(--tone-urgent) 28%, var(--deck-line));
+  background: color-mix(in srgb, var(--tone-urgent) 8%, var(--deck-paper));
+  color: var(--tone-urgent);
 }
 
 .admin-btn--danger-lite:hover {
-  background: color-mix(in srgb, #9E4036 14%, #F5F3F0);
+  background: color-mix(in srgb, var(--tone-urgent) 14%, var(--deck-paper));
 }
 
 .admin-btn--ghost-sm {
@@ -921,12 +929,12 @@
   background: transparent;
   border-color: transparent;
   color: var(--deck-muted);
-  font-size: 11px;
+  font-size: var(--fs-meta);
 }
 
 .admin-btn--ghost-sm:hover {
-  border-color: color-mix(in srgb, #9E4036 20%, var(--deck-line));
-  color: #9E4036;
+  border-color: color-mix(in srgb, var(--tone-urgent) 20%, var(--deck-line));
+  color: var(--tone-urgent);
   background: transparent;
   transform: none;
 }
@@ -936,7 +944,7 @@
 .admin-field--sm {
   min-height: 30px;
   padding: 0 8px;
-  font-size: 12px;
+  font-size: var(--fs-label);
 }
 
 .admin-field--textarea {

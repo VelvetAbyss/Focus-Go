@@ -1,6 +1,7 @@
 import { motion } from 'motion/react'
 import type { Habit } from '../../../data/models/types'
 import { HabitCard } from './HabitCard'
+import { DURATION } from '../../../shared/motion/tokens'
 
 type HabitListProps = {
   habits: Habit[]
@@ -30,7 +31,7 @@ export const HabitList = ({
           transition={{
             duration: 0.32,
             delay: index * 0.06,
-            layout: { duration: 0.22, type: 'spring', stiffness: 320, damping: 30 },
+            layout: { duration: DURATION.base, type: 'spring', stiffness: 320, damping: 30 },
           }}
         >
           <HabitCard

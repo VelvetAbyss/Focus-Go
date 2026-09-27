@@ -100,7 +100,7 @@ export const ProgressRing = ({
         />
       </svg>
       <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {children ?? <span style={tx(13, 600, clamped >= 100 ? '#3D7A4E' : muted)}>{Math.round(clamped)}%</span>}
+        {children ?? <span style={tx(13, 600, clamped >= 100 ? 'var(--tone-done)' : muted)}>{Math.round(clamped)}%</span>}
       </div>
     </div>
   )

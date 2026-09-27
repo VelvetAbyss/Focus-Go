@@ -9,6 +9,7 @@ import { useLabs } from '../LabsContext'
 import { useLabsI18n } from '../labsI18n'
 import type { FeatureCatalogItem } from '../labsApi'
 import { useToast } from '../../../shared/ui/toast/toast'
+import '../labs.css'
 
 const FEATURE_ICONS: Record<string, React.ElementType> = {
   'ai-digest': Brain,

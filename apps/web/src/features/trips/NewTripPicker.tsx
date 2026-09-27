@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { Plus, Sparkles, X } from 'lucide-react'
+import { Plus, X } from 'lucide-react'
 import { TRIP_TEMPLATES, instantiateTemplate } from './templates'
 import type { TripTemplate } from '../../data/models/types'
 import { PaperCard, InkButton, JournalLabel, SerifHeading, cardBg, ink, muted, pf, subtleBorder, tx } from './ui'
+import { useLifeI18n } from '../life/lifeI18n'
 
 export type NewTripChoice =
   | { kind: 'blank' }
@@ -33,7 +34,9 @@ const Backdrop: React.FC<{ onClick: () => void; children: React.ReactNode }> = (
   </div>
 )
 
-const TemplateCard = ({ template, onPick }: { template: TripTemplate; onPick: () => void }) => (
+const TemplateCard = ({ template, onPick }: { template: TripTemplate; onPick: () => void }) => {
+  const { t } = useLifeI18n()
+  return (
   <button
     type="button"
     onClick={onPick}
@@ -61,7 +64,7 @@ const TemplateCard = ({ template, onPick }: { template: TripTemplate; onPick: ()
       <span aria-hidden style={{ fontSize: 28 }}>{template.coverEmoji}</span>
       <div>
         <div style={pf(17, 500)}>{template.title}</div>
-        <div style={tx(11, 500, muted)}>{template.destination} · {template.days} days</div>
+        <div style={tx(11, 500, muted)}>{template.destination} · {t('life.trips.days', { count: template.days })}</div>
       </div>
     </div>
     {template.summary ? <p style={{ ...tx(12, 400, ink), lineHeight: 1.5 }}>{template.summary}</p> : null}
@@ -71,9 +74,11 @@ const TemplateCard = ({ template, onPick }: { template: TripTemplate; onPick: ()
       ))}
     </div>
   </button>
-)
+  )
+}
 
 export const NewTripPicker = ({ open, onClose, onPick }: Props) => {
+  const { t } = useLifeI18n()
   const dialogRef = useRef<HTMLDivElement>(null)
   const [startDate, setStartDate] = useState<string>(() => {
     const d = new Date()
@@ -98,7 +103,7 @@ export const NewTripPicker = ({ open, onClose, onPick }: Props) => {
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal
-        aria-label="New trip"
+        aria-label={t('life.trips.picker.aria')}
         style={{
           width: '100%',
           maxWidth: 920,
@@ -115,13 +120,13 @@ export const NewTripPicker = ({ open, onClose, onPick }: Props) => {
       >
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
           <div>
-            <SerifHeading size={26}>Start a new trip</SerifHeading>
-            <p style={{ ...tx(13, 400, muted), marginTop: 6 }}>Pick a template to seed days, activities and a packing list — or start blank.</p>
+            <SerifHeading size={26}>{t('life.trips.picker.title')}</SerifHeading>
+            <p style={{ ...tx(13, 400, muted), marginTop: 6 }}>{t('life.trips.picker.subtitle')}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t('life.trips.picker.close')}
             style={{
               border: 'none',
               background: 'transparent',
@@ -135,7 +140,7 @@ export const NewTripPicker = ({ open, onClose, onPick }: Props) => {
         </div>
 
         <PaperCard style={{ padding: 14, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-          <JournalLabel>Start date</JournalLabel>
+          <JournalLabel>{t('life.trips.picker.startDate')}</JournalLabel>
           <input
             type="date"
             value={startDate}
@@ -149,11 +154,11 @@ export const NewTripPicker = ({ open, onClose, onPick }: Props) => {
               outline: 'none',
             }}
           />
-          <span style={{ ...tx(11, 500, muted) }}>Templates inherit this start date; you can change it later.</span>
+          <span style={{ ...tx(11, 500, muted) }}>{t('life.trips.picker.startDateHint')}</span>
         </PaperCard>
 
         <div>
-          <JournalLabel>Templates</JournalLabel>
+          <JournalLabel>{t('life.trips.picker.templates')}</JournalLabel>
           <div
             style={{
               marginTop: 10,
@@ -173,12 +178,11 @@ export const NewTripPicker = ({ open, onClose, onPick }: Props) => {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 6, borderTop: `1px dashed ${subtleBorder}` }}>
-          <span style={{ ...tx(12, 500, muted) }}>Or:</span>
+          <span style={{ ...tx(12, 500, muted) }}>{t('life.trips.picker.or')}</span>
+          {/* The "Generate with AI" button was a placeholder that silently
+              created a blank trip; removed until the feature exists. */}
           <InkButton onClick={() => onPick({ kind: 'blank' })}>
-            <Plus size={13} /> Blank trip
-          </InkButton>
-          <InkButton onClick={() => onPick({ kind: 'blank' })} ariaLabel="Generate with AI (placeholder, opens blank)">
-            <Sparkles size={13} /> Generate with AI <span style={{ ...tx(10, 600, muted), marginLeft: 4 }}>soon</span>
+            <Plus size={13} /> {t('life.trips.picker.blank')}
           </InkButton>
         </div>
       </div>

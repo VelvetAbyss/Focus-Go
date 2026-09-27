@@ -7,6 +7,7 @@ import { AppNumber } from '../../../shared/ui/AppNumber'
 import type { StockItem } from '../../../data/models/types'
 import { stocksRepo } from '../../../data/repositories/stocksRepo'
 import { hasTwelveDataKey, searchRemoteStocks, type RemoteStockCandidate } from '../stocksApi'
+import { DURATION } from '../../../shared/motion/tokens'
 
 const StocksCard = () => {
   const [open, setOpen] = useState(false)
@@ -45,7 +46,7 @@ const StocksCard = () => {
 
   const handleSearch = async () => {
     if (!hasTwelveDataKey()) {
-      setHint('Set VITE_TWELVEDATA_API_KEY to enable live stock search.')
+      setHint('Add your Twelve Data API key in Settings → Integrations to enable live stock search.')
       return
     }
     const nextQuery = query.trim()
@@ -224,7 +225,7 @@ const StocksCard = () => {
                         style={{ height: `${Math.max(18, Math.round(point % 80) + 18)}px` }}
                         initial={{ scaleY: 0 }}
                         animate={{ scaleY: 1 }}
-                        transition={{ duration: 0.24, delay: index * 0.04 }}
+                        transition={{ duration: DURATION.base, delay: index * 0.04 }}
                       />
                     ))}
                   </div>

@@ -53,7 +53,7 @@ const SpendChart = () => {
 
   if (entries.length === 0) {
       return (
-          <div className="min-h-[160px] sm:min-h-[200px] flex items-center justify-center text-gray-400">
+          <div className="min-h-[160px] sm:min-h-[200px] flex items-center justify-center text-[var(--text-tertiary)]">
               {t('spend.noData')}
           </div>
       )

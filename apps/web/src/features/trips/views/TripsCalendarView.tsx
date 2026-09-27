@@ -4,6 +4,7 @@ import type { TripRecord } from '../../../data/models/types'
 import type { LifeTranslate } from '../../life/lifeI18n'
 import { parseTripDateKey, statusColor } from '../tripData'
 import { ink, muted, pf, subtleBorder, tx } from '../ui'
+import { appIntlLocale } from '../../../shared/i18n/format'
 
 type Props = {
   trips: TripRecord[]
@@ -59,14 +60,14 @@ export const TripsCalendarView = ({ trips, t, onOpen }: Props) => {
     const trimmed = rows.filter((row) => row.some((d) => d.getMonth() === month) || rows.indexOf(row) < 5)
     return {
       weeks: trimmed,
-      monthLabel: cursor.toLocaleString(undefined, { month: 'long', year: 'numeric' }),
+      monthLabel: cursor.toLocaleString(appIntlLocale(), { month: 'long', year: 'numeric' }),
     }
   }, [cursor])
 
   const weekdayLabels = useMemo(() => {
     const base = new Date(2023, 0, 1) // a Sunday
     return Array.from({ length: 7 }, (_, i) =>
-      new Date(base.getTime() + i * DAY_MS).toLocaleString(undefined, { weekday: 'short' }),
+      new Date(base.getTime() + i * DAY_MS).toLocaleString(appIntlLocale(), { weekday: 'short' }),
     )
   }, [])
 

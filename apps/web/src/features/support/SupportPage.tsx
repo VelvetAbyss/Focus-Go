@@ -1,4 +1,5 @@
 import { Heart, ExternalLink } from 'lucide-react'
+import { useI18n } from '../../shared/i18n/useI18n'
 
 type SupportLink = { label: string; href: string }
 
@@ -9,13 +10,14 @@ const links = (): SupportLink[] => [
 ].flatMap(([label, href]) => typeof href === 'string' && href.trim() ? [{ label, href }] : [])
 
 const SupportPage = () => {
+  const { t } = useI18n()
   const destinations = links()
   return (
-    <main className="mx-auto max-w-2xl space-y-5 px-5 py-10 text-[var(--text-primary)]">
+    <div className="mx-auto max-w-2xl space-y-5 px-5 py-10 text-[var(--text-primary)]">
       <div className="space-y-2">
-        <div className="flex items-center gap-2 text-sm font-medium text-[var(--text-secondary)]"><Heart size={16} /> Support Focus&go</div>
-        <h1 className="text-3xl font-semibold tracking-tight">Focus&go is free for everyone.</h1>
-        <p className="max-w-xl text-sm leading-6 text-[var(--text-secondary)]">Optional sponsorship helps cover the hosted sync service. It never unlocks features or changes your account.</p>
+        <div className="flex items-center gap-2 text-sm font-medium text-[var(--text-secondary)]"><Heart size={16} /> {t('support.eyebrow')}</div>
+        <h1 className="page-title">{t('support.title')}</h1>
+        <p className="max-w-xl text-sm leading-6 text-[var(--text-secondary)]">{t('support.body')}</p>
       </div>
       {destinations.length ? (
         <div className="grid gap-3 sm:grid-cols-3">
@@ -25,8 +27,8 @@ const SupportPage = () => {
             </a>
           ))}
         </div>
-      ) : <p className="rounded-xl border border-dashed border-[color-mix(in_srgb,var(--text-primary)_18%,transparent)] p-4 text-sm text-[var(--text-secondary)]">Sponsorship links will appear here when they are configured.</p>}
-    </main>
+      ) : <p className="rounded-xl border border-dashed border-[color-mix(in_srgb,var(--text-primary)_18%,transparent)] p-4 text-sm text-[var(--text-secondary)]">{t('support.comingSoon')}</p>}
+    </div>
   )
 }
 

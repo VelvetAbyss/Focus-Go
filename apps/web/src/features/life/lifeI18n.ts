@@ -66,6 +66,8 @@ export type LifeKey =
   | 'life.people.lastContact'
   | 'life.people.noRecentNotes'
   | 'life.podcast.playing'
+  | 'life.podcast.episodeUnit'
+  | 'life.podcast.latest'
   | 'life.podcast.lastPlayed'
   | 'life.podcast.openOriginal'
   | 'life.podcast.openPlayer'
@@ -177,6 +179,15 @@ export type LifeKey =
   | 'life.trips.newTrip'
   | 'life.trips.creating'
   | 'life.trips.createTrip'
+  | 'life.trips.picker.title'
+  | 'life.trips.picker.subtitle'
+  | 'life.trips.picker.aria'
+  | 'life.trips.picker.close'
+  | 'life.trips.picker.startDate'
+  | 'life.trips.picker.startDateHint'
+  | 'life.trips.picker.templates'
+  | 'life.trips.picker.or'
+  | 'life.trips.picker.blank'
   | 'life.trips.deleteConfirm'
   | 'life.trips.noTrips'
   | 'life.trips.noTripsDesc'
@@ -344,6 +355,20 @@ export type LifeKey =
   | 'life.people.notes'
   | 'life.people.save'
   | 'life.people.remove'
+  | 'life.people.filterAll'
+  | 'life.people.groupLabel.Family'
+  | 'life.people.groupLabel.Friends'
+  | 'life.people.groupLabel.Work'
+  | 'life.people.groupLabel.Community'
+  | 'life.people.groupLabel.Other'
+  | 'life.people.roleLabel.Owner'
+  | 'life.people.roleLabel.Collaborator'
+  | 'life.people.roleLabel.Reviewer'
+  | 'life.people.roleLabel.External'
+  | 'life.media.typeAria'
+  | 'life.media.typeMovie'
+  | 'life.media.typeTv'
+  | 'life.media.typeSeries'
   | 'life.podcast.emptyTitle'
   | 'life.podcast.emptyDescription'
   | 'life.podcast.findPodcast'
@@ -396,7 +421,7 @@ const en: Record<LifeKey, string> = {
   'life.media.movies': 'Movies {{count}}',
   'life.media.tv': 'TV {{count}}',
   'life.media.searchPlaceholder': 'Movie, series, director...',
-  'life.media.hint.tmdbMissing': 'Set VITE_TMDB_API_KEY to enable TMDb search.',
+  'life.media.hint.tmdbMissing': 'Add your TMDb API key in Settings → Integrations to enable TMDb search.',
   'life.media.hint.searchFailed': 'Media search failed. Try another title.',
   'life.media.unknown': 'Unknown',
   'life.daily.today': 'Today',
@@ -435,6 +460,8 @@ const en: Record<LifeKey, string> = {
   'life.people.lastContact': 'Last contact {{date}}',
   'life.people.noRecentNotes': 'No recent notes',
   'life.podcast.playing': 'PLAYING',
+  'life.podcast.episodeUnit': 'episodes',
+  'life.podcast.latest': 'Latest',
   'life.podcast.lastPlayed': 'LAST PLAYED',
   'life.podcast.openOriginal': 'Open Original',
   'life.podcast.openPlayer': 'Open Player',
@@ -546,6 +573,15 @@ const en: Record<LifeKey, string> = {
   'life.trips.newTrip': 'New Trip',
   'life.trips.creating': 'Creating…',
   'life.trips.createTrip': 'Create Trip',
+  'life.trips.picker.title': 'Start a new trip',
+  'life.trips.picker.subtitle': 'Pick a template to seed days, activities and a packing list — or start blank.',
+  'life.trips.picker.aria': 'New trip',
+  'life.trips.picker.close': 'Close',
+  'life.trips.picker.startDate': 'Start date',
+  'life.trips.picker.startDateHint': 'Templates inherit this start date; you can change it later.',
+  'life.trips.picker.templates': 'Templates',
+  'life.trips.picker.or': 'Or:',
+  'life.trips.picker.blank': 'Blank trip',
   'life.trips.deleteConfirm': 'Delete this trip?',
   'life.trips.noTrips': 'No trips yet',
   'life.trips.noTripsDesc': 'Create the first trip to open the planning workspace.',
@@ -713,6 +749,20 @@ const en: Record<LifeKey, string> = {
   'life.people.notes': 'Notes',
   'life.people.save': 'Save',
   'life.people.remove': 'Remove',
+  'life.people.filterAll': 'All',
+  'life.people.groupLabel.Family': 'Family',
+  'life.people.groupLabel.Friends': 'Friends',
+  'life.people.groupLabel.Work': 'Work',
+  'life.people.groupLabel.Community': 'Community',
+  'life.people.groupLabel.Other': 'Other',
+  'life.people.roleLabel.Owner': 'Owner',
+  'life.people.roleLabel.Collaborator': 'Collaborator',
+  'life.people.roleLabel.Reviewer': 'Reviewer',
+  'life.people.roleLabel.External': 'External',
+  'life.media.typeAria': 'Media type',
+  'life.media.typeMovie': 'Movie',
+  'life.media.typeTv': 'TV',
+  'life.media.typeSeries': 'Series',
   'life.podcast.emptyTitle': 'Your podcast shelf is empty',
   'life.podcast.emptyDescription': 'Search podcasts or import a Netease channel link.',
   'life.podcast.findPodcast': 'Find podcast',
@@ -760,7 +810,7 @@ const zh: Record<LifeKey, string> = {
   'life.media.movies': '电影 {{count}}',
   'life.media.tv': '剧集 {{count}}',
   'life.media.searchPlaceholder': '电影、剧集、导演...',
-  'life.media.hint.tmdbMissing': '设置 VITE_TMDB_API_KEY 后可启用 TMDb 搜索。',
+  'life.media.hint.tmdbMissing': '请在「设置 → 连接」中填写你的 TMDb API 密钥，以启用 TMDb 搜索。',
   'life.media.hint.searchFailed': '搜索影音失败，请换个标题试试。',
   'life.media.unknown': '未知',
   'life.daily.today': '今天',
@@ -799,6 +849,8 @@ const zh: Record<LifeKey, string> = {
   'life.people.lastContact': '最近联系 {{date}}',
   'life.people.noRecentNotes': '暂无最近记录',
   'life.podcast.playing': '播放中',
+  'life.podcast.episodeUnit': '期',
+  'life.podcast.latest': '最新',
   'life.podcast.lastPlayed': '最近播放',
   'life.podcast.openOriginal': '打开原链接',
   'life.podcast.openPlayer': '打开播放器',
@@ -910,6 +962,15 @@ const zh: Record<LifeKey, string> = {
   'life.trips.newTrip': '新建旅行',
   'life.trips.creating': '创建中…',
   'life.trips.createTrip': '创建旅行',
+  'life.trips.picker.title': '开始一段新旅行',
+  'life.trips.picker.subtitle': '选一个模板，自动生成每日行程、活动和打包清单；也可以从空白开始。',
+  'life.trips.picker.aria': '新建旅行',
+  'life.trips.picker.close': '关闭',
+  'life.trips.picker.startDate': '出发日期',
+  'life.trips.picker.startDateHint': '模板会沿用这个出发日期，之后仍可修改。',
+  'life.trips.picker.templates': '模板',
+  'life.trips.picker.or': '或者：',
+  'life.trips.picker.blank': '空白旅行',
   'life.trips.deleteConfirm': '确认删除此旅行？',
   'life.trips.noTrips': '还没有旅行',
   'life.trips.noTripsDesc': '创建第一个旅行来开始规划。',
@@ -1077,6 +1138,20 @@ const zh: Record<LifeKey, string> = {
   'life.people.notes': '备注',
   'life.people.save': '保存',
   'life.people.remove': '移除',
+  'life.people.filterAll': '全部',
+  'life.people.groupLabel.Family': '家人',
+  'life.people.groupLabel.Friends': '朋友',
+  'life.people.groupLabel.Work': '工作',
+  'life.people.groupLabel.Community': '社群',
+  'life.people.groupLabel.Other': '其他',
+  'life.people.roleLabel.Owner': '负责人',
+  'life.people.roleLabel.Collaborator': '协作者',
+  'life.people.roleLabel.Reviewer': '审阅人',
+  'life.people.roleLabel.External': '外部成员',
+  'life.media.typeAria': '影音类型',
+  'life.media.typeMovie': '电影',
+  'life.media.typeTv': '剧集',
+  'life.media.typeSeries': '剧集',
   'life.podcast.emptyTitle': '你的播客架还是空的',
   'life.podcast.emptyDescription': '搜索播客或导入网易频道链接。',
   'life.podcast.findPodcast': '查找播客',

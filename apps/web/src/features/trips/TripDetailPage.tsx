@@ -420,7 +420,7 @@ const TripDetailPage = () => {
             <ArrowLeft size={14} /> {t('life.trips.detail.allTrips')}
           </button>
           <div style={{ marginBottom: 16 }}>
-            <p style={{ ...tx(10, 600, 'color-mix(in srgb, var(--text-primary) 38%, transparent)'), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 6 }}>{t('life.trips.detail.tripWorkspace')}</p>
+            <p style={{ ...tx(10, 600, 'color-mix(in srgb, var(--text-primary) 38%, transparent)'), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase', marginBottom: 6 }}>{t('life.trips.detail.tripWorkspace')}</p>
             <h1 style={{ ...pf(28, 500), lineHeight: 1.1 }}>{trip.title}</h1>
             <p style={{ ...tx(12, 400, muted), marginTop: 8 }}>{trip.destination || t('life.trips.detail.destinationPending')}</p>
           </div>
@@ -454,13 +454,13 @@ const TripDetailPage = () => {
         <main style={{ display: 'grid', gap: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, background: cardBg, border: `1px solid ${subtleBorder}`, borderRadius: 22, padding: '18px 22px', boxShadow: '0 1px 6px rgba(0, 0, 0, 0.05)' }}>
             <div>
-              <p style={{ ...tx(10, 600, 'color-mix(in srgb, var(--text-primary) 38%, transparent)'), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 6 }}>{t('life.trips.detail.tripPlanner')}</p>
+              <p style={{ ...tx(10, 600, 'color-mix(in srgb, var(--text-primary) 38%, transparent)'), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase', marginBottom: 6 }}>{t('life.trips.detail.tripPlanner')}</p>
               <h2 style={{ ...pf(22, 500) }}>{trip.title}</h2>
             </div>
             <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
-              <div><div style={{ ...tx(28, 600), lineHeight: 1 }}>{duration}</div><div style={{ ...tx(10, 600, muted), letterSpacing: '0.08em', textTransform: 'uppercase' }}>{t('life.trips.detail.daysLabel')}</div></div>
-              <div><div style={{ ...tx(28, 600), lineHeight: 1 }}>{trip.travelers}</div><div style={{ ...tx(10, 600, muted), letterSpacing: '0.08em', textTransform: 'uppercase' }}>{t('life.trips.detail.travelersLabel')}</div></div>
-              <div><div style={{ ...tx(28, 600), lineHeight: 1 }}>{progress.done}</div><div style={{ ...tx(10, 600, muted), letterSpacing: '0.08em', textTransform: 'uppercase' }}>{t('life.trips.detail.doneLabel')}</div></div>
+              <div><div style={{ ...tx(28, 600), lineHeight: 1 }}>{duration}</div><div style={{ ...tx(10, 600, muted), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase' }}>{t('life.trips.detail.daysLabel')}</div></div>
+              <div><div style={{ ...tx(28, 600), lineHeight: 1 }}>{trip.travelers}</div><div style={{ ...tx(10, 600, muted), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase' }}>{t('life.trips.detail.travelersLabel')}</div></div>
+              <div><div style={{ ...tx(28, 600), lineHeight: 1 }}>{progress.done}</div><div style={{ ...tx(10, 600, muted), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase' }}>{t('life.trips.detail.doneLabel')}</div></div>
               {trip.status === 'Done' ? (
                 <InkButton onClick={() => setJourneyOpen(true)} ariaLabel={t('life.trips.journey.open')}>
                   <BookOpen size={14} /> {t('life.trips.journey.open')}
@@ -517,7 +517,7 @@ const TripDetailPage = () => {
                   </>
                 ) : null}
               </div>
-              <span style={{ ...tx(11, 600, saveState === 'error' ? '#C05050' : ink), minWidth: 62, textAlign: 'right' }}>
+              <span style={{ ...tx(11, 600, saveState === 'error' ? 'var(--tone-urgent)' : ink), minWidth: 62, textAlign: 'right' }}>
                 {saveState === 'saving' ? t('life.trips.detail.saving') : saveState === 'saved' ? t('life.trips.detail.saved') : saveState === 'error' ? t('life.trips.detail.retry') : ''}
               </span>
             </div>
@@ -535,15 +535,15 @@ const TripDetailPage = () => {
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 30%, color-mix(in srgb, var(--text-primary) 65%, transparent) 100%)' }} />
               <div style={{ position: 'absolute', left: 24, bottom: 22 }}>
                 <p style={{ ...tx(12, 400, 'rgba(255,255,255,0.72)'), marginBottom: 4 }}>{trip.destination || t('life.trips.detail.destinationPending')}</p>
-                <p style={{ fontFamily: 'Playfair Display, serif', fontSize: 30, fontWeight: 500, color: 'rgba(255,255,255,0.96)' }}>{trip.title}</p>
+                <p style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 500, color: 'rgba(255,255,255,0.96)' }}>{trip.title}</p>
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 }}>
-              <Card style={{ padding: '18px 20px' }}><p style={{ ...tx(10, 600, muted), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 8 }}>{t('life.trips.detail.duration')}</p><p style={{ ...tx(28, 600), lineHeight: 1 }}>{duration}<span style={{ ...tx(14, 400, muted) }}> days</span></p></Card>
-              <Card style={{ padding: '18px 20px' }}><p style={{ ...tx(10, 600, muted), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 8 }}>{t('life.trips.detail.travelersLabel')}</p><p style={{ ...tx(28, 600), lineHeight: 1 }}>{trip.travelers}<span style={{ ...tx(14, 400, muted) }}> pax</span></p></Card>
-              <Card style={{ padding: '18px 20px' }}><p style={{ ...tx(10, 600, muted), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 8 }}>{t('life.trips.detail.budget')}</p><p style={{ ...tx(22, 600), lineHeight: 1 }}>{fmtUSD(trip.budgetPlanned)}</p><p style={{ ...tx(10, 400, muted), marginTop: 8 }}>{fmtUSD(estimated)} estimated</p></Card>
-              <Card style={{ padding: '18px 20px' }}><p style={{ ...tx(10, 600, muted), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 8 }}>{t('life.trips.checklist')}</p><p style={{ ...tx(22, 600), lineHeight: 1 }}>{progress.done}<span style={{ ...tx(14, 400, muted) }}>/ {progress.total}</span></p><div style={{ marginTop: 10, height: 4, borderRadius: 999, overflow: 'hidden', background: 'color-mix(in srgb, var(--text-primary) 8%, transparent)' }}><div style={{ height: '100%', width: `${percent}%`, background: 'var(--text-primary)' }} /></div></Card>
+              <Card style={{ padding: '18px 20px' }}><p style={{ ...tx(10, 600, muted), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase', marginBottom: 8 }}>{t('life.trips.detail.duration')}</p><p style={{ ...tx(28, 600), lineHeight: 1 }}>{duration}<span style={{ ...tx(14, 400, muted) }}> days</span></p></Card>
+              <Card style={{ padding: '18px 20px' }}><p style={{ ...tx(10, 600, muted), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase', marginBottom: 8 }}>{t('life.trips.detail.travelersLabel')}</p><p style={{ ...tx(28, 600), lineHeight: 1 }}>{trip.travelers}<span style={{ ...tx(14, 400, muted) }}> pax</span></p></Card>
+              <Card style={{ padding: '18px 20px' }}><p style={{ ...tx(10, 600, muted), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase', marginBottom: 8 }}>{t('life.trips.detail.budget')}</p><p style={{ ...tx(22, 600), lineHeight: 1 }}>{fmtUSD(trip.budgetPlanned)}</p><p style={{ ...tx(10, 400, muted), marginTop: 8 }}>{fmtUSD(estimated)} estimated</p></Card>
+              <Card style={{ padding: '18px 20px' }}><p style={{ ...tx(10, 600, muted), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase', marginBottom: 8 }}>{t('life.trips.checklist')}</p><p style={{ ...tx(22, 600), lineHeight: 1 }}>{progress.done}<span style={{ ...tx(14, 400, muted) }}>/ {progress.total}</span></p><div style={{ marginTop: 10, height: 4, borderRadius: 999, overflow: 'hidden', background: 'color-mix(in srgb, var(--text-primary) 8%, transparent)' }}><div style={{ height: '100%', width: `${percent}%`, background: 'var(--text-primary)' }} /></div></Card>
             </div>
 
             <Card style={{ padding: '20px 22px', display: 'grid', gap: 16 }}>
@@ -727,12 +727,12 @@ const TripDetailPage = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 }}>
               {([
                 [t('life.trips.detail.planned'), trip.budgetPlanned, ink],
-                [t('life.trips.detail.estimated'), estimated, '#2E6EA6'],
-                [t('life.trips.detail.actual'), actual, '#3D7A4E'],
-                [t('life.trips.detail.remaining'), trip.budgetPlanned - actual, trip.budgetPlanned - actual >= 0 ? ink : '#C05050'],
+                [t('life.trips.detail.estimated'), estimated, 'var(--ink-2)'],
+                [t('life.trips.detail.actual'), actual, ink],
+                [t('life.trips.detail.remaining'), trip.budgetPlanned - actual, trip.budgetPlanned - actual >= 0 ? ink : 'var(--tone-urgent)'],
               ] as Array<[string, number, string]>).map(([label, value, color]) => (
                 <Card key={String(label)} style={{ padding: '16px 18px' }}>
-                  <p style={{ ...tx(10, 600, muted), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 6 }}>{label}</p>
+                  <p style={{ ...tx(10, 600, muted), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase', marginBottom: 6 }}>{label}</p>
                   <p style={{ ...tx(22, 600, color), lineHeight: 1 }}>${Math.round(splitBudget(value, budgetSplit, trip.travelers, splitDays)).toLocaleString()}</p>
                 </Card>
               ))}
@@ -759,17 +759,17 @@ const TripDetailPage = () => {
                   <div style={{ display: 'grid', gap: 6 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                       <span style={tx(11, 500, muted)}>{t('life.trips.detail.balance')}</span>
-                      <span style={tx(12, 600, breakdown.overrun ? '#C05050' : '#3D7A4E')}>
+                      <span style={tx(12, 600, breakdown.overrun ? 'var(--tone-urgent)' : 'var(--tone-done)')}>
                         {breakdown.overrun
                           ? t('life.trips.detail.over', { count: Math.round(splitBudget(breakdown.actual - breakdown.planned, budgetSplit, trip.travelers, splitDays)) })
                           : `$${Math.round(splitBudget(breakdown.remaining, budgetSplit, trip.travelers, splitDays)).toLocaleString()} ${t('life.trips.detail.left')}`}
                       </span>
                     </div>
                     <div style={{ height: 8, borderRadius: 999, overflow: 'hidden', background: 'color-mix(in srgb, var(--text-primary) 8%, transparent)' }}>
-                      <div style={{ width: `${Math.min(100, breakdown.percent)}%`, height: '100%', background: breakdown.overrun ? '#C05050' : '#5B8C5A', transition: 'width 0.4s ease' }} />
+                      <div style={{ width: `${Math.min(100, breakdown.percent)}%`, height: '100%', background: breakdown.overrun ? 'var(--tone-urgent)' : 'var(--ink-2)', transition: 'width 0.4s ease' }} />
                     </div>
                     {breakdown.overrun ? (
-                      <p style={tx(11, 500, '#C05050')}>⚠️ {t('life.trips.detail.overrunWarn', { count: breakdown.percent })}</p>
+                      <p style={tx(11, 500, 'var(--tone-urgent)')}>⚠️ {t('life.trips.detail.overrunWarn', { count: breakdown.percent })}</p>
                     ) : null}
                   </div>
                 </div>
@@ -814,7 +814,7 @@ const TripDetailPage = () => {
                               onMouseEnter={(e) => { e.currentTarget.style.background = 'color-mix(in srgb, var(--text-primary) 5%, transparent)' }}
                               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
                             >
-                              <span style={{ fontSize: 16 }}>{tpl.emoji}</span>
+                              <span style={{ fontSize: 'var(--fs-section)' }}>{tpl.emoji}</span>
                               <span style={{ flex: 1 }}>{tpl.label}</span>
                               <span style={tx(10, 400, muted)}>{tpl.items.length}</span>
                             </button>
@@ -828,13 +828,13 @@ const TripDetailPage = () => {
               }
             />
             <Card style={{ padding: '18px 22px', display: 'flex', alignItems: 'center', gap: 22 }}>
-              <ProgressRing percent={percent} size={68} thickness={8} color={percent === 100 ? '#3D7A4E' : ink} />
+              <ProgressRing percent={percent} size={68} thickness={8} color={percent === 100 ? 'var(--tone-done)' : ink} />
               <div style={{ flex: 1, display: 'grid', gap: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
                   <p style={tx(12, 400, muted)}>{t('life.trips.detail.overallProgress')}</p>
                   <p style={tx(12, 600)}>{t('life.trips.detail.packedCount', { done: progress.done, total: progress.total })}</p>
                 </div>
-                <div style={{ height: 6, borderRadius: 999, overflow: 'hidden', background: 'color-mix(in srgb, var(--text-primary) 8%, transparent)' }}><div style={{ width: `${percent}%`, height: '100%', background: percent === 100 ? '#6EAB7A' : 'var(--text-primary)', transition: 'width 0.4s ease' }} /></div>
+                <div style={{ height: 6, borderRadius: 999, overflow: 'hidden', background: 'color-mix(in srgb, var(--text-primary) 8%, transparent)' }}><div style={{ width: `${percent}%`, height: '100%', background: percent === 100 ? 'var(--tone-done)' : 'var(--text-primary)', transition: 'width 0.4s ease' }} /></div>
               </div>
             </Card>
             {trip.checklist.map((group) => {
@@ -845,7 +845,7 @@ const TripDetailPage = () => {
                   <div style={{ display: 'grid', gridTemplateColumns: '72px 1fr auto auto', gap: 12, alignItems: 'center' }}>
                     <input value={group.emoji} onChange={(e) => patchG({ emoji: e.target.value })} style={inputStyle} />
                     <input value={group.label} onChange={(e) => patchG({ label: e.target.value })} style={inputStyle} />
-                    <span style={{ ...tx(10, 500, groupDone === group.items.length ? '#3D7A4E' : muted), background: groupDone === group.items.length ? 'rgba(110,171,122,0.12)' : 'color-mix(in srgb, var(--text-primary) 6%, transparent)', borderRadius: 999, padding: '4px 8px' }}>{groupDone}/{group.items.length}</span>
+                    <span style={{ ...tx(10, 500, groupDone === group.items.length ? 'var(--tone-done)' : muted), background: groupDone === group.items.length ? 'var(--tone-done-wash)' : 'color-mix(in srgb, var(--text-primary) 6%, transparent)', borderRadius: 999, padding: '4px 8px' }}>{groupDone}/{group.items.length}</span>
                     <ActionButton danger onClick={() => updateChecklist(removeFrom(trip.checklist, group.id))}><Trash2 size={14} /> {t('life.trips.detail.remove')}</ActionButton>
                   </div>
                   {group.items.map((item) => (

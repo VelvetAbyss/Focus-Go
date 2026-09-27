@@ -43,6 +43,16 @@ type HabitsMessages = {
   formSubmitCreate: string
   formSubmitSave: string
   formValidationName: string
+  eyebrow: string
+  statsTodayLabel: string
+  statsTodaySub: string
+  statsActiveLabel: string
+  statsActiveSub: string
+  statsStreakLabel: string
+  statsStreakUnit: string
+  statsStreakSub: string
+  statsWeekLabel: string
+  statsWeekSub: string
 }
 
 const messages: Record<HabitsLang, HabitsMessages> = {
@@ -85,6 +95,16 @@ const messages: Record<HabitsLang, HabitsMessages> = {
     formSubmitCreate: 'Add Habit',
     formSubmitSave: 'Save Habit',
     formValidationName: 'Habit name is required.',
+    eyebrow: 'Habit system',
+    statsTodayLabel: "Today's progress",
+    statsTodaySub: 'habits completed',
+    statsActiveLabel: 'Active habits',
+    statsActiveSub: 'currently tracking',
+    statsStreakLabel: 'Longest streak',
+    statsStreakUnit: ' d',
+    statsStreakSub: 'current best run',
+    statsWeekLabel: 'This week',
+    statsWeekSub: 'check-ins',
   },
   zh: {
     title: '习惯追踪器',
@@ -125,6 +145,16 @@ const messages: Record<HabitsLang, HabitsMessages> = {
     formSubmitCreate: '添加习惯',
     formSubmitSave: '保存习惯',
     formValidationName: '请输入习惯名称。',
+    eyebrow: '习惯系统',
+    statsTodayLabel: '今日进度',
+    statsTodaySub: '习惯已完成',
+    statsActiveLabel: '活跃习惯',
+    statsActiveSub: '正在追踪',
+    statsStreakLabel: '最长连续',
+    statsStreakUnit: ' 天',
+    statsStreakSub: '当前最佳连击',
+    statsWeekLabel: '本周打卡',
+    statsWeekSub: '次完成',
   },
 }
 

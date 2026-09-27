@@ -174,7 +174,7 @@ const LocationPicker = ({
           <Loader2 size={12} /> Searching…
         </div>
       ) : null}
-      {error ? <div style={{ ...tx(11, 500, '#C05050') }}>{error}</div> : null}
+      {error ? <div style={{ ...tx(11, 500, 'var(--tone-urgent)') }}>{error}</div> : null}
       {!loading && !error && results.length === 0 && query.trim().length >= 2 ? (
         <div style={{ ...tx(11, 500, muted) }}>No results.</div>
       ) : null}
@@ -246,7 +246,7 @@ const SortableItemRow = ({
   const pinned = item.geo?.lat != null && item.geo?.lng != null
   return (
     <div ref={setNodeRef} style={style}>
-      <PaperCard style={{ padding: 14, borderColor: conflicting ? 'rgba(192,80,80,0.45)' : subtleBorder, boxShadow: conflicting ? '0 0 0 1px rgba(192,80,80,0.18)' : undefined }}>
+      <PaperCard style={{ padding: 14, borderColor: conflicting ? 'color-mix(in srgb, var(--tone-urgent) 45%, transparent)' : subtleBorder, boxShadow: conflicting ? '0 0 0 1px color-mix(in srgb, var(--tone-urgent) 18%, transparent)' : undefined }}>
         <div style={{ display: 'grid', gap: 10 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'auto 1.4fr 92px 92px 120px auto', gap: 10, alignItems: 'center' }}>
             <button
@@ -271,7 +271,7 @@ const SortableItemRow = ({
               aria-label="Pick location on map"
               onClick={() => setPickerOpen((v) => !v)}
               style={{
-                ...tx(11, 600, pinned ? '#5B8C5A' : ink),
+                ...tx(11, 600, pinned ? 'var(--accent)' : ink),
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
@@ -305,7 +305,7 @@ const SortableItemRow = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ ...tx(10, 600, badge.text), background: badge.bg, borderRadius: 999, padding: '4px 8px', textTransform: 'capitalize', letterSpacing: '0.05em' }}>{item.type}</span>
             {conflicting ? (
-              <span style={{ ...tx(10, 600, '#C05050'), display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(192,80,80,0.08)', borderRadius: 999, padding: '4px 8px' }}>
+              <span style={{ ...tx(10, 600, 'var(--tone-urgent)'), display: 'inline-flex', alignItems: 'center', gap: 4, background: 'var(--tone-urgent-wash)', borderRadius: 999, padding: '4px 8px' }}>
                 <AlertTriangle size={11} /> overlaps another activity
               </span>
             ) : null}
@@ -323,8 +323,8 @@ const SortableItemRow = ({
 
 const GapPill = ({ severity, gapMin }: { severity: 'tight' | 'large'; gapMin: number }) => {
   const tone = severity === 'tight'
-    ? { fg: '#A65B2E', bg: 'rgba(166,91,46,0.10)', label: 'Tight transfer' }
-    : { fg: '#5C6B8A', bg: 'rgba(92,107,138,0.10)', label: 'Long break — add lunch?' }
+    ? { fg: 'var(--tone-warn)', bg: 'var(--tone-warn-wash)', label: 'Tight transfer' }
+    : { fg: 'var(--tone-info)', bg: 'var(--tone-info-wash)', label: 'Long break — add lunch?' }
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 999, background: tone.bg, alignSelf: 'center', justifySelf: 'center' }}>
       <Clock size={12} color={tone.fg} />
@@ -359,7 +359,7 @@ const TimelineBlocks = ({ day, conflictIds, onPatch }: { day: TripItineraryDay; 
               padding: 8,
               borderRadius: 10,
               background: badge.bg,
-              border: `1px solid ${conflict ? 'rgba(192,80,80,0.45)' : subtleBorder}`,
+              border: `1px solid ${conflict ? 'color-mix(in srgb, var(--tone-urgent) 45%, transparent)' : subtleBorder}`,
               boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)',
               overflow: 'hidden',
               cursor: 'pointer',
@@ -372,7 +372,7 @@ const TimelineBlocks = ({ day, conflictIds, onPatch }: { day: TripItineraryDay; 
               <span style={{ ...tx(10, 500, badge.text), whiteSpace: 'nowrap' }}>{minutesToHHMM(start)} – {minutesToHHMM(end)}</span>
             </div>
             {item.location ? <p style={{ ...tx(11, 400, muted), marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.location}</p> : null}
-            {conflict ? <span style={{ ...tx(10, 600, '#C05050') }}>⚠ overlap</span> : null}
+            {conflict ? <span style={{ ...tx(10, 600, 'var(--tone-urgent)') }}>⚠ overlap</span> : null}
           </div>
         )
       })}
@@ -389,11 +389,11 @@ const WeatherChip = ({ weather }: { weather: WeatherDay }) => (
       gap: 4,
       padding: '2px 8px',
       borderRadius: 999,
-      background: 'rgba(124,90,58,0.08)',
-      ...tx(11, 600, '#7C5A3A'),
+      background: 'var(--paper-sunken)',
+      ...tx(11, 600, 'var(--ink-2)'),
     }}
   >
-    <span aria-hidden style={{ fontSize: 13 }}>{weather.icon}</span>
+    <span aria-hidden style={{ fontSize: 'var(--fs-ui)' }}>{weather.icon}</span>
     {weather.tempHigh}°/{weather.tempLow}°
     {weather.source === 'climate' ? <span style={{ ...tx(9, 500, muted), marginLeft: 2 }}>avg</span> : null}
   </span>

@@ -1,24 +1,26 @@
 /* eslint-disable react-refresh/only-export-components */
 import type { CSSProperties, ReactNode } from 'react'
+import { scaleFontSize } from '../../../shared/theme/typeScale'
 
 export const paper = 'var(--bg-elevated)'
 export const ink = 'var(--text-primary)'
 export const cardBg = 'var(--bg-elevated)'
-export const mutedText = 'color-mix(in srgb, var(--text-primary) 45%, transparent)'
+// ≥3:1 on white for the 10–12px secondary copy used across Life cards.
+export const mutedText = 'var(--text-tertiary)'
 export const subtleText = 'color-mix(in srgb, var(--text-primary) 32%, transparent)'
 export const subtleBorder = 'color-mix(in srgb, var(--text-primary) 9%, transparent)'
 export const sectionBorder = 'color-mix(in srgb, var(--text-primary) 7%, transparent)'
 
 export const inter = (size = 13, weight = 400, color = ink): CSSProperties => ({
-  fontFamily: 'Inter, sans-serif',
-  fontSize: size,
+  fontFamily: 'var(--font-body)',
+  fontSize: scaleFontSize(size),
   fontWeight: weight,
   color,
 })
 
 export const playfair = (size = 16, weight = 500, color = ink): CSSProperties => ({
-  fontFamily: '"Playfair Display", serif',
-  fontSize: size,
+  fontFamily: 'var(--font-display)',
+  fontSize: scaleFontSize(size),
   fontWeight: weight,
   color,
 })
@@ -43,7 +45,7 @@ export const cardHeaderStyle: CSSProperties = {
   alignItems: 'flex-start',
   justifyContent: 'space-between',
   gap: 12,
-  padding: '20px 20px 16px',
+  padding: '16px 20px 12px',
   borderBottom: `1px solid ${sectionBorder}`,
 }
 
@@ -54,7 +56,7 @@ export const cardArrowStyle: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  color: 'color-mix(in srgb, var(--text-primary) 40%, transparent)',
+  color: 'var(--text-tertiary)',
   flexShrink: 0,
 }
 
@@ -133,14 +135,14 @@ export const smallButtonStyle: CSSProperties = {
 
 export const dangerButtonStyle: CSSProperties = {
   ...smallButtonStyle,
-  color: '#9D4C4C',
-  border: '1px solid rgba(157,76,76,0.18)',
-  background: 'rgba(157,76,76,0.08)',
+  color: 'var(--tone-urgent)',
+  border: '1px solid color-mix(in srgb, var(--tone-urgent) 18%, transparent)',
+  background: 'var(--tone-urgent-wash)',
 }
 
 export const Field = ({ label, children }: { label: string; children: ReactNode }) => (
   <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-    <span style={{ ...inter(10, 600, mutedText), letterSpacing: '0.08em', textTransform: 'uppercase' }}>{label}</span>
+    <span style={{ ...inter(10, 600, mutedText), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase' }}>{label}</span>
     {children}
   </label>
 )
