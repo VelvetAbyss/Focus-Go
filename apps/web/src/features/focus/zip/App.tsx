@@ -2,30 +2,36 @@ import { lazy, startTransition, Suspense, useState, useEffect, useCallback, useM
 import { FocusTimer } from "./components/FocusTimer";
 import type { FocusSession } from "./components/FocusHistory";
 import { focusRepo } from "../../../data/repositories/focusRepo";
+import { tasksRepo } from "../../../data/repositories/tasksRepo";
+import { useI18n } from "../../../shared/i18n/useI18n";
 
 const FOCUS_TIMER_EVENT = "focus:timer-updated";
 const INITIAL_SESSIONS_LIMIT = 60;
 const WhiteNoise = lazy(() => import("./components/WhiteNoise").then((mod) => ({ default: mod.WhiteNoise })));
 const FocusHistory = lazy(() => import("./components/FocusHistory").then((mod) => ({ default: mod.FocusHistory })));
 
-const getModeLabel = (plannedMinutes: number) => {
-  if (plannedMinutes === 25) return "番茄钟";
-  if (plannedMinutes === 50) return "深度工作";
-  if (plannedMinutes === 15) return "冲刺";
-  if (plannedMinutes === 90) return "心流";
+type Translate = ReturnType<typeof useI18n>["t"];
+
+const getModeLabel = (plannedMinutes: number, t: Translate) => {
+  if (plannedMinutes === 25) return t("focus.mode.pomodoro");
+  if (plannedMinutes === 50) return t("focus.mode.deepWork");
+  if (plannedMinutes === 15) return t("focus.mode.sprint");
+  if (plannedMinutes === 90) return t("focus.mode.flow");
   return undefined;
 };
 
-const toHistorySession = (session: Awaited<ReturnType<typeof focusRepo.listSessions>>[number]): FocusSession => ({
+const toHistorySession = (t: Translate, taskTitleById: Map<string, string>) => (session: Awaited<ReturnType<typeof focusRepo.listSessions>>[number]): FocusSession => ({
   id: session.id,
   startTime: new Date(session.createdAt),
   endTime: new Date(session.completedAt ?? session.updatedAt),
   status: session.status === "completed" ? "completed" : "abandoned",
   durationMinutes: session.actualMinutes ?? session.plannedMinutes,
-  mode: getModeLabel(session.plannedMinutes),
+  mode: getModeLabel(session.plannedMinutes, t),
+  taskTitle: session.taskId ? taskTitleById.get(session.taskId) : undefined,
 });
 
 export default function App() {
+  const { t } = useI18n();
   const [sessions, setSessions] = useState<FocusSession[]>([]);
   const [sidePanelsReady, setSidePanelsReady] = useState(false);
   const [isDark, setIsDark] = useState(() =>
@@ -61,15 +67,18 @@ export default function App() {
   const loadSessions = useCallback(async () => {
     try {
       const rows = await focusRepo.listSessions(INITIAL_SESSIONS_LIMIT);
+      const taskTitleById = rows.some((row) => row.taskId)
+        ? new Map((await tasksRepo.list()).map((task) => [task.id, task.title] as const))
+        : new Map<string, string>();
       startTransition(() => {
-        setSessions(rows.map(toHistorySession));
+        setSessions(rows.map(toHistorySession(t, taskTitleById)));
       });
     } catch {
       startTransition(() => {
         setSessions([]);
       });
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void loadSessions();
@@ -96,66 +105,25 @@ export default function App() {
     };
   }, [sessions]);
 
-  const shellGradient = isDark
-    ? `
-      radial-gradient(ellipse 120% 80% at 20% 10%, rgba(110, 138, 132, 0.18) 0%, transparent 60%),
-      radial-gradient(ellipse 100% 70% at 80% 90%, rgba(76, 98, 112, 0.2) 0%, transparent 55%),
-      radial-gradient(ellipse 80% 60% at 50% 50%, rgba(92, 88, 82, 0.14) 0%, transparent 50%),
-      linear-gradient(175deg, #1f2328 0%, #232932 36%, #242924 68%, #1e211e 100%)
-    `
-    : `
-      radial-gradient(ellipse 120% 80% at 20% 10%, rgba(210, 208, 200, 0.25) 0%, transparent 60%),
-      radial-gradient(ellipse 100% 70% at 80% 90%, rgba(195, 205, 200, 0.2) 0%, transparent 55%),
-      radial-gradient(ellipse 80% 60% at 50% 50%, rgba(220, 218, 212, 0.15) 0%, transparent 50%),
-      linear-gradient(175deg, #f7f6f3 0%, #f3f2ee 35%, #efeeea 65%, #f0efeb 100%)
-    `;
-  const panelBackground = isDark ? "rgba(23, 29, 35, 0.62)" : "rgba(255, 255, 255, 0.55)";
-  const panelBackgroundStrong = isDark ? "rgba(26, 32, 38, 0.72)" : "rgba(255, 255, 255, 0.45)";
+  // Panels follow the dashboard card language: theme surface + hairline
+  // border, slightly translucent so the ambient-scene glass still reads.
+  const panelBackground = "color-mix(in srgb, var(--bg-elevated) 92%, transparent)";
+  const panelBackgroundStrong = "color-mix(in srgb, var(--bg-elevated) 96%, transparent)";
   const shellShadow = isDark
-    ? "0 18px 56px rgba(0, 0, 0, 0.28), 0 1px 4px rgba(0, 0, 0, 0.2)"
-    : "0 4px 32px rgba(58, 55, 51, 0.03), 0 1px 4px rgba(58, 55, 51, 0.02)";
+    ? "0 18px 44px rgba(0, 0, 0, 0.22), 0 1px 4px rgba(0, 0, 0, 0.18)"
+    : "0 4px 32px rgba(58, 55, 51, 0.05), 0 1px 4px rgba(58, 55, 51, 0.04)";
   const panelFallback = (
     <div
       className="h-full rounded-2xl"
       style={{
-        background: isDark ? "rgba(23, 29, 35, 0.26)" : "rgba(245, 243, 240, 0.72)",
+        background: "color-mix(in srgb, var(--bg-elevated) 92%, transparent)",
       }}
     />
   );
 
   return (
-    <div className={`focus-zip-app w-full h-screen overflow-hidden relative ${isDark ? "is-dark" : ""}`} style={{ fontFamily: "'Inter', sans-serif" }}>
-      {/* Ambient misty background */}
-      <div className="absolute inset-0 -z-10">
-        <div
-          className="absolute inset-0"
-          style={{
-            background: shellGradient,
-          }}
-        />
-        {/* Subtle floating light spots */}
-        <div
-          className="focus-zip-app__light focus-zip-app__light--left absolute w-[500px] h-[500px] rounded-full"
-          style={{
-            top: "10%",
-            left: "15%",
-            background: isDark ? "radial-gradient(circle, rgba(110,138,132,0.14) 0%, transparent 70%)" : "radial-gradient(circle, rgba(200,198,190,0.12) 0%, transparent 70%)",
-            filter: "blur(40px)",
-            opacity: 1,
-          }}
-        />
-        <div
-          className="focus-zip-app__light focus-zip-app__light--right absolute w-[400px] h-[400px] rounded-full"
-          style={{
-            bottom: "5%",
-            right: "10%",
-            background: isDark ? "radial-gradient(circle, rgba(88,108,124,0.14) 0%, transparent 70%)" : "radial-gradient(circle, rgba(190,200,195,0.1) 0%, transparent 70%)",
-            filter: "blur(40px)",
-            opacity: 1,
-          }}
-        />
-      </div>
-
+    <div className={`focus-zip-app w-full h-screen overflow-hidden relative ${isDark ? "is-dark" : ""}`} style={{ fontFamily: 'var(--font-body)' }}>
+      {/* Paper & Ink: the page sits on the shell's sheet; no decorative light spots. */}
       {/* Main 3-column layout */}
       <div className="h-full pt-6 pb-6 px-6 flex gap-5">
         {/* Left Column - White Noise */}
@@ -186,15 +154,6 @@ export default function App() {
               boxShadow: shellShadow,
             }}
           >
-            {/* Subtle inner ambient glow */}
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background: isDark
-                  ? "radial-gradient(ellipse 60% 50% at 50% 45%, rgba(126,219,199,0.1) 0%, transparent 70%)"
-                  : "radial-gradient(ellipse 60% 50% at 50% 45%, rgba(245,243,237,0.6) 0%, transparent 70%)",
-              }}
-            />
             <FocusTimer
               todayMinutes={todayStats.minutes}
               todaySessions={todayStats.sessions}

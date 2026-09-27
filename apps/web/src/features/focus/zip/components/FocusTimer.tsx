@@ -17,11 +17,15 @@ import {
   Infinity as InfinityIcon,
   Target,
   Keyboard,
+  X,
 } from "lucide-react";
 import { useI18n } from "../../../../shared/i18n/useI18n";
 import { useSharedFocusTimer } from "../../useSharedFocusTimer";
 import { useVisibleInterval } from "../../../../shared/hooks/usePageActivity";
 import { useAuthGate } from "../../../auth/AuthGateContext";
+import { usePreferences } from "../../../../shared/prefs/usePreferences";
+import { setFocusTaskId, useFocusTask } from "../../focusTask";
+import { DURATION, EASE } from '../../../../shared/motion/tokens'
 
 type TimerStatus = "idle" | "running" | "paused" | "completed";
 
@@ -32,7 +36,6 @@ interface FocusMode {
   description: string;
   descriptionKey: string;
   duration: number;
-  color: string;
   icon: React.ReactNode;
 }
 
@@ -45,7 +48,6 @@ const focusModes: FocusMode[] = [
     icon: <Timer size={14} />,
     description: "Classic 25-minute sprint",
     descriptionKey: "focus.pomodoroDesc",
-    color: "#C4A882",
   },
   {
     id: "deep",
@@ -55,7 +57,6 @@ const focusModes: FocusMode[] = [
     icon: <Brain size={14} />,
     description: "Extended deep focus",
     descriptionKey: "focus.deepWorkDesc",
-    color: "#8BA4B8",
   },
   {
     id: "sprint",
@@ -65,7 +66,6 @@ const focusModes: FocusMode[] = [
     icon: <Rocket size={14} />,
     description: "Quick 15-minute burst",
     descriptionKey: "focus.sprintDesc",
-    color: "#D4956A",
   },
   {
     id: "flow",
@@ -75,7 +75,6 @@ const focusModes: FocusMode[] = [
     icon: <InfinityIcon size={14} />,
     description: "Long flow state",
     descriptionKey: "focus.flowDesc",
-    color: "#8BA88A",
   },
 ];
 
@@ -86,6 +85,16 @@ const quotes = [
   { text: "Do what you can, with what you have, where you are.", author: "Theodore Roosevelt" },
   { text: "Simplicity is the ultimate sophistication.", author: "Leonardo da Vinci" },
   { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+];
+
+// Same count as `quotes` so the rotating index works for either language.
+const quotesZh = [
+  { text: "不积跬步，无以至千里。", author: "《荀子》" },
+  { text: "锲而不舍，金石可镂。", author: "《荀子》" },
+  { text: "业精于勤，荒于嬉。", author: "韩愈" },
+  { text: "非宁静无以致远。", author: "诸葛亮" },
+  { text: "博观而约取，厚积而薄发。", author: "苏轼" },
+  { text: "知之者不如好之者，好之者不如乐之者。", author: "《论语》" },
 ];
 
 function RollingDigit({ digit, prevDigit }: { digit: string; prevDigit: string }) {
@@ -127,7 +136,7 @@ function TimerDisplay({ time }: { time: number }) {
       <div
         className="focus-zip-timer__digits flex items-center tracking-[-0.04em]"
         style={{
-          fontFamily: "'DM Serif Display', serif",
+          fontFamily: 'var(--font-display)',
           fontSize: "clamp(3.8rem, 6.5vw, 6rem)",
           color: "var(--text-primary)",
           lineHeight: 1,
@@ -167,18 +176,17 @@ function DurationPicker({
       initial={{ opacity: 0, y: 8, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 8, scale: 0.97 }}
-      transition={{ duration: 0.2 }}
+      transition={{ duration: DURATION.base }}
       className="absolute top-full left-1/2 -translate-x-1/2 mt-3 z-50"
     >
       <div
         className="rounded-2xl p-5 min-w-[260px]"
         style={{
-          background: "rgba(255,255,255,0.95)",
-          backdropFilter: "blur(20px)",
+          background: "var(--paper-raised)",
           boxShadow: "0 8px 40px color-mix(in srgb, var(--text-primary) 6%, transparent), 0 1px 3px color-mix(in srgb, var(--text-primary) 4%, transparent)",
         }}
       >
-        <p className="text-[0.68rem] text-[var(--text-secondary)] uppercase tracking-[0.08em] mb-3">
+        <p className="text-meta text-[var(--text-secondary)] uppercase tracking-[var(--tracking-caps)] mb-3">
           {customDurationLabel}
         </p>
         <div className="flex items-center justify-center gap-3 mb-4">
@@ -192,11 +200,11 @@ function DurationPicker({
           </motion.button>
           <span
             className="text-[1.8rem] tabular-nums"
-            style={{ fontFamily: "'DM Serif Display', serif", color: "var(--text-primary)" }}
+            style={{ fontFamily: 'var(--font-display)', color: "var(--text-primary)" }}
           >
             {value}
           </span>
-          <span className="text-[0.75rem] text-[var(--text-secondary)] -ml-1">{minLabel}</span>
+          <span className="text-label text-[var(--text-secondary)] -ml-1">{minLabel}</span>
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={() => onChange(Math.min(120, value + 5))}
@@ -215,10 +223,10 @@ function DurationPicker({
                 onChange(p);
                 onClose();
               }}
-              className="px-3 py-1.5 rounded-lg text-[0.72rem] transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-lg text-label transition-colors cursor-pointer"
               style={{
-                background: p === value ? "rgba(138,132,120,0.12)" : "color-mix(in srgb, var(--text-primary) 3%, transparent)",
-                color: p === value ? "var(--text-primary)" : "var(--text-secondary)",
+                background: p === value ? "var(--accent-wash)" : "color-mix(in srgb, var(--text-primary) 3%, transparent)",
+                color: p === value ? "var(--accent)" : "var(--text-secondary)",
               }}
             >
               {p}{minLabel}
@@ -274,7 +282,7 @@ function BreathingGuide({ onComplete, phaseLabels }: { onComplete: () => void; p
       exit={{ opacity: 0 }}
       className="absolute inset-0 z-30 flex flex-col items-center justify-center"
       style={{
-        background: "rgba(247,246,243,0.92)",
+        background: "color-mix(in srgb, var(--paper-sheet) 92%, transparent)",
         backdropFilter: "blur(16px)",
       }}
     >
@@ -283,27 +291,27 @@ function BreathingGuide({ onComplete, phaseLabels }: { onComplete: () => void; p
         style={{
           width: 120,
           height: 120,
-          background: "radial-gradient(circle, rgba(139,168,138,0.15) 0%, rgba(139,168,138,0.03) 70%)",
-          border: "1px solid rgba(139,168,138,0.12)",
+          background: "radial-gradient(circle, color-mix(in srgb, var(--accent) 15%, transparent) 0%, color-mix(in srgb, var(--accent) 3%, transparent) 70%)",
+          border: "1px solid color-mix(in srgb, var(--accent) 12%, transparent)",
         }}
         animate={{
           scale: phase === "inhale" ? [1, 1.4] : phase === "hold" ? 1.4 : [1.4, 1],
         }}
         transition={{
           duration: phase === "hold" ? 0.3 : 4,
-          ease: "easeInOut",
+          ease: EASE.inOut,
         }}
       />
       <motion.p
         key={phase}
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-[0.9rem] text-[#7A9A78] tracking-wide"
-        style={{ fontFamily: "'DM Serif Display', serif" }}
+        className="text-body text-tone-done"
+        style={{ fontFamily: 'var(--font-display)' }}
       >
         {phaseLabels[phase]}
       </motion.p>
-      <p className="text-[0.66rem] text-[var(--text-secondary)] mt-3">
+      <p className="text-meta text-[var(--text-secondary)] mt-3">
         {count + 1} / {totalCycles}
       </p>
     </motion.div>
@@ -340,20 +348,20 @@ function DailyGoalRing({
           cy={34}
           r={radius}
           fill="none"
-          stroke="rgba(139,168,138,0.5)"
+          stroke="color-mix(in srgb, var(--accent) 50%, transparent)"
           strokeWidth={3}
           strokeLinecap="round"
           strokeDasharray={circumference}
           initial={{ strokeDashoffset: circumference }}
           animate={{ strokeDashoffset }}
-          transition={{ duration: 1.2, ease: "easeOut" }}
+          transition={{ duration: 1.2, ease: EASE.emphasized }}
         />
       </svg>
       <div className="flex flex-col items-center z-10">
-        <span className="text-[0.85rem] text-[var(--text-primary)] tabular-nums" style={{ fontFamily: "'DM Serif Display', serif" }}>
+        <span className="text-ui text-[var(--text-primary)] tabular-nums" style={{ fontFamily: 'var(--font-display)' }}>
           {completedMinutes}
         </span>
-        <span className="text-[0.5rem] text-[var(--text-secondary)] -mt-0.5">/ {goalMinutes}{minLabel}</span>
+        <span className="text-meta text-[var(--text-secondary)] -mt-0.5">/ {goalMinutes}{minLabel}</span>
       </div>
     </div>
   );
@@ -368,11 +376,13 @@ export function FocusTimer({
   dailyGoal?: number;
   todaySessions?: number;
 }) {
-  const { t } = useI18n()
+  const { t, language } = useI18n()
   const { requireAuth } = useAuthGate()
   const { state: timerState, start, pause, resume, reset, setDuration } = useSharedFocusTimer({ defaultDurationMinutes: 25 })
   const [selectedMode, setSelectedMode] = useState<FocusMode>(focusModes[0]);
-  const [completionSound, setCompletionSound] = useState(true);
+  // One setting with Settings › 体验 › 专注完成提示音.
+  const { focusCompletionSoundEnabled: completionSound, setFocusCompletionSoundEnabled: setCompletionSound } = usePreferences();
+  const focusTask = useFocusTask();
   const [showDuration, setShowDuration] = useState(false);
   const [showBreathing, setShowBreathing] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -458,7 +468,7 @@ export function FocusTimer({
     completed: t("focus.sessionComplete"),
   };
 
-  const quote = quotes[quoteIndex];
+  const quote = (language === "zh" ? quotesZh : quotes)[quoteIndex];
 
   return (
     <div className="focus-zip-timer h-full flex flex-col items-center justify-center relative overflow-hidden">
@@ -482,10 +492,10 @@ export function FocusTimer({
         <div className="flex items-center gap-3">
           <DailyGoalRing completedMinutes={todayMinutes} goalMinutes={dailyGoal} minLabel={t("focus.minUnit")} />
           <div>
-            <p className="text-[0.66rem] text-[var(--text-secondary)] uppercase tracking-[0.06em]">
+            <p className="text-meta text-[var(--text-secondary)] uppercase tracking-[var(--tracking-caps)]">
               {t("focus.dailyGoal")}
             </p>
-            <p className="text-[0.72rem] text-[var(--text-secondary)] mt-0.5">
+            <p className="text-label text-[var(--text-secondary)] mt-0.5">
               {t("focus.sessionsToday", { count: todaySessions })}
             </p>
           </div>
@@ -513,12 +523,11 @@ export function FocusTimer({
                 exit={{ opacity: 0, y: 4, scale: 0.97 }}
                 className="absolute top-full right-0 mt-2 z-50 rounded-xl p-4 min-w-[180px]"
                 style={{
-                  background: "rgba(255,255,255,0.95)",
-                  backdropFilter: "blur(20px)",
+                  background: "var(--paper-raised)",
                   boxShadow: "0 6px 24px color-mix(in srgb, var(--text-primary) 6%, transparent), 0 1px 3px color-mix(in srgb, var(--text-primary) 4%, transparent)",
                 }}
               >
-                <p className="text-[0.62rem] text-[var(--text-secondary)] uppercase tracking-[0.08em] mb-2.5">
+                <p className="text-meta text-[var(--text-secondary)] uppercase tracking-[var(--tracking-caps)] mb-2.5">
                   {t("focus.shortcuts")}
                 </p>
                 {[
@@ -527,9 +536,9 @@ export function FocusTimer({
                   { key: "B", action: t("focus.shortcutBreathe") },
                 ].map((s) => (
                   <div key={s.key} className="flex items-center justify-between py-1">
-                    <span className="text-[0.68rem] text-[var(--text-secondary)]">{s.action}</span>
+                    <span className="text-meta text-[var(--text-secondary)]">{s.action}</span>
                     <span
-                      className="text-[0.6rem] px-1.5 py-0.5 rounded"
+                      className="text-meta px-1.5 py-0.5 rounded"
                       style={{
                         background: "color-mix(in srgb, var(--text-primary) 4%, transparent)",
                         color: "var(--text-secondary)",
@@ -557,20 +566,16 @@ export function FocusTimer({
               disabled={status === "running" || status === "paused"}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl cursor-pointer transition-all"
               style={{
-                background:
-                  selectedMode.id === mode.id
-                    ? `${mode.color}14`
-                    : "color-mix(in srgb, var(--text-primary) 2%, transparent)",
-                border:
-                  selectedMode.id === mode.id
-                    ? `1px solid ${mode.color}25`
-                    : "1px solid transparent",
-                color: selectedMode.id === mode.id ? mode.color : "var(--text-secondary)",
+                // One selection style app-wide (DESIGN.md › Selection): a raised thumb, ink label.
+                background: selectedMode.id === mode.id ? "var(--segmented-thumb)" : "transparent",
+                boxShadow: selectedMode.id === mode.id ? "var(--segmented-thumb-shadow)" : "none",
+                border: "1px solid transparent",
+                color: selectedMode.id === mode.id ? "var(--segmented-fg-active)" : "var(--segmented-fg)",
                 opacity: status === "running" || status === "paused" ? 0.5 : 1,
               }}
             >
               {mode.icon}
-              <span className="text-[0.68rem]">{t(mode.nameKey)}</span>
+              <span className="text-meta">{t(mode.nameKey)}</span>
             </motion.button>
           ))}
         </div>
@@ -583,26 +588,42 @@ export function FocusTimer({
           className="flex items-center gap-2 mb-6"
         >
           {status === "completed" ? (
-            <CheckCircle2 size={13} className="text-[#8BA88A]" />
+            <CheckCircle2 size={13} className="text-tone-done" />
           ) : status === "running" ? (
-            <Zap size={13} className="text-[#C4A882]" />
+            <Zap size={13} className="text-[color:var(--accent)]" />
           ) : (
             <Target size={13} className="text-[var(--text-secondary)]" />
           )}
           <span
-            className="text-[0.74rem] tracking-[0.04em] uppercase"
+            className="text-label tracking-[var(--tracking-caps)] uppercase"
             style={{
               color:
                 status === "completed"
-                  ? "#8BA88A"
+                  ? "var(--tone-done)"
                   : status === "running"
-                  ? "#C4A882"
+                  ? "var(--accent)"
                   : "var(--text-secondary)",
             }}
           >
             {statusLabels[status]}
           </span>
         </motion.div>
+
+        {focusTask ? (
+          <div className="mb-1 mt-2 flex max-w-[360px] items-center gap-1.5 rounded-full bg-[var(--paper-sunken)] py-1 pl-3 pr-1 text-label text-ink-2">
+            <span className="shrink-0 text-ink-3">{t("focus.task.label")}</span>
+            <span className="truncate font-medium text-ink-1">{focusTask.title}</span>
+            <button
+              type="button"
+              className="ml-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-ink-3 hover:bg-[var(--surface-hover)] hover:text-ink-1"
+              aria-label={t("focus.task.clear")}
+              title={t("focus.task.clear")}
+              onClick={() => setFocusTaskId(null)}
+            >
+              <X size={12} />
+            </button>
+          </div>
+        ) : null}
 
         {/* Timer digits */}
         <TimerDisplay time={timeLeft} />
@@ -616,12 +637,10 @@ export function FocusTimer({
             className="h-full rounded-full"
             style={{
               background:
-                status === "completed"
-                  ? "rgba(139,168,138,0.6)"
-                  : `${selectedMode.color}60`,
+                status === "completed" ? "var(--tone-done)" : "var(--accent)",
             }}
             animate={{ width: `${progress * 100}%` }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
+            transition={{ duration: 0.5, ease: EASE.emphasized }}
           />
         </div>
 
@@ -634,17 +653,17 @@ export function FocusTimer({
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => setShowBreathing(true)}
-                className="px-5 py-2.5 rounded-2xl flex items-center gap-2 cursor-pointer"
+                className="px-5 py-2.5 rounded-full flex items-center gap-2 cursor-pointer"
                 style={{
-                  background: "rgba(139,168,138,0.08)",
-                  border: "1px solid rgba(139,168,138,0.12)",
-                  color: "#7A9A78",
+                  background: "var(--cta2-bg)",
+                  border: "1px solid var(--cta2-border)",
+                  color: "var(--cta2-fg)",
                 }}
               >
                 <span className="focus-zip-timer__breathe-icon">
-                  <span className="text-[0.82rem]">○</span>
+                  <span className="text-ui">○</span>
                 </span>
-                <span className="text-[0.78rem]">{t("focus.breathe")}</span>
+                <span className="text-label">{t("focus.breathe")}</span>
               </motion.button>
 
               {/* Start button */}
@@ -652,11 +671,11 @@ export function FocusTimer({
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => void handleStart()}
-                className="px-7 py-2.5 rounded-2xl flex items-center gap-2.5 cursor-pointer"
-                style={{ background: "var(--text-primary)", color: "var(--bg-elevated)" }}
+                className="px-7 py-2.5 rounded-full flex items-center gap-2.5 cursor-pointer"
+                style={{ background: "var(--accent)", color: "var(--accent-ink)" }}
               >
                 <Play size={15} />
-                <span className="text-[0.82rem] tracking-[0.02em]">{t("focus.startFocus")}</span>
+                <span className="text-ui tracking-[0.02em]">{t("focus.startFocus")}</span>
               </motion.button>
             </>
           ) : (
@@ -665,18 +684,18 @@ export function FocusTimer({
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => void (status === "running" ? handlePause() : handleResume())}
-                className="px-6 py-2.5 rounded-2xl flex items-center gap-2 cursor-pointer"
-                style={{ background: "var(--text-primary)", color: "var(--bg-elevated)" }}
+                className="px-6 py-2.5 rounded-full flex items-center gap-2 cursor-pointer"
+                style={{ background: "var(--accent)", color: "var(--accent-ink)" }}
               >
                 {status === "running" ? (
                   <>
                     <Pause size={15} />
-                    <span className="text-[0.82rem]">{t("focus.pause")}</span>
+                    <span className="text-ui">{t("focus.pause")}</span>
                   </>
                 ) : (
                   <>
                     <Play size={15} />
-                    <span className="text-[0.82rem]">{t("focus.resume")}</span>
+                    <span className="text-ui">{t("focus.resume")}</span>
                   </>
                 )}
               </motion.button>
@@ -728,6 +747,8 @@ export function FocusTimer({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setCompletionSound(!completionSound)}
+            aria-label={completionSound ? t("focus.soundOn") : t("focus.soundOff")}
+            aria-pressed={completionSound}
             className="w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer"
             style={{ background: "color-mix(in srgb, var(--text-primary) 4%, transparent)" }}
           >
@@ -747,13 +768,13 @@ export function FocusTimer({
               style={{
                 background:
                   status === "running"
-                    ? selectedMode.color
+                    ? "var(--accent)"
                     : status === "paused"
-                    ? "#D4956A"
+                    ? "var(--tone-warn)"
                     : "color-mix(in srgb, var(--text-primary) 8%, transparent)",
               }}
             />
-            <span className="text-[0.66rem] text-[var(--text-secondary)]">
+            <span className="text-meta text-[var(--text-secondary)]">
               {t(selectedMode.nameKey)} · {duration}{t("focus.minUnit")}
             </span>
           </div>
@@ -763,7 +784,7 @@ export function FocusTimer({
             ) : (
               <BellOff size={10} className="text-[var(--text-secondary)]" />
             )}
-            <span className="text-[0.66rem] text-[var(--text-secondary)]">
+            <span className="text-meta text-[var(--text-secondary)]">
               {completionSound ? t("focus.soundOn") : t("focus.soundOff")}
             </span>
           </div>
@@ -780,12 +801,12 @@ export function FocusTimer({
               transition={{ duration: 0.5 }}
             >
               <p
-                className="text-[0.76rem] text-[var(--text-secondary)] italic"
-                style={{ fontFamily: "'DM Serif Display', serif" }}
+                className="text-label text-[var(--text-secondary)] italic"
+                style={{ fontFamily: 'var(--font-display)' }}
               >
-                "{quote.text}"
+                {language === "zh" ? `“${quote.text}”` : `"${quote.text}"`}
               </p>
-              <p className="text-[0.62rem] text-[var(--text-secondary)] mt-1.5">— {quote.author}</p>
+              <p className="text-meta text-[var(--text-secondary)] mt-1.5">— {quote.author}</p>
             </motion.div>
           </AnimatePresence>
         </div>

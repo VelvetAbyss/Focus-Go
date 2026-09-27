@@ -1,6 +1,7 @@
 import {
   buildInitialCalendarSubscriptions,
   removeAllSystemSubscriptions,
+  removeUnsupportedAccountSubscriptions,
   sortSubscriptions,
   type CalendarSubscription,
 } from './calendar.model'
@@ -17,7 +18,7 @@ export const readStoredSubscriptions = () => {
     if (!raw) return buildInitialCalendarSubscriptions()
     const parsed = JSON.parse(raw) as CalendarSubscription[]
     if (!Array.isArray(parsed) || parsed.length === 0) return buildInitialCalendarSubscriptions()
-    return sortSubscriptions(removeAllSystemSubscriptions(parsed))
+    return sortSubscriptions(removeUnsupportedAccountSubscriptions(removeAllSystemSubscriptions(parsed)))
   } catch {
     return buildInitialCalendarSubscriptions()
   }

@@ -5,6 +5,7 @@ import type { NoiseSettings, NoiseTrackId } from '../../../data/models/types'
 import { NOISE_TRACKS } from '../noise'
 import NoiseSlider from '../NoiseSlider'
 import NoiseVisualizerBars from './NoiseVisualizerBars'
+import { useI18n } from '../../../shared/i18n/useI18n'
 
 export type NoiseControlPanelProps = {
   noise: NoiseSettings
@@ -27,6 +28,7 @@ const NoiseControlPanel = ({
   onPlayBlocked,
   compact = false,
 }: NoiseControlPanelProps) => {
+  const { t } = useI18n()
   const [inlineHint, setInlineHint] = useState<string | null>(null)
   const hintTimerRef = useRef<number | null>(null)
 
@@ -51,7 +53,7 @@ const NoiseControlPanel = ({
         onPlayBlocked()
         return
       }
-      setInlineHint('请至少启用一个音轨')
+      setInlineHint(t('focus.noise.needTrack'))
       if (hintTimerRef.current) {
         window.clearTimeout(hintTimerRef.current)
       }
@@ -67,14 +69,14 @@ const NoiseControlPanel = ({
 
   const playButton = (
     <Button type="button" variant={noise.playing ? 'default' : 'outline'} size="sm" onClick={handleTogglePlay}>
-      {noise.playing ? '暂停' : '播放'}
+      {noise.playing ? t('focus.noise.pause') : t('focus.noise.play')}
     </Button>
   )
 
   return (
     <section className={`focus-noise-panel ${compact ? 'focus-noise-panel--compact' : ''}`}>
       <div className="focus-noise-panel__header">
-        <h4 className="focus-noise-panel__title">白噪音</h4>
+        <h4 className="focus-noise-panel__title">{t('focus.noise.title')}</h4>
         {compact ? playButton : null}
       </div>
 
@@ -85,7 +87,7 @@ const NoiseControlPanel = ({
 
       <div className="focus-noise-track focus-noise-track--master" data-enabled="1">
         <div className="focus-noise-track__top">
-          <p className="focus-noise-track__name">主音量</p>
+          <p className="focus-noise-track__name">{t('focus.noise.master')}</p>
           <span className="focus-noise-track__value">{toPercent(noise.masterVolume)}%</span>
         </div>
         <div className="focus-noise-track__slider">

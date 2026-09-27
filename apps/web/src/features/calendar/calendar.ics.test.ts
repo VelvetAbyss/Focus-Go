@@ -24,19 +24,21 @@ describe('calendar.ics', () => {
     expect(events[1]).toMatchObject({ kind: 'lunar', title: '正月初四' })
   })
 
-  it('falls back to proxy fetch when direct fetch fails', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce({ ok: false, text: async () => '' })
-      .mockResolvedValueOnce({ ok: true, text: async () => sampleIcs })
+  it('falls back to our own API (never a third-party proxy) when direct fetch fails', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: false, text: async () => '' })
+    const viaApi = vi.fn().mockResolvedValueOnce({ ok: true, text: async () => sampleIcs })
 
     const events = await fetchIcsEventsWithFallback(
-      'https://www.shuyz.com/githubfiles/china-holiday-calender/master/holidayCal.ics',
+      'webcal://www.shuyz.com/githubfiles/china-holiday-calender/master/holidayCal.ics',
       'custom-1',
-      fetchMock as unknown as typeof fetch
+      fetchMock as unknown as typeof fetch,
+      viaApi,
     )
 
-    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock.mock.calls[0][0]).toBe('https://www.shuyz.com/githubfiles/china-holiday-calender/master/holidayCal.ics')
+    expect(viaApi).toHaveBeenCalledTimes(1)
+    expect(viaApi.mock.calls[0][0]).toBe('https://www.shuyz.com/githubfiles/china-holiday-calender/master/holidayCal.ics')
     expect(events.length).toBeGreaterThan(0)
   })
 
@@ -55,7 +57,7 @@ describe('calendar.ics', () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, text: async () => 'BEGIN:VCALENDAR\nEND:VCALENDAR' })
 
     await expect(
-      fetchIcsEventsWithFallback('https://example.com/empty.ics', 'custom-2', fetchMock as unknown as typeof fetch)
+      fetchIcsEventsWithFallback('https://example.com/empty.ics', 'custom-2', fetchMock as unknown as typeof fetch, fetchMock)
     ).rejects.toThrow('No events found in ICS feed')
   })
 })
