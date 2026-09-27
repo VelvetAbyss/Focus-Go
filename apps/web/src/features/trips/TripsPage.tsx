@@ -39,6 +39,9 @@ import AuthInteractionGate from '../auth/AuthInteractionGate'
 import { TripsTimelineView } from './views/TripsTimelineView'
 import { TripsCalendarView } from './views/TripsCalendarView'
 import { TripsAtlasView } from './views/TripsAtlasView'
+import ActiveIndicator from '../../shared/motion/ActiveIndicator'
+import { SELECTED_TAB } from '../../shared/motion/indicatorSelectors'
+import './trips.css'
 
 type ViewMode = 'grid' | 'timeline' | 'calendar' | 'atlas'
 type FilterKey = 'all' | 'planning' | 'booked' | 'ongoing' | 'done'
@@ -194,6 +197,7 @@ const TripsPage = () => {
             </div>
             <div className="trips-journal__header-actions">
               <div className="trips-journal__view-switch" role="tablist" aria-label={t('life.trips.title')}>
+                <ActiveIndicator selector={SELECTED_TAB} />
                 <button
                   type="button"
                   role="tab"

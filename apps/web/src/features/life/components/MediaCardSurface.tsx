@@ -7,7 +7,7 @@ import type { MediaItem } from '../../../data/models/types'
 import type { MediaPresentationModel } from '../cards/lifeDesignAdapters'
 import ProgressTrack from '../ProgressTrack'
 import { detailPaneStyle, iconButtonStyle, inputStyle, inter, LifeCardLoader, LifePanelLoader, modalHeaderStyle, modalLayoutStyle, mutedText, playfair, sectionBorder, sidebarStyle, smallButtonStyle, subtleBorder, textareaStyle } from './lifeDesignPrimitives'
-import { useLifeI18n } from '../lifeI18n'
+import { useLifeI18n, type LifeTranslate } from '../lifeI18n'
 
 type SearchMedia = {
   id: string
@@ -44,16 +44,18 @@ type Props = {
 }
 
 const statusTone = {
-  'want-to-watch': { label: 'Want to Watch', color: '#9C9288', bg: 'color-mix(in srgb, var(--bg-elevated) 76%, transparent)', border: 'color-mix(in srgb, var(--text-primary) 10%, transparent)' },
-  watching: { label: 'Watching', color: '#9C9288', bg: 'color-mix(in srgb, var(--bg-elevated) 76%, transparent)', border: 'color-mix(in srgb, var(--text-primary) 10%, transparent)' },
-  completed: { label: 'Finished', color: '#5A7A62', bg: 'rgba(90,122,98,0.12)', border: 'rgba(90,122,98,0.16)' },
+  'want-to-watch': { label: 'Want to Watch', color: 'var(--ink-3)', bg: 'color-mix(in srgb, var(--bg-elevated) 76%, transparent)', border: 'color-mix(in srgb, var(--text-primary) 10%, transparent)' },
+  watching: { label: 'Watching', color: 'var(--ink-3)', bg: 'color-mix(in srgb, var(--bg-elevated) 76%, transparent)', border: 'color-mix(in srgb, var(--text-primary) 10%, transparent)' },
+  completed: { label: 'Finished', color: 'var(--tone-done)', bg: 'var(--tone-done-wash)', border: 'color-mix(in srgb, var(--tone-done) 16%, transparent)' },
 } as const
 
-const mediaTypeLabel = (value: MediaItem['mediaType']) => (value === 'tv' ? 'TV' : 'MOVIE')
+const mediaTypeLabel = (value: MediaItem['mediaType'], t: LifeTranslate) =>
+  (value === 'tv' ? t('life.media.typeTv') : t('life.media.typeMovie')).toUpperCase()
 const yearLabel = (value?: string) => value?.slice(0, 4) ?? 'TBA'
 const formatStatusCount = (items: MediaItem[], status: MediaItem['status']) => items.filter((item) => item.status === status).length
-const statusDot = (status: MediaItem['status']) => (status === 'completed' ? '#7E9A84' : status === 'watching' ? '#9587BE' : '#9B948C')
-const itemTypeLine = (item: MediaItem) => `${yearLabel(item.releaseDate)} · ${item.genres[0] ?? (item.mediaType === 'tv' ? 'Series' : 'Movie')}`
+const statusDot = (status: MediaItem['status']) => (status === 'completed' ? 'var(--tone-done)' : status === 'watching' ? 'var(--tone-warn)' : 'var(--ink-4)')
+const itemTypeLine = (item: MediaItem, t: LifeTranslate) =>
+  `${yearLabel(item.releaseDate)} · ${item.genres[0] ?? (item.mediaType === 'tv' ? t('life.media.typeSeries') : t('life.media.typeMovie'))}`
 const itemMetaLine = (item: MediaItem) =>
   [item.director ? `Dir. ${item.director}` : item.creator ? `Dir. ${item.creator}` : null, yearLabel(item.releaseDate), item.duration].filter(Boolean).join(' · ')
 const ratingLine = (item: MediaItem) => [item.rating ? `${item.rating} / 10` : null, item.country, item.language].filter(Boolean).join(' ')
@@ -61,7 +63,7 @@ const noteValue = (item: MediaItem) => item.reflection ?? ''
 const synopsisValue = (item: MediaItem) => item.overview ?? ''
 const titleCountLabel = (count: number) => `${count} title${count === 1 ? '' : 's'}`
 const chipStyle = (active: boolean) => ({
-  ...inter(11, active ? 600 : 400, active ? 'var(--text-primary)' : 'color-mix(in srgb, var(--text-primary) 40%, transparent)'),
+  ...inter(11, active ? 600 : 400, active ? 'var(--text-primary)' : 'var(--text-tertiary)'),
   borderRadius: 999,
   padding: '6px 10px',
   background: active ? 'color-mix(in srgb, var(--text-primary) 8%, transparent)' : 'transparent',
@@ -137,21 +139,21 @@ export const MediaCardSurface = ({
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
             <Film size={14} color="color-mix(in srgb, var(--text-primary) 40%, transparent)" />
-            <span style={{ ...inter(10, 600, 'color-mix(in srgb, var(--text-primary) 40%, transparent)'), letterSpacing: '0.10em', textTransform: 'uppercase' }}>{model.header.eyebrow}</span>
+            <span style={{ ...inter(10, 600, 'var(--text-tertiary)'), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase' }}>{model.header.eyebrow}</span>
           </div>
           <h3 style={{ ...playfair(18, 500), lineHeight: 1.2 }}>{model.header.title}</h3>
         </div>
-        <div style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 999, color: 'color-mix(in srgb, var(--text-primary) 40%, transparent)' }}>
+        <div style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 999, color: 'var(--text-tertiary)' }}>
           <ChevronRight size={15} />
         </div>
       </div>
 
-      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', padding: '0 20px' }}>
+      <div className="life-card-empty-host" style={{ flex: 1, minHeight: 0, overflow: 'hidden', padding: '0 20px' }}>
         {loading ? (
           <LifeCardLoader />
         ) : model.previewRows.length === 0 ? (
-          <div style={{ display: 'flex', minHeight: 172, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 16px', textAlign: 'center' }}>
-            <div style={{ width: 48, height: 48, marginBottom: 16, borderRadius: 999, background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="life-card-empty" style={{ display: 'flex', height: '100%', minHeight: 0, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '12px 16px', textAlign: 'center' }}>
+            <div className="life-card-empty__icon" style={{ width: 48, height: 48, marginBottom: 16, borderRadius: 999, background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Film size={20} color="color-mix(in srgb, var(--text-primary) 35%, transparent)" />
             </div>
             <p style={{ ...playfair(14, 500), marginBottom: 6 }}>{t('life.media.emptyTitle')}</p>
@@ -170,7 +172,7 @@ export const MediaCardSurface = ({
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ ...playfair(13, 500), marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.title}</p>
-                    <p style={{ ...inter(11, 400, 'color-mix(in srgb, var(--text-primary) 50%, transparent)'), marginBottom: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.metaLine}</p>
+                    <p style={{ ...inter(11, 400, 'var(--text-tertiary)'), marginBottom: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.metaLine}</p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <div style={{ flex: 1, height: 2, borderRadius: 999, overflow: 'hidden', background: 'color-mix(in srgb, var(--text-primary) 10%, transparent)' }}>
                         <div style={{ width: `${item.progress}%`, height: '100%', borderRadius: 999, background: item.statusColor }} />
@@ -193,10 +195,10 @@ export const MediaCardSurface = ({
           onQuickAdd()
         }}
       >
-        <div className="life-quick-add__media-types" role="group" aria-label="Media type">
+        <div className="life-quick-add__media-types" role="group" aria-label={t('life.media.typeAria')}>
           {([
-            ['movie', Film, 'Movie'],
-            ['tv', Tv, 'TV'],
+            ['movie', Film, t('life.media.typeMovie')],
+            ['tv', Tv, t('life.media.typeTv')],
           ] as const).map(([value, Icon, label]) => (
             <button
               key={value}
@@ -227,12 +229,12 @@ export const MediaCardSurface = ({
       {!loading && model.previewRows.length > 0 ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 20, padding: '16px 20px', marginTop: 'auto', borderTop: `1px solid ${sectionBorder}` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 6, height: 6, borderRadius: 999, background: '#7A6A9E' }} />
+            <div style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--tone-warn)' }} />
             <span style={{ ...inter(11, 500, mutedText) }}>{t('life.media.watching')}</span>
             <span style={{ ...inter(12, 600), marginLeft: 2 }}><AppNumber value={model.stats.watchingNow} animated /></span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 6, height: 6, borderRadius: 999, background: '#5A7A62' }} />
+            <div style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--tone-done)' }} />
             <span style={{ ...inter(11, 500, mutedText) }}>{t('life.media.finished')}</span>
             <span style={{ ...inter(12, 600), marginLeft: 2 }}><AppNumber value={model.stats.completed} animated /></span>
           </div>
@@ -252,7 +254,7 @@ export const MediaCardSurface = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <Film size={15} color="color-mix(in srgb, var(--text-primary) 62%, transparent)" />
             <h2 style={playfair(26, 500)}>{model.header.title}</h2>
-            <span style={{ ...inter(11, 500, 'color-mix(in srgb, var(--text-primary) 44%, transparent)'), padding: '4px 10px', borderRadius: 999, background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)' }}>
+            <span style={{ ...inter(11, 500, 'var(--text-tertiary)'), padding: '4px 10px', borderRadius: 999, background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)' }}>
               {titleCountLabel(items.length)}
             </span>
           </div>
@@ -276,7 +278,7 @@ export const MediaCardSurface = ({
                 style={{ ...inputStyle, height: 38, padding: '0 14px 0 36px', borderRadius: 15, background: 'color-mix(in srgb, var(--text-primary) 3.5%, transparent)' }}
               />
               {searching ? (
-                <span style={{ ...inter(11, 500, 'color-mix(in srgb, var(--text-primary) 34%, transparent)'), position: 'absolute', right: 14, top: 13 }}>
+                <span style={{ ...inter(11, 500, 'var(--text-tertiary)'), position: 'absolute', right: 14, top: 13 }}>
                   Searching...
                 </span>
               ) : null}
@@ -288,8 +290,8 @@ export const MediaCardSurface = ({
               <span style={chipStyle(false)}>{t('life.media.queued')} {formatStatusCount(items, 'want-to-watch')}</span>
             </div>
             <div style={{ display: 'flex', gap: 18, marginTop: 10 }}>
-              <span style={inter(11, 400, 'color-mix(in srgb, var(--text-primary) 34%, transparent)')}>{t('life.media.movies', { count: items.filter((item) => item.mediaType === 'movie').length })}</span>
-              <span style={inter(11, 400, 'color-mix(in srgb, var(--text-primary) 34%, transparent)')}>{t('life.media.tv', { count: items.filter((item) => item.mediaType === 'tv').length })}</span>
+              <span style={inter(11, 400, 'var(--text-tertiary)')}>{t('life.media.movies', { count: items.filter((item) => item.mediaType === 'movie').length })}</span>
+              <span style={inter(11, 400, 'var(--text-tertiary)')}>{t('life.media.tv', { count: items.filter((item) => item.mediaType === 'tv').length })}</span>
             </div>
             {hint ? <p style={{ ...inter(12, 400, mutedText), marginTop: 12 }}>{hint}</p> : null}
             {results.length > 0 ? (
@@ -307,7 +309,7 @@ export const MediaCardSurface = ({
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ ...playfair(13, 500), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.title}</p>
-                      <p style={{ ...inter(11, 400, mutedText) }}>{item.mediaType === 'movie' ? 'Movie' : 'TV'}{item.releaseDate ? ` · ${item.releaseDate.slice(0, 4)}` : ''}</p>
+                      <p style={{ ...inter(11, 400, mutedText) }}>{item.mediaType === 'movie' ? t('life.media.typeMovie') : t('life.media.typeTv')}{item.releaseDate ? ` · ${item.releaseDate.slice(0, 4)}` : ''}</p>
                     </div>
                     <span style={{ ...smallButtonStyle, padding: '6px 10px' }}>{addingCandidateId === item.id ? '...' : <Plus size={11} />}</span>
                   </button>
@@ -345,9 +347,9 @@ export const MediaCardSurface = ({
                         <p style={{ ...playfair(13, 500), flex: 1, minWidth: 0, marginBottom: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.title}</p>
                         <span style={{ width: 6, height: 6, marginLeft: 'auto', flexShrink: 0, borderRadius: 999, background: statusDot(item.status) }} />
                       </div>
-                      <p style={{ ...inter(11, 400, mutedText) }}>{itemTypeLine(item)}</p>
+                      <p style={{ ...inter(11, 400, mutedText) }}>{itemTypeLine(item, t)}</p>
                       <div style={{ marginTop: 10, height: 2, borderRadius: 999, overflow: 'hidden', background: 'color-mix(in srgb, var(--text-primary) 8%, transparent)' }}>
-                        <div style={{ width: `${item.progress}%`, height: '100%', borderRadius: 999, background: item.status === 'watching' ? '#8E81B8' : '#6D8B74' }} />
+                        <div style={{ width: `${item.progress}%`, height: '100%', borderRadius: 999, background: item.status === 'watching' ? 'var(--tone-warn)' : 'var(--tone-done)' }} />
                       </div>
                     </div>
                   </button>
@@ -374,7 +376,7 @@ export const MediaCardSurface = ({
                     gap: 24,
                     padding: '24px 40px 20px',
                     borderBottom: `1px solid ${sectionBorder}`,
-                    background: 'radial-gradient(circle at 18% 14%, rgba(198,177,135,0.20), transparent 24%), radial-gradient(circle at 64% 12%, color-mix(in srgb, var(--bg-elevated) 84%, transparent), transparent 28%), linear-gradient(180deg, color-mix(in srgb, var(--bg-elevated) 42%, transparent), color-mix(in srgb, var(--bg-elevated) 16%, transparent))',
+                    background: 'transparent',
                   }}
                 >
                   <div style={{ width: 88, height: 124, borderRadius: 6, overflow: 'hidden', flexShrink: 0, background: 'color-mix(in srgb, var(--text-primary) 8%, transparent)', boxShadow: '0 10px 20px rgba(0, 0, 0, 0.12)' }}>
@@ -384,25 +386,25 @@ export const MediaCardSurface = ({
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, borderRadius: 999, padding: '4px 9px', background: 'color-mix(in srgb, var(--bg-elevated) 66%, transparent)', border: '1px solid color-mix(in srgb, var(--text-primary) 8%, transparent)' }}>
                         <Film size={10} color="color-mix(in srgb, var(--text-primary) 44%, transparent)" />
-                        <span style={inter(10, 600, 'color-mix(in srgb, var(--text-primary) 52%, transparent)')}>{mediaTypeLabel(selected.mediaType)}</span>
+                        <span style={inter(10, 600, 'var(--text-tertiary)')}>{mediaTypeLabel(selected.mediaType, t)}</span>
                       </div>
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, borderRadius: 999, padding: '4px 9px', background: statusTone[selected.status].bg, border: `1px solid ${statusTone[selected.status].border}` }}>
                         <span style={inter(10, 700, statusTone[selected.status].color)}>{statusTone[selected.status].label.toUpperCase()}</span>
                       </div>
                     </div>
                     <h3 style={{ ...playfair(22, 500), lineHeight: 1.15, marginTop: 6 }}>{selected.title}</h3>
-                    <p style={{ ...inter(13, 400, 'color-mix(in srgb, var(--text-primary) 58%, transparent)'), marginTop: 4 }}>{itemMetaLine(selected)}</p>
+                    <p style={{ ...inter(13, 400, 'var(--text-tertiary)'), marginTop: 4 }}>{itemMetaLine(selected)}</p>
                     {ratingLine(selected) ? (
-                      <p style={{ ...inter(12, 500, 'color-mix(in srgb, var(--text-primary) 42%, transparent)'), marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                        {selected.rating ? <Star size={12} color="#D39B37" fill="#D39B37" /> : null}
-                        {selected.rating ? <span style={{ color: '#D39B37', fontWeight: 600 }}>{selected.rating} / 10</span> : null}
+                      <p style={{ ...inter(12, 500, 'var(--text-tertiary)'), marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {selected.rating ? <Star size={12} color="var(--tone-warn)" fill="var(--tone-warn)" /> : null}
+                        {selected.rating ? <span style={{ color: 'var(--tone-warn)', fontWeight: 600 }}>{selected.rating} / 10</span> : null}
                         {[selected.country, selected.language].filter(Boolean).join(' · ')}
                       </p>
                     ) : null}
                     {selected.genres.length ? (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
                         {selected.genres.slice(0, 3).map((genre) => (
-                          <span key={genre} style={{ ...inter(10, 400, 'color-mix(in srgb, var(--text-primary) 42%, transparent)'), padding: '3px 8px', borderRadius: 999, background: 'color-mix(in srgb, var(--bg-elevated) 48%, transparent)', border: '1px solid color-mix(in srgb, var(--text-primary) 8%, transparent)' }}>
+                          <span key={genre} style={{ ...inter(10, 400, 'var(--text-tertiary)'), padding: '3px 8px', borderRadius: 999, background: 'color-mix(in srgb, var(--bg-elevated) 48%, transparent)', border: '1px solid color-mix(in srgb, var(--text-primary) 8%, transparent)' }}>
                             {genre}
                           </span>
                         ))}
@@ -414,7 +416,7 @@ export const MediaCardSurface = ({
                 <div style={{ display: 'grid', gap: 0 }}>
                   <div style={{ display: 'grid', gap: 16, padding: '20px 40px 16px', borderBottom: `1px solid ${sectionBorder}` }}>
                     <div>
-                      <div style={{ ...inter(11, 500, 'color-mix(in srgb, var(--text-primary) 38%, transparent)'), letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 10 }}>{t('life.media.status')}</div>
+                      <div style={{ ...inter(11, 500, 'var(--text-tertiary)'), letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 10 }}>{t('life.media.status')}</div>
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         {([
                           ['want-to-watch', Circle, t('life.media.wantToWatch')],
@@ -432,15 +434,15 @@ export const MediaCardSurface = ({
                                 alignItems: 'center',
                                 gap: 6,
                                 borderRadius: 999,
-                                border: `1px solid ${active ? 'rgba(90,122,98,0.20)' : 'color-mix(in srgb, var(--text-primary) 8%, transparent)'}`,
-                                background: active ? 'rgba(90,122,98,0.10)' : 'transparent',
+                                border: `1px solid ${active ? 'color-mix(in srgb, var(--tone-done) 20%, transparent)' : 'color-mix(in srgb, var(--text-primary) 8%, transparent)'}`,
+                                background: active ? 'var(--tone-done-wash)' : 'transparent',
                                 padding: '6px 12px',
-                                color: active ? '#5A7A62' : 'color-mix(in srgb, var(--text-primary) 46%, transparent)',
+                                color: active ? 'var(--tone-done)' : 'var(--text-tertiary)',
                                 cursor: 'pointer',
                               }}
                             >
                               <Icon size={11} />
-                              <span style={inter(11, active ? 500 : 400, active ? '#5A7A62' : 'color-mix(in srgb, var(--text-primary) 48%, transparent)')}>{label}</span>
+                              <span style={inter(11, active ? 500 : 400, active ? 'var(--tone-done)' : 'var(--text-tertiary)')}>{label}</span>
                             </button>
                           )
                         })}
@@ -448,7 +450,7 @@ export const MediaCardSurface = ({
                     </div>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <div style={{ ...inter(11, 500, 'color-mix(in srgb, var(--text-primary) 38%, transparent)'), letterSpacing: '0.07em', textTransform: 'uppercase' }}>{t('life.media.progress')}</div>
+                        <div style={{ ...inter(11, 500, 'var(--text-tertiary)'), letterSpacing: '0.07em', textTransform: 'uppercase' }}>{t('life.media.progress')}</div>
                         <span style={inter(12, 600, 'var(--text-primary)')}>{selected.progress}%</span>
                       </div>
                       <ProgressTrack
@@ -456,28 +458,28 @@ export const MediaCardSurface = ({
                         onChange={(progress) => onPatchItem({ progress })}
                         label="Progress"
                         showLabel={false}
-                        color="#6F8F77"
+                        color="var(--tone-done)"
                       />
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-                        <span style={inter(10, 400, 'color-mix(in srgb, var(--text-primary) 26%, transparent)')}>0%</span>
-                        <span style={inter(10, 400, 'color-mix(in srgb, var(--text-primary) 26%, transparent)')}>50%</span>
-                        <span style={inter(10, 400, 'color-mix(in srgb, var(--text-primary) 26%, transparent)')}>100%</span>
+                        <span style={inter(10, 400, 'var(--text-tertiary)')}>0%</span>
+                        <span style={inter(10, 400, 'var(--text-tertiary)')}>50%</span>
+                        <span style={inter(10, 400, 'var(--text-tertiary)')}>100%</span>
                       </div>
                     </div>
                   </div>
 
                   <div style={{ padding: '20px 40px', borderBottom: `1px solid ${sectionBorder}` }}>
-                    <div style={{ ...inter(11, 500, 'color-mix(in srgb, var(--text-primary) 38%, transparent)'), letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 8 }}>{t('life.media.myNotes')}</div>
+                    <div style={{ ...inter(11, 500, 'var(--text-tertiary)'), letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 8 }}>{t('life.media.myNotes')}</div>
                     <ImeTextarea
                       value={noteValue(selected)}
                       onChange={(val) => onPatchItem({ reflection: val })}
                       placeholder="Write a personal note..."
-                      style={{ ...textareaStyle, minHeight: 80, padding: '14px 16px', borderRadius: 10, background: 'color-mix(in srgb, var(--text-primary) 2.5%, transparent)', fontFamily: '"Playfair Display", serif', fontSize: 13, lineHeight: 1.75, fontStyle: 'italic', color: 'var(--text-primary)' }}
+                      style={{ ...textareaStyle, minHeight: 80, padding: '14px 16px', borderRadius: 10, background: 'color-mix(in srgb, var(--text-primary) 2.5%, transparent)', fontFamily: 'var(--font-display)', fontSize: 'var(--fs-ui)', lineHeight: 1.75, fontStyle: 'italic', color: 'var(--text-primary)' }}
                     />
                   </div>
 
                   <div style={{ padding: '20px 40px 28px' }}>
-                    <div style={{ ...inter(11, 500, 'color-mix(in srgb, var(--text-primary) 38%, transparent)'), letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 10 }}>{t('life.media.synopsis')}</div>
+                    <div style={{ ...inter(11, 500, 'var(--text-tertiary)'), letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 10 }}>{t('life.media.synopsis')}</div>
                     <textarea
                       value={synopsisValue(selected)}
                       onChange={(event) => onPatchItem({ overview: event.target.value })}

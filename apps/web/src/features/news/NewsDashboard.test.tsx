@@ -4,6 +4,9 @@ import '@testing-library/jest-dom/vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import NewsDashboard from './NewsDashboard'
+import { PreferencesProvider } from '../../shared/prefs/PreferencesProvider'
+import { primeMessages } from '../../shared/i18n/translator'
+import { enMessages } from '../../shared/i18n/messages/en'
 
 const fetchApiMock = vi.fn()
 
@@ -33,6 +36,7 @@ const pending = () => new Promise<never>(() => {})
 
 describe('NewsDashboard', () => {
   beforeEach(() => {
+    primeMessages('en', enMessages)
     window.localStorage.clear()
     fetchApiMock.mockReset()
   })
@@ -55,7 +59,11 @@ describe('NewsDashboard', () => {
       return Promise.resolve(jsonResponse({ status: 'success', id: 'github', updatedTime: 1000, items: [] }))
     })
 
-    render(<NewsDashboard />)
+    render(
+      <PreferencesProvider>
+        <NewsDashboard />
+      </PreferencesProvider>,
+    )
 
     const link = await screen.findByRole('link', { name: /第一条新闻/ })
     expect(link).toHaveAttribute('target', '_blank')
@@ -69,10 +77,14 @@ describe('NewsDashboard', () => {
       return Promise.resolve(jsonResponse({ error: 'bad' }, false, 500))
     })
 
-    render(<NewsDashboard />)
+    render(
+      <PreferencesProvider>
+        <NewsDashboard />
+      </PreferencesProvider>,
+    )
 
-    await waitFor(() => expect(screen.getByText('暂无来源')).toBeInTheDocument())
-    await waitFor(() => expect(screen.getByText('暂时无法加载')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('No sources yet')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Could not load right now')).toBeInTheDocument())
   })
 
   it('shows a loading animation instead of empty state while source stories are loading', async () => {
@@ -83,11 +95,15 @@ describe('NewsDashboard', () => {
       return pending()
     })
 
-    render(<NewsDashboard />)
+    render(
+      <PreferencesProvider>
+        <NewsDashboard />
+      </PreferencesProvider>,
+    )
 
     expect(await screen.findByText('知乎')).toBeInTheDocument()
-    expect(screen.getAllByRole('status', { name: '正在加载新闻' })).toHaveLength(2)
-    expect(screen.queryByText('暂无来源')).not.toBeInTheDocument()
+    expect(screen.getAllByRole('status', { name: 'Loading news' })).toHaveLength(2)
+    expect(screen.queryByText('No sources yet')).not.toBeInTheDocument()
   })
 
   it('shows the shared page loading state while the source list is still loading', async () => {
@@ -96,11 +112,15 @@ describe('NewsDashboard', () => {
       return pending()
     })
 
-    render(<NewsDashboard />)
+    render(
+      <PreferencesProvider>
+        <NewsDashboard />
+      </PreferencesProvider>,
+    )
 
     expect(await screen.findByTestId('news-source-loader')).toBeInTheDocument()
     expect(screen.getByText('Loading')).toBeInTheDocument()
-    expect(screen.queryByText('暂无来源')).not.toBeInTheDocument()
+    expect(screen.queryByText('No sources yet')).not.toBeInTheDocument()
   })
 
   it('keeps source loading active after a stale source-list request is aborted', async () => {
@@ -115,12 +135,20 @@ describe('NewsDashboard', () => {
       })
     })
 
-    const { unmount } = render(<NewsDashboard />)
+    const { unmount } = render(
+      <PreferencesProvider>
+        <NewsDashboard />
+      </PreferencesProvider>,
+    )
     unmount()
-    render(<NewsDashboard />)
+    render(
+      <PreferencesProvider>
+        <NewsDashboard />
+      </PreferencesProvider>,
+    )
 
     expect(await screen.findByTestId('news-source-loader')).toBeInTheDocument()
-    expect(screen.queryByText('暂无来源')).not.toBeInTheDocument()
+    expect(screen.queryByText('No sources yet')).not.toBeInTheDocument()
     expect(await screen.findByText('知乎')).toBeInTheDocument()
   })
 
@@ -130,9 +158,13 @@ describe('NewsDashboard', () => {
       return Promise.resolve(jsonResponse({ status: 'success', id: 'zhihu', updatedTime: 1000, items: [] }))
     })
 
-    render(<NewsDashboard />)
+    render(
+      <PreferencesProvider>
+        <NewsDashboard />
+      </PreferencesProvider>,
+    )
 
-    const [sourceManagerButton] = await screen.findAllByRole('button', { name: '管理来源' })
+    const [sourceManagerButton] = await screen.findAllByRole('button', { name: 'Manage sources' })
     fireEvent.click(sourceManagerButton)
     const manager = screen.getByLabelText('Manage news sources')
     fireEvent.click(within(manager).getByRole('button', { name: 'GitHub' }))
@@ -155,9 +187,13 @@ describe('NewsDashboard', () => {
       return Promise.resolve(jsonResponse({ status: 'success', id: 'other', updatedTime: 1000, items: [] }))
     })
 
-    render(<NewsDashboard />)
+    render(
+      <PreferencesProvider>
+        <NewsDashboard />
+      </PreferencesProvider>,
+    )
 
-    fireEvent.click(await screen.findByRole('tab', { name: /国际/ }))
+    fireEvent.click(await screen.findByRole('tab', { name: /World/ }))
 
     expect(await screen.findByText('BBC World')).toBeInTheDocument()
     expect(screen.queryByText('知乎')).not.toBeInTheDocument()
@@ -169,16 +205,20 @@ describe('NewsDashboard', () => {
       return Promise.resolve(jsonResponse({ status: 'success', id: 'source', updatedTime: 1000, items: [] }))
     })
 
-    render(<NewsDashboard />)
+    render(
+      <PreferencesProvider>
+        <NewsDashboard />
+      </PreferencesProvider>,
+    )
 
-    const [sourceManagerButton] = await screen.findAllByRole('button', { name: '管理来源' })
+    const [sourceManagerButton] = await screen.findAllByRole('button', { name: 'Manage sources' })
     fireEvent.click(sourceManagerButton)
     const manager = screen.getByLabelText('Manage news sources')
 
-    expect(within(manager).getByText('国际')).toBeInTheDocument()
-    expect(within(manager).getByText('科技')).toBeInTheDocument()
-    expect(within(manager).getByText('财经')).toBeInTheDocument()
-    // Match the source toggle exactly — each row also has a "加入自定义 <name>" star button.
+    expect(within(manager).getByText('World')).toBeInTheDocument()
+    expect(within(manager).getByText('Tech')).toBeInTheDocument()
+    expect(within(manager).getByText('Finance')).toBeInTheDocument()
+    // Match the source toggle exactly — each row also has an "Add <name> to Custom" star button.
     expect(within(manager).getByRole('button', { name: 'BBC World' })).toBeInTheDocument()
     expect(within(manager).getByRole('button', { name: 'GitHub' })).toBeInTheDocument()
     expect(within(manager).getByRole('button', { name: 'CNBC Business' })).toBeInTheDocument()
@@ -196,9 +236,13 @@ describe('NewsDashboard', () => {
       return Promise.resolve(jsonResponse({ status: 'success', id: 'zhihu', updatedTime: 1000, items: [] }))
     })
 
-    render(<NewsDashboard />)
+    render(
+      <PreferencesProvider>
+        <NewsDashboard />
+      </PreferencesProvider>,
+    )
 
-    expect(await screen.findByRole('tab', { name: /热榜/, selected: true })).toBeInTheDocument()
+    expect(await screen.findByRole('tab', { name: /Trending/, selected: true })).toBeInTheDocument()
     expect(screen.getByText('知乎')).toBeInTheDocument()
     expect(screen.queryByText('BBC World')).not.toBeInTheDocument()
   })

@@ -23,7 +23,7 @@ export const Stamp = ({ label, tone = 'planning', tilt = -3, style }: { label: s
         background: palette.bg,
         color: palette.fg,
         transform: `rotate(${tilt}deg)`,
-        letterSpacing: '0.18em',
+        letterSpacing: 'var(--tracking-caps)',
         textTransform: 'uppercase',
         ...tx(10, 700, palette.fg),
         ...style,

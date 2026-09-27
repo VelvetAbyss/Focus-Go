@@ -49,11 +49,11 @@ export const DailyReviewCardSurface = ({ model, open, activeRange, onOpen, onClo
         }}
         onClick={onOpen}
       >
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '20px 20px 16px', borderBottom: '1px solid color-mix(in srgb, var(--text-primary) 7%, transparent)' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '16px 20px 12px', borderBottom: '1px solid color-mix(in srgb, var(--text-primary) 7%, transparent)' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
               <CheckSquare size={13} color="color-mix(in srgb, var(--text-primary) 38%, transparent)" />
-              <span style={{ ...inter(10, 600, 'color-mix(in srgb, var(--text-primary) 38%, transparent)'), letterSpacing: '0.10em', textTransform: 'uppercase' }}>{model.header.eyebrow}</span>
+              <span style={{ ...inter(10, 600, 'var(--text-tertiary)'), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase' }}>{model.header.eyebrow}</span>
             </div>
             <h3 style={{ ...playfair(18, 500), lineHeight: 1.2 }}>{model.header.title}</h3>
           </div>
@@ -62,8 +62,8 @@ export const DailyReviewCardSurface = ({ model, open, activeRange, onOpen, onClo
           </div>
         </div>
 
-        <div style={{ padding: '20px 20px 18px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', columnGap: 12, rowGap: 20, marginBottom: 20 }}>
+        <div style={{ padding: '14px 20px 14px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', columnGap: 12, rowGap: 14, marginBottom: 14 }}>
             {model.todayMetrics.map((item) => {
               const Icon = iconMap[item.key as keyof typeof iconMap]
               return (
@@ -71,7 +71,7 @@ export const DailyReviewCardSurface = ({ model, open, activeRange, onOpen, onClo
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Icon size={11} color="color-mix(in srgb, var(--text-primary) 32%, transparent)" strokeWidth={2} />
                   </div>
-                  <span style={{ ...inter(9, 600, 'color-mix(in srgb, var(--text-primary) 38%, transparent)'), letterSpacing: '0.10em', textTransform: 'uppercase' }}>{item.label}</span>
+                  <span style={{ ...inter(9, 600, 'var(--text-tertiary)'), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase' }}>{item.label}</span>
                   <div style={{ ...inter(20, 600, item.value === '—' ? 'color-mix(in srgb, var(--text-primary) 22%, transparent)' : 'var(--text-primary)'), letterSpacing: '-0.02em', lineHeight: 1 }} className="tabular-nums">
                     {typeof item.value === 'number' ? <AppNumber value={item.value} animated /> : item.value}
                   </div>
@@ -79,12 +79,12 @@ export const DailyReviewCardSurface = ({ model, open, activeRange, onOpen, onClo
               )
             })}
           </div>
-          <div style={{ height: 1, background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', marginBottom: 16 }} />
+          <div style={{ height: 1, background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', marginBottom: 12 }} />
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <p style={{ ...inter(11, 400, 'color-mix(in srgb, var(--text-primary) 38%, transparent)'), letterSpacing: '0.02em' }}>
+            <p style={{ ...inter(11, 400, 'var(--text-tertiary)'), letterSpacing: '0.02em' }}>
               {activeRange === 'week' ? t('life.daily.last7Days') : t('life.daily.last30Days')}
             </p>
-            <p style={{ ...inter(10, 500, 'color-mix(in srgb, var(--text-primary) 28%, transparent)'), letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            <p style={{ ...inter(10, 500, 'var(--text-tertiary)'), letterSpacing: '0.05em', textTransform: 'uppercase' }}>
               {t('life.daily.viewReview')}
             </p>
           </div>
@@ -95,7 +95,7 @@ export const DailyReviewCardSurface = ({ model, open, activeRange, onOpen, onClo
         <div style={modalLayoutStyle}>
           <div style={modalHeaderStyle}>
             <div>
-              <p style={{ ...inter(10, 600, 'color-mix(in srgb, var(--text-primary) 40%, transparent)'), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 4 }}>{t('life.daily.review')}</p>
+              <p style={{ ...inter(10, 600, 'var(--text-tertiary)'), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase', marginBottom: 4 }}>{t('life.daily.review')}</p>
               <h2 style={playfair(26, 500)}>{model.header.title}</h2>
             </div>
             <button type="button" onClick={onClose} aria-label="Close" style={iconButtonStyle}>
@@ -111,7 +111,7 @@ export const DailyReviewCardSurface = ({ model, open, activeRange, onOpen, onClo
                   type="button"
                   onClick={() => onRangeChange(range)}
                   style={{
-                    ...inter(12, activeRange === range ? 600 : 500, activeRange === range ? 'var(--bg-elevated)' : 'color-mix(in srgb, var(--text-primary) 48%, transparent)'),
+                    ...inter(12, activeRange === range ? 600 : 500, activeRange === range ? 'var(--bg-elevated)' : 'var(--text-tertiary)'),
                     border: 'none',
                     borderRadius: 10,
                     background: activeRange === range ? 'var(--text-primary)' : 'transparent',
@@ -127,7 +127,7 @@ export const DailyReviewCardSurface = ({ model, open, activeRange, onOpen, onClo
 
           <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', minHeight: 0, flex: 1, marginTop: 16, borderTop: `1px solid ${sectionBorder}` }}>
             <div style={{ borderRight: `1px solid ${sectionBorder}`, padding: 24, overflowY: 'auto' }}>
-              <p style={{ ...inter(10, 500, 'color-mix(in srgb, var(--text-primary) 30%, transparent)'), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 16 }}>
+              <p style={{ ...inter(10, 500, 'var(--text-tertiary)'), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase', marginBottom: 16 }}>
                 {activeRange === 'week' ? t('life.daily.summary7days') : t('life.daily.summary30days')}
               </p>
               <div style={{ display: 'grid' }}>
@@ -156,7 +156,7 @@ export const DailyReviewCardSurface = ({ model, open, activeRange, onOpen, onClo
             <div style={{ display: 'flex', minHeight: 0, flexDirection: 'column', overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px 28px 20px', borderBottom: `1px solid ${sectionBorder}` }}>
                 <div>
-                  <p style={{ ...inter(10, 600, 'color-mix(in srgb, var(--text-primary) 40%, transparent)'), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 4 }}>{t('life.daily.completed')}</p>
+                  <p style={{ ...inter(10, 600, 'var(--text-tertiary)'), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase', marginBottom: 4 }}>{t('life.daily.completed')}</p>
                   <h3 style={playfair(20, 500)}>{t('life.daily.completedTasks')}</h3>
                 </div>
                 <span style={{ ...inter(11, 500, mutedText), background: 'color-mix(in srgb, var(--text-primary) 7%, transparent)', borderRadius: 999, padding: '4px 10px' }}>{detail.tasks.length}</span>
@@ -171,8 +171,8 @@ export const DailyReviewCardSurface = ({ model, open, activeRange, onOpen, onClo
                     <div style={{ width: 48, height: 48, marginBottom: 16, borderRadius: 999, background: 'color-mix(in srgb, var(--text-primary) 5%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <CheckSquare size={18} color="color-mix(in srgb, var(--text-primary) 22%, transparent)" />
                     </div>
-                    <p style={{ ...playfair(15, 500, 'color-mix(in srgb, var(--text-primary) 45%, transparent)'), marginBottom: 6 }}>{t('life.daily.noCompletedTasks')}</p>
-                    <p style={inter(12, 400, 'color-mix(in srgb, var(--text-primary) 35%, transparent)')}>{t('life.daily.noCompletedTasksInRange')}</p>
+                    <p style={{ ...playfair(15, 500, 'var(--text-tertiary)'), marginBottom: 6 }}>{t('life.daily.noCompletedTasks')}</p>
+                    <p style={inter(12, 400, 'var(--text-tertiary)')}>{t('life.daily.noCompletedTasksInRange')}</p>
                   </div>
                 ) : (
                   detail.tasks.map((task) => (

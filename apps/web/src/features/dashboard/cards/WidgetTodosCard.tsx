@@ -18,6 +18,7 @@ import {
   shouldResetWidgetTodos,
   writeWidgetTodoResetBucket,
 } from '../model/widgetTodoRefresh'
+import { DURATION, EASE } from '../../../shared/motion/tokens'
 
 const DEFAULT_HABIT_COLOR = 'var(--text-primary)'
 const DEFAULT_HABIT_ICON = '🎯'
@@ -695,7 +696,7 @@ const WidgetTodosCard = () => {
               ? { duration: 0 }
               : dragX === 0 && !isRemoving
                 ? { type: 'spring', stiffness: 520, damping: 42 }
-                : { duration: 0.18, ease: [0.22, 1, 0.36, 1] }
+                : { duration: DURATION.base, ease: EASE.emphasized }
           }
         >
           <AnimatedPlanCheckbox
@@ -788,7 +789,7 @@ const WidgetTodosCard = () => {
                   initial={reduceMotion ? false : { opacity: 0, y: -4 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  transition={reduceMotion ? { duration: 0 } : { duration: 0.22 }}
+                  transition={reduceMotion ? { duration: 0 } : { duration: DURATION.base }}
                 >
                   <span className="widget-todos__section-line" aria-hidden />
                   <span className="widget-todos__section-label">
@@ -809,7 +810,7 @@ const WidgetTodosCard = () => {
   return (
     <Card
       title={t('todo.cardTitle')}
-      eyebrow="WIDGET"
+      eyebrow={t('todo.eyebrow')}
       className="dashboard-widget-card dashboard-widget-card--shadow-safe dashboard-widget-card--todo"
       actions={
         <span

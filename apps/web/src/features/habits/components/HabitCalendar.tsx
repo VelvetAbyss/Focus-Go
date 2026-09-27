@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { todayDateKey } from '../model/dateKey'
+import { usePreferences } from '../../../shared/prefs/usePreferences'
+import { DURATION } from '../../../shared/motion/tokens'
 
 type HabitCalendarProps = {
   completedDates: string[]
@@ -9,8 +11,20 @@ type HabitCalendarProps = {
   accentColor?: string
 }
 
-const WEEK_DAYS = ['日', '一', '二', '三', '四', '五', '六']
-const MONTH_NAMES = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月']
+// Weekday headers and the month caption come from Intl rather than a hand-kept
+// table: it stays correct for every locale the app adds later, and it formats
+// the year the way each locale expects (2026年3月 vs March 2026).
+const localeOf = (language: string) => (language === 'zh' ? 'zh-CN' : 'en-US')
+
+const weekDayLabels = (language: string) => {
+  const fmt = new Intl.DateTimeFormat(localeOf(language), { weekday: 'narrow' })
+  // 2024-01-07 is a Sunday, matching this grid's Sunday-first column order.
+  return Array.from({ length: 7 }, (_, i) => fmt.format(new Date(Date.UTC(2024, 0, 7 + i))))
+}
+
+const monthCaption = (language: string, year: number, month: number) =>
+  new Intl.DateTimeFormat(localeOf(language), { year: 'numeric', month: 'long' })
+    .format(new Date(Date.UTC(year, month, 1)))
 
 const toDateKey = (year: number, month: number, day: number) => {
   const monthText = `${month + 1}`.padStart(2, '0')
@@ -19,8 +33,10 @@ const toDateKey = (year: number, month: number, day: number) => {
 }
 
 export const HabitCalendar = ({ completedDates, onToggleCompletion, accentColor = '#3daa78' }: HabitCalendarProps) => {
+  const { language } = usePreferences()
   const [currentMonth, setCurrentMonth] = useState(() => new Date())
   const [direction, setDirection] = useState(0)
+  const weekDays = useMemo(() => weekDayLabels(language), [language])
 
   const year = currentMonth.getFullYear()
   const month = currentMonth.getMonth()
@@ -55,9 +71,9 @@ export const HabitCalendar = ({ completedDates, onToggleCompletion, accentColor 
             initial={{ opacity: 0, x: direction * 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: direction * -20 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: DURATION.base }}
           >
-            {year}年 {MONTH_NAMES[month]}
+            {monthCaption(language, year, month)}
           </motion.div>
         </AnimatePresence>
 
@@ -76,7 +92,7 @@ export const HabitCalendar = ({ completedDates, onToggleCompletion, accentColor 
       </div>
 
       <div className="habit-calendar__grid">
-        {WEEK_DAYS.map((day) => (
+        {weekDays.map((day) => (
           <div key={day} className="habit-calendar__weekday">
             {day}
           </div>
@@ -106,7 +122,7 @@ export const HabitCalendar = ({ completedDates, onToggleCompletion, accentColor 
                 onClick={() => void onToggleCompletion(dateKey)}
                 initial={{ opacity: 0, scale: 0.75 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.18, delay: index * 0.008 }}
+                transition={{ duration: DURATION.base, delay: index * 0.008 }}
                 whileHover={!isFuture ? { scale: 1.14 } : {}}
                 whileTap={!isFuture ? { scale: 0.88 } : {}}
               >

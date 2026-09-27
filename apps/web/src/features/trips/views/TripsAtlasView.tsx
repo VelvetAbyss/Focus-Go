@@ -152,7 +152,7 @@ export const TripsAtlasView = ({ trips, t, onOpen }: Props) => {
                 onMouseLeave={(e) => { e.currentTarget.style.borderColor = subtleBorder }}
               >
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: sc.text, flexShrink: 0 }} />
-                <span style={{ fontSize: 14 }}>{trip.coverEmoji ?? '✈️'}</span>
+                <span style={{ fontSize: 'var(--fs-body)' }}>{trip.coverEmoji ?? '✈️'}</span>
                 <span style={tx(12, 600, ink)}>{trip.title}</span>
                 {trip.destination ? <span style={tx(11, 400, muted)}>· {trip.destination}</span> : null}
                 <span style={tx(10, 500, muted)}>· {t('life.trips.daysCount', { count: tripDuration(trip) })}</span>

@@ -1,24 +1,26 @@
 import type { CSSProperties } from 'react'
+import { scaleFontSize } from '../../../shared/theme/typeScale'
 
-export const paper = 'var(--bg-elevated)'
-export const cardBg = 'var(--bg-elevated)'
-export const ink = 'var(--text-primary)'
-export const muted = 'color-mix(in srgb, var(--text-primary) 45%, transparent)'
-export const subtleBorder = 'color-mix(in srgb, var(--text-primary) 9%, transparent)'
-export const accent = '#7C5A3A'
-export const danger = '#C05050'
-export const success = '#5B8C5A'
+export const paper = 'var(--paper-raised)'
+export const cardBg = 'var(--paper-raised)'
+export const ink = 'var(--ink-1)'
+// Secondary text must stay ≥4.5:1 (DESIGN.md › Color): ink-3, not a 45% tint.
+export const muted = 'var(--ink-3)'
+export const subtleBorder = 'var(--rule)'
+export const accent = 'var(--accent)'
+export const danger = 'var(--tone-urgent)'
+export const success = 'var(--tone-done)'
 
 export const tx = (size = 13, weight: 400 | 500 | 600 | 700 = 400, color: string = ink): CSSProperties => ({
-  fontFamily: 'Inter, sans-serif',
-  fontSize: size,
+  fontFamily: 'var(--font-body)',
+  fontSize: scaleFontSize(size),
   fontWeight: weight,
   color,
 })
 
 export const pf = (size = 16, weight: 400 | 500 | 600 | 700 = 500, color: string = ink): CSSProperties => ({
-  fontFamily: '"Playfair Display", serif',
-  fontSize: size,
+  fontFamily: 'var(--font-display)',
+  fontSize: scaleFontSize(size),
   fontWeight: weight,
   color,
 })

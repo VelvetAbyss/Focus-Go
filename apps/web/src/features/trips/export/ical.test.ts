@@ -31,7 +31,7 @@ describe('buildTripIcs', () => {
     const ics = buildTripIcs(baseTrip())
     expect(ics.startsWith('BEGIN:VCALENDAR')).toBe(true)
     expect(ics.trimEnd().endsWith('END:VCALENDAR')).toBe(true)
-    expect(ics).toContain('PRODID:-//Focus&Go//Trip Planner//EN')
+    expect(ics).toContain('PRODID:-//Focus&go//Trip Planner//EN')
   })
 
   it('emits a timed VEVENT for an activity with start/end times', () => {

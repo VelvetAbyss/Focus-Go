@@ -9,6 +9,7 @@ import type { LibraryPresentationModel } from '../cards/lifeDesignAdapters'
 import ProgressTrack from '../ProgressTrack'
 import { LifeCardLoader, LifePanelLoader } from './lifeDesignPrimitives'
 import { useLifeI18n } from '../lifeI18n'
+import { scaleFontSize } from '../../../shared/theme/typeScale'
 
 type SearchBook = {
   id: string
@@ -44,27 +45,27 @@ type Props = {
 const paper = 'var(--bg-elevated)'
 const ink = 'var(--text-primary)'
 const subtleBorder = 'color-mix(in srgb, var(--text-primary) 9%, transparent)'
-const mutedText = 'color-mix(in srgb, var(--text-primary) 45%, transparent)'
+const mutedText = 'var(--text-tertiary)'
 const cardBg = 'var(--bg-elevated)'
 
 const inter = (size = 13, weight = 400, color = ink) => ({
-  fontFamily: 'Inter, sans-serif',
-  fontSize: size,
+  fontFamily: 'var(--font-body)',
+  fontSize: scaleFontSize(size),
   fontWeight: weight,
   color,
 })
 
 const playfair = (size = 16, weight = 500, color = ink) => ({
-  fontFamily: '"Playfair Display", serif',
-  fontSize: size,
+  fontFamily: 'var(--font-display)',
+  fontSize: scaleFontSize(size),
   fontWeight: weight,
   color,
 })
 
 const statusConfig = {
-  reading: { label: 'Reading', color: '#A0673A', bg: 'rgba(160,103,58,0.10)' },
-  finished: { label: 'Finished', color: '#5A7A62', bg: 'rgba(90,122,98,0.10)' },
-  'want-to-read': { label: 'Want to Read', color: '#6B6560', bg: 'rgba(107,101,96,0.10)' },
+  reading: { label: 'Reading', color: 'var(--tone-warn)', bg: 'var(--tone-warn-wash)' },
+  finished: { label: 'Finished', color: 'var(--tone-done)', bg: 'var(--tone-done-wash)' },
+  'want-to-read': { label: 'Want to Read', color: 'var(--ink-3)', bg: 'var(--paper-sunken)' },
 } as const
 
 const StatusPill = ({ status }: { status: BookItem['status'] }) => {
@@ -106,7 +107,7 @@ const CardRow = ({ book }: { book: LibraryPresentationModel['previewRows'][numbe
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
         <p style={{ ...playfair(13, 500), lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{book.title}</p>
       </div>
-      <p style={{ ...inter(11, 400, 'color-mix(in srgb, var(--text-primary) 50%, transparent)'), lineHeight: 1, marginBottom: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+      <p style={{ ...inter(11, 400, 'var(--text-tertiary)'), lineHeight: 1, marginBottom: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
         {book.authorLine}
       </p>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -237,11 +238,11 @@ export const LibraryCardSurface = ({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
               <BookOpen size={14} color="color-mix(in srgb, var(--text-primary) 40%, transparent)" />
-              <span style={{ ...inter(10, 600, 'color-mix(in srgb, var(--text-primary) 40%, transparent)'), letterSpacing: '0.10em', textTransform: 'uppercase' }}>{model.header.eyebrow}</span>
+              <span style={{ ...inter(10, 600, 'var(--text-tertiary)'), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase' }}>{model.header.eyebrow}</span>
             </div>
             <h3 style={{ ...playfair(18, 500), lineHeight: 1.2 }}>{model.header.title}</h3>
           </div>
-          <div style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 999, color: 'color-mix(in srgb, var(--text-primary) 40%, transparent)' }}>
+          <div style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 999, color: 'var(--text-tertiary)' }}>
             <ChevronRight size={15} />
           </div>
         </div>
@@ -287,7 +288,7 @@ export const LibraryCardSurface = ({
                 </div>
               ))}
               {books.length > 3 ? (
-                <div style={{ ...inter(11, 400, 'color-mix(in srgb, var(--text-primary) 38%, transparent)'), padding: '8px 0', textAlign: 'center', borderTop: '1px solid color-mix(in srgb, var(--text-primary) 6%, transparent)' }}>
+                <div style={{ ...inter(11, 400, 'var(--text-tertiary)'), padding: '8px 0', textAlign: 'center', borderTop: '1px solid color-mix(in srgb, var(--text-primary) 6%, transparent)' }}>
                   {t('life.library.moreBooks', { count: books.length - 3 })}
                 </div>
               ) : null}
@@ -344,7 +345,7 @@ export const LibraryCardSurface = ({
                 {t('life.library.bookCount', { count: books.length })}
               </span>
             </div>
-            <button type="button" onClick={onClose} aria-label="Close" style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: 999, background: 'transparent', color: 'color-mix(in srgb, var(--text-primary) 40%, transparent)', cursor: 'pointer' }}>
+            <button type="button" onClick={onClose} aria-label="Close" style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: 999, background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer' }}>
               <X size={16} />
             </button>
           </div>
@@ -373,7 +374,7 @@ export const LibraryCardSurface = ({
 
               {results.length > 0 ? (
                 <div style={{ padding: '0 16px 12px', borderBottom: `1px solid ${subtleBorder}` }}>
-                  <p style={{ ...inter(10, 500, 'color-mix(in srgb, var(--text-primary) 38%, transparent)'), letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8, paddingLeft: 4 }}>{t('life.library.searchResults')}</p>
+                  <p style={{ ...inter(10, 500, 'var(--text-tertiary)'), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase', marginBottom: 8, paddingLeft: 4 }}>{t('life.library.searchResults')}</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto' }}>
                     {results.map((book) => (
                       <div key={book.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, borderRadius: 12, background: cardBg, border: `1px solid ${subtleBorder}` }}>
@@ -395,7 +396,7 @@ export const LibraryCardSurface = ({
                             padding: '6px 10px',
                             borderRadius: 999,
                             background: addingCandidateId === book.id ? statusConfig['want-to-read'].bg : 'color-mix(in srgb, var(--text-primary) 7%, transparent)',
-                            border: `1px solid ${addingCandidateId === book.id ? 'rgba(107,101,96,0.15)' : 'color-mix(in srgb, var(--text-primary) 10%, transparent)'}`,
+                            border: `1px solid ${addingCandidateId === book.id ? 'var(--rule-strong)' : 'color-mix(in srgb, var(--text-primary) 10%, transparent)'}`,
                             cursor: 'pointer',
                           }}
                         >
@@ -408,7 +409,7 @@ export const LibraryCardSurface = ({
                 </div>
               ) : null}
 
-              {error ? <p style={{ ...inter(12, 400, '#9D4C4C'), padding: '0 20px 12px' }}>{error}</p> : null}
+              {error ? <p style={{ ...inter(12, 400, 'var(--tone-urgent)'), padding: '0 20px 12px' }}>{error}</p> : null}
 
               <div style={{ padding: '0 16px 12px' }}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -443,7 +444,7 @@ export const LibraryCardSurface = ({
                       <BookOpen size={20} color="color-mix(in srgb, var(--text-primary) 25%, transparent)" />
                     </div>
                     <p style={{ ...playfair(16, 500, 'color-mix(in srgb, var(--text-primary) 60%, transparent)'), marginBottom: 6 }}>{t('life.library.shelfEmpty')}</p>
-                    <p style={{ ...inter(12, 400, 'color-mix(in srgb, var(--text-primary) 38%, transparent)'), lineHeight: 1.65, marginBottom: 16 }}>{t('life.library.searchAbove')}</p>
+                    <p style={{ ...inter(12, 400, 'var(--text-tertiary)'), lineHeight: 1.65, marginBottom: 16 }}>{t('life.library.searchAbove')}</p>
                     <button type="button" onClick={onSearch} style={{ ...inter(12, 500), display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 999, background: 'color-mix(in srgb, var(--text-primary) 7%, transparent)', border: '1px solid color-mix(in srgb, var(--text-primary) 12%, transparent)', cursor: 'pointer' }}>
                       <Search size={12} />
                       <span>{t('life.library.searchForBooks')}</span>
@@ -481,7 +482,7 @@ export const LibraryCardSurface = ({
                       {selectedBook.subjects.length > 0 ? (
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                           {selectedBook.subjects.map((subject) => (
-                            <span key={subject} style={{ ...inter(10, 400, 'color-mix(in srgb, var(--text-primary) 55%, transparent)'), padding: '2px 8px', borderRadius: 999, background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--text-primary) 9%, transparent)', letterSpacing: '0.03em' }}>
+                            <span key={subject} style={{ ...inter(10, 400, 'var(--text-tertiary)'), padding: '2px 8px', borderRadius: 999, background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--text-primary) 9%, transparent)', letterSpacing: '0.03em' }}>
                               {subject}
                             </span>
                           ))}
@@ -534,9 +535,9 @@ export const LibraryCardSurface = ({
                         color={statusConfig[selectedBook.status].color}
                       />
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-                        <span style={inter(10, 400, 'color-mix(in srgb, var(--text-primary) 30%, transparent)')}>0%</span>
-                        <span style={inter(10, 400, 'color-mix(in srgb, var(--text-primary) 30%, transparent)')}>50%</span>
-                        <span style={inter(10, 400, 'color-mix(in srgb, var(--text-primary) 30%, transparent)')}>100%</span>
+                        <span style={inter(10, 400, 'var(--text-tertiary)')}>0%</span>
+                        <span style={inter(10, 400, 'var(--text-tertiary)')}>50%</span>
+                        <span style={inter(10, 400, 'var(--text-tertiary)')}>100%</span>
                       </div>
                     </div>
                   </div>
@@ -559,8 +560,8 @@ export const LibraryCardSurface = ({
                         border: '1px solid color-mix(in srgb, var(--text-primary) 8%, transparent)',
                         background: 'color-mix(in srgb, var(--text-primary) 2.5%, transparent)',
                         padding: '14px 16px',
-                        fontFamily: '"Playfair Display", serif',
-                        fontSize: 13,
+                        fontFamily: 'var(--font-display)',
+                        fontSize: 'var(--fs-ui)',
                         fontStyle: selectedBook.reflection ? 'italic' : 'normal',
                         lineHeight: 1.75,
                         color: ink,
@@ -578,7 +579,7 @@ export const LibraryCardSurface = ({
 
                   {(selectedBook.isbn10 || selectedBook.isbn13) ? (
                     <div style={{ padding: '16px 40px', borderBottom: `1px solid ${subtleBorder}` }}>
-                      <p style={inter(11, 400, 'color-mix(in srgb, var(--text-primary) 35%, transparent)')}>
+                      <p style={inter(11, 400, 'var(--text-tertiary)')}>
                         <span style={{ opacity: 0.7 }}>ISBN </span>
                         {selectedBook.isbn13 ?? selectedBook.isbn10}
                       </p>
@@ -590,7 +591,7 @@ export const LibraryCardSurface = ({
                       type="button"
                       onClick={() => onRemoveBook(selectedBook.id)}
                       style={{
-                        ...inter(12, 400, 'color-mix(in srgb, var(--text-primary) 35%, transparent)'),
+                        ...inter(12, 400, 'var(--text-tertiary)'),
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: 8,
@@ -611,8 +612,8 @@ export const LibraryCardSurface = ({
                   <div style={{ width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24, borderRadius: 18, background: 'color-mix(in srgb, var(--text-primary) 5%, transparent)', border: `1px solid ${subtleBorder}` }}>
                     <BookMarked size={22} color="color-mix(in srgb, var(--text-primary) 25%, transparent)" />
                   </div>
-                  <p style={{ ...playfair(18, 500, 'color-mix(in srgb, var(--text-primary) 55%, transparent)'), marginBottom: 8 }}>{t('life.library.selectBook')}</p>
-                  <p style={{ ...inter(13, 400, 'color-mix(in srgb, var(--text-primary) 35%, transparent)'), lineHeight: 1.65, maxWidth: 280 }}>{t('life.library.selectBookDesc')}</p>
+                  <p style={{ ...playfair(18, 500, 'var(--text-tertiary)'), marginBottom: 8 }}>{t('life.library.selectBook')}</p>
+                  <p style={{ ...inter(13, 400, 'var(--text-tertiary)'), lineHeight: 1.65, maxWidth: 280 }}>{t('life.library.selectBookDesc')}</p>
                 </div>
               )}
             </div>

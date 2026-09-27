@@ -24,6 +24,8 @@ import {
 import { readNewsPreferences, writeNewsPreferences, type NewsCategoryTab, type NewsDensity, type NewsPreferences } from './newsPreferences'
 import BrandLoader from '../../shared/ui/loading/BrandLoader'
 import './news.css'
+import { useI18n } from '../../shared/i18n/useI18n'
+import type { TranslationKey } from '../../shared/i18n/types'
 
 type SourceState = {
   loading: boolean
@@ -31,25 +33,28 @@ type SourceState = {
   error?: string
 }
 
-const categoryLabels: Record<NewsCategoryTab, string> = {
-  all: '全部',
-  custom: '自定义',
-  hot: '热榜',
-  tech: '科技',
-  finance: '财经',
-  world: '国际',
+const categoryLabelKeys: Record<NewsCategoryTab, TranslationKey> = {
+  all: 'news.cat.all',
+  custom: 'news.cat.custom',
+  hot: 'news.cat.hot',
+  tech: 'news.cat.tech',
+  finance: 'news.cat.finance',
+  world: 'news.cat.world',
 }
 
-const densityLabels: Record<NewsDensity, string> = {
-  comfortable: '舒适',
-  compact: '紧凑',
+const densityLabelKeys: Record<NewsDensity, TranslationKey> = {
+  comfortable: 'news.density.comfortable',
+  compact: 'news.density.compact',
 }
 
-const formatUpdatedTime = (value?: number | string) => {
-  if (!value) return '尚未更新'
+type Translate = ReturnType<typeof useI18n>['t']
+
+const formatUpdatedTime = (value: number | string | undefined, t: Translate, language: string) => {
+  if (!value) return t('news.notUpdated')
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '尚未更新'
-  return new Intl.DateTimeFormat('zh-CN', { hour: '2-digit', minute: '2-digit' }).format(date)
+  if (Number.isNaN(date.getTime())) return t('news.notUpdated')
+  const locale = language === 'zh' ? 'zh-CN' : 'en-US'
+  return new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }).format(date)
 }
 
 const getStoryHref = (item: NewsItem) => item.mobileUrl || item.url
@@ -96,8 +101,10 @@ const SourceIcon = ({ source }: { source: NewsSource }) => {
 }
 
 // ─── Loading skeleton ──────────────────────────────────────────────────────────
-const NewsSkeleton = () => (
-  <div className="news-card__skeleton" role="status" aria-label="正在加载新闻">
+const NewsSkeleton = () => {
+  const { t } = useI18n()
+  return (
+  <div className="news-card__skeleton" role="status" aria-label={t('news.loading')}>
     <span aria-hidden="true" />
     <span aria-hidden="true" />
     <span aria-hidden="true" />
@@ -105,24 +112,31 @@ const NewsSkeleton = () => (
     <span aria-hidden="true" />
     <span aria-hidden="true" />
   </div>
-)
+  )
+}
 
 // ─── Error state (first-load failure) ─────────────────────────────────────────
-const NewsError = ({ onRetry }: { onRetry: () => void }) => (
-  <div className="news-card__error">
-    <WifiOff size={22} aria-hidden="true" />
-    <p>暂时无法加载</p>
-    <button type="button" onClick={onRetry}>重试</button>
-  </div>
-)
+const NewsError = ({ onRetry }: { onRetry: () => void }) => {
+  const { t } = useI18n()
+  return (
+    <div className="news-card__error">
+      <WifiOff size={22} aria-hidden="true" />
+      <p>{t('news.loadFailed')}</p>
+      <button type="button" onClick={onRetry}>{t('news.retry')}</button>
+    </div>
+  )
+}
 
 // ─── Empty state (no sources enabled) ─────────────────────────────────────────
-const NewsEmpty = ({ onManageSources }: { onManageSources: () => void }) => (
-  <div className="news-dashboard__empty">
-    <p>暂无来源</p>
-    <button type="button" onClick={onManageSources}>管理来源</button>
-  </div>
-)
+const NewsEmpty = ({ onManageSources }: { onManageSources: () => void }) => {
+  const { t } = useI18n()
+  return (
+    <div className="news-dashboard__empty">
+      <p>{t('news.noSources')}</p>
+      <button type="button" onClick={onManageSources}>{t('news.manageSources')}</button>
+    </div>
+  )
+}
 
 // ─── Individual news card ──────────────────────────────────────────────────────
 const NewsCard = ({
@@ -142,6 +156,7 @@ const NewsCard = ({
   onVisible: (sourceId: string) => void
   onManageSources: () => void
 }) => {
+  const { t, language } = useI18n()
   const {
     attributes,
     listeners,
@@ -204,7 +219,7 @@ const NewsCard = ({
           type="button"
           className="news-icon-button"
           onClick={() => onRefresh(source.id)}
-          aria-label={`刷新 ${source.name}`}
+          aria-label={t('news.refreshSource', { name: source.name })}
           disabled={state.loading}
         >
           <RefreshCw size={14} aria-hidden="true" className={state.loading ? 'is-spinning' : undefined} />
@@ -212,9 +227,9 @@ const NewsCard = ({
       </header>
 
       <div className="news-card__meta">
-        <span className="news-card__meta-type">{source.type === 'hottest' ? '热榜' : '时间线'}</span>
-        <span>{formatUpdatedTime(state.response?.updatedTime)}</span>
-        {isCached ? <span>缓存</span> : null}
+        <span className="news-card__meta-type">{source.type === 'hottest' ? t('news.cat.hot') : t('news.typeTimeline')}</span>
+        <span>{formatUpdatedTime(state.response?.updatedTime, t, language)}</span>
+        {isCached ? <span>{t('news.cached')}</span> : null}
       </div>
 
       {/* Loading state — skeleton */}
@@ -240,7 +255,7 @@ const NewsCard = ({
                 <span className="news-card__story">
                   <strong>{item.title}</strong>
                   {item.extra?.info || item.pubDate ? (
-                    <small>{item.extra?.info || formatUpdatedTime(item.pubDate)}</small>
+                    <small>{item.extra?.info || formatUpdatedTime(item.pubDate, t, language)}</small>
                   ) : null}
                 </span>
               </a>
@@ -253,7 +268,7 @@ const NewsCard = ({
       {hasStaleWarning ? (
         <footer className="news-card__stale-banner">
           <Clock size={11} aria-hidden="true" />
-          显示缓存内容
+          {t('news.showCached')}
         </footer>
       ) : null}
     </article>
@@ -270,6 +285,7 @@ const CategoryFilter = ({
   selected: NewsCategoryTab
   onChange: (cat: NewsCategoryTab) => void
 }) => {
+  const { t } = useI18n()
   const containerRef = useRef<HTMLDivElement>(null)
   const [indicatorStyle, setIndicatorStyle] = useState<{ left: number; width: number } | null>(null)
 
@@ -307,7 +323,7 @@ const CategoryFilter = ({
           onClick={() => onChange(category)}
         >
           <ListFilter size={13} aria-hidden="true" />
-          {categoryLabels[category]}
+          {t(categoryLabelKeys[category])}
         </button>
       ))}
       {/* Sliding indicator underneath the active tab */}
@@ -323,11 +339,11 @@ const CategoryFilter = ({
 }
 
 // ─── Source manager panel ──────────────────────────────────────────────────────
-const CATEGORY_GROUP_LABELS: Record<NewsCategory, string> = {
-  hot: '热榜',
-  tech: '科技',
-  finance: '财经',
-  world: '国际',
+const CATEGORY_GROUP_LABEL_KEYS: Record<NewsCategory, TranslationKey> = {
+  hot: 'news.cat.hot',
+  tech: 'news.cat.tech',
+  finance: 'news.cat.finance',
+  world: 'news.cat.world',
 }
 
 const SourceManager = ({
@@ -347,6 +363,7 @@ const SourceManager = ({
   onToggleCustom: (id: string) => void
   onDensityChange: (d: NewsDensity) => void
 }) => {
+  const { t } = useI18n()
   const grouped = useMemo(() => {
     const map: Record<NewsCategory, NewsSource[]> = { hot: [], tech: [], finance: [], world: [] }
     sources.forEach((s) => { map[s.category]?.push(s) })
@@ -375,9 +392,9 @@ const SourceManager = ({
           type="button"
           className={`news-dashboard__source-star${isCustom ? ' is-active' : ''}`}
           onClick={() => onToggleCustom(source.id)}
-          aria-label={isCustom ? `从自定义移除 ${source.name}` : `加入自定义 ${source.name}`}
+          aria-label={isCustom ? t('news.removeNamed', { name: source.name }) : t('news.addNamed', { name: source.name })}
           aria-pressed={isCustom}
-          title={isCustom ? '从自定义移除' : '加入自定义'}
+          title={isCustom ? t('news.removeFromCustom') : t('news.addToCustom')}
         >
           <Star size={13} aria-hidden="true" fill={isCustom ? 'currentColor' : 'none'} />
         </button>
@@ -388,7 +405,7 @@ const SourceManager = ({
   return (
     <aside className="news-dashboard__manager" aria-label="Manage news sources">
       <div className="news-dashboard__manager-header">
-        <span>来源管理</span>
+        <span>{t('news.sourceManager')}</span>
         <div className="news-dashboard__density" aria-label="News density">
           {(['comfortable', 'compact'] as const).map((d) => (
             <button
@@ -397,7 +414,7 @@ const SourceManager = ({
               className={density === d ? 'is-active' : undefined}
               onClick={() => onDensityChange(d)}
             >
-              {densityLabels[d]}
+              {t(densityLabelKeys[d])}
             </button>
           ))}
         </div>
@@ -406,7 +423,7 @@ const SourceManager = ({
       {(Object.entries(grouped) as [NewsCategory, NewsSource[]][]).map(([cat, catSources]) => (
         catSources.length ? (
           <div key={cat} className="news-dashboard__source-group">
-            <p className="news-dashboard__source-group-label">{CATEGORY_GROUP_LABELS[cat]}</p>
+            <p className="news-dashboard__source-group-label">{t(CATEGORY_GROUP_LABEL_KEYS[cat])}</p>
             <div className="news-dashboard__source-grid">
               {catSources.map(renderSourceButton)}
             </div>
@@ -419,11 +436,13 @@ const SourceManager = ({
 
 // ─── Main dashboard ────────────────────────────────────────────────────────────
 const NewsDashboard = () => {
+  const { t } = useI18n()
   const [sources, setSources] = useState<NewsSource[]>([])
   const [sourceStates, setSourceStates] = useState<Record<string, SourceState>>({})
   const [preferences, setPreferences] = useState<NewsPreferences>(() => readNewsPreferences())
   const [sourcesLoading, setSourcesLoading] = useState(true)
   const [sourcesError, setSourcesError] = useState<string | null>(null)
+  const [sourcesAttempt, setSourcesAttempt] = useState(0)
   const [manageOpen, setManageOpen] = useState(false)
   const [refreshingAll, setRefreshingAll] = useState(false)
 
@@ -506,7 +525,7 @@ const NewsDashboard = () => {
     }
   }, [])
 
-  // Fetch sources list on mount
+  // Fetch sources list on mount (and again on retry)
   useEffect(() => {
     const controller = new AbortController()
     let active = true
@@ -529,7 +548,7 @@ const NewsDashboard = () => {
       active = false
       controller.abort()
     }
-  }, [])
+  }, [sourcesAttempt])
 
   // onVisible: called by IntersectionObserver inside each NewsCard
   const handleCardVisible = useCallback(
@@ -600,10 +619,21 @@ const NewsDashboard = () => {
   if (sourcesError) {
     return (
       <section className="news-dashboard" aria-label="News">
-        <div className="news-dashboard__fatal">
+        <div className="news-dashboard__fatal" title={sourcesError}>
           <WifiOff size={28} aria-hidden="true" />
-          <p>新闻来源加载失败</p>
-          <small>{sourcesError}</small>
+          <p>{t('news.sourcesFailed')}</p>
+          <small>{t('news.sourcesFailedHint')}</small>
+          <button
+            type="button"
+            className="news-dashboard__retry"
+            disabled={sourcesLoading}
+            onClick={() => {
+              setSourcesError(null)
+              setSourcesAttempt((value) => value + 1)
+            }}
+          >
+            {t('news.retry')}
+          </button>
         </div>
       </section>
     )
@@ -620,17 +650,17 @@ const NewsDashboard = () => {
             disabled={sourcesLoading || refreshingAll || visibleSources.length === 0}
           >
             <RefreshCw size={14} aria-hidden="true" className={refreshingAll ? 'is-spinning' : undefined} />
-            刷新全部
+            {t('news.refreshAll')}
           </button>
           <button
             type="button"
             onClick={() => setManageOpen((prev) => !prev)}
             aria-expanded={manageOpen}
-            aria-label="管理来源"
+            aria-label={t('news.manageSources')}
             disabled={sourcesLoading}
           >
             <Settings2 size={14} aria-hidden="true" />
-            来源
+            {t('news.sources')}
           </button>
         </div>
       </div>

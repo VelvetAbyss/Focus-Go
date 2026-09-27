@@ -2,7 +2,7 @@ import { ChevronRight, Plus, Trash2, Users, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import Dialog from '../../../shared/ui/Dialog'
 import type { LifePerson } from '../../../data/models/types'
-import type { PeoplePresentationModel } from '../cards/lifeDesignAdapters'
+import { lifeGroupLabel, type PeoplePresentationModel } from '../cards/lifeDesignAdapters'
 import {
   cardArrowStyle,
   cardHeaderStyle,
@@ -24,6 +24,9 @@ import {
   textareaStyle,
 } from './lifeDesignPrimitives'
 import { useLifeI18n } from '../lifeI18n'
+
+// Avatar fills are light pastels in both themes, so initials always use dark ink.
+const AVATAR_INK = 'rgba(58, 55, 51, 0.78)'
 
 type PersonDraft = {
   name: string
@@ -130,7 +133,7 @@ export const PeopleCardSurface = ({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
               <Users size={13} color="color-mix(in srgb, var(--text-primary) 38%, transparent)" />
-              <span style={{ ...inter(10, 600, 'color-mix(in srgb, var(--text-primary) 38%, transparent)'), letterSpacing: '0.10em', textTransform: 'uppercase' }}>{t('life.card.people')}</span>
+              <span style={{ ...inter(10, 600, 'var(--text-tertiary)'), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase' }}>{t('life.card.people')}</span>
             </div>
             <h3 style={{ ...playfair(18, 500), lineHeight: 1.2 }}>{t('life.card.people')}</h3>
           </div>
@@ -140,32 +143,33 @@ export const PeopleCardSurface = ({
           {loading ? (
             <LifeCardLoader />
           ) : visibleRows.length ? (
-            <div className="life-card-preview">
+            // A row that doesn't fit fades out instead of being sliced mid-line.
+            <div className="life-card-preview" style={{ height: '100%', maskImage: 'linear-gradient(to bottom, #000 calc(100% - 28px), transparent)', WebkitMaskImage: 'linear-gradient(to bottom, #000 calc(100% - 28px), transparent)' }}>
               {categories.length > 1 ? (
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '0 4px 10px' }}>
                   {categories.map((category) => (
                     <button key={category} type="button" onClick={(event) => { event.stopPropagation(); setCategoryFilter(category) }} style={{ ...smallButtonStyle, background: categoryFilter === category ? 'color-mix(in srgb, var(--text-primary) 10%, transparent)' : 'color-mix(in srgb, var(--text-primary) 6%, transparent)', padding: '4px 10px' }}>
-                      {category}
+                      {category === 'All' ? t('life.people.filterAll') : category}
                     </button>
                   ))}
                 </div>
               ) : null}
               {visibleRows.slice(0, 3).map((person, index) => (
               <div key={person.id}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 4px' }}>
-                  <div style={{ width: 38, height: 38, borderRadius: '50%', background: person.avatarColor, border: '1px solid color-mix(in srgb, var(--text-primary) 8%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', ...inter(13, 500, 'color-mix(in srgb, var(--text-primary) 70%, transparent)'), flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 4px' }}>
+                  <div style={{ width: 34, height: 34, borderRadius: '50%', background: person.avatarColor, border: '1px solid color-mix(in srgb, var(--text-primary) 8%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', ...inter(13, 500, AVATAR_INK), flexShrink: 0 }}>
                     {person.avatarInitials}
                   </div>
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                       <p style={{ ...inter(13, 500), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{person.name}</p>
-                      <span style={{ ...inter(9, 500, 'var(--text-primary)'), background: 'color-mix(in srgb, var(--text-primary) 8%, transparent)', borderRadius: 999, padding: '2px 8px' }}>{person.group}</span>
-                      {person.category ? <span style={{ ...inter(9, 500, 'var(--text-primary)'), background: 'rgba(212,136,43,0.10)', borderRadius: 999, padding: '2px 8px' }}>{person.category}</span> : null}
+                      <span style={{ ...inter(9, 500, 'var(--text-primary)'), background: 'color-mix(in srgb, var(--text-primary) 8%, transparent)', borderRadius: 999, padding: '2px 8px' }}>{lifeGroupLabel(person.group, t)}</span>
+                      {person.category ? <span style={{ ...inter(9, 500, 'var(--text-primary)'), background: 'var(--paper-sunken)', borderRadius: 999, padding: '2px 8px' }}>{person.category}</span> : null}
                     </div>
-                    <p style={{ ...inter(11, 400, person.birthdaySoon ? '#8C7355' : mutedText), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{person.secondary}</p>
+                    <p style={{ ...inter(11, 400, person.birthdaySoon ? 'var(--tone-warn)' : mutedText), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{person.secondary}</p>
                   </div>
                 </div>
-                {index < Math.min(visibleRows.length, 3) - 1 ? <div style={{ height: 1, background: 'color-mix(in srgb, var(--text-primary) 5%, transparent)', marginLeft: 50 }} /> : null}
+                {index < Math.min(visibleRows.length, 3) - 1 ? <div style={{ height: 1, background: 'color-mix(in srgb, var(--text-primary) 5%, transparent)', marginLeft: 46 }} /> : null}
               </div>
               ))}
             </div>
@@ -221,10 +225,11 @@ export const PeopleCardSurface = ({
                   className={`life-quick-add__segment${quickGroup === group ? ' is-active' : ''}`}
                   onClick={() => setQuickGroup(group)}
                   style={{
-                    background: quickGroup === group ? groupColorMap[group] : 'color-mix(in srgb, var(--text-primary) 5%, transparent)',
+                    // Selection is ink, not the group's category color (DESIGN.md › Selection).
+                    background: quickGroup === group ? 'var(--cta-bg)' : 'var(--paper-sunken)',
                   }}
                 >
-                  {group}
+                  {lifeGroupLabel(group, t)}
                 </button>
               ))}
             </div>
@@ -238,7 +243,7 @@ export const PeopleCardSurface = ({
           {/* Modal header */}
           <div style={modalHeaderStyle}>
             <div>
-              <p style={{ ...inter(10, 600, 'color-mix(in srgb, var(--text-primary) 38%, transparent)'), letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 4 }}>
+              <p style={{ ...inter(10, 600, 'var(--text-tertiary)'), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase', marginBottom: 4 }}>
                 {items.length > 0 ? t('life.people.count', { count: items.length }) : t('life.people.title')}
               </p>
               <h2 style={{ ...playfair(22, 500) }}>{t('life.people.title')}</h2>
@@ -378,14 +383,14 @@ export const PeopleCardSurface = ({
                           onClick={() => setDraft((current) => ({ ...current, group }))}
                           style={{
                             ...smallButtonStyle,
-                            background: isSelected ? groupColorMap[group] : 'color-mix(in srgb, var(--text-primary) 5%, transparent)',
+                            background: isSelected ? 'var(--cta-bg)' : 'color-mix(in srgb, var(--text-primary) 5%, transparent)',
                             border: isSelected ? '1px solid color-mix(in srgb, var(--text-primary) 18%, transparent)' : '1px solid color-mix(in srgb, var(--text-primary) 9%, transparent)',
                             fontWeight: isSelected ? 600 : 500,
-                            color: isSelected ? 'color-mix(in srgb, var(--text-primary) 85%, transparent)' : 'color-mix(in srgb, var(--text-primary) 55%, transparent)',
+                            color: isSelected ? 'var(--cta-fg)' : 'var(--text-tertiary)',
                             transition: 'background 150ms ease, color 150ms ease',
                           }}
                         >
-                          {group}
+                          {lifeGroupLabel(group, t)}
                         </button>
                       )
                     })}

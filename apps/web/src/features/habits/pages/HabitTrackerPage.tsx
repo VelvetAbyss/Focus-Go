@@ -10,6 +10,7 @@ import { useHabitsI18n } from '../habitsI18n'
 import { todayDateKey } from '../model/dateKey'
 import { DiscoveryEmptyState } from '../../../shared/ui/EmptyState'
 import { useI18n } from '../../../shared/i18n/useI18n'
+import { DURATION, EASE } from '../../../shared/motion/tokens'
 import '../habits.css'
 
 /* ─── Stats Panel ─────────────────────────────────────────── */
@@ -23,6 +24,7 @@ type StatsPanelProps = {
 }
 
 const StatsPanel = ({ completed, total, percent, activeCount, bestStreak, weekTotal }: StatsPanelProps) => {
+  const i18n = useHabitsI18n()
   const r = 28
   const cx = 36
   const cy = 36
@@ -36,9 +38,9 @@ const StatsPanel = ({ completed, total, percent, activeCount, bestStreak, weekTo
         className="hb-stats__card"
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05, duration: 0.35 }}
+        transition={{ delay: 0.05, duration: DURATION.slow }}
       >
-        <div className="hb-stats__label">今日进度</div>
+        <div className="hb-stats__label">{i18n.statsTodayLabel}</div>
         <div className="hb-stats__ring-wrap">
           <div className="hb-stats__ring-container">
             <svg className="hb-stats__ring" width="72" height="72" viewBox="0 0 72 72">
@@ -54,7 +56,7 @@ const StatsPanel = ({ completed, total, percent, activeCount, bestStreak, weekTo
                 strokeDasharray={circ}
                 initial={{ strokeDashoffset: circ }}
                 animate={{ strokeDashoffset: offset }}
-                transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1], delay: 0.3 }}
+                transition={{ duration: 1.1, ease: EASE.emphasized, delay: 0.3 }}
                 transform={`rotate(-90 ${cx} ${cy})`}
               />
             </svg>
@@ -65,7 +67,7 @@ const StatsPanel = ({ completed, total, percent, activeCount, bestStreak, weekTo
               {completed}
               <span className="hb-stats__value-unit">/{total}</span>
             </div>
-            <div className="hb-stats__sub">习惯已完成</div>
+            <div className="hb-stats__sub">{i18n.statsTodaySub}</div>
           </div>
         </div>
       </motion.div>
@@ -75,9 +77,9 @@ const StatsPanel = ({ completed, total, percent, activeCount, bestStreak, weekTo
         className="hb-stats__card"
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.10, duration: 0.35 }}
+        transition={{ delay: 0.10, duration: DURATION.slow }}
       >
-        <div className="hb-stats__label">活跃习惯</div>
+        <div className="hb-stats__label">{i18n.statsActiveLabel}</div>
         <motion.div
           className="hb-stats__value"
           key={activeCount}
@@ -87,7 +89,7 @@ const StatsPanel = ({ completed, total, percent, activeCount, bestStreak, weekTo
         >
           {activeCount}
         </motion.div>
-        <div className="hb-stats__sub">正在追踪</div>
+        <div className="hb-stats__sub">{i18n.statsActiveSub}</div>
       </motion.div>
 
       {/* Best streak */}
@@ -95,9 +97,9 @@ const StatsPanel = ({ completed, total, percent, activeCount, bestStreak, weekTo
         className="hb-stats__card"
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15, duration: 0.35 }}
+        transition={{ delay: 0.15, duration: DURATION.slow }}
       >
-        <div className="hb-stats__label">最长连续</div>
+        <div className="hb-stats__label">{i18n.statsStreakLabel}</div>
         <motion.div
           className="hb-stats__value"
           key={bestStreak}
@@ -106,9 +108,9 @@ const StatsPanel = ({ completed, total, percent, activeCount, bestStreak, weekTo
           transition={{ type: 'spring', stiffness: 380, damping: 22 }}
         >
           {bestStreak}
-          <span className="hb-stats__value-unit"> 天</span>
+          <span className="hb-stats__value-unit">{i18n.statsStreakUnit}</span>
         </motion.div>
-        <div className="hb-stats__sub">当前最佳连击</div>
+        <div className="hb-stats__sub">{i18n.statsStreakSub}</div>
       </motion.div>
 
       {/* Week total */}
@@ -116,9 +118,9 @@ const StatsPanel = ({ completed, total, percent, activeCount, bestStreak, weekTo
         className="hb-stats__card"
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.20, duration: 0.35 }}
+        transition={{ delay: 0.20, duration: DURATION.slow }}
       >
-        <div className="hb-stats__label">本周打卡</div>
+        <div className="hb-stats__label">{i18n.statsWeekLabel}</div>
         <motion.div
           className="hb-stats__value"
           key={weekTotal}
@@ -128,7 +130,7 @@ const StatsPanel = ({ completed, total, percent, activeCount, bestStreak, weekTo
         >
           {weekTotal}
         </motion.div>
-        <div className="hb-stats__sub">次完成</div>
+        <div className="hb-stats__sub">{i18n.statsWeekSub}</div>
       </motion.div>
     </div>
   )
@@ -178,10 +180,10 @@ const HabitTrackerPage = () => {
           className="hb-header"
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: DURATION.medium }}
         >
           <div>
-            <p className="hb-header__eyebrow">习惯系统</p>
+            <p className="hb-header__eyebrow">{i18n.eyebrow}</p>
             <h1 className="hb-header__title">{i18n.title}</h1>
             <p className="hb-header__subtitle">{i18n.subtitle}</p>
           </div>

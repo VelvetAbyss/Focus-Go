@@ -5,6 +5,7 @@ import type { Habit } from '../../../data/models/types'
 import { HabitCalendar } from './HabitCalendar'
 import { todayDateKey } from '../model/dateKey'
 import { useHabitsI18n } from '../habitsI18n'
+import { DURATION, EASE } from '../../../shared/motion/tokens'
 
 type HabitCardProps = {
   habit: Habit
@@ -79,7 +80,7 @@ export const HabitCard = ({
               initial={{ opacity: 0, scale: 0.4 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.55, ease: 'easeOut' }}
+              transition={{ duration: 0.55, ease: EASE.emphasized }}
               style={{
                 background: `radial-gradient(ellipse at 50% 90%, ${accentColor}22 0%, transparent 65%)`,
               }}
@@ -137,7 +138,7 @@ export const HabitCard = ({
                     opacity: isToday && !done ? 0.55 : undefined,
                   }}
                   animate={justCompleted && isToday ? { scale: [1, 1.45, 1] } : {}}
-                  transition={{ duration: 0.32 }}
+                  transition={{ duration: DURATION.medium }}
                 />
               </div>
             )
@@ -175,7 +176,7 @@ export const HabitCard = ({
           style={completedToday ? { background: accentColor, borderColor: 'transparent' } : undefined}
           whileTap={{ scale: 0.97 }}
           animate={justCompleted ? { scale: [1, 1.04, 1] } : {}}
-          transition={{ duration: 0.22 }}
+          transition={{ duration: DURATION.base }}
         >
           <AnimatePresence mode="wait" initial={false}>
             {completedToday ? (
@@ -185,7 +186,7 @@ export const HabitCard = ({
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.18 }}
+                transition={{ duration: DURATION.base }}
               >
                 <Check size={16} strokeWidth={2.5} />
                 {i18n.todayCompleted}
@@ -197,7 +198,7 @@ export const HabitCard = ({
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.18 }}
+                transition={{ duration: DURATION.base }}
               >
                 {i18n.markToday}
               </motion.span>
@@ -214,7 +215,7 @@ export const HabitCard = ({
         >
           <motion.span
             animate={{ rotate: showCalendar ? 180 : 0 }}
-            transition={{ duration: 0.22 }}
+            transition={{ duration: DURATION.base }}
             style={{ display: 'flex' }}
           >
             <Calendar size={14} />
@@ -230,7 +231,7 @@ export const HabitCard = ({
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.26, ease: [0.4, 0, 0.2, 1] }}
+              transition={{ duration: DURATION.medium, ease: EASE.standard }}
             >
               <HabitCalendar
                 completedDates={completedDates}

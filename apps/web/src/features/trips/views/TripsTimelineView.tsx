@@ -10,6 +10,7 @@ import {
   tripPhase,
 } from '../tripData'
 import { ink, muted, pf, subtleBorder, tx } from '../ui'
+import { appIntlLocale } from '../../../shared/i18n/format'
 
 type Props = {
   trips: TripRecord[]
@@ -19,7 +20,7 @@ type Props = {
 
 type Group = { key: string; label: string; trips: TripRecord[] }
 
-const monthShort = (date: Date) => date.toLocaleString(undefined, { month: 'short' })
+const monthShort = (date: Date) => date.toLocaleString(appIntlLocale(), { month: 'short' })
 
 const groupByYear = (trips: TripRecord[]): Group[] => {
   const sorted = [...trips].sort((a, b) => {
@@ -101,7 +102,7 @@ const TimelineRow = ({ trip, t, onOpen }: { trip: TripRecord; t: LifeTranslate; 
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, paddingTop: 6 }}>
         {start ? (
           <>
-            <span style={{ ...tx(10, 600, muted), textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            <span style={{ ...tx(10, 600, muted), textTransform: 'uppercase', letterSpacing: 'var(--tracking-caps)' }}>
               {monthShort(start)}
             </span>
             <span style={{ ...pf(20, 600) }}>{start.getDate()}</span>
