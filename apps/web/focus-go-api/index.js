@@ -12,6 +12,8 @@ import adminRouter from './routes/admin.js'
 import feedbackRouter from './routes/feedback.js'
 import seedRouter from './routes/seed.js'
 import { createNewsRouter } from './routes/news.js'
+import { createCalendarRouter } from './routes/calendar.js'
+import { requireAuth } from './middleware/auth.js'
 import { createNewsService } from './services/news.js'
 import db from './db/init.js'
 import { startNeteasePodcastSyncJob } from './services/podcasts.js'
@@ -115,6 +117,9 @@ export const createApp = () => {
   const newsRouter = createNewsRouter({ service: createNewsService({ db }) })
   app.use('/news', newsRouter)
   app.use('/api/news', newsRouter)
+  const calendarRouter = createCalendarRouter({ requireAuth })
+  app.use('/calendar', calendarRouter)
+  app.use('/api/calendar', calendarRouter)
   app.use('/admin', adminRouter)
   app.use('/api/admin', adminRouter)
   app.use('/feedback', feedbackRouter)
