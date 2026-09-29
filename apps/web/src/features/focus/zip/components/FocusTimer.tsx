@@ -99,7 +99,8 @@ const quotesZh = [
 
 function RollingDigit({ digit, prevDigit }: { digit: string; prevDigit: string }) {
   return (
-    <div className="relative overflow-hidden" style={{ width: "0.62em", height: "1em" }}>
+    // Source Serif 4 tabular figures are 0.5em wide; the slot adds a hair of air.
+    <div className="relative overflow-hidden" style={{ width: "0.54em", height: "1em" }}>
       <AnimatePresence mode="popLayout">
         <motion.span
           key={digit}
@@ -108,7 +109,7 @@ function RollingDigit({ digit, prevDigit }: { digit: string; prevDigit: string }
           exit={{ y: digit > prevDigit ? "-100%" : "100%", opacity: 0 }}
           transition={{ type: "spring", stiffness: 200, damping: 25 }}
           className="absolute inset-0 flex items-center justify-center"
-          style={{ fontVariantNumeric: "tabular-nums" }}
+          style={{ fontVariantNumeric: 'var(--num-features)' }}
         >
           {digit}
         </motion.span>
@@ -134,9 +135,11 @@ function TimerDisplay({ time }: { time: number }) {
   return (
     <div className="flex items-center justify-center select-none">
       <div
-        className="focus-zip-timer__digits flex items-center tracking-[-0.04em]"
+        className="focus-zip-timer__digits flex items-center tracking-[-0.01em]"
         style={{
-          fontFamily: 'var(--font-display)',
+          fontFamily: 'var(--font-numeral)',
+          fontVariantNumeric: 'var(--num-features)',
+          fontWeight: 300,
           fontSize: "clamp(3.8rem, 6.5vw, 6rem)",
           color: "var(--text-primary)",
           lineHeight: 1,
@@ -199,8 +202,8 @@ function DurationPicker({
             <ChevronDown size={15} className="text-[var(--text-secondary)]" />
           </motion.button>
           <span
-            className="text-[1.8rem] tabular-nums"
-            style={{ fontFamily: 'var(--font-display)', color: "var(--text-primary)" }}
+            className="text-[1.8rem]"
+            style={{ fontFamily: 'var(--font-numeral)', fontVariantNumeric: 'var(--num-features)', color: "var(--text-primary)" }}
           >
             {value}
           </span>
@@ -335,20 +338,22 @@ function DailyGoalRing({
   return (
     <div className="relative flex items-center justify-center" style={{ width: 68, height: 68 }}>
       <svg width={68} height={68} className="absolute -rotate-90">
+        {/* The goal is a dashed pencil track; today's minutes are the pen. */}
         <circle
           cx={34}
           cy={34}
           r={radius}
           fill="none"
-          stroke="color-mix(in srgb, var(--text-primary) 4%, transparent)"
-          strokeWidth={3}
+          stroke="var(--pencil-line)"
+          strokeWidth={1.5}
+          strokeDasharray="3 4"
         />
         <motion.circle
           cx={34}
           cy={34}
           r={radius}
           fill="none"
-          stroke="color-mix(in srgb, var(--accent) 50%, transparent)"
+          stroke="var(--accent)"
           strokeWidth={3}
           strokeLinecap="round"
           strokeDasharray={circumference}
@@ -358,7 +363,7 @@ function DailyGoalRing({
         />
       </svg>
       <div className="flex flex-col items-center z-10">
-        <span className="text-ui text-[var(--text-primary)] tabular-nums" style={{ fontFamily: 'var(--font-display)' }}>
+        <span className="text-ui text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-numeral)', fontVariantNumeric: 'var(--num-features)' }}>
           {completedMinutes}
         </span>
         <span className="text-meta text-[var(--text-secondary)] -mt-0.5">/ {goalMinutes}{minLabel}</span>
@@ -801,8 +806,8 @@ export function FocusTimer({
               transition={{ duration: 0.5 }}
             >
               <p
-                className="text-label text-[var(--text-secondary)] italic"
-                style={{ fontFamily: 'var(--font-display)' }}
+                className="text-label text-[var(--text-secondary)]"
+                style={{ fontFamily: 'var(--font-reading)' }}
               >
                 {language === "zh" ? `“${quote.text}”` : `"${quote.text}"`}
               </p>

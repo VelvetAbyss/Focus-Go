@@ -1,0 +1,313 @@
+/* ── Weather card ─────────────────────────────────────────────────────────
+   An Experience surface on the dashboard: the painted sky is content (like a
+   photograph), so it may carry its own palette. The chrome on top keeps the
+   system rules: ink or paper text chosen by the sky's luminance, the numeral
+   face for the temperature, one meta line, a segmented day strip. */
+
+.weather-card {
+  --wx-ink: #2c2925;
+  --wx-ink-2: rgb(44 41 37 / 0.72);
+  --wx-scrim: rgb(250 248 244 / 0.3);
+  --wx-glass: rgb(255 255 255 / 0.3);
+  --wx-glass-active: rgb(255 255 255 / 0.74);
+  --wx-rule: rgb(44 41 37 / 0.1);
+  --wx-shadow: 0 1px 2px rgb(44 41 37 / 0.1);
+
+  position: relative;
+  isolation: isolate;
+  color: var(--wx-ink);
+}
+
+.weather-card[data-sky='dark'] {
+  --wx-ink: #f6f3ee;
+  --wx-ink-2: rgb(246 243 238 / 0.76);
+  --wx-scrim: rgb(8 10 16 / 0.26);
+  --wx-glass: rgb(255 255 255 / 0.08);
+  --wx-glass-active: rgb(255 255 255 / 0.2);
+  --wx-rule: rgb(255 255 255 / 0.12);
+  --wx-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+}
+
+.weather-card > .card__body {
+  position: relative;
+  padding: 0;
+}
+
+/* Sky ──────────────────────────────────────────────────────────────────── */
+
+.weather-sky {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  transition: background var(--motion-duration-slow) var(--ease-standard);
+}
+
+.weather-sky__canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 700ms var(--ease-standard);
+}
+
+.weather-sky[data-status='ready'] .weather-sky__canvas {
+  opacity: 1;
+}
+
+/* Legibility: a soft wash behind the text side only, so the sun and moon on
+   the right stay untouched. */
+.weather-sky::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(100deg, var(--wx-scrim) 0%, transparent 58%);
+}
+
+/* Content ──────────────────────────────────────────────────────────────── */
+
+.weather-card__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 14px 14px 12px 16px;
+  container-type: inline-size;
+}
+
+.weather-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.weather-card__place {
+  min-width: 0;
+}
+
+.weather-card__city {
+  margin: 0;
+  overflow: hidden;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--wx-ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.weather-card__condition {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 2px 0 0;
+  overflow: hidden;
+  font-family: var(--font-body);
+  font-size: var(--fs-label);
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--wx-ink-2);
+  white-space: nowrap;
+}
+
+.weather-card__condition svg {
+  flex-shrink: 0;
+}
+
+.weather-card__sep {
+  opacity: 0.55;
+}
+
+.weather-card__refresh {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--wx-rule);
+  border-radius: 999px;
+  background: var(--wx-glass);
+  color: var(--wx-ink-2);
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  transition:
+    color var(--motion-duration-instant) var(--ease-standard),
+    background var(--motion-duration-instant) var(--ease-standard);
+}
+
+.weather-card__refresh:hover {
+  background: var(--wx-glass-active);
+  color: var(--wx-ink);
+}
+
+.weather-card__refresh.is-loading svg {
+  animation: weather-card-spin var(--motion-spin-duration, 900ms) linear infinite;
+}
+
+@keyframes weather-card-spin {
+  to { transform: rotate(-360deg); }
+}
+
+.weather-card__hero {
+  margin-top: auto;
+}
+
+.weather-card__temp {
+  display: flex;
+  align-items: flex-start;
+  margin: 0;
+  font-family: var(--font-numeral);
+  font-weight: 300;
+  font-variant-numeric: tabular-nums lining-nums;
+  line-height: 0.92;
+  color: var(--wx-ink);
+  animation: weather-card-temp-in var(--motion-duration-medium) var(--ease-emphasized);
+}
+
+.weather-card__temp-value {
+  font-size: 56px;
+  letter-spacing: -0.02em;
+}
+
+.weather-card__temp-unit {
+  margin: 6px 0 0 3px;
+  font-size: 18px;
+  opacity: 0.8;
+}
+
+@keyframes weather-card-temp-in {
+  from { opacity: 0; translate: 0 4px; }
+}
+
+.weather-card__meta {
+  display: flex;
+  align-items: center;
+  margin: 7px 0 0;
+  overflow: hidden;
+  font-family: var(--font-body);
+  font-size: var(--fs-label);
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--wx-ink-2);
+  white-space: nowrap;
+}
+
+.weather-card__range {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  color: var(--wx-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.weather-card__range svg + svg,
+.weather-card__range svg:nth-of-type(2) {
+  margin-left: 6px;
+}
+
+.weather-card__meta-item {
+  display: inline-flex;
+  align-items: center;
+}
+
+.weather-card__meta .weather-card__sep {
+  margin: 0 6px;
+}
+
+/* Day strip: a segmented control in frosted glass; the chosen day is the
+   raised thumb and repaints the sky. */
+.weather-card__days {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 3px;
+  margin-top: 11px;
+  padding: 3px;
+  border: 1px solid var(--wx-rule);
+  border-radius: 12px;
+  background: var(--wx-glass);
+  -webkit-backdrop-filter: blur(10px) saturate(120%);
+  backdrop-filter: blur(10px) saturate(120%);
+}
+
+.weather-card__day {
+  display: flex;
+  min-width: 0;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 6px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--wx-ink-2);
+  font-family: var(--font-body);
+  font-size: var(--fs-label);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--motion-duration-base) var(--ease-standard),
+    color var(--motion-duration-base) var(--ease-standard),
+    box-shadow var(--motion-duration-base) var(--ease-standard);
+}
+
+.weather-card__day:hover {
+  color: var(--wx-ink);
+}
+
+.weather-card__day[data-active='true'] {
+  background: var(--wx-glass-active);
+  color: var(--wx-ink);
+  box-shadow: var(--wx-shadow);
+}
+
+.weather-card__day svg {
+  flex-shrink: 0;
+}
+
+.weather-card__day-range {
+  display: inline-flex;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.weather-card__day-lo {
+  opacity: 0.62;
+}
+
+@container (max-width: 330px) {
+  .weather-card__day-lo {
+    display: none;
+  }
+}
+
+@container (max-width: 270px) {
+  .weather-card__day svg {
+    display: none;
+  }
+}
+
+html[data-motion='reduce'] .weather-card__temp,
+html[data-motion='reduce'] .weather-card__refresh.is-loading svg {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .weather-card__temp,
+  .weather-card__refresh.is-loading svg {
+    animation: none;
+  }
+}

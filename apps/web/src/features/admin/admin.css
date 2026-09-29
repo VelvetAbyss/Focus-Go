@@ -40,7 +40,7 @@
 .admin-deck__title {
   margin: 8px 0 6px;
   color: var(--deck-ink);
-  font: 650 clamp(30px, 4vw, 52px)/0.98 var(--font-display);
+  font: 600 clamp(30px, 4vw, 52px)/0.98 var(--font-display);
   letter-spacing: 0;
 }
 
@@ -65,7 +65,7 @@
   align-items: center;
   gap: 8px;
   color: var(--deck-muted);
-  font: 650 13px/1 var(--font-body);
+  font: 600 13px/1 var(--font-body);
 }
 
 .admin-switch input {
@@ -208,7 +208,7 @@ html[data-theme='dark'] .admin-banner--error {
 .admin-kpi-card h3 {
   margin: 12px 0 0;
   color: var(--deck-ink);
-  font: 750 clamp(18px, 1.5vw, 24px)/1.05 var(--font-body);
+  font: 700 clamp(18px, 1.5vw, 24px)/1.05 var(--font-body);
   letter-spacing: 0;
 }
 
@@ -222,7 +222,7 @@ html[data-theme='dark'] .admin-banner--error {
 
 .admin-kpi-card--growth p:last-child {
   margin-top: 10px;
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .admin-filters {
@@ -280,7 +280,7 @@ html[data-theme='dark'] .admin-banner--error {
   top: 0;
   z-index: 1;
   color: var(--deck-muted);
-  font-weight: 750;
+  font-weight: 700;
   background: var(--deck-wash);
 }
 
@@ -311,7 +311,7 @@ html[data-theme='dark'] .admin-banner--error {
   border: 1px solid var(--deck-line);
   border-radius: 999px;
   padding: 0 8px;
-  font: 750 12px/1 var(--font-body);
+  font: 700 12px/1 var(--font-body);
 }
 
 .admin-pill.premium {
@@ -353,7 +353,7 @@ html[data-theme='dark'] .admin-banner--error {
   padding: 0 9px;
   background: transparent;
   color: var(--deck-sage);
-  font: 750 12px/1 var(--font-body);
+  font: 700 12px/1 var(--font-body);
   cursor: pointer;
 }
 
@@ -435,13 +435,13 @@ html[data-theme='dark'] .admin-banner--error {
 .admin-server-card p {
   margin: 0;
   color: var(--deck-muted);
-  font: 750 12px/1.25 var(--font-body);
+  font: 700 12px/1.25 var(--font-body);
 }
 
 .admin-server-card h3 {
   margin: 12px 0 0;
   color: var(--deck-ink);
-  font: 750 16px/1.35 var(--font-body);
+  font: 700 16px/1.35 var(--font-body);
 }
 
 /* ── Health badge ────────────────────────────────────────────────────────── */
@@ -452,7 +452,7 @@ html[data-theme='dark'] .admin-banner--error {
   min-height: 22px;
   border-radius: 999px;
   padding: 0 8px;
-  font: 750 11px/1 var(--font-body);
+  font: 700 11px/1 var(--font-body);
 }
 
 .admin-health-badge--healthy {
@@ -492,7 +492,7 @@ html[data-theme='dark'] .admin-banner--error {
   padding: 0 6px;
   background: color-mix(in srgb, var(--deck-faint) 60%, transparent);
   color: var(--deck-muted);
-  font: 650 11px/1 var(--font-body);
+  font: 600 11px/1 var(--font-body);
 }
 
 /* ── Inline latest note (visible without expanding) ─────────────────────── */
@@ -535,7 +535,7 @@ html[data-theme='dark'] .admin-banner--error {
 .admin-section-kicker {
   margin: 0 0 6px;
   color: var(--deck-sage);
-  font: 750 11px/1 var(--font-body);
+  font: 700 11px/1 var(--font-body);
   text-transform: uppercase;
   letter-spacing: 0;
 }
@@ -543,14 +543,14 @@ html[data-theme='dark'] .admin-banner--error {
 .admin-growth-hero h2 {
   margin: 0;
   color: var(--deck-ink);
-  font: 750 clamp(22px, 2.2vw, 30px)/1.05 var(--font-display);
+  font: 700 clamp(22px, 2.2vw, 30px)/1.05 var(--font-display);
   letter-spacing: 0;
 }
 
 .admin-growth-hero__note {
   max-width: 320px;
   color: var(--deck-muted);
-  font: 650 12px/1.45 var(--font-body);
+  font: 600 12px/1.45 var(--font-body);
   text-align: right;
 }
 
@@ -587,7 +587,7 @@ html[data-theme='dark'] .admin-banner--error {
 .admin-card-heading h3 {
   margin: 0;
   color: var(--deck-ink);
-  font: 750 14px/1.25 var(--font-body);
+  font: 700 14px/1.25 var(--font-body);
 }
 
 .admin-card-heading span {
@@ -660,7 +660,7 @@ html[data-theme='dark'] .admin-banner--error {
   grid-column: 1 / -1;
   color: var(--deck-muted);
   font-style: normal;
-  font-weight: 650;
+  font-weight: 600;
 }
 
 /* ── User detail panel ───────────────────────────────────────────────────── */
@@ -682,7 +682,7 @@ html[data-theme='dark'] .admin-banner--error {
 .admin-detail-section__title {
   margin: 0 0 10px;
   color: var(--deck-muted);
-  font: 750 11px/1.2 var(--font-body);
+  font: 700 11px/1.2 var(--font-body);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -846,7 +846,7 @@ html[data-theme='dark'] .admin-banner--error {
 }
 
 .admin-audit-action {
-  font: 750 12px/1 var(--font-body);
+  font: 700 12px/1 var(--font-body);
   color: var(--deck-ink);
 }
 

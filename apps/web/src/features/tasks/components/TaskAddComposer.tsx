@@ -334,7 +334,7 @@ const TaskAddComposer = forwardRef<TaskAddComposerHandle, TaskAddComposerProps>(
           'flex items-center gap-3 rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] px-3 py-2 transition-all duration-300',
           compact ? 'rounded-[var(--radius-md)] px-2.5 py-2' : '',
           plain && !hero ? 'flex-1 gap-2 rounded-lg bg-transparent px-3 py-1.5' : '',
-          hero ? 'flex-1 gap-3 rounded-xl border-[color:color-mix(in_srgb,var(--accent-action)_22%,transparent)] bg-[color:color-mix(in_srgb,var(--accent-action)_5%,var(--bg-elevated))] px-3.5 py-2.5' : '',
+          hero ? 'flex-1 gap-3 rounded-xl border-[color:var(--rule-strong)] bg-[color:var(--paper-sunken)] px-3.5 py-2.5' : '',
           isFocused && !plain && !hero && 'border-[color-mix(in_srgb,var(--text-primary)_18%,transparent)] bg-[var(--bg-elevated)] shadow-[0_0_0_3px_rgba(148,163,184,0.15)]',
           isFocused && plain && !hero && 'border-ring/60 bg-transparent ring-2 ring-ring/15',
           isFocused && hero && 'border-[color:color-mix(in_srgb,var(--accent-action)_60%,transparent)] shadow-[0_0_0_4px_color-mix(in_srgb,var(--ink-1)_16%,transparent)]',

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Command } from 'cmdk'
 import {
   Calendar,
@@ -33,14 +33,15 @@ import { projectsRepo } from '../../data/repositories/projectsRepo'
 import { createTask as createTaskRecord, parseQuickAddTaskInput } from '../../features/tasks/application/taskActions'
 import { requestOpen } from '../navigation/openRequest'
 import { appIntlLocale } from '../i18n/format'
-import { searchDocs, type SearchDoc, type SearchHit, type SearchKind } from './commandSearch'
-import { buildTripDetailRoute, ROUTES } from '../../app/routes/routes'
+import { searchDocs, type SearchDoc, type SearchKind } from './commandSearch'
+import { buildDiaryEntryRoute, buildNoteDetailRoute, buildTaskDetailRoute, buildTripDetailRoute, ROUTES } from '../../app/routes/routes'
 import { emitTasksChanged } from '../../features/tasks/taskSync'
 import { useTripCommandContext } from '../../features/trips/tripCommandRegistry'
 import { tripsRepo } from '../../features/trips/tripsRepo'
 import type { TripRecord } from '../../data/models/types'
 import { useI18n } from '../i18n/useI18n'
 import type { TranslationKey } from '../i18n/types'
+import { readCurrentUserRecentCommandTargets, rememberCurrentUserRecentCommandTarget, resolveRecentCommandTargets } from './recentCommandTargets'
 
 type CommandPaletteProps = {
   open: boolean
@@ -67,6 +68,13 @@ const RESULT_GROUPS: Array<{ kind: SearchKind; headingKey: TranslationKey }> = [
   { kind: 'diary', headingKey: 'commandPalette.group.diary' },
   { kind: 'project', headingKey: 'commandPalette.group.projects' },
 ]
+
+const RESULT_LABEL_KEYS: Record<SearchKind, TranslationKey> = {
+  task: 'commandPalette.group.tasks',
+  note: 'commandPalette.group.notes',
+  diary: 'commandPalette.group.diary',
+  project: 'commandPalette.group.projects',
+}
 
 /** Loads everything ⌘K can find: tasks, notes, diary entries and projects (all local). */
 const loadSearchDocs = async (untitled: string): Promise<SearchDoc[]> => {
@@ -128,18 +136,32 @@ const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
   const tripCtx = useTripCommandContext()
   const [trips, setTrips] = useState<TripRecord[]>([])
   const [searchIndex, setSearchIndex] = useState<SearchDoc[]>([])
+  const [recentTargets, setRecentTargets] = useState(readCurrentUserRecentCommandTargets)
+  const previouslyFocusedElement = useRef<HTMLElement | null>(null)
+
+  const closeAndRestoreFocus = useCallback(() => {
+    onOpenChange(false)
+    window.requestAnimationFrame(() => {
+      if (previouslyFocusedElement.current?.isConnected) previouslyFocusedElement.current.focus()
+    })
+  }, [onOpenChange])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault()
-        onOpenChange(!open)
+        if (open) closeAndRestoreFocus()
+        else {
+          previouslyFocusedElement.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+          onOpenChange(true)
+        }
+        return
       }
-      if (event.key === 'Escape') onOpenChange(false)
+      if (event.key === 'Escape' && open) closeAndRestoreFocus()
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [onOpenChange, open])
+  }, [closeAndRestoreFocus, onOpenChange, open])
 
   useEffect(() => {
     if (!open) setQuery('')
@@ -148,6 +170,8 @@ const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
   useEffect(() => {
     if (!open) return
     let cancelled = false
+    setSearchIndex([])
+    setRecentTargets(readCurrentUserRecentCommandTargets())
     void tripsRepo.list().then((rows) => {
       if (!cancelled) setTrips(rows)
     })
@@ -181,13 +205,23 @@ const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
     navigate(ROUTES.TASKS)
   }
 
-  const openHit = (hit: SearchHit) => {
+  const openHit = (hit: SearchDoc) => {
+    setRecentTargets(rememberCurrentUserRecentCommandTarget({ kind: hit.kind, id: hit.id }))
     if (hit.kind === 'project') {
       navigate(`${ROUTES.PROJECTS}/${hit.id}`)
       return
     }
-    requestOpen(hit.kind, hit.id)
-    navigate(hit.kind === 'task' ? ROUTES.TASKS : hit.kind === 'note' ? ROUTES.NOTE : ROUTES.DIARY)
+    if (hit.kind === 'task') {
+      requestOpen('task', hit.id)
+      navigate(buildTaskDetailRoute(hit.id))
+      return
+    }
+    if (hit.kind === 'note') {
+      requestOpen('note', hit.id)
+      navigate(buildNoteDetailRoute(hit.id))
+      return
+    }
+    navigate(buildDiaryEntryRoute(hit.id))
   }
 
   const run = (fn: () => void) => {
@@ -198,6 +232,7 @@ const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
   const trimmed = query.trim()
   const needle = trimmed.toLowerCase()
   const hits = useMemo(() => searchDocs(searchIndex, trimmed), [searchIndex, trimmed])
+  const recentDocs = useMemo(() => resolveRecentCommandTargets(recentTargets, searchIndex), [recentTargets, searchIndex])
 
   if (!open) return null
 
@@ -213,7 +248,7 @@ const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
         type="button"
         className="command-palette__backdrop"
         aria-label={t('commandPalette.close')}
-        onClick={() => onOpenChange(false)}
+        onClick={closeAndRestoreFocus}
       />
       <Command
         className="command-palette__panel"
@@ -240,6 +275,25 @@ const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
           <kbd>⌘K</kbd>
         </div>
         <Command.List className="command-palette__list">
+          {!trimmed && recentDocs.length > 0 ? (
+            <Command.Group heading={t('commandPalette.group.recent')} className="command-palette__group">
+              {recentDocs.map((doc) => {
+                const Icon = doc.kind === 'task' ? (doc.closed ? CircleCheck : Circle) : doc.kind === 'note' ? FileText : doc.kind === 'diary' ? NotebookPen : FolderKanban
+                return (
+                  <Command.Item
+                    key={`recent:${doc.kind}:${doc.id}`}
+                    value={`recent:${doc.kind}:${doc.id}`}
+                    className={`command-palette__item command-palette__item--result${doc.closed ? ' is-closed' : ''}`}
+                    onSelect={() => run(() => openHit(doc))}
+                  >
+                    <Icon className="size-4" />
+                    <span>{doc.title}</span>
+                    <strong>{t(RESULT_LABEL_KEYS[doc.kind])}</strong>
+                  </Command.Item>
+                )
+              })}
+            </Command.Group>
+          ) : null}
           {RESULT_GROUPS.map(({ kind, headingKey }) => {
             const groupHits = hits.filter((hit) => hit.kind === kind)
             if (groupHits.length === 0) return null

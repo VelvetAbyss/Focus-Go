@@ -9,6 +9,8 @@ import {
   type TaskProgressPeriod,
   type TaskProgressSummary,
 } from '../domain/taskProgressSummary'
+import { buildJarShelf, startOfJarWeek } from '../domain/completionJar'
+import CompletionJar from './CompletionJar'
 import '../../../shared/ui/HeaderPill.css'
 import './TaskProgressSummaryCard.css'
 import ActiveIndicator from '../../../shared/motion/ActiveIndicator'
@@ -70,9 +72,9 @@ const Stat = ({
       {trendValues ? (
         <TrendBars values={trendValues} />
       ) : (
-        <span className="recap-card__bars" aria-hidden>
+        <span className="recap-card__bars recap-card__bars--empty" aria-hidden>
           {Array.from({ length: 7 }).map((_, index) => (
-            <i key={index} style={{ height: '40%', opacity: 0.4 }} />
+            <i key={index} style={{ height: '40%' }} />
           ))}
         </span>
       )}
@@ -267,6 +269,14 @@ export const TaskProgressSummaryCard = ({ tasks, projects, className, compact, n
     [anchorAt, effectiveNow, mode, period, projects, tasks],
   )
   const visibleProjects = compact ? summary.projects.slice(0, 3) : summary.projects
+  // The brief week view shows the completion jar; the detailed view and the
+  // month keep the per-project list.
+  const showJar = period === 'week' && mode === 'compact'
+  const jarShelf = useMemo(() => (showJar ? buildJarShelf(tasks, { anchorAt, shelfSize: 8 }) : null), [anchorAt, showJar, tasks])
+  const openWeek = (startAt: number) => {
+    const weeks = Math.round((startAt - startOfJarWeek(effectiveNow)) / (7 * 24 * 60 * 60 * 1000))
+    setPeriodOffset(Math.min(0, weeks))
+  }
 
   const periodOptions = useMemo(
     () => [
@@ -392,9 +402,10 @@ export const TaskProgressSummaryCard = ({ tasks, projects, className, compact, n
               className="recap-card__current-btn"
               disabled={periodOffset === 0}
               onClick={() => setPeriodOffset(0)}
+              title={t(period === 'week' ? 'taskRecap.history.thisWeek' : 'taskRecap.history.thisMonth')}
             >
               <RotateCcw aria-hidden />
-              <span>{t(period === 'week' ? 'taskRecap.history.thisWeek' : 'taskRecap.history.thisMonth')}</span>
+              <span className="recap-card__current-label">{t(period === 'week' ? 'taskRecap.history.thisWeek' : 'taskRecap.history.thisMonth')}</span>
             </button>
             <button
               type="button"
@@ -417,8 +428,8 @@ export const TaskProgressSummaryCard = ({ tasks, projects, className, compact, n
 
         <div className="recap-card__rule" role="presentation" />
 
-        <div className="recap-card__scroll">
-          <div className="recap-card__stats" aria-label={t('taskRecap.eyebrow')}>
+        <div className={`recap-card__scroll${jarShelf ? ' recap-card__scroll--jar' : ''}`}>
+          <div className={`recap-card__stats${jarShelf ? ' recap-card__stats--with-jar' : ''}`} aria-label={t('taskRecap.eyebrow')}>
             <Stat
               label={t('taskRecap.stat.projects')}
               value={summary.totals.projectCount}
@@ -447,6 +458,9 @@ export const TaskProgressSummaryCard = ({ tasks, projects, className, compact, n
             </div>
           ) : null}
 
+          {jarShelf ? (
+            <CompletionJar shelf={jarShelf} isCurrentWeek={periodOffset === 0} onOpenWeek={openWeek} />
+          ) : (
           <div className="recap-card__by-project">
             <div className="recap-card__bp-head">
               <span className="recap-card__bp-eyebrow">{t('taskRecap.byProject')}</span>
@@ -476,6 +490,7 @@ export const TaskProgressSummaryCard = ({ tasks, projects, className, compact, n
               </div>
             )}
           </div>
+          )}
         </div>
 
         <footer className="recap-card__footer">

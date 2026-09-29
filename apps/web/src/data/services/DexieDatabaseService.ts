@@ -751,6 +751,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       const sourceText = data?.contentMd ?? ''
       const stats = buildNoteStats(sourceText)
       const note: NoteItem = withBase({
+        ...(data?.id ? { id: data.id } : {}),
         title: data?.title ?? '',
         contentMd: data?.contentMd ?? '',
         contentJson: data?.contentJson ?? null,
@@ -823,7 +824,10 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
           })
         }
       })
-      await enqueueUpsert('notes', next)
+      // The Dexie transaction is durable now. Do not hold the editor's save
+      // acknowledgement behind RxDB's serialized queue; its next cycle also
+      // backfills newer Dexie rows if this background enqueue is interrupted.
+      enqueueUpsertInBackground('notes', next)
       await finalizeDomainEvent(event)
       return next
     },

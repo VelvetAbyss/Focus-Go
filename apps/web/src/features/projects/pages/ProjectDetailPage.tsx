@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import {
   Archive, ArrowLeft, ChevronDown, ClipboardList, FileText,
   Mail, Pencil, Phone, Plus, Search,
   Trash2, Users, Zap, CalendarDays, User,
 } from 'lucide-react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 import { EditableText } from '@/components/ui/EditableText'
@@ -30,6 +30,8 @@ import { createProjectTask } from '../../tasks/application/taskActions'
 import { isTaskDone, isTaskOverdue } from '../../tasks/domain/taskRules'
 import { DURATION, EASE_OUT } from '../../../shared/motion/tokens'
 import { ROLE } from '../../../shared/design/tokens'
+import { rememberCurrentUserRecentCommandTarget } from '../../../shared/ui/recentCommandTargets'
+import { buildNoteRouteWithReturn } from '../../../shared/navigation/returnPath'
 import '../projects.css'
 
 type ProjectTab = 'overview' | 'tasks' | 'timeline' | 'people' | 'notes'
@@ -78,15 +80,32 @@ const formatActivityTime = (time: number) => {
   return `${date.toLocaleDateString(locale, { month: 'short', day: 'numeric' })} ${clock}`
 }
 
+const projectScrollContainer = (): HTMLElement | null => {
+  let node = document.querySelector<HTMLElement>('.pd-page .pd-body')
+  while (node) {
+    const overflow = window.getComputedStyle(node).overflowY
+    if (node.scrollHeight > node.clientHeight + 1 && (overflow === 'auto' || overflow === 'scroll')) return node
+    if (node.classList.contains('focus-shell__route-layer')) break
+    node = node.parentElement
+  }
+  return null
+}
+
 // ── Main component ────────────────────────────────────────────
 const ProjectDetailPage = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const { projectId } = useParams()
   const [params, setParams] = useSearchParams()
   const tab = (params.get('tab') as ProjectTab | null) ?? 'overview'
   const i18n = useProjectsI18n()
 
   const [project, setProject] = useState<ProjectItem | null>(null)
+  const activeProjectId = project?.id ?? null
+
+  useEffect(() => {
+    if (activeProjectId) rememberCurrentUserRecentCommandTarget({ kind: 'project', id: activeProjectId })
+  }, [activeProjectId])
   const [people, setPeople] = useState<ProjectPerson[]>([])
   const [tasks, setTasks] = useState<TaskItem[]>([])
   const [notes, setNotes] = useState<Array<{ note: NoteItem }>>([])
@@ -98,9 +117,10 @@ const ProjectDetailPage = () => {
   const [viewingPerson, setViewingPerson] = useState<ProjectPerson | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [drawerTask, setDrawerTask] = useState<TaskItem | null>(null)
+  const lastLinkedTaskIdRef = useRef<string | null>(null)
   const [allProjects, setAllProjects] = useState<ProjectItem[]>([])
   const [timelineMode, setTimelineMode] = useState<TimelineMode>('month')
-  const [notesQuery, setNotesQuery] = useState('')
+  const notesQuery = params.get('q') ?? ''
   const [showFocusCardPulse, setShowFocusCardPulse] = useState(false)
 
   // First-visit affordance: pulse the "next step" card for 2s so users discover
@@ -148,6 +168,48 @@ const ProjectDetailPage = () => {
   }, [projectId])
 
   useEffect(() => { void load() }, [load])
+
+  useEffect(() => {
+    if (loading) return
+    const id = params.get('task')
+    if (!id) {
+      if (lastLinkedTaskIdRef.current) setDrawerTask(null)
+      lastLinkedTaskIdRef.current = null
+      return
+    }
+    lastLinkedTaskIdRef.current = id
+    const task = tasks.find((item) => item.id === id)
+    if (task) setDrawerTask(task)
+    else {
+      setDrawerTask(null)
+      setParams((current) => {
+        const next = new URLSearchParams(current)
+        next.delete('task')
+        return next
+      }, { replace: true })
+    }
+  }, [loading, params, setParams, tasks])
+
+  useEffect(() => {
+    if (loading || tab !== 'notes' || !projectId) return
+    const key = `focusgo.project-notes-scroll:${projectId}`
+    const focusKey = `focusgo.project-notes-focus:${projectId}`
+    const saved = window.sessionStorage.getItem(key)
+    const focusId = window.sessionStorage.getItem(focusKey)
+    if (saved === null && focusId === null) return
+    window.sessionStorage.removeItem(key)
+    window.sessionStorage.removeItem(focusKey)
+    const frame = window.requestAnimationFrame(() => {
+      const container = projectScrollContainer()
+      if (container && saved !== null) container.scrollTop = Number(saved) || 0
+      if (focusId) {
+        const target = Array.from(document.querySelectorAll<HTMLButtonElement>('.pd-note-card__open'))
+          .find((button) => button.dataset.noteId === focusId)
+        target?.focus({ preventScroll: true })
+      }
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [loading, projectId, tab])
 
   useEffect(() => {
     void projectsRepo.list().then(setAllProjects)
@@ -232,6 +294,14 @@ const ProjectDetailPage = () => {
     () => notes.filter(({ note }) => note.title.toLowerCase().includes(notesQuery.toLowerCase())),
     [notes, notesQuery],
   )
+
+  const openNote = (noteId: string) => {
+    if (projectId) {
+      window.sessionStorage.setItem(`focusgo.project-notes-scroll:${projectId}`, String(projectScrollContainer()?.scrollTop ?? 0))
+      window.sessionStorage.setItem(`focusgo.project-notes-focus:${projectId}`, noteId)
+    }
+    navigate(buildNoteRouteWithReturn(noteId, `${location.pathname}${location.search}`))
+  }
 
   if (loading) {
     return (
@@ -692,7 +762,12 @@ const ProjectDetailPage = () => {
                     <Search size={14} strokeWidth={2} />
                     <Input
                       value={notesQuery}
-                      onChange={(e) => setNotesQuery(e.target.value)}
+                      onChange={(e) => setParams((current) => {
+                        const next = new URLSearchParams(current)
+                        if (e.target.value) next.set('q', e.target.value)
+                        else next.delete('q')
+                        return next
+                      }, { replace: true })}
                       className="pd-search__input"
                       placeholder={i18n.detail.searchNotes}
                     />
@@ -709,7 +784,7 @@ const ProjectDetailPage = () => {
                       })
                       // Tag-based sync wires the link automatically on next read.
                       await load()
-                      navigate(`${ROUTES.NOTE}?id=${created.id}`)
+                      openNote(created.id)
                     }}
                   >
                     <Plus size={14} /> {i18n.detail.createNote}
@@ -732,7 +807,7 @@ const ProjectDetailPage = () => {
                         tags: [projectTagName(project.id)],
                       })
                       await load()
-                      navigate(`${ROUTES.NOTE}?id=${created.id}`)
+                      openNote(created.id)
                     }}
                   >
                     <Plus size={14} /> {i18n.detail.createFirstNote}
@@ -750,7 +825,8 @@ const ProjectDetailPage = () => {
                       <button
                         type="button"
                         className="pd-note-card__open"
-                        onClick={() => navigate(`${ROUTES.NOTE}?id=${note.id}`)}
+                        data-note-id={note.id}
+                        onClick={() => openNote(note.id)}
                       >
                         <h3 className="pd-note-card__title">
                           {note.title?.trim() || i18n.detail.untitledNote}
@@ -853,7 +929,14 @@ const ProjectDetailPage = () => {
         open={Boolean(drawerTask)}
         task={drawerTask}
         projects={allProjects}
-        onClose={() => setDrawerTask(null)}
+        onClose={() => {
+          setDrawerTask(null)
+          if (params.has('task')) setParams((current) => {
+            const next = new URLSearchParams(current)
+            next.delete('task')
+            return next
+          }, { replace: true })
+        }}
         onUpdated={handleTaskUpdated}
         onDeleted={handleTaskDeleted}
       />

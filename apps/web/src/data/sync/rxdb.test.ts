@@ -7,7 +7,7 @@ import { SYNC_DATA_UPDATED_EVENT } from './constants'
 import '../events/timelineProjection'
 
 vi.mock('../../store/auth', () => ({
-  getAuth: () => ({ accessToken: 'token' }),
+  getAuth: () => ({ accessToken: 'token', user: { id: 'test-account' } }),
 }))
 
 vi.mock('./content', () => ({
@@ -42,6 +42,7 @@ describe('rxdb sync migration', () => {
   })
 
   afterEach(async () => {
+    vi.restoreAllMocks()
     while (syncDataUpdatedSpies.length > 0) {
       window.removeEventListener(SYNC_DATA_UPDATED_EVENT, syncDataUpdatedSpies.pop()!)
     }
@@ -94,6 +95,54 @@ describe('rxdb sync migration', () => {
     expect(body.entityType).toBe('tasks')
     expect(body.rows[0].newDocumentState.id).toBe('task-local')
   })
+
+  it('keeps offline note and task changes queued until connectivity returns', async () => {
+    const note = {
+      id: 'note-offline', title: 'Offline note', contentMd: 'Edited while disconnected', contentJson: null,
+      editorMode: 'document' as const, collection: 'all-notes' as const, tags: [], excerpt: '',
+      pinned: false, wordCount: 3, charCount: 25, paragraphCount: 1, imageCount: 0,
+      fileCount: 0, headings: [], backlinks: [], deletedAt: null, createdAt: 1, updatedAt: 20,
+    }
+    const task = {
+      id: 'task-offline', title: 'Offline task', description: '', pinned: false, isToday: false,
+      status: 'done' as const, priority: null, tags: [], subtasks: [], taskNoteBlocks: [],
+      taskNoteContentMd: '', taskNoteContentJson: null, activityLogs: [], createdAt: 1, updatedAt: 21,
+    }
+    await db.notes.put(note)
+    await db.tasks.put(task)
+    await enqueueSyncOperation('notes', 'upsert', note)
+    await enqueueSyncOperation('tasks', 'upsert', task)
+
+    let connected = false
+    const onlineSpy = vi.spyOn(navigator, 'onLine', 'get').mockImplementation(() => connected)
+    const pushed = new Map<string, Set<string>>()
+    fetchMock.mockImplementation(async (input, init) => {
+      if (!connected) throw new TypeError('Failed to fetch')
+      const url = String(input)
+      const body = init?.body ? JSON.parse(String(init.body)) : {}
+      if (url.includes('/sync/rxdb/pull')) {
+        return { ok: true, json: async () => ({ documents: [], checkpoint: body.checkpoint ?? null, blobs: [] }) } as Response
+      }
+      if (url.includes('/sync/rxdb/push')) {
+        const ids = pushed.get(body.entityType) ?? new Set<string>()
+        for (const row of body.rows ?? []) ids.add(row.newDocumentState.id)
+        pushed.set(body.entityType, ids)
+      }
+      return { ok: true, json: async () => ({ conflicts: [], blobs: [] }) } as Response
+    })
+
+    await expect(runRxdbSyncCycle()).rejects.toThrow()
+    expect((await db.notes.get(note.id))?.contentMd).toBe(note.contentMd)
+    expect((await db.tasks.get(task.id))?.status).toBe('done')
+
+    connected = true
+    await runRxdbSyncCycle()
+    expect(pushed.get('notes')).toEqual(new Set([note.id]))
+    expect(pushed.get('tasks')).toEqual(new Set([task.id]))
+    expect((await db.notes.toArray()).filter((row) => row.id === note.id)).toHaveLength(1)
+    expect((await db.tasks.toArray()).filter((row) => row.id === task.id)).toHaveLength(1)
+    onlineSpy.mockRestore()
+  }, 30_000)
 
   it('backfills imported local notes into a non-empty RxDB notes queue', async () => {
     const existingNote = {
@@ -207,6 +256,57 @@ describe('rxdb sync migration', () => {
 
     expect((await db.notes.get('note-remote'))?.title).toBe('Remote note')
   })
+
+  it('archives offline note and task edits when another device changed the same records', async () => {
+    const local = {
+      id: 'note-shared', title: 'Shared note', contentMd: 'My offline edit', contentJson: null,
+      editorMode: 'document' as const, collection: 'all-notes' as const, tags: [], excerpt: '',
+      pinned: false, wordCount: 3, charCount: 15, paragraphCount: 1, imageCount: 0,
+      fileCount: 0, headings: [], backlinks: [], deletedAt: null, createdAt: 1, updatedAt: 100,
+    }
+    const remote = { ...local, contentMd: 'Other device edit', updatedAt: 200, _deleted: false }
+    const localTask = {
+      id: 'task-shared', title: 'My offline task edit', description: '', pinned: false, isToday: false,
+      status: 'todo' as const, priority: null, tags: [], subtasks: [], taskNoteBlocks: [],
+      taskNoteContentMd: '', taskNoteContentJson: null, activityLogs: [], createdAt: 1, updatedAt: 101,
+    }
+    const remoteTask = { ...localTask, title: 'Other device task edit', updatedAt: 201, _deleted: false }
+    await db.notes.put(local)
+    await db.tasks.put(localTask)
+    fetchMock.mockImplementation(async (input, init) => {
+      const url = String(input)
+      const body = init?.body ? JSON.parse(String(init.body)) : {}
+      if (url.includes('/sync/rxdb/pull')) {
+        const isFirstNotePull = body.entityType === 'notes' && !body.checkpoint
+        const isFirstTaskPull = body.entityType === 'tasks' && !body.checkpoint
+        const pulled = isFirstNotePull ? remote : isFirstTaskPull ? remoteTask : null
+        return { ok: true, json: async () => ({
+          documents: pulled ? [pulled] : [],
+          checkpoint: pulled ? { id: pulled.id, updatedAt: pulled.updatedAt, sequence: 1 } : body.checkpoint ?? null,
+          blobs: [],
+        }) } as Response
+      }
+      return { ok: true, json: async () => ({
+        conflicts: body.entityType === 'notes' ? [remote]
+          : body.entityType === 'tasks' ? [remoteTask] : [], blobs: [],
+      }) } as Response
+    })
+
+    await runRxdbSyncCycle()
+
+    const conflicts = await db.syncConflicts.toArray()
+    expect(conflicts).toHaveLength(2)
+    const noteConflict = conflicts.find((item) => item.entityType === 'notes')
+    const taskConflict = conflicts.find((item) => item.entityType === 'tasks')
+    expect(noteConflict?.accountId).toBe('test-account')
+    expect(noteConflict?.localDocument.contentMd).toBe('My offline edit')
+    expect(noteConflict?.remoteDocument.contentMd).toBe('Other device edit')
+    expect(taskConflict?.localDocument.title).toBe('My offline task edit')
+    expect(taskConflict?.remoteDocument.title).toBe('Other device task edit')
+    expect((await db.notes.get(local.id))?.contentMd).toBe('Other device edit')
+    expect((await db.tasks.get(localTask.id))?.title).toBe('Other device task edit')
+    expect((await db.syncState.get('cloud-sync'))?.status).toBe('blocked')
+  }, 15_000)
 
   it('batches pulled Dexie refresh notifications per entity', async () => {
     const syncDataUpdated = listenForSyncDataUpdated()

@@ -51,6 +51,63 @@ test('getRxdbPullState returns rows after checkpoint in stable order', () => {
   assert.equal(changes.documents[0].id, 'habit-2')
 })
 
+test('server sequence delivers an edit even when the second device clock is behind', () => {
+  const db = createDb()
+  const original = { id: 'note-1', title: 'Device A', updatedAt: 10_000, _deleted: false }
+  assert.deepEqual(pushRxdbRows(db, 'user-1', 'notes', [
+    { newDocumentState: original, assumedMasterState: null },
+  ]).conflicts, [])
+  const firstPull = getRxdbPullState(db, 'user-1', 'notes', null, 100)
+  assert.equal(firstPull.documents.length, 1)
+  assert.equal(typeof firstPull.checkpoint.sequence, 'number')
+
+  const editFromSlowClock = { ...original, title: 'Device B', updatedAt: 100 }
+  assert.deepEqual(pushRxdbRows(db, 'user-1', 'notes', [
+    { newDocumentState: editFromSlowClock, assumedMasterState: original },
+  ]).conflicts, [])
+  const nextPull = getRxdbPullState(db, 'user-1', 'notes', firstPull.checkpoint, 100)
+  assert.equal(nextPull.documents.length, 1)
+  assert.equal(nextPull.documents[0].title, 'Device B')
+  assert.ok(nextPull.checkpoint.sequence > firstPull.checkpoint.sequence)
+  assert.equal(getRxdbPullState(db, 'user-2', 'notes', null, 100).documents.length, 0)
+  db.close()
+})
+
+test('server sequence survives tombstone pruning and legacy table migration', () => {
+  const db = new Database(':memory:')
+  db.exec(`CREATE TABLE sync_notes (
+    id TEXT NOT NULL, user_id TEXT NOT NULL, payload TEXT NOT NULL,
+    updated_at INTEGER NOT NULL, deleted_at INTEGER,
+    PRIMARY KEY (user_id, id)
+  )`)
+  db.prepare('INSERT INTO sync_notes (id, user_id, payload, updated_at) VALUES (?, ?, ?, ?)')
+    .run('legacy', 'user-1', JSON.stringify({ id: 'legacy', title: 'Earlier', updatedAt: 500 }), 500)
+  ensureSyncTables(db)
+  ensureSyncTables(db)
+  assert.equal(db.pragma('integrity_check', { simple: true }), 'ok')
+  const first = getRxdbPullState(db, 'user-1', 'notes', null, 100)
+  assert.equal(first.documents[0].title, 'Earlier')
+  assert.ok(first.checkpoint.sequence > 0)
+  pushRxdbRows(db, 'user-1', 'notes', [
+    { newDocumentState: { id: 'legacy', updatedAt: 501, _deleted: true }, assumedMasterState: first.documents[0] },
+  ])
+  const deleted = getRxdbPullState(db, 'user-1', 'notes', first.checkpoint, 100)
+  assert.equal(deleted.documents[0]._deleted, true)
+  db.prepare('DELETE FROM sync_notes WHERE id = ?').run('legacy')
+  pushRxdbRows(db, 'user-1', 'notes', [
+    { newDocumentState: { id: 'replacement', title: 'Later', updatedAt: 1, _deleted: false }, assumedMasterState: null },
+  ])
+  const next = getRxdbPullState(db, 'user-1', 'notes', deleted.checkpoint, 100)
+  assert.equal(next.documents[0].id, 'replacement')
+  assert.ok(next.checkpoint.sequence > deleted.checkpoint.sequence)
+  // A client carrying the old timestamp/id cursor can still pull from the
+  // migrated API while new clients use the monotonic sequence cursor.
+  const legacyClient = getRxdbPullState(db, 'user-1', 'notes', { updatedAt: 0, id: '' }, 100)
+  assert.equal(legacyClient.documents[0].id, 'replacement')
+  assert.equal(db.pragma('integrity_check', { simple: true }), 'ok')
+  db.close()
+})
+
 test('ensureSyncTables creates sync_domain_events', () => {
   const db = createDb()
 

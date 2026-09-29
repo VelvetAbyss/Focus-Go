@@ -28,6 +28,8 @@ export type TaskDeadlineAlert = {
 // Paper & Ink: a deadline never tints the whole card — only the date text
 // (and, where a chip is unavoidable, a tone wash) carries the state.
 const NEUTRAL_BADGE = 'border-transparent bg-paper-sunken text-ink-2'
+// A date not yet reached is intention: a dashed pencil outline, pencil text.
+const PLANNED_BADGE = 'border-dashed border-pencil-line bg-transparent text-pencil'
 
 const buildDeadlineState = (daysRemaining: number): TaskDeadlineState => {
   if (daysRemaining <= 0) {
@@ -50,12 +52,13 @@ const buildDeadlineState = (daysRemaining: number): TaskDeadlineState => {
     }
   }
 
+  // Further out: the date is only intended, so it is written in pencil.
   return {
     daysRemaining,
     label: `+${daysRemaining}d`,
     shellClass: '',
-    badgeClass: NEUTRAL_BADGE,
-    textClass: 'text-ink-3',
+    badgeClass: PLANNED_BADGE,
+    textClass: 'text-pencil',
   }
 }
 

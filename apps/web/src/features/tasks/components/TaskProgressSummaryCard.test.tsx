@@ -87,7 +87,7 @@ describe('TaskProgressSummaryCard', () => {
     expect(screen.getAllByText('01').length).toBeGreaterThanOrEqual(1)
     expect(screen.queryByText('Write summary model')).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole('tab', { name: 'Detailed' }))
+    await user.click(screen.getByRole('tab', { name: 'Full' }))
     expect(screen.getByText('Write summary model')).toBeInTheDocument()
   })
 
@@ -116,6 +116,9 @@ describe('TaskProgressSummaryCard', () => {
       </div>,
     )
 
+    // The brief week view shows the completion jar; task titles are in the detailed view.
+    await user.click(screen.getByRole('tab', { name: 'Full' }))
+
     expect(screen.getByText('Current week task')).toBeInTheDocument()
     expect(screen.queryByText('Previous week task')).not.toBeInTheDocument()
 
@@ -129,5 +132,34 @@ describe('TaskProgressSummaryCard', () => {
 
     expect(screen.getByText('Current week task')).toBeInTheDocument()
     expect(screen.queryByText('Previous week task')).not.toBeInTheDocument()
+  })
+
+  it('shows the completion jar in the brief week view and the project list elsewhere', async () => {
+    const user = userEvent.setup()
+    const tasks = [
+      createTask({
+        id: 'task-current',
+        title: 'Current week task',
+        activityLogs: [{ id: 'a', type: 'status', message: 'Status changed to Done', createdAt: new Date(2026, 4, 12, 9).getTime() }],
+      }),
+    ]
+
+    const view = render(
+      <div style={{ height: 620 }}>
+        <TaskProgressSummaryCard tasks={tasks} projects={[]} now={new Date(2026, 4, 13, 12).getTime()} />
+      </div>,
+    )
+
+    expect(view.container.querySelector('.recap-jar')).not.toBeNull()
+    expect(screen.getByText('Completion jar: 1 tasks finished this week.')).toBeInTheDocument()
+    expect(screen.queryByText('Current week task')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('tab', { name: 'Full' }))
+    expect(view.container.querySelector('.recap-jar')).toBeNull()
+    expect(screen.getByText('Current week task')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('tab', { name: 'Brief' }))
+    await user.click(screen.getByRole('tab', { name: 'Month' }))
+    expect(view.container.querySelector('.recap-jar')).toBeNull()
   })
 })

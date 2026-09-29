@@ -1,0 +1,30 @@
+/* Empty-state art (DESIGN.md › Empty states): licensed drawings recoloured to
+   pencil. Two mask layers so both themes stay correct with no JS. */
+.doodle {
+  --doodle-height: 112px;
+  position: relative;
+  flex: none;
+  height: var(--doodle-height);
+  width: calc(var(--doodle-height) * var(--doodle-ratio, 1.333));
+  pointer-events: none;
+}
+
+.doodle__wash,
+.doodle__lines {
+  position: absolute;
+  inset: 0;
+  -webkit-mask-position: left top;
+  mask-position: left top;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.doodle__wash {
+  background: color-mix(in srgb, var(--pencil-line) 22%, transparent);
+}
+
+.doodle__lines {
+  background: var(--pencil);
+}

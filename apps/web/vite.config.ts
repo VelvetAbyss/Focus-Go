@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
 import { visualizer } from 'rollup-plugin-visualizer'
 import { fileURLToPath, URL } from 'node:url'
 
@@ -32,6 +33,26 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     platformInjection(mode),
+    mode === 'desktop' ? null : VitePWA({
+      registerType: 'prompt',
+      injectRegister: 'auto',
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'app-icon-1024.png'],
+      manifest: {
+        name: 'Focus&go',
+        short_name: 'Focus&go',
+        start_url: '/',
+        display: 'standalone',
+        background_color: '#ffffff',
+        theme_color: '#ffffff',
+        icons: [{ src: '/app-icon-1024.png', sizes: '1024x1024', type: 'image/png' }],
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,woff2}'],
+        maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api(?:\/|$)/],
+      },
+    }),
     shouldAnalyzeBundle
       ? visualizer({
           filename: 'dist/bundle-stats.html',

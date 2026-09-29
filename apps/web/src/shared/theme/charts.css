@@ -1,0 +1,95 @@
+/* ── Charts (DESIGN.md › Charts, Habit history) ────────────────────────────
+   Goal = dashed pencil outline. Actual = ink fill (--ink-2). Today = the pen.
+   One baseline in --rule-strong, no gridlines, values written on the marks.
+   Unlayered on purpose (see marks.css): some state classes are runtime-built. */
+
+:root {
+  --chart-actual: var(--ink-2);
+  --chart-goal: var(--pencil-line);
+  --chart-today: var(--accent);
+  --chart-baseline: var(--rule-strong);
+  --chart-value: var(--ink-3);
+}
+
+/* ── Focus: this week ──────────────────────────────────────────────────── */
+.focus-week-chart {
+  display: grid;
+  gap: 6px;
+}
+
+.focus-week-chart__plot {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 0 2px;
+  border-bottom: 1px solid var(--chart-baseline);
+}
+
+.focus-week-chart__col {
+  position: relative;
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  height: 100%;
+}
+
+.focus-week-chart__goal {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 14px;
+  transform: translateX(-50%);
+  border: 1.5px dashed var(--chart-goal);
+  border-bottom: 0;
+  border-radius: 4px 4px 0 0;
+  pointer-events: none;
+}
+
+.focus-week-chart__bar {
+  position: relative;
+  display: block;
+  width: 14px;
+  border-radius: 3px 3px 0 0;
+  background: var(--chart-actual);
+}
+
+.focus-week-chart__value {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-body);
+  font-size: var(--fs-meta);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--chart-value);
+  white-space: nowrap;
+}
+
+.focus-week-chart__col[data-today='true'] .focus-week-chart__bar {
+  background: var(--chart-today);
+}
+
+.focus-week-chart__col[data-today='true'] .focus-week-chart__value {
+  color: var(--chart-today);
+  font-weight: 600;
+}
+
+.focus-week-chart__labels {
+  display: flex;
+  gap: 6px;
+  padding: 0 2px;
+}
+
+.focus-week-chart__labels span {
+  flex: 1;
+  text-align: center;
+  font-size: var(--fs-meta);
+  color: var(--ink-3);
+}
+
+.focus-week-chart__labels span[data-today='true'] {
+  color: var(--chart-today);
+  font-weight: 600;
+}

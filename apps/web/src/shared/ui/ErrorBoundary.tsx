@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { RefreshCw, RotateCcw } from 'lucide-react'
 import './ErrorBoundary.css'
+import Doodle from './Doodle'
 import { LANGUAGE_KEY } from '../prefs/preferences'
 import { normalizeLanguageCode } from '../i18n/detectLanguage'
 import { t } from '../i18n/translator'
@@ -97,13 +98,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     return (
       <section className={`error-boundary error-boundary--${scope}`} role="alert">
         <div className="error-boundary__card">
-          <div className="error-boundary__glyph" aria-hidden="true">
-            <svg viewBox="0 0 104 104">
-              <circle className="error-boundary__ring" cx="52" cy="52" r="44" />
-              <line className="error-boundary__cross" x1="40" y1="40" x2="64" y2="64" />
-              <line className="error-boundary__cross" x1="64" y1="40" x2="40" y2="64" />
-            </svg>
-          </div>
+          <Doodle name="clumsy" height={96} className="error-boundary__art" />
           <h2 className="error-boundary__title">{translate('error.title', lang)}</h2>
           <p className="error-boundary__body">{translate('error.body', lang)}</p>
           <div className="error-boundary__actions">

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import './EmptyState.css'
+import Doodle, { type DoodleName } from './Doodle'
 
 // ─── Legacy shape (existing callers) ─────────────────────────────────────────
 
@@ -27,7 +28,8 @@ const EmptyState = ({
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] px-6 py-10 text-center text-[var(--text-primary)]',
+        // Top-left, never centred (DESIGN.md › Empty states).
+        'flex flex-col items-start rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] px-6 py-8 text-left text-[var(--text-primary)]',
         variant === 'onboarding' ? 'bg-[var(--bg-elevated)] shadow-[var(--shadow-card-lg)]' : 'bg-[color-mix(in_srgb,var(--bg-elevated)_88%,transparent)]',
         className,
       )}
@@ -35,10 +37,10 @@ const EmptyState = ({
       <div className="mb-4 flex size-12 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] text-[var(--text-primary)]">
         {icon}
       </div>
-      <h3 className="text-base font-semibold">{title}</h3>
+      <h3 className="font-display text-subhead font-semibold">{title}</h3>
       <p className="mt-2 max-w-sm text-sm text-[color-mix(in_srgb,var(--text-primary)_72%,transparent)]">{description}</p>
       {actionLabel && onAction ? (
-        <Button type="button" className="mt-5 rounded-full bg-[var(--text-primary)] px-5 text-[var(--bg-elevated)] hover:bg-[color-mix(in_srgb,var(--text-primary)_90%,transparent)]" onClick={onAction}>
+        <Button type="button" className="mt-5 rounded-full bg-[var(--cta-bg)] px-5 text-[var(--cta-fg)] hover:bg-[var(--cta-bg-hover)]" onClick={onAction}>
           {actionLabel}
         </Button>
       ) : null}
@@ -56,6 +58,10 @@ interface DiscoveryFirstTimeProps {
   body?: string
   primaryAction?: ReactNode
   relatedFeature?: { label: string; href?: string; onClick?: () => void }
+  /** Optional pencil-toned drawing above the title. */
+  illustration?: DoodleName
+  /** Drawing height in px: 112 on a page (default), 72–88 in a card. */
+  illustrationHeight?: number
 }
 
 interface DiscoveryFilteredProps {
@@ -77,14 +83,20 @@ export type DiscoveryEmptyStateProps =
   | DiscoveryErrorProps
 
 /**
- * Teaching empty states with three explicit variants:
+ * Teaching empty states with three explicit variants (DESIGN.md › Empty
+ * states: top-left, one serif line, one sentence, one action):
  * - `first-time`: educate with body text and cross-feature link
  * - `filtered`: recover with a "clear filter" CTA
  * - `error`: retry with a clear error message
  */
 export function DiscoveryEmptyState(props: DiscoveryEmptyStateProps) {
+  const related = 'relatedFeature' in props ? props.relatedFeature : undefined
   return (
     <div className={`ds-empty ds-empty--${props.variant}`} aria-live="polite">
+      {'illustration' in props && props.illustration ? (
+        <Doodle name={props.illustration} height={props.illustrationHeight} className="ds-empty__art" />
+      ) : null}
+
       <p className="ds-empty__title">{props.title}</p>
 
       {'body' in props && props.body && (
@@ -95,23 +107,22 @@ export function DiscoveryEmptyState(props: DiscoveryEmptyStateProps) {
         <div className="ds-empty__action">{props.primaryAction}</div>
       )}
 
-      {'relatedFeature' in props && props.relatedFeature && (
+      {related ? (
         <div className="ds-empty__related">
-          {props.relatedFeature.href ? (
-            <a href={props.relatedFeature.href} className="ds-empty__related-link">
-              {props.relatedFeature.label}
+          {related.href ? (
+            <a href={related.href} className="ds-empty__related-link">
+              {related.label}
             </a>
-          ) : (
-            <button
-              type="button"
-              className="ds-empty__related-link"
-              onClick={props.relatedFeature.onClick}
-            >
-              {props.relatedFeature.label}
+          ) : related.onClick ? (
+            <button type="button" className="ds-empty__related-link" onClick={related.onClick}>
+              {related.label}
             </button>
+          ) : (
+            // Without a destination it is a hint, not a link.
+            <span className="ds-empty__related-hint">{related.label.replace(/\s*→$/, '')}</span>
           )}
         </div>
-      )}
+      ) : null}
     </div>
   )
 }

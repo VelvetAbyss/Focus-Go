@@ -18,6 +18,7 @@ import { clearLocalUserData } from '../../data/sync/repository'
 import CommandPalette from '../../shared/ui/CommandPalette'
 import { useSharedNoise } from '../../features/focus/SharedNoiseProvider'
 import { findMatchingNoiseScenePreset } from '../../features/focus/noise'
+import { useAmbientPreferences } from '../../features/focus/ambientPreferences'
 
 type AppShellProps = {
   children: ReactNode
@@ -69,7 +70,11 @@ const AppShell = ({ children }: AppShellProps) => {
   const [sidebarDimmed, setSidebarDimmed] = useState(false)
   const [shellScale, setShellScale] = useState(() => readShellScale())
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
-  const ambientScene = findMatchingNoiseScenePreset(noise.tracks)?.id ?? 'idle'
+  const ambientPrefs = useAmbientPreferences()
+  // With no sound scene playing, the desk stays plain unless an idle effect
+  // has been selected in settings.
+  const ambientScene = findMatchingNoiseScenePreset(noise.tracks)?.id ?? (ambientPrefs.effects.idle.windowLight ? 'window-light' : 'idle')
+  const showAmbientStage = ambientScene !== 'idle' || ambientPrefs.effects.idle.timeOfDayPalette || ambientPrefs.effects.idle.slowBreath
   useTaskReminderEngine()
 
   useEffect(() => {
@@ -202,7 +207,7 @@ const AppShell = ({ children }: AppShellProps) => {
     <AuthGateProvider>
       <>
         <div className={`focus-shell ${sidebarDimmed ? 'focus-shell--sidebar-dimmed' : ''}`} data-ambient-scene={ambientScene} style={shellStyle}>
-          <AmbientSceneStage scene={ambientScene} />
+          {showAmbientStage ? <AmbientSceneStage scene={ambientScene} /> : null}
           <div className="focus-shell__scale-wrap">
             <Sidebar
               collapsed={sidebarCollapsed}

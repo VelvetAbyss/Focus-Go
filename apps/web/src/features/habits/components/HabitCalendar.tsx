@@ -8,7 +8,6 @@ import { DURATION } from '../../../shared/motion/tokens'
 type HabitCalendarProps = {
   completedDates: string[]
   onToggleCompletion: (dateKey: string) => Promise<void>
-  accentColor?: string
 }
 
 // Weekday headers and the month caption come from Intl rather than a hand-kept
@@ -32,7 +31,7 @@ const toDateKey = (year: number, month: number, day: number) => {
   return `${year}-${monthText}-${dayText}`
 }
 
-export const HabitCalendar = ({ completedDates, onToggleCompletion, accentColor = '#3daa78' }: HabitCalendarProps) => {
+export const HabitCalendar = ({ completedDates, onToggleCompletion }: HabitCalendarProps) => {
   const { language } = usePreferences()
   const [currentMonth, setCurrentMonth] = useState(() => new Date())
   const [direction, setDirection] = useState(0)
@@ -57,8 +56,6 @@ export const HabitCalendar = ({ completedDates, onToggleCompletion, accentColor 
             setDirection(-1)
             setCurrentMonth(new Date(year, month - 1))
           }}
-          whileHover={{ scale: 1.12 }}
-          whileTap={{ scale: 0.9, x: -2 }}
         >
           <ChevronLeft size={15} />
         </motion.button>
@@ -84,8 +81,6 @@ export const HabitCalendar = ({ completedDates, onToggleCompletion, accentColor 
             setDirection(1)
             setCurrentMonth(new Date(year, month + 1))
           }}
-          whileHover={{ scale: 1.12 }}
-          whileTap={{ scale: 0.9, x: 2 }}
         >
           <ChevronRight size={15} />
         </motion.button>
@@ -114,17 +109,12 @@ export const HabitCalendar = ({ completedDates, onToggleCompletion, accentColor 
                 key={`${monthKey}-${day}`}
                 type="button"
                 disabled={isFuture}
+                // Done = ink, missed = bare paper, future = pencil, today = pen.
                 className={`habit-calendar__day ${isFuture ? 'is-future' : ''} ${isToday ? 'is-today' : ''} ${completed ? 'is-completed' : ''}`}
-                style={{
-                  background: completed ? accentColor : undefined,
-                  boxShadow: isToday ? `0 0 0 2px ${accentColor}` : undefined,
-                }}
                 onClick={() => void onToggleCompletion(dateKey)}
-                initial={{ opacity: 0, scale: 0.75 }}
-                animate={{ opacity: 1, scale: 1 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 transition={{ duration: DURATION.base, delay: index * 0.008 }}
-                whileHover={!isFuture ? { scale: 1.14 } : {}}
-                whileTap={!isFuture ? { scale: 0.88 } : {}}
               >
                 {day}
               </motion.button>

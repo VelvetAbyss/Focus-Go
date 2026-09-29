@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import Doodle from '../../../shared/ui/Doodle'
 import {
   Archive,
   ChevronDown,
@@ -359,6 +360,7 @@ const TimelinePage = () => {
         {loading ? <div className="timeline-empty">{t('timeline.loading')}</div> : null}
         {!loading && groups.length === 0 ? (
           <div className="timeline-empty">
+            <Doodle name="chilling" className="timeline-empty__art" />
             <h2>{t('timeline.empty.title')}</h2>
             <p>{t('timeline.empty.body')}</p>
             <button type="button" onClick={rebuild} disabled={repairing}>

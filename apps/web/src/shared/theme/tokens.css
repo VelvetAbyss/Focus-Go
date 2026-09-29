@@ -3,7 +3,15 @@
 :root {
   /* CJK falls back to the bundled Noto Serif SC (public/fonts) so Chinese
      titles render the same serif on macOS and Windows (not Songti vs SimSun). */
-  --font-display: 'Fraunces', 'Noto Serif SC', serif;
+  --font-display: 'Instrument Serif', 'Noto Serif SC', serif;
+  /* Numerals (timer, hero clock/date number, big stats): Source Serif 4 at its
+     display optical size, with tabular lining figures so ticking digits hold
+     still. Pair with --num-features. */
+  --font-numeral: 'Source Serif 4', 'Noto Serif SC', Georgia, serif;
+  --num-features: tabular-nums lining-nums;
+  /* Reading bodies (diary, notes, review): Source Serif 4 is the Latin sibling
+     of Source Han Serif (= Noto Serif SC), so mixed text shares one voice. */
+  --font-reading: 'Source Serif 4', 'Noto Serif SC', Georgia, serif;
   --font-body: 'Manrope', system-ui, -apple-system, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei', sans-serif;
   --color-ink: #3a3733;
   --control-height: 36px;
@@ -36,8 +44,10 @@
   /* Route titles: every top-level page speaks with the same voice. */
   --page-title-font: var(--font-display);
   --page-title-size: var(--fs-title);
-  --page-title-weight: 500;
-  --page-title-tracking: -0.022em;
+  /* Latin titles render Instrument Serif's single 400; the weight only reaches
+     the Chinese fallback (Noto Serif SC 600). */
+  --page-title-weight: 600;
+  --page-title-tracking: -0.01em;
   --page-title-leading: 1.06;
   --page-subtitle-size: 13px;
   --headline-size-xl: clamp(1.75rem, 2.2vw, 2.4rem);
@@ -94,12 +104,13 @@
   --hint-border: color-mix(in srgb, var(--accent) 25%, var(--border));
   --hint-icon:   color-mix(in srgb, var(--accent) 65%, transparent);
 
-  /* Task status marks follow the tone mapping in DESIGN.md:
-     todo = neutral ink, doing = ochre, blocked = vermilion, done = moss. */
-  --status-todo: var(--ink-4);
+  /* Task status marks follow the hands in DESIGN.md: todo = pencil,
+     doing = ochre, blocked = vermilion, done = ink. (Moss is for achieved
+     goals and streaks, not for "done".) */
+  --status-todo: var(--pencil-line);
   --status-doing: var(--tone-warn);
   --status-blocked: var(--tone-urgent);
-  --status-done: var(--tone-done);
+  --status-done: var(--ink-2);
 }
 
 html[lang='zh'] {
@@ -153,7 +164,7 @@ html[data-motion='reduce'] {
 html[data-theme='light'] {
   /* Paper */
   --bg: #f6f5f2;
-  --paper-desk: #f6f5f2;
+  --paper-desk: #ffffff;
   --paper-sheet: #fdfcfa;
   --paper-raised: #ffffff;
   --paper-sunken: #f0ede7;
@@ -164,6 +175,11 @@ html[data-theme='light'] {
   --ink-2: #5e5a54;
   --ink-3: #77726b;
   --ink-4: #a8a298;
+  /* Pencil = intention (open checkboxes, goals, planned dates). --pencil is the
+     only pencil text colour (5.2:1 on the sheet); --pencil-line draws marks
+     only (3.2:1) and never sits on the desk. */
+  --pencil: #6f6a63;
+  --pencil-line: #948e84;
   --text-primary: #3a3733;
   --text-secondary: #5e5a54;
   /* Rules: translucent so they read on paper and on scene glass alike. */
@@ -179,8 +195,10 @@ html[data-theme='light'] {
   --tone-done-wash: #e9efe4;
   --tone-info-wash: #e7ecf4;
   --accent-wash: #e4edeb;
-  --elev-1: 0 1px 2px rgba(58, 55, 51, 0.06);
-  --elev-2: 0 1px 2px rgba(58, 55, 51, 0.06), 0 12px 32px -14px rgba(58, 55, 51, 0.22);
+  /* Paper lies on the desk: a contact shadow for resting cards, a short lift
+     for menus and dragged items. */
+  --elev-1: 0 1px 0 var(--rule), 0 2px 6px rgba(58, 55, 51, 0.06);
+  --elev-2: 0 1px 0 var(--rule), 0 10px 28px -12px rgba(58, 55, 51, 0.22);
   --elev-3: 0 2px 6px rgba(58, 55, 51, 0.08), 0 30px 80px -20px rgba(22, 20, 18, 0.35);
   --accent: #1b4f4a;
   --accent-ink: #ffffff; /* text/icons on an accent fill */
@@ -189,10 +207,11 @@ html[data-theme='light'] {
   --surface: #ffffff;
   --surface-hover: #f5f5f5;
   --shadow-md: 0 4px 12px rgba(58, 55, 51, 0.08);
-  /* Semantic card/pop shadows — replace scattered hard-coded shadow-[…rgba…]. */
-  --shadow-card: 0 12px 28px rgba(58, 55, 51, 0.08);
+  /* Semantic card/pop shadows — replace scattered hard-coded shadow-[…rgba…].
+     Resting cards sit flat (contact shadow); only menus and dialogs float. */
+  --shadow-card: var(--elev-1);
   --shadow-card-lg: 0 30px 100px rgba(15, 23, 42, 0.18);
-  --shadow-pop: 0 8px 24px rgba(58, 55, 51, 0.12);
+  --shadow-pop: var(--elev-2);
   /* Modal scrim — shared by every dialog so they dim the page the same way. */
   --overlay-scrim: rgba(10, 12, 14, 0.38);
   --cta-shadow: 0 1px 2px rgba(22, 20, 18, 0.16), 0 6px 16px -6px rgba(22, 20, 18, 0.3);
@@ -222,6 +241,8 @@ html[data-theme='dark'] {
   --ink-2: #c8c1b7;
   --ink-3: #a39c91;
   --ink-4: #6f6a62;
+  --pencil: #9d968a;
+  --pencil-line: #8a847a;
   --text-primary: #f2f0ec;
   --text-secondary: #c8c1b7;
   --rule: rgba(255, 244, 225, 0.11);
@@ -235,8 +256,10 @@ html[data-theme='dark'] {
   --tone-done-wash: rgba(151, 187, 123, 0.14);
   --tone-info-wash: rgba(149, 173, 217, 0.14);
   --accent-wash: rgba(126, 219, 199, 0.12);
-  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.35);
-  --elev-2: 0 1px 2px rgba(0, 0, 0, 0.4), 0 14px 34px -14px rgba(0, 0, 0, 0.6);
+  /* Dark: no drop shadows on resting paper. Elevation is a rule on a lighter
+     surface (rule-strong for menus); only overlays keep a soft depth. */
+  --elev-1: 0 1px 0 var(--rule);
+  --elev-2: 0 0 0 1px var(--rule-strong);
   --elev-3: 0 2px 6px rgba(0, 0, 0, 0.45), 0 30px 80px -20px rgba(0, 0, 0, 0.7);
   --accent: #7edbc7;
   --accent-ink: #0f2622;
@@ -245,10 +268,9 @@ html[data-theme='dark'] {
   --surface: #2d2b27;
   --surface-hover: #3a3733;
   --shadow-md: 0 12px 28px rgba(0, 0, 0, 0.32);
-  /* Semantic card/pop shadows — deeper, cooler, lower-spread for dark surfaces. */
-  --shadow-card: 0 12px 28px rgba(0, 0, 0, 0.42);
+  --shadow-card: var(--elev-1);
   --shadow-card-lg: 0 30px 90px rgba(0, 0, 0, 0.55);
-  --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-pop: var(--elev-2);
   /* Dark overrides for the :root light-only soft/lift/drawer shadows. */
   --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.4);
   --shadow-lift: 0 16px 40px rgba(0, 0, 0, 0.5);

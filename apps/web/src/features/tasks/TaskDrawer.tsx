@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useInRouterContext } from 'react-router-dom'
-import { CalendarDays, Check, Clock3, Flag, LoaderCircle, Pin, Plus, RotateCcw, Target, Trash2, X } from 'lucide-react'
+import { useInRouterContext, useLocation, useNavigate } from 'react-router-dom'
+import { ArrowLeft, CalendarDays, Check, Clock3, Flag, LoaderCircle, Pin, Plus, RotateCcw, Target, Trash2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -39,7 +39,32 @@ import { useAuthGate } from '../auth/AuthGateContext'
 import { usePremiumGate } from '../premium/PremiumProvider'
 import PremiumMark from '../premium/PremiumMark'
 import FocusOnTaskButton from '../focus/FocusOnTaskButton'
+import { buildNoteRouteWithReturn, readNoteReturnPath, withTaskContext } from '../../shared/navigation/returnPath'
 import './task-detail-theme.css'
+
+const RoutedTaskNotesPanel = ({ taskId, taskTitle }: { taskId: string; taskTitle: string }) => {
+  const location = useLocation()
+  const navigate = useNavigate()
+  return <TaskNotesPanel
+    taskId={taskId}
+    taskTitle={taskTitle}
+    onOpenInNotes={(noteId) => navigate(buildNoteRouteWithReturn(noteId, withTaskContext(`${location.pathname}${location.search}`, taskId)))}
+  />
+}
+
+const RoutedTaskReturn = ({ taskId }: { taskId: string }) => {
+  const { t } = useI18n()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const source = readNoteReturnPath(location.search)
+  if (!source || new URLSearchParams(location.search).get('task') !== taskId) return null
+  return (
+    <Button variant="outline" size="sm" className="h-8 rounded-full px-3 text-meta" onClick={() => navigate(source)}>
+      <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
+      {t('navigation.backToNote')}
+    </Button>
+  )
+}
 
 type TaskDrawerProps = {
   open: boolean
@@ -504,12 +529,31 @@ const TaskDrawer = ({
 
   const handleStatusChange = async (status: TaskItem['status']) => {
     if (!currentTask) return
+    const taskId = currentTask.id
+    const previousStatus = currentTask.status
     setIsSaving(true)
     try {
-      const updated = await tasksRepo.updateStatus(currentTask.id, status)
+      const updated = await tasksRepo.updateStatus(taskId, status)
       if (updated) {
         emitTasksChanged('task-drawer:update-status')
         onUpdated(updated)
+        if (status === 'done' && previousStatus !== 'done') {
+          toast.push({
+            message: t('tasks.completedToast', { title: updated.title }),
+            variant: 'success',
+            actionLabel: t('tasks.undo'),
+            onAction: () => {
+              void tasksRepo.list().then((tasks) => {
+                if (tasks.find((task) => task.id === taskId)?.status !== 'done') return
+                void tasksRepo.updateStatus(taskId, previousStatus).then((reverted) => {
+                  if (!reverted) return
+                  emitTasksChanged('task-drawer:undo-complete')
+                  onUpdated(reverted)
+                })
+              })
+            },
+          })
+        }
       }
     } catch {
       toast.push({ variant: 'error', title: t('tasks.drawer.updateFailed'), message: t('tasks.drawer.retryHint') })
@@ -657,6 +701,7 @@ const TaskDrawer = ({
                 </div>
               ) : null}
               <div className={cn('task-detail-actions flex items-center gap-1.5', confirmingDelete && 'hidden')}>
+                {canLaunchFocus ? <RoutedTaskReturn taskId={currentTask.id} /> : null}
                 {canLaunchFocus && currentTask.status !== 'done' ? (
                   <FocusOnTaskButton
                     taskId={currentTask.id}
@@ -664,7 +709,7 @@ const TaskDrawer = ({
                     onLaunch={() => {
                       // Focusing on a task means working on it.
                       if (currentTask.status === 'todo') void handleStatusChange('doing')
-                      requestClose()
+                      flushSave()
                     }}
                   />
                 ) : null}
@@ -706,7 +751,7 @@ const TaskDrawer = ({
                 onClick={() => requireAuth(() => { void handleDelete() })} disabled={isSaving}>
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
-              <Button aria-label={t('common.close')} variant="ghost" size="icon"
+              <Button autoFocus aria-label={t('common.close')} variant="ghost" size="icon"
                 className="h-8 w-8 rounded-full text-[color:var(--text-secondary)] transition-colors hover:bg-[color:var(--surface-hover)] hover:text-[color:var(--text-primary)]"
                 onClick={requestClose}>
                 <X className="h-3.5 w-3.5" />
@@ -1211,7 +1256,9 @@ const TaskDrawer = ({
                   </section>
 
                   {/* ── NOTES ── */}
-                  <TaskNotesPanel key={currentTask.id} taskId={currentTask.id} taskTitle={currentTask.title} />
+                  {canLaunchFocus
+                    ? <RoutedTaskNotesPanel key={currentTask.id} taskId={currentTask.id} taskTitle={currentTask.title} />
+                    : <TaskNotesPanel key={currentTask.id} taskId={currentTask.id} taskTitle={currentTask.title} />}
 
                 </div>
               </ScrollArea>

@@ -132,6 +132,7 @@ vi.mock('../../../shared/ui/toast/toast', async (importOriginal) => {
 })
 
 import { tasksRepo } from '../../../data/repositories/tasksRepo'
+import { buildLunarEvents } from '../calendar.lunar'
 import CalendarPage from './CalendarPage'
 
 const renderCalendar = () => render(<CalendarPage />)
@@ -633,6 +634,42 @@ describe('CalendarPage', () => {
     expect(scoped.queryByText('Account calendars')).not.toBeInTheDocument()
     expect(scoped.queryByText('Custom subscriptions')).not.toBeInTheDocument()
     expect(scoped.queryByText(/Manage deleted/i)).not.toBeInTheDocument()
+  })
+
+  it('shows 农历 from the device instead of syncing the old GitHub lunar feed', async () => {
+    const now = new Date()
+    const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+    window.localStorage.setItem(
+      'focusgo.calendar.subscriptions.v1',
+      JSON.stringify([
+        {
+          id: 'custom-lunar',
+          name: '农历',
+          sourceType: 'custom',
+          provider: 'ics',
+          color: '#6b7280',
+          enabled: true,
+          syncPermission: 'read',
+          order: 0,
+          url: 'https://raw.githubusercontent.com/infinet/lunar-calendar/master/chinese_lunar_prev_year_next_year.ics',
+        },
+      ])
+    )
+    // GitHub unreachable, and the API fallback refuses a non-preset feed when signed out.
+    const fetchMock = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const view = renderCalendar()
+    await new Promise((resolve) => setTimeout(resolve, 50))
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(view.container.querySelector('.calendar-sync-error')).toBeNull()
+    const todayLabel = buildLunarEvents([todayKey], 'custom-lunar')[0].title
+    const lunarChips = [...view.container.querySelectorAll('.calendar-chip[data-subscription-id="custom-lunar"]')]
+    expect(lunarChips.map((chip) => chip.textContent)).toContain(todayLabel)
+    const stored = JSON.parse(window.localStorage.getItem('focusgo.calendar.subscriptions.v1') ?? '[]')
+    expect(stored[0]).toMatchObject({ id: 'custom-lunar', name: '农历', provider: 'builtin' })
+    expect(stored[0].url).toBeUndefined()
   })
 
   it('removes system subscriptions on initial load', () => {

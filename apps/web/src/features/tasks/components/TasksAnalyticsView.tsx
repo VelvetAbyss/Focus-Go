@@ -13,6 +13,7 @@ import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG } from './taskPresentation'
 import { useI18n } from '../../../shared/i18n/useI18n'
 import TaskProgressSummaryCard from './TaskProgressSummaryCard'
 import '../tasks-analytics.css'
+import Doodle from '../../../shared/ui/Doodle'
 
 type TasksAnalyticsViewProps = {
   tasks: TaskItem[]
@@ -29,18 +30,20 @@ const granularityLabelKeys: Record<AnalyticsGranularity, 'modules.tasks.analytic
 }
 
 // Status tone-matched colors (match toolbar dots)
+// Status marks follow the hands (DESIGN.md): todo = pencil, doing = ochre,
+// done = ink.
 const STATUS_COLOR: Record<'todo' | 'doing' | 'done', string> = {
-  todo: '#a8a29e',
-  doing: '#14b8a6',
-  done: '#10b981',
+  todo: 'var(--status-todo)',
+  doing: 'var(--status-doing)',
+  done: 'var(--status-done)',
 }
 
 // Priority tone-matched colors
 const PRIORITY_COLOR: Record<'high' | 'medium' | 'low' | 'none', string> = {
-  high: '#dc2626',
-  medium: '#d97706',
-  low: '#65a30d',
-  none: '#a8a29e',
+  high: 'var(--tone-urgent)',
+  medium: 'var(--tone-warn)',
+  low: 'var(--ink-3)',
+  none: 'var(--ink-4)',
 }
 
 const TasksAnalyticsView = ({ tasks, projects = [] }: TasksAnalyticsViewProps) => {
@@ -228,11 +231,6 @@ const TasksAnalyticsView = ({ tasks, projects = [] }: TasksAnalyticsViewProps) =
           </div>
 
           <div className="tasks-analytics-v2__chart">
-            <div className="tasks-analytics-v2__chart-grid" aria-hidden="true">
-              {[0.25, 0.5, 0.75, 1].map((r) => (
-                <div key={r} className="tasks-analytics-v2__chart-grid-line" style={{ top: `${(1 - r) * 100}%` }} />
-              ))}
-            </div>
             {analytics.buckets.map((b, i) => {
               const h = trendPeak > 0 ? Math.max((b.completions / trendPeak) * 100, b.completions > 0 ? 8 : 2) : 2
               const isCurrent = i === currentBucketIndex
@@ -250,7 +248,9 @@ const TasksAnalyticsView = ({ tasks, projects = [] }: TasksAnalyticsViewProps) =
                       className="tasks-analytics-v2__chart-bar"
                       data-empty={b.completions === 0 ? 'true' : 'false'}
                       style={{ height: `${h}%` }}
-                    />
+                    >
+                      {b.completions > 0 ? <span className="tasks-analytics-v2__chart-value">{b.completions}</span> : null}
+                    </div>
                   </div>
                   <span className="tasks-analytics-v2__chart-label">{b.label}</span>
                 </div>
@@ -260,6 +260,7 @@ const TasksAnalyticsView = ({ tasks, projects = [] }: TasksAnalyticsViewProps) =
 
           {!hasHistory ? (
             <div className="tasks-analytics-v2__empty">
+              <Doodle name="roller-skating" height={80} className="tasks-analytics-v2__empty-art" />
               <p className="tasks-analytics-v2__empty-title">{t('modules.tasks.analytics.emptyTitle')}</p>
               <p className="tasks-analytics-v2__empty-desc">{t('modules.tasks.analytics.emptyDescription')}</p>
             </div>

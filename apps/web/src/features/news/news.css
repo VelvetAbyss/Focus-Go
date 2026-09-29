@@ -1,5 +1,5 @@
 /* ─── News Dashboard ──────────────────────────────────────────────────────────
-   Design language: warm editorial, consistent with app's Fraunces/IBM Plex Mono
+   Design language: warm editorial, consistent with the app's display serif
    Performance: all animations use GPU-compositable props (transform + opacity)
    ─────────────────────────────────────────────────────────────────────────── */
 
@@ -46,7 +46,7 @@
   background: transparent;
   color: color-mix(in srgb, var(--text-primary) 68%, transparent);
   font-size: var(--fs-ui);
-  font-weight: 650;
+  font-weight: 600;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -183,7 +183,7 @@
 .news-dashboard__source-group-label {
   margin: 0;
   font-size: var(--fs-label);
-  font-weight: 750;
+  font-weight: 700;
   color: color-mix(in srgb, var(--text-primary) 48%, transparent);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -222,7 +222,7 @@
   cursor: pointer;
   color: color-mix(in srgb, var(--text-primary) 58%, transparent);
   font-size: var(--fs-ui);
-  font-weight: 650;
+  font-weight: 600;
   transition: color var(--motion-duration-fast) var(--ease-standard), background var(--motion-duration-fast) var(--ease-standard), transform var(--motion-duration-instant) var(--ease-standard);
 }
 
@@ -404,7 +404,7 @@
 .news-card__meta-type {
   background: color-mix(in srgb, var(--news-accent) 10%, var(--bg-elevated) 90%) !important;
   color: color-mix(in srgb, var(--news-accent) 72%, var(--text-primary) 28%) !important;
-  font-weight: 650;
+  font-weight: 600;
 }
 
 /* ─── News list ────────────────────────────────────────────────────────────── */
@@ -581,7 +581,7 @@
   background: var(--bg-elevated);
   color: var(--text-primary);
   font-size: var(--fs-ui);
-  font-weight: 650;
+  font-weight: 600;
   cursor: pointer;
   transition: background var(--motion-duration-fast) var(--ease-standard), border-color var(--motion-duration-fast) var(--ease-standard);
 }

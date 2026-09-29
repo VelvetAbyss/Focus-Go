@@ -1,9 +1,5 @@
 .tiptap.ProseMirror {
-  --blockquote-bg-color: rgba(58, 55, 51, 0.22);
-
-  .dark & {
-    --blockquote-bg-color: rgba(245, 243, 240, 0.28);
-  }
+  --blockquote-bg-color: var(--rule-strong);
 }
 
 /* =====================
@@ -16,8 +12,9 @@
     padding-top: 0.375em;
     padding-bottom: 0.375em;
     margin: 0;
-    color: rgba(58, 55, 51, 0.72);
-    font-style: italic;
+    /* Ink-2, upright: Chinese has no italic, and a faked oblique reads as a
+       rendering bug. The bar carries the quote. */
+    color: var(--ink-2);
 
     p {
       margin-top: 0;

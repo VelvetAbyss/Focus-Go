@@ -7,6 +7,7 @@ export type SceneTheme = 'light' | 'dark'
 
 export type SceneId =
   | 'idle'
+  | 'window-light'
   | 'rainy-cafe'
   | 'stormy-night'
   | 'ocean-breeze'
@@ -45,8 +46,17 @@ export type SceneEmittedSignal =
   | { type: 'shell-purple-flash'; intensity: number }
 
 export type SceneStrategy = {
+  /**
+   * '2d' (default): the stage sizes the canvas, sets the DPR transform and
+   * rebuilds the strategy on resize, theme change and wake.
+   * 'webgl': the strategy owns its GL context; the stage hands it a fresh
+   * canvas on init and calls resize()/setTheme() instead of rebuilding.
+   */
+  kind?: '2d' | 'webgl'
   init(canvas: HTMLCanvasElement, runtime: SceneRuntime): void
   tick(dtMs: number, runtime: SceneRuntime, signals: SceneSignals): void
   cleanup(): void
   particleCount(): number
+  resize?(width: number, height: number): void
+  setTheme?(theme: SceneTheme): void
 }

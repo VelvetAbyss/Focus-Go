@@ -29,6 +29,8 @@ export type CozyFiresideEffects = {
 }
 
 export type IdleEffects = {
+  /** Window light and leaf shadows on the desk; off = the plain white desk. */
+  windowLight: boolean
   timeOfDayPalette: boolean
   slowBreath: boolean
 }
@@ -57,7 +59,8 @@ export type AmbientPreferences = {
   }
 }
 
-const STORAGE_KEY = 'focusgo.ambient.prefs.v2'
+const STORAGE_KEY = 'focusgo.ambient.prefs.v3'
+const PREVIOUS_KEY = 'focusgo.ambient.prefs.v2'
 const LEGACY_KEY = 'focusgo.ambient.prefs.v1'
 
 export const AMBIENT_PREFERENCES_DEFAULTS: AmbientPreferences = {
@@ -92,8 +95,9 @@ export const AMBIENT_PREFERENCES_DEFAULTS: AmbientPreferences = {
       crackleSparkSync: true,
     },
     idle: {
-      timeOfDayPalette: true,
-      slowBreath: true,
+      windowLight: false,
+      timeOfDayPalette: false,
+      slowBreath: false,
     },
   },
 }
@@ -161,6 +165,20 @@ const read = (): AmbientPreferences => {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY)
     if (raw) return sanitize(JSON.parse(raw))
+    const previous = window.localStorage.getItem(PREVIOUS_KEY)
+    if (previous) {
+      const parsed = JSON.parse(previous) as Partial<AmbientPreferences>
+      const next = sanitize(parsed)
+      const idle = parsed.effects?.idle
+      // Earlier releases turned on every idle effect by default. Move that
+      // unchanged preset to the new white desk, while retaining custom choices.
+      if (idle?.timeOfDayPalette === true && idle.slowBreath === true &&
+          (idle.windowLight === undefined || idle.windowLight === true)) {
+        next.effects.idle = { ...AMBIENT_PREFERENCES_DEFAULTS.effects.idle }
+      }
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+      return next
+    }
     // Migrate v1 — only had surfaceOpacity + glassBlur.
     const legacy = window.localStorage.getItem(LEGACY_KEY)
     if (legacy) return sanitize(JSON.parse(legacy))

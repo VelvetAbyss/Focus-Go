@@ -8,11 +8,11 @@ import {
   ChevronDown,
   Flame,
   TrendingUp,
-  Award,
 } from "lucide-react";
 import { useI18n } from "../../../../shared/i18n/useI18n";
 import { DURATION, EASE } from '../../../../shared/motion/tokens'
 import { appIntlLocale } from '../../../../shared/i18n/format'
+import Doodle from '../../../../shared/ui/Doodle'
 
 export interface FocusSession {
   id: string;
@@ -118,7 +118,10 @@ function FilterChip({
   );
 }
 
-function WeeklyChart({ sessions }: { sessions: FocusSession[] }) {
+// Week chart (DESIGN.md › Charts): the daily goal is a dashed pencil outline,
+// what actually happened is an ink bar, today is the pen. Values sit on the
+// marks; one baseline, no gridlines.
+function WeeklyChart({ sessions, goalMinutes }: { sessions: FocusSession[]; goalMinutes: number }) {
   const { language } = useI18n();
   const today = new Date();
   const days = Array.from({ length: 7 }, (_, i) => {
@@ -137,57 +140,42 @@ function WeeklyChart({ sessions }: { sessions: FocusSession[] }) {
     return { date: day, minutes: totalMinutes, label: dayLabels[day.getDay()] };
   });
 
-  const maxMinutes = Math.max(...dayData.map((d) => d.minutes), 30);
+  const PLOT = 56;
+  const scaleMax = Math.max(goalMinutes, ...dayData.map((d) => d.minutes));
+  const goalHeight = Math.round((goalMinutes / scaleMax) * PLOT);
 
   return (
-    <div className="flex items-end justify-between gap-1 h-[52px] px-1">
-      {dayData.map((d, i) => {
-        const height = d.minutes > 0 ? Math.max(6, (d.minutes / maxMinutes) * 44) : 4;
-        const isToday = d.date.toDateString() === today.toDateString();
-
-        return (
-          <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
-            <motion.div
-              className="w-full max-w-[18px] rounded-full relative group cursor-default"
-              style={{
-                height,
-                background: isToday
-                  ? "var(--accent)"
-                  : d.minutes > 0
-                  ? "color-mix(in srgb, var(--ink-1) 22%, transparent)"
-                  : "color-mix(in srgb, var(--text-primary) 4%, transparent)",
-              }}
-              initial={{ height: 4 }}
-              animate={{ height }}
-              transition={{ delay: i * 0.06, duration: 0.5, ease: EASE.emphasized }}
-            >
-              {d.minutes > 0 && (
-                <div
-                  className="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-                  style={{
-                    background: "var(--cta-bg)",
-                    padding: "2px 6px",
-                    borderRadius: 6,
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  <span className="text-meta text-[color:var(--cta-fg)] tabular-nums">
-                    {d.minutes}m
-                  </span>
-                </div>
-              )}
-            </motion.div>
-            <span
-              className="text-meta tabular-nums"
-              style={{
-                color: isToday ? "var(--accent)" : "var(--text-secondary)",
-              }}
-            >
-              {d.label}
-            </span>
-          </div>
-        );
-      })}
+    <div className="focus-week-chart">
+      <div className="focus-week-chart__plot" style={{ height: PLOT + 16 }}>
+        {dayData.map((d, i) => {
+          const height = d.minutes > 0 ? Math.max(3, Math.round((d.minutes / scaleMax) * PLOT)) : 0;
+          const isToday = d.date.toDateString() === today.toDateString();
+          return (
+            <div key={i} className="focus-week-chart__col" data-today={isToday ? "true" : undefined}>
+              <span className="focus-week-chart__goal" style={{ height: goalHeight }} aria-hidden />
+              {d.minutes > 0 ? (
+                <span className="focus-week-chart__value" style={{ bottom: Math.max(height, goalHeight) + 3 }}>
+                  {d.minutes}
+                </span>
+              ) : null}
+              <motion.span
+                className="focus-week-chart__bar"
+                initial={{ height: 0 }}
+                animate={{ height }}
+                transition={{ delay: i * 0.04, duration: DURATION.slow, ease: EASE.emphasized }}
+                aria-label={`${d.label} ${d.minutes}m`}
+              />
+            </div>
+          );
+        })}
+      </div>
+      <div className="focus-week-chart__labels">
+        {dayData.map((d, i) => (
+          <span key={i} data-today={d.date.toDateString() === today.toDateString() ? "true" : undefined}>
+            {d.label}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -227,7 +215,7 @@ function StatsCard({ sessions }: { sessions: FocusSession[] }) {
       >
         <p
           className="text-section text-[var(--text-primary)] tabular-nums"
-          style={{ fontFamily: 'var(--font-display)' }}
+          style={{ fontFamily: 'var(--font-numeral)', fontVariantNumeric: 'var(--num-features)' }}
         >
           {todayMinutes}
         </p>
@@ -241,7 +229,7 @@ function StatsCard({ sessions }: { sessions: FocusSession[] }) {
       >
         <p
           className="text-section text-[var(--text-primary)] tabular-nums"
-          style={{ fontFamily: 'var(--font-display)' }}
+          style={{ fontFamily: 'var(--font-numeral)', fontVariantNumeric: 'var(--num-features)' }}
         >
           {completionRate}%
         </p>
@@ -257,7 +245,7 @@ function StatsCard({ sessions }: { sessions: FocusSession[] }) {
           <Flame size={12} className="text-tone-done" />
           <p
             className="text-section text-[var(--text-primary)] tabular-nums"
-            style={{ fontFamily: 'var(--font-display)' }}
+            style={{ fontFamily: 'var(--font-numeral)', fontVariantNumeric: 'var(--num-features)' }}
           >
             {streak}
           </p>
@@ -270,7 +258,7 @@ function StatsCard({ sessions }: { sessions: FocusSession[] }) {
   );
 }
 
-export function FocusHistory({ externalSessions }: { externalSessions?: FocusSession[] }) {
+export function FocusHistory({ externalSessions, goalMinutes = 120 }: { externalSessions?: FocusSession[]; goalMinutes?: number }) {
   const { language, t } = useI18n();
   const [statusFilter, setStatusFilter] = useState("all");
   const [durationFilter, setDurationFilter] = useState("all");
@@ -340,12 +328,7 @@ export function FocusHistory({ externalSessions }: { externalSessions?: FocusSes
             {t("focus.stats.thisWeek")}
           </span>
         </div>
-        <div
-          className="rounded-xl px-3 py-3"
-          style={{ background: "color-mix(in srgb, var(--text-primary) 1.5%, transparent)" }}
-        >
-          <WeeklyChart sessions={allSessions} />
-        </div>
+        <WeeklyChart sessions={allSessions} goalMinutes={goalMinutes} />
       </div>
 
       {/* Tags filter — only once sessions actually carry a category; otherwise every chip is empty. */}
@@ -490,10 +473,11 @@ export function FocusHistory({ externalSessions }: { externalSessions?: FocusSes
         ))}
 
         {filtered.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-10 text-center">
-            <Award size={22} className="text-ink-4 mb-2.5" />
-            <p className="text-label text-[var(--text-secondary)]">{t("focus.empty.noSessions")}</p>
-            <p className="text-meta text-[var(--text-secondary)] mt-1">
+          // Centred: one serif line, one sentence (DESIGN.md › Empty states).
+          <div className="flex flex-col items-center py-6 text-center">
+            {allSessions.length === 0 ? <Doodle name="levitate" height={88} className="mb-3" /> : null}
+            <p className="font-display text-section font-semibold text-ink-1">{t("focus.empty.noSessions")}</p>
+            <p className="text-label text-ink-3 mt-1">
               {allSessions.length === 0 ? t("focus.empty.firstSession") : t("focus.empty.adjustFilters")}
             </p>
           </div>

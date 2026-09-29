@@ -248,6 +248,8 @@ const SpendCard = () => {
                   emptyState={
                     <DiscoveryEmptyState
                       variant="first-time"
+                      illustration="ice-cream"
+                      illustrationHeight={72}
                       title={t('empty.spend.title')}
                       body={t('empty.spend.description')}
                     />

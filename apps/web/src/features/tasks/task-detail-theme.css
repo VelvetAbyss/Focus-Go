@@ -45,10 +45,9 @@
   text-transform: uppercase;
 }
 
-/* ── Section title (Fraunces serif) ────────────────────────────────────── */
+/* ── Section title (display serif) ────────────────────────────────────── */
 .task-detail-theme .task-detail-title {
   font-family: var(--td-serif) !important;
-  font-variation-settings: "opsz" 60, "SOFT" 30 !important;
   font-weight: 500 !important;
   font-size: var(--fs-section) !important;
   letter-spacing: -0.01em !important;
@@ -67,19 +66,17 @@
   position: relative;
 }
 
-/* Hero title input — Fraunces */
+/* Hero title input — display serif */
 .task-detail-theme .task-detail-title-input {
-  font-family: var(--td-serif) !important;
-  font-variation-settings: "opsz" 96, "SOFT" 30 !important;
+  font-family: var(--font-reading) !important;
   font-weight: 500 !important;
   font-size: var(--fs-subhead) !important;
   line-height: 1.25 !important;
-  letter-spacing: -0.018em !important;
+  letter-spacing: -0.01em !important;
   color: var(--td-ink) !important;
 }
 .task-detail-theme .task-detail-title-input::placeholder {
   color: var(--td-ink-mute) !important;
-  font-style: italic;
 }
 
 /* ── Picker / select / textarea — paper-warm well, soft border ─────────── */
@@ -124,7 +121,7 @@
   background: var(--td-paper) !important;
   border-color: var(--td-rule) !important;
   color: var(--td-ink) !important;
-  font-family: var(--td-serif) !important;
+  font-family: var(--font-reading) !important;
   font-size: var(--fs-ui) !important;
   line-height: 1.55 !important;
 }
@@ -144,13 +141,11 @@
   color: var(--ink-3) !important;
 }
 
-/* ── Activity timeline dots — neutral (activity kinds are not states) ───── */
+/* ── Activity timeline — a pencil spine with ink nodes (the log is record;
+   activity kinds are not states, so every node is the same ink). ───────── */
 .task-detail-theme .tdv2-timeline-dot {
-  background: var(--ink-4) !important;
+  background: var(--ink-2) !important;
   box-shadow: none !important;
-}
-.task-detail-theme .tdv2-timeline-item--lined::before {
-  background: var(--td-rule-soft) !important;
 }
 
 /* ── Subtask filter pill (全部 / 未完成 / 已完成) ───────────────────────
@@ -176,19 +171,7 @@
 }
 
 /* ── Subtask checkbox — moss when checked ───────────────────────────── */
-.task-detail-theme .widget-plan-checkbox-wrap {
-  background: var(--td-paper) !important;
-  border-color: var(--td-rule) !important;
-}
-.task-detail-theme .widget-plan-checkbox-wrap[data-checked='true'],
-.task-detail-theme .widget-plan-checkbox-wrap[data-state='checked'] {
-  background: var(--td-moss) !important;
-  border-color: var(--td-moss) !important;
-}
-.task-detail-theme .widget-plan-checkbox-wrap[data-checked='true'] .widget-plan-checkbox-icon path,
-.task-detail-theme .widget-plan-checkbox-wrap[data-state='checked'] .widget-plan-checkbox-icon path {
-  stroke: var(--paper-raised) !important;
-}
+/* Subtask checkboxes use the shared pencil/ink mark (shared/theme/marks.css). */
 
 /* Subtask title input — sans: subtasks are operated, not read (DESIGN.md rule 3) */
 .task-detail-theme .task-popup-detail__subtask-title-input {
@@ -200,8 +183,8 @@
 }
 .task-detail-theme .task-popup-detail__subtask-title-input.is-done {
   text-decoration: line-through;
-  text-decoration-color: var(--td-lamp);
-  color: var(--td-ink-mute) !important;
+  text-decoration-color: var(--ink-2);
+  color: var(--ink-3) !important;
 }
 
 /* ── Subtask composer (add subtask) ─────────────────────────────────────── */
@@ -233,7 +216,7 @@
 
 /* ── Role-based typography system ────────────────────────────────────────
    Editorial contrast comes from font ROLES, not picking one face:
-     • SERIF  (Fraunces + Noto Serif SC) — reading content
+     • SERIF  (Instrument Serif + Noto Serif SC) — reading content
      • SANS   (Manrope + system CJK)     — UI controls
      • MONO   (JetBrains Mono)           — pure data (dates, counts, kbd)
 

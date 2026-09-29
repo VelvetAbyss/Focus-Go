@@ -46,6 +46,9 @@ const hudEnabled = () => {
 const SESSION_SEED = Math.random()
 
 type Layer = {
+  /** React-owned wrapper; crossfades animate its opacity. */
+  host: HTMLDivElement
+  /** Stage-owned canvas, replaced with a fresh one for every strategy. */
   canvas: HTMLCanvasElement
   strategy: SceneStrategy | null
   sceneId: SceneId | null
@@ -54,8 +57,8 @@ type Layer = {
 
 const AmbientSceneStage = ({ scene }: AmbientSceneStageProps) => {
   const rootRef = useRef<HTMLDivElement | null>(null)
-  const canvasARef = useRef<HTMLCanvasElement | null>(null)
-  const canvasBRef = useRef<HTMLCanvasElement | null>(null)
+  const hostARef = useRef<HTMLDivElement | null>(null)
+  const hostBRef = useRef<HTMLDivElement | null>(null)
   const layersRef = useRef<{ a: Layer; b: Layer } | null>(null)
   const activeKeyRef = useRef<'a' | 'b'>('a')
   const rafRef = useRef<number>(0)
@@ -190,22 +193,56 @@ const AmbientSceneStage = ({ scene }: AmbientSceneStageProps) => {
     [],
   )
 
-  const sizeCanvases = () => {
-    const root = rootRef.current
-    const a = canvasARef.current
-    const b = canvasBRef.current
-    if (!root || !a || !b) return
-    const rect = root.getBoundingClientRect()
-    const w = Math.max(1, Math.floor(rect.width))
-    const h = Math.max(1, Math.floor(rect.height))
+  const viewportSize = () => {
+    const rect = rootRef.current?.getBoundingClientRect()
+    return {
+      w: Math.max(1, Math.floor(rect?.width ?? 1)),
+      h: Math.max(1, Math.floor(rect?.height ?? 1)),
+    }
+  }
+
+  const sizeCanvas2d = (canvas: HTMLCanvasElement) => {
+    const { w, h } = viewportSize()
     const dpr = Math.min(MAX_DPR, typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1)
-    for (const c of [a, b]) {
-      c.style.width = `${w}px`
-      c.style.height = `${h}px`
-      c.width = Math.floor(w * dpr)
-      c.height = Math.floor(h * dpr)
-      const ctx = c.getContext('2d')
-      if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    canvas.style.width = `${w}px`
+    canvas.style.height = `${h}px`
+    canvas.width = Math.floor(w * dpr)
+    canvas.height = Math.floor(h * dpr)
+    const ctx = canvas.getContext('2d')
+    if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  }
+
+  const isWebgl = (layer: Layer) => layer.strategy?.kind === 'webgl'
+
+  // 2D layers are resized here; WebGL layers resize their own GL context.
+  const sizeCanvases = () => {
+    const layers = layersRef.current
+    if (!layers) return
+    const { w, h } = viewportSize()
+    for (const layer of [layers.a, layers.b]) {
+      if (isWebgl(layer)) layer.strategy?.resize?.(w, h)
+      else sizeCanvas2d(layer.canvas)
+    }
+  }
+
+  // Every strategy gets a fresh canvas: a canvas's context type is fixed once
+  // taken, and 2D and WebGL scenes take turns on the same layer.
+  const initLayer = (layer: Layer, sceneId: SceneId) => {
+    layer.strategy?.cleanup()
+    const strategy = createSceneStrategy(sceneId)
+    const canvas = document.createElement('canvas')
+    canvas.className = 'focus-shell__scene-canvas'
+    layer.canvas.replaceWith(canvas)
+    layer.canvas = canvas
+    layer.strategy = strategy
+    layer.sceneId = sceneId
+    runtime.theme = themeRef.current
+    runtime.prefs = prefsRef.current
+    if (strategy.kind !== 'webgl') sizeCanvas2d(canvas)
+    strategy.init(canvas, runtime)
+    if (strategy.kind === 'webgl') {
+      const { w, h } = viewportSize()
+      strategy.resize?.(w, h)
     }
   }
 
@@ -296,13 +333,19 @@ const AmbientSceneStage = ({ scene }: AmbientSceneStageProps) => {
 
   // ---- mount-side: visibility, intersection, resize, cursor, theme ----
   useEffect(() => {
-    const a = canvasARef.current
-    const b = canvasBRef.current
-    if (!a || !b) return
+    const hostA = hostARef.current
+    const hostB = hostBRef.current
+    if (!hostA || !hostB) return
 
+    const blankCanvas = (host: HTMLDivElement) => {
+      const canvas = document.createElement('canvas')
+      canvas.className = 'focus-shell__scene-canvas'
+      host.appendChild(canvas)
+      return canvas
+    }
     layersRef.current = {
-      a: { canvas: a, strategy: null, sceneId: null, enteredAt: null },
-      b: { canvas: b, strategy: null, sceneId: null, enteredAt: null },
+      a: { host: hostA, canvas: blankCanvas(hostA), strategy: null, sceneId: null, enteredAt: null },
+      b: { host: hostB, canvas: blankCanvas(hostB), strategy: null, sceneId: null, enteredAt: null },
     }
 
     sizeCanvases()
@@ -317,9 +360,10 @@ const AmbientSceneStage = ({ scene }: AmbientSceneStageProps) => {
       }
       const layers = layersRef.current
       if (!layers) return
-      ;[layers.a.canvas, layers.b.canvas].forEach((canvas) => {
-        const ctx = canvas.getContext('2d')
-        if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height)
+      ;[layers.a, layers.b].forEach((layer) => {
+        if (isWebgl(layer)) return
+        const ctx = layer.canvas.getContext('2d')
+        if (ctx) ctx.clearRect(0, 0, layer.canvas.width, layer.canvas.height)
       })
     }
 
@@ -329,12 +373,10 @@ const AmbientSceneStage = ({ scene }: AmbientSceneStageProps) => {
       if (!layers) return
       sizeCanvases()
       const active = layers[activeKeyRef.current]
-      if (active.strategy && active.sceneId) {
-        active.strategy.cleanup()
-        active.strategy = createSceneStrategy(active.sceneId)
-        runtime.theme = themeRef.current
-        runtime.prefs = prefsRef.current
-        active.strategy.init(active.canvas, runtime)
+      // WebGL scenes keep their context through a sleep; rebuilding would
+      // recompile shaders (a visible hitch) every time the tab comes back.
+      if (active.strategy && active.sceneId && !isWebgl(active)) {
+        initLayer(active, active.sceneId)
         active.enteredAt = performance.now()
       }
       lastTsRef.current = 0
@@ -373,13 +415,7 @@ const AmbientSceneStage = ({ scene }: AmbientSceneStageProps) => {
         const layers = layersRef.current
         if (!layers) return
         const reinit = (layer: Layer) => {
-          if (layer.strategy && layer.sceneId) {
-            layer.strategy.cleanup()
-            layer.strategy = createSceneStrategy(layer.sceneId)
-            runtime.theme = themeRef.current
-            runtime.prefs = prefsRef.current
-            layer.strategy.init(layer.canvas, runtime)
-          }
+          if (layer.strategy && layer.sceneId && !isWebgl(layer)) initLayer(layer, layer.sceneId)
         }
         reinit(layers.a)
         reinit(layers.b)
@@ -428,13 +464,9 @@ const AmbientSceneStage = ({ scene }: AmbientSceneStageProps) => {
       const layers = layersRef.current
       if (!layers) return
       ;[layers.a, layers.b].forEach((layer) => {
-        if (layer.strategy && layer.sceneId) {
-          layer.strategy.cleanup()
-          layer.strategy = createSceneStrategy(layer.sceneId)
-          runtime.theme = theme
-          runtime.prefs = prefsRef.current
-          layer.strategy.init(layer.canvas, runtime)
-        }
+        if (!layer.strategy || !layer.sceneId) return
+        if (isWebgl(layer)) layer.strategy.setTheme?.(theme)
+        else initLayer(layer, layer.sceneId)
       })
     })
 
@@ -492,7 +524,10 @@ const AmbientSceneStage = ({ scene }: AmbientSceneStageProps) => {
     const elapsed = ts - enteredAt
     // rAF timestamps can land a hair *before* enteredAt on a layer's first
     // frame; a negative ramp gave scenes negative particle counts (RangeError).
-    const intensity = prefsRef.current.intensityRamp ? Math.min(1, Math.max(0, elapsed / INTENSITY_RAMP_MS)) : 1
+    // With motion reduced only one frame is ever drawn, so it has to be the
+    // settled scene, not the first instant of the fade-in ramp.
+    const ramped = prefsRef.current.intensityRamp && !reducedRef.current
+    const intensity = ramped ? Math.min(1, Math.max(0, elapsed / INTENSITY_RAMP_MS)) : 1
     const audio = prefsRef.current.audioReactivity
 
     // Cursor: reuse a stable object; mirror the live cursor or park it off-screen.
@@ -580,7 +615,7 @@ const AmbientSceneStage = ({ scene }: AmbientSceneStageProps) => {
         const sig = buildSignals(ts, active, 'active')
         active.strategy.tick(tickDt, runtime, sig)
       }
-      if (inactive.strategy && Number(inactive.canvas.style.opacity || '0') > 0) {
+      if (inactive.strategy && Number(inactive.host.style.opacity || '0') > 0) {
         runtime.emit = noopEmit // outgoing (fading) scene must not emit
         const sig = buildSignals(ts, inactive, 'inactive')
         inactive.strategy.tick(tickDt, runtime, sig)
@@ -605,15 +640,11 @@ const AmbientSceneStage = ({ scene }: AmbientSceneStageProps) => {
     const active = layers[activeKey]
 
     if (active.sceneId === null) {
-      active.strategy = createSceneStrategy(scene)
-      active.sceneId = scene
-      runtime.theme = themeRef.current
-      runtime.prefs = prefsRef.current
-      active.strategy.init(active.canvas, runtime)
+      initLayer(active, scene)
       active.enteredAt = performance.now()
-      active.canvas.style.opacity = '1'
+      active.host.style.opacity = '1'
       const inactive = layers[activeKey === 'a' ? 'b' : 'a']
-      inactive.canvas.style.opacity = '0'
+      inactive.host.style.opacity = '0'
       startLoop()
       return
     }
@@ -630,19 +661,14 @@ const AmbientSceneStage = ({ scene }: AmbientSceneStageProps) => {
     const generation = ++generationRef.current
     if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current)
 
-    next.strategy?.cleanup()
-    next.strategy = createSceneStrategy(scene)
-    next.sceneId = scene
-    runtime.theme = themeRef.current
-    runtime.prefs = prefsRef.current
-    next.strategy.init(next.canvas, runtime)
+    initLayer(next, scene)
     next.enteredAt = performance.now()
 
-    next.canvas.style.transition = `opacity ${CROSSFADE_MS}ms ease`
-    active.canvas.style.transition = `opacity ${CROSSFADE_MS}ms ease`
-    void next.canvas.offsetWidth
-    next.canvas.style.opacity = '1'
-    active.canvas.style.opacity = '0'
+    next.host.style.transition = `opacity ${CROSSFADE_MS}ms ease`
+    active.host.style.transition = `opacity ${CROSSFADE_MS}ms ease`
+    void next.host.offsetWidth
+    next.host.style.opacity = '1'
+    active.host.style.opacity = '0'
 
     activeKeyRef.current = nextKey
     startLoop()
@@ -666,16 +692,8 @@ const AmbientSceneStage = ({ scene }: AmbientSceneStageProps) => {
       data-scene={scene}
       aria-hidden="true"
     >
-      <canvas
-        ref={canvasARef}
-        className="focus-shell__scene-canvas"
-        style={{ opacity: 0 }}
-      />
-      <canvas
-        ref={canvasBRef}
-        className="focus-shell__scene-canvas"
-        style={{ opacity: 0 }}
-      />
+      <div ref={hostARef} className="focus-shell__scene-layer" style={{ opacity: 0 }} />
+      <div ref={hostBRef} className="focus-shell__scene-layer" style={{ opacity: 0 }} />
       <div className="focus-shell__scene-vignette" />
       {hud ? (
         <div className="focus-shell__scene-hud" role="status">

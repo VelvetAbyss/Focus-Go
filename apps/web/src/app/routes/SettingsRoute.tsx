@@ -67,8 +67,9 @@ import { useSyncActions, useSyncStatus } from '../../data/sync/service'
 import { restampLocalSnapshotForRestore } from '../../data/sync/repository'
 import { requestRxdbSyncReset, resetRxdbSyncDatabase } from '../../data/sync/rxdb'
 import { wipeServerData } from '../../data/sync/wipeServerData'
+import { listSyncConflicts, markSyncConflictReviewed, restoreNoteConflictAsCopy, type SyncConflictRecord } from '../../data/sync/conflicts'
 import { getAuth, useCloudSyncQuota, useIsLoggedIn } from '../../store/auth'
-import { ROUTES } from './routes'
+import { buildNoteDetailRoute, ROUTES } from './routes'
 import { useDiscoveryReset } from '../../shared/discovery/useDiscoveryHint'
 import { useAuthGate } from '../../features/auth/AuthGateContext'
 import {
@@ -94,6 +95,20 @@ import { appIntlLocale } from '../../shared/i18n/format'
 import ActiveIndicator from '../../shared/motion/ActiveIndicator'
 import { DURATION, EASE } from '../../shared/motion/tokens'
 const RESET_TIMEOUT_MS = 30_000
+
+const conflictPreview = (document: Record<string, unknown>, entityType: string) => {
+  if (entityType === 'notes') {
+    const title = typeof document.title === 'string' ? document.title : ''
+    const body = typeof document.contentMd === 'string' ? document.contentMd : ''
+    return [title, body].filter(Boolean).join('\n\n') || JSON.stringify(document, null, 2)
+  }
+  if (entityType === 'tasks') {
+    const fields = ['title', 'description', 'status', 'priority', 'dueDate', 'taskNoteContentMd']
+    return fields.filter((field) => document[field] != null && document[field] !== '')
+      .map((field) => `${field}: ${String(document[field])}`).join('\n') || JSON.stringify(document, null, 2)
+  }
+  return JSON.stringify(document, null, 2)
+}
 
 type ThemeSelection = 'system' | 'light' | 'dark'
 type SettingsSection = 'appearance' | 'experience' | 'weather' | 'integrations' | 'data' | 'legal' | 'feedback'
@@ -591,7 +606,7 @@ const SettingRow = ({ icon: Icon, title, description, children }: SettingRowProp
         <Icon className="h-4 w-4" />
       </div>
       <div className="space-y-1">
-        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+        <h3 className="font-body text-sm font-semibold text-foreground">{title}</h3>
         <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>
       </div>
     </div>
@@ -702,6 +717,8 @@ const SettingsRoute = () => {
   const cloudSyncQuota = useCloudSyncQuota()
   const toast = useToast()
   const syncState = useSyncStatus()
+  const [syncConflicts, setSyncConflicts] = useState<SyncConflictRecord[]>([])
+  const [restoringConflictId, setRestoringConflictId] = useState<string | null>(null)
   const { enabled: cloudSyncEnabled, setEnabled: setCloudSyncEnabled, syncNow } = useSyncActions()
   const [activeSection, setActiveSection] = useState<BaseSettingsSection>('appearance')
   const [layoutLocked, setLayoutLocked] = useState(() => readLayoutLocked())
@@ -761,6 +778,19 @@ const SettingsRoute = () => {
     const frame = window.requestAnimationFrame(() => setPageEntered(true))
     return () => window.cancelAnimationFrame(frame)
   }, [])
+
+  useEffect(() => {
+    const accountId = getAuth()?.user?.id
+    if (!isLoggedIn || typeof accountId !== 'string') {
+      setSyncConflicts([])
+      return
+    }
+    let active = true
+    void listSyncConflicts(accountId).then((items) => {
+      if (active) setSyncConflicts(items)
+    })
+    return () => { active = false }
+  }, [isLoggedIn, syncState?.updatedAt])
 
   useEffect(() => {
     dashboardRepo.get().then((stored) => {
@@ -1014,6 +1044,49 @@ const SettingsRoute = () => {
       toast.push({ variant: 'error', message })
     } finally {
       setIsExporting(false)
+    }
+  }
+
+  const downloadSyncConflict = (item: SyncConflictRecord) => {
+    const file = new Blob([JSON.stringify(item, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(file)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `focusgo-conflict-${item.id}.json`
+    link.click()
+    window.setTimeout(() => URL.revokeObjectURL(url), 1_000)
+  }
+
+  const reviewSyncConflict = async (item: SyncConflictRecord) => {
+    if (item.accountId === getAuth()?.user?.id && await markSyncConflictReviewed(item.accountId, item.id)) {
+      setSyncConflicts((items) => items.map((current) => current.id === item.id
+        ? { ...current, resolvedAt: Date.now() }
+        : current))
+      void syncNow()
+    }
+  }
+
+  const restoreSyncConflict = async (item: SyncConflictRecord) => {
+    const accountId = getAuth()?.user?.id
+    if (typeof accountId !== 'string' || item.accountId !== accountId || restoringConflictId) return
+    setRestoringConflictId(item.id)
+    try {
+      const restoredEntityId = await restoreNoteConflictAsCopy(
+        accountId,
+        item.id,
+        t('notes.trash.untitled'),
+        t('settings.data.sync.conflicts.copySuffix'),
+      )
+      setSyncConflicts((items) => items.map((current) => current.id === item.id
+        ? { ...current, restoredEntityId, resolvedAt: Date.now() }
+        : current))
+      toast.push({ variant: 'success', message: t('settings.data.sync.conflicts.restored') })
+      void syncNow()
+    } catch (error) {
+      console.error('[sync] restore conflict copy failed', error)
+      toast.push({ variant: 'error', message: t('settings.data.sync.conflicts.restoreFailed') })
+    } finally {
+      setRestoringConflictId(null)
     }
   }
 
@@ -1440,7 +1513,7 @@ const SettingsRoute = () => {
                             transition={{ duration: DURATION.slow, delay: 0.05, ease: EASE.emphasized }}
                           >
                             <div>
-                              <h3 className="text-sm font-semibold text-foreground">{t('settings.weather.manualCity.title')}</h3>
+                              <h3 className="font-body text-sm font-semibold text-foreground">{t('settings.weather.manualCity.title')}</h3>
                               <p className="text-sm text-muted-foreground">{t('settings.weather.manualCity.description')}</p>
                             </div>
 
@@ -1677,7 +1750,11 @@ const SettingsRoute = () => {
                               <div className="text-sm text-muted-foreground">{syncStatusLabel}</div>
                               <div className="text-xs text-muted-foreground">{lastSyncedLabel}</div>
                               {cloudSyncQuota ? <div className="text-xs text-muted-foreground">{t('settings.data.sync.quota', { used: (cloudSyncQuota.usedBytes / 1024 / 1024).toFixed(1), limit: (cloudSyncQuota.limitBytes / 1024 / 1024).toFixed(0) })}</div> : null}
-                              {cloudSyncEnabled && syncState?.lastError ? (
+                              {cloudSyncEnabled && syncState?.status === 'blocked' && syncConflicts.some((item) => item.accountId === getAuth()?.user?.id && !item.resolvedAt) ? (
+                                <div className="max-w-[360px] text-right text-xs text-destructive">
+                                  {t('settings.data.sync.conflicts.attention', { count: String(syncConflicts.filter((item) => item.accountId === getAuth()?.user?.id && !item.resolvedAt).length) })}
+                                </div>
+                              ) : cloudSyncEnabled && syncState?.status === 'error' && syncState.lastError ? (
                                 <div className="max-w-[360px] text-right text-xs text-destructive">
                                   {t('settings.data.sync.error', { message: syncState.lastError })}
                                 </div>
@@ -1692,6 +1769,64 @@ const SettingsRoute = () => {
                             </div>
                             )}
                           </SettingRow>
+
+                          {isLoggedIn && syncConflicts.some((item) => item.accountId === getAuth()?.user?.id) ? (
+                            <SettingRow
+                              icon={AlertTriangle}
+                              title={t('settings.data.sync.conflicts.title')}
+                              description={t('settings.data.sync.conflicts.description')}
+                            >
+                              <div className="flex w-full flex-col gap-3">
+                                {syncConflicts.filter((item) => item.accountId === getAuth()?.user?.id).map((item) => (
+                                  <div key={item.id} className="rounded-xl border border-border p-3 text-sm">
+                                    <div className="font-medium">{item.entityType} · {String(item.localDocument.title ?? item.entityId)}</div>
+                                    <div className="text-xs text-muted-foreground">
+                                      {new Date(item.createdAt).toLocaleString(appIntlLocale())} · {item.resolvedAt
+                                        ? t('settings.data.sync.conflicts.reviewed')
+                                        : t('settings.data.sync.conflicts.pending')}
+                                    </div>
+                                    <details className="mt-3 rounded-lg border border-border/70 bg-background/50 p-2">
+                                      <summary className="cursor-pointer text-sm font-medium">{t('settings.data.sync.conflicts.compare')}</summary>
+                                      <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                                        {([
+                                          ['local', item.localDocument, 'settings.data.sync.conflicts.local'],
+                                          ['remote', item.remoteDocument, 'settings.data.sync.conflicts.remote'],
+                                        ] as const).map(([side, document, titleKey]) => (
+                                          <section key={side} className="min-w-0 rounded-lg border border-border bg-background p-3" aria-label={t(titleKey)}>
+                                            <h4 className="mb-2 text-sm font-semibold">{t(titleKey)}</h4>
+                                            <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words text-xs leading-relaxed" data-testid={`conflict-${side}-preview`}>
+                                              {conflictPreview(document, item.entityType).slice(0, 6000)}
+                                            </pre>
+                                          </section>
+                                        ))}
+                                      </div>
+                                      <p className="mt-2 text-xs text-muted-foreground">{t('settings.data.sync.conflicts.previewHint')}</p>
+                                    </details>
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                      <Button variant="outline" size="sm" onClick={() => downloadSyncConflict(item)}>
+                                        {t('settings.data.sync.conflicts.download')}
+                                      </Button>
+                                      {item.entityType === 'notes' && item.localDocument._deleted !== true && !item.restoredEntityId ? (
+                                        <Button variant="outline" size="sm" disabled={restoringConflictId !== null} onClick={() => { void restoreSyncConflict(item) }}>
+                                          {t('settings.data.sync.conflicts.restoreCopy')}
+                                        </Button>
+                                      ) : null}
+                                      {item.restoredEntityId && item.entityType === 'notes' ? (
+                                        <Button variant="outline" size="sm" onClick={() => navigate(buildNoteDetailRoute(item.restoredEntityId!))}>
+                                          {t('settings.data.sync.conflicts.openCopy')}
+                                        </Button>
+                                      ) : null}
+                                      {!item.resolvedAt ? (
+                                        <Button variant="outline" size="sm" onClick={() => { void reviewSyncConflict(item) }}>
+                                          {t('settings.data.sync.conflicts.review')}
+                                        </Button>
+                                      ) : null}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </SettingRow>
+                          ) : null}
 
                           <SettingRow
                             icon={Database}
@@ -1742,7 +1877,7 @@ const SettingsRoute = () => {
                             <div className="flex items-start gap-3">
                               <AlertTriangle className="mt-0.5 h-5 w-5 text-destructive" />
                               <div>
-                                <h3 className="text-sm font-semibold text-foreground">{t('settings.data.danger.title')}</h3>
+                                <h3 className="font-body text-sm font-semibold text-foreground">{t('settings.data.danger.title')}</h3>
                                 <p className="text-sm text-muted-foreground">{t('settings.data.danger.description')}</p>
                               </div>
                             </div>

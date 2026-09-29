@@ -7,7 +7,7 @@ import { AppNumber } from '../../../shared/ui/AppNumber'
 import type { BookItem } from '../../../data/models/types'
 import type { LibraryPresentationModel } from '../cards/lifeDesignAdapters'
 import ProgressTrack from '../ProgressTrack'
-import { LifeCardLoader, LifePanelLoader } from './lifeDesignPrimitives'
+import { LifeCardLoader, LifePanelLoader, serifFontFor } from './lifeDesignPrimitives'
 import { useLifeI18n } from '../lifeI18n'
 import { scaleFontSize } from '../../../shared/theme/typeScale'
 
@@ -56,7 +56,7 @@ const inter = (size = 13, weight = 400, color = ink) => ({
 })
 
 const playfair = (size = 16, weight = 500, color = ink) => ({
-  fontFamily: 'var(--font-display)',
+  fontFamily: serifFontFor(size),
   fontSize: scaleFontSize(size),
   fontWeight: weight,
   color,
@@ -251,11 +251,8 @@ export const LibraryCardSurface = ({
           {loading ? (
             <LifeCardLoader />
           ) : books.length === 0 ? (
-            <div style={{ display: 'flex', flex: 1, minHeight: 180, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', textAlign: 'center' }}>
-              <div style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, borderRadius: 999, background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)' }}>
-                <BookOpen size={20} color="color-mix(in srgb, var(--text-primary) 35%, transparent)" />
-              </div>
-              <p style={{ ...playfair(14, 500), marginBottom: 6 }}>{t('life.library.emptyTitle')}</p>
+            <div style={{ display: 'flex', flex: 1, minHeight: 180, flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start', padding: '32px 16px', textAlign: 'left' }}>
+              <p style={{ ...playfair(18, 600), marginBottom: 6 }}>{t('life.library.emptyTitle')}</p>
               <p style={{ ...inter(12, 400, mutedText), lineHeight: 1.5, marginBottom: 16 }}>{t('life.library.emptyDescription')}</p>
               <button
                 type="button"
@@ -560,9 +557,8 @@ export const LibraryCardSurface = ({
                         border: '1px solid color-mix(in srgb, var(--text-primary) 8%, transparent)',
                         background: 'color-mix(in srgb, var(--text-primary) 2.5%, transparent)',
                         padding: '14px 16px',
-                        fontFamily: 'var(--font-display)',
+                        fontFamily: 'var(--font-reading)',
                         fontSize: 'var(--fs-ui)',
-                        fontStyle: selectedBook.reflection ? 'italic' : 'normal',
                         lineHeight: 1.75,
                         color: ink,
                       }}
@@ -572,7 +568,7 @@ export const LibraryCardSurface = ({
                   {(selectedBook.description || selectedBook.summary) ? (
                     <div style={{ padding: '24px 40px', borderBottom: `1px solid ${subtleBorder}` }}>
                       <p style={{ ...inter(11, 500, mutedText), letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 12 }}>{t('life.library.aboutBook')}</p>
-                      {selectedBook.summary ? <p style={{ ...playfair(14, 400, 'color-mix(in srgb, var(--text-primary) 75%, transparent)'), fontStyle: 'italic', lineHeight: 1.65, marginBottom: 12 }}>"{selectedBook.summary}"</p> : null}
+                      {selectedBook.summary ? <p style={{ ...playfair(14, 400, 'color-mix(in srgb, var(--text-primary) 75%, transparent)'), lineHeight: 1.65, marginBottom: 12 }}>"{selectedBook.summary}"</p> : null}
                       {selectedBook.description ? <p style={{ ...inter(13, 400, 'color-mix(in srgb, var(--text-primary) 60%, transparent)'), lineHeight: 1.75 }}>{selectedBook.description}</p> : null}
                     </div>
                   ) : null}

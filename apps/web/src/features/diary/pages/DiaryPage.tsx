@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useLocation, useSearchParams } from 'react-router-dom'
 import { diaryRepo } from '../../../data/repositories/diaryRepo'
 import type { DiaryEntry, WeatherSnapshot as DiaryWeatherSnapshot } from '../../../data/models/types'
 import { useI18n } from '../../../shared/i18n/useI18n'
@@ -15,12 +16,21 @@ import ActiveIndicator from '../../../shared/motion/ActiveIndicator'
 import { SELECTED_TAB } from '../../../shared/motion/indicatorSelectors'
 import { markdownToPreview } from '../../../shared/utils/markdownPreview'
 import { createUnsavedEditStore } from '../../../shared/utils/unsavedEdit'
-import { useOpenRequest } from '../../../shared/navigation/openRequest'
+import Doodle from '../../../shared/ui/Doodle'
+import { rememberCurrentUserRecentCommandTarget } from '../../../shared/ui/recentCommandTargets'
 import './diary-page.css'
 
 const unsavedDiaryEdit = createUnsavedEditStore<DiaryEditorValue>('focusgo.diary.unsavedEdit')
 
 type ViewMode = 'day' | 'week' | 'month'
+
+const readView = (value: string | null): ViewMode => value === 'week' || value === 'month' ? value : 'day'
+
+const validDateKey = (value: string | null): value is string => {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const date = new Date(`${value}T12:00:00`)
+  return Number.isFinite(date.getTime()) && toDateKey(date) === value
+}
 
 // ── date range helpers ──────────────────────────────────────────────────────
 
@@ -165,25 +175,47 @@ function getLocalizedWeatherLabel(code: number, fallback: string, locale: 'en' |
 
 const DiaryPage = () => {
   const { t, language } = useI18n()
+  const location = useLocation()
+  const [, setSearchParams] = useSearchParams()
   const locale = language
   const today = toDateKey()
-  const [view, setView] = useState<ViewMode>('day')
+  const [view, setView] = useState<ViewMode>(() => readView(new URLSearchParams(window.location.search).get('view')))
   const diaryFont = readDiaryFont()
 
-const [selectedDateKey, setSelectedDateKey] = useState(today)
+  const [selectedDateKey, setSelectedDateKey] = useState(() => {
+    const date = new URLSearchParams(window.location.search).get('date')
+    return validDateKey(date) ? date : today
+  })
   const [entries, setEntries] = useState<DiaryEntry[]>([])
   const [allEntries, setAllEntries] = useState<DiaryEntry[]>([])
+  const [rangeRevision, setRangeRevision] = useState(0)
+  const rangeRequestRef = useRef(0)
+  const allEntriesRevisionRef = useRef(0)
   const allEntriesRef = useRef<DiaryEntry[]>([])
   allEntriesRef.current = allEntries
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [editorValue, setEditorValue] = useState<DiaryEditorValue>({ contentMd: '', contentJson: null })
   const [, setSaving] = useState(false)
   const pendingSaveRef = useRef<DiaryEditorValue | null>(null)
+  const entryWritesRef = useRef<Map<string, Promise<DiaryEntry>>>(new Map())
   const selectedIdRef = useRef<string | null>(null)
   const selectedEntryRef = useRef<DiaryEntry | null>(null)
   // A freshly created entry takes the caret so writing starts without an extra click.
   const [focusEntryId, setFocusEntryId] = useState<string | null>(null)
   const [entriesReady, setEntriesReady] = useState(false)
+  const handledDiarySearchRef = useRef<string | null>(null)
+  const selectionRequestRef = useRef(0)
+
+  const writeDiaryUrl = useCallback((entryId: string | null, nextView: ViewMode, dateKey: string, replace = false) => {
+    selectionRequestRef.current += 1
+    const next = new URLSearchParams(window.location.search)
+    if (entryId) next.set('entry', entryId)
+    else next.delete('entry')
+    next.set('view', nextView)
+    next.set('date', dateKey)
+    handledDiarySearchRef.current = `?${next.toString()}`
+    setSearchParams(next, { replace })
+  }, [setSearchParams])
 
   // Saves are async; a reload or quit can land before the write does. While the page is
   // hiding, the in-flight edit is also stashed synchronously (replayed on next load). The
@@ -225,21 +257,35 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
     previousSelectedIdRef.current = selectedId
     if (!previousId || previousId === selectedId || !blankDraftIdsRef.current.has(previousId)) return
     blankDraftIdsRef.current.delete(previousId)
-    const latest = allEntriesRef.current.find((entry) => entry.id === previousId)
-    if (!latest || latest.contentMd.trim()) return
-    void diaryRepo.softDeleteById(previousId).then(() => {
-      setEntries((prev) => prev.filter((entry) => entry.id !== previousId))
-      setAllEntries((prev) => prev.filter((entry) => entry.id !== previousId))
-    })
+    // The outgoing editor flushes its debounce during unmount. Give it a turn
+    // to register the write before deciding whether this draft is blank.
+    window.setTimeout(() => {
+      void (async () => {
+        try {
+          await entryWritesRef.current.get(previousId)
+        } catch {
+          return // Keep the draft if saving failed.
+        }
+        const latest = (await diaryRepo.listActive()).find((entry) => entry.id === previousId)
+        if (!latest || latest.contentMd.trim()) return
+        await diaryRepo.softDeleteById(previousId)
+        allEntriesRevisionRef.current += 1
+        setEntries((prev) => prev.filter((entry) => entry.id !== previousId))
+        setAllEntries((prev) => prev.filter((entry) => entry.id !== previousId))
+      })()
+    }, 0)
   }, [selectedId])
 
   // Load range entries for timeline
   useEffect(() => {
+    const request = ++rangeRequestRef.current
     const [from, to] = getRangeForView(selectedDateKey, view)
     diaryRepo.listByRange(from, to).then((rows) => {
+      if (request !== rangeRequestRef.current) return
       setEntries(rows.filter((e) => !e.deletedAt).sort((a, b) => b.entryAt - a.entryAt))
     })
-  }, [selectedDateKey, view])
+    return () => { rangeRequestRef.current += 1 }
+  }, [rangeRevision, selectedDateKey, view])
 
   // Load all active entries once for stats
   useEffect(() => {
@@ -251,7 +297,14 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
           await diaryRepo.update({ ...target, contentMd: unsaved.patch.contentMd, contentJson: unsaved.patch.contentJson ?? null })
         }
       }
-      setAllEntries(await diaryRepo.listActive())
+      // A new entry may be created while the initial read is in flight.
+      let rows: DiaryEntry[]
+      let revision: number
+      do {
+        revision = allEntriesRevisionRef.current
+        rows = await diaryRepo.listActive()
+      } while (revision !== allEntriesRevisionRef.current)
+      setAllEntries(rows)
       setEntriesReady(true)
     })()
   }, [])
@@ -266,47 +319,118 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
     setSaving(true)
     try {
       await diaryRepo.update({ ...entry, contentMd: pending.contentMd, contentJson: pending.contentJson ?? null })
+      allEntriesRevisionRef.current += 1
       setAllEntries((prev) => prev.map((e) => e.id === entry.id ? { ...entry, contentMd: pending.contentMd, contentJson: pending.contentJson ?? null } : e))
     } finally {
       setSaving(false)
     }
   }, [])
 
-  const selectEntry = useCallback(async (entry: DiaryEntry) => {
+  const selectEntry = useCallback(async (entry: DiaryEntry, syncUrl = true) => {
+    const request = ++selectionRequestRef.current
     await flushSave()
+    if (request !== selectionRequestRef.current) return
     selectedEntryRef.current = entry
     setSelectedId(entry.id)
     setEditorValue({ contentMd: entry.contentMd, contentJson: entry.contentJson ?? null })
-  }, [flushSave])
+    if (syncUrl) writeDiaryUrl(entry.id, view, selectedDateKey)
+  }, [flushSave, selectedDateKey, view, writeDiaryUrl])
 
-  // ⌘K search → "open this entry": jump to its day and select it.
-  useOpenRequest('diary', entriesReady, (id) => {
-    const entry = allEntries.find((item) => item.id === id)
-    if (!entry) return
-    setView('day')
-    setSelectedDateKey(entry.dateKey)
-    void selectEntry(entry)
-  })
+  const applyDiarySearch = useCallback((search: string) => {
+    handledDiarySearchRef.current = search
+    const request = ++selectionRequestRef.current
+    const params = new URLSearchParams(search)
+    const id = params.get('entry')
+    const entry = id ? allEntries.find((item) => item.id === id) : null
+    if (id && !entry) {
+      params.delete('entry')
+      setSearchParams(params, { replace: true })
+      return
+    }
+    const nextView = readView(params.get('view'))
+    const requestedDate = params.get('date')
+    let nextDate = validDateKey(requestedDate) ? requestedDate : entry?.dateKey ?? today
+    let resolvedView = nextView
+    if (entry) {
+      const [from, to] = getRangeForView(nextDate, nextView)
+      if (entry.dateKey < from || entry.dateKey > to) {
+        resolvedView = 'day'
+        nextDate = entry.dateKey
+      }
+    }
+    setView(resolvedView)
+    setSelectedDateKey(nextDate)
+    if (entry) {
+      void flushSave().then(() => {
+        if (request !== selectionRequestRef.current) return
+        selectedEntryRef.current = entry
+        setSelectedId(entry.id)
+        setEditorValue({ contentMd: entry.contentMd, contentJson: entry.contentJson ?? null })
+        setFocusEntryId(entry.id)
+        window.requestAnimationFrame(() => document.querySelector<HTMLElement>('.diary-page .ProseMirror')?.focus())
+      })
+    } else if (selectedEntryRef.current) {
+      void flushSave().then(() => {
+        if (request !== selectionRequestRef.current) return
+        selectedEntryRef.current = null
+        setSelectedId(null)
+        setEditorValue({ contentMd: '', contentJson: null })
+      })
+    }
+  }, [allEntries, flushSave, setSearchParams, today])
 
-  const handleEditorChange = useCallback((next: DiaryEditorValue) => {
-    pendingSaveRef.current = next
-    setEditorValue(next)
-    const entry = selectedEntryRef.current
+  useEffect(() => {
+    // React Router can update window.history before this effect sees the new
+    // location. Never let the previous URL clear a freshly selected entry.
+    if (!entriesReady || location.search !== window.location.search || handledDiarySearchRef.current === location.search) return
+    applyDiarySearch(location.search)
+  }, [applyDiarySearch, entriesReady, location.search])
+
+  useEffect(() => {
+    const onHistory = () => {
+      if (!entriesReady) {
+        handledDiarySearchRef.current = null
+        return
+      }
+      // Two history updates can cancel out before React Router commits an
+      // intermediate location. The browser URL is authoritative on popstate.
+      const search = window.location.search
+      if (handledDiarySearchRef.current !== search) applyDiarySearch(search)
+    }
+    window.addEventListener('popstate', onHistory)
+    return () => window.removeEventListener('popstate', onHistory)
+  }, [applyDiarySearch, entriesReady])
+
+  const handleEditorChange = useCallback((entryId: string, next: DiaryEditorValue) => {
+    const isSelected = selectedEntryRef.current?.id === entryId
+    if (isSelected) {
+      pendingSaveRef.current = next
+      setEditorValue(next)
+    }
+    const entry = allEntriesRef.current.find((item) => item.id === entryId)
     if (!entry) return
     setSaving(true)
     const write = { id: entry.id, patch: next, at: Date.now() }
     inflightWriteRef.current = write
     if (pageHidingRef.current) unsavedDiaryEdit.stash(write)
-    diaryRepo.update({ ...entry, contentMd: next.contentMd, contentJson: next.contentJson ?? null })
+    const promise = diaryRepo.update({ ...entry, contentMd: next.contentMd, contentJson: next.contentJson ?? null })
+    entryWritesRef.current.set(entryId, promise)
+    promise
       .then((updated) => {
         if (inflightWriteRef.current === write) inflightWriteRef.current = null
         unsavedDiaryEdit.clear(write.at)
-        selectedEntryRef.current = updated
-        pendingSaveRef.current = null
+        if (selectedEntryRef.current?.id === entryId) {
+          selectedEntryRef.current = updated
+          if (pendingSaveRef.current === next) pendingSaveRef.current = null
+        }
+        allEntriesRevisionRef.current += 1
         setEntries((prev) => prev.map((e) => e.id === updated.id ? updated : e))
         setAllEntries((prev) => prev.map((e) => e.id === updated.id ? updated : e))
       })
-      .finally(() => setSaving(false))
+      .finally(() => {
+        if (entryWritesRef.current.get(entryId) === promise) entryWritesRef.current.delete(entryId)
+        setSaving(false)
+      })
   }, [])
 
   const captureWeatherSnapshot = (): DiaryWeatherSnapshot | null => {
@@ -338,26 +462,32 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
       deletedAt: null,
       expiredAt: null,
     })
+    allEntriesRevisionRef.current += 1
     setEntries((prev) => [newEntry, ...prev])
     setAllEntries((prev) => [newEntry, ...prev])
+    setRangeRevision((current) => current + 1)
     blankDraftIdsRef.current.add(newEntry.id)
     selectedEntryRef.current = newEntry
     setSelectedId(newEntry.id)
+    writeDiaryUrl(newEntry.id, view, selectedDateKey)
     setFocusEntryId(newEntry.id)
     setEditorValue({ contentMd: '', contentJson: null })
-  }, [selectedDateKey, flushSave])
+  }, [selectedDateKey, flushSave, view, writeDiaryUrl])
 
   const handleDeleteEntry = useCallback(async (id: string) => {
     if (id === selectedIdRef.current) {
       await flushSave()
       selectedEntryRef.current = null
       setSelectedId(null)
+      writeDiaryUrl(null, view, selectedDateKey, true)
       setEditorValue({ contentMd: '', contentJson: null })
     }
     await diaryRepo.softDeleteById(id)
+    allEntriesRevisionRef.current += 1
     setEntries((prev) => prev.filter((e) => e.id !== id))
     setAllEntries((prev) => prev.filter((e) => e.id !== id))
-  }, [flushSave])
+    setRangeRevision((current) => current + 1)
+  }, [flushSave, selectedDateKey, view, writeDiaryUrl])
 
   // Flush on unmount
   useEffect(() => () => { void flushSave() }, [flushSave])
@@ -390,19 +520,28 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
   }, [allEntries, today])
 
   const selectedEntry = useMemo(() => entries.find((e) => e.id === selectedId) ?? null, [entries, selectedId])
+  const selectedEntryId = selectedEntry?.id ?? null
+
+  useEffect(() => {
+    if (selectedEntryId) rememberCurrentUserRecentCommandTarget({ kind: 'diary', id: selectedEntryId })
+  }, [selectedEntryId])
 
   const handlePrev = () => {
     void flushSave()
     selectedEntryRef.current = null
     setSelectedId(null)
-    setSelectedDateKey((d) => navigatePeriod(d, view, -1))
+    const nextDate = navigatePeriod(selectedDateKey, view, -1)
+    setSelectedDateKey(nextDate)
+    writeDiaryUrl(null, view, nextDate)
   }
 
   const handleNext = () => {
     void flushSave()
     selectedEntryRef.current = null
     setSelectedId(null)
-    setSelectedDateKey((d) => navigatePeriod(d, view, 1))
+    const nextDate = navigatePeriod(selectedDateKey, view, 1)
+    setSelectedDateKey(nextDate)
+    writeDiaryUrl(null, view, nextDate)
   }
 
   const isAtToday = selectedDateKey >= today && view === 'day'
@@ -439,6 +578,7 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
                   selectedEntryRef.current = null
                   setSelectedId(null)
                   setView(v)
+                  writeDiaryUrl(null, v, selectedDateKey)
                 }}
               >
                 {t(`diary.view.${v}` as const)}
@@ -505,16 +645,9 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
           {/* Timeline */}
           <div className="flex-1 overflow-y-auto px-3 py-4 md:px-4">
             {entries.length === 0 ? (
-              <div className="flex flex-col items-center gap-3 py-12 text-center text-muted-foreground">
-                <p className="text-sm">{t('diary.noEntriesPeriod')}</p>
-                <button
-                  type="button"
-                  className="diary-page__period-empty-action diary-page__secondary-cta"
-                  onClick={handleNewEntry}
-                >
-                  <Plus size={14} />
-                  {t('diary.writeFirstEntry')}
-                </button>
+              // The workspace beside it carries the one action; the rail just says so.
+              <div className="px-2 py-6 text-left">
+                <p className="text-ui text-ink-3">{t('diary.noEntriesPeriod')}</p>
               </div>
             ) : (
               <div className="relative">
@@ -536,16 +669,18 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
                     <div key={entry.id} className="group flex gap-3">
                       {/* Timeline indicator */}
                       <div className="diary-page__timeline-node flex w-5 shrink-0 flex-col items-center pt-3">
-                        <div className={cn(
-                          'flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
-                          isSelected
-                            ? 'border-[color:var(--text-primary)] bg-background'
-                            : 'border-border bg-background group-hover:border-[color:var(--text-primary)]/45',
-                        )}>
-                          {isSelected && <div className="h-1.5 w-1.5 rounded-full bg-[color:var(--text-primary)]" />}
+                        {/* Written entries are ink nodes; the open one is the pen with a
+                            wash ring. The spine is pencil (DESIGN.md › Timelines). */}
+                        <div className="flex h-4 w-4 shrink-0 items-center justify-center">
+                          <div className={cn(
+                            'shrink-0 rounded-full transition-colors',
+                            isSelected
+                              ? 'h-2.5 w-2.5 bg-[var(--accent)] shadow-[0_0_0_4px_var(--accent-wash)]'
+                              : 'h-2 w-2 bg-[var(--ink-2)] group-hover:bg-[var(--ink-1)]',
+                          )} />
                         </div>
                         {idx < entries.length - 1 && (
-                          <div className="my-1 min-h-[1rem] w-px flex-1 bg-border/40" />
+                          <div className="my-1 min-h-[1rem] w-0 flex-1 border-l-[1.5px] border-dashed border-pencil-line" />
                         )}
                       </div>
 
@@ -682,22 +817,22 @@ const [selectedDateKey, setSelectedDateKey] = useState(today)
 
               {/* Editor */}
               <DiaryEditor
+                key={selectedEntry.id}
                 value={editorValue}
                 placeholder={t('diary.pagePlaceholder')}
-                onChange={handleEditorChange}
+                onChange={(next) => handleEditorChange(selectedEntry.id, next)}
                 autoFocusKey={selectedId === focusEntryId ? focusEntryId : null}
               />
             </>
           ) : (
-            <div className="diary-page__empty-state flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center text-muted-foreground">
-              <div className="space-y-2">
-                <p className="diary-page__microcopy text-meta font-semibold uppercase tracking-[var(--tracking-caps)] text-muted-foreground">{t('diary.workspace')}</p>
-                <p className="diary-page__empty-copy text-sm">{t('diary.selectOrCreate')}</p>
-                <p className="diary-page__empty-whisper text-sm text-muted-foreground/80">{t(diaryMoment.noteKey)}</p>
-              </div>
+            // Centred: one drawing, one serif line, one sentence, one action (DESIGN.md › Empty states).
+            <div className="diary-page__empty-state flex flex-1 flex-col items-center justify-center gap-2 px-12 pb-16 text-center">
+              <Doodle name="reading-side" className="mb-1.5" />
+              <p className="diary-page__empty-whisper">{t(diaryMoment.noteKey)}</p>
+              <p className="diary-page__empty-copy">{t('diary.selectOrCreate')}</p>
               <button
                 type="button"
-                className="diary-page__secondary-cta"
+                className="diary-page__secondary-cta mt-2"
                 onClick={handleNewEntry}
               >
                 <Plus size={14} />

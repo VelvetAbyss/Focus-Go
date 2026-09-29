@@ -25,6 +25,7 @@ import { useToast } from '../../../shared/ui/toast/toast'
 type TaskNotesPanelProps = {
   taskId: string
   taskTitle: string
+  onOpenInNotes?: (noteId: string) => void
 }
 
 type ViewMode = 'stack' | 'cards' | 'focus'
@@ -47,7 +48,7 @@ const previewOf = (note: NoteItem) => {
   return source.replace(/\n+/g, ' ')
 }
 
-const TaskNotesPanel = ({ taskId, taskTitle }: TaskNotesPanelProps) => {
+const TaskNotesPanel = ({ taskId, taskTitle, onOpenInNotes }: TaskNotesPanelProps) => {
   const { t } = useI18n()
   const toast = useToast()
   const [items, setItems] = useState<LinkedNote[]>([])
@@ -114,6 +115,10 @@ const TaskNotesPanel = ({ taskId, taskTitle }: TaskNotesPanelProps) => {
       void flushSaves()
     }, 250)
   }, [flushSaves])
+
+  const openInNotes = (noteId: string) => {
+    void flushSaves().then(() => onOpenInNotes?.(noteId))
+  }
 
   const handleCreate = useCallback(async () => {
     try {
@@ -242,10 +247,7 @@ const TaskNotesPanel = ({ taskId, taskTitle }: TaskNotesPanelProps) => {
           onChange={scheduleSave}
           onUnlink={handleUnlink}
           onDelete={handleDelete}
-          onFocus={(noteId) => {
-            setFocusedNoteId(noteId)
-            setView('focus')
-          }}
+          onOpenInNotes={onOpenInNotes ? openInNotes : undefined}
         />
       ) : view === 'cards' ? (
         <CardsView
@@ -254,6 +256,7 @@ const TaskNotesPanel = ({ taskId, taskTitle }: TaskNotesPanelProps) => {
             setFocusedNoteId(noteId)
             setView('focus')
           }}
+          onOpenInNotes={onOpenInNotes ? openInNotes : undefined}
           onUnlink={handleUnlink}
           onDelete={handleDelete}
         />
@@ -266,6 +269,7 @@ const TaskNotesPanel = ({ taskId, taskTitle }: TaskNotesPanelProps) => {
           onChange={scheduleSave}
           onUnlink={handleUnlink}
           onDelete={handleDelete}
+          onOpenInNotes={onOpenInNotes ? openInNotes : undefined}
         />
       )}
     </section>
@@ -280,7 +284,7 @@ type StackViewProps = {
   onChange: (noteId: string, patch: { title?: string; contentMd?: string }) => void
   onUnlink: (noteId: string) => void
   onDelete: (noteId: string) => void
-  onFocus: (noteId: string) => void
+  onOpenInNotes?: (noteId: string) => void
 }
 
 const StackView = ({
@@ -290,7 +294,7 @@ const StackView = ({
   onChange,
   onUnlink,
   onDelete,
-  onFocus,
+  onOpenInNotes,
 }: StackViewProps) => {
   const { t, language } = useI18n()
   return (
@@ -323,9 +327,10 @@ const StackView = ({
                 </div>
               </button>
               <NoteCardMenu
-                onOpenFocus={() => onFocus(note.id)}
+                onOpenFocus={() => onOpenInNotes?.(note.id)}
                 onUnlink={() => onUnlink(note.id)}
                 onDelete={() => onDelete(note.id)}
+                hideOpenFocus={!onOpenInNotes}
               />
             </div>
             {expanded ? (
@@ -354,11 +359,12 @@ const StackView = ({
 type CardsViewProps = {
   items: LinkedNote[]
   onOpen: (noteId: string) => void
+  onOpenInNotes?: (noteId: string) => void
   onUnlink: (noteId: string) => void
   onDelete: (noteId: string) => void
 }
 
-const CardsView = ({ items, onOpen, onUnlink, onDelete }: CardsViewProps) => {
+const CardsView = ({ items, onOpen, onOpenInNotes, onUnlink, onDelete }: CardsViewProps) => {
   const { t, language } = useI18n()
   return (
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -380,9 +386,10 @@ const CardsView = ({ items, onOpen, onUnlink, onDelete }: CardsViewProps) => {
           </button>
           <div className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
             <NoteCardMenu
-              onOpenFocus={() => onOpen(note.id)}
+              onOpenFocus={() => onOpenInNotes?.(note.id)}
               onUnlink={() => onUnlink(note.id)}
               onDelete={() => onDelete(note.id)}
+              hideOpenFocus={!onOpenInNotes}
             />
           </div>
         </div>
@@ -400,6 +407,7 @@ type FocusViewProps = {
   onChange: (noteId: string, patch: { title?: string; contentMd?: string }) => void
   onUnlink: (noteId: string) => void
   onDelete: (noteId: string) => void
+  onOpenInNotes?: (noteId: string) => void
 }
 
 const FocusView = ({
@@ -410,6 +418,7 @@ const FocusView = ({
   onChange,
   onUnlink,
   onDelete,
+  onOpenInNotes,
 }: FocusViewProps) => {
   const { t } = useI18n()
   const active = items.find((entry) => entry.note.id === activeNoteId) ?? items[0]
@@ -427,10 +436,10 @@ const FocusView = ({
         </button>
         {active ? (
           <NoteCardMenu
-            onOpenFocus={() => {}}
+            onOpenFocus={() => onOpenInNotes?.(active.note.id)}
             onUnlink={() => onUnlink(active.note.id)}
             onDelete={() => onDelete(active.note.id)}
-            hideOpenFocus
+            hideOpenFocus={!onOpenInNotes}
           />
         ) : null}
       </div>

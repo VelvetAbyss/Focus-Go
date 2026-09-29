@@ -124,13 +124,14 @@ html[data-theme='dark'] .hb-header__subtitle {
 }
 
 .hb-stats__value {
+  font-family: var(--font-numeral);
   font-size: 38px;
-  font-weight: 800;
-  letter-spacing: -0.05em;
+  font-weight: 300;
+  letter-spacing: -0.01em;
   color: var(--ink-1);
   line-height: 1;
   margin-bottom: 4px;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: var(--num-features);
 }
 
 .hb-stats__value-unit {
@@ -162,11 +163,11 @@ html[data-theme='dark'] .hb-header__subtitle {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--fs-body);
-  font-weight: 800;
-  color: var(--ink-1);
-  letter-spacing: -0.03em;
-  font-variant-numeric: tabular-nums;
+  font-family: var(--font-numeral);
+  font-size: var(--fs-section);
+  font-weight: 400;
+  color: var(--accent);
+  font-variant-numeric: var(--num-features);
 }
 
 .hb-stats__ring-container {
@@ -202,21 +203,19 @@ html[data-theme='dark'] .hb-stats__sub {
 .habit-card-design {
   position: relative;
   border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid color-mix(in srgb, var(--ink-1) 7%, transparent);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05), 0 0 0 0.5px rgba(0,0,0,0.03);
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  box-shadow: var(--elev-1);
   overflow: hidden;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   transition: box-shadow var(--motion-duration-medium) var(--ease-standard), transform var(--motion-duration-base) var(--ease-standard);
 }
 
 .habit-card-design:hover {
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.10), 0 2px 6px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--elev-2);
 }
 
 .habit-card-design__accent {
-  height: 4px;
+  height: 2px;
   width: 100%;
   flex-shrink: 0;
 }
@@ -224,13 +223,6 @@ html[data-theme='dark'] .hb-stats__sub {
 .habit-card-design__body {
   padding: 20px;
   position: relative;
-}
-
-.habit-card-design__celebration {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  border-radius: inherit;
 }
 
 /* ─── card header ── */
@@ -260,6 +252,8 @@ html[data-theme='dark'] .hb-stats__sub {
   font-size: 24px;
   flex-shrink: 0;
   line-height: 1;
+  /* No coloured icon tiles (DESIGN.md › Icons): the habit colour is the bar. */
+  background: var(--paper-sunken);
 }
 
 .habit-card-design__title {
@@ -321,21 +315,40 @@ html[data-theme='dark'] .hb-stats__sub {
 .habit-card-design__week-num {
   font-size: var(--fs-meta);
   font-weight: 600;
-  color: var(--ink-4);
+  color: var(--ink-3);
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 
-.habit-card-design__week-dot {
-  width: 100%;
-  aspect-ratio: 1;
-  border-radius: var(--radius-xs);
-  background: color-mix(in srgb, var(--ink-1) 5%, transparent);
-  transition: transform var(--motion-duration-fast) var(--ease-standard);
+.habit-card-design__week-num[data-today='true'] {
+  color: var(--accent);
 }
 
-.habit-card-design__week-dot:hover {
-  transform: scale(1.15);
+/* Habit history (DESIGN.md): done = ink dot, missed = bare paper with a
+   hairline ring, today = the pen (a ring until it is done, then filled). */
+.habit-card-design__week-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--rule-strong);
+  background: transparent;
+  transition:
+    background-color var(--motion-duration-base) var(--ease-standard),
+    box-shadow var(--motion-duration-base) var(--ease-standard);
+}
+
+.habit-card-design__week-dot[data-state='done'] {
+  background: var(--ink-2);
+  box-shadow: none;
+}
+
+.habit-card-design__week-dot[data-today='true'] {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+
+.habit-card-design__week-dot[data-today='true'][data-state='done'] {
+  background: var(--accent);
+  box-shadow: none;
 }
 
 /* ─── stats row ── */
@@ -354,22 +367,24 @@ html[data-theme='dark'] .hb-stats__sub {
 }
 
 .habit-card-design__stat-value {
-  font-family: var(--font-body);
+  font-family: var(--font-numeral);
   font-size: var(--fs-subhead);
-  font-weight: 800;
+  font-weight: 400;
   color: var(--ink-1);
-  letter-spacing: -0.04em;
   line-height: 1;
   margin-bottom: 3px;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: var(--num-features);
+}
+
+/* A live streak is an achievement: moss. */
+.habit-card-design__stat-value[data-streak='true'] {
+  color: var(--tone-done);
 }
 
 .habit-card-design__stat-label {
   font-size: var(--fs-meta);
   font-weight: 600;
   color: var(--ink-3);
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
 }
 
 /* ─── complete button ── */
@@ -380,7 +395,8 @@ html[data-theme='dark'] .hb-stats__sub {
   gap: 8px;
   width: 100%;
   padding: 12px 16px;
-  border: 1.5px solid color-mix(in srgb, var(--ink-1) 12%, transparent);
+  /* Pencil until today is done, then ink (DESIGN.md › Motion). */
+  border: 1.5px dashed var(--pencil-line);
   border-radius: var(--radius-md);
   background: transparent;
   color: var(--ink-2);
@@ -396,14 +412,16 @@ html[data-theme='dark'] .hb-stats__sub {
 }
 
 .habit-card-design__complete:hover:not(.is-completed) {
-  background: color-mix(in srgb, var(--ink-1) 4%, transparent);
-  border-color: color-mix(in srgb, var(--ink-1) 18%, transparent);
+  background: var(--paper-sunken);
+  border-color: var(--pencil);
   color: var(--ink-1);
 }
 
 .habit-card-design__complete.is-completed {
+  border-style: solid;
   border-color: transparent;
-  color: #fff;
+  background: var(--cta-bg);
+  color: var(--cta-fg);
 }
 
 .habit-card-design__complete-text {
@@ -499,8 +517,9 @@ html[data-theme='dark'] .hb-stats__sub {
 .habit-calendar__day {
   aspect-ratio: 1;
   border: none;
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--ink-1) 4%, transparent);
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--rule);
   color: var(--ink-2);
   cursor: pointer;
   font-family: var(--font-body);
@@ -511,22 +530,35 @@ html[data-theme='dark'] .hb-stats__sub {
 }
 
 .habit-calendar__day:hover:not(.is-future):not(.is-completed) {
-  background: color-mix(in srgb, var(--ink-1) 8%, transparent);
-  transform: scale(1.08);
-}
-
-.habit-calendar__day:hover.is-completed {
-  transform: scale(1.08);
-  opacity: 0.85;
+  background: var(--paper-sunken);
 }
 
 .habit-calendar__day.is-completed {
-  color: #fff;
+  background: var(--ink-2);
+  box-shadow: none;
+  color: var(--paper-sheet);
+}
+
+.habit-calendar__day.is-completed:hover {
+  background: var(--ink-1);
+}
+
+.habit-calendar__day.is-today {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.habit-calendar__day.is-today.is-completed {
+  background: var(--accent);
+  box-shadow: none;
+  color: var(--accent-ink);
 }
 
 .habit-calendar__day.is-future {
   background: transparent;
-  color: var(--ink-4);
+  box-shadow: inset 0 0 0 1px var(--pencil-line);
+  color: var(--pencil);
   cursor: not-allowed;
 }
 
@@ -880,35 +912,16 @@ html[data-theme='dark'] .habit-card-design__delete:hover {
   color: var(--tone-urgent);
 }
 
-html[data-theme='dark'] .habit-card-design__week-dot {
-  background: color-mix(in srgb, var(--ink-1) 7%, transparent);
-}
-
-html[data-theme='dark'] .habit-card-design__week-num {
-  color: color-mix(in srgb, var(--ink-1) 42%, transparent);
-}
-
 html[data-theme='dark'] .habit-card-design__stat {
   background: color-mix(in srgb, var(--ink-1) 5%, transparent);
 }
 
-html[data-theme='dark'] .habit-card-design__stat-value {
+html[data-theme='dark'] .habit-card-design__stat-value:not([data-streak='true']) {
   color: var(--ink-1);
 }
 
 html[data-theme='dark'] .habit-card-design__stat-label {
   color: color-mix(in srgb, var(--ink-1) 58%, transparent);
-}
-
-html[data-theme='dark'] .habit-card-design__complete:not(.is-completed) {
-  border-color: color-mix(in srgb, var(--ink-1) 12%, transparent);
-  color: color-mix(in srgb, var(--ink-1) 68%, transparent);
-}
-
-html[data-theme='dark'] .habit-card-design__complete:hover:not(.is-completed) {
-  background: color-mix(in srgb, var(--ink-1) 5%, transparent);
-  color: var(--ink-1);
-  border-color: color-mix(in srgb, var(--ink-1) 18%, transparent);
 }
 
 html[data-theme='dark'] .habit-card-design__calendar-toggle {
@@ -939,20 +952,6 @@ html[data-theme='dark'] .habit-calendar__nav-button:hover {
 
 html[data-theme='dark'] .habit-calendar__weekday {
   color: color-mix(in srgb, var(--ink-1) 42%, transparent);
-}
-
-html[data-theme='dark'] .habit-calendar__day {
-  background: color-mix(in srgb, var(--ink-1) 5%, transparent);
-  color: color-mix(in srgb, var(--ink-1) 68%, transparent);
-}
-
-html[data-theme='dark'] .habit-calendar__day:hover:not(.is-future):not(.is-completed) {
-  background: color-mix(in srgb, var(--ink-1) 10%, transparent);
-}
-
-html[data-theme='dark'] .habit-calendar__day.is-future {
-  background: transparent;
-  color: color-mix(in srgb, var(--ink-1) 28%, transparent);
 }
 
 /* ─── dark mode for dialog ────────────────────────────────── */

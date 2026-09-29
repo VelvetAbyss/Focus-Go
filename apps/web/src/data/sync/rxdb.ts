@@ -7,6 +7,7 @@ import { dispatchSyncDataUpdated, SYNC_ENTITY_TABLES, SYNC_STATUS_CHANGED_EVENT 
 import { syncApi } from './client'
 import { getAuth } from '../../store/auth'
 import { runDomainEventProjections } from '../events/projections'
+import { listOpenSyncConflicts, recordSyncConflict, syncDocumentsDiffer } from './conflicts'
 import type { DomainEvent } from '../models/types'
 import type { RxdbCheckpoint, RxdbPullDocument, RxdbPushRow, SyncEntityType, SyncPayload, SyncState, SyncStatus } from './types'
 
@@ -98,6 +99,23 @@ const collectionSchema = {
   required: ['id', 'updatedAt'],
 } as const
 
+const createConflictHandler = (entityType: SyncEntityType) => ({
+  isEqual: (left: SyncDocument, right: SyncDocument) => !syncDocumentsDiffer(left, right),
+  resolve: async (input: { newDocumentState: SyncDocument; realMasterState: SyncDocument }) => {
+    const accountId = getAuth()?.user?.id
+    if (typeof accountId !== 'string' || !accountId) {
+      throw new Error('Cannot preserve sync conflict without an account ID')
+    }
+    await recordSyncConflict(accountId, entityType, input.newDocumentState, input.realMasterState)
+    // RxDB does not always emit received$ for a push conflict it resolves.
+    // Keep the app's Dexie source aligned with the selected master state.
+    if (await writeDexieEntity(entityType, input.realMasterState, input.newDocumentState)) {
+      dispatchSyncDataUpdated(entityType)
+    }
+    return input.realMasterState
+  },
+})
+
 const openCollection = async (entityType: SyncEntityType) => {
   const database = await createRxDatabase({
     name: getDatabaseName(entityType),
@@ -107,7 +125,7 @@ const openCollection = async (entityType: SyncEntityType) => {
   })
   const collectionName = getCollectionName(entityType)
   const collections = await database.addCollections({
-    [collectionName]: { schema: collectionSchema },
+    [collectionName]: { schema: collectionSchema, conflictHandler: createConflictHandler(entityType) },
   } as never)
   return {
     database,
@@ -190,12 +208,16 @@ const withCollection = async <T>(entityType: SyncEntityType, task: (collection: 
   }
 }
 
-const writeDexieEntity = async (entityType: SyncEntityType, document: SyncDocument) => {
+const writeDexieEntity = async (entityType: SyncEntityType, document: SyncDocument, expectedLocal?: SyncDocument) => {
   if (rxdbResetRequested) return false
   const normalized = normalizeSyncDocument(entityType, document, 'pull')
   if (rxdbResetRequested) return false
   const tableName = SYNC_ENTITY_TABLES[entityType]
   const table = db.table(tableName)
+  if (expectedLocal) {
+    const current = (await table.get(normalized.id)) as Record<string, unknown> | undefined
+    if (current && syncDocumentsDiffer(current, expectedLocal)) return false
+  }
   if (normalized._deleted) {
     if (entityType === 'domainEvents') {
       console.error('[domain-events] ignoring remote delete for append-only event', normalized.id)
@@ -334,7 +356,9 @@ const syncEntity = async (entityType: SyncEntityType) =>
   withCollection(entityType, async (collection) => {
     await seedCollectionFromDexie(entityType, collection)
     const replication = replicateRxCollection<SyncDocument, RxdbCheckpoint>({
-      replicationIdentifier: `focusgo-${entityType}`,
+      // v2 starts a fresh pull cursor so existing clients move from device
+      // timestamps to the server's monotonic sequence checkpoint.
+      replicationIdentifier: `focusgo-${entityType}-server-sequence-v2`,
       collection,
       deletedField: '_deleted',
       live: false,
@@ -342,18 +366,6 @@ const syncEntity = async (entityType: SyncEntityType) =>
       // Keep retryTime well above the per-cycle timeout so a single failure
       // doesn't trigger an in-cycle retry storm against a 500ing server.
       retryTime: 60_000,
-      // Last-write-wins: whichever side has the more recent updatedAt timestamp wins.
-      conflictHandler: async (input: { newDocumentState: SyncDocument; realMasterState: SyncDocument }) => {
-        const local = input.newDocumentState
-        const remote = input.realMasterState
-        if (local.updatedAt === remote.updatedAt) {
-          return { isEqual: true, documentData: local }
-        }
-        return {
-          isEqual: false,
-          documentData: local.updatedAt > remote.updatedAt ? local : remote,
-        }
-      },
       pull: {
         batchSize: RXDB_SYNC_BATCH_SIZE,
         handler: (checkpoint: RxdbCheckpoint | undefined, batchSize: number) => pullHandler(entityType, checkpoint, batchSize),
@@ -438,6 +450,14 @@ export const runRxdbSyncCycle = async () =>
       throw new Error(message)
     }
 
+    // No remote request can succeed in a known-offline browser. Keep RxDB's local
+    // queue intact and let the provider's online event retry it on reconnect.
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      const message = 'Sync paused while offline'
+      await setStatus('error', message)
+      throw new Error(message)
+    }
+
     await setStatus('syncing')
     const entityErrors: string[] = []
 
@@ -470,6 +490,14 @@ export const runRxdbSyncCycle = async () =>
       const message = errors.join('; ')
       await setStatus('error', message)
       throw new Error(message)
+    }
+    const accountId = getAuth()?.user?.id
+    const openConflicts = typeof accountId === 'string' && accountId
+      ? await listOpenSyncConflicts(accountId)
+      : []
+    if (openConflicts.length > 0) {
+      await setStatus('blocked', `${openConflicts.length} sync conflict${openConflicts.length === 1 ? '' : 's'} need review`)
+      return
     }
     await setStatus('idle')
   })

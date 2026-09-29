@@ -168,10 +168,9 @@
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: var(--fs-meta);
-  letter-spacing: var(--tracking-caps);
-  text-transform: uppercase;
+  font-family: var(--font-body);
+  font-size: var(--fs-label);
+  font-weight: 600;
   color: var(--bl-text-lo);
   animation: bl-label-in var(--motion-duration-medium) 80ms var(--ease-emphasized) backwards;
 }
@@ -179,14 +178,12 @@
   font-size: var(--fs-meta);
 }
 .brand-loader__label em {
-  font-family: 'Fraunces', serif;
-  font-style: italic;
+  font-family: var(--font-display);
+  font-style: normal;
   font-weight: 400;
-  font-size: var(--fs-ui);
+  font-size: var(--fs-section);
   letter-spacing: 0;
-  text-transform: none;
   color: var(--bl-text-hi);
-  font-variation-settings: 'opsz' 144;
 }
 .brand-loader--inline .brand-loader__label em {
   font-size: var(--fs-meta);
@@ -221,23 +218,20 @@
   position: absolute;
   left: 24px;
   bottom: 20px;
-  font-family: 'Fraunces', serif;
-  font-size: var(--fs-body);
-  letter-spacing: -0.01em;
+  font-family: var(--font-display);
+  font-size: var(--fs-section);
+  letter-spacing: 0;
   color: var(--bl-text-lo);
-  font-variation-settings: 'opsz' 144;
 }
 .brand-loader__sig em {
-  font-style: italic;
+  font-style: normal;
   color: var(--bl-accent);
 }
 .brand-loader__sig small {
   display: block;
   margin-top: 2px;
-  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--font-body);
   font-size: var(--fs-meta);
-  letter-spacing: var(--tracking-caps);
-  text-transform: uppercase;
   color: var(--bl-text-xlo);
 }
 

@@ -12,12 +12,19 @@ type OpenMeteoForecastResponse = {
     time?: string
     temperature_2m?: number
     weather_code?: number
+    is_day?: number
+    apparent_temperature?: number
+    relative_humidity_2m?: number
+    wind_speed_10m?: number
   }
   daily?: {
     time?: string[]
     weather_code?: number[]
     temperature_2m_max?: number[]
     temperature_2m_min?: number[]
+    sunrise?: string[]
+    sunset?: string[]
+    precipitation_probability_max?: (number | null)[]
   }
 }
 
@@ -36,13 +43,24 @@ export type WeatherDay = {
   condition: string
   tempMax: number
   tempMin: number
+  /** Local time at the location, e.g. "2026-09-28T06:04". */
+  sunrise?: string
+  sunset?: string
+  /** Highest hourly chance of precipitation that day, 0–100. */
+  precipitationProbability?: number
 }
 
 export type WeatherCurrent = {
+  /** Local time at the location, e.g. "2026-09-28T14:15". */
   time: string
   weatherCode: number
   condition: string
   temperature: number
+  isDay?: boolean
+  apparentTemperature?: number
+  humidity?: number
+  /** km/h, or mph when the temperature unit is Fahrenheit. */
+  windSpeed?: number
 }
 
 export type WeatherForecast = {
@@ -221,12 +239,15 @@ export async function fetchThreeDayForecast(
 ): Promise<WeatherForecast> {
   try {
     const response = await fetchJson<OpenMeteoForecastResponse>(
-      `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=3&timezone=auto&temperature_unit=${unit}`
+      `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,weather_code,is_day,apparent_temperature,relative_humidity_2m,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max&forecast_days=3&timezone=auto&temperature_unit=${unit}&wind_speed_unit=${unit === 'fahrenheit' ? 'mph' : 'kmh'}`
     )
     const times = response.daily?.time ?? []
     const codes = response.daily?.weather_code ?? []
     const max = response.daily?.temperature_2m_max ?? []
     const min = response.daily?.temperature_2m_min ?? []
+    const sunrise = response.daily?.sunrise ?? []
+    const sunset = response.daily?.sunset ?? []
+    const precipitation = response.daily?.precipitation_probability_max ?? []
 
     const length = Math.min(times.length, codes.length, max.length, min.length)
     if (!length) throw new Error('Open-Meteo: empty forecast')
@@ -238,6 +259,9 @@ export async function fetchThreeDayForecast(
         condition: getWeatherCodeMeta(weatherCode).label,
         tempMax: max[index] ?? 0,
         tempMin: min[index] ?? 0,
+        sunrise: sunrise[index] ?? undefined,
+        sunset: sunset[index] ?? undefined,
+        precipitationProbability: typeof precipitation[index] === 'number' ? (precipitation[index] as number) : undefined,
       }
     })
     const currentWeatherCode = response.current?.weather_code
@@ -248,6 +272,10 @@ export async function fetchThreeDayForecast(
           weatherCode: currentWeatherCode,
           condition: getWeatherCodeMeta(currentWeatherCode).label,
           temperature: currentTemperature,
+          isDay: typeof response.current?.is_day === 'number' ? response.current.is_day === 1 : undefined,
+          apparentTemperature: response.current?.apparent_temperature,
+          humidity: response.current?.relative_humidity_2m,
+          windSpeed: response.current?.wind_speed_10m,
         }
       : null
     return { current, days }

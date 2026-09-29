@@ -102,12 +102,12 @@
 }
 
 .labs-page__stat-value {
-  font-family: var(--font-display);
+  font-family: var(--font-numeral);
+  font-variant-numeric: var(--num-features);
   font-size: var(--fs-subhead);
-  font-weight: 600;
+  font-weight: 400;
   line-height: 1;
   color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
   min-width: 1.4ch;
   text-align: right;
 }
@@ -238,7 +238,7 @@
   font-size: var(--fs-subhead);
   font-weight: 600;
   line-height: 1.15;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.01em;
   color: var(--text-primary);
 }
 

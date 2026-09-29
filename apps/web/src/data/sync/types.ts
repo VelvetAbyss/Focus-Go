@@ -141,6 +141,7 @@ export type SyncBlobCacheEntry = SyncWireBlob & {
 export type RxdbCheckpoint = {
   updatedAt: number
   id: string
+  sequence?: number
 }
 
 export type RxdbPullRequest = {

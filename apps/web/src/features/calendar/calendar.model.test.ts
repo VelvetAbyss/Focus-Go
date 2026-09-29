@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildInitialCalendarSubscriptions,
   type CalendarSubscription,
+  migrateLegacyLunarFeeds,
   removeAllSystemSubscriptions,
   removeSubscriptionHard,
   reorderSubscriptions,
@@ -138,5 +139,37 @@ describe('calendar.model', () => {
     const next = updateSubscriptionColor(initial, target.id, '#004d5a')
 
     expect(next.find((item) => item.id === target.id)?.color).toBe('#004d5a')
+  })
+
+  it('turns the legacy GitHub lunar feed into the built-in lunar calendar', () => {
+    const legacy: CalendarSubscription = {
+      id: 'custom-1771949129264',
+      name: '农历',
+      sourceType: 'custom',
+      provider: 'ics',
+      color: '#6b7280',
+      enabled: false,
+      syncPermission: 'read',
+      order: 3,
+      url: 'https://raw.githubusercontent.com/infinet/lunar-calendar/master/chinese_lunar_prev_year_next_year.ics',
+    }
+    const other: CalendarSubscription = { ...legacy, id: 'custom-other', name: 'Other', url: 'https://example.com/lunar.ics' }
+    const webcal: CalendarSubscription = { ...legacy, id: 'custom-webcal', url: 'webcal://raw.githubusercontent.com/infinet/lunar-calendar/master/chinese_lunar.ics' }
+
+    const [migrated, untouched, migratedWebcal] = migrateLegacyLunarFeeds([legacy, other, webcal])
+
+    expect(migrated).toEqual({
+      id: 'custom-1771949129264',
+      name: '农历',
+      sourceType: 'custom',
+      provider: 'builtin',
+      color: '#6b7280',
+      enabled: false,
+      syncPermission: 'read',
+      order: 3,
+    })
+    expect(untouched).toBe(other)
+    expect(migratedWebcal.provider).toBe('builtin')
+    expect(migratedWebcal.url).toBeUndefined()
   })
 })

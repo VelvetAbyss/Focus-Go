@@ -1,16 +1,18 @@
-import { type CSSProperties, useEffect, useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { LayoutGrid, Settings as SettingsIcon } from 'lucide-react'
+import { LayoutGrid, RefreshCw, Settings as SettingsIcon } from 'lucide-react'
 import { ROUTES } from '../../app/routes/routes'
 import { useI18n } from '../../shared/i18n/useI18n'
-import { useIsBreakpoint } from '../../hooks/use-is-breakpoint'
+import { useToday } from '../../shared/hooks/useToday'
 import { DiscoveryNewBadge } from '../../shared/ui/DiscoveryNewBadge'
 import { markDiscoveryNewTargetSeen } from '../../shared/discovery/discoveryNewTargetActions'
 import LiveClock from './LiveClock'
-import { getDashboardQuote, getLocalDashboardQuote } from './quote/quoteService'
+import { quoteForDay } from './quote/quoteService'
+import { lunarDateLabel, lunarFestivalOn, solarTermOn } from './header/chineseDay'
 import PremiumMark from '../premium/PremiumMark'
 import '../life/life.css'
 import '../../shared/ui/HeaderPill.css'
+import './header/dashboard-header.css'
 import ActiveIndicator from '../../shared/motion/ActiveIndicator'
 import { SELECTED_TAB } from '../../shared/motion/indicatorSelectors'
 
@@ -27,63 +29,27 @@ type DashboardHeaderProps = {
   onSetPage?: (page: DashboardPage) => void
 }
 
-type HeaderInfoNodeId = 'date' | 'lunar' | 'clock'
-type HeaderInfoNodeLayout = {
-  x: number
-  y: number
-  scale: number
+const pad = (value: number) => String(value).padStart(2, '0')
+const dayKeyOf = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+
+// "Another quote" holds for the rest of the day, then the day's own line returns.
+const QUOTE_SKIP_KEY = 'focusgo.dashboard.quoteSkip'
+
+const readQuoteSkip = (dayKey: string) => {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(QUOTE_SKIP_KEY) ?? 'null') as { day?: string; skip?: number } | null
+    return parsed?.day === dayKey && Number.isInteger(parsed.skip) ? (parsed.skip as number) : 0
+  } catch {
+    return 0
+  }
 }
 
-type HeaderInfoLayout = Record<HeaderInfoNodeId, HeaderInfoNodeLayout>
-
-const LUNAR_DAY_LABELS = [
-  '',
-  '初一',
-  '初二',
-  '初三',
-  '初四',
-  '初五',
-  '初六',
-  '初七',
-  '初八',
-  '初九',
-  '初十',
-  '十一',
-  '十二',
-  '十三',
-  '十四',
-  '十五',
-  '十六',
-  '十七',
-  '十八',
-  '十九',
-  '二十',
-  '廿一',
-  '廿二',
-  '廿三',
-  '廿四',
-  '廿五',
-  '廿六',
-  '廿七',
-  '廿八',
-  '廿九',
-  '三十',
-]
-
-const DEFAULT_HEADER_INFO_LAYOUT: HeaderInfoLayout = {
-  date: { x: 136, y: 64, scale: 0.55 },
-  lunar: { x: 24, y: 64, scale: 0.55 },
-  clock: { x: 24, y: 0, scale: 0.55 },
-}
-
-const formatLunar = (date: Date) => {
-  const parts = new Intl.DateTimeFormat('zh-CN-u-ca-chinese', { month: 'long', day: 'numeric' }).formatToParts(date)
-  const month = parts.find((part) => part.type === 'month')?.value ?? ''
-  const rawDay = parts.find((part) => part.type === 'day')?.value ?? ''
-  const dayNumber = Number.parseInt(rawDay, 10)
-  const dayLabel =
-    Number.isNaN(dayNumber) || dayNumber <= 0 || dayNumber >= LUNAR_DAY_LABELS.length ? rawDay : LUNAR_DAY_LABELS[dayNumber]
-  return `${month}${dayLabel}`
+const writeQuoteSkip = (dayKey: string, skip: number) => {
+  try {
+    window.localStorage.setItem(QUOTE_SKIP_KEY, JSON.stringify({ day: dayKey, skip }))
+  } catch {
+    // private mode / quota: the skip just won't survive a reload
+  }
 }
 
 const DashboardHeader = ({
@@ -97,94 +63,85 @@ const DashboardHeader = ({
   onSetPage,
 }: DashboardHeaderProps) => {
   const { language, t } = useI18n()
-  const isMobile = useIsBreakpoint('max', 768)
-  const headerLayout = DEFAULT_HEADER_INFO_LAYOUT
   const showProjectBadges = false
-  const now = new Date()
-  const weekday = new Intl.DateTimeFormat(language === 'zh' ? 'zh-CN' : 'en-US', { weekday: 'long' }).format(now)
-  const gregorian = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`
-  const headerLunar = `${t('dashboard.lunar')} ${formatLunar(now)}`
-  const fallbackQuote = useMemo(() => getLocalDashboardQuote(language), [language])
-  const [quote, setQuote] = useState(() => fallbackQuote)
-  const displayedQuote = quote.language === language ? quote : fallbackQuote
+  const today = useToday()
+  const dayKey = dayKeyOf(today)
+  const zh = language === 'zh'
+  const weekday = new Intl.DateTimeFormat(zh ? 'zh-CN' : 'en-US', { weekday: 'long' }).format(today)
+  const monthName = new Intl.DateTimeFormat('en-US', { month: 'long' }).format(today)
+  // One line after the date: weekday, then the lunar day and anything special about it.
+  const dayNotes = zh
+    ? [`${t('dashboard.lunar')}${lunarDateLabel(today)}`, lunarFestivalOn(today), solarTermOn(today)].filter(
+        (note): note is string => Boolean(note),
+      )
+    : [String(today.getFullYear())]
+
+  const [quoteSkip, setQuoteSkip] = useState(() => ({ day: dayKey, skip: readQuoteSkip(dayKey) }))
+  const skip = quoteSkip.day === dayKey ? quoteSkip.skip : 0
+  const quote = quoteForDay(today, language, skip)
+  const showAnotherQuote = () => {
+    const next = skip + 1
+    setQuoteSkip({ day: dayKey, skip: next })
+    writeQuoteSkip(dayKey, next)
+  }
+
   const handleSetPage = (nextPage: DashboardPage) => {
     onSetPage?.(nextPage)
     if (nextPage === 'life') markDiscoveryNewTargetSeen('dashboard-life-tab')
     if (nextPage === 'news') markDiscoveryNewTargetSeen('dashboard-news-tab')
   }
 
-  useEffect(() => {
-    const controller = new AbortController()
-    const loadQuote = () => {
-      void getDashboardQuote(language, { signal: controller.signal })
-        .then((nextQuote) => {
-          if (!controller.signal.aborted) setQuote(nextQuote)
-        })
-        .catch(() => {})
-    }
-    const idleId = window.requestIdleCallback?.(loadQuote, { timeout: 2500 })
-    const timeoutId = idleId === undefined ? window.setTimeout(loadQuote, 1200) : null
-
-    return () => {
-      controller.abort()
-      if (idleId !== undefined) window.cancelIdleCallback?.(idleId)
-      if (timeoutId !== null) window.clearTimeout(timeoutId)
-    }
-  }, [language])
-
-  const getNodeStyle = (nodeId: HeaderInfoNodeId): CSSProperties => {
-    const node = headerLayout[nodeId]
-    if (isMobile) {
-      return {
-        '--node-scale': `${node.scale * 1.2}`,
-        position: 'static',
-      } as CSSProperties
-    }
-    return {
-      left: `${node.x}px`,
-      top: `${node.y}px`,
-      '--node-scale': `${node.scale}`,
-    } as CSSProperties
-  }
-
   return (
-    <header className={`app-shell__header ${isMobile ? 'is-mobile' : ''}`}>
-      <div
-        className="app-shell__hero-stage"
-        aria-live="polite"
-        style={isMobile ? { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', minHeight: 'auto', padding: '16px 0' } : undefined}
-      >
-        <div
-          className="app-shell__hero-item app-shell__hero-item--clock"
-          style={getNodeStyle('clock')}
-        >
-          <LiveClock className="app-shell__hero-time" />
-        </div>
-        <div style={isMobile ? { display: 'flex', gap: '12px', alignItems: 'baseline' } : undefined}>
-          <div
-            className="app-shell__hero-item app-shell__hero-item--lunar"
-            style={getNodeStyle('lunar')}
-          >
-            <p className="app-shell__hero-lunar">
-              {language === 'zh' ? <span>{headerLunar}</span> : null}
-              <span style={{ marginLeft: language === 'zh' ? '18px' : 0 }}>{gregorian}</span>
-              <span style={{ marginLeft: '14px' }}>{weekday}</span>
-            </p>
+    <header className="app-shell__header">
+      <div className="dash-hero">
+        <div className="dash-hero__day">
+          <time className="dash-hero__date" dateTime={dayKey}>
+            {zh ? (
+              <>
+                <span className="dash-hero__num">{today.getMonth() + 1}</span>
+                <span className="dash-hero__unit">月</span>
+                <span className="dash-hero__num">{today.getDate()}</span>
+                <span className="dash-hero__unit">日</span>
+              </>
+            ) : (
+              <>
+                <span className="dash-hero__month">{monthName}</span>
+                <span className="dash-hero__num">{today.getDate()}</span>
+              </>
+            )}
+          </time>
+          <div className="dash-hero__meta">
+            <span className="dash-hero__weekday">{weekday}</span>
+            {dayNotes.map((note) => (
+              <span key={note} className="dash-hero__note">
+                <span className="dash-hero__sep" aria-hidden="true">·</span>
+                {note}
+              </span>
+            ))}
+            <span className="dash-hero__sep" aria-hidden="true">·</span>
+            <LiveClock className="dash-hero__time" showSeconds={false} />
           </div>
         </div>
-        <div
-          className="app-shell__hero-item app-shell__hero-item--quote"
-          style={isMobile ? { position: 'static', marginTop: '8px', padding: '0 24px', textAlign: 'center' } : undefined}
-        >
-          <div
-            key={displayedQuote.content}
-            className="app-shell__hero-quote-content"
-            style={isMobile ? { width: 'auto', justifyContent: 'center', flexWrap: 'wrap' } : undefined}
+        <figure className="dash-hero__quote" key={`${quote.id}-${language}`}>
+          <blockquote
+            className="dash-hero__quote-text"
+            title={quote.original ? `${quote.original.content} — ${quote.original.author}` : undefined}
           >
-            <p className="app-shell__hero-quote">"{displayedQuote.content}"</p>
-            <p className="app-shell__hero-quote-author">- {displayedQuote.author}</p>
-          </div>
-        </div>
+            “{quote.content}”
+          </blockquote>
+          <figcaption className={`dash-hero__quote-by${zh ? ' dash-hero__quote-by--zh' : ''}`}>
+            {zh ? `——${quote.author}` : `— ${quote.author}`}
+          </figcaption>
+          <button
+            type="button"
+            className="dash-hero__quote-next"
+            onClick={showAnotherQuote}
+            aria-label={t('dashboard.quote.next')}
+            title={t('dashboard.quote.next')}
+          >
+            <RefreshCw size={12} aria-hidden="true" />
+          </button>
+        </figure>
       </div>
       <div className="app-shell__status">
         {showProjectBadges && !layoutEdit ? <span className="pill">{t('dashboard.quote.localFirst')}</span> : null}

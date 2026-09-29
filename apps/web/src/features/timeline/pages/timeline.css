@@ -60,7 +60,7 @@
   border-radius: 999px;
   padding: 0 14px;
   font-size: var(--fs-ui);
-  font-weight: 650;
+  font-weight: 600;
   transition: transform var(--motion-duration-base) var(--ease-standard), border-color var(--motion-duration-base) var(--ease-standard), background var(--motion-duration-base) var(--ease-standard);
 }
 
@@ -122,7 +122,7 @@
   color: var(--tl-ink);
   padding: 0 12px;
   font-size: var(--fs-ui);
-  font-weight: 620;
+  font-weight: 600;
 }
 
 .timeline-page__toolbar button.is-active {
@@ -216,14 +216,14 @@
 
 .timeline-page__stats strong {
   font-size: 24px;
-  font-weight: 720;
+  font-weight: 700;
 }
 
 .timeline-page__stats span {
   overflow: hidden;
   color: var(--tl-muted);
   font-size: var(--fs-label);
-  font-weight: 650;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -365,7 +365,7 @@
   background: transparent;
   color: color-mix(in srgb, var(--tl-ink) 58%, transparent);
   font-size: var(--fs-label);
-  font-weight: 720;
+  font-weight: 700;
   text-decoration: none;
   transition: background var(--motion-duration-fast) var(--ease-standard), color var(--motion-duration-fast) var(--ease-standard), border-color var(--motion-duration-fast) var(--ease-standard);
 }
@@ -382,20 +382,27 @@
 }
 
 .timeline-empty {
+  /* Centred: the drawing, the line and the sentence stack on one axis (DESIGN.md › Empty states). */
   display: grid;
-  justify-items: start;
+  justify-items: center;
   gap: 10px;
   max-width: 560px;
+  text-align: center;
   border: 1px solid var(--tl-line);
   border-radius: var(--radius-lg);
   background: var(--tl-panel);
   padding: clamp(22px, 5vw, 44px);
 }
 
+.timeline-empty__art {
+  margin: 0 0 4px;
+}
+
 .timeline-empty h2 {
   margin: 0;
+  font-family: var(--font-display);
   font-size: var(--fs-subhead);
-  font-weight: 740;
+  font-weight: 600;
 }
 
 .timeline-empty p {

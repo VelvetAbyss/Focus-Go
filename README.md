@@ -40,7 +40,7 @@ Past paid users are recognised as early supporters. Optional GitHub Sponsors, Pa
 
 ### Prerequisites
 
-- Node.js 20+ (Node.js 22 recommended)
+- Node.js 22.12+ (enforced by `engines` in the root `package.json`)
 - npm 10+
 
 ### Run Web App
@@ -54,7 +54,8 @@ npm run dev:web
 
 ```bash
 cp apps/web/focus-go-api/.env.example apps/web/focus-go-api/.env
-npm --workspace focus-go-api start
+npm --prefix apps/web/focus-go-api install
+npm --prefix apps/web/focus-go-api start
 ```
 
 Configure `VITE_API_BASE` in `apps/web/.env.local` when the Web app should use a non-default API URL. Never commit `.env` files or real credentials.
