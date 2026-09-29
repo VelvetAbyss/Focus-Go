@@ -1,7 +1,7 @@
 /******************
 Self-hosted fonts (offline + fast first paint, no Google Fonts round-trip).
-Subsetted variable woff2 in /public/fonts: Latin for Manrope/Fraunces, GB2312
-for Noto Serif SC. Decorative/display fonts (Ma Shan Zheng, ZCOOL, etc.) still
+Subsetted woff2 in /public/fonts: Latin for Manrope, Instrument Serif and
+Source Serif 4, GB2312 for Noto Serif SC. Decorative/display fonts (Ma Shan Zheng, ZCOOL, etc.) still
 load from Google with a system-font fallback offline.
 ******************/
 @font-face {
@@ -11,10 +11,23 @@ load from Google with a system-font fallback offline.
   font-style: normal;
   font-display: swap;
 }
+/* Instrument Serif has a single upright 400. Declaring it for the whole weight
+   range stops the browser from faking a bold when a title asks for 600 (the
+   weight Noto Serif SC uses for the same title in Chinese). It is condensed
+   (an "n" is 0.47em wide against Noto Serif SC's 0.65em), so it is drawn 10%
+   larger to sit level with the CJK and sans text around it. */
 @font-face {
-  font-family: 'Fraunces';
-  src: url('/fonts/Fraunces-variable.woff2') format('woff2');
+  font-family: 'Instrument Serif';
+  src: url('/fonts/InstrumentSerif-regular.woff2') format('woff2');
+  size-adjust: 110%;
   font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Source Serif 4';
+  src: url('/fonts/SourceSerif4-variable.woff2') format('woff2');
+  font-weight: 200 900;
   font-style: normal;
   font-display: swap;
 }

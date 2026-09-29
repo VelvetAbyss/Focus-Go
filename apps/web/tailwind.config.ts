@@ -79,6 +79,12 @@ const config = {
       },
       // Paper & Ink tokens (apps/web/DESIGN.md). Prefer these over Tailwind's
       // stock palettes (rose/amber/teal/slate…) anywhere in app chrome.
+      fontFamily: {
+        body: ['var(--font-body)'],
+        display: ['var(--font-display)'],
+        numeral: ['var(--font-numeral)'],
+        reading: ['var(--font-reading)'],
+      },
       fontSize: {
         meta: ['var(--fs-meta)', { lineHeight: '1.4' }],
         label: ['var(--fs-label)', { lineHeight: '1.45' }],
@@ -95,6 +101,8 @@ const config = {
         'ink-2': 'var(--ink-2)',
         'ink-3': 'var(--ink-3)',
         'ink-4': 'var(--ink-4)',
+        pencil: 'var(--pencil)',
+        'pencil-line': 'var(--pencil-line)',
         'paper-desk': 'var(--paper-desk)',
         'paper-sheet': 'var(--paper-sheet)',
         'paper-raised': 'var(--paper-raised)',

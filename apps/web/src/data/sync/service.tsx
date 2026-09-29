@@ -53,7 +53,7 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
   const consecutiveErrorsRef = useRef(0)
   const syncNow = useCallback(async (trigger: string = 'manual') => {
     if (!enabled || !isLoggedIn || runningRef.current) return
-    // Cycle gate. Manual syncs (button click) bypass; everything else waits:
+    // Cycle gate. Manual syncs and reconnects bypass; everything else waits:
     //  - 10s minimum between successful cycles
     //  - exponential backoff after errors (30s, 60s, 120s, ..., capped 5min)
     //    so a 500ing server doesn't get hammered every 30s.
@@ -62,7 +62,7 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
       ? 0
       : Math.min(30_000 * 2 ** (consecutiveErrorsRef.current - 1), 300_000)
     const minGapMs = Math.max(10_000, errorBackoffMs)
-    if (trigger !== 'manual' && sinceLast < minGapMs) {
+    if (trigger !== 'manual' && trigger !== 'online' && sinceLast < minGapMs) {
       console.info('[sync] skipping', trigger, 'sinceLast', sinceLast, 'ms', 'errors', consecutiveErrorsRef.current, 'gap', minGapMs)
       return
     }

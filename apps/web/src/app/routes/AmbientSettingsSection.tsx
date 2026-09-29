@@ -9,6 +9,7 @@ import {
   Gauge,
   Wind,
   RotateCcw,
+  AppWindow,
 } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -45,7 +46,7 @@ const Row = ({ icon: Icon, title, description, children }: RowProps) => (
         <Icon className="h-4 w-4" />
       </div>
       <div className="space-y-1">
-        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+        <h3 className="font-body text-sm font-semibold text-foreground">{title}</h3>
         <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>
       </div>
     </div>
@@ -62,7 +63,7 @@ type GroupProps = {
 const Group = ({ title, description, children }: GroupProps) => (
   <div className="space-y-2">
     <div className="px-1">
-      <h4 className="text-xs font-semibold uppercase tracking-[var(--tracking-caps)]r text-muted-foreground">{title}</h4>
+      <h4 className="font-body text-xs font-semibold uppercase tracking-[var(--tracking-caps)] text-muted-foreground">{title}</h4>
       <p className="text-xs text-muted-foreground/80">{description}</p>
     </div>
     <div className="space-y-2">{children}</div>
@@ -323,6 +324,16 @@ const AmbientSettingsSection = () => {
       </Group>
 
       <Group title={t('settings.ambient.group.default')} description={t('settings.ambient.group.defaultDesc')}>
+        <Row
+          icon={AppWindow}
+          title={t('settings.ambient.windowLight.title')}
+          description={t('settings.ambient.windowLight.desc')}
+        >
+          <Switch
+            checked={prefs.effects.idle.windowLight}
+            onCheckedChange={(checked) => setSceneEffect('idle', { windowLight: checked })}
+          />
+        </Row>
         <Row
           icon={Sun}
           title={t('settings.ambient.dayNight.title')}

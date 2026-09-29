@@ -34,6 +34,7 @@ import type {
   WidgetTodo,
 } from '../models/types'
 import type { SyncBlobCacheEntry, SyncState } from '../sync/types'
+import type { SyncConflictRecord } from '../sync/conflicts'
 import {
   DB_NAME,
   DB_VERSION,
@@ -58,6 +59,7 @@ import {
   schemaV42,
   schemaV43,
   schemaV44,
+  schemaV45,
   schemaV2,
   schemaV3,
   schemaV4,
@@ -92,6 +94,7 @@ export class WorkbenchDb extends Dexie {
   habitLogs!: Table<HabitLog, string>
   syncState!: Table<SyncState, string>
   syncBlobCache!: Table<SyncBlobCacheEntry, string>
+  syncConflicts!: Table<SyncConflictRecord, string>
   books!: Table<BookItem, string>
   stocks!: Table<StockItem, string>
   media!: Table<MediaItem, string>
@@ -260,7 +263,7 @@ export class WorkbenchDb extends Dexie {
       .stores(schemaV44)
       .upgrade(async () => {})
 
-    this.version(DB_VERSION).stores(schemaV44)
+    this.version(DB_VERSION).stores(schemaV45)
 
     this.tasks = this.table(TABLES.tasks)
     this.notes = this.table(TABLES.notes)
@@ -284,6 +287,7 @@ export class WorkbenchDb extends Dexie {
     this.habitLogs = this.table(TABLES.habitLogs)
     this.syncState = this.table(TABLES.syncState)
     this.syncBlobCache = this.table(TABLES.syncBlobCache)
+    this.syncConflicts = this.table(TABLES.syncConflicts)
     this.books = this.table(TABLES.books)
     this.stocks = this.table(TABLES.stocks)
     this.media = this.table(TABLES.media)

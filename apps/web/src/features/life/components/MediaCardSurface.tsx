@@ -152,11 +152,8 @@ export const MediaCardSurface = ({
         {loading ? (
           <LifeCardLoader />
         ) : model.previewRows.length === 0 ? (
-          <div className="life-card-empty" style={{ display: 'flex', height: '100%', minHeight: 0, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '12px 16px', textAlign: 'center' }}>
-            <div className="life-card-empty__icon" style={{ width: 48, height: 48, marginBottom: 16, borderRadius: 999, background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Film size={20} color="color-mix(in srgb, var(--text-primary) 35%, transparent)" />
-            </div>
-            <p style={{ ...playfair(14, 500), marginBottom: 6 }}>{t('life.media.emptyTitle')}</p>
+          <div className="life-card-empty" style={{ display: 'flex', height: '100%', minHeight: 0, flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start', padding: '12px 16px', textAlign: 'left' }}>
+            <p style={{ ...playfair(18, 600), marginBottom: 6 }}>{t('life.media.emptyTitle')}</p>
             <p style={{ ...inter(12, 400, mutedText), lineHeight: 1.5 }}>{t('life.media.emptyDescription')}</p>
           </div>
         ) : (

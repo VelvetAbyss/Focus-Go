@@ -176,7 +176,7 @@ input[type='range']::-moz-range-thumb {
 }
 
 .select__value-label {
-  font-weight: 650;
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -423,84 +423,6 @@ label input[type='checkbox'] {
   grid-template-columns: auto 1fr;
 }
 
-.app-shell__hero-stage {
-  grid-column: 1 / -1;
-  min-height: 74px;
-  position: relative;
-  border-radius: var(--radius-md);
-  overflow: visible;
-  z-index: 1;
-}
-
-.app-shell__hero-item {
-  --node-scale: 1;
-  position: absolute;
-  transform-origin: top left;
-  z-index: 2;
-  pointer-events: none;
-}
-
-.app-shell__hero-item--quote {
-  left: 290px;
-  right: calc(var(--header-action-guard) + 24px);
-  top: 64px;
-  bottom: auto;
-  display: block;
-  pointer-events: none;
-}
-
-
-.app-shell__hero-quote-content {
-  max-width: none;
-  width: max-content;
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  animation: quote-text-in 480ms var(--ease-emphasized);
-  will-change: transform, opacity;
-}
-
-.app-shell__hero-quote {
-  margin: 0;
-  font-family:
-    'Iowan Old Style',
-    'Baskerville',
-    'Times New Roman',
-    'Source Han Serif SC',
-    'Noto Serif CJK SC',
-    serif;
-  font-size: var(--fs-ui);
-  line-height: 1.26;
-  font-weight: 500;
-  letter-spacing: 0.008em;
-  color: color-mix(in srgb, var(--text-primary) 92%, var(--bg-elevated) 8%);
-  text-shadow: 0 1px 0 color-mix(in srgb, #F5F3F0 58%, transparent);
-  display: block;
-  flex: 0 0 auto;
-  white-space: nowrap;
-  overflow: visible;
-}
-
-.app-shell__hero-quote-author {
-  display: block;
-  margin: 0;
-  flex: 0 0 auto;
-  font-family:
-    'Source Han Sans SC',
-    'Noto Sans CJK SC',
-    'PingFang SC',
-    'Helvetica Neue',
-    Arial,
-    sans-serif;
-  font-size: var(--fs-meta);
-  font-weight: 600;
-  line-height: 1.1;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-  white-space: nowrap;
-  overflow: visible;
-}
 
 /* ===== World Clock Strip ===== */
 
@@ -560,11 +482,12 @@ label input[type='checkbox'] {
 /* Time — main display */
 .world-clock-strip__time {
   margin: 5px 0 0;
-  font-family: var(--font-display, 'Fraunces', serif);
+  font-family: var(--font-numeral);
+  font-variant-numeric: var(--num-features);
   font-size: clamp(1.28rem, 1.2vw + 0.68rem, 1.72rem);
   line-height: 1;
-  letter-spacing: -0.02em;
-  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-weight: 400;
   color: var(--text-primary);
 }
 
@@ -779,8 +702,7 @@ label input[type='checkbox'] {
 
 .wc-summary {
   margin: 0 0 12px;
-  font-family: var(--font-display, 'Fraunces', serif);
-  font-style: italic;
+  font-family: var(--font-body);
   font-size: var(--fs-label);
   line-height: 1.35;
   letter-spacing: 0.005em;
@@ -793,33 +715,18 @@ label input[type='checkbox'] {
   gap: 2px;
 }
 
+/* Top-left, one serif line (DESIGN.md › Empty states). */
 .wc-empty {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
   margin: 4px 0 0;
-  padding: 18px 14px 20px;
-  border-radius: var(--radius-md);
-  background:
-    radial-gradient(120% 60% at 50% 0%, color-mix(in srgb, var(--accent-soft, var(--bg-muted)) 60%, transparent) 0%, transparent 70%),
-    color-mix(in srgb, var(--bg-muted) 60%, transparent);
-  font-family: var(--font-display, 'Fraunces', serif);
-  font-style: italic;
-  font-size: var(--fs-body);
-  color: color-mix(in srgb, var(--text-secondary) 92%, transparent);
+  padding: 12px 2px 8px;
+  font-family: var(--font-display);
+  font-size: var(--fs-section);
+  font-weight: 600;
+  color: var(--ink-1);
   line-height: 1.4;
-  letter-spacing: 0.005em;
-}
-
-.wc-empty__meridian {
-  width: 96px;
-  height: 18px;
-  fill: none;
-  stroke: color-mix(in srgb, var(--text-secondary) 38%, transparent);
-  stroke-width: 1;
-  stroke-linecap: round;
-  opacity: 0.7;
 }
 
 /* Per-row accents — dial arc + leading dot */
@@ -878,40 +785,6 @@ label input[type='checkbox'] {
   --wc-accent: #4F5E7E;
 }
 
-/* Dial */
-.wc-dial {
-  flex-shrink: 0;
-  filter: drop-shadow(0 0 0 transparent);
-  transition: filter var(--motion-duration-base) var(--ease-standard);
-}
-
-.wc-row:hover .wc-dial {
-  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--wc-accent) 55%, transparent));
-}
-
-.wc-dial__track {
-  fill: none;
-  stroke: color-mix(in srgb, var(--border) 90%, transparent);
-  stroke-width: 1.25;
-}
-
-.wc-dial__arc {
-  fill: none;
-  stroke: var(--wc-accent);
-  stroke-width: 2.25;
-  stroke-linecap: round;
-  transition: stroke-dashoffset 1200ms var(--ease-standard);
-}
-
-.wc-dial__glyph {
-  fill: var(--wc-accent);
-}
-
-.wc-dial__glyph-cut {
-  fill: var(--bg-elevated, #fff);
-}
-
-/* Row content */
 .wc-row__main {
   min-width: 0;
   flex: 1;
@@ -979,13 +852,13 @@ label input[type='checkbox'] {
 }
 
 .wc-row__time {
-  font-family: var(--font-display, 'Fraunces', serif);
+  font-family: var(--font-numeral);
+  font-variant-numeric: var(--num-features);
   font-size: clamp(1.16rem, 0.32vw + 1.06rem, 1.34rem);
-  font-weight: 500;
+  font-weight: 400;
   color: var(--text-primary);
   line-height: 1;
-  letter-spacing: -0.04em;
-  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
   display: inline-flex;
   align-items: baseline;
   gap: 0;
@@ -1052,8 +925,7 @@ label input[type='checkbox'] {
   background: color-mix(in srgb, var(--bg-muted) 60%, transparent);
   border: 1px dashed color-mix(in srgb, var(--border) 110%, transparent);
   cursor: pointer;
-  font-family: var(--font-display, 'Fraunces', serif);
-  font-style: italic;
+  font-family: var(--font-body);
   font-size: var(--fs-ui);
   font-weight: 500;
   color: color-mix(in srgb, var(--text-secondary) 92%, transparent);
@@ -1221,89 +1093,6 @@ label input[type='checkbox'] {
   }
 }
 
-.app-shell__hero-date {
-  margin: 0;
-  font-family:
-    'Source Han Sans SC',
-    'Noto Sans CJK SC',
-    'PingFang SC',
-    'Hiragino Sans GB',
-    'Microsoft YaHei',
-    'Helvetica Neue',
-    Arial,
-    sans-serif;
-  color: color-mix(in srgb, var(--text-secondary) 88%, var(--text-primary) 12%);
-  line-height: 1.28;
-  letter-spacing: 0.018em;
-  white-space: nowrap;
-  font-size: calc(24px * var(--node-scale));
-  font-weight: 600;
-}
-
-.app-shell__hero-lunar {
-  margin: 0;
-  font-family:
-    'Source Han Sans SC',
-    'Noto Sans CJK SC',
-    'PingFang SC',
-    'Hiragino Sans GB',
-    'Microsoft YaHei',
-    'Helvetica Neue',
-    Arial,
-    sans-serif;
-  color: color-mix(in srgb, var(--text-secondary) 88%, var(--text-primary) 12%);
-  line-height: 1.28;
-  font-size: calc(24px * var(--node-scale));
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-}
-
-.app-shell__hero-time {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0;
-  --clock-seconds-size: calc(36px * var(--node-scale));
-  color: color-mix(in srgb, var(--text-primary) 92%, var(--accent) 8%);
-  white-space: nowrap;
-}
-
-.app-shell__hero-time-main {
-  font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-  font-weight: 800;
-  font-size: calc(72px * var(--node-scale));
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: 'tnum';
-  letter-spacing: 0;
-}
-
-.app-shell__hero-time-colon {
-  font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-  font-size: calc(70px * var(--node-scale));
-  line-height: 1;
-  font-weight: 800;
-  margin: 0;
-}
-
-.app-shell__hero-time-seconds-wrap {
-  display: inline-flex;
-  align-items: baseline;
-  margin-left: 0;
-  gap: 0;
-  color: color-mix(in srgb, var(--text-primary) 92%, var(--accent) 8%);
-  font-size: var(--clock-seconds-size);
-  line-height: 1;
-  font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: 'tnum';
-}
-
-.app-shell__hero-time-seconds {
-  font-size: var(--clock-seconds-size) !important;
-  line-height: 1;
-  font-weight: 800;
-}
 
 .app-shell__settings-title {
   margin: 0;
@@ -1751,7 +1540,6 @@ html[data-motion='reduce'] .theme-switch__circle-container {
   }
 }
 
-html[data-motion='reduce'] .app-shell__hero-date,
 html[data-motion='reduce'] .app-shell__status,
 html[data-motion='reduce'] .route-loader__mark,
 html[data-motion='reduce'] .dashboard__item,
@@ -1988,7 +1776,7 @@ html[data-motion='reduce'] .route-loader__mark {
   background: color-mix(in srgb, var(--bg-elevated) 88%, var(--bg-muted));
   color: var(--text-secondary);
   font-size: var(--dash-type-eyebrow);
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: 0.05em;
   padding: 4px 10px;
   cursor: pointer;
@@ -2004,7 +1792,7 @@ html[data-motion='reduce'] .route-loader__mark {
   background: var(--bg-elevated);
   @apply rounded-2xl;
   border: 1px solid var(--border);
-  box-shadow: var(--shadow-soft), inset 0 1px 0 color-mix(in srgb, #fff 10%, transparent);
+  box-shadow: var(--elev-1);
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -2015,19 +1803,19 @@ html[data-motion='reduce'] .route-loader__mark {
 }
 
 .card:hover {
-  box-shadow: var(--shadow-lift), inset 0 1px 0 color-mix(in srgb, #fff 12%, transparent);
+  box-shadow: var(--elev-2);
 }
 
 .dashboard .card {
   border-color: color-mix(in srgb, var(--border) 50%, transparent);
-  box-shadow: 0 2px 6px rgba(58, 55, 51, 0.04), 0 10px 24px rgba(58, 55, 51, 0.07);
+  box-shadow: var(--elev-1);
   transition: box-shadow var(--motion-duration-medium) var(--ease-standard),
     transform var(--motion-duration-medium) var(--ease-standard),
     border-color var(--motion-duration-medium) var(--ease-standard);
 }
 
 .dashboard .card:hover {
-  box-shadow: 0 4px 10px rgba(58, 55, 51, 0.06), 0 18px 36px rgba(58, 55, 51, 0.13);
+  box-shadow: var(--elev-2);
   border-color: color-mix(in srgb, var(--accent) 10%, color-mix(in srgb, var(--border) 60%, transparent));
 }
 
@@ -2067,14 +1855,12 @@ html[data-motion='reduce'] .route-loader__mark {
      rounded corner. Rely on the existing outer shadow for silhouette. */
   border: 0;
   overflow: hidden;
-  /* Kill the base .card inset top-highlight ("inset 0 1px 0 white"), which
-     reads as a bright line on the saturated tone. */
-  box-shadow: var(--shadow-soft);
+  box-shadow: var(--elev-1);
 }
 
 .dashboard .card.dashboard-widget-card--weather:hover {
   border: 0;
-  box-shadow: var(--shadow-soft), 0 8px 22px rgba(58, 55, 51, 0.10);
+  box-shadow: var(--elev-2);
 }
 
 .card__header {
@@ -2363,25 +2149,135 @@ html[data-motion='reduce'] .route-loader__mark {
   border-color: var(--rule-strong);
 }
 
+/* Inside the dashboard widget the task cards share the widget's own surface
+   (no card-in-card fill): the hairline and contact shadow define them, so
+   under an ambient scene they read as part of the frosted card, not as white
+   blocks on it. */
+.dashboard-widget-card--tasks .task-card-shell {
+  background: transparent;
+}
+
+.dashboard-widget-card--tasks .task-card-shell:hover {
+  background: color-mix(in srgb, var(--paper-sunken) 55%, transparent);
+}
+
+/* Fixed anatomy: every card in a grid is the same height, so rows line up and
+   the footers share one baseline.
+     body  = padding + title box (always two lines tall) + one footer line
+     foot  = resting face (meta left, project right) OR the action row, stacked
+             in the same grid cell and crossfaded, so hover never resizes a card */
+.task-card-shell .task-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px 8px;
+}
+
+.task-card-shell .task-card__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.task-card-shell .task-card__pin-mark {
+  margin-top: 3px;
+}
+
+/* The legacy .task-card__title rule above forces nowrap, which silently
+   defeated line-clamp-2; titles now wrap to two lines and always reserve both. */
+.task-card-shell .task-card__title {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-body);
+  line-height: 1.45;
+  letter-spacing: 0;
+  white-space: normal;
+  min-height: 2.9em;
+}
+
+.task-card-shell .task-card__foot {
+  display: grid;
+  height: 28px;
+  align-items: center;
+}
+
+.task-card-shell .task-card__foot > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+
+.task-card-shell .task-card__foot-rest {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition:
+    opacity var(--motion-duration-fast) var(--ease-standard),
+    translate var(--motion-duration-fast) var(--ease-standard);
+}
+
+.task-card-shell .task-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  /* Icon buttons carry 7px of inner padding; pull the row out so the first and
+     last icons sit on the same edges as the text they replace. */
+  margin-inline: -7px;
+  opacity: 0;
+  translate: 0 3px;
+  pointer-events: none;
+  transition:
+    opacity var(--motion-duration-fast) var(--ease-standard),
+    translate var(--motion-duration-fast) var(--ease-standard);
+}
+
+/* Reveal the actions on pointer hover (data-revealed, set from JS) or when the
+   card itself has keyboard focus or focus is inside the action row. Focus on
+   the project chip keeps the resting face, so a focused control is never the
+   invisible one. */
+.task-card-shell .task-card__foot[data-revealed='true'] .task-card__foot-rest,
+.task-card-shell:focus-visible .task-card__foot-rest,
+.task-card-shell .task-card__foot:has(.task-card__actions:focus-within) .task-card__foot-rest {
+  opacity: 0;
+  translate: 0 -3px;
+  pointer-events: none;
+}
+
+.task-card-shell .task-card__foot[data-revealed='true'] .task-card__actions,
+.task-card-shell:focus-visible .task-card__actions,
+.task-card-shell .task-card__actions:focus-within {
+  opacity: 1;
+  translate: 0 0;
+  pointer-events: auto;
+}
+
 .task-card-shell .task-card__meta {
   display: flex;
-  flex-wrap: wrap;
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 2px 0;
-  flex: none;
+  min-width: 0;
+  overflow: hidden;
   font-family: var(--font-body);
   font-size: var(--fs-label);
   font-weight: 500;
   line-height: 1.45;
   color: var(--ink-3);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .task-card-shell .task-card__meta-item {
   display: inline-flex;
+  flex: none;
   align-items: center;
   gap: 6px;
+}
+
+/* Tags are the one meta item allowed to give way; state never truncates. */
+.task-card-shell .task-card__meta-item--shrink {
+  flex: 0 1 auto;
   min-width: 0;
+  overflow: hidden;
 }
 
 .task-card-shell .task-card__meta-sep {
@@ -2418,25 +2314,24 @@ html[data-motion='reduce'] .route-loader__mark {
   font-weight: 600;
 }
 
-.task-card-shell .task-card__context {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 2px 12px;
-  font-size: var(--fs-label);
-  color: var(--ink-3);
-}
-
+/* Project on the right of the footer: a user colour shrinks to an 8px dot and
+   the name truncates before any state item does. */
 .task-card-shell .task-card__project-chip {
   display: inline-flex;
+  flex: 0 1 auto;
   align-items: center;
   gap: 6px;
-  max-width: 180px;
+  min-width: 0;
+  max-width: 55%;
+  margin-left: auto;
   padding: 0;
   border: 0;
   background: none;
   color: var(--ink-3);
-  font: inherit;
+  font-family: var(--font-body);
+  font-size: var(--fs-label);
+  line-height: 1.45;
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -2452,7 +2347,15 @@ html[data-motion='reduce'] .route-loader__mark {
 }
 
 .task-card-shell .task-card__tag {
+  display: inline-flex;
+  min-width: 0;
+  gap: 4px;
   color: var(--ink-3);
+}
+
+.task-card-shell .task-card__tag--more {
+  flex: none;
+  color: var(--ink-4);
 }
 
 .task-card__project-dot {
@@ -2485,11 +2388,58 @@ html[data-theme='dark'] .task-card__blocked-chip:not(.task-card-shell *) {
   color: #F08A84;
 }
 
-.task-card__dependency-mini {
-  display: grid;
-  gap: 4px;
-  border-top: 1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);
-  padding-top: 8px;
+/* Subtask / blocker peek (portaled, so these are not scoped to the card). */
+.task-card__peek {
+  padding: 10px 12px;
+  font-family: var(--font-body);
+}
+
+.task-card__peek-section + .task-card__peek-section {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--rule);
+}
+
+.task-card__peek-label {
+  margin: 0 0 6px;
+  font-size: var(--fs-meta);
+  font-weight: 600;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.task-card__peek-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.task-card__peek-subtask {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: var(--fs-label);
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+/* An open subtask is intention: a dashed pencil circle. */
+.task-card__peek-mark {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  margin-top: 3px;
+  border: 1.5px dashed var(--pencil-line);
+  border-radius: 50%;
+}
+
+.task-card__peek-more {
+  margin: 6px 0 0 18px;
+  font-size: var(--fs-meta);
+  color: var(--ink-3);
 }
 
 .task-card__dependency-row {
@@ -2498,32 +2448,24 @@ html[data-theme='dark'] .task-card__blocked-chip:not(.task-card-shell *) {
   align-items: center;
   gap: 7px;
   font-size: var(--fs-label);
-  line-height: 1.25;
-  color: color-mix(in srgb, var(--ink-1) 62%, transparent);
+  line-height: 1.45;
+  color: var(--ink-2);
 }
 
+.task-card__dependency-row > :last-child {
+  color: var(--ink-3);
+}
+
+/* Status marks follow the state mapping: todo pencil, doing ochre, done ink. */
 .task-card__dependency-status {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--ink-1) 32%, transparent);
+  border: 1.5px dashed var(--pencil-line);
 }
 
-.task-card__dependency-status--doing { background: #1E5BFF; }
-.task-card__dependency-status--done { background: #0D7A54; }
-.task-card__dependency-more {
-  padding-left: 15px;
-  font-size: var(--fs-meta);
-  color: color-mix(in srgb, var(--ink-1) 48%, transparent);
-}
-
-.task-card__actions {
-  transition-property: grid-template-rows, opacity, transform, padding-top !important;
-  transition-duration: 500ms !important;
-  transition-timing-function: var(--ease-emphasized) !important;
-  /* grid-template-rows cannot be composited; opacity+transform can be but
-     only matter during the expand/collapse moment — not worth a permanent layer. */
-}
+.task-card__dependency-status[data-status='doing'] { border: 0; background: var(--tone-warn); }
+.task-card__dependency-status[data-status='done'] { border: 0; background: var(--ink-2); }
 
 .task-card__action-btn {
   transform: translate3d(0, 0, 0);
@@ -3027,7 +2969,6 @@ html[data-motion='reduce'] .drawer--visible .drawer__panel {
 }
 
 
-
 .focus-card-figma-shell .card__title,
 .focus-card-lite__title,
 .focus-card-lite__timer-raw {
@@ -3233,13 +3174,13 @@ html[data-motion='reduce'] .drawer--visible .drawer__panel {
 .focus-card-lite__timer-raw {
   margin: 0;
   text-align: center;
-  font-family: var(--font-display);
+  font-family: var(--font-numeral);
+  font-variant-numeric: var(--num-features);
   font-size: clamp(3.6rem, 17cqi, 6.4rem);
   line-height: 0.88;
-  letter-spacing: -0.05em;
-  font-weight: 500;
+  letter-spacing: -0.01em;
+  font-weight: 300;
   font-kerning: normal;
-  font-variant-numeric: tabular-nums;
   color: #2f2924;
   view-transition-name: focus-timer;
 }
@@ -3677,10 +3618,11 @@ html[data-motion='reduce'] .focus-card-lite__status {
   position: relative;
   z-index: 1;
   font-size: clamp(2.6rem, 5vw, 3.6rem);
-  letter-spacing: -0.06em;
-  font-weight: 580;
+  letter-spacing: -0.01em;
+  font-weight: 300;
   line-height: 0.9;
-  font-family: var(--font-display);
+  font-family: var(--font-numeral);
+  font-variant-numeric: var(--num-features);
   text-shadow: none;
 }
 
@@ -3947,15 +3889,16 @@ html[data-motion='reduce'] .mini-equalizer span {
 .focus__time {
   font-size: clamp(66px, 8.5vw, 92px);
   margin: 0;
-  font-weight: 400;
+  font-weight: 300;
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 92px;
   line-height: 1;
   color: var(--text-primary);
-  letter-spacing: -0.035em;
-  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+  font-family: var(--font-numeral);
+  font-variant-numeric: var(--num-features);
 }
 
 .focus__progress {
@@ -4815,7 +4758,7 @@ html[data-motion='reduce'] .noise-icon-toggle__pause,
 }
 
 .noise-slider--capsule .noise-slider__fill {
-  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 76%, #0f766e) 0%, color-mix(in srgb, #0f766e 84%, #115e59) 100%);
+  background: var(--accent);
 }
 
 .noise-slider--capsule .noise-slider__thumb {
@@ -4939,14 +4882,8 @@ html[data-motion='reduce'] .noise-icon-toggle__pause,
 }
 
 html[data-theme='light'] {
-  /* Dawn Paper canvas — quiet vertical light gradient + faint paper grain.
-     No brand accent in the page background; brand color stays on cards & sidebar. */
-  --shell-bg-top: #faf8f4;
-  --shell-bg-mid: #f6f5f2;
-  --shell-bg-bottom: #efe9dd;
-  --shell-page-bg:
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='1' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.06 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>") 0 0 / 240px 240px repeat,
-    linear-gradient(180deg, var(--shell-bg-top) 0%, var(--shell-bg-mid) 42%, var(--shell-bg-bottom) 100%) 0 0 / 100% 100% no-repeat;
+  /* The default desk is plain white; selected ambient scenes paint over it. */
+  --shell-page-bg: #ffffff;
   --tasks-tabs-bg: #eae8e4;
   --tasks-tab-fg: #4b5563;
   --tasks-tab-active-bg: #f1efeb;
@@ -4969,12 +4906,12 @@ html[data-theme='light'] {
 }
 
 html[data-theme='dark'] {
-  /* Dawn Paper, dark variant — charcoal vertical wash + faint grain. No accent. */
+  /* Dawn Paper, dark variant — charcoal vertical wash + grain (~7%). No accent. */
   --shell-bg-top: #2a2825;
   --shell-bg-mid: #242320;
   --shell-bg-bottom: #1d1c19;
   --shell-page-bg:
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='1' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.04 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>") 0 0 / 240px 240px repeat,
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='1' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.07 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>") 0 0 / 240px 240px repeat,
     linear-gradient(180deg, var(--shell-bg-top) 0%, var(--shell-bg-mid) 50%, var(--shell-bg-bottom) 100%) 0 0 / 100% 100% no-repeat;
   --tasks-tabs-bg: color-mix(in srgb, var(--bg-muted) 74%, var(--color-ink));
   --tasks-tab-fg: color-mix(in srgb, var(--text-secondary) 92%, transparent);
@@ -6195,7 +6132,7 @@ html[data-motion='reduce'] .tasks-fg__list .task-card-shell {
   background: transparent;
   color: inherit;
   font-size: var(--fs-label);
-  font-weight: 650;
+  font-weight: 600;
   line-height: 1;
   cursor: pointer;
 }
@@ -7409,7 +7346,7 @@ html[data-motion='reduce'] .tasks-fg__list .task-card-shell {
   letter-spacing: var(--tracking-caps) !important;
   font-size: var(--fs-meta) !important;
   line-height: 1.35;
-  font-weight: 650 !important;
+  font-weight: 600 !important;
   color: color-mix(in srgb, var(--text-primary) 70%, var(--bg-elevated)) !important;
 }
 
@@ -7417,7 +7354,7 @@ html[data-motion='reduce'] .tasks-fg__list .task-card-shell {
   font-size: var(--fs-section) !important;
   line-height: 1.25;
   letter-spacing: -0.012em !important;
-  font-weight: 650 !important;
+  font-weight: 600 !important;
   color: var(--text-primary) !important;
 }
 
@@ -7542,11 +7479,11 @@ html[data-motion='reduce'] .tasks-fg__list .task-card-shell {
 .tdv2-timeline-item--lined::before {
   content: '';
   position: absolute;
-  left: 3.5px;
+  left: 3.25px;
   top: 13px;
   bottom: 0;
-  width: 1px;
-  background: color-mix(in srgb, var(--text-secondary) 16%, transparent);
+  width: 0;
+  border-left: 1.5px dashed var(--pencil-line);
 }
 
 .tdv2-timeline-dot {
@@ -7689,7 +7626,6 @@ html[data-theme='dark'] .toast--error .toast__icon {
   background: color-mix(in srgb, var(--text-primary) 10%, transparent);
   color: var(--text-primary);
 }
-
 
 
 .command-palette {
@@ -8470,11 +8406,10 @@ html[data-motion='reduce'] .tasks-page__view-panel {
   width: 14px;
   height: 14px;
   border-radius: 999px;
+  /* Today's checklist progress is the pen over a bare-paper track. */
   background:
-    conic-gradient(#114f48 calc(var(--completion) * 1%), rgba(17, 79, 72, 0.14) 0);
-  box-shadow:
-    inset 0 0 0 2px #fdfaf4,
-    inset 0 0 0 3px rgba(17, 79, 72, 0.18);
+    conic-gradient(var(--accent) calc(var(--completion) * 1%), var(--rule-strong) 0);
+  box-shadow: inset 0 0 0 2px var(--paper-raised);
   transition: background var(--motion-duration-slow) var(--ease-emphasized);
 }
 
@@ -8701,10 +8636,11 @@ html[data-motion='reduce'] .widget-todos__track {
 }
 
 .widget-todos__list--empty {
+  /* Centred in the list area (DESIGN.md › Empty states). */
   justify-content: center;
   align-items: center;
   gap: 0;
-  padding: 24px 12px;
+  padding: 18px 12px;
 }
 
 .widget-todos__list-wrap {
@@ -8887,40 +8823,30 @@ html[data-motion='reduce'] .widget-todos__track {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  color: color-mix(in srgb, var(--text-primary) 68%, #8a847d 32%);
+  gap: 4px;
+  color: var(--ink-2);
   text-align: center;
-  padding: 0 12px;
+  padding: 14px 4px 0;
   animation: widget-todos-empty-in 520ms var(--ease-emphasized);
 }
 
-.widget-todos__empty-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 999px;
-  background:
-    radial-gradient(circle at 30% 30%, rgba(255, 253, 248, 0.9), rgba(247, 242, 233, 0.5) 70%);
-  box-shadow: inset 0 0 0 1px rgba(58, 55, 51, 0.08);
-  margin-bottom: 4px;
+.widget-todos__empty-art {
+  margin-bottom: 10px;
 }
 
 .widget-todos__empty-title {
   margin: 0;
-  font-size: var(--fs-ui);
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: var(--fs-section);
+  font-weight: 600;
+  color: var(--ink-1);
 }
 
 .widget-todos__empty-hint {
   margin: 0;
-  font-size: var(--fs-meta);
+  font-size: var(--fs-label);
   font-weight: 500;
-  letter-spacing: 0.01em;
-  color: color-mix(in srgb, var(--text-primary) 54%, #8a847d 46%);
+  color: var(--ink-3);
 }
 
 @keyframes widget-todos-empty-in {
@@ -9237,74 +9163,6 @@ html[data-motion='reduce'] .task-popup-detail__subtask-checkbox-row .widget-plan
   transition: color var(--motion-duration-medium) var(--ease-standard);
 }
 
-.widget-todos__due {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  margin-top: 3px;
-  padding: 2px 7px 2px 6px;
-  border-radius: 999px;
-  font-size: var(--fs-meta);
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: 0.02em;
-  color: color-mix(in srgb, var(--text-primary) 62%, #8a847d 38%);
-  background: color-mix(in srgb, var(--ink-1) 5%, transparent);
-  font-variant-numeric: tabular-nums;
-}
-
-.widget-todos__due-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 999px;
-  background: currentColor;
-  opacity: 0.7;
-  flex: none;
-}
-
-.widget-todos__due--normal {
-  color: color-mix(in srgb, var(--text-primary) 62%, #8a847d 38%);
-  background: color-mix(in srgb, var(--ink-1) 5%, transparent);
-}
-
-.widget-todos__due--soon {
-  color: #8a5a12;
-  background: color-mix(in srgb, #efbd72 26%, var(--bg-elevated) 74%);
-  box-shadow: inset 0 0 0 1px rgba(138, 90, 18, 0.12);
-}
-
-.widget-todos__due--today {
-  color: #0b4540;
-  background: color-mix(in srgb, #114f48 14%, var(--bg-elevated) 86%);
-  box-shadow: inset 0 0 0 1px rgba(17, 79, 72, 0.18);
-}
-
-.widget-todos__due--today .widget-todos__due-dot {
-  opacity: 1;
-  box-shadow: 0 0 0 3px rgba(17, 79, 72, 0.14);
-  animation: widget-todos-today-pulse 2.4s ease-in-out infinite;
-}
-
-.widget-todos__due--overdue {
-  color: #8b2a12;
-  background: color-mix(in srgb, #e26a2a 22%, #fdece2 78%);
-  box-shadow: inset 0 0 0 1px rgba(139, 42, 18, 0.22);
-}
-
-.widget-todos__due--overdue .widget-todos__due-dot {
-  opacity: 1;
-  animation: widget-todos-today-pulse 1.4s ease-in-out infinite;
-}
-
-@keyframes widget-todos-today-pulse {
-  0%, 100% { transform: scale(1); opacity: 0.85; }
-  50% { transform: scale(1.25); opacity: 1; }
-}
-
-html[data-motion='reduce'] .widget-todos__due-dot {
-  animation: none !important;
-}
-
 .widget-todos__custom-time {
   display: flex;
   align-items: center;
@@ -9328,7 +9186,7 @@ html[data-motion='reduce'] .widget-todos__due-dot {
   color: var(--text-primary);
   padding: 5px 8px;
   font-size: var(--fs-label);
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .widget-todos__summary {
@@ -9760,7 +9618,7 @@ html[data-motion='reduce'] .diary-panel__content {
 
 
 .dashboard .diary-launcher-card:hover {
-  box-shadow: var(--shadow-soft), 0 8px 24px color-mix(in srgb, #3A3733 10%, transparent);
+  box-shadow: var(--elev-2);
 }
 
 .diary-launcher-card:active {
@@ -9797,7 +9655,7 @@ html[data-motion='reduce'] .diary-panel__content {
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--text-primary) 20%, var(--border));
   font-size: var(--dash-type-eyebrow);
-  font-weight: 650;
+  font-weight: 600;
   color: var(--text-primary);
   background: color-mix(in srgb, var(--bg-elevated) 74%, var(--bg-muted));
 }
@@ -9972,7 +9830,7 @@ html[data-motion='reduce'] .diary-panel__content {
 
 .diary__metric strong {
   font-size: var(--fs-label);
-  font-weight: 650;
+  font-weight: 600;
   color: color-mix(in srgb, var(--text-primary) 90%, var(--accent));
 }
 
@@ -10388,730 +10246,13 @@ html[data-motion='reduce'] .spend-fg__track {
   outline: none;
 }
 
-/* ── Tone gradient lifted to the whole card section so header + body share
-   one seamless surface. Header chrome becomes transparent on top of it. ── */
-.weather-widget-card {
-  --tone-bg-1: #eef1f4;
-  --tone-bg-2: #d8dee6;
-  --tone-ink: var(--text-primary);
-  --tone-ink-soft: color-mix(in srgb, var(--tone-ink) 62%, transparent);
-  --tone-accent: color-mix(in srgb, var(--tone-ink) 86%, transparent);
-  --tone-surface: color-mix(in srgb, #ffffff 60%, transparent);
-  position: relative;
-  background:
-    radial-gradient(150% 110% at 18% 12%, color-mix(in srgb, var(--tone-bg-1) 96%, transparent) 0%, transparent 62%),
-    linear-gradient(168deg, var(--tone-bg-1) 0%, var(--tone-bg-2) 100%);
-  color: var(--tone-ink);
-  transition:
-    background 620ms var(--ease-out-expo),
-    color var(--motion-duration-slow) var(--ease-out-expo);
-}
-
-/* Tone-aware overrides on the card section, mirroring [data-tone] on the
-   inner div via :has(). All modern browsers support this. */
-.weather-widget-card:has(.weather-widget[data-tone='sun']) {
-  --tone-bg-1: #fef3c7;
-  --tone-bg-2: #f6c873;
-  --tone-accent: #b45309;
-}
-.weather-widget-card:has(.weather-widget[data-tone='cloud']) {
-  --tone-bg-1: #eef1f4;
-  --tone-bg-2: #c8cfd9;
-  --tone-accent: #475569;
-}
-.weather-widget-card:has(.weather-widget[data-tone='fog']) {
-  --tone-bg-1: #ece9e3;
-  --tone-bg-2: #c4beb1;
-  --tone-accent: #57534e;
-}
-.weather-widget-card:has(.weather-widget[data-tone='drizzle']) {
-  --tone-bg-1: #dde3ee;
-  --tone-bg-2: #9aa9c2;
-  --tone-accent: #1e40af;
-}
-.weather-widget-card:has(.weather-widget[data-tone='rain']) {
-  --tone-bg-1: #c9d6e7;
-  --tone-bg-2: #5b7796;
-  --tone-ink: #1f2933;
-  --tone-accent: #1d4ed8;
-  --tone-surface: color-mix(in srgb, #ffffff 50%, transparent);
-}
-.weather-widget-card:has(.weather-widget[data-tone='snow']) {
-  --tone-bg-1: #f6f9fd;
-  --tone-bg-2: #cfd9e7;
-  --tone-accent: #1e3a8a;
-}
-.weather-widget-card:has(.weather-widget[data-tone='storm']) {
-  --tone-bg-1: #6b6253;
-  --tone-bg-2: #2c2820;
-  --tone-ink: var(--bg-elevated);
-  --tone-ink-soft: color-mix(in srgb, var(--bg-elevated) 70%, transparent);
-  --tone-accent: #fbbf24;
-  --tone-surface: color-mix(in srgb, #000000 28%, transparent);
-}
-
-/* Dark mode: the tone gradients above are bright daytime-sky colors that look
-   glaring on a dark dashboard. Re-base every scene onto a near-black surface,
-   keeping a low-opacity wash of the tone hue so the weather mood still reads.
-   Also pin --tone-ink light (some tones, e.g. rain, hard-code dark ink that
-   would vanish here) and darken the frosted chip surface.
-   Higher specificity than the per-tone :has() rules so it wins for all tones. */
-html[data-theme='dark'] .weather-widget-card:has(.weather-widget) {
-  --tone-ink: var(--text-primary);
-  --tone-ink-soft: color-mix(in srgb, var(--text-primary) 60%, transparent);
-  --tone-surface: color-mix(in srgb, var(--bg-elevated) 52%, transparent);
-  background:
-    radial-gradient(150% 110% at 18% 12%, color-mix(in srgb, var(--tone-bg-1) 30%, transparent) 0%, transparent 64%),
-    linear-gradient(168deg,
-      color-mix(in srgb, var(--tone-bg-1) 26%, #17140f) 0%,
-      color-mix(in srgb, var(--tone-bg-2) 22%, #100d0a) 100%);
-}
-
-/* Header chrome rides on top of the tone now — transparent + tone ink */
-.weather-widget-card .card__body {
-  padding: 0;
-  background: transparent;
-}
-
-.weather-widget-card .card__header {
-  padding-bottom: 4px;
-  position: relative;
-  z-index: 2;
-  background: transparent;
-}
-
-.weather-widget-card .card__eyebrow {
-  color: color-mix(in srgb, var(--tone-ink) 72%, transparent);
-}
-
-.weather-widget-card .card__title {
-  color: var(--tone-ink);
-}
-
-.weather-widget-card .card__actions {
-  display: inline-flex;
-  align-items: center;
-  position: relative;
-  z-index: 2;
-}
-
-.weather-widget {
-  --atmos-opacity: 1;
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
-  gap: 10px;
-  align-items: stretch;
-  flex: 1;
-  min-height: 0;
-  padding: 4px 18px 16px;
-  margin: 0;
-  border-radius: 0;
-  overflow: hidden;
-  isolation: isolate;
-  color: var(--tone-ink);
-  background: transparent;
-  transition: color var(--motion-duration-slow) var(--ease-out-expo);
-}
-
-.weather-widget[data-tone='sun'] {
-  --tone-bg-1: #fef3c7;
-  --tone-bg-2: #f6c873;
-  --tone-accent: #b45309;
-}
-
-.weather-widget[data-tone='cloud'] {
-  --tone-bg-1: #eef1f4;
-  --tone-bg-2: #c8cfd9;
-  --tone-accent: #475569;
-}
-
-.weather-widget[data-tone='fog'] {
-  --tone-bg-1: #ece9e3;
-  --tone-bg-2: #c4beb1;
-  --tone-accent: #57534e;
-}
-
-.weather-widget[data-tone='drizzle'] {
-  --tone-bg-1: #dde3ee;
-  --tone-bg-2: #9aa9c2;
-  --tone-accent: #1e40af;
-}
-
-.weather-widget[data-tone='rain'] {
-  --tone-bg-1: #c9d6e7;
-  --tone-bg-2: #5b7796;
-  --tone-ink: #1f2933;
-  --tone-accent: #1d4ed8;
-  --tone-surface: color-mix(in srgb, #ffffff 50%, transparent);
-}
-
-.weather-widget[data-tone='snow'] {
-  --tone-bg-1: #f6f9fd;
-  --tone-bg-2: #cfd9e7;
-  --tone-accent: #1e3a8a;
-}
-
-.weather-widget[data-tone='storm'] {
-  --tone-bg-1: #6b6253;
-  --tone-bg-2: #2c2820;
-  --tone-ink: var(--bg-elevated);
-  --tone-ink-soft: color-mix(in srgb, var(--bg-elevated) 70%, transparent);
-  --tone-accent: #fbbf24;
-  --tone-surface: color-mix(in srgb, #000000 28%, transparent);
-}
-
-.weather-widget[data-preview='true'] {
-  --atmos-opacity: 0.55;
-}
-
-/* refresh button */
-.weather-widget__refresh {
-  width: 26px;
-  height: 26px;
-  border: 0;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  background: color-mix(in srgb, var(--bg-elevated) 86%, transparent);
-  color: var(--text-primary);
-  cursor: pointer;
-  transition:
-    transform var(--motion-duration-base) var(--ease-out-expo),
-    background-color var(--motion-duration-base) var(--ease-out-expo),
-    box-shadow var(--motion-duration-base) var(--ease-out-expo);
-}
-
-.weather-widget__refresh:hover,
-.weather-widget__refresh:focus-visible {
-  background: color-mix(in srgb, var(--bg-elevated) 96%, var(--text-primary) 4%);
-  box-shadow: 0 4px 10px color-mix(in srgb, #3a3733 12%, transparent);
-}
-
-.weather-widget__refresh.is-loading {
-  animation: weather-refresh-spin var(--motion-spin-duration) linear infinite;
-}
-
-.weather-widget__refresh:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--text-primary) 30%, transparent);
-  outline-offset: 2px;
-}
-
-/* atmosphere — positioned to the card section so it spans header + body */
-.weather-widget__atmos {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  overflow: hidden;
-  border-radius: inherit;
-  opacity: 1;
-  transition: opacity 480ms var(--ease-out-expo);
-}
-
-.weather-widget__atmos-glow {
-  position: absolute;
-  inset: -20% -10% auto auto;
-  width: 60%;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--tone-accent) 22%, transparent) 0%, transparent 65%);
-  opacity: 0;
-  transition: opacity 520ms var(--ease-standard);
-}
-
-.weather-widget__atmos[data-tone='sun'] .weather-widget__atmos-glow {
-  opacity: 1;
-  animation: atmos-sun-pulse 7s ease-in-out infinite;
-}
-
-.weather-widget__atmos-blob {
-  position: absolute;
-  width: 55%;
-  aspect-ratio: 1.6;
-  border-radius: 50%;
-  filter: blur(22px);
-  opacity: 0;
-  background: color-mix(in srgb, var(--bg-elevated) 60%, transparent);
-  transition: opacity 520ms var(--ease-standard);
-}
-
-.weather-widget__atmos-blob--a {
-  top: 12%;
-  left: -18%;
-  animation: atmos-drift-a 18s ease-in-out infinite;
-}
-
-.weather-widget__atmos-blob--b {
-  bottom: 18%;
-  right: -22%;
-  animation: atmos-drift-b 22s ease-in-out infinite;
-}
-
-.weather-widget__atmos[data-tone='cloud'] .weather-widget__atmos-blob,
-.weather-widget__atmos[data-tone='fog'] .weather-widget__atmos-blob,
-.weather-widget__atmos[data-tone='storm'] .weather-widget__atmos-blob {
-  opacity: 0.55;
-}
-
-.weather-widget__atmos[data-tone='fog'] .weather-widget__atmos-blob {
-  filter: blur(34px);
-  opacity: 0.7;
-}
-
-.weather-widget__atmos[data-tone='storm'] .weather-widget__atmos-blob {
-  background: color-mix(in srgb, var(--bg-elevated) 18%, transparent);
-}
-
-.weather-widget__atmos-particle {
-  position: absolute;
-  top: -10%;
-  left: var(--p-x, 50%);
-  width: 1.6px;
-  height: 18px;
-  border-radius: 1px;
-  background: linear-gradient(
-    to bottom,
-    transparent 0%,
-    color-mix(in srgb, #ffffff 70%, transparent) 60%,
-    color-mix(in srgb, #ffffff 95%, transparent) 100%
-  );
-  opacity: 0;
-  /* slight backward slant inside the keyframe so drops feel like they
-     fall through wind (static transform here would be overridden) */
-  animation: atmos-rainfall var(--p-duration, 1500ms) linear infinite;
-  animation-delay: var(--p-delay, 0ms);
-  will-change: transform, opacity;
-}
-
-.weather-widget__atmos[data-tone='rain'] .weather-widget__atmos-particle,
-.weather-widget__atmos[data-tone='drizzle'] .weather-widget__atmos-particle,
-.weather-widget__atmos[data-tone='storm'] .weather-widget__atmos-particle {
-  opacity: 0.88;
-}
-
-.weather-widget__atmos[data-tone='rain'] .weather-widget__atmos-particle {
-  width: 1.8px;
-  height: 22px;
-  animation-duration: calc(var(--p-duration, 1500ms) * 0.7);
-}
-
-.weather-widget__atmos[data-tone='drizzle'] .weather-widget__atmos-particle {
-  width: 1.4px;
-  height: 12px;
-  /* drizzle is softer + slightly slower */
-  background: linear-gradient(
-    to bottom,
-    transparent 0%,
-    color-mix(in srgb, #ffffff 55%, transparent) 65%,
-    color-mix(in srgb, #ffffff 85%, transparent) 100%
-  );
-  animation-duration: calc(var(--p-duration, 1500ms) * 1.0);
-}
-
-.weather-widget__atmos[data-tone='storm'] .weather-widget__atmos-particle {
-  width: 2px;
-  height: 26px;
-  animation-duration: calc(var(--p-duration, 1500ms) * 0.55);
-}
-
-.weather-widget__atmos[data-tone='snow'] .weather-widget__atmos-particle {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--bg-elevated);
-  box-shadow: 0 0 6px color-mix(in srgb, #ffffff 80%, transparent);
-  opacity: 0.92;
-  transform: none;
-  animation-name: atmos-snow;
-  animation-duration: calc(var(--p-duration, 1500ms) * 2);
-}
-
-/* ── Atmospheric layers (rays / veil / flash / puddle) ─────────────────── */
-
-/* Sun rays: slow rotating sunburst behind the glow */
-.weather-widget__atmos-rays {
-  position: absolute;
-  top: -30%;
-  right: -25%;
-  width: 120%;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background:
-    conic-gradient(
-      from 0deg,
-      transparent 0deg,
-      color-mix(in srgb, var(--tone-accent) 16%, transparent) 4deg,
-      transparent 8deg,
-      transparent 16deg,
-      color-mix(in srgb, var(--tone-accent) 12%, transparent) 20deg,
-      transparent 24deg,
-      transparent 36deg,
-      color-mix(in srgb, var(--tone-accent) 14%, transparent) 40deg,
-      transparent 44deg,
-      transparent 56deg,
-      color-mix(in srgb, var(--tone-accent) 10%, transparent) 60deg,
-      transparent 64deg,
-      transparent 360deg
-    );
-  -webkit-mask-image: radial-gradient(circle, #000 30%, transparent 75%);
-  mask-image: radial-gradient(circle, #000 30%, transparent 75%);
-  opacity: 0;
-  animation: atmos-rays-spin 60s linear infinite;
-}
-
-.weather-widget__atmos[data-tone='sun'] .weather-widget__atmos-rays {
-  opacity: 0.75;
-}
-
-
-/* Storm lightning flash overlay */
-.weather-widget__atmos-flash {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0;
-  background: radial-gradient(
-    120% 80% at 65% 25%,
-    rgba(255, 247, 200, 0.85) 0%,
-    rgba(255, 247, 200, 0.25) 30%,
-    transparent 60%
-  );
-  mix-blend-mode: screen;
-}
-
-.weather-widget__atmos[data-tone='storm'] .weather-widget__atmos-flash {
-  animation: atmos-flash 6s steps(1, end) infinite;
-}
-
-/* Wet "puddle" sheen at the bottom edge for rain/drizzle/storm */
-.weather-widget__atmos-puddle {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 26%;
-  pointer-events: none;
-  opacity: 0;
-  background: linear-gradient(
-    to top,
-    color-mix(in srgb, #000000 24%, transparent) 0%,
-    transparent 100%
-  );
-  transition: opacity 480ms var(--ease-standard);
-}
-
-.weather-widget__atmos[data-tone='rain'] .weather-widget__atmos-puddle,
-.weather-widget__atmos[data-tone='storm'] .weather-widget__atmos-puddle {
-  opacity: 0.55;
-}
-.weather-widget__atmos[data-tone='drizzle'] .weather-widget__atmos-puddle {
-  opacity: 0.32;
-}
-
-.weather-widget__atmos[data-tone='storm'] .weather-widget__atmos-glow {
-  opacity: 0.4;
-  animation: atmos-storm-flicker 4s steps(1, end) infinite;
-}
-
-/* hero */
-.weather-widget__hero {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  align-content: space-between;
-  gap: 4px;
-  min-height: 0;
-}
-
-.weather-widget__hero-top {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  margin-bottom: 0;
-}
-
-.weather-widget__city {
-  margin: 0;
-  font-size: var(--fs-meta);
-  line-height: 1.2;
-  letter-spacing: var(--tracking-caps);
-  text-transform: uppercase;
-  color: var(--tone-ink-soft);
-  font-weight: 600;
-}
-
-.weather-widget__condition {
-  margin: 0;
-  font-size: var(--dash-type-caption);
-  line-height: 1.3;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--tone-ink);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: var(--tone-surface);
-  backdrop-filter: blur(6px);
-}
-
-.weather-widget__temp {
-  display: inline-flex;
-  align-items: flex-start;
-  gap: 2px;
-  font-family: var(--font-display);
-  line-height: 0.9;
-  letter-spacing: -0.04em;
-  color: var(--tone-ink);
-  animation: weather-main-in var(--motion-duration-medium) var(--ease-out-expo);
-}
-
-.weather-widget__temp-value {
-  font-size: clamp(40px, 5.4vw, 60px);
-  font-weight: 500;
-}
-
-.weather-widget__temp-unit {
-  font-size: clamp(16px, 1.8vw, 22px);
-  font-weight: 400;
-  margin-top: 0.4em;
-  opacity: 0.7;
-}
-
-.weather-widget__range {
-  margin: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  font-size: var(--fs-label);
-  line-height: 1.4;
-  letter-spacing: 0.04em;
-  color: var(--tone-ink-soft);
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-}
-
-.weather-widget__range-pair {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.weather-widget__range-key {
-  display: inline-block;
-  font-size: var(--fs-meta);
-  letter-spacing: var(--tracking-caps);
-  padding: 2px 5px;
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--tone-ink) 12%, transparent);
-  color: var(--tone-ink);
-  font-weight: 700;
-}
-
-.weather-widget__range-sep {
-  width: 12px;
-  height: 1px;
-  background: color-mix(in srgb, var(--tone-ink) 22%, transparent);
-}
-
-/* segments */
-.weather-widget__segments {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-rows: repeat(3, 1fr);
-  gap: 3px;
-  padding: 3px;
-  border-radius: var(--radius-md);
-  background: var(--tone-surface);
-  backdrop-filter: blur(8px);
-  border: 1px solid color-mix(in srgb, var(--tone-ink) 8%, transparent);
-  align-self: stretch;
-}
-
-.weather-widget__segment {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 8px;
-  padding: 0 10px;
-  min-height: 0;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--tone-ink);
-  cursor: pointer;
-  text-align: center;
-  font-family: inherit;
-  transition:
-    background-color var(--motion-duration-medium) var(--ease-out-expo),
-    transform var(--motion-duration-base) var(--ease-out-expo),
-    box-shadow var(--motion-duration-medium) var(--ease-out-expo);
-  animation: weather-row-in 460ms var(--ease-out-expo) both;
-  animation-delay: calc(var(--seg-index, 0) * 72ms);
-}
-
-.weather-widget__segment:hover {
-  background: color-mix(in srgb, var(--tone-ink) 6%, transparent);
-}
-
-/* One selection style app-wide (DESIGN.md › Selection): a raised thumb, not an inverse fill. */
-.weather-widget__segment[data-active='true'] {
-  background: color-mix(in srgb, var(--paper-raised) 90%, transparent);
-  color: var(--tone-ink);
-  box-shadow: var(--segmented-thumb-shadow);
-}
-
-.weather-widget__segment[data-active='true'] .weather-icon {
-  color: currentColor;
-}
-
-.weather-widget__segment .weather-icon {
-  justify-self: center;
-}
-
-.weather-widget__segment:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--tone-ink) 40%, transparent);
-  outline-offset: 2px;
-}
-
-.weather-widget__segment-label {
-  font-size: var(--fs-meta);
-  letter-spacing: 0.04em;
-  font-weight: 700;
-  white-space: nowrap;
-  justify-self: start;
-}
-
-.weather-widget__segment-range {
-  display: inline-flex;
-  gap: 6px;
-  font-size: var(--fs-label);
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  justify-self: end;
-}
-
-.weather-widget__segment-hi {
-  color: currentColor;
-}
-
-.weather-widget__segment-lo {
-  opacity: 0.5;
-}
-
+/* Weather condition icons (diary timeline and meta). The dashboard weather card
+   lives in features/weather/weather-card.css. */
 .weather-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: currentColor;
-  transition:
-    color var(--motion-duration-base) var(--ease-out-expo),
-    transform var(--motion-duration-base) var(--ease-out-expo),
-    filter var(--motion-duration-base) var(--ease-out-expo);
-}
-
-.weather-widget__condition .weather-icon:hover {
-  transform: translateY(-1px) scale(1.04);
-}
-
-@keyframes weather-main-in {
-  from {
-    opacity: 0;
-    transform: translate3d(0, 6px, 0);
-  }
-  to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-@keyframes weather-refresh-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes weather-row-in {
-  from {
-    opacity: 0;
-    transform: translate3d(0, 6px, 0);
-  }
-  to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-@keyframes atmos-drift-a {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  50% { transform: translate3d(18%, 6%, 0) scale(1.08); }
-}
-
-@keyframes atmos-drift-b {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  50% { transform: translate3d(-14%, -8%, 0) scale(1.06); }
-}
-
-@keyframes atmos-rainfall {
-  0%   { transform: translate3d(0, -20%, 0) skewX(-8deg);  opacity: 0; }
-  10%  { opacity: 0.95; }
-  90%  { opacity: 0.95; }
-  100% { transform: translate3d(-22px, 280%, 0) skewX(-8deg); opacity: 0; }
-}
-
-@keyframes atmos-rays-spin {
-  to { transform: rotate(360deg); }
-}
-
-@keyframes atmos-flash {
-  /* mostly dark, with quick double-strike every ~6s */
-  0%, 88%, 100%       { opacity: 0; }
-  89%                 { opacity: 0.95; }
-  90%                 { opacity: 0.05; }
-  91%                 { opacity: 0.75; }
-  92%                 { opacity: 0; }
-}
-
-@keyframes atmos-snow {
-  0% { transform: translate3d(0, -10%, 0); opacity: 0; }
-  20% { opacity: 1; }
-  100% { transform: translate3d(20px, 260%, 0); opacity: 0; }
-}
-
-@keyframes atmos-sun-pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.08); opacity: 0.85; }
-}
-
-@keyframes atmos-storm-flicker {
-  0%, 92%, 96%, 100% { opacity: 0.4; }
-  93%, 95% { opacity: 1; }
-  94% { opacity: 0.2; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .weather-widget,
-  .weather-widget__segment,
-  .weather-widget__temp,
-  .weather-icon,
-  .weather-widget__atmos-glow,
-  .weather-widget__atmos-blob,
-  .weather-widget__atmos-particle,
-  .weather-widget__atmos-rays,
-  .weather-widget__atmos-flash,
-  .weather-widget__timeline-progress {
-    animation: none !important;
-    transition: none !important;
-  }
 }
 
 .weather-icon--sun {
@@ -11140,20 +10281,6 @@ html[data-theme='dark'] .weather-widget-card:has(.weather-widget) {
 
 .weather-icon--storm {
   color: color-mix(in srgb, #f59e0b 58%, #7c2d12);
-}
-
-@container (max-width: 280px) {
-  .weather-widget {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto;
-  }
-  .weather-widget__segments {
-    grid-template-rows: repeat(3, minmax(28px, 1fr));
-  }
-}
-
-.weather-widget-card .card__body {
-  container-type: inline-size;
 }
 
 .muted {
@@ -11476,20 +10603,6 @@ html[data-motion='reduce'] .dialog--visible .dialog__panel {
     margin-bottom: 8px;
   }
 
-  .app-shell__hero-stage {
-    min-height: 84px;
-  }
-
-  .app-shell__hero-item--quote {
-    left: 12px;
-    right: 12px;
-    top: auto;
-    bottom: -4px;
-    width: auto;
-    margin-top: 0;
-    padding: 0;
-  }
-
   .world-clock-strip {
     grid-template-columns: 1fr;
     gap: 8px;
@@ -11502,51 +10615,6 @@ html[data-motion='reduce'] .dialog--visible .dialog__panel {
 
   .world-clock-strip__actions {
     width: 100%;
-  }
-
-  .app-shell__hero-quote-content {
-    max-width: none;
-    width: max-content;
-  }
-
-  .app-shell__hero-quote {
-    font-size: var(--fs-label);
-    line-height: 1.2;
-    display: block;
-    white-space: nowrap;
-    overflow: visible;
-  }
-
-  .app-shell__hero-quote-author {
-    font-size: var(--fs-meta);
-  }
-
-  .app-shell__hero-date {
-    font-size: calc(16px * var(--node-scale));
-  }
-
-  .app-shell__hero-lunar {
-    font-size: calc(16px * var(--node-scale));
-  }
-
-  .app-shell__hero-time-main {
-    font-size: calc(42px * var(--node-scale));
-  }
-
-  .app-shell__hero-time {
-    --clock-seconds-size: calc(24px * var(--node-scale));
-  }
-
-  .app-shell__hero-time-colon {
-    font-size: calc(40px * var(--node-scale));
-  }
-
-  .app-shell__hero-time-seconds-wrap {
-    font-size: var(--clock-seconds-size);
-  }
-
-  .app-shell__hero-time-seconds {
-    font-size: var(--clock-seconds-size) !important;
   }
 
   .app-shell__status {
@@ -11593,11 +10661,6 @@ html[data-motion='reduce'] .dialog--visible .dialog__panel {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .app-shell__hero-quote-content {
-    animation: none !important;
-    will-change: auto;
-  }
-
   .world-clock-strip__spinner {
     animation: none !important;
   }
@@ -11761,7 +10824,7 @@ textarea:focus-visible,
   border-radius: var(--radius-lg);
   border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
   background: color-mix(in srgb, var(--surface) 94%, var(--bg-muted) 6%);
-  box-shadow: 0 18px 40px color-mix(in srgb, #3a3733 10%, transparent);
+  box-shadow: var(--elev-1);
   overflow: hidden;
 }
 
@@ -11805,7 +10868,7 @@ textarea:focus-visible,
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 18px 40px color-mix(in srgb, #3a3733 10%, transparent);
+  box-shadow: var(--elev-1);
 }
 
 .focus-sidebar__top {
@@ -12084,7 +11147,7 @@ textarea:focus-visible,
 .calendar-day__header {
   display: flex;
   justify-content: space-between;
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .calendar-day__events {
@@ -12103,7 +11166,7 @@ textarea:focus-visible,
 
 .calendar-event__title {
   margin: 0;
-  font-weight: 640;
+  font-weight: 600;
 }
 
 .calendar-event__meta {
@@ -12176,7 +11239,7 @@ textarea:focus-visible,
   font-size: var(--calendar-text-title);
   line-height: 1.05;
   letter-spacing: -0.028em;
-  font-weight: 760;
+  font-weight: 700;
 }
 
 .calendar-mini {
@@ -12583,7 +11646,7 @@ textarea:focus-visible,
 
 .calendar-month-grid__date {
   font-size: var(--calendar-text-label);
-  font-weight: 660;
+  font-weight: 600;
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
   transition: color var(--motion-duration-fast) var(--ease-standard);
@@ -12630,12 +11693,25 @@ textarea:focus-visible,
 .calendar-chip--event   { --chip-color: var(--ink-3); }
 .calendar-chip--task    { --chip-color: var(--ink-4); }
 
+/* Scheduled after today: a dashed pencil outline on bare paper. The title
+   stays ink so it reads; the source colour keeps its 2px bar. */
+.calendar-chip--planned {
+  padding: 1px 5px 1px 7px;
+  border: 1px dashed var(--pencil-line);
+  background: transparent;
+  color: var(--ink-2);
+}
+
+.calendar-chip--planned:hover {
+  background: var(--paper-sunken);
+}
+
 .calendar-chip--task-done {
   --chip-color: var(--ink-4);
   color: var(--ink-3);
   text-decoration: line-through;
   text-decoration-thickness: 1px;
-  text-decoration-color: var(--ink-4);
+  text-decoration-color: var(--ink-2);
 }
 
 .calendar-chip--more {
@@ -12653,6 +11729,7 @@ textarea:focus-visible,
 }
 
 .calendar-side-panel__title {
+  font-family: var(--font-body);
   margin: 0;
   font-size: var(--fs-label);
   line-height: 1.2;
@@ -12792,37 +11869,6 @@ textarea:focus-visible,
   gap: 10px;
 }
 
-.calendar-side-row__dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  background: #5f7688;
-}
-
-.calendar-side-row__dot--todo {
-  background: var(--status-todo);
-}
-
-.calendar-side-row__dot--doing {
-  background: var(--status-doing);
-}
-
-.calendar-side-row__dot--done {
-  background: var(--status-done);
-}
-
-.calendar-side-row__dot--lunar {
-  background: #28b1e1;
-}
-
-.calendar-side-row__dot--holiday {
-  background: #4f7782;
-}
-
-.calendar-side-row__dot--event {
-  background: #4f7782;
-}
-
 .calendar-side-row__text {
   min-width: 0;
   font-size: var(--calendar-text-body);
@@ -12834,10 +11880,10 @@ textarea:focus-visible,
 }
 
 .calendar-side-row__text.is-done {
-  color: color-mix(in srgb, var(--text-secondary) 82%, transparent);
+  color: var(--ink-3);
   text-decoration: line-through;
   text-decoration-thickness: 1px;
-  text-decoration-color: color-mix(in srgb, var(--text-secondary) 70%, transparent);
+  text-decoration-color: var(--ink-2);
 }
 
 .calendar-v2__right .calendar-side-row__text.is-cjk {
@@ -13473,7 +12519,7 @@ textarea:focus-visible,
   border-radius: var(--radius-lg);
   border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
   background: color-mix(in srgb, var(--surface) 94%, var(--bg-muted) 6%);
-  box-shadow: 0 18px 36px color-mix(in srgb, #3a3733 11%, transparent);
+  box-shadow: var(--elev-1);
   /* The frosted panel (backdrop-filter, see :not([data-ambient-scene='idle']))
      must NOT be the scroll container: scrolling content inside a backdrop-filter
      element forces a full-panel re-blur every frame (defeats GPU fast-scroll →
@@ -13499,10 +12545,31 @@ textarea:focus-visible,
   border-radius: var(--radius-lg);
   border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
   background: color-mix(in srgb, var(--surface) 97%, var(--bg-muted) 3%);
-  box-shadow: 0 18px 36px color-mix(in srgb, #3a3733 11%, transparent);
+  box-shadow: var(--elev-1);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+/* A white desk with distinct paper levels. The work canvas is slightly
+   recessed, so white content cards remain legible without heavy shadows.
+   Ambient scenes keep their glass styling. */
+html[data-theme='light'] .focus-shell[data-ambient-scene='idle'] .focus-shell__main {
+  background: #f7f8f7;
+  border-color: #e5e7e5;
+  box-shadow: 0 1px 2px rgba(40, 48, 44, 0.06), 0 12px 32px -24px rgba(40, 48, 44, 0.22);
+}
+
+html[data-theme='light'] .focus-shell[data-ambient-scene='idle'] .focus-sidebar {
+  background: #f1f3f1;
+  border-color: #e5e7e5;
+  box-shadow: 0 1px 2px rgba(40, 48, 44, 0.05);
+}
+
+html[data-theme='light'] .focus-shell[data-ambient-scene='idle'] .dashboard .card:not(.dashboard-widget-card--weather) {
+  background: #ffffff;
+  border-color: #e0e4e1;
+  box-shadow: 0 1px 2px rgba(40, 48, 44, 0.05), 0 12px 24px -20px rgba(40, 48, 44, 0.18);
 }
 
 .focus-sidebar__top {
@@ -13696,13 +12763,22 @@ html[data-theme='dark'] .focus-sidebar__nav[data-active-indicator] > .focus-side
   mix-blend-mode: multiply;
 }
 
+/* Two layers crossfade (the stage animates their opacity); each holds one
+   canvas the stage swaps out per scene, 2D or WebGL. */
+.focus-shell__scene-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+}
+
 .focus-shell__scene-canvas {
   position: absolute;
   inset: 0;
+  display: block;
   width: 100%;
   height: 100%;
   pointer-events: none;
-  opacity: 0;
 }
 
 /* Per-scene motif drift (cheap, GPU-composited). Each scene supplies
@@ -13763,6 +12839,36 @@ html[data-theme='dark'] .focus-shell__scene-backdrop[data-scene='idle'] {
     radial-gradient(120% 90% at 50% 50%, color-mix(in srgb, #221e1a 100%, transparent), color-mix(in srgb, #1d1b18 92%, transparent) 60%, color-mix(in srgb, #0f0e0c 80%, transparent) 100%);
   background-size: 140% 140%, 140% 140%, 100% 100%;
   animation: ambient-idle-mesh 38s ease-in-out infinite;
+}
+
+/* Window light: the default desk when no sound scene plays. The three.js
+   painting draws the light and leaf shadows; this gradient is what shows while
+   it loads or if WebGL can't start. The painting does its own falloff, so the
+   CSS motifs and vignette stay off. */
+.focus-shell__scene-backdrop[data-scene='window-light'] {
+  --scene-base: #dbd6cd;
+  --scene-wash: color-mix(in srgb, #fff3dc 40%, transparent);
+  --scene-accent: color-mix(in srgb, #d9c7a8 26%, transparent);
+  --scene-shadow: color-mix(in srgb, #3A3733 10%, transparent);
+  background:
+    linear-gradient(118deg, transparent 22%, color-mix(in srgb, #fff6e6 72%, transparent) 40%, color-mix(in srgb, #fff6e6 72%, transparent) 62%, transparent 80%),
+    #dbd6cd;
+}
+
+html[data-theme='dark'] .focus-shell__scene-backdrop[data-scene='window-light'] {
+  --scene-base: #1b1916;
+  --scene-wash: color-mix(in srgb, #4a3a28 30%, transparent);
+  --scene-accent: color-mix(in srgb, #8F4D2C 16%, transparent);
+  --scene-shadow: color-mix(in srgb, #000 50%, transparent);
+  background:
+    linear-gradient(118deg, transparent 22%, color-mix(in srgb, #e6d3ae 12%, transparent) 40%, color-mix(in srgb, #e6d3ae 12%, transparent) 62%, transparent 80%),
+    #1b1916;
+}
+
+.focus-shell__scene-backdrop[data-scene='window-light']::before,
+.focus-shell__scene-backdrop[data-scene='window-light']::after,
+.focus-shell__scene-backdrop[data-scene='window-light'] .focus-shell__scene-vignette {
+  display: none;
 }
 
 /* Rainy-cafe: warm amber wash, drifting window-light, particles handle rain. */
@@ -14905,17 +14011,17 @@ html[data-theme='dark'] .focus-card-lite {
 
 html[data-theme='dark'] .dashboard .card.dashboard-widget-card--shadow-safe,
 html[data-theme='dark'] .dashboard .card.dashboard-widget-card--weather {
-  box-shadow: var(--shadow-soft), 0 16px 32px rgba(0, 0, 0, 0.16);
+  box-shadow: var(--elev-1);
 }
 
 html[data-theme='dark'] .dashboard .card.dashboard-widget-card--shadow-safe:hover,
 html[data-theme='dark'] .dashboard .card.dashboard-widget-card--weather:hover {
-  box-shadow: var(--shadow-soft), 0 16px 32px rgba(0, 0, 0, 0.16);
+  box-shadow: var(--elev-2);
 }
 
 html[data-theme='dark'] .focus-card-figma-shell {
   background: color-mix(in srgb, var(--bg-elevated) 94%, var(--color-ink));
-  box-shadow: var(--shadow-soft), 0 16px 32px rgba(0, 0, 0, 0.16);
+  box-shadow: var(--elev-1);
 }
 
 html[data-theme='dark'] .focus-card-figma-shell .card__header {
@@ -15089,11 +14195,6 @@ html[data-theme='dark'] .widget-todos__item:hover {
   background: color-mix(in srgb, var(--tasks-widget-item-bg) 92%, transparent) !important;
 }
 
-html[data-theme='dark'] .widget-plan-checkbox-wrap {
-  border-color: rgba(255, 255, 255, 0.08);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
-}
-
 html[data-theme='dark'] .calendar-v2__right {
   background: color-mix(in srgb, var(--bg-muted) 88%, var(--bg-elevated) 12%) !important;
 }
@@ -15157,7 +14258,7 @@ html[data-theme='dark'] .calendar-subscriptions__add--soft-dark svg {
 
 html[data-theme='dark'] .diary-launcher-card {
   background: color-mix(in srgb, var(--bg-elevated) 94%, var(--color-ink));
-  box-shadow: var(--shadow-soft), 0 16px 32px rgba(0, 0, 0, 0.16);
+  box-shadow: var(--elev-1);
 }
 
 html[data-theme='dark'] .diary-launcher-card__open,
@@ -15172,33 +14273,6 @@ html[data-theme='dark'] .diary-launcher-card__date {
   color: color-mix(in srgb, #F5F3F0 68%, transparent);
 }
 
-html[data-theme='dark'] .weather-widget__temp,
-html[data-theme='dark'] .weather-widget__condition,
-html[data-theme='dark'] .weather-widget__day-label,
-html[data-theme='dark'] .weather-widget__day-range {
-  color: var(--ink-1);
-}
-
-html[data-theme='dark'] .weather-widget__row {
-  background: color-mix(in srgb, var(--bg-muted) 88%, var(--color-ink));
-  border-color: rgba(255, 255, 255, 0.08);
-}
-
-html[data-theme='dark'] .weather-widget__row[data-active='true'],
-html[data-theme='dark'] .weather-widget__row:hover,
-html[data-theme='dark'] .weather-widget__row:focus-visible {
-  border-color: color-mix(in srgb, var(--accent) 26%, rgba(255, 255, 255, 0.12));
-  background: color-mix(in srgb, var(--bg-elevated) 90%, var(--bg-muted));
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.22);
-}
-
-html[data-theme='dark'] .weather-widget__timeline {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-html[data-theme='dark'] .weather-widget__timeline-progress {
-  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 56%, #d9c3a0) 0%, #F5F3F0 100%);
-}
 
 html[data-theme='dark'] .focus-page--zip-bleed::before {
   background:
@@ -16049,7 +15123,7 @@ html[data-theme='dark'] .user-modal__badge--premium {
 }
 
 .acct-name {
-  font-family: var(--font-display);
+  font-family: var(--font-reading);
   font-size: var(--fs-section);
   font-weight: 700;
   color: var(--text-primary);
@@ -16202,11 +15276,11 @@ html[data-theme='dark'] .acct-streak-line {
 
 .acct-stat-value {
   font-size: var(--fs-subhead);
-  font-weight: 800;
+  font-weight: 500;
   color: var(--text-primary);
   line-height: 1;
-  font-variant-numeric: tabular-nums;
-  font-family: var(--font-display);
+  font-family: var(--font-numeral);
+  font-variant-numeric: var(--num-features);
 }
 
 .acct-stat-label {
@@ -17355,10 +16429,6 @@ html[data-theme='dark'] .focus-card-lite__status.is-running {
   color: color-mix(in srgb, var(--accent) 80%, #f5f3f0);
 }
 
-html[data-theme='dark'] .focus-card-lite__progress-fill {
-  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 55%, #b99d7a) 0%, var(--accent) 100%);
-}
-
 html[data-theme='dark'] .focus-card-lite__primary-raw,
 html[data-theme='dark'] .focus-card-lite__primary-raw.is-running {
   background: linear-gradient(160deg, rgba(242, 237, 228, 0.15) 0%, rgba(242, 237, 228, 0.08) 100%);
@@ -17728,8 +16798,7 @@ html[data-theme='dark'] .focus-settings__variantOption.is-active {
 }
 
 .acct-role {
-  font-family: var(--font-display);
-  font-style: italic;
+  font-family: var(--font-reading);
   font-size: var(--fs-body);
   color: color-mix(in srgb, var(--text-primary) 75%, var(--text-secondary));
   line-height: 1.35;
@@ -17778,13 +16847,12 @@ html[data-theme='dark'] .focus-settings__variantOption.is-active {
 }
 
 .acct-bio {
-  font-family: var(--font-display);
-  font-style: italic;
+  font-family: var(--font-reading);
   font-size: var(--fs-ui);
   line-height: 1.6;
   color: color-mix(in srgb, var(--text-primary) 82%, var(--text-secondary));
   margin: 6px 0 0;
-  max-width: 56ch;
+  max-width: 40em;
   white-space: pre-wrap;
 }
 
@@ -18130,7 +17198,7 @@ html[data-animations='paused'] *::after {
   position: absolute;
   inset: 0 auto 0 0;
   width: calc(var(--completion, 0) * 1%);
-  background: linear-gradient(90deg, var(--todo-ochre), var(--todo-rust));
+  background: var(--accent);
   border-radius: 2px;
   transition: width var(--motion-duration-slow) var(--ease-emphasized);
 }
@@ -18203,23 +17271,6 @@ html[data-animations='paused'] *::after {
   background: var(--bg-elevated);
 }
 
-/* Checkbox → moss when checked (success semantic), neutral when empty */
-.dashboard-widget-card--todo .widget-plan-checkbox-wrap {
-  background: var(--bg-elevated);
-  border-color: var(--todo-rule);
-}
-
-.dashboard-widget-card--todo .widget-plan-checkbox-wrap[data-checked='true'],
-.dashboard-widget-card--todo .widget-plan-checkbox-wrap[data-state='checked'] {
-  background: var(--todo-moss);
-  border-color: var(--todo-moss);
-}
-
-.dashboard-widget-card--todo .widget-plan-checkbox-wrap[data-checked='true'] .widget-plan-checkbox-icon path,
-.dashboard-widget-card--todo .widget-plan-checkbox-wrap[data-state='checked'] .widget-plan-checkbox-icon path {
-  stroke: #fff;
-}
-
 /* Section headers → mono small-caps eyebrow */
 .dashboard-widget-card--todo .widget-todos__section-label {
   font-family: var(--todo-mono);
@@ -18248,18 +17299,6 @@ html[data-animations='paused'] *::after {
   color: var(--todo-ink-soft);
 }
 
-.dashboard-widget-card--todo .widget-todos__empty-mark {
-  background: radial-gradient(circle at 30% 30%, var(--bg-elevated), var(--todo-paper-warm) 70%);
-  box-shadow: inset 0 0 0 1px var(--todo-rule-soft);
-}
-
-.dashboard-widget-card--todo .widget-todos__empty-title {
-  color: var(--todo-ink);
-  font-family: "Fraunces", "Noto Serif SC", serif;
-  font-weight: 500;
-  font-size: var(--fs-ui);
-  letter-spacing: 0;
-}
 
 .dashboard-widget-card--todo .widget-todos__empty-hint {
   color: var(--todo-ink-mute);
@@ -18282,10 +17321,6 @@ html[data-theme='dark'] .dashboard-widget-card--todo .widget-todos__tab-indicato
 
 html[data-theme='dark'] .dashboard-widget-card--todo .widget-todos__item,
 html[data-theme='dark'] .dashboard-widget-card--todo .widget-todos__item:hover {
-  background: #1f1a16;
-}
-
-html[data-theme='dark'] .dashboard-widget-card--todo .widget-plan-checkbox-wrap {
   background: #1f1a16;
 }
 
@@ -18322,23 +17357,9 @@ html[data-theme='dark'] .dashboard-widget-card--todo .widget-plan-checkbox-wrap 
   color: #fff;
 }
 
-/* Summary line → keep italic Fraunces, just tune palette */
+/* Summary line → display serif, just tune palette */
 .dashboard-widget-card--worldclock .wc-summary {
   color: var(--wcc-ink-mute);
-}
-
-/* Empty state → lighter paper with editorial italic */
-.dashboard-widget-card--worldclock .wc-empty {
-  background:
-    radial-gradient(120% 60% at 50% 0%, rgba(201, 138, 28, 0.06) 0%, transparent 70%),
-    var(--wcc-paper-warm);
-  color: var(--wcc-ink-soft);
-  border: 1px solid var(--wcc-rule-soft);
-}
-
-.dashboard-widget-card--worldclock .wc-empty__meridian {
-  stroke: var(--wcc-ochre);
-  opacity: 0.55;
 }
 
 /* Row dividers → editorial hairline */
@@ -18416,8 +17437,7 @@ html[data-theme='dark'] .dashboard-widget-card--todo .widget-plan-checkbox-wrap 
 }
 
 .dashboard-widget-card--worldclock .wc-composer__no-results {
-  font-family: "Fraunces", "Noto Serif SC", serif;
-  font-style: italic;
+  font-family: var(--font-display);
   color: var(--wcc-ink-mute);
 }
 
@@ -18450,9 +17470,8 @@ html[data-theme='dark'] .dashboard-widget-card--todo .widget-plan-checkbox-wrap 
 /* ── Header: kicker on top, headline below ─────────────────────────────── */
 .dashboard-widget-card--tasks > .card__header > div > .card__title {
   font-family: var(--tk-serif);
-  font-variation-settings: "opsz" 96, "SOFT" 30;
   font-weight: 500;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.01em;
   color: var(--tk-ink);
 }
 
@@ -18504,7 +17523,6 @@ html[data-theme='dark'] .dashboard-widget-card--todo .widget-plan-checkbox-wrap 
 /* ── Group header (project sections) ───────────────────────────────────── */
 .dashboard-widget-card--tasks .tasks-fg__group-header h3 {
   font-family: var(--tk-serif);
-  font-style: italic;
   font-weight: 500;
   font-size: var(--fs-body);
   color: var(--tk-ink);

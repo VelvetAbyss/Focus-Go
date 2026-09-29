@@ -1,11 +1,14 @@
-import { forwardRef, useState } from 'react'
-import { CircleCheck, Circle, GitBranch, LockKeyhole, Pin, PinOff, Play, RotateCcw, SunMedium, Trash2, Undo2 } from 'lucide-react'
+import { forwardRef, useEffect, useRef, useState } from 'react'
+import * as PopoverPrimitive from '@radix-ui/react-popover'
+import { CircleCheck, GitBranch, LockKeyhole, Pin, PinOff, Play, RotateCcw, SunMedium, Trash2, Undo2 } from 'lucide-react'
 import type { CSSProperties, HTMLAttributes, ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { Popover, PopoverContent } from '../../../shared/ui/popover'
 import { useI18n } from '../../../shared/i18n/useI18n'
 import { useVisibleInterval } from '../../../shared/hooks/usePageActivity'
 import type { TaskItem } from '../tasks.types'
+import { parseDateOnlyToLocalDayStart } from '../domain/taskRules'
 import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, getTaskDeadlineState, getTaskPriorityKey } from './taskPresentation'
 
 type TaskCardProject = {
@@ -41,12 +44,30 @@ type TaskCardProps = {
   selectionMode?: boolean
 }
 
-const formatDate = (value: string, language: string) =>
-  new Date(value).toLocaleDateString(language === 'zh' ? 'zh-CN' : 'en-US', {
+// How long the pointer has to rest on a card before the subtask/blocker peek
+// opens. Sweeping the cursor across the grid must not flash a popover per card.
+const PEEK_INTENT_MS = 400
+const SUBTASK_PEEK_LIMIT = 4
+
+// Reads the due date through the same strict YYYY-MM-DD parser the deadline,
+// Today and calendar logic use, so the card never shows a date the rest of the
+// app ignores (it used to print "Invalid Date" for malformed values).
+const formatDueDay = (dayStart: number, language: string) =>
+  new Date(dayStart).toLocaleDateString(language === 'zh' ? 'zh-CN' : 'en-US', {
     month: 'short',
     day: 'numeric',
   })
 
+/**
+ * Every card has the same shape, so a grid of them lines up:
+ *   - the title box always reserves two lines (short titles leave the second
+ *     line as air, long ones clamp),
+ *   - one footer line sits at the bottom: state on the left ("● 高 · 9月25日 ·
+ *     3/5"), the project on the right.
+ * Hover never changes the card's size. The footer swaps in place to the action
+ * row, and pending subtasks / blockers open in a portaled peek below the card
+ * after a short rest, instead of unfolding the card and pushing the grid.
+ */
 const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
   (
     {
@@ -73,30 +94,44 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
     ) => {
     const { t, language } = useI18n()
     const [isHovered, setIsHovered] = useState(false)
+    const [peekOpen, setPeekOpen] = useState(false)
+    const peekTimerRef = useRef<number | null>(null)
     const [now, setNow] = useState(() => Date.now())
     const priorityKey = getTaskPriorityKey(task.priority)
     const priorityCfg = TASK_PRIORITY_CONFIG[priorityKey]
-    const displayTags = task.tags.slice(0, 2)
-    const extraTagCount = task.tags.length - 2
+    const firstTag = task.tags[0]
+    const extraTagCount = task.tags.length - 1
 
     const subtasks = task.subtasks ?? []
     const totalSubtasks = subtasks.length
     const doneSubtasks = subtasks.filter((s) => s.done).length
     const pendingSubtasks = subtasks.filter((s) => !s.done)
-    const SUBTASK_PEEK_LIMIT = 4
     const visibleSubtasks = pendingSubtasks.slice(0, SUBTASK_PEEK_LIMIT)
     const remainingSubtasks = pendingSubtasks.length - visibleSubtasks.length
     const hasSubtasks = totalSubtasks > 0
-    const showHoverPanel = isHovered && pendingSubtasks.length > 0
     const blockedCount = task.blockedByTaskIds?.length ?? 0
     const dependencyCount = task.dependencyTaskIds?.length ?? 0
     const isBlocked = task.isBlocked || blockedCount > 0
+    const peekBlockers = isBlocked ? dependencyTasks : []
+    const hasPeek = !selectionMode && (pendingSubtasks.length > 0 || peekBlockers.length > 0)
 
     useVisibleInterval(() => setNow(Date.now()), 60_000, { runOnVisible: true })
 
+    const clearPeekTimer = () => {
+      if (peekTimerRef.current != null) {
+        window.clearTimeout(peekTimerRef.current)
+        peekTimerRef.current = null
+      }
+    }
+
+    useEffect(() => clearPeekTimer, [])
+
     const deadline = getTaskDeadlineState(task, now)
+    const dueDay = parseDateOnlyToLocalDayStart(task.dueDate)
 
     const activateTask = (cardElement: HTMLDivElement) => {
+      clearPeekTimer()
+      setPeekOpen(false)
       setIsHovered(false)
       cardElement.blur()
       const handler = onClick ?? onSelect
@@ -112,7 +147,7 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
             ? t('tasks.card.dueToday')
             : t('tasks.card.dueSoon', { n: deadline.daysRemaining })
 
-    const metaItems: { key: string; node: ReactNode }[] = []
+    const metaItems: { key: string; node: ReactNode; shrink?: boolean }[] = []
     if (priorityKey !== 'none') {
       metaItems.push({
         key: 'priority',
@@ -124,12 +159,12 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
         ),
       })
     }
-    if (task.dueDate) {
+    if (dueDay != null) {
       metaItems.push({
         key: 'due',
         node: (
           <span className={cn('task-card__due', task.status !== 'done' && deadline.textClass)}>
-            {formatDate(task.dueDate, language)}
+            {formatDueDay(dueDay, language)}
             {deadlineText && task.status !== 'done' ? <> · {deadlineText}</> : null}
           </span>
         ),
@@ -168,227 +203,250 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
         ),
       })
     }
+    if (firstTag) {
+      metaItems.push({
+        key: 'tags',
+        shrink: true,
+        node: (
+          <span className="task-card__tag">
+            <span className="truncate">#{firstTag}</span>
+            {extraTagCount > 0 ? <span className="task-card__tag--more">+{extraTagCount}</span> : null}
+          </span>
+        ),
+      })
+    }
 
     return (
-      <div
-        ref={ref}
-        className={cn(
-          'task-card-shell group relative overflow-hidden cursor-pointer',
-          task.status === 'done' && 'opacity-70',
-          compact && 'rounded-md',
-          selected && 'ring-2 ring-[color-mix(in_srgb,var(--text-primary)_35%,transparent)] dark:ring-white/40',
-        )}
-        style={style}
-        data-priority={priorityKey}
-        data-status={task.status}
-        {...(interactive ? dragAttributes : undefined)}
-        {...(interactive ? dragListeners : undefined)}
-        role={interactive ? 'button' : undefined}
-        tabIndex={interactive ? 0 : undefined}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        onClick={(event) => activateTask(event.currentTarget)}
-        onKeyDown={(event) => {
-          if (!interactive || event.target !== event.currentTarget) return
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault()
-            activateTask(event.currentTarget)
-          }
-        }}
-      >
-        {selectionMode ? (
-          <span
+      <Popover open={hasPeek && peekOpen} onOpenChange={(open) => { if (!open) setPeekOpen(false) }}>
+        <PopoverPrimitive.Anchor asChild>
+          <div
+            ref={ref}
             className={cn(
-              'absolute left-2 top-2 z-[2] inline-flex h-5 min-w-5 items-center justify-center rounded-full border px-1 text-meta font-semibold',
-              selected ? 'border-[color-mix(in_srgb,var(--text-primary)_35%,transparent)] bg-[var(--text-primary)] text-[var(--bg-elevated)]' : 'border-[color-mix(in_srgb,var(--text-primary)_18%,transparent)] bg-[var(--bg-elevated)] text-[var(--text-primary)]',
+              'task-card-shell group relative cursor-pointer',
+              task.status === 'done' && 'opacity-70',
+              compact && 'rounded-md',
+              selected && 'ring-2 ring-[color-mix(in_srgb,var(--text-primary)_35%,transparent)] dark:ring-white/40',
             )}
+            style={style}
+            data-priority={priorityKey}
+            data-status={task.status}
+            {...(interactive ? dragAttributes : undefined)}
+            {...(interactive ? dragListeners : undefined)}
+            role={interactive ? 'button' : undefined}
+            tabIndex={interactive ? 0 : undefined}
+            onMouseEnter={() => {
+              setIsHovered(true)
+              if (!hasPeek) return
+              clearPeekTimer()
+              peekTimerRef.current = window.setTimeout(() => setPeekOpen(true), PEEK_INTENT_MS)
+            }}
+            onMouseLeave={() => {
+              setIsHovered(false)
+              clearPeekTimer()
+              setPeekOpen(false)
+            }}
+            onPointerDown={() => {
+              // Pressing starts a click or a drag; the peek would only be in the way.
+              clearPeekTimer()
+              setPeekOpen(false)
+            }}
+            onClick={(event) => activateTask(event.currentTarget)}
+            onKeyDown={(event) => {
+              if (!interactive || event.target !== event.currentTarget) return
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                activateTask(event.currentTarget)
+              }
+            }}
           >
-            {selected ? '✓' : ''}
-          </span>
-        ) : null}
+            {selectionMode ? (
+              <span
+                className={cn(
+                  'absolute left-2 top-2 z-[2] inline-flex h-5 min-w-5 items-center justify-center rounded-full border px-1 text-meta font-semibold',
+                  selected ? 'border-[color-mix(in_srgb,var(--text-primary)_35%,transparent)] bg-[var(--text-primary)] text-[var(--bg-elevated)]' : 'border-[color-mix(in_srgb,var(--text-primary)_18%,transparent)] bg-[var(--bg-elevated)] text-[var(--text-primary)]',
+                )}
+              >
+                {selected ? '✓' : ''}
+              </span>
+            ) : null}
 
-        <div className="space-y-2.5 p-3.5">
-          <div className="flex items-start gap-2">
-            {task.pinned ? <Pin className="mt-0.5 size-3.5 shrink-0 fill-current text-ink-3" aria-hidden /> : null}
-            <h4
-              className={cn(
-                'task-card__title flex-1 text-body font-semibold line-clamp-2 transition-colors duration-300',
-                task.status === 'done' ? 'text-ink-3 line-through decoration-[color-mix(in_srgb,var(--ink-1)_30%,transparent)]' : 'text-ink-1',
-              )}
-            >
-              {task.title}
-            </h4>
-          </div>
-
-          {/* Paper & Ink meta line: one quiet row joined by "·". Only what needs
-              action carries a tone (an overdue or imminent date, a blocker). */}
-          {metaItems.length > 0 ? (
-            <div className="task-card__meta">
-              {metaItems.map((item, index) => (
-                <span key={item.key} className="task-card__meta-item">
-                  {index > 0 ? <span className="task-card__meta-sep" aria-hidden>·</span> : null}
-                  {item.node}
-                </span>
-              ))}
-            </div>
-          ) : null}
-
-          {task.tags.length > 0 || project ? (
-            <div className="task-card__context">
-              {project ? (
-                <button
-                  type="button"
-                  className="task-card__project-chip"
-                  aria-label={t('tasks.card.projectBadgeAria', { title: project.title })}
-                  title={project.title}
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    onProjectClick?.(project.id)
-                  }}
+            <div className="task-card__body">
+              <div className="task-card__head">
+                {task.pinned ? <Pin className="task-card__pin-mark size-3.5 shrink-0 fill-current text-ink-3" aria-hidden /> : null}
+                <h4
+                  className={cn(
+                    'task-card__title font-semibold line-clamp-2 transition-colors duration-300',
+                    task.status === 'done' ? 'text-ink-3 line-through decoration-ink-2' : 'text-ink-1',
+                  )}
+                  title={task.title}
                 >
-                  <span
-                    className="task-card__project-mark"
-                    style={{ background: project.color ?? 'var(--ink-3)' }}
-                    aria-hidden
-                  />
-                  <span className="truncate">{project.title}</span>
-                </button>
-              ) : null}
-              {displayTags.map((tag) => (
-                <span key={tag} className="task-card__tag">#{tag}</span>
-              ))}
-              {extraTagCount > 0 ? <span className="task-card__tag task-card__tag--more">+{extraTagCount}</span> : null}
-            </div>
-          ) : null}
+                  {task.title}
+                </h4>
+              </div>
 
-          {isBlocked && dependencyTasks.length > 0 && !selectionMode ? (
-            <div className="task-card__dependency-mini" aria-label={t('tasks.card.blockedAria', { n: dependencyTasks.length })}>
-              {dependencyTasks.slice(0, 3).map((dependency) => (
-                <div key={dependency.id} className="task-card__dependency-row">
-                  <span className={`task-card__dependency-status task-card__dependency-status--${dependency.status}`} aria-hidden />
-                  <span className="truncate">{dependency.title}</span>
-                  <span>{t(TASK_STATUS_CONFIG[dependency.status].labelKey)}</span>
-                </div>
-              ))}
-              {dependencyTasks.length > 3 ? (
-                <div className="task-card__dependency-more">{t('tasks.card.moreBlockers', { n: dependencyTasks.length - 3 })}</div>
-              ) : null}
-            </div>
-          ) : null}
-
-          {hasSubtasks && !selectionMode ? (
-            <div
-              data-testid="task-card-subtasks"
-              className={cn(
-                'task-card__subtasks grid overflow-hidden transition-all duration-200 ease-out',
-                showHoverPanel ? 'grid-rows-[1fr] opacity-100 pt-1.5' : 'grid-rows-[0fr] opacity-0 pt-0',
-              )}
-              aria-hidden={!showHoverPanel}
-            >
-              <div className="min-h-0 overflow-hidden">
-                <ul className="flex flex-col gap-1 border-t border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] pt-1.5">
-                  {visibleSubtasks.map((subtask) => (
-                    <li
-                      key={subtask.id}
-                      className="flex items-start gap-1.5 text-label leading-[1.4] text-muted-foreground"
+              <div className="task-card__foot" data-revealed={isHovered && !selectionMode ? 'true' : 'false'}>
+                {/* Resting face: state on the left joined by "·", project on the right.
+                    Only what needs action carries a tone (an overdue date, a blocker). */}
+                <div className="task-card__foot-rest">
+                  <div className="task-card__meta">
+                    {metaItems.map((item, index) => (
+                      <span key={item.key} className={cn('task-card__meta-item', item.shrink && 'task-card__meta-item--shrink')}>
+                        {index > 0 ? <span className="task-card__meta-sep" aria-hidden>·</span> : null}
+                        {item.node}
+                      </span>
+                    ))}
+                  </div>
+                  {project ? (
+                    <button
+                      type="button"
+                      className="task-card__project-chip"
+                      aria-label={t('tasks.card.projectBadgeAria', { title: project.title })}
+                      title={project.title}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        onProjectClick?.(project.id)
+                      }}
                     >
-                      <Circle className="mt-[3px] size-3 shrink-0 text-[color-mix(in_srgb,var(--text-primary)_35%,transparent)]" />
+                      <span
+                        className="task-card__project-mark"
+                        style={{ background: project.color ?? 'var(--ink-3)' }}
+                        aria-hidden
+                      />
+                      <span className="truncate">{project.title}</span>
+                    </button>
+                  ) : null}
+                </div>
+
+                {!selectionMode ? (
+                  <div
+                    data-testid="task-card-actions"
+                    className="task-card__actions"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    {statusActions?.map((action) => {
+                      const Icon =
+                        action.key === 'doing' || action.key === 'start' ? Play :
+                        action.key === 'done' ? CircleCheck :
+                        action.key === 'todo' && task.status === 'doing' ? Undo2 :
+                        RotateCcw
+                      return (
+                        <Button
+                          key={action.key}
+                          variant="ghost"
+                          size="icon"
+                          aria-label={action.label}
+                          title={action.label}
+                          className="task-card__action-btn size-7 text-muted-foreground hover:text-foreground"
+                          disabled={Boolean(action.disabled || loadingActionKey)}
+                          onClick={() => void action.onClick(task)}
+                        >
+                          <Icon className="size-3.5" />
+                        </Button>
+                      )
+                    })}
+
+                    {onToggleToday ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={task.isToday ? t('tasks.today.remove') : t('tasks.today.add')}
+                        title={task.isToday ? t('tasks.today.remove') : t('tasks.today.add')}
+                        className={cn(
+                          'task-card__action-btn size-7 hover:text-foreground',
+                          task.isToday ? 'task-card__action-btn--today-active text-[var(--accent)]' : 'text-muted-foreground',
+                        )}
+                        data-today-active={task.isToday ? 'true' : 'false'}
+                        onClick={() => onToggleToday(task)}
+                      >
+                        <SunMedium className="size-3.5" />
+                      </Button>
+                    ) : null}
+
+                    <div className="flex-1" />
+
+                    {onTogglePin ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={task.pinned ? t('tasks.card.unpin') : t('tasks.card.pin')}
+                        title={task.pinned ? t('tasks.card.unpin') : t('tasks.card.pin')}
+                        className="task-card__action-btn size-7 text-muted-foreground"
+                        onClick={() => onTogglePin(task)}
+                      >
+                        {task.pinned ? <PinOff className="size-3.5" /> : <Pin className="size-3.5" />}
+                      </Button>
+                    ) : null}
+                    {onDelete ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={t('tasks.card.delete')}
+                        title={t('tasks.card.delete')}
+                        className="task-card__action-btn size-7 text-muted-foreground hover:text-destructive"
+                        onClick={() => onDelete(task)}
+                      >
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </PopoverPrimitive.Anchor>
+
+        {hasPeek ? (
+          <PopoverContent
+            side="bottom"
+            align="start"
+            sideOffset={6}
+            className="task-card__peek"
+            data-testid="task-card-peek"
+            // Read-only glance: never steal focus, and let the pointer pass
+            // through to whatever card sits underneath.
+            onOpenAutoFocus={(event) => event.preventDefault()}
+            onCloseAutoFocus={(event) => event.preventDefault()}
+            style={{ width: 'calc(var(--radix-popper-anchor-width) / var(--overlay-scale, 1))', pointerEvents: 'none' }}
+          >
+            {peekBlockers.length > 0 ? (
+              <section className="task-card__peek-section">
+                <p className="task-card__peek-label">{t('tasks.card.blockedAria', { n: peekBlockers.length })}</p>
+                <ul className="task-card__peek-list">
+                  {peekBlockers.slice(0, 3).map((dependency) => (
+                    <li key={dependency.id} className="task-card__dependency-row">
+                      <span className="task-card__dependency-status" data-status={dependency.status} aria-hidden />
+                      <span className="truncate">{dependency.title}</span>
+                      <span>{t(TASK_STATUS_CONFIG[dependency.status].labelKey)}</span>
+                    </li>
+                  ))}
+                </ul>
+                {peekBlockers.length > 3 ? (
+                  <p className="task-card__peek-more">{t('tasks.card.moreBlockers', { n: peekBlockers.length - 3 })}</p>
+                ) : null}
+              </section>
+            ) : null}
+
+            {pendingSubtasks.length > 0 ? (
+              <section className="task-card__peek-section" data-testid="task-card-subtasks">
+                <p className="task-card__peek-label">
+                  {t('tasks.drawer.subtasks')} · {doneSubtasks}/{totalSubtasks}
+                </p>
+                <ul className="task-card__peek-list">
+                  {visibleSubtasks.map((subtask) => (
+                    <li key={subtask.id} className="task-card__peek-subtask">
+                      <span className="task-card__peek-mark" aria-hidden />
                       <span className="line-clamp-1 flex-1">{subtask.title}</span>
                     </li>
                   ))}
-                  {remainingSubtasks > 0 ? (
-                    <li className="pl-[18px] text-label font-medium text-muted-foreground/80">
-                      {t('tasks.card.subtaskMore', { n: remainingSubtasks })}
-                    </li>
-                  ) : null}
                 </ul>
-              </div>
-            </div>
-          ) : null}
-
-          {!selectionMode ? (
-            <div
-              data-testid="task-card-actions"
-              className={cn(
-                'task-card__actions grid overflow-hidden group-focus-within:grid-rows-[1fr] group-focus-within:translate-y-0 group-focus-within:pt-1.5 group-focus-within:opacity-100',
-                isHovered ? 'grid-rows-[1fr] translate-y-0 pt-1.5 opacity-100' : 'grid-rows-[0fr] -translate-y-2 pt-0 opacity-0',
-              )}
-              onClick={(event) => event.stopPropagation()}
-            >
-              <div className="min-h-0 overflow-hidden">
-                <div className="flex items-center gap-0.5 border-t border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] pt-1.5">
-                  {statusActions?.map((action) => {
-                    const icon =
-                      action.key === 'doing' || action.key === 'start' ? Play :
-                      action.key === 'done' ? CircleCheck :
-                      action.key === 'todo' && task.status === 'doing' ? Undo2 :
-                      RotateCcw
-                    const Icon = icon
-                    return (
-                      <Button
-                        key={action.key}
-                        variant="ghost"
-                        size="icon"
-                        aria-label={action.label}
-                        title={action.label}
-                        className="task-card__action-btn size-7 text-muted-foreground hover:text-foreground"
-                        disabled={Boolean(action.disabled || loadingActionKey)}
-                        onClick={() => void action.onClick(task)}
-                      >
-                        <Icon className="size-3.5" />
-                      </Button>
-                    )
-                  })}
-
-                  {onToggleToday ? (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={task.isToday ? t('tasks.today.remove') : t('tasks.today.add')}
-                      title={task.isToday ? t('tasks.today.remove') : t('tasks.today.add')}
-                      className={cn(
-                        'task-card__action-btn size-7 hover:text-foreground',
-                        task.isToday ? 'task-card__action-btn--today-active text-[var(--accent)]' : 'text-muted-foreground',
-                      )}
-                      data-today-active={task.isToday ? 'true' : 'false'}
-                      onClick={() => onToggleToday(task)}
-                    >
-                      <SunMedium className="size-3.5" />
-                    </Button>
-                  ) : null}
-
-                  <div className="flex-1" />
-
-                  {onTogglePin ? (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={task.pinned ? t('tasks.card.unpin') : t('tasks.card.pin')}
-                      title={task.pinned ? t('tasks.card.unpin') : t('tasks.card.pin')}
-                      className="task-card__action-btn size-7 text-muted-foreground"
-                      onClick={() => onTogglePin(task)}
-                    >
-                      {task.pinned ? <PinOff className="size-3.5" /> : <Pin className="size-3.5" />}
-                    </Button>
-                  ) : null}
-                  {onDelete ? (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={t('tasks.card.delete')}
-                      title={t('tasks.card.delete')}
-                      className="task-card__action-btn size-7 text-muted-foreground hover:text-destructive"
-                      onClick={() => onDelete(task)}
-                    >
-                      <Trash2 className="size-3.5" />
-                    </Button>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          ) : null}
-        </div>
-      </div>
+                {remainingSubtasks > 0 ? (
+                  <p className="task-card__peek-more">{t('tasks.card.subtaskMore', { n: remainingSubtasks })}</p>
+                ) : null}
+              </section>
+            ) : null}
+          </PopoverContent>
+        ) : null}
+      </Popover>
     )
   },
 )

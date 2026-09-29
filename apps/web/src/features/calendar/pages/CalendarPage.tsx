@@ -51,10 +51,12 @@ import type { TaskItem } from '../../tasks/tasks.types'
 import { formatTaskDateRange, taskCoversDate } from '../../tasks/taskDates'
 import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG } from '../../tasks/components/taskPresentation'
 import { fetchIcsEventsWithFallback, filterEventsInMonth } from '../calendar.ics'
+import { buildLunarEvents } from '../calendar.lunar'
 import {
   type CalendarEvent,
   formatMonthLabel,
   getMonthGridDateKeys,
+  isBuiltinLunar,
   isDateInMonth,
   removeAllSystemSubscriptions,
   removeSubscriptionHard,
@@ -80,7 +82,17 @@ const DEFAULT_TASK_CHIP_COLOR = '#a8a298'
 
 const calendarEventKindRank = { lunar: 0, holiday: 1, event: 2 } as const
 const CALENDAR_PRESET_COLORS = ['#9ca3af', '#60a5fa', '#2563eb', '#22d3ee', '#34d399', '#10b981', '#22c55e', '#f59e0b', '#ef4444', '#fb7185', '#6b7280', '#0f766e']
-const CALENDAR_PRESET_SUBSCRIPTIONS = [
+type CalendarPreset = {
+  id: string
+  name: string
+  description: string
+  color: string
+  /** An .ics feed; a built-in calendar has none. */
+  url?: string
+  provider?: 'builtin'
+}
+
+const CALENDAR_PRESET_SUBSCRIPTIONS: CalendarPreset[] = [
   {
     id: 'preset-cn-holidays',
     name: 'China Public Holidays',
@@ -137,7 +149,17 @@ const CALENDAR_PRESET_SUBSCRIPTIONS = [
     color: '#10b981',
     url: 'https://raw.githubusercontent.com/KaitoHH/24-jieqi-ics/master/23_solar_terms_2015-01-01_2050-12-31.ics',
   },
+  {
+    id: 'builtin-lunar',
+    name: 'Chinese Lunar Calendar',
+    description: 'Lunar dates and festivals, worked out on your device',
+    color: '#6b7280',
+    provider: 'builtin',
+  },
 ]
+
+const presetAdded = (preset: CalendarPreset, subscriptions: CalendarSubscription[]) =>
+  preset.provider === 'builtin' ? subscriptions.some(isBuiltinLunar) : subscriptions.some((item) => item.url === preset.url)
 
 // Chinese labels for the built-in presets. Stored subscriptions keep their
 // English name; it is only swapped at render time (and only while it still
@@ -151,14 +173,17 @@ const CALENDAR_PRESET_LABELS_ZH: Record<string, { name: string; description: str
   'preset-sg-holidays': { name: '新加坡公共假日', description: '新加坡节假日' },
   'preset-moon': { name: '月相', description: '上弦、满月、下弦与新月' },
   'preset-solar-terms': { name: '二十四节气', description: '二十四节气' },
+  'builtin-lunar': { name: '农历', description: '农历日期与传统节日，本地计算，无需联网' },
 }
 
-const presetLabel = (preset: (typeof CALENDAR_PRESET_SUBSCRIPTIONS)[number], language: string) =>
+const presetLabel = (preset: CalendarPreset, language: string) =>
   (language === 'zh' ? CALENDAR_PRESET_LABELS_ZH[preset.id] : undefined) ?? { name: preset.name, description: preset.description }
 
 const subscriptionDisplayName = (sub: CalendarSubscription, language: string) => {
   if (language !== 'zh') return sub.name
-  const preset = CALENDAR_PRESET_SUBSCRIPTIONS.find((item) => item.url === sub.url && item.name === sub.name)
+  const preset = CALENDAR_PRESET_SUBSCRIPTIONS.find(
+    (item) => item.name === sub.name && (item.provider === 'builtin' ? isBuiltinLunar(sub) : item.url === sub.url),
+  )
   return preset ? presetLabel(preset, language).name : sub.name
 }
 
@@ -598,13 +623,23 @@ const CalendarPage = () => {
     return events
   }, [allPeople, monthGridDateKeys, language])
 
-  const monthEvents = useMemo(() => {
-    const remoteEvents = filterEventsInMonth(Object.values(icsEventsBySubscription).flat(), anchorDate)
+  // The built-in 农历 is worked out for the days on screen; it has no feed to sync.
+  const lunarEvents = useMemo(
+    () => subscriptions.filter(isBuiltinLunar).flatMap((sub) => buildLunarEvents(monthGridDateKeys, sub.id)),
+    [subscriptions, monthGridDateKeys]
+  )
 
-    return [...remoteEvents, ...birthdayEvents].filter(
+  const monthEvents = useMemo(() => {
+    // A calendar migrated from the old lunar feed may still have that feed's events cached.
+    const builtinIds = new Set(subscriptions.filter(isBuiltinLunar).map((sub) => sub.id))
+    const remoteEvents = filterEventsInMonth(Object.values(icsEventsBySubscription).flat(), anchorDate).filter(
+      (event) => !builtinIds.has(event.subscriptionId)
+    )
+
+    return [...remoteEvents, ...lunarEvents, ...birthdayEvents].filter(
       (event) => event.subscriptionId === 'system-birthdays' || visibleSubscriptionIds.has(event.subscriptionId)
     )
-  }, [anchorDate, icsEventsBySubscription, visibleSubscriptionIds, birthdayEvents])
+  }, [anchorDate, icsEventsBySubscription, subscriptions, lunarEvents, visibleSubscriptionIds, birthdayEvents])
 
   const eventsByDate = useMemo(() => {
     const grouped = new Map<string, CalendarEvent[]>()
@@ -782,20 +817,20 @@ const CalendarPage = () => {
     setIsAccountDialogOpen(false)
   }
 
-  const addPresetSubscription = (preset: (typeof CALENDAR_PRESET_SUBSCRIPTIONS)[number]) => {
+  const addPresetSubscription = (preset: CalendarPreset) => {
     setSubscriptions((prev) => {
-      if (prev.some((item) => item.url === preset.url)) return prev
+      if (presetAdded(preset, prev)) return prev
       const nextOrder = sortSubscriptions(removeAllSystemSubscriptions(prev)).length
       const next: CalendarSubscription = {
         id: `custom-${preset.id}`,
         name: preset.name,
         sourceType: 'custom',
-        provider: 'ics',
+        provider: preset.provider ?? 'ics',
         color: preset.color,
         enabled: true,
         syncPermission: 'read',
         order: nextOrder,
-        url: preset.url,
+        ...(preset.url ? { url: preset.url } : {}),
       }
 
       return sortSubscriptions([...prev, next])
@@ -1045,6 +1080,9 @@ const CalendarPage = () => {
             const isCurrentMonth = isDateInMonth(dateKey, anchorDate)
             const isSelected = selectedDateKey === dateKey
             const isToday = todayDateKey === dateKey
+            // Pencil = intention: anything scheduled after today is drawn as a
+            // dashed outline until the day arrives (DESIGN.md › Calendar events).
+            const isFuture = dateKey > todayDateKey
 
             return (
               <button
@@ -1061,7 +1099,7 @@ const CalendarPage = () => {
                       <Badge
                         key={item.id}
                         variant="secondary"
-                        className={`calendar-chip calendar-chip--task${item.status === 'done' ? ' calendar-chip--task-done' : ''}`}
+                        className={`calendar-chip calendar-chip--task${item.status === 'done' ? ' calendar-chip--task-done' : isFuture ? ' calendar-chip--planned' : ''}`}
                         // Neutral chip; the source color is a 2px bar (DESIGN.md › Color = state).
                         style={item.status === 'done' ? undefined : { ['--chip-color' as string]: item.color }}
                       >
@@ -1072,7 +1110,7 @@ const CalendarPage = () => {
                         key={item.id}
                         variant="secondary"
                         data-subscription-id={item.subscriptionId}
-                        className={`calendar-chip calendar-chip--${item.kind}`}
+                        className={`calendar-chip calendar-chip--${item.kind}${isFuture && item.kind === 'event' ? ' calendar-chip--planned' : ''}`}
                         style={
                           subscriptionColorById.get(item.subscriptionId)
                             ? { ['--chip-color' as string]: subscriptionColorById.get(item.subscriptionId) }
@@ -1272,7 +1310,7 @@ const CalendarPage = () => {
               <h4>{t('calendar.presetSubscriptions')}</h4>
               <div className="calendar-dialog__presets-list">
                 {CALENDAR_PRESET_SUBSCRIPTIONS.map((preset) => {
-                  const exists = subscriptions.some((item) => item.url === preset.url)
+                  const exists = presetAdded(preset, subscriptions)
                   return (
                     <article key={preset.id} className="calendar-dialog__preset-card">
                       <div className="calendar-dialog__preset-meta">

@@ -3,8 +3,10 @@ import '@testing-library/jest-dom/vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { MemoryRouter } from 'react-router-dom'
 import type { NoteAppearanceSettings, NoteItem, NoteTag } from '../../../data/models/types'
 import { PremiumProvider } from '../../premium/PremiumProvider'
+import { ToastContext } from '../../../shared/ui/toast/toast'
 import NotePage from './NotePage'
 
 const mockUseLabs = vi.fn()
@@ -85,6 +87,7 @@ vi.mock('../../../data/sync/service', () => ({
 }))
 
 vi.mock('../../../store/auth', () => ({
+  getAuth: () => null,
   useIsLoggedIn: () => false,
   useAuthPlan: () => 'free',
   upgradeToPremium: vi.fn(async () => true),
@@ -208,6 +211,7 @@ describe('NotePage', () => {
 
   beforeEach(() => {
     vi.resetAllMocks()
+    window.localStorage.removeItem('focusgo.notes.unsavedEdit')
     openMock.mockReset()
     mockUseLabs.mockReturnValue({
       subscription: { tier: 'free' as const, role: 'member' as const },
@@ -217,24 +221,29 @@ describe('NotePage', () => {
     createTagMock.mockResolvedValue(createTag({ id: 'imported-tag', name: 'Imported', noteCount: 0, sortOrder: 2 }))
     appearanceGetMock.mockResolvedValue(appearance)
     appearanceUpsertMock.mockResolvedValue(appearance)
-    vi.stubGlobal('URL', {
+    vi.stubGlobal('URL', Object.assign(class extends URL {}, {
       createObjectURL: createObjectURLMock,
       revokeObjectURL: revokeObjectURLMock,
-    })
+    }))
     vi.stubGlobal('open', openMock)
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(anchorClickMock)
   })
 
   afterEach(() => {
     cleanup()
+    window.localStorage.removeItem('focusgo.notes.unsavedEdit')
     vi.unstubAllGlobals()
   })
 
   const renderPage = () =>
     render(
-      <PremiumProvider>
-        <NotePage />
-      </PremiumProvider>,
+      <MemoryRouter initialEntries={['/note']}>
+        <ToastContext.Provider value={{ push: vi.fn() }}>
+          <PremiumProvider>
+            <NotePage />
+          </PremiumProvider>
+        </ToastContext.Provider>
+      </MemoryRouter>,
     )
 
   it('does not auto create a blank note when the workspace is empty', async () => {
@@ -498,6 +507,27 @@ describe('NotePage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Change note' }))
 
     await waitFor(() => expect(updateMock).toHaveBeenCalledWith('save-1', expect.objectContaining({ title: 'Updated title' })))
+  })
+
+  it('retains a recovery copy when replay fails, then clears it after a successful retry', async () => {
+    const note = createNote({ id: 'recover-1', title: 'Original', updatedAt: 100 })
+    listMock.mockResolvedValue([note])
+    listTrashMock.mockResolvedValue([])
+    const recovery = { id: note.id, patch: { title: 'Recovered' }, at: Date.now() }
+    window.localStorage.setItem('focusgo.notes.unsavedEdit', JSON.stringify(recovery))
+    updateMock.mockRejectedValueOnce(new Error('storage unavailable'))
+      .mockResolvedValueOnce(createNote({ ...note, title: 'Recovered', updatedAt: recovery.at + 1 }))
+
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    renderPage()
+    await waitFor(() => expect(updateMock).toHaveBeenCalledTimes(1))
+    expect(window.localStorage.getItem('focusgo.notes.unsavedEdit')).not.toBeNull()
+
+    cleanup()
+    renderPage()
+    await waitFor(() => expect(updateMock).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(window.localStorage.getItem('focusgo.notes.unsavedEdit')).toBeNull())
+    errorSpy.mockRestore()
   })
 
   it('renders trash notes in editor layout and supports permanent delete from list', async () => {

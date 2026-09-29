@@ -131,7 +131,7 @@ export default function NoteBrowser({
     >
       <div className="flex items-center gap-2 px-4 pb-2 pt-4">
         <div className="flex flex-1 items-center gap-2">
-          <span className="rounded-md bg-[color-mix(in_srgb,var(--ink-1)_5.5%,transparent)] px-2.5 py-[3px] text-label font-[530] tracking-[-0.01em] text-ink-1 dark:bg-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] dark:text-[var(--text-primary)]">{collectionLabel}</span>
+          <span className="rounded-md bg-[color-mix(in_srgb,var(--ink-1)_5.5%,transparent)] px-2.5 py-[3px] text-label font-[500] tracking-[-0.01em] text-ink-1 dark:bg-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] dark:text-[var(--text-primary)]">{collectionLabel}</span>
           <span className="text-meta tabular-nums text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)]">{notes.length}</span>
         </div>
         <button
@@ -155,7 +155,7 @@ export default function NoteBrowser({
             <ChevronDown size={11} strokeWidth={2.4} />
           </button>
           {showSortMenu ? (
-            <div className="absolute left-0 top-full z-20 mt-1 w-32 rounded-lg border border-[color-mix(in_srgb,var(--ink-1)_10%,transparent)] bg-paper-raised p-1 shadow-[var(--shadow-card)]">
+            <div className="absolute left-0 top-full z-20 mt-1 w-32 rounded-lg border border-[color-mix(in_srgb,var(--ink-1)_10%,transparent)] bg-paper-raised p-1 shadow-[var(--elev-2)]">
               {(['edited', 'created', 'title'] as NoteSortOption[]).map((option) => (
                 <button
                   key={option}
@@ -213,8 +213,8 @@ export default function NoteBrowser({
           </div>
         ) : null}
         {filtered.length === 0 ? (
-          <div className="mx-2 mt-4 rounded-xl border border-dashed border-[color-mix(in_srgb,var(--ink-1)_14%,transparent)] px-4 py-10 text-center">
-            <p className="text-ui font-medium text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)]">{t('notes.noNotesFound')}</p>
+          <div className="mx-2 mt-4 px-2 py-2 text-left">
+            <p className="text-ui font-medium text-[var(--text-tertiary)]">{t('notes.noNotesFound')}</p>
           </div>
         ) : null}
       </div>
@@ -304,7 +304,7 @@ function NoteCard({
       {/* Title row */}
       <div className="flex items-start gap-1.5 pr-12">
         {note.pinned ? <Pin size={9} className="mt-[3px] shrink-0 text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)]" /> : null}
-        <h4 className="line-clamp-2 text-ui font-[550] leading-[1.42] tracking-[-0.012em] text-ink-1">
+        <h4 className="line-clamp-2 font-body text-ui font-semibold leading-[1.42] text-ink-1">
           {markdownToPreview(note.title) || <span className="text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)]">{t('notes.trash.untitled')}</span>}
         </h4>
       </div>

@@ -21,6 +21,8 @@ import { getPlatform } from './platform'
 import './shared/theme/interaction.css'
 import './shared/theme/page.css'
 import './shared/theme/overlay-scale.css'
+import './shared/theme/marks.css'
+import './shared/theme/charts.css'
 
 const App = () => {
   const isLoggedIn = useIsLoggedIn()

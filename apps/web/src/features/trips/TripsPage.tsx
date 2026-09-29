@@ -42,6 +42,7 @@ import { TripsAtlasView } from './views/TripsAtlasView'
 import ActiveIndicator from '../../shared/motion/ActiveIndicator'
 import { SELECTED_TAB } from '../../shared/motion/indicatorSelectors'
 import './trips.css'
+import Doodle from '../../shared/ui/Doodle'
 
 type ViewMode = 'grid' | 'timeline' | 'calendar' | 'atlas'
 type FilterKey = 'all' | 'planning' | 'booked' | 'ongoing' | 'done'
@@ -290,6 +291,7 @@ const TripsPage = () => {
           {/* Empty */}
           {!loading && trips.length === 0 ? (
             <div className="trips-journal__empty">
+              <Doodle name="strolling" />
               <h2 className="trips-journal__empty-title">{t('life.trips.noTrips')}</h2>
               <p className="trips-journal__empty-desc">{t('life.trips.noTripsDesc')}</p>
               <button type="button" className="trips-journal__empty-cta" onClick={handleCreate} disabled={creating}>

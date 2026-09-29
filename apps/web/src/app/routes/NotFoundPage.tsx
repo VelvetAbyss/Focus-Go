@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { ROUTES } from './routes'
 import { useI18n } from '../../shared/i18n/useI18n'
+import Doodle from '../../shared/ui/Doodle'
 
 /**
  * Catch-all 404. Renders inside the AppShell, so the sidebar/nav stays available
@@ -12,23 +13,21 @@ const NotFoundPage = () => {
 
   return (
     <main className="module-page-shell module-placeholder-shell">
+      {/* Centred, like every empty state (DESIGN.md › Empty states). */}
       <section className="flex w-full max-w-md flex-col items-center px-6 text-center">
-        <p
-          className="text-[5.5rem] leading-none"
-          style={{ fontFamily: 'var(--font-display)', color: 'color-mix(in srgb, var(--text-primary) 16%, transparent)' }}
-          aria-hidden="true"
-        >
+        <Doodle name="unboxing" className="mb-4" />
+        <p className="text-label font-semibold tracking-[var(--tracking-caps)]" style={{ color: 'var(--text-tertiary)' }}>
           404
         </p>
 
-        <h1 className="mt-2 text-2xl font-semibold" style={{ fontFamily: 'var(--font-display)' }}>
+        <h1 className="mt-1 text-2xl font-semibold" style={{ fontFamily: 'var(--font-display)' }}>
           {t('notFound.title')}
         </h1>
         <p className="mt-3 max-w-sm text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
           {t('notFound.body')}
         </p>
 
-        <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
           <Link
             to={ROUTES.DASHBOARD}
             className="inline-flex h-9 items-center rounded-full px-5 text-sm font-medium transition-colors"

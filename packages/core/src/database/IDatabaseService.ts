@@ -52,7 +52,7 @@ export type TaskCreateInput = {
 
 export type WidgetTodoCreateInput = Omit<WidgetTodo, 'id' | 'createdAt' | 'updatedAt'>
 export type NoteCreateInput = Partial<
-  Pick<NoteItem, 'title' | 'contentMd' | 'contentJson' | 'editorMode' | 'collection' | 'tags' | 'pinned' | 'backlinks'>
+  Pick<NoteItem, 'id' | 'title' | 'contentMd' | 'contentJson' | 'editorMode' | 'collection' | 'tags' | 'pinned' | 'backlinks'>
 >
 export type NoteUpdateInput = Partial<
   Pick<

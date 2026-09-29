@@ -24,6 +24,9 @@ export const ROUTES = {
 } as const
 
 export const buildTripDetailRoute = (tripId: string) => `${ROUTES.TRIPS}/${tripId}`
+export const buildTaskDetailRoute = (taskId: string) => `${ROUTES.TASKS}?task=${encodeURIComponent(taskId)}`
+export const buildNoteDetailRoute = (noteId: string) => `${ROUTES.NOTE}?note=${encodeURIComponent(noteId)}`
+export const buildDiaryEntryRoute = (entryId: string) => `${ROUTES.DIARY}?entry=${encodeURIComponent(entryId)}`
 
 export const LEGACY_ROUTES = {
   KNOWLEDGE: '/knowledge',

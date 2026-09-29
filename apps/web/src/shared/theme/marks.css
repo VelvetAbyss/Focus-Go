@@ -1,0 +1,241 @@
+/* ── Pencil & ink marks (DESIGN.md › Three hands) ──────────────────────────
+   Pencil is intention, ink is record. An open item is a dashed pencil circle;
+   a done item is a filled ink circle with a paper check. Completing one is the
+   app's single authored moment: pencil turns to ink on the standard 200ms
+   state transition. No stroke drawing, no bursts.
+
+   `.ink-mark` is the task mark (see shared/ui/InkMark.tsx). The dashboard
+   to-do and subtask checkboxes (`.widget-plan-checkbox-*`) are restyled to the
+   same language below. */
+
+.ink-mark {
+  --ink-mark-size: 16px;
+  position: relative;
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: var(--ink-mark-size);
+  height: var(--ink-mark-size);
+  padding: 0;
+  border-radius: 999px;
+  border: 1.5px dashed var(--pencil-line);
+  background: transparent;
+  color: var(--paper-sheet);
+  cursor: pointer;
+  transition:
+    border-color var(--motion-duration-base) var(--ease-standard),
+    background-color var(--motion-duration-base) var(--ease-standard);
+}
+
+.ink-mark:hover {
+  border-color: var(--pencil);
+}
+
+.ink-mark:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.ink-mark__check {
+  width: 70%;
+  height: 70%;
+  opacity: 0;
+  transition: opacity var(--motion-duration-base) var(--ease-standard);
+}
+
+.ink-mark__check path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* In progress: a solid ochre ring with a centre dot (status doing = ochre). */
+.ink-mark[data-state='doing'] {
+  border-style: solid;
+  border-color: var(--tone-warn);
+}
+
+.ink-mark[data-state='doing']::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--tone-warn);
+}
+
+.ink-mark[data-state='done'] {
+  border-style: solid;
+  border-color: var(--ink-1);
+  background: var(--ink-1);
+}
+
+.ink-mark[data-state='done'] .ink-mark__check {
+  opacity: 1;
+}
+
+.ink-mark[data-state='done']:hover {
+  border-color: var(--ink-2);
+  background: var(--ink-2);
+}
+
+/* ── Dashboard to-dos + task drawer subtasks ───────────────────────────── */
+.widget-plan-checkbox-wrap {
+  width: 16px;
+  height: 16px;
+  min-height: 16px;
+  border-radius: 999px;
+  border: 1.5px dashed var(--pencil-line);
+  background: transparent;
+  transition:
+    border-color var(--motion-duration-base) var(--ease-standard),
+    background-color var(--motion-duration-base) var(--ease-standard);
+}
+
+.widget-plan-checkbox-wrap:hover {
+  border-color: var(--pencil);
+}
+
+.widget-plan-checkbox-icon {
+  width: 11px;
+  height: 11px;
+  transform: none;
+}
+
+.widget-plan-checkbox-icon path {
+  stroke: var(--paper-sheet);
+  stroke-width: 2.4;
+}
+
+.widget-plan-checkbox-wrap[data-checked='true'],
+.widget-plan-checkbox-wrap[data-state='checked'] {
+  border-style: solid;
+  border-color: var(--ink-1);
+  background: var(--ink-1);
+}
+
+.widget-plan-checkbox-wrap[data-checked='true'] .widget-plan-checkbox-icon,
+.widget-plan-checkbox-wrap[data-state='checked'] .widget-plan-checkbox-icon {
+  transform: none;
+}
+
+/* The title takes an ink strike-through; the old slide + firework is gone. */
+.widget-plan-checkbox-wrap[data-state='checked'] + .widget-todos__title,
+.task-popup-detail__subtask-checkbox-row .widget-plan-checkbox-wrap[data-state='checked'] + .task-popup-detail__subtask-title {
+  animation: none;
+}
+
+.widget-todos__title::before,
+.widget-todos__title::after,
+.task-popup-detail__subtask-title::before,
+.task-popup-detail__subtask-title::after {
+  display: none;
+}
+
+.widget-todos__title-text,
+.task-popup-detail__subtask-title-input {
+  text-decoration-line: line-through;
+  text-decoration-color: transparent;
+  text-decoration-thickness: 1px;
+  transition:
+    color var(--motion-duration-base) var(--ease-standard),
+    text-decoration-color var(--motion-duration-base) var(--ease-standard);
+}
+
+.widget-plan-checkbox-wrap[data-state='checked'] + .widget-todos__title .widget-todos__title-text,
+.task-popup-detail__subtask-checkbox-row .widget-plan-checkbox-wrap[data-state='checked'] + .task-popup-detail__subtask-title .task-popup-detail__subtask-title-input {
+  color: var(--ink-3);
+  text-decoration-color: var(--ink-2);
+}
+
+/* ── Dashboard to-do due chips ─────────────────────────────────────────
+   These live here, not in styles.css: the tone class is built at runtime
+   (`widget-todos__due--${tone}`), and Tailwind drops rules inside styles.css's
+   @layer base whose class never appears literally in the source. */
+.widget-todos__due {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 3px;
+  padding: 1px 7px 1px 6px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: var(--fs-meta);
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--ink-3);
+  background: transparent;
+  font-variant-numeric: tabular-nums;
+}
+
+.widget-todos__due-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: currentColor;
+  flex: none;
+}
+
+/* Not yet reached: pencil. Due within the week keeps the pencil outline but
+   flags the date in ochre. Today is the pen; overdue is vermilion. No pulse. */
+.widget-todos__due--normal,
+.widget-todos__due--soon {
+  border-style: dashed;
+  border-color: var(--pencil-line);
+  color: var(--pencil);
+}
+
+.widget-todos__due--normal .widget-todos__due-dot {
+  display: none;
+}
+
+.widget-todos__due--soon {
+  color: var(--tone-warn);
+}
+
+.widget-todos__due--today {
+  color: var(--accent);
+  background: var(--accent-wash);
+}
+
+.widget-todos__due--overdue {
+  color: var(--tone-urgent);
+  background: var(--tone-urgent-wash);
+}
+
+/* ── Calendar side panel marks (kind classes are built at runtime) ────── */
+.calendar-side-row__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--ink-3);
+}
+
+/* Pencil: an open task is a dashed ring, not a filled dot. */
+.calendar-side-row__dot--todo {
+  background: transparent;
+  border: 1.5px dashed var(--pencil-line);
+}
+
+.calendar-side-row__dot--doing {
+  background: var(--status-doing);
+}
+
+.calendar-side-row__dot--done {
+  background: var(--status-done);
+}
+
+.calendar-side-row__dot--lunar,
+.calendar-side-row__dot--holiday,
+.calendar-side-row__dot--event {
+  background: var(--ink-3);
+}
+
+html[data-motion='reduce'] .ink-mark,
+html[data-motion='reduce'] .ink-mark__check,
+html[data-motion='reduce'] .widget-plan-checkbox-wrap,
+html[data-motion='reduce'] .widget-todos__title-text,
+html[data-motion='reduce'] .task-popup-detail__subtask-title-input {
+  transition: none;
+}

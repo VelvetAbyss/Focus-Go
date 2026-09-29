@@ -184,11 +184,11 @@
   font-weight: 600;
 }
 .trips-journal__summary-value {
-  font-family: var(--font-display);
+  font-family: var(--font-numeral);
+  font-variant-numeric: var(--num-features);
   font-size: 28px;
-  font-weight: 500;
+  font-weight: 400;
   color: var(--tj-ink);
-  font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 
@@ -252,11 +252,12 @@
   margin-bottom: 8px;
 }
 .trips-journal__hero-dnumber {
-  font-family: var(--font-display);
+  font-family: var(--font-numeral);
+  font-variant-numeric: var(--num-features);
   font-size: 88px;
-  font-weight: 500;
+  font-weight: 300;
   line-height: 0.92;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 .trips-journal__hero-dnumber sup {
   font-size: var(--fs-subhead);
@@ -289,7 +290,7 @@
 }
 .trips-journal__hero-meta-dot { width: 4px; height: 4px; border-radius: 999px; background: rgba(247, 243, 236, 0.5); }
 .trips-journal__hero-title {
-  font-family: var(--font-display);
+  font-family: var(--font-reading);
   font-size: 38px;
   font-weight: 500;
   line-height: 1.05;
@@ -530,7 +531,7 @@
 }
 .trips-journal__card-emoji { font-size: var(--fs-section); }
 .trips-journal__card-title {
-  font-family: var(--font-display);
+  font-family: var(--font-reading);
   font-size: 24px;
   line-height: 1.1;
   font-weight: 500;
@@ -622,12 +623,12 @@
   color: var(--tj-muted);
 }
 .trips-journal__module-head-value {
-  font-family: var(--font-display);
+  font-family: var(--font-numeral);
+  font-variant-numeric: var(--num-features);
   font-size: var(--fs-ui);
   letter-spacing: 0;
   text-transform: none;
   color: var(--tj-ink);
-  font-feature-settings: 'tnum';
   font-weight: 500;
 }
 
@@ -767,7 +768,10 @@
 
 /* Empty state */
 .trips-journal__empty {
+  /* Centred: the drawing, the line and the sentence stack on one axis (DESIGN.md › Empty states). */
   display: grid;
+  justify-items: center;
+  text-align: center;
   gap: 14px;
   padding: 36px 32px;
   background: var(--tj-card);
@@ -792,7 +796,7 @@
   /* The header already carries the primary "New trip"; the empty-state
      twin is the quieter secondary so the page has one loud button. */
   align-self: start;
-  justify-self: start;
+  justify-self: center;
   display: inline-flex;
   align-items: center;
   justify-content: center;

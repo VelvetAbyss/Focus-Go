@@ -2,7 +2,7 @@
 .diary-page {
   --diary-font-ui: var(--font-body);
   --diary-font-display: var(--font-display);
-  --diary-font-prose: var(--font-display);
+  --diary-font-prose: var(--font-reading);
   color: var(--text-primary);
   font-family: var(--diary-font-ui);
   font-kerning: normal;
@@ -163,7 +163,7 @@
   font-size: clamp(1.8rem, 1.2rem + 0.8vw, 2.25rem);
   font-weight: 600;
   line-height: 1.08;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.01em;
 }
 
 .diary-page__meta-subline {
@@ -208,16 +208,7 @@
   position: relative;
 }
 
-.diary-page__timeline-node::before {
-  content: '';
-  position: absolute;
-  top: 0.95rem;
-  bottom: -1.1rem;
-  left: 50%;
-  width: 1px;
-  transform: translateX(-50%);
-  background: linear-gradient(180deg, color-mix(in srgb, var(--ink-1) 14%, transparent), color-mix(in srgb, var(--ink-1) 8%, transparent));
-}
+
 
 .diary-page__entry-card {
   overflow: hidden;
@@ -335,8 +326,8 @@
 .diary-page .simple-editor-content .tiptap.ProseMirror.simple-editor {
   font-family: var(--diary-font-prose);
   font-size: var(--diary-font-size, 1.0625rem);
-  line-height: 1.78;
-  letter-spacing: -0.01em;
+  line-height: 1.8;
+  letter-spacing: 0;
   color: var(--ink-1);
   position: relative;
   background: transparent;
@@ -348,15 +339,19 @@
 
 .diary-page .simple-editor-content .tiptap.ProseMirror.simple-editor p,
 .diary-page .simple-editor-content .tiptap.ProseMirror.simple-editor li {
-  max-width: 62ch;
+  /* ~720px measure (DESIGN.md › Layout). In em, not ch: ch follows the
+     width of "0", which differs by 40% between serif faces. */
+  max-width: 42em;
 }
 
 .diary-page .simple-editor-content .tiptap.ProseMirror.simple-editor h1,
 .diary-page .simple-editor-content .tiptap.ProseMirror.simple-editor h2,
 .diary-page .simple-editor-content .tiptap.ProseMirror.simple-editor h3 {
-  font-family: var(--diary-font-display);
-  font-weight: 500;
-  letter-spacing: -0.025em;
+  /* In-entry headings use the reading serif, which has a real bold to match
+     Noto Serif SC; the display face stays for the page and entry titles. */
+  font-family: var(--diary-font-prose);
+  font-weight: 600;
+  letter-spacing: -0.01em;
   line-height: 1.12;
   color: var(--ink-1);
 }
@@ -378,10 +373,19 @@
 }
 
 .diary-page__empty-whisper {
-  max-width: 28ch;
-  margin-inline: auto;
-  line-height: 1.7;
-  font-family: var(--diary-font-prose);
+  margin: 0;
+  max-width: 24em;
+  font-family: var(--font-display);
+  font-size: var(--fs-subhead);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ink-1);
+}
+
+.diary-page__empty-state .diary-page__empty-copy {
+  margin: 0;
+  font-size: var(--fs-ui);
+  color: var(--ink-2);
 }
 
 html[data-theme='dark'] .diary-page {
@@ -402,7 +406,6 @@ html[data-theme='dark'] .diary-page__rail::after {
 html[data-theme='dark'] .diary-page__title,
 html[data-theme='dark'] .diary-page__period-label,
 html[data-theme='dark'] .diary-page__meta-date,
-html[data-theme='dark'] .diary-page__empty-copy,
 html[data-theme='dark'] .diary-page__timeline-preview,
 html[data-theme='dark'] .diary-page .simple-editor-content .tiptap.ProseMirror.simple-editor,
 html[data-theme='dark'] .diary-page .simple-editor-content .tiptap.ProseMirror.simple-editor h1,
@@ -415,7 +418,6 @@ html[data-theme='dark'] .diary-page__eyebrow,
 html[data-theme='dark'] .diary-page__microcopy,
 html[data-theme='dark'] .diary-page__meta-subline,
 html[data-theme='dark'] .diary-page__meta-time,
-html[data-theme='dark'] .diary-page__empty-whisper,
 html[data-theme='dark'] .diary-page__timeline-weather,
 html[data-theme='dark'] .diary-page .note-editor__topbar,
 html[data-theme='dark'] .diary-page .note-editor__toolbar-inline {
@@ -426,7 +428,6 @@ html[data-theme='dark'] .diary-page__meta-location-dot {
   background: color-mix(in srgb, var(--ink-1) 50%, transparent);
 }
 
-html[data-theme='dark'] .diary-page__timeline-node::before,
 html[data-theme='dark'] .diary-page .group .bg-border\/40,
 html[data-theme='dark'] .diary-page .group .border-border {
   background: color-mix(in srgb, var(--ink-1) 12%, transparent) !important;

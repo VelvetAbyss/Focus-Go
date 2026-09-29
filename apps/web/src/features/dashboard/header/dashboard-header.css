@@ -1,0 +1,204 @@
+/* Dashboard header: the date is the editorial moment (DESIGN.md → Layout).
+   The eye lands on the date, then on the one pen mark (the time, now), then
+   on the day's line. The action pill sits top-right, positioned by
+   .app-shell__status. */
+
+.dash-hero {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  /* Lines the date up with the card edge below. */
+  padding: 2px 0 2px 18px;
+}
+
+/* Two voices only: the date is the one display serif; everything after it
+   is a single UI line sitting on the date's baseline. */
+.dash-hero__day {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  min-width: 0;
+  padding-right: calc(var(--header-action-guard) + 24px);
+}
+
+.dash-hero__date {
+  display: inline-flex;
+  align-items: baseline;
+  color: var(--text-primary);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.dash-hero__num {
+  font-family: var(--font-numeral);
+  font-variant-numeric: var(--num-features);
+  font-size: var(--fs-hero);
+  font-weight: 300;
+  letter-spacing: -0.01em;
+}
+
+/* 月 and 日 at half size, the same light weight as the figures. */
+.dash-hero__unit {
+  font-family: 'Noto Serif SC', var(--font-display);
+  font-size: 22px;
+  font-weight: 400;
+  margin: 0 2px;
+}
+
+.dash-hero__unit:last-child {
+  margin-right: 0;
+}
+
+/* Same face as the figures, so "September 28" reads as one word-image. */
+.dash-hero__month {
+  font-family: var(--font-numeral);
+  font-size: var(--fs-hero);
+  font-weight: 300;
+  margin-right: 0.24em;
+}
+
+.dash-hero__meta {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: 1.4;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.dash-hero__weekday {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.dash-hero__note {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.dash-hero__sep {
+  color: var(--text-tertiary);
+}
+
+/* The time is the pen: the one mark for now. */
+.dash-hero__time {
+  display: inline-flex;
+  align-items: baseline;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.dash-hero__time .app-shell__hero-time-main,
+.dash-hero__time .app-shell__hero-time-colon {
+  font: inherit;
+}
+
+.dash-hero__quote {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 10px;
+  row-gap: 2px;
+  margin: 0;
+  min-width: 0;
+  max-width: 100%;
+  animation: quote-text-in 480ms var(--ease-emphasized);
+}
+
+.dash-hero__quote-text {
+  margin: 0;
+  font-family: var(--font-reading);
+  font-size: var(--fs-body);
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.dash-hero__quote-by {
+  font-family: var(--font-reading);
+  font-size: var(--fs-body);
+  line-height: 1.5;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+/* A Chinese dash is one unbroken rule; the Latin UI face draws it as two. */
+.dash-hero__quote-by--zh {
+  font-family: 'Noto Serif SC', var(--font-reading);
+}
+
+.dash-hero__quote-next {
+  display: inline-grid;
+  place-items: center;
+  align-self: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill, 999px);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity var(--motion-duration-fast) var(--ease-standard),
+    background-color var(--motion-duration-instant) var(--ease-standard),
+    color var(--motion-duration-instant) var(--ease-standard);
+}
+
+.dash-hero__quote:hover .dash-hero__quote-next,
+.dash-hero__quote-next:focus-visible {
+  opacity: 1;
+}
+
+.dash-hero__quote-next:hover {
+  background: var(--paper-sunken);
+  color: var(--text-primary);
+}
+
+@media (hover: none) {
+  .dash-hero__quote-next {
+    opacity: 1;
+  }
+}
+
+/* Line the action pill up with the date row, not the middle of the header. */
+.dash-hero ~ .app-shell__status {
+  align-items: flex-start;
+  padding-top: 2px;
+}
+
+@media (max-width: 960px) {
+  .dash-hero__day {
+    flex-wrap: wrap;
+    row-gap: 6px;
+    padding-right: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .dash-hero__num,
+  .dash-hero__month {
+    font-size: 36px;
+  }
+
+  .dash-hero__unit {
+    font-size: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-hero__quote {
+    animation: none;
+  }
+}
+
+html[data-motion='reduce'] .dash-hero__quote {
+  animation: none;
+}

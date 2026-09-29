@@ -55,6 +55,12 @@ const getTableName = (entityType) => {
 
 export const ensureSyncTables = (db) => {
   db.exec(`
+    CREATE TABLE IF NOT EXISTS sync_revision_counters (
+      table_name TEXT PRIMARY KEY,
+      revision INTEGER NOT NULL
+    )
+  `)
+  db.exec(`
     CREATE TABLE IF NOT EXISTS sync_blobs (
       hash TEXT PRIMARY KEY,
       content_type TEXT NOT NULL,
@@ -74,11 +80,30 @@ export const ensureSyncTables = (db) => {
         payload TEXT NOT NULL,
         updated_at INTEGER NOT NULL,
         deleted_at INTEGER,
+        server_seq INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY (user_id, id)
       )
     `)
     db.exec(`CREATE INDEX IF NOT EXISTS idx_${tableName}_updated_at ON ${tableName} (user_id, updated_at)`)
+    // Existing installations predate the server sequence. Give their rows a
+    // stable initial order, then retain a counter even after tombstone pruning.
+    const columns = db.prepare(`PRAGMA table_info(${tableName})`).all()
+    if (!columns.some((column) => column.name === 'server_seq')) {
+      db.exec(`ALTER TABLE ${tableName} ADD COLUMN server_seq INTEGER NOT NULL DEFAULT 0`)
+    }
+    db.exec(`UPDATE ${tableName} SET server_seq = rowid WHERE server_seq = 0`)
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_${tableName}_server_seq ON ${tableName} (user_id, server_seq)`)
+    db.prepare(`
+      INSERT INTO sync_revision_counters (table_name, revision)
+      VALUES (?, (SELECT COALESCE(MAX(server_seq), 0) FROM ${tableName}))
+      ON CONFLICT(table_name) DO UPDATE SET revision = MAX(revision, excluded.revision)
+    `).run(tableName)
   }
+}
+
+const nextServerSequence = (db, tableName) => {
+  db.prepare('UPDATE sync_revision_counters SET revision = revision + 1 WHERE table_name = ?').run(tableName)
+  return db.prepare('SELECT revision FROM sync_revision_counters WHERE table_name = ?').get(tableName).revision
 }
 
 const getActiveRowsForUser = (db, userId) => {
@@ -196,20 +221,27 @@ const getSyncBlobs = (db, hashes) => {
 
 const getRowsForEntityType = (db, userId, entityType, checkpoint, limit) => {
   const tableName = getTableName(entityType)
+  if (checkpoint && isNumber(checkpoint.sequence)) {
+    return db.prepare(`
+      SELECT id, user_id, payload, updated_at, deleted_at, server_seq
+      FROM ${tableName} WHERE user_id = ? AND server_seq > ?
+      ORDER BY server_seq ASC LIMIT ?
+    `).all(userId, checkpoint.sequence, limit)
+  }
   if (!checkpoint || !isNumber(checkpoint.updatedAt) || typeof checkpoint.id !== 'string') {
     return db
       .prepare(
-        `SELECT id, user_id, payload, updated_at, deleted_at
+        `SELECT id, user_id, payload, updated_at, deleted_at, server_seq
          FROM ${tableName}
          WHERE user_id = ?
-         ORDER BY updated_at ASC, id ASC
+         ORDER BY server_seq ASC
          LIMIT ?`,
       )
       .all(userId, limit)
   }
   return db
     .prepare(
-      `SELECT id, user_id, payload, updated_at, deleted_at
+      `SELECT id, user_id, payload, updated_at, deleted_at, server_seq
        FROM ${tableName}
        WHERE user_id = ?
          AND (updated_at > ? OR (updated_at = ? AND id > ?))
@@ -244,6 +276,7 @@ export const getRxdbPullState = (db, userId, entityType, checkpoint, limit = 100
       ? {
           updatedAt: last.updated_at,
           id: last.id,
+          sequence: last.server_seq,
         }
       : checkpoint ?? null,
     blobs: collectBlobsForPayloads(db, entityType, rows.map(normalizeRow)),
@@ -281,14 +314,16 @@ export const pushRxdbRows = (db, userId, entityType, rows) => {
     const deletedAt = next._deleted === true ? next.updatedAt : null
     const payload = { ...next }
     delete payload._deleted
+    const serverSequence = nextServerSequence(db, tableName)
     db.prepare(`
-      INSERT INTO ${tableName} (id, user_id, payload, updated_at, deleted_at)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO ${tableName} (id, user_id, payload, updated_at, deleted_at, server_seq)
+      VALUES (?, ?, ?, ?, ?, ?)
       ON CONFLICT(user_id, id) DO UPDATE SET
         payload = excluded.payload,
         updated_at = excluded.updated_at,
-        deleted_at = excluded.deleted_at
-    `).run(next.id, userId, JSON.stringify(payload), next.updatedAt, deletedAt)
+        deleted_at = excluded.deleted_at,
+        server_seq = excluded.server_seq
+    `).run(next.id, userId, JSON.stringify(payload), next.updatedAt, deletedAt, serverSequence)
   }
 
   return {

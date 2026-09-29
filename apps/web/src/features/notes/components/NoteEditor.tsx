@@ -13,7 +13,7 @@ import { TextAlign } from '@tiptap/extension-text-align'
 import { Typography } from '@tiptap/extension-typography'
 import { StarterKit } from '@tiptap/starter-kit'
 import { EditorContent, EditorContext, useEditor } from '@tiptap/react'
-import { Download, Expand, FileUp, Info, Minimize2, Palette } from 'lucide-react'
+import { ArrowLeft, Download, Expand, FileUp, Info, ListTodo, Minimize2, Palette } from 'lucide-react'
 import type { CSSProperties, ReactNode, RefObject } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { HorizontalRule } from '@/components/tiptap-node/horizontal-rule-node/horizontal-rule-node-extension'
@@ -70,6 +70,9 @@ type NoteEditorProps = {
   onImport?: () => void
   onExport?: () => void
   onToggleFullscreen?: () => void
+  onCreateTask?: (suggestedTitle: string) => void
+  onReturn?: () => void
+  returnLabel?: string
   onChange: (next: NoteEditorValue) => void
   isFullscreen?: boolean
   surfaceRef?: RefObject<HTMLDivElement | null>
@@ -98,7 +101,7 @@ const fontFamilyMap = {
   humanistSans: '"Avenir Next", "Nunito", "Trebuchet MS", "Gill Sans", "Segoe UI", sans-serif',
   cnSans: '"PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", sans-serif',
   // The app's reading serif (DESIGN.md › Serif where you write), bundled offline.
-  serif: '"Fraunces", "Noto Serif SC", "Iowan Old Style", Georgia, serif',
+  serif: '"Source Serif 4", "Noto Serif SC", "Iowan Old Style", Georgia, serif',
   cnSerif: '"Songti SC", "STSong", "Noto Serif CJK SC", "Source Han Serif SC", "SimSun", serif',
   mono: '"SF Mono", "JetBrains Mono", "Fira Code", Consolas, monospace',
 } as const
@@ -224,6 +227,9 @@ const NoteEditor = ({
   onImport,
   onExport,
   onToggleFullscreen,
+  onCreateTask,
+  onReturn,
+  returnLabel,
   onChange,
   isFullscreen = false,
   surfaceRef,
@@ -505,6 +511,12 @@ const NoteEditor = ({
   return (
     <div className="note-editor">
       <div className="note-editor__topbar">
+        {onReturn ? (
+          <button type="button" className="note-editor__return" onClick={onReturn} aria-label={returnLabel} title={returnLabel}>
+            <ArrowLeft size={15} />
+            <span>{returnLabel}</span>
+          </button>
+        ) : null}
         <div className="note-editor__toolbar-wrap">
           <EditorContext.Provider value={{ editor }}>
             <Toolbar className="note-editor__toolbar-inline">
@@ -549,6 +561,24 @@ const NoteEditor = ({
           </EditorContext.Provider>
         </div>
         <div className="note-editor__actions">
+          {onCreateTask ? (
+            <button
+              type="button"
+              className="note-editor__action-button note-editor__action-button--task"
+              aria-label={t('notes.createTask')}
+              title={t('notes.createTask')}
+              onClick={() => {
+                const selection = editor?.state.selection
+                const selectedText = selection && !selection.empty
+                  ? editor.state.doc.textBetween(selection.from, selection.to, ' ').replace(/\s+/g, ' ').trim().slice(0, 180)
+                  : ''
+                onCreateTask(selectedText)
+              }}
+            >
+              <ListTodo size={14} />
+              <span>{t('notes.createTask')}</span>
+            </button>
+          ) : null}
           <button
             type="button"
             className="note-editor__action-button note-editor__action-button--icon"

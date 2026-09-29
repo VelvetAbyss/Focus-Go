@@ -19,6 +19,7 @@ import {
   writeWidgetTodoResetBucket,
 } from '../model/widgetTodoRefresh'
 import { DURATION, EASE } from '../../../shared/motion/tokens'
+import Doodle from '../../../shared/ui/Doodle'
 
 const DEFAULT_HABIT_COLOR = 'var(--text-primary)'
 const DEFAULT_HABIT_ICON = '🎯'
@@ -536,19 +537,9 @@ const WidgetTodosCard = () => {
     const titleKey = `todo.empty.${scope}.title` as const
     const hintKey = `todo.empty.${scope}.hint` as const
     return (
+      // Centred: one drawing, one serif line, one sentence (DESIGN.md › Empty states).
       <div className="widget-todos__empty" role="status">
-        <span className="widget-todos__empty-mark" aria-hidden>
-          <svg viewBox="0 0 48 48" width="48" height="48">
-            <defs>
-              <linearGradient id={`empty-ink-${scope}`} x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="#114f48" stopOpacity="0.18" />
-                <stop offset="100%" stopColor="#c58a1b" stopOpacity="0.22" />
-              </linearGradient>
-            </defs>
-            <circle cx="24" cy="24" r="16" fill="none" stroke={`url(#empty-ink-${scope})`} strokeWidth="1.6" strokeDasharray="2 4" />
-            <path d="M15 26 L21 32 L33 18" fill="none" stroke="#114f48" strokeOpacity="0.38" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </span>
+        <Doodle name="sitting" height={72} className="widget-todos__empty-art" />
         <p className="widget-todos__empty-title">{t(titleKey)}</p>
         <p className="widget-todos__empty-hint">{t(hintKey)}</p>
       </div>

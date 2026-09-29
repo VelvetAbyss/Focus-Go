@@ -12,16 +12,17 @@ const createDb = () => {
 }
 
 const createServer = async (options = {}) => {
+  const { authMiddleware = (req, _res, next) => {
+    req.auth = { user: { id: 'user-1', plan: 'premium' } }
+    next()
+  }, ...routerOptions } = options
   const db = createDb()
   const app = express()
   app.use(express.json({ limit: '10mb' }))
   app.use('/sync', createSyncRouter({
     database: db,
-    ...options,
-    authMiddleware: (req, _res, next) => {
-      req.auth = { user: { id: 'user-1', plan: 'premium' } }
-      next()
-    },
+    ...routerOptions,
+    authMiddleware,
   }))
 
   const server = await new Promise((resolve) => {
@@ -262,6 +263,54 @@ test('sync route rejects stale writes when assumed master state does not match',
 
     const pullJson = await pullResponse.json()
     assert.equal(pullJson.documents[0].title, 'Cloud version')
+  } finally {
+    await ctx.close()
+  }
+})
+
+test('two authenticated devices receive ordered changes and a stale-write conflict', async () => {
+  const tokens = new Set(['device-a', 'device-b'])
+  const ctx = await createServer({
+    authMiddleware: (req, res, next) => {
+      const token = req.headers.authorization?.replace(/^Bearer /, '')
+      if (!tokens.has(token)) return res.status(401).json({ error: 'invalid_session' })
+      req.auth = { user: { id: 'shared-account', plan: 'free' } }
+      next()
+    },
+  })
+  const request = (token, path, body) => fetch(`${ctx.baseUrl}/sync/rxdb/${path}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  try {
+    const original = { id: 'shared-note', title: 'Draft', updatedAt: 10_000, _deleted: false }
+    assert.equal((await request('device-a', 'push', { entityType: 'notes', rows: [
+      { newDocumentState: original, assumedMasterState: null },
+    ], blobs: [] })).status, 200)
+    const first = await (await request('device-b', 'pull', { entityType: 'notes', checkpoint: null, limit: 100 })).json()
+    assert.equal(first.documents.length, 1)
+    assert.equal(first.documents[0].title, 'Draft')
+
+    const editA = { ...original, title: 'Device A edit', updatedAt: 20_000 }
+    const changed = await (await request('device-a', 'push', { entityType: 'notes', rows: [
+      { newDocumentState: editA, assumedMasterState: original },
+    ], blobs: [] })).json()
+    assert.deepEqual(changed.conflicts, [])
+    const editB = { ...original, title: 'Device B offline edit', updatedAt: 100 }
+    const stale = await (await request('device-b', 'push', { entityType: 'notes', rows: [
+      { newDocumentState: editB, assumedMasterState: original },
+    ], blobs: [] })).json()
+    assert.equal(stale.conflicts.length, 1)
+    assert.equal(stale.conflicts[0].title, 'Device A edit')
+    const resumed = await (await request('device-b', 'pull', {
+      entityType: 'notes', checkpoint: first.checkpoint, limit: 100,
+    })).json()
+    assert.equal(resumed.documents.length, 1)
+    assert.equal(resumed.documents[0].title, 'Device A edit')
+    assert.ok(resumed.checkpoint.sequence > first.checkpoint.sequence)
+    assert.equal(ctx.db.prepare('SELECT COUNT(*) AS count FROM sync_notes WHERE user_id = ?').get('shared-account').count, 1)
+    assert.equal((await request('invalid', 'pull', { entityType: 'notes', checkpoint: null, limit: 1 })).status, 401)
   } finally {
     await ctx.close()
   }

@@ -13,6 +13,7 @@ import { useProjectsI18n } from '../projectsI18n'
 import ActiveIndicator from '../../../shared/motion/ActiveIndicator'
 import { PRESSED_BUTTON } from '../../../shared/motion/indicatorSelectors'
 import '../projects.css'
+import Doodle from '../../../shared/ui/Doodle'
 
 const listStagger = {
   hidden: {},
@@ -244,11 +245,13 @@ const ProjectsPage = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: DURATION.medium, ease: EASE_OUT }}
           >
+            <Doodle name="laying" className="pj-empty__art" />
             <h2>{i18n.page.emptyTitle}</h2>
             <p>{i18n.page.emptyDesc}</p>
             <button
               type="button"
-              className="pj-new-btn"
+              // The header already has the primary "New project"; the repeat is secondary.
+              className="pj-new-btn pj-new-btn--secondary"
               style={{ marginTop: 4 }}
               onClick={() => { setEditingProject(null); setDialogOpen(true) }}
             >

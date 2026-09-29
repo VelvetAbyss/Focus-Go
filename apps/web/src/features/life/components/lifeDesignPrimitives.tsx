@@ -18,8 +18,14 @@ export const inter = (size = 13, weight = 400, color = ink): CSSProperties => ({
   color,
 })
 
+// Serif text. At 16px and below it is almost always a content name (a book,
+// a podcast, a task) or a short line, so it takes the reading serif, which has
+// real weights to match Noto Serif SC; larger sizes are card and panel titles
+// in the display face (DESIGN.md › Typography).
+export const serifFontFor = (size: number) => (size <= 16 ? 'var(--font-reading)' : 'var(--font-display)')
+
 export const playfair = (size = 16, weight = 500, color = ink): CSSProperties => ({
-  fontFamily: 'var(--font-display)',
+  fontFamily: serifFontFor(size),
   fontSize: scaleFontSize(size),
   fontWeight: weight,
   color,

@@ -4,7 +4,9 @@ import { requireAuth } from '../middleware/auth.js'
 import { getCloudStorageUsage, getRxdbPullState, pushRxdbRows, upsertSyncBlob } from '../sync/store.js'
 
 export const DEFAULT_CLOUD_SYNC_QUOTA_BYTES = 250 * 1024 * 1024
-export const DEFAULT_SYNC_RATE_LIMITS = { pull: 120, push: 60 }
+// One client cycle pulls every entity type. Allow several active devices to
+// reconnect within the same minute without throttling normal use.
+export const DEFAULT_SYNC_RATE_LIMITS = { pull: 600, push: 120 }
 
 const readPositiveInt = (value, fallback) => {
   const parsed = Number.parseInt(String(value ?? ''), 10)

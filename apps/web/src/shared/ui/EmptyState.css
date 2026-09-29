@@ -1,27 +1,41 @@
 /* DiscoveryEmptyState — teaching empty state, 3 variants */
+/* DESIGN.md › Empty states: centred, one serif line, one sentence of help,
+   one action. Optional pencil-toned art above the line. */
 .ds-empty {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 28px 0 24px;
-  max-width: 480px;
+  align-items: center;
+  gap: 6px;
+  padding: 24px 0 20px;
+  max-width: 30em;
+  margin-inline: auto;
   font-family: var(--font-body);
+  text-align: center;
+}
+
+.ds-empty__art {
+  margin: 0 0 8px;
 }
 
 .ds-empty__title {
   margin: 0;
-  font-size: var(--fs-body);
+  font-family: var(--font-display);
+  font-size: var(--fs-subhead);
   font-weight: 600;
-  line-height: 1.35;
-  color: var(--text-primary);
+  line-height: 1.3;
+  color: var(--ink-1);
 }
 
 .ds-empty__body {
   margin: 0;
   font-size: var(--fs-ui);
   line-height: 1.55;
-  color: var(--text-secondary);
+  color: var(--ink-2);
+}
+
+.ds-empty__related-hint {
+  font-size: var(--fs-label);
+  color: var(--ink-3);
 }
 
 .ds-empty__action {
@@ -53,11 +67,15 @@
   border-radius: 2px;
 }
 
-/* Filtered variant: centered, compact */
+/* Filtered variant: compact, still top-left; the line is plain UI text. */
 .ds-empty--filtered {
-  align-items: center;
-  text-align: center;
-  padding: 20px 0;
+  padding: 16px 0;
+}
+
+.ds-empty--filtered .ds-empty__title {
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  color: var(--ink-2);
 }
 
 /* Error variant: slightly distinct */

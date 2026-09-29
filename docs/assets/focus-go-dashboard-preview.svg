@@ -1,0 +1,53 @@
+<svg width="1400" height="820" viewBox="0 0 1400 820" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1400" height="820" rx="24" fill="#0F172A"/>
+  <rect x="32" y="32" width="1336" height="756" rx="18" fill="#111827"/>
+  <rect x="64" y="64" width="1272" height="64" rx="12" fill="#1F2937"/>
+  <rect x="92" y="86" width="180" height="20" rx="6" fill="#38BDF8"/>
+  <rect x="1140" y="84" width="64" height="24" rx="12" fill="#334155"/>
+  <rect x="1216" y="84" width="92" height="24" rx="12" fill="#2563EB"/>
+
+  <rect x="64" y="152" width="616" height="290" rx="16" fill="#111F3A"/>
+  <rect x="88" y="176" width="220" height="22" rx="6" fill="#93C5FD"/>
+  <rect x="88" y="214" width="560" height="16" rx="5" fill="#334155"/>
+  <rect x="88" y="240" width="510" height="16" rx="5" fill="#334155"/>
+  <rect x="88" y="266" width="540" height="16" rx="5" fill="#334155"/>
+  <rect x="88" y="300" width="110" height="38" rx="10" fill="#2563EB"/>
+  <rect x="210" y="300" width="110" height="38" rx="10" fill="#334155"/>
+
+  <rect x="700" y="152" width="636" height="290" rx="16" fill="#1D2434"/>
+  <rect x="724" y="176" width="210" height="22" rx="6" fill="#BFDBFE"/>
+  <rect x="724" y="214" width="592" height="208" rx="10" fill="#111827"/>
+  <rect x="748" y="238" width="44" height="160" rx="6" fill="#60A5FA"/>
+  <rect x="808" y="286" width="44" height="112" rx="6" fill="#3B82F6"/>
+  <rect x="868" y="254" width="44" height="144" rx="6" fill="#2563EB"/>
+  <rect x="928" y="320" width="44" height="78" rx="6" fill="#1D4ED8"/>
+  <rect x="988" y="274" width="44" height="124" rx="6" fill="#60A5FA"/>
+  <rect x="1048" y="300" width="44" height="98" rx="6" fill="#3B82F6"/>
+
+  <rect x="64" y="462" width="404" height="294" rx="16" fill="#1F2937"/>
+  <rect x="88" y="486" width="120" height="22" rx="6" fill="#C7D2FE"/>
+  <rect x="88" y="526" width="356" height="16" rx="5" fill="#334155"/>
+  <rect x="88" y="552" width="332" height="16" rx="5" fill="#334155"/>
+  <rect x="88" y="578" width="298" height="16" rx="5" fill="#334155"/>
+  <rect x="88" y="620" width="148" height="36" rx="10" fill="#4F46E5"/>
+
+  <rect x="488" y="462" width="404" height="294" rx="16" fill="#102A43"/>
+  <rect x="512" y="486" width="160" height="22" rx="6" fill="#BAE6FD"/>
+  <circle cx="690" cy="620" r="92" fill="#0F172A"/>
+  <circle cx="690" cy="620" r="72" fill="#1E3A8A"/>
+  <circle cx="690" cy="620" r="52" fill="#38BDF8"/>
+  <rect x="650" y="702" width="80" height="18" rx="6" fill="#334155"/>
+
+  <rect x="912" y="462" width="424" height="294" rx="16" fill="#1E293B"/>
+  <rect x="936" y="486" width="220" height="22" rx="6" fill="#DBEAFE"/>
+  <rect x="936" y="526" width="376" height="48" rx="10" fill="#111827"/>
+  <rect x="936" y="586" width="376" height="48" rx="10" fill="#111827"/>
+  <rect x="936" y="646" width="376" height="48" rx="10" fill="#111827"/>
+  <rect x="952" y="542" width="150" height="16" rx="5" fill="#475569"/>
+  <rect x="952" y="602" width="166" height="16" rx="5" fill="#475569"/>
+  <rect x="952" y="662" width="136" height="16" rx="5" fill="#475569"/>
+
+  <text x="700" y="790" fill="#93C5FD" font-family="Arial, Helvetica, sans-serif" font-size="22" text-anchor="middle">
+    Focus&go dashboard preview (replace with real screenshot when available)
+  </text>
+</svg>

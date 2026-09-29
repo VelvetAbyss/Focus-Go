@@ -212,7 +212,7 @@ function CollectionButton({
         <span className="absolute left-[3px] top-1/2 h-3.5 w-[3px] -translate-y-1/2 rounded-full bg-[var(--accent)]" />
       ) : null}
       <Icon size={15} strokeWidth={active ? 2.1 : 1.8} className={active ? 'text-ink-1 dark:text-[var(--text-primary)]' : 'text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)]'} />
-      <span className="flex-1 text-ui tracking-[-0.005em]" style={{ fontWeight: active ? 530 : 400 }}>
+      <span className="flex-1 text-ui tracking-[-0.005em]" style={{ fontWeight: active ? 500 : 400 }}>
         {label}
       </span>
       <span className="text-meta tabular-nums text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)]">{count}</span>

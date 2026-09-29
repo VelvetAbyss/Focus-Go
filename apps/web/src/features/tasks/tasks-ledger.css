@@ -227,7 +227,8 @@
 
 .fg-task-row__index {
   flex-shrink: 0;
-  width: 24px;
+  min-width: 28px;
+  white-space: nowrap;
   font-family: var(--font-body);
   font-variant-numeric: tabular-nums;
   font-size: var(--fs-meta);
@@ -237,58 +238,8 @@
   padding-right: 4px;
 }
 
-.fg-task-row__check {
+.fg-task-row__mark {
   flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  color: color-mix(in srgb, var(--ink-1) 55%, transparent);
-  transition: color var(--motion-duration-fast) var(--ease-standard), transform var(--motion-duration-fast) var(--ease-standard);
-}
-
-.fg-task-row__check--outline {
-  width: 14px;
-  height: 14px;
-  border: 1.5px solid color-mix(in srgb, var(--ink-1) 35%, transparent);
-  border-radius: 999px;
-  position: relative;
-}
-
-.fg-task-row__check--outline:hover {
-  transform: scale(1.08);
-}
-
-.fg-task-row__check-fill {
-  position: absolute;
-  inset: 1.5px;
-  border-radius: 999px;
-  transform-origin: center;
-}
-
-.fg-task-row__check--solid {
-  width: 16px;
-  height: 16px;
-  border-radius: 999px;
-  border: 1.5px solid;
-  position: relative;
-  box-shadow: 0 4px 10px -6px rgba(58, 55, 51, 0.4);
-}
-
-.fg-task-row__check-glyph {
-  position: absolute;
-  inset: 3px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.85);
-}
-
-.fg-task-row__check--done {
-  width: 14px;
-  height: 14px;
-  color: rgba(61, 122, 78, 0.7);
 }
 
 .fg-task-row__priority {
@@ -317,7 +268,7 @@
 }
 
 .fg-task-row__title--todo {
-  font-weight: 450;
+  font-weight: 500;
   letter-spacing: -0.005em;
 }
 
@@ -329,11 +280,10 @@
 }
 
 .fg-task-row__progress {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: var(--fs-meta);
-  color: color-mix(in srgb, var(--ink-1) 50%, transparent);
-  letter-spacing: -0.01em;
-  font-feature-settings: 'lnum' 1;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
 }
 
 .fg-task-row__tag {
@@ -342,12 +292,12 @@
   letter-spacing: 0.02em;
 }
 
+/* A due date not yet reached is pencil (intention); overdue takes vermilion. */
 .fg-task-row__due {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: var(--fs-meta);
-  color: color-mix(in srgb, var(--ink-1) 55%, transparent);
-  letter-spacing: -0.01em;
-  font-feature-settings: 'lnum' 1;
+  color: var(--pencil);
+  font-variant-numeric: tabular-nums;
 }
 
 .fg-task-row__due.is-overdue {
@@ -451,7 +401,7 @@
   background: rgba(176, 120, 48, 0.04);
 }
 
-.fg-task-row--doing .fg-task-row__check {
+.fg-task-row--doing .fg-task-row__mark {
   margin-top: 5px;
   align-self: flex-start;
 }
@@ -523,9 +473,9 @@
 .fg-task-row__title--done {
   font-family: var(--font-body);
   font-size: var(--fs-label);
-  color: var(--fg-muted-soft);
+  color: var(--ink-3);
   text-decoration: line-through;
-  text-decoration-color: color-mix(in srgb, var(--ink-1) 18%, transparent);
+  text-decoration-color: var(--ink-2);
   text-decoration-thickness: 1px;
   letter-spacing: -0.002em;
   flex: 1;
@@ -535,10 +485,6 @@
   text-overflow: ellipsis;
 }
 
-.fg-task-row__check--done {
-  color: var(--tone-done);
-  opacity: 0.6;
-}
 
 /* narrow */
 @media (max-width: 900px) {

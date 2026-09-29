@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useSyncDataRefresh, useSyncStatus } from '../../../data/sync/service'
 import { useIsLoggedIn } from '../../../store/auth'
-import type { NoteAppearanceSettings, NoteItem, NoteTag } from '../../../data/models/types'
+import type { NoteAppearanceSettings, NoteItem, NoteTag, ProjectItem } from '../../../data/models/types'
 import { noteAppearanceRepo } from '../../../data/repositories/noteAppearanceRepo'
 import { noteTagsRepo } from '../../../data/repositories/noteTagsRepo'
 import { notesRepo } from '../../../data/repositories/notesRepo'
 import { projectsRepo } from '../../../data/repositories/projectsRepo'
+import { taskNoteLinksRepo } from '../../../data/repositories/taskNoteLinksRepo'
 import { tasksRepo } from '../../../data/repositories/tasksRepo'
+import { createTask } from '../../tasks/application/taskActions'
+import { emitTasksChanged } from '../../tasks/taskSync'
 import { db } from '../../../data/db'
 import AppearanceModal from '../components/AppearanceModal'
 import ExportModal from '../components/ExportModal'
@@ -21,13 +25,19 @@ import { exportNoteAsPdf } from '../model/notePdfExport'
 import { useI18n } from '../../../shared/i18n/useI18n'
 import { usePremiumGate } from '../../premium/PremiumProvider'
 import BrandLoader from '../../../shared/ui/loading/BrandLoader'
+import Dialog from '../../../shared/ui/Dialog'
+import { useToast } from '../../../shared/ui/toast/toast'
 import { createId } from '../../../shared/utils/ids'
 import { useVisibleInterval } from '../../../shared/hooks/usePageActivity'
-import { createUnsavedEditStore } from '../../../shared/utils/unsavedEdit'
+import { createUnsavedEditJournal } from '../../../shared/utils/unsavedEdit'
 import { useOpenRequest } from '../../../shared/navigation/openRequest'
 import '../notes.css'
+import Doodle from '../../../shared/ui/Doodle'
+import { rememberCurrentUserRecentCommandTarget } from '../../../shared/ui/recentCommandTargets'
+import { readReturnPath, withReturnPath } from '../../../shared/navigation/returnPath'
+import { buildNoteDetailRoute, buildTaskDetailRoute } from '../../../app/routes/routes'
 
-const unsavedNoteEdit = createUnsavedEditStore<Partial<NoteItem>>('focusgo.notes.unsavedEdit')
+const unsavedNoteEdits = createUnsavedEditJournal<Partial<NoteItem>>('focusgo.notes.unsavedEdit')
 
 const DEFAULT_APPEARANCE: NoteAppearanceSettings = {
   id: 'note_appearance',
@@ -52,6 +62,7 @@ const DEFAULT_TAGS: Array<Pick<NoteTag, 'name' | 'icon' | 'pinned' | 'sortOrder'
 ]
 
 type NotePanel = 'info' | 'appearance' | 'import' | 'export' | null
+type NoteTaskDraft = { noteId: string; title: string; projectId: string }
 
 const IMPORTED_TAG_NAME = 'Imported'
 
@@ -125,6 +136,11 @@ const buildNoteTextForStats = (contentMd: string) => contentMd
 
 export default function NotePage() {
   const { t } = useI18n()
+  const toast = useToast()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const [, setSearchParams] = useSearchParams()
+  const returnPath = readReturnPath(location.search)
   const { canUse, openUpgradeModal } = usePremiumGate()
   const isLoggedIn = useIsLoggedIn()
   const syncStatus = useSyncStatus()
@@ -133,8 +149,13 @@ export default function NotePage() {
   const [tags, setTags] = useState<NoteTag[]>([])
   const [projectTagLabels, setProjectTagLabels] = useState<Map<string, string>>(new Map())
   const [linkedTaskTitles, setLinkedTaskTitles] = useState<Map<string, string>>(new Map())
+  const [taskDraft, setTaskDraft] = useState<NoteTaskDraft | null>(null)
+  const [taskProjectOptions, setTaskProjectOptions] = useState<ProjectItem[]>([])
+  const [isCreatingTask, setIsCreatingTask] = useState(false)
   const [appearance, setAppearance] = useState<NoteAppearanceSettings>(DEFAULT_APPEARANCE)
-  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(() =>
+    typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('note') : null,
+  )
   // The note that was just created: its editor takes focus so typing starts right away.
   const [focusNoteId, setFocusNoteId] = useState<string | null>(null)
   const [activeCollection, setActiveCollection] = useState<NoteSystemCollection>('notes')
@@ -157,8 +178,10 @@ export default function NotePage() {
     untagged: t('modules.note.collection.untagged'),
     trash: t('modules.note.collection.trash'),
   }
-  const pendingSaveRef = useRef<{ id: string; patch: Partial<NoteItem> } | null>(null)
+  const pendingSaveRef = useRef<{ id: string; patch: Partial<NoteItem>; at: number; backedUp: boolean } | null>(null)
   const saveTimerRef = useRef<number | null>(null)
+  const saveQueueRef = useRef<Promise<void>>(Promise.resolve())
+  const latestSaveAtRef = useRef(new Map<string, number>())
   const pageHidingRef = useRef(false)
   const sidebarScrollRef = useRef<HTMLDivElement | null>(null)
   const browserScrollRef = useRef<HTMLDivElement | null>(null)
@@ -173,6 +196,16 @@ export default function NotePage() {
   const isLoggedInRef = useRef(isLoggedIn)
   const hasSyncedOnceRef = useRef(false)
   const prevSyncStatusRef = useRef<string | null>(null)
+  const handledNoteSearchRef = useRef<string | null>(null)
+
+  const writeNoteUrl = useCallback((id: string | null, replace = false) => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current)
+      if (id) next.set('note', id)
+      else next.delete('note')
+      return next
+    }, { replace })
+  }, [setSearchParams])
 
   useEffect(() => {
     activeCollectionRef.current = activeCollection
@@ -184,11 +217,23 @@ export default function NotePage() {
 
   const refresh = useCallback(async () => {
     try {
-      // Replay an edit that was stashed while the page was closing (see unsavedEdit).
-      const unsaved = unsavedNoteEdit.take()
-      if (unsaved) {
-        const target = (await notesRepo.list()).find((note) => note.id === unsaved.id)
-        if (target && target.updatedAt <= unsaved.at) await notesRepo.update(unsaved.id, unsaved.patch)
+      // Replay local recovery copies before reading the visible note list.
+      const unsavedEdits = unsavedNoteEdits.list()
+      if (unsavedEdits.length > 0) {
+        const localNotes = await notesRepo.list()
+        for (const unsaved of unsavedEdits) {
+          try {
+            const target = localNotes.find((note) => note.id === unsaved.id)
+            if (target && target.updatedAt <= unsaved.at) {
+              const restored = await notesRepo.update(unsaved.id, unsaved.patch)
+              if (restored) unsavedNoteEdits.clear(unsaved.id, unsaved.at)
+            } else if (target && target.updatedAt > unsaved.at) {
+              unsavedNoteEdits.clear(unsaved.id, unsaved.at)
+            }
+          } catch (error) {
+            console.error(`[notes] recovery failed for ${unsaved.id}; local copy retained`, error)
+          }
+        }
       }
       const [activeNotes, trashedNotes, storedTags, storedAppearance, projects, taskNoteLinks, tasks] = await Promise.all([
         notesRepo.list(),
@@ -287,18 +332,51 @@ export default function NotePage() {
       window.clearTimeout(saveTimerRef.current)
       saveTimerRef.current = null
     }
-    // The page may be unloading: keep a synchronous copy until the async write lands.
-    const stashedAt = pageHidingRef.current ? Date.now() : null
-    if (stashedAt !== null) unsavedNoteEdit.stash({ id: pending.id, patch: pending.patch, at: stashedAt })
-    const updated = await notesRepo.update(pending.id, pending.patch)
-    if (stashedAt !== null) unsavedNoteEdit.clear(stashedAt)
-    if (updated) {
+    const write = saveQueueRef.current.catch(() => undefined).then(async () => {
+      const updated = await notesRepo.update(pending.id, pending.patch)
+      if (!updated) return
+      unsavedNoteEdits.clear(pending.id, pending.at)
+      if (latestSaveAtRef.current.get(updated.id) !== pending.at) return
       setNotes((current) => current.map((note) => (note.id === updated.id ? updated : note)))
       setTrash((current) => current.map((note) => (note.id === updated.id ? updated : note)))
+    })
+    saveQueueRef.current = write
+    try {
+      await write
+    } catch (error) {
+      console.error('[notes] save failed; local recovery copy retained', error)
+      if (!pageHidingRef.current) {
+        toast.push({ variant: 'error', title: t(pending.backedUp ? 'notes.saveFailed' : 'notes.saveFailedNoBackup'), message: '' })
+      }
     }
   }
 
   useSyncDataRefresh(refresh, ['notes', 'noteTags', 'noteAppearance'])
+
+  useEffect(() => {
+    if (isInitialLoading || handledNoteSearchRef.current === location.search) return
+    const previousSearch = handledNoteSearchRef.current
+    handledNoteSearchRef.current = location.search
+    const id = new URLSearchParams(location.search).get('note')
+    if (!id) {
+      if (previousSearch !== null) setSelectedNoteId(null)
+      return
+    }
+    if (!notes.some((note) => note.id === id)) {
+      setSelectedNoteId(null)
+      writeNoteUrl(null, true)
+      return
+    }
+    setActiveCollection('notes')
+    setActiveTagId(null)
+    setSearch('')
+    setSelectedNoteId(id)
+  }, [isInitialLoading, location.search, notes, writeNoteUrl])
+
+  useEffect(() => {
+    if (isInitialLoading || activeCollection !== 'notes' || !selectedNoteId) return
+    if (!new URLSearchParams(window.location.search).has('note')) writeNoteUrl(selectedNoteId, true)
+  }, [activeCollection, isInitialLoading, selectedNoteId, writeNoteUrl])
 
   // ⌘K search → "open this note": show it in the full list, whatever filter was active.
   useOpenRequest('note', !isInitialLoading, (id) => {
@@ -307,6 +385,10 @@ export default function NotePage() {
     setActiveTagId(null)
     setSearch('')
     setSelectedNoteId(id)
+    setFocusNoteId(id)
+    // Also handles opening the note that was already selected: its editor stays
+    // mounted, so changing the autoFocus prop alone may not refocus it.
+    window.requestAnimationFrame(() => editorSurfaceRef.current?.querySelector<HTMLElement>('.ProseMirror')?.focus())
   })
 
   // A reload or quit inside the save debounce would drop the last edits. While the page
@@ -355,7 +437,7 @@ export default function NotePage() {
     }, 0)
     return () => {
       window.clearTimeout(bootTimer)
-      void flushPendingSave()
+      void flushPendingSaveRef.current()
     }
   }, [refresh])
 
@@ -385,6 +467,11 @@ export default function NotePage() {
   }, [activeCollection, activeTagId, tagNameById, sortBy, sourceNotes, todayKey])
 
   const activeNote = useMemo(() => filteredNotes.find((note) => note.id === selectedNoteId) ?? null, [filteredNotes, selectedNoteId])
+  const activeNoteId = activeNote?.id ?? null
+
+  useEffect(() => {
+    if (activeNoteId) rememberCurrentUserRecentCommandTarget({ kind: 'note', id: activeNoteId })
+  }, [activeNoteId])
   const activeNoteValue = activeNote
     ? {
         title: activeNote.title,
@@ -432,7 +519,11 @@ export default function NotePage() {
   }, [activeNote?.id])
 
   const scheduleSave = (id: string, patch: Partial<NoteItem>) => {
-    pendingSaveRef.current = { id, patch }
+    const at = Math.max(Date.now(), (latestSaveAtRef.current.get(id) ?? 0) + 1)
+    latestSaveAtRef.current.set(id, at)
+    // Keep the latest edit synchronously, including when the browser closes before the debounce fires.
+    const backedUp = unsavedNoteEdits.stash({ id, patch, at })
+    pendingSaveRef.current = { id, patch, at, backedUp }
     if (pageHidingRef.current) {
       void flushPendingSave()
       return
@@ -458,6 +549,7 @@ export default function NotePage() {
     if (blank) {
       setActiveCollection('notes')
       setSelectedNoteId(blank.id)
+      writeNoteUrl(blank.id)
       setFocusNoteId(blank.id)
       setSearch('')
       return
@@ -470,8 +562,43 @@ export default function NotePage() {
     setNotes((current) => [created, ...current])
     setActiveCollection('notes')
     setSelectedNoteId(created.id)
+    writeNoteUrl(created.id)
     setFocusNoteId(created.id)
     setSearch('')
+  }
+
+  const openTaskDraft = (suggestedTitle: string) => {
+    if (!activeNote || activeCollection === 'trash') return
+    const projectId = activeNote.tags.find((tag) => tag.startsWith('project:'))?.slice('project:'.length) ?? ''
+    setTaskDraft({ noteId: activeNote.id, title: suggestedTitle, projectId })
+    void projectsRepo.list()
+      .then((items) => setTaskProjectOptions(items.filter((item) => item.status !== 'archived')))
+      .catch(() => setTaskProjectOptions([]))
+  }
+
+  const handleCreateTaskFromNote = async () => {
+    const draft = taskDraft
+    if (!draft?.title.trim() || isCreatingTask) return
+    setIsCreatingTask(true)
+    try {
+      await flushPendingSave()
+      const created = await createTask({
+        title: draft.title.trim(),
+        projectId: draft.projectId || undefined,
+      })
+      try {
+        await taskNoteLinksRepo.linkExistingNote(created.id, draft.noteId)
+      } catch {
+        toast.push({ variant: 'error', title: t('notes.taskLinkFailed'), message: '' })
+      }
+      emitTasksChanged('notes:create-linked-task')
+      setTaskDraft(null)
+      navigate(withReturnPath(buildTaskDetailRoute(created.id), buildNoteDetailRoute(draft.noteId)))
+    } catch {
+      toast.push({ variant: 'error', title: t('notes.taskCreateFailed'), message: '' })
+    } finally {
+      setIsCreatingTask(false)
+    }
   }
 
   const handleTogglePinNote = async (id: string) => {
@@ -488,11 +615,15 @@ export default function NotePage() {
     if (!removed) return
     setNotes((current) => current.filter((note) => note.id !== id))
     setTrash((current) => [removed, ...current])
-    if (selectedNoteId === id) setSelectedNoteId(null)
+    if (selectedNoteId === id) {
+      setSelectedNoteId(null)
+      writeNoteUrl(null, true)
+    }
   }
 
   const handleDeletePermanently = async (id: string) => {
     await notesRepo.hardDelete(id)
+    if (selectedNoteId === id) writeNoteUrl(null, true)
     setTrash((current) => {
       const next = current.filter((note) => note.id !== id)
       if (selectedNoteId === id) setSelectedNoteId(next[0]?.id ?? null)
@@ -541,6 +672,7 @@ export default function NotePage() {
           setNotes((current) => [created, ...current])
           setActiveCollection('notes')
           setSelectedNoteId(created.id)
+          writeNoteUrl(created.id)
           setSearch('')
         } finally {
           creatingFromBlankRef.current = false
@@ -677,6 +809,7 @@ export default function NotePage() {
     setActiveCollection('notes')
     setActiveTagId(tagId)
     setSelectedNoteId(noteId)
+    writeNoteUrl(noteId)
     const alreadyOnlyTarget = targetNote.tags.length === 1 && containsTagName(targetNote.tags, targetTag.name)
     if (!alreadyOnlyTarget) {
       const nextTags = [targetTag.name]
@@ -768,12 +901,14 @@ export default function NotePage() {
     setActiveCollection(collection)
     setActiveTagId(null)
     setSelectedNoteId(null)
+    writeNoteUrl(null)
   }
 
   const handleSelectTag = (tagId: string) => {
     setActiveTagId(tagId)
     setActiveCollection('notes')
     setSelectedNoteId(null)
+    writeNoteUrl(null)
   }
 
   const handleUpdateAppearance = async (patch: Partial<NoteAppearanceSettings>) => {
@@ -903,6 +1038,7 @@ export default function NotePage() {
       setActiveCollection('notes')
       setActiveTagId(importedTag.id)
       setSelectedNoteId(createdNotes[0]?.id ?? null)
+      writeNoteUrl(createdNotes[0]?.id ?? null)
       setSearch('')
     }
   }
@@ -1013,6 +1149,7 @@ export default function NotePage() {
               onSelectNote={async (id) => {
                 await flushPendingSave()
                 setSelectedNoteId(id)
+                writeNoteUrl(activeCollection === 'trash' ? null : id)
               }}
               onNewNote={handleCreate}
               onTogglePin={handleTogglePinNote}
@@ -1038,8 +1175,14 @@ export default function NotePage() {
                       onOpenAppearance={() => setOpenPanel((current) => (current === 'appearance' ? null : 'appearance'))}
                       onImport={() => setOpenPanel((current) => (current === 'import' ? null : 'import'))}
                       onExport={() => setOpenPanel((current) => (current === 'export' ? null : 'export'))}
+                      onCreateTask={activeCollection === 'trash' ? undefined : openTaskDraft}
                       onChange={handleUpdateNote}
                       autoFocus={focusNoteId === activeNote.id}
+                      onReturn={returnPath ? async () => {
+                        await flushPendingSave()
+                        navigate(returnPath)
+                      } : undefined}
+                      returnLabel={returnPath ? t(returnPath.startsWith('/projects/') ? 'navigation.backToProject' : 'navigation.backToTask') : undefined}
                     />
                   ) : (
                     <div className="note-page__loading" data-testid="note-editor-loader">
@@ -1056,7 +1199,10 @@ export default function NotePage() {
                     note={activeNoteForInfo}
                     onClose={() => setOpenPanel(null)}
                     onNavigateToHeading={handleNavigateToHeading}
-                    onNavigateToNote={(id) => setSelectedNoteId(id)}
+                    onNavigateToNote={(id) => {
+                      setSelectedNoteId(id)
+                      writeNoteUrl(id)
+                    }}
                   />
                   <AppearanceModal open={openPanel === 'appearance'} settings={appearance} onClose={() => setOpenPanel(null)} onUpdate={handleUpdateAppearance} />
                   <ExportModal
@@ -1071,25 +1217,22 @@ export default function NotePage() {
               ) : (
                 <div className="note-page__unselected" role="status" aria-live="polite">
                   <div className="note-page__unselected-card">
-                    <div className="note-page__unselected-mark" aria-hidden="true">
-                      <span />
-                      <span />
-                      <span />
-                    </div>
-                    <p className="note-page__unselected-kicker">{collectionLabelMap[activeCollection]}</p>
+                    <Doodle name="sitting-reading" className="note-page__unselected-art" />
                     <h2>{t('notes.unselected.title')}</h2>
                     <p>{t('notes.unselected.description')}</p>
-                    <button type="button" className="note-page__unselected-action" onClick={handleCreate}>
-                      {t('modules.note.new')}
-                    </button>
-                    <button
-                      type="button"
-                      className="note-page__unselected-action note-page__unselected-action--secondary"
-                      data-note-panel-trigger="import"
-                      onClick={() => setOpenPanel((current) => (current === 'import' ? null : 'import'))}
-                    >
-                      {t('notes.import')}
-                    </button>
+                    <div className="note-page__unselected-actions">
+                      <button type="button" className="note-page__unselected-action" onClick={handleCreate}>
+                        {t('modules.note.new')}
+                      </button>
+                      <button
+                        type="button"
+                        className="note-page__unselected-action note-page__unselected-action--secondary"
+                        data-note-panel-trigger="import"
+                        onClick={() => setOpenPanel((current) => (current === 'import' ? null : 'import'))}
+                      >
+                        {t('notes.import')}
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1110,6 +1253,41 @@ export default function NotePage() {
           </>
         )}
       </div>
+      <Dialog
+        open={Boolean(taskDraft)}
+        title={t('notes.createTaskFromNote')}
+        onClose={() => { if (!isCreatingTask) setTaskDraft(null) }}
+        panelClassName="note-task-dialog"
+      >
+        {taskDraft ? (
+          <form className="note-task-dialog__form" onSubmit={(event) => { event.preventDefault(); void handleCreateTaskFromNote() }}>
+            <label className="note-task-dialog__field">
+              <span>{t('notes.taskTitle')}</span>
+              <input
+                autoFocus
+                required
+                maxLength={180}
+                value={taskDraft.title}
+                onChange={(event) => setTaskDraft((current) => current ? { ...current, title: event.target.value } : current)}
+              />
+            </label>
+            <label className="note-task-dialog__field">
+              <span>{t('notes.taskProject')}</span>
+              <select
+                value={taskDraft.projectId}
+                onChange={(event) => setTaskDraft((current) => current ? { ...current, projectId: event.target.value } : current)}
+              >
+                <option value="">{t('notes.taskNoProject')}</option>
+                {taskProjectOptions.map((project) => <option key={project.id} value={project.id}>{project.title}</option>)}
+              </select>
+            </label>
+            <div className="note-task-dialog__actions">
+              <button type="button" onClick={() => setTaskDraft(null)} disabled={isCreatingTask}>{t('tasks.cancel')}</button>
+              <button type="submit" disabled={isCreatingTask || !taskDraft.title.trim()}>{t('notes.taskCreate')}</button>
+            </div>
+          </form>
+        ) : null}
+      </Dialog>
     </section>
   )
 }

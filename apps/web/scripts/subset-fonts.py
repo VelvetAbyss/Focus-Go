@@ -2,13 +2,17 @@ import os
 from fontTools.ttLib import TTFont
 from fontTools.subset import Subsetter, Options
 
-OUT = "/Users/apple/Projects/Focus&go/apps/web/public/fonts"
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "public", "fonts")
 os.makedirs(OUT, exist_ok=True)
+# Source TTFs are looked up here; jobs whose source is missing are skipped, so
+# one face can be rebuilt without downloading the others.
+SRC = os.environ.get("FONT_SRC", "/tmp")
 
 JOBS = {
-    "Manrope[wght].woff2": "/tmp/Manrope.ttf",
-    "Fraunces[opsz,wght].woff2": "/tmp/Fraunces.ttf",
-    "NotoSerifSC[wght].woff2": "/tmp/NotoSerifSC.ttf",
+    "Manrope-variable.woff2": "Manrope.ttf",
+    "InstrumentSerif-regular.woff2": "InstrumentSerif.ttf",
+    "SourceSerif4-variable.woff2": "SourceSerif4.ttf",
+    "NotoSerifSC-variable.woff2": "NotoSerifSC.ttf",
 }
 
 def latin_set():
@@ -38,27 +42,40 @@ def cjk_set():
     return s
 
 CHARSETS = {
-    "Manrope[wght].woff2": latin_set(),
-    "Fraunces[opsz,wght].woff2": latin_set(),
-    "NotoSerifSC[wght].woff2": cjk_set(),
+    "Manrope-variable.woff2": latin_set(),
+    "InstrumentSerif-regular.woff2": latin_set(),
+    "SourceSerif4-variable.woff2": latin_set(),
+    "NotoSerifSC-variable.woff2": cjk_set(),
 }
 
-def subset(src, out, unicodes):
+# Source Serif 4 ships small caps, fractions, superiors and stylistic sets that
+# the app never uses; dropping them takes the woff2 from ~555 KB to ~370 KB.
+# tnum/lnum stay: the focus timer and stats depend on them.
+CORE_FEATURES = ["kern", "liga", "lnum", "tnum", "pnum", "onum", "case", "ccmp", "locl", "mark", "mkmk"]
+FEATURES = {
+    "SourceSerif4-variable.woff2": CORE_FEATURES,
+}
+
+def subset(src, out, unicodes, features):
     opts = Options()
     opts.flavor = "woff2"
     opts.desubroutinize = False
     opts.name_IDs = ["*"]
     opts.recalc_timestamp = False
-    opts.layout_features = ["*"]
+    opts.layout_features = features
     font = TTFont(src)
     ss = Subsetter(options=opts)
     ss.populate(unicodes=sorted(unicodes))
     ss.subset(font)
     font.save(out)
 
-for name, src in JOBS.items():
+for name, file in JOBS.items():
+    src = os.path.join(SRC, file)
+    if not os.path.exists(src):
+        print(f"skip {name}: {src} not found", flush=True)
+        continue
     out = os.path.join(OUT, name)
     print(f"subsetting {name} ({len(CHARSETS[name])} codepoints) ...", flush=True)
-    subset(src, out, CHARSETS[name])
+    subset(src, out, CHARSETS[name], FEATURES.get(name, ["*"]))
     print(f"  {name}: {os.path.getsize(out)/1024:.0f} KB", flush=True)
 print("DONE", flush=True)

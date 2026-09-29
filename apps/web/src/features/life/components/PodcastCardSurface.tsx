@@ -299,11 +299,8 @@ export const PodcastCardSurface = ({
               </div>
             </>
           ) : (
-            <div style={{ display: 'flex', minHeight: 180, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
-              <div style={{ width: 48, height: 48, marginBottom: 16, borderRadius: 999, background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Headphones size={20} color="color-mix(in srgb, var(--text-primary) 30%, transparent)" />
-              </div>
-              <p style={{ ...playfair(14, 500), marginBottom: 6 }}>{t('life.podcast.emptyTitle')}</p>
+            <div style={{ display: 'flex', minHeight: 180, flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start', textAlign: 'left' }}>
+              <p style={{ ...playfair(18, 600), marginBottom: 6 }}>{t('life.podcast.emptyTitle')}</p>
               <p style={{ ...inter(12, 400, mutedText), lineHeight: 1.6, marginBottom: 18 }}>{t('life.podcast.emptyDescription')}</p>
               <button type="button" onClick={(event) => { event.stopPropagation(); onOpen() }} style={{ ...smallButtonStyle, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 <Search size={11} />

@@ -52,6 +52,23 @@ export const sortSubscriptions = <T extends { sourceType: CalendarSourceType; or
 export const removeUnsupportedAccountSubscriptions = (subscriptions: CalendarSubscription[]) =>
   subscriptions.filter((item) => item.provider !== 'google')
 
+/** The built-in 农历 calendar: worked out on the device, so it has no feed to sync. */
+export const isBuiltinLunar = (subscription: Pick<CalendarSubscription, 'provider'>) => subscription.provider === 'builtin'
+
+// The lunar feed older versions shipped, often added back by hand: a GitHub-hosted .ics
+// that covers only a three-year window and is often unreachable from mainland China,
+// where the API fallback won't fetch it for a signed-out user.
+const LEGACY_LUNAR_FEED = /^(?:https?|webcals?):\/\/raw\.githubusercontent\.com\/infinet\/lunar-calendar\//i
+
+/** Turns subscriptions to the legacy lunar feed into the built-in lunar calendar. */
+export const migrateLegacyLunarFeeds = (subscriptions: CalendarSubscription[]) =>
+  subscriptions.map((item): CalendarSubscription => {
+    if (item.provider !== 'ics' || !item.url || !LEGACY_LUNAR_FEED.test(item.url.trim())) return item
+    const builtin: CalendarSubscription = { ...item, provider: 'builtin' }
+    delete builtin.url
+    return builtin
+  })
+
 export const buildInitialCalendarSubscriptions = (): CalendarSubscription[] =>
   sortSubscriptions([
     {

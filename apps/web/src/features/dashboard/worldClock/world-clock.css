@@ -1,0 +1,212 @@
+/* ── World clock: globe + daylight strips ───────────────────────────────────
+   The globe is the card's one picture; the strips turn "what time is it
+   there" into "who is awake when": each city's real daylight laid on your own
+   day, with the pen marking now at the same x on every row. Light is an ink
+   ramp (paper by day, ink wash at night) with only the golden hour warmed. */
+
+.dashboard-widget-card--worldclock {
+  --wc-strip-day: var(--paper-sunken);
+  --wc-strip-golden: color-mix(in srgb, var(--tone-warn) 24%, var(--paper-sunken));
+  --wc-strip-twilight: color-mix(in srgb, var(--ink-1) 22%, var(--paper-sunken));
+  --wc-strip-night: color-mix(in srgb, var(--ink-1) 50%, var(--paper-sunken));
+}
+
+html[data-theme='dark'] .dashboard-widget-card--worldclock {
+  /* In the dark theme daylight is the lighter end of the ramp. */
+  --wc-strip-day: color-mix(in srgb, var(--ink-1) 40%, var(--paper-sunken));
+  --wc-strip-golden: color-mix(in srgb, var(--tone-warn) 42%, var(--paper-sunken));
+  --wc-strip-twilight: color-mix(in srgb, var(--ink-1) 16%, var(--paper-sunken));
+  --wc-strip-night: var(--paper-sunken);
+}
+
+.dashboard-widget-card--worldclock > .card__body {
+  min-height: 0;
+}
+
+/* Hero band: the globe centred, the count tucked top-left. */
+.wc-hero {
+  position: relative;
+  flex: none;
+  height: 108px;
+  margin: -4px 0 4px;
+}
+
+.wc-hero .wc-summary {
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: 34%;
+  margin: 0;
+}
+
+.wc-globe {
+  position: absolute;
+  inset: 0;
+}
+
+.wc-globe__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 800ms var(--ease-standard);
+}
+
+.wc-globe[data-status='ready'] .wc-globe__canvas {
+  opacity: 1;
+}
+
+/* Rows scroll under a fixed hero when there are more cities than fit. */
+.dashboard-widget-card--worldclock .wc-rows {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+  gap: 0;
+}
+
+.dashboard-widget-card--worldclock .wc-rows::-webkit-scrollbar {
+  display: none;
+}
+
+/* Row: city · meta · time on one line, the strip underneath. The row never
+   shifts sideways on hover, or its "now" would leave the shared x. */
+.dashboard-widget-card--worldclock .wc-row {
+  flex-wrap: wrap;
+  row-gap: 5px;
+  column-gap: 10px;
+  padding: 8px 0 7px;
+  overflow: visible;
+}
+
+.dashboard-widget-card--worldclock .wc-row:hover {
+  padding-left: 0;
+}
+
+.dashboard-widget-card--worldclock .wc-row::before {
+  display: none;
+}
+
+.dashboard-widget-card--worldclock .wc-row__main {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.dashboard-widget-card--worldclock .wc-row__head {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.dashboard-widget-card--worldclock .wc-row__meta {
+  flex: none;
+  gap: 4px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.dashboard-widget-card--worldclock .wc-row__phase {
+  color: inherit;
+  font-weight: 600;
+}
+
+.dashboard-widget-card--worldclock .wc-row__home-dot {
+  background: var(--accent);
+  box-shadow: none;
+}
+
+.dashboard-widget-card--worldclock .wc-row__time {
+  font-size: 1.12rem;
+}
+
+.dashboard-widget-card--worldclock .wc-row__time-colon {
+  color: var(--ink-3);
+}
+
+.wc-row .wc-strip {
+  flex-basis: 100%;
+}
+
+/* Strip ────────────────────────────────────────────────────────────────── */
+
+.wc-strip {
+  position: relative;
+  height: 14px;
+}
+
+.wc-strip__band {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  left: 0;
+  height: 7px;
+  overflow: hidden;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 0.5px var(--rule);
+}
+
+/* The city's own midnight. */
+.wc-strip__midnight {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  margin-left: -0.5px;
+  background: var(--ink-3);
+  opacity: 0.6;
+}
+
+/* Working hours at the city (09–18): intention, so pencil. */
+.wc-strip__work {
+  position: absolute;
+  top: 11px;
+  height: 0;
+  border-top: 1.5px dashed var(--pencil-line);
+}
+
+/* Now: the pen. */
+.wc-strip__now {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 11px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--accent);
+  box-shadow: 0 0 0 1.5px var(--paper-raised);
+}
+
+/* Axis: the viewer's day, as a header over the rows so it never scrolls away. */
+.wc-axis {
+  position: relative;
+  flex: none;
+  height: 17px;
+  margin: 0 0 1px;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--font-body);
+  font-size: var(--fs-meta);
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--pencil);
+  font-variant-numeric: tabular-nums;
+}
+
+.wc-axis__caption {
+  position: absolute;
+  left: 0;
+}
+
+.wc-axis__tick,
+.wc-axis__now {
+  position: absolute;
+  translate: -50% 0;
+}
+
+.wc-axis__now {
+  z-index: 1;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--paper-raised);
+  color: var(--accent);
+  font-weight: 600;
+}

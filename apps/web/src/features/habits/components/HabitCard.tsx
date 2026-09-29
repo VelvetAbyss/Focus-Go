@@ -43,23 +43,21 @@ export const HabitCard = ({
 }: HabitCardProps) => {
   const i18n = useHabitsI18n()
   const [showCalendar, setShowCalendar] = useState(false)
-  const [justCompleted, setJustCompleted] = useState(false)
 
   const today = todayDateKey()
   const completedToday = completedDates.includes(today)
   const totalCompleted = completedDates.length
+  // Past days can be checked off from before the habit was created, so the
+  // ratio can pass 1; a rate never reads above 100%.
   const completionRate = totalCompleted > 0
-    ? Math.round((totalCompleted / daysSinceCreated(habit.createdAt)) * 100)
+    ? Math.min(100, Math.round((totalCompleted / daysSinceCreated(habit.createdAt)) * 100))
     : 0
 
   const last7Days = useMemo(() => getLast7Days(), [])
-  const accentColor = habit.color || '#3daa78'
+  // The habit's own colour is identity only: a 2px bar (DESIGN.md › Color = state).
+  const accentColor = habit.color || 'var(--ink-4)'
 
   const handleToggleToday = async () => {
-    if (!completedToday) {
-      setJustCompleted(true)
-      window.setTimeout(() => setJustCompleted(false), 900)
-    }
     await onToggleToday()
   }
 
@@ -72,51 +70,27 @@ export const HabitCard = ({
       <div className="habit-card-design__accent" style={{ background: accentColor }} />
 
       <div className="habit-card-design__body">
-        {/* Celebration ripple */}
-        <AnimatePresence>
-          {justCompleted && (
-            <motion.div
-              className="habit-card-design__celebration"
-              initial={{ opacity: 0, scale: 0.4 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.55, ease: EASE.emphasized }}
-              style={{
-                background: `radial-gradient(ellipse at 50% 90%, ${accentColor}22 0%, transparent 65%)`,
-              }}
-            />
-          )}
-        </AnimatePresence>
-
         {/* Header */}
         <div className="habit-card-design__header">
           <div className="habit-card-design__hero">
-            <motion.div
-              className="habit-card-design__icon-wrap"
-              style={{ background: `${accentColor}18` }}
-              animate={justCompleted ? { scale: [1, 1.25, 0.95, 1], rotate: [0, 14, -10, 0] } : {}}
-              transition={{ duration: 0.45 }}
-            >
-              {habit.icon ?? '🎯'}
-            </motion.div>
+            <div className="habit-card-design__icon-wrap">{habit.icon ?? '🎯'}</div>
             <div style={{ minWidth: 0 }}>
               <h3 className="habit-card-design__title">{habit.title}</h3>
               <p className="habit-card-design__description">{habit.description || '\u00a0'}</p>
             </div>
           </div>
-          <motion.button
+          <button
             type="button"
             onClick={() => void onArchive()}
             className="habit-card-design__delete"
-            whileHover={{ scale: 1.18, rotate: 6 }}
-            whileTap={{ scale: 0.85 }}
             aria-label={i18n.remove}
           >
             <Trash2 size={15} />
-          </motion.button>
+          </button>
         </div>
 
-        {/* Week dots — last 7 days */}
+        {/* Last 7 days (DESIGN.md › Habit history): a done day is an ink dot, a
+            missed day is bare paper with a hairline ring, today is the pen. */}
         <div className="habit-card-design__week">
           {last7Days.map((dateKey) => {
             const done = completedDates.includes(dateKey)
@@ -124,21 +98,13 @@ export const HabitCard = ({
             const dayNum = parseInt(dateKey.split('-')[2], 10)
             return (
               <div key={dateKey} className="habit-card-design__week-col">
-                <div
-                  className="habit-card-design__week-num"
-                  style={isToday ? { color: accentColor, fontWeight: 700 } : undefined}
-                >
+                <div className="habit-card-design__week-num" data-today={isToday ? 'true' : undefined}>
                   {dayNum}
                 </div>
-                <motion.div
+                <div
                   className="habit-card-design__week-dot"
-                  style={{
-                    background: done ? accentColor : undefined,
-                    boxShadow: isToday && !done ? `0 0 0 2px ${accentColor}` : undefined,
-                    opacity: isToday && !done ? 0.55 : undefined,
-                  }}
-                  animate={justCompleted && isToday ? { scale: [1, 1.45, 1] } : {}}
-                  transition={{ duration: DURATION.medium }}
+                  data-state={done ? 'done' : 'missed'}
+                  data-today={isToday ? 'true' : undefined}
                 />
               </div>
             )
@@ -153,30 +119,19 @@ export const HabitCard = ({
             { value: totalCompleted, label: i18n.total, accent: false },
           ].map((stat) => (
             <div key={stat.label} className="habit-card-design__stat">
-              <motion.div
-                className="habit-card-design__stat-value"
-                key={String(stat.value)}
-                initial={{ scale: 0.88, opacity: 0.6 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 22 }}
-                style={stat.accent ? { color: accentColor } : undefined}
-              >
+              <div className="habit-card-design__stat-value" data-streak={stat.accent ? 'true' : undefined}>
                 {stat.value}
-              </motion.div>
+              </div>
               <div className="habit-card-design__stat-label">{stat.label}</div>
             </div>
           ))}
         </div>
 
         {/* Complete button */}
-        <motion.button
+        <button
           type="button"
           onClick={() => void handleToggleToday()}
           className={`habit-card-design__complete ${completedToday ? 'is-completed' : ''}`}
-          style={completedToday ? { background: accentColor, borderColor: 'transparent' } : undefined}
-          whileTap={{ scale: 0.97 }}
-          animate={justCompleted ? { scale: [1, 1.04, 1] } : {}}
-          transition={{ duration: DURATION.base }}
         >
           <AnimatePresence mode="wait" initial={false}>
             {completedToday ? (
@@ -204,14 +159,13 @@ export const HabitCard = ({
               </motion.span>
             )}
           </AnimatePresence>
-        </motion.button>
+        </button>
 
         {/* Calendar toggle */}
-        <motion.button
+        <button
           type="button"
           onClick={() => setShowCalendar((prev) => !prev)}
           className="habit-card-design__calendar-toggle"
-          whileTap={{ scale: 0.97 }}
         >
           <motion.span
             animate={{ rotate: showCalendar ? 180 : 0 }}
@@ -221,7 +175,7 @@ export const HabitCard = ({
             <Calendar size={14} />
           </motion.span>
           {showCalendar ? i18n.hideCalendar : i18n.showCalendar}
-        </motion.button>
+        </button>
 
         {/* Calendar expand */}
         <AnimatePresence initial={false}>
@@ -233,11 +187,7 @@ export const HabitCard = ({
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: DURATION.medium, ease: EASE.standard }}
             >
-              <HabitCalendar
-                completedDates={completedDates}
-                onToggleCompletion={onToggleDate}
-                accentColor={accentColor}
-              />
+              <HabitCalendar completedDates={completedDates} onToggleCompletion={onToggleDate} />
             </motion.div>
           )}
         </AnimatePresence>

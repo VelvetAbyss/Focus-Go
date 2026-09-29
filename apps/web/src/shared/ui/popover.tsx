@@ -9,7 +9,7 @@ const PopoverTrigger = PopoverPrimitive.Trigger
 const PopoverContent = React.forwardRef<
   React.ElementRef<typeof PopoverPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
->(({ className, align = "center", sideOffset = 4, ...props }, ref) => (
+>(({ className, align = "center", sideOffset = 4, style, ...props }, ref) => (
   <PopoverPrimitive.Portal>
     <PopoverPrimitive.Content
       ref={ref}
@@ -19,6 +19,10 @@ const PopoverContent = React.forwardRef<
         "popover-content fg-popover rounded-2xl",
         className
       )}
+      {...props}
+      // `style` is pulled out of props so a caller's style extends the surface
+      // instead of replacing it (spreading props after this used to drop the
+      // background, border and z-index whenever a caller passed any style).
       style={{
         zIndex: "var(--z-popover)",
         border: "1px solid var(--border)",
@@ -26,9 +30,8 @@ const PopoverContent = React.forwardRef<
         color: "var(--text-primary)",
         boxShadow: "var(--shadow-lift)",
         outline: "none",
-        ...props.style
+        ...style
       }}
-      {...props}
     />
   </PopoverPrimitive.Portal>
 ))

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { CheckSquare, FolderKanban, LayoutGrid, Plus, Square, SunMedium, Tag, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -36,6 +37,7 @@ import ActiveIndicator from '../../shared/motion/ActiveIndicator'
 import { PRESSED_BUTTON, SELECTED_TAB } from '../../shared/motion/indicatorSelectors'
 import { AppNumber } from '../../shared/ui/AppNumber'
 import { isTaskInToday, isTaskOverdue } from './domain/taskRules'
+import { rememberCurrentUserRecentCommandTarget } from '../../shared/ui/recentCommandTargets'
 import { useOpenRequest } from '../../shared/navigation/openRequest'
 
 const tabs: { key: TaskStatus }[] = [{ key: 'todo' }, { key: 'doing' }, { key: 'done' }]
@@ -92,11 +94,18 @@ const TasksBoard = ({
 }: TasksBoardProps) => {
   const { t } = useI18n()
   const { isGated, requireAuth } = useAuthGate()
+  const [, setSearchParams] = useSearchParams()
+  const useTaskLink = !asCard && scope.kind === 'all'
   const [tasks, setTasks] = useState<TaskItem[]>([])
   const [projects, setProjects] = useState<ProjectItem[]>([])
   const [bulkProjectDraft, setBulkProjectDraft] = useState('')
   const [composerProjectId, setComposerProjectId] = useState<string | undefined>(undefined)
   const [activeTask, setActiveTask] = useState<TaskItem | null>(null)
+  const activeTaskId = activeTask?.id ?? null
+
+  useEffect(() => {
+    if (activeTaskId) rememberCurrentUserRecentCommandTarget({ kind: 'task', id: activeTaskId })
+  }, [activeTaskId])
   const [deleteTarget, setDeleteTarget] = useState<TaskItem | null>(null)
   const [tasksLoaded, setTasksLoaded] = useState(false)
   const [sortMode, setSortMode] = useState<SortMode>(() => {
@@ -160,11 +169,57 @@ const TasksBoard = ({
 
   useSyncDataRefresh(loadTasks, ['tasks', 'projects'])
 
-  // ⌘K search → "open this task": the tasks page (not a dashboard or project embed) opens its drawer.
-  useOpenRequest('task', tasksLoaded && !asCard && scope.kind === 'all', (id) => {
+  useEffect(() => {
+    if (!tasksLoaded || !useTaskLink) return
+    const syncFromUrl = () => {
+      const id = new URLSearchParams(window.location.search).get('task')
+      if (!id) {
+        setActiveTask(null)
+        return
+      }
+      const task = tasks.find((item) => item.id === id)
+      if (task) setActiveTask(task)
+      else {
+        setActiveTask(null)
+        setSearchParams((current) => {
+          const next = new URLSearchParams(current)
+          next.delete('task')
+          return next
+        }, { replace: true })
+      }
+    }
+    syncFromUrl()
+    window.addEventListener('popstate', syncFromUrl)
+    return () => window.removeEventListener('popstate', syncFromUrl)
+  }, [tasks, tasksLoaded, useTaskLink, setSearchParams])
+
+  // Search can open a task while this page is already mounted, before the URL navigation settles.
+  useOpenRequest('task', tasksLoaded && useTaskLink, (id) => {
     const task = tasks.find((item) => item.id === id)
     if (task) setActiveTask(task)
   })
+
+  const openTask = (task: TaskItem) => {
+    setActiveTask(task)
+    if (!useTaskLink) return
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current)
+      next.set('task', task.id)
+      next.delete('from')
+      return next
+    })
+  }
+
+  const closeTask = () => {
+    setActiveTask(null)
+    if (!useTaskLink) return
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current)
+      next.delete('task')
+      next.delete('from')
+      return next
+    }, { replace: true })
+  }
 
   useEffect(() => {
     const bootstrap = async () => {
@@ -607,10 +662,10 @@ const TasksBoard = ({
         project={cardProject}
         dependencyTasks={dependencyTasks}
         onProjectClick={scope.kind === 'all' ? toggleProjectFilter : undefined}
-        onSelect={setActiveTask}
+        onSelect={openTask}
         onClick={(nextTask) => {
           if (bulkMode) toggleTaskSelection(nextTask.id)
-          else setActiveTask(nextTask)
+          else openTask(nextTask)
         }}
         onDelete={(nextTask) => setDeleteTarget(nextTask)}
         onTogglePin={(nextTask) => {
@@ -646,17 +701,24 @@ const TasksBoard = ({
     <div className="px-1 py-8">
       <DiscoveryEmptyState
         variant="first-time"
+        illustration="coffee"
         title={t('emptyState.tasks.title')}
         body={t('emptyState.tasks.body')}
         relatedFeature={{ label: t('emptyState.tasks.related') }}
       />
     </div>
-  ) : (
+  ) : topView === 'today' ? (
     <div className="px-1 py-8">
       <DiscoveryEmptyState
-        variant="filtered"
-        title={topView === 'today' ? t('tasks.today.emptyTitle') : t('emptyState.tasks.filtered.title')}
+        variant="first-time"
+        illustration="plant"
+        title={t('tasks.today.emptyTitle')}
+        body={t('tasks.today.emptyDescription')}
       />
+    </div>
+  ) : (
+    <div className="px-1 py-8">
+      <DiscoveryEmptyState variant="filtered" title={t('emptyState.tasks.filtered.title')} />
     </div>
   )
 
@@ -680,7 +742,7 @@ const TasksBoard = ({
               projectById={projectById}
               onTaskClick={(task) => {
                 if (bulkMode) toggleTaskSelection(task.id)
-                else setActiveTask(task)
+                else openTask(task)
               }}
               onCycleStatus={cycleTaskStatus}
               onDelete={(task) => setDeleteTarget(task)}
@@ -723,7 +785,10 @@ const TasksBoard = ({
       )
 
   const plain = (
-    <div className={cn('tasks-fg flex h-full min-h-0 flex-col', asCard ? 'bg-background' : 'bg-transparent', !asCard && 'tasks-fg--plain')}>
+    // Transparent in both modes: as a dashboard widget the card around it is the
+    // surface (frosted glass under an ambient scene), so an opaque fill here
+    // would show as a white block.
+    <div className={cn('tasks-fg flex h-full min-h-0 flex-col bg-transparent', !asCard && 'tasks-fg--plain')}>
       {topView === 'board' || topView === 'today' || topView === 'list' ? (
         <div className="mb-0 border-b pb-3">
           <div className="flex flex-col gap-3">
@@ -1030,7 +1095,7 @@ const TasksBoard = ({
         open={Boolean(activeTask)}
         task={activeTask}
         projects={projects}
-        onClose={() => setActiveTask(null)}
+        onClose={closeTask}
         onUpdated={handleUpdateTask}
         onDeleted={(id) => setTasks((prev) => prev.filter((task) => task.id !== id))}
         onRequestDelete={setDeleteTarget}

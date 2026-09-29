@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render as rtlRender, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { ReactNode } from 'react'
+import { MemoryRouter } from 'react-router-dom'
+import type { ReactElement, ReactNode } from 'react'
 import type { TaskItem } from './tasks.types'
 
 const { mockT } = vi.hoisted(() => {
@@ -147,6 +148,8 @@ vi.mock('../../shared/ui/tabPressAnimation', () => ({
 }))
 
 import TasksBoard from './TasksBoard'
+
+const render = (ui: ReactElement) => rtlRender(<MemoryRouter>{ui}</MemoryRouter>)
 
 const makeTask = (id: string, title: string): TaskItem => ({
   id,

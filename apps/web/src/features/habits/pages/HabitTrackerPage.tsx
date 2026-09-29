@@ -44,14 +44,15 @@ const StatsPanel = ({ completed, total, percent, activeCount, bestStreak, weekTo
         <div className="hb-stats__ring-wrap">
           <div className="hb-stats__ring-container">
             <svg className="hb-stats__ring" width="72" height="72" viewBox="0 0 72 72">
-              <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(0,0,0,0.07)" strokeWidth="5.5" />
+              {/* Goal = a dashed pencil track; today's progress = the pen. */}
+              <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--pencil-line)" strokeWidth="1.5" strokeDasharray="3 4" />
               <motion.circle
                 cx={cx}
                 cy={cy}
                 r={r}
                 fill="none"
-                stroke="#3daa78"
-                strokeWidth="5.5"
+                stroke="var(--accent)"
+                strokeWidth="4"
                 strokeLinecap="round"
                 strokeDasharray={circ}
                 initial={{ strokeDashoffset: circ }}
@@ -224,6 +225,7 @@ const HabitTrackerPage = () => {
             {activeHabits.length === 0 ? (
               <DiscoveryEmptyState
                 variant="first-time"
+                illustration="meditating"
                 title={i18n.emptyTitle}
                 body={i18n.emptyDescription}
                 relatedFeature={{ label: t('emptyState.habits.related') }}

@@ -85,13 +85,14 @@ docs/
 /docs/*
 !/docs/domain-boundaries.md
 !/docs/SELF_HOSTING.md
+!/docs/NOTION_INTERACTION_BENCHMARK.md
+!/docs/assets/
 !CONTRIBUTING.md
 !CODE_OF_CONDUCT.md
 !SUPPORT.md
 findings.md
 progress.md
 task_plan.md
-CONTRIBUTING.md
 .gstack/
 
 # Desktop (Tauri) app — local-only, kept out of the repo for now

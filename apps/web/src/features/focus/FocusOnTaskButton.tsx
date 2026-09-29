@@ -1,10 +1,11 @@
 import { Timer } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { ROUTES } from '../../app/routes/routes'
 import { useI18n } from '../../shared/i18n/useI18n'
 import { setFocusTaskId } from './focusTask'
+import { withReturnPath, withTaskContext } from '../../shared/navigation/returnPath'
 
 type FocusOnTaskButtonProps = {
   taskId: string
@@ -17,6 +18,7 @@ type FocusOnTaskButtonProps = {
 export default function FocusOnTaskButton({ taskId, className, onLaunch }: FocusOnTaskButtonProps) {
   const { t } = useI18n()
   const navigate = useNavigate()
+  const location = useLocation()
   return (
     <Button
       variant="outline"
@@ -26,7 +28,7 @@ export default function FocusOnTaskButton({ taskId, className, onLaunch }: Focus
       onClick={() => {
         setFocusTaskId(taskId)
         onLaunch?.()
-        navigate(ROUTES.FOCUS)
+        navigate(withReturnPath(ROUTES.FOCUS, withTaskContext(`${location.pathname}${location.search}`, taskId)))
       }}
     >
       <Timer className="mr-1.5 h-3.5 w-3.5" />

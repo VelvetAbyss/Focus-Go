@@ -5,6 +5,7 @@ import type { TaskItem, TaskPriority, TaskStatus } from '../../../data/models/ty
 import { useI18n } from '../../../shared/i18n/useI18n'
 import type { TranslationKey } from '../../../shared/i18n/types'
 import { DURATION, EASE } from '../../../shared/motion/tokens'
+import Doodle from '../../../shared/ui/Doodle'
 
 type ProjectGanttViewMode = 'week' | 'month' | 'year'
 
@@ -164,7 +165,8 @@ const buildAxisTicks = (
 
 const ProjectGantt = ({ tasks, projectColor, viewMode, onTaskClick, onEmptySlotClick }: ProjectGanttProps) => {
   const { t, language } = useI18n()
-  const accent = projectColor?.trim() || '#B07830'
+  // The project's colour is identity only (the cap dot); state is pencil/ink.
+  const accent = projectColor?.trim() || 'var(--ink-3)'
   const dayWidth = DAY_WIDTH[viewMode]
 
   const today = useMemo(() => startOfDay(new Date()), [])
@@ -286,6 +288,7 @@ const ProjectGantt = ({ tasks, projectColor, viewMode, onTaskClick, onEmptySlotC
   if (scheduled.length === 0) {
     return (
       <div className="fg-timeline fg-timeline--empty">
+        <Doodle name="swinging" height={96} className="fg-timeline__empty-art" />
         <p className="fg-timeline__empty-eyebrow">{t('projects.gantt.eyebrow')}</p>
         <p className="fg-timeline__empty-title">{t('projects.gantt.emptyTitle')}</p>
         <p className="fg-timeline__empty-hint">{t('projects.gantt.emptyHint')}</p>
@@ -413,13 +416,14 @@ const ProjectGantt = ({ tasks, projectColor, viewMode, onTaskClick, onEmptySlotC
                     const height = task.priority === 'high' ? ROW_HEIGHT_HIGH : ROW_HEIGHT_BASE
                     const isDone = task.status === 'done'
                     const isDoing = task.status === 'doing'
+                    // Planned = dashed pencil, in progress = ochre, done = ink (DESIGN.md).
                     const fillStyle: CSSProperties = isDone
-                      ? { background: 'rgba(61, 122, 78, 0.18)', borderColor: 'rgba(61, 122, 78, 0.42)' }
+                      ? { background: 'var(--ink-2)', borderColor: 'var(--ink-2)', color: 'var(--paper-sheet)' }
                       : isDoing
-                        ? { background: accent, borderColor: accent, color: '#FFFCF6' }
-                        : { background: 'transparent', borderColor: accent, color: 'color-mix(in srgb, var(--text-primary) 78%, transparent)' }
+                        ? { background: 'var(--tone-warn-wash)', borderColor: 'var(--tone-warn)', color: 'var(--ink-1)' }
+                        : { background: 'var(--paper-raised)', borderColor: 'var(--pencil-line)', borderStyle: 'dashed', color: 'var(--ink-1)' }
                     const trailGradient = !range.hasExplicitStart && !isDone
-                      ? `linear-gradient(90deg, transparent 0%, ${accent}10 30%, ${accent}30 80%, ${accent}55 100%)`
+                      ? 'linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--pencil-line) 45%, transparent) 100%)'
                       : undefined
                     return (
                       <motion.div
@@ -460,7 +464,7 @@ const ProjectGantt = ({ tasks, projectColor, viewMode, onTaskClick, onEmptySlotC
                           }}
                           aria-label={`${task.title} ${range.due.getFullYear()}-${range.due.getMonth() + 1}-${range.due.getDate()}`}
                         >
-                          <span className="fg-timeline__bar-cap" style={{ background: isDone ? '#3D7A4E' : accent }} />
+                          <span className="fg-timeline__bar-cap" style={{ background: accent }} />
                           {barWidth > 90 ? (
                             <span className="fg-timeline__bar-label">
                               {isDone ? '✓ ' : ''}

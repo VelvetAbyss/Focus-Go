@@ -21,7 +21,14 @@ import {
   type WorldClockItem,
 } from '../../../shared/prefs/preferences'
 import { usePageActivity } from '../../../shared/hooks/usePageActivity'
+import { useThemeMode } from '../../../shared/theme/useThemeMode'
+import { readWeatherLastLocation } from '../../../shared/prefs/preferences'
 import { repairWorldClockItems, resolveWorldClockItemFromSuggestion } from '../../dashboard/worldClock'
+import WorldClockGlobe from '../../dashboard/worldClock/WorldClockGlobe'
+import DaylightStrip from '../../dashboard/worldClock/DaylightStrip'
+import { daylightAt, sunElevation } from '../../dashboard/worldClock/solar'
+import type { GlobeCity } from '../../dashboard/worldClock/globeScene'
+import '../../dashboard/worldClock/world-clock.css'
 import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../../data/repositories/syncedPreferencesRepo'
 
 const MAX_WORLD_CLOCK_ITEMS = 6
@@ -38,11 +45,13 @@ const getFormatter = (locale: string, timeZone: string, options: Intl.DateTimeFo
   return formatter
 }
 
-const phaseFromHour = (hour: number): DayPhase => {
-  if (hour >= 5 && hour < 8) return 'dawn'
-  if (hour >= 8 && hour < 17) return 'day'
-  if (hour >= 17 && hour < 20) return 'dusk'
-  return 'night'
+// Light at the city from the real sun, not the hour on its clock: an 18:00 in
+// Reykjavik in June is broad daylight, the same hour in Singapore is dusk.
+const phaseAt = (elevation: number, localHour: number): DayPhase => {
+  const light = daylightAt(elevation)
+  if (light === 'day') return 'day'
+  if (light === 'night') return 'night'
+  return localHour < 12 ? 'dawn' : 'dusk'
 }
 
 const getZoneOffsetMinutes = (timeZone: string, ref: Date): number => {
@@ -75,45 +84,11 @@ const getZoneHourFraction = (timeZone: string, ref: Date): number => {
   }
 }
 
-type DialProps = { fraction: number; phase: DayPhase }
-
-const Dial = ({ fraction, phase }: DialProps) => {
-  const r = 11
-  const c = 2 * Math.PI * r
-  const offset = c * (1 - Math.min(Math.max(fraction / 24, 0), 0.9999))
-  const angle = (fraction / 24) * 2 * Math.PI - Math.PI / 2
-  const gx = 14 + r * Math.cos(angle)
-  const gy = 14 + r * Math.sin(angle)
-  const isNight = phase === 'night'
-  return (
-    <svg className={`wc-dial wc-dial--${phase}`} viewBox="0 0 28 28" width={28} height={28} aria-hidden>
-      <circle className="wc-dial__track" cx={14} cy={14} r={r} />
-      <circle
-        className="wc-dial__arc"
-        cx={14}
-        cy={14}
-        r={r}
-        strokeDasharray={c}
-        strokeDashoffset={offset}
-        transform="rotate(-90 14 14)"
-      />
-      {isNight ? (
-        <g className="wc-dial__glyph" transform={`translate(${gx} ${gy})`}>
-          <circle r={2.4} />
-          <circle r={1.6} cx={1.1} cy={-0.6} className="wc-dial__glyph-cut" />
-        </g>
-      ) : (
-        <g className="wc-dial__glyph" transform={`translate(${gx} ${gy})`}>
-          <circle r={2.1} />
-        </g>
-      )}
-    </svg>
-  )
-}
-
 const WorldClockCard = () => {
   const { language, t } = useI18n()
+  const theme = useThemeMode()
   const [items, setItems] = useState<WorldClockItem[]>(() => readWorldClockItems())
+  const [highlightId, setHighlightId] = useState<string | null>(null)
   const [now, setNow] = useState(() => new Date())
   const pageActivity = usePageActivity()
   const [adding, setAdding] = useState(false)
@@ -238,6 +213,31 @@ const WorldClockCard = () => {
   }, [])
   const homeOffsetMin = useMemo(() => getZoneOffsetMinutes(homeTimeZone, now), [homeTimeZone, now])
 
+  // The strips share one axis: the viewer's local day, midnight to midnight.
+  const axisStart = useMemo(() => {
+    const start = new Date(now)
+    start.setHours(0, 0, 0, 0)
+    return start.getTime()
+  }, [now])
+
+  // Pins: tracked cities, plus "you" from the weather location when none of
+  // them is in your own time zone.
+  const globeCities = useMemo<GlobeCity[]>(() => {
+    const pins: GlobeCity[] = items.map((item) => ({
+      id: item.id,
+      latitude: item.latitude,
+      longitude: item.longitude,
+      home: item.timeZone === homeTimeZone,
+    }))
+    if (!pins.some((pin) => pin.home)) {
+      const here = readWeatherLastLocation()
+      if (here) pins.push({ id: 'home', latitude: here.latitude, longitude: here.longitude, home: true })
+    }
+    return pins
+  }, [homeTimeZone, items])
+
+  const nowLabel = getFormatter(language === 'zh' ? 'zh-CN' : 'en-US', homeTimeZone, { hour: '2-digit', minute: '2-digit', hour12: false }).format(now)
+
   const summary = items.length > 0
     ? t('worldClock.summaryCount', { count: items.length })
     : t('worldClock.summaryEmpty')
@@ -264,14 +264,26 @@ const WorldClockCard = () => {
         ) : undefined
       }
     >
-      <p className="wc-summary">{summary}</p>
+      <div className="wc-hero">
+        <WorldClockGlobe cities={globeCities} highlightId={highlightId} theme={theme} />
+        <p className="wc-summary">{summary}</p>
+      </div>
 
+      {items.length > 0 ? (
+        <div className="wc-axis" aria-hidden="true">
+          <span className="wc-axis__caption">{t('worldClock.axisLocal')}</span>
+          {[6, 12, 18]
+            // The now label wins where they'd overlap.
+            .filter((h) => Math.abs(h / 24 - (now.getTime() - axisStart) / 86400000) > 0.075)
+            .map((h) => (
+              <span key={h} className="wc-axis__tick" style={{ left: `${(h / 24) * 100}%` }}>{h}</span>
+            ))}
+          <span className="wc-axis__now" style={{ left: `${((now.getTime() - axisStart) / 86400000) * 100}%` }}>{nowLabel}</span>
+        </div>
+      ) : null}
       <div className="wc-rows">
         {items.length === 0 && !adding && (
           <div className="wc-empty">
-            <svg className="wc-empty__meridian" viewBox="0 0 120 24" aria-hidden>
-              <path d="M2 12 Q 30 2, 60 12 T 118 12" />
-            </svg>
             <span>{t('worldClock.empty')}</span>
           </div>
         )}
@@ -279,8 +291,7 @@ const WorldClockCard = () => {
         <AnimatePresence initial={false}>
           {items.map((item) => {
             const fraction = getZoneHourFraction(item.timeZone, now)
-            const hour = Math.floor(fraction)
-            const phase = phaseFromHour(hour)
+            const phase = phaseAt(sunElevation(now, item.latitude, item.longitude), fraction)
             const phaseLabel = t(`worldClock.phase.${phase}` as const)
 
             const time = getFormatter(locale, item.timeZone, {
@@ -312,12 +323,13 @@ const WorldClockCard = () => {
                 exit={{ opacity: 0, height: 0, x: 8 }}
                 transition={{ type: 'spring', stiffness: 360, damping: 32, mass: 0.6 }}
                 className={cn('wc-row', `wc-row--${phase}`, isHome && 'wc-row--home')}
+                onMouseEnter={() => setHighlightId(item.id)}
+                onMouseLeave={() => setHighlightId((current) => (current === item.id ? null : current))}
               >
-                <Dial fraction={fraction} phase={phase} />
                 <div className="wc-row__main">
                   <div className="wc-row__head">
                     {isHome && <span className="wc-row__home-dot" aria-hidden />}
-                    <span className="wc-row__city">{item.label}</span>
+                    <span className="wc-row__city" title={item.label}>{item.label.split(',')[0].trim()}</span>
                   </div>
                   <div className="wc-row__meta">
                     <span className="wc-row__weekday">{weekday}</span>
@@ -342,10 +354,18 @@ const WorldClockCard = () => {
                     <X size={11} />
                   </button>
                 </div>
+                <DaylightStrip
+                  latitude={item.latitude}
+                  longitude={item.longitude}
+                  offsetMinutes={getZoneOffsetMinutes(item.timeZone, now)}
+                  axisStart={axisStart}
+                  now={now.getTime()}
+                />
               </motion.div>
             )
           })}
         </AnimatePresence>
+
       </div>
 
       <AnimatePresence initial={false} mode="wait">

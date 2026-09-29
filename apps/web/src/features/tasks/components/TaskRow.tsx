@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
-import { CircleCheck, Pin, Trash2 } from 'lucide-react'
-import { motion } from 'motion/react'
+import { Pin, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { TaskItem } from '../tasks.types'
 import {
@@ -10,7 +9,7 @@ import {
   getTaskPriorityKey,
 } from './taskPresentation'
 import { useI18n } from '../../../shared/i18n/useI18n'
-import { DURATION, EASE } from '../../../shared/motion/tokens'
+import InkMark from '../../../shared/ui/InkMark'
 
 type TaskRowProject = {
   id: string
@@ -42,11 +41,12 @@ const isMeaningfulTag = (tag: string | undefined | null): tag is string => {
 
 const formatIndex = (n: number) => String(n).padStart(2, '0')
 
+// Priority maps to tones (DESIGN.md › Colors): high/medium/low → urgent/warn/ink-3.
 const PRIORITY_DOT_COLOR: Record<string, string> = {
-  high: '#B83333',
-  medium: '#B07830',
-  low: '#4F746C',
-  none: 'color-mix(in srgb, var(--text-primary) 25%, transparent)',
+  high: 'var(--tone-urgent)',
+  medium: 'var(--tone-warn)',
+  low: 'var(--ink-3)',
+  none: 'var(--ink-4)',
 }
 
 const TaskRow = ({
@@ -62,20 +62,17 @@ const TaskRow = ({
 }: TaskRowProps) => {
   const { t } = useI18n()
   const [hover, setHover] = useState(false)
-  const [stamping, setStamping] = useState(false)
   const priorityKey = getTaskPriorityKey(task.priority)
   const completion = getTaskCompletion(task)
   const deadline = getTaskDeadlineState(task)
   const dueLabel = formatTaskDate(task.dueDate)
-  const accent = project?.color || '#8A6F45'
+  const accent = project?.color || 'var(--ink-3)'
   const firstTag = useMemo(() => task.tags.find(isMeaningfulTag), [task.tags])
   const isOverdue = deadline.daysRemaining !== null && deadline.daysRemaining < 0 && task.status !== 'done'
   const isHighPriority = priorityKey === 'high'
 
   const handleCycle = (e: React.MouseEvent | React.KeyboardEvent) => {
     e.stopPropagation()
-    setStamping(true)
-    window.setTimeout(() => setStamping(false), 380)
     onCycleStatus?.(task)
   }
 
@@ -100,14 +97,7 @@ const TaskRow = ({
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
       >
-        <button
-          type="button"
-          aria-label="Reopen task"
-          className="fg-task-row__check fg-task-row__check--done"
-          onClick={handleCycle}
-        >
-          <CircleCheck className="size-3.5" strokeWidth={1.8} />
-        </button>
+        <InkMark state="done" size={14} aria-label="Reopen task" className="fg-task-row__mark" onClick={handleCycle} />
         <span className="fg-task-row__title fg-task-row__title--done">
           {task.title || '(untitled)'}
         </span>
@@ -147,20 +137,7 @@ const TaskRow = ({
       >
         {isOverdue ? <span className="fg-task-row__overdue-mark" aria-hidden /> : null}
 
-        <button
-          type="button"
-          aria-label="Mark complete"
-          className="fg-task-row__check fg-task-row__check--solid"
-          onClick={handleCycle}
-          style={{ background: accent, borderColor: accent }}
-        >
-          <motion.span
-            className="fg-task-row__check-glyph"
-            initial={false}
-            animate={stamping ? { scale: [1, 1.6, 1], opacity: [1, 0.4, 1] } : { scale: 1, opacity: 1 }}
-            transition={{ duration: DURATION.slow, ease: EASE.outExpo }}
-          />
-        </button>
+        <InkMark state="doing" aria-label="Mark complete" className="fg-task-row__mark" onClick={handleCycle} />
 
         <div className="fg-task-row__main">
           <div className="fg-task-row__title-line">
@@ -246,21 +223,7 @@ const TaskRow = ({
 
       <span className="fg-task-row__index">{typeof index === 'number' ? `№${formatIndex(index + 1)}` : ''}</span>
 
-      <button
-        type="button"
-        aria-label="Advance status"
-        className="fg-task-row__check fg-task-row__check--outline"
-        onClick={handleCycle}
-        style={{ borderColor: accent }}
-      >
-        <motion.span
-          className="fg-task-row__check-fill"
-          initial={false}
-          animate={stamping ? { scale: [0, 0.9, 0.7], opacity: [0, 1, 0.85] } : { scale: 0, opacity: 0 }}
-          transition={{ duration: DURATION.slow, ease: EASE.outExpo }}
-          style={{ background: accent }}
-        />
-      </button>
+      <InkMark state="todo" size={15} aria-label="Advance status" className="fg-task-row__mark" onClick={handleCycle} />
 
       <span
         className="fg-task-row__priority"

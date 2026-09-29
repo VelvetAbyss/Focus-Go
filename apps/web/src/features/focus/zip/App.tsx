@@ -4,6 +4,12 @@ import type { FocusSession } from "./components/FocusHistory";
 import { focusRepo } from "../../../data/repositories/focusRepo";
 import { tasksRepo } from "../../../data/repositories/tasksRepo";
 import { useI18n } from "../../../shared/i18n/useI18n";
+import { ArrowLeft } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { readReturnPath } from "../../../shared/navigation/returnPath";
+
+// Daily focus goal in minutes (the ring on the timer and the pencil outline in the week chart).
+const DAILY_GOAL_MINUTES = 120;
 
 const FOCUS_TIMER_EVENT = "focus:timer-updated";
 const INITIAL_SESSIONS_LIMIT = 60;
@@ -32,6 +38,9 @@ const toHistorySession = (t: Translate, taskTitleById: Map<string, string>) => (
 
 export default function App() {
   const { t } = useI18n();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const returnPath = readReturnPath(location.search);
   const [sessions, setSessions] = useState<FocusSession[]>([]);
   const [sidePanelsReady, setSidePanelsReady] = useState(false);
   const [isDark, setIsDark] = useState(() =>
@@ -123,6 +132,16 @@ export default function App() {
 
   return (
     <div className={`focus-zip-app w-full h-screen overflow-hidden relative ${isDark ? "is-dark" : ""}`} style={{ fontFamily: 'var(--font-body)' }}>
+      {returnPath ? (
+        <button
+          type="button"
+          className="absolute left-6 top-1 z-20 inline-flex items-center gap-1 rounded-md px-2 py-1 text-meta font-semibold text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-hover)] hover:text-[color:var(--text-primary)] focus-visible:outline focus-visible:outline-2"
+          onClick={() => navigate(returnPath)}
+        >
+          <ArrowLeft size={13} />
+          {t(returnPath.startsWith('/projects/') ? 'navigation.backToProject' : 'navigation.backToTask')}
+        </button>
+      ) : null}
       {/* Paper & Ink: the page sits on the shell's sheet; no decorative light spots. */}
       {/* Main 3-column layout */}
       <div className="h-full pt-6 pb-6 px-6 flex gap-5">
@@ -157,7 +176,7 @@ export default function App() {
             <FocusTimer
               todayMinutes={todayStats.minutes}
               todaySessions={todayStats.sessions}
-              dailyGoal={120}
+              dailyGoal={DAILY_GOAL_MINUTES}
             />
           </div>
         </div>
@@ -174,7 +193,7 @@ export default function App() {
           >
             {sidePanelsReady ? (
               <Suspense fallback={panelFallback}>
-                <FocusHistory externalSessions={sessions} />
+                <FocusHistory externalSessions={sessions} goalMinutes={DAILY_GOAL_MINUTES} />
               </Suspense>
             ) : panelFallback}
           </div>
