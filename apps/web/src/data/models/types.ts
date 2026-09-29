@@ -1,58 +1,51 @@
 import type { CalendarSubscription } from '../../features/calendar/calendar.model'
 import type { DiaryFontId, LanguageCode, TemperatureUnit, WorldClockItem } from '../../shared/prefs/preferences'
 import type { ThemeSelection } from '../../shared/theme/theme'
-export type {
+import type {
+  BaseEntity,
   DomainEvent,
   DomainEventPayloadMap,
   DomainEventType,
   EntityRef,
   EntityRefDomain,
   EventSource,
+  TaskActivityLog,
+  TaskAttachment,
+  TaskAttachmentMime,
+  TaskItem,
+  TaskNoteBlock,
+  TaskNoteParagraphBlock,
+  TaskPriority,
+  TaskProgressEntry,
+  TaskStatus,
+  TaskSubtask,
   TimelineItem,
   TimelineKind,
   TimelineVisibility,
 } from '@focus-go/core'
 
-export type BaseEntity = {
-  id: string
-  createdAt: number
-  updatedAt: number
-  userId?: string
-  workspaceId?: string
+export type {
+  BaseEntity,
+  DomainEvent,
+  DomainEventPayloadMap,
+  DomainEventType,
+  EntityRef,
+  EntityRefDomain,
+  EventSource,
+  TaskActivityLog,
+  TaskAttachment,
+  TaskAttachmentMime,
+  TaskItem,
+  TaskNoteBlock,
+  TaskNoteParagraphBlock,
+  TaskPriority,
+  TaskProgressEntry,
+  TaskStatus,
+  TaskSubtask,
+  TimelineItem,
+  TimelineKind,
+  TimelineVisibility,
 }
-
-export type TaskStatus = 'todo' | 'doing' | 'done'
-export type TaskPriority = 'high' | 'medium' | 'low'
-
-export type TaskSubtask = {
-  id: string
-  title: string
-  done: boolean
-}
-
-export type TaskActivityLog = {
-  id: string
-  type: 'status' | 'details' | 'subtask'
-  message: string
-  createdAt: number
-  subtaskId?: string
-  subtaskTitle?: string
-  subtaskDone?: boolean
-}
-
-export type TaskProgressEntry = {
-  id: string
-  text: string
-  createdAt: number
-}
-
-export type TaskNoteParagraphBlock = {
-  id: string
-  type: 'paragraph'
-  text: string
-}
-
-export type TaskNoteBlock = TaskNoteParagraphBlock
 
 export type NoteCollection = 'all-notes' | 'work' | 'personal' | 'ideas'
 
@@ -111,49 +104,6 @@ export type NoteItem = BaseEntity & {
   headings: NoteHeading[]
   backlinks: NoteBacklink[]
   deletedAt?: number | null
-}
-
-export type TaskAttachmentMime = 'image/webp' | 'image/png' | 'image/jpeg' | 'image/gif'
-
-export type TaskAttachment = {
-  id: string
-  hash: string
-  mime: TaskAttachmentMime
-  width: number
-  height: number
-  byteLength: number
-  name?: string
-  createdAt: number
-}
-
-export type TaskItem = BaseEntity & {
-  title: string
-  description: string
-  pinned: boolean
-  isToday: boolean
-  status: TaskStatus
-  priority: TaskPriority | null
-  projectId?: string
-  ownerId?: string
-  collaboratorIds?: string[]
-  dependencyTaskIds?: string[]
-  blockedByTaskIds?: string[]
-  isBlocked?: boolean
-  dueDate?: string
-  startDate?: string
-  endDate?: string
-  reminderAt?: number
-  reminderFiredAt?: number
-  tags: string[]
-  subtasks: TaskSubtask[]
-  taskNoteBlocks: TaskNoteBlock[]
-  taskNoteContentMd?: string
-  taskNoteContentJson?: Record<string, unknown> | null
-  activityLogs: TaskActivityLog[]
-  attachments?: TaskAttachment[]
-  progressNote?: string
-  progressNoteUpdatedAt?: number
-  progressHistory?: TaskProgressEntry[]
 }
 
 export type WidgetTodoScope = 'day' | 'week' | 'month' | 'custom'

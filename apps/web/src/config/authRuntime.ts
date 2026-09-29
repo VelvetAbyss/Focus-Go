@@ -1,5 +1,6 @@
+import { LOCAL_DATA_OWNER_KEY } from '../store/authOwnership'
 import { authClient } from './authClient'
-import { fetchAuthProfile, setAuth } from '../store/auth'
+import { fetchAuthProfile, getAuth, setAuth } from '../store/auth'
 import { getPlatform } from '../platform'
 
 export type BetterAuthUser = {
@@ -58,5 +59,6 @@ export const finishBetterAuthSession = async (token?: string, user?: unknown): P
 
 export const finishBetterAuthCookieSession = async () => {
   const session = await authClient.getSession()
+  if (!session?.session?.token && !session?.user && !getAuth()?.user && !localStorage.getItem(LOCAL_DATA_OWNER_KEY)) return null
   return finishBetterAuthSession(session?.session?.token, session?.user)
 }

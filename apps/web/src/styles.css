@@ -7,6 +7,10 @@
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
   font-family: var(--font-body);
@@ -5550,6 +5554,26 @@ html[data-motion='reduce'] :is(
   transform: none !important;
 }
 
+@media (max-width: 640px) {
+  .tasks-page-shell__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tasks-page-shell__switch {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    width: 100%;
+    padding: 2px;
+  }
+
+  .tasks-page-shell__tab {
+    min-width: 0;
+    padding: 6px 2px;
+    font-size: 11px;
+  }
+}
+
 /* Dark theme adjustments */
 html[data-theme='dark'] .tasks-fg__status-tab[aria-selected='true'],
 html[data-theme='dark'] .tasks-fg__status-tab.bg-muted {
@@ -8111,6 +8135,7 @@ html :is(.tasks-fg__status-group[data-active-indicator] > .tasks-fg__status-tab[
 
 .tasks-page-shell__tab {
   border: none;
+  min-height: 44px;
   background: transparent;
   color: var(--segmented-fg);
   padding: var(--tasks-page-tab-padding-y) var(--tasks-page-tab-padding-x);
@@ -10798,6 +10823,16 @@ textarea:focus-visible,
   zoom: var(--shell-scale, 1);
 }
 
+.focus-mobile-bar {
+  display: none;
+}
+
+.focus-navigation {
+  display: flex;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
 @supports not (zoom: 1) {
   .focus-shell__scale-wrap {
     width: calc(100% / var(--shell-scale, 1));
@@ -11062,6 +11097,40 @@ textarea:focus-visible,
 
   .focus-shell__scale-wrap {
     flex-direction: column;
+  }
+
+  .focus-mobile-bar {
+    display: flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 8px;
+    font-weight: 600;
+  }
+
+  .focus-mobile-bar button {
+    width: auto;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+  }
+
+  .focus-navigation {
+    display: none;
+  }
+
+  .focus-navigation.is-mobile-open {
+    position: absolute;
+    top: 54px;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    display: block;
+    max-height: calc(100vh - 72px);
+    overflow-y: auto;
   }
 
   .focus-shell__main {
@@ -12477,28 +12546,6 @@ textarea:focus-visible,
   }
   100% {
     transform: translate3d(0, 0, 0) scale(1);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .calendar-v2 *,
-  .calendar-v2::after,
-  .calendar-v2__left,
-  .calendar-v2__right {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    transform: none !important;
-  }
-}
-
-@media (max-width: 900px) {
-  .calendar-toolbar {
-    flex-wrap: wrap;
-  }
-
-  .calendar-toolbar__right {
-    margin-left: auto;
   }
 }
 /* Labs shell */
@@ -17562,4 +17609,67 @@ html[data-theme='dark'] .dashboard-widget-card--todo .widget-todos__item:hover {
   font-size: var(--fs-label) !important;
   font-weight: 500 !important;
   letter-spacing: 0.01em !important;
+}
+
+@media (max-width: 640px) {
+  .tasks-fg__toolbar-group,
+  .tasks-fg__status-group,
+  .tasks-fg__group-toggle {
+    width: 100%;
+  }
+
+  .tasks-fg__status-group,
+  .tasks-fg__group-toggle {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .tasks-fg__status-tab,
+  .tasks-fg__mode-tab {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    height: auto;
+    justify-content: center;
+    gap: 3px;
+    padding: 4px;
+    font-size: 11px;
+    white-space: normal;
+  }
+
+  .tasks-fg__composer--hero > div:not(.tasks-fg__hero-shimmer):not(.tasks-fg__chip-strip) {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .tasks-fg__composer--hero .tasks-fg__hero-plus {
+    display: none;
+  }
+
+  .tasks-fg__composer--hero input.tasks-fg__input {
+    order: -1;
+    flex: 1 1 100%;
+    min-width: 0;
+    min-height: 36px;
+  }
+
+}
+
+@media (max-width: 960px) {
+  .focus-shell__main {
+    height: calc(100dvh - 88px);
+    min-height: 0;
+    max-height: calc(100dvh - 88px);
+  }
+
+  .focus-shell__route-layer {
+    min-height: 0;
+  }
+
+  .tasks-page {
+    height: auto;
+    max-height: none;
+    min-height: 0;
+    overflow: visible;
+  }
 }

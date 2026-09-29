@@ -5,7 +5,7 @@ import type { SyncEntityType } from './types'
 import { syncStateRepo } from './repository'
 import type { SyncState } from './types'
 import { usePageActivity } from '../../shared/hooks/usePageActivity'
-import { seedDatabase } from '../seed'
+import { useStorageMode, writeStorageMode } from '../storageMode'
 
 type SyncContextValue = {
   state: SyncState | null
@@ -15,38 +15,35 @@ type SyncContextValue = {
 }
 
 const SyncContext = createContext<SyncContextValue | null>(null)
-const CLOUD_SYNC_ENABLED_KEY = 'focusgo:cloud-sync-enabled'
 
 const readSyncState = async (setState: (value: SyncState) => void) => {
   setState(await syncStateRepo.get())
 }
 
-const readCloudSyncEnabled = () => {
-  if (typeof window === 'undefined') return true
-  return window.localStorage.getItem(CLOUD_SYNC_ENABLED_KEY) !== '0'
-}
-
-const writeCloudSyncEnabled = (enabled: boolean) => {
-  if (typeof window === 'undefined') return
-  window.localStorage.setItem(CLOUD_SYNC_ENABLED_KEY, enabled ? '1' : '0')
-}
-
 const loadRxdbSync = () => import('./rxdb')
+// The seed corpus is bilingual onboarding content plus every repository it
+// writes through — dead weight in the entry chunk, since it runs at most once
+// per workspace. StartupGate loads it the same way for local-only devices.
+const loadSeed = () => import('../seed')
 
 export const SyncProvider = ({ children }: { children: ReactNode }) => {
   const isLoggedIn = useIsLoggedIn()
+  const storageMode = useStorageMode()
   const [state, setState] = useState<SyncState | null>(null)
-  const [enabled, setEnabledState] = useState(readCloudSyncEnabled)
   const runningRef = useRef(false)
   const pageActivity = usePageActivity()
+  // Cloud sync is simply the network half of `storageMode: 'cloud'`, derived
+  // rather than mirrored so a mode change anywhere (settings, first-run chooser,
+  // another tab) takes effect here with no second piece of state to keep in step.
+  // A device that has never chosen keeps the historical default of sync on.
+  const enabled = storageMode !== 'local'
 
   const refreshState = useCallback(async () => {
     await readSyncState(setState)
   }, [])
 
   const setEnabled = useCallback((nextEnabled: boolean) => {
-    writeCloudSyncEnabled(nextEnabled)
-    setEnabledState(nextEnabled)
+    writeStorageMode(nextEnabled ? 'cloud' : 'local')
   }, [])
 
   const lastSyncEndedAtRef = useRef(0)
@@ -102,6 +99,7 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
       await refreshState()
     }
     await syncNow('initialize')
+    const { seedDatabase } = await loadSeed()
     const seeded = await seedDatabase()
     if (seeded) {
       dispatchSyncDataUpdated('all')

@@ -1,18 +1,26 @@
 name: Deploy to Production
 
 on:
-  push:
-    branches: [main]
+  workflow_run:
+    workflows: [Verify]
+    types: [completed]
 
 jobs:
   deploy:
     name: Deploy
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - uses: actions/setup-node@v4
         with:
@@ -80,7 +88,7 @@ jobs:
           OSS_ENDPOINT: ${{ secrets.OSS_ENDPOINT }}
           OSS_KEY_ID: ${{ secrets.OSS_ACCESS_KEY_ID }}
           OSS_KEY_SECRET: ${{ secrets.OSS_ACCESS_KEY_SECRET }}
-          GIT_SHA: ${{ github.sha }}
+          GIT_SHA: ${{ github.event.workflow_run.head_sha }}
           GIT_AUTH_TOKEN: ${{ github.token }}
         run: |
           ssh -i ~/.ssh/deploy_key \
@@ -127,7 +135,10 @@ jobs:
           }
           trap restore_origin EXIT
           git remote set-url origin "https://x-access-token:${GIT_AUTH_TOKEN}@github.com/VelvetAbyss/Focus-Go.git"
-          bash /root/focus-go/deploy.sh production "/tmp/focus-go-dist-${GIT_SHA}"
+          PREVIOUS_DEPLOY_SHA="$(git rev-parse HEAD)"
+          git fetch origin main
+          git reset --hard "${GIT_SHA}"
+          PREVIOUS_DEPLOY_SHA="${PREVIOUS_DEPLOY_SHA}" DEPLOY_SKIP_GIT_FETCH=1 bash /root/focus-go/deploy.sh production "/tmp/focus-go-dist-${GIT_SHA}"
 
           echo "=== [4/4] deploy complete ==="
           DEPLOY

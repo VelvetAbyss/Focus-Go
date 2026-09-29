@@ -50,6 +50,9 @@ describe('rxdb sync migration', () => {
     fetchMock.mockReset()
     await resetRxdbSyncDatabase()
     await db.delete({ disableAutoOpen: false })
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+    fetchMock.mockReset()
   })
 
   it('migrates existing Dexie rows into RxDB and pushes them through the new endpoint', async () => {

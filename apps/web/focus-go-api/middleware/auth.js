@@ -1,6 +1,7 @@
 import { fromNodeHeaders } from 'better-auth/node'
 import db from '../db/init.js'
 import { auth } from '../auth/betterAuth.js'
+import { getUserFromIntegrationToken } from '../auth/integrationTokens.js'
 
 const upsertBusinessUser = (authUser) => {
   const email = authUser.email ?? null
@@ -27,6 +28,20 @@ const upsertBusinessUser = (authUser) => {
 
 const getSessionFromBearerToken = (token) => {
   if (!token) return null
+
+  // Long-lived integration tokens (Obsidian plugin and other headless clients).
+  // Checked first because they carry a distinctive `fg_` prefix, so this costs
+  // one string comparison for ordinary session tokens.
+  const integration = getUserFromIntegrationToken(db, token)
+  if (integration) {
+    return {
+      user: integration.user,
+      // No better-auth session row backs an integration token. Nothing downstream
+      // reads `session`, but keep the shape consistent and self-describing.
+      session: { id: integration.tokenRow.id, userId: integration.user.id, kind: 'integration' },
+    }
+  }
+
   const session = db.prepare('SELECT * FROM session WHERE token = ?').get(token)
   if (!session) return null
   if (new Date(session.expiresAt).getTime() <= Date.now()) {

@@ -1,5 +1,7 @@
+import { LOCAL_DATA_OWNER_KEY } from '../../store/authOwnership'
 import { db } from '../db'
 import { SYNC_ENTITY_TABLES, SYNC_STATE_ID, SYNC_STATUS_CHANGED_EVENT } from './constants'
+import { isLocalOnlyMode } from '../storageMode'
 import type { SyncEntityType, SyncOp, SyncPayload, SyncState, SyncStatus } from './types'
 
 const now = () => Date.now()
@@ -56,12 +58,28 @@ export const syncStateRepo = {
   },
 }
 
-export const enqueueSyncOperation = <T extends SyncEntityType>(
+export const enqueueSyncOperation = async <T extends SyncEntityType>(
   entityType: T,
   op: SyncOp,
   payload: SyncPayload<T>,
   deletedAt?: number | null,
-) => import('./rxdb').then(({ enqueueRxdbSyncChange }) => enqueueRxdbSyncChange(entityType, op, payload, deletedAt))
+): Promise<void> => {
+  // A local-only device has nowhere to replicate to. Bailing out *before* the
+  // dynamic import keeps the entire RxDB engine — module, storage init and the
+  // mirror collections it builds — out of the session, rather than filling an
+  // outbox nobody will ever drain. Nothing is lost if the user later switches
+  // to cloud: syncEntity() re-seeds every collection from Dexie at the start of
+  // each cycle, so the existing local data is pushed on the first sync.
+  if (isLocalOnlyMode()) return
+  const { enqueueRxdbSyncChange } = await import('./rxdb')
+  await enqueueRxdbSyncChange(entityType, op, payload, deletedAt)
+}
+
+const pendingSyncOperations = new Set<Promise<void>>()
+
+export const drainPendingSyncOperations = async () => {
+  while (pendingSyncOperations.size) await Promise.all([...pendingSyncOperations])
+}
 
 export const enqueueSyncOperationInBackground = <T extends SyncEntityType>(
   entityType: T,
@@ -69,9 +87,11 @@ export const enqueueSyncOperationInBackground = <T extends SyncEntityType>(
   payload: SyncPayload<T>,
   deletedAt?: number | null,
 ) => {
-  void enqueueSyncOperation(entityType, op, payload, deletedAt).catch((error) => {
+  const pending = enqueueSyncOperation(entityType, op, payload, deletedAt).then(() => undefined).catch((error) => {
     console.error(`[sync] ${entityType}/${payload.id} enqueue failed`, error)
   })
+  pendingSyncOperations.add(pending)
+  void pending.then(() => pendingSyncOperations.delete(pending))
 }
 
 export const collectLocalSnapshot = async () => {
@@ -108,14 +128,12 @@ export const restampLocalSnapshotForRestore = async () => {
 }
 
 export const clearLocalUserData = async () => {
-  const entityTableObjects = Object.values(SYNC_ENTITY_TABLES).map((name) => db.table(name))
-  await db.transaction('rw', [...entityTableObjects, db.syncState, db.syncBlobCache], async () => {
-    for (const tableName of Object.values(SYNC_ENTITY_TABLES)) {
-      await db.table(tableName).clear()
-    }
-    await db.syncState.clear()
-    await db.syncBlobCache.clear()
+  await drainPendingSyncOperations()
+  const { runRxdbMaintenance } = await import('./rxdb')
+  await runRxdbMaintenance(async () => {
+    await db.transaction('rw', db.tables, async () => {
+      for (const table of db.tables) await table.clear()
+    })
   })
-  const { resetRxdbSyncDatabase } = await import('./rxdb')
-  await resetRxdbSyncDatabase()
+  if (typeof localStorage !== 'undefined') localStorage.removeItem(LOCAL_DATA_OWNER_KEY)
 }

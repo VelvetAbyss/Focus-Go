@@ -1,0 +1,284 @@
+name: Desktop Release
+
+# Builds and publishes the macOS + Windows desktop apps and the updater feed.
+# Triggered by pushing a tag like `v0.1.0-beta.5`.
+#
+# Signing degrades gracefully:
+#   - No Apple certificate  → unsigned build. It runs, but macOS shows
+#     "unidentified developer"; the release notes tell users how to get past it.
+#   - Certificate present    → the same workflow signs and notarizes, no edits.
+#     See apps/desktop/SIGNING.md.
+#
+# REQUIRED SECRET (`bundle.createUpdaterArtifacts` is true, so every build signs
+# its updater artifact):
+#   TAURI_SIGNING_PRIVATE_KEY / TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+#
+# OPTIONAL SIGNING SECRETS:
+#   APPLE_CERTIFICATE / APPLE_CERTIFICATE_PASSWORD / APPLE_SIGNING_IDENTITY
+#   APPLE_ID / APPLE_PASSWORD / APPLE_TEAM_ID        (notarization)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+# The tag that always holds the newest updater feed. The app points at
+# releases/download/updater/latest.json rather than releases/latest/..., because
+# GitHub resolves `latest` only to a non-prerelease release — so every beta would
+# be invisible to the updater. See the `updater-feed` job.
+env:
+  UPDATER_TAG: updater
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Run verify gates
+        run: npm run verify
+
+  release:
+    needs: verify
+    # Tag refs only. Both this job and updater-feed derive the release from
+    # github.ref_name, so a workflow_dispatch from a branch would cut a release
+    # named after the branch. A manual run still gets the verify gate.
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            args: '--target universal-apple-darwin'
+          - platform: windows-latest
+            args: ''
+    runs-on: ${{ matrix.platform }}
+    env:
+      RELEASE_BODY: |
+        Desktop build of Focus & Go for macOS and Windows.
+
+        ### Install
+
+        **macOS** — download the `.dmg`, drag the app to Applications. The build is
+        not notarized yet, so the first launch needs one extra step: right-click the
+        app → **Open** → **Open**. If macOS says the app is damaged instead, clear
+        the download quarantine flag and open it again:
+
+        ```
+        xattr -dr com.apple.quarantine "/Applications/Focus & Go.app"
+        ```
+
+        **Windows** — download the `-setup.exe`. SmartScreen will warn about an
+        unrecognised publisher: click **More info** → **Run anyway**.
+
+        ### Your data
+
+        On first launch the app asks where your data should live:
+
+        - **Local only** — no account, nothing leaves your machine, works fully offline.
+        - **Cloud sync** — sign in and the same workspace follows you across devices.
+
+        You can switch at any time in **Settings → Data → Storage mode**.
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fail early without the updater signing key
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [ -z "${TAURI_SIGNING_PRIVATE_KEY}" ]; then
+            echo "::error::TAURI_SIGNING_PRIVATE_KEY is not set. bundle.createUpdaterArtifacts is true, so the build cannot sign its updater artifact. Add the secret (see apps/desktop/SIGNING.md) or set createUpdaterArtifacts to false."
+            exit 1
+          fi
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Env files are gitignored (not committed), so recreate the desktop build
+      # config here. These are public client-side values (not secrets). Move them
+      # to repo Variables if you prefer.
+      - name: Create desktop env
+        shell: bash
+        run: |
+          cat > apps/web/.env.desktop <<'EOF'
+          VITE_API_BASE=https://api.nestflow.art
+          VITE_AUTH_API_BASE=https://api.nestflow.art/api/auth
+          VITE_PAYPAL_CLIENT_ID=BAAdHj-pIZnP9ApcVi1wuj32UhHjpZ-QpsAyBWElmhQsnfuYJRjJMBFwtOM_8E0Sn1LmlF3syHjpSkAztY
+          EOF
+
+      - name: Detect signing mode
+        id: signing
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+        run: |
+          if [ "${{ matrix.platform }}" = "macos-latest" ] && [ -n "${APPLE_CERTIFICATE}" ]; then
+            echo "apple=true" >> "$GITHUB_OUTPUT"
+            echo "macOS: signing with Developer ID."
+          else
+            echo "apple=false" >> "$GITHUB_OUTPUT"
+            if [ "${{ matrix.platform }}" = "macos-latest" ]; then
+              echo "::notice::macOS: building UNSIGNED (no APPLE_CERTIFICATE secret). Users need to right-click → Open on first launch."
+            else
+              echo "::notice::Windows: building UNSIGNED. Users will see a SmartScreen warning."
+            fi
+          fi
+
+      # Two steps rather than one with optional env, because Tauri's bundler
+      # decides to code-sign on whether APPLE_CERTIFICATE is *defined*, not on
+      # whether it holds anything. A GitHub `env:` entry for a secret that does
+      # not exist is still defined — as "" — which sent the unsigned build down
+      # the signing path, where it died in `security import: failed to import
+      # keychain certificate`. The unsigned step names no Apple variable at all.
+      - name: Build & publish (unsigned)
+        if: steps.signing.outputs.apple != 'true'
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: apps/desktop
+          tagName: ${{ github.ref_name }}
+          releaseName: 'Focus & Go ${{ github.ref_name }}'
+          # Not a draft: the updater feed links straight at these assets, and a
+          # draft release's assets are not downloadable.
+          releaseDraft: false
+          prerelease: true
+          args: ${{ matrix.args }}
+          releaseBody: ${{ env.RELEASE_BODY }}
+
+      - name: Build & publish (signed)
+        if: steps.signing.outputs.apple == 'true'
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:
+          projectPath: apps/desktop
+          tagName: ${{ github.ref_name }}
+          releaseName: 'Focus & Go ${{ github.ref_name }}'
+          releaseDraft: false
+          prerelease: true
+          args: ${{ matrix.args }}
+          releaseBody: ${{ env.RELEASE_BODY }}
+
+  # Build the updater feed ourselves from the release's own signed assets.
+  #
+  # tauri-action can emit latest.json, but it gave up with "Signature not found
+  # for the updater JSON. Skipping upload..." on BOTH platforms — its discovery
+  # does not line up with an explicit `bundle.targets` list. Everything the feed
+  # needs is already on the release (the .tar.gz / -setup.exe plus their .sig
+  # files), so deriving it here is both shorter and one less thing to guess at.
+  #
+  # It is published under a fixed `updater` tag rather than relying on
+  # releases/latest, which resolves only to a non-prerelease release and would
+  # therefore never see a -beta.N build.
+  updater-feed:
+    needs: release
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Build latest.json from the release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          assets=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${GITHUB_REF_NAME}" --jq '.assets')
+
+          # Resolve an asset's download URL by suffix, failing loudly when absent.
+          url_for() {
+            local suffix="$1"
+            local found
+            found=$(jq -r --arg s "$suffix" '[.[] | select(.name | endswith($s))] | .[0].browser_download_url // empty' <<<"$assets")
+            if [ -z "$found" ]; then
+              echo "::error::No release asset ending in '$suffix'. The updater feed would be incomplete, so failing instead of publishing a half-built one." >&2
+              exit 1
+            fi
+            printf '%s' "$found"
+          }
+
+          # A .sig holds the detached minisign signature as a single line. Read it
+          # through the asset API rather than browser_download_url: the latter is
+          # unauthenticated-only and 404s on a private repo, so this keeps working
+          # both before and after the repo goes public.
+          sig_for() {
+            local suffix="$1" id
+            id=$(jq -r --arg s "$suffix" '[.[] | select(.name | endswith($s))] | .[0].id // empty' <<<"$assets")
+            if [ -z "$id" ]; then
+              echo "::error::No release asset ending in '$suffix'." >&2
+              exit 1
+            fi
+            gh api "repos/${GITHUB_REPOSITORY}/releases/assets/${id}" -H "Accept: application/octet-stream" | tr -d '\r\n'
+          }
+
+          mac_url=$(url_for '.app.tar.gz')
+          win_url=$(url_for '-setup.exe')
+          mac_sig=$(sig_for '.app.tar.gz.sig')
+          win_sig=$(sig_for '-setup.exe.sig')
+
+          # macOS ships a universal binary, so both arch keys point at it.
+          jq -n \
+            --arg version "${GITHUB_REF_NAME#v}" \
+            --arg pub_date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg notes "See https://github.com/${GITHUB_REPOSITORY}/releases/tag/${GITHUB_REF_NAME}" \
+            --arg mac_url "$mac_url" --arg mac_sig "$mac_sig" \
+            --arg win_url "$win_url" --arg win_sig "$win_sig" \
+            '{version: $version, notes: $notes, pub_date: $pub_date, platforms: {
+               "darwin-aarch64": {signature: $mac_sig, url: $mac_url},
+               "darwin-x86_64":  {signature: $mac_sig, url: $mac_url},
+               "windows-x86_64": {signature: $win_sig, url: $win_url}
+             }}' > latest.json
+
+          echo "Feed for ${GITHUB_REF_NAME}:"
+          jq '.platforms | map_values({url})' latest.json
+          test "$(jq -r '.platforms | length' latest.json)" = "3"
+          jq -e '[.platforms[].signature] | all(length > 0)' latest.json > /dev/null
+
+      - name: Publish it under the fixed updater tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if ! gh release view "${UPDATER_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release create "${UPDATER_TAG}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --title 'Updater feed' \
+              --notes 'Machine-readable feed for the in-app updater. Always points at the newest build; not a download. Installers live on the versioned releases.' \
+              --prerelease
+          fi
+          gh release upload "${UPDATER_TAG}" latest.json --repo "${GITHUB_REPOSITORY}" --clobber
+          echo "Feed: https://github.com/${GITHUB_REPOSITORY}/releases/download/${UPDATER_TAG}/latest.json"

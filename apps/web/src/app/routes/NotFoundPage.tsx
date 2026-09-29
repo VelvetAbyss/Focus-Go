@@ -30,6 +30,7 @@ const NotFoundPage = () => {
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
           <Link
             to={ROUTES.DASHBOARD}
+            data-auth-preview-allowed="true"
             className="inline-flex h-9 items-center rounded-full px-5 text-sm font-medium transition-colors"
             style={{ background: 'var(--accent)', color: 'var(--bg-elevated)' }}
           >
@@ -37,6 +38,7 @@ const NotFoundPage = () => {
           </Link>
           <button
             type="button"
+            data-auth-preview-allowed="true"
             onClick={() => navigate(-1)}
             className="inline-flex h-9 items-center rounded-full px-4 text-sm font-medium transition-colors"
             style={{ color: 'var(--text-secondary)' }}

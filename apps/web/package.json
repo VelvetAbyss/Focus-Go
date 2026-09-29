@@ -1,7 +1,7 @@
 {
   "name": "@focus-go/web",
   "private": true,
-  "version": "0.1.0-beta.5",
+  "version": "0.1.0-beta.7",
   "type": "module",
   "scripts": {
     "dev": "npm exec -- vite",
@@ -11,7 +11,8 @@
     "analyze": "FOCUSGO_BUNDLE_ANALYZE=1 npm exec -- vite build",
     "lint": "npm exec -- eslint .",
     "preview": "npm exec -- vite preview",
-    "test": "npm exec -- vitest run"
+    "test": "npm exec -- vitest run",
+    "test:smoke": "playwright test --config playwright.smoke.config.ts"
   },
   "dependencies": {
     "@dicebear/collection": "^9.4.2",
@@ -20,7 +21,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@floating-ui/react": "^0.27.19",
-    "@focus-go/core": "0.1.0-beta.5",
+    "@focus-go/core": "0.1.0-beta.7",
     "@iconify/react": "^6.0.2",
     "@number-flow/react": "^0.5.11",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -67,7 +68,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
-    "dexie": "4.0.10",
+    "dexie": "4.4.2",
     "docx": "^9.6.1",
     "dompurify": "^3.4.7",
     "fluid-tailwind": "^1.0.4",

@@ -1,5 +1,6 @@
 import type {
   BookItem,
+  DashboardLayout,
   DiaryEntry,
   DomainEvent,
   FeatureInstallation,
@@ -7,6 +8,7 @@ import type {
   FocusSettings,
   Habit,
   HabitLog,
+  LifeDashboardLayout,
   LifePerson,
   LifePodcast,
   LifeSubscription,
@@ -57,6 +59,11 @@ export const SYNC_ENTITY_TYPES = [
   'trips',
   'syncedPreferences',
   'domainEvents',
+  // Dashboard layouts: the server has had sync_dashboard_layout /
+  // sync_life_dashboard_layout since the sync layer shipped, but the client
+  // never pushed to them — layout changes stayed on one device.
+  'dashboardLayout',
+  'lifeDashboardLayout',
 ] as const
 
 export type SyncEntityType = (typeof SYNC_ENTITY_TYPES)[number]
@@ -91,6 +98,8 @@ export type SyncEntityMap = {
   trips: TripRecord
   syncedPreferences: SyncedPreferences
   domainEvents: DomainEvent
+  dashboardLayout: DashboardLayout
+  lifeDashboardLayout: LifeDashboardLayout
 }
 
 export type SyncPayload<T extends SyncEntityType = SyncEntityType> = SyncEntityMap[T] | ({ id: string; updatedAt: number } & Record<string, unknown>)

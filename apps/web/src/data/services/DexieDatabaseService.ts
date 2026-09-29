@@ -54,11 +54,15 @@ import { touch, withBase } from '../repositories/base'
 import { createId } from '../../shared/utils/ids'
 import { areTaskNoteBlocksEqual, normalizeTaskNoteBlocks } from '../../features/tasks/model/taskNote'
 import { resolveTaskNoteRichText } from '../../features/tasks/model/taskNoteRichText'
+import { isTaskAwaitingOthers } from '../../features/tasks/domain/taskRules'
 import { enqueueSyncOperation } from '../sync/repository'
+import type { SyncEntityType } from '../sync/types'
 
 const statusLabelMap: Record<TaskStatus, string> = {
   todo: '待办',
   doing: '进行中',
+  waiting: '在等',
+  verify: '待核对',
   done: '已完成',
 }
 
@@ -523,28 +527,7 @@ const moveDateKey = (dateKey: string, offset: number) => {
   return toDateKey(next)
 }
 
-const enqueueUpsert = async <
-  T extends
-    | 'tasks'
-    | 'notes'
-    | 'noteTags'
-    | 'noteAppearance'
-    | 'widgetTodos'
-    | 'focusSettings'
-    | 'focusSessions'
-    | 'diaryEntries'
-    | 'spends'
-    | 'spendCategories'
-    | 'habits'
-    | 'habitLogs'
-    | 'books'
-    | 'stocks'
-    | 'media'
-    | 'lifeSubscriptions'
-    | 'lifePodcasts'
-    | 'lifePeople'
-    | 'trips'
->(entityType: T, payload: { id: string; updatedAt: number } & Record<string, unknown>) => {
+const enqueueUpsert = async <T extends SyncEntityType>(entityType: T, payload: { id: string; updatedAt: number } & Record<string, unknown>) => {
   await enqueueSyncOperation(entityType, 'upsert', payload)
 }
 
@@ -552,24 +535,7 @@ const reportBackgroundSyncError = (label: string, error: unknown) => {
   console.error(`[sync] ${label} failed`, error)
 }
 
-const enqueueUpsertInBackground = <
-  T extends
-    | 'tasks'
-    | 'notes'
-    | 'noteTags'
-    | 'widgetTodos'
-    | 'focusSessions'
-    | 'diaryEntries'
-    | 'spends'
-    | 'habitLogs'
-    | 'books'
-    | 'stocks'
-    | 'media'
-    | 'lifeSubscriptions'
-    | 'lifePodcasts'
-    | 'lifePeople'
-    | 'trips'
->(entityType: T, payload: { id: string; updatedAt: number } & Record<string, unknown>) => {
+const enqueueUpsertInBackground = <T extends SyncEntityType>(entityType: T, payload: { id: string; updatedAt: number } & Record<string, unknown>) => {
   void enqueueUpsert(entityType, payload).catch((error) => reportBackgroundSyncError(`${entityType}/${payload.id} enqueue`, error))
 }
 
@@ -577,23 +543,7 @@ const finalizeDomainEventInBackground = (event: DomainEvent | undefined) => {
   void finalizeDomainEvent(event).catch((error) => reportBackgroundSyncError(`domain event ${event?.id ?? 'unknown'} finalize`, error))
 }
 
-const enqueueDelete = async <
-  T extends
-    | 'tasks'
-    | 'notes'
-    | 'noteTags'
-    | 'widgetTodos'
-    | 'diaryEntries'
-    | 'spends'
-    | 'habitLogs'
-    | 'books'
-    | 'stocks'
-    | 'media'
-    | 'lifeSubscriptions'
-    | 'lifePodcasts'
-    | 'lifePeople'
-    | 'trips'
->(entityType: T, payload: { id: string; updatedAt: number } & Record<string, unknown>, deletedAt = payload.updatedAt) => {
+const enqueueDelete = async <T extends SyncEntityType>(entityType: T, payload: { id: string; updatedAt: number } & Record<string, unknown>, deletedAt = payload.updatedAt) => {
   await enqueueSyncOperation(entityType, 'delete', { ...payload, deletedAt }, deletedAt)
 }
 
@@ -693,9 +643,16 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       const normalized = normalizeTask(task)
       if (normalized.status === status) return normalized
       const now = Date.now()
+      // waitingSince is owned by the status transition, not by the caller: a
+      // field the user has to remember to set is a field that is always stale,
+      // and "no answer for N days" is only meaningful if the clock is honest.
+      const wasAwaiting = isTaskAwaitingOthers(normalized)
+      const isAwaiting = isTaskAwaitingOthers({ status })
       const next = touch({
         ...normalized,
         status,
+        waitingSince: isAwaiting ? (wasAwaiting ? normalized.waitingSince : now) : undefined,
+        nextPollAt: isAwaiting ? normalized.nextPollAt : undefined,
         activityLogs: [
           ...normalized.activityLogs,
           {
@@ -991,9 +948,10 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
   },
   focusSessions: {
     async list(limit) {
-      const rows = await db.focusSessions.orderBy('createdAt').reverse().toArray()
-      if (!limit || limit <= 0) return rows
-      return rows.slice(0, limit)
+      const query = db.focusSessions.orderBy('createdAt').reverse()
+      return Number.isFinite(limit) && limit! > 0
+        ? query.limit(Math.max(1, Math.floor(limit!))).toArray()
+        : query.toArray()
     },
     async start(data) {
       const session: FocusSession = withBase({
@@ -1385,12 +1343,14 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
     async upsert(data) {
       const existing = await db.dashboardLayout.get('dashboard_layout')
       if (!existing) {
-        const next = withBase({ ...(data as Omit<DashboardLayout, 'id' | 'createdAt' | 'updatedAt'>), id: 'dashboard_layout' })
-        await db.dashboardLayout.put(next)
-        return next
+        const created = withBase({ ...(data as Omit<DashboardLayout, 'id' | 'createdAt' | 'updatedAt'>), id: 'dashboard_layout' })
+        await db.dashboardLayout.put(created)
+        await enqueueUpsert('dashboardLayout', created)
+        return created
       }
       const next = touch({ ...existing, ...(data as Partial<DashboardLayout>) })
       await db.dashboardLayout.put(next)
+      await enqueueUpsert('dashboardLayout', next)
       return next
     },
   },
@@ -1402,12 +1362,14 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
     async upsert(data) {
       const existing = await db.lifeDashboardLayout.get(LIFE_DASHBOARD_ID)
       if (!existing) {
-        const next = withBase({ ...(data as Omit<LifeDashboardLayout, 'id' | 'createdAt' | 'updatedAt'>), id: LIFE_DASHBOARD_ID })
-        await db.lifeDashboardLayout.put(next)
-        return next
+        const created = withBase({ ...(data as Omit<LifeDashboardLayout, 'id' | 'createdAt' | 'updatedAt'>), id: LIFE_DASHBOARD_ID })
+        await db.lifeDashboardLayout.put(created)
+        await enqueueUpsert('lifeDashboardLayout', created)
+        return created
       }
       const next = touch({ ...existing, ...(data as Partial<LifeDashboardLayout>) })
       await db.lifeDashboardLayout.put(next)
+      await enqueueUpsert('lifeDashboardLayout', next)
       return next
     },
   },

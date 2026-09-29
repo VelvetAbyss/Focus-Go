@@ -15,6 +15,7 @@ import { readLanguage } from '../shared/prefs/preferences'
 import { ensureLabsSeed } from '../features/labs/labsApi'
 import { getAuth } from '../store/auth'
 import { claimInitialSeed } from './sync/seedClaim'
+import { isLocalOnlyMode } from './storageMode'
 import type { LanguageCode } from '../shared/i18n/types'
 import type { TaskPriority, TaskStatus } from './models/types'
 import {
@@ -388,22 +389,26 @@ export const seedDatabase = async () => {
     return false
   }
 
-  // Server-authoritative gate: only the first claim across all devices/sessions
-  // wins. Skips entirely for logged-out users (no account = no demo seed),
-  // which prevents anonymous local writes from being pushed as duplicates the
-  // moment the user signs in.
-  if (!getAuth()?.user) return false
-  try {
-    const { shouldSeed } = await claimInitialSeed()
-    if (!shouldSeed) {
-      await syncedPreferencesRepo.markInitialSeedCompleted()
+  // A local-only device never syncs, so there is no other device to race and no
+  // server to ask: the local `initialSeedCompletedAt` marker checked above is
+  // the whole gate. Everyone else goes through the server-authoritative claim,
+  // where only the first claim across all devices/sessions wins. That claim
+  // skips logged-out users entirely (no account = no demo seed), so anonymous
+  // local writes are never pushed as duplicates the moment the user signs in.
+  if (!isLocalOnlyMode()) {
+    if (!getAuth()?.user) return false
+    try {
+      const { shouldSeed } = await claimInitialSeed()
+      if (!shouldSeed) {
+        await syncedPreferencesRepo.markInitialSeedCompleted()
+        return false
+      }
+    } catch (err) {
+      // If the claim endpoint is unreachable, do not seed — better to show an
+      // empty state than to risk re-seeding after a transient network error.
+      console.warn('[seed] claim failed, skipping seed:', err)
       return false
     }
-  } catch (err) {
-    // If the claim endpoint is unreachable, do not seed — better to show an
-    // empty state than to risk re-seeding after a transient network error.
-    console.warn('[seed] claim failed, skipping seed:', err)
-    return false
   }
 
   const language = readLanguage()

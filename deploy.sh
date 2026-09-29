@@ -83,6 +83,7 @@ command -v npm >/dev/null || {
   echo "❌ npm is not available in PATH for this SSH deploy shell"
   exit 127
 }
+PREVIOUS_DEPLOY_SHA="${PREVIOUS_DEPLOY_SHA:-$(git -C "$REPO_DIR" rev-parse HEAD)}"
 
 # ── 0. Pre-flight: verify API .env exists ─────────────────────────
 if [[ ! -f "$API_DIR/.env" ]]; then
@@ -136,18 +137,8 @@ cp -r "$DIST_SRC"/. "$RELEASE_DIR/"
 # Clean up uploaded temp dir
 [[ "$DIST_SRC" == /tmp/* ]] && rm -rf "$DIST_SRC" || true
 
-# ── 5. Switch symlink ─────────────────────────────────────────────
-echo "=== [5/8] symlink → $RELEASE_DIR ==="
-PREVIOUS_RELEASE=$(readlink "$CURRENT_LINK" 2>/dev/null || echo "")
-ln -sfn "$RELEASE_DIR" "$CURRENT_LINK"
-
-# ── 6. Nginx reload ───────────────────────────────────────────────
-echo "=== [6/8] nginx reload ==="
-nginx -t
-systemctl reload nginx
-
-# ── 7. PM2 reload API ─────────────────────────────────────────────
-echo "=== [7/8] PM2 reload $PM2_APP_NAME ==="
+# ── 5. Reload API before exposing the new web client ──────────────
+echo "=== [5/8] PM2 reload $PM2_APP_NAME ==="
 cd "$API_DIR"
 command -v pm2 >/dev/null || {
   echo "❌ pm2 is not available in PATH for this SSH deploy shell"
@@ -156,25 +147,44 @@ command -v pm2 >/dev/null || {
 PORT=$API_PORT NODE_ENV=$NODE_ENV pm2 reload "$PM2_APP_NAME" --update-env \
   || PORT=$API_PORT NODE_ENV=$NODE_ENV pm2 start index.js --name "$PM2_APP_NAME"
 
-# ── 8. Health check ───────────────────────────────────────────────
-echo "=== [8/8] health check (localhost:$API_PORT/health) ==="
+# ── 6. Confirm the API is healthy before switching the web client ─
+echo "=== [6/8] health check (localhost:$API_PORT/health) ==="
 sleep 8
 HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:$API_PORT/health" || echo "000")
 
 if [[ "$HTTP_STATUS" != "200" ]]; then
   echo "❌ Health check FAILED (HTTP $HTTP_STATUS)"
-  if [[ -n "$PREVIOUS_RELEASE" ]]; then
-    echo "↩ Rolling back to $PREVIOUS_RELEASE"
-    ln -sfn "$PREVIOUS_RELEASE" "$CURRENT_LINK"
-    systemctl reload nginx
-    rm -rf "$RELEASE_DIR"
+  if [[ -n "$PREVIOUS_DEPLOY_SHA" ]]; then
+    echo "↩ Restoring previous API commit $PREVIOUS_DEPLOY_SHA"
+    cd "$REPO_DIR"
+    git reset --hard "$PREVIOUS_DEPLOY_SHA"
+    cd "$API_DIR"
+    npm ci
+    sha256sum "$API_DIR/package-lock.json" | cut -d' ' -f1 > "$API_LOCK_HASH_FILE"
+    PORT=$API_PORT NODE_ENV=$NODE_ENV pm2 reload "$PM2_APP_NAME" --update-env
   fi
+  rm -rf "$RELEASE_DIR"
   exit 1
 fi
 
 echo "✅ Health check passed (HTTP 200)"
 
+# ── 7. Switch the web client after nginx config validation ─────────
+echo "=== [7/8] symlink → $RELEASE_DIR ==="
+nginx -t
+PREVIOUS_RELEASE=$(readlink "$CURRENT_LINK" 2>/dev/null || echo "")
+ln -sfn "$RELEASE_DIR" "$CURRENT_LINK"
+if ! systemctl reload nginx; then
+  echo "❌ nginx reload failed"
+  if [[ -n "$PREVIOUS_RELEASE" ]]; then
+    ln -sfn "$PREVIOUS_RELEASE" "$CURRENT_LINK"
+    systemctl reload nginx || true
+  fi
+  exit 1
+fi
+
 # ── Cleanup: keep last 5 releases ────────────────────────────────
+echo "=== [8/8] cleanup old releases ==="
 ls -1dt "$DEPLOY_ROOT/releases"/*/ 2>/dev/null | tail -n +6 | xargs rm -rf 2>/dev/null || true
 
 echo "=== Deploy complete: $DEPLOY_ENV @ $TIMESTAMP ==="

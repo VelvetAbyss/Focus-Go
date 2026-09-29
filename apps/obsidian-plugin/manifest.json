@@ -1,0 +1,9 @@
+{
+  "id": "focus-and-go",
+  "name": "Focus & Go",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "Two-way sync between your Focus & Go tasks and this vault.",
+  "author": "Focus & Go",
+  "isDesktopOnly": false
+}
