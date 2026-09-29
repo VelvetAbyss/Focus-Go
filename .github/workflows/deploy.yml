@@ -61,7 +61,7 @@ jobs:
           RCLONE_CONFIG_ALIYUNOSS_ENDPOINT: ${{ secrets.OSS_ENDPOINT }}
         run: |
           rclone copyto dist.tar.gz \
-            aliyunoss:${{ secrets.OSS_BUCKET }}/deploys/dist-${{ github.sha }}.tar.gz \
+            aliyunoss:${{ secrets.OSS_BUCKET }}/deploys/dist-${{ github.event.workflow_run.head_sha }}.tar.gz \
             --no-check-dest
 
       # ── 5. Configure SSH ────────────────────────────────────────
