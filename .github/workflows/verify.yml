@@ -29,7 +29,7 @@ jobs:
       - name: Run tests
         run: |
           npm run test --workspace @focus-go/core
-          npm run test --workspace @focus-go/web
+          npm run test --workspace @focus-go/web -- --maxWorkers=2
           npm test --prefix apps/web/focus-go-api
           npm run test --workspace @focus-go/obsidian-plugin
 
