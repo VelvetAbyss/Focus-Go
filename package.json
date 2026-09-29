@@ -44,8 +44,17 @@
     "shadcn": "^3.8.5"
   },
   "optionalDependencies": {
+    "@parcel/watcher-darwin-x64": "^2.5.6",
+    "@parcel/watcher-linux-x64-glibc": "^2.5.6",
+    "@parcel/watcher-win32-x64": "^2.5.6",
     "@rollup/rollup-darwin-x64": "^4.60.1",
     "@rollup/rollup-linux-x64-gnu": "^4.60.1",
-    "@rollup/rollup-win32-x64-msvc": "^4.60.1"
+    "@rollup/rollup-win32-x64-msvc": "^4.60.1",
+    "@tauri-apps/cli-darwin-x64": "^2.12.0",
+    "@tauri-apps/cli-linux-x64-gnu": "^2.12.0",
+    "@tauri-apps/cli-win32-x64-msvc": "^2.12.0",
+    "sass-embedded-darwin-x64": "^1.98.0",
+    "sass-embedded-linux-x64": "^1.98.0",
+    "sass-embedded-win32-x64": "^1.98.0"
   }
 }
