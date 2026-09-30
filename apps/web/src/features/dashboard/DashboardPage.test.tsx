@@ -58,6 +58,10 @@ vi.mock('./DashboardHeader', () => ({
   ),
 }))
 
+vi.mock('./layoutSyncAdapter', () => ({
+  syncDashboardLayout: vi.fn(),
+}))
+
 vi.mock('../../data/repositories/dashboardRepo', () => ({
   dashboardRepo: {
     get: (...args: unknown[]) => getMock(...args),
@@ -165,7 +169,7 @@ describe('DashboardPage onboarding', () => {
     await waitFor(() => expect(screen.getByText('Tasks card')).toBeInTheDocument())
     fireEvent.click(screen.getByRole('button', { name: 'News' }))
 
-    expect(await screen.findByText('News dashboard')).toBeInTheDocument()
+    expect(screen.getByText('News dashboard')).toBeInTheDocument()
     expect(screen.queryByText('Tasks card')).not.toBeInTheDocument()
   })
 })

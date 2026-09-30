@@ -63,7 +63,7 @@ export default defineConfig(({ mode }) => ({
       : null,
   ],
   test: {
-    exclude: ['focus-go-api/**', '.claude/**', 'e2e/**'],
+    exclude: ['node_modules/**', 'focus-go-api/**', '.claude/**', 'e2e/**'],
     setupFiles: ['./src/test/setup.ts'],
     testTimeout: 10000,
   },
@@ -73,6 +73,7 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+      '@focus-go/db-contracts': fileURLToPath(new URL('../../packages/db-contracts/src/index.ts', import.meta.url)),
     },
   },
   build: {

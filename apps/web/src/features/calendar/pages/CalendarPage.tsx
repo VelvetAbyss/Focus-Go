@@ -75,9 +75,6 @@ import {
 } from '../calendarStorage'
 import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../../data/repositories/syncedPreferencesRepo'
 import { appIntlLocale } from '../../../shared/i18n/format'
-import { CreateTaskDialogForm } from '../components/CreateTaskDialogForm'
-import { IcsSubscriptionForm } from '../components/IcsSubscriptionForm'
-import '../calendar.css'
 
 // = --ink-4 in light; a mid-tone that also reads on dark paper. Hex (not a var) because the
 // task color popover feeds it to a color input.
@@ -490,11 +487,14 @@ const CalendarPage = () => {
   const [drawerTask, setDrawerTask] = useState<TaskItem | null>(null)
 
   const [isAccountDialogOpen, setIsAccountDialogOpen] = useState(false)
+  const [icsName, setIcsName] = useState('')
+  const [icsUrl, setIcsUrl] = useState('')
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(false)
   const [rightSidebarOpen, setRightSidebarOpen] = useState(false)
   const [pendingDeleteSubscriptionId, setPendingDeleteSubscriptionId] = useState<string | null>(null)
 
   const [createDateKey, setCreateDateKey] = useState<string | null>(null)
+  const [createTitle, setCreateTitle] = useState('')
   const [creatingGridTask, setCreatingGridTask] = useState(false)
   const tasksLoadRequestRef = useRef(0)
   const syncedSubscriptionSignatureRef = useRef<Record<string, string>>({})
@@ -791,7 +791,9 @@ const CalendarPage = () => {
     })
   }
 
-  const addIcsSubscription = async (name: string, url: string) => {
+  const addIcsSubscription = async () => {
+    const name = icsName.trim()
+    const url = icsUrl.trim()
     if (!name || !url) return
     setSubscriptions((prev) => {
       if (prev.some((item) => item.url === url)) return prev
@@ -810,6 +812,8 @@ const CalendarPage = () => {
 
       return sortSubscriptions([...prev, next])
     })
+    setIcsName('')
+    setIcsUrl('')
     setIsAccountDialogOpen(false)
   }
 
@@ -835,10 +839,12 @@ const CalendarPage = () => {
 
   const openCreateEvent = (dateKey: string) => {
     setCreateDateKey(dateKey)
+    setCreateTitle('')
   }
 
-  const createTaskFromGridDate = async (title: string) => {
+  const createTaskFromGridDate = async () => {
     const dateKey = createDateKey
+    const title = createTitle.trim()
     if (!dateKey || !title || creatingGridTask) return
 
     setCreatingGridTask(true)
@@ -856,6 +862,7 @@ const CalendarPage = () => {
       emitTasksChanged('calendar:grid-doubleclick-create')
       setSelectedDateKey(dateKey)
       setCreateDateKey(null)
+      setCreateTitle('')
     } finally {
       setCreatingGridTask(false)
     }
@@ -1338,7 +1345,18 @@ const CalendarPage = () => {
                   {t('calendar.icsGuideNote')}
                 </p>
               </section>
-              <IcsSubscriptionForm onAdd={(name, url) => void addIcsSubscription(name, url)} />
+              <Label htmlFor="ics-name">{t('calendar.name')}</Label>
+              <Input id="ics-name" value={icsName} onChange={(event) => setIcsName(event.currentTarget.value)} />
+              <Label htmlFor="ics-url">{t('calendar.icsUrl')}</Label>
+              <Input
+                id="ics-url"
+                value={icsUrl}
+                onChange={(event) => setIcsUrl(event.currentTarget.value)}
+                placeholder={t('calendar.icsPlaceholder')}
+              />
+              <Button type="button" onClick={() => void addIcsSubscription()}>
+                {t('calendar.addIcsSubscription')}
+              </Button>
             </div>
           </div>
           <DialogFooter>
@@ -1376,12 +1394,28 @@ const CalendarPage = () => {
             <DialogTitle>{t('calendar.createTaskTitle')}</DialogTitle>
             <DialogDescription>{t('tasks.drawer.date')}{language === 'zh' ? '：' : ': '}{createDateKey}</DialogDescription>
           </DialogHeader>
-          <CreateTaskDialogForm
-            key={createDateKey}
-            creating={creatingGridTask}
-            onCancel={() => setCreateDateKey(null)}
-            onCreate={(title) => void createTaskFromGridDate(title)}
-          />
+          <div className="calendar-dialog__panel">
+            <Label htmlFor="task-title">{t('calendar.title')}</Label>
+            <Input
+              id="task-title"
+              value={createTitle}
+              onChange={(event) => setCreateTitle(event.currentTarget.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  void createTaskFromGridDate()
+                }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setCreateDateKey(null)}>
+              {t('tasks.cancel')}
+            </Button>
+            <Button onClick={() => void createTaskFromGridDate()} disabled={creatingGridTask || !createTitle.trim()}>
+              {t('calendar.create')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

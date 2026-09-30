@@ -1,4 +1,4 @@
-import { fetchAuthProfile, getAuth, setAuth } from '../store/auth'
+import { clearAuth, fetchAuthProfile, getAuth, setAuth } from '../store/auth'
 import { clearAuthRedirectParams, finishBetterAuthCookieSession, hasAuthRedirectParams } from './authRuntime'
 import { getPlatform } from '../platform'
 
@@ -11,12 +11,15 @@ const bootstrapDesktopSession = async () => {
   const platform = getPlatform()
   const token = await platform.loadAuthToken()
   if (!token) {
-    if (getAuth()?.user) throw new Error('Session unavailable. Your local data is preserved.')
+    if (getAuth()) clearAuth()
     return
   }
   const profile = await fetchAuthProfile(token)
   if (!profile) {
-    throw new Error('Unable to verify your session. Your local data is preserved.')
+    // Token expired/revoked — drop it so the user sees a clean login.
+    await platform.clearAuthToken()
+    clearAuth()
+    return
   }
   const hint = getAuth() ?? {}
   setAuth({
@@ -36,12 +39,23 @@ const bootstrapDesktopSession = async () => {
 export const bootstrapAuth = async () => {
   // Desktop: token-based session restore from the OS keychain (no cookie).
   if (getPlatform().isDesktop) {
-    await bootstrapDesktopSession()
+    try {
+      await bootstrapDesktopSession()
+    } catch {
+      if (getAuth()) clearAuth()
+    }
     return true
   }
 
   const isAuthRedirect = hasAuthRedirectParams()
-  await finishBetterAuthCookieSession()
-  if (isAuthRedirect) clearAuthRedirectParams()
+  try {
+    await finishBetterAuthCookieSession()
+    if (isAuthRedirect) clearAuthRedirectParams()
+  } catch {
+    // No active session cookie. Only emit a clear if there's prior state to
+    // drop (avoids spurious re-renders for first-time visitors).
+    if (isAuthRedirect) clearAuthRedirectParams()
+    if (getAuth()) clearAuth()
+  }
   return true
 }

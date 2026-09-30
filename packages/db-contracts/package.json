@@ -1,5 +1,5 @@
 {
-  "name": "@focus-go/core",
+  "name": "@focus-go/db-contracts",
   "private": true,
   "version": "0.1.0-beta.5",
   "type": "module",
@@ -8,5 +8,9 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run"
+  },
+  "dependencies": {
+    "@focus-go/core": "0.1.0-beta.5",
+    "zod": "^3.24.1"
   }
 }

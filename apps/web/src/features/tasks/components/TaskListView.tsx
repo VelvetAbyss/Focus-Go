@@ -87,7 +87,7 @@ const TaskListView = ({
   }, [doneExpanded])
 
   const byStatus = useMemo(() => {
-    const groups: Record<TaskStatus, TaskItem[]> = { todo: [], doing: [], waiting: [], verify: [], done: [] }
+    const groups: Record<TaskStatus, TaskItem[]> = { todo: [], doing: [], done: [] }
     tasks.forEach((task) => {
       groups[task.status].push(task)
     })

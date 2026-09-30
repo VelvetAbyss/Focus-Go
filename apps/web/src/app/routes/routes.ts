@@ -50,6 +50,7 @@ export const NAV_ITEMS: NavItem[] = [
   { key: 'trips', label: 'Trips', to: ROUTES.TRIPS },
   { key: 'focus', label: 'Focus', to: ROUTES.FOCUS },
   { key: 'diary', label: 'Diary', to: ROUTES.DIARY },
+  { key: 'membership', label: 'Membership', to: ROUTES.MEMBERSHIP },
   { key: 'settings', label: 'Settings', to: ROUTES.SETTINGS },
 ]
 

@@ -37,10 +37,7 @@ export const extractSyncErrorMessage = (error: unknown) => {
 }
 
 const runQueued = async <T>(task: () => Promise<T>) => {
-  const lockedTask = async (): Promise<T> => typeof navigator !== 'undefined' && navigator.locks
-    ? navigator.locks.request('focusgo-sync-maintenance', task)
-    : task()
-  const next = rxdbQueue.then(lockedTask, lockedTask)
+  const next = rxdbQueue.then(task, task)
   rxdbQueue = next.then(
     () => undefined,
     () => undefined,
@@ -255,18 +252,19 @@ const writeDexieEntity = async (entityType: SyncEntityType, document: SyncDocume
 const seedCollectionFromDexie = async (entityType: SyncEntityType, collection: RxCollection<SyncDocument>) => {
   const rows = await db.table(SYNC_ENTITY_TABLES[entityType]).toArray()
   if (rows.length === 0) return
-  const locals = rows.map((row) => ({ ...(row as SyncPayload), _deleted: false }) as SyncDocument)
-  // One bulk read, not a findOne() per row. This runs for all 29 entity types at
-  // the start of every sync cycle, so the per-row version cost one sequential
-  // storage round-trip per record every 30 seconds — the dominant cost of a
-  // cycle once a workspace has a few thousand records.
-  const queued = await collection.findByIds(locals.map((local) => local.id)).exec()
-  const missingOrStaleRows = locals.filter((local) => {
-    const existing = queued.get(local.id)
-    if (!existing) return true
-    const queuedData = existing.toJSON() as SyncDocument
-    return queuedData._deleted === true || (queuedData.updatedAt ?? 0) < local.updatedAt
-  })
+  const missingOrStaleRows: SyncDocument[] = []
+  for (const row of rows) {
+    const local = { ...(row as SyncPayload), _deleted: false } as SyncDocument
+    const queued = await collection.findOne(local.id).exec()
+    if (!queued) {
+      missingOrStaleRows.push(local)
+      continue
+    }
+    const queuedData = queued.toJSON() as SyncDocument
+    if (queuedData._deleted === true || (queuedData.updatedAt ?? 0) < local.updatedAt) {
+      missingOrStaleRows.push(local)
+    }
+  }
   if (missingOrStaleRows.length > 0) await collection.bulkUpsert(missingOrStaleRows)
 }
 
@@ -551,18 +549,3 @@ export const resetRxdbSyncDatabase = async () => {
     }
   })
 }
-
-// Run destructive local maintenance only after active replication has drained.
-// Keep the whole restore and cache reset ahead of subsequent queued sync work.
-export const runRxdbMaintenance = async <T>(task: () => Promise<T>) =>
-  runQueued(async () => {
-    rxdbResetRequested = true
-    try {
-      // Reset replication metadata before committing local changes. If this
-      // fails, the existing local snapshot is still intact and can be retried.
-      await resetRxdbStorageDatabases()
-      return await task()
-    } finally {
-      rxdbResetRequested = false
-    }
-  })

@@ -36,22 +36,11 @@ import { createTask, parseQuickAddTaskInput } from './application/taskActions'
 import ActiveIndicator from '../../shared/motion/ActiveIndicator'
 import { PRESSED_BUTTON, SELECTED_TAB } from '../../shared/motion/indicatorSelectors'
 import { AppNumber } from '../../shared/ui/AppNumber'
-import { isTaskAwaitingOthers, isTaskInToday, isTaskOverdue } from './domain/taskRules'
+import { isTaskInToday, isTaskOverdue } from './domain/taskRules'
 import { rememberCurrentUserRecentCommandTarget } from '../../shared/ui/recentCommandTargets'
 import { useOpenRequest } from '../../shared/navigation/openRequest'
 
-/**
- * `waiting` and `verify` share one tab. To the person looking at the board they
- * are the same bucket — "not on my desk right now" — and splitting them into two
- * tabs would widen the board without telling anyone anything new. The distinction
- * still exists on the task and shows in its badge.
- */
-type BoardTab = 'todo' | 'doing' | 'waiting' | 'done'
-
-const tabs: { key: BoardTab }[] = [{ key: 'todo' }, { key: 'doing' }, { key: 'waiting' }, { key: 'done' }]
-
-const taskMatchesTab = (task: Pick<TaskItem, 'status'>, tab: BoardTab) =>
-  tab === 'waiting' ? isTaskAwaitingOthers(task) : task.status === tab
+const tabs: { key: TaskStatus }[] = [{ key: 'todo' }, { key: 'doing' }, { key: 'done' }]
 
 type SortMode = 'importance' | 'time'
 type TagFilterMode = 'all' | 'work' | 'life' | 'health' | 'study' | 'finance' | 'family'
@@ -153,10 +142,10 @@ const TasksBoard = ({
       return new Set()
     }
   })
-  const [activeStatus, setActiveStatus] = useState<BoardTab>(() => {
+  const [activeStatus, setActiveStatus] = useState<TaskStatus>(() => {
     if (typeof window === 'undefined') return 'todo'
     const stored = window.localStorage.getItem(STORAGE_TAB_KEY)
-    return tabs.some((tab) => tab.key === stored) ? (stored as BoardTab) : 'todo'
+    return stored === 'todo' || stored === 'doing' || stored === 'done' ? stored : 'todo'
   })
   const statusActionSuccessTimerRef = useRef<number | null>(null)
   const tasksReloadTokenRef = useRef(0)
@@ -303,16 +292,13 @@ const TasksBoard = ({
   }, [])
 
   const statusCounts = useMemo(() => {
-    const counts: Record<BoardTab, number> = { todo: 0, doing: 0, waiting: 0, done: 0 }
+    const counts: Record<TaskStatus, number> = { todo: 0, doing: 0, done: 0 }
     const countBase = scope.kind === 'project'
       ? tasks.filter((task) => task.projectId === scope.projectId)
       : scope.kind === 'today' || topView === 'today'
         ? tasks.filter((task) => isTaskInToday(task))
         : tasks
-    countBase.forEach((task) => {
-      const tab = tabs.find((item) => taskMatchesTab(task, item.key))
-      if (tab) counts[tab.key]++
-    })
+    countBase.forEach((task) => counts[task.status]++)
     return counts
   }, [scope, tasks, topView])
 
@@ -330,27 +316,27 @@ const TasksBoard = ({
         : t('tasks.deadlineAlert.daysBadge', { days: alert.daysRemaining })
 
   const statusDeadlineAlerts = useMemo(() => {
-    const alerts: Record<BoardTab, ReturnType<typeof getUpcomingDeadlineAlert>> = { todo: null, doing: null, waiting: null, done: null }
+    const alerts: Record<TaskStatus, ReturnType<typeof getUpcomingDeadlineAlert>> = { todo: null, doing: null, done: null }
     const alertBase = scope.kind === 'project'
       ? tasks.filter((task) => task.projectId === scope.projectId)
       : scope.kind === 'today' || topView === 'today'
         ? tasks.filter((task) => isTaskInToday(task))
         : tasks
     tabs.forEach((status) => {
-      alerts[status.key] = getUpcomingDeadlineAlert(alertBase.filter((task) => taskMatchesTab(task, status.key)))
+      alerts[status.key] = getUpcomingDeadlineAlert(alertBase.filter((task) => task.status === status.key))
     })
     return alerts
   }, [scope, tasks, topView])
 
   const filteredTasks = useMemo(() => {
     let result = scope.kind === 'project'
-      ? tasks.filter((task) => task.projectId === scope.projectId && (effectiveGroupBy !== 'status' || topView === 'list' || taskMatchesTab(task, activeStatus)))
+      ? tasks.filter((task) => task.projectId === scope.projectId && (effectiveGroupBy !== 'status' || topView === 'list' || task.status === activeStatus))
       : scope.kind === 'today' || topView === 'today'
         ? tasks.filter((task) => isTaskInToday(task))
         : topView === 'list'
           ? tasks
           : effectiveGroupBy === 'status'
-            ? tasks.filter((task) => taskMatchesTab(task, activeStatus))
+            ? tasks.filter((task) => task.status === activeStatus)
             : tasks
     if (scope.kind === 'all' && projectFilterIds.size > 0) {
       result = result.filter((task) => task.projectId && projectFilterIds.has(task.projectId))
@@ -515,7 +501,7 @@ const TasksBoard = ({
     const parsed = await parseQuickAddTaskInput(rawTitle, { projects, fallbackProjectId })
     const created = await createTask({
       title: parsed.title,
-      status: topView === 'today' || effectiveGroupBy !== 'status' || activeStatus === 'waiting' ? 'todo' : activeStatus,
+      status: topView === 'today' || effectiveGroupBy !== 'status' ? 'todo' : activeStatus,
       isToday: topView === 'today' || parsed.isToday === true,
       priority: parsed.priority,
       projectId: parsed.projectId,
@@ -712,7 +698,7 @@ const TasksBoard = ({
 
   const isFirstTimeEmpty = tasks.length === 0
   const tasksEmptyState = isFirstTimeEmpty ? (
-    <div className="tasks-fg__empty px-1 py-8">
+    <div className="px-1 py-8">
       <DiscoveryEmptyState
         variant="first-time"
         illustration="coffee"
@@ -840,8 +826,8 @@ const TasksBoard = ({
               </div>
             ) : null}
 
-          <div className="tasks-fg__toolbar flex flex-wrap items-center justify-between gap-4">
-            <div className="tasks-fg__toolbar-group flex flex-wrap items-center gap-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
               {topView === 'board' && effectiveGroupBy === 'status' ? (
                 <div className="tasks-fg__status-group flex items-center gap-0.5">
                   <ActiveIndicator selector={SELECTED_TAB} />
@@ -1059,12 +1045,12 @@ const TasksBoard = ({
         </div>
       )}
 
-      <div className="tasks-fg__content relative min-h-0 flex-1 overflow-visible pt-4">
+      <div className="relative min-h-0 flex-1 overflow-visible pt-4">
         {boardContent}
       </div>
 
       {topView !== 'analytics' ? (
-        <div className="tasks-fg__composer-section flex flex-col">
+        <div className="flex flex-col">
           {showTasksEmptyState ? (
             <div className="px-4 pt-2 pb-1 text-label text-muted-foreground/80">
               {t('modules.tasks.addPlaceholder')} ↓

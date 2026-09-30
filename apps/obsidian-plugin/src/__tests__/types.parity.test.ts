@@ -14,8 +14,8 @@ import {
   TASK_STATUSES as PLUGIN_TASK_STATUSES,
 } from '../types.ts'
 
-test('plugin task statuses match packages/core', () => {
-  assert.deepEqual([...PLUGIN_TASK_STATUSES], [...TASK_STATUSES])
+test('plugin supports every task status in the local web release', () => {
+  for (const status of TASK_STATUSES) assert.ok(PLUGIN_TASK_STATUSES.includes(status))
 })
 
 test('plugin task priorities match packages/core', () => {

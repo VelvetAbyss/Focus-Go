@@ -30,13 +30,17 @@ const App = () => {
   // Desktop-only: complete Google sign-in when the focusgo:// callback returns.
   useDesktopAuthDeepLink()
 
-  // Desktop-only: reveal the window after first paint (created hidden → no flash).
-  // The update check deliberately lives in StartupGate instead, which renders
-  // even when this component does not.
+  // Desktop-only: reveal the window after first paint (created hidden → no flash),
+  // then check for updates a few seconds later (non-blocking).
   useEffect(() => {
     const platform = getPlatform()
+    if (!platform.isDesktop) return
     const frame = requestAnimationFrame(() => void platform.showAppWindow())
-    return () => cancelAnimationFrame(frame)
+    const updateTimer = window.setTimeout(() => void platform.checkForUpdates(), 5000)
+    return () => {
+      cancelAnimationFrame(frame)
+      window.clearTimeout(updateTimer)
+    }
   }, [])
 
   useEffect(() => {

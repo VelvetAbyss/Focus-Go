@@ -64,9 +64,8 @@ import {
   type ParsedLocalBackup,
 } from '../../shared/backup/localBackup'
 import { useSyncActions, useSyncStatus } from '../../data/sync/service'
-import { SYNC_ENTITY_TABLES } from '../../data/sync/constants'
-import { drainPendingSyncOperations } from '../../data/sync/repository'
-import { requestRxdbSyncReset, resetRxdbSyncDatabase, runRxdbMaintenance } from '../../data/sync/rxdb'
+import { restampLocalSnapshotForRestore } from '../../data/sync/repository'
+import { requestRxdbSyncReset, resetRxdbSyncDatabase } from '../../data/sync/rxdb'
 import { wipeServerData } from '../../data/sync/wipeServerData'
 import { listSyncConflicts, markSyncConflictReviewed, restoreNoteConflictAsCopy, type SyncConflictRecord } from '../../data/sync/conflicts'
 import { getAuth, useCloudSyncQuota, useIsLoggedIn } from '../../store/auth'
@@ -819,19 +818,6 @@ const SettingsRoute = () => {
   const isLegalSection = location.pathname === LEGAL_ROOT_PATH || legalDocumentKey !== null
   const resolvedSection: SettingsSection = isLegalSection ? 'legal' : activeSection
   const legalDocument = legalDocumentKey ? LEGAL_DOCUMENTS[language][legalDocumentKey] : null
-  // Switching storage mode. Turning cloud sync ON without an account is a valid
-  // intent, not an error: flip the mode and ask for sign-in, the same hand-off
-  // the first-run chooser uses. Turning it OFF never deletes the server copy, so
-  // say so rather than letting the user assume it was wiped.
-  const handleStorageModeChange = (toCloud: boolean) => {
-    setCloudSyncEnabled(toCloud)
-    if (toCloud) {
-      if (!isLoggedIn) setShowLoginModal(true)
-      return
-    }
-    toast.push({ variant: 'success', message: t('settings.data.storage.switchedToLocal') })
-  }
-
   const syncStatusLabel = !cloudSyncEnabled
     ? t('settings.data.sync.status.paused')
     : syncState ? t(`settings.data.sync.status.${syncState.status}`) : t('settings.data.sync.status.idle')
@@ -1123,32 +1109,43 @@ const SettingsRoute = () => {
 
     setIsImporting(true)
     try {
-      await drainPendingSyncOperations()
-      const payload = pendingImport.payload
-      await runRxdbMaintenance(async () => {
-        await importLocalBackup(payload, {
-          db: createTableDatabaseAdapter(db, backupTableNames),
-          storage: createBrowserStorageAdapter(window.localStorage),
-          tableNames: backupTableNames,
-          prepareTables(tables) {
-            let stamp = Date.now()
-            const next = { ...tables }
-            for (const name of Object.values(SYNC_ENTITY_TABLES)) {
-              next[name] = (next[name] ?? []).map((row) => ({ ...(row as Record<string, unknown>), updatedAt: ++stamp }))
-            }
-            next[TABLES.syncBlobCache] = 'blobs' in payload
-              ? Object.values(payload.blobs).map((blob) => ({ ...blob, createdAt: stamp, updatedAt: stamp }))
-              : []
-            next[TABLES.syncState] = [{
-              id: 'cloud-sync', status: 'idle', lastPulledAt: null, lastPushedAt: null, lastError: null,
-              firstSyncResolved: true, pendingFirstSync: false, pendingEntityPush: false,
-              pendingBlobPush: false, missingBlobPull: false, migrationVersion: 3,
-              restoreIntegrityStatus: 'ready', pendingLocalRecordCount: 0, pendingRemoteRecordCount: 0,
-              createdAt: stamp, updatedAt: stamp,
-            }]
-            return next
-          },
-        })
+      await importLocalBackup(pendingImport.payload, {
+        db: createTableDatabaseAdapter(db, backupTableNames),
+        storage: createBrowserStorageAdapter(window.localStorage),
+        tableNames: backupTableNames,
+      })
+      await restampLocalSnapshotForRestore()
+      await resetRxdbSyncDatabase()
+      // Repopulate blob cache from the backup so the client-side fallback works
+      // when the server reports blobs as missing during the next pull.
+      // replaceTables() clears every table including sync_blob_cache; this restores it.
+      if ('blobs' in pendingImport.payload) {
+        const blobCacheTimestamp = Date.now()
+        const blobEntries = Object.values(pendingImport.payload.blobs).map((blob) => ({
+          ...blob,
+          createdAt: blobCacheTimestamp,
+          updatedAt: blobCacheTimestamp,
+        }))
+        if (blobEntries.length > 0) await db.syncBlobCache.bulkPut(blobEntries)
+      }
+      const now = Date.now()
+      await db.syncState.put({
+        id: 'cloud-sync',
+        status: 'idle',
+        lastPulledAt: null,
+        lastPushedAt: null,
+        lastError: null,
+        firstSyncResolved: true,
+        pendingFirstSync: false,
+        pendingEntityPush: false,
+        pendingBlobPush: false,
+        missingBlobPull: false,
+        migrationVersion: 3,
+        restoreIntegrityStatus: 'ready',
+        pendingLocalRecordCount: 0,
+        pendingRemoteRecordCount: 0,
+        createdAt: now,
+        updatedAt: now,
       })
       window.location.reload()
     } catch (error) {
@@ -1728,8 +1725,8 @@ const SettingsRoute = () => {
                         <>
                           <SettingRow
                             icon={Database}
-                            title={t('settings.data.storage.title')}
-                            description={t('settings.data.storage.description')}
+                            title={t('settings.data.sync.title')}
+                            description={t('settings.data.sync.description')}
                           >
                             {!isLoggedIn ? (
                               // Signed out there is nothing to sync with: say so and offer the way in,
@@ -1743,10 +1740,10 @@ const SettingsRoute = () => {
                             ) : (
                             <div className="flex w-full flex-col gap-3 sm:items-end">
                               <label className="flex items-center gap-3 text-sm font-medium">
-                                <span>{cloudSyncEnabled ? t('settings.data.storage.cloud.label') : t('settings.data.storage.local.label')}</span>
+                                <span>{cloudSyncEnabled ? t('settings.data.sync.enabled') : t('settings.data.sync.disabled')}</span>
                                 <Switch
                                   checked={cloudSyncEnabled}
-                                  onCheckedChange={handleStorageModeChange}
+                                  onCheckedChange={(checked) => setCloudSyncEnabled(checked)}
                                   aria-label={t('settings.data.sync.toggle')}
                                 />
                               </label>
@@ -1762,6 +1759,13 @@ const SettingsRoute = () => {
                                   {t('settings.data.sync.error', { message: syncState.lastError })}
                                 </div>
                               ) : null}
+                              <Button
+                                variant="outline"
+                                disabled={!cloudSyncEnabled || syncState?.status === 'syncing'}
+                                onClick={() => { void syncNow() }}
+                              >
+                                {t('settings.data.sync.action')}
+                              </Button>
                             </div>
                             )}
                           </SettingRow>
@@ -1832,9 +1836,6 @@ const SettingsRoute = () => {
                             <div className="flex flex-wrap gap-2">
                               <Button variant="outline" disabled={isExporting || isImporting} onClick={() => void exportBackup()}>
                                 {t('settings.data.export.json')}
-                              </Button>
-                              <Button variant="outline" onClick={() => { void import('../../shared/performance/diagnostics').then(({ downloadDiagnostics }) => downloadDiagnostics()) }}>
-                                {language === 'zh' ? '导出本次运行诊断' : 'Export session diagnostics'}
                               </Button>
                             </div>
                           </SettingRow>

@@ -1,9 +1,10 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { GridLayout, useContainerWidth } from 'react-grid-layout'
 import { absoluteStrategy } from 'react-grid-layout/core'
+import { useIsBreakpoint } from '../../hooks/use-is-breakpoint'
 import Dialog from '../../shared/ui/Dialog'
 import { dashboardRepo } from '../../data/repositories/dashboardRepo'
 import { getDashboardCards } from './registry'
@@ -20,17 +21,13 @@ import {
   DEFAULT_DASHBOARD_THEME_OVERRIDE,
 } from '../../data/defaultDashboardLayout'
 import { usePremiumGate } from '../premium/PremiumProvider'
-const LifeDashboard = lazy(() => import('../life/LifeDashboard'))
-const NewsDashboard = lazy(() => import('../news/NewsDashboard'))
+import LifeDashboard from '../life/LifeDashboard'
+import NewsDashboard from '../news/NewsDashboard'
 import { readLayoutLocked, writeLayoutLocked } from '../../shared/prefs/dashboardLayoutLock'
 import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../data/repositories/syncedPreferencesRepo'
 import { DiscoveryNewBadge } from '../../shared/ui/DiscoveryNewBadge'
 import { markDiscoveryNewTargetSeen } from '../../shared/discovery/discoveryNewTargetActions'
 import { DASHBOARD_CARD_DISCOVERY_TARGET_BY_ID } from '../../shared/discovery/newTargets'
-import { projectLayout, resolveDashboardGrid, useViewportWidth } from '../../shared/responsive/breakpoints'
-
-/** The column count dashboard layouts are authored and stored against. */
-const DASHBOARD_BASE_COLUMNS = 12
 
 const DashboardPage = () => {
   const { t } = useI18n()
@@ -38,16 +35,11 @@ const DashboardPage = () => {
   const [page, setPage] = useState<'main' | 'life' | 'news'>('main')
   const [layout, setLayout] = useState<DashboardLayoutItem[]>([])
   const [hiddenCardIds, setHiddenCardIds] = useState<string[]>([])
+  const isMobile = useIsBreakpoint('max', 768)
+  const columns = isMobile ? 4 : 12
   const { width, containerRef, mounted } = useContainerWidth({ initialWidth: window.innerWidth })
-  const viewportWidth = useViewportWidth()
-  // Resolved from the grid's own width, not the viewport: the sidebar and page
-  // padding take enough of the screen that sizing off the viewport overstates
-  // the room by ~280px on a laptop.
-  const grid = useMemo(() => resolveDashboardGrid({ viewportWidth, containerWidth: width, baseColumns: DASHBOARD_BASE_COLUMNS }), [viewportWidth, width])
-  const columns = grid.columns
-  const isStacked = grid.mode === 'stacked'
   const [searchParams, setSearchParams] = useSearchParams()
-  const [layoutEdit, setLayoutEdit] = useState(() => !readLayoutLocked())
+  const [layoutEdit, setLayoutEdit] = useState(() => !isMobile && !readLayoutLocked())
   const widgetsPanelOpen = searchParams.get('widgetsPanel') === '1'
   const [confirmHideCardId, setConfirmHideCardId] = useState<string | null>(null)
   const [hideSubmitting, setHideSubmitting] = useState(false)
@@ -58,23 +50,28 @@ const DashboardPage = () => {
     hiddenCardIds: [],
   })
 
-  // What is actually rendered at this width. `projected` is true whenever that
-  // differs from what the user authored, which is exactly when drag editing has
-  // to be off — otherwise a drag would persist the narrow-screen positions over
-  // their real layout.
-  const { items: responsiveLayout, changed: layoutProjected } = useMemo(
-    () => projectLayout(layout, grid, DASHBOARD_BASE_COLUMNS),
-    [grid, layout],
-  )
+  const responsiveLayout = useMemo(() => {
+    if (!isMobile) return layout
+    // Scale desktop layout (12 cols) to mobile layout (4 cols)
+    return layout.map((item) => {
+      const mobileW = Math.max(2, Math.round((item.w / 12) * 4))
+      const mobileX = Math.min(4 - mobileW, Math.round((item.x / 12) * 4))
+      return {
+        ...item,
+        w: mobileW,
+        x: mobileX,
+      }
+    })
+  }, [isMobile, layout])
 
   const toggleLayoutEdit = useCallback(() => {
-    if (layoutProjected) return
+    if (isMobile) return
     if (!canUse('dashboard.custom-layout').allowed) {
       openUpgradeModal('button', 'dashboard.custom-layout')
       return
     }
     setLayoutEdit((prev) => !prev)
-  }, [canUse, layoutProjected, openUpgradeModal])
+  }, [canUse, isMobile, openUpgradeModal])
 
   const toggleWidgetsPanel = useCallback(() => {
     if (!canUse('dashboard.extra-widgets').allowed) {
@@ -90,8 +87,8 @@ const DashboardPage = () => {
   }, [canUse, openUpgradeModal, setSearchParams, widgetsPanelOpen])
 
   useEffect(() => {
-    if (layoutProjected) setLayoutEdit(false)
-  }, [layoutProjected])
+    if (isMobile) setLayoutEdit(false)
+  }, [isMobile])
 
   useEffect(() => {
     if (page === 'news') setLayoutEdit(false)
@@ -116,7 +113,7 @@ const DashboardPage = () => {
 
   useEffect(() => {
     const handleSyncedPreferencesUpdated = () => {
-      if (layoutProjected) {
+      if (isMobile) {
         setLayoutEdit(false)
         return
       }
@@ -124,7 +121,7 @@ const DashboardPage = () => {
     }
     window.addEventListener(SYNCED_PREFERENCES_UPDATED_EVENT, handleSyncedPreferencesUpdated)
     return () => window.removeEventListener(SYNCED_PREFERENCES_UPDATED_EVENT, handleSyncedPreferencesUpdated)
-  }, [layoutProjected])
+  }, [isMobile])
 
   const gridEdit = useDashboardGridEdit({
     layout: responsiveLayout,
@@ -134,7 +131,7 @@ const DashboardPage = () => {
     margin: [18, 18] as [number, number],
     padding: [18, 18] as [number, number],
     width: Math.max(width, 320),
-    minW: grid.minSpan,
+    minW: isMobile ? 2 : 2,
     minH: 2,
     onUpdate: setLayout,
     onCommit: (finalLayout) => {
@@ -340,10 +337,10 @@ const DashboardPage = () => {
         </div>
 
         {/* Life page */}
-        {page === 'life' && <Suspense fallback={<DashboardSkeleton columns={columns} />}><LifeDashboard layoutEdit={layoutEdit} widgetsPanelOpen={widgetsPanelOpen} /></Suspense>}
+        {page === 'life' && <LifeDashboard layoutEdit={layoutEdit} widgetsPanelOpen={widgetsPanelOpen} />}
 
         {/* News page */}
-        {page === 'news' && <Suspense fallback={<DashboardSkeleton columns={columns} />}><NewsDashboard /></Suspense>}
+        {page === 'news' && <NewsDashboard />}
 
         {/* Main dashboard */}
         {page === 'main' && layoutEdit && widgetsPanelOpen && (
@@ -374,31 +371,7 @@ const DashboardPage = () => {
           <DashboardSkeleton columns={columns} rowHeight={60} margin={18} />
         )}
 
-        {page === 'main' && mounted && layoutLoaded && isStacked && (
-          <section className="dashboard__stack">
-            {[...visibleCards]
-              .sort((a, b) => {
-                const pa = responsiveLayout.find((item) => item.key === a.id)
-                const pb = responsiveLayout.find((item) => item.key === b.id)
-                return (pa?.y ?? 0) - (pb?.y ?? 0)
-              })
-              .map((card) => {
-                const discoveryTarget = DASHBOARD_CARD_DISCOVERY_TARGET_BY_ID[card.id]
-                return (
-                  <div
-                    key={card.id}
-                    className="dashboard__item dashboard__item--stacked"
-                    onPointerDownCapture={() => { if (discoveryTarget) markDiscoveryNewTargetSeen(discoveryTarget) }}
-                  >
-                    {card.render()}
-                    {discoveryTarget ? <DiscoveryNewBadge target={discoveryTarget} className="discovery-new-badge--card" /> : null}
-                  </div>
-                )
-              })}
-          </section>
-        )}
-
-        {page === 'main' && mounted && layoutLoaded && !isStacked && (
+        {page === 'main' && mounted && layoutLoaded && (
           <GridLayout
             className={`dashboard__grid${layoutEdit ? ' dashboard__grid--edit-mode' : ''}`}
             layout={responsiveLayout.map((item) => ({
@@ -407,7 +380,7 @@ const DashboardPage = () => {
               y: item.y,
               w: item.w,
               h: item.h,
-              minW: grid.minSpan,
+              minW: isMobile ? 2 : 2,
               minH: 2,
               maxW: columns,
             }))}

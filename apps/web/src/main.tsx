@@ -8,19 +8,22 @@ import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
 import './data/events/timelineProjection'
 import App from './App.tsx'
-import RecoveryBoundary from './shared/ui/RecoveryBoundary'
-import StartupGate from './config/StartupGate'
+import { bootstrapAuth } from './config/authBootstrap'
 import { installReactScan } from './shared/performance/installReactScan'
 import { installWebVitalsReporting } from './shared/performance/reportWebVitals'
 
 function mountApp() {
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
-      <RecoveryBoundary><StartupGate><App /></StartupGate></RecoveryBoundary>
+      <App />
     </StrictMode>,
   )
   installWebVitalsReporting()
 }
 
-mountApp()
-void installReactScan().catch(() => {})
+async function bootstrap() {
+  await installReactScan()
+  if (await bootstrapAuth()) mountApp()
+}
+
+bootstrap()

@@ -17,7 +17,7 @@ import { clearLocalUserData } from '../../data/sync/repository'
 import { useI18n } from '../../shared/i18n/useI18n'
 import { dbService } from '../../data/services/dbService'
 import type { FocusSession } from '../../data/models/types'
-import { db } from '../../data/db'
+import { db, requestCrossTabDbReset } from '../../data/db'
 import { DB_NAME, DB_VERSION, TABLES } from '../../data/db/schema'
 import { ROUTES } from '../routes/routes'
 
@@ -46,6 +46,22 @@ type ExtendedUserStats = {
   level: number
   levelProgress: number
   sessionsToNextLevel: number
+}
+
+const ACCOUNT_ACTION_TIMEOUT_MS = 1200
+
+const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms))
+
+const clearLocalUserDataBestEffort = async () => {
+  requestCrossTabDbReset()
+  try {
+    await Promise.race([
+      clearLocalUserData(),
+      wait(ACCOUNT_ACTION_TIMEOUT_MS),
+    ])
+  } catch {
+    // ignore and continue auth transition
+  }
 }
 
 const signOutBestEffort = async () => {
@@ -442,7 +458,6 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
   const [stats, setStats] = useState<ExtendedUserStats | null>(null)
   const [activePanel, setActivePanel] = useState<ActivePanel>(null)
   const [exportState, setExportState] = useState<'idle' | 'exporting' | 'done'>('idle')
-  const [accountError, setAccountError] = useState(false)
   const [accountAction, setAccountAction] = useState<'logout' | 'switch' | null>(null)
 
   const displayName = user?.name || user?.nickname || user?.email?.split('@')[0] || 'U'
@@ -494,16 +509,11 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
   const handleLogout = async () => {
     if (accountAction) return
     setAccountAction('logout')
-    try {
     await signOutBestEffort()
-    await clearLocalUserData()
+    await clearLocalUserDataBestEffort()
     clearAuth()
     onClose()
     window.location.href = '/'
-    } catch {
-      setAccountAction(null)
-      setAccountError(true)
-    }
   }
 
   const handleExport = async () => {
@@ -536,15 +546,10 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
   const handleSwitchAccount = async () => {
     if (accountAction) return
     setAccountAction('switch')
-    try {
     await signOutBestEffort()
-    await clearLocalUserData()
+    await clearLocalUserDataBestEffort()
     clearAuth()
     onClose()
-    } catch {
-      setAccountAction(null)
-      setAccountError(true)
-    }
   }
 
   const handleViewGrowth = () => {
@@ -781,7 +786,6 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
 
             {/* Section 5: Footer */}
             <div className="acct-section acct-section--footer">
-              {accountError && <p role="alert">{t('auth.account.transitionFailed')}</p>}
               <div className="acct-footer-actions">
                 <button type="button" className="acct-footer-btn" onClick={handleSwitchAccount} disabled={accountAction !== null}>
                   {accountAction === 'switch' ? '…' : t('auth.account.switchAccount')}

@@ -14,7 +14,7 @@ const SESSION_KEY = 'focusgo.timer.sessionId'
 const clampDuration = (value: number) => {
   if (!Number.isFinite(value)) return 25
   const stepped = Math.round(value / 5) * 5
-  return Math.max(10, Math.min(120, stepped))
+  return Math.max(15, Math.min(120, stepped))
 }
 
 const clampRemaining = (value: number) => {
@@ -242,7 +242,7 @@ export const useSharedFocusTimer = ({ defaultDurationMinutes }: UseSharedFocusTi
     return () => window.clearTimeout(timeout)
   }, [completeIfNeeded, pageActivity, snapshot])
 
-  const start = useCallback(async (durationMinutes: number, taskId?: string) => {
+  const start = useCallback(async (durationMinutes: number) => {
     const sessionId = sessionIdRef.current ?? getOrCreateSessionId()
     sessionIdRef.current = sessionId
     const normalizedDuration = clampDuration(durationMinutes)
@@ -253,7 +253,7 @@ export const useSharedFocusTimer = ({ defaultDurationMinutes }: UseSharedFocusTi
     if (!activeSessionId) {
       const startedSession = await focusRepo.startSession({
         plannedMinutes: normalizedDuration,
-        taskId: taskId ?? readFocusTaskId(),
+        taskId: readFocusTaskId(),
       })
       activeSessionId = startedSession.id
     }
