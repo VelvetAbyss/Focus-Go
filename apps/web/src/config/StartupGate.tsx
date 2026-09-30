@@ -5,6 +5,7 @@ import { bootstrapAuth } from './authBootstrap'
 import { getAuth } from '../store/auth'
 import StorageModeChooser from './StorageModeChooser'
 import { readStorageMode, type StorageMode } from '../data/storageMode'
+import './startup.css'
 
 // Share an in-flight restore across StrictMode's effect replay.
 let pending: Promise<boolean> | null = null

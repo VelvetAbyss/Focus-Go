@@ -6,6 +6,53 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/api/**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: route.request().url().endsWith('/get-session') ? 'null' : '{}' }))
 })
 
+test('first-run storage choice is styled and usable on desktop and phone', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Where should your data live?' })).toBeVisible()
+  const desktop = await page.evaluate(() => {
+    const screen = document.querySelector('.storage-mode-screen')!
+    const options = document.querySelector('.storage-mode-screen__options')!
+    const action = document.querySelector('.storage-mode-card__action--primary')!
+    return {
+      background: getComputedStyle(screen).backgroundColor,
+      columns: getComputedStyle(options).gridTemplateColumns.split(' ').length,
+      actionBackground: getComputedStyle(action).backgroundColor,
+      actionHeight: action.getBoundingClientRect().height,
+    }
+  })
+  expect(desktop.background).toBe('rgb(255, 255, 255)')
+  expect(desktop.columns).toBe(2)
+  expect(desktop.actionBackground).toBe('rgb(27, 79, 74)')
+  expect(desktop.actionHeight).toBeGreaterThanOrEqual(44)
+  await page.screenshot({ path: '../../docs/plans/evidence/2026-09-09-webapp-execution/storage-mode-desktop.png' })
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  const phone = await page.evaluate(() => ({
+    columns: getComputedStyle(document.querySelector('.storage-mode-screen__options')!).gridTemplateColumns.split(' ').length,
+    scrollWidth: document.documentElement.scrollWidth,
+  }))
+  expect(phone.columns).toBe(1)
+  expect(phone.scrollWidth).toBeLessThanOrEqual(390)
+  await expect(page.getByRole('button', { name: 'Start using it now' })).toBeVisible()
+  await page.screenshot({ path: '../../docs/plans/evidence/2026-09-09-webapp-execution/storage-mode-phone.png', fullPage: true })
+
+  const chineseContext = await page.context().browser()!.newContext({ locale: 'zh-CN', viewport: { width: 390, height: 844 } })
+  try {
+    const chinesePage = await chineseContext.newPage()
+    await chinesePage.goto('http://focusgo-smoke.localhost:5198/')
+    await expect(chinesePage.getByRole('heading', { name: '选择数据存放方式' })).toBeVisible()
+    await expect(chinesePage.getByRole('button', { name: '直接开始使用' })).toBeVisible()
+    await chinesePage.screenshot({ path: '../../docs/plans/evidence/2026-09-09-webapp-execution/storage-mode-phone-zh.png', fullPage: true })
+    await chinesePage.evaluate(() => { document.documentElement.dataset.theme = 'dark' })
+    await expect(chinesePage.locator('.storage-mode-screen')).toHaveCSS('background-color', 'rgb(36, 35, 32)')
+    await expect(chinesePage.locator('.storage-mode-card__action--primary')).toHaveCSS('background-color', 'rgb(126, 219, 199)')
+    await expect(chinesePage.locator('.storage-mode-card__action').last()).toHaveCSS('background-color', 'rgb(45, 43, 39)')
+    await chinesePage.screenshot({ path: '../../docs/plans/evidence/2026-09-09-webapp-execution/storage-mode-phone-zh-dark.png', fullPage: true })
+  } finally {
+    await chineseContext.close()
+  }
+})
+
 test('local workspace opens, saves a task, and restores it after reload', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: 'Start using it now' }).click()
