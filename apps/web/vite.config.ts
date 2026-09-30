@@ -5,6 +5,18 @@ import { visualizer } from 'rollup-plugin-visualizer'
 import { fileURLToPath, URL } from 'node:url'
 
 const shouldAnalyzeBundle = process.env.FOCUSGO_BUNDLE_ANALYZE === '1'
+const releaseSha = process.env.VITE_RELEASE_SHA || process.env.GITHUB_SHA || 'local'
+const swVersion = /^[a-f0-9]{7,40}$/i.test(releaseSha) ? releaseSha : 'local'
+
+// The CDN may retain an older /sw.js after a release. Register a URL unique to
+// this build so a new page can always fetch and activate its matching worker.
+const versionedServiceWorker = {
+  name: 'focusgo-versioned-service-worker',
+  apply: 'build' as const,
+  transformIndexHtml(html: string) {
+    return html.replace('</head>', `<script>if('serviceWorker'in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js?v=${swVersion}',{scope:'/',updateViaCache:'none'}).catch(()=>{})},{once:true})}</script></head>`)
+  },
+}
 
 // Injects the platform implementation behind `virtual:platform`:
 //   - desktop build (`--mode desktop`) → the Tauri bridge in apps/desktop
@@ -33,9 +45,10 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     platformInjection(mode),
+    mode === 'desktop' ? null : versionedServiceWorker,
     mode === 'desktop' ? null : VitePWA({
-      registerType: 'prompt',
-      injectRegister: 'auto',
+      registerType: 'autoUpdate',
+      injectRegister: null,
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'app-icon-1024.png'],
       manifest: {
         name: 'Focus&go',
@@ -47,6 +60,8 @@ export default defineConfig(({ mode }) => ({
         icons: [{ src: '/app-icon-1024.png', sizes: '1024x1024', type: 'image/png' }],
       },
       workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
         globPatterns: ['**/*.{js,css,html,woff2}'],
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
         navigateFallback: '/index.html',
