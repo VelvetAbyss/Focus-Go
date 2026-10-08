@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { TaskItem } from '../../tasks/tasks.types'
+import type { TaskNoteLink } from '../../../data/models/types'
 
 const simpleIcs = `BEGIN:VCALENDAR
 VERSION:2.0
@@ -75,6 +76,11 @@ vi.mock('../../../data/repositories/tasksRepo', () => ({
     }),
     remove: vi.fn(async (id: string) => {
       tasksDb = tasksDb.filter((task) => task.id !== id)
+      return []
+    }),
+    restore: vi.fn(async (task: TaskItem) => {
+      tasksDb = [task, ...tasksDb]
+      return task
     }),
     update: vi.fn(async (task: TaskItem) => {
       tasksDb = tasksDb.map((item) => (item.id === task.id ? task : item))
@@ -554,7 +560,7 @@ describe('CalendarPage', () => {
     await waitFor(() => {
       expect(tasksRepo.remove).toHaveBeenCalledWith('delete-target')
     })
-    expect(emitTasksChangedMock).toHaveBeenCalledWith('calendar:selected-day-delete')
+    expect(emitTasksChangedMock).toHaveBeenCalledWith('calendar:selected-day:delete')
     expect(within(tasksList as HTMLElement).queryByText('Delete me')).not.toBeInTheDocument()
     expect(within(tasksList as HTMLElement).getByText('Keep me')).toBeInTheDocument()
 
@@ -583,7 +589,7 @@ describe('CalendarPage', () => {
       expect(scoped.getByText('Failed to delete task. Please try again.')).toBeInTheDocument()
     })
     expect(within(tasksList as HTMLElement).getByText('Delete fails')).toBeInTheDocument()
-    expect(emitTasksChangedMock).not.toHaveBeenCalledWith('calendar:selected-day-delete')
+    expect(emitTasksChangedMock).not.toHaveBeenCalledWith('calendar:selected-day:delete')
   })
 
   it('keeps delete loading state scoped per task row', async () => {
@@ -594,8 +600,8 @@ describe('CalendarPage', () => {
       createTask({ id: 'other-task', title: 'Other task', dueDate: today, createdAt: 1000 }),
     ]
 
-    let resolveRemove!: () => void
-    const pendingRemove = new Promise<void>((resolve) => {
+    let resolveRemove!: (links: TaskNoteLink[]) => void
+    const pendingRemove = new Promise<TaskNoteLink[]>((resolve) => {
       resolveRemove = resolve
     })
     vi.mocked(tasksRepo.remove).mockReturnValueOnce(pendingRemove)
@@ -619,7 +625,7 @@ describe('CalendarPage', () => {
     expect(otherButton).not.toBeDisabled()
     expect((pendingRow as HTMLElement).querySelector('.calendar-side-row__delete-icon.is-loading')).toBeInTheDocument()
 
-    resolveRemove()
+    resolveRemove([])
     await waitFor(() => {
       expect(within(tasksList as HTMLElement).queryByText('Pending delete')).not.toBeInTheDocument()
     })

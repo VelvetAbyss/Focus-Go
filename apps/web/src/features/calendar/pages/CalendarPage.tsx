@@ -46,6 +46,7 @@ import TaskDrawer from '../../tasks/TaskDrawer'
 import { peopleRepo } from '../../../data/repositories/peopleRepo'
 import type { LifePerson } from '../../../data/models/types'
 import { emitTasksChanged, subscribeTasksChanged } from '../../tasks/taskSync'
+import { useTaskDeletion } from '../../tasks/application/useTaskDeletion'
 import { useSyncDataRefresh } from '../../../data/sync/service'
 import type { TaskItem } from '../../tasks/tasks.types'
 import { formatTaskDateRange, taskCoversDate } from '../../tasks/taskDates'
@@ -480,6 +481,7 @@ const CalendarPage = () => {
   const [taskColorsById, setTaskColorsById] = useState<Record<string, string>>(readStoredTaskColors)
   const [syncStateBySubscription, setSyncStateBySubscription] = useState<Record<string, SubscriptionSyncState>>({})
   const [allTasks, setAllTasks] = useState<TaskItem[]>([])
+  const deleteTasks = useTaskDeletion()
   const [allPeople, setAllPeople] = useState<LifePerson[]>([])
   const [creatingSelectedDayTask, setCreatingSelectedDayTask] = useState(false)
   const [deletingTaskIds, setDeletingTaskIds] = useState<Record<string, boolean>>({})
@@ -677,6 +679,8 @@ const CalendarPage = () => {
   const tasksByDate = useMemo(() => {
     const grouped = new Map<string, TaskItem[]>()
     allTasks.forEach((task) => {
+      // A dropped task no longer occupies its days.
+      if (task.status === 'dropped') return
       monthGridDateKeys.forEach((dateKey) => {
         if (!taskCoversDate(task, dateKey)) return
         grouped.set(dateKey, [...(grouped.get(dateKey) ?? []), task])
@@ -892,15 +896,16 @@ const CalendarPage = () => {
     onSubmit: handleCreateSelectedDayTask,
   })
 
-  const handleDeleteSelectedDayTask = async (taskId: string) => {
+  const handleDeleteSelectedDayTask = async (task: TaskItem) => {
+    const taskId = task.id
     if (deletingTaskIds[taskId]) return
 
     setTaskDeleteError(null)
     setDeletingTaskIds((prev) => ({ ...prev, [taskId]: true }))
     try {
-      await tasksRepo.remove(taskId)
-      setAllTasks((prev) => prev.filter((task) => task.id !== taskId))
-      emitTasksChanged('calendar:selected-day-delete')
+      // One click, no dialog: the undo notice is the safety net.
+      await deleteTasks([task], 'calendar:selected-day')
+      setAllTasks((prev) => prev.filter((item) => item.id !== taskId))
       setTaskDeleteError(null)
     } catch {
       setTaskDeleteError(t('calendar.taskDeleteError'))
@@ -1224,7 +1229,7 @@ const CalendarPage = () => {
                           aria-label={t('calendar.deleteTask')}
                           title={t('calendar.deleteTask')}
                           disabled={isDeleting}
-                          onClick={() => void handleDeleteSelectedDayTask(task.id)}
+                          onClick={() => void handleDeleteSelectedDayTask(task)}
                         >
                           {isDeleting ? (
                             <RotateCcw className="calendar-side-row__delete-icon is-loading" />

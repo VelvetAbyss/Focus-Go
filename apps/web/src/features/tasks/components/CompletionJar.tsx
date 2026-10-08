@@ -10,6 +10,7 @@ import type { JarSceneColors, JarSceneParams } from '../jar/jarTypes'
 import './CompletionJar.css'
 
 type CompletionJarProps = {
+  renderMode?: 'three' | 'sketch'
   shelf: JarShelf
   /** True when the week on show is the current one (its jar is still open). */
   isCurrentWeek: boolean
@@ -97,16 +98,23 @@ const JarSketch = ({ slots, weeks, width, height }: { slots: JarSlot[]; weeks: J
   )
 }
 
+/** The WebGL surface only mounts where explicitly requested. */
+const JarCanvas = ({ params, onStatus }: { params: JarSceneParams; onStatus: (status: 'loading' | 'ready' | 'failed') => void }) => {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const status = useThreeSurface(canvasRef, loadScene, params)
+  useEffect(() => onStatus(status), [onStatus, status])
+  return <canvas ref={canvasRef} className="recap-jar__canvas" data-status={status} aria-hidden="true" />
+}
+
 /**
  * The completion jar in the weekly recap: one ink bead per task finished this
  * week, and a shelf of earlier weeks' sealed jars. A record, never a goal —
  * no capacity line, no count, nothing resets (DESIGN.md › Completion jar).
  */
-const CompletionJar = ({ shelf, isCurrentWeek, onOpenWeek }: CompletionJarProps) => {
+const CompletionJar = ({ shelf, isCurrentWeek, onOpenWeek, renderMode = 'three' }: CompletionJarProps) => {
   const { t, language } = useI18n()
   const theme = useThemeMode()
   const wrapRef = useRef<HTMLDivElement | null>(null)
-  const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [size, setSize] = useState({ width: 0, height: 0 })
   const { width, height } = size
   const [animation, setAnimation] = useState<{ id: number; dropFrom: number | null; sealKey: string | null }>({ id: 0, dropFrom: null, sealKey: null })
@@ -168,7 +176,7 @@ const CompletionJar = ({ shelf, isCurrentWeek, onOpenWeek }: CompletionJarProps)
     [animation, colors, isCurrentWeek, mainIds, newestFirst, shelf.main.key, theme],
   )
 
-  const status = useThreeSurface(canvasRef, loadScene, params as JarSceneParams)
+  const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading')
 
   const layout = useMemo(
     () => (width > 0 ? layoutJars(width, height, shelf.main.key, !isCurrentWeek, newestFirst.map((week) => week.key)) : null),
@@ -179,8 +187,8 @@ const CompletionJar = ({ shelf, isCurrentWeek, onOpenWeek }: CompletionJarProps)
   return (
     <div className="recap-jar" ref={wrapRef}>
       <p className="sr-only">{t('taskRecap.jar.aria', { count })}</p>
-      <canvas ref={canvasRef} className="recap-jar__canvas" data-status={status} aria-hidden="true" />
-      {status === 'failed' && layout ? (
+      {renderMode === 'three' && params ? <JarCanvas params={params} onStatus={setStatus} /> : null}
+      {(renderMode === 'sketch' || status === 'failed') && layout ? (
         <JarSketch slots={[layout.main, ...layout.shelf]} weeks={[shelf.main, ...newestFirst.slice(0, layout.shelf.length)]} width={width} height={height} />
       ) : null}
       {layout && count === 0 && isCurrentWeek ? (

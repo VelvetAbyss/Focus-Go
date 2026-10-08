@@ -1,14 +1,20 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import SettingsRoute from './SettingsRoute'
 import { THEME_BEFORE_MODE_TOGGLE_EVENT, clearThemePackPreview, getThemePalette } from '../../shared/theme/themePack'
+import { applyTheme, writeStoredThemePreference } from '../../shared/theme/theme'
 
 const mockDashboardGet = vi.fn()
 const mockDashboardUpsert = vi.fn()
+
+vi.mock('../../data/repositories/syncedPreferencesRepo', async (original) => {
+  const actual = await original<typeof import('../../data/repositories/syncedPreferencesRepo')>()
+  return { ...actual, syncedPreferencesRepo: { ...actual.syncedPreferencesRepo, persistFromLocal: vi.fn().mockResolvedValue(null) } }
+})
 
 vi.mock('../../data/repositories/dashboardRepo', () => ({
   dashboardRepo: {
@@ -93,6 +99,7 @@ const chooseThemePack = async (optionText: string) => {
 describe('SettingsRoute theme pack preview', () => {
   beforeEach(() => {
     window.localStorage.clear()
+    applyTheme('light')
     globalThis.ResizeObserver = class ResizeObserver {
       observe() {}
       unobserve() {}
@@ -163,6 +170,38 @@ describe('SettingsRoute theme pack preview', () => {
     unmount()
 
     expect(document.documentElement.style.getPropertyValue('--bg')).toBe('')
+  })
+
+  it('mirrors an explicit sidebar choice even when the final colour stays the same', async () => {
+    writeStoredThemePreference('system')
+    renderRoute()
+    await screen.findByText('settings.theme.system')
+    act(() => {
+      writeStoredThemePreference('light')
+      window.dispatchEvent(new Event(THEME_BEFORE_MODE_TOGGLE_EVENT))
+      applyTheme('light')
+    })
+    await screen.findByText('settings.theme.light')
+    expect(screen.queryByText('settings.theme.system')).not.toBeInTheDocument()
+  })
+
+  it('does not overwrite a later sidebar choice when the dashboard mirror saves slowly', async () => {
+    const user = userEvent.setup()
+    let finishSave!: (value: null) => void
+    mockDashboardUpsert.mockReturnValue(new Promise<null>((resolve) => { finishSave = resolve }))
+    renderRoute()
+    const current = await screen.findByText('settings.theme.light')
+    await user.click(current.closest('button')!)
+    await user.click(await screen.findByRole('option', { name: 'settings.theme.dark' }))
+    await waitFor(() => expect(mockDashboardUpsert).toHaveBeenCalled())
+    expect(document.documentElement.dataset.theme).toBe('dark')
+    await act(async () => {
+      writeStoredThemePreference('light')
+      applyTheme('light')
+      finishSave(null)
+    })
+    expect(document.documentElement.dataset.theme).toBe('light')
+    expect(localStorage.getItem('focusgo.theme')).toBe('light')
   })
 
   it('stores a personal integration key locally when the user saves it', async () => {

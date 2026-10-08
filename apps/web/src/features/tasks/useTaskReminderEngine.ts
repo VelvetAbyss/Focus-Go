@@ -4,6 +4,7 @@ import { usePreferences } from '../../shared/prefs/usePreferences'
 import { usePageActivity } from '../../shared/hooks/usePageActivity'
 import { emitTasksChanged, subscribeTasksChanged } from './taskSync'
 import { reminderQueueStore } from './reminderQueueStore'
+import { takePushFiredReminders } from '../../shared/push/webPush'
 import type { TaskItem } from './tasks.types'
 
 const POLL_INTERVAL_MS = 30_000
@@ -53,6 +54,22 @@ const fireDesktopNotification = (task: TaskItem) => {
   }
 }
 
+/**
+ * Reminders this device already showed as a push notification while the app was closed: mark
+ * them fired (and sync that) instead of popping them up again now.
+ */
+export const markPushedRemindersFired = async (tasks: TaskItem[]) => {
+  const pushed = await takePushFiredReminders()
+  if (pushed.length === 0) return tasks
+  const updated = new Map<string, TaskItem>()
+  for (const record of pushed) {
+    const task = tasks.find((item) => item.id === record.taskId)
+    if (!task || task.reminderAt !== record.reminderAt || typeof task.reminderFiredAt === 'number') continue
+    updated.set(task.id, await tasksRepo.update({ ...task, reminderFiredAt: record.firedAt }))
+  }
+  return updated.size === 0 ? tasks : tasks.map((task) => updated.get(task.id) ?? task)
+}
+
 export const useTaskReminderEngine = () => {
   const pageActivity = usePageActivity()
   const { taskReminderEnabled, taskReminderLeadMinutes } = usePreferences()
@@ -82,7 +99,7 @@ export const useTaskReminderEngine = () => {
     const loadTasks = async () => {
       const token = loadTokenRef.current + 1
       loadTokenRef.current = token
-      const items = await tasksRepo.list()
+      const items = await markPushedRemindersFired(await tasksRepo.list())
       if (loadTokenRef.current !== token) return
       tasksRef.current = sortByReminderAt(items)
       scheduleNext()

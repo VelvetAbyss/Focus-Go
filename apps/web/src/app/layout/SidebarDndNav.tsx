@@ -43,6 +43,7 @@ const SortableSidebarItem = ({ item, collapsed }: SortableSidebarItemProps) => {
       end={item.end}
       style={style}
       aria-label={item.label}
+      title={collapsed ? item.label : undefined}
       className={({ isActive }) =>
         `focus-sidebar__item${item.extraClassName ? ` ${item.extraClassName}` : ''}${isActive ? ' is-active' : ''}${isDragging ? ' is-dragging' : ''}`
       }
@@ -51,7 +52,7 @@ const SortableSidebarItem = ({ item, collapsed }: SortableSidebarItemProps) => {
       {...listeners}
     >
       <item.Icon size={18} aria-hidden="true" />
-      {!collapsed ? <span>{item.label}</span> : null}
+      {!collapsed ? <span className="sidebar-reveal">{item.label}</span> : null}
       {discoveryTarget ? <DiscoveryNewBadge target={discoveryTarget} /> : null}
     </NavLink>
   )

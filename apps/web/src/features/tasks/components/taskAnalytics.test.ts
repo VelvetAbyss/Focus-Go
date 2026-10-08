@@ -142,7 +142,22 @@ describe('buildTaskAnalytics', () => {
     expect(analytics.summary.subtaskCompletionRate).toBe(50)
     expect(analytics.summary.overdueTasks).toBe(1)
     expect(analytics.summary.dueSoonTasks).toBe(1)
-    expect(analytics.summary.statusCounts).toEqual({ todo: 1, doing: 1, done: 1 })
+    expect(analytics.summary.statusCounts).toEqual({ todo: 1, doing: 1, waiting: 0, verify: 0, done: 1, dropped: 0 })
     expect(analytics.summary.priorityCounts).toEqual({ high: 1, medium: 1, low: 0, none: 1 })
+  })
+
+  it('never counts waiting tasks as overdue, and dropped ones as active', () => {
+    const tasks = [
+      createTask({ id: 'waiting-late', status: 'waiting', dueDate: '2026-03-01' }),
+      createTask({ id: 'todo-late', status: 'todo', dueDate: '2026-03-01' }),
+      createTask({ id: 'dropped-late', status: 'dropped', dueDate: '2026-03-01' }),
+    ]
+
+    const analytics = buildTaskAnalytics(tasks, { now: Date.parse('2026-03-12T12:00:00Z'), granularity: 'day' })
+
+    expect(analytics.summary.overdueTasks).toBe(1)
+    expect(analytics.summary.activeTasks).toBe(2)
+    expect(analytics.summary.completedTasks).toBe(0)
+    expect(analytics.summary.statusCounts).toMatchObject({ waiting: 1, todo: 1, dropped: 1 })
   })
 })

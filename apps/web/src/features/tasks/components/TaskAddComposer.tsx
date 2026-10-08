@@ -13,6 +13,7 @@ import {
 } from '../application/taskAttachments'
 import TaskAttachmentChip from './TaskAttachmentChip'
 import { parseQuickAdd, type ParsedQuickAdd } from '../parseQuickAdd'
+import { describeTaskRecurrence } from './taskPresentation'
 import { appIntlLocale } from '../../../shared/i18n/format'
 
 export type TaskAddComposerHandle = {
@@ -270,6 +271,8 @@ const TaskAddComposer = forwardRef<TaskAddComposerHandle, TaskAddComposerProps>(
       const time = new Date(result.reminderAt).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: false })
       hints.push(t('tasks.quickAdd.reminder', { time }))
     }
+    const repeatLabel = describeTaskRecurrence(result.recurrence, t)
+    if (repeatLabel) hints.push(`↻ ${repeatLabel}`)
     if (result.priority) hints.push(t('tasks.quickAdd.priority', { level: t(`tasks.priority.${result.priority}`) }))
     result.tags.forEach((tag) => hints.push(`#${tag}`))
     if (result.projectId && result.projectId !== selectedProjectId) {
@@ -331,7 +334,7 @@ const TaskAddComposer = forwardRef<TaskAddComposerHandle, TaskAddComposerProps>(
       ) : null}
       <div
         className={cn(
-          'flex items-center gap-3 rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] px-3 py-2 transition-all duration-300',
+          'tasks-workspace-composer-field flex items-center gap-3 rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] px-3 py-2 transition-all duration-300',
           compact ? 'rounded-[var(--radius-md)] px-2.5 py-2' : '',
           plain && !hero ? 'flex-1 gap-2 rounded-lg bg-transparent px-3 py-1.5' : '',
           hero ? 'flex-1 gap-3 rounded-xl border-[color:var(--rule-strong)] bg-[color:var(--paper-sunken)] px-3.5 py-2.5' : '',

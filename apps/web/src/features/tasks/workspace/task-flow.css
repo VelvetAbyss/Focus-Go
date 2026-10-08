@@ -1,0 +1,147 @@
+/* A daily planning desk, a pull workflow, and a recorded-work review.
+   Colors and type stay on the shared paper/ink/ambient system. */
+.task-flow { display:flex; flex-direction:column; flex:1; min-height:0; height:100%; gap:16px; font-family:var(--font-body); }
+.task-flow button, .task-flow input, .task-flow select { font:inherit; }
+.task-flow button { cursor:pointer; }
+.task-flow button:disabled { cursor:default; opacity:.45; }
+.task-flow :is(button,input,select):focus-visible { outline:2px solid var(--focus-ring); outline-offset:3px; }
+.flow-controls { display:flex; align-items:center; gap:10px; padding-block:12px; border-block:1px solid var(--rule); flex-wrap:wrap; flex:none; }
+.flow-controls > input { flex:1; min-width:200px; max-width:420px; }
+.flow-search, .flow-controls select { min-height:36px; padding:8px 11px; border:1px solid var(--rule); background:var(--paper-raised); color:var(--ink-1); border-radius:6px; font-size:var(--fs-label) !important; }
+.flow-controls select { max-width:220px; }
+.flow-controls > button, .flow-text-button { display:inline-flex; align-items:center; gap:6px; color:var(--ink-2); padding:7px 4px; font-size:var(--fs-label) !important; }
+.flow-content { flex:1; min-height:0; overflow:hidden; }
+.flow-today { display:grid; grid-template-columns:minmax(0,1.7fr) minmax(280px,1fr); gap:32px; height:100%; min-height:0; }
+.flow-today-main { overflow-y:auto; padding-right:8px; min-height:0; overscroll-behavior:contain; }
+.flow-next { padding:8px 0 28px; border-bottom:1px solid var(--rule); }
+.flow-eyebrow { font-size:var(--fs-meta); color:var(--ink-3); margin:0 0 15px; }
+.flow-next-title { display:block; text-align:left; font-size:clamp(24px,2.6vw,34px) !important; font-weight:600 !important; letter-spacing:-.035em; line-height:1.4; color:var(--ink-1); }
+.flow-next h2 { font-size:24px; line-height:1.5; font-weight:500; }
+.flow-next-description { color:var(--ink-2); line-height:1.7; font-size:var(--fs-body); max-width:55ch; margin-block:12px 20px; white-space:pre-wrap; }
+.flow-cta { display:inline-flex; gap:8px; align-items:center; background:var(--cta-bg); color:var(--cta-fg); border-radius:6px; padding:10px 16px; font-size:var(--fs-label) !important; font-weight:600 !important; margin-top:14px; }
+.flow-section-heading, .flow-planning-shelf > header { display:flex; gap:10px; align-items:center; justify-content:space-between; }
+.flow-section-heading h2, .flow-planning-shelf h2, .flow-friction h2 { font-size:var(--fs-body); font-weight:600; margin:0; }
+.flow-section-heading > span, .flow-group-heading > span, .flow-planning-shelf > header > span { color:var(--ink-3); font-size:var(--fs-meta); }
+.flow-plan { padding-block:24px; }
+.flow-group-heading { font-size:var(--fs-label); font-weight:600; color:var(--ink-2); margin:22px 0 10px; display:flex; gap:8px; }
+.flow-caption { color:var(--ink-3); font-size:var(--fs-meta); line-height:1.65; margin:10px 0 14px; }
+.flow-empty { padding:24px 0; color:var(--ink-3); font-size:var(--fs-label); line-height:1.65; }
+.flow-planning-shelf { border-left:1px solid var(--rule); padding-left:24px; min-height:0; display:flex; flex-direction:column; }
+.flow-planning-shelf .flow-search { width:100%; margin-bottom:12px; }
+.flow-shelf-list { overflow-y:auto; min-height:0; flex:1; overscroll-behavior:contain; }
+.flow-selection { display:flex; gap:10px; flex-wrap:wrap; font-size:var(--fs-meta); padding-block:10px; color:var(--accent); }
+.flow-task { border-bottom:1px solid var(--rule); padding:14px 0; background:transparent; }
+.flow-task-heading { display:flex; align-items:flex-start; gap:8px; }
+.flow-task-heading input { accent-color:var(--accent); margin-top:5px; width:16px; height:16px; flex:none; }
+.flow-task-title { text-align:left; line-height:1.55; font-size:var(--fs-body) !important; font-weight:500 !important; display:flex; align-items:baseline; gap:6px; flex:1; min-width:0; color:var(--ink-1); overflow-wrap:anywhere; }
+.flow-icon { display:inline-flex; align-items:center; justify-content:center; min-width:28px; min-height:28px; border-radius:5px; flex:none; color:var(--ink-3); }
+.flow-icon:hover { background:var(--surface-hover); color:var(--ink-1); }
+.flow-task-meta { display:flex; flex-wrap:wrap; gap:5px 12px; color:var(--ink-3); font-size:var(--fs-meta); line-height:1.6; margin-top:7px; }
+.flow-task-meta [data-priority='high'] { color:var(--tone-urgent); }
+.flow-task-meta [data-priority='medium'] { color:var(--tone-warn); }
+.flow-task-note { margin:8px 0 0; color:var(--ink-2); font-size:var(--fs-meta); line-height:1.6; white-space:pre-wrap; }
+.flow-block-note { display:flex; align-items:baseline; gap:5px; color:var(--tone-warn); font-size:var(--fs-meta); line-height:1.6; margin:8px 0 0; }
+.flow-task-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+.flow-task-actions button { display:inline-flex; align-items:center; gap:5px; color:var(--ink-2); border:1px solid var(--rule); border-radius:5px; padding:5px 8px; font-size:var(--fs-meta) !important; background:var(--paper-raised); }
+.flow-task-actions .flow-task-primary { border-color:var(--rule-strong); color:var(--accent); }
+.flow-task[data-selected='true'] { background:var(--accent-wash); }
+.flow-task-menu { width:220px; padding:5px; font-family:var(--font-body); background:var(--paper-raised); border-color:var(--rule); }
+.flow-task-menu button { display:block; width:100%; text-align:left; padding:8px; border-radius:4px; color:var(--ink-2); font-size:var(--fs-label); }
+.flow-task-menu button:hover { background:var(--surface-hover); }
+.flow-completed { border-top:1px solid var(--rule); padding-block:18px; }
+.flow-completed summary, .flow-board-archive summary, .flow-undated summary { cursor:pointer; color:var(--ink-2); font-size:var(--fs-label); font-weight:500; }
+.flow-completed button, .flow-undated > button { display:block; text-align:left; padding:9px 0; font-size:var(--fs-label) !important; color:var(--ink-3); }
+.flow-waiting-form { flex:none; padding:16px 18px; background:var(--paper-raised); border:1px solid var(--rule-strong); border-radius:8px; display:flex; flex-wrap:wrap; gap:12px; box-shadow:var(--elev-1); }
+.flow-waiting-form header { display:flex; justify-content:space-between; width:100%; gap:12px; align-items:center; }
+.flow-waiting-form h2 { font-size:var(--fs-body); margin:0; font-weight:600; }
+.flow-waiting-form > p { width:100%; margin:0; color:var(--ink-3); font-size:var(--fs-label); }
+.flow-waiting-form label { display:flex; flex-direction:column; gap:5px; font-size:var(--fs-meta); color:var(--ink-3); flex:1; min-width:180px; }
+.flow-waiting-form input { padding:8px; border:1px solid var(--rule); background:var(--paper-raised); border-radius:5px; color:var(--ink-1); min-height:36px; }
+.flow-waiting-form .flow-cta { align-self:flex-end; margin-top:0; min-height:36px; }
+.flow-load-error { color:var(--tone-urgent); font-size:var(--fs-label); }
+/* Four stable, actionable queues. The archive is a separate, opt-in history. */
+.flow-board { height:100%; min-height:0; display:flex; flex-direction:column; gap:18px; overflow-y:auto; }
+.flow-kanban { display:grid; grid-template-columns:repeat(4,minmax(255px,1fr)); gap:16px; flex:1; min-height:300px; overflow-x:auto; padding:2px 1px 8px; }
+.flow-queue { display:flex; flex-direction:column; min-height:0; border-radius:7px; background:color-mix(in srgb,var(--paper-sunken) 40%,transparent); padding:12px 10px; }
+.flow-queue header { display:flex; align-items:center; justify-content:space-between; gap:6px; }
+.flow-queue h2 { font-size:var(--fs-label); margin:0; font-weight:600; display:flex; align-items:center; gap:7px; }
+.flow-queue h2::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--pencil); }
+.flow-queue[data-status='doing'] h2::before { background:var(--tone-warn); }
+.flow-queue[data-status='verify'] h2::before { background:var(--tone-info); }
+.flow-queue header > span { font-size:var(--fs-meta); color:var(--ink-3); }
+.flow-queue > .flow-caption { margin-block:8px 14px; min-height:3.3em; }
+.flow-queue-body { flex:1; min-height:100px; overflow-y:auto; padding:1px; overscroll-behavior:contain; }
+.flow-queue-body[data-over='true'] { background:var(--accent-wash); outline:1px dashed var(--accent); }
+.flow-queue .flow-task { border:1px solid var(--rule); border-radius:6px; background:var(--paper-raised); padding:12px 12px 12px 22px; }
+.flow-queue .flow-task-title { font-size:var(--fs-ui) !important; }
+.flow-draggable { position:relative; margin-bottom:10px; }
+.flow-draggable[data-dragging='true'] { opacity:.25; }
+.flow-drag-handle { position:absolute; top:14px; left:2px; z-index:1; color:var(--ink-4); padding:2px; touch-action:none; cursor:grab !important; }
+.flow-drag-overlay { width:280px; background:var(--paper-raised); border:1px solid var(--rule-strong); border-radius:6px; padding:10px; box-shadow:var(--elev-2); pointer-events:none; }
+.flow-wip-note { font-size:var(--fs-meta); color:var(--tone-warn); margin:0 0 10px; line-height:1.5; }
+.flow-board-archive { flex:none; border-top:1px solid var(--rule); padding:12px 0; }
+.flow-board-archive > button { display:flex; width:100%; justify-content:space-between; gap:12px; padding:10px 0; text-align:left; font-size:var(--fs-label) !important; border-bottom:1px solid var(--rule); }
+.flow-board-archive time { color:var(--ink-3); font-size:var(--fs-meta); white-space:nowrap; }
+/* Period review: consistent time ranges, evidence lists, current-state friction. */
+.flow-review { height:100%; overflow-y:auto; overscroll-behavior:contain; }
+.flow-review-controls { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; padding-bottom:22px; }
+.flow-segmented { display:inline-flex; gap:2px; padding:2px; border:1px solid var(--rule); border-radius:6px; background:var(--paper-sunken); }
+.flow-segmented button { padding:6px 10px; border-radius:4px; font-size:var(--fs-meta) !important; color:var(--ink-3); }
+.flow-segmented button[aria-pressed='true'] { background:var(--paper-raised); color:var(--ink-1); }
+.flow-period-nav { display:flex; align-items:center; gap:8px; font-size:var(--fs-label); }
+.flow-review-columns { display:grid; grid-template-columns:minmax(0,2.4fr) minmax(240px,1fr); gap:30px; }
+.flow-review-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:0 0 28px; }
+.flow-review-metrics > div { border-right:1px solid var(--rule); padding-right:8px; }
+.flow-review-metrics > div:last-child { border:0; }
+.flow-review-metrics dt { font-size:var(--fs-meta); color:var(--ink-3); }
+.flow-review-metrics dd { margin:8px 0; font-size:32px; line-height:1.2; color:var(--ink-1); font-variant-numeric:tabular-nums; }
+.flow-review-metrics p { color:var(--ink-3); font-size:var(--fs-meta); margin:0; }
+.flow-review-trend { border-block:1px solid var(--rule); padding-block:20px; }
+.flow-chart { display:flex; gap:5px; height:190px; padding-top:18px; margin-top:10px; }
+.flow-chart > button { display:flex; flex-direction:column; min-width:0; flex:1; align-items:center; padding:2px; border-radius:4px; color:var(--ink-3); }
+.flow-chart > button[aria-pressed='true'] { background:var(--accent-wash); }
+.flow-chart-value { font-size:var(--fs-meta); min-height:18px; }
+.flow-chart-track { flex:1; width:65%; max-width:42px; display:flex; align-items:flex-end; border-bottom:1px solid var(--rule); }
+.flow-chart-bar { width:100%; background:var(--accent); border-radius:3px 3px 0 0; }
+.flow-chart-date { font-size:10px; min-height:25px; margin-top:6px; line-height:1.2; }
+.flow-review-records { padding-block:24px; }
+.flow-record { display:flex; align-items:flex-start; justify-content:space-between; width:100%; gap:16px; padding:13px 0; border-bottom:1px solid var(--rule); font-size:var(--fs-ui) !important; text-align:left; }
+.flow-record small { display:block; color:var(--ink-3); margin-top:5px; font-size:var(--fs-meta); }
+.flow-record time { color:var(--ink-3); font-size:var(--fs-meta); white-space:nowrap; }
+.flow-attribution > div { display:grid; grid-template-columns:minmax(0,1fr) 100px 120px; gap:14px; padding:11px 0; border-bottom:1px solid var(--rule); font-size:var(--fs-label); }
+.flow-attribution .flow-attribution-head { color:var(--ink-3); font-size:var(--fs-meta); }
+.flow-attribution strong { font-weight:500; font-variant-numeric:tabular-nums; }
+.flow-friction { border-left:1px solid var(--rule); padding-left:24px; }
+.flow-friction section { border-top:1px solid var(--rule); padding-block:18px; }
+.flow-friction h3 { font-size:var(--fs-label); color:var(--ink-2); margin:0 0 9px; font-weight:500; }
+.flow-friction section > button { display:block; text-align:left; padding:8px 0; width:100%; font-size:var(--fs-meta) !important; line-height:1.6; color:var(--ink-3); }
+.flow-friction > .flow-text-button { display:block; }
+.flow-undated { margin-block:22px; }
+@container (max-width:900px) {
+  .flow-today { grid-template-columns:minmax(0,1.4fr) minmax(240px,1fr); gap:22px; }
+  .flow-planning-shelf { padding-left:18px; }
+  .flow-review-columns { grid-template-columns:1fr; }
+  .flow-friction { border-left:0; border-top:1px solid var(--rule); padding:24px 0; }
+}
+@container (max-width:600px) {
+  .flow-controls > input { max-width:none; width:100%; flex-basis:100%; }
+  .flow-controls select { flex:1; min-width:0; width:auto; max-width:50%; }
+  .flow-content { overflow-y:auto; }
+  .flow-today { display:block; height:auto; }
+  .flow-today-main { overflow:visible; padding:0; }
+  .flow-planning-shelf { border-left:0; padding:24px 0 0; border-top:1px solid var(--rule); }
+  .flow-shelf-list { overflow:visible; }
+  .flow-review-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
+  .flow-review-metrics > div:nth-child(2) { border:0; }
+  .flow-attribution > div { grid-template-columns:minmax(0,1fr) 55px 65px; gap:8px; }
+  .flow-kanban { grid-template-columns:repeat(4,280px); }
+}
+.task-flow :is(button,.flow-task) { transition:background-color 160ms ease, color 160ms ease; }
+html[data-motion='reduce'] .task-flow * { transition:none !important; animation:none !important; }
+@media (prefers-reduced-motion:reduce) { .task-flow * { transition:none !important; animation:none !important; } }
+.flow-followups { flex:none; margin-bottom:24px; padding-bottom:16px; border-bottom:1px solid var(--rule); }
+.flow-followups summary { cursor:pointer; color:var(--tone-warn); font-size:var(--fs-label); font-weight:600; }
+.flow-followups > div { max-height:220px; overflow-y:auto; padding-top:8px; }
+.flow-block-note { flex-wrap:wrap; }
+.flow-block-note button { text-align:left; text-decoration:underline; text-underline-offset:3px; }
+.flow-waiting-form { max-height:min(350px,45vh); overflow-y:auto; }

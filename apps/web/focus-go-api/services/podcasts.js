@@ -71,29 +71,29 @@ const getRadioUrl = (radioId, offset = 0) =>
     ? `${NETEASE_BASE}/djradio?id=${encodeURIComponent(radioId)}&order=1&_hash=programlist&limit=100&offset=${offset}`
     : `${NETEASE_BASE}/djradio?id=${encodeURIComponent(radioId)}`
 
-const fetchText = async (url) => {
-  const response = await fetch(url, { headers: NETEASE_HEADERS })
+const fetchText = async (url, signal) => {
+  const response = await fetch(url, { headers: NETEASE_HEADERS, signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(10_000)]) : AbortSignal.timeout(10_000) })
   if (!response.ok) throw new Error(`Request failed: ${response.status}`)
   return response.text()
 }
 
-const fetchJson = async (url) => {
-  const response = await fetch(url, { headers: NETEASE_HEADERS })
+const fetchJson = async (url, signal) => {
+  const response = await fetch(url, { headers: NETEASE_HEADERS, signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(10_000)]) : AbortSignal.timeout(10_000) })
   if (!response.ok) throw new Error(`Request failed: ${response.status}`)
   return response.json()
 }
 
-const fetchProgramAudioUrl = async (trackId) => {
+const fetchProgramAudioUrl = async (trackId, signal) => {
   if (!trackId) return undefined
   const payload = await fetchJson(
-    `${NETEASE_BASE}/api/song/enhance/player/url?id=${encodeURIComponent(trackId)}&ids=${encodeURIComponent(`[${trackId}]`)}&br=320000`,
+    `${NETEASE_BASE}/api/song/enhance/player/url?id=${encodeURIComponent(trackId)}&ids=${encodeURIComponent(`[${trackId}]`)}&br=320000`, signal,
   ).catch(() => null)
   const directUrl = payload?.data?.[0]?.url
   return normalizeAudioUrl(directUrl)
 }
 
-const fetchProgramPayload = async (programId) => {
-  const html = await fetchText(`${NETEASE_BASE}/program?id=${encodeURIComponent(programId)}`)
+const fetchProgramPayload = async (programId, signal) => {
+  const html = await fetchText(`${NETEASE_BASE}/program?id=${encodeURIComponent(programId)}`, signal)
   return extractTextareaJson(html, 'program-data')
 }
 
@@ -111,9 +111,9 @@ const fetchProgram = async (programId) => {
   }
 }
 
-export const resolveNeteaseProgramAudioUrl = async (programId) => {
-  const data = await fetchProgramPayload(programId)
-  return fetchProgramAudioUrl(data.mainTrackId ?? data.mainSong?.id)
+export const resolveNeteaseProgramAudioUrl = async (programId, signal) => {
+  const data = await fetchProgramPayload(programId, signal)
+  return fetchProgramAudioUrl(data.mainTrackId ?? data.mainSong?.id, signal)
 }
 
 const fetchRadio = async (input) => {

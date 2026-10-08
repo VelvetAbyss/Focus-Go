@@ -3,6 +3,8 @@ export type {
   TaskNoteBlock,
   TaskNoteParagraphBlock,
   TaskPriority,
+  TaskRecurrence,
+  TaskRecurrenceFrequency,
   TaskStatus,
   TaskSubtask,
 } from '../../data/models/types'

@@ -1,5 +1,5 @@
 import type { ProjectItem } from '../../data/models/types'
-import type { TaskPriority } from './tasks.types'
+import type { TaskPriority, TaskRecurrence } from './tasks.types'
 
 export type ParsedQuickAdd = {
   title: string
@@ -10,6 +10,8 @@ export type ParsedQuickAdd = {
   projectId?: string
   /** Set when the text named a clock time ("今天下午3点", "at 3pm"). */
   reminderAt?: number
+  /** Set when the text named a repeat ("每周五", "每月 31 号", "every monday"). */
+  recurrence?: TaskRecurrence
 }
 
 type ChronoComponent = 'day' | 'weekday' | 'hour' | 'minute' | 'month'
@@ -49,6 +51,65 @@ const loadChrono = (): Promise<ChronoLike | null> => {
 }
 
 const FAST_DATE_TOKENS = new Set(['today', '今天', 'tomorrow', '明天'])
+
+const ZH_NUMBER: Record<string, number> = { 一: 1, 二: 2, 两: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10 }
+const ZH_WEEKDAY: Record<string, number> = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 日: 0, 天: 0 }
+const EN_WEEKDAY: Record<string, number> = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 }
+const toCount = (value: string) => ZH_NUMBER[value] ?? (value === 'other' ? 2 : Number.parseInt(value, 10))
+
+type RecurrenceMatch = { rule: TaskRecurrence; weekday?: number; monthDay?: number; index: number; length: number }
+
+// Most specific first. Bare "daily"/"weekly"/"周报" stay in the title: only "每…" / "every …" repeat.
+const RECURRENCE_PATTERNS: Array<{ re: RegExp; build: (m: RegExpExecArray) => Omit<RecurrenceMatch, 'index' | 'length'> }> = [
+  { re: /每个?月(?:底|末)/, build: () => ({ rule: { frequency: 'monthly', interval: 1, monthDay: 31 }, monthDay: 31 }) },
+  { re: /每个?月\s*(\d{1,2})\s*(?:号|日)/, build: (m) => ({ rule: { frequency: 'monthly', interval: 1, monthDay: Number(m[1]) }, monthDay: Number(m[1]) }) },
+  { re: /每(两|二|三|\d+)个?月/, build: (m) => ({ rule: { frequency: 'monthly', interval: toCount(m[1]) } }) },
+  { re: /每个?月/, build: () => ({ rule: { frequency: 'monthly', interval: 1 } }) },
+  { re: /每(两|二|\d+)(?:个)?(?:周|星期|礼拜)([一二三四五六日天])?/, build: (m) => ({ rule: { frequency: 'weekly', interval: toCount(m[1]) }, weekday: m[2] ? ZH_WEEKDAY[m[2]] : undefined }) },
+  { re: /每个?工作日/, build: () => ({ rule: { frequency: 'weekdays', interval: 1 } }) },
+  { re: /每个?(?:周|星期|礼拜)([一二三四五六日天])?/, build: (m) => ({ rule: { frequency: 'weekly', interval: 1 }, weekday: m[1] ? ZH_WEEKDAY[m[1]] : undefined }) },
+  { re: /每隔?(两|二|三|四|五|六|七|\d+)天/, build: (m) => ({ rule: { frequency: 'daily', interval: toCount(m[1]) } }) },
+  { re: /每天|每日/, build: () => ({ rule: { frequency: 'daily', interval: 1 } }) },
+  { re: /每年/, build: () => ({ rule: { frequency: 'yearly', interval: 1 } }) },
+  { re: /\bevery\s+weekday\b/i, build: () => ({ rule: { frequency: 'weekdays', interval: 1 } }) },
+  { re: /\bevery\s+(mon|tue|wed|thu|fri|sat|sun)[a-z]*\b/i, build: (m) => ({ rule: { frequency: 'weekly', interval: 1 }, weekday: EN_WEEKDAY[m[1].toLowerCase()] }) },
+  {
+    re: /\bevery\s+(\d+|other)\s+(day|week|month|year)s?\b/i,
+    build: (m) => ({ rule: { frequency: `${m[2].toLowerCase() === 'day' ? 'dai' : m[2].toLowerCase()}ly` as TaskRecurrence['frequency'], interval: toCount(m[1].toLowerCase()) } }),
+  },
+  {
+    re: /\bevery\s+(day|week|month|year)\b/i,
+    build: (m) => ({ rule: { frequency: `${m[1].toLowerCase() === 'day' ? 'dai' : m[1].toLowerCase()}ly` as TaskRecurrence['frequency'], interval: 1 } }),
+  },
+]
+
+const findRecurrence = (text: string): RecurrenceMatch | null => {
+  for (const { re, build } of RECURRENCE_PATTERNS) {
+    const match = re.exec(text)
+    if (match) {
+      const built = build(match)
+      if (!Number.isFinite(built.rule.interval) || built.rule.interval < 1) continue
+      return { ...built, index: match.index, length: match[0].length }
+    }
+  }
+  return null
+}
+
+/** The first date of a series that starts no earlier than today. */
+const firstOccurrence = (match: RecurrenceMatch, today: Date) => {
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  if (match.rule.frequency === 'weekly' && match.weekday != null) {
+    start.setDate(start.getDate() + ((match.weekday - start.getDay() + 7) % 7))
+  } else if (match.rule.frequency === 'weekdays') {
+    while (start.getDay() === 0 || start.getDay() === 6) start.setDate(start.getDate() + 1)
+  } else if (match.rule.frequency === 'monthly' && match.monthDay != null) {
+    const clamp = (year: number, month: number) =>
+      new Date(year, month, Math.min(match.monthDay!, new Date(year, month + 1, 0).getDate()))
+    const thisMonth = clamp(start.getFullYear(), start.getMonth())
+    return thisMonth >= start ? thisMonth : clamp(start.getFullYear(), start.getMonth() + 1)
+  }
+  return start
+}
 
 const tokenize = (rawTitle: string, projects: ProjectItem[], fallbackProjectId?: string) => {
   const today = new Date()
@@ -112,9 +173,19 @@ export const parseQuickAdd = async (
   projects: ProjectItem[],
   fallbackProjectId?: string,
 ): Promise<ParsedQuickAdd> => {
-  const tokenized = tokenize(rawTitle, projects, fallbackProjectId)
+  // A repeat phrase is cut first, so chrono doesn't also read "每周五" as this Friday.
+  const repeat = findRecurrence(rawTitle)
+  const textWithoutRepeat = repeat ? removeDatePhrase(rawTitle, repeat.index, repeat.length) : rawTitle
+  const tokenized = tokenize(textWithoutRepeat, projects, fallbackProjectId)
   let { dueDate, isToday } = tokenized
   let titleText = tokenized.titleParts.join(' ').trim()
+  const repeatStart = repeat ? firstOccurrence(repeat, new Date()) : null
+  let recurrence: TaskRecurrence | undefined
+  if (repeat && repeatStart) {
+    recurrence = repeat.rule.frequency === 'monthly' || repeat.rule.frequency === 'yearly'
+      ? { ...repeat.rule, monthDay: repeat.monthDay ?? repeatStart.getDate() }
+      : repeat.rule
+  }
 
   const hasFastDateToken = rawTitle
     .toLowerCase()
@@ -138,6 +209,10 @@ export const parseQuickAdd = async (
       const match = results[0]
       if (match) {
         const date = match.start.date()
+        // "每周五 下午3点": the repeat names the day, the text only a time.
+        if (repeatStart && !match.start.isCertain('day') && !match.start.isCertain('weekday')) {
+          date.setFullYear(repeatStart.getFullYear(), repeatStart.getMonth(), repeatStart.getDate())
+        }
         let hasTime = match.start.isCertain('hour')
         // "周五前交报告 下午3点": the day and the time came as two phrases; join them.
         const timeOnly = hasTime
@@ -158,14 +233,17 @@ export const parseQuickAdd = async (
     }
   }
 
+  if (repeatStart && !dueDate) dueDate = toDateKey(repeatStart)
+
   return {
-    title: titleText || rawTitle.trim(),
+    title: titleText || textWithoutRepeat.trim() || rawTitle.trim(),
     priority: tokenized.priority,
     tags: tokenized.tags,
     dueDate,
     isToday,
     projectId: tokenized.projectId,
     reminderAt,
+    recurrence,
   }
 }
 

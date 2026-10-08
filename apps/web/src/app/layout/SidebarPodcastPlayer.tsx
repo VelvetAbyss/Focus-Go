@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
-import { Pause, Play, SkipBack, SkipForward } from 'lucide-react'
+import { SkipBack, SkipForward } from 'lucide-react'
 import { podcastsRepo } from '../../data/repositories/podcastsRepo'
 import type { LifePodcast } from '../../data/models/types'
 import {
@@ -16,11 +15,13 @@ import {
 } from '../../features/life/podcastPlayback'
 import { usePreferences } from '../../shared/prefs/usePreferences'
 import { subscribeAuth } from '../../store/auth'
-import { DURATION, EASE } from '../../shared/motion/tokens'
+import SidebarControlIcon from './SidebarControlIcon'
+import { useI18n } from '../../shared/i18n/useI18n'
 
 type Props = { collapsed: boolean }
 
 const SidebarPodcastPlayer = ({ collapsed }: Props) => {
+  const { t } = useI18n()
   const { neteaseExperimentalPlaybackEnabled } = usePreferences()
   const [podcast, setPodcast] = useState<LifePodcast | null>(null)
   const [progress, setProgress] = useState<{ currentTime: number; duration: number } | null>(null)
@@ -89,11 +90,6 @@ const SidebarPodcastPlayer = ({ collapsed }: Props) => {
     dispatchOpenPodcastPlayer()
   }
 
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    seekTo((e.clientX - rect.left) / rect.width)
-  }
-
   const handleSkip = async (dir: 'prev' | 'next') => {
     if (!activeEpisode) return
     const targetIndex = dir === 'prev' ? activeIndex - 1 : activeIndex + 1
@@ -116,95 +112,47 @@ const SidebarPodcastPlayer = ({ collapsed }: Props) => {
     }
   }
 
+  const playbackPercent = progress && progress.duration > 0 ? Math.max(0, Math.min(100, progress.currentTime / progress.duration * 100)) : 0
+
   return (
-    <motion.div
-      layout
-      className={`sidebar-podcast-player${isPlaying ? ' is-playing' : ''}${collapsed ? ' is-collapsed' : ''}`}
-      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-    >
-      <motion.div
-        layout="position"
-        className="sidebar-podcast-player__cover"
-        onClick={handleOpenDetail}
-        title="Open podcast player"
-        style={{ cursor: 'pointer' }}
-      >
-        {podcast.artworkUrl
-          ? <img src={podcast.artworkUrl} alt={podcast.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit', display: 'block' }} />
-          : <span className="sidebar-podcast-player__emoji">{podcast.coverEmoji ?? '🎙'}</span>}
-      </motion.div>
-
-      <AnimatePresence>
-        {!collapsed && (
-          <motion.div
-            key="info"
-            className="sidebar-podcast-player__info"
-            initial={{ opacity: 0, x: -8 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -8 }}
-            transition={{ duration: DURATION.fast, ease: EASE.standard }}
-            onClick={handleOpenDetail}
-            style={{ cursor: 'pointer' }}
-          >
-            <p className="sidebar-podcast-player__title">{activeEpisode?.title ?? podcast.name}</p>
-            <p className="sidebar-podcast-player__podcast-name">{podcast.name}</p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <motion.div layout="position" className="sidebar-podcast-player__controls">
-        <button
-          type="button"
-          className="sidebar-podcast-player__btn sidebar-podcast-player__btn--skip"
-          onClick={() => void handleSkip('prev')}
-          disabled={!hasPrev}
-          aria-label="Previous episode"
-        >
-          <SkipBack size={10} />
+    <div className={`sidebar-podcast-player${isPlaying ? ' is-playing' : ''}${collapsed ? ' is-collapsed' : ''}`}>
+      <div className="sidebar-tool__row">
+        <button type="button" className="sidebar-podcast-player__cover"
+          onClick={handleOpenDetail} title={t('shell.podcast.open')} aria-label={t('shell.podcast.open')}>
+          {podcast.artworkUrl
+            ? <img src={podcast.artworkUrl} alt="" />
+            : <span className="sidebar-podcast-player__emoji" aria-hidden="true">{podcast.coverEmoji ?? '🎙'}</span>}
         </button>
-        <button
-          type="button"
-          className={`sidebar-podcast-player__btn sidebar-podcast-player__btn--play${isPlaying ? ' is-playing' : ''}`}
-          onClick={() => void handleToggle()}
-          aria-label={isPlaying ? 'Pause' : 'Play'}
-        >
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.span
-              key={isPlaying ? 'pause' : 'play'}
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.5, opacity: 0 }}
-              transition={{ duration: DURATION.instant }}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            >
-              {isPlaying ? <Pause size={12} /> : <Play size={12} />}
-            </motion.span>
-          </AnimatePresence>
-        </button>
-        <button
-          type="button"
-          className="sidebar-podcast-player__btn sidebar-podcast-player__btn--skip"
-          onClick={() => void handleSkip('next')}
-          disabled={!hasNext}
-          aria-label="Next episode"
-        >
-          <SkipForward size={10} />
-        </button>
-      </motion.div>
-
-      {/* Progress bar — spans full bottom edge */}
-      <div
-        className="sidebar-podcast-player__progress"
-        onClick={handleProgressClick}
-        role="progressbar"
-        aria-label="Playback progress"
-      >
-        <div
-          className="sidebar-podcast-player__progress-fill"
-          style={{ width: progress && progress.duration > 0 ? `${(progress.currentTime / progress.duration) * 100}%` : '0%' }}
-        />
+        {!collapsed && <button type="button" className="sidebar-podcast-player__info sidebar-reveal"
+          onClick={handleOpenDetail} title={activeEpisode?.title ?? podcast.name}>
+          <span className="sidebar-podcast-player__title">{activeEpisode?.title ?? podcast.name}</span>
+          <span className="sidebar-podcast-player__podcast-name">{podcast.name}</span>
+        </button>}
+        {collapsed && <button type="button" className="sidebar-podcast-player__btn sidebar-podcast-player__btn--play"
+          onClick={() => void handleToggle()} aria-label={isPlaying ? t('shell.podcast.pause') : t('shell.podcast.play')}>
+          <SidebarControlIcon active={isPlaying} />
+        </button>}
       </div>
-    </motion.div>
+      {!collapsed && <>
+        <div className="sidebar-podcast-player__controls sidebar-reveal">
+          <button type="button" className="sidebar-podcast-player__btn sidebar-podcast-player__btn--skip"
+            onClick={() => void handleSkip('prev')} disabled={!hasPrev} aria-label={t('shell.podcast.previous')}>
+            <SkipBack size={14} aria-hidden="true" />
+          </button>
+          <button type="button" className={`sidebar-podcast-player__btn sidebar-podcast-player__btn--play${isPlaying ? ' is-playing' : ''}`}
+            onClick={() => void handleToggle()} aria-label={isPlaying ? t('shell.podcast.pause') : t('shell.podcast.play')}>
+            <SidebarControlIcon active={isPlaying} />
+          </button>
+          <button type="button" className="sidebar-podcast-player__btn sidebar-podcast-player__btn--skip"
+            onClick={() => void handleSkip('next')} disabled={!hasNext} aria-label={t('shell.podcast.next')}>
+            <SkipForward size={14} aria-hidden="true" />
+          </button>
+          <input type="range" className="sidebar-podcast-player__seek" min={0} max={100} step={0.1}
+            value={playbackPercent} disabled={!progress || progress.duration <= 0 || isNeteaseDefaultMode}
+            aria-label={t('shell.podcast.progress')} onChange={(event) => seekTo(Number(event.target.value) / 100)} />
+        </div>
+      </>}
+    </div>
   )
 }
 

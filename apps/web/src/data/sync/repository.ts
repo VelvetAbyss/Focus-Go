@@ -1,3 +1,4 @@
+import { LOCAL_ACCOUNT_OWNER_KEY } from '../../config/accountOwnership'
 import { db } from '../db'
 import { SYNC_ENTITY_TABLES, SYNC_STATE_ID, SYNC_STATUS_CHANGED_EVENT } from './constants'
 import type { SyncEntityType, SyncOp, SyncPayload, SyncState, SyncStatus } from './types'
@@ -118,4 +119,5 @@ export const clearLocalUserData = async () => {
   })
   const { resetRxdbSyncDatabase } = await import('./rxdb')
   await resetRxdbSyncDatabase()
+  localStorage.removeItem(LOCAL_ACCOUNT_OWNER_KEY)
 }

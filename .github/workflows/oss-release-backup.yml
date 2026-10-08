@@ -14,42 +14,47 @@ jobs:
     env:
       APP_NAME: focus-go
       OSS_PREFIX: releases
-      OSS_BUCKET: ${{ secrets.OSS_BUCKET }}
-      OSS_ENDPOINT: ${{ secrets.OSS_ENDPOINT }}
-      OSS_ACCESS_KEY_ID: ${{ secrets.OSS_ACCESS_KEY_ID }}
-      OSS_ACCESS_KEY_SECRET: ${{ secrets.OSS_ACCESS_KEY_SECRET }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: '20'
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
         run: npm ci
 
       - name: Build app
-        run: npm run build
+        run: npm run build:web
 
       - name: Prepare release metadata
         run: |
           echo "RELEASE_DATE=$(date -u +%F)" >> "$GITHUB_ENV"
           echo "GIT_SHA=$(git rev-parse --short=12 HEAD)" >> "$GITHUB_ENV"
 
-      - name: Install ossutil
+      - name: Install verified package-manager rclone
         run: |
-          curl -fsSL https://gosspublic.alicdn.com/ossutil/1.7.16/ossutil64 -o ossutil64
-          chmod +x ossutil64
-          ./ossutil64 --version
+          sudo apt-get update
+          sudo apt-get install -y rclone
 
       - name: Bundle release assets
         run: npm run release:bundle
 
       - name: Upload to OSS
-        run: npm run release:oss:upload
+        env:
+          OSS_BUCKET: ${{ secrets.OSS_BUCKET }}
+          OSS_ENDPOINT: ${{ secrets.OSS_ENDPOINT }}
+          OSS_ACCESS_KEY_ID: ${{ secrets.OSS_ACCESS_KEY_ID }}
+          OSS_ACCESS_KEY_SECRET: ${{ secrets.OSS_ACCESS_KEY_SECRET }}
+        run: node scripts/oss/upload-release.mjs
 
       - name: Verify uploaded release
-        run: npm run release:oss:verify
+        env:
+          OSS_BUCKET: ${{ secrets.OSS_BUCKET }}
+          OSS_ENDPOINT: ${{ secrets.OSS_ENDPOINT }}
+          OSS_ACCESS_KEY_ID: ${{ secrets.OSS_ACCESS_KEY_ID }}
+          OSS_ACCESS_KEY_SECRET: ${{ secrets.OSS_ACCESS_KEY_SECRET }}
+        run: node scripts/oss/verify-release.mjs

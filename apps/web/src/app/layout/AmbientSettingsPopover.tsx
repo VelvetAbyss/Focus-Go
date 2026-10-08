@@ -1,5 +1,6 @@
 import * as Popover from '@radix-ui/react-popover'
 import { RotateCcw, Settings2 } from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
 import { useI18n } from '../../shared/i18n/useI18n'
 import {
   AMBIENT_PREFERENCES_DEFAULTS,
@@ -9,8 +10,8 @@ import {
 } from '../../features/focus/ambientPreferences'
 
 /**
- * Small gear next to the scene dropdown. Opens a popover with two sliders:
- * dashboard surface opacity (how much scene shows through) and frosted-glass blur.
+ * Small gear next to the scene dropdown. Controls opt-in scenery motion,
+ * sheet opacity and optional blur.
  * Live preview is automatic — sliders write to the store, which mirrors CSS vars
  * onto <html>.
  */
@@ -51,11 +52,20 @@ const AmbientSettingsPopover = () => {
             </button>
           </header>
 
+          <div className="flex items-center justify-between gap-3">
+            <span className="ambient-prefs-popover__label">{t('settings.ambient.motion.title')}</span>
+            <Switch
+              aria-label={t('settings.ambient.motion.title')}
+              checked={prefs.motionEnabled}
+              onCheckedChange={(checked) => setAmbientPreferences({ motionEnabled: checked })}
+            />
+          </div>
+
           <label className="ambient-prefs-popover__row">
             <span className="ambient-prefs-popover__label">{t('ambient.popover.opacity')}</span>
             <input
               type="range"
-              min={0}
+              min={88}
               max={100}
               step={1}
               value={Math.round(prefs.surfaceOpacity * 100)}
@@ -74,7 +84,7 @@ const AmbientSettingsPopover = () => {
             <input
               type="range"
               min={0}
-              max={40}
+              max={8}
               step={1}
               value={Math.round(prefs.glassBlur)}
               onChange={(event) =>

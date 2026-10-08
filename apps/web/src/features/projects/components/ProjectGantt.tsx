@@ -43,7 +43,10 @@ const PRIORITY_TRAIL_DAYS: Record<TaskPriority | 'none', number> = {
 const STATUS_TONE: Record<TaskStatus, { dot: string; labelKey: TranslationKey }> = {
   todo: { dot: '#9A8F83', labelKey: 'tasks.list.todo' },
   doing: { dot: '#3D7A6C', labelKey: 'tasks.list.doing' },
+  waiting: { dot: '#948E84', labelKey: 'tasks.status.waiting' },
+  verify: { dot: '#3D5A8C', labelKey: 'tasks.status.verify' },
   done: { dot: '#3D7A4E', labelKey: 'tasks.list.done' },
+  dropped: { dot: '#A8A298', labelKey: 'tasks.status.dropped' },
 }
 
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
@@ -173,6 +176,8 @@ const ProjectGantt = ({ tasks, projectColor, viewMode, onTaskClick, onEmptySlotC
 
   const scheduled = useMemo(() => {
     return tasks
+      // A dropped task no longer occupies time on the plan.
+      .filter((task) => task.status !== 'dropped')
       .map((task) => ({ task, range: resolveTaskRange(task) }))
       .filter((entry): entry is { task: TaskItem; range: ResolvedRange } => entry.range !== null)
       .sort((a, b) => a.range.due.getTime() - b.range.due.getTime())

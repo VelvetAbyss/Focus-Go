@@ -1,3 +1,4 @@
+import { hasVerifiedEmail } from './authPolicy.js'
 const getAdminEmails = () => {
   const raw = process.env.ADMIN_EMAILS ?? ''
   return new Set(raw.split(',').map((e) => e.trim().toLowerCase()).filter(Boolean))
@@ -28,9 +29,18 @@ export const isAdminEmail = (email) => {
 
 export { isLocalhostRequest }
 
+export const isAdminIdentity = (identity) => {
+  const email = identity?.authUser?.email
+  return hasVerifiedEmail(identity?.authUser)
+    && identity?.user?.status === 'active'
+    && typeof email === 'string'
+    && email.toLowerCase() === identity?.user?.email?.toLowerCase()
+    && isAdminEmail(email)
+}
+
 export const requireAdmin = (req, res, next) => {
-  const email = req.auth?.user?.email
-  if (isAdminEmail(email)) return next()
+  if (req.auth?.user?.status && req.auth.user.status !== 'active') return res.status(403).json({ error: 'Forbidden' })
+  if (isAdminIdentity(req.auth)) return next()
   if (isLocalhostRequest(req)) return next()
 
   // Dev workstation escape hatch. Gated behind NODE_ENV !== 'production' for

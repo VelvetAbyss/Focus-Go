@@ -1,0 +1,713 @@
+/* ── Pay widgets: 今日计薪 · 工时换算 · 摸鱼 ───────────────────────────────
+   One language across the three cards (DESIGN.md › Pay widgets): time already
+   worked is ink, time still ahead is pencil, and now is the pen. Each card's
+   picture is the same time grid. Money and durations are set in the numeral
+   serif; everything else is sans. */
+
+.salary-card > .card__body {
+  min-height: 0;
+}
+
+/* The time grid (three.js): decorative, fading in once the scene is up. */
+.salary-grid {
+  display: block;
+  flex: none;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 600ms var(--ease-standard);
+}
+
+.salary-grid[data-status='ready'] {
+  opacity: 1;
+}
+
+.salary-meta {
+  margin: 0;
+  font-size: var(--fs-meta);
+  line-height: 1.45;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.salary-meta--split {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.salary-label {
+  margin: 0;
+  font-size: var(--fs-label);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink-3);
+}
+
+.salary-label--pen {
+  color: var(--accent);
+}
+
+/* ── Controls ── */
+
+.salary-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.salary-icon-btn:hover {
+  border-color: var(--rule-strong);
+  background: var(--paper-sunken);
+  color: var(--ink-1);
+}
+
+.salary-icon-btn--solid {
+  width: 32px;
+  height: 32px;
+  border-color: transparent;
+  background: var(--cta-bg);
+  color: var(--cta-fg);
+}
+
+.salary-icon-btn--solid:hover {
+  border-color: transparent;
+  background: var(--cta-bg-hover);
+  color: var(--cta-fg);
+}
+
+.salary-icon-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.salary-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-ui);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* "Take a break" is a present-tense action: the pen fill. */
+.salary-btn--pen {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.salary-btn--pen:hover {
+  background: color-mix(in srgb, var(--accent) 88%, var(--ink-1));
+}
+
+.salary-btn--ink {
+  background: var(--cta-bg);
+  color: var(--cta-fg);
+}
+
+.salary-btn--ink:hover {
+  background: var(--cta-bg-hover);
+}
+
+.salary-btn--outline {
+  border-color: var(--cta2-border);
+  background: var(--cta2-bg);
+  color: var(--cta2-fg);
+}
+
+.salary-btn--outline:hover {
+  background: var(--cta2-bg-hover);
+}
+
+.salary-input {
+  height: 32px;
+  min-width: 0;
+  padding: 0 10px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  background: var(--paper-sunken);
+  color: var(--ink-1);
+  font-size: var(--fs-ui);
+  font-variant-numeric: tabular-nums;
+}
+
+.salary-input::placeholder,
+.salary-input input::placeholder {
+  color: var(--ink-4);
+}
+
+.salary-input:focus-visible,
+.salary-input:focus-within {
+  outline: none;
+  border-color: var(--rule-strong);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.salary-input--money {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.salary-input--money input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.salary-input__affix {
+  font-size: var(--fs-meta);
+  color: var(--ink-3);
+}
+
+/* Hover swaps a row's trailing value for its remove button, in place. */
+.salary-row-end {
+  position: relative;
+  display: inline-grid;
+  justify-items: end;
+  align-items: center;
+}
+
+.salary-row-remove {
+  position: absolute;
+  top: 50%;
+  right: -3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-top: -11px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--motion-duration-fast) var(--ease-standard);
+}
+
+.salary-row-end > :first-child {
+  transition: opacity var(--motion-duration-fast) var(--ease-standard);
+}
+
+li:hover .salary-row-remove,
+.salary-row-remove:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+li:hover .salary-row-end > :first-child,
+.salary-row-end:focus-within > :first-child {
+  opacity: 0;
+}
+
+.salary-row-remove:hover {
+  background: var(--paper-sunken);
+  color: var(--ink-1);
+}
+
+/* A duration with set-type numerals and small sans units. */
+.salary-figure {
+  display: inline-flex;
+  align-items: baseline;
+  line-height: 1;
+  color: var(--ink-1);
+}
+
+.salary-figure__num {
+  font-family: var(--font-numeral);
+  font-weight: 300;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.salary-figure__unit {
+  margin: 0 8px 0 3px;
+  font-family: var(--font-body);
+  font-size: var(--fs-ui);
+  color: var(--ink-3);
+}
+
+.salary-figure__unit:last-child {
+  margin-right: 0;
+}
+
+/* ── Before pay and hours are set: centred line, sentence, action ── */
+
+.salary-setup {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.salary-setup__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-section);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ink-1);
+}
+
+.salary-setup__body {
+  max-width: 24em;
+  margin: 0 0 6px;
+  font-size: var(--fs-ui);
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+
+/* ── 今日计薪 ── */
+
+.salary-card--earned > .card__body {
+  container-type: inline-size;
+}
+
+.salary-earned {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.salary-earned__amount {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin: 0 0 6px;
+  font-family: var(--font-numeral);
+  font-size: var(--fs-hero);
+  font-weight: 300;
+  line-height: 1;
+  color: var(--ink-1);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* The amount and its lines on the left, today's grid on the right. */
+.salary-earned__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.salary-earned__figures {
+  min-width: 0;
+}
+
+.salary-grid--day {
+  width: 108px;
+  height: 81px;
+  margin-top: 4px;
+}
+
+/* Narrow cards keep the numbers only. */
+@container (max-width: 260px) {
+  .salary-grid--day {
+    display: none;
+  }
+}
+
+.salary-earned__foot {
+  margin-top: auto;
+  padding-top: 10px;
+}
+
+.salary-earned__currency {
+  font-size: 0.5em;
+  color: var(--ink-3);
+}
+
+.salary-earned[data-phase='before'] .salary-earned__amount,
+.salary-earned[data-phase='lunch'] .salary-earned__amount {
+  color: var(--ink-2);
+}
+
+.salary-earned--off {
+  justify-content: center;
+  gap: 4px;
+}
+
+.salary-earned__rest {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-subhead);
+  font-weight: 600;
+  color: var(--ink-1);
+}
+
+/* ── 工时换算 ── */
+
+.salary-price {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.salary-price__form {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+}
+
+/* A fixed height either way, so typing never shifts the wishlist: the text
+   sits above the hour cells, or the hint fills the space before a price. */
+.salary-price__result {
+  position: relative;
+  flex: none;
+  padding-bottom: 31px;
+}
+
+.salary-price__result[data-empty='true'] {
+  padding-bottom: 0;
+}
+
+.salary-price__text {
+  min-height: 50px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+
+.salary-price__result[data-empty='true'] .salary-price__text {
+  min-height: 81px;
+}
+
+.salary-price__row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 23px;
+}
+
+.salary-grid--price {
+  width: 100%;
+  height: 100%;
+}
+
+.salary-price__more {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--fs-meta);
+  color: var(--ink-3);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.salary-price__time {
+  font-size: var(--fs-title);
+}
+
+.salary-price__hint {
+  margin: 0;
+  font-size: var(--fs-ui);
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+
+.salary-price__wishes {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--rule);
+}
+
+.salary-wishes,
+.salary-break-list {
+  /* Rows scrolling past the bottom fade instead of being cut mid-line. */
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent);
+}
+
+.salary-wishes {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0 2px 14px 0;
+  list-style: none;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.salary-wish__head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.salary-wish__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-reading);
+  font-size: var(--fs-body);
+  color: var(--ink-1);
+}
+
+.salary-wish__price {
+  font-size: var(--fs-meta);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The goal is a pencil line; paid time worked fills it in ink. */
+.salary-wish__bar {
+  position: relative;
+  display: block;
+  height: 3px;
+  margin: 6px 0 4px;
+}
+
+.salary-wish__bar::before {
+  content: '';
+  position: absolute;
+  inset: 50% 0 auto;
+  margin-top: -0.75px;
+  border-top: 1.5px dashed var(--pencil-line);
+}
+
+.salary-wish__bar > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 2px;
+  background: var(--ink-2);
+}
+
+.salary-wish__covered {
+  color: var(--ink-2);
+}
+
+.salary-wish__covered::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--tone-done);
+  vertical-align: 1px;
+}
+
+/* ── 摸鱼 ── */
+
+.salary-breaks {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.salary-card--breaks > .card__body {
+  container-type: inline-size;
+}
+
+/* The figures and the button on the left, today's grid on the right. */
+.salary-breaks__now {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.salary-breaks__figures {
+  display: grid;
+  justify-items: start;
+  row-gap: 4px;
+  min-width: 0;
+}
+
+.salary-breaks__figures > .salary-btn {
+  margin-top: 6px;
+}
+
+@container (max-width: 260px) {
+  .salary-breaks__now .salary-grid--day {
+    display: none;
+  }
+}
+
+.salary-breaks__total {
+  font-size: 34px;
+}
+
+.salary-breaks__clock {
+  margin: 0;
+  font-family: var(--font-numeral);
+  font-size: 34px;
+  font-weight: 300;
+  line-height: 1;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.salary-break-list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 6px 2px 14px 0;
+  list-style: none;
+  overflow-y: auto;
+  border-top: 1px solid var(--rule);
+}
+
+.salary-break-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+  font-size: var(--fs-ui);
+  color: var(--ink-1);
+  font-variant-numeric: tabular-nums;
+}
+
+.salary-break-row__length,
+.salary-break-row__pay {
+  color: var(--ink-2);
+}
+
+.salary-breaks__empty {
+  padding-top: 10px;
+  border-top: 1px solid var(--rule);
+}
+
+.salary-breaks__empty p {
+  margin: 0;
+  font-size: var(--fs-ui);
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+
+.salary-breaks__empty p + p {
+  margin-top: 4px;
+  font-size: var(--fs-meta);
+}
+
+/* ── Settings dialog ── */
+
+.salary-settings-dialog {
+  width: min(440px, calc(100vw - 32px));
+}
+
+.salary-settings {
+  display: grid;
+  gap: 16px;
+}
+
+.salary-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.salary-field__label {
+  padding: 0;
+  font-size: var(--fs-label);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+legend.salary-field__label {
+  margin-bottom: 6px;
+}
+
+.salary-field-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.salary-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.salary-days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.salary-day {
+  min-width: 36px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--ink-2);
+  font-size: var(--fs-ui);
+  cursor: pointer;
+}
+
+.salary-day[aria-pressed='true'] {
+  border-color: transparent;
+  background: var(--accent-wash);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.salary-settings__notes {
+  display: grid;
+  gap: 4px;
+}
+
+.salary-settings__notes p {
+  margin: 0;
+  font-size: var(--fs-meta);
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+
+.salary-settings__notes .salary-settings__summary {
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.salary-settings__notes .salary-settings__error {
+  color: var(--tone-urgent);
+}

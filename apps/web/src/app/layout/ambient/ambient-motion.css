@@ -1,0 +1,50 @@
+/* Only transforms and opacity animate. Two rain textures, three narrow wave
+   strips or at most fourteen tiny embers; no JS animation loop. Browser animation work is opt-in. */
+.ambient-environment__detail { position: absolute; inset: 0; overflow: hidden; animation: environment-enter var(--scene-enter-duration, 1800ms) ease-out both; }
+.ambient-environment__detail i { display: block; position: absolute; pointer-events: none; }
+@keyframes environment-enter { from { opacity: 0; } to { opacity: 1; } }
+.ambient-rain { position: absolute; inset: 0; transform: translateX(var(--ambient-pointer-x, 0)); }
+.ambient-rain i { inset: -100px -40px; background-size: 113px 97px; background-image: repeating-linear-gradient(103deg, transparent 0 80px, var(--ink-2) 81px 82px, transparent 83px 113px); opacity: var(--rain-alpha, .2); animation: environment-rain var(--rain-duration, 2.4s) steps(var(--rain-steps, 58)) infinite; }
+.ambient-rain .ambient-rain__far { background-size: 157px 137px; opacity: calc(var(--rain-alpha, .2) * .45); animation-direction: reverse; }
+@keyframes environment-rain { from { transform: translate3d(-18px, -97px, 0); } to { transform: translate3d(0, 0, 0); } }
+.ambient-rain--thunder { animation: environment-tremor var(--thunder-duration, 18s) linear infinite; }
+@keyframes environment-tremor { 0%, 80%, 82%, 100% { transform: translateX(var(--ambient-pointer-x, 0px)); } 80.5%, 81.5% { transform: translateX(calc(var(--ambient-pointer-x, 0px) + 1px)); } 81% { transform: translateX(calc(var(--ambient-pointer-x, 0px) - 1px)); } }
+.ambient-condensation { position: absolute; inset: 0; }
+.ambient-condensation i { left: var(--particle-x); top: 5%; width: 2px; height: 28px; border-radius: 100%; background: linear-gradient(transparent, var(--ink-3), transparent); opacity: .16; animation: environment-condensation 18s steps(432) var(--particle-delay) infinite; }
+@keyframes environment-condensation { from { transform: translateY(-5vh); } to { transform: translateY(90vh); } }
+.ambient-passerby { bottom: 5%; width: 100px; height: 32%; border-radius: 50% 50% 0 0; background: var(--ink-2); opacity: .04; animation: environment-passerby 48s linear infinite; }
+@keyframes environment-passerby { 0%, 65% { transform: translateX(-120px); } 100% { transform: translateX(110vw); } }
+.ambient-lightning { inset: 0; background: radial-gradient(ellipse at 82% 5%, #e0edf5, transparent 55%); opacity: 0; animation: environment-lightning var(--thunder-duration, 18s) linear infinite; }
+.ambient-lightning--after { background: radial-gradient(ellipse at 82% 5%, #a3b4d3, transparent 60%); animation-delay: .4s; }
+@keyframes environment-lightning { 0%, 79%, 83%, 100% { opacity: 0; } 80%, 81.3% { opacity: .14; } 80.5% { opacity: .02; } }
+.ambient-rain-reflection { inset: 88% 0 0; background: repeating-linear-gradient(100deg, transparent 0 85px, #c6d6e43b 86px 88px, transparent 89px 113px); opacity: .18; }
+.ambient-waves { position: absolute; inset: 55% -10% -5%; transform: translateX(var(--ambient-pointer-x, 0)); }
+.ambient-waves i { inset: 30% 0 auto; height: 30%; border-radius: 50%; border-top: 1px solid var(--ink-3); background: linear-gradient(var(--accent-soft), transparent); opacity: .12; animation: environment-wave var(--wave-duration, 16s) steps(var(--wave-steps, 384)) infinite alternate; }
+.ambient-waves i:nth-child(2) { top: 55%; opacity: .17; }
+.ambient-waves i:nth-child(3) { top: 80%; opacity: .2; }
+.ambient-waves--layered i:nth-child(2) { animation-delay: -5s; animation-direction: alternate-reverse; }
+.ambient-waves--layered i:nth-child(3) { animation-delay: -10s; }
+@keyframes environment-wave { from { transform: translate3d(-2%, 8px, 0) rotate(-1deg); } to { transform: translate3d(2%, -8px, 0) rotate(1deg); } }
+.ambient-sea-light { width: 40%; height: 30%; right: 8%; top: 5%; background: radial-gradient(ellipse, #ecddb14d, transparent 68%); }
+.ambient-embers { transform: translateX(var(--ambient-pointer-x, 0)); position: absolute; inset: 55% 0 0; overflow: hidden; }
+.ambient-embers i { left: var(--particle-x); bottom: 0; width: 3px; height: 3px; border-radius: 50%; background: #deac6e; animation: environment-ember var(--fire-duration, 4s) steps(var(--fire-steps, 96)) var(--particle-delay) infinite; }
+@keyframes environment-ember { 0% { transform: translate3d(0, 0, 0); opacity: 0; } 20% { opacity: .5; } 100% { transform: translate3d(var(--particle-drift), -28vh, 0); opacity: 0; } }
+.ambient-firelight { inset: 60% 0 0; background: radial-gradient(ellipse at 12% 100%, #d69958, transparent 65%); animation: environment-glow 7s ease-in-out infinite alternate; }
+@keyframes environment-glow { from { opacity: .04; } to { opacity: .16; } }
+.ambient-smoke { width: 24%; height: 30%; bottom: 0; left: 10%; background: radial-gradient(ellipse, #b39a7c25, transparent 70%); animation: environment-smoke 12s ease-out infinite; }
+@keyframes environment-smoke { from { transform: translate3d(0, 0, 0); opacity: 0; } 30% { opacity: .3; } to { transform: translate3d(20px, -12vh, 0); opacity: 0; } }
+.ambient-daylight-breath { inset: 0; background: radial-gradient(ellipse at 10% 5%, #cbb78a, transparent 65%); animation: environment-glow 18s ease-in-out infinite alternate; }
+html .focus-shell__scene-backdrop[data-renderer='css'][data-daylight='day'] { background: linear-gradient(145deg, var(--paper-desk), color-mix(in srgb, var(--paper-desk) 85%, #d9c399)); }
+html .focus-shell__scene-backdrop[data-renderer='css'][data-daylight='evening'] { background: linear-gradient(145deg, var(--paper-desk), color-mix(in srgb, var(--paper-desk) 88%, #a79180)); }
+/* Freeze at a settled representative frame, not an invisible fade-in. */
+html .focus-shell__scene-backdrop:is([data-motion='still'], [data-paused='true']) .ambient-environment__detail { animation: none; opacity: 1; }
+html .focus-shell__scene-backdrop:is([data-motion='still'], [data-paused='true']) .ambient-environment__detail * { animation-play-state: paused !important; }
+html .focus-shell__scene-backdrop[data-motion='still'] :is(.ambient-rain, .ambient-waves) { transform: none; }
+html .focus-shell__scene-backdrop[data-motion='still'] .ambient-lightning { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .ambient-environment__detail { animation: none; opacity: 1; }
+  .ambient-environment__detail * { animation-play-state: paused !important; }
+  .ambient-lightning { display: none; }
+}
+
+html[data-theme="dark"] .ambient-sea-light { background: radial-gradient(ellipse, #c1d5df30, transparent 68%); }

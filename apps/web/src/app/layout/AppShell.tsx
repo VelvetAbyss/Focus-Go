@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
 import { ROUTES } from '../routes/routes'
 import {
@@ -9,6 +9,7 @@ import {
 import Sidebar from './Sidebar'
 import AmbientSceneStage from './AmbientSceneStage'
 import { useTaskReminderEngine } from '../../features/tasks/useTaskReminderEngine'
+import { useWebPushLifecycle } from '../../shared/push/useWebPushLifecycle'
 import TaskReminderModal from '../../features/tasks/TaskReminderModal'
 import { AuthGateProvider } from '../../features/auth/AuthGateContext'
 import AuthInteractionGate from '../../features/auth/AuthInteractionGate'
@@ -19,6 +20,7 @@ import CommandPalette from '../../shared/ui/CommandPalette'
 import { useSharedNoise } from '../../features/focus/SharedNoiseProvider'
 import { findMatchingNoiseScenePreset } from '../../features/focus/noise'
 import { useAmbientPreferences } from '../../features/focus/ambientPreferences'
+import '../../shared/theme/ambient-theme.css'
 
 type AppShellProps = {
   children: ReactNode
@@ -75,7 +77,15 @@ const AppShell = ({ children }: AppShellProps) => {
   // has been selected in settings.
   const ambientScene = findMatchingNoiseScenePreset(noise.tracks)?.id ?? (ambientPrefs.effects.idle.windowLight ? 'window-light' : 'idle')
   const showAmbientStage = ambientScene !== 'idle' || ambientPrefs.effects.idle.timeOfDayPalette || ambientPrefs.effects.idle.slowBreath
+  // Publish to the root so portaled dialogs, native controls and route surfaces
+  // share the same environment. Light/dark remains the user's independent choice.
+  useLayoutEffect(() => {
+    const root = document.documentElement
+    root.dataset.ambientScene = ambientScene
+    return () => { delete root.dataset.ambientScene }
+  }, [ambientScene])
   useTaskReminderEngine()
+  useWebPushLifecycle()
 
   useEffect(() => {
     if (isLocalhostRuntime()) return

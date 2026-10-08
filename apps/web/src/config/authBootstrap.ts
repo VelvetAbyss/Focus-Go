@@ -1,6 +1,7 @@
 import { clearAuth, fetchAuthProfile, getAuth, setAuth } from '../store/auth'
 import { clearAuthRedirectParams, finishBetterAuthCookieSession, hasAuthRedirectParams } from './authRuntime'
 import { getPlatform } from '../platform'
+import { bindLocalAccountOwner } from './accountOwnership'
 
 // Desktop session restore. The HttpOnly cookie is a dropped third-party cookie
 // under the tauri:// origin, so instead we restore the Bearer token from the OS
@@ -22,6 +23,7 @@ const bootstrapDesktopSession = async () => {
     return
   }
   const hint = getAuth() ?? {}
+  bindLocalAccountOwner(String(profile.id))
   setAuth({
     ...hint,
     accessToken: token,

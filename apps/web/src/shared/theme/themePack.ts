@@ -98,6 +98,9 @@ export const getThemePalette = (pack: ThemePackId, mode: ThemeMode): ThemePalett
 export const applyThemePackPreview = (pack: ThemePackId, mode: ThemeMode) => {
   if (typeof document === 'undefined') return
   const root = document.documentElement
+  // A temporary pack preview suspends ambient tokens as a complete set.
+  // Clearing it restores the selected environment, including portaled UI.
+  root.dataset.themePackPreview = pack
   const palette = getThemePalette(pack, mode)
   THEME_PREVIEW_KEYS.forEach((key) => {
     root.style.setProperty(THEME_PREVIEW_VAR_MAP[key], palette[key])
@@ -107,6 +110,7 @@ export const applyThemePackPreview = (pack: ThemePackId, mode: ThemeMode) => {
 export const clearThemePackPreview = () => {
   if (typeof document === 'undefined') return
   const root = document.documentElement
+  delete root.dataset.themePackPreview
   THEME_PREVIEW_KEYS.forEach((key) => {
     root.style.removeProperty(THEME_PREVIEW_VAR_MAP[key])
   })

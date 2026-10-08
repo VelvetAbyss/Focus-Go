@@ -97,9 +97,10 @@ export const taskNoteLinksRepo = {
     enqueueSyncOperationInBackground('taskNoteLinks', 'delete', { id, updatedAt: deletedAt, taskId, noteId }, deletedAt)
   },
 
-  async unlinkAllForTask(taskId: string): Promise<void> {
+  /** Returns the links it removed, so undoing a task delete can put them back. */
+  async unlinkAllForTask(taskId: string): Promise<TaskNoteLink[]> {
     const links = await db.taskNoteLinks.where('taskId').equals(taskId).toArray()
-    if (links.length === 0) return
+    if (links.length === 0) return []
     const deletedAt = Date.now()
     await db.taskNoteLinks.bulkDelete(links.map((link) => link.id))
     links.forEach((link) => {
@@ -110,6 +111,16 @@ export const taskNoteLinksRepo = {
         deletedAt,
       )
     })
+    return links
+  },
+
+  /** Puts back links removed by unlinkAllForTask. A fresh updatedAt outranks the tombstone on the server. */
+  async restoreLinks(links: TaskNoteLink[]): Promise<void> {
+    if (links.length === 0) return
+    const restoredAt = Date.now()
+    const restored = links.map((link) => ({ ...link, updatedAt: restoredAt }))
+    await db.taskNoteLinks.bulkPut(restored)
+    restored.forEach((link) => enqueueSyncOperationInBackground('taskNoteLinks', 'upsert', link))
   },
 
   /**

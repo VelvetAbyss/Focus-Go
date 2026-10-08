@@ -48,6 +48,8 @@ export type TaskCreateInput = {
   taskNoteContentMd?: TaskItem['taskNoteContentMd']
   taskNoteContentJson?: TaskItem['taskNoteContentJson']
   attachments?: TaskItem['attachments']
+  waitingOn?: TaskItem['waitingOn']
+  recurrence?: TaskItem['recurrence']
 }
 
 export type WidgetTodoCreateInput = Omit<WidgetTodo, 'id' | 'createdAt' | 'updatedAt'>

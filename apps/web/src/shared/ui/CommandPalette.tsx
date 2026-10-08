@@ -93,7 +93,7 @@ const loadSearchDocs = async (untitled: string): Promise<SearchDoc[]> => {
       id: task.id,
       title: task.title,
       body: [task.description, task.progressNote, ...task.subtasks.map((item) => item.title), ...task.tags].filter(Boolean).join(' '),
-      closed: task.status === 'done',
+      closed: task.status === 'done' || task.status === 'dropped',
       updatedAt: task.updatedAt,
     })),
     ...notes.map((note): SearchDoc => ({
@@ -195,6 +195,7 @@ const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
       isToday: parsed.isToday,
       dueDate: parsed.dueDate,
       reminderAt: parsed.reminderAt,
+      recurrence: parsed.recurrence,
       projectId: parsed.projectId,
       tags: parsed.tags,
       subtasks: [],

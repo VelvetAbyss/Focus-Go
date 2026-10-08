@@ -3,7 +3,14 @@ import type { IpcChannel } from './channels'
 
 const emptySchema = z.object({}).strict()
 const idSchema = z.object({ id: z.string().min(1) }).strict()
-const taskStatusSchema = z.enum(['todo', 'doing', 'done'])
+const taskStatusSchema = z.enum(['todo', 'doing', 'waiting', 'verify', 'done', 'dropped'])
+const taskRecurrenceSchema = z
+  .object({
+    frequency: z.enum(['daily', 'weekdays', 'weekly', 'monthly', 'yearly']),
+    interval: z.number().int().min(1),
+    monthDay: z.number().int().min(1).max(31).optional(),
+  })
+  .strict()
 const taskPrioritySchema = z.enum(['high', 'medium', 'low']).nullable()
 
 const baseEntitySchema = z
@@ -145,6 +152,11 @@ const taskItemSchema = baseEntitySchema.extend({
   taskNoteContentMd: z.string().optional(),
   taskNoteContentJson: z.record(z.string(), z.unknown()).nullable().optional(),
   activityLogs: z.array(taskActivityLogSchema),
+  waitingOn: z.string().optional(),
+  waitingSince: z.number().optional(),
+  dropReason: z.string().optional(),
+  recurrence: taskRecurrenceSchema.optional(),
+  recurrenceNextId: z.string().optional(),
 })
 
 const taskCreateInputSchema = z
@@ -170,6 +182,8 @@ const taskCreateInputSchema = z
     taskNoteBlocks: z.array(taskNoteBlockSchema).optional(),
     taskNoteContentMd: z.string().optional(),
     taskNoteContentJson: z.record(z.string(), z.unknown()).nullable().optional(),
+    waitingOn: z.string().optional(),
+    recurrence: taskRecurrenceSchema.optional(),
   })
   .strict()
 

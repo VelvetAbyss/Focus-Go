@@ -697,6 +697,53 @@ describe('rxdb sync migration', () => {
     })
   })
 
+  it('pushes a task restored after delete (undo) as live, newer than its tombstone', async () => {
+    const deletedAt = 2000
+    await enqueueSyncOperation('tasks', 'delete', { id: 'task-undo', updatedAt: deletedAt, title: 'Undo me' } as never, deletedAt)
+    await enqueueSyncOperation('tasks', 'upsert', {
+      id: 'task-undo',
+      title: 'Undo me',
+      description: '',
+      pinned: false,
+      isToday: false,
+      status: 'todo',
+      priority: null,
+      tags: [],
+      subtasks: [],
+      taskNoteBlocks: [],
+      activityLogs: [],
+      createdAt: 1000,
+      updatedAt: deletedAt + 1,
+    })
+
+    fetchMock.mockImplementation(async (input, init) => {
+      const url = String(input)
+      const body = init?.body ? JSON.parse(String(init.body)) : {}
+      if (url.includes('/sync/rxdb/pull')) {
+        return {
+          ok: true,
+          json: async () => ({ documents: [], checkpoint: body.checkpoint ?? null, blobs: [] }),
+        } as Response
+      }
+      return {
+        ok: true,
+        json: async () => ({ conflicts: [], blobs: [] }),
+      } as Response
+    })
+
+    await runRxdbSyncCycle()
+
+    const pushedStates = fetchMock.mock.calls.flatMap(([url, init]) => {
+      const body = init?.body ? JSON.parse(String(init.body)) : {}
+      if (!String(url).includes('/sync/rxdb/push') || body.entityType !== 'tasks') return []
+      return (body.rows as Array<{ newDocumentState: Record<string, unknown> }>).map((row) => row.newDocumentState)
+    })
+    const last = pushedStates.filter((state) => state.id === 'task-undo').at(-1)
+    // The server refuses an upsert that isn't strictly newer than the tombstone.
+    expect(last).toMatchObject({ id: 'task-undo', _deleted: false, updatedAt: deletedAt + 1 })
+    expect(last?.deletedAt ?? null).toBeNull()
+  })
+
   it('blocks malformed remote payloads before writing to Dexie', async () => {
     fetchMock.mockImplementation(async (input, init) => {
       const url = String(input)

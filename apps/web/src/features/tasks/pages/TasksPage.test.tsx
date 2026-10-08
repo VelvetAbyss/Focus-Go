@@ -8,6 +8,10 @@ vi.mock('../TasksBoard', () => ({
   default: () => <div data-testid="tasks-board" />,
 }))
 
+vi.mock('../workspace/TaskWorkspace', () => ({
+  default: ({ view }: { view: string }) => <div data-testid="task-workspace" data-view={view} />,
+}))
+
 vi.mock('../../../shared/i18n/useI18n', async () => {
   const { mockUseI18n } = await import('../../../shared/i18n/testMock')
   return { useI18n: mockUseI18n }
@@ -52,7 +56,7 @@ describe('TasksPage viewport adaptation', () => {
     expect(within(switcher).getByRole('tab', { name: 'Analytics' })).toBeInTheDocument()
   })
 
-  it('preserves a stored list mode preference (the three-column Board view)', () => {
+  it('preserves a stored list mode preference in the workflow Board view', () => {
     window.localStorage.setItem('tasks_page_view_mode', 'list')
 
     render(<TasksPage />)
@@ -60,6 +64,7 @@ describe('TasksPage viewport adaptation', () => {
     const switcher = screen.getByRole('tablist', { name: 'Tasks page view' })
     expect(within(switcher).getByRole('tab', { name: 'Board' })).toHaveAttribute('aria-selected', 'true')
     expect(window.localStorage.getItem('tasks_page_view_mode')).toBe('list')
+    expect(screen.getByTestId('task-workspace')).toHaveAttribute('data-view', 'list')
   })
 
   it('marks the analytics discovery dot as seen after opening the analytics tab', () => {
@@ -69,6 +74,7 @@ describe('TasksPage viewport adaptation', () => {
     fireEvent.click(within(switcher).getByRole('tab', { name: /Analytics/i }))
 
     expect(window.localStorage.getItem('focusgo.discovery.new.tasks-analytics-tab.v1')).toBe('1')
+    expect(screen.getByTestId('task-workspace')).toHaveAttribute('data-view', 'analytics')
   })
 
   it('keeps panel and frame from clipping container shadows', () => {

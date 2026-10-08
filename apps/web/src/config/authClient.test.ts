@@ -49,4 +49,16 @@ describe('authClient', () => {
       /GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET/,
     )
   })
+
+  it('includes the active bearer session when signing out', async () => {
+    const { setAuth, clearAuth } = await import('../store/auth')
+    setAuth({ accessToken: 'desktop-session', user: { id: 'account' } })
+    try {
+      const { authClient } = await import('./authClient')
+      await authClient.signOut()
+      expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/sign-out'), expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: 'Bearer desktop-session' }),
+      }))
+    } finally { clearAuth() }
+  })
 })

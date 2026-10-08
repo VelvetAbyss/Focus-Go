@@ -36,11 +36,13 @@ export type IdleEffects = {
 }
 
 export type AmbientPreferences = {
-  /** 0..1 — surface opacity over the scene. Lower = scene shows through more. */
+  /** Continuous scenery motion is opt-in; palettes remain active either way. */
+  motionEnabled: boolean
+  /** 0.88..1 — readable paper opacity over the environment. */
   surfaceOpacity: number
-  /** 0..40px — frosted-glass backdrop-filter blur. */
+  /** 0..8px — optional sheet blur; zero avoids a full-panel blur buffer. */
   glassBlur: number
-  /** Canvas FPS cap. 24 = cinematic, 30 = default, 60 = max smoothness. */
+  /** Motion detail, kept as the legacy FPS value for preference compatibility. */
   frameRate: AmbientFrameRate
 
   // Global cross-scene behaviours
@@ -64,9 +66,10 @@ const PREVIOUS_KEY = 'focusgo.ambient.prefs.v2'
 const LEGACY_KEY = 'focusgo.ambient.prefs.v1'
 
 export const AMBIENT_PREFERENCES_DEFAULTS: AmbientPreferences = {
-  surfaceOpacity: 0.78,
-  glassBlur: 22,
-  frameRate: 30,
+  motionEnabled: false,
+  surfaceOpacity: 0.88,
+  glassBlur: 0,
+  frameRate: 24,
   audioReactivity: true,
   intensityRamp: true,
   cursorReactivity: true,
@@ -134,15 +137,16 @@ const sanitize = (raw: unknown): AmbientPreferences => {
   }
 
   if (typeof r.surfaceOpacity === 'number' && Number.isFinite(r.surfaceOpacity)) {
-    next.surfaceOpacity = clamp(r.surfaceOpacity, 0, 1)
+    next.surfaceOpacity = clamp(r.surfaceOpacity, 0.88, 1)
   }
   if (typeof r.glassBlur === 'number' && Number.isFinite(r.glassBlur)) {
-    next.glassBlur = clamp(r.glassBlur, 0, 40)
+    next.glassBlur = clamp(r.glassBlur, 0, 8)
   }
   if (ALLOWED_FRAME_RATES.includes(r.frameRate as AmbientFrameRate)) {
     next.frameRate = r.frameRate as AmbientFrameRate
   }
 
+  next.motionEnabled = sanitizeBoolean(r.motionEnabled, next.motionEnabled)
   next.audioReactivity = sanitizeBoolean(r.audioReactivity, next.audioReactivity)
   next.intensityRamp = sanitizeBoolean(r.intensityRamp, next.intensityRamp)
   next.cursorReactivity = sanitizeBoolean(r.cursorReactivity, next.cursorReactivity)
@@ -216,6 +220,7 @@ const applyToDocument = () => {
   root.style.setProperty('--ambient-surface-opacity', String(current.surfaceOpacity))
   root.style.setProperty('--ambient-surface-mix-pct', `${Math.round(current.surfaceOpacity * 100)}%`)
   root.style.setProperty('--ambient-blur', `${current.glassBlur}px`)
+  root.style.setProperty('--ambient-backdrop-filter', current.glassBlur > 0 ? `blur(${current.glassBlur}px)` : 'none')
 }
 
 applyToDocument()

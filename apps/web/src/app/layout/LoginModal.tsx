@@ -110,7 +110,7 @@ const LoginModal = ({ onClose }: LoginModalProps) => {
       // and open the provider in the system browser (Google blocks embedded
       // webviews). The global deep-link handler completes the session on return.
       const platform = getPlatform()
-      const callbackURL = platform.isDesktop ? desktopOAuthCallbackURL() : getGoogleAuthCallbackURL()
+      const callbackURL = platform.isDesktop ? await desktopOAuthCallbackURL() : getGoogleAuthCallbackURL()
       const result = await authClient.signInGoogle(callbackURL)
       if (result.url) {
         if (platform.isDesktop) {

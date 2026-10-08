@@ -1,6 +1,6 @@
 import { forwardRef, useEffect, useRef, useState } from 'react'
 import * as PopoverPrimitive from '@radix-ui/react-popover'
-import { CircleCheck, GitBranch, LockKeyhole, Pin, PinOff, Play, RotateCcw, SunMedium, Trash2, Undo2 } from 'lucide-react'
+import { CircleCheck, GitBranch, LockKeyhole, Pin, PinOff, Play, Repeat, RotateCcw, SunMedium, Trash2, Undo2 } from 'lucide-react'
 import type { CSSProperties, HTMLAttributes, ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -8,8 +8,8 @@ import { Popover, PopoverContent } from '../../../shared/ui/popover'
 import { useI18n } from '../../../shared/i18n/useI18n'
 import { useVisibleInterval } from '../../../shared/hooks/usePageActivity'
 import type { TaskItem } from '../tasks.types'
-import { parseDateOnlyToLocalDayStart } from '../domain/taskRules'
-import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, getTaskDeadlineState, getTaskPriorityKey } from './taskPresentation'
+import { getTaskWaitingDays, isTaskClosed, parseDateOnlyToLocalDayStart } from '../domain/taskRules'
+import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, describeTaskRecurrence, getTaskDeadlineState, getTaskPriorityKey } from './taskPresentation'
 
 type TaskCardProject = {
   id: string
@@ -38,6 +38,7 @@ type TaskCardProps = {
   style?: CSSProperties
   loadingActionKey?: string | null
   successActionKey?: string | null
+  showStatus?: boolean
   compact?: boolean
   onClick?: (task: TaskItem) => void
   selected?: boolean
@@ -86,6 +87,7 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
       style,
       loadingActionKey,
       compact = false,
+      showStatus = false,
       onClick,
       selected = false,
       selectionMode = false,
@@ -128,6 +130,9 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
 
     const deadline = getTaskDeadlineState(task, now)
     const dueDay = parseDateOnlyToLocalDayStart(task.dueDate)
+    const isClosed = isTaskClosed(task)
+    const waitingDays = getTaskWaitingDays(task, now)
+    const recurrenceLabel = describeTaskRecurrence(task.recurrence, t)
 
     const activateTask = (cardElement: HTMLDivElement) => {
       clearPeekTimer()
@@ -141,13 +146,46 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
     const deadlineText =
       deadline.daysRemaining == null || deadline.daysRemaining > 3
         ? null
-        : deadline.daysRemaining < 0
-          ? t('tasks.card.overdue', { n: -deadline.daysRemaining })
-          : deadline.daysRemaining === 0
-            ? t('tasks.card.dueToday')
-            : t('tasks.card.dueSoon', { n: deadline.daysRemaining })
+        : task.status === 'waiting' && deadline.daysRemaining <= 0
+          ? t('tasks.card.followUp')
+          : deadline.daysRemaining < 0
+            ? t('tasks.card.overdue', { n: -deadline.daysRemaining })
+            : deadline.daysRemaining === 0
+              ? t('tasks.card.dueToday')
+              : t('tasks.card.dueSoon', { n: deadline.daysRemaining })
 
     const metaItems: { key: string; node: ReactNode; shrink?: boolean }[] = []
+    // The statuses beyond todo/doing/done say so first, as text in their hand (no chip pile).
+    if (task.status === 'waiting') {
+      metaItems.push({
+        key: 'status',
+        shrink: true,
+        node: (
+          // Only the name gives way when the line is tight; how long it's been waiting stays visible.
+          <span className="task-card__status inline-flex min-w-0 text-[color:var(--pencil)]" data-status="waiting" title={task.waitingOn}>
+            <span className="min-w-0 truncate">
+              {task.waitingOn ? t('tasks.card.waitingOn', { who: task.waitingOn }) : t('tasks.status.waiting')}
+            </span>
+            {waitingDays != null && waitingDays > 0 ? (
+              <span className="shrink-0 whitespace-pre"> · {t('tasks.card.waitingDays', { n: waitingDays })}</span>
+            ) : null}
+          </span>
+        ),
+      })
+    } else if (showStatus || task.status === 'verify' || task.status === 'dropped') {
+      metaItems.push({
+        key: 'status',
+        node: (
+          <span
+            className={cn('task-card__status', task.status === 'verify' ? 'text-tone-info' : 'text-ink-3')}
+            data-status={task.status}
+            title={task.status === 'dropped' ? task.dropReason : undefined}
+          >
+            {t(TASK_STATUS_CONFIG[task.status].labelKey)}
+          </span>
+        ),
+      })
+    }
     if (priorityKey !== 'none') {
       metaItems.push({
         key: 'priority',
@@ -163,9 +201,9 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
       metaItems.push({
         key: 'due',
         node: (
-          <span className={cn('task-card__due', task.status !== 'done' && deadline.textClass)}>
+          <span className={cn('task-card__due', !isClosed && deadline.textClass)}>
             {formatDueDay(dueDay, language)}
-            {deadlineText && task.status !== 'done' ? <> · {deadlineText}</> : null}
+            {deadlineText && !isClosed ? <> · {deadlineText}</> : null}
           </span>
         ),
       })
@@ -203,6 +241,17 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
         ),
       })
     }
+    if (recurrenceLabel) {
+      metaItems.push({
+        key: 'repeat',
+        node: (
+          <span className="inline-flex items-center gap-1 text-[color:var(--pencil)]" title={recurrenceLabel}>
+            <Repeat className="size-3" aria-hidden />
+            {recurrenceLabel}
+          </span>
+        ),
+      })
+    }
     if (firstTag) {
       metaItems.push({
         key: 'tags',
@@ -223,7 +272,7 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
             ref={ref}
             className={cn(
               'task-card-shell group relative cursor-pointer',
-              task.status === 'done' && 'opacity-70',
+              isClosed && 'opacity-70',
               compact && 'rounded-md',
               selected && 'ring-2 ring-[color-mix(in_srgb,var(--text-primary)_35%,transparent)] dark:ring-white/40',
             )}
@@ -276,13 +325,19 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
                 <h4
                   className={cn(
                     'task-card__title font-semibold line-clamp-2 transition-colors duration-300',
-                    task.status === 'done' ? 'text-ink-3 line-through decoration-ink-2' : 'text-ink-1',
+                    isClosed ? 'text-ink-3 line-through decoration-ink-2' : 'text-ink-1',
                   )}
                   title={task.title}
                 >
                   {task.title}
                 </h4>
               </div>
+
+              {!compact && ((task.status === 'waiting' && task.waitingOn?.trim()) || task.description.trim()) ? (
+                <p className="task-card__preview">{task.status === 'waiting' && task.waitingOn?.trim()
+                  ? `${t('tasks.drawer.waitingOn')} · ${task.waitingOn}`
+                  : task.description}</p>
+              ) : null}
 
               <div className="task-card__foot" data-revealed={isHovered && !selectionMode ? 'true' : 'false'}>
                 {/* Resting face: state on the left joined by "·", project on the right.
@@ -325,8 +380,8 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
                   >
                     {statusActions?.map((action) => {
                       const Icon =
-                        action.key === 'doing' || action.key === 'start' ? Play :
-                        action.key === 'done' ? CircleCheck :
+                        action.key === 'doing' || action.key === 'start' || action.key === 'resume' ? Play :
+                        action.key === 'done' || action.key === 'verified' ? CircleCheck :
                         action.key === 'todo' && task.status === 'doing' ? Undo2 :
                         RotateCcw
                       return (

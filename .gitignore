@@ -83,6 +83,7 @@ SKILL.md
 docs/
 !/docs/
 /docs/*
+!/docs/security-remediation-2026-10-04.md
 !/docs/domain-boundaries.md
 !/docs/NOTION_INTERACTION_BENCHMARK.md
 !/docs/assets/

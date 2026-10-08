@@ -2,11 +2,12 @@ import { useEffect } from 'react'
 import { authClient } from './authClient'
 import { finishBetterAuthSession } from './authRuntime'
 import { getPlatform } from '../platform'
+import { consumeDesktopLogin } from './authBinding'
 
 // focusgo://auth-callback?code=<one-time-code>
 const AUTH_CALLBACK_HOST = 'auth-callback'
 
-const handleAuthDeepLink = async (raw: string): Promise<void> => {
+export const handleAuthDeepLink = async (raw: string): Promise<void> => {
   let url: URL
   try {
     url = new URL(raw)
@@ -14,7 +15,9 @@ const handleAuthDeepLink = async (raw: string): Promise<void> => {
     return
   }
   if (url.protocol !== 'focusgo:') return
-  if (url.host && url.host !== AUTH_CALLBACK_HOST) return
+  if (url.host !== AUTH_CALLBACK_HOST) return
+  const pending = consumeDesktopLogin(url.searchParams.get('state'))
+  if (!pending) return
 
   const error = url.searchParams.get('error')
   if (error) {
@@ -27,7 +30,7 @@ const handleAuthDeepLink = async (raw: string): Promise<void> => {
   try {
     // Exchange the one-time code for a Bearer token + user, then finish the
     // session (which also persists the token to the OS keychain).
-    const { token, user } = await authClient.exchangeDesktopCode(code)
+    const { token, user } = await authClient.exchangeDesktopCode(code, pending.state, pending.verifier)
     await finishBetterAuthSession(token, user)
   } catch (err) {
     console.warn('[desktop-auth] code exchange failed:', err)

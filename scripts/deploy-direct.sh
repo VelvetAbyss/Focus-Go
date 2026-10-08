@@ -12,11 +12,21 @@ fi
 
 : "${SERVER_HOST:?Set SERVER_HOST to the deployment server host}"
 : "${SERVER_USER:=root}"
+: "${SSH_KEY_PATH:?Set SSH_KEY_PATH to a dedicated deployment key}"
+: "${SSH_KNOWN_HOSTS_FILE:?Set SSH_KNOWN_HOSTS_FILE to trusted, independently verified host keys}"
+if [[ -n "${SSH_PASSWORD:-}" || -n "${SSHPASS:-}" ]]; then
+  echo "Password deployment is disabled. Configure SSH_KEY_PATH and SSH_KNOWN_HOSTS_FILE." >&2
+  exit 2
+fi
+unset SSH_PASSWORD SSHPASS
+[[ -f "$SSH_KEY_PATH" && -f "$SSH_KNOWN_HOSTS_FILE" ]] || { echo "SSH key/known-hosts file is missing" >&2; exit 2; }
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REMOTE_REPO_DIR="${REMOTE_REPO_DIR:-/root/focus-go}"
 SSH_OPTS=(
-  -o StrictHostKeyChecking=no
+  -o StrictHostKeyChecking=yes
+  -o "UserKnownHostsFile=$SSH_KNOWN_HOSTS_FILE"
+  -o BatchMode=yes
   -o ServerAliveInterval=30
   -o ServerAliveCountMax=6
   -o ConnectTimeout=30
@@ -27,14 +37,6 @@ if [[ -n "${SSH_KEY_PATH:-}" ]]; then
 fi
 
 SSH_CMD=(ssh)
-if [[ -n "${SSH_PASSWORD:-}" ]]; then
-  command -v sshpass >/dev/null || {
-    echo "SSH_PASSWORD requires sshpass to be installed" >&2
-    exit 2
-  }
-  export SSHPASS="$SSH_PASSWORD"
-  SSH_CMD=(sshpass -e ssh)
-fi
 
 RSYNC_RSH="$(printf '%q ' "${SSH_CMD[@]}" "${SSH_OPTS[@]}")"
 

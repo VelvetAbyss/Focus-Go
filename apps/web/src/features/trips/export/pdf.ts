@@ -48,7 +48,7 @@ const dayRow = (day: TripItineraryDay) => {
   return `
     <section class="trip-pdf__day">
       <div class="trip-pdf__day-head">
-        <span class="trip-pdf__day-num">Day ${day.day}</span>
+        <span class="trip-pdf__day-num">Day ${esc(String(day.day))}</span>
         <span class="trip-pdf__day-label">${esc(day.label || '')}</span>
         <span class="trip-pdf__day-date">${esc(day.date || '')}</span>
       </div>
@@ -79,7 +79,7 @@ const staysBlock = (trip: TripRecord) => {
       (stay) => `
       <div class="trip-pdf__stay">
         <div class="trip-pdf__stay-name">🏨 ${esc(stay.name)}</div>
-        <div class="trip-pdf__stay-meta">${esc(stay.checkIn || '')} → ${esc(stay.checkOut || '')} · ${stay.nights} night(s) · ${esc(stay.status)}</div>
+        <div class="trip-pdf__stay-meta">${esc(stay.checkIn || '')} → ${esc(stay.checkOut || '')} · ${esc(String(stay.nights))} night(s) · ${esc(stay.status)}</div>
         ${stay.address ? `<div class="trip-pdf__stay-addr">${esc(stay.address)}</div>` : ''}
       </div>`,
     )
@@ -96,7 +96,7 @@ const journalBlock = (trip: TripRecord) => {
       const key = day.date?.trim() ? day.date.trim() : `#day-${day.day}`
       const entry = byKey.get(key)
       if (!entry) return ''
-      const head = `Day ${day.day}${day.date ? ` · ${esc(day.date)}` : ''}${entry.mood ? ` ${esc(entry.mood)}` : ''}`
+      const head = `Day ${esc(String(day.day))}${day.date ? ` · ${esc(day.date)}` : ''}${entry.mood ? ` ${esc(entry.mood)}` : ''}`
       return `
         <div class="trip-pdf__journal">
           <div class="trip-pdf__journal-head">${head}</div>
@@ -166,7 +166,7 @@ export const buildTripPdfHtml = (trip: TripRecord) => {
         <div class="trip-pdf__stats">
           <div><div class="trip-pdf__stat-num">${trip.itinerary.length}</div><div class="trip-pdf__stat-lbl">Days</div></div>
           <div><div class="trip-pdf__stat-num">${totalActivities}</div><div class="trip-pdf__stat-lbl">Activities</div></div>
-          <div><div class="trip-pdf__stat-num">${trip.travelers}</div><div class="trip-pdf__stat-lbl">Travelers</div></div>
+          <div><div class="trip-pdf__stat-num">${esc(String(trip.travelers))}</div><div class="trip-pdf__stat-lbl">Travelers</div></div>
         </div>
       </header>
       <section class="trip-pdf__section"><h2 class="trip-pdf__h2">Itinerary</h2>${days || '<div class="trip-pdf__empty">No days planned yet.</div>'}</section>

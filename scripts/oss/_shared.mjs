@@ -54,7 +54,7 @@ export const exec = (bin, args, opts = {}) =>
         resolve({ stdout, stderr })
         return
       }
-      reject(new Error(`${bin} ${args.join(' ')} failed with exit code ${code}`))
+      reject(new Error(`${bin} failed with exit code ${code}`))
     })
   })
 
@@ -116,6 +116,7 @@ export const resolveReleaseIdentity = async () => {
   }
 
   const releaseRoot = optionalEnv('RELEASE_ROOT', '.artifacts/releases')
+  validateReleaseIdentity({ app, releaseDate, gitSha })
   const releaseDir = path.join(projectRoot, releaseRoot, app, releaseDate, gitSha)
   const releasePrefix = optionalEnv('OSS_PREFIX', 'releases')
 
@@ -135,14 +136,51 @@ export const resolveOssPath = ({ bucket, releasePrefix, app, releaseDate, gitSha
 export const resolveLatestPointerPath = ({ bucket, releasePrefix, app }) =>
   `oss://${bucket}/${releasePrefix}/${app}/LATEST.json`
 
-export const ossBaseArgs = () => {
-  const endpoint = requireEnv('OSS_ENDPOINT')
-  const accessKeyId = requireEnv('OSS_ACCESS_KEY_ID')
-  const accessKeySecret = requireEnv('OSS_ACCESS_KEY_SECRET')
-  return ['-e', endpoint, '-i', accessKeyId, '-k', accessKeySecret]
+export const validateReleaseIdentity = ({ app, releaseDate, gitSha }) => {
+  if (typeof app !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(app)
+      || typeof releaseDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(releaseDate)
+      || !Number.isFinite(Date.parse(`${releaseDate}T00:00:00Z`))
+      || new Date(`${releaseDate}T00:00:00Z`).toISOString().slice(0, 10) !== releaseDate
+      || typeof gitSha !== 'string' || !/^[a-f0-9]{7,40}$/i.test(gitSha)) {
+    throw new Error('Invalid release identity')
+  }
 }
 
-export const ossutilBin = () => optionalEnv('OSSUTIL_BIN', './ossutil64')
+export const resolveRestoreDirectory = (root, identity) => {
+  validateReleaseIdentity(identity)
+  const target = path.resolve(root, identity.app, identity.releaseDate, identity.gitSha)
+  if (!target.startsWith(`${path.resolve(root)}${path.sep}`)) throw new Error('Restore path escapes root')
+  return target
+}
+
+export const assertNoRestoreSymlinks = async (root, target) => {
+  if (!path.resolve(target).startsWith(`${path.resolve(root)}${path.sep}`)) throw new Error('Restore path escapes root')
+  for (let current = target; current !== path.resolve(root); current = path.dirname(current)) {
+    try {
+      if ((await fs.lstat(current)).isSymbolicLink()) throw new Error('Restore path contains a symlink')
+    } catch (error) { if (error.code !== 'ENOENT') throw error }
+  }
+}
+
+export const buildOssCommand = (args) => {
+  const remote = (value) => value.startsWith('oss://') ? `focusgo_oss:${value.slice(6)}` : value
+  if (args[0] === 'cp' && args.length >= 3) return ['copyto', remote(args[1]), remote(args[2]), ...(args.includes('--update') ? ['--update'] : [])]
+  if (args[0] === 'stat' && args.length === 2) return ['lsjson', remote(args[1]), '--stat']
+  throw new Error('Unsupported OSS operation')
+}
+
+// rclone is installed through the OS package manager. Credentials are confined
+// to this subprocess environment, never embedded in argv or error messages.
+export const ossCommand = (args) => exec(optionalEnv('RCLONE_BIN', 'rclone'), buildOssCommand(args), {
+  env: {
+    ...process.env,
+    RCLONE_CONFIG_FOCUSGO_OSS_TYPE: 's3',
+    RCLONE_CONFIG_FOCUSGO_OSS_PROVIDER: 'Alibaba',
+    RCLONE_CONFIG_FOCUSGO_OSS_ENDPOINT: requireEnv('OSS_ENDPOINT'),
+    RCLONE_CONFIG_FOCUSGO_OSS_ACCESS_KEY_ID: requireEnv('OSS_ACCESS_KEY_ID'),
+    RCLONE_CONFIG_FOCUSGO_OSS_SECRET_ACCESS_KEY: requireEnv('OSS_ACCESS_KEY_SECRET'),
+  },
+})
 
 export const ensurePathExists = async (targetPath, message) => {
   try {

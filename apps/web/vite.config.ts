@@ -51,6 +51,8 @@ export default defineConfig(({ mode }) => ({
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api(?:\/|$)/],
+        // Task reminders by Web Push (public/push-sw.js): shown even with every tab closed.
+        importScripts: ['/push-sw.js'],
       },
     }),
     shouldAnalyzeBundle

@@ -8,6 +8,7 @@ import db from '../db/init.js'
 import { requireAuth } from '../middleware/auth.js'
 import { requireAdmin, isLocalhostRequest } from '../middleware/admin.js'
 import { SYNC_TABLES } from '../sync/config.js'
+import { deleteAllPushSubscriptionsForUser } from '../push/store.js'
 
 const router = Router()
 
@@ -82,7 +83,7 @@ const buildSyncStatsPerUser = () => {
 
 const getBlobStats = () => {
   try {
-    const row = db.prepare('SELECT COUNT(*) as cnt, SUM(byte_length) as total_bytes FROM sync_blobs').get()
+    const row = db.prepare('SELECT COUNT(*) as cnt, SUM(byte_length) as total_bytes FROM sync_user_blobs').get()
     return { count: row?.cnt ?? 0, totalBytes: row?.total_bytes ?? 0 }
   } catch { return { count: 0, totalBytes: 0 } }
 }
@@ -533,7 +534,7 @@ router.get('/users/:userId/deletion-preview', (req, res) => {
     })()
 
     const totalSyncRows = Object.values(syncCounts).reduce((s, n) => s + n, 0)
-    const blobRow = db.prepare('SELECT COUNT(*) as cnt, SUM(byte_length) as total_bytes FROM sync_blobs WHERE user_id = ?').get(String(user.id))
+    const blobRow = db.prepare('SELECT COUNT(*) as cnt, SUM(byte_length) as total_bytes FROM sync_user_blobs WHERE user_id = ?').get(String(user.id))
     const feedbackCount = db.prepare('SELECT COUNT(*) as cnt FROM user_feedback WHERE user_id = ?').get(String(user.id))?.cnt ?? 0
     const noteCount = db.prepare('SELECT COUNT(*) as cnt FROM admin_user_notes WHERE user_id = ?').get(String(user.id))?.cnt ?? 0
     const auditCount = db.prepare('SELECT COUNT(*) as cnt FROM admin_audit_logs WHERE user_id = ?').get(String(user.id))?.cnt ?? 0
@@ -615,7 +616,8 @@ router.post('/users/:userId/purge', (req, res) => {
       for (const tableName of Object.values(SYNC_TABLES)) {
         try { db.prepare(`DELETE FROM ${tableName} WHERE user_id = ?`).run(String(user.id)) } catch { /* ignore */ }
       }
-      try { db.prepare('DELETE FROM sync_blobs WHERE user_id = ?').run(String(user.id)) } catch { /* ignore */ }
+      try { db.prepare('DELETE FROM sync_user_blobs WHERE user_id = ?').run(String(user.id)) } catch { /* ignore */ }
+      deleteAllPushSubscriptionsForUser(db, String(user.id))
 
       const betterAuthUser = db.prepare('SELECT id FROM user WHERE email = ?').get(user.email)
       if (betterAuthUser) db.prepare('DELETE FROM user WHERE id = ?').run(betterAuthUser.id)

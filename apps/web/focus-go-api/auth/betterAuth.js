@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url'
 import db from '../db/init.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-dotenv.config({ path: join(__dirname, '../.env') })
+if (process.env.NODE_ENV !== 'test') dotenv.config({ path: join(__dirname, '../.env') })
 
 const API_BASE_URL = process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 3000}`
 const APP_BASE_URL = process.env.APP_BASE_URL || 'http://localhost:5174'

@@ -16,6 +16,7 @@ import {
   SunMedium,
   Waves,
   AlertTriangle,
+  BellRing,
   Lightbulb,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -41,7 +42,7 @@ import { fetchApi } from '../../shared/apiBase'
 import { dashboardRepo } from '../../data/repositories/dashboardRepo'
 import { db, requestCrossTabDbReset } from '../../data/db'
 import { DB_NAME, DB_VERSION, TABLES } from '../../data/db/schema'
-import { applyTheme, readStoredThemePreference, resolveTheme, writeStoredThemePreference } from '../../shared/theme/theme'
+import { applyTheme, readStoredThemePreference, resolveTheme, subscribeTheme, writeStoredThemePreference } from '../../shared/theme/theme'
 import {
   applyThemePackPreview,
   clearThemePackPreview,
@@ -50,6 +51,14 @@ import {
 } from '../../shared/theme/themePack'
 import type { DashboardLayout } from '../../data/models/types'
 import { usePreferences } from '../../shared/prefs/usePreferences'
+import {
+  disableWebPush,
+  enableWebPush,
+  fetchWebPushConfig,
+  isWebPushSupported,
+  readWebPushEnabled,
+  sendWebPushTest,
+} from '../../shared/push/webPush'
 import { useI18n } from '../../shared/i18n/useI18n'
 import type { LanguageCode } from '../../shared/i18n/types'
 import { useToast } from '../../shared/ui/toast/toast'
@@ -592,6 +601,94 @@ const DesktopNotificationRow = () => {
   )
 }
 
+/** Server-sent reminders for this device (Web Push), for when every tab is closed. */
+const WebPushRow = () => {
+  const { t, language } = useI18n()
+  const { taskReminderEnabled, taskReminderLeadMinutes } = usePreferences()
+  const isLoggedIn = useIsLoggedIn()
+  const supported = isWebPushSupported()
+  const [enabled, setEnabled] = useState(readWebPushEnabled)
+  const [available, setAvailable] = useState<boolean | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [note, setNote] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!supported) return
+    let cancelled = false
+    void Promise.all([navigator.serviceWorker.getRegistration().catch(() => undefined), fetchWebPushConfig()]).then(([registration, config]) => {
+      if (!cancelled) setAvailable(Boolean(registration) && config.enabled)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [supported])
+
+  // Turning reminders off elsewhere turns this off too (useWebPushLifecycle).
+  useEffect(() => {
+    if (!taskReminderEnabled) setEnabled(false)
+  }, [taskReminderEnabled])
+
+  const blockedReason = !supported
+    ? t('settings.webPush.unsupported')
+    : !isLoggedIn
+      ? t('settings.webPush.signIn')
+      : !taskReminderEnabled
+        ? t('settings.webPush.needsReminders')
+        : available === false
+          ? t('settings.webPush.unavailable')
+          : null
+
+  const handleToggle = async (checked: boolean) => {
+    setBusy(true)
+    setNote(null)
+    try {
+      if (!checked) {
+        await disableWebPush()
+        setEnabled(false)
+        return
+      }
+      const result = await enableWebPush({ leadMinutes: taskReminderLeadMinutes, language })
+      setEnabled(result === 'on')
+      if (result === 'denied') setNote(t('settings.webPush.denied'))
+      else if (result === 'unavailable') setAvailable(false)
+      else if (result === 'failed') setNote(t('settings.webPush.failed'))
+      else if (result === 'signed-out') setNote(t('settings.webPush.signIn'))
+      else if (result === 'update-needed') setNote(t('settings.webPush.updateNeeded'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleTest = async () => {
+    setBusy(true)
+    const ok = await sendWebPushTest()
+    setNote(ok ? t('settings.webPush.testSent') : t('settings.webPush.testFailed'))
+    setBusy(false)
+  }
+
+  return (
+    <SettingRow
+      icon={BellRing}
+      title={t('settings.webPush.title')}
+      description={note ?? blockedReason ?? t('settings.webPush.description')}
+    >
+      <div className="flex items-center gap-2">
+        {enabled && !blockedReason ? (
+          <Button variant="outline" size="sm" onClick={() => void handleTest()} disabled={busy}>
+            {t('settings.webPush.test')}
+          </Button>
+        ) : null}
+        <Switch
+          checked={enabled && !blockedReason}
+          disabled={busy || Boolean(blockedReason) || available === null}
+          onCheckedChange={(checked) => void handleToggle(checked)}
+          aria-label={t('settings.webPush.title')}
+        />
+      </div>
+    </SettingRow>
+  )
+}
+
 const SettingRow = ({ icon: Icon, title, description, children }: SettingRowProps) => (
   <motion.div
     layout
@@ -853,15 +950,17 @@ const SettingsRoute = () => {
   const resolvedThemeMode = useMemo(() => (theme === 'system' ? resolveTheme() : theme), [theme])
 
   const saveThemeOverride = async (next: ThemeSelection) => {
+    // Apply intent immediately; a slow legacy dashboard write must not replace
+    // a newer choice made with the sidebar control while it was pending.
+    writeStoredThemePreference(next)
+    applyTheme(resolveTheme(next))
+    void syncedPreferencesRepo.persistFromLocal()
     const themeOverride = next === 'system' ? null : next
     const stored = (await dashboardRepo.get()) ?? dashboard
     const items = stored?.items ?? []
     const updated = await dashboardRepo.upsert({ items, themeOverride })
     setDashboard(updated)
 
-    writeStoredThemePreference(next)
-    applyTheme(resolveTheme(next))
-    void syncedPreferencesRepo.persistFromLocal()
   }
 
   useEffect(() => {
@@ -874,6 +973,10 @@ const SettingsRoute = () => {
     return () => window.removeEventListener(SYNCED_PREFERENCES_UPDATED_EVENT, handleSyncedPreferencesUpdated)
   }, [])
 
+  useEffect(() => subscribeTheme(() => {
+    setTheme(readStoredThemePreference() ?? 'system')
+  }), [])
+
   useEffect(() => {
     if (!themePackPreview) {
       clearThemePackPreview()
@@ -884,6 +987,10 @@ const SettingsRoute = () => {
 
   useEffect(() => {
     const handleBeforeModeToggle = () => {
+      // A rapid round trip can change system -> explicit light/dark without
+      // changing the final applied colour, so subscribeTheme alone is not enough.
+      const pendingPreference = readStoredThemePreference()
+      if (pendingPreference) setTheme(pendingPreference)
       if (!themePackPreview) return
       clearThemePackPreview()
       setThemePackPreview(null)
@@ -1430,6 +1537,8 @@ const SettingsRoute = () => {
                           </SettingRow>
 
                           <DesktopNotificationRow />
+
+                          <WebPushRow />
 
 
                           <AlertDialog open={pendingNeteaseExperimentalToggle} onOpenChange={setPendingNeteaseExperimentalToggle}>

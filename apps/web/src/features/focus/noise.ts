@@ -97,7 +97,9 @@ export const findMatchingNoiseScenePreset = (tracks: NoiseSettings['tracks']) =>
     NOISE_TRACKS.every((track) => {
       const current = tracks[track.id]
       const target = preset.tracks[track.id]
-      return current.enabled === target.enabled && Math.abs(current.volume - target.volume) < 0.001
+      // Volume is a personal mix, not scene identity. All four presets have
+      // distinct enabled-track combinations, including when audio is paused.
+      return current.enabled === target.enabled
     })
   )
 
