@@ -9,6 +9,7 @@ import {
 import Sidebar from './Sidebar'
 import AmbientSceneStage from './AmbientSceneStage'
 import { useTaskReminderEngine } from '../../features/tasks/useTaskReminderEngine'
+import { useWebPushLifecycle } from '../../shared/push/useWebPushLifecycle'
 import TaskReminderModal from '../../features/tasks/TaskReminderModal'
 import { AuthGateProvider } from '../../features/auth/AuthGateContext'
 import AuthInteractionGate from '../../features/auth/AuthInteractionGate'
@@ -76,6 +77,7 @@ const AppShell = ({ children }: AppShellProps) => {
   const ambientScene = findMatchingNoiseScenePreset(noise.tracks)?.id ?? (ambientPrefs.effects.idle.windowLight ? 'window-light' : 'idle')
   const showAmbientStage = ambientScene !== 'idle' || ambientPrefs.effects.idle.timeOfDayPalette || ambientPrefs.effects.idle.slowBreath
   useTaskReminderEngine()
+  useWebPushLifecycle()
 
   useEffect(() => {
     if (isLocalhostRuntime()) return

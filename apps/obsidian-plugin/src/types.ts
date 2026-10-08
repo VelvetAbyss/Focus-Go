@@ -2,10 +2,10 @@
 // Deliberately structural rather than imported: the plugin bundles standalone and
 // must not pull the web app's module graph in.
 
-export type TaskStatus = 'todo' | 'doing' | 'waiting' | 'verify' | 'done'
+export type TaskStatus = 'todo' | 'doing' | 'waiting' | 'verify' | 'done' | 'dropped'
 export type TaskPriority = 'high' | 'medium' | 'low'
 
-export const TASK_STATUSES: readonly TaskStatus[] = ['todo', 'doing', 'waiting', 'verify', 'done']
+export const TASK_STATUSES: readonly TaskStatus[] = ['todo', 'doing', 'waiting', 'verify', 'done', 'dropped']
 export const TASK_PRIORITIES: readonly TaskPriority[] = ['high', 'medium', 'low']
 
 export type TaskSubtask = {

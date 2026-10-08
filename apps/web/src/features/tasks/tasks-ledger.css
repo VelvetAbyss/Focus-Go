@@ -22,6 +22,11 @@
   min-height: 0;
 }
 
+/* A 在等 column joins only while something is waiting (or a drag could land there). */
+.fg-task-list__board--with-waiting {
+  grid-template-columns: 6fr 8fr 5fr 4fr;
+}
+
 .fg-task-list__col {
   position: relative;
   display: flex;
@@ -35,6 +40,7 @@
 
 .fg-task-list__col--todo,
 .fg-task-list__col--doing,
+.fg-task-list__col--waiting,
 .fg-task-list__col--done {
   background: var(--fg-paper);
   border-color: var(--fg-rule);
@@ -69,6 +75,12 @@
 
 .fg-task-list__col-glyph--hero {
   background: var(--fg-ink);
+}
+
+/* Waiting is pencil: intended, but in someone else's hands. */
+.fg-task-list__col-glyph--waiting {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--pencil-line);
 }
 
 .fg-task-list__col-name {

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest'
-import { cleanup, fireEvent, render as rtlRender, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render as rtlRender, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import type { ReactElement, ReactNode } from 'react'
@@ -33,6 +33,9 @@ const { mockT } = vi.hoisted(() => {
         'tasks.status.todo': 'Todo',
         'tasks.status.doing': 'Doing',
         'tasks.status.done': 'Done',
+        'tasks.status.waiting': 'Waiting',
+        'tasks.status.verify': 'To verify',
+        'tasks.status.dropped': 'Dropped',
         'tasks.today.badge': 'Focus the tasks that matter today',
         'tasks.today.emptyTitle': 'No tasks lined up for today',
         'tasks.today.emptyDescription': 'Put the tasks you actually want to finish today here.',
@@ -50,6 +53,16 @@ const { mockT } = vi.hoisted(() => {
         'modules.tasks.add': 'Add',
         'tasks.board.allProjects': 'All',
         'tasks.board.sectionInbox': 'Inbox',
+        'tasks.board.sectionOverdue': 'Overdue',
+        'tasks.bulkDeleteTitle': 'Delete {{count}} tasks',
+        'tasks.bulkDeleteConfirm': 'Delete the {{count}} selected tasks?',
+        'tasks.deletedManyToast': 'Deleted {{count}} tasks',
+        'tasks.tagFilterEmpty': 'No tags yet',
+        'tasks.overdue.reschedule': 'Reschedule',
+        'tasks.overdue.toToday': 'All to today',
+        'tasks.overdue.toTomorrow': 'All to tomorrow',
+        'tasks.overdue.clearDue': 'Remove all due dates',
+        'tasks.overdue.rescheduledToast': 'Rescheduled {{count}} overdue tasks',
       }
       const msg = msgs[key]
       if (!msg) return key
@@ -63,8 +76,10 @@ vi.mock('../../shared/i18n/useI18n', () => ({
   useI18n: () => ({ t: mockT, language: 'en' as const }),
 }))
 
+const pushMock = vi.fn()
+
 vi.mock('../../shared/ui/toast/toast', () => ({
-  useToast: () => ({ push: vi.fn() }),
+  useToast: () => ({ push: pushMock }),
 }))
 
 vi.mock('../../shared/discovery/useDiscoveryHint', () => ({
@@ -121,7 +136,8 @@ vi.mock('./TaskDrawer', () => ({
 }))
 
 vi.mock('../../shared/ui/Dialog', () => ({
-  default: () => null,
+  default: ({ open, title, children }: { open: boolean; title?: string; children?: ReactNode }) =>
+    open ? <div role="dialog" aria-label={title}>{children}</div> : null,
 }))
 
 vi.mock('../../shared/ui/AppNumber', () => ({
@@ -178,6 +194,7 @@ describe('TasksBoard sync', () => {
     updateMock.mockReset()
     removeMock.mockReset()
     updateStatusMock.mockReset()
+    pushMock.mockReset()
     subscribeTasksChangedMock.mockReset()
     subscribeTasksChangedMock.mockReturnValue(() => {})
     tasksChangedHandler = null
@@ -444,5 +461,146 @@ describe('TasksBoard sync', () => {
     expect(screen.getByText('Add your first task above to get started')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Add a new task...')).toBeInTheDocument()
     expect(screen.queryByTestId('task-drawer')).not.toBeInTheDocument()
+  })
+
+  it('asks before deleting a bulk selection, then deletes with an undo notice', async () => {
+    const taskA = makeTask('task-1', 'First task')
+    const taskB = makeTask('task-2', 'Second task')
+    listMock.mockResolvedValue([taskA, taskB])
+    removeMock.mockResolvedValue([])
+
+    render(<TasksBoard asCard={false} />)
+    await waitFor(() => expect(screen.getByText('Bulk edit')).toBeInTheDocument())
+    fireEvent.click(screen.getByText('Bulk edit'))
+    fireEvent.click(screen.getByTestId('task-card-task-1'))
+    fireEvent.click(screen.getByTestId('task-card-task-2'))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+
+    const dialog = await screen.findByRole('dialog', { name: 'Delete 2 tasks' })
+    expect(removeMock).not.toHaveBeenCalled()
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }))
+
+    await waitFor(() => expect(removeMock).toHaveBeenCalledTimes(2))
+    expect(pushMock).toHaveBeenCalledWith(expect.objectContaining({ message: 'Deleted 2 tasks', actionLabel: 'Undo' }))
+  })
+
+  it('filters by the tags tasks actually carry, including ones typed in quick-add', async () => {
+    listMock.mockResolvedValueOnce([
+      { ...makeTask('task-1', 'Ship samples'), tags: ['Lowes'] },
+      { ...makeTask('task-2', 'Write weekly report'), tags: ['工作'] },
+      makeTask('task-3', 'No tag task'),
+    ])
+
+    render(<TasksBoard asCard={false} />)
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1))
+    fireEvent.click(screen.getByText('Select tag'))
+
+    expect(await screen.findByRole('button', { name: '#工作' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '#Lowes' }))
+
+    await waitFor(() => expect(screen.queryByText('Write weekly report')).not.toBeInTheDocument())
+    expect(screen.getByText('Ship samples')).toBeInTheDocument()
+    expect(screen.queryByText('No tag task')).not.toBeInTheDocument()
+  })
+
+  describe('overdue tasks in Today', () => {
+    const dateKey = (offsetDays: number) => {
+      const now = new Date()
+      const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offsetDays)
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+    }
+    const overdue = (id: string) => ({ ...makeTask(id, `Late ${id}`), dueDate: dateKey(-3) })
+
+    it('keeps a few late tasks open, and remembers folding them', async () => {
+      listMock.mockResolvedValueOnce([overdue('a'), overdue('b')])
+
+      render(<TasksBoard asCard={false} topView="today" />)
+      await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1))
+
+      const toggle = screen.getByRole('button', { name: /Overdue/ })
+      expect(toggle).toHaveAttribute('aria-expanded', 'true')
+      expect(screen.getByText('Late a')).toBeInTheDocument()
+
+      fireEvent.click(toggle)
+      expect(toggle).toHaveAttribute('aria-expanded', 'false')
+      expect(screen.queryByText('Late a')).not.toBeInTheDocument()
+      expect(window.localStorage.getItem('tasks_today_overdue_collapsed_v1')).toBe('1')
+    })
+
+    it('folds a pile of late tasks so today’s own tasks lead, and moves them all to tomorrow', async () => {
+      const late = ['a', 'b', 'c', 'd'].map(overdue)
+      listMock.mockResolvedValue([...late, { ...makeTask('today', 'Planned for today'), isToday: true }])
+      updateMock.mockImplementation(async (task: TaskItem) => task)
+
+      render(<TasksBoard asCard={false} topView="today" />)
+      await waitFor(() => expect(screen.getByText('Planned for today')).toBeInTheDocument())
+
+      expect(screen.getByRole('button', { name: /Overdue/ })).toHaveAttribute('aria-expanded', 'false')
+      expect(screen.queryByText('Late a')).not.toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Reschedule' }))
+      fireEvent.click(await screen.findByRole('button', { name: 'All to tomorrow' }))
+
+      await waitFor(() => expect(updateMock).toHaveBeenCalledTimes(4))
+      for (const call of updateMock.mock.calls) {
+        expect(call[0]).toMatchObject({ dueDate: dateKey(1), isToday: false })
+      }
+      expect(pushMock).toHaveBeenCalledWith(expect.objectContaining({ message: 'Rescheduled 4 overdue tasks', actionLabel: 'Undo' }))
+    })
+  })
+
+  describe('waiting, verify and dropped', () => {
+    const daysFromToday = (offset: number) => {
+      const now = new Date()
+      const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset)
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+    }
+
+    it('shows a tab for a rarer status only once something is in it', async () => {
+      listMock.mockResolvedValueOnce([
+        makeTask('task-1', 'Plain todo'),
+        { ...makeTask('task-2', 'Chase Lowe’s'), status: 'waiting' as const },
+      ])
+
+      render(<TasksBoard asCard={false} />)
+      await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1))
+
+      expect(screen.getByRole('tab', { name: /Waiting/ })).toBeInTheDocument()
+      expect(screen.queryByRole('tab', { name: /To verify/ })).not.toBeInTheDocument()
+      expect(screen.queryByRole('tab', { name: /Dropped/ })).not.toBeInTheDocument()
+      expect(screen.queryByText('Chase Lowe’s')).not.toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('tab', { name: /Waiting/ }))
+      expect(await screen.findByText('Chase Lowe’s')).toBeInTheDocument()
+      expect(screen.queryByText('Plain todo')).not.toBeInTheDocument()
+    })
+
+    it('keeps dropped tasks out of 今日 even when due today', async () => {
+      listMock.mockResolvedValueOnce([
+        { ...makeTask('task-1', 'Let go'), status: 'dropped' as const, dueDate: daysFromToday(0), isToday: true },
+        { ...makeTask('task-2', 'Still on'), dueDate: daysFromToday(0) },
+      ])
+
+      render(<TasksBoard asCard={false} topView="today" />)
+      await waitFor(() => expect(screen.getByText('Still on')).toBeInTheDocument())
+      expect(screen.queryByText('Let go')).not.toBeInTheDocument()
+    })
+
+    it('brings a waiting task to 今日 on its chase date without calling it overdue', async () => {
+      listMock.mockResolvedValueOnce([
+        { ...makeTask('task-1', 'Chase Mac'), status: 'waiting' as const, dueDate: daysFromToday(-3) },
+        { ...makeTask('task-2', 'Late report'), dueDate: daysFromToday(-3) },
+      ])
+
+      render(<TasksBoard asCard={false} topView="today" />)
+      await waitFor(() => expect(screen.getByText('Chase Mac')).toBeInTheDocument())
+
+      const overdueHeader = screen.getByRole('button', { name: /Overdue/ })
+      expect(overdueHeader).toHaveTextContent('1')
+      const overdueGroup = document.getElementById('tasks-overdue-group')
+      expect(overdueGroup).toHaveTextContent('Late report')
+      expect(overdueGroup).not.toHaveTextContent('Chase Mac')
+    })
   })
 })

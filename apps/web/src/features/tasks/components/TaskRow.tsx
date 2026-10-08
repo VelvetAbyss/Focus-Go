@@ -1,13 +1,14 @@
 import { useMemo, useState } from 'react'
-import { Pin, Trash2 } from 'lucide-react'
+import { Pin, Repeat, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { TaskItem } from '../tasks.types'
 import {
+  describeTaskRecurrence,
   formatTaskDate,
   getTaskCompletion,
-  getTaskDeadlineState,
   getTaskPriorityKey,
 } from './taskPresentation'
+import { isTaskFollowUpDue, isTaskOverdue } from '../domain/taskRules'
 import { useI18n } from '../../../shared/i18n/useI18n'
 import InkMark from '../../../shared/ui/InkMark'
 
@@ -64,12 +65,20 @@ const TaskRow = ({
   const [hover, setHover] = useState(false)
   const priorityKey = getTaskPriorityKey(task.priority)
   const completion = getTaskCompletion(task)
-  const deadline = getTaskDeadlineState(task)
   const dueLabel = formatTaskDate(task.dueDate)
   const accent = project?.color || 'var(--ink-3)'
   const firstTag = useMemo(() => task.tags.find(isMeaningfulTag), [task.tags])
-  const isOverdue = deadline.daysRemaining !== null && deadline.daysRemaining < 0 && task.status !== 'done'
+  const isOverdue = isTaskOverdue(task)
+  const isFollowUp = isTaskFollowUpDue(task)
   const isHighPriority = priorityKey === 'high'
+  const recurrenceLabel = describeTaskRecurrence(task.recurrence, t)
+  // waiting / verify say so in their hand; todo/doing/done are told by the column.
+  const statusNote = task.status === 'waiting'
+    ? (isFollowUp ? t('tasks.card.followUp') : task.waitingOn ? t('tasks.card.waitingOn', { who: task.waitingOn }) : t('tasks.status.waiting'))
+    : task.status === 'verify'
+      ? t('tasks.status.verify')
+      : null
+  const statusNoteClass = task.status === 'verify' ? 'text-tone-info' : isFollowUp ? 'text-tone-warn' : 'text-[color:var(--pencil)]'
 
   const handleCycle = (e: React.MouseEvent | React.KeyboardEvent) => {
     e.stopPropagation()
@@ -158,6 +167,12 @@ const TaskRow = ({
                 {dueLabel}
               </span>
             ) : null}
+            {recurrenceLabel ? (
+              <span className="fg-task-row__meta-piece inline-flex items-center gap-1" title={recurrenceLabel}>
+                <Repeat className="size-3" aria-hidden />
+                {recurrenceLabel}
+              </span>
+            ) : null}
             {ownerName ? <span className="fg-task-row__meta-piece">@{ownerName}</span> : null}
             {project ? (
               <span className="fg-task-row__meta-piece fg-task-row__project">
@@ -239,12 +254,19 @@ const TaskRow = ({
       </span>
 
       <div className="fg-task-row__trailing">
+        {statusNote ? (
+          <span className={cn('max-w-[7rem] truncate text-label', statusNoteClass)} title={task.waitingOn ?? undefined}>{statusNote}</span>
+        ) : null}
+        {recurrenceLabel ? (
+          <Repeat className="size-3 shrink-0 text-[color:var(--pencil)]" aria-label={recurrenceLabel} />
+        ) : null}
         {completion ? (
           <span className="fg-task-row__progress">
             {completion.completed}/{completion.total}
           </span>
         ) : null}
-        {firstTag ? (
+        {/* A status note outranks the tag on a narrow row; the title must keep its room. */}
+        {firstTag && !statusNote ? (
           <span className="fg-task-row__tag">#{firstTag}</span>
         ) : null}
         {dueLabel ? (

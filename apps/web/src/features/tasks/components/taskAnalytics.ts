@@ -1,5 +1,5 @@
 import type { TaskItem, TaskPriority, TaskStatus } from '../tasks.types'
-import { getTaskCompletion, isTaskDone } from '../domain/taskRules'
+import { getTaskCompletion, isTaskClosed, isTaskDone, isTaskOverdue } from '../domain/taskRules'
 import { isTaskDoneActivityLog } from '../domain/taskProgressSummary'
 import { appIntlLocale } from '../../../shared/i18n/format'
 
@@ -185,7 +185,8 @@ export const buildTaskAnalytics = (tasks: TaskItem[], { now = Date.now(), granul
     buckets[index]!.subtasksTotal += completion?.total ?? 0
 
     const dueDay = parseDateOnlyToUtcDayStart(task.dueDate)
-    if (dueDay != null && !isTaskDone(task)) {
+    // Waiting tasks aren't late on you; closed ones aren't late at all.
+    if (dueDay != null && !isTaskClosed(task) && task.status !== 'waiting') {
       const dueIndex = bucketIndex.get(getBucketRange(dueDay, granularity).startAt)
       if (dueIndex != null) {
         const daysRemaining = Math.round((dueDay - nowDayStart) / DAY_MS)
@@ -199,25 +200,22 @@ export const buildTaskAnalytics = (tasks: TaskItem[], { now = Date.now(), granul
   const created = buckets.reduce((sum, bucket) => sum + bucket.created, 0)
   const totalTasks = tasks.length
   const completedTasks = tasks.filter(isTaskDone).length
-  const activeTasks = totalTasks - completedTasks
+  const activeTasks = tasks.filter((task) => !isTaskClosed(task)).length
   const subtasksCompleted = tasks.reduce((sum, task) => sum + (getTaskCompletion(task)?.completed ?? 0), 0)
   const subtasksTotal = tasks.reduce((sum, task) => sum + (getTaskCompletion(task)?.total ?? 0), 0)
   const subtaskCompletionRate = subtasksTotal > 0 ? roundTo((subtasksCompleted / subtasksTotal) * 100, 0) : 0
-  const overdueTasks = tasks.filter((task) => {
-    const dueDay = parseDateOnlyToUtcDayStart(task.dueDate)
-    return dueDay != null && !isTaskDone(task) && dueDay < nowDayStart
-  }).length
+  const overdueTasks = tasks.filter((task) => isTaskOverdue(task, now)).length
   const dueSoonTasks = tasks.filter((task) => {
     const dueDay = parseDateOnlyToUtcDayStart(task.dueDate)
-    if (dueDay == null || isTaskDone(task)) return false
+    if (dueDay == null || isTaskClosed(task) || task.status === 'waiting') return false
     const daysRemaining = Math.round((dueDay - nowDayStart) / DAY_MS)
     return daysRemaining >= 0 && daysRemaining <= DEADLINE_SOON_DAYS
   }).length
-  const statusCounts: Record<TaskStatus, number> = { todo: 0, doing: 0, done: 0 }
+  const statusCounts: Record<TaskStatus, number> = { todo: 0, doing: 0, waiting: 0, verify: 0, done: 0, dropped: 0 }
   const priorityCounts: Record<TaskPriority | 'none', number> = { high: 0, medium: 0, low: 0, none: 0 }
 
   tasks.forEach((task) => {
-    statusCounts[task.status] += 1
+    if (task.status in statusCounts) statusCounts[task.status] += 1
     priorityCounts[task.priority ?? 'none'] += 1
   })
 

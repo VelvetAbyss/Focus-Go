@@ -13,6 +13,7 @@ import {
 } from '../application/taskAttachments'
 import TaskAttachmentChip from './TaskAttachmentChip'
 import { parseQuickAdd, type ParsedQuickAdd } from '../parseQuickAdd'
+import { describeTaskRecurrence } from './taskPresentation'
 import { appIntlLocale } from '../../../shared/i18n/format'
 
 export type TaskAddComposerHandle = {
@@ -270,6 +271,8 @@ const TaskAddComposer = forwardRef<TaskAddComposerHandle, TaskAddComposerProps>(
       const time = new Date(result.reminderAt).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: false })
       hints.push(t('tasks.quickAdd.reminder', { time }))
     }
+    const repeatLabel = describeTaskRecurrence(result.recurrence, t)
+    if (repeatLabel) hints.push(`↻ ${repeatLabel}`)
     if (result.priority) hints.push(t('tasks.quickAdd.priority', { level: t(`tasks.priority.${result.priority}`) }))
     result.tags.forEach((tag) => hints.push(`#${tag}`))
     if (result.projectId && result.projectId !== selectedProjectId) {

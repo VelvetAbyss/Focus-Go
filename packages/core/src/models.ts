@@ -113,11 +113,26 @@ export type TimelineItem = BaseEntity & {
   }
 }
 
-export const TASK_STATUSES = ['todo', 'doing', 'done'] as const
+/**
+ * todo/doing: yours to do. waiting: the ball is with someone else (`waitingOn`). verify: a claim
+ * exists but isn't confirmed yet. done: finished. dropped: deliberately let go, kept with a reason.
+ */
+export const TASK_STATUSES = ['todo', 'doing', 'waiting', 'verify', 'done', 'dropped'] as const
 export const TASK_PRIORITIES = ['high', 'medium', 'low'] as const
 
 export type TaskStatus = (typeof TASK_STATUSES)[number]
 export type TaskPriority = (typeof TASK_PRIORITIES)[number]
+
+export type TaskRecurrenceFrequency = 'daily' | 'weekdays' | 'weekly' | 'monthly' | 'yearly'
+
+/** Repeat rule. Completing (or dropping) a repeating task creates the next one and hands the rule to it. */
+export type TaskRecurrence = {
+  frequency: TaskRecurrenceFrequency
+  /** Every N days/weeks/months/years; ignored for weekdays. */
+  interval: number
+  /** Monthly/yearly: the day of month to land on (clamped to short months, so 31 stays 31). */
+  monthDay?: number
+}
 
 export type TaskSubtask = {
   id: string
@@ -249,6 +264,15 @@ export type TaskItem = BaseEntity & {
   progressNote?: string
   progressNoteUpdatedAt?: number
   progressHistory?: TaskProgressEntry[]
+  /** Who or what the task is waiting on (status `waiting`). */
+  waitingOn?: string
+  /** When the task last entered `waiting`. */
+  waitingSince?: number
+  /** Why the task was dropped (status `dropped`). */
+  dropReason?: string
+  recurrence?: TaskRecurrence
+  /** On a finished repeating task: the occurrence created from it, so reopening can take it back. */
+  recurrenceNextId?: string
 }
 
 export type WidgetTodoScope = 'day' | 'week' | 'month' | 'custom'

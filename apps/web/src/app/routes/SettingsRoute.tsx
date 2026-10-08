@@ -16,6 +16,7 @@ import {
   SunMedium,
   Waves,
   AlertTriangle,
+  BellRing,
   Lightbulb,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -50,6 +51,14 @@ import {
 } from '../../shared/theme/themePack'
 import type { DashboardLayout } from '../../data/models/types'
 import { usePreferences } from '../../shared/prefs/usePreferences'
+import {
+  disableWebPush,
+  enableWebPush,
+  fetchWebPushConfig,
+  isWebPushSupported,
+  readWebPushEnabled,
+  sendWebPushTest,
+} from '../../shared/push/webPush'
 import { useI18n } from '../../shared/i18n/useI18n'
 import type { LanguageCode } from '../../shared/i18n/types'
 import { useToast } from '../../shared/ui/toast/toast'
@@ -588,6 +597,94 @@ const DesktopNotificationRow = () => {
       description={t('tasks.reminder.enableDesktopHint')}
     >
       {content}
+    </SettingRow>
+  )
+}
+
+/** Server-sent reminders for this device (Web Push), for when every tab is closed. */
+const WebPushRow = () => {
+  const { t, language } = useI18n()
+  const { taskReminderEnabled, taskReminderLeadMinutes } = usePreferences()
+  const isLoggedIn = useIsLoggedIn()
+  const supported = isWebPushSupported()
+  const [enabled, setEnabled] = useState(readWebPushEnabled)
+  const [available, setAvailable] = useState<boolean | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [note, setNote] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!supported) return
+    let cancelled = false
+    void Promise.all([navigator.serviceWorker.getRegistration().catch(() => undefined), fetchWebPushConfig()]).then(([registration, config]) => {
+      if (!cancelled) setAvailable(Boolean(registration) && config.enabled)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [supported])
+
+  // Turning reminders off elsewhere turns this off too (useWebPushLifecycle).
+  useEffect(() => {
+    if (!taskReminderEnabled) setEnabled(false)
+  }, [taskReminderEnabled])
+
+  const blockedReason = !supported
+    ? t('settings.webPush.unsupported')
+    : !isLoggedIn
+      ? t('settings.webPush.signIn')
+      : !taskReminderEnabled
+        ? t('settings.webPush.needsReminders')
+        : available === false
+          ? t('settings.webPush.unavailable')
+          : null
+
+  const handleToggle = async (checked: boolean) => {
+    setBusy(true)
+    setNote(null)
+    try {
+      if (!checked) {
+        await disableWebPush()
+        setEnabled(false)
+        return
+      }
+      const result = await enableWebPush({ leadMinutes: taskReminderLeadMinutes, language })
+      setEnabled(result === 'on')
+      if (result === 'denied') setNote(t('settings.webPush.denied'))
+      else if (result === 'unavailable') setAvailable(false)
+      else if (result === 'failed') setNote(t('settings.webPush.failed'))
+      else if (result === 'signed-out') setNote(t('settings.webPush.signIn'))
+      else if (result === 'update-needed') setNote(t('settings.webPush.updateNeeded'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleTest = async () => {
+    setBusy(true)
+    const ok = await sendWebPushTest()
+    setNote(ok ? t('settings.webPush.testSent') : t('settings.webPush.testFailed'))
+    setBusy(false)
+  }
+
+  return (
+    <SettingRow
+      icon={BellRing}
+      title={t('settings.webPush.title')}
+      description={note ?? blockedReason ?? t('settings.webPush.description')}
+    >
+      <div className="flex items-center gap-2">
+        {enabled && !blockedReason ? (
+          <Button variant="outline" size="sm" onClick={() => void handleTest()} disabled={busy}>
+            {t('settings.webPush.test')}
+          </Button>
+        ) : null}
+        <Switch
+          checked={enabled && !blockedReason}
+          disabled={busy || Boolean(blockedReason) || available === null}
+          onCheckedChange={(checked) => void handleToggle(checked)}
+          aria-label={t('settings.webPush.title')}
+        />
+      </div>
     </SettingRow>
   )
 }
@@ -1430,6 +1527,8 @@ const SettingsRoute = () => {
                           </SettingRow>
 
                           <DesktopNotificationRow />
+
+                          <WebPushRow />
 
 
                           <AlertDialog open={pendingNeteaseExperimentalToggle} onOpenChange={setPendingNeteaseExperimentalToggle}>

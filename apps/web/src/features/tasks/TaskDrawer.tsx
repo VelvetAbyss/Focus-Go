@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useInRouterContext, useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeft, CalendarDays, Check, Clock3, Flag, LoaderCircle, Pin, Plus, RotateCcw, Target, Trash2, X } from 'lucide-react'
+import { ArrowLeft, CalendarDays, Check, Clock3, Flag, LoaderCircle, MoreHorizontal, Pin, Play, Plus, Repeat, RotateCcw, Target, Trash2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -23,16 +23,20 @@ import { DateTimePicker } from '../../shared/ui/DateTimePicker'
 import { tasksRepo } from '../../data/repositories/tasksRepo'
 import { createId } from '../../shared/utils/ids'
 import { useToast } from '../../shared/ui/toast/toast'
-import type { TaskItem, TaskPriority } from './tasks.types'
+import type { TaskItem, TaskPriority, TaskStatus } from './tasks.types'
 import type { ProjectItem } from '../../data/models/types'
 import { useAddInputComposer } from '../../shared/hooks/useAddInputComposer'
 import { Popover, PopoverContent, PopoverTrigger } from '../../shared/ui/popover'
 import { emitTasksChanged } from './taskSync'
+import { useTaskDeletion } from './application/useTaskDeletion'
 import TaskAttachmentsSection from './components/TaskAttachmentsSection'
 import TaskNotesPanel from './components/TaskNotesPanel'
 import TaskProgressCard from './components/TaskProgressCard'
 import TaskProjectAssignCard from './components/TaskProjectAssignCard'
-import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, formatTaskDateTime, getTaskTagTone } from './components/taskPresentation'
+import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, describeTaskRecurrence, formatTaskDateTime, getTaskTagTone } from './components/taskPresentation'
+import { recurrenceFromOption, recurrenceOptionValue } from './domain/taskRecurrence'
+import { getTaskWaitingDays } from './domain/taskRules'
+import { toDateKey } from '../../shared/utils/time'
 import { useI18n } from '../../shared/i18n/useI18n'
 import { HelpBadge } from '../../shared/ui/HelpBadge'
 import { useAuthGate } from '../auth/AuthGateContext'
@@ -77,6 +81,19 @@ type TaskDrawerProps = {
 }
 
 const priorityOptions: TaskPriority[] = ['high', 'medium', 'low']
+// The repeat presets; a custom interval from quick-add ("每 3 天") is listed as well when present.
+const RECURRENCE_PRESETS = ['daily:1', 'weekdays:1', 'weekly:1', 'weekly:2', 'monthly:1', 'yearly:1']
+// Every status the drawer's 更多 menu can move to, in the order they're offered.
+const STATUS_MENU: { status: TaskStatus; labelKey: 'tasks.status.markTodo' | 'tasks.status.doing' | 'tasks.status.markWaiting' | 'tasks.status.markVerify' | 'tasks.status.done' | 'tasks.status.markDropped' }[] = [
+  { status: 'todo', labelKey: 'tasks.status.markTodo' },
+  { status: 'doing', labelKey: 'tasks.status.doing' },
+  { status: 'waiting', labelKey: 'tasks.status.markWaiting' },
+  { status: 'verify', labelKey: 'tasks.status.markVerify' },
+  { status: 'done', labelKey: 'tasks.status.done' },
+  { status: 'dropped', labelKey: 'tasks.status.markDropped' },
+]
+const OUTLINE_PILL = 'h-8 rounded-full border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] px-3.5 text-meta font-semibold hover:border-[color-mix(in_srgb,var(--text-primary)_25%,transparent)] hover:bg-[color:var(--surface-hover)]'
+const CTA_PILL = 'h-8 rounded-full border-0 bg-[var(--cta-bg)] px-3.5 text-meta font-semibold text-[color:var(--cta-fg)] hover:bg-[var(--cta-bg-hover)]'
 const defaultTagOptions = ['work', 'life', 'health', 'study', 'finance', 'family']
 const TASK_DRAWER_WIDTH_STORAGE_KEY = 'task_drawer_width_v1'
 const TASK_DRAWER_SPLIT_STORAGE_KEY = 'task_drawer_split_ratio_v1'
@@ -176,6 +193,7 @@ const TaskDrawer = ({
   const [lastId, setLastId] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const toast = useToast()
+  const deleteTasks = useTaskDeletion()
   const taskSnapshotRef = useRef<TaskItem | null>(null)
   const bodyOverflowRef = useRef<string>('')
   const panelRef = useRef<HTMLDivElement | null>(null)
@@ -562,6 +580,54 @@ const TaskDrawer = ({
     }
   }
 
+  // Fields that live on the task itself rather than in the draft (they can also change from a
+  // status change, e.g. finishing a repeating task hands its rule to the next one). Saved at once,
+  // together with any pending draft edits.
+  const commitDirect = (patch: Partial<TaskItem>) => {
+    const base = draftRef.current ?? buildDraft(task)
+    if (!base) return
+    void saveDraft({ ...base, ...patch })
+  }
+
+  const [waitingOnDraft, setWaitingOnDraft] = useState('')
+  const [dropReasonDraft, setDropReasonDraft] = useState('')
+  const [statusMenuOpen, setStatusMenuOpen] = useState(false)
+  useEffect(() => {
+    setWaitingOnDraft(currentTask?.waitingOn ?? '')
+  }, [currentTask?.id, currentTask?.waitingOn])
+  useEffect(() => {
+    setDropReasonDraft(currentTask?.dropReason ?? '')
+  }, [currentTask?.id, currentTask?.dropReason])
+  const commitWaitingOn = () => {
+    const next = waitingOnDraft.trim()
+    if (next !== (currentTask?.waitingOn ?? '')) commitDirect({ waitingOn: next || undefined })
+  }
+  const commitDropReason = () => {
+    const next = dropReasonDraft.trim()
+    if (next !== (currentTask?.dropReason ?? '')) commitDirect({ dropReason: next || undefined })
+  }
+
+  const handleRecurrenceChange = (value: string) => {
+    if (value === 'none') {
+      commitDirect({ recurrence: undefined })
+      return
+    }
+    // A series needs a first date; without one it starts today.
+    const anchor = dueDate || toDateKey(new Date())
+    if (!dueDate) setDueDate(anchor)
+    commitDirect({ dueDate: anchor, recurrence: recurrenceFromOption(value, anchor) })
+  }
+
+  const handleDueDateChange = (date: string | null | undefined) => {
+    const next = date ?? ''
+    setDueDate(next)
+    // Moving the date of a monthly/yearly series moves the day it lands on, too.
+    const rule = currentTask?.recurrence
+    if (next && rule && (rule.frequency === 'monthly' || rule.frequency === 'yearly')) {
+      commitDirect({ dueDate: next, recurrence: { ...rule, monthDay: Number(next.slice(8, 10)) } })
+    }
+  }
+
   const handleDelete = async () => {
     if (!currentTask) return
     if (onRequestDelete) {
@@ -575,8 +641,7 @@ const TaskDrawer = ({
       return
     }
     setConfirmingDelete(false)
-    await tasksRepo.remove(currentTask.id)
-    emitTasksChanged('task-drawer:delete')
+    await deleteTasks([currentTask], 'task-drawer')
     onDeleted(currentTask.id)
     onClose()
   }
@@ -606,7 +671,12 @@ const TaskDrawer = ({
       }),
     [sortedSubtasks, subtaskFilter],
   )
-  const statusConfig = currentTask ? TASK_STATUS_CONFIG[currentTask.status] : TASK_STATUS_CONFIG.todo
+  const statusConfig = (currentTask && TASK_STATUS_CONFIG[currentTask.status]) || TASK_STATUS_CONFIG.todo
+  const waitingDays = currentTask ? getTaskWaitingDays(currentTask) : null
+  const recurrenceValue = recurrenceOptionValue(currentTask?.recurrence)
+  const recurrenceOptions = recurrenceValue !== 'none' && !RECURRENCE_PRESETS.includes(recurrenceValue)
+    ? [...RECURRENCE_PRESETS, recurrenceValue]
+    : RECURRENCE_PRESETS
   const priorityConfig = TASK_PRIORITY_CONFIG[priority ?? 'none']
   // Human-readable reminder chip in the app language (it used to print a raw
   // UTC ISO string like 2026-09-24T10:50:00.000Z).
@@ -702,7 +772,7 @@ const TaskDrawer = ({
               ) : null}
               <div className={cn('task-detail-actions flex items-center gap-1.5', confirmingDelete && 'hidden')}>
                 {canLaunchFocus ? <RoutedTaskReturn taskId={currentTask.id} /> : null}
-                {canLaunchFocus && currentTask.status !== 'done' ? (
+                {canLaunchFocus && currentTask.status !== 'done' && currentTask.status !== 'dropped' ? (
                   <FocusOnTaskButton
                     taskId={currentTask.id}
                     className="border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] hover:border-[color-mix(in_srgb,var(--text-primary)_25%,transparent)] hover:bg-[color:var(--surface-hover)]"
@@ -714,37 +784,57 @@ const TaskDrawer = ({
                   />
                 ) : null}
                 {currentTask.status === 'todo' ? (
-                  <>
-                    <Button variant="outline" size="sm"
-                      className="h-8 rounded-full border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] px-3.5 text-meta font-semibold hover:border-[color-mix(in_srgb,var(--text-primary)_25%,transparent)] hover:bg-[color:var(--surface-hover)]"
-                      onClick={() => void handleStatusChange('doing')} disabled={isSaving}>
-                      <Target className="mr-1.5 h-3.5 w-3.5" />
-                      {t('tasks.action.start')}
-                    </Button>
-                    <Button size="sm"
-                      className="h-8 rounded-full border-0 bg-[var(--cta-bg)] px-3.5 text-meta font-semibold text-[color:var(--cta-fg)] hover:bg-[var(--cta-bg-hover)]"
-                      onClick={() => void handleStatusChange('done')} disabled={isSaving}>
-                      <Check className="mr-1.5 h-3.5 w-3.5" />
-                      {t('tasks.action.done')}
-                    </Button>
-                  </>
+                  <Button variant="outline" size="sm" className={OUTLINE_PILL} onClick={() => void handleStatusChange('doing')} disabled={isSaving}>
+                    <Target className="mr-1.5 h-3.5 w-3.5" />
+                    {t('tasks.action.start')}
+                  </Button>
                 ) : null}
-                {currentTask.status === 'doing' ? (
-                  <Button size="sm"
-                    className="h-8 rounded-full border-0 bg-[var(--cta-bg)] px-3.5 text-meta font-semibold text-[color:var(--cta-fg)] hover:bg-[var(--cta-bg-hover)]"
-                    onClick={() => void handleStatusChange('done')} disabled={isSaving}>
+                {currentTask.status === 'waiting' ? (
+                  <Button variant="outline" size="sm" className={OUTLINE_PILL} onClick={() => void handleStatusChange('doing')} disabled={isSaving}>
+                    <Play className="mr-1.5 h-3.5 w-3.5" />
+                    {t('tasks.status.resume')}
+                  </Button>
+                ) : null}
+                {currentTask.status === 'todo' || currentTask.status === 'doing' || currentTask.status === 'waiting' || currentTask.status === 'verify' ? (
+                  <Button size="sm" className={CTA_PILL} onClick={() => void handleStatusChange('done')} disabled={isSaving}>
                     <Check className="mr-1.5 h-3.5 w-3.5" />
-                    {t('tasks.action.done')}
+                    {currentTask.status === 'verify' ? t('tasks.status.verified') : t('tasks.action.done')}
                   </Button>
                 ) : null}
-                {currentTask.status === 'done' ? (
-                  <Button variant="outline" size="sm"
-                    className="h-8 rounded-full border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] px-3.5 text-meta font-semibold hover:border-[color-mix(in_srgb,var(--text-primary)_25%,transparent)]"
-                    onClick={() => void handleStatusChange('todo')} disabled={isSaving}>
+                {currentTask.status === 'done' || currentTask.status === 'dropped' ? (
+                  <Button variant="outline" size="sm" className={OUTLINE_PILL} onClick={() => void handleStatusChange('todo')} disabled={isSaving}>
                     <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-                    {t('tasks.status.reopen')}
+                    {currentTask.status === 'dropped' ? t('tasks.status.restore') : t('tasks.status.reopen')}
                   </Button>
                 ) : null}
+                <Popover open={statusMenuOpen} onOpenChange={setStatusMenuOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="icon" aria-label={t('tasks.status.more')} title={t('tasks.status.more')}
+                      className="h-8 w-8 rounded-full text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-hover)] hover:text-[color:var(--text-primary)]"
+                      disabled={isSaving}>
+                      <MoreHorizontal className="h-3.5 w-3.5" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-40 p-1.5" align="end">
+                    <div className="space-y-0.5" role="menu" aria-label={t('tasks.status.more')}>
+                      {STATUS_MENU.filter((item) => item.status !== currentTask.status).map((item) => (
+                        <button
+                          key={item.status}
+                          type="button"
+                          role="menuitem"
+                          className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition hover:bg-accent"
+                          onClick={() => {
+                            setStatusMenuOpen(false)
+                            void handleStatusChange(item.status)
+                          }}
+                        >
+                          <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', TASK_STATUS_CONFIG[item.status].dot)} aria-hidden />
+                          {t(item.labelKey)}
+                        </button>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
               <Button aria-label={t('tasks.card.delete')} variant="ghost" size="icon"
                 className="h-8 w-8 rounded-full text-[color:var(--text-secondary)] transition-colors hover:bg-tone-urgent-wash hover:text-tone-urgent"
@@ -845,6 +935,49 @@ const TaskDrawer = ({
                         </span>
                       )}
                     </div>
+
+                    {/* What the status needs to be useful: who it waits on, or why it was let go. */}
+                    {currentTask.status === 'waiting' ? (
+                      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-meta">
+                        <label className="inline-flex min-w-0 items-center gap-2">
+                          <span className="shrink-0 font-semibold text-[color:var(--text-secondary)]">{t('tasks.drawer.waitingOn')}</span>
+                          <Input
+                            value={waitingOnDraft}
+                            onChange={(event) => setWaitingOnDraft(event.target.value)}
+                            onBlur={commitWaitingOn}
+                            onKeyDown={(event) => {
+                              if (event.key !== 'Enter' || event.nativeEvent.isComposing) return
+                              event.preventDefault()
+                              event.currentTarget.blur()
+                            }}
+                            placeholder={t('tasks.drawer.waitingOnPlaceholder')}
+                            aria-label={t('tasks.drawer.waitingOn')}
+                            className="h-7 w-72 max-w-full rounded-full border-dashed border-[color:var(--pencil-line)] bg-transparent px-3 text-meta shadow-none"
+                          />
+                        </label>
+                        {waitingDays != null ? (
+                          <span className="text-[color:var(--pencil)]">{t('tasks.drawer.waitingFor', { n: waitingDays })}</span>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    {currentTask.status === 'dropped' ? (
+                      <label className="mt-3 flex min-w-0 items-center gap-2 text-meta">
+                        <span className="shrink-0 font-semibold text-[color:var(--text-secondary)]">{t('tasks.drawer.dropReason')}</span>
+                        <Input
+                          value={dropReasonDraft}
+                          onChange={(event) => setDropReasonDraft(event.target.value)}
+                          onBlur={commitDropReason}
+                          onKeyDown={(event) => {
+                            if (event.key !== 'Enter' || event.nativeEvent.isComposing) return
+                            event.preventDefault()
+                            event.currentTarget.blur()
+                          }}
+                          placeholder={t('tasks.drawer.dropReasonPlaceholder')}
+                          aria-label={t('tasks.drawer.dropReason')}
+                          className="h-7 min-w-0 flex-1 rounded-full bg-transparent px-3 text-meta shadow-none"
+                        />
+                      </label>
+                    ) : null}
                   </div>
                 </div>
 
@@ -871,7 +1004,7 @@ const TaskDrawer = ({
                     <div className="grid gap-3 md:grid-cols-2">
                       <label className="grid gap-1.5">
                         <span className="px-1 text-meta font-semibold uppercase tracking-[var(--tracking-caps)] text-[color:var(--text-secondary)]">{t('tasks.drawer.dueDate')}</span>
-                        <DatePicker value={dueDate} onChange={(date) => setDueDate(date ?? '')} placeholder={t('tasks.drawer.setDate')} className="task-detail-picker rounded-[var(--radius-md)]" />
+                        <DatePicker value={dueDate} onChange={handleDueDateChange} placeholder={t('tasks.drawer.setDate')} className="task-detail-picker rounded-[var(--radius-md)]" />
                       </label>
                       <label className="grid gap-1.5">
                         <span className="px-1 text-meta font-semibold uppercase tracking-[var(--tracking-caps)] text-[color:var(--text-secondary)]">{t('tasks.drawer.reminder')}</span>
@@ -890,6 +1023,35 @@ const TaskDrawer = ({
                           triggerClassName="task-detail-picker rounded-[var(--radius-md)]"
                         />
                       </label>
+                    </div>
+
+                    {/* Repeat */}
+                    <div className="grid gap-1.5">
+                      <span className="px-1 text-meta font-semibold uppercase tracking-[var(--tracking-caps)] text-[color:var(--text-secondary)]">{t('tasks.drawer.repeat')}</span>
+                      <ShadcnSelect value={recurrenceValue} onValueChange={handleRecurrenceChange}>
+                        <SelectTrigger
+                          aria-label={t('tasks.drawer.repeat')}
+                          className="task-detail-picker h-auto min-h-11 w-full justify-start gap-2 rounded-[var(--radius-md)] border-[var(--border)] bg-[var(--bg-muted)] px-3 py-2.5 text-body font-normal shadow-none"
+                        >
+                          <Repeat className="h-3.5 w-3.5 shrink-0 text-[color:var(--text-secondary)]" />
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">{t('tasks.recurrence.none')}</SelectItem>
+                          {recurrenceOptions.map((value) => (
+                            <SelectItem key={value} value={value}>
+                              {/* The chosen rule reads as stored (e.g. 每月 31 日 even on a 28-day month). */}
+                              {describeTaskRecurrence(
+                                value === recurrenceValue ? currentTask.recurrence : recurrenceFromOption(value, dueDate || undefined),
+                                t,
+                              )}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </ShadcnSelect>
+                      {currentTask.recurrence ? (
+                        <span className="px-1 text-meta text-[color:var(--text-secondary)]">{t('tasks.drawer.repeatHint')}</span>
+                      ) : null}
                     </div>
 
                     {/* Date range */}

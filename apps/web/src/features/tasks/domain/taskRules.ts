@@ -27,33 +27,59 @@ export const toLocalDayStart = (value: number) => {
 }
 
 export const getTaskDaysUntilDue = (task: Pick<TaskItem, 'dueDate' | 'status'>, now = Date.now()) => {
-  if (isTaskDone(task)) return null
+  if (isTaskClosed(task)) return null
   const dueDay = parseDateOnlyToLocalDayStart(task.dueDate)
   if (dueDay == null) return null
   return Math.round((dueDay - toLocalDayStart(now)) / DAY_MS)
 }
 
+/** Finished — counts as completed work. */
 export const isTaskDone = (task: Pick<TaskItem, 'status'>) => task.status === 'done'
 
+/** Off the list for good: finished or deliberately dropped. */
+export const isTaskClosed = (task: Pick<TaskItem, 'status'>) => task.status === 'done' || task.status === 'dropped'
+
+export const isTaskOpen = (task: Pick<TaskItem, 'status'>) => !isTaskClosed(task)
+
 /**
- * Whether a task belongs in the 今日 view: marked for today by hand, due today (done or
- * not, so today's finished work stays visible), or overdue and still open.
+ * Past due and still yours to do. A task waiting on someone else is never "overdue": its date is
+ * when to chase them, and painting it red would blame you for what you can't control.
+ */
+export const isTaskOverdue = (task: Pick<TaskItem, 'dueDate' | 'status'>, now = Date.now()) => {
+  if (task.status === 'waiting') return false
+  const daysUntilDue = getTaskDaysUntilDue(task, now)
+  return daysUntilDue != null && daysUntilDue < 0
+}
+
+/** Waiting on someone, and the date to chase them has come. */
+export const isTaskFollowUpDue = (task: Pick<TaskItem, 'dueDate' | 'status'>, now = Date.now()) => {
+  if (task.status !== 'waiting') return false
+  const dueDay = parseDateOnlyToLocalDayStart(task.dueDate)
+  return dueDay != null && dueDay <= toLocalDayStart(now)
+}
+
+/** Whole days a waiting task has been waiting, or null if it isn't waiting. */
+export const getTaskWaitingDays = (task: Pick<TaskItem, 'status' | 'waitingSince'>, now = Date.now()) => {
+  if (task.status !== 'waiting' || typeof task.waitingSince !== 'number') return null
+  return Math.max(0, Math.round((toLocalDayStart(now) - toLocalDayStart(task.waitingSince)) / DAY_MS))
+}
+
+/**
+ * Whether a task belongs in the 今日 view: marked for today by hand, due today (done or not, so
+ * today's finished work stays visible), overdue and still open, or waiting with its chase date
+ * come. Dropped tasks never show.
  */
 export const isTaskInToday = (task: Pick<TaskItem, 'isToday' | 'dueDate' | 'status'>, now = Date.now()) => {
+  if (task.status === 'dropped') return false
   if (task.isToday) return true
   const dueDay = parseDateOnlyToLocalDayStart(task.dueDate)
   if (dueDay == null) return false
-  const today = toLocalDayStart(now)
-  return dueDay === today || (dueDay < today && !isTaskDone(task))
+  if (dueDay === toLocalDayStart(now)) return true
+  return isTaskOverdue(task, now) || isTaskFollowUpDue(task, now)
 }
 
 export const isTaskBlocked = (task: Pick<TaskItem, 'isBlocked' | 'blockedByTaskIds'>) =>
   task.isBlocked === true || (task.blockedByTaskIds?.length ?? 0) > 0
-
-export const isTaskOverdue = (task: Pick<TaskItem, 'dueDate' | 'status'>, now = Date.now()) => {
-  const daysUntilDue = getTaskDaysUntilDue(task, now)
-  return daysUntilDue != null && daysUntilDue < 0
-}
 
 export const getTaskDateRange = (task: Pick<TaskItem, 'dueDate' | 'startDate' | 'endDate'>): TaskDateRange | null => {
   const dueDate = normalizeTaskDateKey(task.dueDate)

@@ -3,6 +3,9 @@ import type { TaskItem } from '../tasks.types'
 import {
   getTaskCompletion,
   getTaskDateRange,
+  getTaskWaitingDays,
+  isTaskClosed,
+  isTaskFollowUpDue,
   taskCoversDate,
   isTaskBlocked,
   isTaskInToday,
@@ -25,6 +28,7 @@ const task = (overrides: Partial<TaskItem> = {}): TaskItem => ({
   endDate: overrides.endDate,
   blockedByTaskIds: overrides.blockedByTaskIds,
   isBlocked: overrides.isBlocked,
+  waitingSince: overrides.waitingSince,
   tags: [],
   subtasks: overrides.subtasks ?? [],
   taskNoteBlocks: [],
@@ -55,6 +59,36 @@ describe('task domain rules', () => {
     expect(isTaskInToday(task({ dueDate: '2026-03-10', status: 'done' }), now)).toBe(false)
     expect(isTaskInToday(task({ dueDate: '2026-03-13' }), now)).toBe(false)
     expect(isTaskInToday(task(), now)).toBe(false)
+  })
+
+  it('never calls a waiting task overdue; its date is when to follow up', () => {
+    const now = new Date(2026, 2, 12, 8).getTime()
+    const waitingLate = task({ dueDate: '2026-03-08', status: 'waiting' })
+    expect(isTaskOverdue(waitingLate, now)).toBe(false)
+    expect(isTaskFollowUpDue(waitingLate, now)).toBe(true)
+    expect(isTaskFollowUpDue(task({ dueDate: '2026-03-12', status: 'waiting' }), now)).toBe(true)
+    expect(isTaskFollowUpDue(task({ dueDate: '2026-03-13', status: 'waiting' }), now)).toBe(false)
+    expect(isTaskFollowUpDue(task({ dueDate: '2026-03-08' }), now)).toBe(false)
+    // …and it comes to 今日 when it's time to chase.
+    expect(isTaskInToday(waitingLate, now)).toBe(true)
+    expect(isTaskInToday(task({ dueDate: '2026-03-13', status: 'waiting' }), now)).toBe(false)
+  })
+
+  it('treats dropped as closed and keeps it out of 今日', () => {
+    const now = new Date(2026, 2, 12, 8).getTime()
+    expect(isTaskClosed(task({ status: 'dropped' }))).toBe(true)
+    expect(isTaskClosed(task({ status: 'verify' }))).toBe(false)
+    expect(isTaskOverdue(task({ dueDate: '2026-03-01', status: 'dropped' }), now)).toBe(false)
+    expect(isTaskInToday({ ...task({ status: 'dropped', dueDate: '2026-03-12' }), isToday: true }, now)).toBe(false)
+    // A task to verify is still yours: it can be overdue.
+    expect(isTaskOverdue(task({ dueDate: '2026-03-11', status: 'verify' }), now)).toBe(true)
+  })
+
+  it('counts whole days spent waiting', () => {
+    const now = new Date(2026, 2, 12, 8).getTime()
+    expect(getTaskWaitingDays(task({ status: 'waiting', waitingSince: new Date(2026, 2, 6, 23).getTime() }), now)).toBe(6)
+    expect(getTaskWaitingDays(task({ status: 'waiting', waitingSince: new Date(2026, 2, 12, 7).getTime() }), now)).toBe(0)
+    expect(getTaskWaitingDays(task({ status: 'todo', waitingSince: 1 }), now)).toBeNull()
   })
 
   it('spans a start date to a later due date when no end date is set', () => {

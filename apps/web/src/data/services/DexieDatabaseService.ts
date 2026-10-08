@@ -54,13 +54,23 @@ import { touch, withBase } from '../repositories/base'
 import { createId } from '../../shared/utils/ids'
 import { areTaskNoteBlocksEqual, normalizeTaskNoteBlocks } from '../../features/tasks/model/taskNote'
 import { resolveTaskNoteRichText } from '../../features/tasks/model/taskNoteRichText'
+import { normalizeTaskRecurrence } from '../../features/tasks/domain/taskRecurrence'
 import { enqueueSyncOperation } from '../sync/repository'
 
 const statusLabelMap: Record<TaskStatus, string> = {
   todo: '待办',
   doing: '进行中',
+  waiting: '等待中',
+  verify: '待核对',
   done: '已完成',
+  dropped: '已放弃',
 }
+
+const normalizeOptionalText = (value: unknown) =>
+  typeof value === 'string' && value.trim() ? value.trim() : undefined
+
+const normalizeOptionalTimestamp = (value: unknown) =>
+  typeof value === 'number' && Number.isFinite(value) ? value : undefined
 
 const DEFAULT_NOTE_COLLECTION = 'all-notes' as const
 const NOTE_APPEARANCE_ID = 'note_appearance' as const
@@ -244,6 +254,11 @@ const normalizeTask = (task: TaskItem): TaskItem => {
     reminderAt: typeof task.reminderAt === 'number' && Number.isFinite(task.reminderAt) ? task.reminderAt : undefined,
     reminderFiredAt:
       typeof task.reminderFiredAt === 'number' && Number.isFinite(task.reminderFiredAt) ? task.reminderFiredAt : undefined,
+    waitingOn: normalizeOptionalText(task.waitingOn),
+    waitingSince: normalizeOptionalTimestamp(task.waitingSince),
+    dropReason: normalizeOptionalText(task.dropReason),
+    recurrence: normalizeTaskRecurrence(task.recurrence),
+    recurrenceNextId: normalizeOptionalText(task.recurrenceNextId),
     tags: Array.isArray(task.tags) ? task.tags : [],
     subtasks: Array.isArray(task.subtasks)
       ? task.subtasks.map((subtask) => ({
@@ -637,6 +652,9 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
         taskNoteContentJson: taskNote.contentJson as TaskItem['taskNoteContentJson'],
         activityLogs: [],
         attachments: data.attachments ?? [],
+        waitingOn: normalizeOptionalText(data.waitingOn),
+        waitingSince: data.status === 'waiting' ? Date.now() : undefined,
+        recurrence: normalizeTaskRecurrence(data.recurrence),
       })
       const now = Date.now()
       task.activityLogs = [

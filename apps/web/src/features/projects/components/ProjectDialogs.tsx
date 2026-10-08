@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import Dialog from '../../../shared/ui/Dialog'
-import type { LifePerson, ProjectItem, ProjectPerson, TaskItem } from '../../../data/models/types'
+import type { LifePerson, ProjectItem, ProjectPerson, TaskItem, TaskStatus } from '../../../data/models/types'
 import { peopleRepo } from '../../../data/repositories/peopleRepo'
 import { PROJECT_COLORS, resolveProjectColor } from '../../../shared/design/tokens'
 import { useProjectsI18n } from '../projectsI18n'
@@ -959,7 +959,7 @@ export const PersonFormDialog = ({ open, person, onClose, onSubmit }: PersonForm
 type ProjectTaskPayload = {
   title: string
   description: string
-  status: 'todo' | 'doing' | 'done'
+  status: TaskStatus
   priority: 'high' | 'medium' | 'low'
   ownerId?: string
   dueDate?: string
@@ -979,7 +979,7 @@ export const ProjectTaskDialog = ({ open, task, people, onClose, onAutoSave, onS
   const i18n = useProjectsI18n()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [status, setStatus] = useState<'todo' | 'doing' | 'done'>('todo')
+  const [status, setStatus] = useState<TaskStatus>('todo')
   const [priority, setPriority] = useState<'high' | 'medium' | 'low'>('medium')
   const [ownerId, setOwnerId] = useState('unassigned')
   const [startDate, setStartDate] = useState('')
@@ -1049,7 +1049,7 @@ export const ProjectTaskDialog = ({ open, task, people, onClose, onAutoSave, onS
           <div className="project-dialog__grid">
             <label className="project-dialog__field">
               <span>{i18n.dialog.fieldStatus}</span>
-              <Select value={status} onValueChange={(value: 'todo' | 'doing' | 'done') => setStatus(value)}>
+              <Select value={status} onValueChange={(value: TaskStatus) => setStatus(value)}>
                 <SelectTrigger className={inputClassName}><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todo">{i18n.dialog.taskStatusTodo}</SelectItem>

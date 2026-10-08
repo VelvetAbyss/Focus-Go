@@ -54,7 +54,7 @@ export const useFocusTask = (): FocusTask | null => {
     void tasksRepo.list().then((items) => {
       if (cancelled) return
       const found = items.find((item) => item.id === taskId)
-      if (!found || found.status === 'done') {
+      if (!found || found.status === 'done' || found.status === 'dropped') {
         setFocusTaskId(null)
         return
       }

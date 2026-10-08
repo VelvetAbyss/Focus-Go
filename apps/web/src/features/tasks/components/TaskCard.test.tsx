@@ -189,4 +189,29 @@ describe('TaskCard', () => {
     expect(due).toHaveClass('text-tone-urgent')
     expect(due?.textContent).toContain('1d overdue')
   })
+
+  it('says who a waiting task waits on, and how it repeats, in the meta line', () => {
+    const now = new Date()
+    render(
+      <TaskCard
+        task={{
+          ...task,
+          status: 'waiting',
+          waitingOn: 'Mac (Lowe’s)',
+          waitingSince: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6, 9).getTime(),
+          recurrence: { frequency: 'weekly', interval: 1 },
+        }}
+        onSelect={() => undefined}
+      />,
+    )
+    const status = screen.getByText(/Waiting on Mac \(Lowe’s\)/).closest('[data-status="waiting"]')
+    expect(status).toHaveTextContent('Waiting on Mac (Lowe’s) · 6d')
+    expect(screen.getByText('Weekly')).toBeInTheDocument()
+  })
+
+  it('strikes through a dropped task like a finished one', () => {
+    render(<TaskCard task={{ ...task, status: 'dropped', dropReason: 'No longer needed' }} onSelect={() => undefined} />)
+    expect(screen.getByRole('heading', { name: task.title })).toHaveClass('line-through')
+    expect(screen.getByText('Dropped')).toHaveAttribute('title', 'No longer needed')
+  })
 })

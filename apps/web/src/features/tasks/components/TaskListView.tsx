@@ -27,11 +27,16 @@ type TaskListViewProps = {
   onMoveTask?: (task: TaskItem, status: TaskStatus) => void
 }
 
+type KanbanColumn = 'todo' | 'doing' | 'waiting' | 'done'
+
+const columnOf = (status: TaskStatus): KanbanColumn =>
+  status === 'verify' || status === 'waiting' ? 'waiting' : status === 'dropped' ? 'done' : status
+
 /** A column that accepts dropped rows; highlights while a row from another column hovers it. */
-const DropColumn = ({ status, dragStatus, className, children }: { status: TaskStatus; dragStatus: TaskStatus | null; className: string; children: ReactNode }) => {
+const DropColumn = ({ status, dragStatus, className, children }: { status: KanbanColumn; dragStatus: TaskStatus | null; className: string; children: ReactNode }) => {
   const { setNodeRef, isOver } = useDroppable({ id: status })
   return (
-    <div ref={setNodeRef} className={cn(className, 'fg-task-list__drop', isOver && dragStatus && dragStatus !== status && 'is-drop-target')}>
+    <div ref={setNodeRef} className={cn(className, 'fg-task-list__drop', isOver && dragStatus && columnOf(dragStatus) !== status && 'is-drop-target')}>
       {children}
     </div>
   )
@@ -74,7 +79,8 @@ const TaskListView = ({
     const task = tasks.find((item) => item.id === event.active.id)
     setDraggingTask(null)
     const target = event.over?.id as TaskStatus | undefined
-    if (task && target && target !== task.status) onMoveTask?.(task, target)
+    // The 在等 column holds verify tasks too; moving one within it changes nothing.
+    if (task && target && columnOf(task.status) !== target) onMoveTask?.(task, target)
   }
   const [doneExpanded, setDoneExpanded] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
@@ -87,12 +93,16 @@ const TaskListView = ({
   }, [doneExpanded])
 
   const byStatus = useMemo(() => {
-    const groups: Record<TaskStatus, TaskItem[]> = { todo: [], doing: [], done: [] }
+    const groups: Record<KanbanColumn, TaskItem[]> = { todo: [], doing: [], waiting: [], done: [] }
     tasks.forEach((task) => {
-      groups[task.status].push(task)
+      // Dropped tasks are archived: they live in the card view's 已放弃 tab, not on the board.
+      if (task.status === 'dropped') return
+      groups[columnOf(task.status)].push(task)
     })
     return groups
   }, [tasks])
+  // A fourth column only when something is waiting, or while a drag could drop into it.
+  const showWaiting = byStatus.waiting.length > 0 || draggingTask !== null
 
   const visibleDone = doneExpanded ? byStatus.done : byStatus.done.slice(0, DONE_COLLAPSED_LIMIT)
   const hiddenDoneCount = Math.max(0, byStatus.done.length - DONE_COLLAPSED_LIMIT)
@@ -107,7 +117,7 @@ const TaskListView = ({
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => setDraggingTask(null)}>
     <div className="fg-task-list">
-      <div className="fg-task-list__board">
+      <div className={cn('fg-task-list__board', showWaiting && 'fg-task-list__board--with-waiting')}>
         {/* ── TODO ───────────────────────────────── */}
         <motion.section
           className="fg-task-list__col fg-task-list__col--todo"
@@ -216,6 +226,51 @@ const TaskListView = ({
           </DropColumn>
         </motion.section>
 
+        {/* ── WAITING (ball in someone else's court; also to-verify) ── */}
+        {showWaiting ? (
+          <motion.section
+            className="fg-task-list__col fg-task-list__col--waiting"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15, duration: DURATION.slow }}
+          >
+            <header className="fg-task-list__col-head">
+              <div className="fg-task-list__col-head__title">
+                <span className="fg-task-list__col-glyph fg-task-list__col-glyph--waiting" aria-hidden />
+                <span className="fg-task-list__col-name">{t('tasks.status.waiting')}</span>
+                <span className="fg-task-list__col-count">{byStatus.waiting.length}</span>
+              </div>
+            </header>
+
+            <DropColumn status="waiting" dragStatus={draggingTask?.status ?? null} className="fg-task-list__rows">
+              {byStatus.waiting.length === 0 ? (
+                <p className="fg-task-list__empty">{t('tasks.drawer.waitingDueHint')}</p>
+              ) : (
+                byStatus.waiting.map((task, i) => (
+                  <motion.div
+                    key={task.id}
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.18 + i * 0.025, duration: DURATION.medium }}
+                  >
+                    <DraggableRow task={task} enabled={canDrag}>
+                      <TaskRow
+                        task={task}
+                        project={resolveProjectForRow(task)}
+                        variant="todo"
+                        onClick={onTaskClick}
+                        onCycleStatus={onCycleStatus}
+                        onDelete={onDelete}
+                        onTogglePin={onTogglePin}
+                      />
+                    </DraggableRow>
+                  </motion.div>
+                ))
+              )}
+            </DropColumn>
+          </motion.section>
+        ) : null}
+
         {/* ── DONE (archive) ─────────────────────── */}
         <motion.section
           className={cn('fg-task-list__col fg-task-list__col--done', doneExpanded && 'is-expanded')}
@@ -272,7 +327,7 @@ const TaskListView = ({
     <DragOverlay dropAnimation={null}>
       {draggingTask ? (
         <div className="fg-task-list__drag-overlay">
-          <TaskRow task={draggingTask} project={resolveProjectForRow(draggingTask)} variant={draggingTask.status === 'doing' ? 'doing' : draggingTask.status === 'done' ? 'done' : 'todo'} />
+          <TaskRow task={draggingTask} project={resolveProjectForRow(draggingTask)} variant={draggingTask.status === 'doing' ? 'doing' : draggingTask.status === 'done' || draggingTask.status === 'dropped' ? 'done' : 'todo'} />
         </div>
       ) : null}
     </DragOverlay>

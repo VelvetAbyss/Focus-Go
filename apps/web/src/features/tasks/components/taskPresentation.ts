@@ -1,4 +1,5 @@
-import type { TaskItem, TaskPriority, TaskStatus } from '../tasks.types'
+import type { TaskItem, TaskPriority, TaskRecurrence, TaskStatus } from '../tasks.types'
+import type { TranslationKey } from '../../../shared/i18n/types'
 import { getTaskCompletion, getTaskDaysUntilDue } from '../domain/taskRules'
 import { appIntlLocale } from '../../../shared/i18n/format'
 
@@ -74,6 +75,20 @@ export const getTaskDeadlineState = (task: Pick<TaskItem, 'dueDate' | 'status'>,
     }
   }
 
+  // Waiting: the date is when to chase someone. Reaching it asks for attention (ochre), never
+  // the vermilion of a missed deadline.
+  if (task.status === 'waiting') {
+    return daysRemaining <= 0
+      ? {
+          daysRemaining,
+          label: `${daysRemaining}d`,
+          shellClass: '',
+          badgeClass: 'border-transparent bg-tone-warn-wash text-tone-warn',
+          textClass: 'text-tone-warn',
+        }
+      : { daysRemaining, label: `+${daysRemaining}d`, shellClass: '', badgeClass: PLANNED_BADGE, textClass: 'text-pencil' }
+  }
+
   return buildDeadlineState(daysRemaining)
 }
 
@@ -84,6 +99,8 @@ export const getUpcomingDeadlineAlert = (
   let overdueCount = 0
   let nearest: number | null = null
   for (const item of items) {
+    // A waiting task's date is a chase date, not a deadline.
+    if (item.status === 'waiting') continue
     const days = getTaskDaysUntilDue(item, now)
     if (days == null) continue
     if (days < 0) overdueCount += 1
@@ -101,7 +118,11 @@ export const getUpcomingDeadlineAlert = (
   }
 }
 
-export const TASK_STATUS_CONFIG: Record<TaskStatus, { labelKey: 'tasks.status.todo' | 'tasks.status.doing' | 'tasks.status.done'; dot: string; badge: string }> = {
+type TaskStatusLabelKey = `tasks.status.${TaskStatus}`
+
+// DESIGN.md › three hands: waiting is pencil (intended, not in your hands), verify takes the info
+// tone (a claim to check), dropped recedes to the faintest ink.
+export const TASK_STATUS_CONFIG: Record<TaskStatus, { labelKey: TaskStatusLabelKey; dot: string; badge: string }> = {
   todo: {
     labelKey: 'tasks.status.todo',
     dot: 'bg-[var(--status-todo)]',
@@ -112,11 +133,50 @@ export const TASK_STATUS_CONFIG: Record<TaskStatus, { labelKey: 'tasks.status.to
     dot: 'bg-[var(--status-doing)]',
     badge: 'border-transparent bg-tone-warn-wash text-tone-warn',
   },
+  waiting: {
+    labelKey: 'tasks.status.waiting',
+    dot: 'bg-[var(--pencil)]',
+    badge: 'border-dashed border-[color:var(--pencil-line)] bg-transparent text-[color:var(--pencil)]',
+  },
+  verify: {
+    labelKey: 'tasks.status.verify',
+    dot: 'bg-tone-info',
+    badge: 'border-transparent bg-tone-info-wash text-tone-info',
+  },
   done: {
     labelKey: 'tasks.status.done',
     dot: 'bg-[var(--status-done)]',
     badge: 'border-transparent bg-tone-done-wash text-tone-done',
   },
+  dropped: {
+    labelKey: 'tasks.status.dropped',
+    dot: 'bg-ink-4',
+    badge: 'border-transparent bg-paper-sunken text-ink-3',
+  },
+}
+
+/** Short label for a repeat rule: 每天, 每 2 周, 每月 31 日… */
+export const describeTaskRecurrence = (
+  rule: TaskRecurrence | undefined,
+  t: (key: TranslationKey, values?: Record<string, string | number>) => string,
+) => {
+  if (!rule) return null
+  const n = Math.max(1, rule.interval)
+  switch (rule.frequency) {
+    case 'daily':
+      return n === 1 ? t('tasks.recurrence.daily') : t('tasks.recurrence.everyNDays', { n })
+    case 'weekdays':
+      return t('tasks.recurrence.weekdays')
+    case 'weekly':
+      return n === 1 ? t('tasks.recurrence.weekly') : t('tasks.recurrence.everyNWeeks', { n })
+    case 'monthly':
+      if (n !== 1) return t('tasks.recurrence.everyNMonths', { n })
+      return rule.monthDay ? t('tasks.recurrence.monthlyOn', { day: rule.monthDay }) : t('tasks.recurrence.monthly')
+    case 'yearly':
+      return n === 1 ? t('tasks.recurrence.yearly') : t('tasks.recurrence.everyNYears', { n })
+    default:
+      return null
+  }
 }
 
 export const TASK_PRIORITY_CONFIG: Record<NonNullable<TaskPriority> | 'none', { labelKey: 'tasks.priority.high' | 'tasks.priority.medium' | 'tasks.priority.low' | 'tasks.priority.none'; dot: string; badge: string }> = {

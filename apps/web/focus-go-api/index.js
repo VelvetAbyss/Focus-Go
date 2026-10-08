@@ -20,6 +20,11 @@ import { createNewsService } from './services/news.js'
 import db from './db/init.js'
 import { startNeteasePodcastSyncJob } from './services/podcasts.js'
 import { pruneSyncStorage } from './sync/store.js'
+import { createPushRouter } from './routes/push.js'
+import { resolveVapidConfig } from './push/config.js'
+import { startReminderScheduler } from './push/scheduler.js'
+
+const vapid = resolveVapidConfig()
 
 const PROD_ORIGINS = [
   'https://app.nestflow.art',
@@ -131,6 +136,9 @@ export const createApp = () => {
   app.use('/api/feedback', feedbackRouter)
   app.use('/seed', seedRouter)
   app.use('/api/seed', seedRouter)
+  const pushRouter = createPushRouter({ database: db, authMiddleware: requireAuth, vapid })
+  app.use('/push', pushRouter)
+  app.use('/api/push', pushRouter)
 
   return app
 }
@@ -138,6 +146,8 @@ export const createApp = () => {
 const PORT = process.env.PORT || 3000
 const app = createApp()
 startNeteasePodcastSyncJob(db)
+// Task reminders for devices that turned on Web Push: sent while the app is closed.
+startReminderScheduler({ db, vapid })
 // Keep deletion tombstones long enough for lagging devices, then reclaim their
 // rows and unreachable blobs without doing maintenance in a user request.
 const syncCleanupTimer = setInterval(() => {

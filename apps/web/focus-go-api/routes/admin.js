@@ -8,6 +8,7 @@ import db from '../db/init.js'
 import { requireAuth } from '../middleware/auth.js'
 import { requireAdmin, isLocalhostRequest } from '../middleware/admin.js'
 import { SYNC_TABLES } from '../sync/config.js'
+import { deleteAllPushSubscriptionsForUser } from '../push/store.js'
 
 const router = Router()
 
@@ -616,6 +617,7 @@ router.post('/users/:userId/purge', (req, res) => {
         try { db.prepare(`DELETE FROM ${tableName} WHERE user_id = ?`).run(String(user.id)) } catch { /* ignore */ }
       }
       try { db.prepare('DELETE FROM sync_blobs WHERE user_id = ?').run(String(user.id)) } catch { /* ignore */ }
+      deleteAllPushSubscriptionsForUser(db, String(user.id))
 
       const betterAuthUser = db.prepare('SELECT id FROM user WHERE email = ?').get(user.email)
       if (betterAuthUser) db.prepare('DELETE FROM user WHERE id = ?').run(betterAuthUser.id)

@@ -8059,10 +8059,78 @@ html :is(.tasks-fg__status-group[data-active-indicator] > .tasks-fg__status-tab[
   line-height: 1.2;
 }
 
-.tasks-fg__group-header span:last-child {
+.tasks-fg__group-header span:last-child,
+.tasks-fg__group-count {
   color: color-mix(in srgb, var(--ink-1) 45%, transparent);
   font-size: var(--fs-label);
   font-weight: 600;
+}
+
+/* Overdue section in 今日: the heading folds the group; the action reschedules it. */
+.tasks-fg__group-heading {
+  display: flex;
+  min-width: 0;
+}
+
+.tasks-fg__group-disclosure {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: -3px -6px;
+  padding: 3px 6px;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--motion-duration-instant) var(--ease-standard);
+}
+
+.tasks-fg__group-disclosure:hover {
+  background: var(--paper-sunken);
+}
+
+.tasks-fg__group-disclosure:focus-visible,
+.tasks-fg__group-action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.tasks-fg__group-chevron {
+  width: 14px;
+  height: 14px;
+  color: var(--pencil);
+  transition: transform var(--motion-duration-fast) var(--ease-standard);
+}
+
+.tasks-fg__group-chevron.is-collapsed {
+  transform: rotate(-90deg);
+}
+
+.tasks-fg__group-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  margin-left: 4px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--pencil);
+  font-size: var(--fs-label);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-duration-instant) var(--ease-standard),
+    color var(--motion-duration-instant) var(--ease-standard);
+}
+
+.tasks-fg__group-action:hover,
+.tasks-fg__group-action[data-state='open'] {
+  background: var(--paper-sunken);
+  color: var(--ink-1);
 }
 
 .tasks-page[data-height-band='tall'] {

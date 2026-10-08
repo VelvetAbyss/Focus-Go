@@ -6,7 +6,7 @@ import {
   TrendingUp,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { TaskItem } from '../tasks.types'
+import type { TaskItem, TaskStatus } from '../tasks.types'
 import type { ProjectItem } from '../../../data/models/types'
 import { buildTaskAnalytics, type AnalyticsGranularity } from './taskAnalytics'
 import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG } from './taskPresentation'
@@ -31,11 +31,14 @@ const granularityLabelKeys: Record<AnalyticsGranularity, 'modules.tasks.analytic
 
 // Status tone-matched colors (match toolbar dots)
 // Status marks follow the hands (DESIGN.md): todo = pencil, doing = ochre,
-// done = ink.
-const STATUS_COLOR: Record<'todo' | 'doing' | 'done', string> = {
+// waiting = pencil, verify = info, done = ink, dropped = faint ink.
+const STATUS_COLOR: Record<TaskStatus, string> = {
   todo: 'var(--status-todo)',
   doing: 'var(--status-doing)',
+  waiting: 'var(--pencil)',
+  verify: 'var(--tone-info)',
   done: 'var(--status-done)',
+  dropped: 'var(--ink-4)',
 }
 
 // Priority tone-matched colors
@@ -77,7 +80,10 @@ const TasksAnalyticsView = ({ tasks, projects = [] }: TasksAnalyticsViewProps) =
     }))
   }, [analytics.buckets])
 
-  const statusRows = (['todo', 'doing', 'done'] as const).map((status) => {
+  // The three everyday statuses always show; the rest only once something is in them.
+  const statusRows = (['todo', 'doing', 'waiting', 'verify', 'done', 'dropped'] as const)
+    .filter((status) => status === 'todo' || status === 'doing' || status === 'done' || analytics.summary.statusCounts[status] > 0)
+    .map((status) => {
     const cfg = TASK_STATUS_CONFIG[status]
     const count = analytics.summary.statusCounts[status]
     const total = analytics.summary.totalTasks || 1

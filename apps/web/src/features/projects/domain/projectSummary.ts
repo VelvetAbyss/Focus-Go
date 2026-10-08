@@ -1,13 +1,15 @@
 import type { ProjectHealth, ProjectItem, TaskItem } from '../../../data/models/types'
 import { getDeterministicProjectColor } from '../../../shared/design/tokens'
-import { isTaskBlocked, isTaskDone, isTaskOverdue, rankNextActionTask } from '../../tasks/domain/taskRules'
+import { isTaskBlocked, isTaskDone, isTaskOpen, isTaskOverdue, rankNextActionTask } from '../../tasks/domain/taskRules'
 
 export const clampProjectProgress = (value: number) => Math.min(100, Math.max(0, Math.round(value)))
 
 export const deriveProjectProgress = (tasks: TaskItem[]) => {
-  if (tasks.length === 0) return 0
-  const doneCount = tasks.filter(isTaskDone).length
-  return clampProjectProgress((doneCount / tasks.length) * 100)
+  // Dropped tasks are out of scope: they neither count as done nor hold the bar back.
+  const inScope = tasks.filter((task) => task.status !== 'dropped')
+  if (inScope.length === 0) return 0
+  const doneCount = inScope.filter(isTaskDone).length
+  return clampProjectProgress((doneCount / inScope.length) * 100)
 }
 
 export const deriveProjectHealth = (project: ProjectItem, tasks: TaskItem[], now = Date.now()): ProjectHealth => {
@@ -25,7 +27,8 @@ export const deriveProjectHealth = (project: ProjectItem, tasks: TaskItem[], now
 export const deriveNextAction = (project: ProjectItem, tasks: TaskItem[]) => {
   if (project.nextAction?.trim()) return project.nextAction.trim()
   const candidate = [...tasks]
-    .filter((task) => !isTaskDone(task) && !isTaskBlocked(task))
+    // The next action is something you can do now: not finished, not blocked, not in someone else's hands.
+    .filter((task) => isTaskOpen(task) && task.status !== 'waiting' && !isTaskBlocked(task))
     .sort(rankNextActionTask)[0]
   return candidate?.title ?? ''
 }

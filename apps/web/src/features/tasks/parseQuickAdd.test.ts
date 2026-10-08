@@ -44,4 +44,40 @@ describe('parseQuickAdd', () => {
     expect(await parseQuickAdd('call mom tomorrow', [])).toMatchObject({ title: 'call mom', dueDate: '2026-09-27' })
     expect(await parseQuickAdd('明天 写周报 #工作', [])).toMatchObject({ title: '写周报', dueDate: '2026-09-27', tags: ['工作'] })
   })
+
+  it('reads repeats and starts them on their first date', async () => {
+    expect(await parseQuickAdd('每周五交周报', [])).toMatchObject({
+      title: '交周报', dueDate: '2026-10-02', recurrence: { frequency: 'weekly', interval: 1 },
+    })
+    expect(await parseQuickAdd('每天背单词', [])).toMatchObject({
+      title: '背单词', dueDate: '2026-09-26', recurrence: { frequency: 'daily', interval: 1 },
+    })
+    // September has 30 days: "the 31st" lands on the 30th but keeps 31 for later months.
+    expect(await parseQuickAdd('每月31号对账', [])).toMatchObject({
+      title: '对账', dueDate: '2026-09-30', recurrence: { frequency: 'monthly', interval: 1, monthDay: 31 },
+    })
+    expect(await parseQuickAdd('每月 5 号交房租', [])).toMatchObject({
+      title: '交房租', dueDate: '2026-10-05', recurrence: { frequency: 'monthly', monthDay: 5 },
+    })
+    expect(await parseQuickAdd('每两周 例会', [])).toMatchObject({ title: '例会', recurrence: { frequency: 'weekly', interval: 2 } })
+    // Saturday: the first weekday is Monday.
+    expect(await parseQuickAdd('每个工作日 站会', [])).toMatchObject({
+      title: '站会', dueDate: '2026-09-28', recurrence: { frequency: 'weekdays' },
+    })
+    expect(await parseQuickAdd('every monday standup', [])).toMatchObject({
+      title: 'standup', dueDate: '2026-09-28', recurrence: { frequency: 'weekly', interval: 1 },
+    })
+  })
+
+  it('puts a clock time on the repeat day as a reminder', async () => {
+    const parsed = await parseQuickAdd('每周五下午3点交周报', [])
+    expect(parsed).toMatchObject({ title: '交周报', dueDate: '2026-10-02', recurrence: { frequency: 'weekly' } })
+    expect(parsed.reminderAt).toBe(new Date(2026, 9, 2, 15, 0, 0).getTime())
+  })
+
+  it('leaves words that only look like repeats in the title', async () => {
+    expect(await parseQuickAdd('整理工作日志', [])).toMatchObject({ title: '整理工作日志', recurrence: undefined })
+    expect(await parseQuickAdd('write weekly report', [])).toMatchObject({ title: 'write weekly report', recurrence: undefined })
+    expect(await parseQuickAdd('写周报', [])).toMatchObject({ recurrence: undefined })
+  })
 })

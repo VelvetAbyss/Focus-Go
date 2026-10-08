@@ -1,5 +1,7 @@
-import type { TaskItem, TaskProgressEntry, TaskStatus } from '../models/types'
+import type { TaskItem, TaskNoteLink, TaskProgressEntry, TaskStatus } from '../models/types'
 import { dbService } from '../services/dbService'
+import { buildNextOccurrence } from '../../features/tasks/domain/taskRecurrence'
+import { isTaskClosed } from '../../features/tasks/domain/taskRules'
 
 type TaskCreateInput = {
   title: string
@@ -25,6 +27,8 @@ type TaskCreateInput = {
   taskNoteContentMd?: TaskItem['taskNoteContentMd']
   taskNoteContentJson?: TaskItem['taskNoteContentJson']
   attachments?: TaskItem['attachments']
+  waitingOn?: TaskItem['waitingOn']
+  recurrence?: TaskItem['recurrence']
 }
 
 export const tasksRepo = {
@@ -37,17 +41,31 @@ export const tasksRepo = {
   async update(task: TaskItem) {
     return dbService.tasks.update(task)
   },
-  async remove(id: string) {
+  /** Deletes the task and its note links; returns the links so `restore` can undo it. */
+  async remove(id: string): Promise<TaskNoteLink[]> {
     await dbService.tasks.remove(id)
     try {
       const { taskNoteLinksRepo } = await import('./taskNoteLinksRepo')
-      await taskNoteLinksRepo.unlinkAllForTask(id)
+      return await taskNoteLinksRepo.unlinkAllForTask(id)
     } catch (error) {
       console.error('[tasksRepo] unlinkAllForTask failed', id, error)
+      return []
     }
   },
+  /** Undoes `remove`: writes the task back (with a fresh updatedAt, so sync treats it as newer than the delete). */
+  async restore(task: TaskItem, links: TaskNoteLink[] = []) {
+    const restored = await dbService.tasks.update(task)
+    if (links.length > 0) {
+      const { taskNoteLinksRepo } = await import('./taskNoteLinksRepo')
+      await taskNoteLinksRepo.restoreLinks(links)
+    }
+    return restored
+  },
+  /** Changes status and applies what the new status implies; returns the task as finally stored. */
   async updateStatus(id: string, status: TaskStatus) {
-    return dbService.tasks.updateStatus(id, status)
+    const updated = await dbService.tasks.updateStatus(id, status)
+    if (!updated) return updated
+    return applyStatusSideEffects(updated)
   },
   async clearAllTags() {
     await dbService.tasks.clearAllTags()
@@ -81,8 +99,50 @@ export const tasksRepo = {
   /** On a new day, remove completed tasks from the today list while keeping incomplete ones. */
   async clearDoneToday() {
     const all = await dbService.tasks.list()
-    const toReset = all.filter((t) => t.isToday && t.status === 'done')
+    const toReset = all.filter((t) => t.isToday && isTaskClosed(t))
     if (toReset.length === 0) return
     await Promise.all(toReset.map((t) => dbService.tasks.update({ ...t, isToday: false })))
   },
+}
+
+/**
+ * What a status means beyond the status field. Idempotent, so re-applying a status is harmless:
+ * - waiting records since when (for "waited 6 days"); leaving waiting clears it.
+ * - dropped leaves 今日; leaving dropped forgets the reason.
+ * - finishing or dropping a repeating task creates the next occurrence and hands it the rule.
+ * - reopening takes that occurrence back if it hasn't been touched, and the rule with it.
+ */
+const applyStatusSideEffects = async (task: TaskItem): Promise<TaskItem> => {
+  const patch: Partial<TaskItem> = {}
+  if (task.status === 'waiting') {
+    if (typeof task.waitingSince !== 'number') patch.waitingSince = Date.now()
+  } else if (task.waitingSince !== undefined) {
+    patch.waitingSince = undefined
+  }
+  if (task.status === 'dropped') {
+    if (task.isToday) patch.isToday = false
+  } else if (task.dropReason !== undefined) {
+    patch.dropReason = undefined
+  }
+
+  if (isTaskClosed(task) && task.recurrence && !task.recurrenceNextId) {
+    const next = buildNextOccurrence(task)
+    if (next) {
+      const created = await dbService.tasks.add(next)
+      patch.recurrence = undefined
+      patch.recurrenceNextId = created.id
+    }
+  } else if (!isTaskClosed(task) && task.recurrenceNextId) {
+    const next = (await dbService.tasks.list()).find((item) => item.id === task.recurrenceNextId)
+    // Untouched since it was created: safe to take back. Otherwise it has a life of its own and
+    // keeps the rule; this one stays a one-off.
+    if (next && next.status === 'todo' && next.updatedAt === next.createdAt) {
+      await tasksRepo.remove(next.id)
+      patch.recurrence = next.recurrence
+    }
+    patch.recurrenceNextId = undefined
+  }
+
+  if (Object.keys(patch).length === 0) return task
+  return dbService.tasks.update({ ...task, ...patch })
 }
