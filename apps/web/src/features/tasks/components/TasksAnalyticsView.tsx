@@ -139,7 +139,7 @@ const TasksAnalyticsView = ({ tasks, projects = [] }: TasksAnalyticsViewProps) =
         </div>
 
         <p className="text-meta font-medium tracking-wide" style={{ color: 'var(--ts-ink-soft)' }}>
-          {t(granularityLabelKeys[granularity])} · {analytics.buckets.length} {t('modules.tasks.analytics.buckets')} · {t('modules.tasks.analytics.completionRate')} {analytics.summary.completionRate}%
+          {t(granularityLabelKeys[granularity])} · {analytics.buckets.length} {t('modules.tasks.analytics.buckets')} · {t('tasks.workspace.libraryOverview')}
         </p>
       </div>
 
@@ -149,16 +149,14 @@ const TasksAnalyticsView = ({ tasks, projects = [] }: TasksAnalyticsViewProps) =
         <article className="tasks-analytics-v2__card tasks-analytics-v2__card--paper">
           <div className="tasks-analytics-v2__hero">
             <div>
-              <p className="tasks-analytics-v2__eyebrow">{t('modules.tasks.analytics.completionRate')}</p>
+              <p className="tasks-analytics-v2__eyebrow">{t('tasks.workspace.periodCompletions')}</p>
               <p className="tasks-analytics-v2__hero-rate">
-                {analytics.summary.completionRate}
-                <span className="tasks-analytics-v2__hero-rate-suffix">%</span>
+                {analytics.summary.completions}
               </p>
               <div className="tasks-analytics-v2__hero-meta">
                 <span className="tasks-analytics-v2__hero-meta-item">
-                  <span>{t('modules.tasks.analytics.completedTasks')}</span>
-                  <span className="tasks-analytics-v2__hero-meta-num">{analytics.summary.completedTasks}</span>
-                  <span>/ {analytics.summary.totalTasks}</span>
+                  <span title={t('tasks.workspace.throughputHint')}>{t('tasks.workspace.throughput')}</span>
+                  <span className="tasks-analytics-v2__hero-meta-num">{analytics.summary.completionRate}%</span>
                 </span>
                 <span className="tasks-analytics-v2__hero-meta-item">
                   <span>{t('modules.tasks.analytics.average')}</span>
@@ -208,7 +206,7 @@ const TasksAnalyticsView = ({ tasks, projects = [] }: TasksAnalyticsViewProps) =
         </article>
 
         <div className="min-h-[420px]">
-          <TaskProgressSummaryCard tasks={tasks} projects={projects} compact />
+          <TaskProgressSummaryCard jarRenderMode="sketch" tasks={tasks} projects={projects} compact />
         </div>
 
         {/* Mini metric strip */}

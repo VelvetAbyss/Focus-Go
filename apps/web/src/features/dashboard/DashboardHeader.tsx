@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { LayoutGrid, RefreshCw, Settings as SettingsIcon } from 'lucide-react'
+import { LayoutGrid, RefreshCw, Settings as SettingsIcon, Plus } from 'lucide-react'
 import { ROUTES } from '../../app/routes/routes'
 import { useI18n } from '../../shared/i18n/useI18n'
 import { useToday } from '../../shared/hooks/useToday'
@@ -16,9 +16,13 @@ import './header/dashboard-header.css'
 import ActiveIndicator from '../../shared/motion/ActiveIndicator'
 import { SELECTED_TAB } from '../../shared/motion/indicatorSelectors'
 
-type DashboardPage = 'main' | 'life' | 'news'
+export type DashboardPage = 'main' | 'life' | 'news' | 'custom'
 
 type DashboardHeaderProps = {
+  customViews?: { id: string; name: string }[]
+  selectedViewId?: string
+  onSelectView?: (id: string) => void
+  onCreateView?: () => void
   layoutEdit: boolean
   widgetsPanelOpen: boolean
   onToggleLayoutEdit: () => void
@@ -53,6 +57,7 @@ const writeQuoteSkip = (dayKey: string, skip: number) => {
 }
 
 const DashboardHeader = ({
+  customViews = [], selectedViewId, onSelectView, onCreateView,
   layoutEdit,
   widgetsPanelOpen,
   onToggleLayoutEdit,
@@ -178,11 +183,16 @@ const DashboardHeader = ({
                 News
                 <DiscoveryNewBadge target="dashboard-news-tab" />
               </button>
+              {customViews.length > 0 && <select className={`header-pill__btn custom-view-select${page === 'custom' ? ' is-active' : ''}`} aria-label={zh ? '自定义视图' : 'Custom views'} value={page === 'custom' ? selectedViewId : ''} onChange={event => onSelectView?.(event.target.value)}>
+                <option value="" disabled>{zh ? '我的视图' : 'My views'}</option>
+                {customViews.map(view => <option key={view.id} value={view.id}>{view.name}</option>)}
+              </select>}
+              {onCreateView && <button type="button" className="header-pill__btn" onClick={onCreateView} aria-label={zh ? '新建视图' : 'New view'} title={zh ? '新建视图' : 'New view'}><Plus size={14} /><span>{zh ? '视图' : 'View'}</span></button>}
               <div className="header-pill__divider" aria-hidden="true" />
             </>
           ) : null}
 
-          {layoutEdit && page !== 'news' ? (
+          {layoutEdit && page !== 'news' && page !== 'custom' ? (
             <button
               type="button"
               className={`header-pill__btn${widgetsPanelOpen ? ' is-active' : ''}`}
@@ -196,7 +206,7 @@ const DashboardHeader = ({
             </button>
           ) : null}
 
-          {page !== 'news' ? (
+          {page !== 'news' && page !== 'custom' ? (
             <button
               type="button"
               className={`header-pill__btn${layoutEdit ? ' is-active' : ''}`}

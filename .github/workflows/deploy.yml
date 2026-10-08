@@ -21,11 +21,11 @@ jobs:
       contents: read
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: npm
@@ -50,11 +50,14 @@ jobs:
       - name: Setup SSH
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
         run: |
+          test -n "$SSH_KNOWN_HOSTS" || { echo "Configure independently verified SSH_KNOWN_HOSTS" >&2; exit 1; }
           mkdir -p ~/.ssh
           printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          # StrictHostKeyChecking=no in ssh command, so no keyscan needed
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
           echo "SSH configured"
 
       # ── 5. Copy the verified build and deploy it ────────────────
@@ -68,11 +71,13 @@ jobs:
         run: |
           DIST_SHA256="$(sha256sum dist.tar.gz | cut -d' ' -f1)"
           scp -i ~/.ssh/deploy_key \
-            -o StrictHostKeyChecking=no \
+            -o StrictHostKeyChecking=yes \
+            -o BatchMode=yes \
             -o ConnectTimeout=30 \
             dist.tar.gz "$SERVER_USER@$SERVER_HOST:/tmp/dist-${GIT_SHA}.tar.gz"
           ssh -i ~/.ssh/deploy_key \
-            -o StrictHostKeyChecking=no \
+            -o StrictHostKeyChecking=yes \
+            -o BatchMode=yes \
             -o ServerAliveInterval=30 \
             -o ServerAliveCountMax=6 \
             -o ConnectTimeout=30 \

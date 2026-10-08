@@ -1,6 +1,9 @@
 import { Router } from 'express'
 import { lookup as dnsLookup } from 'node:dns/promises'
 import { isIP } from 'node:net'
+import http from 'node:http'
+import https from 'node:https'
+import { Readable } from 'node:stream'
 
 // ICS feeds for the calendar page. Most calendar hosts send no CORS headers, so the
 // browser can't read them directly. This fetches a feed server-side, so a user's
@@ -49,9 +52,15 @@ export const isPublicAddress = (ip) => {
   const family = isIP(ip)
   if (family === 4) return !isPrivateIPv4(ip)
   if (family !== 6) return false
-  const lower = ip.toLowerCase()
-  const mapped = lower.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/)
-  if (mapped) return !isPrivateIPv4(mapped[1])
+  const lower = new URL(`http://[${ip}]/`).hostname.slice(1, -1)
+  const parts = lower.split('::')
+  const left = parts[0] ? parts[0].split(':') : []
+  const right = parts[1] ? parts[1].split(':') : []
+  const words = (parts.length === 1 ? left : [...left, ...Array(8 - left.length - right.length).fill('0'), ...right]).map((word) => Number.parseInt(word, 16))
+  if (words.slice(0, 5).every((word) => word === 0) && words[5] === 0xffff) {
+    return !isPrivateIPv4(`${words[6] >> 8}.${words[6] & 255}.${words[7] >> 8}.${words[7] & 255}`)
+  }
+  if (words.slice(0, 6).every((word) => word === 0)) return false
   return !(
     lower === '::' || lower === '::1' ||
     lower.startsWith('fc') || lower.startsWith('fd') || // ULA
@@ -84,7 +93,33 @@ const assertPublicHost = async (url, lookup) => {
     error.statusCode = 400
     throw error
   }
+  return addresses[0].address
 }
+
+// Connect only to the validated address. Keep the hostname for Host and TLS SNI.
+export const fetchPinnedFeed = (raw, { pinnedAddress, signal, headers }) => new Promise((resolve, reject) => {
+  if (!isPublicAddress(pinnedAddress)) return reject(new Error('Host not allowed'))
+  const url = new URL(raw)
+  const request = (url.protocol === 'https:' ? https : http).request(url, {
+    signal, headers,
+    lookup: (_host, options, callback) => {
+      const address = { address: pinnedAddress, family: isIP(pinnedAddress) }
+      if (options.all) callback(null, [address])
+      else callback(null, address.address, address.family)
+    },
+  }, (incoming) => {
+    const status = incoming.statusCode || 502
+    const responseHeaders = new Headers()
+    for (const [key, value] of Object.entries(incoming.headers)) {
+      if (value !== undefined) responseHeaders.set(key, Array.isArray(value) ? value.join(', ') : value)
+    }
+    const noBody = [204, 205, 304].includes(status)
+    if (noBody) incoming.resume()
+    resolve(new Response(noBody ? null : Readable.toWeb(incoming), { status, headers: responseHeaders }))
+  })
+  request.on('error', reject)
+  request.end()
+})
 
 const readLimited = async (response) => {
   const reader = response.body?.getReader()
@@ -106,7 +141,7 @@ const readLimited = async (response) => {
   return new TextDecoder().decode(Buffer.concat(chunks.map((chunk) => Buffer.from(chunk))))
 }
 
-export const createCalendarRouter = ({ fetchImpl = fetch, lookup = dnsLookup, requireAuth } = {}) => {
+export const createCalendarRouter = ({ fetchImpl = fetchPinnedFeed, lookup = dnsLookup, requireAuth } = {}) => {
   if (!requireAuth) throw new Error('Calendar router requires requireAuth')
   const router = Router()
   const cache = new Map()
@@ -114,16 +149,18 @@ export const createCalendarRouter = ({ fetchImpl = fetch, lookup = dnsLookup, re
   const fetchFeed = async (start) => {
     let url = start
     for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
-      await assertPublicHost(url, lookup)
+      const pinnedAddress = await assertPublicHost(url, lookup)
       const controller = new AbortController()
       const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
       try {
         const response = await fetchImpl(url.href, {
           redirect: 'manual',
           signal: controller.signal,
+          pinnedAddress,
           headers: { Accept: 'text/calendar, text/plain;q=0.8, */*;q=0.1', 'User-Agent': 'Focus&go calendar' },
         })
         if (response.status >= 300 && response.status < 400) {
+          await response.body?.cancel()
           const next = normalizeFeedUrl(new URL(response.headers.get('location') ?? '', url).href)
           if (!next) break
           url = next

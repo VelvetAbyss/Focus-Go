@@ -20,6 +20,7 @@ type TaskProgressSummaryCardProps = {
   tasks: readonly TaskItem[]
   projects: readonly ProjectItem[]
   className?: string
+  jarRenderMode?: 'three' | 'sketch'
   compact?: boolean
   now?: number
 }
@@ -125,6 +126,7 @@ const ProjectRow = ({
 }: {
   project: TaskProgressSummary['projects'][number]
   mode: TaskProgressDetailMode
+  jarRenderMode?: 'three' | 'sketch'
   compact?: boolean
   t: Translator
   language: 'en' | 'zh'
@@ -253,7 +255,7 @@ const addLocalMonths = (value: number, amount: number) => {
 const shiftPeriodAnchor = (value: number, period: TaskProgressPeriod, offset: number) =>
   period === 'week' ? value + offset * 7 * 24 * 60 * 60 * 1000 : addLocalMonths(value, offset)
 
-export const TaskProgressSummaryCard = ({ tasks, projects, className, compact, now }: TaskProgressSummaryCardProps) => {
+export const TaskProgressSummaryCard = ({ tasks, projects, className, compact, now, jarRenderMode = 'three' }: TaskProgressSummaryCardProps) => {
   const { t, language } = useI18n()
   const [period, setPeriod] = useState<TaskProgressPeriod>('week')
   const [mode, setMode] = useState<TaskProgressDetailMode>('compact')
@@ -459,7 +461,7 @@ export const TaskProgressSummaryCard = ({ tasks, projects, className, compact, n
           ) : null}
 
           {jarShelf ? (
-            <CompletionJar shelf={jarShelf} isCurrentWeek={periodOffset === 0} onOpenWeek={openWeek} />
+            <CompletionJar renderMode={jarRenderMode} shelf={jarShelf} isCurrentWeek={periodOffset === 0} onOpenWeek={openWeek} />
           ) : (
           <div className="recap-card__by-project">
             <div className="recap-card__bp-head">

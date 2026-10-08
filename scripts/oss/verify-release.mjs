@@ -1,9 +1,7 @@
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import {
-  exec,
-  ossBaseArgs,
-  ossutilBin,
+  ossCommand,
   requireEnv,
   resolveOssPath,
   resolveReleaseIdentity,
@@ -13,8 +11,6 @@ import {
 const main = async () => {
   const identity = await resolveReleaseIdentity()
   const bucket = requireEnv('OSS_BUCKET')
-  const bin = ossutilBin()
-  const baseArgs = ossBaseArgs()
 
   const releaseOssPath = resolveOssPath({
     bucket,
@@ -35,7 +31,7 @@ const main = async () => {
   await fs.mkdir(remoteRoot, { recursive: true })
 
   const remoteManifestPath = path.join(remoteRoot, 'manifest.json')
-  await exec(bin, ['cp', `${releaseOssPath}manifest.json`, remoteManifestPath, '--force', ...baseArgs])
+  await ossCommand(['cp', `${releaseOssPath}manifest.json`, remoteManifestPath, '--force'])
   const remoteManifestRaw = await fs.readFile(remoteManifestPath, 'utf8')
 
   if (localManifestRaw !== remoteManifestRaw) {
@@ -46,7 +42,7 @@ const main = async () => {
   for (const file of localManifest.files) {
     const remoteFile = path.join(remoteRoot, file.path)
     await fs.mkdir(path.dirname(remoteFile), { recursive: true })
-    await exec(bin, ['cp', `${releaseOssPath}${file.path}`, remoteFile, '--force', ...baseArgs])
+    await ossCommand(['cp', `${releaseOssPath}${file.path}`, remoteFile, '--force'])
     let stat
     try {
       stat = await fs.stat(remoteFile)

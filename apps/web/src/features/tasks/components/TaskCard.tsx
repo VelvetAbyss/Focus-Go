@@ -38,6 +38,7 @@ type TaskCardProps = {
   style?: CSSProperties
   loadingActionKey?: string | null
   successActionKey?: string | null
+  showStatus?: boolean
   compact?: boolean
   onClick?: (task: TaskItem) => void
   selected?: boolean
@@ -86,6 +87,7 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
       style,
       loadingActionKey,
       compact = false,
+      showStatus = false,
       onClick,
       selected = false,
       selectionMode = false,
@@ -170,7 +172,7 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
           </span>
         ),
       })
-    } else if (task.status === 'verify' || task.status === 'dropped') {
+    } else if (showStatus || task.status === 'verify' || task.status === 'dropped') {
       metaItems.push({
         key: 'status',
         node: (
@@ -330,6 +332,12 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
                   {task.title}
                 </h4>
               </div>
+
+              {!compact && ((task.status === 'waiting' && task.waitingOn?.trim()) || task.description.trim()) ? (
+                <p className="task-card__preview">{task.status === 'waiting' && task.waitingOn?.trim()
+                  ? `${t('tasks.drawer.waitingOn')} · ${task.waitingOn}`
+                  : task.description}</p>
+              ) : null}
 
               <div className="task-card__foot" data-revealed={isHovered && !selectionMode ? 'true' : 'false'}>
                 {/* Resting face: state on the left joined by "·", project on the right.

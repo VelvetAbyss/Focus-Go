@@ -42,7 +42,7 @@ import { fetchApi } from '../../shared/apiBase'
 import { dashboardRepo } from '../../data/repositories/dashboardRepo'
 import { db, requestCrossTabDbReset } from '../../data/db'
 import { DB_NAME, DB_VERSION, TABLES } from '../../data/db/schema'
-import { applyTheme, readStoredThemePreference, resolveTheme, writeStoredThemePreference } from '../../shared/theme/theme'
+import { applyTheme, readStoredThemePreference, resolveTheme, subscribeTheme, writeStoredThemePreference } from '../../shared/theme/theme'
 import {
   applyThemePackPreview,
   clearThemePackPreview,
@@ -950,15 +950,17 @@ const SettingsRoute = () => {
   const resolvedThemeMode = useMemo(() => (theme === 'system' ? resolveTheme() : theme), [theme])
 
   const saveThemeOverride = async (next: ThemeSelection) => {
+    // Apply intent immediately; a slow legacy dashboard write must not replace
+    // a newer choice made with the sidebar control while it was pending.
+    writeStoredThemePreference(next)
+    applyTheme(resolveTheme(next))
+    void syncedPreferencesRepo.persistFromLocal()
     const themeOverride = next === 'system' ? null : next
     const stored = (await dashboardRepo.get()) ?? dashboard
     const items = stored?.items ?? []
     const updated = await dashboardRepo.upsert({ items, themeOverride })
     setDashboard(updated)
 
-    writeStoredThemePreference(next)
-    applyTheme(resolveTheme(next))
-    void syncedPreferencesRepo.persistFromLocal()
   }
 
   useEffect(() => {
@@ -971,6 +973,10 @@ const SettingsRoute = () => {
     return () => window.removeEventListener(SYNCED_PREFERENCES_UPDATED_EVENT, handleSyncedPreferencesUpdated)
   }, [])
 
+  useEffect(() => subscribeTheme(() => {
+    setTheme(readStoredThemePreference() ?? 'system')
+  }), [])
+
   useEffect(() => {
     if (!themePackPreview) {
       clearThemePackPreview()
@@ -981,6 +987,10 @@ const SettingsRoute = () => {
 
   useEffect(() => {
     const handleBeforeModeToggle = () => {
+      // A rapid round trip can change system -> explicit light/dark without
+      // changing the final applied colour, so subscribeTheme alone is not enough.
+      const pendingPreference = readStoredThemePreference()
+      if (pendingPreference) setTheme(pendingPreference)
       if (!themePackPreview) return
       clearThemePackPreview()
       setThemePackPreview(null)

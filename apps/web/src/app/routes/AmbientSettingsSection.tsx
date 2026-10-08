@@ -70,10 +70,10 @@ const Group = ({ title, description, children }: GroupProps) => (
   </div>
 )
 
-const FRAME_RATE_OPTIONS: { value: AmbientFrameRate; label: string; hintKey: TranslationKey }[] = [
-  { value: 24, label: '24 FPS', hintKey: 'settings.ambient.fps.24.hint' },
-  { value: 30, label: '30 FPS', hintKey: 'settings.ambient.fps.30.hint' },
-  { value: 60, label: '60 FPS', hintKey: 'settings.ambient.fps.60.hint' },
+const FRAME_RATE_OPTIONS: { value: AmbientFrameRate; hintKey: TranslationKey }[] = [
+  { value: 24, hintKey: 'settings.ambient.fps.24.hint' },
+  { value: 30, hintKey: 'settings.ambient.fps.30.hint' },
+  { value: 60, hintKey: 'settings.ambient.fps.60.hint' },
 ]
 
 const AmbientSettingsSection = () => {
@@ -102,11 +102,23 @@ const AmbientSettingsSection = () => {
 
       <Group title={t('settings.ambient.group.global')} description={t('settings.ambient.group.globalDesc')}>
         <Row
+          icon={Sparkles}
+          title={t('settings.ambient.motion.title')}
+          description={t('settings.ambient.motion.desc')}
+        >
+          <Switch
+            aria-label={t('settings.ambient.motion.title')}
+            checked={prefs.motionEnabled}
+            onCheckedChange={(checked) => setAmbientPreferences({ motionEnabled: checked })}
+          />
+        </Row>
+        <Row
           icon={Gauge}
           title={t('settings.ambient.fps.title')}
           description={t('settings.ambient.fps.desc')}
         >
           <Select
+            disabled={!prefs.motionEnabled}
             value={String(prefs.frameRate)}
             onValueChange={(value) =>
               setAmbientPreferences({ frameRate: Number(value) as AmbientFrameRate })
@@ -118,8 +130,7 @@ const AmbientSettingsSection = () => {
             <SelectContent>
               {FRAME_RATE_OPTIONS.map((opt) => (
                 <SelectItem key={opt.value} value={String(opt.value)}>
-                  <span className="font-medium">{opt.label}</span>
-                  <span className="ml-2 text-xs text-muted-foreground">{t(opt.hintKey)}</span>
+                  <span className="font-medium">{t(opt.hintKey)}</span>
                 </SelectItem>
               ))}
             </SelectContent>

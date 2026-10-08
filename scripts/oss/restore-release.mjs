@@ -1,10 +1,10 @@
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import {
-  exec,
+  ossCommand,
+  resolveRestoreDirectory,
+  assertNoRestoreSymlinks,
   optionalEnv,
-  ossBaseArgs,
-  ossutilBin,
   requireEnv,
   resolveOssPath,
   resolveReleaseIdentity,
@@ -30,8 +30,6 @@ const sanitizeManifestPath = (value) => {
 const main = async () => {
   const identity = await resolveReleaseIdentity()
   const bucket = requireEnv('OSS_BUCKET')
-  const bin = ossutilBin()
-  const baseArgs = ossBaseArgs()
 
   const restoreTarget = path.resolve(optionalEnv('RESTORE_TARGET_DIR', '.artifacts/restore'))
 
@@ -43,12 +41,13 @@ const main = async () => {
     gitSha: identity.gitSha,
   })
 
-  const targetDir = path.join(restoreTarget, identity.app, identity.releaseDate, identity.gitSha)
+  const targetDir = resolveRestoreDirectory(restoreTarget, identity)
+  await assertNoRestoreSymlinks(restoreTarget, targetDir)
   await fs.rm(targetDir, { recursive: true, force: true })
   await fs.mkdir(targetDir, { recursive: true })
 
   const manifestPath = path.join(targetDir, 'manifest.json')
-  await exec(bin, ['cp', `${releaseOssPath}manifest.json`, manifestPath, '--force', ...baseArgs])
+  await ossCommand(['cp', `${releaseOssPath}manifest.json`, manifestPath, '--force'])
   const manifestRaw = await fs.readFile(manifestPath, 'utf8')
   const manifest = JSON.parse(manifestRaw)
 
@@ -60,7 +59,7 @@ const main = async () => {
     }
 
     await fs.mkdir(path.dirname(localPath), { recursive: true })
-    await exec(bin, ['cp', `${releaseOssPath}${safePath}`, localPath, '--force', ...baseArgs])
+    await ossCommand(['cp', `${releaseOssPath}${safePath}`, localPath, '--force'])
   }
 
   await fs.access(manifestPath)

@@ -45,6 +45,7 @@ import PremiumMark from '../premium/PremiumMark'
 import FocusOnTaskButton from '../focus/FocusOnTaskButton'
 import { buildNoteRouteWithReturn, readNoteReturnPath, withTaskContext } from '../../shared/navigation/returnPath'
 import './task-detail-theme.css'
+import './tasks-workspace.css'
 
 const RoutedTaskNotesPanel = ({ taskId, taskTitle }: { taskId: string; taskTitle: string }) => {
   const location = useLocation()
@@ -96,7 +97,7 @@ const OUTLINE_PILL = 'h-8 rounded-full border-[color-mix(in_srgb,var(--text-prim
 const CTA_PILL = 'h-8 rounded-full border-0 bg-[var(--cta-bg)] px-3.5 text-meta font-semibold text-[color:var(--cta-fg)] hover:bg-[var(--cta-bg-hover)]'
 const defaultTagOptions = ['work', 'life', 'health', 'study', 'finance', 'family']
 const TASK_DRAWER_WIDTH_STORAGE_KEY = 'task_drawer_width_v1'
-const TASK_DRAWER_SPLIT_STORAGE_KEY = 'task_drawer_split_ratio_v1'
+const TASK_DRAWER_SPLIT_STORAGE_KEY = 'task_drawer_split_ratio_v2'
 const TASK_DRAWER_MIN_WIDTH = 1100
 const TASK_DRAWER_MAX_WIDTH = 1800
 const TASK_DRAWER_MIN_LEFT_RATIO = 0.45
@@ -199,14 +200,16 @@ const TaskDrawer = ({
   const panelRef = useRef<HTMLDivElement | null>(null)
   const [panelWidth, setPanelWidth] = useState<number>(() => {
     if (typeof window === 'undefined') return 1280
-    const stored = Number(window.localStorage.getItem(TASK_DRAWER_WIDTH_STORAGE_KEY))
+    const raw = window.localStorage.getItem(TASK_DRAWER_WIDTH_STORAGE_KEY)
+    const stored = raw === null ? NaN : Number(raw)
     const fallback = Number.isFinite(stored) ? stored : 1280
     const viewportMax = Math.max(TASK_DRAWER_MIN_WIDTH, window.innerWidth - 48)
     return clamp(fallback, TASK_DRAWER_MIN_WIDTH, Math.min(TASK_DRAWER_MAX_WIDTH, viewportMax))
   })
   const [leftRatio, setLeftRatio] = useState<number>(() => {
     if (typeof window === 'undefined') return 0.7
-    const stored = Number(window.localStorage.getItem(TASK_DRAWER_SPLIT_STORAGE_KEY))
+    const raw = window.localStorage.getItem(TASK_DRAWER_SPLIT_STORAGE_KEY)
+    const stored = raw === null ? NaN : Number(raw)
     const fallback = Number.isFinite(stored) ? stored : 0.7
     return clamp(fallback, TASK_DRAWER_MIN_LEFT_RATIO, TASK_DRAWER_MAX_LEFT_RATIO)
   })
@@ -721,7 +724,7 @@ const TaskDrawer = ({
       open={open}
       title=""
       onClose={requestClose}
-      panelClassName="task-drawer-panel task-detail-theme !h-[calc((100vh-40px)/var(--overlay-scale,1))] !max-h-none rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] shadow-[var(--shadow-card-lg)]"
+      panelClassName="task-drawer-panel task-detail-theme task-detail-workspace !h-[calc((100vh-40px)/var(--overlay-scale,1))] !max-h-none rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] shadow-[var(--shadow-card-lg)]"
       panelStyle={{ width: `calc(${panelWidth}px / var(--overlay-scale, 1))`, maxWidth: 'calc((100vw - 48px) / var(--overlay-scale, 1))' }}
       contentClassName="!h-full !p-0"
     >
@@ -866,9 +869,10 @@ const TaskDrawer = ({
                 >
 
                   <div className="pl-3">
-                    <Input
+                    <Textarea
+                      rows={2}
                       value={title}
-                      onChange={(event) => setTitle(event.target.value)}
+                      onChange={(event) => setTitle(event.target.value.replace(/\r?\n/g, ' '))}
                       className="task-detail-title-input h-auto border-0 bg-transparent px-0 py-0 text-[30px] font-bold leading-[1.15] tracking-[-0.04em] text-[color:var(--text-primary)] shadow-none focus-visible:ring-0"
                       placeholder={t('tasks.drawer.title')}
                     />
@@ -982,91 +986,7 @@ const TaskDrawer = ({
                 </div>
 
                 {/* Order: what/when first (dates, reminder, today), then context, then media. */}
-                {/* ── CORE PROPERTIES ── */}
-                <section
-                  className="task-detail-card tdv2-section-enter rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] p-5 shadow-[var(--shadow-card-lg)]"
-                  style={{ animationDelay: '40ms' }}
-                >
-                  <p className="task-detail-kicker">{t('tasks.drawer.details')}</p>
-                  <h2 className="task-detail-title mt-0.5">{t('tasks.drawer.coreProperties')}</h2>
-
-                  <div className="mt-4 space-y-3">
-                    {/* Today toggle */}
-                    <div className="flex items-center justify-between rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] bg-[color:var(--bg-muted)] px-4 py-3">
-                      <div className="min-w-0">
-                        <p className="text-ui font-semibold text-[color:var(--text-primary)]">{t('tasks.today.title')}</p>
-                        <p className="mt-0.5 text-meta text-[color:var(--text-secondary)]">{t('tasks.today.switchHint')}</p>
-                      </div>
-                      <Switch checked={isToday} onCheckedChange={setIsToday} aria-label={t('tasks.today.title')} />
-                    </div>
-
-                    {/* Due date + reminder */}
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <label className="grid gap-1.5">
-                        <span className="px-1 text-meta font-semibold uppercase tracking-[var(--tracking-caps)] text-[color:var(--text-secondary)]">{t('tasks.drawer.dueDate')}</span>
-                        <DatePicker value={dueDate} onChange={handleDueDateChange} placeholder={t('tasks.drawer.setDate')} className="task-detail-picker rounded-[var(--radius-md)]" />
-                      </label>
-                      <label className="grid gap-1.5">
-                        <span className="px-1 text-meta font-semibold uppercase tracking-[var(--tracking-caps)] text-[color:var(--text-secondary)]">{t('tasks.drawer.reminder')}</span>
-                        <DateTimePicker
-                          dateValue={reminderDate}
-                          timeValue={reminderTime}
-                          onDateChange={(date) => {
-                            const nextDate = date ?? ''
-                            setReminderDate(nextDate)
-                            if (!nextDate) setReminderTime('')
-                          }}
-                          onTimeChange={(time) => setReminderTime(time ?? '')}
-                          placeholder={t('tasks.drawer.setReminder')}
-                          ariaLabel={t('tasks.drawer.reminder')}
-                          className="w-full"
-                          triggerClassName="task-detail-picker rounded-[var(--radius-md)]"
-                        />
-                      </label>
-                    </div>
-
-                    {/* Repeat */}
-                    <div className="grid gap-1.5">
-                      <span className="px-1 text-meta font-semibold uppercase tracking-[var(--tracking-caps)] text-[color:var(--text-secondary)]">{t('tasks.drawer.repeat')}</span>
-                      <ShadcnSelect value={recurrenceValue} onValueChange={handleRecurrenceChange}>
-                        <SelectTrigger
-                          aria-label={t('tasks.drawer.repeat')}
-                          className="task-detail-picker h-auto min-h-11 w-full justify-start gap-2 rounded-[var(--radius-md)] border-[var(--border)] bg-[var(--bg-muted)] px-3 py-2.5 text-body font-normal shadow-none"
-                        >
-                          <Repeat className="h-3.5 w-3.5 shrink-0 text-[color:var(--text-secondary)]" />
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">{t('tasks.recurrence.none')}</SelectItem>
-                          {recurrenceOptions.map((value) => (
-                            <SelectItem key={value} value={value}>
-                              {/* The chosen rule reads as stored (e.g. 每月 31 日 even on a 28-day month). */}
-                              {describeTaskRecurrence(
-                                value === recurrenceValue ? currentTask.recurrence : recurrenceFromOption(value, dueDate || undefined),
-                                t,
-                              )}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </ShadcnSelect>
-                      {currentTask.recurrence ? (
-                        <span className="px-1 text-meta text-[color:var(--text-secondary)]">{t('tasks.drawer.repeatHint')}</span>
-                      ) : null}
-                    </div>
-
-                    {/* Date range */}
-                    <label className="grid gap-1.5">
-                      <span className="px-1 text-meta font-semibold uppercase tracking-[var(--tracking-caps)] text-[color:var(--text-secondary)]">{t('tasks.drawer.dateRange')}</span>
-                      <DateRangePicker
-                        value={{ startDate, endDate }}
-                        className="task-detail-picker rounded-[var(--radius-md)]"
-                        onChange={({ startDate: nextStartDate, endDate: nextEndDate }) => {
-                          setStartDate(nextStartDate ?? '')
-                          setEndDate(nextEndDate ?? '')
-                        }}
-                      />
-                    </label>
-
+                <section className="task-detail-summary">
                     {/* Summary */}
                     <label className="grid gap-1.5">
                       <span className="px-1 text-meta font-semibold uppercase tracking-[var(--tracking-caps)] text-[color:var(--text-secondary)]">{t('tasks.drawer.summary')}</span>
@@ -1077,153 +997,8 @@ const TaskDrawer = ({
                         placeholder={t('tasks.drawer.summaryPlaceholder')}
                       />
                     </label>
-                  </div>
+
                 </section>
-
-                <TaskProgressCard task={currentTask} onUpdated={onUpdated} />
-
-                <TaskProjectAssignCard
-                  projectId={projectId}
-                  projects={projects}
-                  onChange={(next) => setProjectId(next)}
-                />
-
-                {/* ── TAGS ── */}
-                <section
-                  className="task-detail-card tdv2-section-enter rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] p-5 shadow-[var(--shadow-card-lg)]"
-                  style={{ animationDelay: '80ms' }}
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="task-detail-kicker">{t('tasks.drawer.tags')}</p>
-                      <h2 className="task-detail-title mt-0.5">{t('tasks.drawer.tagContext')}</h2>
-                    </div>
-                    <Popover open={tagPickerOpen} onOpenChange={setTagPickerOpen}>
-                      <PopoverTrigger asChild>
-                        <Button type="button" variant="outline" size="sm"
-                          className="h-8 rounded-full border-[color-mix(in_srgb,var(--text-primary)_12%,transparent)] px-3.5 text-meta font-semibold hover:bg-[color:var(--surface-hover)]">
-                          <Plus className="mr-1.5 h-3.5 w-3.5" />
-                          {t('tasks.drawer.newTag')}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[260px] rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] p-3 shadow-[var(--shadow-card-lg)]" align="end" sideOffset={10}>
-                        <div className="space-y-2.5">
-                          <div className="space-y-0.5">
-                            {tagOptions.map((tagName) => {
-                              const selected = tags.some((item) => item.toLowerCase() === tagName.toLowerCase())
-                              const tone = getTaskTagTone(tagName)
-                              return (
-                                <button
-                                  key={tagName}
-                                  type="button"
-                                  className={cn(
-                                    'flex w-full items-center justify-between rounded-[var(--radius-md)] px-3 py-2 text-left transition-colors',
-                                    selected ? 'bg-[color:var(--surface-hover)]' : 'hover:bg-[color:var(--surface-hover)]',
-                                  )}
-                                  onClick={() => toggleTag(tagName)}
-                                >
-                                  <span className={cn('task-detail-tag inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-meta font-medium', tone.badge)}>
-                                    <span className={cn('h-1.5 w-1.5 rounded-full', tone.dot)} />
-                                    {tagName}
-                                  </span>
-                                  {selected ? <Check className="h-3 w-3 text-[color:var(--text-secondary)]" /> : null}
-                                </button>
-                              )
-                            })}
-                          </div>
-                          <form
-                            className="flex items-center gap-2"
-                            onSubmit={(event) => { event.preventDefault(); addCustomTag() }}
-                          >
-                            <Input
-                              value={tagDraft}
-                              onChange={(event) => setTagDraft(event.target.value)}
-                              placeholder={t('tasks.drawer.customTag')}
-                              className="h-9 rounded-[var(--radius-md)] border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[color:var(--bg-muted)] text-ui"
-                            />
-                            <Button type="submit" size="sm" className="h-9 shrink-0 rounded-full px-3.5 text-meta font-semibold" disabled={!tagDraft.trim()}>
-                              {t('tasks.drawer.add')}
-                            </Button>
-                          </form>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {tags.length > 0 ? (
-                      tags.map((tagName) => {
-                        const tone = getTaskTagTone(tagName)
-                        return (
-                          <span key={tagName} className={cn('task-detail-tag inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-meta font-medium', tone.badge)}>
-                            <span className={cn('h-1.5 w-1.5 rounded-full', tone.dot)} />
-                            {tagName}
-                          </span>
-                        )
-                      })
-                    ) : (
-                      <p className="text-ui text-[color:var(--text-secondary)]">{t('tasks.drawer.noTags')}</p>
-                    )}
-                  </div>
-                </section>
-
-                <TaskAttachmentsSection
-                  attachments={attachments}
-                  onChange={(next) => setAttachments(next)}
-                />
-
-                {/* ── ACTIVITY ── */}
-                <section
-                  className="task-detail-card-shell tdv2-section-enter"
-                  style={{ animationDelay: '120ms' }}
-                >
-                  <div className="task-detail-card rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] p-5 shadow-[var(--shadow-card-lg)]">
-                    <p className="task-detail-kicker">{t('tasks.drawer.activity')}</p>
-                    <h2 className="task-detail-title mt-0.5">{t('tasks.drawer.systemTimeline')}</h2>
-                    <div className="mt-4">
-                      {activityLogs.length === 0 ? (
-                        <div className="rounded-[var(--radius-md)] border border-dashed border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color:var(--bg-muted)] px-4 py-5 text-center text-ui text-[color:var(--text-secondary)]">
-                          {t('tasks.drawer.noActivity')}
-                        </div>
-                      ) : (
-                        <div className="tdv2-timeline">
-                          {activityLogs.map((log, index) => (
-                            <div
-                              key={log.id}
-                              className={cn('tdv2-timeline-item', index < activityLogs.length - 1 && 'tdv2-timeline-item--lined')}
-                            >
-                              <div className="tdv2-timeline-dot" />
-                              <div className="tdv2-timeline-content">
-                                <p className="text-ui font-medium leading-[1.4] text-[color:var(--text-primary)]">
-                                  {localizeActivityMessage(log.message, t)}
-                                </p>
-                                <p className="mt-1 text-meta text-[color:var(--text-secondary)]">{formatTaskDateTime(log.createdAt)}</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </section>
-              </div>
-            </ScrollArea>
-
-            {/* ─── DIVIDER ─── */}
-            <button
-              type="button"
-              aria-label={t('tasks.drawer.resizeColumns')}
-              className="group relative h-full cursor-col-resize border-x border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] bg-[color:var(--bg-muted)] transition-colors hover:bg-[color:var(--surface-hover)]"
-              onPointerDown={beginSplitResize}
-              onDoubleClick={toggleSplitPreset}
-            >
-              <span className="absolute left-1/2 top-1/2 h-14 w-[2px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[color-mix(in_srgb,var(--text-primary)_12%,transparent)] transition-all duration-200 group-hover:h-20 group-hover:bg-[color-mix(in_srgb,var(--text-primary)_28%,transparent)]" />
-            </button>
-
-            {/* ════ RIGHT PANE ════ */}
-            <aside className="task-detail-aside flex min-h-0 min-w-0 flex-col">
-              <ScrollArea className="task-detail-pane task-detail-pane--right min-h-0 min-w-0 flex-1">
-                <div className="task-detail-column min-w-0 space-y-4 px-5 py-6">
-
                   {/* ── SUBTASKS ── */}
                   <section
                     className="task-detail-card task-detail-card--side tdv2-section-enter rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] p-4 shadow-[var(--shadow-card)]"
@@ -1330,8 +1105,8 @@ const TaskDrawer = ({
                               </div>
                               <button
                                 type="button"
-                                aria-label="Remove subtask"
-                                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[color:var(--text-secondary)] opacity-0 transition-all duration-150 hover:bg-tone-urgent-wash hover:text-tone-urgent group-hover:opacity-100"
+                                aria-label={t('tasks.workspace.removeSubtask')}
+                                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[color:var(--text-secondary)] opacity-0 focus-visible:opacity-100 transition-all duration-150 hover:bg-tone-urgent-wash hover:text-tone-urgent group-hover:opacity-100"
                                 onClick={() => {
                                   if (!guardSubtasks()) return
                                   setSubtasks((prev) => prev.filter((item) => item.id !== subtask.id))
@@ -1422,6 +1197,238 @@ const TaskDrawer = ({
                     ? <RoutedTaskNotesPanel key={currentTask.id} taskId={currentTask.id} taskTitle={currentTask.title} />
                     : <TaskNotesPanel key={currentTask.id} taskId={currentTask.id} taskTitle={currentTask.title} />}
 
+                <TaskProgressCard task={currentTask} onUpdated={onUpdated} />
+
+                <TaskAttachmentsSection
+                  attachments={attachments}
+                  onChange={(next) => setAttachments(next)}
+                />
+
+              </div>
+            </ScrollArea>
+
+            {/* ─── DIVIDER ─── */}
+            <button
+              type="button"
+              aria-label={t('tasks.drawer.resizeColumns')}
+              className="task-detail-divider group relative h-full cursor-col-resize border-x border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] bg-[color:var(--bg-muted)] transition-colors hover:bg-[color:var(--surface-hover)]"
+              onPointerDown={beginSplitResize}
+              onDoubleClick={toggleSplitPreset}
+            >
+              <span className="absolute left-1/2 top-1/2 h-14 w-[2px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[color-mix(in_srgb,var(--text-primary)_12%,transparent)] transition-all duration-200 group-hover:h-20 group-hover:bg-[color-mix(in_srgb,var(--text-primary)_28%,transparent)]" />
+            </button>
+
+            {/* ════ RIGHT PANE ════ */}
+            <aside className="task-detail-aside flex min-h-0 min-w-0 flex-col">
+              <ScrollArea className="task-detail-pane task-detail-pane--right min-h-0 min-w-0 flex-1">
+                <div className="task-detail-column min-w-0 space-y-4 px-5 py-6">
+
+                {/* ── CORE PROPERTIES ── */}
+                <section
+                  className="task-detail-card tdv2-section-enter rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] p-5 shadow-[var(--shadow-card-lg)]"
+                  style={{ animationDelay: '40ms' }}
+                >
+                  <p className="task-detail-kicker">{t('tasks.workspace.schedule')}</p>
+                  <h2 className="task-detail-title mt-0.5">{t('tasks.drawer.coreProperties')}</h2>
+
+                  <div className="mt-4 space-y-3">
+                    {/* Today toggle */}
+                    <div className="flex items-center justify-between rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] bg-[color:var(--bg-muted)] px-4 py-3">
+                      <div className="min-w-0">
+                        <p className="text-ui font-semibold text-[color:var(--text-primary)]">{t('tasks.today.title')}</p>
+                        <p className="mt-0.5 text-meta text-[color:var(--text-secondary)]">{t('tasks.today.switchHint')}</p>
+                      </div>
+                      <Switch checked={isToday} onCheckedChange={setIsToday} aria-label={t('tasks.today.title')} />
+                    </div>
+
+                    {/* Due date + reminder */}
+                    <div className="grid gap-3">
+                      <label className="grid gap-1.5">
+                        <span className="px-1 text-meta font-semibold uppercase tracking-[var(--tracking-caps)] text-[color:var(--text-secondary)]">{t(currentTask.status === 'waiting' ? 'tasks.workspace.followUp' : 'tasks.drawer.dueDate')}</span>
+                        <DatePicker value={dueDate} onChange={handleDueDateChange} placeholder={t('tasks.drawer.setDate')} className="task-detail-picker rounded-[var(--radius-md)]" />
+                      </label>
+                      <label className="grid gap-1.5">
+                        <span className="px-1 text-meta font-semibold uppercase tracking-[var(--tracking-caps)] text-[color:var(--text-secondary)]">{t('tasks.drawer.reminder')}</span>
+                        <DateTimePicker
+                          dateValue={reminderDate}
+                          timeValue={reminderTime}
+                          onDateChange={(date) => {
+                            const nextDate = date ?? ''
+                            setReminderDate(nextDate)
+                            if (!nextDate) setReminderTime('')
+                          }}
+                          onTimeChange={(time) => setReminderTime(time ?? '')}
+                          placeholder={t('tasks.drawer.setReminder')}
+                          ariaLabel={t('tasks.drawer.reminder')}
+                          className="w-full"
+                          triggerClassName="task-detail-picker rounded-[var(--radius-md)]"
+                        />
+                      </label>
+                    </div>
+
+                    {/* Repeat */}
+                    <div className="grid gap-1.5">
+                      <span className="px-1 text-meta font-semibold uppercase tracking-[var(--tracking-caps)] text-[color:var(--text-secondary)]">{t('tasks.drawer.repeat')}</span>
+                      <ShadcnSelect value={recurrenceValue} onValueChange={handleRecurrenceChange}>
+                        <SelectTrigger
+                          aria-label={t('tasks.drawer.repeat')}
+                          className="task-detail-picker h-auto min-h-11 w-full justify-start gap-2 rounded-[var(--radius-md)] border-[var(--border)] bg-[var(--bg-muted)] px-3 py-2.5 text-body font-normal shadow-none"
+                        >
+                          <Repeat className="h-3.5 w-3.5 shrink-0 text-[color:var(--text-secondary)]" />
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">{t('tasks.recurrence.none')}</SelectItem>
+                          {recurrenceOptions.map((value) => (
+                            <SelectItem key={value} value={value}>
+                              {/* The chosen rule reads as stored (e.g. 每月 31 日 even on a 28-day month). */}
+                              {describeTaskRecurrence(
+                                value === recurrenceValue ? currentTask.recurrence : recurrenceFromOption(value, dueDate || undefined),
+                                t,
+                              )}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </ShadcnSelect>
+                      {currentTask.recurrence ? (
+                        <span className="px-1 text-meta text-[color:var(--text-secondary)]">{t('tasks.drawer.repeatHint')}</span>
+                      ) : null}
+                    </div>
+
+                    {/* Date range */}
+                    <label className="grid gap-1.5">
+                      <span className="px-1 text-meta font-semibold uppercase tracking-[var(--tracking-caps)] text-[color:var(--text-secondary)]">{t('tasks.drawer.dateRange')}</span>
+                      <DateRangePicker
+                        value={{ startDate, endDate }}
+                        className="task-detail-picker rounded-[var(--radius-md)]"
+                        onChange={({ startDate: nextStartDate, endDate: nextEndDate }) => {
+                          setStartDate(nextStartDate ?? '')
+                          setEndDate(nextEndDate ?? '')
+                        }}
+                      />
+                    </label>
+
+                  </div>
+                </section>
+
+                <TaskProjectAssignCard
+                  projectId={projectId}
+                  projects={projects}
+                  onChange={(next) => setProjectId(next)}
+                />
+
+                {/* ── TAGS ── */}
+                <section
+                  className="task-detail-card tdv2-section-enter rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] p-5 shadow-[var(--shadow-card-lg)]"
+                  style={{ animationDelay: '80ms' }}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="task-detail-kicker">{t('tasks.drawer.tags')}</p>
+                      <h2 className="task-detail-title mt-0.5">{t('tasks.drawer.tagContext')}</h2>
+                    </div>
+                    <Popover open={tagPickerOpen} onOpenChange={setTagPickerOpen}>
+                      <PopoverTrigger asChild>
+                        <Button type="button" variant="outline" size="sm"
+                          className="h-8 rounded-full border-[color-mix(in_srgb,var(--text-primary)_12%,transparent)] px-3.5 text-meta font-semibold hover:bg-[color:var(--surface-hover)]">
+                          <Plus className="mr-1.5 h-3.5 w-3.5" />
+                          {t('tasks.drawer.newTag')}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[260px] rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] p-3 shadow-[var(--shadow-card-lg)]" align="end" sideOffset={10}>
+                        <div className="space-y-2.5">
+                          <div className="space-y-0.5">
+                            {tagOptions.map((tagName) => {
+                              const selected = tags.some((item) => item.toLowerCase() === tagName.toLowerCase())
+                              const tone = getTaskTagTone(tagName)
+                              return (
+                                <button
+                                  key={tagName}
+                                  type="button"
+                                  className={cn(
+                                    'flex w-full items-center justify-between rounded-[var(--radius-md)] px-3 py-2 text-left transition-colors',
+                                    selected ? 'bg-[color:var(--surface-hover)]' : 'hover:bg-[color:var(--surface-hover)]',
+                                  )}
+                                  onClick={() => toggleTag(tagName)}
+                                >
+                                  <span className={cn('task-detail-tag inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-meta font-medium', tone.badge)}>
+                                    <span className={cn('h-1.5 w-1.5 rounded-full', tone.dot)} />
+                                    {tagName}
+                                  </span>
+                                  {selected ? <Check className="h-3 w-3 text-[color:var(--text-secondary)]" /> : null}
+                                </button>
+                              )
+                            })}
+                          </div>
+                          <form
+                            className="flex items-center gap-2"
+                            onSubmit={(event) => { event.preventDefault(); addCustomTag() }}
+                          >
+                            <Input
+                              value={tagDraft}
+                              onChange={(event) => setTagDraft(event.target.value)}
+                              placeholder={t('tasks.drawer.customTag')}
+                              className="h-9 rounded-[var(--radius-md)] border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[color:var(--bg-muted)] text-ui"
+                            />
+                            <Button type="submit" size="sm" className="h-9 shrink-0 rounded-full px-3.5 text-meta font-semibold" disabled={!tagDraft.trim()}>
+                              {t('tasks.drawer.add')}
+                            </Button>
+                          </form>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {tags.length > 0 ? (
+                      tags.map((tagName) => {
+                        const tone = getTaskTagTone(tagName)
+                        return (
+                          <span key={tagName} className={cn('task-detail-tag inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-meta font-medium', tone.badge)}>
+                            <span className={cn('h-1.5 w-1.5 rounded-full', tone.dot)} />
+                            {tagName}
+                          </span>
+                        )
+                      })
+                    ) : (
+                      <p className="text-ui text-[color:var(--text-secondary)]">{t('tasks.drawer.noTags')}</p>
+                    )}
+                  </div>
+                </section>
+
+                {/* ── ACTIVITY ── */}
+                <section
+                  className="task-detail-card-shell tdv2-section-enter"
+                  style={{ animationDelay: '120ms' }}
+                >
+                  <div className="task-detail-card rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] p-5 shadow-[var(--shadow-card-lg)]">
+                    <p className="task-detail-kicker">{t('tasks.drawer.activity')}</p>
+                    <h2 className="task-detail-title mt-0.5">{t('tasks.drawer.systemTimeline')}</h2>
+                    <div className="mt-4">
+                      {activityLogs.length === 0 ? (
+                        <div className="rounded-[var(--radius-md)] border border-dashed border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color:var(--bg-muted)] px-4 py-5 text-center text-ui text-[color:var(--text-secondary)]">
+                          {t('tasks.drawer.noActivity')}
+                        </div>
+                      ) : (
+                        <div className="tdv2-timeline">
+                          {activityLogs.map((log, index) => (
+                            <div
+                              key={log.id}
+                              className={cn('tdv2-timeline-item', index < activityLogs.length - 1 && 'tdv2-timeline-item--lined')}
+                            >
+                              <div className="tdv2-timeline-dot" />
+                              <div className="tdv2-timeline-content">
+                                <p className="text-ui font-medium leading-[1.4] text-[color:var(--text-primary)]">
+                                  {localizeActivityMessage(log.message, t)}
+                                </p>
+                                <p className="mt-1 text-meta text-[color:var(--text-secondary)]">{formatTaskDateTime(log.createdAt)}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </section>
                 </div>
               </ScrollArea>
             </aside>

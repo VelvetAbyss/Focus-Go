@@ -49,7 +49,8 @@ describe('TasksAnalyticsView', () => {
 
     expect(container.querySelector('.tasks-analytics-v2')).not.toHaveClass('overflow-y-auto')
     expect(container.querySelector('.tasks-analytics-v2__card')?.className).not.toContain('shadow-')
-    expect(screen.getAllByText('Completion rate').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Completed in the selected period').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Completed / created').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Average').length).toBeGreaterThan(0)
     expect(screen.getByText('Total completed')).toBeInTheDocument()
   })

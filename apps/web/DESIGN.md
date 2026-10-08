@@ -383,6 +383,24 @@ Paper lies on the desk: shadows are short and tight.
   ticked on screen a moment ago; synced or background completions simply
   appear. The scene draws on demand (nothing runs at rest), and a flat SVG of
   the same packing stands in without WebGL.
+- **Pay widgets** (今日计薪 · 工时换算 · 摸鱼, opt-in dashboard cards): one
+  rule across all three. Paid time already worked is ink, paid time still
+  ahead is pencil, and now is the pen. Each card's picture is the same time
+  grid, drawn in three.js on demand: a working day as five-minute cells, one
+  hour to a row (ink when lived, a pen outline filling as the current cell
+  passes, pencil outlines ahead, lunch crossed out). On 摸鱼 the breaks taken
+  are struck-through pencil cells and a running break is a dashed pen outline.
+  On 工时换算 a price is hour cells in working-day blocks (the last hour filled
+  to its share, spare hours dashed, "+N 天" past what fits). A cell that
+  changes state turns over on its horizontal axis, pencil side to ink side;
+  the day grid writes itself in once on load, and a new price turns its hours
+  over once typing settles. Money and durations are
+  Source Serif 4 numerals with small sans units, and today's pay rolls up once
+  a second through `AppNumber`. "Take a break" is the pen fill (a present-tense
+  action); while a break runs, its clock is the pen and "end" is the ink CTA. A
+  wish whose work time is covered gets a moss dot. On hover a row's trailing
+  value swaps for its remove button in place. The copy stays honest: a break
+  shows what its minutes were paid, never money "earned".
 - **Active item in a list** (the open note or diary entry): a 2px pen bar.
 - **Notices and toasts:** `--paper-sunken` or raised surface, with a 7px tone
   dot and a bold lead word.
@@ -517,3 +535,85 @@ bezier arrays or durations.
 | 2026-09-29 | Empty-state art, second pass: all drawings cropped to their ink and drawn at a shared height (flush left, 14px to the title, no per-page offsets); nine more Open Doodles (CC0) placed one per state: tasks Today (plant), task analytics (roller-skating), focus history (levitate), project timeline (swinging), trips (strolling), 404 (unboxing), error fallback (clumsy, replacing the CSS-drawn ring and cross), dashboard checklist (sitting), spend (ice-cream). The checklist, project timeline and 404 moved from centered to top-left | The user liked the tasks and diary drawings and asked for them in more places. The first set drifted: a uniform 4:3 frame left each drawing a different margin, so some sat small and far from their title. The Life people card was tried and left without art: its fixed height pushed the add button out of view. |
 | 2026-09-29 | Empty states are centered (supersedes the 2026-09-28 top-left rule): drawing, serif line, sentence and action on one axis; bounded panes (dashboard checklist, notes editor, diary pane, 404) also center vertically | The user found the top-left drawings looked unaligned in narrow cards and asked for them centered. The ink-cropped drawings center cleanly because each has an even margin. |
 | 2026-09-29 | Completion jar replaces the per-project list in the weekly recap's brief week view (Full and Month keep the list); the recap's three numbers become one caption row there. Beads come from task activity logs, one per task per week, so past weeks are on the shelf from day one | The user's most frequent action is ticking tasks, and a ticked task left nothing behind. Research on streaks and progress bars says the unfilled state is what hurts, so the jar has no goal and no fixed size. The user chose the direction, the shelf, content-sized jars and the ink-jade-in-glass material. |
+| 2026-10-04 | Pay widgets (今日计薪, 工时换算 with a wishlist, 摸鱼): hidden by default, turned on in Manage widgets. Pay model: a month's salary spread over its working days, a day's pay over its paid minutes (work hours minus lunch). Settings, wishes and breaks live in the synced preferences; breaks are kept for about two months | The user asked for the three widgets from a salary-timer app. A wish's bar fills with paid time worked since it was added, so it moves without manual logging. The cards show earnings, so they never appear uninvited. |
+| 2026-10-04 | Pay widgets get a time grid (direction C of three sketched: particles, rings, grid): five-minute day cells on 今日计薪 and 摸鱼, hour cells in day blocks on 工时换算, cells turning over pencil to ink | The user rejected literal desk props (hourglass, fishbowl) and chose the grid from three animated sketches. The grid states the same facts as the text, in the three hands, and moves only when a cell changes. |
+
+## Ambient environments — 2026-10-08
+
+The four sound scenes now dress the whole workspace, including body-portaled
+menus and dialogs. Each has an explicit light and dark edition; scene selection
+does not override the user's light/dark preference. Fonts, spacing, the pencil /
+ink / now language and the plain white default desk stay intact.
+
+- Rainy Cafe: oat paper, coffee ink and a walnut pen, with quiet window light.
+- Stormy Night: mist/slate paper, blue-gray ink and a rain-blue pen; deep blue-gray at night.
+- Ocean Breeze: sea-salt paper, green ink and a sea-glass pen.
+- Cozy Fireside: pale terracotta paper, umber ink and a copper pen.
+
+`shared/theme/ambient-theme.css` maps these environments into paper, ink, action,
+state, selection, input and HSL component tokens. AppShell publishes the selected
+scene on `html` so portals share it. A temporary settings theme-pack preview
+suspends the environment tokens and restores them when cancelled. Changing sound
+volume keeps the theme; a different enabled-track combination changes it.
+
+Backgrounds use static CSS light fields and a few optional CSS animation layers,
+not the previous full-screen Three.js shaders or a continuously repainted 2D
+canvas. The original scene files remain in source but are not loaded by the
+ambient stage. Weather, globe and other 3D widgets retain their independent
+renderers. Ordinary scenes create no canvas, WebGL context, RAF loop or JS timer.
+There are at most two rain textures, three narrow wave strips or fourteen small
+embers. The opt-in idle daylight palette checks the clock once every five minutes.
+Continuous scenery motion is opt-in (including older saved settings without
+an explicit choice). Defaults are static atmosphere / 88% sheet opacity / no blur.
+When enabled, motion starts at the gentle setting. Optional blur is
+limited to 8px on the main sheet; cards and sidebar use no blur. Opacity is
+constrained to 88–100% for reading contrast. These same limits apply to older
+stored preferences and the settings controls.
+Within environments, recurring composer shadow pulses, decorative sweeps and
+icon bobbing are disabled. They continued repainting a paused background's page;
+finite interaction and submit feedback remain available.
+
+CSS motion pauses while hidden/offscreen, for Save-Data, and for either OS or app
+reduced motion. Static environments remain responsive to resize, palette and
+preference changes. Rain, wave layers, steam, logs and firelight retain their
+effect controls; thunder moves the background only and firelight does not filter
+the reading UI. Sound-driven motion uses the selected mix levels, not live audio
+frequency analysis.
+Validation and local performance evidence: `docs/AMBIENT_THEMES_2026-10-08.md`.
+
+## Sidebar day / night control — 2026-10-08
+
+Place the quick day/night switch below navigation and above the ambient and focus
+controls. Use the existing paper, ink, rule and accent tokens, including the
+active environment's palette. Expanded navigation shows the current mode beside
+a sun/moon thumb; collapsed navigation keeps the same switch without the label.
+
+User-triggered mode changes move the thumb and crossfade the workspace together
+over 280ms. Prefer native view-transition snapshots, with finite CSS transitions
+as a fallback. App and OS reduced motion apply the change immediately. Rapid
+clicks follow the latest intent, and the settings selector shares the same saved
+preference. The switch explicitly chooses light/dark; following the system stays
+available in Settings. No animation runs while idle.
+
+## Unified sidebar — 2026-10-08
+
+The rail has three levels: a compact account row, the scrollable navigation, and
+a single divided quick-control strip. Day/night, podcast, sound scene and focus
+timer share paper/ink/accent tokens, corner treatment and 34px transport controls.
+Do not give each tool a separate decorative card. Navigation remains reorderable.
+Sound and podcast seeking use native ranges with keyboard and touch support.
+The compact timer keeps its remaining time visible; mode shortcuts show their
+minutes beside their symbols. Podcast details open from real buttons.
+
+Feedback uses a 140ms colour change, 180–200ms content/icon changes and a 280ms
+layout settle. Folding captures the sidebar and work area with native View
+Transitions; older browsers use finite transform/opacity movement. It does not
+animate the real sidebar's width each frame. Icons crossfade in place without
+waiting for an exit. No sidebar breathing dots, cursor-following glow or idle
+avatar animation. Respect both reduced-motion settings, including the sound
+settings popover. The popover uses solid paper rather than a blurred glass layer.
+
+Below 960px the rail becomes a compact toolbar: labelled navigation in expanded
+mode, a small icon grid when folded, and quick tools arranged beside one another.
+Keep the navigation and tools separately usable in short desktop windows.
+Local validation: `artifacts/sidebar-redesign-2026-10-08/README.md`.

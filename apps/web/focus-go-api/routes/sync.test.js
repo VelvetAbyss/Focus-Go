@@ -51,6 +51,21 @@ const assertPushOk = async (response) => {
   return body
 }
 
+test('orphan blob quota overflow rolls back the actual bytes and forged size cannot evade it', async () => {
+  const ctx = await createServer({ quotaBytes: 10 })
+  try {
+    const response = await fetch(`${ctx.baseUrl}/sync/rxdb/push`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entityType: 'notes', rows: [], blobs: [{ hash: 'orphan',
+        contentType: 'text/plain', compression: 'none', rawByteLength: 0, byteLength: 0,
+        dataBase64: Buffer.alloc(20).toString('base64'),
+      }] }),
+    })
+    assert.equal(response.status, 413)
+    assert.equal(ctx.db.prepare('SELECT COUNT(*) AS count FROM sync_user_blobs').get().count, 0)
+  } finally { await ctx.close() }
+})
+
 test('sync route push/pull chain stores blobs and returns hydrated rows', async () => {
   const ctx = await createServer()
 
@@ -73,7 +88,7 @@ test('sync route push/pull chain stores blobs and returns hydrated rows', async 
         blobs: [{
           hash: 'blob-1',
           contentType: 'text/plain',
-          compression: 'gzip',
+          compression: 'none',
           rawByteLength: 5,
           byteLength: 5,
           dataBase64: 'eA==',

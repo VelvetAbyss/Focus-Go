@@ -60,7 +60,7 @@ export const createSyncRouter = ({
       // Schema mismatch (e.g. client knows an entityType the server does not) is
       // client-fault, not a 500. Return JSON so the client can surface it
       // instead of busy-looping against a generic Express HTML 500 page.
-      if (message.startsWith('Unsupported sync entity type')) {
+      if (error?.statusCode === 400 || message.startsWith('Unsupported sync entity type')) {
         return res.status(400).json({ error: message })
       }
       console.error(`[sync] rxdb/pull failed entity=${entityType} userId=${userId}`, error)
@@ -77,8 +77,7 @@ export const createSyncRouter = ({
     try {
       const tx = database.transaction((blobItems, writeRows) => {
         for (const blob of blobItems) {
-          if (!blob || typeof blob.hash !== 'string' || typeof blob.dataBase64 !== 'string') continue
-          upsertSyncBlob(database, blob)
+          upsertSyncBlob(database, userId, blob)
         }
         const result = pushRxdbRows(database, userId, entityType, writeRows)
         const usage = getCloudStorageUsage(database, userId)
@@ -94,7 +93,7 @@ export const createSyncRouter = ({
       res.json(tx(blobs, rows))
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      if (message.startsWith('Unsupported sync entity type')) {
+      if (error?.statusCode === 400 || message.startsWith('Unsupported sync entity type')) {
         return res.status(400).json({ error: message })
       }
       if (error?.code === 'cloud_storage_quota_exceeded') {

@@ -151,7 +151,7 @@ describe('AppShell theme preview event flow', () => {
   })
 
   it('updates shell scale css variable on viewport resize', async () => {
-    const { container } = render(
+    const { container, unmount } = render(
       <MemoryRouter>
         <AppShell>
           <div>child</div>
@@ -161,6 +161,7 @@ describe('AppShell theme preview event flow', () => {
 
     const shell = container.querySelector('.focus-shell') as HTMLElement
     expect(shell.style.getPropertyValue('--shell-scale')).toBe('1')
+    expect(document.documentElement).toHaveAttribute('data-ambient-scene', 'rainy-cafe')
 
     setViewportWidth(1716)
     window.dispatchEvent(new Event('resize'))
@@ -168,6 +169,8 @@ describe('AppShell theme preview event flow', () => {
     await waitFor(() => {
       expect(shell.style.getPropertyValue('--shell-scale')).toBe('0.9')
     })
+    unmount()
+    expect(document.documentElement).not.toHaveAttribute('data-ambient-scene')
   })
 
   it('renders the noise-scene ambient backdrop behind shell content', () => {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { CalendarClock, CheckSquare, ChevronDown, FolderKanban, LayoutGrid, Plus, Square, SunMedium, Tag, Trash2 } from 'lucide-react'
+import { CalendarClock, CheckSquare, ChevronDown, LayoutGrid, Plus, Square, Tag, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Select as ShadcnSelect,
@@ -35,7 +35,7 @@ import { resolveProjectColor } from '../../shared/design/tokens'
 import { createTask, parseQuickAddTaskInput } from './application/taskActions'
 import { useTaskDeletion } from './application/useTaskDeletion'
 import ActiveIndicator from '../../shared/motion/ActiveIndicator'
-import { PRESSED_BUTTON, SELECTED_TAB } from '../../shared/motion/indicatorSelectors'
+import {  SELECTED_TAB } from '../../shared/motion/indicatorSelectors'
 import { AppNumber } from '../../shared/ui/AppNumber'
 import { isTaskClosed, isTaskInToday, isTaskOpen, isTaskOverdue } from './domain/taskRules'
 import { buildNextOccurrence } from './domain/taskRecurrence'
@@ -323,11 +323,14 @@ const TasksBoard = ({
       : scope.kind === 'today' || topView === 'today'
         ? tasks.filter((task) => isTaskInToday(task))
         : tasks
-    countBase.forEach((task) => {
+    countBase.filter((task) =>
+      (scope.kind !== 'all' || projectFilterIds.size === 0 || Boolean(task.projectId && projectFilterIds.has(task.projectId)))
+      && (tagFilter.length === 0 || tagFilter.some((tag) => task.tags.some((item) => item.trim().toLowerCase() === tag)))
+    ).forEach((task) => {
       if (task.status in counts) counts[task.status]++
     })
     return counts
-  }, [scope, tasks, topView])
+  }, [scope, tasks, topView, projectFilterIds, tagFilter])
 
   const deadlineAlertTitle = (alert: TaskDeadlineAlert) =>
     alert.kind === 'overdue'
@@ -350,10 +353,12 @@ const TasksBoard = ({
         ? tasks.filter((task) => isTaskInToday(task))
         : tasks
     tabs.forEach((status) => {
-      alerts[status.key] = getUpcomingDeadlineAlert(alertBase.filter((task) => task.status === status.key))
+      alerts[status.key] = getUpcomingDeadlineAlert(alertBase.filter((task) => task.status === status.key
+        && (scope.kind !== 'all' || projectFilterIds.size === 0 || Boolean(task.projectId && projectFilterIds.has(task.projectId)))
+        && (tagFilter.length === 0 || tagFilter.some((tag) => task.tags.some((item) => item.trim().toLowerCase() === tag)))))
     })
     return alerts
-  }, [scope, tasks, topView])
+  }, [scope, tasks, topView, projectFilterIds, tagFilter])
 
   const filteredTasks = useMemo(() => {
     let result = scope.kind === 'project'
@@ -421,6 +426,7 @@ const TasksBoard = ({
   const projectFilterBaseTasks = useMemo(() => {
     if (scope.kind !== 'all') return []
     if (topView === 'today') return tasks.filter((task) => isTaskInToday(task))
+    if (topView === 'list') return tasks.filter((task) => task.status !== 'dropped')
     if (effectiveGroupBy === 'status') return tasks.filter((task) => task.status === activeStatus)
     if (effectiveGroupBy === 'today') return tasks.filter(isTaskOpen)
     return tasks
@@ -761,7 +767,7 @@ const TasksBoard = ({
       <TaskCard
         key={task.id}
         task={task}
-        project={cardProject}
+        project={!asCard && (scope.kind === 'project' || projectFilterIds.has(task.projectId ?? '')) ? null : cardProject}
         dependencyTasks={dependencyTasks}
         onProjectClick={scope.kind === 'all' ? toggleProjectFilter : undefined}
         onSelect={openTask}
@@ -780,6 +786,7 @@ const TasksBoard = ({
         loadingActionKey={statusActionLoadingTaskId === task.id ? statusActionLoadingKey : null}
         successActionKey={statusActionSuccessTaskId === task.id ? statusActionSuccessKey : null}
         compact={asCard}
+        showStatus={topView === 'today' || effectiveGroupBy !== 'status'}
         selected={selectedTaskIds.has(task.id)}
         selectionMode={bulkMode}
       />
@@ -823,9 +830,13 @@ const TasksBoard = ({
     void handleStatusChange(task.id, next)
   }
 
+  const analyticsTasks = tasks.filter((task) =>
+    scope.kind === 'project' ? task.projectId === scope.projectId
+      : scope.kind === 'today' ? isTaskInToday(task) : true)
+
   const boardContent = topView === 'analytics'
     ? (
-      <TasksAnalyticsView tasks={tasks} projects={projects} />
+      <TasksAnalyticsView tasks={analyticsTasks} projects={projects} />
     )
     : topView === 'list'
       ? (
@@ -835,6 +846,8 @@ const TasksBoard = ({
           ) : (
             <TaskListView
               tasks={filteredTasks}
+              selectionMode={bulkMode}
+              selectedTaskIds={selectedTaskIds}
               projectById={projectById}
               onTaskClick={(task) => {
                 if (bulkMode) toggleTaskSelection(task.id)
@@ -937,7 +950,7 @@ const TasksBoard = ({
     // would show as a white block.
     <div className={cn('tasks-fg flex h-full min-h-0 flex-col bg-transparent', !asCard && 'tasks-fg--plain')}>
       {topView === 'board' || topView === 'today' || topView === 'list' ? (
-        <div className="mb-0 border-b pb-3">
+        <div className="tasks-workspace-toolbar">
           <div className="flex flex-col gap-3">
             {!asCard && scope.kind === 'all' ? (
               <div className="tasks-fg__project-filter" aria-label={t('tasks.board.projectFiltersAria')}>
@@ -973,10 +986,10 @@ const TasksBoard = ({
               </div>
             ) : null}
 
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
+          <div className="tasks-workspace-filter-row">
+            <div className="tasks-workspace-filters">
               {topView === 'board' && effectiveGroupBy === 'status' ? (
-                <div className="tasks-fg__status-group flex items-center gap-0.5">
+                <div className="tasks-fg__status-group flex items-center gap-0.5" role="tablist" aria-label={t('tasks.workspace.groupStatus')}>
                   <ActiveIndicator selector={SELECTED_TAB} />
                   {tabs.map((status) => {
                     const cfg = TASK_STATUS_CONFIG[status.key]
@@ -1010,36 +1023,27 @@ const TasksBoard = ({
                     )
                   })}
                 </div>
-              ) : topView === 'list' ? null : (
+              ) : topView === 'today' ? (
                 <div className="rounded-full border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[var(--bg-elevated)] px-3 py-1.5 text-xs text-[color-mix(in_srgb,var(--text-primary)_72%,transparent)]">
                   {t('tasks.today.badge')}
                 </div>
-              )}
+              ) : null}
 
               {!asCard ? (
                 <>
-                  <div className="h-5 w-px bg-border" />
 
                   {topView === 'board' && scope.kind === 'all' ? (
-                    <div className="tasks-fg__group-toggle" role="group" aria-label={t('tasks.board.groupAria')}>
-                      <ActiveIndicator selector={PRESSED_BUTTON} />
-                      {([
-                        { key: 'status', label: t('tasks.board.groupStatus'), Icon: LayoutGrid },
-                        { key: 'project', label: t('tasks.board.groupProject'), Icon: FolderKanban },
-                        { key: 'today', label: t('tasks.board.groupToday'), Icon: SunMedium },
-                      ] satisfies Array<{ key: BoardGroupBy; label: string; Icon: typeof LayoutGrid }>).map(({ key, label, Icon }) => (
-                        <button
-                          key={key}
-                          type="button"
-                          className={cn('tasks-fg__mode-tab', groupBy === key && 'tasks-fg__mode-tab--active')}
-                          aria-pressed={groupBy === key}
-                          onClick={() => setGroupBy(key)}
-                        >
-                          <Icon className="size-3.5" />
-                          {label}
-                        </button>
-                      ))}
-                    </div>
+                    <ShadcnSelect value={groupBy} onValueChange={(value) => setGroupBy(value as BoardGroupBy)}>
+                      <SelectTrigger aria-label={t('tasks.board.groupAria')} className="tasks-workspace-group-select">
+                        <LayoutGrid className="size-3.5" aria-hidden />
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="status">{t('tasks.workspace.groupStatus')}</SelectItem>
+                        <SelectItem value="project">{t('tasks.workspace.groupProject')}</SelectItem>
+                        <SelectItem value="today">{t('tasks.workspace.groupToday')}</SelectItem>
+                      </SelectContent>
+                    </ShadcnSelect>
                   ) : null}
 
                   <Popover>

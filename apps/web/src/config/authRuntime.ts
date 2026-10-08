@@ -1,5 +1,6 @@
 import { authClient } from './authClient'
-import { fetchAuthProfile, setAuth } from '../store/auth'
+import { fetchAuthProfile, getAuth, setAuth } from '../store/auth'
+import { bindLocalAccountOwner, LOCAL_ACCOUNT_OWNER_KEY } from './accountOwnership'
 import { getPlatform } from '../platform'
 
 export type BetterAuthUser = {
@@ -42,6 +43,13 @@ export const clearAuthRedirectParams = (location: Location = window.location) =>
 export const finishBetterAuthSession = async (token?: string, user?: unknown): Promise<StoredAuth> => {
   if (!token || !user) throw new Error('Missing session in auth response.')
   const profile = await fetchAuthProfile(token)
+  if (!profile) throw new Error('Unable to validate account session.')
+  const previousId = getAuth()?.user?.id
+  const nextId = (user as BetterAuthUser).id
+  if (!localStorage.getItem(LOCAL_ACCOUNT_OWNER_KEY) && previousId && previousId !== nextId) {
+    throw new Error('请先退出当前账号再切换账号。')
+  }
+  bindLocalAccountOwner(String(profile.id))
   const nextAuth = {
     accessToken: token,
     user,

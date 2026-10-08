@@ -6,6 +6,7 @@ import { createBlobMap, decodeSyncPayload, encodeSyncPayload } from './content'
 import { dispatchSyncDataUpdated, SYNC_ENTITY_TABLES, SYNC_STATUS_CHANGED_EVENT } from './constants'
 import { syncApi } from './client'
 import { getAuth } from '../../store/auth'
+import { LOCAL_ACCOUNT_OWNER_KEY } from '../../config/accountOwnership'
 import { runDomainEventProjections } from '../events/projections'
 import { listOpenSyncConflicts, recordSyncConflict, syncDocumentsDiffer } from './conflicts'
 import type { DomainEvent } from '../models/types'
@@ -25,7 +26,13 @@ let rxdbResetRequested = false
 
 const now = () => Date.now()
 const getCollectionName = (entityType: SyncEntityType) => `sync${entityType.toLowerCase()}`
-const getDatabaseName = (entityType: SyncEntityType) => `${RXDB_SYNC_DB_NAME}-${entityType.toLowerCase()}`
+const getAccountNamespace = () => {
+  const id = (typeof localStorage !== 'undefined' ? localStorage.getItem(LOCAL_ACCOUNT_OWNER_KEY) : null) ?? getAuth()?.user?.id
+  // Hex encoding keeps IndexedDB names portable without lossy sanitization.
+  return (typeof id === 'string' && id) || (typeof id === 'number' && Number.isFinite(id))
+    ? Array.from(new TextEncoder().encode(String(id)), (byte) => byte.toString(16).padStart(2, '0')).join('') : 'local'
+}
+const getDatabaseName = (entityType: SyncEntityType) => `${RXDB_SYNC_DB_NAME}-${getAccountNamespace()}-${entityType.toLowerCase()}`
 
 export const extractSyncErrorMessage = (error: unknown) => {
   const nestedErrors = (error as { parameters?: { errors?: Array<{ message?: string }> } })?.parameters?.errors
@@ -358,7 +365,7 @@ const syncEntity = async (entityType: SyncEntityType) =>
     const replication = replicateRxCollection<SyncDocument, RxdbCheckpoint>({
       // v2 starts a fresh pull cursor so existing clients move from device
       // timestamps to the server's monotonic sequence checkpoint.
-      replicationIdentifier: `focusgo-${entityType}-server-sequence-v2`,
+      replicationIdentifier: `focusgo-${getAccountNamespace()}-${entityType}-server-sequence-v3`,
       collection,
       deletedField: '_deleted',
       live: false,

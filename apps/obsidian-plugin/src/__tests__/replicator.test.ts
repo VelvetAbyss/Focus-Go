@@ -34,7 +34,7 @@ class RealServer {
       push: async (rows: PushRow[], blobs: SyncWireBlob[]): Promise<PushResponse> => {
         for (const blob of blobs) {
           this.blobs.set(blob.hash, blob)
-          store.upsertSyncBlob(this.db, blob)
+          store.upsertSyncBlob(this.db, USER, blob)
         }
         return store.pushRxdbRows(this.db, USER, 'tasks', rows)
       },
@@ -44,7 +44,7 @@ class RealServer {
   /** Simulate the web app writing a task. */
   async appWrites(task: TaskItem): Promise<void> {
     const { payload, blobs } = await encodeTaskPayload(task)
-    for (const blob of blobs) store.upsertSyncBlob(this.db, blob)
+    for (const blob of blobs) store.upsertSyncBlob(this.db, USER, blob)
     const current = store.getRxdbPullState(this.db, USER, 'tasks', null, 500).documents
       .find((doc: { id: string }) => doc.id === task.id)
     const result = store.pushRxdbRows(this.db, USER, 'tasks', [
@@ -204,6 +204,10 @@ test('renaming a task in the app renames the note', async () => {
 
 test('editing a note pushes the change and keeps unmapped fields', async () => {
   const h = harness()
+  store.upsertSyncBlob(h.server.db, USER, {
+    hash: 'h', contentType: 'image/png', compression: 'none', dataBase64: 'AA==',
+    rawByteLength: 1, byteLength: 1,
+  })
   await h.server.appWrites(
     task({
       taskNoteContentMd: 'original body',

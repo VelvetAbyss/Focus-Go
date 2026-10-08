@@ -1,6 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
-import { motion } from 'motion/react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import {
   Bot,
   Beaker,
@@ -34,6 +33,9 @@ import { useIsAdmin } from '../../store/auth'
 import SidebarPodcastPlayer from './SidebarPodcastPlayer'
 import SidebarWhiteNoise from './SidebarWhiteNoise'
 import SidebarFocusTimer from './SidebarFocusTimer'
+import SidebarThemeToggle from './SidebarThemeToggle'
+import { transitionSidebar } from './sidebarTransition'
+import './sidebar.css'
 import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../data/repositories/syncedPreferencesRepo'
 import { DiscoveryNewBadge } from '../../shared/ui/DiscoveryNewBadge'
 import { markDiscoveryNewTargetSeen } from '../../shared/discovery/discoveryNewTargetActions'
@@ -85,13 +87,14 @@ const StaticSidebarItem = ({ item, collapsed }: StaticSidebarItemProps) => {
       to={item.to}
       end={item.end}
       aria-label={item.label}
+      title={collapsed ? item.label : undefined}
       className={({ isActive }) =>
         `focus-sidebar__item${item.extraClassName ? ` ${item.extraClassName}` : ''}${isActive ? ' is-active' : ''}`
       }
       onClick={() => { if (discoveryTarget) markDiscoveryNewTargetSeen(discoveryTarget) }}
     >
       <item.Icon size={18} aria-hidden="true" />
-      {!collapsed ? <span>{item.label}</span> : null}
+      {!collapsed ? <span className="sidebar-reveal">{item.label}</span> : null}
       {discoveryTarget ? <DiscoveryNewBadge target={discoveryTarget} /> : null}
     </NavLink>
   )
@@ -122,48 +125,12 @@ const StaticSidebarNav = ({
 )
 
 const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
-  const asideRef = useRef<HTMLElement | null>(null)
   const { catalog } = useLabs()
   const i18n = useLabsI18n()
   const { t } = useI18n()
   const [savedOrder, setSavedOrder] = useState<string[]>(() => readSidebarOrder())
   const isAdmin = useIsAdmin()
   const [dragNavReady, setDragNavReady] = useState(false)
-
-  useEffect(() => {
-    const el = asideRef.current
-    if (!el) return
-    let frame = 0
-    let pendingX = 50
-    let pendingY = 30
-    const flush = () => {
-      frame = 0
-      el.style.setProperty('--cursor-x', `${pendingX}%`)
-      el.style.setProperty('--cursor-y', `${pendingY}%`)
-    }
-    const onMove = (event: PointerEvent) => {
-      const rect = el.getBoundingClientRect()
-      if (rect.width === 0 || rect.height === 0) return
-      pendingX = ((event.clientX - rect.left) / rect.width) * 100
-      pendingY = ((event.clientY - rect.top) / rect.height) * 100
-      if (!frame) frame = requestAnimationFrame(flush)
-    }
-    const onLeave = () => {
-      pendingX = 50
-      pendingY = -40
-      if (!frame) frame = requestAnimationFrame(flush)
-    }
-    el.addEventListener('pointermove', onMove, { passive: true })
-    el.addEventListener('pointerleave', onLeave, { passive: true })
-    // Seed off-screen so the sweep is hidden until the cursor enters.
-    el.style.setProperty('--cursor-x', '50%')
-    el.style.setProperty('--cursor-y', '-40%')
-    return () => {
-      el.removeEventListener('pointermove', onMove)
-      el.removeEventListener('pointerleave', onLeave)
-      if (frame) cancelAnimationFrame(frame)
-    }
-  }, [])
 
   const FEATURE_ICONS: Record<FeatureKey, LucideIcon> = {
     'habit-tracker': Flame,
@@ -275,11 +242,9 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
   const mainModulesLabel = t('shell.mainModules')
 
   return (
-    <motion.aside
-      ref={asideRef}
+    <aside
       className={`focus-sidebar ${collapsed ? 'is-collapsed' : ''}`}
-      animate={{ width: collapsed ? 80 : 220 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      style={{ width: collapsed ? 80 : 220 }}
     >
       <div className="focus-sidebar__top">
         <div className="focus-sidebar__user focus-sidebar__user--top">
@@ -288,12 +253,12 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
         <button
           type="button"
           className="focus-sidebar__toggle"
-          onClick={onToggle}
+          onClick={() => transitionSidebar(onToggle)}
           aria-expanded={!collapsed}
           aria-label={collapsed ? t('shell.expandNav') : t('shell.collapseNav')}
+          title={collapsed ? t('shell.expandNav') : t('shell.collapseNav')}
         >
           {collapsed ? <PanelLeftOpen size={16} aria-hidden="true" /> : <PanelLeftClose size={16} aria-hidden="true" />}
-          {!collapsed ? <span>{t('shell.hideNav')}</span> : null}
         </button>
       </div>
 
@@ -324,14 +289,17 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
         />
       )}
 
-      <SidebarPodcastPlayer collapsed={collapsed} />
-      <SidebarWhiteNoise collapsed={collapsed} />
-      <SidebarFocusTimer collapsed={collapsed} />
+      <section className="focus-sidebar__tools" aria-label={t('shell.quickControls')}>
+        <SidebarThemeToggle collapsed={collapsed} />
+        <SidebarPodcastPlayer collapsed={collapsed} />
+        <SidebarWhiteNoise collapsed={collapsed} />
+        <SidebarFocusTimer collapsed={collapsed} />
+      </section>
       <Suspense fallback={null}>
         <PodcastCard standalone />
       </Suspense>
 
-    </motion.aside>
+    </aside>
   )
 }
 

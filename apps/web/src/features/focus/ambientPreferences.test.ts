@@ -40,4 +40,25 @@ describe('ambient background preference migration', () => {
       slowBreath: true,
     })
   })
+
+  it('bounds old glass preferences to the same readable range as the controls', async () => {
+    localStorage.setItem('focusgo.ambient.prefs.v3', JSON.stringify({ surfaceOpacity: 0.2, glassBlur: 40 }))
+    const { getAmbientPreferences, resetAmbientPreferences } = await import('./ambientPreferences')
+    expect(getAmbientPreferences().surfaceOpacity).toBe(0.88)
+    expect(getAmbientPreferences().glassBlur).toBe(8)
+    expect(getAmbientPreferences().motionEnabled).toBe(false)
+    resetAmbientPreferences()
+    expect(getAmbientPreferences().frameRate).toBe(24)
+    expect(document.documentElement.style.getPropertyValue('--ambient-backdrop-filter')).toBe('none')
+  })
+
+  it('persists an explicit motion choice and resets to a still environment', async () => {
+    const { setAmbientPreferences } = await import('./ambientPreferences')
+    setAmbientPreferences({ motionEnabled: true })
+    vi.resetModules()
+    const reloaded = await import('./ambientPreferences')
+    expect(reloaded.getAmbientPreferences().motionEnabled).toBe(true)
+    reloaded.resetAmbientPreferences()
+    expect(reloaded.getAmbientPreferences().motionEnabled).toBe(false)
+  })
 })

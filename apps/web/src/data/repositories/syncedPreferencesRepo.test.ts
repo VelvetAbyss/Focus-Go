@@ -9,6 +9,7 @@ import { writeStoredThemePreference } from '../../shared/theme/theme'
 import { writeSidebarOrder } from '../../app/layout/sidebarOrder'
 import { writeLayoutLocked } from '../../shared/prefs/dashboardLayoutLock'
 import { writeStoredSubscriptions } from '../../features/calendar/calendarStorage'
+import { readSalaryState, SALARY_STORAGE_KEY, writeSalaryState } from '../../features/salary/salaryStorage'
 
 describe('syncedPreferencesRepo', () => {
   beforeEach(async () => {
@@ -89,6 +90,29 @@ describe('syncedPreferencesRepo', () => {
     expect(window.localStorage.getItem('focusgo.theme')).toBe('dark')
     expect(window.localStorage.getItem('focusgo.sidebar.order.v1')).toBe(JSON.stringify(['route:dashboard', 'route:tasks']))
     expect(window.localStorage.getItem('workbench.dashboard.layoutLocked')).toBe('false')
+  })
+
+  it('carries the pay widgets across devices, and keeps them when an older client sends none', async () => {
+    const salary = {
+      settings: { monthlySalary: 12000, workStart: 540, workEnd: 1080, lunch: { start: 720, end: 780 }, workdays: [1, 2, 3, 4, 5] },
+      wishlist: [{ id: 'w1', name: 'Headphones', price: 1399, addedAt: Date.now() - 60_000 }],
+      breaks: [{ id: 'b1', startAt: Date.now() - 120_000, endAt: Date.now() - 60_000 }],
+      activeBreakStartAt: null,
+    }
+    writeSalaryState(salary)
+    await syncedPreferencesRepo.persistFromLocal()
+    const stored = await db.syncedPreferences.get(SYNCED_PREFERENCES_ID)
+    expect(stored?.salary).toEqual(salary)
+
+    // Another device: local storage is empty until the row is hydrated.
+    window.localStorage.removeItem(SALARY_STORAGE_KEY)
+    await syncedPreferencesRepo.hydrateLocalFromDb()
+    expect(readSalaryState()).toEqual(salary)
+
+    // A row written by a client that predates the widgets leaves them alone.
+    await db.syncedPreferences.put({ ...stored!, salary: undefined, language: 'en' })
+    await syncedPreferencesRepo.hydrateLocalFromDb()
+    expect(readSalaryState()).toEqual(salary)
   })
 
   it('marks the initial seed as completed without overwriting existing preferences', async () => {

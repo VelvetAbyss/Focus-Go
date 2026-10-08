@@ -50,14 +50,18 @@ const migrateItem = (item: TripItineraryItem): TripItineraryItem => {
   }
 }
 
-const migrateDay = (day: TripItineraryDay): TripItineraryDay => ({
+const migrateDay = (day: TripItineraryDay, index: number): TripItineraryDay => ({
   ...day,
+  day: typeof day.day === 'number' && Number.isFinite(day.day) ? Math.max(1, Math.round(day.day)) : index + 1,
   items: Array.isArray(day.items) ? day.items.map(migrateItem) : [],
   dayNotes: Array.isArray(day.dayNotes) ? (day.dayNotes as TripDayNote[]) : day.dayNotes,
 })
 
 const migrateTransport = (item: TripTransportItem): TripTransportItem => item
-const migrateStay = (item: TripStayItem): TripStayItem => item
+const migrateStay = (item: TripStayItem): TripStayItem => ({
+  ...item,
+  nights: typeof item.nights === 'number' && Number.isFinite(item.nights) ? Math.max(0, Math.round(item.nights)) : 0,
+})
 const migrateFood = (item: TripFoodItem): TripFoodItem => item
 const migrateChecklistGroup = (group: TripChecklistGroup): TripChecklistGroup => ({
   ...group,

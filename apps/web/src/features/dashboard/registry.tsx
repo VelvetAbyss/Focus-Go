@@ -8,6 +8,9 @@ const TaskProgressSummaryWidgetCard = lazy(() => import('../tasks/components/Tas
 const SpendCard = lazy(() => import('../spend/SpendCard'))
 const WidgetTodosCard = lazy(() => import('./cards/WidgetTodosCard'))
 const WeatherWidgetCard = lazy(() => import('./cards/WeatherWidgetCard'))
+const EarnedTodayCard = lazy(() => import('../salary/cards/EarnedTodayCard'))
+const WorkTimePriceCard = lazy(() => import('../salary/cards/WorkTimePriceCard'))
+const BreakLogCard = lazy(() => import('../salary/cards/BreakLogCard'))
 
 // Life page cards — already lazy
 const WorldClockCard = lazy(() => import('../life/cards/WorldClockCard'))
@@ -85,6 +88,31 @@ export const getDashboardCards = (): DashboardCard[] => [
     defaultSize: { w: 3, h: 4 },
     pageScope: 'main',
     render: () => renderLazyLifeCard(<WorldClockCard />),
+  },
+  // Pay widgets: opt-in, since they show what you earn.
+  {
+    id: 'salary-earned',
+    title: 'Paid Today',
+    defaultSize: { w: 3, h: 3 },
+    defaultVisible: false,
+    pageScope: 'main',
+    render: () => renderLazyCard(<EarnedTodayCard />),
+  },
+  {
+    id: 'salary-price',
+    title: 'Price in Work Time',
+    defaultSize: { w: 3, h: 6 },
+    defaultVisible: false,
+    pageScope: 'main',
+    render: () => renderLazyCard(<WorkTimePriceCard />),
+  },
+  {
+    id: 'salary-breaks',
+    title: 'Paid Breaks',
+    defaultSize: { w: 3, h: 4 },
+    defaultVisible: false,
+    pageScope: 'main',
+    render: () => renderLazyCard(<BreakLogCard />),
   },
 ]
 

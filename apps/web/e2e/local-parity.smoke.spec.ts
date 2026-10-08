@@ -16,6 +16,12 @@ test('a new visitor opens the same dashboard as local port 5174', async ({ page 
   await expect(page.getByRole('heading', { name: '本周 成果' })).toBeVisible()
   await expect(page.getByRole('heading', { name: '待办列表' })).toBeVisible()
 
+  // These dynamic CSS chunks were missing in the reported broken layout.
+  await expect(page.locator('.recap-card__stats')).toHaveCSS('display', 'grid')
+  await expect(page.locator('.weather-sky')).toHaveCSS('position', 'absolute')
+  await expect(page.locator('.wc-hero')).toHaveCSS('position', 'relative')
+  await expect(page.getByRole('button', { name: '新建视图' })).toBeVisible()
+
   const shell = page.locator('.focus-shell').first()
   await expect(shell).toBeVisible()
   expect((await shell.boundingBox())?.width).toBeGreaterThan(1100)

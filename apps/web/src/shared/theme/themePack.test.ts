@@ -14,6 +14,7 @@ describe('themePack preview', () => {
     applyThemePackPreview('theme-b', 'dark')
 
     const root = document.documentElement
+    expect(root.dataset.themePackPreview).toBe('theme-b')
     expect(root.style.getPropertyValue('--bg')).toBe(palette.bg)
     expect(root.style.getPropertyValue('--bg-elevated')).toBe(palette.bgElevated)
     expect(root.style.getPropertyValue('--bg-muted')).toBe(palette.bgMuted)
@@ -28,6 +29,7 @@ describe('themePack preview', () => {
     clearThemePackPreview()
 
     const root = document.documentElement
+    expect(root.dataset.themePackPreview).toBeUndefined()
     expect(root.style.getPropertyValue('--bg')).toBe('')
     expect(root.style.getPropertyValue('--bg-elevated')).toBe('')
     expect(root.style.getPropertyValue('--bg-muted')).toBe('')

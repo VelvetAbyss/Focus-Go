@@ -1,0 +1,310 @@
+/* Whole-workspace environments. Each palette has an explicit light and dark
+   edition; the approved typefaces and the pencil / ink / now semantics stay.
+   HSL triplets feed both app tokens and Radix/Tailwind without mixed formats. */
+html[data-ambient-scene='rainy-cafe'][data-theme='light'] {
+  --environment-desk: 34.5 25.6% 69.4%;
+  --environment-sheet: 37.8 42.9% 87.6%;
+  --environment-raised: 37.9 70.4% 94.7%;
+  --environment-sunken: 37.5 40.0% 84.3%;
+  --environment-ink: 28.7 20.4% 22.2%;
+  --environment-secondary: 29.1 20.2% 32.0%;
+  --environment-muted: 30.0 21.3% 34.9%;
+  --environment-line: 33.9 23.7% 62.0%;
+  --environment-pen: 27.1 43.7% 32.7%;
+  --environment-on-pen: 36.7 100.0% 96.5%;
+}
+
+html[data-ambient-scene='rainy-cafe'][data-theme='dark'] {
+  --environment-desk: 42.9 11.9% 11.6%;
+  --environment-sheet: 40.0 12.7% 13.9%;
+  --environment-raised: 38.2 12.4% 17.5%;
+  --environment-sunken: 37.5 12.5% 12.5%;
+  --environment-ink: 36.4 49.3% 86.9%;
+  --environment-secondary: 35.1 31.3% 74.3%;
+  --environment-muted: 34.9 23.0% 63.3%;
+  --environment-line: 35.3 16.7% 40.0%;
+  --environment-pen: 34.0 56.3% 68.6%;
+  --environment-on-pen: 31.6 29.2% 12.7%;
+}
+
+html[data-ambient-scene='stormy-night'][data-theme='light'] {
+  --environment-desk: 205.7 13.7% 60.0%;
+  --environment-sheet: 202.5 23.5% 86.7%;
+  --environment-raised: 204.0 31.3% 93.7%;
+  --environment-sunken: 204.5 26.2% 83.5%;
+  --environment-ink: 207.9 23.7% 23.1%;
+  --environment-secondary: 206.7 20.0% 35.3%;
+  --environment-muted: 206.7 20.0% 35.3%;
+  --environment-line: 205.2 15.3% 60.2%;
+  --environment-pen: 206.4 36.3% 35.7%;
+  --environment-on-pen: 206.7 47.4% 96.3%;
+}
+
+html[data-ambient-scene='stormy-night'][data-theme='dark'] {
+  --environment-desk: 210.0 31.4% 13.7%;
+  --environment-sheet: 208.8 29.4% 16.7%;
+  --environment-raised: 207.1 27.9% 21.8%;
+  --environment-sunken: 206.7 34.2% 15.5%;
+  --environment-ink: 205.0 31.6% 92.5%;
+  --environment-secondary: 205.7 30.4% 82.0%;
+  --environment-muted: 203.3 25.0% 71.8%;
+  --environment-line: 204.8 20.4% 44.3%;
+  --environment-pen: 198.5 43.3% 76.5%;
+  --environment-on-pen: 206.0 35.7% 16.5%;
+}
+
+html[data-ambient-scene='ocean-breeze'][data-theme='light'] {
+  --environment-desk: 160.7 17.5% 68.6%;
+  --environment-sheet: 143.1 22.8% 88.8%;
+  --environment-raised: 130.0 27.3% 95.7%;
+  --environment-sunken: 144.7 22.1% 84.9%;
+  --environment-ink: 161.5 23.2% 22.0%;
+  --environment-secondary: 152.3 15.5% 32.9%;
+  --environment-muted: 148.8 14.8% 33.1%;
+  --environment-line: 148.9 12.9% 59.0%;
+  --environment-pen: 164.7 40.1% 28.8%;
+  --environment-on-pen: 150.0 44.4% 96.5%;
+}
+
+html[data-ambient-scene='ocean-breeze'][data-theme='dark'] {
+  --environment-desk: 168.0 21.7% 13.5%;
+  --environment-sheet: 162.4 20.0% 16.7%;
+  --environment-raised: 160.0 19.6% 21.0%;
+  --environment-sunken: 163.3 24.3% 14.5%;
+  --environment-ink: 135.0 27.3% 91.4%;
+  --environment-secondary: 146.1 22.3% 79.8%;
+  --environment-muted: 146.0 19.0% 69.0%;
+  --environment-line: 154.3 15.8% 43.3%;
+  --environment-pen: 151.2 32.4% 71.0%;
+  --environment-on-pen: 156.0 28.1% 17.5%;
+}
+
+html[data-ambient-scene='cozy-fireside'][data-theme='light'] {
+  --environment-desk: 21.2 28.2% 64.5%;
+  --environment-sheet: 24.8 43.3% 86.9%;
+  --environment-raised: 26.1 100.0% 95.5%;
+  --environment-sunken: 25.9 42.5% 82.9%;
+  --environment-ink: 16.4 26.8% 24.1%;
+  --environment-secondary: 18.7 26.0% 33.9%;
+  --environment-muted: 20.0 29.0% 36.5%;
+  --environment-line: 22.8 27.6% 58.8%;
+  --environment-pen: 15.5 48.6% 35.9%;
+  --environment-on-pen: 31.4 100.0% 95.9%;
+}
+
+html[data-ambient-scene='cozy-fireside'][data-theme='dark'] {
+  --environment-desk: 12.9 19.4% 14.1%;
+  --environment-sheet: 17.6 20.0% 16.7%;
+  --environment-raised: 16.4 20.8% 20.8%;
+  --environment-sunken: 17.1 19.4% 14.1%;
+  --environment-ink: 29.1 57.9% 88.8%;
+  --environment-secondary: 28.2 41.9% 77.1%;
+  --environment-muted: 28.4 32.9% 67.3%;
+  --environment-line: 23.5 23.1% 43.3%;
+  --environment-pen: 26.9 66.2% 71.0%;
+  --environment-on-pen: 20.0 39.8% 16.3%;
+}
+
+/* This root scope also reaches body portals. Temporary settings previews
+   deliberately suspend the environment, then restore it when dismissed. */
+html[data-ambient-scene]:not([data-ambient-scene='idle']):not([data-ambient-scene='window-light']):not([data-theme-pack-preview]) {
+  --paper-desk: hsl(var(--environment-desk));
+  --paper-sheet: hsl(var(--environment-sheet));
+  --paper-raised: hsl(var(--environment-raised));
+  --paper-sunken: hsl(var(--environment-sunken));
+  --bg: var(--paper-sheet);
+  --shell-page-bg: var(--paper-desk);
+  --bg-elevated: var(--paper-raised);
+  --bg-muted: var(--paper-sunken);
+  --surface: var(--paper-raised);
+  --surface-hover: var(--paper-sunken);
+  --ink-1: hsl(var(--environment-ink));
+  --ink-2: hsl(var(--environment-secondary));
+  --ink-3: hsl(var(--environment-muted));
+  --ink-4: hsl(var(--environment-line));
+  --pencil: var(--ink-3);
+  --pencil-line: var(--ink-3);
+  --text-primary: var(--ink-1);
+  --text-secondary: var(--ink-2);
+  --text-tertiary: var(--ink-3);
+  --color-ink: var(--ink-1);
+  --rule: hsl(var(--environment-line) / 0.32);
+  --rule-strong: hsl(var(--environment-line) / 0.7);
+  --border: var(--rule);
+  --accent: hsl(var(--environment-pen));
+  --accent-ink: hsl(var(--environment-on-pen));
+  --accent-soft: color-mix(in srgb, var(--accent) 12%, var(--paper-raised));
+  --accent-wash: var(--accent-soft);
+  --sidebar-active-fg: var(--accent-ink);
+  --focus-ring: hsl(var(--environment-pen) / 0.45);
+  --elev-1: 0 1px 0 var(--rule), 0 3px 10px hsl(var(--environment-desk) / 0.1);
+  --elev-2: 0 0 0 1px var(--rule), 0 12px 32px -12px hsl(var(--environment-ink) / 0.2);
+  --background: var(--environment-sheet);
+  --foreground: var(--environment-ink);
+  --card: var(--environment-raised);
+  --card-foreground: var(--environment-ink);
+  --popover: var(--environment-raised);
+  --popover-foreground: var(--environment-ink);
+  --primary: var(--environment-ink);
+  --primary-foreground: var(--environment-raised);
+  --secondary: var(--environment-sunken);
+  --secondary-foreground: var(--environment-ink);
+  --muted: var(--environment-sunken);
+  --muted-foreground: var(--environment-muted);
+  --ui-accent: var(--environment-sunken);
+  --accent-foreground: var(--environment-ink);
+  --ui-border: var(--environment-line);
+  --input: var(--environment-line);
+  --ring: var(--environment-pen);
+  --segmented-track: var(--paper-sunken);
+  --segmented-track-border: var(--rule);
+  --segmented-thumb: var(--paper-raised);
+  --segmented-fg: var(--ink-3);
+  --segmented-fg-active: var(--ink-1);
+  --segmented-thumb-shadow: 0 1px 3px hsl(var(--environment-ink) / 0.1);
+}
+
+/* Keep one translucent sheet, not nested full-screen blur buffers. Solid card
+   fills protect contrast; the user's opacity/blur controls affect the sheet.
+   Bound translucency and blur to preserve reading comfort and GPU budget. */
+html[data-ambient-scene] .focus-shell:not([data-ambient-scene='idle']) :is(.focus-shell__main, .focus-sidebar) {
+  background: color-mix(in srgb, var(--paper-sheet) max(88%, var(--ambient-surface-mix-pct, 88%)), transparent);
+  border: 1px solid var(--rule-strong);
+  box-shadow: 0 2px 12px hsl(var(--environment-desk, 35 20% 30%) / 0.12);
+  backdrop-filter: var(--ambient-backdrop-filter, none);
+  -webkit-backdrop-filter: var(--ambient-backdrop-filter, none);
+  transition: background-color 280ms ease, border-color 280ms ease;
+}
+html[data-ambient-scene] .focus-shell:not([data-ambient-scene='idle']) .focus-sidebar {
+  background: var(--paper-sheet);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+html[data-ambient-scene] .focus-shell:not([data-ambient-scene='idle']) :is(.focus-shell__main, .focus-sidebar)::after,
+html[data-ambient-scene] .focus-shell:not([data-ambient-scene='idle']) .focus-sidebar::before {
+  content: none;
+}
+html[data-ambient-scene] .focus-shell:not([data-ambient-scene='idle']) .dashboard .card:not(.dashboard-widget-card--weather) {
+  background: var(--paper-raised);
+  border-color: var(--rule);
+  box-shadow: var(--elev-1);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+html[data-ambient-scene] .focus-shell:not([data-ambient-scene='idle']) .focus-sidebar__item.is-active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* Keep the reading surface still. In particular, the composer's repeating
+   animated box-shadow repaints even while scenery is paused. Interaction and
+   submit feedback keep their own finite transitions/animations. */
+html[data-ambient-scene] .focus-shell:not([data-ambient-scene='idle']) .tasks-fg__composer.is-breathing:not(.just-submitted) > div:not(.tasks-fg__hero-shimmer),
+html[data-ambient-scene] .focus-shell:not([data-ambient-scene='idle']) .tasks-fg__composer.is-breathing .tasks-fg__hero-plus,
+html[data-ambient-scene] .focus-shell:not([data-ambient-scene='idle']) .tasks-fg__composer.is-breathing .tasks-fg__hero-shimmer::before,
+html[data-ambient-scene] .focus-shell:not([data-ambient-scene='idle']) .sidebar-user-panel__icon {
+  animation: none;
+}
+html[data-ambient-scene] .focus-shell:not([data-ambient-scene='idle']) .tasks-fg__composer.is-breathing .tasks-fg__hero-shimmer { opacity: 0; }
+
+/* Static, deliberately composed light fields. No per-pixel shaders, animated
+   filters, noise SVG filters or enormous spinning layers. Composited layers
+   carry only rain, wave lines and embers. */
+html .focus-shell__scene-backdrop[data-renderer='css'] {
+  background: var(--paper-desk);
+  filter: none;
+  animation: none;
+  transition: none;
+}
+html .focus-shell__scene-backdrop[data-renderer='css']::before,
+html .focus-shell__scene-backdrop[data-renderer='css']::after {
+  display: block;
+  inset: 0;
+  opacity: 1;
+  animation: none;
+  filter: none;
+  mix-blend-mode: normal;
+  will-change: auto;
+  transform: none;
+}
+html .focus-shell__scene-backdrop[data-renderer='css']::after { content: none; }
+html .focus-shell__scene-backdrop[data-scene='rainy-cafe'][data-renderer='css']::before {
+  background:
+    radial-gradient(ellipse at 8% 14%, #d8ad75aa, transparent 42%),
+    radial-gradient(ellipse at 84% 70%, #55726977, transparent 55%),
+    repeating-linear-gradient(90deg, transparent 0 24%, #473a2920 24% 24.35%, transparent 24.35% 25%),
+    linear-gradient(165deg, transparent 30%, #8d705244);
+}
+html .focus-shell__scene-backdrop[data-scene='stormy-night'][data-renderer='css']::before {
+  background:
+    radial-gradient(ellipse at 88% 4%, #b7cad95e, transparent 40%),
+    linear-gradient(165deg, #30445444, transparent 50%, #243f5355),
+    radial-gradient(ellipse at 30% 70%, #26344577, transparent 70%);
+}
+html .focus-shell__scene-backdrop[data-scene='ocean-breeze'][data-renderer='css']::before {
+  background:
+    radial-gradient(ellipse at 12% 3%, #eee5c277, transparent 50%),
+    linear-gradient(180deg, transparent 38%, #95b4a933 39%, #2c6a6b55 85%),
+    radial-gradient(ellipse at 100% 70%, #75a69a66, transparent 70%);
+}
+html .focus-shell__scene-backdrop[data-scene='cozy-fireside'][data-renderer='css']::before {
+  background:
+    radial-gradient(ellipse at 12% 105%, #d1813ba0, transparent 50%),
+    radial-gradient(ellipse at 90% 10%, #5b3c344d, transparent 65%),
+    linear-gradient(150deg, transparent 25%, #7f503844);
+}
+html .focus-shell__scene-backdrop[data-scene='window-light'][data-renderer='css']::before {
+  background:
+    repeating-linear-gradient(115deg, transparent 0 140px, #83715418 142px 150px, transparent 152px 290px),
+    linear-gradient(125deg, #eed8ab33, transparent 65%);
+}
+html .focus-shell__scene-backdrop[data-scene='idle'][data-renderer='css']::before { background: none; }
+html .focus-shell__scene-backdrop[data-renderer='css'] .focus-shell__scene-vignette {
+  display: block;
+  background: linear-gradient(0deg, hsl(var(--environment-desk, 35 20% 30%) / 0.2), transparent 24%);
+  opacity: 0.5;
+}
+/* A still scene stays still even if an older decorative rule gains motion. */
+html .focus-shell__scene-backdrop:is([data-motion='still'], [data-paused='true']),
+html .focus-shell__scene-backdrop:is([data-motion='still'], [data-paused='true'])::before,
+html .focus-shell__scene-backdrop:is([data-motion='still'], [data-paused='true'])::after { animation: none; transition: none; }
+
+/* Attention colours still mean the same thing on tinted paper. */
+html[data-theme='light'][data-ambient-scene]:not([data-ambient-scene='idle']):not([data-ambient-scene='window-light']):not([data-theme-pack-preview]) {
+  --tone-urgent: #a13728;
+  --tone-warn: #79500e;
+  --tone-done: #426329;
+  --tone-info: #3a527e;
+  --destructive: 7.4 61.2% 39.4%;
+  --destructive-foreground: var(--environment-raised);
+}
+html[data-theme='dark'][data-ambient-scene]:not([data-ambient-scene='idle']):not([data-ambient-scene='window-light']):not([data-theme-pack-preview]) {
+  --tone-urgent: #f0a491;
+  --tone-warn: #e4bb75;
+  --tone-done: #bad49c;
+  --tone-info: #b4c8e6;
+  --destructive: 12 76% 75.5%;
+  --destructive-foreground: var(--environment-sunken);
+  --tone-urgent-wash: color-mix(in srgb, var(--tone-urgent) 12%, var(--paper-raised));
+  --tone-warn-wash: color-mix(in srgb, var(--tone-warn) 12%, var(--paper-raised));
+  --tone-done-wash: color-mix(in srgb, var(--tone-done) 12%, var(--paper-raised));
+  --tone-info-wash: color-mix(in srgb, var(--tone-info) 12%, var(--paper-raised));
+}
+
+/* Existing effect switches keep working, with small static/composited layers. */
+html .focus-shell__scene-backdrop[data-scene='rainy-cafe'][data-renderer='css']::after {
+  content: '';
+  inset: auto 0 0;
+  height: 14%;
+  opacity: calc(var(--rainy-cafe-steam-on, 0) * 0.3);
+  background: linear-gradient(0deg, #ebd9b9, transparent);
+}
+html .focus-shell__scene-backdrop[data-scene='cozy-fireside'][data-renderer='css'] .focus-shell__scene-vignette {
+  background: linear-gradient(0deg, rgb(61 38 25 / calc(var(--cozy-fireside-log-on, 0) * 0.65)), transparent 8%);
+}
+html .focus-shell__scene-backdrop[data-scene='ocean-breeze'][data-renderer='css']::after {
+  content: '';
+  inset: 70% 0 0;
+  opacity: calc(var(--ocean-breeze-caustics-on, 0) * 0.12);
+  background: repeating-radial-gradient(ellipse at 30% 100%, transparent 0 20px, #d4e6da 21px 22px, transparent 24px 45px);
+}

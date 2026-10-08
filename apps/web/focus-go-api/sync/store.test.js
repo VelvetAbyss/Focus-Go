@@ -144,10 +144,10 @@ test('pushRxdbRows and getRxdbPullState support domainEvents', () => {
 
 test('getRxdbPullState returns blobs referenced by pulled documents', () => {
   const db = createDb()
-  upsertSyncBlob(db, {
+  upsertSyncBlob(db, 'user-1', {
     hash: 'blob-1',
     contentType: 'text/plain',
-    compression: 'gzip',
+    compression: 'none',
     rawByteLength: 5,
     byteLength: 5,
     dataBase64: 'eA==',

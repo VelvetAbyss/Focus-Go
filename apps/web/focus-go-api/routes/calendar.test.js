@@ -1,10 +1,34 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import express from 'express'
-import { createCalendarRouter, isPublicAddress, normalizeFeedUrl } from './calendar.js'
+import http from 'node:http'
+import { EventEmitter } from 'node:events'
+import { Readable } from 'node:stream'
+import { createCalendarRouter, isPublicAddress, normalizeFeedUrl, fetchPinnedFeed } from './calendar.js'
 
 const ICS = 'BEGIN:VCALENDAR\nVERSION:2.0\nEND:VCALENDAR\n'
 const PRESET = 'https://ical.muhan.org/rest.ics'
+
+test('native HTTP transport resolves only the pinned IP and retains the original hostname', async (t) => {
+  t.mock.method(http, 'request', (url, options, callback) => {
+    assert.equal(url.hostname, 'feed.example.test')
+    options.lookup('feed.example.test', { all: true }, (error, addresses) => {
+      assert.equal(error, null)
+      assert.deepEqual(addresses, [{ address: '93.184.216.34', family: 4 }])
+    })
+    const req = new EventEmitter()
+    req.end = () => {
+      const incoming = Readable.from([Buffer.from(ICS)])
+      incoming.statusCode = 200
+      incoming.headers = { 'content-type': 'text/calendar' }
+      callback(incoming)
+    }
+    return req
+  })
+  const response = await fetchPinnedFeed('http://feed.example.test/feed', { pinnedAddress: '93.184.216.34', signal: new AbortController().signal, headers: {} })
+  assert.equal(await response.text(), ICS)
+  await assert.rejects(fetchPinnedFeed('http://feed.example.test/feed', { pinnedAddress: '127.0.0.1' }), /Host not allowed/)
+})
 
 const createServer = async ({ fetchImpl, lookup = async () => [{ address: '93.184.216.34' }] }) => {
   const calls = []
@@ -32,10 +56,25 @@ const createServer = async ({ fetchImpl, lookup = async () => [{ address: '93.18
 }
 
 test('classifies addresses', () => {
-  for (const ip of ['127.0.0.1', '10.1.2.3', '172.20.0.1', '192.168.1.1', '169.254.169.254', '100.64.0.1', '::1', 'fd00::1', 'fe80::1', '::ffff:10.0.0.1']) {
+  for (const ip of ['127.0.0.1', '10.1.2.3', '172.20.0.1', '192.168.1.1', '169.254.169.254', '100.64.0.1', '::1', 'fd00::1', 'fe80::1', '::ffff:10.0.0.1', '::ffff:7f00:1', '0:0:0:0:0:ffff:a00:1', '0:0:0:0:0:0:0:1']) {
     assert.equal(isPublicAddress(ip), false, ip)
   }
   for (const ip of ['93.184.216.34', '8.8.8.8', '2606:4700::1111']) assert.equal(isPublicAddress(ip), true, ip)
+})
+
+test('fetch receives the validated IP, including a separately checked redirect hop', async () => {
+  const ctx = await createServer({
+    lookup: async (host) => [{ address: host === 'next.example.com' ? '8.8.8.8' : '93.184.216.34' }],
+    fetchImpl: async (url, options) => {
+      if (url.includes('next.example.com')) {
+        assert.equal(options.pinnedAddress, '8.8.8.8')
+        return new Response(ICS)
+      }
+      assert.equal(options.pinnedAddress, '93.184.216.34')
+      return new Response('', { status: 302, headers: { location: 'https://next.example.com/feed' } })
+    },
+  })
+  try { assert.equal((await ctx.get(PRESET)).status, 200) } finally { await ctx.close() }
 })
 
 test('normalizes feed URLs and rejects unsafe ones', () => {

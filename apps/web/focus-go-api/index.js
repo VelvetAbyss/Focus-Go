@@ -4,11 +4,11 @@ import cors from 'cors'
 import helmet from 'helmet'
 import { toNodeHandler } from 'better-auth/node'
 import { auth } from './auth/betterAuth.js'
-import { ensureDesktopAuthTable, registerDesktopAuthRoutes } from './auth/desktopAuth.js'
+import { ensureDesktopAuthTable, registerDesktopAuthRoutes, registerBearerSignOut } from './auth/desktopAuth.js'
 import { ensureIntegrationTokenTable } from './auth/integrationTokens.js'
+import integrationsRouter from './routes/integrations.js'
 import userRouter from './routes/user.js'
 import syncRouter from './routes/sync.js'
-import integrationsRouter from './routes/integrations.js'
 import podcastsRouter from './routes/podcasts.js'
 import adminRouter from './routes/admin.js'
 import feedbackRouter from './routes/feedback.js'
@@ -88,6 +88,7 @@ export const createApp = () => {
   ensureDesktopAuthTable(db)
   ensureIntegrationTokenTable(db)
   registerDesktopAuthRoutes(app, db)
+  registerBearerSignOut(app, db)
 
   const authHandler = toNodeHandler(auth)
   app.all('/api/auth/*', authHandler)

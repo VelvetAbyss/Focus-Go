@@ -11,7 +11,13 @@ import { getDashboardCards } from './registry'
 import { useDashboardGridEdit } from './useDashboardGridEdit'
 import type { DashboardLayoutItem } from '../../data/models/types'
 import { useSearchParams } from 'react-router-dom'
-import DashboardHeader from './DashboardHeader'
+import DashboardHeader, { type DashboardPage as DashboardPageKind } from './DashboardHeader'
+import CustomDashboard from './CustomDashboard'
+import { appendViewWidget, readCustomViews, saveCustomViews, uniqueViewName, viewNameError, type CustomView } from './customViews'
+import { Input } from '@/components/ui/input'
+import { Dialog as ViewDialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { getLifeCards } from './registry'
+import { useLifeI18n } from '../life/lifeI18n'
 import DashboardSkeleton from './DashboardSkeleton'
 import { useI18n } from '../../shared/i18n/useI18n'
 import {
@@ -30,9 +36,33 @@ import { markDiscoveryNewTargetSeen } from '../../shared/discovery/discoveryNewT
 import { DASHBOARD_CARD_DISCOVERY_TARGET_BY_ID } from '../../shared/discovery/newTargets'
 
 const DashboardPage = () => {
-  const { t } = useI18n()
+  const { t, language } = useI18n()
+  const { t: lifeT } = useLifeI18n()
+  const zh = language === 'zh'
   const { canUse, openUpgradeModal } = usePremiumGate()
-  const [page, setPage] = useState<'main' | 'life' | 'news'>('main')
+  const [views, setViews] = useState(readCustomViews)
+  const [selectedViewId, setSelectedViewId] = useState(() => new URLSearchParams(window.location.search).get('view') ?? '')
+  const [page, setPage] = useState<DashboardPageKind>(() => readCustomViews().some(view => view.id === new URLSearchParams(window.location.search).get('view')) ? 'custom' : 'main')
+  const [newView, setNewView] = useState<CustomView | null>(null)
+  const [createOpen, setCreateOpen] = useState(false)
+  const [createName, setCreateName] = useState('')
+  const [createTemplate, setCreateTemplate] = useState('blank')
+  const [createError, setCreateError] = useState('')
+  const [customDirty, setCustomDirty] = useState(false)
+  const [pendingSwitch, setPendingSwitch] = useState<(() => void) | null>(null)
+  const switchSafely = (action: () => void) => { if (customDirty) setPendingSwitch(() => action); else action() }
+  const selectedView = newView ?? views.find(view => view.id === selectedViewId)
+  const selectPage = (next: DashboardPageKind) => switchSafely(() => { setNewView(null); setCustomDirty(false); setPage(next) })
+  const selectView = (id: string) => switchSafely(() => { setNewView(null); setCustomDirty(false); setSelectedViewId(id); setPage('custom') })
+  const storeViews = (next: CustomView[]) => { saveCustomViews(next); setViews(next) }
+  const createView = () => {
+    const issue = viewNameError(createName, views)
+    if (issue) { setCreateError(zh ? (issue === 'duplicate' ? '已有同名视图，请换个名字。' : '请输入 1–40 个字符。') : (issue === 'duplicate' ? 'This name already exists.' : 'Enter 1–40 characters.')); return }
+    const templateCards = createTemplate === 'life' ? getLifeCards(lifeT) : getDashboardCards()
+    const items = createTemplate === 'blank' ? [] : createTemplate === 'main' ? structuredClone(layout) : templateCards.reduce<DashboardLayoutItem[]>((items, card) => appendViewWidget(items, card.id, Math.max(3, Math.round(card.defaultSize.w / 2)), card.defaultSize.h), [])
+    const view = { id: crypto.randomUUID(), name: createName.trim(), items }
+    setNewView(view); setSelectedViewId(view.id); setPage('custom'); setCreateOpen(false)
+  }
   const [layout, setLayout] = useState<DashboardLayoutItem[]>([])
   const [hiddenCardIds, setHiddenCardIds] = useState<string[]>([])
   const isMobile = useIsBreakpoint('max', 768)
@@ -40,6 +70,15 @@ const DashboardPage = () => {
   const { width, containerRef, mounted } = useContainerWidth({ initialWidth: window.innerWidth })
   const [searchParams, setSearchParams] = useSearchParams()
   const [layoutEdit, setLayoutEdit] = useState(() => !isMobile && !readLayoutLocked())
+  useEffect(() => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev)
+      if (page === 'custom' && !newView) next.set('view', selectedViewId)
+      else next.delete('view')
+      if (next.toString() === prev.toString()) return prev
+      return next
+    }, { replace: true })
+  }, [page, selectedViewId, newView, setSearchParams])
   const widgetsPanelOpen = searchParams.get('widgetsPanel') === '1'
   const [confirmHideCardId, setConfirmHideCardId] = useState<string | null>(null)
   const [hideSubmitting, setHideSubmitting] = useState(false)
@@ -330,11 +369,29 @@ const DashboardPage = () => {
           layoutEditLocked={!canUse('dashboard.custom-layout').allowed}
           widgetsLocked={!canUse('dashboard.extra-widgets').allowed}
           page={page}
-          onSetPage={setPage}
+          onSetPage={selectPage}
+          customViews={views}
+          selectedViewId={selectedViewId}
+          onSelectView={selectView}
+          onCreateView={() => switchSafely(() => { setCreateName(uniqueViewName(zh ? '我的视图' : 'My view', views)); setCreateTemplate('blank'); setCreateError(''); setCreateOpen(true) })}
         />
 
         <div aria-live="polite" aria-atomic="true">
         </div>
+
+        {page === 'custom' && selectedView && <CustomDashboard key={selectedView.id} view={selectedView} views={views} isNew={Boolean(newView)} onDirtyChange={setCustomDirty}
+          onSave={view => { storeViews(views.some(v => v.id === view.id) ? views.map(v => v.id === view.id ? view : v) : [...views, view]); setNewView(null); setCustomDirty(false) }}
+          onCopy={view => { storeViews([...views, view]); setSelectedViewId(view.id) }}
+          onDelete={() => { storeViews(views.filter(view => view.id !== selectedView.id)); setSelectedViewId(''); setPage('main'); setCustomDirty(false) }}
+          onCancel={() => { setNewView(null); setPage('main'); setCustomDirty(false) }} />}
+        <ViewDialog open={createOpen} onOpenChange={setCreateOpen}><DialogContent><DialogTitle>{zh ? '新建视图' : 'New view'}</DialogTitle><DialogDescription>{zh ? '按自己的节奏组合组件。每个视图拥有独立布局。' : 'Combine widgets your way. Each view has its own layout.'}</DialogDescription>
+          <form className="custom-view__create" onSubmit={event => { event.preventDefault(); createView() }}>
+            <label htmlFor="new-view-name">{zh ? '视图名字' : 'View name'}</label><Input id="new-view-name" autoFocus maxLength={40} value={createName} onChange={event => setCreateName(event.target.value)} />
+            <label htmlFor="view-template">{zh ? '从哪里开始' : 'Start from'}</label><select id="view-template" value={createTemplate} onChange={event => setCreateTemplate(event.target.value)}><option value="blank">{zh ? '空白视图' : 'Blank view'}</option><option value="main">{zh ? '复制当前 Focus 布局' : 'Current Focus layout'}</option><option value="life">Life</option></select>
+            {createError && <p role="alert" className="custom-view__error">{createError}</p>}<Button type="submit">{zh ? '创建并添加组件' : 'Create and add widgets'}</Button>
+          </form>
+        </DialogContent></ViewDialog>
+        <ViewDialog open={Boolean(pendingSwitch)} onOpenChange={open => { if (!open) setPendingSwitch(null) }}><DialogContent><DialogTitle>{zh ? '放弃未保存的修改？' : 'Discard unsaved changes?'}</DialogTitle><DialogDescription>{zh ? '保存后的视图会保留。当前修改尚未保存。' : 'Your saved view will be kept. Current edits have not been saved.'}</DialogDescription><Button variant="outline" onClick={() => setPendingSwitch(null)}>{zh ? '继续编辑' : 'Keep editing'}</Button><Button onClick={() => { pendingSwitch?.(); setPendingSwitch(null); setCustomDirty(false) }}>{zh ? '放弃修改' : 'Discard changes'}</Button></DialogContent></ViewDialog>
 
         {/* Life page */}
         {page === 'life' && <LifeDashboard layoutEdit={layoutEdit} widgetsPanelOpen={widgetsPanelOpen} />}

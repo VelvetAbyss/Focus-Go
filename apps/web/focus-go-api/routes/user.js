@@ -2,7 +2,7 @@ import { Router } from 'express'
 import db from '../db/init.js'
 import { requireAuth } from '../middleware/auth.js'
 import { backfillRegion } from '../middleware/region.js'
-import { isAdminEmail } from '../middleware/admin.js'
+import { isAdminIdentity } from '../middleware/admin.js'
 import { SYNC_TABLES } from '../sync/config.js'
 import { getCloudStorageUsage } from '../sync/store.js'
 import { DEFAULT_CLOUD_SYNC_QUOTA_BYTES } from './sync.js'
@@ -19,7 +19,7 @@ router.get('/profile', requireAuth, backfillRegion, async (req, res) => {
     email: user.email,
     isSupporter: Boolean(user.is_supporter),
     cloudSync: { ...usage, limitBytes },
-    isAdmin: isAdminEmail(user.email),
+    isAdmin: isAdminIdentity(req.auth),
   })
 })
 
@@ -46,7 +46,7 @@ router.delete('/data', requireAuth, (req, res) => {
         } catch { /* table may not exist on older deployments */ }
       }
       try {
-        const result = db.prepare('DELETE FROM sync_blobs WHERE user_id = ?').run(userId)
+        const result = db.prepare('DELETE FROM sync_user_blobs WHERE user_id = ?').run(userId)
         rowsDeleted += result.changes ?? 0
       } catch { /* ignore */ }
       db.prepare('UPDATE users SET initial_seeded_at = NULL WHERE id = ?').run(req.auth.user.id)

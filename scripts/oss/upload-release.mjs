@@ -2,9 +2,7 @@ import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import {
   ensurePathExists,
-  exec,
-  ossBaseArgs,
-  ossutilBin,
+  ossCommand,
   requireEnv,
   resolveLatestPointerPath,
   resolveOssPath,
@@ -17,8 +15,6 @@ import {
 const main = async () => {
   const identity = await resolveReleaseIdentity()
   const bucket = requireEnv('OSS_BUCKET')
-  const bin = ossutilBin()
-  const baseArgs = ossBaseArgs()
 
   await ensurePathExists(identity.releaseDir, `Release bundle does not exist: ${identity.releaseDir}. Run build-release-bundle first.`)
 
@@ -37,7 +33,7 @@ const main = async () => {
 
   let exists = false
   try {
-    await exec(bin, ['stat', manifestRemote, ...baseArgs])
+    await ossCommand(['stat', manifestRemote])
     exists = true
   } catch {
     exists = false
@@ -51,7 +47,7 @@ const main = async () => {
   for (const absoluteFile of releaseFiles) {
     const rel = toPosixRelative(identity.releaseDir, absoluteFile)
     const remote = `${releaseOssPath}${rel}`
-    await exec(bin, ['cp', absoluteFile, remote, '--force', '--update', ...baseArgs])
+    await ossCommand(['cp', absoluteFile, remote, '--force', '--update'])
   }
 
   const latestPointerPath = resolveLatestPointerPath({
@@ -73,11 +69,11 @@ const main = async () => {
   const latestJson = `${JSON.stringify(latestPayload, null, 2)}\n`
   await fs.writeFile(latestTmp, latestJson, 'utf8')
 
-  await exec(bin, ['cp', latestTmp, latestPointerPath, '--force', ...baseArgs])
+  await ossCommand(['cp', latestTmp, latestPointerPath, '--force'])
 
   const checksumTmp = path.join(identity.releaseDir, '.latest.sha256')
   await fs.writeFile(checksumTmp, `${sha256String(latestJson)}\n`, 'utf8')
-  await exec(bin, ['cp', checksumTmp, `${latestPointerPath}.sha256`, '--force', ...baseArgs])
+  await ossCommand(['cp', checksumTmp, `${latestPointerPath}.sha256`, '--force'])
 
   await fs.rm(latestTmp, { force: true })
   await fs.rm(checksumTmp, { force: true })
