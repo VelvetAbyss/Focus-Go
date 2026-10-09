@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import {
   SIDEBAR_ORDER_STORAGE_KEY,
   mergeSidebarOrder,
+  splitSystemItems,
   moveSidebarOrder,
   readSidebarOrder,
   writeSidebarOrder,
@@ -38,5 +39,15 @@ describe('sidebarOrder', () => {
     expect(
       mergeSidebarOrder(readSidebarOrder(), ['route:dashboard', 'route:tasks', 'feature:habit-tracker', 'route:labs']),
     ).toEqual(['route:tasks', 'route:dashboard', 'feature:habit-tracker', 'route:labs'])
+  })
+
+  it('pins settings and admin out of the reorderable list, wherever a saved order put them', () => {
+    const saved = ['route:dashboard', 'route:settings', 'route:admin', 'feature:habit-tracker', 'route:trips']
+
+    expect(splitSystemItems(saved)).toEqual({
+      main: ['route:dashboard', 'feature:habit-tracker', 'route:trips'],
+      system: ['route:settings', 'route:admin'],
+    })
+    expect(splitSystemItems(['route:admin', 'route:tasks']).system).toEqual(['route:admin'])
   })
 })

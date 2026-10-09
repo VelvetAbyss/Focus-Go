@@ -6,7 +6,8 @@ import { syncedPreferencesRepo } from '../../data/repositories/syncedPreferences
 import { useI18n } from '../../shared/i18n/useI18n'
 import './sidebar-theme-toggle.css'
 
-const SidebarThemeToggle = ({ collapsed }: { collapsed: boolean }) => {
+/** Day/night as an icon switch in the sidebar's top row, beside the collapse control. */
+const SidebarThemeToggle = () => {
   const theme = useThemeMode()
   const { t } = useI18n()
   const isDark = theme === 'dark'
@@ -18,27 +19,20 @@ const SidebarThemeToggle = ({ collapsed }: { collapsed: boolean }) => {
   }
 
   return (
-    <div className={`sidebar-theme-control${collapsed ? ' is-compact' : ''}`}>
-      <button
-        type="button"
-        className="sidebar-theme-toggle"
-        role="switch"
-        aria-checked={isDark}
-        aria-label={t('shell.theme.nightMode')}
-        title={t(isDark ? 'shell.theme.toDay' : 'shell.theme.toNight')}
-        onClick={toggle}
-      >
-        {!collapsed && <span className="sidebar-theme-toggle__label">{t(isDark ? 'shell.theme.night' : 'shell.theme.day')}</span>}
-        <span className="sidebar-theme-toggle__track" aria-hidden="true">
-          <Sun className="sidebar-theme-toggle__hint sidebar-theme-toggle__hint--sun" size={13} />
-          <Moon className="sidebar-theme-toggle__hint sidebar-theme-toggle__hint--moon" size={13} />
-          <span className="sidebar-theme-toggle__thumb">
-            <Sun className="sidebar-theme-toggle__sun" size={15} />
-            <Moon className="sidebar-theme-toggle__moon" size={15} />
-          </span>
-        </span>
-      </button>
-    </div>
+    <button
+      type="button"
+      className="sidebar-theme-toggle"
+      role="switch"
+      aria-checked={isDark}
+      aria-label={t('shell.theme.nightMode')}
+      title={t(isDark ? 'shell.theme.toDay' : 'shell.theme.toNight')}
+      onClick={toggle}
+    >
+      <span className="sidebar-theme-toggle__icons" aria-hidden="true">
+        <Sun className="sidebar-theme-toggle__sun" size={16} />
+        <Moon className="sidebar-theme-toggle__moon" size={16} />
+      </span>
+    </button>
   )
 }
 

@@ -1,0 +1,181 @@
+/* Volume and seek (DESIGN.md › Volume and seek). Both draw their own picture
+   and lay a transparent native range input over it for the interaction. */
+
+.level-slider,
+.seek-bar {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  border-radius: 4px;
+}
+
+.level-slider:has(input:focus-visible),
+.seek-bar:has(input:focus-visible) {
+  outline: 2px solid color-mix(in srgb, var(--accent) 62%, transparent);
+  outline-offset: 2px;
+}
+
+.level-slider[data-disabled],
+.seek-bar[data-disabled] {
+  opacity: 0.4;
+}
+
+/* The input is the hit area and the a11y surface; its 1px thumb keeps the
+   value under the pointer instead of half a thumb away from it. Selectors
+   carry the element and parent so they outrank the global range styles. */
+.level-slider > input.level-slider__input,
+.seek-bar > input.seek-bar__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+}
+
+.level-slider > input.level-slider__input::-webkit-slider-runnable-track,
+.seek-bar > input.seek-bar__input::-webkit-slider-runnable-track {
+  height: 100%;
+  border: 0;
+  background: transparent;
+}
+
+.level-slider > input.level-slider__input::-webkit-slider-thumb,
+.seek-bar > input.seek-bar__input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 1px;
+  height: 100%;
+  margin: 0;
+  border: 0;
+  box-shadow: none;
+}
+
+.level-slider > input.level-slider__input::-moz-range-track,
+.seek-bar > input.seek-bar__input::-moz-range-track {
+  height: 100%;
+  border: 0;
+  background: transparent;
+}
+
+.level-slider > input.level-slider__input::-moz-range-thumb,
+.seek-bar > input.seek-bar__input::-moz-range-thumb {
+  width: 1px;
+  height: 100%;
+  border: 0;
+  box-shadow: none;
+}
+
+.level-slider > input.level-slider__input:disabled,
+.seek-bar > input.seek-bar__input:disabled {
+  cursor: default;
+}
+
+/* ── Level bars ─────────────────────────────────────────────────────────── */
+.level-slider {
+  --level-off: color-mix(in srgb, var(--pencil-line) 60%, transparent);
+  height: var(--level-height, 20px);
+}
+
+.level-slider__bars {
+  position: absolute;
+  inset: 2px 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.level-slider__bars i {
+  width: var(--level-bar-width, 3px);
+  height: 3px;
+  border-radius: 1px;
+  background: var(--level-off);
+  transform-origin: bottom;
+  transition: background-color var(--motion-duration-instant) var(--ease-standard);
+}
+
+.level-slider:hover:not([data-disabled]) .level-slider__bars i {
+  background: var(--pencil-line);
+}
+
+.level-slider .level-slider__bars i.is-on {
+  height: var(--bar-h);
+  background: var(--ink-2);
+}
+
+/* Only transform moves, so the dance stays on the compositor. */
+.level-slider[data-playing] .level-slider__bars i.is-on {
+  animation: level-slider-dance var(--bar-dur) ease-in-out var(--bar-delay) infinite alternate;
+}
+
+@keyframes level-slider-dance {
+  from { transform: scaleY(1); }
+  to { transform: scaleY(0.55); }
+}
+
+/* ── Seek waveform ──────────────────────────────────────────────────────── */
+.seek-bar {
+  height: var(--seek-height, 18px);
+}
+
+.seek-bar__wave {
+  position: absolute;
+  inset: 1px 0;
+  pointer-events: none;
+}
+
+.seek-bar__bars {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.seek-bar__bars i {
+  width: 2px;
+  min-height: 2px;
+  border-radius: 1px;
+  background: var(--pencil-line);
+}
+
+/* The same bars in ink, clipped to what has been played. */
+.seek-bar__bars--played {
+  clip-path: inset(0 calc(100% - var(--seek)) 0 0);
+  transition: clip-path var(--motion-duration-medium) linear;
+}
+
+.seek-bar__bars--played i {
+  background: var(--ink-2);
+}
+
+.seek-bar__head {
+  position: absolute;
+  left: var(--seek);
+  top: -1px;
+  bottom: -1px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--accent);
+  transform: translateX(-50%);
+  transition: left var(--motion-duration-medium) linear;
+}
+
+/* While dragging, follow the pointer instead of easing after it. */
+.seek-bar:active .seek-bar__bars--played,
+.seek-bar:active .seek-bar__head {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .level-slider[data-playing] .level-slider__bars i.is-on {
+    animation: none;
+  }
+}

@@ -1,0 +1,106 @@
+/* The recap's graph-paper week (DESIGN.md › Recap week grid). The paper is laid
+   out absolutely so the cells never push the card taller: the component
+   measures the room it is given and sizes the cells to fit. */
+.recap-grid {
+  --grid-pencil: color-mix(in srgb, var(--pencil-line) 60%, transparent);
+  position: relative;
+  flex: 1 1 auto;
+  /* Four rows of the smallest cells and the day labels; below this the card scrolls. */
+  min-height: 60px;
+  margin-top: 12px;
+}
+
+.recap-grid__paper {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  align-content: center;
+}
+
+.recap-grid__day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Oldest at the bottom: the stack grows upwards like a tally. */
+.recap-grid__stack {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 3px;
+}
+
+.recap-grid__cell {
+  box-sizing: border-box;
+  width: var(--cell);
+  height: var(--cell);
+  border: 1px solid var(--grid-pencil);
+}
+
+/* Days still ahead are pencil in its future hand: dashed. */
+.recap-grid__cell.is-future {
+  border-style: dashed;
+}
+
+.recap-grid__cell.is-filled {
+  --cell-ink: var(--ink-2);
+  background: var(--cell-ink);
+  border-color: var(--cell-ink);
+  animation: recap-grid-turn var(--motion-duration-slow) var(--ease-standard) var(--turn-delay, 0ms) both;
+}
+
+.recap-grid__cell.is-pen {
+  --cell-ink: var(--accent);
+}
+
+.recap-grid__more {
+  height: var(--cell);
+  font-size: 10px;
+  line-height: var(--cell);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+}
+
+.recap-grid__label {
+  font-size: var(--fs-meta);
+  line-height: 11px;
+  color: var(--ink-3);
+}
+
+.recap-grid__day[data-today] .recap-grid__label {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* A cell turns over on its horizontal axis, pencil side to ink side, like the
+   pay cards' time grid. Colour changes only while the cell is edge-on. */
+@keyframes recap-grid-turn {
+  0% {
+    transform: scaleY(1);
+    background-color: transparent;
+    border-color: var(--grid-pencil);
+  }
+  50% {
+    transform: scaleY(0);
+    background-color: transparent;
+    border-color: var(--grid-pencil);
+  }
+  50.01% {
+    transform: scaleY(0);
+    background-color: var(--cell-ink);
+    border-color: var(--cell-ink);
+  }
+  100% {
+    transform: scaleY(1);
+    background-color: var(--cell-ink);
+    border-color: var(--cell-ink);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recap-grid__cell.is-filled {
+    animation: none;
+  }
+}

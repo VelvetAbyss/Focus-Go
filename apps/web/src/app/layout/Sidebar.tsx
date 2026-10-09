@@ -28,7 +28,7 @@ import { useLabs } from '../../features/labs/LabsContext'
 import { useLabsI18n } from '../../features/labs/labsI18n'
 import { useI18n } from '../../shared/i18n/useI18n'
 import type { FeatureKey } from '../../data/models/types'
-import { mergeSidebarOrder, moveSidebarOrder, readSidebarOrder, writeSidebarOrder } from './sidebarOrder'
+import { mergeSidebarOrder, moveSidebarOrder, readSidebarOrder, splitSystemItems, writeSidebarOrder } from './sidebarOrder'
 import { useIsAdmin } from '../../store/auth'
 import SidebarPodcastPlayer from './SidebarPodcastPlayer'
 import SidebarWhiteNoise from './SidebarWhiteNoise'
@@ -211,10 +211,12 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
     [featureItems, isAdmin],
   )
   const mergedOrder = useMemo(() => mergeSidebarOrder(savedOrder, allKnownIds), [allKnownIds, savedOrder])
-  const orderedVisibleItems = useMemo(
-    () => mergedOrder.map((id) => visibleItemMap.get(id)).filter((item): item is SidebarNavItem => Boolean(item)),
-    [mergedOrder, visibleItemMap],
-  )
+  const [orderedVisibleItems, systemItems] = useMemo(() => {
+    const { main, system } = splitSystemItems(mergedOrder)
+    const resolve = (ids: readonly string[]) =>
+      ids.map((id) => visibleItemMap.get(id)).filter((item): item is SidebarNavItem => Boolean(item))
+    return [resolve(main), resolve(system)]
+  }, [mergedOrder, visibleItemMap])
 
   const handleOrderChange = (activeId: string, overId: string) => {
     const nextOrder = moveSidebarOrder(mergedOrder, activeId, overId)
@@ -250,6 +252,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
         <div className="focus-sidebar__user focus-sidebar__user--top">
           <SidebarUserPanel collapsed={collapsed} />
         </div>
+        <SidebarThemeToggle />
         <button
           type="button"
           className="focus-sidebar__toggle"
@@ -290,11 +293,19 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
       )}
 
       <section className="focus-sidebar__tools" aria-label={t('shell.quickControls')}>
-        <SidebarThemeToggle collapsed={collapsed} />
         <SidebarPodcastPlayer collapsed={collapsed} />
         <SidebarWhiteNoise collapsed={collapsed} />
         <SidebarFocusTimer collapsed={collapsed} />
       </section>
+
+      {systemItems.length > 0 ? (
+        <nav className="focus-sidebar__nav focus-sidebar__nav--system" aria-label={t('shell.systemNav')}>
+          <ActiveIndicator selector=":scope > .focus-sidebar__item.is-active" />
+          {systemItems.map((item) => (
+            <StaticSidebarItem key={item.id} item={item} collapsed={collapsed} />
+          ))}
+        </nav>
+      ) : null}
       <Suspense fallback={null}>
         <PodcastCard standalone />
       </Suspense>

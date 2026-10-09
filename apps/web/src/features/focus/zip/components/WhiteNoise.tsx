@@ -19,6 +19,7 @@ import { useVisibleInterval, useVisibleRaf } from "../../../../shared/hooks/useP
 import { useAuthGate } from "../../../auth/AuthGateContext";
 import { cloneNoiseTracks, findMatchingNoiseScenePreset, NOISE_SCENE_PRESETS, type NoiseScenePreset } from "../../noise";
 import { DURATION } from '../../../../shared/motion/tokens'
+import LevelSlider from '../../../../shared/ui/LevelSlider'
 
 interface SoundTrack {
   id: NoiseTrackId;
@@ -132,83 +133,6 @@ function SoundBarVisualizer({ tracks, isPlaying }: { tracks: SoundTrack[]; isPla
   });
 
   return <canvas ref={canvasRef} className="w-full" style={{ height: 44 }} />;
-}
-
-function PremiumSlider({
-  value,
-  onChange,
-  color,
-  disabled,
-}: {
-  value: number;
-  onChange: (v: number) => void;
-  color: string;
-  disabled?: boolean;
-}) {
-  const trackRef = useRef<HTMLDivElement>(null);
-  const [dragging, setDragging] = useState(false);
-
-  const updateValue = useCallback(
-    (clientX: number) => {
-      if (!trackRef.current || disabled) return;
-      const rect = trackRef.current.getBoundingClientRect();
-      const pct = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
-      onChange(pct);
-    },
-    [onChange, disabled]
-  );
-
-  useEffect(() => {
-    if (!dragging) return;
-    const onMove = (e: MouseEvent) => updateValue(e.clientX);
-    const onUp = () => setDragging(false);
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    };
-  }, [dragging, updateValue]);
-
-  return (
-    <div
-      ref={trackRef}
-      className="relative h-[5px] rounded-full cursor-pointer group"
-      style={{ background: disabled ? "color-mix(in srgb, var(--text-primary) 4%, transparent)" : "color-mix(in srgb, var(--text-primary) 6%, transparent)" }}
-      onMouseDown={(e) => {
-        setDragging(true);
-        updateValue(e.clientX);
-      }}
-    >
-      <motion.div
-        className="absolute left-0 top-0 h-full rounded-full"
-        style={{
-          width: `${value * 100}%`,
-          background: disabled ? "color-mix(in srgb, var(--text-primary) 8%, transparent)" : color,
-          opacity: disabled ? 0.4 : 0.5,
-        }}
-        layout
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-      />
-      <motion.div
-        className="absolute top-1/2 rounded-full"
-        style={{
-          left: `${value * 100}%`,
-          width: 13,
-          height: 13,
-          background: disabled ? "color-mix(in srgb, var(--text-primary) 12%, transparent)" : color,
-          opacity: disabled ? 0.4 : 0.8,
-          boxShadow: dragging
-            ? `0 0 0 4px color-mix(in srgb, ${color} 13%, transparent), 0 1px 3px color-mix(in srgb, var(--text-primary) 10%, transparent)`
-            : "0 1px 3px color-mix(in srgb, var(--text-primary) 8%, transparent)",
-        }}
-        initial={false}
-        animate={{ x: -6.5, y: "-50%", scale: 1 }}
-        whileHover={{ scale: 1.2 }}
-        transition={{ type: "spring", stiffness: 400, damping: 25 }}
-      />
-    </div>
-  );
 }
 
 export function WhiteNoise() {
@@ -488,7 +412,7 @@ export function WhiteNoise() {
             {Math.round(masterVolume * 100)}%
           </span>
         </div>
-        <PremiumSlider value={masterVolume} onChange={setMasterVolume} color="var(--ink-2)" />
+        <LevelSlider value={masterVolume} onChange={setMasterVolume} label={t("focus.masterVolume")} playing={isPlaying} bars={28} />
       </div>
 
       {/* Divider */}
@@ -549,11 +473,13 @@ export function WhiteNoise() {
               </motion.button>
             </div>
             <div className="pl-9">
-              <PremiumSlider
+              <LevelSlider
                 value={track.volume}
                 onChange={(v) => setTrackVolume(track.id, v)}
-                color="var(--accent)"
+                label={trackNameMap[track.id]}
+                playing={isPlaying && track.enabled}
                 disabled={!track.enabled}
+                bars={24}
               />
             </div>
           </motion.div>

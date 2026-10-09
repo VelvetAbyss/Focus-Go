@@ -9,8 +9,8 @@ import {
   type TaskProgressPeriod,
   type TaskProgressSummary,
 } from '../domain/taskProgressSummary'
-import { buildJarShelf, startOfJarWeek } from '../domain/completionJar'
-import CompletionJar from './CompletionJar'
+import { buildWeekGrid, weekGridDayIndex } from '../domain/weekGrid'
+import RecapWeekGrid from './RecapWeekGrid'
 import '../../../shared/ui/HeaderPill.css'
 import './TaskProgressSummaryCard.css'
 import ActiveIndicator from '../../../shared/motion/ActiveIndicator'
@@ -20,7 +20,6 @@ type TaskProgressSummaryCardProps = {
   tasks: readonly TaskItem[]
   projects: readonly ProjectItem[]
   className?: string
-  jarRenderMode?: 'three' | 'sketch'
   compact?: boolean
   now?: number
 }
@@ -126,7 +125,6 @@ const ProjectRow = ({
 }: {
   project: TaskProgressSummary['projects'][number]
   mode: TaskProgressDetailMode
-  jarRenderMode?: 'three' | 'sketch'
   compact?: boolean
   t: Translator
   language: 'en' | 'zh'
@@ -255,7 +253,7 @@ const addLocalMonths = (value: number, amount: number) => {
 const shiftPeriodAnchor = (value: number, period: TaskProgressPeriod, offset: number) =>
   period === 'week' ? value + offset * 7 * 24 * 60 * 60 * 1000 : addLocalMonths(value, offset)
 
-export const TaskProgressSummaryCard = ({ tasks, projects, className, compact, now, jarRenderMode = 'three' }: TaskProgressSummaryCardProps) => {
+export const TaskProgressSummaryCard = ({ tasks, projects, className, compact, now }: TaskProgressSummaryCardProps) => {
   const { t, language } = useI18n()
   const [period, setPeriod] = useState<TaskProgressPeriod>('week')
   const [mode, setMode] = useState<TaskProgressDetailMode>('compact')
@@ -271,14 +269,11 @@ export const TaskProgressSummaryCard = ({ tasks, projects, className, compact, n
     [anchorAt, effectiveNow, mode, period, projects, tasks],
   )
   const visibleProjects = compact ? summary.projects.slice(0, 3) : summary.projects
-  // The brief week view shows the completion jar; the detailed view and the
+  // The brief week view shows the graph-paper week; the detailed view and the
   // month keep the per-project list.
-  const showJar = period === 'week' && mode === 'compact'
-  const jarShelf = useMemo(() => (showJar ? buildJarShelf(tasks, { anchorAt, shelfSize: 8 }) : null), [anchorAt, showJar, tasks])
-  const openWeek = (startAt: number) => {
-    const weeks = Math.round((startAt - startOfJarWeek(effectiveNow)) / (7 * 24 * 60 * 60 * 1000))
-    setPeriodOffset(Math.min(0, weeks))
-  }
+  const showGrid = period === 'week' && mode === 'compact'
+  const weekGrid = useMemo(() => (showGrid ? buildWeekGrid(summary) : null), [showGrid, summary])
+  const todayIndex = weekGrid && periodOffset === 0 ? weekGridDayIndex(weekGrid, effectiveNow) : null
 
   const periodOptions = useMemo(
     () => [
@@ -430,8 +425,8 @@ export const TaskProgressSummaryCard = ({ tasks, projects, className, compact, n
 
         <div className="recap-card__rule" role="presentation" />
 
-        <div className={`recap-card__scroll${jarShelf ? ' recap-card__scroll--jar' : ''}`}>
-          <div className={`recap-card__stats${jarShelf ? ' recap-card__stats--with-jar' : ''}`} aria-label={t('taskRecap.eyebrow')}>
+        <div className={`recap-card__scroll${weekGrid ? ' recap-card__scroll--grid' : ''}`}>
+          <div className={`recap-card__stats${weekGrid ? ' recap-card__stats--caption' : ''}`} aria-label={t('taskRecap.eyebrow')}>
             <Stat
               label={t('taskRecap.stat.projects')}
               value={summary.totals.projectCount}
@@ -460,8 +455,8 @@ export const TaskProgressSummaryCard = ({ tasks, projects, className, compact, n
             </div>
           ) : null}
 
-          {jarShelf ? (
-            <CompletionJar renderMode={jarRenderMode} shelf={jarShelf} isCurrentWeek={periodOffset === 0} onOpenWeek={openWeek} />
+          {weekGrid ? (
+            <RecapWeekGrid key={summary.range.startAt} days={weekGrid} todayIndex={todayIndex} />
           ) : (
           <div className="recap-card__by-project">
             <div className="recap-card__bp-head">

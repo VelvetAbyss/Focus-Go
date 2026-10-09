@@ -1,26 +1,31 @@
-/* Dashboard header: the date is the editorial moment (DESIGN.md → Layout).
-   The eye lands on the date, then on the one pen mark (the time, now), then
-   on the day's line. The action pill sits top-right, positioned by
-   .app-shell__status. */
+/* Dashboard header (DESIGN.md › Dashboard header): a masthead to read, then a
+   ruled toolbar to operate. The eye lands on the date, then on the one pen
+   mark (the time, now); the day's line sits opposite as the epigraph. */
 
-.dash-hero {
-  grid-column: 1 / -1;
+.app-shell__header.dash-header {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-width: 0;
-  /* Lines the date up with the card edge below. */
-  padding: 2px 0 2px 18px;
+  align-items: stretch;
+  gap: 0;
 }
 
-/* Two voices only: the date is the one display serif; everything after it
-   is a single UI line sitting on the date's baseline. */
+.dash-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 32px;
+  min-width: 0;
+  /* Lines the date up with the card edge below. */
+  padding: 2px var(--dash-header-inset-end, 24px) 0 18px;
+}
+
+/* The date, and under it one sans line about the day. */
 .dash-hero__day {
   display: flex;
-  align-items: baseline;
-  gap: 16px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
   min-width: 0;
-  padding-right: calc(var(--header-action-guard) + 24px);
 }
 
 .dash-hero__date {
@@ -102,27 +107,36 @@
 
 .dash-hero__quote {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  column-gap: 10px;
-  row-gap: 2px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
   margin: 0;
-  min-width: 0;
-  max-width: 100%;
+  min-width: 14em;
+  max-width: min(46%, 30em);
+  text-align: right;
   animation: quote-text-in 480ms var(--ease-emphasized);
 }
 
 .dash-hero__quote-text {
   margin: 0;
+  text-wrap: balance;
   font-family: var(--font-reading);
   font-size: var(--fs-body);
   line-height: 1.5;
   color: var(--text-secondary);
 }
 
+/* A phrase never splits; in Chinese the line breaks between phrases. */
+.dash-hero__quote-phrase {
+  display: inline-block;
+}
+
 .dash-hero__quote-by {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--font-reading);
-  font-size: var(--fs-body);
+  font-size: var(--fs-label);
   line-height: 1.5;
   color: var(--text-tertiary);
   white-space: nowrap;
@@ -136,7 +150,6 @@
 .dash-hero__quote-next {
   display: inline-grid;
   place-items: center;
-  align-self: center;
   width: 22px;
   height: 22px;
   padding: 0;
@@ -168,10 +181,142 @@
   }
 }
 
-/* Line the action pill up with the date row, not the middle of the header. */
-.dash-hero ~ .app-shell__status {
-  align-items: flex-start;
-  padding-top: 2px;
+/* ── Toolbar ────────────────────────────────────────────────────────────
+   One rule under the masthead. On it: the views as tabs (a sliding pen
+   underline marks the one on show), "+" for a new view, and on the right
+   the layout actions. Tabs and actions share the rule as their baseline. */
+.dash-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 18px var(--dash-header-inset-end, 24px) 0 18px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.dash-toolbar__views {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 0;
+  --indicator-radius: 0;
+  --indicator-bg: transparent;
+  --indicator-border: transparent;
+  --indicator-shadow: inset 0 -2px 0 var(--accent);
+}
+
+.dash-toolbar__tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.dash-toolbar__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 34px;
+  margin: 0;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font: 500 var(--fs-ui)/1 var(--font-body);
+  color: var(--ink-3);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--motion-duration-fast) var(--ease-standard);
+}
+
+.dash-toolbar__tab:hover,
+.dash-toolbar__tab[aria-selected='true'],
+.dash-toolbar__tab.is-active {
+  color: var(--ink-1);
+}
+
+/* "My views" reads as one more tab, with a pencil chevron. */
+.dash-toolbar__select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 20px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink-3) 50%), linear-gradient(135deg, var(--ink-3) 50%, transparent 50%);
+  background-position: calc(100% - 10px) 55%, calc(100% - 6px) 55%;
+  background-size: 4px 4px;
+  background-repeat: no-repeat;
+}
+
+.dash-toolbar__add,
+.dash-toolbar__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  margin: 0;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: transparent;
+  color: var(--ink-3);
+  font: 500 var(--fs-label)/1 var(--font-body);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    color var(--motion-duration-fast) var(--ease-standard),
+    background-color var(--motion-duration-fast) var(--ease-standard);
+}
+
+.dash-toolbar__add {
+  width: 30px;
+  padding: 0;
+}
+
+.dash-toolbar__add:hover,
+.dash-toolbar__action:hover {
+  color: var(--ink-1);
+  background: var(--paper-sunken);
+}
+
+.dash-toolbar__actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.dash-toolbar__action.is-active {
+  color: var(--ink-1);
+}
+
+/* While the layout is being edited, "Done" is the view's one primary action. */
+.dash-toolbar__action.is-primary {
+  color: var(--accent);
+}
+
+/* Narrow sheets: the epigraph drops under the date, and the views scroll. */
+@media (max-width: 960px) {
+  .dash-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding-right: 0;
+  }
+
+  .dash-hero__quote {
+    align-items: flex-start;
+    max-width: 100%;
+    min-width: 0;
+    text-align: left;
+  }
+
+  .dash-hero__quote-by {
+    flex-direction: row-reverse;
+  }
+
+  .dash-toolbar {
+    margin-right: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
 }
 
 @media (max-width: 960px) {

@@ -206,7 +206,7 @@ const TasksAnalyticsView = ({ tasks, projects = [] }: TasksAnalyticsViewProps) =
         </article>
 
         <div className="min-h-[420px]">
-          <TaskProgressSummaryCard jarRenderMode="sketch" tasks={tasks} projects={projects} compact />
+          <TaskProgressSummaryCard tasks={tasks} projects={projects} compact />
         </div>
 
         {/* Mini metric strip */}

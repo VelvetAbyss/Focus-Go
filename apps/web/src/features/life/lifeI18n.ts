@@ -93,6 +93,7 @@ export type LifeKey =
   | 'life.podcast.error.refresh.invalidSession'
   | 'life.podcast.error.refresh.failed'
   | 'life.podcast.error.searchFailed'
+  | 'life.podcast.progress'
   | 'life.subscriptions.monthly'
   | 'life.subscriptions.trackRecurring'
   | 'life.subscriptions.emptyDescription'
@@ -487,6 +488,7 @@ const en: Record<LifeKey, string> = {
   'life.podcast.error.refresh.invalidSession': 'Netease sync requires a valid login session.',
   'life.podcast.error.refresh.failed': 'Podcast refresh failed. Try again later.',
   'life.podcast.error.searchFailed': 'Podcast search failed. Try another title.',
+  'life.podcast.progress': 'Playback progress',
   'life.subscriptions.monthly': 'Monthly',
   'life.subscriptions.trackRecurring': 'Track recurring services',
   'life.subscriptions.emptyDescription': 'Save monthly and yearly subscriptions in one place.',
@@ -876,6 +878,7 @@ const zh: Record<LifeKey, string> = {
   'life.podcast.error.refresh.invalidSession': '网易同步需要有效登录态。',
   'life.podcast.error.refresh.failed': '刷新播客失败，请稍后再试。',
   'life.podcast.error.searchFailed': '搜索播客失败，请换个标题试试。',
+  'life.podcast.progress': '播放进度',
   'life.subscriptions.monthly': '月度',
   'life.subscriptions.trackRecurring': '追踪周期性订阅',
   'life.subscriptions.emptyDescription': '把月付和年付订阅统一放在一处管理。',

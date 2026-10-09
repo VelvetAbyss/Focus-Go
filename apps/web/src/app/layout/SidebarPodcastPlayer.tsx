@@ -15,6 +15,7 @@ import {
 } from '../../features/life/podcastPlayback'
 import { usePreferences } from '../../shared/prefs/usePreferences'
 import { subscribeAuth } from '../../store/auth'
+import SeekBar from '../../shared/ui/SeekBar'
 import SidebarControlIcon from './SidebarControlIcon'
 import { useI18n } from '../../shared/i18n/useI18n'
 
@@ -112,8 +113,12 @@ const SidebarPodcastPlayer = ({ collapsed }: Props) => {
     }
   }
 
-  const playbackPercent = progress && progress.duration > 0 ? Math.max(0, Math.min(100, progress.currentTime / progress.duration * 100)) : 0
+  const title = activeEpisode?.title ?? podcast.name
+  const playLabel = isPlaying ? t('shell.podcast.pause') : t('shell.podcast.play')
 
+  // Expanded, it reads like a nav row: cover in the icon column, the episode
+  // on the label line, play at the end; the timeline sits under the label,
+  // bracketed by previous and next episode.
   return (
     <div className={`sidebar-podcast-player${isPlaying ? ' is-playing' : ''}${collapsed ? ' is-collapsed' : ''}`}>
       <div className="sidebar-tool__row">
@@ -123,35 +128,27 @@ const SidebarPodcastPlayer = ({ collapsed }: Props) => {
             ? <img src={podcast.artworkUrl} alt="" />
             : <span className="sidebar-podcast-player__emoji" aria-hidden="true">{podcast.coverEmoji ?? '🎙'}</span>}
         </button>
-        {!collapsed && <button type="button" className="sidebar-podcast-player__info sidebar-reveal"
-          onClick={handleOpenDetail} title={activeEpisode?.title ?? podcast.name}>
-          <span className="sidebar-podcast-player__title">{activeEpisode?.title ?? podcast.name}</span>
-          <span className="sidebar-podcast-player__podcast-name">{podcast.name}</span>
+        {!collapsed && <button type="button" className="sidebar-tool__label sidebar-podcast-player__info sidebar-reveal"
+          onClick={handleOpenDetail} title={`${title} · ${podcast.name}`}>
+          {title}
         </button>}
-        {collapsed && <button type="button" className="sidebar-podcast-player__btn sidebar-podcast-player__btn--play"
-          onClick={() => void handleToggle()} aria-label={isPlaying ? t('shell.podcast.pause') : t('shell.podcast.play')}>
-          <SidebarControlIcon active={isPlaying} />
-        </button>}
+        <button type="button" className="sidebar-tool__play" aria-pressed={isPlaying}
+          onClick={() => void handleToggle()} aria-label={playLabel} title={playLabel}>
+          <SidebarControlIcon active={isPlaying} size={15} />
+        </button>
       </div>
-      {!collapsed && <>
-        <div className="sidebar-podcast-player__controls sidebar-reveal">
-          <button type="button" className="sidebar-podcast-player__btn sidebar-podcast-player__btn--skip"
-            onClick={() => void handleSkip('prev')} disabled={!hasPrev} aria-label={t('shell.podcast.previous')}>
-            <SkipBack size={14} aria-hidden="true" />
-          </button>
-          <button type="button" className={`sidebar-podcast-player__btn sidebar-podcast-player__btn--play${isPlaying ? ' is-playing' : ''}`}
-            onClick={() => void handleToggle()} aria-label={isPlaying ? t('shell.podcast.pause') : t('shell.podcast.play')}>
-            <SidebarControlIcon active={isPlaying} />
-          </button>
-          <button type="button" className="sidebar-podcast-player__btn sidebar-podcast-player__btn--skip"
-            onClick={() => void handleSkip('next')} disabled={!hasNext} aria-label={t('shell.podcast.next')}>
-            <SkipForward size={14} aria-hidden="true" />
-          </button>
-          <input type="range" className="sidebar-podcast-player__seek" min={0} max={100} step={0.1}
-            value={playbackPercent} disabled={!progress || progress.duration <= 0 || isNeteaseDefaultMode}
-            aria-label={t('shell.podcast.progress')} onChange={(event) => seekTo(Number(event.target.value) / 100)} />
-        </div>
-      </>}
+      {!collapsed && <div className="sidebar-tool__sub sidebar-reveal">
+        <button type="button" className="sidebar-tool__skip"
+          onClick={() => void handleSkip('prev')} disabled={!hasPrev} aria-label={t('shell.podcast.previous')} title={t('shell.podcast.previous')}>
+          <SkipBack size={12} aria-hidden="true" />
+        </button>
+        <SeekBar currentTime={progress?.currentTime ?? 0} duration={progress?.duration ?? 0}
+          seed={activeEpisode?.id ?? podcast.id} disabled={isNeteaseDefaultMode} label={t('shell.podcast.progress')} onSeek={seekTo} />
+        <button type="button" className="sidebar-tool__skip"
+          onClick={() => void handleSkip('next')} disabled={!hasNext} aria-label={t('shell.podcast.next')} title={t('shell.podcast.next')}>
+          <SkipForward size={12} aria-hidden="true" />
+        </button>
+      </div>}
     </div>
   )
 }
