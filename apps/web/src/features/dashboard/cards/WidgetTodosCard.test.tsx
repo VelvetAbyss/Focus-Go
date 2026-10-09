@@ -10,6 +10,11 @@ import type { Habit, WidgetTodo } from '../../../data/models/types'
 const createHabitMock = vi.fn()
 const completeHabitMock = vi.fn()
 const undoHabitMock = vi.fn()
+const updateHabitMock = vi.fn()
+const archiveHabitMock = vi.fn()
+const restoreHabitMock = vi.fn()
+const refreshHabitsMock = vi.fn(async () => undefined)
+const toastPushMock = vi.fn()
 const listMock = vi.fn()
 const addMock = vi.fn()
 const updateMock = vi.fn()
@@ -39,7 +44,15 @@ vi.mock('../../habits/hooks/useHabitTracker', () => ({
     createHabit: (...args: unknown[]) => createHabitMock(...args),
     completeHabit: (...args: unknown[]) => completeHabitMock(...args),
     undoHabit: (...args: unknown[]) => undoHabitMock(...args),
+    updateHabit: (...args: unknown[]) => updateHabitMock(...args),
+    archiveHabit: (...args: unknown[]) => archiveHabitMock(...args),
+    restoreHabit: (...args: unknown[]) => restoreHabitMock(...args),
+    refresh: () => refreshHabitsMock(),
   }),
+}))
+
+vi.mock('../../../shared/ui/toast/toast', () => ({
+  useToast: () => ({ push: (...args: unknown[]) => toastPushMock(...args) }),
 }))
 
 vi.mock('../../habits/model/dateKey', () => ({
@@ -115,6 +128,10 @@ describe('WidgetTodosCard', () => {
     createHabitMock.mockReset()
     completeHabitMock.mockReset()
     undoHabitMock.mockReset()
+    updateHabitMock.mockReset()
+    archiveHabitMock.mockReset()
+    restoreHabitMock.mockReset()
+    toastPushMock.mockReset()
     listMock.mockReset()
     addMock.mockReset()
     updateMock.mockReset()
@@ -197,12 +214,65 @@ describe('WidgetTodosCard', () => {
         type: 'boolean',
       }),
     )
-    expect(addMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        scope: 'day',
-        title: 'Read 10 pages',
-      }),
-    )
+    // The habit is the row; no stored copy is written next to it.
+    expect(addMock).not.toHaveBeenCalled()
+  })
+
+  it('shows each daily habit once, even when stored copies of it were duplicated', async () => {
+    listMock.mockResolvedValue([
+      { id: 'copy-1', createdAt: 1, updatedAt: 2, scope: 'day', title: 'Plan day rhythm', priority: 'medium', done: false, linkedHabitId: 'habit-1' },
+      { id: 'copy-2', createdAt: 3, updatedAt: 4, scope: 'day', title: 'Plan day rhythm', priority: 'medium', done: false, linkedHabitId: 'habit-1' },
+    ])
+
+    render(<WidgetTodosCard />)
+
+    await waitFor(() => expect(screen.getByText('Plan day rhythm')).toBeInTheDocument())
+    expect(screen.getAllByText('Plan day rhythm')).toHaveLength(1)
+    expect(screen.getByLabelText('1 / 1 completed')).toBeInTheDocument()
+  })
+
+  it('never writes a copy of a habit, even before any copy has synced down', async () => {
+    listMock.mockResolvedValue([])
+
+    render(<WidgetTodosCard />)
+
+    await waitFor(() => expect(screen.getByText('Plan day rhythm')).toBeInTheDocument())
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(addMock).not.toHaveBeenCalled()
+    expect(updateMock).not.toHaveBeenCalled()
+  })
+
+  it('deleting a daily habit archives the habit and offers undo', async () => {
+    const user = userEvent.setup()
+    archiveHabitMock.mockResolvedValue(undefined)
+    restoreHabitMock.mockResolvedValue(undefined)
+
+    render(<WidgetTodosCard />)
+
+    await waitFor(() => expect(screen.getByText('Plan day rhythm')).toBeInTheDocument())
+    const row = screen.getByText('Plan day rhythm').closest('.widget-todos__row') as HTMLElement
+    await user.click(row.querySelector('.widget-todos__delete') as HTMLElement)
+
+    await waitFor(() => expect(archiveHabitMock).toHaveBeenCalledWith('habit-1'))
+    expect(removeMock).not.toHaveBeenCalled()
+    expect(addMock).not.toHaveBeenCalled()
+    expect(toastPushMock).toHaveBeenCalledWith(expect.objectContaining({ actionLabel: expect.any(String) }))
+
+    toastPushMock.mock.calls[0][0].onAction()
+    expect(restoreHabitMock).toHaveBeenCalledWith('habit-1')
+  })
+
+  it('deletes a weekly item outright', async () => {
+    const user = userEvent.setup()
+
+    render(<WidgetTodosCard />)
+
+    await waitFor(() => expect(screen.getByText('Weekly review')).toBeInTheDocument())
+    const row = screen.getByText('Weekly review').closest('.widget-todos__row') as HTMLElement
+    await user.click(row.querySelector('.widget-todos__delete') as HTMLElement)
+
+    await waitFor(() => expect(removeMock).toHaveBeenCalledWith('todo-week-1'))
+    expect(archiveHabitMock).not.toHaveBeenCalled()
   })
 
   it('reloads widget todos after a sync refresh event', async () => {

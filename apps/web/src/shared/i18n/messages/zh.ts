@@ -1043,6 +1043,7 @@ export const zhMessages: TranslationMessages = {
   'todo.lists': '待办列表',
   'todo.scopeTodos': '{{scope}} 待办',
   'todo.deleteTask': '删除任务',
+  'todo.habitRemovedToast': '已删除「{{title}}」，可在习惯页的「已归档」里找回',
   'todo.addHabit': '添加新习惯...',
   'todo.addTask': '添加新任务...',
   'todo.customDate': '提醒日期',

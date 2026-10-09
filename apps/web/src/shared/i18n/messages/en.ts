@@ -1043,6 +1043,7 @@ export const enMessages: TranslationMessages = {
   'todo.lists': 'Todo lists',
   'todo.scopeTodos': '{{scope}} todos',
   'todo.deleteTask': 'Delete task',
+  'todo.habitRemovedToast': 'Removed “{{title}}”. You can bring it back from Habits › Archived.',
   'todo.addHabit': 'Add a new habit...',
   'todo.addTask': 'Add a new task...',
   'todo.customDate': 'Reminder date',

@@ -11,6 +11,7 @@ import { triggerTabGroupSwitchAnimation, triggerTabPressAnimation } from '../../
 import { useHabitTracker } from '../../habits/hooks/useHabitTracker'
 import { todayDateKey } from '../../habits/model/dateKey'
 import { useI18n } from '../../../shared/i18n/useI18n'
+import { useToast } from '../../../shared/ui/toast/toast'
 import TaskAddComposer from '../../tasks/components/TaskAddComposer'
 import {
   readWidgetTodoResetBucket,
@@ -27,6 +28,7 @@ const RESET_SCOPES: WidgetTodoScope[] = ['day', 'week', 'month']
 const SWIPE_DELETE_THRESHOLD = 72
 const SWIPE_REVEAL_WIDTH = 96
 const PANEL_SWIPE_THRESHOLD = 56
+const UNDO_REMOVE_HABIT_MS = 8000
 
 type PeriodClosingAlert = {
   count: number
@@ -124,13 +126,17 @@ const WidgetTodosCard = () => {
     [t],
   )
   const [items, setItems] = useState<WidgetTodo[]>([])
-  const [loaded, setLoaded] = useState(false)
+  const toast = useToast()
   const {
     activeHabits,
     completedDatesByHabit,
     createHabit,
+    updateHabit,
+    archiveHabit,
+    restoreHabit,
     completeHabit,
     undoHabit,
+    refresh: refreshHabits,
   } = useHabitTracker()
   const [activeScope, setActiveScope] = useState<WidgetTodoScope>('day')
   const [pendingHabitId, setPendingHabitId] = useState<string | null>(null)
@@ -181,7 +187,6 @@ const WidgetTodosCard = () => {
       if (cancelled) return
       setItems(merged)
       setSortAnchorTime(merged.reduce((max, item) => (item.updatedAt > max ? item.updatedAt : max), 0))
-      setLoaded(true)
     }
 
     void load()
@@ -194,76 +199,36 @@ const WidgetTodosCard = () => {
     void loadItems().then((nextItems) => {
       setItems(nextItems)
       setSortAnchorTime(nextItems.reduce((max, item) => (item.updatedAt > max ? item.updatedAt : max), 0))
-      setLoaded(true)
     })
   }, ['widgetTodos'])
 
-  useEffect(() => {
-    if (!loaded) return
-    let cancelled = false
+  // Daily rows are the boolean habits themselves, read from the habit tracker. The card used to
+  // store a copy of each habit and add one whenever it saw none, which duplicated habits whenever
+  // they synced down before their copies, and brought a deleted row straight back. Copies already
+  // stored are skipped here; older builds still match on them, so they aren't deleted.
+  const habitItems = useMemo<WidgetTodo[]>(
+    () =>
+      activeHabits
+        .filter((habit) => habit.type === 'boolean')
+        .map((habit) => ({
+          id: `habit:${habit.id}`,
+          scope: 'day',
+          title: habit.title,
+          priority: 'medium',
+          done: (completedDatesByHabit[habit.id] ?? []).includes(today),
+          linkedHabitId: habit.id,
+          createdAt: habit.createdAt,
+          updatedAt: habit.updatedAt,
+        })),
+    [activeHabits, completedDatesByHabit, today],
+  )
 
-    const syncDailyTodos = async () => {
-      const dailyItems = items.filter((item) => item.scope === 'day')
-      const booleanHabits = activeHabits.filter((habit) => habit.type === 'boolean')
-      const completedHabitIds = new Set(
-        Object.entries(completedDatesByHabit)
-          .filter(([, dates]) => dates.includes(today))
-          .map(([habitId]) => habitId),
-      )
+  const visibleItems = useMemo(
+    () => [...items.filter((item) => !item.linkedHabitId), ...habitItems],
+    [items, habitItems],
+  )
 
-      const byLinkedHabitId = new Map(
-        dailyItems.filter((item) => item.linkedHabitId).map((item) => [item.linkedHabitId as string, item]),
-      )
-      const byTitle = new Map(
-        dailyItems.filter((item) => !item.linkedHabitId).map((item) => [item.title.trim().toLowerCase(), item]),
-      )
-
-      const operations: Array<Promise<unknown>> = []
-
-      for (const habit of booleanHabits) {
-        const matched = byLinkedHabitId.get(habit.id) ?? byTitle.get(habit.title.trim().toLowerCase())
-        const nextDone = completedHabitIds.has(habit.id)
-
-        if (!matched) {
-          operations.push(
-            widgetTodoRepo.add({
-              scope: 'day',
-              title: habit.title,
-              priority: 'medium',
-              done: nextDone,
-              linkedHabitId: habit.id,
-            }),
-          )
-          continue
-        }
-
-        if (matched.linkedHabitId !== habit.id || matched.title !== habit.title || matched.done !== nextDone) {
-          operations.push(
-            widgetTodoRepo.update({
-              ...matched,
-              linkedHabitId: habit.id,
-              title: habit.title,
-              done: nextDone,
-            }),
-          )
-        }
-      }
-
-      if (operations.length === 0) return
-      await Promise.all(operations)
-      const refreshed = await widgetTodoRepo.list()
-      if (cancelled) return
-      setItems(refreshed)
-      setSortAnchorTime(refreshed.reduce((max, item) => (item.updatedAt > max ? item.updatedAt : max), 0))
-    }
-
-    void syncDailyTodos()
-    return () => {
-      cancelled = true
-    }
-  }, [activeHabits, completedDatesByHabit, items, loaded, today])
-
-  const scopeItems = useMemo(() => items.filter((item) => item.scope === activeScope), [items, activeScope])
+  const scopeItems = useMemo(() => visibleItems.filter((item) => item.scope === activeScope), [visibleItems, activeScope])
 
   const formatDue = useCallback(
     (dueDate?: string): DueInfo | null => {
@@ -294,7 +259,7 @@ const WidgetTodosCard = () => {
     }
 
     const buildList = (scope: WidgetTodoScope): OrderedRow[] => {
-      const base = items.filter((item) => item.scope === scope)
+      const base = visibleItems.filter((item) => item.scope === scope)
       const active = base.filter((item) => !item.done)
       const done = base.filter((item) => item.done)
 
@@ -332,7 +297,7 @@ const WidgetTodosCard = () => {
       month: buildList('month'),
       custom: buildList('custom'),
     } as Record<WidgetTodoScope, OrderedRow[]>
-  }, [items, lastAdded, sortAnchorTime, formatDue])
+  }, [visibleItems, lastAdded, sortAnchorTime, formatDue])
 
   const activeIndex = useMemo(() => {
     const next = scopes.findIndex((scope) => scope.key === activeScope)
@@ -375,7 +340,7 @@ const WidgetTodosCard = () => {
     }
 
     RESET_SCOPES.forEach((scope) => {
-      const unfinished = items.filter((item) => item.scope === scope && !item.done).length
+      const unfinished = visibleItems.filter((item) => item.scope === scope && !item.done).length
       if (unfinished === 0 || !isPeriodClosingWindow(scope, current)) return
       alerts[scope] = {
         count: unfinished,
@@ -384,20 +349,20 @@ const WidgetTodosCard = () => {
     })
 
     return alerts
-  }, [items])
+  }, [visibleItems])
 
   const handleToggle = async (todo: WidgetTodo, done: boolean) => {
-    if (todo.scope === 'day' && todo.linkedHabitId) {
+    if (todo.linkedHabitId) {
       const habit = activeHabits.find((item) => item.id === todo.linkedHabitId)
-      if (habit && !pendingHabitId) {
-        setPendingHabitId(habit.id)
-        try {
-          if (done) await completeHabit(habit)
-          else await undoHabit(habit.id)
-        } finally {
-          setPendingHabitId(null)
-        }
+      if (!habit || pendingHabitId) return
+      setPendingHabitId(habit.id)
+      try {
+        if (done) await completeHabit(habit)
+        else await undoHabit(habit.id)
+      } finally {
+        setPendingHabitId(null)
       }
+      return
     }
 
     const updated = await widgetTodoRepo.update({ ...todo, done })
@@ -409,10 +374,23 @@ const WidgetTodosCard = () => {
     setRemovingId(todo.id)
     const animationMs = reduceMotion ? 0 : 240
     if (animationMs > 0) await new Promise((resolve) => window.setTimeout(resolve, animationMs))
-    await widgetTodoRepo.remove(todo.id)
-    setItems((prev) => prev.filter((item) => item.id !== todo.id))
+    const habitId = todo.linkedHabitId
+    if (habitId) {
+      // Removing a daily row archives its habit, as deleting does on the habits page.
+      await archiveHabit(habitId)
+      await refreshHabits()
+      toast.push({
+        message: t('todo.habitRemovedToast', { title: todo.title }),
+        actionLabel: t('tasks.undo'),
+        durationMs: UNDO_REMOVE_HABIT_MS,
+        onAction: () => void restoreHabit(habitId),
+      })
+    } else {
+      await widgetTodoRepo.remove(todo.id)
+      setItems((prev) => prev.filter((item) => item.id !== todo.id))
+    }
     setRemovingId((current) => (current === todo.id ? null : current))
-  }, [reduceMotion])
+  }, [archiveHabit, reduceMotion, refreshHabits, restoreHabit, t, toast])
 
   const startRename = (todo: WidgetTodo) => {
     setEditingId(todo.id)
@@ -430,6 +408,12 @@ const WidgetTodosCard = () => {
       cancelRename()
       return
     }
+    if (todo.linkedHabitId) {
+      await updateHabit(todo.linkedHabitId, { title: next })
+      await refreshHabits()
+      cancelRename()
+      return
+    }
     const updated = await widgetTodoRepo.update({ ...todo, title: next })
     setItems((prev) => prev.map((item) => (item.id === updated.id ? updated : item)))
     setSortAnchorTime(updated.updatedAt)
@@ -437,30 +421,29 @@ const WidgetTodosCard = () => {
   }
 
   const handleAdd = async (title: string) => {
-    const linkedHabit =
-      activeScope === 'day'
-        ? await createHabit({
-            title,
-            description: '',
-            icon: DEFAULT_HABIT_ICON,
-            type: 'boolean',
-            color: DEFAULT_HABIT_COLOR,
-            freezesAllowed: 0,
-          })
-        : null
-
-    const added = await widgetTodoRepo.add({
-      scope: activeScope,
-      title,
-      priority: 'medium',
-      done: false,
-      dueDate: activeScope === 'custom' ? customDueDate || todayInputDate() : undefined,
-      linkedHabitId: activeScope === 'day' ? linkedHabit?.id : undefined,
-    })
-
-    setItems((prev) => [added, ...prev])
-    setLastAdded({ id: added.id, scope: added.scope })
-    setSortAnchorTime(added.updatedAt)
+    if (activeScope === 'day') {
+      // The new habit shows up as its own daily row.
+      const habit = await createHabit({
+        title,
+        description: '',
+        icon: DEFAULT_HABIT_ICON,
+        type: 'boolean',
+        color: DEFAULT_HABIT_COLOR,
+        freezesAllowed: 0,
+      })
+      if (habit) setLastAdded({ id: `habit:${habit.id}`, scope: 'day' })
+    } else {
+      const added = await widgetTodoRepo.add({
+        scope: activeScope,
+        title,
+        priority: 'medium',
+        done: false,
+        dueDate: activeScope === 'custom' ? customDueDate || todayInputDate() : undefined,
+      })
+      setItems((prev) => [added, ...prev])
+      setLastAdded({ id: added.id, scope: added.scope })
+      setSortAnchorTime(added.updatedAt)
+    }
     requestAnimationFrame(() => {
       const listEl = listRefs.current[activeScope]
       if (listEl) listEl.scrollTo({ top: 0, behavior: 'auto' })

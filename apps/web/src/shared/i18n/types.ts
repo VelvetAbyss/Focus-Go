@@ -1041,6 +1041,7 @@ export type TranslationKey =
   | 'todo.lists'
   | 'todo.scopeTodos'
   | 'todo.deleteTask'
+  | 'todo.habitRemovedToast'
   | 'todo.addHabit'
   | 'todo.addTask'
   | 'todo.customDate'
