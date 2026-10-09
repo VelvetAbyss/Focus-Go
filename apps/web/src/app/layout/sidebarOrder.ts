@@ -1,5 +1,17 @@
 export const SIDEBAR_ORDER_STORAGE_KEY = 'focusgo.sidebar.order.v1'
 
+// Settings and admin are where you go to change the app, not places you work
+// in: they sit pinned under the tools and stay out of the drag-to-reorder list.
+export const SYSTEM_ITEM_IDS = ['route:settings', 'route:admin'] as const
+
+const isSystemItem = (id: string) => (SYSTEM_ITEM_IDS as readonly string[]).includes(id)
+
+/** The reorderable list and the pinned system items, each in display order. */
+export const splitSystemItems = (order: readonly string[]) => ({
+  main: order.filter((id) => !isSystemItem(id)),
+  system: SYSTEM_ITEM_IDS.filter((id) => order.includes(id)),
+})
+
 const isStringArray = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((item) => typeof item === 'string' && item.length > 0)
 

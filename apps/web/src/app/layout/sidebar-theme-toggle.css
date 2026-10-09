@@ -1,41 +1,27 @@
-.sidebar-theme-control { flex: 0 0 auto; margin: 0 10px 8px; }
+/* Day/night: an icon switch in the sidebar's top row, the same size as the
+   collapse control beside it. The icon crossfades sun ↔ moon. */
 .sidebar-theme-toggle {
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  width: 100%; min-height: 42px; padding: 7px 10px;
-  border: 1px solid var(--rule); border-radius: var(--radius-sm);
-  background: transparent; color: var(--ink-2); cursor: pointer;
-  transition: background-color var(--motion-duration-fast) var(--ease-standard), border-color var(--motion-duration-fast) var(--ease-standard);
+  display: inline-grid; place-items: center; flex: 0 0 30px;
+  width: 30px; height: 32px; padding: 0;
+  border: 0; border-radius: var(--radius-sm);
+  background: transparent; color: var(--ink-3); cursor: pointer;
+  transition: color var(--motion-duration-fast) var(--ease-standard), background-color var(--motion-duration-fast) var(--ease-standard);
 }
-.sidebar-theme-toggle:hover { background: var(--paper-raised); border-color: var(--rule-strong); }
-.sidebar-theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.sidebar-theme-toggle__label { font: 500 var(--fs-label)/1.2 var(--font-body); white-space: nowrap; }
-.sidebar-theme-toggle__track {
-  display: block; position: relative; flex: 0 0 52px; width: 52px; height: 28px;
-  border-radius: 999px; background: var(--paper-sunken); box-shadow: inset 0 0 0 1px var(--rule);
+.sidebar-theme-toggle:hover { color: var(--ink-1); background: var(--paper-sunken); }
+.sidebar-theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sidebar-theme-toggle__icons { display: grid; place-items: center; }
+.sidebar-theme-toggle__icons svg {
+  grid-area: 1 / 1; stroke-width: 1.7;
+  transition: opacity 180ms var(--ease-standard), transform 280ms var(--ease-emphasized);
 }
-.sidebar-theme-toggle__hint { position: absolute; top: 7.5px; color: var(--ink-3); opacity: .65; }
-.sidebar-theme-toggle__hint--sun { left: 7.5px; }
-.sidebar-theme-toggle__hint--moon { right: 7.5px; }
-.sidebar-theme-toggle__thumb {
-  position: absolute; top: 3px; left: 3px; display: grid; place-items: center;
-  width: 22px; height: 22px; border-radius: 50%; background: var(--paper-raised); color: var(--accent);
-  box-shadow: 0 1px 3px color-mix(in srgb, var(--ink-1) 16%, transparent);
-  transform: translateX(0); view-transition-name: sidebar-theme-thumb;
-  transition: transform 280ms var(--ease-emphasized);
-}
-.sidebar-theme-toggle__thumb svg { grid-area: 1 / 1; transition: opacity 180ms var(--ease-standard), transform 280ms var(--ease-emphasized); }
 .sidebar-theme-toggle__moon { opacity: 0; transform: rotate(-35deg) scale(.7); }
 .sidebar-theme-toggle__sun { opacity: 1; transform: rotate(0) scale(1); }
-.sidebar-theme-toggle[aria-checked='true'] .sidebar-theme-toggle__thumb { transform: translateX(24px); }
 .sidebar-theme-toggle[aria-checked='true'] .sidebar-theme-toggle__moon { opacity: 1; transform: rotate(0) scale(1); }
 .sidebar-theme-toggle[aria-checked='true'] .sidebar-theme-toggle__sun { opacity: 0; transform: rotate(50deg) scale(.7); }
-.sidebar-theme-control.is-compact { margin-inline: 8px; }
-.sidebar-theme-control.is-compact .sidebar-theme-toggle { justify-content: center; padding-inline: 5px; border-color: transparent; }
 
-/* Native snapshots fade the whole palette together. The named thumb moves
-   between its old/new positions, rather than freezing its CSS slide mid-frame. */
-html[data-theme-transition='crossfade'] .sidebar-theme-toggle__thumb,
-html[data-theme-transition='crossfade'] .sidebar-theme-toggle__thumb svg { transition: none; }
+/* Native snapshots fade the whole palette together; the icon rides along in
+   the snapshot instead of running its own CSS turn mid-frame. */
+html[data-theme-transition='crossfade'] .sidebar-theme-toggle__icons svg { transition: none; }
 html[data-theme-transition='crossfade']::view-transition-group(*) { animation-duration: 280ms; animation-timing-function: var(--ease-emphasized); }
 html[data-theme-transition='crossfade']::view-transition-old(root) { animation: none; opacity: 1; mix-blend-mode: normal; }
 html[data-theme-transition='crossfade']::view-transition-new(root) { animation: sidebar-theme-reveal 280ms var(--ease-emphasized) both; mix-blend-mode: normal; }

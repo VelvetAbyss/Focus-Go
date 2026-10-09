@@ -2,6 +2,7 @@ import { ChevronRight, Headphones, ListMusic, Pause, Play, Search, Shuffle, Tras
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Dialog from '../../../shared/ui/Dialog'
 import { getPlaybackProgress, seekTo, subscribePlaybackProgress } from '../podcastPlayback'
+import SeekBar from '../../../shared/ui/SeekBar'
 import type { PodcastPlaybackMode } from '../podcastPlayback'
 
 const EPISODE_ROW_HEIGHT = 34 // 8px padding-top + ~16px content + 8px padding-bottom + 1px divider
@@ -592,15 +593,13 @@ export const PodcastCardSurface = ({
                         {/* Seekable progress bar in modal header */}
                         {progress && progress.duration > 0 && (
                           <div style={{ marginTop: 14 }}>
-                            <div
-                              style={{ height: 4, borderRadius: 999, background: 'color-mix(in srgb, var(--text-primary) 9%, transparent)', cursor: 'pointer', overflow: 'hidden' }}
-                              onClick={(e) => {
-                                const rect = e.currentTarget.getBoundingClientRect()
-                                seekTo((e.clientX - rect.left) / rect.width)
-                              }}
-                            >
-                              <div style={{ height: '100%', borderRadius: 999, background: 'color-mix(in srgb, var(--text-primary) 32%, transparent)', width: `${(progress.currentTime / progress.duration) * 100}%`, transition: 'width 0.25s linear' }} />
-                            </div>
+                            <SeekBar
+                              currentTime={progress.currentTime}
+                              duration={progress.duration}
+                              seed={selected.selectedEpisodeId ?? selected.id}
+                              label={t('life.podcast.progress')}
+                              onSeek={seekTo}
+                            />
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5 }}>
                               <span style={{ ...inter(9, 400, 'var(--text-tertiary)') }}>{fmt(progress.currentTime)}</span>
                               <span style={{ ...inter(9, 400, 'var(--text-tertiary)') }}>{fmt(progress.duration)}</span>

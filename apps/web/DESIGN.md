@@ -373,16 +373,29 @@ Paper lies on the desk: shadows are short and tight.
   gets its own drawing; the SVGs are cropped to their ink, so a drawing sits
   centered with no offset. A hint with no destination is plain text, not a
   link.
-- **Completion jar** (the weekly recap's brief week view): one ink bead per task
-  finished that week, in an open glass jar, beside a plank of earlier weeks'
-  sealed jars (paper lid, twine). It is a record, never a goal: no capacity
-  line, no count on the jar, no streak, nothing resets. Each jar is sized to
-  its beads, so every sealed jar is full and a light week is a small jar, not
-  a half-empty one. Beads are ink in both themes (deep ink-jade in light, warm
-  pearl in dark), never project colours. A bead drops in only when a task is
-  ticked on screen a moment ago; synced or background completions simply
-  appear. The scene draws on demand (nothing runs at rest), and a flat SVG of
-  the same packing stands in without WebGL.
+- **Recap week grid** (the weekly recap's brief week view): graph paper, one
+  cell per task finished that week (counted once per task, as the recap's
+  numbers are), stacked Monday to Sunday with the oldest at the bottom. Paper
+  is a faint pencil outline, days still ahead are dashed, a finished task is
+  ink (`--ink-2`) and today's latest is the pen; today's day letter is the pen
+  too. It is a record, never a goal: at least four rows of paper, no target
+  row, and past the room a day shows "+N" on top. Cells size themselves to the
+  card (8–16px). A cell turns over on its horizontal axis, pencil side to ink
+  side, like the pay cards' grid: once per week shown, oldest first, and again
+  for each new completion. The numbers above become one caption row there.
+- **Volume and seek** (`shared/ui/LevelSlider`, `shared/ui/SeekBar`; every
+  audio slider: sidebar sound and player, focus mixer, podcast detail).
+  Volume is a row of level bars on a fixed uneven skyline: bars up to the
+  level are ink (`--ink-2`), the rest are pencil stubs. While that sound is
+  playing the inked bars dance (transform-only CSS keyframes, so the
+  compositor runs them; still when paused, muted, disabled or under reduced
+  motion). The dance is decoration, not a meter of the real signal. Seek is a
+  waveform of 2px bars: played bars are ink, bars ahead are pencil, and the
+  playhead is a pen line. Streams can't be read, so the shape is generated
+  from the episode id (fixed per episode, stable across widths), never
+  presented as the real audio. Both lay a transparent native
+  range input over the picture with a 1px thumb, so the value sits under the
+  pointer and keyboard, touch and screen readers behave as on any range.
 - **Pay widgets** (今日计薪 · 工时换算 · 摸鱼, opt-in dashboard cards): one
   rule across all three. Paid time already worked is ink, paid time still
   ahead is pencil, and now is the pen. Each card's picture is the same time
@@ -537,6 +550,9 @@ bezier arrays or durations.
 | 2026-09-29 | Completion jar replaces the per-project list in the weekly recap's brief week view (Full and Month keep the list); the recap's three numbers become one caption row there. Beads come from task activity logs, one per task per week, so past weeks are on the shelf from day one | The user's most frequent action is ticking tasks, and a ticked task left nothing behind. Research on streaks and progress bars says the unfilled state is what hurts, so the jar has no goal and no fixed size. The user chose the direction, the shelf, content-sized jars and the ink-jade-in-glass material. |
 | 2026-10-04 | Pay widgets (今日计薪, 工时换算 with a wishlist, 摸鱼): hidden by default, turned on in Manage widgets. Pay model: a month's salary spread over its working days, a day's pay over its paid minutes (work hours minus lunch). Settings, wishes and breaks live in the synced preferences; breaks are kept for about two months | The user asked for the three widgets from a salary-timer app. A wish's bar fills with paid time worked since it was added, so it moves without manual logging. The cards show earnings, so they never appear uninvited. |
 | 2026-10-04 | Pay widgets get a time grid (direction C of three sketched: particles, rings, grid): five-minute day cells on 今日计薪 and 摸鱼, hour cells in day blocks on 工时换算, cells turning over pencil to ink | The user rejected literal desk props (hourglass, fishbowl) and chose the grid from three animated sketches. The grid states the same facts as the text, in the three hands, and moves only when a cell changes. |
+| 2026-10-09 | Completion jar removed; the recap's brief week view gets the week grid instead (direction H of twelve sketched: tally, dot calendar, ledger line, struck-through list, week ruler, two lines, project split, graph paper, week dial, constellation, ink wash, ridgeline). Plain DOM and CSS, no WebGL | The user asked to remove the jar animation and its styling everywhere and wanted a simpler way to show the week's completions. They picked the graph paper; it reuses the pay cards' cell language, so the product has one grid. |
+| 2026-10-09 | Every audio slider becomes one of two shared controls: level bars that dance while the sound plays (volume) and a seek waveform with the pen as playhead (volume from direction 7, seek from direction 5 of eight sketched: ruler ticks, hairline dot, stepped bars, filled pill, waveform, dial with progress ring, dancing bars, wedge). The dead NoiseSlider/NoiseControlPanel are removed | There were four slider implementations, and the focus mixer's could not be used from the keyboard. The user picked the dancing bars. Native inputs underneath keep a11y; transform-only keyframes keep the dance off the main thread (see the perf rule about ambient heat). |
+| 2026-10-09 | Dashboard header becomes a masthead and a toolbar (supersedes the 2026-09-28 layout; the date's type is unchanged): the weekday line moves under the date, the quote moves to the right as an epigraph, and one rule below carries the views as tabs (专注 · 生活 · 资讯, translated; a sliding pen underline) with the layout actions on the right. The duplicate Settings link is gone (direction C of three sketched: tabs under the quote, one dropdown plus a more menu, masthead and toolbar) | One pill held seven kinds of control (tabs, a select, a create button, a mode toggle and a link to app Settings) in mixed English and Chinese, pinned to the top with no shared baseline. Separating the reading part from the operating part follows "serif where you read, sans where you operate" and fills the empty middle. |
 
 ## Ambient environments — 2026-10-08
 
@@ -583,13 +599,12 @@ Validation and local performance evidence: `docs/AMBIENT_THEMES_2026-10-08.md`.
 
 ## Sidebar day / night control — 2026-10-08
 
-Place the quick day/night switch below navigation and above the ambient and focus
-controls. Use the existing paper, ink, rule and accent tokens, including the
-active environment's palette. Expanded navigation shows the current mode beside
-a sun/moon thumb; collapsed navigation keeps the same switch without the label.
+Superseded on 2026-10-09: the switch is now a sun/moon icon button in the
+account row, beside the collapse control (see "Sidebar — one sheet"). It keeps
+`role="switch"`; the icon turns sun ↔ moon in place. Use the existing paper,
+ink, rule and accent tokens, including the active environment's palette.
 
-User-triggered mode changes move the thumb and crossfade the workspace together
-over 280ms. Prefer native view-transition snapshots, with finite CSS transitions
+User-triggered mode changes crossfade the workspace over 280ms. Prefer native view-transition snapshots, with finite CSS transitions
 as a fallback. App and OS reduced motion apply the change immediately. Rapid
 clicks follow the latest intent, and the settings selector shares the same saved
 preference. The switch explicitly chooses light/dark; following the system stays
@@ -597,13 +612,11 @@ available in Settings. No animation runs while idle.
 
 ## Unified sidebar — 2026-10-08
 
-The rail has three levels: a compact account row, the scrollable navigation, and
-a single divided quick-control strip. Day/night, podcast, sound scene and focus
-timer share paper/ink/accent tokens, corner treatment and 34px transport controls.
-Do not give each tool a separate decorative card. Navigation remains reorderable.
-Sound and podcast seeking use native ranges with keyboard and touch support.
-The compact timer keeps its remaining time visible; mode shortcuts show their
-minutes beside their symbols. Podcast details open from real buttons.
+Superseded in part on 2026-10-09 by "Sidebar — one sheet" below: the tools no
+longer sit in a strip of their own. Still true: no decorative card per tool,
+navigation stays reorderable, sound and seeking use native ranges, the compact
+timer keeps its remaining time visible, and podcast details open from real
+buttons.
 
 Feedback uses a 140ms colour change, 180–200ms content/icon changes and a 280ms
 layout settle. Folding captures the sidebar and work area with native View
@@ -617,3 +630,53 @@ Below 960px the rail becomes a compact toolbar: labelled navigation in expanded
 mode, a small icon grid when folded, and quick tools arranged beside one another.
 Keep the navigation and tools separately usable in short desktop windows.
 Local validation: `artifacts/sidebar-redesign-2026-10-08/README.md`.
+
+## Sidebar — one sheet (2026-10-09)
+
+The whole rail is one sheet on one grid. From top to bottom: the account row
+(account, day/night icon switch, collapse), the reorderable list, the tools
+under a rule, and settings and admin under another rule. Every row, tool rows
+included, is a nav row: 10px inset, a 17px icon column, an 11px gap, then the
+label line, 38px tall. So icons and labels line up from the top of the rail to
+the bottom.
+
+- **Tools** carry no card or panel of their own. The podcast cover, the sound's
+  waves and the timer (a progress ring once started) sit in the icon column;
+  the episode, scene and time sit on the label line; one quiet 28px play
+  control ends the row and turns the pen while playing. A second line (the
+  seek waveform between previous and next, the level bars) starts on the label
+  column. Pickers (scene, timer mode) read as text with a small pencil chevron.
+- **Settings and admin** are pinned under the tools and are not part of the
+  drag-to-reorder list, so a newly added module can never push them into the
+  middle (`splitSystemItems` in `sidebarOrder.ts`).
+- The list fades out over its last 18px where it runs under the tools, so a
+  cut-off row reads as "scroll for more".
+- Folded, each tool is a centred control (cover and play, the sound toggle, the
+  timer ring with its time). Below 960px the tools sit two to a row and the
+  pinned items join the icon grid.
+
+| Date | Decision | Why |
+|---|---|---|
+| 2026-10-09 | Tools move off their white card onto the list's grid; day/night moves to the account row; settings and admin are pinned; timer modes become a picker (direction A of three sketched: one sheet, grouped nav with a now-playing strip, control-centre tiles) | The user found the rail messy. Two materials (glass list, white card), two icon columns 7–8px apart, six button shapes in the tools, the card covering the list without a fade, and system items in the middle of the list. One grid fixes all of these and keeps the waveform and level bars in view. |
+
+## Dashboard header — masthead and toolbar (2026-10-09)
+
+Two parts, read then operate.
+
+- **Masthead.** On the left, the date (unchanged: the only display type) with
+  the weekday · lunar day · time line under it. On the right, the day's quote
+  as an epigraph: reading serif, right-aligned, the source under it in
+  tertiary, "another quote" before the source on hover. The source line and the
+  weekday line share the bottom edge. A Chinese quote breaks only after its
+  punctuation (each phrase is one unbreakable piece); other languages wrap
+  between words.
+- **Toolbar.** One rule under the masthead, starting on the cards' left edge and
+  ending on their right edge. On it, the views as plain tabs (专注 · 生活 · 资讯,
+  then "我的视图" as a picker and "+" for a new view), and the selected view is
+  marked by a 2px pen underline that slides (`ActiveIndicator` with an inset
+  shadow). Layout actions sit on the right: "编辑布局"; while editing,
+  "管理组件" and "完成", with "完成" in the pen as the view's one primary action.
+  App settings are not linked from here (the sidebar has them).
+- Below 960px the epigraph drops under the date, left-aligned, and the tabs
+  scroll sideways.
+

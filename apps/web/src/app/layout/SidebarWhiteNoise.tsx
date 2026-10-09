@@ -1,5 +1,4 @@
-import type { CSSProperties } from 'react'
-import { Waves, Volume2 } from 'lucide-react'
+import { Waves } from 'lucide-react'
 import { useSharedNoise } from '../../features/focus/SharedNoiseProvider'
 import {
   cloneNoiseTracks,
@@ -10,6 +9,7 @@ import {
 import { useI18n } from '../../shared/i18n/useI18n'
 import { usePremiumGate } from '../../features/premium/PremiumProvider'
 import { useAuthGate } from '../../features/auth/AuthGateContext'
+import LevelSlider from '../../shared/ui/LevelSlider'
 import AmbientSettingsPopover from './AmbientSettingsPopover'
 import SidebarControlIcon from './SidebarControlIcon'
 
@@ -58,25 +58,24 @@ const SidebarWhiteNoise = ({ collapsed }: Props) => {
     })
   }
 
+  const playLabel = isPlaying ? t('focus.pauseNoise') : t('focus.playNoise')
+
+  // Expanded: the sound's icon in the nav's icon column, the scene on the
+  // label line, play at the end, and the level bars under the label.
+  // Collapsed: one button, the sound's icon that turns into pause.
   return (
-    <div
-      className={`sidebar-noise-mini${isPlaying ? ' is-playing' : ''}${collapsed ? ' is-collapsed' : ''}`}
-    >
+    <div className={`sidebar-noise-mini${isPlaying ? ' is-playing' : ''}${collapsed ? ' is-collapsed' : ''}`}>
       <div className="sidebar-tool__row">
-        <button
-          type="button"
-          className={`sidebar-noise-mini__toggle${isPlaying ? ' is-playing' : ''}`}
-          onClick={handleToggle}
-          aria-label={isPlaying ? t('focus.pauseNoise') : t('focus.playNoise')}
-          title={isPlaying ? t('focus.pauseNoise') : t('focus.playNoise')}
-          aria-pressed={isPlaying}
-        >
-          <SidebarControlIcon active={isPlaying} Idle={Waves} />
-        </button>
-        {!collapsed && (
-          <div className="sidebar-noise-mini__preset-row sidebar-reveal">
+        {collapsed ? (
+          <button type="button" className="sidebar-tool__play" onClick={handleToggle}
+            aria-label={playLabel} title={playLabel} aria-pressed={isPlaying}>
+            <SidebarControlIcon active={isPlaying} Idle={Waves} size={16} />
+          </button>
+        ) : (
+          <>
+            <span className="sidebar-tool__icon" aria-hidden="true"><Waves /></span>
             <select
-              className="sidebar-noise-mini__preset"
+              className="sidebar-tool__label sidebar-tool__select sidebar-reveal"
               value={activeScene?.id ?? ''}
               onChange={(event) => handleSceneChange(event.target.value as NoiseScenePresetId | '')}
               aria-label={t('focus.scenes')}
@@ -88,25 +87,23 @@ const SidebarWhiteNoise = ({ collapsed }: Props) => {
               ))}
             </select>
             <AmbientSettingsPopover />
-          </div>
+            <button type="button" className="sidebar-tool__play" onClick={handleToggle}
+              aria-label={playLabel} title={playLabel} aria-pressed={isPlaying}>
+              <SidebarControlIcon active={isPlaying} size={15} />
+            </button>
+          </>
         )}
       </div>
-      {!collapsed && <div className="sidebar-noise-mini__volume-row sidebar-reveal">
-        <Volume2 size={13} aria-hidden="true" />
-        <input
-          type="range"
-          className="sidebar-noise-mini__volume"
-          min={0} max={100} step={1}
-          value={Math.round(noise.masterVolume * 100)}
-          aria-label={t('focus.volume')}
-          aria-valuetext={`${Math.round(noise.masterVolume * 100)}%`}
-          style={{ '--volume-pct': `${noise.masterVolume * 100}%` } as CSSProperties}
-          onChange={(event) => {
+      {!collapsed && <div className="sidebar-tool__sub sidebar-reveal">
+        <LevelSlider
+          value={noise.masterVolume}
+          label={t('focus.volume')}
+          playing={isPlaying}
+          onChange={(volume) => {
             if (!allowed) {
               openUpgradeModal('button', 'focus.white-noise')
               return
             }
-            const volume = Number(event.target.value) / 100
             requireAuth(() => setNoiseMasterVolume(volume))
           }}
         />

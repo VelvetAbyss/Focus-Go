@@ -59,7 +59,7 @@ describe('sidebar tools', () => {
 
   it('retains duration selection and start/pause/resume behavior in the new layout', () => {
     const view = render(<SidebarFocusTimer collapsed={false} />)
-    fireEvent.click(screen.getByRole('button', { name: 'focus.deepWork' }))
+    fireEvent.change(screen.getByRole('combobox', { name: 'focus.modes' }), { target: { value: 'deep-work' } })
     expect(mocks.setDuration).toHaveBeenCalledWith(50)
     fireEvent.click(screen.getByRole('button', { name: 'focus.startFocus' }))
     expect(mocks.start).toHaveBeenCalledWith(25)

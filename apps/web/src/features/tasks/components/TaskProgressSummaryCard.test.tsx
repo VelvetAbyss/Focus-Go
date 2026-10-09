@@ -116,7 +116,7 @@ describe('TaskProgressSummaryCard', () => {
       </div>,
     )
 
-    // The brief week view shows the completion jar; task titles are in the detailed view.
+    // The brief week view shows the week grid; task titles are in the detailed view.
     await user.click(screen.getByRole('tab', { name: 'Full' }))
 
     expect(screen.getByText('Current week task')).toBeInTheDocument()
@@ -134,14 +134,13 @@ describe('TaskProgressSummaryCard', () => {
     expect(screen.queryByText('Previous week task')).not.toBeInTheDocument()
   })
 
-  it('shows the completion jar in the brief week view and the project list elsewhere', async () => {
+  it('shows the week grid in the brief week view and the project list elsewhere', async () => {
     const user = userEvent.setup()
+    const done = (id: string, createdAt: number) => [{ id, type: 'status' as const, message: 'Status changed to Done', createdAt }]
     const tasks = [
-      createTask({
-        id: 'task-current',
-        title: 'Current week task',
-        activityLogs: [{ id: 'a', type: 'status', message: 'Status changed to Done', createdAt: new Date(2026, 4, 12, 9).getTime() }],
-      }),
+      createTask({ id: 'tue', title: 'Tuesday task', activityLogs: done('a', new Date(2026, 4, 12, 9).getTime()) }),
+      createTask({ id: 'wed-1', title: 'Wednesday task', activityLogs: done('b', new Date(2026, 4, 13, 9).getTime()) }),
+      createTask({ id: 'wed-2', title: 'Second Wednesday task', activityLogs: done('c', new Date(2026, 4, 13, 11).getTime()) }),
     ]
 
     const view = render(
@@ -150,16 +149,21 @@ describe('TaskProgressSummaryCard', () => {
       </div>,
     )
 
-    expect(view.container.querySelector('.recap-jar')).not.toBeNull()
-    expect(screen.getByText('Completion jar: 1 tasks finished this week.')).toBeInTheDocument()
-    expect(screen.queryByText('Current week task')).not.toBeInTheDocument()
+    const grid = screen.getByRole('img', { name: /^Finished 3 tasks this week/ })
+    const columns = grid.querySelectorAll('.recap-grid__day')
+    expect(columns).toHaveLength(7)
+    expect([...columns].map((column) => column.querySelectorAll('.is-filled').length)).toEqual([0, 1, 2, 0, 0, 0, 0])
+    // Today (Wednesday) is the pen on its latest cell; the days after are dashed paper.
+    expect(columns[2].querySelector('.is-pen')).toHaveAttribute('title', expect.stringContaining('Second Wednesday task'))
+    expect(columns[3].querySelector('.is-future')).not.toBeNull()
+    expect(screen.queryByText('Tuesday task')).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('tab', { name: 'Full' }))
-    expect(view.container.querySelector('.recap-jar')).toBeNull()
-    expect(screen.getByText('Current week task')).toBeInTheDocument()
+    expect(view.container.querySelector('.recap-grid')).toBeNull()
+    expect(screen.getByText('Tuesday task')).toBeInTheDocument()
 
     await user.click(screen.getByRole('tab', { name: 'Brief' }))
     await user.click(screen.getByRole('tab', { name: 'Month' }))
-    expect(view.container.querySelector('.recap-jar')).toBeNull()
+    expect(view.container.querySelector('.recap-grid')).toBeNull()
   })
 })

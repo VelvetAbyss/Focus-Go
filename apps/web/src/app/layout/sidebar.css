@@ -54,102 +54,117 @@
 }
 .focus-sidebar .focus-sidebar__item.is-dragging { cursor: grabbing; box-shadow: var(--elev-2); }
 .focus-sidebar .ui-active-indicator { will-change: auto; transition-duration: var(--sidebar-settle); }
+/* The list fades out where it runs under the tools, so a cut-off row reads as
+   "scroll for more"; the bottom padding lets the last row scroll clear. */
+.focus-sidebar .focus-sidebar__nav:not(.focus-sidebar__nav--system) {
+  padding-bottom: 18px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 18px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 18px), transparent);
+}
+/* Settings and admin, pinned under the tools on the same grid as the list. */
+.focus-sidebar .focus-sidebar__nav--system {
+  flex: none; overflow: visible; margin: 0 10px; padding: 6px 0 10px;
+  border-top: 1px solid var(--rule);
+}
 
+/* One sheet: the tools sit on the same surface as the list, under a rule, on
+   the list's grid. A row is a nav row (10px inset, 17px icon column, 11px gap,
+   38px tall), so icons and labels line up from the top of the rail to the
+   bottom. A second line (timeline, level) starts on the label column. */
 .focus-sidebar__tools {
-  flex: 0 0 auto; margin: 0 10px 10px; padding: 3px 8px;
-  border: 1px solid var(--rule); border-radius: var(--radius-md);
-  background: var(--paper-raised); max-height: 60%; overflow-y: auto; overflow-x: hidden;
-  scrollbar-width: thin;
+  flex: 0 0 auto; margin: 0 10px; padding: 6px 0;
+  border-top: 1px solid var(--rule);
+  max-height: 55%; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin;
 }
-.focus-sidebar__tools > * + * { border-top: 1px solid var(--rule); }
-.focus-sidebar .sidebar-theme-control { margin: 0; padding: 3px 0; }
-.focus-sidebar .sidebar-theme-toggle {
-  min-height: 42px; padding: 5px 3px; border: 0; background: transparent; gap: 6px;
-}
-.focus-sidebar .sidebar-theme-toggle:hover { background: var(--paper-sunken); }
-.focus-sidebar .sidebar-theme-toggle__label { font-weight: 500; color: var(--ink-2); }
-.focus-sidebar .sidebar-theme-toggle__track { background: var(--paper-sunken); }
 .focus-sidebar :is(.sidebar-noise-mini, .sidebar-timer-mini, .sidebar-podcast-player) {
-  display: flex; flex-direction: column; align-items: stretch; flex: none; gap: 7px;
-  margin: 0; padding: 10px 0; border-radius: 0; border-inline: 0; border-bottom: 0;
+  display: flex; flex-direction: column; align-items: stretch; flex: none; gap: 0;
+  margin: 0; padding: 0; border: 0; border-radius: 0;
   background: transparent; box-shadow: none; overflow: visible;
 }
-.focus-sidebar .sidebar-noise-mini { border-top: 1px solid var(--rule); }
-.focus-sidebar .sidebar-timer-mini { border-top: 1px solid var(--rule); }
-.sidebar-tool__row { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.focus-sidebar :is(.sidebar-noise-mini__toggle, .sidebar-timer-mini__toggle, .sidebar-podcast-player__btn, .sidebar-noise-mini__gear) {
-  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
-  width: 34px; height: 34px; min-height: 34px; padding: 0;
-  border-radius: var(--radius-sm); border: 1px solid transparent;
-  background: var(--paper-sunken); color: var(--ink-2); cursor: pointer;
+.focus-sidebar .sidebar-tool__row {
+  display: flex; align-items: center; gap: 11px; min-width: 0; min-height: 38px; padding: 0 0 0 10px;
 }
-.focus-sidebar :is(.sidebar-noise-mini__toggle, .sidebar-timer-mini__toggle, .sidebar-podcast-player__btn, .sidebar-noise-mini__gear):hover:not(:disabled) {
-  background: var(--accent-soft); color: var(--accent); border-color: var(--rule);
+.focus-sidebar .sidebar-tool__icon { flex: 0 0 17px; display: grid; place-items: center; color: var(--ink-2); }
+.focus-sidebar .sidebar-tool__icon > svg { width: 17px; height: 17px; stroke-width: 1.7; }
+.focus-sidebar :is(.sidebar-noise-mini.is-playing, .sidebar-timer-mini.is-running) .sidebar-tool__icon { color: var(--accent); }
+.focus-sidebar .sidebar-podcast-player__cover {
+  flex: 0 0 17px; width: 17px; height: 17px; padding: 0; border: 0; border-radius: 4px;
+  display: grid; place-items: center; overflow: hidden; cursor: pointer;
+  background: var(--paper-sunken); box-shadow: 0 0 0 1px var(--rule);
 }
-.focus-sidebar :is(.sidebar-noise-mini__toggle.is-playing, .sidebar-timer-mini.is-running .sidebar-timer-mini__toggle, .sidebar-podcast-player__btn.is-playing) {
-  color: var(--accent); background: var(--accent-soft);
+.focus-sidebar .sidebar-podcast-player__cover::after { content: none; animation: none; }
+.sidebar-podcast-player__cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.focus-sidebar .sidebar-podcast-player__emoji { font-size: 11px; }
+.focus-sidebar .sidebar-tool__label {
+  flex: 1; min-width: 0; margin: 0; padding: 0; border: 0; background: transparent; text-align: left;
+  font: 500 var(--fs-ui)/1.3 var(--font-body); color: var(--ink-1);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
 }
+.focus-sidebar .sidebar-tool__label:hover { color: var(--accent); }
+/* A picker reads as text with a small pencil chevron, not as a field. */
+.focus-sidebar .sidebar-tool__select {
+  appearance: none; -webkit-appearance: none; height: 28px; margin: 0; padding: 0 14px 0 0;
+  border: 0; border-radius: 0; background-color: transparent;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink-3) 50%), linear-gradient(135deg, var(--ink-3) 50%, transparent 50%);
+  background-position: calc(100% - 6px) 55%, calc(100% - 2px) 55%;
+  background-size: 4px 4px; background-repeat: no-repeat;
+}
+/* Pickers hug their text; the first control after one takes the free space. */
+.focus-sidebar .sidebar-tool__select.sidebar-tool__label,
+.focus-sidebar .sidebar-timer-mini__mode-select { flex: 0 1 auto; }
+.focus-sidebar .sidebar-tool__select + :is(.sidebar-tool__play, .sidebar-noise-mini__gear) { margin-left: auto; }
+.focus-sidebar .sidebar-timer-mini__time-text {
+  flex: none; font: 600 var(--fs-ui)/1 var(--font-body); font-variant-numeric: tabular-nums;
+  letter-spacing: 0; color: var(--ink-1);
+}
+.focus-sidebar .sidebar-timer-mini__mode-select {
+  min-width: 0; font: 500 var(--fs-label)/1.3 var(--font-body); color: var(--ink-3);
+  text-overflow: ellipsis; cursor: pointer;
+}
+.focus-sidebar .sidebar-timer-mini__mode-select:hover { color: var(--ink-1); }
+.focus-sidebar .sidebar-tool__icon .sidebar-timer-mini__ring { position: static; display: block; }
+.focus-sidebar .sidebar-tool__icon .sidebar-timer-mini__ring circle { stroke-width: 2.6; }
+.focus-sidebar .sidebar-timer-mini__ring-track { stroke: var(--rule-strong); }
+.focus-sidebar .sidebar-timer-mini.is-paused .sidebar-timer-mini__ring-fill { stroke: var(--ink-2); }
+.focus-sidebar .sidebar-timer-mini__ring-fill { transition-duration: var(--sidebar-settle); }
+/* Transport: one quiet square at the end of each row; playing is the pen. */
+.focus-sidebar .sidebar-tool__play {
+  flex: 0 0 28px; display: inline-grid; place-items: center;
+  width: 28px; height: 28px; min-height: 28px; padding: 0;
+  border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--ink-2); cursor: pointer;
+}
+.focus-sidebar .sidebar-tool__play:hover:not(:disabled) { background: var(--paper-sunken); color: var(--ink-1); }
+.focus-sidebar .sidebar-tool__play[aria-pressed='true'] { color: var(--accent); }
+.focus-sidebar .sidebar-noise-mini__gear {
+  flex: 0 0 24px; display: inline-grid; place-items: center; width: 24px; height: 28px; padding: 0;
+  border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--ink-3); cursor: pointer;
+}
+.focus-sidebar .sidebar-noise-mini__gear:hover { background: var(--paper-sunken); color: var(--ink-1); }
+.focus-sidebar .sidebar-tool__sub {
+  display: flex; align-items: center; gap: 6px; min-width: 0; min-height: 20px;
+  padding: 0 0 8px 38px; color: var(--ink-3);
+}
+.focus-sidebar .sidebar-tool__skip {
+  flex: 0 0 18px; display: inline-grid; place-items: center; width: 18px; height: 18px; padding: 0;
+  border: 0; border-radius: 4px; background: transparent; color: var(--ink-3); cursor: pointer;
+}
+.focus-sidebar .sidebar-tool__skip:hover:not(:disabled) { background: var(--paper-sunken); color: var(--ink-1); }
+.focus-sidebar .sidebar-tool__skip:disabled { opacity: .35; cursor: default; }
+.sidebar-tool__value { min-width: 30px; text-align: right; font-size: var(--fs-meta); font-variant-numeric: tabular-nums; }
 .sidebar-control-icon { display: grid; place-items: center; }
 .sidebar-control-icon > svg { grid-area: 1 / 1; transition: opacity 140ms var(--ease-standard), transform 200ms var(--ease-emphasized); }
 .sidebar-control-icon__idle { opacity: 1; transform: scale(1); }
 .sidebar-control-icon__active { opacity: 0; transform: scale(.8); }
 .sidebar-control-icon.is-active .sidebar-control-icon__idle { opacity: 0; transform: scale(.8); }
 .sidebar-control-icon.is-active .sidebar-control-icon__active { opacity: 1; transform: scale(1); }
-.focus-sidebar .sidebar-noise-mini__preset-row { flex: 1; min-width: 0; align-items: center; gap: 2px; }
-.focus-sidebar .sidebar-noise-mini__preset {
-  border: 0; background-color: transparent; color: var(--ink-1); font: 500 var(--fs-label)/1.4 var(--font-body);
-  padding: 6px 15px 6px 0; height: 34px; border-radius: var(--radius-xs);
-  background-position: calc(100% - 8px) 50%, calc(100% - 4px) 50%;
+/* Collapsed timer: the play control inside its progress ring. */
+.focus-sidebar .sidebar-timer-mini__toggle {
+  position: relative; display: inline-grid; place-items: center; width: 34px; height: 34px; padding: 0;
+  border: 0; border-radius: 50%; background: transparent; color: var(--ink-2); cursor: pointer;
 }
-.focus-sidebar .sidebar-noise-mini__gear { width: 28px; background: transparent; color: var(--ink-3); }
-.sidebar-noise-mini__volume-row { display: flex; align-items: center; gap: 8px; padding: 0 2px; color: var(--ink-3); min-height: 20px; }
-.sidebar-tool__value { min-width: 30px; text-align: right; font-size: var(--fs-meta); font-variant-numeric: tabular-nums; }
-.focus-sidebar input.sidebar-noise-mini__volume,
-.focus-sidebar input.sidebar-podcast-player__seek {
-  appearance: none; -webkit-appearance: none; flex: 1; min-width: 0; width: 100%;
-  height: 18px; margin: 0; padding: 0; border: 0; border-radius: 0; cursor: pointer; overflow: visible;
-  background: linear-gradient(to right, var(--accent) var(--volume-pct, 0%), var(--rule-strong) var(--volume-pct, 0%)) center / 100% 3px no-repeat;
-}
-.focus-sidebar input[type='range']::-webkit-slider-thumb {
-  appearance: none; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--paper-raised);
-  background: var(--accent); box-shadow: 0 0 0 1px var(--rule-strong);
-}
-.focus-sidebar input[type='range']::-moz-range-thumb {
-  width: 7px; height: 7px; border-radius: 50%; border: 2px solid var(--paper-raised);
-  background: var(--accent); box-shadow: 0 0 0 1px var(--rule-strong);
-}
-.focus-sidebar .sidebar-timer-mini__toggle { position: relative; background: transparent; }
-.focus-sidebar .sidebar-timer-mini__ring { inset: 1px; }
-.focus-sidebar .sidebar-timer-mini__ring-track { stroke: var(--rule-strong); stroke-width: 1.4; }
-.focus-sidebar .sidebar-timer-mini__ring-fill { stroke-width: 1.7; transition-duration: var(--sidebar-settle); }
-.focus-sidebar .sidebar-timer-mini__time { flex: 1; min-width: 0; align-items: center; }
-.focus-sidebar .sidebar-timer-mini__time-text { font-size: 20px; font-weight: 500; letter-spacing: -.025em; color: var(--ink-1); }
-.focus-sidebar .sidebar-timer-mini__mode-label { font-size: var(--fs-meta); letter-spacing: 0; text-transform: none; color: var(--ink-3); }
-.focus-sidebar .sidebar-timer-mini__modes { gap: 3px; }
-.focus-sidebar .sidebar-timer-mini__mode {
-  height: 28px; min-width: 0; gap: 3px; background: transparent; color: var(--ink-3);
-  border: 1px solid transparent; border-radius: var(--radius-sm); font: 500 10px/1 var(--font-body);
-  font-variant-numeric: tabular-nums;
-}
-.focus-sidebar .sidebar-timer-mini__mode:hover { background: var(--paper-sunken); color: var(--ink-1); }
-.focus-sidebar .sidebar-timer-mini__mode.is-active { background: var(--accent-soft); color: var(--accent); }
+.focus-sidebar .sidebar-timer-mini__toggle .sidebar-timer-mini__ring { inset: 1px; }
+.focus-sidebar .sidebar-timer-mini.is-running .sidebar-timer-mini__toggle { color: var(--accent); }
 .sidebar-timer-mini__compact-time { text-align: center; font-size: 10px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
-.focus-sidebar .sidebar-podcast-player { border-top: 1px solid var(--rule); }
-.focus-sidebar .sidebar-podcast-player__cover {
-  flex: 0 0 34px; width: 34px; height: 34px; padding: 0; border: 1px solid var(--rule); border-radius: var(--radius-sm);
-  background: var(--paper-sunken); cursor: pointer; overflow: hidden; box-shadow: none;
-}
-.focus-sidebar .sidebar-podcast-player__cover::after { content: none; animation: none; }
-.sidebar-podcast-player__cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.focus-sidebar .sidebar-podcast-player__info { display: flex; flex-direction: column; flex: 1; min-width: 0; padding: 0; border: 0; background: transparent; text-align: left; cursor: pointer; }
-.focus-sidebar .sidebar-podcast-player__title { font-size: var(--fs-label); font-weight: 500; color: var(--ink-1); margin: 0; max-width: 100%; }
-.focus-sidebar .sidebar-podcast-player__podcast-name { font-size: var(--fs-meta); color: var(--ink-3); max-width: 100%; }
-.focus-sidebar .sidebar-podcast-player__controls { gap: 3px; width: 100%; }
-.focus-sidebar .sidebar-podcast-player__btn { width: 28px; height: 28px; min-height: 28px; background: transparent; }
-.focus-sidebar .sidebar-podcast-player__btn--play { background: var(--paper-sunken); }
-.focus-sidebar .sidebar-podcast-player__btn:disabled { opacity: .35; cursor: default; }
-.focus-sidebar input.sidebar-podcast-player__seek { margin-left: 4px; background: linear-gradient(var(--rule-strong), var(--rule-strong)) center / 100% 3px no-repeat; }
-.focus-sidebar input.sidebar-podcast-player__seek:disabled { opacity: .35; cursor: default; }
 
 .focus-sidebar.is-collapsed .focus-sidebar__top { flex-direction: column; gap: 4px; padding: 10px 8px; }
 .focus-sidebar.is-collapsed .focus-sidebar__user { padding: 0; }
@@ -157,11 +172,14 @@
 .focus-sidebar.is-collapsed .focus-sidebar__toggle { flex-basis: auto; min-height: 28px; }
 .focus-sidebar.is-collapsed .focus-sidebar__nav { padding-inline: 10px; justify-items: center; }
 .focus-sidebar.is-collapsed .focus-sidebar__item { width: 42px; min-height: 38px; }
-.focus-sidebar.is-collapsed .focus-sidebar__tools { margin-inline: 6px; padding-inline: 3px; }
-.focus-sidebar.is-collapsed .sidebar-theme-toggle { padding: 5px 0; }
-.focus-sidebar.is-collapsed :is(.sidebar-noise-mini, .sidebar-timer-mini, .sidebar-podcast-player) { align-items: center; gap: 4px; padding: 8px 0; }
-.focus-sidebar.is-collapsed .sidebar-podcast-player .sidebar-tool__row { flex-direction: column; gap: 5px; }
-.focus-sidebar.is-collapsed .sidebar-podcast-player__btn--play { display: flex; width: 34px; height: 30px; }
+.focus-sidebar.is-collapsed .focus-sidebar__tools,
+.focus-sidebar.is-collapsed .focus-sidebar__nav--system { margin-inline: 10px; }
+.focus-sidebar.is-collapsed .focus-sidebar__nav--system { justify-items: center; }
+.focus-sidebar.is-collapsed :is(.sidebar-noise-mini, .sidebar-timer-mini, .sidebar-podcast-player) { align-items: center; gap: 2px; padding: 4px 0; }
+.focus-sidebar.is-collapsed .sidebar-tool__row { flex-direction: column; gap: 4px; min-height: 0; padding: 0; }
+.focus-sidebar.is-collapsed .sidebar-podcast-player__cover { flex-basis: 26px; width: 26px; height: 26px; border-radius: var(--radius-sm); }
+.focus-sidebar.is-collapsed .sidebar-podcast-player__emoji { font-size: var(--fs-body); }
+.focus-sidebar.is-collapsed .sidebar-tool__play { flex-basis: auto; width: 42px; height: 34px; }
 
 .focus-sidebar :is(button, a, select) {
   transition: color 140ms var(--ease-standard), background-color 140ms var(--ease-standard), border-color 140ms var(--ease-standard);
@@ -213,22 +231,20 @@ html[data-motion='reduce'] .ambient-prefs-popover * { animation: none !important
   .focus-sidebar .focus-sidebar__item > span:not(.discovery-new-badge) { font-size: var(--fs-meta); }
   .focus-sidebar .focus-sidebar__item > .discovery-new-badge { position: absolute; top: 6px; right: 8px; }
   .focus-sidebar.is-collapsed .focus-sidebar__item { flex-direction: row; min-height: 36px; }
+  .focus-sidebar .focus-sidebar__nav:not(.focus-sidebar__nav--system) { padding-bottom: 6px; -webkit-mask-image: none; mask-image: none; }
+  /* Tools: sound and timer side by side, the podcast across both. */
   .focus-sidebar .focus-sidebar__tools {
     display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 10px;
-    margin: 5px 8px 8px; padding: 3px 8px; max-height: none; overflow: visible;
+    margin: 0 8px; padding: 4px 0; max-height: none; overflow: visible;
   }
-  .focus-sidebar .sidebar-theme-control,
   .focus-sidebar .sidebar-podcast-player { grid-column: 1 / -1; }
-  .focus-sidebar .sidebar-theme-toggle { min-height: 34px; }
-  .focus-sidebar .sidebar-timer-mini { padding-left: 9px; border-left: 1px solid var(--rule); }
-  .focus-sidebar .sidebar-timer-mini__time { gap: 3px; }
-  .focus-sidebar .sidebar-timer-mini__time-text { font-size: 18px; }
-  .focus-sidebar .sidebar-timer-mini__mode-label { max-width: 58px; }
-  .focus-sidebar.is-collapsed .focus-sidebar__tools { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; }
-  .focus-sidebar.is-collapsed .sidebar-theme-control { grid-column: auto; display: grid; align-items: center; border-right: 1px solid var(--rule); }
-  .focus-sidebar.is-collapsed .sidebar-theme-toggle { justify-content: center; }
-  .focus-sidebar.is-collapsed .sidebar-noise-mini,
-  .focus-sidebar.is-collapsed .sidebar-timer-mini { border-top: 0; padding: 6px 0; justify-content: center; }
-  .focus-sidebar.is-collapsed .sidebar-podcast-player { order: 4; grid-column: 1 / -1; border-top: 1px solid var(--rule); }
+  .focus-sidebar .sidebar-tool__row { padding-left: 6px; }
+  .focus-sidebar .sidebar-tool__sub { padding-left: 34px; }
+  .focus-sidebar .focus-sidebar__nav--system,
+  .focus-sidebar.is-collapsed .focus-sidebar__nav--system {
+    grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0 8px; padding: 4px 0 8px;
+  }
+  .focus-sidebar.is-collapsed .focus-sidebar__tools { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .focus-sidebar.is-collapsed .sidebar-podcast-player { grid-column: auto; }
   .focus-sidebar.is-collapsed .sidebar-podcast-player .sidebar-tool__row { flex-direction: row; }
 }

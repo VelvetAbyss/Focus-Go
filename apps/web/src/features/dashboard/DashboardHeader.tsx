@@ -1,7 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { LayoutGrid, RefreshCw, Settings as SettingsIcon, Plus } from 'lucide-react'
-import { ROUTES } from '../../app/routes/routes'
+import { Check, LayoutGrid, Plus, RefreshCw } from 'lucide-react'
 import { useI18n } from '../../shared/i18n/useI18n'
 import { useToday } from '../../shared/hooks/useToday'
 import { DiscoveryNewBadge } from '../../shared/ui/DiscoveryNewBadge'
@@ -11,10 +9,8 @@ import { quoteForDay } from './quote/quoteService'
 import { lunarDateLabel, lunarFestivalOn, solarTermOn } from './header/chineseDay'
 import PremiumMark from '../premium/PremiumMark'
 import '../life/life.css'
-import '../../shared/ui/HeaderPill.css'
 import './header/dashboard-header.css'
 import ActiveIndicator from '../../shared/motion/ActiveIndicator'
-import { SELECTED_TAB } from '../../shared/motion/indicatorSelectors'
 
 export type DashboardPage = 'main' | 'life' | 'news' | 'custom'
 
@@ -35,6 +31,10 @@ type DashboardHeaderProps = {
 
 const pad = (value: number) => String(value).padStart(2, '0')
 const dayKeyOf = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+
+// A Chinese line breaks only after its punctuation, never inside a phrase;
+// other languages come back as one piece and wrap between words as usual.
+const quotePhrases = (text: string) => text.match(/[^，。？！；：、]+[，。？！；：、”]*/g) ?? [text]
 
 // "Another quote" holds for the rest of the day, then the day's own line returns.
 const QUOTE_SKIP_KEY = 'focusgo.dashboard.quoteSkip'
@@ -68,7 +68,6 @@ const DashboardHeader = ({
   onSetPage,
 }: DashboardHeaderProps) => {
   const { language, t } = useI18n()
-  const showProjectBadges = false
   const today = useToday()
   const dayKey = dayKeyOf(today)
   const zh = language === 'zh'
@@ -96,8 +95,13 @@ const DashboardHeader = ({
     if (nextPage === 'news') markDiscoveryNewTargetSeen('dashboard-news-tab')
   }
 
+  const showLayoutActions = page !== 'news' && page !== 'custom'
+
+  // A masthead to read (the date on the left, the day's line on the right as
+  // its epigraph), then a ruled toolbar to operate: the views as tabs on the
+  // left, the layout actions on the right (DESIGN.md › Dashboard header).
   return (
-    <header className="app-shell__header">
+    <header className="app-shell__header dash-header">
       <div className="dash-hero">
         <div className="dash-hero__day">
           <time className="dash-hero__date" dateTime={dayKey}>
@@ -132,106 +136,114 @@ const DashboardHeader = ({
             className="dash-hero__quote-text"
             title={quote.original ? `${quote.original.content} — ${quote.original.author}` : undefined}
           >
-            “{quote.content}”
+            {quotePhrases(`“${quote.content}”`).map((phrase, index) => (
+              <span key={index} className="dash-hero__quote-phrase">{phrase}</span>
+            ))}
           </blockquote>
           <figcaption className={`dash-hero__quote-by${zh ? ' dash-hero__quote-by--zh' : ''}`}>
+            <button
+              type="button"
+              className="dash-hero__quote-next"
+              onClick={showAnotherQuote}
+              aria-label={t('dashboard.quote.next')}
+              title={t('dashboard.quote.next')}
+            >
+              <RefreshCw size={12} aria-hidden="true" />
+            </button>
             {zh ? `——${quote.author}` : `— ${quote.author}`}
           </figcaption>
-          <button
-            type="button"
-            className="dash-hero__quote-next"
-            onClick={showAnotherQuote}
-            aria-label={t('dashboard.quote.next')}
-            title={t('dashboard.quote.next')}
-          >
-            <RefreshCw size={12} aria-hidden="true" />
-          </button>
         </figure>
       </div>
-      <div className="app-shell__status">
-        {showProjectBadges && !layoutEdit ? <span className="pill">{t('dashboard.quote.localFirst')}</span> : null}
-        {showProjectBadges && !layoutEdit ? <span className="pill pill--soft">{t('dashboard.quote.mvp')}</span> : null}
 
-        {/* Unified pill: Focus/Life/News toggle + action buttons */}
-        <div className="header-pill">
-          {onSetPage ? (
-            <>
-              <ActiveIndicator selector={SELECTED_TAB} />
+      <div className="dash-toolbar">
+        {onSetPage ? (
+          <div className="dash-toolbar__views">
+            <ActiveIndicator selector={`:scope [role="tab"][aria-selected="true"], :scope > .is-active`} />
+            <div className="dash-toolbar__tabs" role="tablist" aria-label={t('dashboard.views.aria')}>
               <button
+                type="button"
                 role="tab"
                 aria-selected={page === 'main'}
-                className={`header-pill__btn${page === 'main' ? ' is-active' : ''}`}
+                className="dash-toolbar__tab"
                 onClick={() => handleSetPage('main')}
               >
-                Focus
+                {t('dashboard.page.focus')}
               </button>
               <button
+                type="button"
                 role="tab"
                 aria-selected={page === 'life'}
-                className={`header-pill__btn${page === 'life' ? ' is-active' : ''}`}
+                className="dash-toolbar__tab"
                 onClick={() => handleSetPage('life')}
               >
-                Life
+                {t('dashboard.page.life')}
                 <DiscoveryNewBadge target="dashboard-life-tab" />
               </button>
               <button
+                type="button"
                 role="tab"
                 aria-selected={page === 'news'}
-                className={`header-pill__btn${page === 'news' ? ' is-active' : ''}`}
+                className="dash-toolbar__tab"
                 onClick={() => handleSetPage('news')}
               >
-                News
+                {t('dashboard.page.news')}
                 <DiscoveryNewBadge target="dashboard-news-tab" />
               </button>
-              {customViews.length > 0 && <select className={`header-pill__btn custom-view-select${page === 'custom' ? ' is-active' : ''}`} aria-label={zh ? '自定义视图' : 'Custom views'} value={page === 'custom' ? selectedViewId : ''} onChange={event => onSelectView?.(event.target.value)}>
-                <option value="" disabled>{zh ? '我的视图' : 'My views'}</option>
-                {customViews.map(view => <option key={view.id} value={view.id}>{view.name}</option>)}
-              </select>}
-              {onCreateView && <button type="button" className="header-pill__btn" onClick={onCreateView} aria-label={zh ? '新建视图' : 'New view'} title={zh ? '新建视图' : 'New view'}><Plus size={14} /><span>{zh ? '视图' : 'View'}</span></button>}
-              <div className="header-pill__divider" aria-hidden="true" />
-            </>
-          ) : null}
+            </div>
+            {customViews.length > 0 ? (
+              <select
+                className={`dash-toolbar__tab dash-toolbar__select${page === 'custom' ? ' is-active' : ''}`}
+                aria-label={t('dashboard.views.mine')}
+                value={page === 'custom' ? selectedViewId : ''}
+                onChange={(event) => onSelectView?.(event.target.value)}
+              >
+                <option value="" disabled>{t('dashboard.views.mine')}</option>
+                {customViews.map((view) => <option key={view.id} value={view.id}>{view.name}</option>)}
+              </select>
+            ) : null}
+            {onCreateView ? (
+              <button
+                type="button"
+                className="dash-toolbar__add"
+                onClick={onCreateView}
+                aria-label={t('dashboard.views.new')}
+                title={t('dashboard.views.new')}
+              >
+                <Plus size={14} aria-hidden="true" />
+              </button>
+            ) : null}
+          </div>
+        ) : <span />}
 
-          {layoutEdit && page !== 'news' && page !== 'custom' ? (
+        {showLayoutActions ? (
+          <div className="dash-toolbar__actions">
+            {layoutEdit ? (
+              <button
+                type="button"
+                className={`dash-toolbar__action${widgetsPanelOpen ? ' is-active' : ''}`}
+                onClick={onToggleWidgetsPanel}
+                data-locked={widgetsLocked ? 'true' : 'false'}
+                aria-label={t('dashboard.manageVisibility')}
+                aria-expanded={widgetsPanelOpen}
+              >
+                <span>{t('dashboard.manageWidgets')}</span>
+                {widgetsLocked ? <PremiumMark /> : null}
+              </button>
+            ) : null}
             <button
               type="button"
-              className={`header-pill__btn${widgetsPanelOpen ? ' is-active' : ''}`}
-              onClick={onToggleWidgetsPanel}
-              data-locked={widgetsLocked ? 'true' : 'false'}
-              aria-label={t('dashboard.manageVisibility')}
-              aria-expanded={widgetsPanelOpen}
-            >
-              <span>{t('dashboard.manageWidgets')}</span>
-              {widgetsLocked ? <PremiumMark /> : null}
-            </button>
-          ) : null}
-
-          {page !== 'news' && page !== 'custom' ? (
-            <button
-              type="button"
-              className={`header-pill__btn${layoutEdit ? ' is-active' : ''}`}
+              className={`dash-toolbar__action${layoutEdit ? ' is-primary' : ''}`}
               onClick={onToggleLayoutEdit}
               data-locked={layoutEditLocked ? 'true' : 'false'}
               aria-label={layoutEdit ? t('dashboard.layoutEdit') : t('dashboard.editLayout')}
               aria-expanded={layoutEdit}
             >
-              <LayoutGrid size={14} aria-hidden="true" />
+              {layoutEdit ? <Check size={14} aria-hidden="true" /> : <LayoutGrid size={14} aria-hidden="true" />}
               <span>{layoutEdit ? t('dashboard.done') : t('dashboard.editLayout')}</span>
               {!layoutEdit && layoutEditLocked ? <PremiumMark /> : null}
             </button>
-          ) : null}
-
-          {!layoutEdit ? (
-            <Link
-              to={ROUTES.SETTINGS}
-              className="header-pill__btn"
-              aria-label={t('dashboard.settings')}
-            >
-              <SettingsIcon size={14} aria-hidden="true" />
-              <span>{t('dashboard.settings')}</span>
-            </Link>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
       </div>
     </header>
   )
