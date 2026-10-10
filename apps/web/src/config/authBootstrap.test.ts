@@ -6,6 +6,13 @@ const fetchAuthProfileMock = vi.fn()
 const setAuthMock = vi.fn()
 const clearAuthMock = vi.fn()
 const getAuthMock = vi.fn()
+const probeAuthProfileMock = vi.fn()
+const platform = {
+  isDesktop: false,
+  loadAuthToken: vi.fn(),
+  clearAuthToken: vi.fn(),
+  saveAuthToken: vi.fn(),
+}
 
 vi.mock('./authClient', () => ({
   authClient: {
@@ -18,7 +25,10 @@ vi.mock('../store/auth', () => ({
   setAuth: setAuthMock,
   clearAuth: clearAuthMock,
   getAuth: getAuthMock,
+  probeAuthProfile: probeAuthProfileMock,
 }))
+
+vi.mock('../platform', () => ({ getPlatform: () => platform }))
 
 describe('bootstrapAuth', () => {
   beforeEach(() => {
@@ -31,6 +41,10 @@ describe('bootstrapAuth', () => {
     clearAuthMock.mockReset()
     getAuthMock.mockReset()
     getAuthMock.mockReturnValue(null)
+    probeAuthProfileMock.mockReset()
+    platform.isDesktop = false
+    platform.loadAuthToken.mockReset()
+    platform.clearAuthToken.mockReset()
   })
 
   afterEach(() => {
@@ -104,5 +118,54 @@ describe('bootstrapAuth', () => {
     expect(setAuthMock).not.toHaveBeenCalled()
     expect(clearAuthMock).not.toHaveBeenCalled()
     expect(localStorage.getItem('auth')).toBeNull()
+  })
+  it('keeps a signed-in web session when the app starts offline', async () => {
+    getAuthMock.mockReturnValue({ user: { id: 'user-1' } })
+    getSessionMock.mockRejectedValue(new TypeError('Failed to fetch'))
+    probeAuthProfileMock.mockResolvedValue({ kind: 'unreachable' })
+    const { bootstrapAuth } = await import('./authBootstrap')
+
+    await expect(bootstrapAuth()).resolves.toBe(true)
+
+    expect(clearAuthMock).not.toHaveBeenCalled()
+  })
+
+  it('signs the web session out when the server answers that it is gone', async () => {
+    getAuthMock.mockReturnValue({ user: { id: 'user-1' } })
+    getSessionMock.mockResolvedValue(null)
+    probeAuthProfileMock.mockResolvedValue({ kind: 'rejected' })
+    const { bootstrapAuth } = await import('./authBootstrap')
+
+    await bootstrapAuth()
+
+    expect(clearAuthMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the desktop session and its token when the app starts offline', async () => {
+    platform.isDesktop = true
+    platform.loadAuthToken.mockResolvedValue('keychain-token')
+    getAuthMock.mockReturnValue({ user: { id: 'user-1', email: 'me@example.com' }, isAdmin: false })
+    probeAuthProfileMock.mockResolvedValue({ kind: 'unreachable' })
+    const { bootstrapAuth } = await import('./authBootstrap')
+
+    await bootstrapAuth()
+
+    expect(probeAuthProfileMock).toHaveBeenCalledWith('keychain-token')
+    expect(setAuthMock).toHaveBeenCalledWith({ user: { id: 'user-1', email: 'me@example.com' }, isAdmin: false, accessToken: 'keychain-token' })
+    expect(clearAuthMock).not.toHaveBeenCalled()
+    expect(platform.clearAuthToken).not.toHaveBeenCalled()
+  })
+
+  it('drops a desktop token the server rejects', async () => {
+    platform.isDesktop = true
+    platform.loadAuthToken.mockResolvedValue('expired-token')
+    getAuthMock.mockReturnValue({ user: { id: 'user-1' } })
+    probeAuthProfileMock.mockResolvedValue({ kind: 'rejected' })
+    const { bootstrapAuth } = await import('./authBootstrap')
+
+    await bootstrapAuth()
+
+    expect(platform.clearAuthToken).toHaveBeenCalledTimes(1)
+    expect(clearAuthMock).toHaveBeenCalledTimes(1)
   })
 })

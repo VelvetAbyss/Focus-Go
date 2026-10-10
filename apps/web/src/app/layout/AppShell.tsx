@@ -16,6 +16,7 @@ import AuthInteractionGate from '../../features/auth/AuthInteractionGate'
 import { getAuth, subscribeAuth } from '../../store/auth'
 import { isLocalhostRuntime } from '../../shared/env/localhost'
 import { clearLocalUserData } from '../../data/sync/repository'
+import { LOCAL_ACCOUNT_OWNER_KEY } from '../../config/accountOwnership'
 import CommandPalette from '../../shared/ui/CommandPalette'
 import { useSharedNoise } from '../../features/focus/SharedNoiseProvider'
 import { findMatchingNoiseScenePreset } from '../../features/focus/noise'
@@ -93,7 +94,10 @@ const AppShell = ({ children }: AppShellProps) => {
   useEffect(() => {
     if (isLocalhostRuntime()) return
     const guard = () => {
-      if (!getAuth()?.user) void clearLocalUserData()
+      // Signed out with an account's data still here (an expired or revoked session): clear it.
+      // Data written before any sign-in has no owner (the macOS app ran without an account until
+      // 2026-10); it stays, and joins the account at the first sign-in.
+      if (!getAuth()?.user && localStorage.getItem(LOCAL_ACCOUNT_OWNER_KEY)) void clearLocalUserData()
     }
     guard()
     return subscribeAuth(guard)

@@ -39,10 +39,13 @@ The app is local-first (Dexie/IndexedDB) and replicates through RxDB to `focus-g
 There is no account-free mode today: the per-device local/cloud switch (`storageMode.ts`, added in
 95a21d1) was removed in d375667 when the web release was rolled back to the 5174 build.
 
-- Off localhost the auth gate requires sign-in, and signing out clears local data (`AppShell` →
-  `clearLocalUserData`).
-- On localhost the gate is off. The macOS desktop build counts as localhost (its origin is
-  `tauri://localhost`); the Windows build (`tauri.localhost`) does not, so the two behave differently.
+- Every build asks for sign-in, the desktop apps included. Only an `http(s)://localhost` dev server
+  skips the gate (`isLocalhostRuntime`); the macOS app's `tauri://localhost` does not count.
+- Once signed in, the app works offline: a start without network keeps the last session and checks
+  again when the network returns (`authBootstrap`, `probeAuthProfile`). Only a 401/403 signs out.
+- Signing out clears local data. AppShell's guard also clears it when no one is signed in, but only
+  data bound to an account (`LOCAL_ACCOUNT_OWNER_KEY`); unowned data stays and joins the account at
+  the first sign-in.
 
 ## Build / run
 - Web: `npm run dev:web`, `npm run build:web` (from repo root).

@@ -1,7 +1,23 @@
-import { clearAuth, fetchAuthProfile, getAuth, setAuth } from '../store/auth'
+import { clearAuth, getAuth, probeAuthProfile, setAuth } from '../store/auth'
 import { clearAuthRedirectParams, finishBetterAuthCookieSession, hasAuthRedirectParams } from './authRuntime'
 import { getPlatform } from '../platform'
 import { bindLocalAccountOwner } from './accountOwnership'
+
+// Offline at start: the session is kept on what this device knows, and checked again once the
+// network is back, so a signed-in device stays usable without a connection.
+let retryArmed = false
+const retryWhenOnline = () => {
+  if (retryArmed || typeof window === 'undefined') return
+  retryArmed = true
+  window.addEventListener(
+    'online',
+    () => {
+      retryArmed = false
+      void bootstrapAuth()
+    },
+    { once: true },
+  )
+}
 
 // Desktop session restore. The HttpOnly cookie is a dropped third-party cookie
 // under the tauri:// origin, so instead we restore the Bearer token from the OS
@@ -15,14 +31,21 @@ const bootstrapDesktopSession = async () => {
     if (getAuth()) clearAuth()
     return
   }
-  const profile = await fetchAuthProfile(token)
-  if (!profile) {
+  const probe = await probeAuthProfile(token)
+  if (probe.kind === 'rejected') {
     // Token expired/revoked — drop it so the user sees a clean login.
     await platform.clearAuthToken()
     clearAuth()
     return
   }
   const hint = getAuth() ?? {}
+  if (probe.kind === 'unreachable') {
+    // Offline or the server is down: stay signed in as this device last knew, token in hand.
+    if (hint.user) setAuth({ ...hint, accessToken: token })
+    retryWhenOnline()
+    return
+  }
+  const { profile } = probe
   bindLocalAccountOwner(String(profile.id))
   setAuth({
     ...hint,
@@ -57,7 +80,14 @@ export const bootstrapAuth = async () => {
     // No active session cookie. Only emit a clear if there's prior state to
     // drop (avoids spurious re-renders for first-time visitors).
     if (isAuthRedirect) clearAuthRedirectParams()
-    if (getAuth()) clearAuth()
+    if (!getAuth()) return true
+    // Only a server that answers "no session" signs you out; offline keeps the last session.
+    const probe = await probeAuthProfile()
+    if (probe.kind === 'unreachable') {
+      retryWhenOnline()
+      return true
+    }
+    clearAuth()
   }
   return true
 }
