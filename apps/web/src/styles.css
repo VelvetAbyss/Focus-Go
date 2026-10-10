@@ -11712,6 +11712,17 @@ textarea:focus-visible,
   text-overflow: ellipsis;
 }
 
+/* A trip in the day's list opens the trip. */
+.calendar-side-row__link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.calendar-side-row__link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .calendar-side-row__text.is-done {
   color: var(--ink-3);
   text-decoration: line-through;

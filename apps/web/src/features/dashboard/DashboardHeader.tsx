@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import { Check, LayoutGrid, Plus, RefreshCw } from 'lucide-react'
+import { Bookmark, BookmarkCheck, Check, LayoutGrid, Plus, RefreshCw } from 'lucide-react'
 import { useI18n } from '../../shared/i18n/useI18n'
 import { useToday } from '../../shared/hooks/useToday'
 import { DiscoveryNewBadge } from '../../shared/ui/DiscoveryNewBadge'
 import { markDiscoveryNewTargetSeen } from '../../shared/discovery/discoveryNewTargetActions'
 import LiveClock from './LiveClock'
 import { ownQuoteIndexForDay, QUOTE_COUNT, quoteForDay, skipToOwnQuote } from './quote/quoteService'
-import { useQuoteState } from './quote/useQuoteState'
+import { newQuoteId, updateQuoteState, useQuoteState } from './quote/useQuoteState'
+import { cleanOwnQuote, MAX_OWN_QUOTES } from './quote/quoteStorage'
 import QuoteLibraryPopover from './quote/QuoteLibraryPopover'
 import { lunarDateLabel, lunarFestivalOn, solarTermOn } from './header/chineseDay'
 import PremiumMark from '../premium/PremiumMark'
@@ -101,7 +102,7 @@ const DashboardHeader = ({
   const ownIndex = ownQuoteIndexForDay(today, quoteState.mine.length, quoteSkip.mineSkip)
   const ownLine = showingOwn && ownIndex >= 0 ? quoteState.mine[ownIndex] : null
   const quote = showingOwn
-    ? ownLine && { key: ownLine.id, content: ownLine.text, author: t('dashboard.quote.self'), original: null }
+    ? ownLine && { key: ownLine.id, content: ownLine.text, author: ownLine.author ?? t('dashboard.quote.self'), original: null }
     : (() => {
         const line = quoteForDay(today, language, quoteSkip.skip)
         return { ...line, key: `${line.id}-${language}` }
@@ -111,6 +112,20 @@ const DashboardHeader = ({
     saveQuoteSkip(showingOwn ? { ...quoteSkip, mineSkip: quoteSkip.mineSkip + 1 } : { ...quoteSkip, skip: quoteSkip.skip + 1 })
   const showOwnLine = (index: number, count: number) =>
     saveQuoteSkip({ ...quoteSkip, mineSkip: skipToOwnQuote(today, count, index) })
+  // A library line can be kept in your own lines, and let go again.
+  const keptLine = !showingOwn && quote ? quoteState.mine.find((item) => item.text === cleanOwnQuote(quote.content)) : undefined
+  const canKeep = !showingOwn && Boolean(quote) && (Boolean(keptLine) || quoteState.mine.length < MAX_OWN_QUOTES)
+  const toggleKeep = () => {
+    if (!quote || showingOwn) return
+    updateQuoteState((current) =>
+      keptLine
+        ? { ...current, mine: current.mine.filter((item) => item.id !== keptLine.id) }
+        : {
+            ...current,
+            mine: [...current.mine, { id: newQuoteId(), text: cleanOwnQuote(quote.content), author: quote.author, addedAt: Date.now() }],
+          },
+    )
+  }
 
   const handleSetPage = (nextPage: DashboardPage) => {
     onSetPage?.(nextPage)
@@ -179,6 +194,18 @@ const DashboardHeader = ({
                 title={t('dashboard.quote.next')}
               >
                 <RefreshCw size={12} aria-hidden="true" />
+              </button>
+            ) : null}
+            {canKeep ? (
+              <button
+                type="button"
+                className={`dash-hero__quote-next dash-hero__quote-keep${keptLine ? ' is-kept' : ''}`}
+                onClick={toggleKeep}
+                aria-pressed={Boolean(keptLine)}
+                aria-label={keptLine ? t('dashboard.quote.kept') : t('dashboard.quote.keep')}
+                title={keptLine ? t('dashboard.quote.kept') : t('dashboard.quote.keep')}
+              >
+                {keptLine ? <BookmarkCheck size={12} aria-hidden="true" /> : <Bookmark size={12} aria-hidden="true" />}
               </button>
             ) : null}
             <QuoteLibraryPopover state={quoteState} onAdded={showOwnLine} />

@@ -20,7 +20,7 @@ type QuoteLibraryPopoverProps = {
  * wrote (DESIGN.md › Dashboard header).
  */
 const QuoteLibraryPopover = ({ state, onAdded }: QuoteLibraryPopoverProps) => {
-  const { t } = useI18n()
+  const { language, t } = useI18n()
   const toast = useToast()
   const [draft, setDraft] = useState('')
   const line = cleanOwnQuote(draft)
@@ -45,6 +45,33 @@ const QuoteLibraryPopover = ({ state, onAdded }: QuoteLibraryPopoverProps) => {
     if (event.key !== 'Enter' || event.nativeEvent.isComposing) return
     event.preventDefault()
     add()
+  }
+
+  const [editing, setEditing] = useState<{ id: string; text: string } | null>(null)
+
+  const saveEdit = () => {
+    if (!editing) return
+    const text = cleanOwnQuote(editing.text)
+    setEditing(null)
+    // Emptied out is not a delete; the × is right there for that.
+    if (!text) return
+    updateQuoteState((current) => ({
+      ...current,
+      mine: current.mine.map((item) => (item.id === editing.id ? { ...item, text } : item)),
+    }))
+  }
+
+  const handleEditKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.nativeEvent.isComposing) return
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      saveEdit()
+    } else if (event.key === 'Escape') {
+      // Esc leaves the edit, not the popover.
+      event.preventDefault()
+      event.stopPropagation()
+      setEditing(null)
+    }
   }
 
   const remove = (entry: OwnQuote) => {
@@ -77,7 +104,15 @@ const QuoteLibraryPopover = ({ state, onAdded }: QuoteLibraryPopoverProps) => {
           <Plus size={13} aria-hidden="true" />
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" sideOffset={8} className="quote-library">
+      <PopoverContent
+        align="end"
+        sideOffset={8}
+        className="quote-library"
+        // Undoing a delete from the toast is still working in here.
+        onInteractOutside={(event) => {
+          if (event.target instanceof Element && event.target.closest('.toast-viewport')) event.preventDefault()
+        }}
+      >
         <div className="quote-library__switch" role="group" aria-label={t('dashboard.quote.library')}>
           <ActiveIndicator selector=':scope > [aria-pressed="true"]' />
           <button
@@ -122,7 +157,33 @@ const QuoteLibraryPopover = ({ state, onAdded }: QuoteLibraryPopoverProps) => {
           <ul className="quote-library__list">
             {newestFirst.map((entry) => (
               <li key={entry.id} className="quote-library__item">
-                <span className="quote-library__text">{entry.text}</span>
+                {editing?.id === entry.id ? (
+                  // Two lines, so a long line is seen whole while it's edited.
+                  <textarea
+                    className="quote-library__edit"
+                    rows={2}
+                    value={editing.text}
+                    onChange={(event) => setEditing({ id: entry.id, text: event.target.value })}
+                    onKeyDown={handleEditKeyDown}
+                    onBlur={saveEdit}
+                    maxLength={MAX_OWN_QUOTE_LENGTH}
+                    aria-label={t('dashboard.quote.edit')}
+                    autoFocus
+                    onFocus={(event) => event.currentTarget.setSelectionRange(event.currentTarget.value.length, event.currentTarget.value.length)}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    className="quote-library__text"
+                    onClick={() => setEditing({ id: entry.id, text: entry.text })}
+                    title={t('dashboard.quote.edit')}
+                  >
+                    {entry.text}
+                    {entry.author ? (
+                      <span className="quote-library__author">{language === 'zh' ? `——${entry.author}` : `— ${entry.author}`}</span>
+                    ) : null}
+                  </button>
+                )}
                 <button
                   type="button"
                   className="quote-library__remove"

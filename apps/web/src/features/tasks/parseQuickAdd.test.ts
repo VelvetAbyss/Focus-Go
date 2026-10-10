@@ -80,4 +80,17 @@ describe('parseQuickAdd', () => {
     expect(await parseQuickAdd('write weekly report', [])).toMatchObject({ title: 'write weekly report', recurrence: undefined })
     expect(await parseQuickAdd('写周报', [])).toMatchObject({ recurrence: undefined })
   })
+  it('reads "等 <who>" as waiting on someone, the date as when to chase', async () => {
+    expect(await parseQuickAdd("等 Lowe's 回报价 周五", [])).toMatchObject({
+      title: "Lowe's 回报价", waitingOn: "Lowe's", dueDate: '2026-10-02',
+    })
+    expect(await parseQuickAdd('wait for Ace samples', [])).toMatchObject({ title: 'Ace samples', waitingOn: 'Ace' })
+    expect(await parseQuickAdd('等 @Ace 样品', [])).toMatchObject({ title: 'Ace 样品', waitingOn: 'Ace' })
+  })
+
+  it('leaves 等待, 等级 and "等 3 天" alone', async () => {
+    expect(await parseQuickAdd('等待报价', [])).toMatchObject({ title: '等待报价', waitingOn: undefined })
+    expect(await parseQuickAdd('等级考试报名', [])).toMatchObject({ waitingOn: undefined })
+    expect((await parseQuickAdd('等 3 天再看', [])).waitingOn).toBeUndefined()
+  })
 })

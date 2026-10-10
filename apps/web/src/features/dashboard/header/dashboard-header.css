@@ -198,6 +198,11 @@
   color: var(--text-primary);
 }
 
+/* A library line you kept is yours: the bookmark takes the pen. */
+.dash-hero__quote-keep.is-kept {
+  color: var(--accent);
+}
+
 /* Your lines chosen, none written: a pencil line, not a quote. */
 .dash-hero__quote-text--empty {
   color: var(--pencil);
@@ -345,7 +350,8 @@
   border-top: 1px solid var(--rule);
 }
 
-.quote-library__text {
+.quote-library__text,
+.quote-library__edit {
   flex: 1;
   min-width: 0;
   font-family: var(--font-reading);
@@ -353,6 +359,42 @@
   line-height: 1.5;
   color: var(--text-secondary);
   overflow-wrap: anywhere;
+}
+
+/* A line reads as text; clicking it turns it into a field in place. */
+.quote-library__text {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: text;
+}
+
+.quote-library__text:hover {
+  color: var(--text-primary);
+}
+
+.quote-library__edit {
+  margin: -3px -6px;
+  padding: 2px 6px;
+  resize: none;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-xs);
+  background: var(--paper-sunken);
+  color: var(--ink-1);
+}
+
+.quote-library__edit:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.quote-library__author {
+  margin-left: 6px;
+  font-size: var(--fs-label);
+  color: var(--text-tertiary);
+  white-space: nowrap;
 }
 
 .quote-library__remove {

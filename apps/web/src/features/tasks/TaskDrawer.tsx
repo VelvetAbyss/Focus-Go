@@ -33,8 +33,8 @@ import TaskAttachmentsSection from './components/TaskAttachmentsSection'
 import TaskNotesPanel from './components/TaskNotesPanel'
 import TaskProgressCard from './components/TaskProgressCard'
 import TaskProjectAssignCard from './components/TaskProjectAssignCard'
-import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, describeTaskRecurrence, formatTaskDateTime, getTaskTagTone } from './components/taskPresentation'
-import { recurrenceFromOption, recurrenceOptionValue } from './domain/taskRecurrence'
+import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, describeTaskRecurrence, formatTaskDate, formatTaskDateTime, getTaskTagTone } from './components/taskPresentation'
+import { buildNextOccurrence, recurrenceFromOption, recurrenceOptionValue } from './domain/taskRecurrence'
 import { getTaskWaitingDays } from './domain/taskRules'
 import { toDateKey } from '../../shared/utils/time'
 import { useI18n } from '../../shared/i18n/useI18n'
@@ -583,6 +583,40 @@ const TaskDrawer = ({
     }
   }
 
+  // A repeating task that doesn't apply this time (a holiday week's report): dropped with a reason
+  // that says so, so it stays out of the completion count, and the next one comes as usual.
+  const handleSkipOccurrence = async () => {
+    if (!currentTask?.recurrence) return
+    const taskId = currentTask.id
+    const previousStatus = currentTask.status
+    const nextDue = buildNextOccurrence(currentTask)?.dueDate
+    setIsSaving(true)
+    try {
+      const dropped = await tasksRepo.updateStatus(taskId, 'dropped')
+      if (!dropped) return
+      const updated = (await tasksRepo.update({ ...dropped, dropReason: t('tasks.recurrence.skipReason') })) ?? dropped
+      emitTasksChanged('task-drawer:skip-occurrence')
+      onUpdated(updated)
+      toast.push({
+        message: nextDue
+          ? t('tasks.recurrence.skippedToast', { date: formatTaskDate(nextDue) ?? nextDue })
+          : t('tasks.recurrence.skippedToastNoDate'),
+        actionLabel: t('tasks.undo'),
+        onAction: () => {
+          void tasksRepo.updateStatus(taskId, previousStatus).then((reverted) => {
+            if (!reverted) return
+            emitTasksChanged('task-drawer:undo-skip')
+            onUpdated(reverted)
+          })
+        },
+      })
+    } catch {
+      toast.push({ variant: 'error', title: t('tasks.drawer.updateFailed'), message: t('tasks.drawer.retryHint') })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   // Fields that live on the task itself rather than in the draft (they can also change from a
   // status change, e.g. finishing a repeating task hands its rule to the next one). Saved at once,
   // together with any pending draft edits.
@@ -835,6 +869,20 @@ const TaskDrawer = ({
                           {t(item.labelKey)}
                         </button>
                       ))}
+                      {currentTask.recurrence && currentTask.status !== 'done' && currentTask.status !== 'dropped' ? (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition hover:bg-accent"
+                          onClick={() => {
+                            setStatusMenuOpen(false)
+                            void handleSkipOccurrence()
+                          }}
+                        >
+                          <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', TASK_STATUS_CONFIG.dropped.dot)} aria-hidden />
+                          {t('tasks.recurrence.skip')}
+                        </button>
+                      ) : null}
                     </div>
                   </PopoverContent>
                 </Popover>

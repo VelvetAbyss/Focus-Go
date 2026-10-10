@@ -28,7 +28,10 @@ type AppShellProps = {
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'focusgo.sidebar.collapsed.v1'
 const COMPACT_SIDEBAR_MEDIA_QUERY = '(max-width: 1536px)'
-const TABLET_AND_UP_MEDIA_QUERY = '(min-width: 768px)'
+// The shell zooms only in its side-by-side layout. At 960px and below the sidebar stacks above
+// the page (styles.css), and zoom on that column layout resolved the width twice: the page drew
+// about 22% wider than the window and its right side was cut off.
+const SCALED_LAYOUT_MEDIA_QUERY = '(min-width: 961px)'
 const SHELL_SCALE_MIN_WIDTH = 1512
 const SHELL_SCALE_MAX_WIDTH = 1920
 const SHELL_SCALE_MIN = 0.8
@@ -58,7 +61,7 @@ export const resolveShellScale = (viewportWidth: number) => {
 
 const readShellScale = () => {
   if (typeof window === 'undefined') return SHELL_SCALE_MAX
-  if (typeof window.matchMedia === 'function' && window.matchMedia(TABLET_AND_UP_MEDIA_QUERY)?.matches === false) return SHELL_SCALE_MAX
+  if (typeof window.matchMedia === 'function' && window.matchMedia(SCALED_LAYOUT_MEDIA_QUERY)?.matches === false) return SHELL_SCALE_MAX
   return resolveShellScale(window.innerWidth)
 }
 
@@ -150,7 +153,7 @@ const AppShell = ({ children }: AppShellProps) => {
     }
     scheduleSync()
     window.addEventListener('resize', scheduleSync)
-    const media = typeof window.matchMedia === 'function' ? window.matchMedia(TABLET_AND_UP_MEDIA_QUERY) : null
+    const media = typeof window.matchMedia === 'function' ? window.matchMedia(SCALED_LAYOUT_MEDIA_QUERY) : null
     if (media && typeof media.addEventListener === 'function') media.addEventListener('change', scheduleSync)
     else if (media) media.addListener(scheduleSync)
     return () => {

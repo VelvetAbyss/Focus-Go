@@ -199,3 +199,35 @@ export const isDateInMonth = (dateKey: string, anchorDate: Date) => {
   const date = new Date(`${dateKey}T12:00:00`)
   return date.getFullYear() === anchorDate.getFullYear() && date.getMonth() === anchorDate.getMonth()
 }
+
+/** The calendar's built-in source for trips; not a subscription, always shown. */
+export const TRIPS_SOURCE_ID = 'system-trips'
+
+/**
+ * One event per day of each trip that falls on the given days, so a trade show
+ * or a business trip shows across its span. Day 2 onwards says which day it is.
+ */
+export const buildTripEvents = (
+  trips: ReadonlyArray<{ id: string; title: string; startDate: string; endDate: string }>,
+  dateKeys: readonly string[],
+): Array<CalendarEvent & { tripId: string }> => {
+  const dayMs = 86_400_000
+  const toDay = (dateKey: string) => Date.UTC(Number(dateKey.slice(0, 4)), Number(dateKey.slice(5, 7)) - 1, Number(dateKey.slice(8, 10)))
+  return trips.flatMap((trip) => {
+    if (!trip.startDate || !trip.endDate || trip.endDate < trip.startDate) return []
+    const total = Math.round((toDay(trip.endDate) - toDay(trip.startDate)) / dayMs) + 1
+    return dateKeys
+      .filter((dateKey) => dateKey >= trip.startDate && dateKey <= trip.endDate)
+      .map((dateKey) => {
+        const day = Math.round((toDay(dateKey) - toDay(trip.startDate)) / dayMs) + 1
+        return {
+          id: `trip-${trip.id}-${dateKey}`,
+          tripId: trip.id,
+          subscriptionId: TRIPS_SOURCE_ID,
+          title: total > 1 && day > 1 ? `${trip.title} · ${day}/${total}` : trip.title,
+          dateKey,
+          kind: 'event' as const,
+        }
+      })
+  })
+}

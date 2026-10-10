@@ -190,7 +190,8 @@ const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
     const parsed = await parseQuickAddTaskInput(raw, { projects: await projectsRepo.list() })
     await createTaskRecord({
       title: parsed.title,
-      status: 'todo',
+      status: parsed.waitingOn ? 'waiting' : 'todo',
+      waitingOn: parsed.waitingOn,
       priority: parsed.priority,
       isToday: parsed.isToday,
       dueDate: parsed.dueDate,

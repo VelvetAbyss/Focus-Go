@@ -585,7 +585,10 @@ const TasksBoard = ({
     const parsed = await parseQuickAddTaskInput(rawTitle, { projects, fallbackProjectId })
     const created = await createTask({
       title: parsed.title,
-      status: topView === 'today' || effectiveGroupBy !== 'status' || activeStatus === 'dropped' ? 'todo' : activeStatus,
+      status: parsed.waitingOn
+        ? 'waiting'
+        : topView === 'today' || effectiveGroupBy !== 'status' || activeStatus === 'dropped' ? 'todo' : activeStatus,
+      waitingOn: parsed.waitingOn,
       isToday: topView === 'today' || parsed.isToday === true,
       priority: parsed.priority,
       projectId: parsed.projectId,

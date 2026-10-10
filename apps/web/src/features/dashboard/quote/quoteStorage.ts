@@ -9,6 +9,8 @@ export type QuoteLibrary = 'default' | 'mine'
 export type OwnQuote = {
   id: string
   text: string
+  /** Who said it, for a library line you kept; absent for your own words. */
+  author?: string
   addedAt: number
 }
 
@@ -20,7 +22,9 @@ export type QuoteState = {
 
 export const QUOTE_STORAGE_KEY = 'focusgo.dashboard.quotes'
 export const MAX_OWN_QUOTES = 100
-export const MAX_OWN_QUOTE_LENGTH = 120
+// Room for the longest library line (130 in English), so a kept line is never cut.
+export const MAX_OWN_QUOTE_LENGTH = 140
+const MAX_AUTHOR_LENGTH = 60
 
 export const EMPTY_QUOTE_STATE: QuoteState = { library: 'default', mine: [] }
 
@@ -43,7 +47,8 @@ export const normalizeQuoteState = (raw: unknown): QuoteState => {
     const text = cleanOwnQuote(item.text)
     if (!text) continue
     seen.add(item.id)
-    mine.push({ id: item.id, text, addedAt: item.addedAt })
+    const author = typeof item.author === 'string' ? item.author.trim().slice(0, MAX_AUTHOR_LENGTH) : ''
+    mine.push(author ? { id: item.id, text, author, addedAt: item.addedAt } : { id: item.id, text, addedAt: item.addedAt })
   }
   return { library: raw.library === 'mine' ? 'mine' : 'default', mine: mine.slice(-MAX_OWN_QUOTES) }
 }

@@ -34,16 +34,15 @@ Never put desktop logic in `apps/web` behind an `isDesktop` / `isTauri` check.
   `virtual:platform` outside `apps/web/src/platform`. A violation fails `npm run lint`.
 - The web build mechanically excludes desktop code (the virtual module resolves to `null`).
 
-## Storage modes
-The app is local-first (Dexie/IndexedDB) and the cloud is optional. `apps/web/src/data/storageMode.ts`
-holds the per-device choice:
-- `local` — no account at all. The auth gate is off, the RxDB replication engine is never
-  loaded, and seeding runs from `StartupGate` before the shell mounts.
-- `cloud` — the same local writes, plus RxDB replication. Requires sign-in.
+## Storage
+The app is local-first (Dexie/IndexedDB) and replicates through RxDB to `focus-go-api` once signed in.
+There is no account-free mode today: the per-device local/cloud switch (`storageMode.ts`, added in
+95a21d1) was removed in d375667 when the web release was rolled back to the 5174 build.
 
-The mode is a device decision in `localStorage`, never synced. Switching local → cloud needs no
-migration step: `syncEntity()` re-seeds each RxDB collection from Dexie at the start of every
-cycle, so existing local data is pushed on the first sync.
+- Off localhost the auth gate requires sign-in, and signing out clears local data (`AppShell` →
+  `clearLocalUserData`).
+- On localhost the gate is off. The macOS desktop build counts as localhost (its origin is
+  `tauri://localhost`); the Windows build (`tauri.localhost`) does not, so the two behave differently.
 
 ## Build / run
 - Web: `npm run dev:web`, `npm run build:web` (from repo root).

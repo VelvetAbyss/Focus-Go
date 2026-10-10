@@ -10,6 +10,7 @@ import { useQuoteState } from './useQuoteState'
 
 vi.mock('../../../shared/i18n/useI18n', () => ({
   useI18n: () => ({
+    language: 'zh',
     t: (key: string, params?: Record<string, unknown>) => (params ? `${key}:${JSON.stringify(params)}` : key),
   }),
 }))
@@ -76,6 +77,29 @@ describe('QuoteLibraryPopover', () => {
     expect(readQuoteState().library).toBe('default')
     expect(library).toHaveAttribute('aria-pressed', 'true')
     expect(input()).toBeInTheDocument()
+  })
+
+  it('edits a line in place: Enter saves, Esc leaves it as it was', () => {
+    writeQuoteState({
+      library: 'mine',
+      mine: [{ id: 'a', text: '慢一点也没关系', author: '海明威', addedAt: 1 }],
+    })
+    render(<Harness />)
+    open()
+
+    expect(screen.getByText('——海明威')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /慢一点也没关系/ }))
+    const field = screen.getByRole('textbox', { name: 'dashboard.quote.edit' })
+    fireEvent.change(field, { target: { value: '慢一点也没关系，只要还在往前' } })
+    fireEvent.keyDown(field, { key: 'Enter' })
+    expect(readQuoteState().mine).toEqual([{ id: 'a', text: '慢一点也没关系，只要还在往前', author: '海明威', addedAt: 1 }])
+
+    fireEvent.click(screen.getByRole('button', { name: /只要还在往前/ }))
+    const again = screen.getByRole('textbox', { name: 'dashboard.quote.edit' })
+    fireEvent.change(again, { target: { value: '改了又不要' } })
+    fireEvent.keyDown(again, { key: 'Escape' })
+    expect(readQuoteState().mine[0].text).toBe('慢一点也没关系，只要还在往前')
+    expect(screen.queryByRole('textbox', { name: 'dashboard.quote.edit' })).not.toBeInTheDocument()
   })
 
   it('deletes a line with an undo that puts it back where it was', () => {

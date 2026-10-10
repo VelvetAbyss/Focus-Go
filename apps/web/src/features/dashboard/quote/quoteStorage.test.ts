@@ -20,6 +20,20 @@ describe('normalizeQuoteState', () => {
     expect(normalizeQuoteState({ library: 'other', mine: 'x' })).toEqual({ library: 'default', mine: [] })
   })
 
+  it('keeps the author of a kept library line, trimmed, and drops a blank one', () => {
+    const state = normalizeQuoteState({
+      library: 'default',
+      mine: [
+        { id: 'a', text: '千里之行，始于足下。', author: '  《道德经》 ', addedAt: 1 },
+        { id: 'b', text: '先做十分钟', author: '   ', addedAt: 2 },
+      ],
+    })
+    expect(state.mine).toEqual([
+      { id: 'a', text: '千里之行，始于足下。', author: '《道德经》', addedAt: 1 },
+      { id: 'b', text: '先做十分钟', addedAt: 2 },
+    ])
+  })
+
   it('drops broken, blank and repeated lines and keeps the newest ones', () => {
     const state = normalizeQuoteState({
       library: 'mine',

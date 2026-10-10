@@ -1,9 +1,22 @@
 import { useState } from 'react'
+import { X } from 'lucide-react'
 import type { ProjectItem, TaskItem } from '../../../data/models/types'
 import { useI18n } from '../../../shared/i18n/useI18n'
 import WorkspaceTask, { type WorkspaceActions } from './WorkspaceTask'
 import { buildTodayPlan } from './taskWorkspaceModel'
 import { isTaskOverdue, getTaskDaysUntilDue } from '../domain/taskRules'
+
+// Past this many open tasks a day stops being a plan; say so once a day, quietly, and let it be dismissed.
+const TODAY_OVERLOAD = 7
+const OVERLOAD_DISMISSED_KEY = 'focusgo.tasks.todayOverloadDismissed'
+const localDayKey = (time: number) => new Date(time).toLocaleDateString('en-CA')
+const readDismissedDay = () => {
+  try {
+    return window.localStorage.getItem(OVERLOAD_DISMISSED_KEY)
+  } catch {
+    return null
+  }
+}
 
 export default function TodayWorkspace({ tasks, allTasks, projects, actions, now, onBulkPlan }: {
   tasks: TaskItem[]; allTasks: TaskItem[]; projects: ProjectItem[]; actions: WorkspaceActions; now: number; onBulkPlan: (ids: string[]) => Promise<boolean>
@@ -14,6 +27,17 @@ export default function TodayWorkspace({ tasks, allTasks, projects, actions, now
   const [candidateQuery, setCandidateQuery] = useState('')
   const [planning, setPlanning] = useState(false)
   const [candidateLimit,setCandidateLimit] = useState(30)
+  const [dismissedDay, setDismissedDay] = useState(readDismissedDay)
+  const today = localDayKey(now)
+  const overloaded = plan.plannedCount > TODAY_OVERLOAD && dismissedDay !== today
+  const dismissOverload = () => {
+    setDismissedDay(today)
+    try {
+      window.localStorage.setItem(OVERLOAD_DISMISSED_KEY, today)
+    } catch {
+      // private mode: it just comes back on reload
+    }
+  }
   const candidates = plan.candidates.filter(task => task.title.toLowerCase().includes(candidateQuery.toLowerCase()))
     .sort((a, b) => Number(isTaskOverdue(b, now)) - Number(isTaskOverdue(a, now)) || Number(getTaskDaysUntilDue(b, now) === 0) - Number(getTaskDaysUntilDue(a, now) === 0))
   const selectedVisible = selected.filter(id => candidates.some(task => task.id === id))
@@ -33,6 +57,10 @@ export default function TodayWorkspace({ tasks, allTasks, projects, actions, now
       </section>
       <section className="flow-plan">
         <header className="flow-section-heading"><h2>{t('tasks.flow.planned')}</h2><span>{plan.plannedCount}</span></header>
+        {overloaded ? <p className="flow-caption flow-overload">
+          <span>{t('tasks.flow.overload', { n: plan.plannedCount })}</span>
+          <button type="button" className="flow-overload__dismiss" onClick={dismissOverload} aria-label={t('tasks.flow.overloadDismiss')} title={t('tasks.flow.overloadDismiss')}><X size={12} aria-hidden /></button>
+        </p> : null}
         {plan.plannedCount === 0 ? <p className="flow-empty">{t('tasks.flow.planEmpty')}</p> : groups.filter(group => group.items.length > 0).map(group => <section key={group.key}>
           <h3 className="flow-group-heading">{t(`tasks.flow.${group.key}`)} <span>{group.items.length}</span></h3>{group.key === 'blocked' ? <p className="flow-caption">{t('tasks.flow.blockHint')}</p> : null}{group.items.map(task => row(task))}
         </section>)}

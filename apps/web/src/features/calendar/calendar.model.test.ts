@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildInitialCalendarSubscriptions,
+  buildTripEvents,
+  TRIPS_SOURCE_ID,
   type CalendarSubscription,
   migrateLegacyLunarFeeds,
   removeAllSystemSubscriptions,
@@ -171,5 +173,25 @@ describe('calendar.model', () => {
     expect(untouched).toBe(other)
     expect(migratedWebcal.provider).toBe('builtin')
     expect(migratedWebcal.url).toBeUndefined()
+  })
+})
+
+describe('buildTripEvents', () => {
+  const trip = { id: 'ace', title: 'Ace 展会', startDate: '2026-10-30', endDate: '2026-11-02' }
+
+  it('marks every day of the trip that is on screen, counting the days', () => {
+    const events = buildTripEvents([trip], ['2026-10-29', '2026-10-30', '2026-10-31', '2026-11-01', '2026-11-02', '2026-11-03'])
+    expect(events.map((event) => [event.dateKey, event.title])).toEqual([
+      ['2026-10-30', 'Ace 展会'],
+      ['2026-10-31', 'Ace 展会 · 2/4'],
+      ['2026-11-01', 'Ace 展会 · 3/4'],
+      ['2026-11-02', 'Ace 展会 · 4/4'],
+    ])
+    expect(events.every((event) => event.tripId === 'ace' && event.subscriptionId === TRIPS_SOURCE_ID)).toBe(true)
+  })
+
+  it('shows a one-day trip by its title alone and skips broken dates', () => {
+    expect(buildTripEvents([{ ...trip, endDate: '2026-10-30' }], ['2026-10-30'])[0].title).toBe('Ace 展会')
+    expect(buildTripEvents([{ ...trip, endDate: '2026-10-01' }], ['2026-10-30'])).toEqual([])
   })
 })

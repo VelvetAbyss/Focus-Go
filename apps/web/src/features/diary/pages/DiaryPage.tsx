@@ -18,6 +18,7 @@ import { markdownToPreview } from '../../../shared/utils/markdownPreview'
 import { createUnsavedEditStore } from '../../../shared/utils/unsavedEdit'
 import Doodle from '../../../shared/ui/Doodle'
 import { rememberCurrentUserRecentCommandTarget } from '../../../shared/ui/recentCommandTargets'
+import { pickMonthAgoEntry } from '../monthAgo'
 import './diary-page.css'
 
 const unsavedDiaryEdit = createUnsavedEditStore<DiaryEditorValue>('focusgo.diary.unsavedEdit')
@@ -548,6 +549,12 @@ const DiaryPage = () => {
 
   const diaryMoment = useMemo(() => getDiaryMoment(), [])
 
+  // On today's page, what you wrote this day last month, as a door back to it.
+  const monthAgoEntry = useMemo(
+    () => (view === 'day' && selectedDateKey === today ? pickMonthAgoEntry(allEntries, today) : null),
+    [allEntries, selectedDateKey, today, view],
+  )
+
   const topStats = [
     { label: t('diary.streak'), value: language === 'zh' ? `${stats.streak} 天` : `${stats.streak}d` },
     { label: t('diary.entriesLabel'), value: `${stats.total}` },
@@ -641,6 +648,17 @@ const DiaryPage = () => {
               </button>
             </div>
           </div>
+
+          {monthAgoEntry ? (
+            <button
+              type="button"
+              className="diary-page__look-back"
+              onClick={() => setSearchParams(new URLSearchParams({ view: 'day', date: monthAgoEntry.dateKey, entry: monthAgoEntry.id }))}
+            >
+              <span className="diary-page__look-back-label">{t('diary.monthAgo')}</span>
+              <span className="diary-page__look-back-text">{markdownToPreview(monthAgoEntry.contentMd).slice(0, 60)}</span>
+            </button>
+          ) : null}
 
           {/* Timeline */}
           <div className="flex-1 overflow-y-auto px-3 py-4 md:px-4">

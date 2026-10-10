@@ -271,6 +271,7 @@ const TaskAddComposer = forwardRef<TaskAddComposerHandle, TaskAddComposerProps>(
       const time = new Date(result.reminderAt).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: false })
       hints.push(t('tasks.quickAdd.reminder', { time }))
     }
+    if (result.waitingOn) hints.push(t('tasks.card.waitingOn', { who: result.waitingOn }))
     const repeatLabel = describeTaskRecurrence(result.recurrence, t)
     if (repeatLabel) hints.push(`↻ ${repeatLabel}`)
     if (result.priority) hints.push(t('tasks.quickAdd.priority', { level: t(`tasks.priority.${result.priority}`) }))

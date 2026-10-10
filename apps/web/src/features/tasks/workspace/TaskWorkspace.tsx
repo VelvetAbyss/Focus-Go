@@ -96,7 +96,7 @@ export default function TaskWorkspace({ view, onViewChange }: { view: TaskWorksp
   const tags=[...new Set(tasks.flatMap(task=>task.tags.map(value=>value.trim().toLowerCase())).filter(value=>value&&!['undefined','null'].includes(value)))].sort()
   const filtered=Boolean(projectId||query||tag)
   const add=async(raw:string,attachments?:TaskItem['attachments'],selectedProjectId?:string)=>{
-    return run('__composer__',async()=>{const parsed=await parseQuickAddTaskInput(raw,{projects,fallbackProjectId:selectedProjectId||projectId||undefined});await createTask({...parsed,isToday:view==='today'||parsed.isToday===true,status:'todo',attachments,subtasks:[]})})
+    return run('__composer__',async()=>{const parsed=await parseQuickAddTaskInput(raw,{projects,fallbackProjectId:selectedProjectId||projectId||undefined});await createTask({...parsed,isToday:view==='today'||parsed.isToday===true,status:parsed.waitingOn?'waiting':'todo',attachments,subtasks:[]})})
   }
   return <section className="task-flow" data-flow-view={view}>
     <div className="flow-controls"><input type="search" className="flow-search" aria-label={t('tasks.flow.search')} placeholder={t('tasks.flow.search')} value={query} onChange={event=>setQuery(event.target.value)}/>
