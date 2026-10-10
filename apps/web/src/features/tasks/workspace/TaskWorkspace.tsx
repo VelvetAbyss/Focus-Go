@@ -11,6 +11,9 @@ import { useVisibleInterval } from '../../../shared/hooks/usePageActivity'
 import Dialog from '../../../shared/ui/Dialog'
 import { useAuthGate } from '../../auth/AuthGateContext'
 import { setFocusTaskId } from '../../focus/focusTask'
+import { withChase } from '../domain/taskFollowUp'
+import { workStartMinutes } from '../reminderSnooze'
+import { formatTaskDate } from '../components/taskPresentation'
 import { ROUTES } from '../../../app/routes/routes'
 import { useOpenRequest } from '../../../shared/navigation/openRequest'
 import { withReturnPath, withTaskContext } from '../../../shared/navigation/returnPath'
@@ -88,7 +91,7 @@ export default function TaskWorkspace({ view, onViewChange }: { view: TaskWorksp
     const success=await run(task.id,async()=>{const all=await tasksRepo.list();const latest=all.find(item=>item.id===task.id);if(!latest) throw new WorkflowError('missingTask');if(blockedForExecution(latest,all)) throw new WorkflowError('blocked');await moveWorkflowTask(task.id,'doing')})
     if(success){setFocusTaskId(task.id);navigate(withReturnPath(ROUTES.FOCUS,withTaskContext(`${location.pathname}${location.search}`,task.id)))}
   })()}
-  const actions:WorkspaceActions={open,move,focus,unblock:task=>{void run(task.id,async()=>{const latest=(await tasksRepo.list()).find(item=>item.id===task.id);if(!latest) throw new WorkflowError('missingTask');await tasksRepo.update({...latest,isBlocked:false})})},plan:(task,value)=>{void run(task.id,()=>planTaskToday(task.id,value))},busy:id=>busyIds.has(id)}
+  const actions:WorkspaceActions={open,move,focus,unblock:task=>{void run(task.id,async()=>{const latest=(await tasksRepo.list()).find(item=>item.id===task.id);if(!latest) throw new WorkflowError('missingTask');await tasksRepo.update({...latest,isBlocked:false})})},plan:(task,value)=>{void run(task.id,()=>planTaskToday(task.id,value))},chase:task=>{void run(task.id,async()=>{const latest=(await tasksRepo.list()).find(item=>item.id===task.id);if(!latest) throw new WorkflowError('missingTask');const today=new Date().toLocaleDateString('en-CA');await tasksRepo.update(withChase(latest,t('tasks.chase.logEntry',{date:formatTaskDate(today)??today}),Date.now(),workStartMinutes()))})},busy:id=>busyIds.has(id)}
   const search=useDeferredValue(query.trim().toLowerCase())
   const scoped=tasks.filter(task=>(!projectId||task.projectId===projectId)&&(!tag||task.tags.some(value=>value.trim().toLowerCase()===tag))&&(!search||[task.title,task.description,task.waitingOn??'',...task.tags].join(' ').toLowerCase().includes(search)))
   const scopedIds=new Set(scoped.map(task=>task.id))

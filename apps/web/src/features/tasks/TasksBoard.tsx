@@ -37,8 +37,10 @@ import { useTaskDeletion } from './application/useTaskDeletion'
 import ActiveIndicator from '../../shared/motion/ActiveIndicator'
 import {  SELECTED_TAB } from '../../shared/motion/indicatorSelectors'
 import { AppNumber } from '../../shared/ui/AppNumber'
-import { isTaskClosed, isTaskInToday, isTaskOpen, isTaskOverdue } from './domain/taskRules'
+import { getTaskWaitingDays, isTaskClosed, isTaskInToday, isTaskOpen, isTaskOverdue } from './domain/taskRules'
 import { buildNextOccurrence } from './domain/taskRecurrence'
+import { groupWaitingByCounterpart, withChase } from './domain/taskFollowUp'
+import { workStartMinutes } from './reminderSnooze'
 import { toDateKey } from '../../shared/utils/time'
 import { rememberCurrentUserRecentCommandTarget } from '../../shared/ui/recentCommandTargets'
 import { useOpenRequest } from '../../shared/navigation/openRequest'
@@ -732,8 +734,39 @@ const TasksBoard = ({
         { id: 'done', title: t('tasks.board.sectionDone'), color: 'var(--tone-done)', tasks: filteredTasks.filter((task) => task.status === 'done' && !isTaskInToday(task)) },
       ].filter((section) => section.tasks.length > 0)
     }
+    // 在等 reads by who it waits on: one email can chase everything owed by the same person.
+    if (activeStatus === 'waiting') {
+      return groupWaitingByCounterpart(filteredTasks, (task) => getTaskWaitingDays(task) ?? 0).map((group) => ({
+        id: `waiting:${group.key}`,
+        // How long only once it has been a day; a fresh wait is just the name.
+        title: !group.who ? t('tasks.waiting.noOne') : group.longest > 0 ? t('tasks.waiting.groupTitle', { who: group.who, n: group.longest }) : group.who,
+        color: 'var(--pencil)',
+        tasks: group.tasks,
+      }))
+    }
     return [{ id: activeStatus, title: t(TASK_STATUS_CONFIG[activeStatus].labelKey), color: 'var(--text-primary)', tasks: filteredTasks }]
   }, [activeProjects, activeStatus, effectiveGroupBy, filteredTasks, scope.kind, t, topView])
+
+  const handleChase = useCallback(async (taskId: string) => {
+    const latest = tasks.find((task) => task.id === taskId)
+    if (!latest) return
+    const today = new Date().toLocaleDateString('en-CA')
+    const updated = await tasksRepo.update(withChase(latest, t('tasks.chase.logEntry', { date: formatTaskDate(today) ?? today }), Date.now(), workStartMinutes()))
+    if (!updated) return
+    emitTasksChanged('tasks-board:chase')
+    setTasks((prev) => prev.map((task) => (task.id === taskId ? updated : task)))
+    toast.push({
+      message: t('tasks.chase.toast', { date: formatTaskDate(updated.dueDate) ?? updated.dueDate ?? '' }),
+      actionLabel: t('tasks.undo'),
+      onAction: () => {
+        void tasksRepo.update(latest).then((reverted) => {
+          if (!reverted) return
+          emitTasksChanged('tasks-board:undo-chase')
+          setTasks((prev) => prev.map((task) => (task.id === taskId ? reverted : task)))
+        })
+      },
+    })
+  }, [t, tasks, toast])
 
   // The quick moves a card offers on hover; the drawer has every status.
   const statusActionsFor = (task: TaskItem) => {
@@ -748,7 +781,11 @@ const TasksBoard = ({
       case 'doing':
         return [to('todo', t('tasks.status.todo'), 'todo'), to('done', t('tasks.status.complete'), 'done')]
       case 'waiting':
-        return [to('resume', t('tasks.status.resume'), 'doing'), to('done', t('tasks.status.complete'), 'done')]
+        return [
+          { key: 'chase', label: t('tasks.chase.action'), onClick: async (nextTask: TaskItem) => handleChase(nextTask.id) },
+          to('resume', t('tasks.status.resume'), 'doing'),
+          to('done', t('tasks.status.complete'), 'done'),
+        ]
       case 'verify':
         return [to('verified', t('tasks.status.verified'), 'done'), to('todo', t('tasks.status.markTodo'), 'todo')]
       case 'dropped':
@@ -920,7 +957,7 @@ const TasksBoard = ({
                             </PopoverContent>
                           </Popover>
                         </header>
-                      ) : (effectiveGroupBy !== 'status' || topView === 'today' || scope.kind === 'project') ? (
+                      ) : (effectiveGroupBy !== 'status' || topView === 'today' || scope.kind === 'project' || section.id.startsWith('waiting:')) ? (
                         <header className="tasks-fg__group-header">
                           <span className="tasks-fg__project-dot" style={{ background: section.color }} aria-hidden />
                           <h3>{section.title}</h3>

@@ -154,6 +154,8 @@ const taskItemSchema = baseEntitySchema.extend({
   activityLogs: z.array(taskActivityLogSchema),
   waitingOn: z.string().optional(),
   waitingSince: z.number().optional(),
+  chasedAt: z.array(z.number()).optional(),
+  sourceUrl: z.string().optional(),
   dropReason: z.string().optional(),
   recurrence: taskRecurrenceSchema.optional(),
   recurrenceNextId: z.string().optional(),

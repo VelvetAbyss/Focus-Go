@@ -1,5 +1,7 @@
 import type { ProjectItem } from '../../data/models/types'
 import type { TaskPriority, TaskRecurrence } from './tasks.types'
+import { morningOf } from './domain/taskFollowUp'
+import { workStartMinutes } from './reminderSnooze'
 
 export type ParsedQuickAdd = {
   title: string
@@ -251,6 +253,13 @@ export const parseQuickAdd = async (
   }
 
   if (repeatStart && !dueDate) dueDate = toDateKey(repeatStart)
+
+  // Waiting on someone until a date: remind that morning, so the chase reaches you even with the
+  // app closed (the push reminders only go out for tasks with a reminder time).
+  if (waiting && dueDate && !reminderAt) {
+    const morning = morningOf(dueDate, workStartMinutes())
+    if (morning > Date.now()) reminderAt = morning
+  }
 
   return {
     title: titleText || textWithoutRepeat.trim() || rawTitle.trim(),

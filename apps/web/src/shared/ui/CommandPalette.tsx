@@ -37,6 +37,7 @@ import { searchDocs, type SearchDoc, type SearchKind } from './commandSearch'
 import { buildDiaryEntryRoute, buildNoteDetailRoute, buildTaskDetailRoute, buildTripDetailRoute, ROUTES } from '../../app/routes/routes'
 import { emitTasksChanged } from '../../features/tasks/taskSync'
 import { useTripCommandContext } from '../../features/trips/tripCommandRegistry'
+import CommandQuickActions from './CommandQuickActions'
 import { tripsRepo } from '../../features/trips/tripsRepo'
 import type { TripRecord } from '../../data/models/types'
 import { useI18n } from '../i18n/useI18n'
@@ -416,6 +417,8 @@ const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
               ))}
             </Command.Group>
           ) : null}
+
+          {tripCtx ? null : <CommandQuickActions needle={needle} run={run} />}
 
           {visibleActions.length > 0 ? (
           <Command.Group heading={t('commandPalette.group.navigate')} className="command-palette__group">

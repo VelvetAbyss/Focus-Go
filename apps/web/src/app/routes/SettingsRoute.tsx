@@ -17,6 +17,7 @@ import {
   Waves,
   AlertTriangle,
   BellRing,
+  Clock3,
   Lightbulb,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -90,6 +91,7 @@ import {
   type CitySuggestion,
 } from '../../shared/location/citySuggestions'
 import { readLayoutLocked, writeLayoutLocked } from '../../shared/prefs/dashboardLayoutLock'
+import { readAutoPageEnabled, writeAutoPageEnabled } from '../../features/dashboard/autoPage'
 import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../data/repositories/syncedPreferencesRepo'
 import AmbientSettingsSection from './AmbientSettingsSection'
 import {
@@ -819,6 +821,7 @@ const SettingsRoute = () => {
   const { enabled: cloudSyncEnabled, setEnabled: setCloudSyncEnabled, syncNow } = useSyncActions()
   const [activeSection, setActiveSection] = useState<BaseSettingsSection>('appearance')
   const [layoutLocked, setLayoutLocked] = useState(() => readLayoutLocked())
+  const [autoPage, setAutoPage] = useState(() => readAutoPageEnabled())
   const [theme, setTheme] = useState<ThemeSelection>('system')
   const [themePackSelection, setThemePackSelection] = useState<ThemePackId>('theme-a')
   const [themePackPreview, setThemePackPreview] = useState<ThemePackId | null>(null)
@@ -1461,6 +1464,20 @@ const SettingsRoute = () => {
                                 setLayoutLocked(checked)
                                 writeLayoutLocked(checked)
                                 void syncedPreferencesRepo.persistFromLocal()
+                              }}
+                            />
+                          </SettingRow>
+
+                          <SettingRow
+                            icon={Clock3}
+                            title={t('settings.autoPage.title')}
+                            description={t('settings.autoPage.description')}
+                          >
+                            <Switch
+                              checked={autoPage}
+                              onCheckedChange={(checked) => {
+                                setAutoPage(checked)
+                                writeAutoPageEnabled(checked)
                               }}
                             />
                           </SettingRow>

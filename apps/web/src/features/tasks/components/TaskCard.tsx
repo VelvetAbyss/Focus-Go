@@ -1,6 +1,6 @@
 import { forwardRef, useEffect, useRef, useState } from 'react'
 import * as PopoverPrimitive from '@radix-ui/react-popover'
-import { CircleCheck, GitBranch, LockKeyhole, Pin, PinOff, Play, Repeat, RotateCcw, SunMedium, Trash2, Undo2 } from 'lucide-react'
+import { CircleCheck, ExternalLink, GitBranch, LockKeyhole, Pin, PinOff, Play, Repeat, RotateCcw, Send, SunMedium, Trash2, Undo2 } from 'lucide-react'
 import type { CSSProperties, HTMLAttributes, ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -10,6 +10,8 @@ import { useVisibleInterval } from '../../../shared/hooks/usePageActivity'
 import type { TaskItem } from '../tasks.types'
 import { getTaskWaitingDays, isTaskClosed, parseDateOnlyToLocalDayStart } from '../domain/taskRules'
 import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, describeTaskRecurrence, getTaskDeadlineState, getTaskPriorityKey } from './taskPresentation'
+import { safeSourceUrl } from '../domain/taskFollowUp'
+import { getPlatform } from '../../../platform'
 
 type TaskCardProject = {
   id: string
@@ -169,6 +171,9 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
             {waitingDays != null && waitingDays > 0 ? (
               <span className="shrink-0 whitespace-pre"> · {t('tasks.card.waitingDays', { n: waitingDays })}</span>
             ) : null}
+            {task.chasedAt?.length ? (
+              <span className="shrink-0 whitespace-pre"> · {t('tasks.chase.countShort', { n: task.chasedAt.length })}</span>
+            ) : null}
           </span>
         ),
       })
@@ -249,6 +254,27 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
             <Repeat className="size-3" aria-hidden />
             {recurrenceLabel}
           </span>
+        ),
+      })
+    }
+    // The email or page it came from: one icon, not another chip.
+    const sourceUrl = safeSourceUrl(task.sourceUrl)
+    if (sourceUrl) {
+      metaItems.push({
+        key: 'source',
+        node: (
+          <button
+            type="button"
+            className="task-card__source inline-flex items-center text-ink-3 hover:text-ink-1"
+            onClick={(event) => {
+              event.stopPropagation()
+              void getPlatform().openExternal(sourceUrl)
+            }}
+            aria-label={t('tasks.source.open')}
+            title={sourceUrl}
+          >
+            <ExternalLink className="h-3 w-3" aria-hidden />
+          </button>
         ),
       })
     }
@@ -380,6 +406,7 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
                   >
                     {statusActions?.map((action) => {
                       const Icon =
+                        action.key === 'chase' ? Send :
                         action.key === 'doing' || action.key === 'start' || action.key === 'resume' ? Play :
                         action.key === 'done' || action.key === 'verified' ? CircleCheck :
                         action.key === 'todo' && task.status === 'doing' ? Undo2 :

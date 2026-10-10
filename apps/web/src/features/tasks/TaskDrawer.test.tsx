@@ -331,4 +331,21 @@ describe('TaskDrawer onboarding mode', () => {
     expect(screen.queryByRole('menuitem', { name: 'tasks.recurrence.skip' })).not.toBeInTheDocument()
     await act(async () => {})
   })
+  it('logs a chase on a waiting task and moves the chase date and its reminder on', async () => {
+    const waiting: TaskItem = { ...createdTask, id: 'wait-1', title: "Lowe's 报价", status: 'waiting', waitingOn: "Lowe's", waitingSince: 1 }
+    updateMock.mockReset()
+    updateMock.mockImplementation(async (task: TaskItem) => task)
+    render(<TaskDrawer open task={waiting} onClose={vi.fn()} onUpdated={vi.fn()} onDeleted={vi.fn()} />)
+
+    fireEvent.click(await screen.findByRole('button', { name: /tasks.chase.action/ }))
+
+    await waitFor(() => expect(updateMock).toHaveBeenCalled())
+    const saved = updateMock.mock.calls.at(-1)?.[0] as TaskItem
+    expect(saved.chasedAt).toHaveLength(1)
+    expect(saved.dueDate).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(saved.reminderAt).toBe(new Date(`${saved.dueDate}T09:00:00`).getTime())
+    expect(saved.progressHistory?.[0].text).toBe('tasks.chase.logEntry')
+    expect(pushMock).toHaveBeenCalledWith(expect.objectContaining({ message: 'tasks.chase.toast' }))
+    await act(async () => {})
+  })
 })

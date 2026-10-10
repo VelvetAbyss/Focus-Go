@@ -83,6 +83,8 @@ describe('parseQuickAdd', () => {
   it('reads "等 <who>" as waiting on someone, the date as when to chase', async () => {
     expect(await parseQuickAdd("等 Lowe's 回报价 周五", [])).toMatchObject({
       title: "Lowe's 回报价", waitingOn: "Lowe's", dueDate: '2026-10-02',
+      // The chase date's morning, so the reminder reaches you with the app closed.
+      reminderAt: new Date(2026, 9, 2, 9, 0).getTime(),
     })
     expect(await parseQuickAdd('wait for Ace samples', [])).toMatchObject({ title: 'Ace samples', waitingOn: 'Ace' })
     expect(await parseQuickAdd('等 @Ace 样品', [])).toMatchObject({ title: 'Ace 样品', waitingOn: 'Ace' })
