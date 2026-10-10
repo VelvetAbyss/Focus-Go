@@ -10,6 +10,7 @@ import { writeSidebarOrder } from '../../app/layout/sidebarOrder'
 import { writeLayoutLocked } from '../../shared/prefs/dashboardLayoutLock'
 import { writeStoredSubscriptions } from '../../features/calendar/calendarStorage'
 import { readSalaryState, SALARY_STORAGE_KEY, writeSalaryState } from '../../features/salary/salaryStorage'
+import { QUOTE_STORAGE_KEY, readQuoteState, writeQuoteState } from '../../features/dashboard/quote/quoteStorage'
 
 describe('syncedPreferencesRepo', () => {
   beforeEach(async () => {
@@ -113,6 +114,25 @@ describe('syncedPreferencesRepo', () => {
     await db.syncedPreferences.put({ ...stored!, salary: undefined, language: 'en' })
     await syncedPreferencesRepo.hydrateLocalFromDb()
     expect(readSalaryState()).toEqual(salary)
+  })
+
+  it('carries your own quotes and the chosen library across devices, and keeps them when an older client sends none', async () => {
+    const quotes = {
+      library: 'mine' as const,
+      mine: [{ id: 'q1', text: '慢一点也没关系，只要今天还在往前。', addedAt: Date.now() - 60_000 }],
+    }
+    writeQuoteState(quotes)
+    await syncedPreferencesRepo.persistFromLocal()
+    const stored = await db.syncedPreferences.get(SYNCED_PREFERENCES_ID)
+    expect(stored?.quotes).toEqual(quotes)
+
+    window.localStorage.removeItem(QUOTE_STORAGE_KEY)
+    await syncedPreferencesRepo.hydrateLocalFromDb()
+    expect(readQuoteState()).toEqual(quotes)
+
+    await db.syncedPreferences.put({ ...stored!, quotes: undefined, language: 'en' })
+    await syncedPreferencesRepo.hydrateLocalFromDb()
+    expect(readQuoteState()).toEqual(quotes)
   })
 
   it('marks the initial seed as completed without overwriting existing preferences', async () => {
