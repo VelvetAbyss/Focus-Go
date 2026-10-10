@@ -1,5 +1,6 @@
 import type { CalendarSubscription } from '../../features/calendar/calendar.model'
 import type { SalaryState } from '../../features/salary/salaryStorage'
+import type { QuoteState } from '../../features/dashboard/quote/quoteStorage'
 import type { DiaryFontId, LanguageCode, TemperatureUnit, WorldClockItem } from '../../shared/prefs/preferences'
 import type { ThemeSelection } from '../../shared/theme/theme'
 export type {
@@ -769,5 +770,7 @@ export type SyncedPreferences = BaseEntity & {
   calendarSubscriptions: CalendarSubscription[]
   /** The dashboard pay widgets; absent in snapshots from older clients. */
   salary?: SalaryState
+  /** The dashboard quote's library and your own lines; absent from older clients. */
+  quotes?: QuoteState
   initialSeedCompletedAt?: number | null
 }

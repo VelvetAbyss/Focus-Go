@@ -5,7 +5,9 @@ import { useToday } from '../../shared/hooks/useToday'
 import { DiscoveryNewBadge } from '../../shared/ui/DiscoveryNewBadge'
 import { markDiscoveryNewTargetSeen } from '../../shared/discovery/discoveryNewTargetActions'
 import LiveClock from './LiveClock'
-import { quoteForDay } from './quote/quoteService'
+import { ownQuoteIndexForDay, QUOTE_COUNT, quoteForDay, skipToOwnQuote } from './quote/quoteService'
+import { useQuoteState } from './quote/useQuoteState'
+import QuoteLibraryPopover from './quote/QuoteLibraryPopover'
 import { lunarDateLabel, lunarFestivalOn, solarTermOn } from './header/chineseDay'
 import PremiumMark from '../premium/PremiumMark'
 import '../life/life.css'
@@ -36,21 +38,29 @@ const dayKeyOf = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 
 // other languages come back as one piece and wrap between words as usual.
 const quotePhrases = (text: string) => text.match(/[^，。？！；：、]+[，。？！；：、”]*/g) ?? [text]
 
-// "Another quote" holds for the rest of the day, then the day's own line returns.
+// "Another quote" holds for the rest of the day, then the day's own line
+// returns. Each library keeps its own count.
 const QUOTE_SKIP_KEY = 'focusgo.dashboard.quoteSkip'
 
-const readQuoteSkip = (dayKey: string) => {
+type QuoteSkip = { day: string; skip: number; mineSkip: number }
+
+const readQuoteSkip = (dayKey: string): QuoteSkip => {
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(QUOTE_SKIP_KEY) ?? 'null') as { day?: string; skip?: number } | null
-    return parsed?.day === dayKey && Number.isInteger(parsed.skip) ? (parsed.skip as number) : 0
+    const parsed = JSON.parse(window.localStorage.getItem(QUOTE_SKIP_KEY) ?? 'null') as Partial<QuoteSkip> | null
+    if (parsed?.day !== dayKey) return { day: dayKey, skip: 0, mineSkip: 0 }
+    return {
+      day: dayKey,
+      skip: Number.isInteger(parsed.skip) ? (parsed.skip as number) : 0,
+      mineSkip: Number.isInteger(parsed.mineSkip) ? (parsed.mineSkip as number) : 0,
+    }
   } catch {
-    return 0
+    return { day: dayKey, skip: 0, mineSkip: 0 }
   }
 }
 
-const writeQuoteSkip = (dayKey: string, skip: number) => {
+const writeQuoteSkip = (next: QuoteSkip) => {
   try {
-    window.localStorage.setItem(QUOTE_SKIP_KEY, JSON.stringify({ day: dayKey, skip }))
+    window.localStorage.setItem(QUOTE_SKIP_KEY, JSON.stringify(next))
   } catch {
     // private mode / quota: the skip just won't survive a reload
   }
@@ -80,14 +90,27 @@ const DashboardHeader = ({
       )
     : [String(today.getFullYear())]
 
-  const [quoteSkip, setQuoteSkip] = useState(() => ({ day: dayKey, skip: readQuoteSkip(dayKey) }))
-  const skip = quoteSkip.day === dayKey ? quoteSkip.skip : 0
-  const quote = quoteForDay(today, language, skip)
-  const showAnotherQuote = () => {
-    const next = skip + 1
-    setQuoteSkip({ day: dayKey, skip: next })
-    writeQuoteSkip(dayKey, next)
+  const quoteState = useQuoteState()
+  const [storedSkip, setStoredSkip] = useState(() => readQuoteSkip(dayKey))
+  const quoteSkip = storedSkip.day === dayKey ? storedSkip : { day: dayKey, skip: 0, mineSkip: 0 }
+  const saveQuoteSkip = (next: QuoteSkip) => {
+    setStoredSkip(next)
+    writeQuoteSkip(next)
   }
+  const showingOwn = quoteState.library === 'mine'
+  const ownIndex = ownQuoteIndexForDay(today, quoteState.mine.length, quoteSkip.mineSkip)
+  const ownLine = showingOwn && ownIndex >= 0 ? quoteState.mine[ownIndex] : null
+  const quote = showingOwn
+    ? ownLine && { key: ownLine.id, content: ownLine.text, author: t('dashboard.quote.self'), original: null }
+    : (() => {
+        const line = quoteForDay(today, language, quoteSkip.skip)
+        return { ...line, key: `${line.id}-${language}` }
+      })()
+  const canSkip = (showingOwn ? quoteState.mine.length : QUOTE_COUNT) > 1
+  const showAnotherQuote = () =>
+    saveQuoteSkip(showingOwn ? { ...quoteSkip, mineSkip: quoteSkip.mineSkip + 1 } : { ...quoteSkip, skip: quoteSkip.skip + 1 })
+  const showOwnLine = (index: number, count: number) =>
+    saveQuoteSkip({ ...quoteSkip, mineSkip: skipToOwnQuote(today, count, index) })
 
   const handleSetPage = (nextPage: DashboardPage) => {
     onSetPage?.(nextPage)
@@ -131,26 +154,39 @@ const DashboardHeader = ({
             <LiveClock className="dash-hero__time" showSeconds={false} />
           </div>
         </div>
-        <figure className="dash-hero__quote" key={`${quote.id}-${language}`}>
-          <blockquote
-            className="dash-hero__quote-text"
-            title={quote.original ? `${quote.original.content} — ${quote.original.author}` : undefined}
-          >
-            {quotePhrases(`“${quote.content}”`).map((phrase, index) => (
-              <span key={index} className="dash-hero__quote-phrase">{phrase}</span>
-            ))}
-          </blockquote>
-          <figcaption className={`dash-hero__quote-by${zh ? ' dash-hero__quote-by--zh' : ''}`}>
-            <button
-              type="button"
-              className="dash-hero__quote-next"
-              onClick={showAnotherQuote}
-              aria-label={t('dashboard.quote.next')}
-              title={t('dashboard.quote.next')}
+        <figure className={`dash-hero__quote${quote ? '' : ' dash-hero__quote--empty'}`}>
+          {quote ? (
+            <blockquote
+              key={quote.key}
+              className="dash-hero__quote-text"
+              title={quote.original ? `${quote.original.content} — ${quote.original.author}` : undefined}
             >
-              <RefreshCw size={12} aria-hidden="true" />
-            </button>
-            {zh ? `——${quote.author}` : `— ${quote.author}`}
+              {quotePhrases(`“${quote.content}”`).map((phrase, index) => (
+                <span key={index} className="dash-hero__quote-phrase">{phrase}</span>
+              ))}
+            </blockquote>
+          ) : (
+            // Your lines are chosen but none written yet: a pencil invitation.
+            <p className="dash-hero__quote-text dash-hero__quote-text--empty">{t('dashboard.quote.mineEmpty')}</p>
+          )}
+          <figcaption className={`dash-hero__quote-by${zh ? ' dash-hero__quote-by--zh' : ''}`}>
+            {canSkip ? (
+              <button
+                type="button"
+                className="dash-hero__quote-next"
+                onClick={showAnotherQuote}
+                aria-label={t('dashboard.quote.next')}
+                title={t('dashboard.quote.next')}
+              >
+                <RefreshCw size={12} aria-hidden="true" />
+              </button>
+            ) : null}
+            <QuoteLibraryPopover state={quoteState} onAdded={showOwnLine} />
+            {quote ? (
+              <span key={quote.key} className="dash-hero__quote-author">
+                {zh ? `——${quote.author}` : `— ${quote.author}`}
+              </span>
+            ) : null}
           </figcaption>
         </figure>
       </div>

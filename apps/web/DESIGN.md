@@ -553,6 +553,7 @@ bezier arrays or durations.
 | 2026-10-09 | Completion jar removed; the recap's brief week view gets the week grid instead (direction H of twelve sketched: tally, dot calendar, ledger line, struck-through list, week ruler, two lines, project split, graph paper, week dial, constellation, ink wash, ridgeline). Plain DOM and CSS, no WebGL | The user asked to remove the jar animation and its styling everywhere and wanted a simpler way to show the week's completions. They picked the graph paper; it reuses the pay cards' cell language, so the product has one grid. |
 | 2026-10-09 | Every audio slider becomes one of two shared controls: level bars that dance while the sound plays (volume) and a seek waveform with the pen as playhead (volume from direction 7, seek from direction 5 of eight sketched: ruler ticks, hairline dot, stepped bars, filled pill, waveform, dial with progress ring, dancing bars, wedge). The dead NoiseSlider/NoiseControlPanel are removed | There were four slider implementations, and the focus mixer's could not be used from the keyboard. The user picked the dancing bars. Native inputs underneath keep a11y; transform-only keyframes keep the dance off the main thread (see the perf rule about ambient heat). |
 | 2026-10-09 | Dashboard header becomes a masthead and a toolbar (supersedes the 2026-09-28 layout; the date's type is unchanged): the weekday line moves under the date, the quote moves to the right as an epigraph, and one rule below carries the views as tabs (专注 · 生活 · 资讯, translated; a sliding pen underline) with the layout actions on the right. The duplicate Settings link is gone (direction C of three sketched: tabs under the quote, one dropdown plus a more menu, masthead and toolbar) | One pill held seven kinds of control (tabs, a select, a create button, a mode toggle and a link to app Settings) in mixed English and Chinese, pinned to the top with no shared baseline. Separating the reading part from the operating part follows "serif where you read, sans where you operate" and fills the empty middle. |
+| 2026-10-10 | Quote gets your own lines: one "+" beside "another quote" opens a popover holding the library switch (bundled · yours), a field to add a line and the list to delete from (direction A of three sketched: everything in one popover, a library button plus a composer, writing in place with a text toggle on the source line) | The user wanted to write lines to themselves and choose between those and the rotating library, without redesigning the header. One new button keeps the epigraph as it was; the switch uses the segmented style, the field the reading serif. |
 
 ## Ambient environments — 2026-10-08
 
@@ -670,6 +671,15 @@ Two parts, read then operate.
   weekday line share the bottom edge. A Chinese quote breaks only after its
   punctuation (each phrase is one unbreakable piece); other languages wrap
   between words.
+- **Your own lines.** "+" sits beside "another quote" (hover only, like it) and
+  opens one popover: a segmented switch between the bundled library and your
+  lines (each with its count), a serif field where Enter adds a line, and your
+  lines newest first with × on hover (deleting offers undo). Writing a line
+  switches to your lines and shows it today; after that they walk by day like
+  the library. Your lines are shown as written in either language, signed
+  写给自己 / Note to self. With your lines chosen and none written, the epigraph
+  is a pencil invitation and "+" stays visible. The library choice and the lines
+  live in the synced preferences (`quotes`).
 - **Toolbar.** One rule under the masthead, starting on the cards' left edge and
   ending on their right edge. On it, the views as plain tabs (专注 · 生活 · 资讯,
   then "我的视图" as a picker and "+" for a new view), and the selected view is
