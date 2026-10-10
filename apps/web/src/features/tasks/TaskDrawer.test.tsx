@@ -91,6 +91,12 @@ vi.mock('../../data/repositories/tasksRepo', () => ({
   },
 }))
 
+// The notes panel loads its links asynchronously; a real store could resolve after the file's
+// environment is torn down and set state on a dead window (CI caught it).
+vi.mock('../../data/repositories/taskNoteLinksRepo', () => ({
+  taskNoteLinksRepo: { listByTask: async () => [], createForTask: vi.fn(), removeLink: vi.fn() },
+}))
+
 vi.mock('../../shared/ui/toast/toast', () => ({
   useToast: () => ({ push: pushMock }),
 }))
@@ -323,5 +329,6 @@ describe('TaskDrawer onboarding mode', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'tasks.status.more' }))
     await screen.findAllByRole('menuitem')
     expect(screen.queryByRole('menuitem', { name: 'tasks.recurrence.skip' })).not.toBeInTheDocument()
+    await act(async () => {})
   })
 })
