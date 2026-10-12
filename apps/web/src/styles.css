@@ -5169,6 +5169,12 @@ html[data-motion='reduce'] .tab-motion-tab::before {
   outline: none;
 }
 
+/* how many tasks sit in Recently deleted: a pencil count, not a badge */
+.tasks-fg__trash-count {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
 /* filter active counter badge (when tags are picked) */
 .tasks-fg__filter-btn > span:last-child:not(.deadline-alert__badge) {
   display: inline-flex;
@@ -10435,6 +10441,145 @@ html[data-motion='reduce'] .dialog--visible .dialog__panel {
   gap: 8px;
   justify-content: flex-end;
   margin-top: 8px;
+}
+
+/* Restore-from-backup confirmation: what the backup holds next to what is here now. */
+.restore-compare {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.restore-compare__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-ui);
+  font-variant-numeric: tabular-nums;
+}
+
+.restore-compare__table th,
+.restore-compare__table td {
+  padding: 6px 0;
+  text-align: right;
+  border-bottom: 1px solid color-mix(in srgb, var(--text-primary) 6%, transparent);
+}
+
+.restore-compare__table thead th {
+  font-size: var(--fs-meta);
+  font-weight: 500;
+  color: var(--text-secondary);
+  vertical-align: bottom;
+}
+
+.restore-compare__table th[scope='row'] {
+  text-align: left;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.restore-compare__date {
+  display: block;
+  font-weight: 400;
+}
+
+/* The backup has fewer than this device: the one row that deserves a second look. */
+.restore-compare__table tr.is-fewer td:nth-of-type(1) {
+  color: var(--tone-warn);
+}
+
+.restore-compare__note {
+  font-size: var(--fs-meta);
+  color: var(--text-secondary);
+}
+
+/* Recently deleted tasks (TaskTrashDialog). Pencil for what is gone, ink for its title. */
+.task-trash {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 16px;
+}
+
+.task-trash__note,
+.task-trash__empty {
+  font-size: var(--fs-meta);
+  color: var(--text-secondary);
+}
+
+.task-trash__empty {
+  padding: 28px 0;
+  text-align: center;
+}
+
+.task-trash__list {
+  display: flex;
+  flex-direction: column;
+  margin: 0 -8px;
+}
+
+.task-trash__row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+}
+
+.task-trash__row + .task-trash__row {
+  border-top: 1px solid color-mix(in srgb, var(--text-primary) 6%, transparent);
+}
+
+.task-trash__text {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.task-trash__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-ui);
+  color: var(--text-primary);
+}
+
+.task-trash__meta {
+  font-size: var(--fs-meta);
+  color: var(--text-secondary);
+}
+
+.task-trash__action {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: none;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  font-size: var(--fs-meta);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color var(--motion-duration-fast) var(--ease-standard),
+    color var(--motion-duration-fast) var(--ease-standard);
+}
+
+.task-trash__action:hover {
+  background: color-mix(in srgb, var(--text-primary) 7%, transparent);
+  color: var(--text-primary);
+}
+
+.task-trash__action--danger:hover,
+.task-trash__action--danger:focus-visible {
+  background: color-mix(in srgb, var(--tone-urgent) 9%, transparent);
+  color: var(--tone-urgent);
+}
+
+.task-trash .task-trash__empty-all {
+  margin-right: auto;
+  color: var(--text-secondary);
 }
 
 @media (max-width: 960px) {

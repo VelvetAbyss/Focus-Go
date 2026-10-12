@@ -9,6 +9,7 @@ import {
 import Sidebar from './Sidebar'
 import AmbientSceneStage from './AmbientSceneStage'
 import { useTaskReminderEngine } from '../../features/tasks/useTaskReminderEngine'
+import { useQuickCapture } from '../../features/tasks/application/useQuickCapture'
 import { useWebPushLifecycle } from '../../shared/push/useWebPushLifecycle'
 import TaskReminderModal from '../../features/tasks/TaskReminderModal'
 import { AuthGateProvider } from '../../features/auth/AuthGateContext'
@@ -86,6 +87,7 @@ const AppShell = ({ children }: AppShellProps) => {
   }, [ambientScene])
   useTaskReminderEngine()
   useWebPushLifecycle()
+  useQuickCapture()
 
   // Local data is cleared only by signing out on purpose (the account menu). An expired or
   // revoked session keeps it and asks for sign-in again (AuthGateProvider), so nothing written

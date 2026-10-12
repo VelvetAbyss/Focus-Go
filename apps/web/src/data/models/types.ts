@@ -717,6 +717,14 @@ export type TaskNoteLink = BaseEntity & {
   order: number
 }
 
+/** A deleted task as it was, with its note links, kept on this device so it can come back. */
+export type TaskTrashEntry = {
+  id: string
+  task: TaskItem
+  links: TaskNoteLink[]
+  deletedAt: number
+}
+
 export type FeatureKey = 'ai-digest' | 'automation' | 'habit-tracker' | 'project-workspace'
 export type FeatureInstallState = 'installed' | 'removed'
 

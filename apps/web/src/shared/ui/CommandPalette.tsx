@@ -30,7 +30,7 @@ import { tasksRepo } from '../../data/repositories/tasksRepo'
 import { notesRepo } from '../../data/repositories/notesRepo'
 import { diaryRepo } from '../../data/repositories/diaryRepo'
 import { projectsRepo } from '../../data/repositories/projectsRepo'
-import { createTask as createTaskRecord, parseQuickAddTaskInput } from '../../features/tasks/application/taskActions'
+import { createTaskFromQuickInput } from '../../features/tasks/application/taskActions'
 import { requestOpen } from '../navigation/openRequest'
 import { appIntlLocale } from '../i18n/format'
 import { searchDocs, type SearchDoc, type SearchKind } from './commandSearch'
@@ -188,20 +188,7 @@ const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
     const raw = query.trim()
     if (!raw) return
     // Same quick-add syntax as the task composer ("明天下午3点 开会 #工作 !1").
-    const parsed = await parseQuickAddTaskInput(raw, { projects: await projectsRepo.list() })
-    await createTaskRecord({
-      title: parsed.title,
-      status: parsed.waitingOn ? 'waiting' : 'todo',
-      waitingOn: parsed.waitingOn,
-      priority: parsed.priority,
-      isToday: parsed.isToday,
-      dueDate: parsed.dueDate,
-      reminderAt: parsed.reminderAt,
-      recurrence: parsed.recurrence,
-      projectId: parsed.projectId,
-      tags: parsed.tags,
-      subtasks: [],
-    })
+    await createTaskFromQuickInput(raw)
     emitTasksChanged('command-palette:create-task')
     setQuery('')
     onOpenChange(false)

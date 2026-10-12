@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { db } from '../db'
 import { resetRxdbSyncDatabase } from '../sync/rxdb'
 import { tasksRepo } from './tasksRepo'
+import { TASK_TRASH_RETENTION_MS, taskTrashRepo } from './taskTrashRepo'
 
 describe('tasksRepo remove/restore', () => {
   beforeEach(async () => {
@@ -34,6 +35,69 @@ describe('tasksRepo remove/restore', () => {
     const [listed] = await tasksRepo.list()
     expect(listed).toMatchObject({ id: task.id, title: 'Follow up PO 8MT4877', status: 'doing', priority: 'high', tags: ['Lowes'] })
     expect(await db.taskNoteLinks.get(link.id)).toMatchObject({ taskId: task.id, noteId: 'note-1' })
+  })
+})
+
+describe('task trash', () => {
+  beforeEach(async () => {
+    await resetRxdbSyncDatabase()
+    await db.delete({ disableAutoOpen: false })
+    await db.open()
+  })
+
+  afterEach(async () => {
+    await resetRxdbSyncDatabase()
+    await db.delete({ disableAutoOpen: false })
+  })
+
+  it('keeps a deleted task with its links, and brings it back out', async () => {
+    const task = await tasksRepo.add({ title: 'Ship the samples', status: 'todo', priority: null })
+    const link = { id: `${task.id}:note-1`, taskId: task.id, noteId: 'note-1', order: 0, createdAt: 1, updatedAt: 1 }
+    await db.taskNoteLinks.put(link)
+
+    await tasksRepo.remove(task.id)
+
+    const [entry] = await taskTrashRepo.list()
+    expect(entry).toMatchObject({ id: task.id, task: { title: 'Ship the samples' }, links: [link] })
+
+    const restored = await tasksRepo.restoreFromTrash(task.id)
+    expect(restored?.id).toBe(task.id)
+    expect(await tasksRepo.list()).toHaveLength(1)
+    expect(await db.taskNoteLinks.get(link.id)).toBeTruthy()
+    expect(await taskTrashRepo.list()).toEqual([])
+    expect(await tasksRepo.restoreFromTrash(task.id)).toBeUndefined()
+  })
+
+  it('undo takes the task out of the trash too', async () => {
+    const task = await tasksRepo.add({ title: 'Call the bank', status: 'todo', priority: null })
+    const links = await tasksRepo.remove(task.id)
+    await tasksRepo.restore(task, links)
+    expect(await taskTrashRepo.list()).toEqual([])
+  })
+
+  it('forgets what has been there more than 30 days, newest first otherwise', async () => {
+    const now = Date.now()
+    const base = await tasksRepo.add({ title: 'base', status: 'todo', priority: null })
+    await taskTrashRepo.keep({ ...base, id: 'old' }, [], now - TASK_TRASH_RETENTION_MS - 1000)
+    await taskTrashRepo.keep({ ...base, id: 'older-ok' }, [], now - 5 * 86400000)
+    await taskTrashRepo.keep({ ...base, id: 'new' }, [], now - 1000)
+    expect((await taskTrashRepo.list(now)).map((entry) => entry.id)).toEqual(['new', 'older-ok'])
+    expect(await db.taskTrash.get('old')).toBeUndefined()
+  })
+
+  it('restores a task whose project was deleted without the dangling project', async () => {
+    const task = await tasksRepo.add({ title: 'Orphan', status: 'todo', priority: null, projectId: 'gone' })
+    await tasksRepo.remove(task.id)
+    const restored = await tasksRepo.restoreFromTrash(task.id)
+    expect(restored?.projectId).toBeUndefined()
+  })
+
+  it('does not trash the untouched next occurrence taken back on reopen', async () => {
+    const task = await tasksRepo.add({ title: 'Weekly report', status: 'todo', priority: null, dueDate: new Date().toISOString().slice(0, 10), recurrence: { frequency: 'weekly', interval: 1 } })
+    const done = await tasksRepo.updateStatus(task.id, 'done')
+    expect(done?.recurrenceNextId).toBeTruthy()
+    await tasksRepo.updateStatus(task.id, 'todo')
+    expect(await taskTrashRepo.list()).toEqual([])
   })
 })
 

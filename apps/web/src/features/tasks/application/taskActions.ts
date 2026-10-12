@@ -1,4 +1,5 @@
 import type { ProjectItem } from '../../../data/models/types'
+import { projectsRepo } from '../../../data/repositories/projectsRepo'
 import { tasksRepo } from '../../../data/repositories/tasksRepo'
 import type { TaskItem, TaskStatus } from '../tasks.types'
 import { parseQuickAdd, type ParsedQuickAdd } from '../parseQuickAdd'
@@ -71,6 +72,27 @@ export const createTask = (input: CreateTaskInput) =>
     waitingOn: input.waitingOn,
     recurrence: input.recurrence,
   })
+
+/**
+ * One line in the quick-add syntax ("明天下午3点 开会 #工作 !1", "等 Lisa 回复报价") becomes a task.
+ * Used by ⌘K and the desktop quick-capture box.
+ */
+export const createTaskFromQuickInput = async (raw: string) => {
+  const parsed = await parseQuickAddTaskInput(raw.trim(), { projects: await projectsRepo.list() })
+  return createTask({
+    title: parsed.title,
+    status: parsed.waitingOn ? 'waiting' : 'todo',
+    waitingOn: parsed.waitingOn,
+    priority: parsed.priority,
+    isToday: parsed.isToday,
+    dueDate: parsed.dueDate,
+    reminderAt: parsed.reminderAt,
+    recurrence: parsed.recurrence,
+    projectId: parsed.projectId,
+    tags: parsed.tags,
+    subtasks: [],
+  })
+}
 
 export const createProjectTask = (input: CreateProjectTaskInput) =>
   createTask({

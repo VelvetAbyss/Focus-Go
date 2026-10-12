@@ -32,6 +32,10 @@ vi.mock('../../features/tasks/useTaskReminderEngine', () => ({
   useTaskReminderEngine: vi.fn(),
 }))
 
+vi.mock('../../features/tasks/application/useQuickCapture', () => ({
+  useQuickCapture: vi.fn(),
+}))
+
 vi.mock('../../features/focus/SharedNoiseProvider', () => ({
   useSharedNoise: () => ({
     noise: {

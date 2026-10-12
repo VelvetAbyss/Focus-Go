@@ -1,5 +1,5 @@
 export const DB_NAME = 'workbench-app'
-export const DB_VERSION = 45
+export const DB_VERSION = 46
 
 export const TABLES = {
   tasks: 'tasks',
@@ -36,6 +36,7 @@ export const TABLES = {
   syncedPreferences: 'synced_preferences',
   domainEvents: 'domain_events',
   timelineItems: 'timeline_items',
+  taskTrash: 'task_trash',
 } as const
 
 export const schemaV2 = {
@@ -258,4 +259,10 @@ export const schemaV44 = {
 export const schemaV45 = {
   ...schemaV44,
   [TABLES.syncConflicts]: 'id, accountId, entityType, entityId, createdAt, resolvedAt',
+} as const
+
+// Deleted tasks kept on this device for 30 days. Local only: never synced.
+export const schemaV46 = {
+  ...schemaV45,
+  [TABLES.taskTrash]: 'id, deletedAt',
 } as const

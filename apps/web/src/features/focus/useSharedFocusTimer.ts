@@ -67,6 +67,21 @@ const announceCompletion = (endsAt: number | undefined) => {
   void getPlatform().notify('Focus&go', body)
 }
 
+let lastTrayTimer = ''
+
+/** Desktop: the session in the menu bar / tray (a no-op on the web). The shell counts it down itself. */
+const showInTray = (snapshot: FocusTimerSnapshot) => {
+  const timer = snapshot.status === 'running' && snapshot.endsAt
+    ? { endsAt: snapshot.endsAt }
+    : snapshot.status === 'paused' && snapshot.remainingSeconds > 0
+      ? { pausedSeconds: snapshot.remainingSeconds }
+      : null
+  const key = JSON.stringify(timer)
+  if (key === lastTrayTimer) return
+  lastTrayTimer = key
+  void getPlatform().setFocusTimer(timer)
+}
+
 const buildIdleSnapshot = (durationMinutes: number, sessionId: string): FocusTimerSnapshot => ({
   status: 'idle',
   durationMinutes,
@@ -153,6 +168,7 @@ export const useSharedFocusTimer = ({ defaultDurationMinutes }: UseSharedFocusTi
   }, [])
 
   const persistSnapshot = useCallback(async (next: FocusTimerSnapshot) => {
+    showInTray(next)
     await focusRepo.updateTimer(next)
   }, [])
 
@@ -162,6 +178,7 @@ export const useSharedFocusTimer = ({ defaultDurationMinutes }: UseSharedFocusTi
     const settings = await focusRepo.get()
     const next = normalizeSnapshot(settings?.timer, settings?.focusMinutes ?? defaultDurationMinutes, sessionId, Date.now())
     setSnapshot(next)
+    showInTray(next)
     if (!settings?.timer || JSON.stringify(settings.timer) !== JSON.stringify(next)) {
       await persistSnapshot(next)
       emitTimerUpdate()

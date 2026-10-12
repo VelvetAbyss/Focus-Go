@@ -34,6 +34,8 @@ import { DiscoveryHint } from '../../shared/ui/DiscoveryHint'
 import { resolveProjectColor } from '../../shared/design/tokens'
 import { createTask, parseQuickAddTaskInput } from './application/taskActions'
 import { useTaskDeletion } from './application/useTaskDeletion'
+import { useTaskTrash } from './application/useTaskTrash'
+import TaskTrashDialog from './components/TaskTrashDialog'
 import ActiveIndicator from '../../shared/motion/ActiveIndicator'
 import {  SELECTED_TAB } from '../../shared/motion/indicatorSelectors'
 import { AppNumber } from '../../shared/ui/AppNumber'
@@ -123,6 +125,8 @@ const TasksBoard = ({
   const [deleteTarget, setDeleteTarget] = useState<TaskItem | null>(null)
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
   const deleteTasks = useTaskDeletion()
+  const taskTrash = useTaskTrash('tasks-board')
+  const [trashOpen, setTrashOpen] = useState(false)
   const [overdueCollapsedPref, setOverdueCollapsedPref] = useState<boolean | null>(() => {
     if (typeof window === 'undefined') return null
     const stored = window.localStorage.getItem(STORAGE_OVERDUE_COLLAPSED_KEY)
@@ -1219,14 +1223,27 @@ const TasksBoard = ({
                     </button>
                   </div>
                 ) : (
-                  <button
-                    type="button"
-                    className="tasks-fg__bulk-toggle"
-                    onClick={() => setBulkMode(true)}
-                  >
-                    <CheckSquare className="size-3.5" strokeWidth={1.8} />
-                    {t('tasks.bulkEdit')}
-                  </button>
+                  <>
+                    {taskTrash.entries.length > 0 ? (
+                      <button
+                        type="button"
+                        className="tasks-fg__bulk-toggle"
+                        onClick={() => setTrashOpen(true)}
+                      >
+                        <Trash2 className="size-3.5" strokeWidth={1.8} />
+                        {t('tasks.trash.open')}
+                        <span className="tasks-fg__trash-count"><AppNumber value={taskTrash.entries.length} /></span>
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="tasks-fg__bulk-toggle"
+                      onClick={() => setBulkMode(true)}
+                    >
+                      <CheckSquare className="size-3.5" strokeWidth={1.8} />
+                      {t('tasks.bulkEdit')}
+                    </button>
+                  </>
                 )
               ) : null}
             </div>
@@ -1313,6 +1330,15 @@ const TasksBoard = ({
           </div>
         </div>
       </Dialog>
+
+      <TaskTrashDialog
+        open={trashOpen}
+        entries={taskTrash.entries}
+        onClose={() => setTrashOpen(false)}
+        onRestore={(entry) => void taskTrash.restore(entry)}
+        onDiscard={(entry) => void taskTrash.discard(entry)}
+        onEmpty={() => void taskTrash.empty().then(() => setTrashOpen(false))}
+      />
 
       <Dialog open={bulkDeleteOpen} title={t('tasks.bulkDeleteTitle', { count: selectedCount })} onClose={() => setBulkDeleteOpen(false)}>
         <div className="dialog__body">

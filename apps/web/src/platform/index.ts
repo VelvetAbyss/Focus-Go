@@ -1,7 +1,7 @@
 import platformImpl from 'virtual:platform'
-import type { PlatformBridge } from './types'
+import type { FocusTimerDisplay, PlatformBridge } from './types'
 
-export type { PlatformBridge }
+export type { FocusTimerDisplay, PlatformBridge }
 
 // Default (web) implementation: every capability is a safe no-op.
 const webPlatform: PlatformBridge = {
@@ -22,6 +22,11 @@ const webPlatform: PlatformBridge = {
   onDeepLink() {
     return () => {}
   },
+  onQuickCapture() {
+    return () => {}
+  },
+  async setFocusTimer() {},
+  async setUiLanguage() {},
 }
 
 // The desktop build injects its implementation through `virtual:platform`.

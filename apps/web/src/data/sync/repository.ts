@@ -110,12 +110,14 @@ export const restampLocalSnapshotForRestore = async () => {
 
 export const clearLocalUserData = async () => {
   const entityTableObjects = Object.values(SYNC_ENTITY_TABLES).map((name) => db.table(name))
-  await db.transaction('rw', [...entityTableObjects, db.syncState, db.syncBlobCache], async () => {
+  await db.transaction('rw', [...entityTableObjects, db.syncState, db.syncBlobCache, db.taskTrash], async () => {
     for (const tableName of Object.values(SYNC_ENTITY_TABLES)) {
       await db.table(tableName).clear()
     }
     await db.syncState.clear()
     await db.syncBlobCache.clear()
+    // Deleted tasks belong to the account too.
+    await db.taskTrash.clear()
   })
   const { resetRxdbSyncDatabase } = await import('./rxdb')
   await resetRxdbSyncDatabase()

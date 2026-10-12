@@ -1,5 +1,7 @@
 import type { TaskItem, TaskNoteLink, TaskProgressEntry, TaskStatus } from '../models/types'
+import { db } from '../db'
 import { dbService } from '../services/dbService'
+import { taskTrashRepo } from './taskTrashRepo'
 import { buildNextOccurrence } from '../../features/tasks/domain/taskRecurrence'
 import { isTaskClosed } from '../../features/tasks/domain/taskRules'
 
@@ -41,25 +43,43 @@ export const tasksRepo = {
   async update(task: TaskItem) {
     return dbService.tasks.update(task)
   },
-  /** Deletes the task and its note links; returns the links so `restore` can undo it. */
-  async remove(id: string): Promise<TaskNoteLink[]> {
+  /**
+   * Deletes the task and its note links; returns the links so `restore` can undo it.
+   * The task goes to this device's trash for 30 days unless `trash` is false.
+   */
+  async remove(id: string, { trash = true }: { trash?: boolean } = {}): Promise<TaskNoteLink[]> {
+    const task = trash ? await db.tasks.get(id) : undefined
     await dbService.tasks.remove(id)
+    let links: TaskNoteLink[] = []
     try {
       const { taskNoteLinksRepo } = await import('./taskNoteLinksRepo')
-      return await taskNoteLinksRepo.unlinkAllForTask(id)
+      links = await taskNoteLinksRepo.unlinkAllForTask(id)
     } catch (error) {
       console.error('[tasksRepo] unlinkAllForTask failed', id, error)
-      return []
     }
+    if (task) {
+      // The delete has happened; a trash that can't be written only loses the way back.
+      await taskTrashRepo.keep(task, links).catch((error) => console.error('[tasksRepo] keeping trash failed', id, error))
+    }
+    return links
   },
   /** Undoes `remove`: writes the task back (with a fresh updatedAt, so sync treats it as newer than the delete). */
   async restore(task: TaskItem, links: TaskNoteLink[] = []) {
-    const restored = await dbService.tasks.update(task)
+    // A project deleted in the meantime would leave the task pointing at nothing.
+    const projectGone = task.projectId ? !(await db.projects.get(task.projectId)) : false
+    const restored = await dbService.tasks.update(projectGone ? { ...task, projectId: undefined } : task)
     if (links.length > 0) {
       const { taskNoteLinksRepo } = await import('./taskNoteLinksRepo')
       await taskNoteLinksRepo.restoreLinks(links)
     }
+    await taskTrashRepo.discard(task.id)
     return restored
+  },
+  /** Brings a task back out of the trash; undefined when it is no longer there. */
+  async restoreFromTrash(id: string) {
+    const entry = await taskTrashRepo.get(id)
+    if (!entry) return undefined
+    return tasksRepo.restore(entry.task, entry.links)
   },
   /** Changes status and applies what the new status implies; returns the task as finally stored. */
   async updateStatus(id: string, status: TaskStatus) {
@@ -137,7 +157,7 @@ const applyStatusSideEffects = async (task: TaskItem): Promise<TaskItem> => {
     // Untouched since it was created: safe to take back. Otherwise it has a life of its own and
     // keeps the rule; this one stays a one-off.
     if (next && next.status === 'todo' && next.updatedAt === next.createdAt) {
-      await tasksRepo.remove(next.id)
+      await tasksRepo.remove(next.id, { trash: false })
       patch.recurrence = next.recurrence
     }
     patch.recurrenceNextId = undefined
