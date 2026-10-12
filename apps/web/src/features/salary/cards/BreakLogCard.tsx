@@ -9,6 +9,7 @@ import { earnedBetween, startOfLocalDay, startOfLocalWeek, type SalarySettings }
 import { formatMoney, formatTimeOfDay, formatWorkDuration } from '../salaryFormat'
 import type { BreakSession } from '../salaryStorage'
 import { startBreak, stopBreak, updateSalaryState, useSalaryState } from '../useSalaryState'
+import { useWorkingSalarySettings } from '../cnHolidays'
 import { useSettingsDialog } from '../useSettingsDialog'
 import { DurationFigure, SalarySettingsButton } from '../SalaryParts'
 import { dayGrid } from '../timeGrid'
@@ -56,7 +57,9 @@ const BreakLogCard = () => {
   const { t, language } = useI18n()
   const { defaultCurrency } = usePreferences()
   const symbol = currencyToSymbol(defaultCurrency)
-  const { settings, breaks, activeBreakStartAt } = useSalaryState()
+  const { settings: savedSettings, breaks, activeBreakStartAt } = useSalaryState()
+  // Holidays and 调休 change which days pay; computed on the settings with them applied.
+  const settings = useWorkingSalarySettings(savedSettings)
   const { openSettings, settingsDialog } = useSettingsDialog()
   const [now, setNow] = useState(() => Date.now())
 

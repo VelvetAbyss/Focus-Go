@@ -57,7 +57,8 @@ test('only real push services are accepted as endpoints', () => {
 test('subscription bodies are validated and clamped', () => {
   const keys = browserKeys()
   const parsed = parseSubscriptionBody({ subscription: { endpoint: 'https://fcm.googleapis.com/fcm/send/x', keys }, leadMinutes: 99999, language: 'fr' })
-  assert.deepEqual(parsed, { endpoint: 'https://fcm.googleapis.com/fcm/send/x', keys, leadMinutes: 1440, language: 'zh' })
+  // No time zone sent (older clients): stored as unknown, and morning reminders skip the device.
+  assert.deepEqual(parsed, { endpoint: 'https://fcm.googleapis.com/fcm/send/x', keys, leadMinutes: 1440, language: 'zh', timeZone: null })
   assert.equal(parseSubscriptionBody({ subscription: { endpoint: 'https://fcm.googleapis.com/x', keys: { p256dh: 'short', auth: keys.auth } } }), null)
   assert.equal(parseSubscriptionBody({ subscription: { endpoint: 'https://127.0.0.1/x', keys } }), null)
 })

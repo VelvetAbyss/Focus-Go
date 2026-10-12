@@ -89,7 +89,7 @@ describe('webPush', () => {
     const [path, init] = fetchApiMock.mock.calls.find(([p]) => p === '/push/subscriptions')!
     expect(path).toBe('/push/subscriptions')
     expect(init.headers.Authorization).toBe('Bearer token-1')
-    expect(JSON.parse(init.body)).toMatchObject({ leadMinutes: 15, language: 'zh', subscription: { endpoint: 'https://fcm.googleapis.com/fcm/send/device-1' } })
+    expect(JSON.parse(init.body)).toMatchObject({ leadMinutes: 15, language: 'zh', timeZone: expect.any(String), subscription: { endpoint: 'https://fcm.googleapis.com/fcm/send/device-1' } })
     expect(readWebPushEnabled()).toBe(true)
   })
 

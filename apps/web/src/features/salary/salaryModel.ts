@@ -25,6 +25,15 @@ export type SalarySettings = {
   lunch: SalaryLunch | null
   /** Days of the week worked, 0 = Sunday (as `Date#getDay`). */
   workdays: number[]
+  /** Day of the month pay arrives (1–31; a short month uses its last day); unset if not given. */
+  payday?: number
+  /** Count China's statutory holidays as days off and makeup days (调休) as workdays; on unless false. */
+  followCnHolidays?: boolean
+  /**
+   * Runtime only, never saved: dates ('YYYY-MM-DD') that are off or worked regardless of the
+   * weekday, filled from the holiday feeds when `followCnHolidays` is on.
+   */
+  overrides?: Record<string, 'off' | 'work'>
 }
 
 export const DEFAULT_WORK_HOURS: Omit<SalarySettings, 'monthlySalary'> = {
@@ -60,7 +69,17 @@ export const startOfLocalWeek = (time: number) => {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate() - mondayOffset).getTime()
 }
 
-export const isWorkday = (settings: SalarySettings, time: number) => settings.workdays.includes(new Date(time).getDay())
+const localDateKey = (time: number) => {
+  const date = new Date(time)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+/** A working day: a weekday you work, unless a holiday or makeup day says otherwise. */
+export const isWorkday = (settings: SalarySettings, time: number) => {
+  const override = settings.overrides?.[localDateKey(time)]
+  if (override) return override === 'work'
+  return settings.workdays.includes(new Date(time).getDay())
+}
 
 const lunchOverlap = (settings: SalarySettings) => {
   const { lunch, workStart, workEnd } = settings
@@ -92,7 +111,7 @@ export const workdaysInMonth = (settings: SalarySettings, time: number) => {
   const days = new Date(year, month + 1, 0).getDate()
   let count = 0
   for (let day = 1; day <= days; day += 1) {
-    if (settings.workdays.includes(new Date(year, month, day).getDay())) count += 1
+    if (isWorkday(settings, new Date(year, month, day).getTime())) count += 1
   }
   return count
 }
@@ -208,6 +227,29 @@ export const nextWorkStart = (settings: SalarySettings, now: number) => {
     day = nextLocalDay(day)
   }
   return null
+}
+
+/** Whole days from today until the next day off (0 when today is one); null if none within two weeks. */
+export const daysUntilDayOff = (settings: SalarySettings, now: number) => {
+  let day = startOfLocalDay(now)
+  for (let index = 0; index < 15; index += 1) {
+    if (!isWorkday(settings, day)) return index
+    day = nextLocalDay(day)
+  }
+  return null
+}
+
+/** Whole days until the next payday (0 on the day); null when no payday is set. */
+export const daysUntilPayday = (settings: SalarySettings, now: number) => {
+  if (!settings.payday) return null
+  const today = new Date(startOfLocalDay(now))
+  const dueIn = (year: number, month: number) => {
+    const last = new Date(year, month + 1, 0).getDate()
+    return new Date(year, month, Math.min(settings.payday!, last)).getTime()
+  }
+  let due = dueIn(today.getFullYear(), today.getMonth())
+  if (due < today.getTime()) due = dueIn(today.getFullYear(), today.getMonth() + 1)
+  return Math.round((due - today.getTime()) / 86_400_000)
 }
 
 /** What `price` costs in paid time this month: seconds, and working days. */

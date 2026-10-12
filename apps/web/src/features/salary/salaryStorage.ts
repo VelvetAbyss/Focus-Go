@@ -57,12 +57,16 @@ export const normalizeSalarySettings = (raw: unknown): SalarySettings | null => 
     : []
   if (days.length === 0) return null
   const validLunch = isRecord(lunch) && isMinute(lunch.start) && isMinute(lunch.end) && lunch.end > lunch.start
+  const { payday, followCnHolidays } = raw
   return {
     monthlySalary,
     workStart,
     workEnd,
     lunch: validLunch ? { start: lunch.start as number, end: lunch.end as number } : null,
     workdays: days,
+    ...(Number.isInteger(payday) && (payday as number) >= 1 && (payday as number) <= 31 ? { payday: payday as number } : {}),
+    // Saved only when switched off; on is the default.
+    ...(followCnHolidays === false ? { followCnHolidays: false } : {}),
   }
 }
 

@@ -9982,6 +9982,16 @@ html[data-motion='reduce'] .spend-fg__track {
   transition: background var(--motion-duration-base) var(--ease-standard), box-shadow var(--motion-duration-base) var(--ease-standard), border-color var(--motion-duration-base) var(--ease-standard);
 }
 
+/* A spend's note ("午饭"), beside its category icon. */
+.spend__item-note {
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--fs-ui);
+  color: var(--text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .spend__item-left {
   display: inline-flex;
   align-items: center;

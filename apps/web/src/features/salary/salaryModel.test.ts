@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest'
 import {
   dailyPay,
   dayStatus,
+  daysUntilDayOff,
+  daysUntilPayday,
+  isWorkday,
   earnedBetween,
   nextWorkStart,
   paidSegments,
@@ -124,5 +127,49 @@ describe('salary storage', () => {
     expect(parseClock('24:00')).toBe(1440)
     expect(parseClock('25:00')).toBeNull()
     expect(parseClock('9')).toBeNull()
+  })
+})
+
+describe('holidays, makeup days and countdowns', () => {
+  const base: SalarySettings = { monthlySalary: 12000, workStart: 540, workEnd: 1080, lunch: { start: 720, end: 780 }, workdays: [1, 2, 3, 4, 5] }
+
+  it('pays no holiday and does pay a makeup Saturday', () => {
+    const withHolidays: SalarySettings = { ...base, overrides: { '2026-10-01': 'off', '2026-10-10': 'work' } }
+    // Thursday 1 October, National Day: off.
+    expect(isWorkday(withHolidays, new Date(2026, 9, 1, 10).getTime())).toBe(false)
+    // Saturday 10 October, a 调休 workday: paid.
+    expect(isWorkday(withHolidays, new Date(2026, 9, 10, 10).getTime())).toBe(true)
+    expect(dayStatus(withHolidays, new Date(2026, 9, 10, 10).getTime()).phase).toBe('working')
+  })
+
+  it('spreads the month over its real working days', () => {
+    const october = new Date(2026, 9, 15).getTime()
+    expect(workdaysInMonth(base, october)).toBe(22)
+    // Seven holidays fall on five weekdays (1, 2, 5, 6, 7 Oct), and 10 Oct is worked: 22 − 5 + 1.
+    const overrides = { '2026-10-01': 'off', '2026-10-02': 'off', '2026-10-03': 'off', '2026-10-04': 'off', '2026-10-05': 'off', '2026-10-06': 'off', '2026-10-07': 'off', '2026-10-10': 'work' } as const
+    expect(workdaysInMonth({ ...base, overrides }, october)).toBe(18)
+  })
+
+  it('counts down to the next day off and to payday', () => {
+    // Wednesday 14 October 2026.
+    const wednesday = new Date(2026, 9, 14, 15).getTime()
+    expect(daysUntilDayOff(base, wednesday)).toBe(3)
+    expect(daysUntilDayOff(base, new Date(2026, 9, 17, 10).getTime())).toBe(0)
+    expect(daysUntilPayday(base, wednesday)).toBeNull()
+    expect(daysUntilPayday({ ...base, payday: 20 }, wednesday)).toBe(6)
+    expect(daysUntilPayday({ ...base, payday: 14 }, wednesday)).toBe(0)
+    // Past this month's payday: next month's; the 31st in a 30-day month is its last day.
+    expect(daysUntilPayday({ ...base, payday: 10 }, wednesday)).toBe(27)
+    expect(daysUntilPayday({ ...base, payday: 31 }, new Date(2026, 10, 2).getTime())).toBe(28)
+  })
+})
+
+describe('normalizeSalarySettings keeps payday and the holiday switch', () => {
+  it('keeps a valid payday, drops a bad one, and stores the switch only when off', () => {
+    const raw = { monthlySalary: 1, workStart: 540, workEnd: 1080, lunch: null, workdays: [1] }
+    expect(normalizeSalarySettings({ ...raw, payday: 10, followCnHolidays: true })).toEqual({ ...raw, payday: 10 })
+    expect(normalizeSalarySettings({ ...raw, payday: 40, followCnHolidays: false })).toEqual({ ...raw, followCnHolidays: false })
+    // Runtime overrides never get saved.
+    expect(normalizeSalarySettings({ ...raw, overrides: { '2026-10-01': 'off' } })).toEqual(raw)
   })
 })

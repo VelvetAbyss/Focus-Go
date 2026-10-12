@@ -711,3 +711,17 @@ legend.salary-field__label {
 .salary-settings__notes .salary-settings__error {
   color: var(--tone-urgent);
 }
+
+/* A switch sharing a row with a field: label on top, the switch under it, aligned with the input. */
+.salary-switch-row--stacked {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+/* 今日计薪's countdown line: the end of today, the next day off, payday. */
+.salary-earned__countdown {
+  margin-top: 2px;
+  color: var(--pencil);
+}

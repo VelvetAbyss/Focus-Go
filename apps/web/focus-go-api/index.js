@@ -15,6 +15,7 @@ import feedbackRouter from './routes/feedback.js'
 import seedRouter from './routes/seed.js'
 import { createNewsRouter } from './routes/news.js'
 import { createCalendarRouter } from './routes/calendar.js'
+import { createFxRouter } from './routes/fx.js'
 import { requireAuth } from './middleware/auth.js'
 import { createNewsService } from './services/news.js'
 import db from './db/init.js'
@@ -131,6 +132,9 @@ export const createApp = () => {
   const calendarRouter = createCalendarRouter({ requireAuth })
   app.use('/calendar', calendarRouter)
   app.use('/api/calendar', calendarRouter)
+  const fxRouter = createFxRouter()
+  app.use('/fx', fxRouter)
+  app.use('/api/fx', fxRouter)
   app.use('/admin', adminRouter)
   app.use('/api/admin', adminRouter)
   app.use('/feedback', feedbackRouter)

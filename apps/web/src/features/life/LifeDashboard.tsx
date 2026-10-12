@@ -132,7 +132,10 @@ const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => 
   useEffect(() => {
     const allowed = new Set(cards.map((card) => card.id))
     void lifeDashboardRepo.get().then((stored) => {
-      const hidden = (stored?.hiddenCardIds ?? DEFAULT_LIFE_HIDDEN_CARD_IDS).filter((id) => allowed.has(id))
+      // Opt-in cards stay hidden until shown, also for layouts saved before the card existed.
+      const placed = new Set((stored?.items ?? []).map((item) => item.key))
+      const optIn = cards.filter((card) => card.defaultVisible === false && !placed.has(card.id)).map((card) => card.id)
+      const hidden = [...new Set([...(stored?.hiddenCardIds ?? DEFAULT_LIFE_HIDDEN_CARD_IDS), ...optIn])].filter((id) => allowed.has(id))
       const hiddenSet = new Set(hidden)
       const baseLayout = stored?.items?.length ? stored.items : DEFAULT_LIFE_LAYOUT
       const next = baseLayout.filter((item) => allowed.has(item.key) && !hiddenSet.has(item.key))

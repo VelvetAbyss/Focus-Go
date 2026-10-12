@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { matchSpendCategory, parseSpendInput } from './parseSpend'
 import type { CSSProperties } from 'react'
 import { Button } from '@/components/ui/button'
 import Card from '../../shared/ui/Card'
@@ -31,7 +32,8 @@ const SpendCard = () => {
   const [now, setNow] = useState(() => new Date())
   const [entries, setEntries] = useState<SpendEntry[]>([])
   const [categories, setCategories] = useState<SpendCategory[]>([])
-  const [amount, setAmount] = useState(0)
+  // What was typed: "午饭 28", "28 打车", "$12". Parsed into amount, currency, category and note.
+  const [draft, setDraft] = useState('')
   const [currency, setCurrency] = useState('CNY')
   const [categoryId, setCategoryId] = useState('')
   const [view, setView] = useState<SpendView>('today')
@@ -136,16 +138,39 @@ const SpendCard = () => {
     setEntries((prev) => prev.filter((entry) => entry.id !== id))
   }
 
+  const parsedDraft = parseSpendInput(draft)
+  const draftCategory = parsedDraft ? matchSpendCategory(parsedDraft.note, categories) : null
+  // While you type, the selectors show what the words were read as ("午饭" → 餐饮, "$" → USD),
+  // so the form itself says what will be saved; nothing grows in a small card.
+  const draftCategoryId = draftCategory?.id
+  const draftCurrency = parsedDraft?.currency
+  useEffect(() => {
+    if (draftCategoryId) setCategoryId(draftCategoryId)
+  }, [draftCategoryId])
+  useEffect(() => {
+    if (draftCurrency) setCurrency(draftCurrency)
+  }, [draftCurrency])
+
   const addEntry = async () => {
-    if (!categoryId || !amount) return
+    if (!parsedDraft) {
+      amountRef.current?.focus()
+      return
+    }
+    // The words pick the category when they can; otherwise the last one used stays.
+    const nextCategoryId = draftCategory?.id ?? categoryId
+    if (!nextCategoryId) return
+    const nextCurrency = parsedDraft.currency ?? currency
     const created = await spendRepo.addEntry({
-      amount,
-      currency,
-      categoryId,
+      amount: parsedDraft.amount,
+      currency: nextCurrency,
+      categoryId: nextCategoryId,
+      ...(parsedDraft.note ? { note: parsedDraft.note.slice(0, 60) } : {}),
       dateKey: todayKey,
     })
     setEntries((prev) => [...prev, created])
-    setAmount(0)
+    setCategoryId(nextCategoryId)
+    setCurrency(nextCurrency)
+    setDraft('')
     requestAnimationFrame(() => {
       if (listRef.current) listRef.current.scrollTo({ top: 0, behavior: 'auto' })
     })
@@ -198,17 +223,17 @@ const SpendCard = () => {
                 <div className="spend__form">
                   <input
                     ref={amountRef}
-                    type="number"
-                    value={amount || ''}
-                    min={0}
-                    step={0.01}
-                    onChange={(event) => setAmount(Number(event.target.value))}
+                    type="text"
+                    value={draft}
+                    onChange={(event) => setDraft(event.target.value)}
                     onKeyDown={(event) => {
-                      if (event.key !== 'Enter') return
+                      if (event.key !== 'Enter' || event.nativeEvent.isComposing) return
                       event.preventDefault()
                       void addEntry()
                     }}
-                    placeholder={t('spend.amount')}
+                    placeholder={t('spend.quickPlaceholder')}
+                    aria-label={t('spend.amount')}
+                    autoComplete="off"
                   />
                   <Select
                     value={currency}
@@ -266,6 +291,7 @@ const SpendCard = () => {
                       >
                         <span className="spend__item-left">
                           <span className="spend__item-icon">{renderSpendIcon(category?.icon, { size: 16 })}</span>
+                          {entry.note ? <span className="spend__item-note">{entry.note}</span> : null}
                         </span>
                         <span className="spend__item-right">
                           <AppNumber

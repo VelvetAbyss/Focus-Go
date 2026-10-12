@@ -1,3 +1,5 @@
+import { liveCnyPer } from '../shared/fx/fxRates'
+
 export const EXCHANGE_RATES: Record<string, number> = {
   USD: 7.2,
   CNY: 1,
@@ -17,8 +19,9 @@ export const convertToBase = (amount: number, fromCurrency: string, baseCurrency
   // USD: 7.2 means 1 USD = 7.2 CNY
   // CNY: 1 means 1 CNY = 1 CNY
   
-  const fromRate = EXCHANGE_RATES[fromCurrency]
-  const baseRate = EXCHANGE_RATES[baseCurrency]
+  // Live rates when the rate card (or anything else) has fetched them; the fixed ones until then.
+  const fromRate = liveCnyPer(fromCurrency) ?? EXCHANGE_RATES[fromCurrency]
+  const baseRate = liveCnyPer(baseCurrency) ?? EXCHANGE_RATES[baseCurrency]
 
   if (fromRate === undefined || baseRate === undefined) {
     console.warn(`Missing exchange rate for ${fromCurrency} or ${baseCurrency}`)
