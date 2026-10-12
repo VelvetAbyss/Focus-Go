@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
-import { LoaderCircle, Plus, Search, X } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { AnimatePresence, motion, Reorder, useDragControls } from 'motion/react'
+import { LoaderCircle, Pencil, Plus, Search, X } from 'lucide-react'
+import { Popover, PopoverContent, PopoverTrigger } from '../../../shared/ui/popover'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
@@ -15,11 +16,15 @@ import {
 } from '../../../shared/location/citySuggestions'
 import { useI18n } from '../../../shared/i18n/useI18n'
 import {
+  MAX_WORLD_CLOCK_ITEMS,
   readWorldClockItems,
   WORLD_CLOCK_ITEMS_KEY,
   writeWorldClockItems,
   type WorldClockItem,
 } from '../../../shared/prefs/preferences'
+import { holidayFor } from '../../dashboard/worldClock/usHolidays'
+import { clockOf, DEFAULT_WORK_END, DEFAULT_WORK_START, minutesOf, workStateAt, type WorkState } from '../../dashboard/worldClock/workHours'
+import type { TranslationKey } from '../../../shared/i18n/types'
 import { usePageActivity } from '../../../shared/hooks/usePageActivity'
 import { useThemeMode } from '../../../shared/theme/useThemeMode'
 import { readWeatherLastLocation } from '../../../shared/prefs/preferences'
@@ -30,8 +35,6 @@ import { daylightAt, sunElevation } from '../../dashboard/worldClock/solar'
 import type { GlobeCity } from '../../dashboard/worldClock/globeScene'
 import '../../dashboard/worldClock/world-clock.css'
 import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../../data/repositories/syncedPreferencesRepo'
-
-const MAX_WORLD_CLOCK_ITEMS = 6
 
 type DayPhase = 'dawn' | 'day' | 'dusk' | 'night'
 const formatterCache = new Map<string, Intl.DateTimeFormat>()
@@ -84,11 +87,224 @@ const getZoneHourFraction = (timeZone: string, ref: Date): number => {
   }
 }
 
+const WEEKDAY_INDEX: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }
+
+/** A city's local date, minutes after midnight and weekday at an instant. */
+const localClockAt = (timeZone: string, ref: Date) => {
+  try {
+    const parts = getFormatter('en-US', timeZone, {
+      hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', weekday: 'short',
+    }).formatToParts(ref)
+    const get = (type: string) => parts.find((part) => part.type === type)?.value ?? ''
+    return {
+      dateKey: `${get('year')}-${get('month')}-${get('day')}`,
+      minutes: Number(get('hour')) * 60 + Number(get('minute')),
+      weekday: WEEKDAY_INDEX[get('weekday')] ?? 1,
+    }
+  } catch {
+    return { dateKey: '', minutes: 0, weekday: 1 }
+  }
+}
+
+type Translate = (key: TranslationKey, values?: Record<string, string | number>) => string
+
+const durationLabel = (minutes: number, t: Translate) => {
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  if (h === 0) return t('worldClock.duration.m', { m })
+  return m === 0 ? t('worldClock.duration.h', { h }) : t('worldClock.duration.hm', { h, m })
+}
+
+/** What the meta line says about the city's working day. */
+const workLabel = (state: WorkState, t: Translate) => {
+  switch (state.kind) {
+    case 'working': return t('worldClock.work.working', { left: durationLabel(state.minutesLeft, t) })
+    case 'closing': return t('worldClock.work.closing', { left: durationLabel(state.minutesLeft, t) })
+    case 'before': return t('worldClock.work.before', { time: clockOf(state.startsAt) })
+    case 'after': return t('worldClock.work.after')
+    case 'weekend': return t('worldClock.work.weekend')
+    case 'holiday': return t('worldClock.work.holiday', { name: state.name })
+  }
+}
+
+type RowProps = {
+  item: WorldClockItem
+  at: Date
+  now: Date
+  scrubbing: boolean
+  axisStart: number
+  locale: string
+  language: string
+  homeTimeZone: string
+  homeOffsetMin: number
+  t: Translate
+  onHighlight: (id: string | null) => void
+  onRemove: (id: string) => void
+  onEdit: (id: string, patch: Pick<WorldClockItem, 'alias' | 'workStart' | 'workEnd'>) => void
+  onDragEnd: () => void
+}
+
+/**
+ * One tracked city: your name for it, the time there (or at the scrubbed instant), whether
+ * they're at work, and its day as a strip. Reordered by its grip; edited from the pencil.
+ */
+const WorldClockRow = ({
+  item, at, now, scrubbing, axisStart, locale, language, homeTimeZone, homeOffsetMin, t, onHighlight, onRemove, onEdit, onDragEnd,
+}: RowProps) => {
+  const dragControls = useDragControls()
+  const [editOpen, setEditOpen] = useState(false)
+  const [aliasDraft, setAliasDraft] = useState(item.alias ?? '')
+  const [startDraft, setStartDraft] = useState(clockOf(item.workStart ?? DEFAULT_WORK_START))
+  const [endDraft, setEndDraft] = useState(clockOf(item.workEnd ?? DEFAULT_WORK_END))
+
+  const openEditor = (open: boolean) => {
+    if (open) {
+      setAliasDraft(item.alias ?? '')
+      setStartDraft(clockOf(item.workStart ?? DEFAULT_WORK_START))
+      setEndDraft(clockOf(item.workEnd ?? DEFAULT_WORK_END))
+    } else {
+      const start = minutesOf(startDraft)
+      const end = minutesOf(endDraft)
+      const validHours = start !== null && end !== null && end > start
+      onEdit(item.id, {
+        alias: aliasDraft.trim().slice(0, 40) || undefined,
+        workStart: validHours && start !== DEFAULT_WORK_START ? start : validHours ? undefined : item.workStart,
+        workEnd: validHours && end !== DEFAULT_WORK_END ? end : validHours ? undefined : item.workEnd,
+      })
+    }
+    setEditOpen(open)
+  }
+
+  const local = localClockAt(item.timeZone, at)
+  const holiday = holidayFor(item.timeZone, local.dateKey)
+  const work = workStateAt(local.minutes, local.weekday, { start: item.workStart, end: item.workEnd }, holiday ? (language === 'zh' ? holiday.zh : holiday.en) : null)
+  const fraction = getZoneHourFraction(item.timeZone, at)
+  const phase = phaseAt(sunElevation(at, item.latitude, item.longitude), fraction)
+
+  const time = getFormatter(locale, item.timeZone, { hour: '2-digit', minute: '2-digit', hour12: false }).format(at)
+  const [hh, mm] = time.split(':')
+  const weekday = getFormatter(locale, item.timeZone, { weekday: 'short' }).format(at)
+
+  const isHome = item.timeZone === homeTimeZone
+  const offsetMin = isHome ? 0 : getZoneOffsetMinutes(item.timeZone, now) - homeOffsetMin
+  const offsetH = offsetMin / 60
+  const offsetLabel = isHome
+    ? t('worldClock.home')
+    : offsetMin === 0
+      ? t('worldClock.offsetSame')
+      : offsetMin > 0
+        ? t('worldClock.offsetAhead', { h: Number.isInteger(offsetH) ? offsetH : offsetH.toFixed(1) })
+        : t('worldClock.offsetBehind', { h: Number.isInteger(-offsetH) ? -offsetH : (-offsetH).toFixed(1) })
+  const city = item.label.split(',')[0].trim()
+
+  return (
+    <Reorder.Item
+      value={item}
+      dragListener={false}
+      dragControls={dragControls}
+      onDragEnd={onDragEnd}
+      layout
+      initial={{ opacity: 0, height: 0, y: -4 }}
+      animate={{ opacity: 1, height: 'auto', y: 0 }}
+      exit={{ opacity: 0, height: 0, x: 8 }}
+      transition={{ type: 'spring', stiffness: 360, damping: 32, mass: 0.6 }}
+      className={cn('wc-row', `wc-row--${phase}`, isHome && 'wc-row--home', `wc-row--work-${work.kind}`)}
+      onMouseEnter={() => onHighlight(item.id)}
+      onMouseLeave={() => onHighlight(null)}
+    >
+      <div className="wc-row__main">
+        {/* The name is the handle: grab it to move the row (nothing else on the name is clickable). */}
+        <div
+          className="wc-row__head"
+          onPointerDown={(event) => {
+            event.preventDefault()
+            dragControls.start(event)
+          }}
+          title={t('worldClock.reorder')}
+        >
+          {isHome && <span className="wc-row__home-dot" aria-hidden />}
+          <span className="wc-row__city">{item.alias || city}</span>
+        </div>
+        <div className="wc-row__meta">
+          <span className="wc-row__weekday">{weekday}</span>
+          <span className="wc-row__sep" aria-hidden>·</span>
+          <span className={cn('wc-row__work', work.kind === 'holiday' && 'wc-row__work--holiday')}>{workLabel(work, t)}</span>
+          {scrubbing ? null : (
+            <>
+              <span className="wc-row__sep" aria-hidden>·</span>
+              <span className="wc-row__offset">{offsetLabel}</span>
+            </>
+          )}
+        </div>
+      </div>
+      <div className="wc-row__tail">
+        <span className={cn('wc-row__time', scrubbing && 'is-scrubbing')} aria-label={time}>
+          <span className="wc-row__time-h">{hh}</span>
+          <span className="wc-row__time-colon">:</span>
+          <span className="wc-row__time-m" key={scrubbing ? 'scrub' : mm}>{mm}</span>
+        </span>
+        <Popover open={editOpen} onOpenChange={openEditor}>
+          <PopoverTrigger asChild>
+            <button type="button" className="wc-row__remove wc-row__edit" aria-label={t('worldClock.edit', { label: item.alias || city })} title={t('worldClock.edit', { label: item.alias || city })}>
+              <Pencil size={11} />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="end" sideOffset={6} className="wc-edit">
+            <label className="wc-edit__field">
+              <span>{t('worldClock.alias')}</span>
+              <input
+                value={aliasDraft}
+                onChange={(event) => setAliasDraft(event.target.value)}
+                onKeyDown={(event) => { if (event.key === 'Enter' && !event.nativeEvent.isComposing) openEditor(false) }}
+                placeholder={city}
+                maxLength={40}
+                autoFocus
+              />
+            </label>
+            <div className="wc-edit__field">
+              <span>{t('worldClock.hours')}</span>
+              <div className="wc-edit__hours">
+                <input type="time" value={startDraft} onChange={(event) => setStartDraft(event.target.value)} aria-label={t('worldClock.hoursStart')} />
+                <span aria-hidden>–</span>
+                <input type="time" value={endDraft} onChange={(event) => setEndDraft(event.target.value)} aria-label={t('worldClock.hoursEnd')} />
+              </div>
+            </div>
+            <p className="wc-edit__hint">{t('worldClock.hoursHint')}</p>
+          </PopoverContent>
+        </Popover>
+        <button
+          type="button"
+          className="wc-row__remove"
+          onClick={() => onRemove(item.id)}
+          aria-label={t('worldClock.removeAria', { label: item.label })}
+        >
+          <X size={11} />
+        </button>
+      </div>
+      <DaylightStrip
+        latitude={item.latitude}
+        longitude={item.longitude}
+        offsetMinutes={getZoneOffsetMinutes(item.timeZone, now)}
+        axisStart={axisStart}
+        now={now.getTime()}
+        workStart={item.workStart}
+        workEnd={item.workEnd}
+        cursor={scrubbing ? at.getTime() : null}
+      />
+    </Reorder.Item>
+  )
+}
+
 const WorldClockCard = () => {
   const { language, t } = useI18n()
   const theme = useThemeMode()
   const [items, setItems] = useState<WorldClockItem[]>(() => readWorldClockItems())
   const [highlightId, setHighlightId] = useState<string | null>(null)
+  // Scrubbing: the instant under the pointer on the strips, so every row reads that moment.
+  const [scrubAt, setScrubAt] = useState<number | null>(null)
+  const rowsRef = useRef<HTMLDivElement | null>(null)
+  const itemsRef = useRef(items)
+  itemsRef.current = items
   const [now, setNow] = useState(() => new Date())
   const pageActivity = usePageActivity()
   const [adding, setAdding] = useState(false)
@@ -207,6 +423,41 @@ const WorldClockCard = () => {
     void syncedPreferencesRepo.persistFromLocal()
   }
 
+  const editItem = (id: string, patch: Pick<WorldClockItem, 'alias' | 'workStart' | 'workEnd'>) => {
+    const nextItems = items.map((item) => {
+      if (item.id !== id) return item
+      const next: WorldClockItem = { ...item, ...patch }
+      if (!next.alias) delete next.alias
+      if (next.workStart === undefined) delete next.workStart
+      if (next.workEnd === undefined) delete next.workEnd
+      return next
+    })
+    if (JSON.stringify(nextItems) === JSON.stringify(items)) return
+    writeWorldClockItems(nextItems)
+    setItems(nextItems)
+    void syncedPreferencesRepo.persistFromLocal()
+  }
+
+  // Order is kept once the drag ends (the live order is only state while dragging).
+  const persistOrder = () => {
+    writeWorldClockItems(itemsRef.current)
+    void syncedPreferencesRepo.persistFromLocal()
+  }
+
+  const scrubFrom = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === 'mouse' && event.buttons !== 0) return
+    const strip = rowsRef.current?.querySelector('.wc-strip')
+    if (!strip) return
+    // On-screen geometry: the shell is zoomed, so measure, don't use layout widths.
+    const rect = strip.getBoundingClientRect()
+    if (rect.width <= 0 || event.clientX < rect.left || event.clientX > rect.right) {
+      setScrubAt(null)
+      return
+    }
+    const fraction = (event.clientX - rect.left) / rect.width
+    setScrubAt(axisStart + Math.round((fraction * 86400000) / 300000) * 300000)
+  }
+
   const locale = language === 'zh' ? 'zh-CN' : 'en-US'
   const homeTimeZone = useMemo(() => {
     try { return Intl.DateTimeFormat().resolvedOptions().timeZone } catch { return 'UTC' }
@@ -274,99 +525,59 @@ const WorldClockCard = () => {
           <span className="wc-axis__caption">{t('worldClock.axisLocal')}</span>
           {[6, 12, 18]
             // The now label wins where they'd overlap.
-            .filter((h) => Math.abs(h / 24 - (now.getTime() - axisStart) / 86400000) > 0.075)
+            .filter((h) => Math.abs(h / 24 - ((scrubAt ?? now.getTime()) - axisStart) / 86400000) > 0.075)
             .map((h) => (
               <span key={h} className="wc-axis__tick" style={{ left: `${(h / 24) * 100}%` }}>{h}</span>
             ))}
-          <span className="wc-axis__now" style={{ left: `${((now.getTime() - axisStart) / 86400000) * 100}%` }}>{nowLabel}</span>
+          <span
+            className={cn('wc-axis__now', scrubAt != null && 'is-scrubbing')}
+            style={{ left: `${(((scrubAt ?? now.getTime()) - axisStart) / 86400000) * 100}%` }}
+          >
+            {scrubAt != null
+              ? getFormatter(language === 'zh' ? 'zh-CN' : 'en-US', homeTimeZone, { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(scrubAt))
+              : nowLabel}
+          </span>
         </div>
       ) : null}
-      <div className="wc-rows">
+      <motion.div
+        layoutScroll
+        className="wc-rows"
+        ref={rowsRef}
+        onPointerMove={scrubFrom}
+        onPointerLeave={() => setScrubAt(null)}
+        title={items.length > 0 && scrubAt == null ? t('worldClock.scrubHint') : undefined}
+      >
         {items.length === 0 && !adding && (
           <div className="wc-empty">
             <span>{t('worldClock.empty')}</span>
           </div>
         )}
 
-        <AnimatePresence initial={false}>
-          {items.map((item) => {
-            const fraction = getZoneHourFraction(item.timeZone, now)
-            const phase = phaseAt(sunElevation(now, item.latitude, item.longitude), fraction)
-            const phaseLabel = t(`worldClock.phase.${phase}` as const)
-
-            const time = getFormatter(locale, item.timeZone, {
-              hour: '2-digit', minute: '2-digit', hour12: false,
-            }).format(now)
-            const [hh, mm] = time.split(':')
-
-            const weekday = getFormatter(locale, item.timeZone, {
-              weekday: 'short',
-            }).format(now)
-
-            const isHome = item.timeZone === homeTimeZone
-            const offsetMin = isHome ? 0 : getZoneOffsetMinutes(item.timeZone, now) - homeOffsetMin
-            const offsetH = offsetMin / 60
-            const offsetLabel = isHome
-              ? t('worldClock.home')
-              : offsetMin === 0
-                ? t('worldClock.offsetSame')
-                : offsetMin > 0
-                  ? t('worldClock.offsetAhead', { h: Number.isInteger(offsetH) ? offsetH : offsetH.toFixed(1) })
-                  : t('worldClock.offsetBehind', { h: Number.isInteger(-offsetH) ? -offsetH : (-offsetH).toFixed(1) })
-
-            return (
-              <motion.div
+        <Reorder.Group as="div" axis="y" values={items} onReorder={setItems} className="wc-rows__list">
+          <AnimatePresence initial={false}>
+            {items.map((item) => (
+              <WorldClockRow
                 key={item.id}
-                layout
-                initial={{ opacity: 0, height: 0, y: -4 }}
-                animate={{ opacity: 1, height: 'auto', y: 0 }}
-                exit={{ opacity: 0, height: 0, x: 8 }}
-                transition={{ type: 'spring', stiffness: 360, damping: 32, mass: 0.6 }}
-                className={cn('wc-row', `wc-row--${phase}`, isHome && 'wc-row--home')}
-                onMouseEnter={() => setHighlightId(item.id)}
-                onMouseLeave={() => setHighlightId((current) => (current === item.id ? null : current))}
-              >
-                <div className="wc-row__main">
-                  <div className="wc-row__head">
-                    {isHome && <span className="wc-row__home-dot" aria-hidden />}
-                    <span className="wc-row__city" title={item.label}>{item.label.split(',')[0].trim()}</span>
-                  </div>
-                  <div className="wc-row__meta">
-                    <span className="wc-row__weekday">{weekday}</span>
-                    <span className="wc-row__sep" aria-hidden>·</span>
-                    <span className="wc-row__phase">{phaseLabel}</span>
-                    <span className="wc-row__sep" aria-hidden>·</span>
-                    <span className="wc-row__offset">{offsetLabel}</span>
-                  </div>
-                </div>
-                <div className="wc-row__tail">
-                  <span className="wc-row__time" aria-label={time}>
-                    <span className="wc-row__time-h">{hh}</span>
-                    <span className="wc-row__time-colon">:</span>
-                    <span className="wc-row__time-m" key={mm}>{mm}</span>
-                  </span>
-                  <button
-                    type="button"
-                    className="wc-row__remove"
-                    onClick={() => removeItem(item.id)}
-                    aria-label={t('worldClock.removeAria', { label: item.label })}
-                  >
-                    <X size={11} />
-                  </button>
-                </div>
-                <DaylightStrip
-                  latitude={item.latitude}
-                  longitude={item.longitude}
-                  offsetMinutes={getZoneOffsetMinutes(item.timeZone, now)}
-                  axisStart={axisStart}
-                  now={now.getTime()}
-                />
-              </motion.div>
-            )
-          })}
-        </AnimatePresence>
+                item={item}
+                at={scrubAt != null ? new Date(scrubAt) : now}
+                now={now}
+                scrubbing={scrubAt != null}
+                axisStart={axisStart}
+                locale={locale}
+                language={language}
+                homeTimeZone={homeTimeZone}
+                homeOffsetMin={homeOffsetMin}
+                t={t}
+                onHighlight={(id) => setHighlightId((current) => (id ?? (current === item.id ? null : current)))}
+                onRemove={removeItem}
+                onEdit={editItem}
+                onDragEnd={persistOrder}
+              />
+            ))}
+          </AnimatePresence>
+        </Reorder.Group>
 
-      </div>
+      </motion.div>
 
       <AnimatePresence initial={false} mode="wait">
         {adding ? (
