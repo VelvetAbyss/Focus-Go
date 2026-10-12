@@ -11712,6 +11712,17 @@ textarea:focus-visible,
   text-overflow: ellipsis;
 }
 
+/* A timed event's start, and the same moment in the world clock's other city. */
+.calendar-side-row__time {
+  flex-shrink: 0;
+  margin-left: auto;
+  padding-left: 8px;
+  font-size: var(--fs-meta);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
 /* A trip in the day's list opens the trip. */
 .calendar-side-row__link {
   color: inherit;

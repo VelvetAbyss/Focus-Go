@@ -23,6 +23,8 @@ export type CalendarEvent = {
   title: string
   dateKey: string
   timeLabel?: string
+  /** A timed event's start (absent for all-day ones), so it can be read in another time zone. */
+  startAt?: number
   kind: CalendarEventKind
 }
 

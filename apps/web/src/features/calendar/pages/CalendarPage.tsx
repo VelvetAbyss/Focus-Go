@@ -47,6 +47,8 @@ import { peopleRepo } from '../../../data/repositories/peopleRepo'
 import { tripsRepo } from '../../../data/repositories/tripsRepo'
 import type { LifePerson, TripRecord } from '../../../data/models/types'
 import { Link } from 'react-router-dom'
+import { readWorldClockItems } from '../../../shared/prefs/preferences'
+import { pickSecondZone, secondZoneLabel } from '../secondZone'
 import { buildTripDetailRoute } from '../../../app/routes/routes'
 import { emitTasksChanged, subscribeTasksChanged } from '../../tasks/taskSync'
 import { useTaskDeletion } from '../../tasks/application/useTaskDeletion'
@@ -686,6 +688,12 @@ const CalendarPage = () => {
   )
 
   const selectedDayEvents = useMemo(() => sortedEventsByDate.get(selectedDateKey) ?? [], [sortedEventsByDate, selectedDateKey])
+  // A timed event also reads in the world clock's first other city, for calls across time zones.
+  const homeTimeZone = useMemo(() => {
+    try { return Intl.DateTimeFormat().resolvedOptions().timeZone } catch { return 'UTC' }
+  }, [])
+  const secondZone = useMemo(() => pickSecondZone(readWorldClockItems(), homeTimeZone), [homeTimeZone])
+  const intlLocale = language === 'zh' ? 'zh-CN' : 'en-US'
   const subscriptionColorById = useMemo(() => {
     const map = new Map(subscriptions.map((subscription) => [subscription.id, subscription.color]))
     map.set('system-birthdays', '#fb7185')
@@ -1189,6 +1197,12 @@ const CalendarPage = () => {
                   ) : (
                     <span className={`calendar-side-row__text${hasCjk(eventTitle) ? ' is-cjk' : ''}`}>{eventTitle}</span>
                   )}
+                  {event.startAt ? (
+                    <span className="calendar-side-row__time">
+                      {new Intl.DateTimeFormat(intlLocale, { hour: '2-digit', minute: '2-digit', hour12: false }).format(event.startAt)}
+                      {secondZone ? ` · ${secondZoneLabel(event.startAt, secondZone, homeTimeZone, intlLocale)}` : ''}
+                    </span>
+                  ) : null}
                 </li>
               )
             })}
