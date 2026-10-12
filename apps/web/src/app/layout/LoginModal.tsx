@@ -9,6 +9,8 @@ import { useI18n } from '../../shared/i18n/useI18n'
 
 type LoginModalProps = {
   onClose: () => void
+  /** Opened because the session expired: say so, and that nothing local was lost. */
+  reason?: 'expired'
 }
 
 type Mode = 'login' | 'signup'
@@ -17,7 +19,7 @@ const looksLikeEmail = (value: string) => /\S+@\S+\.\S+/.test(value)
 
 const REMEMBER_KEY = 'fg_remembered_account'
 
-const LoginModal = ({ onClose }: LoginModalProps) => {
+const LoginModal = ({ onClose, reason }: LoginModalProps) => {
   const { language } = useI18n()
   const [mode, setMode] = useState<Mode>('login')
   const [account, setAccount] = useState(() => localStorage.getItem(REMEMBER_KEY) ?? '')
@@ -37,10 +39,12 @@ const LoginModal = ({ onClose }: LoginModalProps) => {
 
   const copy = {
     eyebrow: 'Focus&go',
-    title: language === 'zh' ? '登录你的账号' : 'Sign in to your account',
-    subtitle: language === 'zh'
-      ? '使用邮箱、用户名或 Google 继续。'
-      : 'Continue with email, username, or Google.',
+    title: reason === 'expired'
+      ? (language === 'zh' ? '登录已过期' : 'Your session expired')
+      : (language === 'zh' ? '登录你的账号' : 'Sign in to your account'),
+    subtitle: reason === 'expired'
+      ? (language === 'zh' ? '重新登录后继续同步，这台设备上的数据都还在。' : 'Sign in again to keep syncing. Everything on this device is still here.')
+      : (language === 'zh' ? '使用邮箱、用户名或 Google 继续。' : 'Continue with email, username, or Google.'),
     account: language === 'zh' ? '邮箱或用户名' : 'Email or username',
     email: language === 'zh' ? '邮箱' : 'Email',
     username: language === 'zh' ? '用户名' : 'Username',

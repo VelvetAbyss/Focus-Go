@@ -43,9 +43,10 @@ There is no account-free mode today: the per-device local/cloud switch (`storage
   skips the gate (`isLocalhostRuntime`); the macOS app's `tauri://localhost` does not count.
 - Once signed in, the app works offline: a start without network keeps the last session and checks
   again when the network returns (`authBootstrap`, `probeAuthProfile`). Only a 401/403 signs out.
-- Signing out clears local data. AppShell's guard also clears it when no one is signed in, but only
-  data bound to an account (`LOCAL_ACCOUNT_OWNER_KEY`); unowned data stays and joins the account at
-  the first sign-in.
+- Only signing out on purpose (the account menu) clears local data. An expired or revoked session
+  keeps it and asks for sign-in again (`AuthGateProvider`, LoginModal `reason="expired"`), so
+  offline edits survive; signing in as a different account is refused while this one's data is
+  here (`accountOwnership`). Data written before any sign-in joins the account at the first one.
 
 ## Build / run
 - Web: `npm run dev:web`, `npm run build:web` (from repo root).
