@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Check, LayoutGrid, Plus, RefreshCw } from 'lucide-react'
 import { useI18n } from '../../shared/i18n/useI18n'
 import { useToday } from '../../shared/hooks/useToday'
@@ -11,6 +11,7 @@ import PremiumMark from '../premium/PremiumMark'
 import '../life/life.css'
 import './header/dashboard-header.css'
 import ActiveIndicator from '../../shared/motion/ActiveIndicator'
+import DeskProps from './desk/DeskProps'
 
 export type DashboardPage = 'main' | 'life' | 'news' | 'custom'
 
@@ -68,6 +69,7 @@ const DashboardHeader = ({
   onSetPage,
 }: DashboardHeaderProps) => {
   const { language, t } = useI18n()
+  const headerRef = useRef<HTMLElement | null>(null)
   const today = useToday()
   const dayKey = dayKeyOf(today)
   const zh = language === 'zh'
@@ -101,7 +103,7 @@ const DashboardHeader = ({
   // its epigraph), then a ruled toolbar to operate: the views as tabs on the
   // left, the layout actions on the right (DESIGN.md › Dashboard header).
   return (
-    <header className="app-shell__header dash-header">
+    <header ref={headerRef} className="app-shell__header dash-header">
       <div className="dash-hero">
         <div className="dash-hero__day">
           <time className="dash-hero__date" dateTime={dayKey}>
@@ -245,6 +247,7 @@ const DashboardHeader = ({
           </div>
         ) : null}
       </div>
+      <DeskProps headerRef={headerRef} />
     </header>
   )
 }

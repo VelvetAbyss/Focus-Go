@@ -7,6 +7,9 @@ import { isMotionReduced, type SceneFactory, type SurfaceHandle, type SurfaceOpt
  * when motion is reduced, and a full teardown (including the GL context) on
  * dispose. Only lazily loaded scene modules import this file.
  */
+/** Seconds a frame may come early and still count (a quarter of a 60 Hz frame). */
+const FRAME_SLACK = 0.004
+
 export function runSurface<P>(
   canvas: HTMLCanvasElement,
   factory: SceneFactory<P>,
@@ -31,9 +34,21 @@ export function runSurface<P>(
   renderer.setSize(width, height, false)
 
   const still = isMotionReduced()
+  // Bound below, once the loops exist; a scene may only call it after setup.
+  let invalidate = () => {}
   let scene: SurfaceScene<P>
   try {
-    scene = factory({ renderer, width, height, dpr, still }, params)
+    scene = factory({
+      renderer,
+      width,
+      height,
+      dpr,
+      still,
+      invalidate: () => invalidate(),
+      setFps: (next) => {
+        fps = Math.max(1, next)
+      },
+    }, params)
   } catch (error) {
     renderer.dispose()
     renderer.forceContextLoss()
@@ -76,12 +91,19 @@ export function runSurface<P>(
     if (!raf) raf = requestAnimationFrame(demandLoop)
   }
 
+  invalidate = () => {
+    if (onDemand) requestFrame()
+    else if (still) drawStill()
+  }
+
   const loop = (ts: number) => {
     raf = requestAnimationFrame(loop)
     const delta = last ? Math.min(0.1, (ts - last) / 1000) : 0
     last = ts
     accumulator += delta
-    if (accumulator < 1 / fps) return
+    // A little slack, so a cap that matches (or divides) the display's rate
+    // doesn't skip frames that arrive a hair early.
+    if (accumulator < 1 / fps - FRAME_SLACK) return
     const dt = accumulator
     accumulator = 0
     elapsed += dt

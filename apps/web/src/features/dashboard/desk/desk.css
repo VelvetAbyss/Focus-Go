@@ -1,0 +1,102 @@
+/* The masthead desk (DESIGN.md › Desk): props standing on the toolbar rule,
+   between the date and the quote. Positioned by DeskProps from measurements. */
+
+.dash-desk {
+  position: absolute;
+  top: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.dash-desk__canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+  touch-action: none;
+  opacity: 0;
+  transition: opacity var(--motion-duration-slow) var(--ease-emphasized);
+}
+
+.dash-desk[data-status='ready'] .dash-desk__canvas {
+  opacity: 1;
+}
+
+/* Like "another quote": quiet controls that show when the desk is pointed at. */
+.dash-desk__controls {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  gap: 2px;
+  pointer-events: auto;
+  opacity: 0;
+  transition: opacity var(--motion-duration-fast) var(--ease-standard);
+}
+
+.dash-desk:hover .dash-desk__controls,
+.dash-desk__controls:focus-within {
+  opacity: 1;
+}
+
+.dash-desk__control {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill, 999px);
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+  transition:
+    background-color var(--motion-duration-instant) var(--ease-standard),
+    color var(--motion-duration-instant) var(--ease-standard);
+}
+
+.dash-desk__control:hover {
+  background: var(--paper-sunken);
+  color: var(--ink-1);
+}
+
+/* The lamp on is "now": the pen. */
+.dash-desk__control[aria-pressed='true'] {
+  color: var(--accent);
+}
+
+/* Turning a page is a click on the book; this is its keyboard way in. */
+.dash-desk__control--keyboard:not(:focus-visible) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+@media (hover: none) {
+  .dash-desk__controls {
+    opacity: 1;
+  }
+}
+
+/* The lamp's light over the whole app: above the shell, below dialogs (z 50). */
+.desk-light {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 45;
+}
+
+/* The light's warmth tints paper without washing out the ink on it. */
+.desk-light--multiply {
+  mix-blend-mode: multiply;
+}
+
+.desk-light--screen {
+  mix-blend-mode: screen;
+}

@@ -12,6 +12,14 @@ export type SurfaceContext = {
   dpr: number
   /** True when motion is reduced: the scene should look right as a still. */
   still: boolean
+  /**
+   * Asks for a frame after a change the host doesn't know about, such as a
+   * pointer drag inside the scene. Needed in on-demand and still modes; a
+   * running loop picks the change up on its own.
+   */
+  invalidate: () => void
+  /** Raises or lowers the frame cap, e.g. while the user drags something. */
+  setFps: (fps: number) => void
 }
 
 export type SurfaceScene<P> = {

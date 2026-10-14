@@ -553,6 +553,7 @@ bezier arrays or durations.
 | 2026-10-09 | Completion jar removed; the recap's brief week view gets the week grid instead (direction H of twelve sketched: tally, dot calendar, ledger line, struck-through list, week ruler, two lines, project split, graph paper, week dial, constellation, ink wash, ridgeline). Plain DOM and CSS, no WebGL | The user asked to remove the jar animation and its styling everywhere and wanted a simpler way to show the week's completions. They picked the graph paper; it reuses the pay cards' cell language, so the product has one grid. |
 | 2026-10-09 | Every audio slider becomes one of two shared controls: level bars that dance while the sound plays (volume) and a seek waveform with the pen as playhead (volume from direction 7, seek from direction 5 of eight sketched: ruler ticks, hairline dot, stepped bars, filled pill, waveform, dial with progress ring, dancing bars, wedge). The dead NoiseSlider/NoiseControlPanel are removed | There were four slider implementations, and the focus mixer's could not be used from the keyboard. The user picked the dancing bars. Native inputs underneath keep a11y; transform-only keyframes keep the dance off the main thread (see the perf rule about ambient heat). |
 | 2026-10-09 | Dashboard header becomes a masthead and a toolbar (supersedes the 2026-09-28 layout; the date's type is unchanged): the weekday line moves under the date, the quote moves to the right as an epigraph, and one rule below carries the views as tabs (专注 · 生活 · 资讯, translated; a sliding pen underline) with the layout actions on the right. The duplicate Settings link is gone (direction C of three sketched: tabs under the quote, one dropdown plus a more menu, masthead and toolbar) | One pill held seven kinds of control (tabs, a select, a create button, a mode toggle and a link to app Settings) in mixed English and Chinese, pinned to the top with no shared baseline. Separating the reading part from the operating part follows "serif where you read, sans where you operate" and fills the empty middle. |
+| 2026-10-14 | The masthead gets a desk: a lamp, an open book (or a laptop) and a coffee (or an iced cola) stand on the toolbar rule in a three.js scene, drawn as paper-white solids with ink outlines, seen exactly side on (style A of three sketched: pure ink line, paper model, pen sketch). Switching the lamp on dims the whole app, sidebar included, and its light falls where the shade points. The lamp's hinges can be dragged | The user asked for these props and the light link to focus the task card. They picked the ink line and then the side view, with the book centred under the lamp. They rejected a light pinned to the task card: the light must come out of the shade. The warm light and the bulb's halo are a deliberate exception to "no glows", shown only while the lamp is on. |
 
 ## Ambient environments — 2026-10-08
 
@@ -679,4 +680,36 @@ Two parts, read then operate.
   App settings are not linked from here (the sidebar has them).
 - Below 960px the epigraph drops under the date, left-aligned, and the tabs
   scroll sideways.
+
+## Desk — 2026-10-14
+
+A small still life on the masthead, standing on the toolbar rule between the
+date and the quote. Code: `src/features/dashboard/desk/`.
+
+- **Look.** Seen exactly side on: the rule is the desk's edge. Paper-white
+  solids (`--paper-raised`) with ink outlines (`--ink-1`, 1.5px; details 1px in
+  `--ink-3`/`--ink-4`), no shading. Steam is drawn in pencil (`--pencil-line`):
+  strokes that draw themselves upward and are taken back. Colour appears only
+  in the light.
+- **Props.** An open book (a page turns every so often, or on a click) or a
+  laptop (the lid opens and closes on a click); a coffee or an iced cola (a
+  click on the cup swaps it). Quiet controls in the corner, shown on hover like
+  "another quote", swap the props, switch the lamp and reset its pose.
+- **The lamp.** A click switches it: the bulb flickers on, then the whole app,
+  sidebar included, goes down (28% in light, 50% in dark) except the cone from
+  the shade: about 80° wide, full light until well past the cards, and warm.
+  The warmth is its own layer, multiplied on light paper and screened on dark,
+  so it tints the paper without washing out the ink. Dragging the elbow joint
+  swings the lower arm, the head joint swings the upper arm, and the shade
+  turns on its own; dashed pencil rings show what can be dragged. The light always comes out of the
+  shade. By default it points at the book and the task card under it.
+- **Per device.** The lamp, its pose and the props are a local setting
+  (`focusgo.dashboard.desk`), never synced.
+- **Layering.** The light is two fixed half-resolution 2D canvases above the
+  shell and below dialogs (z 45). They redraw only when the light or the shade
+  moves, or when the page under them scrolls or reflows. The desk itself draws
+  at the display's rate while it is on screen.
+- **Limits.** The desk hides when the masthead gap is too narrow (below about
+  42px per unit, and always below 960px). Reduced motion: no flicker, no
+  steam drift, no automatic page turns; drags still work.
 

@@ -1,0 +1,141 @@
+// The desk lamp's arm, in the scene's side view: world units, y up, the desk
+// surface at y = 0. Three hinges: the shoulder on the base (a1), the elbow
+// between the two arms (a2, relative to the lower arm) and the head (a3,
+// relative to the upper arm). Pure maths, shared by the scene and its tests.
+
+export type LampPose = { a1: number; a2: number; a3: number }
+
+/** What a drag turns: the elbow joint swings the lower arm, the head joint the
+ *  upper arm, and the shade turns on the head. */
+export type LampHandle = 'elbow' | 'head' | 'shade'
+
+export type Point = [number, number]
+
+export const LAMP_RIG = {
+  /** World position of the shoulder hinge on the base. */
+  shoulder: [1.99, 0.11] as Point,
+  lowerArm: 1.45,
+  upperArm: 2.0,
+  /** From the head hinge to the middle of the shade's mouth. */
+  mouth: 0.385,
+  mouthRadius: 0.305,
+  /** The shade leans this far toward the viewer (radians, about its own pitch axis). */
+  tilt: -0.32,
+} as const
+
+/** Lower arm leaning back, upper arm reaching over the book, shade pointing down. */
+export const DEFAULT_POSE: LampPose = { a1: -0.18, a2: 1.86, a3: -1.78 }
+
+/** The elbow can't fold flat or open past straight. */
+const ELBOW_MIN = 0.25
+const ELBOW_MAX = 2.95
+/** The shade can point anywhere from 40° above one horizontal to the other. */
+const SHADE_REACH = 2.3
+
+export type LampFrame = {
+  elbow: Point
+  head: Point
+  mouth: Point
+  /** World angle of the shade's axis: 0 points straight down, positive turns toward +x. */
+  angle: number
+}
+
+export const lampFrame = (pose: LampPose): LampFrame => {
+  const [sx, sy] = LAMP_RIG.shoulder
+  const elbow: Point = [sx - Math.sin(pose.a1) * LAMP_RIG.lowerArm, sy + Math.cos(pose.a1) * LAMP_RIG.lowerArm]
+  const upper = pose.a1 + pose.a2
+  const head: Point = [elbow[0] - Math.sin(upper) * LAMP_RIG.upperArm, elbow[1] + Math.cos(upper) * LAMP_RIG.upperArm]
+  const angle = upper + pose.a3
+  const reach = LAMP_RIG.mouth * Math.cos(LAMP_RIG.tilt)
+  const mouth: Point = [head[0] + Math.sin(angle) * reach, head[1] - Math.cos(angle) * reach]
+  return { elbow, head, mouth, angle }
+}
+
+/** Where the lamp may go: the visible part of the scene (world units). */
+export type LampBounds = { left: number; right: number; top: number }
+
+/** Height of whatever stands on the desk at x (the book, the cup), so the
+ *  shade can't sink into it. */
+export type DeskFloor = (x: number) => number
+
+export const isPoseValid = (pose: LampPose, bounds: LampBounds, floor: DeskFloor): boolean => {
+  if (pose.a2 < ELBOW_MIN || pose.a2 > ELBOW_MAX) return false
+  const { elbow, head, mouth, angle } = lampFrame(pose)
+  const inside = ([x, y]: Point, margin = 0) => x >= bounds.left - margin && x <= bounds.right + margin && y <= bounds.top
+  if (!inside(elbow) || elbow[1] < 0.35) return false
+  if (!inside(head) || head[1] < floor(head[0]) + 0.32) return false
+  // The rim: both ends of the mouth seen side on, and its middle.
+  const rx = Math.cos(angle) * LAMP_RIG.mouthRadius
+  const ry = Math.sin(angle) * LAMP_RIG.mouthRadius
+  const rim: Point[] = [[mouth[0] + rx, mouth[1] + ry], [mouth[0] - rx, mouth[1] - ry], mouth]
+  return rim.every((p) => inside(p, 0.08) && p[1] >= floor(p[0]) + 0.05)
+}
+
+const lerpPose = (a: LampPose, b: LampPose, t: number): LampPose => ({
+  a1: a.a1 + (b.a1 - a.a1) * t,
+  a2: a.a2 + (b.a2 - a.a2) * t,
+  a3: a.a3 + (b.a3 - a.a3) * t,
+})
+
+/**
+ * Moves from a valid pose toward `next` as far as the limits allow, so a drag
+ * slides to a stop against the desk or the edge instead of jumping.
+ */
+export const constrainPose = (from: LampPose, next: LampPose, bounds: LampBounds, floor: DeskFloor): LampPose => {
+  const target = { ...next }
+  const shade = target.a1 + target.a2 + target.a3
+  if (shade > SHADE_REACH) target.a3 = SHADE_REACH - target.a1 - target.a2
+  if (shade < -SHADE_REACH) target.a3 = -SHADE_REACH - target.a1 - target.a2
+  if (isPoseValid(target, bounds, floor)) return target
+  if (!isPoseValid(from, bounds, floor)) return from
+  let lo = 0
+  let hi = 1
+  for (let i = 0; i < 10; i += 1) {
+    const mid = (lo + hi) / 2
+    if (isPoseValid(lerpPose(from, target, mid), bounds, floor)) lo = mid
+    else hi = mid
+  }
+  return lerpPose(from, target, lo)
+}
+
+/** The world angle a handle currently sets. */
+export const handleAngle = (handle: LampHandle, pose: LampPose): number => {
+  if (handle === 'elbow') return pose.a1
+  if (handle === 'head') return pose.a1 + pose.a2
+  return pose.a1 + pose.a2 + pose.a3
+}
+
+/** The world angle that would put a handle under the pointer at (x, y). */
+export const pointerAngle = (handle: LampHandle, pose: LampPose, x: number, y: number): number => {
+  if (handle === 'elbow') {
+    const [sx, sy] = LAMP_RIG.shoulder
+    return Math.atan2(-(x - sx), y - sy)
+  }
+  const { elbow, head } = lampFrame(pose)
+  if (handle === 'head') return Math.atan2(-(x - elbow[0]), y - elbow[1])
+  return Math.atan2(x - head[0], -(y - head[1]))
+}
+
+/** Picks the turn of `angle` closest to `reference`, so a drag never spins a full circle. */
+export const nearestTurn = (angle: number, reference: number): number => {
+  let a = angle
+  while (a - reference > Math.PI) a -= Math.PI * 2
+  while (a - reference < -Math.PI) a += Math.PI * 2
+  return a
+}
+
+/** The pose with one handle turned to a world angle; the joints past it ride along. */
+export const withHandleAngle = (handle: LampHandle, pose: LampPose, angle: number): LampPose => {
+  const turned = nearestTurn(angle, handleAngle(handle, pose))
+  if (handle === 'elbow') return { ...pose, a1: turned }
+  if (handle === 'head') return { ...pose, a2: turned - pose.a1 }
+  return { ...pose, a3: turned - pose.a1 - pose.a2 }
+}
+
+/** A stored pose, or null when it isn't one. */
+export const parsePose = (value: unknown): LampPose | null => {
+  if (!value || typeof value !== 'object') return null
+  const { a1, a2, a3 } = value as Record<string, unknown>
+  const ok = [a1, a2, a3].every((n) => typeof n === 'number' && Number.isFinite(n) && Math.abs(n) < 10)
+  return ok ? { a1: a1 as number, a2: a2 as number, a3: a3 as number } : null
+}
