@@ -42,6 +42,32 @@ describe('Task execution document', () => {
     await waitFor(() => expect(onClose).toHaveBeenCalled())
     expect(onUpdated).toHaveBeenCalledWith(expect.objectContaining({ title: 'Send verified certification reply' }))
   })
+  it('persists edits immediately and keeps the latest edit while a local write is pending', async () => {
+    let finishFirst!: (task: TaskItem) => void
+    mocks.update.mockImplementationOnce(() => new Promise<TaskItem>(resolve => { finishFirst = resolve }))
+    render(<TaskDrawer open task={baseTask} onClose={vi.fn()} onUpdated={vi.fn()} onDeleted={vi.fn()} />)
+    const input = await screen.findByPlaceholderText('tasks.drawer.title')
+    fireEvent.change(input, { target: { value: 'First edit' } })
+    expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({ title: 'First edit' }))
+    fireEvent.change(input, { target: { value: 'Latest edit' } })
+    expect(input).toHaveValue('Latest edit')
+    finishFirst({ ...baseTask, title: 'First edit' })
+    await waitFor(() => expect(mocks.update).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Latest edit' })))
+  })
+  it('keeps direct metadata edits when typing continues during a pending save', async () => {
+    let finishFirst!: (task: TaskItem) => void
+    mocks.update.mockImplementationOnce(() => new Promise<TaskItem>(resolve => { finishFirst = resolve }))
+    const waitingTask: TaskItem = { ...baseTask, status: 'waiting', waitingOn: 'Buyer' }
+    render(<TaskDrawer open task={waitingTask} onClose={vi.fn()} onUpdated={vi.fn()} onDeleted={vi.fn()} />)
+    const title = await screen.findByPlaceholderText('tasks.drawer.title')
+    fireEvent.change(title, { target: { value: 'First edit' } })
+    const waiting = screen.getByLabelText('tasks.drawer.waitingOn')
+    fireEvent.change(waiting, { target: { value: 'Supplier' } })
+    fireEvent.blur(waiting)
+    fireEvent.change(title, { target: { value: 'Latest edit' } })
+    finishFirst({ ...waitingTask, title: 'First edit' })
+    await waitFor(() => expect(mocks.update).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Latest edit', waitingOn: 'Supplier' })))
+  })
   it('labels a waiting task date as follow-up rather than a deadline', async () => {
     render(<TaskDrawer open task={{ ...baseTask, status: 'waiting', waitingOn: 'Buyer confirmation' }} onClose={vi.fn()} onUpdated={vi.fn()} onDeleted={vi.fn()} />)
     expect(await screen.findByText('tasks.workspace.followUp')).toBeInTheDocument()

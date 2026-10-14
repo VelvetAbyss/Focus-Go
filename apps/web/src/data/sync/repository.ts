@@ -1,3 +1,5 @@
+import Dexie from 'dexie'
+import { persistPendingSyncChange } from './pendingChanges'
 import { LOCAL_ACCOUNT_OWNER_KEY } from '../../config/accountOwnership'
 import { db } from '../db'
 import { SYNC_ENTITY_TABLES, SYNC_STATE_ID, SYNC_STATUS_CHANGED_EVENT } from './constants'
@@ -57,12 +59,26 @@ export const syncStateRepo = {
   },
 }
 
-export const enqueueSyncOperation = <T extends SyncEntityType>(
+export const requestSyncHandoff = () => {
+  const flush = () => {
+    void import('./rxdb').then(({ flushPendingSyncChanges }) => flushPendingSyncChanges()).catch((error) => {
+      console.error('[sync] local handoff failed; retained for retry', error)
+    })
+  }
+  const transaction = Dexie.currentTransaction
+  if (transaction) transaction.on('complete', flush)
+  else flush()
+}
+
+export const enqueueSyncOperation = async <T extends SyncEntityType>(
   entityType: T,
   op: SyncOp,
   payload: SyncPayload<T>,
   deletedAt?: number | null,
-) => import('./rxdb').then(({ enqueueRxdbSyncChange }) => enqueueRxdbSyncChange(entityType, op, payload, deletedAt))
+) => {
+  await persistPendingSyncChange(entityType, op, payload, deletedAt)
+  requestSyncHandoff()
+}
 
 export const enqueueSyncOperationInBackground = <T extends SyncEntityType>(
   entityType: T,
@@ -110,12 +126,13 @@ export const restampLocalSnapshotForRestore = async () => {
 
 export const clearLocalUserData = async () => {
   const entityTableObjects = Object.values(SYNC_ENTITY_TABLES).map((name) => db.table(name))
-  await db.transaction('rw', [...entityTableObjects, db.syncState, db.syncBlobCache, db.taskTrash], async () => {
+  await db.transaction('rw', [...entityTableObjects, db.syncState, db.syncBlobCache, db.taskTrash, db.pendingSyncChanges], async () => {
     for (const tableName of Object.values(SYNC_ENTITY_TABLES)) {
       await db.table(tableName).clear()
     }
     await db.syncState.clear()
     await db.syncBlobCache.clear()
+    await db.pendingSyncChanges.clear()
     // Deleted tasks belong to the account too.
     await db.taskTrash.clear()
   })

@@ -1,5 +1,5 @@
 export const DB_NAME = 'workbench-app'
-export const DB_VERSION = 46
+export const DB_VERSION = 47
 
 export const TABLES = {
   tasks: 'tasks',
@@ -25,6 +25,7 @@ export const TABLES = {
   syncState: 'sync_state',
   syncBlobCache: 'sync_blob_cache',
   syncConflicts: 'sync_conflicts',
+  pendingSyncChanges: 'pending_sync_changes',
   books: 'books',
   stocks: 'stocks',
   media: 'media',
@@ -265,4 +266,10 @@ export const schemaV45 = {
 export const schemaV46 = {
   ...schemaV45,
   [TABLES.taskTrash]: 'id, deletedAt',
+} as const
+
+// Durable local handoff; replication never holds up local writes.
+export const schemaV47 = {
+  ...schemaV46,
+  [TABLES.pendingSyncChanges]: '++id, [entityType+entityId]',
 } as const

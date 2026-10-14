@@ -671,8 +671,9 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
         },
       ]
       let event: DomainEvent | undefined
-      await db.transaction('rw', db.tasks, db.domainEvents, async () => {
+      await db.transaction('rw', db.tasks, db.domainEvents, db.pendingSyncChanges, async () => {
         await db.tasks.add(task)
+        await enqueueUpsert('tasks', task)
         event = await publishDomainEvent({
           type: 'task.created',
           occurredAt: task.createdAt,
@@ -687,7 +688,6 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
           dedupeKey: `task.created:${task.id}`,
         })
       })
-      enqueueUpsertInBackground('tasks', task)
       finalizeDomainEventInBackground(event)
       return task
     },
@@ -699,16 +699,20 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
         ...normalized,
         activityLogs: subtaskLogs.length > 0 ? [...normalized.activityLogs, ...subtaskLogs] : normalized.activityLogs,
       })
-      await db.tasks.put(next)
-      await enqueueUpsert('tasks', next)
+      await db.transaction('rw', db.tasks, db.pendingSyncChanges, async () => {
+        await db.tasks.put(next)
+        await enqueueUpsert('tasks', next)
+      })
       return next
     },
     async remove(id) {
       const existing = await db.tasks.get(id)
       if (!existing) return
       const deletedAt = Date.now()
-      await db.tasks.delete(id)
-      await enqueueDelete('tasks', { id, updatedAt: deletedAt, title: existing.title }, deletedAt)
+      await db.transaction('rw', db.tasks, db.pendingSyncChanges, async () => {
+        await db.tasks.delete(id)
+        await enqueueDelete('tasks', { id, updatedAt: deletedAt, title: existing.title }, deletedAt)
+      })
     },
     async updateStatus(id, status) {
       const task = await db.tasks.get(id)
@@ -730,8 +734,9 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
         ],
       })
       let event: DomainEvent | undefined
-      await db.transaction('rw', db.tasks, db.domainEvents, async () => {
+      await db.transaction('rw', db.tasks, db.domainEvents, db.pendingSyncChanges, async () => {
         await db.tasks.put(next)
+        await enqueueUpsert('tasks', next)
         if (status === 'done') {
           event = await publishDomainEvent({
             type: 'task.completed',
@@ -748,8 +753,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
           })
         }
       })
-      await enqueueUpsert('tasks', next)
-      await finalizeDomainEvent(event)
+      finalizeDomainEventInBackground(event)
       return next
     },
     async clearAllTags() {
@@ -757,8 +761,10 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
       const tagged = tasks.map((task) => normalizeTask(task)).filter((task) => task.tags.length > 0)
       if (tagged.length === 0) return
       const nextRows = tagged.map((task) => touch({ ...task, tags: [] }))
-      await db.tasks.bulkPut(nextRows)
-      await Promise.all(nextRows.map((row) => enqueueUpsert('tasks', row)))
+      await db.transaction('rw', db.tasks, db.pendingSyncChanges, async () => {
+        await db.tasks.bulkPut(nextRows)
+        await Promise.all(nextRows.map((row) => enqueueUpsert('tasks', row)))
+      })
     },
   },
   notes: {
