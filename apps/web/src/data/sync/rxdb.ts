@@ -1,3 +1,4 @@
+import { drainPendingSyncChanges, hasPendingSyncChange } from './pendingChanges'
 import { createRxDatabase, removeRxDatabase, type RxCollection } from 'rxdb'
 import { replicateRxCollection } from 'rxdb/plugins/replication'
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie'
@@ -215,10 +216,12 @@ const withCollection = async <T>(entityType: SyncEntityType, task: (collection: 
   }
 }
 
-const writeDexieEntity = async (entityType: SyncEntityType, document: SyncDocument, expectedLocal?: SyncDocument) => {
+const writeDexieEntityUnprotected = async (entityType: SyncEntityType, document: SyncDocument, expectedLocal?: SyncDocument) => {
   if (rxdbResetRequested) return false
   const normalized = normalizeSyncDocument(entityType, document, 'pull')
   if (rxdbResetRequested) return false
+  // A local edit/delete committed while this network cycle was in flight wins.
+  if (await hasPendingSyncChange(entityType, normalized.id)) return false
   const tableName = SYNC_ENTITY_TABLES[entityType]
   const table = db.table(tableName)
   if (expectedLocal) {
@@ -255,6 +258,12 @@ const writeDexieEntity = async (entityType: SyncEntityType, document: SyncDocume
     return true
   }
 }
+
+// Serialize the pending-check and remote apply against local task transactions.
+const writeDexieEntity = (entityType: SyncEntityType, document: SyncDocument, expectedLocal?: SyncDocument) =>
+  entityType === 'tasks'
+    ? db.transaction('rw', db.tasks, db.pendingSyncChanges, () => writeDexieEntityUnprotected(entityType, document, expectedLocal))
+    : writeDexieEntityUnprotected(entityType, document, expectedLocal)
 
 const seedCollectionFromDexie = async (entityType: SyncEntityType, collection: RxCollection<SyncDocument>) => {
   const rows = await db.table(SYNC_ENTITY_TABLES[entityType]).toArray()
@@ -440,6 +449,22 @@ const syncEntity = async (entityType: SyncEntityType) =>
     }
   })
 
+const handoffPendingSyncChanges = async () => {
+  await drainPendingSyncChanges(async ({ entityType, op, payload, deletedAt }) => {
+    await withCollection(entityType, async (collection) => {
+      const timestamp = deletedAt ?? payload.updatedAt
+      await collection.upsert({
+        ...payload,
+        updatedAt: timestamp,
+        deletedAt: op === 'delete' ? timestamp : undefined,
+        _deleted: op === 'delete',
+      })
+    })
+  })
+}
+
+export const flushPendingSyncChanges = () => runQueued(handoffPendingSyncChanges)
+
 export const ensureRxdbSyncReady = async () =>
   runQueued(async () => {
     await ensureSyncStateReady()
@@ -448,6 +473,7 @@ export const ensureRxdbSyncReady = async () =>
 
 export const runRxdbSyncCycle = async () =>
   runQueued(async () => {
+    await handoffPendingSyncChanges()
     await ensureSyncStateReady()
     syncValidationErrors = []
 
@@ -533,6 +559,7 @@ export const reseedRxdbFromSnapshot = async (snapshot: { [K in SyncEntityType]: 
   runQueued(async () => {
     requestRxdbSyncReset()
     try {
+      await db.pendingSyncChanges.clear()
       await resetRxdbStorageDatabases()
     } finally {
       rxdbResetRequested = false
