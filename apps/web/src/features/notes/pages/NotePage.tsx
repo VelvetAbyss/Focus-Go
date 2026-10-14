@@ -10,6 +10,7 @@ import { projectsRepo } from '../../../data/repositories/projectsRepo'
 import { taskNoteLinksRepo } from '../../../data/repositories/taskNoteLinksRepo'
 import { tasksRepo } from '../../../data/repositories/tasksRepo'
 import { createTask } from '../../tasks/application/taskActions'
+import type { NoteTaskIntent } from '../model/noteCommands'
 import { emitTasksChanged } from '../../tasks/taskSync'
 import { db } from '../../../data/db'
 import AppearanceModal from '../components/AppearanceModal'
@@ -62,7 +63,7 @@ const DEFAULT_TAGS: Array<Pick<NoteTag, 'name' | 'icon' | 'pinned' | 'sortOrder'
 ]
 
 type NotePanel = 'info' | 'appearance' | 'import' | 'export' | null
-type NoteTaskDraft = { noteId: string; title: string; projectId: string }
+type NoteTaskDraft = { noteId: string; title: string; projectId: string; intent: NoteTaskIntent; waitingOn: string; reminderLocal: string }
 
 const IMPORTED_TAG_NAME = 'Imported'
 
@@ -567,10 +568,10 @@ export default function NotePage() {
     setSearch('')
   }
 
-  const openTaskDraft = (suggestedTitle: string) => {
+  const openTaskDraft = (suggestedTitle: string, intent: NoteTaskIntent = 'task') => {
     if (!activeNote || activeCollection === 'trash') return
     const projectId = activeNote.tags.find((tag) => tag.startsWith('project:'))?.slice('project:'.length) ?? ''
-    setTaskDraft({ noteId: activeNote.id, title: suggestedTitle, projectId })
+    setTaskDraft({ noteId: activeNote.id, title: suggestedTitle, projectId, intent, waitingOn: '', reminderLocal: '' })
     void projectsRepo.list()
       .then((items) => setTaskProjectOptions(items.filter((item) => item.status !== 'archived')))
       .catch(() => setTaskProjectOptions([]))
@@ -579,12 +580,17 @@ export default function NotePage() {
   const handleCreateTaskFromNote = async () => {
     const draft = taskDraft
     if (!draft?.title.trim() || isCreatingTask) return
+    if (draft.intent === 'waiting' && !draft.waitingOn.trim()) return
+    const reminderAt = draft.intent === 'reminder' ? new Date(draft.reminderLocal).getTime() : undefined
+    if (draft.intent === 'reminder' && (!Number.isFinite(reminderAt) || reminderAt! <= Date.now())) return
     setIsCreatingTask(true)
     try {
       await flushPendingSave()
       const created = await createTask({
         title: draft.title.trim(),
         projectId: draft.projectId || undefined,
+        ...(draft.intent === 'waiting' ? { status: 'waiting' as const, waitingOn: draft.waitingOn.trim() } : {}),
+        ...(draft.intent === 'reminder' ? { reminderAt } : {}),
       })
       try {
         await taskNoteLinksRepo.linkExistingNote(created.id, draft.noteId)
@@ -1087,7 +1093,9 @@ export default function NotePage() {
       setOpenPanel(null)
     }
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpenPanel(null)
+      if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing || event.keyCode === 229) return
+      if (event.target instanceof Element && event.target.closest('[role="dialog"]')) return
+      setOpenPanel(null)
     }
     document.addEventListener('mousedown', onPointerDown)
     document.addEventListener('keydown', onKeyDown)
@@ -1100,7 +1108,9 @@ export default function NotePage() {
   useEffect(() => {
     if (!isFullscreen) return
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsFullscreen(false)
+      if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing || event.keyCode === 229) return
+      if (event.target instanceof Element && event.target.closest('[role="dialog"]')) return
+      setIsFullscreen(false)
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
@@ -1176,6 +1186,7 @@ export default function NotePage() {
                       onImport={() => setOpenPanel((current) => (current === 'import' ? null : 'import'))}
                       onExport={() => setOpenPanel((current) => (current === 'export' ? null : 'export'))}
                       onCreateTask={activeCollection === 'trash' ? undefined : openTaskDraft}
+                      taskDialogOpen={Boolean(taskDraft)}
                       onChange={handleUpdateNote}
                       autoFocus={focusNoteId === activeNote.id}
                       onReturn={returnPath ? async () => {
@@ -1260,7 +1271,12 @@ export default function NotePage() {
         panelClassName="note-task-dialog"
       >
         {taskDraft ? (
-          <form className="note-task-dialog__form" onSubmit={(event) => { event.preventDefault(); void handleCreateTaskFromNote() }}>
+          <form className="note-task-dialog__form" onKeyDown={(event) => {
+            if (event.key === 'Enter' && (event.nativeEvent.isComposing || event.keyCode === 229)) {
+              event.preventDefault()
+              event.stopPropagation()
+            }
+          }} onSubmit={(event) => { event.preventDefault(); void handleCreateTaskFromNote() }}>
             <label className="note-task-dialog__field">
               <span>{t('notes.taskTitle')}</span>
               <input
@@ -1271,6 +1287,18 @@ export default function NotePage() {
                 onChange={(event) => setTaskDraft((current) => current ? { ...current, title: event.target.value } : current)}
               />
             </label>
+            {taskDraft.intent === 'waiting' ? <label className="note-task-dialog__field">
+              <span>{t('tasks.drawer.waitingOn')}</span>
+              <input required maxLength={180} value={taskDraft.waitingOn}
+                placeholder={t('tasks.drawer.waitingOnPlaceholder')}
+                onChange={(event) => setTaskDraft((current) => current ? { ...current, waitingOn: event.target.value } : current)} />
+            </label> : null}
+            {taskDraft.intent === 'reminder' ? <label className="note-task-dialog__field">
+              <span>{t('tasks.drawer.reminder')}</span>
+              <input required type="datetime-local" value={taskDraft.reminderLocal}
+                min={new Date(Date.now() - new Date().getTimezoneOffset() * 60_000 + 60_000).toISOString().slice(0, 16)}
+                onChange={(event) => setTaskDraft((current) => current ? { ...current, reminderLocal: event.target.value } : current)} />
+            </label> : null}
             <label className="note-task-dialog__field">
               <span>{t('notes.taskProject')}</span>
               <select

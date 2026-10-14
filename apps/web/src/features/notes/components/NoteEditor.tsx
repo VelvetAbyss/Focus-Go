@@ -13,9 +13,10 @@ import { TextAlign } from '@tiptap/extension-text-align'
 import { Typography } from '@tiptap/extension-typography'
 import { StarterKit } from '@tiptap/starter-kit'
 import { EditorContent, EditorContext, useEditor } from '@tiptap/react'
+import { closeHistory } from '@tiptap/pm/history'
 import { ArrowLeft, Download, Expand, FileUp, Info, ListTodo, Minimize2, Palette } from 'lucide-react'
 import type { CSSProperties, ReactNode, RefObject } from 'react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { HorizontalRule } from '@/components/tiptap-node/horizontal-rule-node/horizontal-rule-node-extension'
 import { ImageUploadNode } from '@/components/tiptap-node/image-upload-node/image-upload-node-extension'
 import { getPastedImageFiles } from '../../../shared/util/clipboard'
@@ -44,6 +45,11 @@ import { ensureRichDoc, richDocToMarkdown } from '../model/richTextCodec'
 import { ResizableImage } from '../model/resizableImage'
 import { DiscoveryNewBadge } from '../../../shared/ui/DiscoveryNewBadge'
 import { markDiscoveryNewTargetSeen, type DiscoveryNewTargetId } from '../../../shared/discovery/discoveryNewTargetActions'
+import { matchNoteCommands, NoteCommands, type NoteCommandContext, type NoteCommandId, type NoteTaskIntent } from '../model/noteCommands'
+import { NoteCommandMenu } from './NoteCommandMenu'
+import { NoteSelectionMenu } from './NoteSelectionMenu'
+import { NoteBlockTools } from './NoteBlockTools'
+import { applyNoteBlockType, NoteBlockMovement } from '../model/noteBlocks'
 
 type NoteEditorValue = {
   title: string
@@ -70,7 +76,8 @@ type NoteEditorProps = {
   onImport?: () => void
   onExport?: () => void
   onToggleFullscreen?: () => void
-  onCreateTask?: (suggestedTitle: string) => void
+  onCreateTask?: (suggestedTitle: string, intent?: NoteTaskIntent) => void
+  taskDialogOpen?: boolean
   onReturn?: () => void
   returnLabel?: string
   onChange: (next: NoteEditorValue) => void
@@ -228,6 +235,7 @@ const NoteEditor = ({
   onExport,
   onToggleFullscreen,
   onCreateTask,
+  taskDialogOpen = false,
   onReturn,
   returnLabel,
   onChange,
@@ -257,11 +265,23 @@ const NoteEditor = ({
     return navItems[0]?.id ?? activeHeadingId
   }, [navCollapsed, activeHeadingId, headings, navItems])
   const [tocVersion, setTocVersion] = useState(0)
+  const editorRootRef = useRef<HTMLDivElement | null>(null)
+  const commandMenuId = useId()
+  const [commandContext, setCommandContext] = useState<NoteCommandContext | null>(null)
+  const [commandIndex, setCommandIndex] = useState(0)
+  const commandIndexRef = useRef(0)
+  const commandHandlersRef = useRef<{
+    choose: (id: NoteCommandId, context: NoteCommandContext) => void
+    key: (event: KeyboardEvent, context: NoteCommandContext) => boolean
+  }>({ choose: () => {}, key: () => false })
+  const returnSelectionRef = useRef<{ from: number; to: number } | null>(null)
+  const wasTaskDialogOpenRef = useRef(false)
+  const localEditRevisionRef = useRef(0)
+  const deferredExternalRef = useRef<{ doc: JSONContent; key: string; revision: number; dirty: boolean } | null>(null)
   const scrollSyncFrameRef = useRef<number | null>(null)
   const emitTimerRef = useRef<number | null>(null)
   const tocTimerRef = useRef<number | null>(null)
   const pendingDocRef = useRef<JSONContent | null | undefined>(undefined)
-  const shouldSkipSyncRef = useRef(false)
   const lastEditorDocRef = useRef(serializeDoc(initialDoc))
   const lastAppliedExternalDocRef = useRef(serializeDoc(initialDoc))
   const changeMetaRef = useRef({ onChange, tags: value.tags })
@@ -338,6 +358,7 @@ const NoteEditor = ({
     immediatelyRender: false,
     extensions: [
       StarterKit.configure({
+        undoRedo: { newGroupDelay: 500 },
         horizontalRule: false,
         link: {
           openOnClick: false,
@@ -355,6 +376,16 @@ const NoteEditor = ({
       Superscript,
       Subscript,
       Selection,
+      NoteBlockMovement,
+      NoteCommands.configure({
+        onContext: (context) => setCommandContext((previous) => {
+          if (previous?.from === context?.from && previous?.to === context?.to && previous?.query === context?.query) return previous
+          commandIndexRef.current = 0
+          setCommandIndex(0)
+          return context
+        }),
+        onKey: (event, context) => commandHandlersRef.current.key(event, context),
+      }),
       Table.configure({
         resizable: false,
       }),
@@ -372,6 +403,22 @@ const NoteEditor = ({
     editorProps: {
       attributes: {
         class: 'note-editor__body simple-editor',
+        role: 'textbox',
+        'aria-multiline': 'true',
+        'aria-label': t('notes.editorPlaceholder'),
+      },
+      handleKeyDown: (view, event) => {
+        if (view.composing || event.isComposing || event.keyCode === 229 || event.altKey) return false
+        if (!(event.metaKey || event.ctrlKey)) return false
+        const key = event.key.toLowerCase()
+        if (key !== 'z' && key !== 'y') return false
+        // Explicitly own history keys in this editor, including browsers whose
+        // platform detection disagrees with the physical modifier key.
+        event.preventDefault()
+        event.stopPropagation()
+        if (key === 'y' || event.shiftKey) editor?.commands.redo()
+        else editor?.commands.undo()
+        return true
       },
       clipboardTextSerializer: (slice) => normalizeClipboardText(slice.content.textBetween(0, slice.content.size, '\n', '\n')),
       handlePaste: (_view, event) => {
@@ -413,8 +460,9 @@ const NoteEditor = ({
     },
     content: initialDoc,
     onUpdate: ({ editor }) => {
-      shouldSkipSyncRef.current = true
+      localEditRevisionRef.current += 1
       const nextDoc = editor.getJSON()
+      lastEditorDocRef.current = serializeDoc(nextDoc)
       scheduleEmitChange(nextDoc)
       scheduleTocRefresh()
     },
@@ -428,9 +476,9 @@ const NoteEditor = ({
     if (!editor) return
     const nextDoc = ensureRichDoc(value.contentJson, value.contentMd)
     const nextDocKey = serializeDoc(nextDoc)
-    if (shouldSkipSyncRef.current) {
-      shouldSkipSyncRef.current = false
+    if (nextDocKey === serializeDoc(editor.getJSON())) {
       lastAppliedExternalDocRef.current = nextDocKey
+      deferredExternalRef.current = null
       return
     }
     if (nextDocKey === lastAppliedExternalDocRef.current) return
@@ -440,13 +488,147 @@ const NoteEditor = ({
     }
     const composing = Boolean(editor.view?.composing)
     const focused = editor.isFocused ?? document.activeElement === editor.view?.dom
-    if (focused && (composing || pendingDocRef.current !== undefined)) return
+    if (focused || composing || pendingDocRef.current !== undefined) {
+      deferredExternalRef.current = { doc: nextDoc, key: nextDocKey, revision: localEditRevisionRef.current, dirty: pendingDocRef.current !== undefined }
+      return
+    }
     flushEmitChange()
     editor.commands.setContent(nextDoc, { emitUpdate: false })
     lastEditorDocRef.current = nextDocKey
     lastAppliedExternalDocRef.current = nextDocKey
     setTocVersion((version) => version + 1)
   }, [editor, flushEmitChange, value.contentJson, value.contentMd])
+
+  useEffect(() => {
+    if (!editor) return
+    let timer: number | undefined
+    const reconcileAfterInput = () => {
+      window.clearTimeout(timer)
+      timer = window.setTimeout(() => {
+        if (editor.isDestroyed || editor.isFocused || editor.view.composing) return
+        const deferred = deferredExternalRef.current
+        flushEmitChange()
+        if (!deferred) return
+        deferredExternalRef.current = null
+        // A remote/parent snapshot must never replace newer local keystrokes.
+        if (deferred.dirty || deferred.revision !== localEditRevisionRef.current) return
+        if (serializeDoc(editor.getJSON()) === deferred.key) return
+        editor.commands.setContent(deferred.doc, { emitUpdate: false })
+        lastEditorDocRef.current = deferred.key
+        lastAppliedExternalDocRef.current = deferred.key
+        setTocVersion((version) => version + 1)
+      }, 60)
+    }
+    editor.on('blur', reconcileAfterInput)
+    editor.view.dom.addEventListener('compositionend', reconcileAfterInput)
+    return () => {
+      window.clearTimeout(timer)
+      editor.off('blur', reconcileAfterInput)
+      editor.view.dom.removeEventListener('compositionend', reconcileAfterInput)
+    }
+  }, [editor, flushEmitChange])
+
+  useEffect(() => {
+    const closed = wasTaskDialogOpenRef.current && !taskDialogOpen
+    wasTaskDialogOpenRef.current = taskDialogOpen
+    if (!closed || !editor || !returnSelectionRef.current) return
+    const selection = returnSelectionRef.current
+    returnSelectionRef.current = null
+    const frame = window.requestAnimationFrame(() => {
+      if (editor.isDestroyed || !editor.view.dom.isConnected) return
+      const size = editor.state.doc.content.size
+      editor.chain().focus().setTextSelection({ from: Math.min(selection.from, size), to: Math.min(selection.to, size) }).run()
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [editor, taskDialogOpen])
+
+  const requestTask = (intent: NoteTaskIntent = 'task') => {
+    if (!editor || !onCreateTask) return
+    const selection = editor.state.selection
+    returnSelectionRef.current = { from: selection.from, to: selection.to }
+    const title = !selection.empty
+      ? editor.state.doc.textBetween(selection.from, selection.to, ' ').replace(/\s+/g, ' ').trim().slice(0, 180)
+      : ''
+    flushEmitChange()
+    onCreateTask(title, intent)
+  }
+  const chooseCommand = (id: NoteCommandId, context: NoteCommandContext) => {
+    if (!editor || editor.view.composing) return
+    editor.view.dispatch(closeHistory(editor.state.tr))
+    const chain = editor.chain().focus().deleteRange({ from: context.from, to: context.to })
+    if (id === 'task' || id === 'waiting' || id === 'reminder') { chain.run(); requestTask(id) }
+    else {
+      // Trigger deletion and conversion must be a single transaction.
+      applyNoteBlockType(chain, id).run()
+    }
+    editor.view.dispatch(closeHistory(editor.state.tr))
+    setCommandContext(null)
+  }
+  commandHandlersRef.current = {
+    choose: chooseCommand,
+    key: (event, context) => {
+      const commands = matchNoteCommands(context.query, Boolean(onCreateTask))
+      if (!commands.length) return false
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault()
+        event.stopPropagation()
+        commandIndexRef.current = (commandIndexRef.current + (event.key === 'ArrowDown' ? 1 : -1) + commands.length) % commands.length
+        setCommandIndex(commandIndexRef.current)
+        return true
+      }
+      if (event.key === 'Enter') {
+        event.preventDefault()
+        event.stopPropagation()
+        chooseCommand(commands[commandIndexRef.current % commands.length].id, context)
+        return true
+      }
+      return false
+    },
+  }
+  const commands = useMemo(() => commandContext ? matchNoteCommands(commandContext.query, Boolean(onCreateTask)) : [], [commandContext, onCreateTask])
+  const [, refreshMenuPosition] = useState(0)
+  useEffect(() => {
+    if (!commandContext) return
+    let frame = 0
+    const refresh = () => {
+      if (frame) return
+      frame = window.requestAnimationFrame(() => {
+        frame = 0
+        refreshMenuPosition((version) => version + 1)
+      })
+    }
+    window.addEventListener('scroll', refresh, true)
+    window.addEventListener('resize', refresh)
+    return () => {
+      window.removeEventListener('scroll', refresh, true)
+      window.removeEventListener('resize', refresh)
+      window.cancelAnimationFrame(frame)
+    }
+  }, [commandContext])
+  useEffect(() => {
+    if (!editor) return
+    const dom = editor.view.dom
+    if (!commandContext) {
+      dom.removeAttribute('aria-controls')
+      dom.removeAttribute('aria-activedescendant')
+      dom.removeAttribute('aria-expanded')
+      return
+    }
+    dom.setAttribute('aria-controls', commandMenuId)
+    dom.setAttribute('aria-expanded', 'true')
+    const active = commands[commandIndex]
+    if (active) dom.setAttribute('aria-activedescendant', `${commandMenuId}-${active.id}`)
+    else dom.removeAttribute('aria-activedescendant')
+  }, [commandContext, commandIndex, commandMenuId, commands, editor])
+  let menuPosition = { left: 0, top: 0 }
+  if (commandContext && editor && editorRootRef.current) {
+    const caret = editor.view.coordsAtPos(commandContext.to)
+    const bounds = editorRootRef.current.getBoundingClientRect()
+    const height = Math.min(360, Math.max(1, commands.length) * 38 + 40)
+    const below = caret.bottom + 6
+    const top = below + height <= window.innerHeight - 8 ? below : Math.max(8, caret.top - height - 6)
+    menuPosition = { left: Math.max(0, Math.min(caret.left - bounds.left, bounds.width - 240)), top: top - bounds.top }
+  }
 
   useEffect(() => {
     if (!editor) return
@@ -509,7 +691,10 @@ const NoteEditor = ({
   }
 
   return (
-    <div className="note-editor">
+    <div className="note-editor" ref={editorRootRef}>
+      {editor ? <><NoteSelectionMenu editor={editor} disabled={taskDialogOpen} /><NoteBlockTools editor={editor} disabled={taskDialogOpen} /></> : null}
+      {commandContext ? <NoteCommandMenu menuId={commandMenuId} commands={commands} activeIndex={commandIndex} {...menuPosition}
+        onChoose={(id) => commandHandlersRef.current.choose(id, commandContext)} /> : null}
       <div className="note-editor__topbar">
         {onReturn ? (
           <button type="button" className="note-editor__return" onClick={onReturn} aria-label={returnLabel} title={returnLabel}>
@@ -567,13 +752,8 @@ const NoteEditor = ({
               className="note-editor__action-button note-editor__action-button--task"
               aria-label={t('notes.createTask')}
               title={t('notes.createTask')}
-              onClick={() => {
-                const selection = editor?.state.selection
-                const selectedText = selection && !selection.empty
-                  ? editor.state.doc.textBetween(selection.from, selection.to, ' ').replace(/\s+/g, ' ').trim().slice(0, 180)
-                  : ''
-                onCreateTask(selectedText)
-              }}
+              onPointerDown={(event) => event.preventDefault()}
+              onClick={() => requestTask()}
             >
               <ListTodo size={14} />
               <span>{t('notes.createTask')}</span>

@@ -543,7 +543,7 @@ describe('NotePage', () => {
     await userEvent.click((await screen.findAllByTitle('Move to trash'))[0]!)
     await waitFor(() => expect(softDeleteMock).toHaveBeenCalledWith('trash-1'))
 
-    await userEvent.click(screen.getByRole('button', { name: /Trash/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^modules\.note\.collection\.trash/i }))
     await userEvent.click((await screen.findAllByTitle('Delete permanently'))[0]!)
     await waitFor(() => expect(hardDeleteMock).toHaveBeenCalledWith('trash-1'))
   })

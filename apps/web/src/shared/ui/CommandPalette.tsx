@@ -149,6 +149,9 @@ const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.isComposing || event.keyCode === 229) return
+      const owner = event.target instanceof Element ? event.target.closest('[role="dialog"]') : null
+      if (owner && !owner.classList.contains('command-palette')) return
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault()
         if (open) closeAndRestoreFocus()
@@ -158,7 +161,11 @@ const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
         }
         return
       }
-      if (event.key === 'Escape' && open) closeAndRestoreFocus()
+      if (event.key === 'Escape' && open) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        closeAndRestoreFocus()
+      }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
@@ -253,6 +260,7 @@ const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
             onValueChange={setQuery}
             placeholder={tripCtx ? t('commandPalette.placeholderTrip') : t('commandPalette.placeholder')}
             onKeyDown={(event) => {
+              if (event.nativeEvent.isComposing || event.keyCode === 229) return
               // Nothing found: Enter captures the text as a task.
               if (event.key === 'Enter' && trimmed && !event.defaultPrevented) {
                 if (hits.length === 0 && visibleActions.length === 0 && otherTrips.length === 0 && !tripCtx) {
