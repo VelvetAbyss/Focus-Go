@@ -1,0 +1,202 @@
+/* The masthead desk (DESIGN.md › Desk): props standing on the toolbar rule,
+   anywhere in the gap between the date and the quote. Positioned by DeskProps
+   from measurements. */
+
+.dash-desk {
+  position: absolute;
+  top: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.dash-desk__canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+  touch-action: none;
+  opacity: 0;
+  transition: opacity var(--motion-duration-slow) var(--ease-emphasized);
+}
+
+.dash-desk[data-status='ready'] .dash-desk__canvas {
+  opacity: 1;
+}
+
+/* Like "another quote": quiet controls that show when the desk is pointed at. */
+.dash-desk__controls {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  gap: 2px;
+  pointer-events: auto;
+  opacity: 0;
+  transition: opacity var(--motion-duration-fast) var(--ease-standard);
+}
+
+.dash-desk:hover .dash-desk__controls,
+.dash-desk__controls:focus-within,
+.dash-desk__controls[data-open='true'] {
+  opacity: 1;
+}
+
+.dash-desk__control {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill, 999px);
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+  transition:
+    background-color var(--motion-duration-instant) var(--ease-standard),
+    color var(--motion-duration-instant) var(--ease-standard);
+}
+
+.dash-desk__control:hover {
+  background: var(--paper-sunken);
+  color: var(--ink-1);
+}
+
+/* The lamp on is "now": the pen. */
+.dash-desk__control[aria-pressed='true'] {
+  color: var(--accent);
+}
+
+@media (hover: none) {
+  .dash-desk__controls {
+    opacity: 1;
+  }
+}
+
+/* The lamp's light over the whole app: above the shell, below dialogs (z 50). */
+.desk-light {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 45;
+}
+
+/* The prop picker: everything that can be added, what's on the desk (each
+   chip takes its prop away), the sticky note, and how to move things. */
+.desk-picker__panel.desk-picker__panel {
+  width: min(600px, calc(100vw - 32px));
+  max-width: none;
+  padding: 14px 16px;
+}
+
+.desk-picker {
+  display: grid;
+  gap: 10px;
+}
+
+.desk-picker__row {
+  display: grid;
+  grid-template-columns: 4em minmax(0, 1fr);
+  align-items: baseline;
+  gap: 10px;
+}
+
+.desk-picker__label {
+  font: 500 var(--fs-label)/1.4 var(--font-body);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.desk-picker__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.desk-picker__option {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-pill, 999px);
+  background: transparent;
+  color: var(--ink-2);
+  font: 500 var(--fs-label)/1 var(--font-body);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-duration-instant) var(--ease-standard),
+    border-color var(--motion-duration-instant) var(--ease-standard),
+    color var(--motion-duration-instant) var(--ease-standard);
+}
+
+.desk-picker__option:hover {
+  background: var(--paper-sunken);
+  color: var(--ink-1);
+}
+
+.desk-picker__option[aria-pressed='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* The + on what can be added, the × on what's there: quiet until pointed at. */
+.desk-picker__mark {
+  margin-right: -3px;
+  color: var(--ink-4);
+  transition: color var(--motion-duration-instant) var(--ease-standard);
+}
+
+.desk-picker__option:hover .desk-picker__mark,
+.desk-picker__option:focus-visible .desk-picker__mark {
+  color: var(--ink-1);
+}
+
+.desk-picker__option--placed {
+  background: var(--paper-sunken);
+}
+
+.desk-picker__empty {
+  font: 400 var(--fs-label)/28px var(--font-body);
+  color: var(--ink-4);
+}
+
+.desk-picker__clear {
+  height: 28px;
+  padding: 0 6px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-3);
+  font: 500 var(--fs-label)/1 var(--font-body);
+  text-decoration: underline;
+  text-decoration-color: var(--rule);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.desk-picker__clear:hover {
+  color: var(--ink-1);
+}
+
+.desk-picker__hint {
+  margin: 2px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--rule);
+  font: 400 var(--fs-label)/1.5 var(--font-body);
+  color: var(--ink-3);
+}
+
+/* The light's warmth tints paper without washing out the ink on it. */
+.desk-light--multiply {
+  mix-blend-mode: multiply;
+}
+
+.desk-light--screen {
+  mix-blend-mode: screen;
+}

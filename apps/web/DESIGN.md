@@ -558,6 +558,8 @@ bezier arrays or durations.
 | 2026-10-12 | World clock batch 3: a row's meta line says where the city is in its working day (上班中 · 还剩 2 小时 / 快下班 / 09:00 上班 / 已下班 / 周末) instead of 晨昼暮夜; US federal holidays, worked out locally, read "哥伦布日休假" in ochre; each row takes your own name and their working hours from a pencil popover (the dashed work line follows them); moving along the strips reads that moment in every city, the times and axis label turning pencil while scrubbing; rows reorder by dragging the name | The user follows US buyers from China; the strip already showed light and a fixed 9–18 line but not whether to write now. Holidays are a state that changes what you do, so they take the one warning tone; the scrubbed moment is not now, so it leaves the pen. |
 | 2026-10-12 | Pay and life batch 4: 今日计薪 adds one pencil line under its foot (还有 6 小时 46 分钟下班 · 5 天后休息 · 距发薪 8 天); pay follows China's statutory holidays and 调休 by default (two allowlisted public feeds, cached a week, switch in the pay settings); the spend input takes "午饭 28" and the currency and category selectors switch live to what it read, the words kept as the entry's note; a 汇率 card (opt-in) shows the rate as set type with a two-way converter; renewals (reminder on) and birthdays push in each device's morning | Each sits inside an existing card or the push channel. The spend card is too short for a hint line, so the form itself shows the reading. The rate is a figure, so it takes the numeral face; nothing new takes colour. |
 | 2026-10-12 | Batch 5: deleted tasks wait in 最近删除 for 30 days on this device (a pencil chip beside 批量编辑, shown only when something is there; deleting from it asks twice in place instead of a confirm box); restoring a backup first shows what it holds next to what is here, the backup's count in ochre where it has fewer, and saves this device's data as a download before writing; on the desktop, ⌥Space opens a small paper capture box (system font, pencil hint line) and the menu bar counts the focus session down | A trash is a way back, not a destination, so it stays out of the toolbar until it has something. The restore compare is a figure table, so it takes the numeral face; the one row that can lose work takes the warning tone. The capture box is served by the shell and cannot load the app's fonts, so it keeps the palette and the system face. |
+| 2026-10-14 | The masthead gets a desk: a lamp, an open book (or a laptop) and a coffee (or an iced cola) stand on the toolbar rule in a three.js scene, drawn as paper-white solids with ink outlines, seen exactly side on (style A of three sketched: pure ink line, paper model, pen sketch). Switching the lamp on dims the whole app, sidebar included, and its light falls where the shade points. The lamp's hinges can be dragged | The user asked for these props and the light link to focus the task card. They picked the ink line and then the side view, with the book centred under the lamp. They rejected a light pinned to the task card: the light must come out of the shade. The warm light and the bulb's halo are a deliberate exception to "no glows", shown only while the lamp is on. |
+| 2026-10-14 | The desk drops fixed places: props are added as often as wanted from the picker and carried anywhere along the masthead gap; lifted off its top they are taken away. The lamp slides by its base and raises its head over whatever is put under it. Props may overlap, drawn back to front with the lamp in front. | The user asked to cancel the slots: "move freely along the top bar, add freely, any number". |
 
 ## Ambient environments — 2026-10-08
 
@@ -693,4 +695,76 @@ Two parts, read then operate.
   App settings are not linked from here (the sidebar has them).
 - Below 960px the epigraph drops under the date, left-aligned, and the tabs
   scroll sideways.
+
+## Desk — 2026-10-14
+
+A small still life on the masthead, standing on the toolbar rule anywhere in
+the gap between the date (and the view tabs) and the quote (and the layout
+actions). Code: `src/features/dashboard/desk/`.
+
+- **Look.** Seen exactly side on: the rule is the desk's edge. Paper-white
+  solids (`--paper-raised`) with ink outlines (`--ink-1`, 1.5px; details 1px in
+  `--ink-3`/`--ink-4`), no shading. Steam is drawn in pencil (`--pencil-line`):
+  strokes that draw themselves upward and are taken back. Colour appears only
+  in the light.
+- **Props, anywhere.** There are no fixed places. Any prop (book, laptop,
+  typewriter, record player, coffee, iced cola, plant, kitchen timer, candle,
+  cat) can be added as often as you like; it drops in from above at the free
+  spot nearest the middle (over the task card) and bounces. Drag a prop to
+  carry it along the desk: it lifts, swings against the way it moves about
+  where it's held, and falls back with a bounce. Lift it to the top of the
+  masthead and it shrinks; let go there and it's taken away in a pencil puff.
+  Props overlap like things on a real desk: each is drawn over the ones behind
+  it, the last one moved in front, and the lamp in front of them all so its
+  switch is never buried. Positions are world units from the middle of the
+  masthead, so props keep their place against the cards; on a narrower
+  masthead they're kept on the desk without losing where they were put. A
+  sticky note can hang on the lamp's lower arm, showing the task in progress
+  in the pen. Each prop has an idle motion and one click:
+  - the book turns a page;
+  - the laptop opens or closes;
+  - the typewriter types a word, and types along whenever a key is pressed
+    anywhere in the app (only the fact, never which key);
+  - the record player starts or stops;
+  - the coffee puffs steam;
+  - the cola fizzes;
+  - the plant is watered, and it leans toward the lamp when that is on;
+  - the timer starts 25 minutes, or is twisted with the wheel to set up to
+    an hour (it starts once the wheel rests), rings with a shake, and its
+    mark is the pen while it runs; each timer keeps its own time;
+  - the candle lights, burns down slowly and warms the paper around it;
+  - the cat wakes for a moment.
+
+  Quiet controls in the corner, shown on hover like "another quote", switch
+  the lamp, open the picker and put the lamp back where and how it started.
+  The picker opens below the desk, so additions can be watched landing: a row
+  of everything that can be added, the props on the desk left to right (each
+  chip takes its prop away; pointing at one makes that prop hop), the sticky
+  note, and a line on how to move things.
+- **The lamp.** A click switches it: the bulb flickers on, then the whole app,
+  sidebar included, goes down (28% in light, 50% in dark) except the cone from
+  the shade: about 80° wide, full light until well past the cards, and warm.
+  The warmth is its own layer, multiplied on light paper and screened on dark,
+  so it tints the paper without washing out the ink. Dragging the elbow joint
+  swings the lower arm, the head joint swings the upper arm, and the shade
+  turns on its own; dashed pencil rings show what can be dragged. Dragging the
+  base slides the whole lamp along the desk (pencil chevrons either side of
+  it), stopping where it would no longer fit. When a prop is put under the
+  shade, the lamp raises its head clear of it, keeping the shade aimed the
+  same way, and lowers it again once the prop is gone. The light always comes
+  out of the shade. By default it points at the book and the task card under
+  it.
+- **Per device.** The lamp, where it stands and its pose, the props and where
+  they stand (each timer's ring time with it), and the sticky note are a
+  local setting (`focusgo.dashboard.desk`), never synced; a desk saved with
+  fixed places is stood where those places were. Lit candles keep a small
+  bright pool each when the lamp dims the page (up to four warm the paper).
+- **Layering.** The light is two fixed half-resolution 2D canvases above the
+  shell and below dialogs (z 45). They redraw only when the light or the shade
+  moves, or when the page under them scrolls or reflows. The desk itself draws
+  at the display's rate while it is on screen.
+- **Limits.** The desk hides when the masthead gap is too narrow (narrower
+  than the lamp and a prop or two, below about 42px per unit, and always
+  below 960px). Reduced motion: no flicker, no
+  steam drift, no automatic page turns; drags still work.
 
