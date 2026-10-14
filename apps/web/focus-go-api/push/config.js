@@ -68,5 +68,17 @@ export const parseSubscriptionBody = (body, { isAllowedEndpoint = isAllowedPushE
     keys: { p256dh, auth },
     leadMinutes: Number.isFinite(lead) ? Math.min(Math.max(Math.round(lead), 1), 1440) : 10,
     language: body?.language === 'en' ? 'en' : 'zh',
+    timeZone: validTimeZone(body?.timeZone),
+  }
+}
+
+/** An IANA zone the runtime knows ("Asia/Shanghai"), or null. Used for "the morning" reminders. */
+export const validTimeZone = (value) => {
+  if (typeof value !== 'string' || value.length > 64 || !/^[A-Za-z_]+(\/[A-Za-z0-9_+-]+)*$/.test(value)) return null
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: value })
+    return value
+  } catch {
+    return null
   }
 }

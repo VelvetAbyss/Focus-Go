@@ -96,6 +96,42 @@ const tauriPlatform: PlatformBridge = {
       unlisten()
     }
   },
+
+  onQuickCapture(handler) {
+    let active = true
+    let unlisten = () => {}
+
+    void listen<string>('quick-capture', (event) => {
+      if (typeof event.payload === 'string') handler(event.payload)
+    }).then((fn) => {
+      if (active) unlisten = fn
+      else fn()
+    })
+
+    return () => {
+      active = false
+      unlisten()
+    }
+  },
+
+  async setFocusTimer(timer) {
+    try {
+      await invoke('set_focus_timer', {
+        endsAt: timer && 'endsAt' in timer ? timer.endsAt : null,
+        pausedSeconds: timer && 'pausedSeconds' in timer ? timer.pausedSeconds : null,
+      })
+    } catch {
+      // the tray is a nicety
+    }
+  },
+
+  async setUiLanguage(language) {
+    try {
+      await invoke('set_ui_language', { language })
+    } catch {
+      // the capture box falls back to the system language
+    }
+  },
 }
 
 export default tauriPlatform

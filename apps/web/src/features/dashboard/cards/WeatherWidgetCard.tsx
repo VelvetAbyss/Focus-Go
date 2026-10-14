@@ -12,6 +12,7 @@ import {
   type WeatherSnapshot,
 } from '../../weather/weatherRuntime'
 import { buildSkyParams } from '../../weather/sky/skyModel'
+import { tomorrowChange } from '../../weather/tomorrowChange'
 import WeatherSky from '../../weather/sky/WeatherSky'
 import { useI18n } from '../../../shared/i18n/useI18n'
 import '../../weather/weather-card.css'
@@ -106,6 +107,18 @@ const WeatherWidgetCard = () => {
     return tomorrowRise ? t('weather.sunrise', { time: tomorrowRise }) : null
   }, [current?.time, isToday, rows, t, today])
 
+  // Read this morning, about tomorrow: only when it changes what to wear or carry.
+  const tomorrowNote = useMemo(() => {
+    if (!isToday) return null
+    const change = tomorrowChange(rows, weatherTemperatureUnit)
+    if (!change) return null
+    const swing = change.delta < 0
+      ? t('weather.tomorrowColder', { n: -change.delta })
+      : change.delta > 0 ? t('weather.tomorrowWarmer', { n: change.delta }) : null
+    if (swing && change.rain) return `${swing} · ${t('weather.andRain')}`
+    return swing ?? t('weather.tomorrowRain')
+  }, [isToday, rows, t, weatherTemperatureUnit])
+
   const metaItems: string[] = []
   if (isToday && current) {
     if (typeof current.apparentTemperature === 'number') metaItems.push(t('weather.feelsLike', { t: roundTemp(current.apparentTemperature) }))
@@ -151,6 +164,12 @@ const WeatherWidgetCard = () => {
                     <>
                       <span className="weather-card__sep" aria-hidden>·</span>
                       <span>{sunEvent}</span>
+                    </>
+                  ) : null}
+                  {tomorrowNote ? (
+                    <>
+                      <span className="weather-card__sep" aria-hidden>·</span>
+                      <span className="weather-card__tomorrow">{tomorrowNote}</span>
                     </>
                   ) : null}
                 </>

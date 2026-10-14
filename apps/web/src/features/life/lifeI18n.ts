@@ -7,6 +7,7 @@ export type LifeKey =
   | 'life.card.dailyReview'
   | 'life.card.podcast'
   | 'life.card.people'
+  | 'life.card.fx'
   | 'life.card.trips'
   | 'life.card.subscriptions'
   | 'life.dashboard.manageWidgets'
@@ -402,6 +403,7 @@ const en: Record<LifeKey, string> = {
   'life.card.dailyReview': 'Daily Review',
   'life.card.podcast': 'Podcast',
   'life.card.people': 'People',
+  'life.card.fx': 'Exchange rate',
   'life.card.trips': 'Trips',
   'life.card.subscriptions': 'Subscriptions',
   'life.dashboard.manageWidgets': 'Manage life widgets',
@@ -792,6 +794,7 @@ const zh: Record<LifeKey, string> = {
   'life.card.dailyReview': '每日复盘',
   'life.card.podcast': '播客',
   'life.card.people': '人际',
+  'life.card.fx': '汇率',
   'life.card.trips': '旅行',
   'life.card.subscriptions': '订阅',
   'life.dashboard.manageWidgets': '管理 Life 组件',

@@ -100,6 +100,14 @@ const sameServerKey = (subscription: PushSubscription, publicKey: string) => {
   return actual.length === expected.length && actual.every((byte, index) => byte === expected[index])
 }
 
+const deviceTimeZone = () => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone
+  } catch {
+    return undefined
+  }
+}
+
 const registerWithServer = async (subscription: PushSubscription, settings: WebPushSettings) => {
   const headers = authHeaders()
   if (!headers) throw new Error('signed-out')
@@ -110,6 +118,8 @@ const registerWithServer = async (subscription: PushSubscription, settings: WebP
       subscription: subscription.toJSON(),
       leadMinutes: settings.leadMinutes,
       language: settings.language === 'en' ? 'en' : 'zh',
+      // Renewal and birthday reminders go out in this device's morning.
+      timeZone: deviceTimeZone(),
     }),
   })
   if (!response.ok) throw new Error(`push-register-${response.status}`)

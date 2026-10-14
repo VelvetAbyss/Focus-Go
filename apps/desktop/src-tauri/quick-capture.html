@@ -1,0 +1,115 @@
+<!doctype html>
+<!--
+  The quick-capture box (⌥Space). Served by the Rust shell over the fgcapture:// protocol
+  and never part of the web build. It has no IPC: Enter navigates to /submit?text=…, Esc to
+  /cancel, and the shell's navigation handler takes the text, hands it to the main window
+  (which files it as a task) and hides this window.
+-->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Focus &amp; Go</title>
+    <style>
+      :root {
+        --paper: #fbfaf7;
+        --ink: #3a3733;
+        --pencil: #6f6a63;
+        --rule: rgba(84, 70, 48, 0.22);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --paper: #2d2b27;
+          --ink: #f2f0ec;
+          --pencil: #9d968a;
+          --rule: rgba(255, 244, 225, 0.19);
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei UI', sans-serif;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 6px;
+        padding: 0 20px;
+        border: 1px solid var(--rule);
+      }
+      input {
+        width: 100%;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        font-size: 18px;
+        caret-color: var(--ink);
+      }
+      input::placeholder {
+        color: var(--pencil);
+      }
+      p {
+        margin: 0;
+        font-size: 12px;
+        color: var(--pencil);
+      }
+      kbd {
+        font: inherit;
+      }
+    </style>
+  </head>
+  <body>
+    <input id="q" autofocus autocomplete="off" spellcheck="false" />
+    <p id="hint"></p>
+    <script>
+      const input = document.getElementById('q')
+      // The shell passes the app's language (?lang=zh|en, and again on every reopen).
+      const applyLanguage = (lang) => {
+        const zh = lang ? lang === 'zh' : /^zh/i.test(navigator.language)
+        input.placeholder = zh ? '记一条，回车存进收件箱' : 'Jot it down, Enter files it in your inbox'
+        document.getElementById('hint').textContent = zh
+          ? '↵ 存入  ·  esc 取消  ·  可以写「明天 3pm #工作」'
+          : '↵ file it  ·  esc cancel  ·  “tomorrow 3pm #work” works'
+      }
+      applyLanguage(new URLSearchParams(location.search).get('lang'))
+
+      const go = (path) => {
+        location.href = path
+      }
+      input.addEventListener('keydown', (event) => {
+        // Enter while choosing a Chinese candidate belongs to the input method.
+        if (event.isComposing || event.keyCode === 229) return
+        if (event.key === 'Enter') {
+          event.preventDefault()
+          const text = input.value.trim()
+          if (!text) return
+          input.value = ''
+          go('/submit?text=' + encodeURIComponent(text))
+        } else if (event.key === 'Escape') {
+          event.preventDefault()
+          input.value = ''
+          go('/cancel')
+        }
+      })
+      // The shell calls this each time it shows the box again.
+      window.__fgReset = (lang) => {
+        applyLanguage(lang)
+        input.value = ''
+        input.focus()
+      }
+      window.addEventListener('focus', () => input.focus())
+    </script>
+  </body>
+</html>

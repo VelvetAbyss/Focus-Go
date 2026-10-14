@@ -30,6 +30,8 @@ export type TaskItem = {
   endDate?: string
   waitingOn?: string
   waitingSince?: number
+  chasedAt?: number[]
+  sourceUrl?: string
   nextPollAt?: number
   tags: string[]
   subtasks: TaskSubtask[]

@@ -22,4 +22,12 @@ export interface PlatformBridge {
   openExternal(url: string): Promise<void>
   /** Subscribe to platform deep links (fires for cold-start + live). Returns unsubscribe. */
   onDeepLink(handler: (url: string) => void): () => void
+  /** Subscribe to text jotted down outside the app (the desktop quick-capture box). Returns unsubscribe. */
+  onQuickCapture(handler: (text: string) => void): () => void
+  /** Show the focus session in the tray / menu bar: when it ends, or what is left while paused; null clears it. */
+  setFocusTimer(timer: FocusTimerDisplay | null): Promise<void>
+  /** The app's interface language, for anything the shell draws itself (the quick-capture box). */
+  setUiLanguage(language: 'zh' | 'en'): Promise<void>
 }
+
+export type FocusTimerDisplay = { endsAt: number } | { pausedSeconds: number }

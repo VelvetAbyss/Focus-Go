@@ -19,6 +19,8 @@ type Draft = {
   lunchStart: string
   lunchEnd: string
   workdays: number[]
+  payday: string
+  followCnHolidays: boolean
 }
 
 // Monday first, as a work week is read.
@@ -35,6 +37,8 @@ const toDraft = (settings: SalarySettings | null): Draft => {
     lunchStart: formatClock(lunch.start),
     lunchEnd: formatClock(lunch.end),
     workdays: base.workdays,
+    payday: settings?.payday ? String(settings.payday) : '',
+    followCnHolidays: settings?.followCnHolidays !== false,
   }
 }
 
@@ -52,7 +56,11 @@ const readDraft = (draft: Draft): { settings: SalarySettings } | { error: Transl
     lunch = { start, end }
   }
   if (draft.workdays.length === 0) return { error: 'salary.settings.errorDays' }
-  const settings = normalizeSalarySettings({ monthlySalary, workStart, workEnd, lunch, workdays: draft.workdays })
+  const payday = draft.payday.trim() ? Number(draft.payday) : undefined
+  if (payday !== undefined && (!Number.isInteger(payday) || payday < 1 || payday > 31)) return { error: 'salary.settings.errorPayday' }
+  const settings = normalizeSalarySettings({
+    monthlySalary, workStart, workEnd, lunch, workdays: draft.workdays, payday, followCnHolidays: draft.followCnHolidays,
+  })
   return settings ? { settings } : { error: 'salary.settings.errorHours' }
 }
 
@@ -184,6 +192,24 @@ const SalarySettingsDialog = ({ open, onClose }: SalarySettingsDialogProps) => {
             ))}
           </div>
         </fieldset>
+
+        <div className="salary-field-row">
+          <label className="salary-field">
+            <span className="salary-field__label">{t('salary.settings.payday')}</span>
+            <input
+              className="salary-input"
+              value={draft.payday}
+              onChange={(event) => update({ payday: event.target.value.replace(/[^0-9]/g, '').slice(0, 2) })}
+              inputMode="numeric"
+              placeholder={t('salary.settings.paydayPlaceholder')}
+              aria-invalid={error === 'salary.settings.errorPayday'}
+            />
+          </label>
+          <label className="salary-field salary-switch-row salary-switch-row--stacked">
+            <span className="salary-field__label">{t('salary.settings.cnHolidays')}</span>
+            <Switch checked={draft.followCnHolidays} onCheckedChange={(checked) => update({ followCnHolidays: checked })} />
+          </label>
+        </div>
 
         <div className="salary-settings__notes">
           {summary ? <p className="salary-settings__summary">{summary}</p> : null}

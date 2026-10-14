@@ -17,6 +17,7 @@ import { useI18n } from '../../shared/i18n/useI18n'
 import { emitTasksChanged } from './taskSync'
 import { reminderQueueStore, useReminderQueue } from './reminderQueueStore'
 import { appIntlLocale } from '../../shared/i18n/format'
+import { formatClockMinutes, nextMorning, workStartMinutes } from './reminderSnooze'
 
 const FIVE_MIN = 5 * 60 * 1000
 const FIFTEEN_MIN = 15 * 60 * 1000
@@ -126,10 +127,21 @@ const TaskReminderModal = () => {
                   { ms: FIFTEEN_MIN, label: t('tasks.reminder.snoozeFifteenMin') },
                   { ms: ONE_HOUR, label: t('tasks.reminder.snoozeOneHour') },
                   { ms: ONE_DAY, label: t('tasks.reminder.snoozeTomorrow') },
+                  // A late reminder pushed "a day" comes back late again; this one waits for the morning.
+                  (() => {
+                    const start = workStartMinutes()
+                    const morning = nextMorning(new Date(), start)
+                    return {
+                      ms: morning.at.getTime() - Date.now(),
+                      label: t(morning.today ? 'tasks.reminder.snoozeMorningToday' : 'tasks.reminder.snoozeMorningTomorrow', {
+                        time: formatClockMinutes(start),
+                      }),
+                    }
+                  })(),
                 ]
               ).map((option) => (
                 <button
-                  key={option.ms}
+                  key={option.label}
                   type="button"
                   className="hover:bg-muted w-full rounded-md px-2 py-1.5 text-left text-sm"
                   onClick={() => {

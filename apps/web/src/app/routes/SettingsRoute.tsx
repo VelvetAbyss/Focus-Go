@@ -17,6 +17,7 @@ import {
   Waves,
   AlertTriangle,
   BellRing,
+  Clock3,
   Lightbulb,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -72,6 +73,7 @@ import {
   readBackupFile,
   type ParsedLocalBackup,
 } from '../../shared/backup/localBackup'
+import { BACKUP_SUMMARY_KINDS, countLocalData, summarizeBackup, type BackupCounts } from '../../shared/backup/backupSummary'
 import { useSyncActions, useSyncStatus } from '../../data/sync/service'
 import { restampLocalSnapshotForRestore } from '../../data/sync/repository'
 import { requestRxdbSyncReset, resetRxdbSyncDatabase } from '../../data/sync/rxdb'
@@ -90,6 +92,7 @@ import {
   type CitySuggestion,
 } from '../../shared/location/citySuggestions'
 import { readLayoutLocked, writeLayoutLocked } from '../../shared/prefs/dashboardLayoutLock'
+import { readAutoPageEnabled, writeAutoPageEnabled } from '../../features/dashboard/autoPage'
 import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../data/repositories/syncedPreferencesRepo'
 import AmbientSettingsSection from './AmbientSettingsSection'
 import {
@@ -819,6 +822,7 @@ const SettingsRoute = () => {
   const { enabled: cloudSyncEnabled, setEnabled: setCloudSyncEnabled, syncNow } = useSyncActions()
   const [activeSection, setActiveSection] = useState<BaseSettingsSection>('appearance')
   const [layoutLocked, setLayoutLocked] = useState(() => readLayoutLocked())
+  const [autoPage, setAutoPage] = useState(() => readAutoPageEnabled())
   const [theme, setTheme] = useState<ThemeSelection>('system')
   const [themePackSelection, setThemePackSelection] = useState<ThemePackId>('theme-a')
   const [themePackPreview, setThemePackPreview] = useState<ThemePackId | null>(null)
@@ -827,7 +831,14 @@ const SettingsRoute = () => {
   const [isResetting, setIsResetting] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
-  const [pendingImport, setPendingImport] = useState<{ fileName: string; payload: ParsedLocalBackup } | null>(null)
+  const [pendingImport, setPendingImport] = useState<{
+    fileName: string
+    payload: ParsedLocalBackup
+    takenAt: number | null
+    backupCounts: BackupCounts
+    deviceCounts: BackupCounts | null
+  } | null>(null)
+  const [importStep, setImportStep] = useState<'saving' | 'restoring' | null>(null)
   const [discoveryResetDone, setDiscoveryResetDone] = useState(false)
   const discoveryReset = useDiscoveryReset()
   const importInputRef = useRef<HTMLInputElement | null>(null)
@@ -1134,17 +1145,18 @@ const SettingsRoute = () => {
 
   const backupTableNames = useMemo(() => Object.values(TABLES), [])
 
+  const buildCurrentBackup = async () => createBackupDownload(await exportLocalBackup({
+    db: createTableDatabaseAdapter(db, backupTableNames),
+    storage: createBrowserStorageAdapter(window.localStorage),
+    tableNames: backupTableNames,
+    dbName: DB_NAME,
+    dbVersion: DB_VERSION,
+  }))
+
   const exportBackup = async () => {
     setIsExporting(true)
     try {
-      const payload = await exportLocalBackup({
-        db: createTableDatabaseAdapter(db, backupTableNames),
-        storage: createBrowserStorageAdapter(window.localStorage),
-        tableNames: backupTableNames,
-        dbName: DB_NAME,
-        dbVersion: DB_VERSION,
-      })
-      downloadBackupFile(await createBackupDownload(payload))
+      downloadBackupFile(await buildCurrentBackup())
       toast.push({ variant: 'success', message: t('settings.data.export.success') })
     } catch (error) {
       const message = error instanceof Error ? error.message : t('settings.data.export.failed')
@@ -1204,7 +1216,9 @@ const SettingsRoute = () => {
 
     try {
       const backup = await readBackupFile(file)
-      setPendingImport({ fileName: file.name, payload: backup })
+      const { createdAt, counts } = summarizeBackup(backup)
+      const deviceCounts = await countLocalData(db).catch(() => null)
+      setPendingImport({ fileName: file.name, payload: backup, takenAt: createdAt, backupCounts: counts, deviceCounts })
     } catch (error) {
       const message = error instanceof Error ? error.message : t('settings.data.import.invalidFile')
       toast.push({ variant: 'error', message })
@@ -1215,6 +1229,19 @@ const SettingsRoute = () => {
     if (!pendingImport) return
 
     setIsImporting(true)
+    // A copy of what is here now goes to Downloads first. If that can't be made, nothing is overwritten.
+    setImportStep('saving')
+    try {
+      const safety = await buildCurrentBackup()
+      downloadBackupFile({ ...safety, fileName: safety.fileName.replace('focus-go-backup-', 'focus-go-before-restore-') })
+    } catch (error) {
+      console.error('[settings] safety backup before restore failed', error)
+      toast.push({ variant: 'error', message: t('settings.data.import.safetyFailed') })
+      setIsImporting(false)
+      setImportStep(null)
+      return
+    }
+    setImportStep('restoring')
     try {
       await importLocalBackup(pendingImport.payload, {
         db: createTableDatabaseAdapter(db, backupTableNames),
@@ -1254,12 +1281,15 @@ const SettingsRoute = () => {
         createdAt: now,
         updatedAt: now,
       })
+      // Let the browser take over the safety download before the page goes away.
+      await new Promise((resolve) => window.setTimeout(resolve, 1200))
       window.location.reload()
     } catch (error) {
       const fallback = t('settings.data.import.failed')
       const message = error instanceof Error ? error.message : fallback
       toast.push({ variant: 'error', message: message || fallback })
       setIsImporting(false)
+      setImportStep(null)
       setPendingImport(null)
     }
   }
@@ -1461,6 +1491,20 @@ const SettingsRoute = () => {
                                 setLayoutLocked(checked)
                                 writeLayoutLocked(checked)
                                 void syncedPreferencesRepo.persistFromLocal()
+                              }}
+                            />
+                          </SettingRow>
+
+                          <SettingRow
+                            icon={Clock3}
+                            title={t('settings.autoPage.title')}
+                            description={t('settings.autoPage.description')}
+                          >
+                            <Switch
+                              checked={autoPage}
+                              onCheckedChange={(checked) => {
+                                setAutoPage(checked)
+                                writeAutoPageEnabled(checked)
                               }}
                             />
                           </SettingRow>
@@ -2023,10 +2067,56 @@ const SettingsRoute = () => {
                                   {pendingImport ? ` ${pendingImport.fileName}` : ''}
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
+                              {pendingImport ? (
+                                <div className="restore-compare">
+                                  <table className="restore-compare__table">
+                                    <thead>
+                                      <tr>
+                                        <th scope="col" />
+                                        <th scope="col">
+                                          {t('settings.data.import.compareBackup')}
+                                          {pendingImport.takenAt ? (
+                                            <span className="restore-compare__date">
+                                              {new Date(pendingImport.takenAt).toLocaleDateString(language === 'zh' ? 'zh-CN' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                            </span>
+                                          ) : null}
+                                        </th>
+                                        <th scope="col">{t('settings.data.import.compareDevice')}</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {BACKUP_SUMMARY_KINDS.map(({ kind }) => {
+                                        const backup = pendingImport.backupCounts[kind]
+                                        const device = pendingImport.deviceCounts?.[kind]
+                                        if (backup === 0 && !device) return null
+                                        return (
+                                          <tr key={kind} className={device !== undefined && backup < device ? 'is-fewer' : undefined}>
+                                            <th scope="row">{t(`settings.data.import.kind.${kind}`)}</th>
+                                            <td>{backup}</td>
+                                            <td>{device ?? '—'}</td>
+                                          </tr>
+                                        )
+                                      })}
+                                    </tbody>
+                                  </table>
+                                  <p className="restore-compare__note">{t('settings.data.import.safetyNote')}</p>
+                                </div>
+                              ) : null}
                               <AlertDialogFooter>
                                 <AlertDialogCancel disabled={isImporting}>{t('settings.data.import.confirmCancel')}</AlertDialogCancel>
-                                <AlertDialogAction disabled={isImporting} onClick={() => void confirmImport()}>
-                                  {t('settings.data.import.confirmAction')}
+                                <AlertDialogAction
+                                  disabled={isImporting}
+                                  onClick={(event) => {
+                                    // Stay open while saving and restoring; the page reloads when done.
+                                    event.preventDefault()
+                                    void confirmImport()
+                                  }}
+                                >
+                                  {importStep === 'saving'
+                                    ? t('settings.data.import.stepSaving')
+                                    : importStep === 'restoring'
+                                      ? t('settings.data.import.stepRestoring')
+                                      : t('settings.data.import.confirmAction')}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>

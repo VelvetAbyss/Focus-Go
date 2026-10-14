@@ -86,6 +86,34 @@ export const fetchAuthProfile = async (accessToken?: string): Promise<AuthProfil
   }
 }
 
+export type AuthProfileProbe =
+  | { kind: 'ok'; profile: AuthProfile }
+  | { kind: 'rejected' }
+  | { kind: 'unreachable' }
+
+/**
+ * Like fetchAuthProfile, but tells "the server said no" (401/403) from "the server could not
+ * be reached" (offline, a timeout, a 5xx). Starting offline must not count as signing out:
+ * that dropped the session and, through AppShell's guard, wiped the local data.
+ */
+export const probeAuthProfile = async (accessToken?: string): Promise<AuthProfileProbe> => {
+  let res: Response
+  try {
+    res = await fetchApi('/user/profile', {
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+    })
+  } catch {
+    return { kind: 'unreachable' }
+  }
+  if (res.status === 401 || res.status === 403) return { kind: 'rejected' }
+  if (!res.ok) return { kind: 'unreachable' }
+  try {
+    return { kind: 'ok', profile: (await res.json()) as AuthProfile }
+  } catch {
+    return { kind: 'unreachable' }
+  }
+}
+
 export const useIsAdmin = () =>
   useSyncExternalStore(subscribeAuth, () => isLocalhostRuntime() || Boolean(getAuth()?.isAdmin), () => false)
 

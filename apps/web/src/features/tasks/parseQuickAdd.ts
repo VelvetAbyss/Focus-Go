@@ -1,5 +1,7 @@
 import type { ProjectItem } from '../../data/models/types'
 import type { TaskPriority, TaskRecurrence } from './tasks.types'
+import { morningOf } from './domain/taskFollowUp'
+import { workStartMinutes } from './reminderSnooze'
 
 export type ParsedQuickAdd = {
   title: string
@@ -12,6 +14,8 @@ export type ParsedQuickAdd = {
   reminderAt?: number
   /** Set when the text named a repeat ("每周五", "每月 31 号", "every monday"). */
   recurrence?: TaskRecurrence
+  /** Set when the text opens with "等 <who>" / "wait <who>": a task waiting on someone, its date the chase date. */
+  waitingOn?: string
 }
 
 type ChronoComponent = 'day' | 'weekday' | 'hour' | 'minute' | 'month'
@@ -51,6 +55,19 @@ const loadChrono = (): Promise<ChronoLike | null> => {
 }
 
 const FAST_DATE_TOKENS = new Set(['today', '今天', 'tomorrow', '明天'])
+
+// "等 Lowe's 回报价 周五", "wait for Ace samples friday". The space after 等 keeps 等待 / 等级 in titles.
+const WAITING_PREFIX = /^\s*(?:等|wait(?:ing)?(?:\s+(?:for|on))?)\s+(\S+)(?:\s+|$)/i
+
+/** The person or company a "等 …" line waits on, and the text with the prefix gone (the name stays in the title). */
+const splitWaiting = (rawTitle: string) => {
+  const match = WAITING_PREFIX.exec(rawTitle)
+  if (!match) return null
+  const who = match[1].replace(/^@/, '')
+  // "等 3 天" or "等 明天" is not a name.
+  if (!who || /^\d+$/.test(who) || FAST_DATE_TOKENS.has(who.toLowerCase())) return null
+  return { who, text: `${who} ${rawTitle.slice(match.index + match[0].length)}`.trim() }
+}
 
 const ZH_NUMBER: Record<string, number> = { 一: 1, 二: 2, 两: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10 }
 const ZH_WEEKDAY: Record<string, number> = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 日: 0, 天: 0 }
@@ -173,6 +190,8 @@ export const parseQuickAdd = async (
   projects: ProjectItem[],
   fallbackProjectId?: string,
 ): Promise<ParsedQuickAdd> => {
+  const waiting = splitWaiting(rawTitle)
+  if (waiting) rawTitle = waiting.text
   // A repeat phrase is cut first, so chrono doesn't also read "每周五" as this Friday.
   const repeat = findRecurrence(rawTitle)
   const textWithoutRepeat = repeat ? removeDatePhrase(rawTitle, repeat.index, repeat.length) : rawTitle
@@ -235,6 +254,13 @@ export const parseQuickAdd = async (
 
   if (repeatStart && !dueDate) dueDate = toDateKey(repeatStart)
 
+  // Waiting on someone until a date: remind that morning, so the chase reaches you even with the
+  // app closed (the push reminders only go out for tasks with a reminder time).
+  if (waiting && dueDate && !reminderAt) {
+    const morning = morningOf(dueDate, workStartMinutes())
+    if (morning > Date.now()) reminderAt = morning
+  }
+
   return {
     title: titleText || textWithoutRepeat.trim() || rawTitle.trim(),
     priority: tokenized.priority,
@@ -244,6 +270,7 @@ export const parseQuickAdd = async (
     projectId: tokenized.projectId,
     reminderAt,
     recurrence,
+    waitingOn: waiting?.who,
   }
 }
 

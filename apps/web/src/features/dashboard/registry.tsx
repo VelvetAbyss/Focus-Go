@@ -21,6 +21,7 @@ const PeopleCard = lazy(() => import('../life/cards/PeopleCard'))
 const PodcastCard = lazy(() => import('../life/cards/PodcastCard'))
 const SubscriptionsCard = lazy(() => import('../life/cards/SubscriptionsCard'))
 const StocksCard = lazy(() => import('../life/cards/StocksCard'))
+const FxCard = lazy(() => import('../life/cards/FxCard'))
 const TripsCard = lazy(() => import('../life/cards/TripsCard'))
 
 const cardFallbackStyle = {
@@ -165,6 +166,15 @@ export const getLifeCards = (t: LifeTranslate): DashboardCard[] => [
     defaultSize: { w: 10, h: 8 },
     pageScope: 'life',
     render: () => renderLazyLifeCard(<PeopleCard />),
+  },
+  {
+    id: 'fx_card',
+    title: t('life.card.fx'),
+    defaultSize: { w: 8, h: 6 },
+    pageScope: 'life',
+    // Opt-in, like the pay widgets: shown from Manage widgets.
+    defaultVisible: false,
+    render: () => renderLazyLifeCard(<FxCard />),
   },
   {
     id: 'stocks',

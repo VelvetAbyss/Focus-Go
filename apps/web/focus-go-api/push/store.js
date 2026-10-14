@@ -33,6 +33,9 @@ export const ensurePushTables = (db) => {
     );
     CREATE INDEX IF NOT EXISTS push_reminder_deliveries_sent_idx ON push_reminder_deliveries(sent_at);
   `)
+  // Added 2026-10 for renewal and birthday reminders, which go out in the device's morning.
+  const columns = db.prepare('PRAGMA table_info(push_subscriptions)').all().map((column) => column.name)
+  if (!columns.includes('time_zone')) db.exec('ALTER TABLE push_subscriptions ADD COLUMN time_zone TEXT')
 }
 
 const toSubscription = (row) => row && ({
@@ -42,6 +45,7 @@ const toSubscription = (row) => row && ({
   keys: { p256dh: row.p256dh, auth: row.auth },
   leadMinutes: row.lead_minutes,
   language: row.language,
+  timeZone: row.time_zone ?? null,
   failureCount: row.failure_count,
 })
 
@@ -49,22 +53,23 @@ const toSubscription = (row) => row && ({
  * Saves a device's subscription for a user. The endpoint identifies the device, so signing in
  * as someone else on the same browser moves it to that user rather than duplicating it.
  */
-export const upsertPushSubscription = (db, { userId, endpoint, keys, leadMinutes, language, userAgent, now = Date.now() }) => {
+export const upsertPushSubscription = (db, { userId, endpoint, keys, leadMinutes, language, timeZone = null, userAgent, now = Date.now() }) => {
   const id = subscriptionIdFor(endpoint)
   db.transaction(() => {
     db.prepare(`
-      INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh, auth, lead_minutes, language, user_agent, created_at, updated_at)
-      VALUES (@id, @userId, @endpoint, @p256dh, @auth, @leadMinutes, @language, @userAgent, @now, @now)
+      INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh, auth, lead_minutes, language, time_zone, user_agent, created_at, updated_at)
+      VALUES (@id, @userId, @endpoint, @p256dh, @auth, @leadMinutes, @language, @timeZone, @userAgent, @now, @now)
       ON CONFLICT(endpoint) DO UPDATE SET
         user_id = excluded.user_id,
         p256dh = excluded.p256dh,
         auth = excluded.auth,
         lead_minutes = excluded.lead_minutes,
         language = excluded.language,
+        time_zone = excluded.time_zone,
         user_agent = excluded.user_agent,
         updated_at = excluded.updated_at,
         failure_count = 0
-    `).run({ id, userId, endpoint, p256dh: keys.p256dh, auth: keys.auth, leadMinutes, language, userAgent: userAgent ?? null, now })
+    `).run({ id, userId, endpoint, p256dh: keys.p256dh, auth: keys.auth, leadMinutes, language, timeZone, userAgent: userAgent ?? null, now })
     const extra = db.prepare(`
       SELECT id FROM push_subscriptions WHERE user_id = ? ORDER BY updated_at DESC LIMIT -1 OFFSET ?
     `).all(userId, MAX_SUBSCRIPTIONS_PER_USER)

@@ -59,3 +59,23 @@ export const newSalaryId = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
     ? crypto.randomUUID()
     : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+
+/** Shorter than this a "break" was a mis-click; it isn't kept. */
+export const MIN_BREAK_MS = 5_000
+
+/** Starts a break now, unless one is running. */
+export const startBreak = (at = Date.now()) =>
+  updateSalaryState((current) => (current.activeBreakStartAt ? current : { ...current, activeBreakStartAt: at }))
+
+/** Ends the running break and keeps it, unless it was a mis-click. */
+export const stopBreak = (at = Date.now()) =>
+  updateSalaryState((current) => {
+    const startAt = current.activeBreakStartAt
+    if (!startAt) return current
+    const kept = at - startAt >= MIN_BREAK_MS
+    return {
+      ...current,
+      activeBreakStartAt: null,
+      breaks: kept ? [...current.breaks, { id: newSalaryId(), startAt, endAt: at }] : current.breaks,
+    }
+  })

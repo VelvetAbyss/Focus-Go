@@ -55,6 +55,7 @@ import { createId } from '../../shared/utils/ids'
 import { areTaskNoteBlocksEqual, normalizeTaskNoteBlocks } from '../../features/tasks/model/taskNote'
 import { resolveTaskNoteRichText } from '../../features/tasks/model/taskNoteRichText'
 import { normalizeTaskRecurrence } from '../../features/tasks/domain/taskRecurrence'
+import { safeSourceUrl } from '../../features/tasks/domain/taskFollowUp'
 import { enqueueSyncOperation } from '../sync/repository'
 
 const statusLabelMap: Record<TaskStatus, string> = {
@@ -256,6 +257,10 @@ const normalizeTask = (task: TaskItem): TaskItem => {
       typeof task.reminderFiredAt === 'number' && Number.isFinite(task.reminderFiredAt) ? task.reminderFiredAt : undefined,
     waitingOn: normalizeOptionalText(task.waitingOn),
     waitingSince: normalizeOptionalTimestamp(task.waitingSince),
+    chasedAt: Array.isArray(task.chasedAt)
+      ? task.chasedAt.filter((at): at is number => typeof at === 'number' && Number.isFinite(at)).slice(-50)
+      : undefined,
+    sourceUrl: safeSourceUrl(task.sourceUrl),
     dropReason: normalizeOptionalText(task.dropReason),
     recurrence: normalizeTaskRecurrence(task.recurrence),
     recurrenceNextId: normalizeOptionalText(task.recurrenceNextId),

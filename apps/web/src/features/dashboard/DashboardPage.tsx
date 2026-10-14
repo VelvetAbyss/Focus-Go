@@ -28,6 +28,7 @@ import {
 } from '../../data/defaultDashboardLayout'
 import { usePremiumGate } from '../premium/PremiumProvider'
 import LifeDashboard from '../life/LifeDashboard'
+import { initialDashboardPage, rememberManualPage } from './autoPage'
 import NewsDashboard from '../news/NewsDashboard'
 import { readLayoutLocked, writeLayoutLocked } from '../../shared/prefs/dashboardLayoutLock'
 import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../data/repositories/syncedPreferencesRepo'
@@ -42,7 +43,7 @@ const DashboardPage = () => {
   const { canUse, openUpgradeModal } = usePremiumGate()
   const [views, setViews] = useState(readCustomViews)
   const [selectedViewId, setSelectedViewId] = useState(() => new URLSearchParams(window.location.search).get('view') ?? '')
-  const [page, setPage] = useState<DashboardPageKind>(() => readCustomViews().some(view => view.id === new URLSearchParams(window.location.search).get('view')) ? 'custom' : 'main')
+  const [page, setPage] = useState<DashboardPageKind>(() => readCustomViews().some(view => view.id === new URLSearchParams(window.location.search).get('view')) ? 'custom' : initialDashboardPage())
   const [newView, setNewView] = useState<CustomView | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
   const [createName, setCreateName] = useState('')
@@ -52,7 +53,11 @@ const DashboardPage = () => {
   const [pendingSwitch, setPendingSwitch] = useState<(() => void) | null>(null)
   const switchSafely = (action: () => void) => { if (customDirty) setPendingSwitch(() => action); else action() }
   const selectedView = newView ?? views.find(view => view.id === selectedViewId)
-  const selectPage = (next: DashboardPageKind) => switchSafely(() => { setNewView(null); setCustomDirty(false); setPage(next) })
+  const selectPage = (next: DashboardPageKind) => switchSafely(() => {
+    setNewView(null); setCustomDirty(false); setPage(next)
+    // A page picked by hand wins over the automatic choice until tomorrow.
+    if (next === 'main' || next === 'life') rememberManualPage(next)
+  })
   const selectView = (id: string) => switchSafely(() => { setNewView(null); setCustomDirty(false); setSelectedViewId(id); setPage('custom') })
   const storeViews = (next: CustomView[]) => { saveCustomViews(next); setViews(next) }
   const createView = () => {

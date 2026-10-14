@@ -9,6 +9,7 @@ import {
   recordPushSuccess,
   wasReminderDelivered,
 } from './store.js'
+import { collectDueLifeReminders } from './lifeReminders.js'
 
 export const REMINDER_TICK_MS = 30_000
 // A reminder this late is no use any more (the server was down, or the device subscribed after
@@ -114,6 +115,17 @@ export const runReminderTick = async ({ db, vapid, send = sendWebPush, now = Dat
     try {
       await send(subscription, buildReminderPayload(task, subscription), vapid)
       markReminderDelivered(db, subscription.id, task.id, task.reminderAt, now)
+      recordPushSuccess(db, subscription.id, now)
+      sent += 1
+    } catch (error) {
+      handlePushError(db, subscription, error)
+    }
+  }
+  // Renewals and birthdays, in each device's morning.
+  for (const { subscription, key, at, payload } of collectDueLifeReminders(db, { now })) {
+    try {
+      await send(subscription, payload, vapid)
+      markReminderDelivered(db, subscription.id, key, at, now)
       recordPushSuccess(db, subscription.id, now)
       sent += 1
     } catch (error) {

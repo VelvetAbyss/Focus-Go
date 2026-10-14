@@ -36,6 +36,7 @@ import { readSidebarOrder, writeSidebarOrder } from '../../app/layout/sidebarOrd
 import { readLayoutLocked, writeLayoutLocked } from '../../shared/prefs/dashboardLayoutLock'
 import { readStoredSubscriptions, writeStoredSubscriptions } from '../../features/calendar/calendarStorage'
 import { readSalaryState, writeSalaryState } from '../../features/salary/salaryStorage'
+import { readQuoteState, writeQuoteState } from '../../features/dashboard/quote/quoteStorage'
 
 export const SYNCED_PREFERENCES_ID = 'synced_preferences' as const
 export const SYNCED_PREFERENCES_UPDATED_EVENT = 'focusgo:synced-preferences-updated'
@@ -68,6 +69,7 @@ const buildLocalSnapshot = (): Omit<SyncedPreferences, 'createdAt' | 'updatedAt'
   dashboardLayoutLocked: readLayoutLocked(),
   calendarSubscriptions: readStoredSubscriptions(),
   salary: readSalaryState(),
+  quotes: readQuoteState(),
 })
 
 const applySnapshotToLocal = (snapshot: SyncedPreferences) => {
@@ -91,6 +93,7 @@ const applySnapshotToLocal = (snapshot: SyncedPreferences) => {
   writeStoredSubscriptions(snapshot.calendarSubscriptions)
   // Older clients don't send it; keep what this device has.
   if (snapshot.salary) writeSalaryState(snapshot.salary)
+  if (snapshot.quotes) writeQuoteState(snapshot.quotes)
 }
 
 export const syncedPreferencesRepo = {

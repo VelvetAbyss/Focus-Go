@@ -53,6 +53,16 @@ describe('calendar.ics', () => {
     expect(new Set(events.map((event) => event.id)).size).toBe(3)
   })
 
+  it('keeps the start of a timed event, and none for an all-day one', async () => {
+    const today = new Date()
+    const ymd = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`
+    const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nUID:call-1\nDTSTART:${ymd}T020000Z\nSUMMARY:Lowe's call\nEND:VEVENT\nBEGIN:VEVENT\nUID:day-1\nDTSTART;VALUE=DATE:${ymd}\nSUMMARY:Show day\nEND:VEVENT\nEND:VCALENDAR`
+    const events = await parseIcsEvents(ics, 'custom')
+    const call = events.find((event) => event.title === "Lowe's call")
+    expect(call?.startAt).toBe(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), 2, 0))
+    expect(events.find((event) => event.title === 'Show day')?.startAt).toBeUndefined()
+  })
+
   it('throws when parsed events are empty', async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, text: async () => 'BEGIN:VCALENDAR\nEND:VCALENDAR' })
 

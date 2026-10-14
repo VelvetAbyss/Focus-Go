@@ -25,6 +25,11 @@ type Props = {
   /** Start of the viewer's local day; the strip spans 24 hours from here. */
   axisStart: number
   now: number
+  /** Working hours at the city, minutes after midnight. */
+  workStart?: number
+  workEnd?: number
+  /** While scrubbing: the instant under the pointer, drawn as a pencil line. */
+  cursor?: number | null
 }
 
 /**
@@ -33,7 +38,7 @@ type Props = {
  * hours at the city are a dashed pencil line underneath; the city's midnight
  * is a tick; now is the pen, at the same x on every row.
  */
-const DaylightStrip = ({ latitude, longitude, offsetMinutes, axisStart, now }: Props) => {
+const DaylightStrip = ({ latitude, longitude, offsetMinutes, axisStart, now, workStart: workFrom = 9 * 60, workEnd: workTo = 18 * 60, cursor = null }: Props) => {
   const minuteBucket = Math.floor(now / 60000)
 
   const { stops, workSpans, midnights } = useMemo(() => {
@@ -47,7 +52,7 @@ const DaylightStrip = ({ latitude, longitude, offsetMinutes, axisStart, now }: P
       const time = axisStart + f * DAY_MS
       stops.push({ offset: f, color: STOP_COLOR[daylightAt(sunElevation(new Date(time), latitude, longitude))] })
       const hour = localHour(time, offsetMinutes)
-      const working = hour >= 9 && hour < 18
+      const working = hour * 60 >= workFrom && hour * 60 < workTo
       if (working && workStart === null) workStart = f
       if (!working && workStart !== null) {
         workSpans.push([workStart, f])
@@ -60,7 +65,7 @@ const DaylightStrip = ({ latitude, longitude, offsetMinutes, axisStart, now }: P
     return { stops, workSpans, midnights }
     // Recomputed every ten minutes; light at a place changes slower than that.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [latitude, longitude, offsetMinutes, axisStart, Math.floor(minuteBucket / 10)])
+  }, [latitude, longitude, offsetMinutes, axisStart, workFrom, workTo, Math.floor(minuteBucket / 10)])
 
   const nowX = Math.min(1, Math.max(0, (now - axisStart) / DAY_MS)) * 100
 
@@ -77,6 +82,9 @@ const DaylightStrip = ({ latitude, longitude, offsetMinutes, axisStart, now }: P
         <span key={a} className="wc-strip__work" style={{ left: `${a * 100}%`, width: `${(b - a) * 100}%` } as CSSProperties} />
       ))}
       <span className="wc-strip__now" style={{ left: `${nowX}%` }} />
+      {cursor != null ? (
+        <span className="wc-strip__cursor" style={{ left: `${Math.min(1, Math.max(0, (cursor - axisStart) / DAY_MS)) * 100}%` }} />
+      ) : null}
     </div>
   )
 }

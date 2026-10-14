@@ -13,6 +13,8 @@ export type WorkspaceActions = {
   plan: (task: TaskItem, value: boolean) => void
   focus: (task: TaskItem) => void
   unblock: (task: TaskItem) => void
+  /** A follow-up went out on a waiting task. */
+  chase?: (task: TaskItem) => void
   busy: (id: string) => boolean
 }
 export default function WorkspaceTask({ task, allTasks, project, actions, candidate = false, selectable, selected, onSelect }: {
@@ -48,7 +50,7 @@ export default function WorkspaceTask({ task, allTasks, project, actions, candid
       {completion ? <span>{completion.completed}/{completion.total}</span> : null}
       {task.tags.slice(0, 2).map(tag => <span key={tag}>#{tag}</span>)}
     </div>
-    {task.status === 'waiting' ? <p className="flow-task-note">{task.waitingOn || t('tasks.flow.waitingWho')}</p> : task.progressNote ? <p className="flow-task-note">{task.progressNote}</p> : null}
+    {task.status === 'waiting' ? <p className="flow-task-note">{task.waitingOn || t('tasks.flow.waitingWho')}{task.chasedAt?.length ? ` · ${t('tasks.chase.countShort', { n: task.chasedAt.length })}` : ''}</p> : task.progressNote ? <p className="flow-task-note">{task.progressNote}</p> : null}
     {blocked ? <div className="flow-block-note"><LockKeyhole size={12} aria-hidden />{task.isBlocked ? <span>{t('tasks.flow.manualBlock')} <button type="button" disabled={actions.busy(task.id)} onClick={()=>actions.unblock(task)}>{t('tasks.flow.unblock')}</button></span> : null}{refs.map(id=>{const dependency=allTasks.find(item=>item.id===id);return dependency?<button type="button" key={id} onClick={()=>actions.open(dependency)}>{dependency.title} ↗</button>:<span key={id}>{t('tasks.flow.missingDependency')}</span>})}</div> : null}
     <div className="flow-task-actions">
       {candidate ? <button type="button" disabled={actions.busy(task.id)} onClick={() => actions.plan(task, true)}>+ {t('tasks.flow.addPlan')}</button> : <>
@@ -57,6 +59,7 @@ export default function WorkspaceTask({ task, allTasks, project, actions, candid
         {task.status === 'doing' ? <button type="button" disabled={actions.busy(task.id)} onClick={() => actions.move(task, 'verify')}>{t('tasks.flow.sendVerify')}</button> : null}
         {task.status === 'verify' ? <button type="button" disabled={actions.busy(task.id)} onClick={() => actions.move(task, 'todo')}>{t('tasks.flow.return')}</button> : null}
         {task.isToday && task.status !== 'done' && task.status !== 'dropped' ? <button type="button" disabled={actions.busy(task.id)} onClick={() => actions.plan(task, false)}>{t('tasks.flow.removePlan')}</button> : null}
+        {task.status === 'waiting' && actions.chase ? <button type="button" disabled={actions.busy(task.id)} onClick={() => actions.chase!(task)}>{t('tasks.chase.action')}</button> : null}
         {task.status === 'waiting' ? <button type="button" onClick={() => actions.move(task, 'waiting')}>{t('tasks.flow.waitingEdit')}</button> : null}
       </>}
     </div>

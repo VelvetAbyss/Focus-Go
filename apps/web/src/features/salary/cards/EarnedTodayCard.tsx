@@ -5,9 +5,10 @@ import { useI18n } from '../../../shared/i18n/useI18n'
 import { usePreferences } from '../../../shared/prefs/usePreferences'
 import { useVisibleInterval } from '../../../shared/hooks/usePageActivity'
 import { currencyToSymbol } from '../../../lib/currency'
-import { dayStatus, nextWorkStart } from '../salaryModel'
+import { dayStatus, daysUntilDayOff, daysUntilPayday, nextWorkStart } from '../salaryModel'
 import { formatMoney, formatRate, formatTimeOfDay, formatWorkDuration, localeOf } from '../salaryFormat'
 import { useSalaryState } from '../useSalaryState'
+import { useWorkingSalarySettings } from '../cnHolidays'
 import { useSettingsDialog } from '../useSettingsDialog'
 import { SalarySettingsButton, SalarySetup } from '../SalaryParts'
 import { dayGrid } from '../timeGrid'
@@ -23,7 +24,9 @@ const EarnedTodayCard = () => {
   const { t, language } = useI18n()
   const { defaultCurrency } = usePreferences()
   const symbol = currencyToSymbol(defaultCurrency)
-  const { settings } = useSalaryState()
+  const { settings: savedSettings } = useSalaryState()
+  // Holidays and 调休 change which days pay; computed on the settings with them applied.
+  const settings = useWorkingSalarySettings(savedSettings)
   const { openSettings, settingsDialog } = useSettingsDialog()
   const [now, setNow] = useState(() => Date.now())
   const status = settings ? dayStatus(settings, now) : null
@@ -44,6 +47,23 @@ const EarnedTodayCard = () => {
 
   const money = (amount: number) => formatMoney(amount, symbol, language)
 
+  // How far off the things you look forward to: the end of today, the next day off, payday.
+  const countdown = (() => {
+    if (!settings || !status) return []
+    const parts: string[] = []
+    if (status.phase === 'working' || status.phase === 'lunch') {
+      parts.push(t('salary.countdown.offIn', { duration: formatWorkDuration(Math.max(0, status.end - now) / 1000, t) }))
+    }
+    const rest = daysUntilDayOff(settings, now)
+    if (rest === 1) parts.push(t('salary.countdown.restTomorrow'))
+    else if (rest !== null && rest > 1) parts.push(t('salary.countdown.restIn', { n: rest }))
+    const pay = daysUntilPayday(settings, now)
+    if (pay === 0) parts.push(t('salary.countdown.payToday'))
+    else if (pay !== null) parts.push(t('salary.countdown.payIn', { n: pay }))
+    return parts
+  })()
+  const countdownLine = countdown.length > 0 ? <p className="salary-meta salary-earned__countdown">{countdown.join(' · ')}</p> : null
+
   let body
   if (!settings || !status) {
     body = <SalarySetup body={t('salary.setup.earned')} onSetup={openSettings} />
@@ -56,6 +76,7 @@ const EarnedTodayCard = () => {
       <div className="salary-earned salary-earned--off">
         <p className="salary-earned__rest">{t('salary.earned.off')}</p>
         {when ? <p className="salary-meta">{t('salary.earned.nextStart', { when })}</p> : null}
+        {countdownLine}
       </div>
     )
   } else {
@@ -90,6 +111,7 @@ const EarnedTodayCard = () => {
           <span>{t('salary.earned.progress', { percent: Math.floor(status.progress * 100) })}</span>
           <span>{t('salary.earned.expected', { amount: money(status.expected) })}</span>
         </p>
+        {countdownLine}
       </div>
     )
   }

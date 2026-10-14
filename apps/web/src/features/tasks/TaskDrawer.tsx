@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useInRouterContext, useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeft, CalendarDays, Check, Clock3, Flag, LoaderCircle, MoreHorizontal, Pin, Play, Plus, Repeat, RotateCcw, Target, Trash2, X } from 'lucide-react'
+import { ArrowLeft, CalendarDays, Check, Clock3, ExternalLink, Flag, Link2, LoaderCircle, MoreHorizontal, Pin, Play, Plus, Repeat, RotateCcw, Send, Target, Trash2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -33,8 +33,11 @@ import TaskAttachmentsSection from './components/TaskAttachmentsSection'
 import TaskNotesPanel from './components/TaskNotesPanel'
 import TaskProgressCard from './components/TaskProgressCard'
 import TaskProjectAssignCard from './components/TaskProjectAssignCard'
-import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, describeTaskRecurrence, formatTaskDateTime, getTaskTagTone } from './components/taskPresentation'
-import { recurrenceFromOption, recurrenceOptionValue } from './domain/taskRecurrence'
+import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, describeTaskRecurrence, formatTaskDate, formatTaskDateTime, getTaskTagTone } from './components/taskPresentation'
+import { buildNextOccurrence, recurrenceFromOption, recurrenceOptionValue } from './domain/taskRecurrence'
+import { safeSourceUrl, sourceLabel, withChase } from './domain/taskFollowUp'
+import { getPlatform } from '../../platform'
+import { workStartMinutes } from './reminderSnooze'
 import { getTaskWaitingDays } from './domain/taskRules'
 import { toDateKey } from '../../shared/utils/time'
 import { useI18n } from '../../shared/i18n/useI18n'
@@ -583,6 +586,40 @@ const TaskDrawer = ({
     }
   }
 
+  // A repeating task that doesn't apply this time (a holiday week's report): dropped with a reason
+  // that says so, so it stays out of the completion count, and the next one comes as usual.
+  const handleSkipOccurrence = async () => {
+    if (!currentTask?.recurrence) return
+    const taskId = currentTask.id
+    const previousStatus = currentTask.status
+    const nextDue = buildNextOccurrence(currentTask)?.dueDate
+    setIsSaving(true)
+    try {
+      const dropped = await tasksRepo.updateStatus(taskId, 'dropped')
+      if (!dropped) return
+      const updated = (await tasksRepo.update({ ...dropped, dropReason: t('tasks.recurrence.skipReason') })) ?? dropped
+      emitTasksChanged('task-drawer:skip-occurrence')
+      onUpdated(updated)
+      toast.push({
+        message: nextDue
+          ? t('tasks.recurrence.skippedToast', { date: formatTaskDate(nextDue) ?? nextDue })
+          : t('tasks.recurrence.skippedToastNoDate'),
+        actionLabel: t('tasks.undo'),
+        onAction: () => {
+          void tasksRepo.updateStatus(taskId, previousStatus).then((reverted) => {
+            if (!reverted) return
+            emitTasksChanged('task-drawer:undo-skip')
+            onUpdated(reverted)
+          })
+        },
+      })
+    } catch {
+      toast.push({ variant: 'error', title: t('tasks.drawer.updateFailed'), message: t('tasks.drawer.retryHint') })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   // Fields that live on the task itself rather than in the draft (they can also change from a
   // status change, e.g. finishing a repeating task hands its rule to the next one). Saved at once,
   // together with any pending draft edits.
@@ -608,6 +645,38 @@ const TaskDrawer = ({
   const commitDropReason = () => {
     const next = dropReasonDraft.trim()
     if (next !== (currentTask?.dropReason ?? '')) commitDirect({ dropReason: next || undefined })
+  }
+
+  // A follow-up went out: logged in the progress history, the chase date moved three workdays on.
+  const handleChase = () => {
+    if (!currentTask) return
+    const chased = withChase(currentTask, t('tasks.chase.logEntry', { date: formatTaskDate(new Date().toLocaleDateString('en-CA')) ?? '' }), Date.now(), workStartMinutes())
+    // The date and reminder fields are editor state; move them too, or the next autosave puts the old ones back.
+    setDueDate(chased.dueDate ?? '')
+    const reminderParts = getReminderDateParts(chased.reminderAt)
+    setReminderDate(reminderParts.reminderDate)
+    setReminderTime(reminderParts.reminderTime)
+    commitDirect({ chasedAt: chased.chasedAt, dueDate: chased.dueDate, reminderAt: chased.reminderAt, reminderFiredAt: undefined, progressHistory: chased.progressHistory })
+    toast.push({ message: t('tasks.chase.toast', { date: formatTaskDate(chased.dueDate!) ?? chased.dueDate! }) })
+  }
+
+  const [sourceDraft, setSourceDraft] = useState('')
+  const [editingSource, setEditingSource] = useState(false)
+  useEffect(() => {
+    setSourceDraft(currentTask?.sourceUrl ?? '')
+    setEditingSource(false)
+  }, [currentTask?.id, currentTask?.sourceUrl])
+  const commitSource = () => {
+    setEditingSource(false)
+    const next = sourceDraft.trim()
+    if (next === (currentTask?.sourceUrl ?? '')) return
+    const safe = safeSourceUrl(next)
+    if (next && !safe) {
+      toast.push({ variant: 'error', message: t('tasks.source.invalid') })
+      setSourceDraft(currentTask?.sourceUrl ?? '')
+      return
+    }
+    commitDirect({ sourceUrl: safe })
   }
 
   const handleRecurrenceChange = (value: string) => {
@@ -835,6 +904,20 @@ const TaskDrawer = ({
                           {t(item.labelKey)}
                         </button>
                       ))}
+                      {currentTask.recurrence && currentTask.status !== 'done' && currentTask.status !== 'dropped' ? (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition hover:bg-accent"
+                          onClick={() => {
+                            setStatusMenuOpen(false)
+                            void handleSkipOccurrence()
+                          }}
+                        >
+                          <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', TASK_STATUS_CONFIG.dropped.dot)} aria-hidden />
+                          {t('tasks.recurrence.skip')}
+                        </button>
+                      ) : null}
                     </div>
                   </PopoverContent>
                 </Popover>
@@ -962,8 +1045,66 @@ const TaskDrawer = ({
                         {waitingDays != null ? (
                           <span className="text-[color:var(--pencil)]">{t('tasks.drawer.waitingFor', { n: waitingDays })}</span>
                         ) : null}
+                        {currentTask.chasedAt?.length ? (
+                          <span className="text-[color:var(--pencil)]">
+                            {t('tasks.chase.count', {
+                              n: currentTask.chasedAt.length,
+                              date: formatTaskDate(new Date(currentTask.chasedAt[currentTask.chasedAt.length - 1]).toLocaleDateString('en-CA')) ?? '',
+                            })}
+                          </span>
+                        ) : null}
+                        <Button type="button" variant="outline" size="sm" className={OUTLINE_PILL} onClick={handleChase} disabled={isSaving}>
+                          <Send className="mr-1 h-3 w-3" />
+                          {t('tasks.chase.action')}
+                        </Button>
                       </div>
                     ) : null}
+                    {/* Where it came from: an email or a page, one click back to it. */}
+                    {editingSource || currentTask.sourceUrl ? (
+                      <div className="mt-3 flex min-w-0 items-center gap-2 text-meta">
+                        <span className="shrink-0 font-semibold text-[color:var(--text-secondary)]">{t('tasks.source.label')}</span>
+                        {editingSource ? (
+                          <Input
+                            autoFocus
+                            value={sourceDraft}
+                            onChange={(event) => setSourceDraft(event.target.value)}
+                            onBlur={commitSource}
+                            onKeyDown={(event) => {
+                              if (event.key !== 'Enter' || event.nativeEvent.isComposing) return
+                              event.preventDefault()
+                              event.currentTarget.blur()
+                            }}
+                            placeholder={t('tasks.source.placeholder')}
+                            aria-label={t('tasks.source.label')}
+                            className="h-7 min-w-0 flex-1 rounded-full bg-transparent px-3 text-meta shadow-none"
+                          />
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              className="inline-flex min-w-0 items-center gap-1 truncate text-[color:var(--text-primary)] underline-offset-2 hover:underline"
+                              onClick={() => void getPlatform().openExternal(currentTask.sourceUrl!)}
+                              title={currentTask.sourceUrl}
+                            >
+                              <ExternalLink className="h-3 w-3 shrink-0" />
+                              <span className="truncate">{sourceLabel(currentTask.sourceUrl!)}</span>
+                            </button>
+                            <button type="button" className="shrink-0 text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]" onClick={() => setEditingSource(true)}>
+                              {t('tasks.source.edit')}
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        className="mt-3 inline-flex items-center gap-1 text-meta text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
+                        onClick={() => setEditingSource(true)}
+                      >
+                        <Link2 className="h-3 w-3" />
+                        {t('tasks.source.add')}
+                      </button>
+                    )}
                     {currentTask.status === 'dropped' ? (
                       <label className="mt-3 flex min-w-0 items-center gap-2 text-meta">
                         <span className="shrink-0 font-semibold text-[color:var(--text-secondary)]">{t('tasks.drawer.dropReason')}</span>

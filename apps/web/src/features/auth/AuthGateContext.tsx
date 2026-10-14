@@ -1,7 +1,8 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, lazy, Suspense, useCallback, useContext, useState, type ReactNode } from 'react'
+import { createContext, lazy, Suspense, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { useIsLoggedIn } from '../../store/auth'
 import { isLocalhostRuntime } from '../../shared/env/localhost'
+import { LOCAL_ACCOUNT_OWNER_KEY } from '../../config/accountOwnership'
 
 const LoginModal = lazy(() => import('../../app/layout/LoginModal'))
 
@@ -28,6 +29,22 @@ const AuthGateContext = createContext<AuthGateContextValue>({
 export const AuthGateProvider = ({ children }: { children: ReactNode }) => {
   const isLoggedIn = useIsLoggedIn()
   const [showLoginModal, setShowLoginModal] = useState(false)
+  const [expired, setExpired] = useState(false)
+
+  // Signed out while this device still holds an account's data: the session expired or was
+  // revoked (signing out on purpose clears the data). Keep the data and ask for sign-in, once.
+  useEffect(() => {
+    if (isLoggedIn || isLocalhostRuntime()) return
+    let owned = false
+    try {
+      owned = Boolean(localStorage.getItem(LOCAL_ACCOUNT_OWNER_KEY))
+    } catch {
+      owned = false
+    }
+    if (!owned) return
+    setExpired(true)
+    setShowLoginModal(true)
+  }, [isLoggedIn])
 
   const isGated = !isLocalhostRuntime() && !isLoggedIn
 
@@ -47,7 +64,7 @@ export const AuthGateProvider = ({ children }: { children: ReactNode }) => {
       {children}
       {showLoginModal && (
         <Suspense fallback={null}>
-          <LoginModal onClose={() => setShowLoginModal(false)} />
+          <LoginModal reason={expired && !isLoggedIn ? 'expired' : undefined} onClose={() => setShowLoginModal(false)} />
         </Suspense>
       )}
     </AuthGateContext.Provider>

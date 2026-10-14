@@ -1,5 +1,6 @@
 import type { CalendarSubscription } from '../../features/calendar/calendar.model'
 import type { SalaryState } from '../../features/salary/salaryStorage'
+import type { QuoteState } from '../../features/dashboard/quote/quoteStorage'
 import type { DiaryFontId, LanguageCode, TemperatureUnit, WorldClockItem } from '../../shared/prefs/preferences'
 import type { ThemeSelection } from '../../shared/theme/theme'
 export type {
@@ -174,6 +175,10 @@ export type TaskItem = BaseEntity & {
   waitingOn?: string
   /** When the task last entered `waiting`. */
   waitingSince?: number
+  /** When each follow-up ("催了一次") went out, oldest first. */
+  chasedAt?: number[]
+  /** Where the task came from: an email or a page, opened from the task. */
+  sourceUrl?: string
   /** Why the task was dropped (status `dropped`). */
   dropReason?: string
   recurrence?: TaskRecurrence
@@ -712,6 +717,14 @@ export type TaskNoteLink = BaseEntity & {
   order: number
 }
 
+/** A deleted task as it was, with its note links, kept on this device so it can come back. */
+export type TaskTrashEntry = {
+  id: string
+  task: TaskItem
+  links: TaskNoteLink[]
+  deletedAt: number
+}
+
 export type FeatureKey = 'ai-digest' | 'automation' | 'habit-tracker' | 'project-workspace'
 export type FeatureInstallState = 'installed' | 'removed'
 
@@ -769,5 +782,7 @@ export type SyncedPreferences = BaseEntity & {
   calendarSubscriptions: CalendarSubscription[]
   /** The dashboard pay widgets; absent in snapshots from older clients. */
   salary?: SalaryState
+  /** The dashboard quote's library and your own lines; absent from older clients. */
+  quotes?: QuoteState
   initialSeedCompletedAt?: number | null
 }

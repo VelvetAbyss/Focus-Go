@@ -5,5 +5,7 @@ export const isLocalhostHost = (hostname: string | null | undefined) => LOCALHOS
 export const isLocalhostRuntime = () => {
   if (typeof window === 'undefined') return false
   if (typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'test') return false
-  return isLocalhostHost(window.location.hostname)
+  // A dev server on this machine, not a packaged app that loads from localhost: the macOS
+  // desktop build is tauri://localhost and must ask for sign-in like every other build.
+  return /^https?:$/.test(window.location.protocol) && isLocalhostHost(window.location.hostname)
 }

@@ -44,7 +44,12 @@ import { useAddInputComposer } from '../../../shared/hooks/useAddInputComposer'
 import { tasksRepo } from '../../../data/repositories/tasksRepo'
 import TaskDrawer from '../../tasks/TaskDrawer'
 import { peopleRepo } from '../../../data/repositories/peopleRepo'
-import type { LifePerson } from '../../../data/models/types'
+import { tripsRepo } from '../../../data/repositories/tripsRepo'
+import type { LifePerson, TripRecord } from '../../../data/models/types'
+import { Link } from 'react-router-dom'
+import { readWorldClockItems } from '../../../shared/prefs/preferences'
+import { pickSecondZone, secondZoneLabel } from '../secondZone'
+import { buildTripDetailRoute } from '../../../app/routes/routes'
 import { emitTasksChanged, subscribeTasksChanged } from '../../tasks/taskSync'
 import { useTaskDeletion } from '../../tasks/application/useTaskDeletion'
 import { useSyncDataRefresh } from '../../../data/sync/service'
@@ -54,6 +59,7 @@ import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG } from '../../tasks/components
 import { fetchIcsEventsWithFallback, filterEventsInMonth } from '../calendar.ics'
 import { buildLunarEvents } from '../calendar.lunar'
 import {
+  buildTripEvents,
   type CalendarEvent,
   formatMonthLabel,
   getMonthGridDateKeys,
@@ -67,6 +73,7 @@ import {
   updateSubscriptionColor,
   type CalendarProvider,
   type CalendarSubscription,
+  TRIPS_SOURCE_ID,
 } from '../calendar.model'
 import {
   readStoredSubscriptions,
@@ -604,6 +611,14 @@ const CalendarPage = () => {
     void peopleRepo.list().then(setAllPeople)
   }, [])
 
+  // Trips (trade shows, business trips) lie across their days, so planning around them is visible.
+  const [allTrips, setAllTrips] = useState<TripRecord[]>([])
+  useEffect(() => {
+    void tripsRepo.list().then(setAllTrips)
+  }, [])
+  const tripEvents = useMemo(() => buildTripEvents(allTrips, monthGridDateKeys), [allTrips, monthGridDateKeys])
+  const tripIdByEventId = useMemo(() => new Map(tripEvents.map((event) => [event.id, event.tripId])), [tripEvents])
+
   const birthdayEvents = useMemo<CalendarEvent[]>(() => {
     const events: CalendarEvent[] = []
     allPeople.forEach((person) => {
@@ -638,10 +653,13 @@ const CalendarPage = () => {
       (event) => !builtinIds.has(event.subscriptionId)
     )
 
-    return [...remoteEvents, ...lunarEvents, ...birthdayEvents].filter(
-      (event) => event.subscriptionId === 'system-birthdays' || visibleSubscriptionIds.has(event.subscriptionId)
+    return [...remoteEvents, ...lunarEvents, ...birthdayEvents, ...tripEvents].filter(
+      (event) =>
+        event.subscriptionId === 'system-birthdays' ||
+        event.subscriptionId === TRIPS_SOURCE_ID ||
+        visibleSubscriptionIds.has(event.subscriptionId)
     )
-  }, [anchorDate, icsEventsBySubscription, subscriptions, lunarEvents, visibleSubscriptionIds, birthdayEvents])
+  }, [anchorDate, icsEventsBySubscription, subscriptions, lunarEvents, visibleSubscriptionIds, birthdayEvents, tripEvents])
 
   const eventsByDate = useMemo(() => {
     const grouped = new Map<string, CalendarEvent[]>()
@@ -670,9 +688,17 @@ const CalendarPage = () => {
   )
 
   const selectedDayEvents = useMemo(() => sortedEventsByDate.get(selectedDateKey) ?? [], [sortedEventsByDate, selectedDateKey])
+  // A timed event also reads in the world clock's first other city, for calls across time zones.
+  const homeTimeZone = useMemo(() => {
+    try { return Intl.DateTimeFormat().resolvedOptions().timeZone } catch { return 'UTC' }
+  }, [])
+  const secondZone = useMemo(() => pickSecondZone(readWorldClockItems(), homeTimeZone), [homeTimeZone])
+  const intlLocale = language === 'zh' ? 'zh-CN' : 'en-US'
   const subscriptionColorById = useMemo(() => {
     const map = new Map(subscriptions.map((subscription) => [subscription.id, subscription.color]))
     map.set('system-birthdays', '#fb7185')
+    // A trip is a plan: the pencil-line tone, not a category colour.
+    map.set(TRIPS_SOURCE_ID, '#948e84')
     return map
   }, [subscriptions])
 
@@ -1161,7 +1187,22 @@ const CalendarPage = () => {
                     aria-hidden="true"
                     style={eventColor ? { background: eventColor } : undefined}
                   />
-                  <span className={`calendar-side-row__text${hasCjk(eventTitle) ? ' is-cjk' : ''}`}>{eventTitle}</span>
+                  {tripIdByEventId.has(event.id) ? (
+                    <Link
+                      to={buildTripDetailRoute(tripIdByEventId.get(event.id)!)}
+                      className={`calendar-side-row__text calendar-side-row__link${hasCjk(eventTitle) ? ' is-cjk' : ''}`}
+                    >
+                      {eventTitle}
+                    </Link>
+                  ) : (
+                    <span className={`calendar-side-row__text${hasCjk(eventTitle) ? ' is-cjk' : ''}`}>{eventTitle}</span>
+                  )}
+                  {event.startAt ? (
+                    <span className="calendar-side-row__time">
+                      {new Intl.DateTimeFormat(intlLocale, { hour: '2-digit', minute: '2-digit', hour12: false }).format(event.startAt)}
+                      {secondZone ? ` · ${secondZoneLabel(event.startAt, secondZone, homeTimeZone, intlLocale)}` : ''}
+                    </span>
+                  ) : null}
                 </li>
               )
             })}

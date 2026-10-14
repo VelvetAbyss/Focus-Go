@@ -8,7 +8,8 @@ import { currencyToSymbol } from '../../../lib/currency'
 import { earnedBetween, startOfLocalDay, startOfLocalWeek, type SalarySettings } from '../salaryModel'
 import { formatMoney, formatTimeOfDay, formatWorkDuration } from '../salaryFormat'
 import type { BreakSession } from '../salaryStorage'
-import { newSalaryId, updateSalaryState, useSalaryState } from '../useSalaryState'
+import { startBreak, stopBreak, updateSalaryState, useSalaryState } from '../useSalaryState'
+import { useWorkingSalarySettings } from '../cnHolidays'
 import { useSettingsDialog } from '../useSettingsDialog'
 import { DurationFigure, SalarySettingsButton } from '../SalaryParts'
 import { dayGrid } from '../timeGrid'
@@ -16,9 +17,6 @@ import GridCanvas from '../GridCanvas'
 import { useGridColors } from '../useGridColors'
 import type { TimeGridParams } from '../three/gridTypes'
 import '../salary.css'
-
-/** A tap shorter than this is a slip, not a break. */
-const MIN_BREAK_MS = 5_000
 
 const pad = (value: number) => String(value).padStart(2, '0')
 
@@ -59,7 +57,9 @@ const BreakLogCard = () => {
   const { t, language } = useI18n()
   const { defaultCurrency } = usePreferences()
   const symbol = currencyToSymbol(defaultCurrency)
-  const { settings, breaks, activeBreakStartAt } = useSalaryState()
+  const { settings: savedSettings, breaks, activeBreakStartAt } = useSalaryState()
+  // Holidays and 调休 change which days pay; computed on the settings with them applied.
+  const settings = useWorkingSalarySettings(savedSettings)
   const { openSettings, settingsDialog } = useSettingsDialog()
   const [now, setNow] = useState(() => Date.now())
 
@@ -74,22 +74,13 @@ const BreakLogCard = () => {
   const start = () => {
     const startedAt = Date.now()
     setNow(startedAt)
-    updateSalaryState((current) => (current.activeBreakStartAt ? current : { ...current, activeBreakStartAt: startedAt }))
+    startBreak(startedAt)
   }
 
   const stop = () => {
     const endedAt = Date.now()
     setNow(endedAt)
-    updateSalaryState((current) => {
-      const startAt = current.activeBreakStartAt
-      if (!startAt) return current
-      const kept = endedAt - startAt >= MIN_BREAK_MS
-      return {
-        ...current,
-        activeBreakStartAt: null,
-        breaks: kept ? [...current.breaks, { id: newSalaryId(), startAt, endAt: endedAt }] : current.breaks,
-      }
-    })
+    stopBreak(endedAt)
   }
 
   const remove = (id: string) =>

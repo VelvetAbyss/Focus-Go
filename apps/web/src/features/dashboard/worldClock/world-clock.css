@@ -210,3 +210,145 @@ html[data-theme='dark'] .dashboard-widget-card--worldclock {
   color: var(--accent);
   font-weight: 600;
 }
+
+/* Batch 3 (2026-10): reorder, edit, scrub, working state. */
+
+.wc-rows__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dashboard-widget-card--worldclock .wc-row {
+  position: relative;
+}
+
+/* The name is the drag handle. */
+.dashboard-widget-card--worldclock .wc-row__head {
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.dashboard-widget-card--worldclock .wc-row__head:active {
+  cursor: grabbing;
+}
+
+/* On a narrow card the meta line gives way before the name does. */
+.dashboard-widget-card--worldclock .wc-row__main {
+  min-width: 0;
+}
+
+.dashboard-widget-card--worldclock .wc-row__head {
+  flex: 0 0 auto;
+  max-width: 55%;
+}
+
+.dashboard-widget-card--worldclock .wc-row__meta {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* The edit pencil reveals with the remove button. */
+.wc-row__edit[data-state='open'] {
+  opacity: 1;
+  transform: none;
+}
+
+/* A day off where they are: worth a mark before you write. */
+.dashboard-widget-card--worldclock .wc-row__work--holiday {
+  color: var(--tone-warn);
+}
+
+/* Scrubbing: the times read a chosen moment, not now, so they take the pencil. */
+.dashboard-widget-card--worldclock .wc-row__time.is-scrubbing {
+  color: var(--pencil);
+}
+
+.dashboard-widget-card--worldclock .wc-row__time.is-scrubbing .wc-row__time-colon {
+  animation: none;
+}
+
+.wc-axis__now.is-scrubbing {
+  color: var(--pencil);
+}
+
+.wc-strip__cursor {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 0;
+  margin-left: -0.5px;
+  border-left: 1px solid var(--pencil);
+  pointer-events: none;
+}
+
+.wc-rows {
+  cursor: crosshair;
+}
+
+.wc-rows button {
+  cursor: pointer;
+}
+
+/* Edit popover: your name for the row and their working hours. */
+.wc-edit.popover-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 240px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+}
+
+.wc-edit__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--fs-label);
+  color: var(--text-secondary);
+}
+
+.wc-edit__field input {
+  height: 30px;
+  min-width: 0;
+  padding: 0 8px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  background: var(--paper-sunken);
+  color: var(--ink-1);
+  font-size: var(--fs-ui);
+  font-variant-numeric: tabular-nums;
+}
+
+.wc-edit__field input:focus-visible {
+  outline: none;
+  border-color: var(--rule-strong);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.wc-edit__hours {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.wc-edit__hours input {
+  flex: 1;
+}
+
+.wc-edit__hint {
+  margin: 0;
+  font-size: var(--fs-meta);
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+
+.dashboard-widget-card--worldclock .wc-row__work {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

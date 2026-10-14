@@ -57,7 +57,15 @@ export type WorldClockItem = {
   latitude: number
   longitude: number
   timeZone: string
+  /** Your own name for the row ("Lowe's · 夏洛特"); the city name stays in `label`. */
+  alias?: string
+  /** Working hours at the city, in minutes after midnight; 9:00–18:00 when unset. */
+  workStart?: number
+  workEnd?: number
 }
+
+/** The world clock keeps up to six cities (the card and its storage agree on it). */
+export const MAX_WORLD_CLOCK_ITEMS = 6
 
 export const DEFAULT_WORLD_CLOCK_ITEMS: WorldClockItem[] = [
   {
@@ -252,7 +260,7 @@ export function readWorldClockItems(): WorldClockItem[] {
           typeof item?.longitude === 'number' &&
           typeof item?.timeZone === 'string'
       )
-      .slice(0, 4)
+      .slice(0, MAX_WORLD_CLOCK_ITEMS)
   } catch {
     return []
   }
@@ -269,6 +277,6 @@ export function writeWorldClockItems(items: WorldClockItem[]) {
         typeof item?.longitude === 'number' &&
         typeof item?.timeZone === 'string'
     )
-    .slice(0, 4)
+    .slice(0, MAX_WORLD_CLOCK_ITEMS)
   localStorage.setItem(WORLD_CLOCK_ITEMS_KEY, JSON.stringify(safeItems))
 }

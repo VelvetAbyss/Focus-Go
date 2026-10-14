@@ -106,6 +106,16 @@ vi.mock('../../data/repositories/tasksRepo', () => ({
   },
 }))
 
+vi.mock('../../data/repositories/taskTrashRepo', () => ({
+  TASK_TRASH_RETENTION_MS: 30 * 24 * 60 * 60 * 1000,
+  taskTrashRepo: {
+    list: vi.fn(async () => []),
+    get: vi.fn(async () => undefined),
+    discard: vi.fn(async () => undefined),
+    clear: vi.fn(async () => undefined),
+  },
+}))
+
 vi.mock('../../data/repositories/projectsRepo', () => ({
   projectsRepo: {
     list: (...args: unknown[]) => projectListMock(...args),

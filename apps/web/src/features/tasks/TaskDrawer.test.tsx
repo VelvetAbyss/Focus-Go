@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { TaskItem } from './tasks.types'
 
 const updateMock = vi.fn()
+const updateStatusMock = vi.fn()
 const pushMock = vi.fn()
 
 vi.mock('../../shared/i18n/useI18n', () => ({
@@ -86,8 +87,14 @@ vi.mock('../../data/repositories/tasksRepo', () => ({
   tasksRepo: {
     update: (...args: unknown[]) => updateMock(...args),
     remove: vi.fn(),
-    updateStatus: vi.fn(),
+    updateStatus: (...args: unknown[]) => updateStatusMock(...args),
   },
+}))
+
+// The notes panel loads its links asynchronously; a real store could resolve after the file's
+// environment is torn down and set state on a dead window (CI caught it).
+vi.mock('../../data/repositories/taskNoteLinksRepo', () => ({
+  taskNoteLinksRepo: { listByTask: async () => [], createForTask: vi.fn(), removeLink: vi.fn() },
 }))
 
 vi.mock('../../shared/ui/toast/toast', () => ({
@@ -291,5 +298,54 @@ describe('TaskDrawer onboarding mode', () => {
     expect(layout.style.gridTemplateColumns).toContain('minmax(0')
     expect(document.body.querySelector('.task-detail-pane--right')).toHaveClass('min-w-0')
     expect(document.body.querySelector('.task-detail-aside')).toHaveClass('min-w-0')
+  })
+  it('skips one occurrence of a repeating task: dropped with a reason, undoable', async () => {
+    const weekly: TaskItem = { ...createdTask, id: 'weekly-1', title: '交周报', dueDate: '2026-10-09', recurrence: { frequency: 'weekly', interval: 1 } }
+    updateStatusMock.mockReset()
+    updateStatusMock.mockImplementation(async (_id: string, status: TaskItem['status']) => ({ ...weekly, status }))
+    updateMock.mockImplementation(async (task: TaskItem) => task)
+    const onUpdated = vi.fn()
+
+    render(<TaskDrawer open task={weekly} onClose={vi.fn()} onUpdated={onUpdated} onDeleted={vi.fn()} />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'tasks.status.more' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'tasks.recurrence.skip' }))
+
+    await waitFor(() => expect(updateStatusMock).toHaveBeenCalledWith('weekly-1', 'dropped'))
+    await waitFor(() =>
+      expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ id: 'weekly-1', status: 'dropped', dropReason: 'tasks.recurrence.skipReason' })),
+    )
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith(expect.objectContaining({ message: 'tasks.recurrence.skippedToast' })))
+
+    // Undo puts it back as it was; reopening also takes back the untouched next occurrence.
+    await act(async () => {
+      pushMock.mock.calls.at(-1)?.[0].onAction()
+    })
+    expect(updateStatusMock).toHaveBeenLastCalledWith('weekly-1', 'todo')
+  })
+
+  it('offers no skip for a one-off task', async () => {
+    render(<TaskDrawer open task={createdTask} onClose={vi.fn()} onUpdated={vi.fn()} onDeleted={vi.fn()} />)
+    fireEvent.click(await screen.findByRole('button', { name: 'tasks.status.more' }))
+    await screen.findAllByRole('menuitem')
+    expect(screen.queryByRole('menuitem', { name: 'tasks.recurrence.skip' })).not.toBeInTheDocument()
+    await act(async () => {})
+  })
+  it('logs a chase on a waiting task and moves the chase date and its reminder on', async () => {
+    const waiting: TaskItem = { ...createdTask, id: 'wait-1', title: "Lowe's 报价", status: 'waiting', waitingOn: "Lowe's", waitingSince: 1 }
+    updateMock.mockReset()
+    updateMock.mockImplementation(async (task: TaskItem) => task)
+    render(<TaskDrawer open task={waiting} onClose={vi.fn()} onUpdated={vi.fn()} onDeleted={vi.fn()} />)
+
+    fireEvent.click(await screen.findByRole('button', { name: /tasks.chase.action/ }))
+
+    await waitFor(() => expect(updateMock).toHaveBeenCalled())
+    const saved = updateMock.mock.calls.at(-1)?.[0] as TaskItem
+    expect(saved.chasedAt).toHaveLength(1)
+    expect(saved.dueDate).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(saved.reminderAt).toBe(new Date(`${saved.dueDate}T09:00:00`).getTime())
+    expect(saved.progressHistory?.[0].text).toBe('tasks.chase.logEntry')
+    expect(pushMock).toHaveBeenCalledWith(expect.objectContaining({ message: 'tasks.chase.toast' }))
+    await act(async () => {})
   })
 })

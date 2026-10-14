@@ -268,6 +268,10 @@ export type TaskItem = BaseEntity & {
   waitingOn?: string
   /** When the task last entered `waiting`. */
   waitingSince?: number
+  /** When each follow-up ("催了一次") went out, oldest first. */
+  chasedAt?: number[]
+  /** Where the task came from: an email or a page, opened from the task. */
+  sourceUrl?: string
   /** Why the task was dropped (status `dropped`). */
   dropReason?: string
   recurrence?: TaskRecurrence

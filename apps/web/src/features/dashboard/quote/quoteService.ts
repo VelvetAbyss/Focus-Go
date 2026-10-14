@@ -75,3 +75,17 @@ export const quoteForDay = (date: Date, language: LanguageCode, skip = 0): Dashb
 }
 
 export const QUOTE_COUNT = QUOTES.length
+
+const wrap = (value: number, count: number) => ((value % count) + count) % count
+
+/**
+ * Which of your own lines a calendar day shows: the same day-by-day walk as
+ * the library, through your lines in the order you wrote them. -1 when there
+ * are none.
+ */
+export const ownQuoteIndexForDay = (date: Date, count: number, skip = 0) =>
+  count > 0 ? wrap(dayNumber(date) + skip, count) : -1
+
+/** The skip that brings line `index` up today, so a line just written shows at once. */
+export const skipToOwnQuote = (date: Date, count: number, index: number) =>
+  count > 0 ? wrap(index - dayNumber(date), count) : 0

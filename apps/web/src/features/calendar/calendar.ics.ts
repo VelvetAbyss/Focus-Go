@@ -85,6 +85,7 @@ const buildEvent = (
     title,
     dateKey: toDateKey(occurrence),
     timeLabel: isAllDay ? 'All day' : toTimeLabel(occurrence),
+    startAt: isAllDay ? undefined : occurrence.getTime(),
     kind,
   }
 }

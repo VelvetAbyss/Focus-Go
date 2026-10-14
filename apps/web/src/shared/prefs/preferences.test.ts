@@ -39,9 +39,9 @@ describe('world clock preferences', () => {
   })
 
   it('persists up to four valid items', () => {
-    writeWorldClockItems([0, 1, 2, 3, 4].map(makeItem))
+    writeWorldClockItems([0, 1, 2, 3, 4, 5, 6].map(makeItem))
 
-    expect(readWorldClockItems()).toHaveLength(4)
+    expect(readWorldClockItems()).toHaveLength(6)
     expect(readWorldClockItems()[0]?.label).toBe('City 0')
     expect(readWorldClockItems()[3]?.label).toBe('City 3')
   })

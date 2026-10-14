@@ -9,6 +9,7 @@ import { earnedBetween, paidMinutesPerDay, priceInWorkTime } from '../salaryMode
 import { formatMoney, formatWorkDuration, localeOf } from '../salaryFormat'
 import { MAX_WISHES } from '../salaryStorage'
 import { newSalaryId, updateSalaryState, useSalaryState } from '../useSalaryState'
+import { useWorkingSalarySettings } from '../cnHolidays'
 import { useSettingsDialog } from '../useSettingsDialog'
 import { DurationFigure, SalarySettingsButton, SalarySetup } from '../SalaryParts'
 import { priceGrid } from '../timeGrid'
@@ -81,7 +82,9 @@ const WorkTimePriceCard = () => {
   const { t, language } = useI18n()
   const { defaultCurrency } = usePreferences()
   const symbol = currencyToSymbol(defaultCurrency)
-  const { settings, wishlist } = useSalaryState()
+  const { settings: savedSettings, wishlist } = useSalaryState()
+  // Holidays and 调休 change which days pay; computed on the settings with them applied.
+  const settings = useWorkingSalarySettings(savedSettings)
   const { openSettings, settingsDialog } = useSettingsDialog()
   const [name, setName] = useState('')
   const [priceText, setPriceText] = useState('')
