@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import NoteEditor from './NoteEditor'
@@ -23,9 +23,12 @@ const runMock = vi.fn()
 const editorConfigRef: { current: Record<string, unknown> | null } = { current: null }
 
 vi.mock('../model/richTextCodec', () => ({
-  ensureRichDoc: () => ({ type: 'doc', content: [] }),
+  ensureRichDoc: (json: unknown) => json ?? ({ type: 'doc', content: [] }),
   richDocToMarkdown: () => '',
 }))
+
+vi.mock('./NoteSelectionMenu', () => ({ NoteSelectionMenu: () => null }))
+vi.mock('./NoteBlockTools', () => ({ NoteBlockTools: () => null }))
 
 vi.mock('@tiptap/react', () => ({
   useEditor: (config: Record<string, unknown>) => {
@@ -86,6 +89,8 @@ describe('NoteEditor', () => {
     commands: { setContent: vi.fn() },
     view: { dom: document.createElement('div'), composing: false },
     isFocused: false,
+    on: vi.fn(),
+    off: vi.fn(),
     chain: () => ({
       focus: focusMock.mockReturnThis(),
       setTextSelection: setTextSelectionMock.mockReturnThis(),
@@ -93,6 +98,52 @@ describe('NoteEditor', () => {
       setImage: setImageMock.mockReturnThis(),
       run: runMock,
     }),
+  })
+
+  it('defers an external snapshot while focused and applies it after blur', async () => {
+    const editor = createEditor()
+    editor.isFocused = true
+    useEditorMock.mockReturnValue(editor)
+    const { rerender } = render(<NoteEditor value={value} onChange={() => {}} />)
+    const remote = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Remote update' }] }] }
+    rerender(<NoteEditor value={{ ...value, contentJson: remote }} onChange={() => {}} />)
+    expect(editor.commands.setContent).not.toHaveBeenCalled()
+    editor.isFocused = false
+    const blur = editor.on.mock.calls.find(([event]) => event === 'blur')?.[1] as () => void
+    act(() => blur())
+    await waitFor(() => expect(editor.commands.setContent).toHaveBeenCalledWith(remote, { emitUpdate: false }))
+  })
+
+  it('does not apply a stale external snapshot over buffered local typing', async () => {
+    const editor = createEditor()
+    editor.isFocused = true
+    useEditorMock.mockReturnValue(editor)
+    const onChange = vi.fn()
+    const { rerender } = render(<NoteEditor value={value} onChange={onChange} />)
+    const local = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Unflushed local text' }] }] }
+    const update = editorConfigRef.current?.onUpdate as (args: { editor: { getJSON: () => unknown } }) => void
+    act(() => update({ editor: { getJSON: () => local } }))
+    const remote = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Older remote text' }] }] }
+    rerender(<NoteEditor value={{ ...value, contentJson: remote }} onChange={onChange} />)
+    editor.isFocused = false
+    const blur = editor.on.mock.calls.find(([event]) => event === 'blur')?.[1] as () => void
+    act(() => blur())
+    await waitFor(() => expect(onChange).toHaveBeenCalled())
+    expect(onChange.mock.calls.at(-1)?.[0].contentJson).toEqual(local)
+    expect(editor.commands.setContent).not.toHaveBeenCalled()
+  })
+
+  it('waits until composition ends before reconciling a blurred editor', async () => {
+    const editor = createEditor()
+    editor.view.composing = true
+    useEditorMock.mockReturnValue(editor)
+    const { rerender } = render(<NoteEditor value={value} onChange={() => {}} />)
+    const remote = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: '远端更新' }] }] }
+    rerender(<NoteEditor value={{ ...value, contentJson: remote }} onChange={() => {}} />)
+    expect(editor.commands.setContent).not.toHaveBeenCalled()
+    editor.view.composing = false
+    act(() => editor.view.dom.dispatchEvent(new CompositionEvent('compositionend')))
+    await waitFor(() => expect(editor.commands.setContent).toHaveBeenCalledWith(remote, { emitUpdate: false }))
   })
 
   it('renders toolbar and action buttons in the same topbar', () => {

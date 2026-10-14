@@ -19,6 +19,7 @@ const Dialog = ({ open, title, onClose, children, panelClassName, contentClassNa
   const [mounted, setMounted] = useState(false)
   const [visible, setVisible] = useState(false)
   const exitTimeoutRef = useRef<number | null>(null)
+  const panelRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     if (open) {
@@ -55,7 +56,12 @@ const Dialog = ({ open, title, onClose, children, panelClassName, contentClassNa
   useEffect(() => {
     if (!open) return
     const handleKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+      if (event.defaultPrevented || event.isComposing || event.keyCode === 229 || event.key !== 'Escape') return
+      const panels = document.querySelectorAll('[data-focusgo-dialog-open="true"]')
+      if (panels[panels.length - 1] !== panelRef.current) return
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      onClose()
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
@@ -86,6 +92,8 @@ const Dialog = ({ open, title, onClose, children, panelClassName, contentClassNa
         onClick={handlePanelClick}
         role="dialog"
         aria-modal="true"
+        ref={panelRef}
+        data-focusgo-dialog-open={open ? 'true' : 'false'}
       >
         {title && (
           <header className="dialog__header">
