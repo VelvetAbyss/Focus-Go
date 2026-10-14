@@ -152,7 +152,9 @@ const factory: SceneFactory<DeskParams> = (context, initial) => {
 
   // ── State.
 
-  let lampX = params.lampX
+  /** Where the user put the lamp, and where it stands on this desk (or is being carried to). */
+  let lampStored = params.lampX
+  let lampX = lampStored
   let lampShown = lampX
   /** The pose the user left the lamp in, and the one it takes to clear what stands under it. */
   const rest: LampPose = { ...params.pose }
@@ -304,6 +306,27 @@ const factory: SceneFactory<DeskParams> = (context, initial) => {
     const fitted = lampFit(lampX)
     if (fitted) Object.assign(pose, fitted)
   }
+  /**
+   * Stands the lamp where it was put, or, on a desk too narrow for that (a
+   * smaller window, a position saved on a wider display), at the nearest spot
+   * where it fits, without forgetting where it was put.
+   */
+  const placeLamp = () => {
+    const lo = span.left + LAMP_BASE.half
+    const hi = lampArea.right - 0.1
+    const target = Math.min(hi, Math.max(lo, lampStored))
+    for (let d = 0; d <= hi - lo + 1e-9; d += 0.1) {
+      for (const x of d ? [target - d, target + d] : [target]) {
+        if (x < lo || x > hi) continue
+        const fitted = lampFit(x)
+        if (!fitted) continue
+        lampX = x
+        Object.assign(pose, fitted)
+        return
+      }
+    }
+    lampX = target
+  }
   /** Carries the lamp toward x, stopping where it no longer fits. */
   const moveLamp = (target: number) => {
     const to = Math.min(lampArea.right - 0.1, Math.max(span.left + LAMP_BASE.half, target))
@@ -332,7 +355,8 @@ const factory: SceneFactory<DeskParams> = (context, initial) => {
   }
 
   syncItems(params.items, false)
-  refit()
+  placeLamp()
+  lampShown = lampX
   Object.assign(shown, pose)
 
   // ── Picking and dragging.
@@ -525,6 +549,18 @@ const factory: SceneFactory<DeskParams> = (context, initial) => {
     if (MODIFIER_KEYS.has(event.key)) return
     keys += 1
   }
+  // Reduced motion draws only on demand, but a kitchen timer still keeps time:
+  // look in each second while one runs, so its dial winds back and it ends.
+  const timekeeper = still
+    ? window.setInterval(() => {
+        for (const entry of placed.values()) {
+          if (entry.timer.endsAt !== null && !entry.leaving) {
+            context.invalidate()
+            return
+          }
+        }
+      }, 1000)
+    : 0
   canvas.addEventListener('pointerdown', onPointerDown)
   canvas.addEventListener('pointermove', onPointerMove)
   canvas.addEventListener('pointerup', onPointerUp)
@@ -800,6 +836,7 @@ const factory: SceneFactory<DeskParams> = (context, initial) => {
   const reflow = () => {
     fitCamera()
     for (const entry of placed.values()) if (!entry.held) entry.home = onDesk(entry.stored, entry.half, span)
+    if (drag?.hit.handle !== 'base') placeLamp()
     lastBeam = ''
   }
 
@@ -814,9 +851,11 @@ const factory: SceneFactory<DeskParams> = (context, initial) => {
       if (next.unit !== previous.unit || next.origin !== previous.origin) reflow()
       if (next.lampOn !== lampOn) switchLamp(next.lampOn)
       if (next.items !== previous.items) syncItems(next.items, true)
-      if (next.lampX !== previous.lampX && drag?.hit.handle !== 'base') lampX = next.lampX
       if (next.pose !== previous.pose && !drag) Object.assign(rest, next.pose)
-      refit()
+      if (next.lampX !== previous.lampX && drag?.hit.handle !== 'base') {
+        lampStored = next.lampX
+        placeLamp()
+      } else refit()
       if (next.highlight && next.highlight !== previous.highlight) {
         const entry = placed.get(next.highlight)
         // A little hop, to say which one it is.
@@ -838,6 +877,7 @@ const factory: SceneFactory<DeskParams> = (context, initial) => {
       canvas.removeEventListener('pointerleave', onPointerLeave)
       canvas.removeEventListener('wheel', onWheel)
       window.removeEventListener('keydown', onKeyDown)
+      window.clearInterval(timekeeper)
       canvas.style.cursor = ''
       params.onBeam(null)
       for (const { prop } of placed.values()) prop.dispose?.()
