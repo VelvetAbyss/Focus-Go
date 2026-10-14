@@ -67,7 +67,7 @@ const LampLightCanvases = ({ store, source, dark }: Props) => {
       const rect = from.getBoundingClientRect()
       const sx = rect.width / Math.max(1, from.clientWidth)
       const sy = rect.height / Math.max(1, from.clientHeight)
-      const key = [viewW, viewH, rect.left, rect.top, rect.width, rect.height, beam.mouth, beam.dir, beam.light, beam.dim].join()
+      const key = [viewW, viewH, rect.left, rect.top, rect.width, rect.height, beam.mouth, beam.dir, beam.light, beam.dim, JSON.stringify(beam.glows)].join()
       if (key === lastKey) return
       lastKey = key
 
@@ -145,6 +145,15 @@ const LampLightCanvases = ({ store, source, dark }: Props) => {
       bulbGlow.addColorStop(1, 'rgba(0,0,0,0)')
       shade.fillStyle = bulbGlow
       shade.fillRect(0, 0, w, h)
+      // Other lights on the desk keep a small bright pool of their own.
+      const glows = beam.glows.map((g) => ({ ...g, xy: at(g.at), r: g.radius * unit }))
+      for (const g of glows) {
+        const pool = shade.createRadialGradient(g.xy[0], g.xy[1], 0, g.xy[0], g.xy[1], g.r)
+        pool.addColorStop(0, `rgba(0,0,0,${0.9 * g.strength})`)
+        pool.addColorStop(1, 'rgba(0,0,0,0)')
+        shade.fillStyle = pool
+        shade.fillRect(0, 0, w, h)
+      }
 
       // The warmth: warmest by the lamp, paler where the light spreads, in the
       // cone only, plus a glow at the mouth.
@@ -164,6 +173,13 @@ const LampLightCanvases = ({ store, source, dark }: Props) => {
       mouthGlow.addColorStop(1, `rgba(${blank}, 0)`)
       warm.fillStyle = mouthGlow
       warm.fillRect(0, 0, w, h)
+      for (const g of glows) {
+        const flame = warm.createRadialGradient(g.xy[0], g.xy[1], 0, g.xy[0], g.xy[1], g.r * 0.8)
+        flame.addColorStop(0, `rgba(${look.glow}, ${0.8 * g.strength})`)
+        flame.addColorStop(1, `rgba(${blank}, 0)`)
+        warm.fillStyle = flame
+        warm.fillRect(0, 0, w, h)
+      }
     }
 
     // The page can move under the light without the light changing (scrolling,

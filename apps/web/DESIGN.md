@@ -554,6 +554,7 @@ bezier arrays or durations.
 | 2026-10-09 | Every audio slider becomes one of two shared controls: level bars that dance while the sound plays (volume) and a seek waveform with the pen as playhead (volume from direction 7, seek from direction 5 of eight sketched: ruler ticks, hairline dot, stepped bars, filled pill, waveform, dial with progress ring, dancing bars, wedge). The dead NoiseSlider/NoiseControlPanel are removed | There were four slider implementations, and the focus mixer's could not be used from the keyboard. The user picked the dancing bars. Native inputs underneath keep a11y; transform-only keyframes keep the dance off the main thread (see the perf rule about ambient heat). |
 | 2026-10-09 | Dashboard header becomes a masthead and a toolbar (supersedes the 2026-09-28 layout; the date's type is unchanged): the weekday line moves under the date, the quote moves to the right as an epigraph, and one rule below carries the views as tabs (专注 · 生活 · 资讯, translated; a sliding pen underline) with the layout actions on the right. The duplicate Settings link is gone (direction C of three sketched: tabs under the quote, one dropdown plus a more menu, masthead and toolbar) | One pill held seven kinds of control (tabs, a select, a create button, a mode toggle and a link to app Settings) in mixed English and Chinese, pinned to the top with no shared baseline. Separating the reading part from the operating part follows "serif where you read, sans where you operate" and fills the empty middle. |
 | 2026-10-14 | The masthead gets a desk: a lamp, an open book (or a laptop) and a coffee (or an iced cola) stand on the toolbar rule in a three.js scene, drawn as paper-white solids with ink outlines, seen exactly side on (style A of three sketched: pure ink line, paper model, pen sketch). Switching the lamp on dims the whole app, sidebar included, and its light falls where the shade points. The lamp's hinges can be dragged | The user asked for these props and the light link to focus the task card. They picked the ink line and then the side view, with the book centred under the lamp. They rejected a light pinned to the task card: the light must come out of the shade. The warm light and the bulb's halo are a deliberate exception to "no glows", shown only while the lamp is on. |
+| 2026-10-14 | The desk drops fixed places: props are added as often as wanted from the picker and carried anywhere along the masthead gap; lifted off its top they are taken away. The lamp slides by its base and raises its head over whatever is put under it. Props may overlap, drawn back to front with the lamp in front. | The user asked to cancel the slots: "move freely along the top bar, add freely, any number". |
 
 ## Ambient environments — 2026-10-08
 
@@ -683,33 +684,73 @@ Two parts, read then operate.
 
 ## Desk — 2026-10-14
 
-A small still life on the masthead, standing on the toolbar rule between the
-date and the quote. Code: `src/features/dashboard/desk/`.
+A small still life on the masthead, standing on the toolbar rule anywhere in
+the gap between the date (and the view tabs) and the quote (and the layout
+actions). Code: `src/features/dashboard/desk/`.
 
 - **Look.** Seen exactly side on: the rule is the desk's edge. Paper-white
   solids (`--paper-raised`) with ink outlines (`--ink-1`, 1.5px; details 1px in
   `--ink-3`/`--ink-4`), no shading. Steam is drawn in pencil (`--pencil-line`):
   strokes that draw themselves upward and are taken back. Colour appears only
   in the light.
-- **Props.** An open book (a page turns every so often, or on a click) or a
-  laptop (the lid opens and closes on a click); a coffee or an iced cola (a
-  click on the cup swaps it). Quiet controls in the corner, shown on hover like
-  "another quote", swap the props, switch the lamp and reset its pose.
+- **Props, anywhere.** There are no fixed places. Any prop (book, laptop,
+  typewriter, record player, coffee, iced cola, plant, kitchen timer, candle,
+  cat) can be added as often as you like; it drops in from above at the free
+  spot nearest the middle (over the task card) and bounces. Drag a prop to
+  carry it along the desk: it lifts, swings against the way it moves about
+  where it's held, and falls back with a bounce. Lift it to the top of the
+  masthead and it shrinks; let go there and it's taken away in a pencil puff.
+  Props overlap like things on a real desk: each is drawn over the ones behind
+  it, the last one moved in front, and the lamp in front of them all so its
+  switch is never buried. Positions are world units from the middle of the
+  masthead, so props keep their place against the cards; on a narrower
+  masthead they're kept on the desk without losing where they were put. A
+  sticky note can hang on the lamp's lower arm, showing the task in progress
+  in the pen. Each prop has an idle motion and one click:
+  - the book turns a page;
+  - the laptop opens or closes;
+  - the typewriter types a word, and types along whenever a key is pressed
+    anywhere in the app (only the fact, never which key);
+  - the record player starts or stops;
+  - the coffee puffs steam;
+  - the cola fizzes;
+  - the plant is watered, and it leans toward the lamp when that is on;
+  - the timer starts 25 minutes, or is twisted with the wheel to set up to
+    an hour (it starts once the wheel rests), rings with a shake, and its
+    mark is the pen while it runs; each timer keeps its own time;
+  - the candle lights, burns down slowly and warms the paper around it;
+  - the cat wakes for a moment.
+
+  Quiet controls in the corner, shown on hover like "another quote", switch
+  the lamp, open the picker and put the lamp back where and how it started.
+  The picker opens below the desk, so additions can be watched landing: a row
+  of everything that can be added, the props on the desk left to right (each
+  chip takes its prop away; pointing at one makes that prop hop), the sticky
+  note, and a line on how to move things.
 - **The lamp.** A click switches it: the bulb flickers on, then the whole app,
   sidebar included, goes down (28% in light, 50% in dark) except the cone from
   the shade: about 80° wide, full light until well past the cards, and warm.
   The warmth is its own layer, multiplied on light paper and screened on dark,
   so it tints the paper without washing out the ink. Dragging the elbow joint
   swings the lower arm, the head joint swings the upper arm, and the shade
-  turns on its own; dashed pencil rings show what can be dragged. The light always comes out of the
-  shade. By default it points at the book and the task card under it.
-- **Per device.** The lamp, its pose and the props are a local setting
-  (`focusgo.dashboard.desk`), never synced.
+  turns on its own; dashed pencil rings show what can be dragged. Dragging the
+  base slides the whole lamp along the desk (pencil chevrons either side of
+  it), stopping where it would no longer fit. When a prop is put under the
+  shade, the lamp raises its head clear of it, keeping the shade aimed the
+  same way, and lowers it again once the prop is gone. The light always comes
+  out of the shade. By default it points at the book and the task card under
+  it.
+- **Per device.** The lamp, where it stands and its pose, the props and where
+  they stand (each timer's ring time with it), and the sticky note are a
+  local setting (`focusgo.dashboard.desk`), never synced; a desk saved with
+  fixed places is stood where those places were. Lit candles keep a small
+  bright pool each when the lamp dims the page (up to four warm the paper).
 - **Layering.** The light is two fixed half-resolution 2D canvases above the
   shell and below dialogs (z 45). They redraw only when the light or the shade
   moves, or when the page under them scrolls or reflows. The desk itself draws
   at the display's rate while it is on screen.
-- **Limits.** The desk hides when the masthead gap is too narrow (below about
-  42px per unit, and always below 960px). Reduced motion: no flicker, no
+- **Limits.** The desk hides when the masthead gap is too narrow (narrower
+  than the lamp and a prop or two, below about 42px per unit, and always
+  below 960px). Reduced motion: no flicker, no
   steam drift, no automatic page turns; drags still work.
 

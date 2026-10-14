@@ -31,6 +31,7 @@ const ELBOW_MIN = 0.25
 const ELBOW_MAX = 2.95
 /** The shade can point anywhere from 40° above one horizontal to the other. */
 const SHADE_REACH = 2.3
+const RIM_CLEARANCE = 0.1
 
 export type LampFrame = {
   elbow: Point
@@ -64,11 +65,13 @@ export const isPoseValid = (pose: LampPose, bounds: LampBounds, floor: DeskFloor
   const inside = ([x, y]: Point, margin = 0) => x >= bounds.left - margin && x <= bounds.right + margin && y <= bounds.top
   if (!inside(elbow) || elbow[1] < 0.35) return false
   if (!inside(head) || head[1] < floor(head[0]) + 0.32) return false
-  // The rim: both ends of the mouth seen side on, and its middle.
+  // The rim: both ends of the mouth seen side on, and its middle. The shade
+  // leans toward the viewer, so the mouth shows as an ellipse hanging about
+  // a tenth below them: that much clear of whatever stands underneath.
   const rx = Math.cos(angle) * LAMP_RIG.mouthRadius
   const ry = Math.sin(angle) * LAMP_RIG.mouthRadius
   const rim: Point[] = [[mouth[0] + rx, mouth[1] + ry], [mouth[0] - rx, mouth[1] - ry], mouth]
-  return rim.every((p) => inside(p, 0.08) && p[1] >= floor(p[0]) + 0.05)
+  return rim.every((p) => inside(p, 0.08) && p[1] >= floor(p[0]) + RIM_CLEARANCE)
 }
 
 const lerpPose = (a: LampPose, b: LampPose, t: number): LampPose => ({
@@ -96,6 +99,42 @@ export const constrainPose = (from: LampPose, next: LampPose, bounds: LampBounds
     else hi = mid
   }
   return lerpPose(from, target, lo)
+}
+
+/** Joint moves tried when something stands in the lamp's way, smallest first:
+ *  the shoulder (a1) and the elbow (a2), the shade keeping its aim. */
+const CLEARING_MOVES: [number, number][] = (() => {
+  const moves: [number, number, number][] = []
+  for (let i = -15; i <= 15; i += 1) {
+    for (let j = -30; j <= 30; j += 1) moves.push([i * 0.04, j * 0.04, Math.abs(i) * 0.04 + Math.abs(j) * 0.028])
+  }
+  return moves.sort((a, b) => a[2] - b[2]).map(([d1, d2]) => [d1, d2])
+})()
+
+/**
+ * The nearest pose that clears the desk and the edges, moving the two arms
+ * and keeping the shade pointed the same way (so the light still falls where
+ * it did); null when nothing nearby fits.
+ */
+export const clearPose = (pose: LampPose, bounds: LampBounds, floor: DeskFloor): LampPose | null => {
+  const shade = pose.a1 + pose.a2 + pose.a3
+  for (const [d1, d2] of CLEARING_MOVES) {
+    const a1 = pose.a1 + d1
+    const a2 = pose.a2 + d2
+    const candidate = { a1, a2, a3: shade - a1 - a2 }
+    if (isPoseValid(candidate, bounds, floor)) return candidate
+  }
+  return null
+}
+
+/**
+ * The pose the lamp actually takes for the one the user left it in: that one
+ * when it fits, else the nearest that clears whatever was put under it, else
+ * the rest pose (or the nearest to it); null when the lamp fits nowhere here.
+ */
+export const fitPose = (rest: LampPose, bounds: LampBounds, floor: DeskFloor): LampPose | null => {
+  if (isPoseValid(rest, bounds, floor)) return rest
+  return clearPose(rest, bounds, floor) ?? (isPoseValid(DEFAULT_POSE, bounds, floor) ? DEFAULT_POSE : clearPose(DEFAULT_POSE, bounds, floor))
 }
 
 /** The world angle a handle currently sets. */
