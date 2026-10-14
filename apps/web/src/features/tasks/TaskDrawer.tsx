@@ -241,7 +241,7 @@ const TaskDrawer = ({
     attachments: TaskItem['attachments']
   } | null>(null)
 
-  const saveTimerRef = useRef<number | null>(null)
+  const directPatchRef = useRef<Partial<TaskItem>>({})
   const pendingSaveRef = useRef(false)
   const queuedDraftRef = useRef<TaskItem | null>(null)
   const isSavingRef = useRef(false)
@@ -258,12 +258,9 @@ const TaskDrawer = ({
 
   useEffect(() => {
     if (!open || !task || task.id === lastId) return
-    if (saveTimerRef.current) {
-      window.clearTimeout(saveTimerRef.current)
-      saveTimerRef.current = null
-    }
     pendingSaveRef.current = false
     queuedDraftRef.current = null
+    directPatchRef.current = {}
     setLastId(task.id)
     setTitle(task.title)
     setDescription(task.description ?? '')
@@ -353,8 +350,10 @@ const TaskDrawer = ({
   }, [])
 
   const saveDraft = useCallback(
-    async (nextDraft: TaskItem) => {
+    async (draft: TaskItem) => {
       if (isGated) return
+      const directPatch = directPatchRef.current
+      const nextDraft = { ...draft, ...directPatch }
       if (nextDraft.startDate && nextDraft.endDate && nextDraft.endDate < nextDraft.startDate) {
         toast.push({
           variant: 'error',
@@ -364,10 +363,20 @@ const TaskDrawer = ({
         return
       }
 
+      if (isSavingRef.current) {
+        pendingSaveRef.current = true
+        queuedDraftRef.current = nextDraft
+        return
+      }
       isSavingRef.current = true
       setIsSaving(true)
       try {
         const next = await tasksRepo.update(nextDraft)
+        const remainingPatch = { ...directPatchRef.current }
+        for (const key of Object.keys(directPatch) as Array<keyof TaskItem>) {
+          if (remainingPatch[key] === directPatch[key]) delete remainingPatch[key]
+        }
+        directPatchRef.current = remainingPatch
         emitTasksChanged('task-drawer:update')
         onUpdated(next)
         baselineRef.current = {
@@ -399,7 +408,7 @@ const TaskDrawer = ({
           pendingSaveRef.current = false
           const queued = queuedDraftRef.current
           queuedDraftRef.current = null
-          if (queued && isDraftDirty(queued)) void saveDraft(queued)
+          if (queued && (isDraftDirty(queued) || Object.keys(directPatchRef.current).length > 0)) void saveDraft(queued)
         }
       }
     },
@@ -407,10 +416,6 @@ const TaskDrawer = ({
   )
 
   const flushSave = useCallback(() => {
-    if (saveTimerRef.current) {
-      window.clearTimeout(saveTimerRef.current)
-      saveTimerRef.current = null
-    }
     const nextDraft = draftRef.current ?? buildDraft(task)
     if (!task || task.id !== lastId || !nextDraft || !isDraftDirty(nextDraft)) return
     if (isSavingRef.current) {
@@ -429,29 +434,16 @@ const TaskDrawer = ({
       queuedDraftRef.current = nextDraft
       return
     }
-    if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current)
-    saveTimerRef.current = window.setTimeout(() => {
-      saveTimerRef.current = null
-      const latestDraft = queuedDraftRef.current ?? draftRef.current
-      if (!latestDraft || !isDraftDirty(latestDraft)) return
-      if (isSavingRef.current) {
-        pendingSaveRef.current = true
-        queuedDraftRef.current = latestDraft
-        return
-      }
-      void saveDraft(latestDraft)
-    }, 180)
+    void saveDraft(nextDraft)
   }, [isDraftDirty, lastId, open, saveDraft, task])
 
   useEffect(() => {
     scheduleSave(buildDraft(task))
   }, [buildDraft, scheduleSave, task])
 
-  useEffect(() => {
-    return () => {
-      flushSave()
-    }
-  }, [flushSave])
+  const flushSaveRef = useRef(flushSave)
+  useEffect(() => { flushSaveRef.current = flushSave }, [flushSave])
+  useEffect(() => () => flushSaveRef.current(), [])
 
   useEffect(() => {
     if (!open) return
@@ -626,7 +618,8 @@ const TaskDrawer = ({
   const commitDirect = (patch: Partial<TaskItem>) => {
     const base = draftRef.current ?? buildDraft(task)
     if (!base) return
-    void saveDraft({ ...base, ...patch })
+    directPatchRef.current = { ...directPatchRef.current, ...patch }
+    void saveDraft({ ...base, ...directPatchRef.current })
   }
 
   const [waitingOnDraft, setWaitingOnDraft] = useState('')

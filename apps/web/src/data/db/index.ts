@@ -1,3 +1,4 @@
+import type { PendingSyncChange } from '../sync/pendingChanges'
 import Dexie from 'dexie'
 import type { Table } from 'dexie'
 import type {
@@ -62,6 +63,7 @@ import {
   schemaV44,
   schemaV45,
   schemaV46,
+  schemaV47,
   schemaV2,
   schemaV3,
   schemaV4,
@@ -74,6 +76,7 @@ import {
 } from './schema'
 
 export class WorkbenchDb extends Dexie {
+  pendingSyncChanges!: Table<PendingSyncChange, number>
   tasks!: Table<TaskItem, string>
   notes!: Table<NoteItem, string>
   noteTags!: Table<NoteTag, string>
@@ -270,8 +273,10 @@ export class WorkbenchDb extends Dexie {
       .stores(schemaV45)
       .upgrade(async () => {})
 
-    this.version(DB_VERSION).stores(schemaV46)
+    this.version(46).stores(schemaV46)
+    this.version(DB_VERSION).stores(schemaV47)
 
+    this.pendingSyncChanges = this.table(TABLES.pendingSyncChanges)
     this.tasks = this.table(TABLES.tasks)
     this.notes = this.table(TABLES.notes)
     this.noteTags = this.table(TABLES.noteTags)

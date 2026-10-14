@@ -3,6 +3,7 @@ import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { db } from '../db'
 import { enqueueSyncOperation } from './repository'
+import { createDexieDatabaseService } from '../services/DexieDatabaseService'
 import { SYNC_DATA_UPDATED_EVENT } from './constants'
 import '../events/timelineProjection'
 
@@ -94,6 +95,53 @@ describe('rxdb sync migration', () => {
     const body = JSON.parse(String(pushCall?.[1]?.body ?? '{}'))
     expect(body.entityType).toBe('tasks')
     expect(body.rows[0].newDocumentState.id).toBe('task-local')
+  })
+
+  it('keeps task edits and deletes responsive while a stale cloud pull is in flight', async () => {
+    const tasks = createDexieDatabaseService().tasks
+    const original = await tasks.add({ title: 'Original', status: 'todo', priority: null })
+    const toDelete = await tasks.add({ title: 'Delete during sync', status: 'todo', priority: null })
+    let releasePull!: () => void
+    let startedPull!: () => void
+    const started = new Promise<void>(resolve => { startedPull = resolve })
+    const gate = new Promise<void>(resolve => { releasePull = resolve })
+    let returnedTasks = false
+    fetchMock.mockImplementation(async (input, init) => {
+      const body = init?.body ? JSON.parse(String(init.body)) : {}
+      if (String(input).includes('/sync/rxdb/pull')) {
+        if (body.entityType === 'tasks' && !returnedTasks) {
+          returnedTasks = true
+          startedPull()
+          await gate
+          return { ok: true, json: async () => ({ documents: [original, toDelete], checkpoint: { id: toDelete.id, updatedAt: 1 }, blobs: [] }) } as Response
+        }
+        return { ok: true, json: async () => ({ documents: [], checkpoint: body.checkpoint ?? null, blobs: [] }) } as Response
+      }
+      return { ok: true, json: async () => ({ conflicts: [], blobs: [] }) } as Response
+    })
+    const cycle = runRxdbSyncCycle()
+    try {
+      await started
+      await Promise.race([
+        (async () => {
+          await tasks.update({ ...original, title: 'Latest local edit' })
+          await tasks.remove(toDelete.id)
+        })(),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Task operations waited for cloud')), 500)),
+      ])
+    } finally {
+      releasePull()
+      await cycle
+    }
+    expect((await db.tasks.get(original.id))?.title).toBe('Latest local edit')
+    expect(await db.tasks.get(toDelete.id)).toBeUndefined()
+    await runRxdbSyncCycle()
+    const pushed = fetchMock.mock.calls
+      .filter(([url]) => String(url).includes('/sync/rxdb/push'))
+      .flatMap(([, init]) => JSON.parse(String(init?.body)).rows)
+      .map(row => row.newDocumentState)
+    expect(pushed).toContainEqual(expect.objectContaining({ id: original.id, title: 'Latest local edit' }))
+    expect(pushed).toContainEqual(expect.objectContaining({ id: toDelete.id, _deleted: true }))
   })
 
   it('keeps offline note and task changes queued until connectivity returns', async () => {
