@@ -16,4 +16,6 @@ The WAVs are original procedural synthesis, not game recordings or third-party s
 
 ## Validation
 
+Release verification records: [interaction sound checks](../../../../../artifacts/interaction-sounds-2026-10-15/README.md).
+
 Unit coverage includes audio activation, all 39 material/gesture combinations, silence on failed writes and external refresh, bulk delete/undo, stale playback cancellation, interruption recovery, retry cooldown, cross-tab mute, and once-only timer completion with two mounted hooks. Browser QA uses actual AudioBufferSourceNode starts to verify settings previews and core user actions, not just click-handler invocation. Desktop packaging and prolonged human listening have not been validated in this change.

@@ -24,7 +24,7 @@ Verification: 9 related test files / 76 tests passed; lint, TypeScript, producti
 
 `wood-v2-browser.json` observes 39 preview source starts and natural endings, with correct theme-specific offsets and full durations. Eighteen wood taps use all six variants equally and never repeat immediately. The latest actual pointer switches of both settings tabs each play once at 0.55 voice gain. Probe limitations are retained: programmatic `HTMLElement.click` did not switch Radix tabs; the first actual appearance-tab switch captured no sound, while subsequent experience/appearance switches passed. Its first omission was not instrumented; the player intentionally discards cues delayed over 300 ms, so this run does not establish the exact cause.
 
-Local integration only. No commit, push, deployment, or packaged desktop verification was performed.
+At the time of this validation, integration was local only; no commit, push, deployment, or packaged desktop verification had been performed.
 
 ## Sidebar global interaction-sound switch
 
@@ -34,4 +34,4 @@ It subscribes to the existing sound preference store, so the sidebar and setting
 
 Validation: 21 existing player/control tests passed, lint and the TypeScript/production web build passed. `sidebar-toggle-browser.json` records six actual audio/synchronization checks. Space toggles off, Enter toggles on, and mute survives reload. `sidebar-toggle-layout-final.json` validates stable expanded/collapsed layouts at 1440px and 390px, equal styling to an unselected system navigation item, and no horizontal viewport overflow. Chinese/English and dark/light screenshots were visually reviewed. The earlier `sidebar-toggle-layout.json` captures transition frames and compares weight against the selected Settings item; final measurements supersede it.
 
-This remains a local, uncommitted implementation in the sound worktree.
+These records describe local pre-release verification; production deployment is verified separately by the release workflow.
