@@ -402,18 +402,19 @@ const TasksBoard = ({
     return map
   }, [projects])
   const activeProjects = useMemo(() => projects.filter((project) => project.status !== 'archived'), [projects])
+  const selectedFilterProject = activeProjects.find((project) => projectFilterIds.has(project.id))
   const lockedComposerProjectId = scopeProjectId
   const effectiveComposerProjectId = lockedComposerProjectId ?? composerProjectId
 
   useEffect(() => {
-    if (projectFilterIds.size === 0 || activeProjects.length === 0) return
+    if (!tasksLoaded || projectFilterIds.size === 0) return
     const validProjectIds = new Set(activeProjects.map((project) => project.id))
     setProjectFilterIds((prev) => {
       const next = [...prev].filter((projectId) => validProjectIds.has(projectId))
       if (next.length === prev.size) return prev
       return new Set(next.slice(0, 1))
     })
-  }, [activeProjects, projectFilterIds.size])
+  }, [activeProjects, projectFilterIds.size, tasksLoaded])
 
   useEffect(() => {
     if (scopeKind === 'project' && scopeProjectId) {
@@ -1017,7 +1018,7 @@ const TasksBoard = ({
                 {activeProjects.map((project) => {
                   const selected = projectFilterIds.has(project.id)
                   const count = projectFilterCounts.get(project.id) ?? 0
-                  if (count === 0) return null
+                  if (count === 0 && !selected) return null
                   const projectColor = resolveProjectColor(project)
                   return (
                     <button
@@ -1040,7 +1041,7 @@ const TasksBoard = ({
           <div className="tasks-workspace-filter-row">
             <div className="tasks-workspace-filters">
               {topView === 'board' && effectiveGroupBy === 'status' ? (
-                <div className="tasks-fg__status-group flex items-center gap-0.5" role="tablist" aria-label={t('tasks.workspace.groupStatus')}>
+                <div className={cn('tasks-fg__status-group flex items-center gap-0.5', asCard && 'min-w-0 max-w-full flex-wrap')} role="tablist" aria-label={t('tasks.workspace.groupStatus')}>
                   <ActiveIndicator selector={SELECTED_TAB} />
                   {tabs.map((status) => {
                     const cfg = TASK_STATUS_CONFIG[status.key]
@@ -1159,10 +1160,38 @@ const TasksBoard = ({
                 </>
               ) : null}
 
-                  <span className="tasks-fg__count-meta">{t('tasks.taskCount', { count: filteredTasks.length })}</span>
+              {!asCard ? <span className="tasks-fg__count-meta">{t('tasks.taskCount', { count: filteredTasks.length })}</span> : null}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2">
+              {asCard ? <span className="tasks-fg__count-meta">{t('tasks.taskCount', { count: filteredTasks.length })}</span> : null}
+              {asCard && scope.kind === 'all' ? (
+                <div className="tasks-fg__dashboard-project-filter relative inline-flex h-8 min-w-0 max-w-44 items-center gap-2 rounded-md px-2 text-xs text-[var(--ink-2)] transition-colors hover:bg-[var(--surface-hover)] focus-within:ring-2 focus-within:ring-ring/50">
+                  <span
+                    className="size-1.5 shrink-0 rounded-full"
+                    style={{ background: selectedFilterProject
+                      ? resolveProjectColor(selectedFilterProject)
+                      : 'var(--ink-3)' }}
+                    aria-hidden
+                  />
+                  <span className="min-w-0 truncate" aria-hidden>
+                    {selectedFilterProject?.title ?? t('tasks.board.allProjects')}
+                  </span>
+                  <ChevronDown className="size-3 shrink-0 text-[var(--ink-3)]" aria-hidden />
+                  <select
+                    className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                    aria-label={t('tasks.board.projectFiltersAria')}
+                    title={selectedFilterProject?.title ?? t('tasks.board.allProjects')}
+                    value={[...projectFilterIds][0] ?? ''}
+                    onChange={(event) => setProjectFilterIds(new Set(event.target.value ? [event.target.value] : []))}
+                  >
+                    <option value="">{t('tasks.board.allProjects')}</option>
+                    {activeProjects.map((project) => (
+                      <option key={project.id} value={project.id}>{project.title}</option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
               {!asCard ? (
                 bulkMode ? (
                   <div className="tasks-fg__bulk-bar flex items-center gap-1.5 rounded-md border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[var(--bg-elevated)] px-2 py-1">
