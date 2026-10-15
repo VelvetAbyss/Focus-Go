@@ -407,6 +407,62 @@ describe('TasksBoard sync', () => {
     expect(screen.getByText('Costco doing task')).toBeInTheDocument()
   })
 
+  const dashboardProjects = [
+    { id: 'project-1', title: 'Lowes', status: 'active' },
+    { id: 'project-2', title: 'Costco', status: 'active' },
+  ]
+
+  it('lets the dashboard recover all projects after filtering on the full board', async () => {
+    projectListMock.mockResolvedValue(dashboardProjects)
+    listMock.mockResolvedValue([
+      { ...makeTask('task-1', 'Lowes task'), projectId: 'project-1' },
+      { ...makeTask('task-2', 'Costco task'), projectId: 'project-2' },
+      makeTask('task-3', 'Unassigned task'),
+    ])
+    const fullBoard = render(<TasksBoard asCard={false} />)
+    fireEvent.click(await screen.findByRole('button', { name: /Lowes1/ }))
+    expect(screen.queryByText('Costco task')).not.toBeInTheDocument()
+    fullBoard.unmount()
+
+    const dashboard = render(<TasksBoard />)
+    expect(await screen.findByText('Lowes task')).toBeInTheDocument()
+    const picker = screen.getByRole('combobox', { name: 'tasks.board.projectFiltersAria' })
+    expect(picker).toHaveValue('project-1')
+    fireEvent.change(picker, { target: { value: '' } })
+    expect(screen.getByText('Costco task')).toBeInTheDocument()
+    expect(screen.getByText('Unassigned task')).toBeInTheDocument()
+    expect(window.localStorage.getItem('tasks_project_filter_v1')).toBe('[]')
+
+    fireEvent.change(picker, { target: { value: 'project-2' } })
+    expect(screen.queryByText('Lowes task')).not.toBeInTheDocument()
+    dashboard.unmount()
+    render(<TasksBoard />)
+    expect(await screen.findByText('Costco task')).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'tasks.board.projectFiltersAria' })).toHaveValue('project-2')
+  })
+
+  it('keeps zero-count projects selectable and lets the dashboard exit an empty filter', async () => {
+    projectListMock.mockResolvedValue(dashboardProjects)
+    listMock.mockResolvedValue([{ ...makeTask('task-1', 'Lowes task'), projectId: 'project-1' }])
+    render(<TasksBoard />)
+    await screen.findByText('Lowes task')
+    const picker = screen.getByRole('combobox', { name: 'tasks.board.projectFiltersAria' })
+    fireEvent.change(picker, { target: { value: 'project-2' } })
+    expect(picker).toHaveValue('project-2')
+    expect(screen.getByText('No tasks match your filters')).toBeInTheDocument()
+    fireEvent.change(picker, { target: { value: '' } })
+    expect(screen.getByText('Lowes task')).toBeInTheDocument()
+  })
+
+  it.each(['archived', 'deleted'])('clears a saved filter when its project is %s', async (state) => {
+    window.localStorage.setItem('tasks_project_filter_v1', '["project-1"]')
+    projectListMock.mockResolvedValue(state === 'archived' ? [{ ...dashboardProjects[0], status: 'archived' }] : [])
+    listMock.mockResolvedValue([makeTask('task-1', 'Unassigned task')])
+    render(<TasksBoard />)
+    expect(await screen.findByText('Unassigned task')).toBeInTheDocument()
+    expect(window.localStorage.getItem('tasks_project_filter_v1')).toBe('[]')
+  })
+
   it('keeps dashboard card layout separate from the plain tasks page layout', async () => {
     listMock.mockResolvedValueOnce([makeTask('task-1', 'First task')])
 
