@@ -266,12 +266,14 @@ li:hover .salary-row-end > :first-child,
 }
 
 .salary-setup__title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: var(--fs-section);
-  font-weight: 600;
-  line-height: 1.3;
   color: var(--ink-1);
+  font-family: var(--font-body);
+  font-size: var(--type-section-size);
+  font-weight: 600;
+  line-height: var(--type-ui-leading);
+  letter-spacing: normal;
+  text-transform: none;
+  margin: 0;
 }
 
 .salary-setup__body {
@@ -355,7 +357,7 @@ li:hover .salary-row-end > :first-child,
 
 .salary-earned__rest {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: var(--fs-subhead);
   font-weight: 600;
   color: var(--ink-1);

@@ -62,31 +62,37 @@
   border: none;
   padding: 0;
   margin-bottom: 12px;
-  font-size: var(--fs-label);
-  font-weight: 500;
-  letter-spacing: 0.04em;
   color: var(--tj-muted);
   cursor: pointer;
   transition: color var(--motion-duration-base) var(--tj-ease);
+  font-family: var(--font-body);
+  font-size: var(--fs-label);
+  font-weight: 500;
+  line-height: var(--type-ui-leading);
+  letter-spacing: normal;
 }
 .trips-journal__crumb:hover { color: var(--tj-ink); }
 
 .trips-journal__title {
-  font-family: var(--page-title-font);
-  font-size: var(--page-title-size);
-  font-weight: var(--page-title-weight);
-  letter-spacing: var(--page-title-tracking);
-  line-height: var(--page-title-leading);
   color: var(--tj-ink);
+  font-family: var(--font-body);
+  font-size: var(--page-title-size);
+  font-weight: 600;
+  line-height: var(--page-title-leading);
+  letter-spacing: normal;
+  text-transform: none;
   margin: 0;
 }
 
 .trips-journal__subtitle {
-  font-size: var(--fs-ui);
   color: var(--tj-muted);
   margin-top: 8px;
   max-width: 540px;
-  line-height: 1.5;
+
+  font-size: var(--fs-ui);
+  font-weight: 400;
+  line-height: var(--leading-reading);
+  letter-spacing: normal;
 }
 
 .trips-journal__header-actions {
@@ -108,6 +114,7 @@
 }
 
 .trips-journal__view-tab {
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -116,11 +123,14 @@
   padding: 7px 14px;
   border-radius: 999px;
   cursor: pointer;
+  color: var(--segmented-fg);
+  transition: color var(--motion-duration-medium) var(--ease-emphasized), background var(--motion-duration-base) var(--tj-ease);
+  font-family: var(--font-body);
   font-size: var(--fs-label);
   font-weight: 500;
-  color: var(--segmented-fg);
-  letter-spacing: 0.02em;
-  transition: color var(--motion-duration-medium) var(--ease-emphasized), background var(--motion-duration-base) var(--tj-ease);
+  line-height: var(--type-ui-leading);
+  letter-spacing: normal;
+  text-transform: none;
 }
 .trips-journal__view-tab:hover { color: var(--segmented-fg-active); }
 .trips-journal__view-tab[aria-selected='true'] {
@@ -145,14 +155,16 @@
   background: var(--cta-bg);
   color: var(--cta-fg);
   box-shadow: var(--cta-shadow);
-  font-family: var(--font-body);
-  font-size: var(--cta-font-size);
-  font-weight: var(--cta-font-weight);
-  line-height: 1;
   white-space: nowrap;
   cursor: pointer;
   flex-shrink: 0;
   transition: background-color var(--motion-duration-fast) var(--ease-standard), box-shadow var(--motion-duration-fast) var(--ease-standard), opacity var(--motion-duration-fast) var(--ease-standard);
+  text-transform: none;
+  font-family: var(--font-body);
+  font-size: var(--fs-ui);
+  font-weight: 500;
+  line-height: var(--type-ui-leading);
+  letter-spacing: normal;
 }
 .trips-journal__new:hover { background: var(--cta-bg-hover); }
 .trips-journal__new:disabled { opacity: 0.5; cursor: progress; }
@@ -731,7 +743,7 @@
 }
 .trips-journal__highlight-row:last-child { border-bottom: none; }
 .trips-journal__highlight-day {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: var(--fs-label);
   letter-spacing: 0.06em;
   font-weight: 500;
@@ -780,9 +792,12 @@
   position: relative;
 }
 .trips-journal__empty-title {
-  font-family: var(--font-display);
-  font-size: 24px;
-  font-weight: 500;
+  font-family: var(--font-body);
+  font-size: var(--type-section-size);
+  font-weight: 600;
+  line-height: var(--type-ui-leading);
+  letter-spacing: normal;
+  text-transform: none;
   margin: 0;
 }
 .trips-journal__empty-desc {
@@ -808,14 +823,16 @@
   background: var(--cta2-bg);
   color: var(--cta2-fg);
   box-shadow: none;
-  font-family: var(--font-body);
-  font-size: var(--cta-font-size);
-  font-weight: var(--cta-font-weight);
-  line-height: 1;
   white-space: nowrap;
   cursor: pointer;
   flex-shrink: 0;
   transition: background-color var(--motion-duration-fast) var(--ease-standard), box-shadow var(--motion-duration-fast) var(--ease-standard), opacity var(--motion-duration-fast) var(--ease-standard);
+  text-transform: none;
+  font-family: var(--font-body);
+  font-size: var(--fs-ui);
+  font-weight: 500;
+  line-height: var(--type-ui-leading);
+  letter-spacing: normal;
 }
 .trips-journal__empty-cta:hover { background: var(--cta2-bg-hover); }
 .trips-journal__empty-cta:disabled { opacity: 0.5; cursor: progress; }

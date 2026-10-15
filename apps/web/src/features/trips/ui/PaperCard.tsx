@@ -1,5 +1,6 @@
+import { typography } from '../../../shared/theme/typography'
 import type { CSSProperties, ReactNode } from 'react'
-import { cardBg, muted, pf, subtleBorder, tx } from './tokens'
+import { cardBg, muted, subtleBorder, tx } from './tokens'
 
 export const PaperCard = ({ children, style, tape }: { children: ReactNode; style?: CSSProperties; tape?: boolean }) => (
   <div
@@ -34,19 +35,19 @@ export const PaperCard = ({ children, style, tape }: { children: ReactNode; styl
 
 export const Hairline = () => <div style={{ height: 1, background: subtleBorder }} />
 
-export const SerifHeading = ({ children, size = 22 }: { children: ReactNode; size?: number }) => (
-  <h2 style={pf(size, 500)}>{children}</h2>
+export const SerifHeading = ({ children }: { children: ReactNode; size?: number }) => (
+  <h2 data-type-role="section" style={typography.section}>{children}</h2>
 )
 
 export const JournalLabel = ({ children }: { children: ReactNode }) => (
-  <span style={{ ...tx(10, 600, muted), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase' }}>{children}</span>
+  <span style={{ ...typography.label, color: muted }}>{children}</span>
 )
 
 export const SectionHeading = ({ title, meta, action }: { title: string; meta?: string; action?: ReactNode }) => (
   <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', gap: 16 }}>
     <div>
       <SerifHeading>{title}</SerifHeading>
-      {meta ? <p style={{ ...tx(12, 400, muted), marginTop: 6 }}>{meta}</p> : null}
+      {meta ? <p style={{ ...tx(12, 400, muted), marginTop: 4 }}>{meta}</p> : null}
     </div>
     {action}
   </div>

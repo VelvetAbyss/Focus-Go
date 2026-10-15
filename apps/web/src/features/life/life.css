@@ -19,7 +19,7 @@
 }
 
 .life-dashboard__label {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: clamp(1.1rem, 1.4vw, 1.4rem);
   font-weight: 700;
   letter-spacing: -0.01em;
@@ -67,11 +67,13 @@
 
 
 .life-card .card__title {
-  font-family: var(--font-display);
-  font-size: clamp(1.02rem, 0.98rem + 0.28vw, 1.18rem);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  line-height: var(--life-lh-tight);
+  font-family: var(--font-body);
+  font-size: var(--type-section-size);
+  font-weight: 600;
+  line-height: var(--type-ui-leading);
+  letter-spacing: normal;
+  text-transform: none;
+  margin: 0;
 }
 
 .life-card__body {
@@ -484,13 +486,14 @@ html[data-motion='reduce'] .life-dashboard__skeleton-line {
 }
 
 .life-media__title {
-  margin: 0 0 4px;
-  font-size: var(--fs-section);
-  font-weight: 700;
-  font-family: var(--font-display);
   color: var(--ink-1);
-  letter-spacing: -0.01em;
-  line-height: 1.22;
+  font-family: var(--font-body);
+  font-size: var(--type-section-size);
+  font-weight: 600;
+  line-height: var(--type-ui-leading);
+  letter-spacing: normal;
+  text-transform: none;
+  margin: 0;
 }
 
 .life-media__subline {
@@ -614,7 +617,7 @@ html[data-motion='reduce'] .life-dashboard__skeleton-line {
 .life-stocks__ticker-sym {
   font-size: var(--fs-ui);
   font-weight: 700;
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   letter-spacing: 0.04em;
   color: var(--text-primary);
   min-width: 48px;
@@ -907,7 +910,7 @@ html[data-motion='reduce'] .life-dashboard__skeleton-line {
   margin: 0;
   overflow: hidden;
   color: var(--ink-1);
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: var(--fs-label);
   font-weight: 600;
   line-height: 1.15;
@@ -1177,7 +1180,7 @@ html[data-theme='dark'] .life-quick-add__type.is-active {
 .life-subs__currency {
   font-size: var(--fs-section);
   font-weight: 700;
-  font-family: var(--font-display);
+  font-family: var(--font-numeral);
   color: var(--text-secondary);
   letter-spacing: -0.01em;
   line-height: 1;
@@ -1186,7 +1189,7 @@ html[data-theme='dark'] .life-quick-add__type.is-active {
 .life-subs__amount {
   font-size: var(--life-type-display);
   font-weight: 800;
-  font-family: var(--font-display);
+  font-family: var(--font-numeral);
   letter-spacing: -0.01em;
   color: var(--text-primary);
   line-height: 1;
@@ -1272,12 +1275,14 @@ html[data-theme='dark'] .life-quick-add__type.is-active {
 }
 
 .life-subs__empty-title {
-  font-size: var(--fs-section);
-  font-weight: 700;
-  font-family: var(--font-display);
   color: var(--ink-1);
-  letter-spacing: -0.01em;
-  line-height: 1.24;
+  font-family: var(--font-body);
+  font-size: var(--type-section-size);
+  font-weight: 600;
+  line-height: var(--type-ui-leading);
+  letter-spacing: normal;
+  text-transform: none;
+  margin: 0;
 }
 
 .life-subs__empty-copy {
@@ -1326,12 +1331,14 @@ html[data-theme='dark'] .life-quick-add__type.is-active {
 }
 
 .life-modal__title {
-  margin: 0;
-  font-size: var(--fs-subhead);
-  font-weight: 700;
-  font-family: var(--font-display);
-  letter-spacing: -0.01em;
   color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: var(--type-section-size);
+  font-weight: 600;
+  line-height: var(--type-ui-leading);
+  letter-spacing: normal;
+  text-transform: none;
+  margin: 0;
 }
 
 .life-modal__close {
@@ -1497,13 +1504,14 @@ html[data-theme='dark'] .life-quick-add__type.is-active {
 }
 
 .life-daily-review__tasks-title {
-  margin: 0;
-  font-size: var(--fs-section);
-  font-family: var(--font-display);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  line-height: 1.18;
   color: var(--ink-1);
+  font-family: var(--font-body);
+  font-size: var(--type-section-size);
+  font-weight: 600;
+  line-height: var(--type-ui-leading);
+  letter-spacing: normal;
+  text-transform: none;
+  margin: 0;
 }
 
 .life-daily-review__tasks-list {
@@ -1718,12 +1726,14 @@ html[data-theme='dark'] .life-quick-add__type.is-active {
 }
 
 .life-modal__detail-title {
-  margin: 0 0 4px;
-  font-size: var(--fs-section);
-  font-weight: 700;
-  font-family: var(--font-display);
-  letter-spacing: -0.01em;
   color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: var(--type-section-size);
+  font-weight: 600;
+  line-height: var(--type-ui-leading);
+  letter-spacing: normal;
+  text-transform: none;
+  margin: 0;
 }
 
 .life-modal__detail-author {
@@ -1759,7 +1769,7 @@ html[data-theme='dark'] .life-quick-add__type.is-active {
 .life-modal__stocks-price strong {
   font-size: 1.6rem;
   font-weight: 800;
-  font-family: var(--font-display);
+  font-family: var(--font-numeral);
   letter-spacing: -0.01em;
   color: var(--text-primary);
   line-height: 1;

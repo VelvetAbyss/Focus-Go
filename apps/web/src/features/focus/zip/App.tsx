@@ -144,7 +144,7 @@ export default function App() {
       ) : null}
       {/* Paper & Ink: the page sits on the shell's sheet; no decorative light spots. */}
       {/* Main 3-column layout */}
-      <div className="h-full pt-6 pb-6 px-6 flex gap-5">
+      <div className="focus-zip-app__layout h-full pt-6 pb-6 px-6 flex gap-5">
         {/* Left Column - White Noise */}
         <div className="focus-zip-app__column focus-zip-app__column--left w-[300px] min-w-[280px] flex-shrink-0">
           <div

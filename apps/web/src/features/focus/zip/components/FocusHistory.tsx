@@ -1,3 +1,4 @@
+import { typography } from '../../../../shared/theme/typography'
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -307,8 +308,8 @@ export function FocusHistory({ externalSessions, goalMinutes = 120 }: { external
       {/* Header */}
       <div className="mb-4">
         <h2
-          style={{ fontFamily: 'var(--font-display)' }}
-          className="text-subhead text-[var(--text-primary)] tracking-[-0.01em]"
+          style={typography.section} data-type-role="section"
+          className="text-[var(--text-primary)]"
         >
           {t("focus.history")}
         </h2>
@@ -476,7 +477,7 @@ export function FocusHistory({ externalSessions, goalMinutes = 120 }: { external
           // Centred: one serif line, one sentence (DESIGN.md › Empty states).
           <div className="flex flex-col items-center py-6 text-center">
             {allSessions.length === 0 ? <Doodle name="levitate" height={88} className="mb-3" /> : null}
-            <p className="font-display text-section font-semibold text-ink-1">{t("focus.empty.noSessions")}</p>
+            <p className="type-section-title text-ink-1">{t("focus.empty.noSessions")}</p>
             <p className="text-label text-ink-3 mt-1">
               {allSessions.length === 0 ? t("focus.empty.firstSession") : t("focus.empty.adjustFilters")}
             </p>

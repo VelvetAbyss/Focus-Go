@@ -20,7 +20,7 @@ const NotFoundPage = () => {
           404
         </p>
 
-        <h1 className="mt-1 text-2xl font-semibold" style={{ fontFamily: 'var(--font-display)' }}>
+        <h1 className="type-page-title mt-1">
           {t('notFound.title')}
         </h1>
         <p className="mt-3 max-w-sm text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>

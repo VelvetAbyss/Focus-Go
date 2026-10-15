@@ -55,7 +55,7 @@ export const DailyReviewCardSurface = ({ model, open, activeRange, onOpen, onClo
               <CheckSquare size={13} color="color-mix(in srgb, var(--text-primary) 38%, transparent)" />
               <span style={{ ...inter(10, 600, 'var(--text-tertiary)'), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase' }}>{model.header.eyebrow}</span>
             </div>
-            <h3 style={{ ...playfair(18, 500), lineHeight: 1.2 }}>{model.header.title}</h3>
+            <h3 style={{ ...playfair(18, 500), lineHeight: 'var(--type-ui-leading)' }}>{model.header.title}</h3>
           </div>
           <div style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 999, color: 'color-mix(in srgb, var(--text-primary) 38%, transparent)', marginTop: 2 }}>
             <ChevronRight size={15} />

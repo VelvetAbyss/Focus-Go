@@ -38,17 +38,26 @@
 }
 
 .admin-deck__title {
-  margin: 8px 0 6px;
   color: var(--deck-ink);
-  font: 600 clamp(30px, 4vw, 52px)/0.98 var(--font-display);
-  letter-spacing: 0;
+  font-family: var(--font-body);
+  font-size: var(--page-title-size);
+  font-weight: 600;
+  line-height: var(--page-title-leading);
+  letter-spacing: normal;
+  text-transform: none;
+  margin: 0;
 }
 
 .admin-deck__subtitle {
   margin: 0;
   max-width: 560px;
   color: var(--deck-muted);
-  font: 500 14px/1.6 var(--font-body);
+  font-family: var(--font-body);
+  font-size: var(--fs-ui);
+  font-weight: 400;
+  line-height: var(--leading-reading);
+  letter-spacing: normal;
+  text-transform: none;
 }
 
 .admin-deck__actions {
@@ -81,9 +90,13 @@
   padding: 0 14px;
   background: var(--deck-wash);
   color: var(--deck-ink);
-  font: 700 13px/1 var(--font-body);
   cursor: pointer;
   transition: transform var(--motion-duration-base) var(--ease-out-expo), border-color var(--motion-duration-base) var(--ease-standard), background var(--motion-duration-base) var(--ease-standard);
+  font-family: var(--font-body);
+  font-size: var(--fs-ui);
+  font-weight: 500;
+  line-height: var(--type-ui-leading);
+  letter-spacing: normal;
 }
 
 .admin-btn:hover {
@@ -119,9 +132,13 @@
   padding: 0 12px;
   background: transparent;
   color: var(--segmented-fg);
-  font: 600 var(--fs-ui)/1 var(--font-body);
   cursor: pointer;
   transition: color var(--motion-duration-base) var(--ease-standard), background var(--motion-duration-base) var(--ease-standard), transform var(--motion-duration-base) var(--ease-out-expo);
+  font-family: var(--font-body);
+  font-size: var(--fs-label);
+  font-weight: 500;
+  line-height: var(--type-ui-leading);
+  letter-spacing: normal;
 }
 
 .admin-tab:hover,
@@ -202,7 +219,7 @@ html[data-theme='dark'] .admin-banner--error {
 .admin-kpi-card p {
   margin: 0;
   color: var(--deck-muted);
-  font: 700 12px/1.25 var(--font-body);
+  font: 400 var(--fs-meta)/var(--type-ui-leading) var(--font-body);
 }
 
 .admin-kpi-card h3 {
@@ -244,7 +261,7 @@ html[data-theme='dark'] .admin-banner--error {
   padding: 0 12px;
   background: color-mix(in srgb, var(--bg-elevated) 94%, var(--deck-paper));
   color: var(--deck-ink);
-  font: 600 13px/1.2 var(--font-body);
+  font: 400 var(--type-input-size)/var(--type-ui-leading) var(--font-body);
 }
 
 .admin-field:focus-visible {
@@ -264,7 +281,7 @@ html[data-theme='dark'] .admin-banner--error {
   width: 100%;
   min-width: 860px;
   border-collapse: collapse;
-  font: 600 13px/1.35 var(--font-body);
+  font: 400 var(--fs-ui)/var(--leading-reading) var(--font-body);
 }
 
 .admin-table th,
@@ -435,7 +452,7 @@ html[data-theme='dark'] .admin-banner--error {
 .admin-server-card p {
   margin: 0;
   color: var(--deck-muted);
-  font: 700 12px/1.25 var(--font-body);
+  font: 400 var(--fs-meta)/var(--type-ui-leading) var(--font-body);
 }
 
 .admin-server-card h3 {
@@ -543,7 +560,7 @@ html[data-theme='dark'] .admin-banner--error {
 .admin-growth-hero h2 {
   margin: 0;
   color: var(--deck-ink);
-  font: 700 clamp(22px, 2.2vw, 30px)/1.05 var(--font-display);
+  font: 600 var(--type-section-size)/var(--type-ui-leading) var(--font-body);
   letter-spacing: 0;
 }
 
@@ -587,12 +604,12 @@ html[data-theme='dark'] .admin-banner--error {
 .admin-card-heading h3 {
   margin: 0;
   color: var(--deck-ink);
-  font: 700 14px/1.25 var(--font-body);
+  font: 600 var(--type-section-size)/var(--type-ui-leading) var(--font-body);
 }
 
 .admin-card-heading span {
   color: var(--deck-muted);
-  font: 700 11px/1.2 var(--font-body);
+  font: 400 var(--fs-meta)/var(--type-ui-leading) var(--font-body);
 }
 
 .admin-chart-frame {
@@ -616,7 +633,7 @@ html[data-theme='dark'] .admin-banner--error {
   gap: 10px;
   padding-bottom: 12px;
   color: var(--deck-muted);
-  font: 700 12px/1.25 var(--font-body);
+  font: 400 var(--fs-meta)/var(--type-ui-leading) var(--font-body);
 }
 
 .admin-funnel-row strong {
@@ -682,7 +699,7 @@ html[data-theme='dark'] .admin-banner--error {
 .admin-detail-section__title {
   margin: 0 0 10px;
   color: var(--deck-muted);
-  font: 700 11px/1.2 var(--font-body);
+  font: 400 var(--fs-meta)/var(--type-ui-leading) var(--font-body);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }

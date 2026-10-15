@@ -161,19 +161,20 @@ describe('NoteEditor', () => {
     expect(screen.getByRole('button', { name: 'notes.export' })).toBeInTheDocument()
   })
 
-  it('uses full-width by default and shrinks with content width slider value', () => {
+  it('bounds reading measure while preserving appearance settings', () => {
     useEditorMock.mockReturnValue(createEditor())
     const { container, rerender } = render(
       <NoteEditor value={value} onChange={() => {}} appearance={{ contentWidth: 0, font: 'uiSans', fontSize: 16, lineHeight: 1.7 }} />,
     )
 
     const content = container.querySelector('.note-editor__content') as HTMLElement
-    expect(content.style.width).toBe('100%')
+    expect(content.style.getPropertyValue('--note-content-measure')).toBe('64rem')
+    expect(content.style.getPropertyValue('--note-editor-font-size')).toBe('1rem')
     expect(content.style.getPropertyValue('--note-editor-line-height')).toBe('1.7')
 
     rerender(<NoteEditor value={value} onChange={() => {}} appearance={{ contentWidth: 100, font: 'uiSans', fontSize: 16, lineHeight: 1.7 }} />)
 
-    expect((container.querySelector('.note-editor__content') as HTMLElement).style.width).toBe('58%')
+    expect((container.querySelector('.note-editor__content') as HTMLElement).style.getPropertyValue('--note-content-measure')).toBe('34rem')
   })
 
   it('handles pasted image files by inserting data-url images', async () => {

@@ -1,3 +1,4 @@
+import { typography } from '../../../../shared/theme/typography'
 import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -253,8 +254,8 @@ export function WhiteNoise() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2
-            style={{ fontFamily: 'var(--font-display)' }}
-            className="text-subhead text-[var(--text-primary)] tracking-[-0.01em]"
+            style={typography.section} data-type-role="section"
+            className="text-[var(--text-primary)]"
           >
             {t("focus.whiteNoise")}
           </h2>

@@ -299,7 +299,7 @@ const TimelinePage = () => {
   return (
     <div className="timeline-page" data-testid="timeline-page">
       <header className="timeline-page__header">
-        <div>
+        <div className="type-heading-stack">
           <p className="timeline-page__eyebrow">{t('timeline.eyebrow')}</p>
           <h1>{t('timeline.title')}</h1>
         </div>

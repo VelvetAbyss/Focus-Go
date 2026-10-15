@@ -1,21 +1,26 @@
 /* Shared page-level typography for routes that don't own a stylesheet.
    Feature stylesheets reuse the same tokens (see --page-title-* in tokens.css). */
 .page-title {
-  margin: 0;
-  font-family: var(--page-title-font);
-  font-size: var(--page-title-size);
-  font-weight: var(--page-title-weight);
-  letter-spacing: var(--page-title-tracking);
-  line-height: var(--page-title-leading);
   color: var(--text-primary);
   text-wrap: balance;
+  font-family: var(--font-body);
+  font-size: var(--page-title-size);
+  font-weight: 600;
+  line-height: var(--page-title-leading);
+  letter-spacing: normal;
+  text-transform: none;
+  margin: 0;
 }
 
 .page-subtitle {
   margin: 0;
-  font-size: var(--page-subtitle-size);
-  line-height: 1.55;
   color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: var(--fs-ui);
+  font-weight: 400;
+  line-height: var(--leading-reading);
+  letter-spacing: normal;
+  text-transform: none;
 }
 
 /* Route enter: every page root fades up once as it mounts (a route change or

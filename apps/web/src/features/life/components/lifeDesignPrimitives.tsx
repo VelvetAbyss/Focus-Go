@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import type { CSSProperties, ReactNode } from 'react'
+import { typography } from '../../../shared/theme/typography'
 import { scaleFontSize } from '../../../shared/theme/typeScale'
 
 export const paper = 'var(--bg-elevated)'
@@ -15,19 +16,17 @@ export const inter = (size = 13, weight = 400, color = ink): CSSProperties => ({
   fontFamily: 'var(--font-body)',
   fontSize: scaleFontSize(size),
   fontWeight: weight,
+  lineHeight: 'var(--type-ui-leading)',
+  letterSpacing: 'normal',
   color,
 })
 
-// Serif text. At 16px and below it is almost always a content name (a book,
-// a podcast, a task) or a short line, so it takes the reading serif, which has
-// real weights to match Noto Serif SC; larger sizes are card and panel titles
-// in the display face (DESIGN.md › Typography).
-export const serifFontFor = (size: number) => (size <= 16 ? 'var(--font-reading)' : 'var(--font-display)')
+// Legacy helper name; operating content now shares the native UI face.
+export const serifFontFor = (_size: number) => { void _size; return 'var(--font-body)' }
 
 export const playfair = (size = 16, weight = 500, color = ink): CSSProperties => ({
-  fontFamily: serifFontFor(size),
-  fontSize: scaleFontSize(size),
-  fontWeight: weight,
+  ...(size >= 18 ? typography.section : { ...typography.record, fontSize: scaleFontSize(size) }),
+  fontWeight: size >= 18 ? 600 : weight,
   color,
 })
 

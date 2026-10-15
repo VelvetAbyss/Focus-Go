@@ -1,3 +1,4 @@
+import { typography } from '../../shared/theme/typography'
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
@@ -57,7 +58,7 @@ const DialogHeader = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex flex-col space-y-1.5 text-center sm:text-left",
+      "type-card-heading flex flex-col gap-1 text-center sm:text-left",
       className
     )}
     {...props}
@@ -82,9 +83,11 @@ DialogFooter.displayName = "DialogFooter"
 const DialogTitle = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Title>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
->(({ className, ...props }, ref) => (
+>(({ className, style, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
+    data-type-role="section"
+    style={{ ...typography.section, ...style }}
     className={cn(
       "text-lg font-semibold leading-none tracking-tight",
       className

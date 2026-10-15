@@ -468,11 +468,15 @@
   border: 0;
   border-radius: 0;
   background: transparent;
-  font: 500 var(--fs-ui)/1 var(--font-body);
   color: var(--ink-3);
   white-space: nowrap;
   cursor: pointer;
   transition: color var(--motion-duration-fast) var(--ease-standard);
+  font-family: var(--font-body);
+  font-size: var(--fs-label);
+  font-weight: 500;
+  line-height: var(--type-ui-leading);
+  letter-spacing: normal;
 }
 
 .dash-toolbar__tab:hover,
@@ -505,12 +509,16 @@
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   background: transparent;
   color: var(--ink-3);
-  font: 500 var(--fs-label)/1 var(--font-body);
   white-space: nowrap;
   cursor: pointer;
   transition:
     color var(--motion-duration-fast) var(--ease-standard),
     background-color var(--motion-duration-fast) var(--ease-standard);
+  font-family: var(--font-body);
+  font-size: var(--fs-label);
+  font-weight: 500;
+  line-height: var(--type-ui-leading);
+  letter-spacing: normal;
 }
 
 .dash-toolbar__add {

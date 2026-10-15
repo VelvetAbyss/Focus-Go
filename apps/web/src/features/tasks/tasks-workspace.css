@@ -3,8 +3,8 @@
 .tasks-page { container-type: inline-size; }
 .tasks-workspace-header { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:26px 28px 20px; flex:none; }
 .tasks-workspace-heading { min-width:0; }
-.tasks-workspace-intent { margin:8px 0 0; color:var(--ink-3); font-size:var(--fs-label); line-height:1.6; }
-.tasks-page .tasks-page-shell__title { font-size:30px; }
+.tasks-workspace-intent { margin:8px 0 0; color:var(--ink-3); font-family: var(--font-body); font-size: var(--fs-ui); font-weight: 400; line-height: var(--leading-reading); letter-spacing: normal; text-transform: none; }
+.tasks-page .tasks-page-shell__title { font-family: var(--font-body); font-size: var(--page-title-size); font-weight: 600; line-height: var(--page-title-leading); letter-spacing: normal; text-transform: none; margin: 0; }
 .tasks-page .tasks-page-shell__switch { border-radius:10px; --indicator-radius:7px; padding:3px; flex:none; }
 .tasks-page .tasks-page-shell__tab { border-radius:7px; min-height:34px; padding:8px 13px; gap:7px; }
 .tasks-page .tasks-page-shell__panel { padding:0 28px 20px; }
@@ -74,8 +74,8 @@
 .task-detail-workspace .task-detail-progress { border:0 !important; border-radius:0 !important; box-shadow:none !important; background:transparent !important; padding:0 0 24px; border-bottom:1px solid var(--rule) !important; }
 .task-detail-workspace .task-detail-card--hero { padding-bottom:20px; }
 .task-detail-workspace .task-detail-card--hero > div { padding-left:0; }
-.task-detail-workspace .task-detail-title-input { font-family:var(--font-body) !important; font-size:28px !important; font-weight:600 !important; line-height:1.35 !important; letter-spacing:-0.025em !important; }
-.task-detail-workspace .task-detail-title { font-family:var(--font-body) !important; font-size:var(--fs-body) !important; font-weight:600 !important; }
+.task-detail-workspace .task-detail-title-input { font-family:var(--font-body) !important; font-size:var(--page-title-size) !important; font-weight:600 !important; line-height:var(--page-title-leading) !important; letter-spacing:normal !important; }
+.task-detail-workspace .task-detail-title { font-family:var(--font-body) !important; font-size:var(--type-section-size) !important; font-weight:600 !important; line-height:var(--type-ui-leading) !important; }
 .task-detail-workspace .task-detail-kicker { font-weight:500 !important; letter-spacing:0 !important; }
 .task-detail-workspace .task-detail-kicker + .task-detail-title { display:none; }
 .task-detail-workspace .task-detail-summary { padding-bottom:22px; border-bottom:1px solid var(--rule); }

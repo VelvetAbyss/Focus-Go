@@ -207,7 +207,7 @@ export const PodcastCardSurface = ({
               <Headphones size={13} color="color-mix(in srgb, var(--text-primary) 38%, transparent)" />
               <span style={{ ...inter(10, 600, 'var(--text-tertiary)'), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase' }}>{t('life.card.podcast')}</span>
             </div>
-            <h3 style={{ ...playfair(18, 500), lineHeight: 1.2 }}>{t('life.card.podcast')}</h3>
+            <h3 style={{ ...playfair(18, 500), lineHeight: 'var(--type-ui-leading)' }}>{t('life.card.podcast')}</h3>
           </div>
           <div style={cardArrowStyle}><ChevronRight size={15} /></div>
         </div>
@@ -250,7 +250,7 @@ export const PodcastCardSurface = ({
                   >
                     {model.nowPlaying.isPlaying ? t('life.podcast.playing') : t('life.podcast.lastPlayed')}
                   </span>
-                  <p style={{ ...playfair(13, 500), lineHeight: 1.3, marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{model.nowPlaying.title}</p>
+                  <p style={{ ...playfair(13, 500), lineHeight: 'var(--type-ui-leading)', marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{model.nowPlaying.title}</p>
                   <p style={{ ...inter(11, 400, 'var(--text-tertiary)'), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {model.nowPlaying.podcastName}{model.nowPlaying.duration ? ` · ${model.nowPlaying.duration}` : ''}
                   </p>

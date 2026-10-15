@@ -467,6 +467,10 @@ describe('DexieDatabaseService', () => {
     expect((await service.noteTags.list())[0]?.pinned).toBe(true)
     expect(appearance.theme).toBe('graphite')
     expect((await service.noteAppearance.get())?.font).toBe('serif')
+    await service.noteAppearance.upsert({ id: appearance.id, zoom: 105 })
+    expect((await service.noteAppearance.get())?.zoom).toBe(105)
+    await service.noteAppearance.upsert({ id: appearance.id, lineHeight: 1.6 })
+    expect((await service.noteAppearance.get())?.zoom).toBe(105)
   })
 
   it('keeps task writes working after removing legacy sync outbox storage', async () => {

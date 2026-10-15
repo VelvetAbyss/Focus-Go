@@ -25,7 +25,7 @@
 
 /* The component skips the shared Card chrome and rolls its own padding */
 .recap-card__body {
-  padding: 22px 22px 20px;
+  padding: 20px;
   flex: 1;
   min-height: 0;
   display: flex;
@@ -34,48 +34,12 @@
 }
 
 /* ── Masthead ───────────────────────────────────────────────────────────── */
-.recap-card__masthead {
+.recap-card .recap-card__masthead {
+  padding: 0;
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: start;
   gap: 12px;
-}
-
-/* Kicker = the app-wide eyebrow (see .card__eyebrow). */
-.recap-card__kicker {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  font-family: var(--font-body);
-  font-size: var(--fs-meta);
-  font-weight: 600;
-  letter-spacing: var(--tracking-caps);
-  color: var(--ink-3);
-  text-transform: uppercase;
-}
-
-.recap-card__kicker-dot {
-  display: none;
-}
-
-.recap-card__kicker-wk {
-  color: var(--ink-3);
-}
-
-.recap-card__headline {
-  margin: 4px 0 0;
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: var(--dash-type-title, 1.26rem);
-  line-height: var(--dash-lh-tight, 1.2);
-  letter-spacing: -0.01em;
-  color: var(--recap-ink);
-}
-
-.recap-card__headline em {
-  font-style: normal;
-  color: inherit;
 }
 
 .recap-card__copy {
@@ -83,10 +47,6 @@
   border: 1px solid var(--cta2-border);
   background: var(--cta2-bg);
   color: var(--cta2-fg);
-  font-family: var(--recap-mono);
-  font-size: var(--fs-meta);
-  font-weight: 600;
-  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   padding: 7px 12px;
   border-radius: 999px;
@@ -95,6 +55,11 @@
   gap: 7px;
   cursor: pointer;
   transition: transform var(--motion-duration-fast) var(--ease-standard), background var(--motion-duration-fast) var(--ease-standard), border-color var(--motion-duration-fast) var(--ease-standard);
+  font-family: var(--font-body);
+  font-size: var(--fs-label);
+  font-weight: 500;
+  line-height: var(--type-ui-leading);
+  letter-spacing: normal;
 }
 
 .recap-card__copy:hover {
@@ -199,12 +164,13 @@
 .recap-card__current-btn {
   gap: 5px;
   padding: 0 6px;
-  font-family: var(--recap-mono);
-  font-size: var(--fs-meta);
-  font-weight: 700;
-  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   white-space: nowrap;
+  font-family: var(--font-body);
+  font-size: var(--fs-label);
+  font-weight: 500;
+  line-height: var(--type-ui-leading);
+  letter-spacing: normal;
 }
 
 .recap-card__nav-btn:hover:not(:disabled),
@@ -573,10 +539,14 @@
 
 .recap-card__empty-icon { color: var(--recap-ink-mute); margin-bottom: 6px; }
 .recap-card__empty-title {
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: var(--fs-section);
   color: var(--recap-ink);
+  font-family: var(--font-body);
+  font-size: var(--type-section-size);
+  font-weight: 600;
+  line-height: var(--type-ui-leading);
+  letter-spacing: normal;
+  text-transform: none;
+  margin: 0;
 }
 .recap-card__empty-sub {
   font-size: var(--fs-label);

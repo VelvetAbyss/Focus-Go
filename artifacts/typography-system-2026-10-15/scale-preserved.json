@@ -1,0 +1,22 @@
+[
+  {
+    "file": "apps/web/src/app/layout/AppShell.tsx",
+    "identical": true,
+    "sha256": "79edff5622ccb282954898f413bc5f5a99ffd87cfa0f8bc9036269aaea7de010"
+  },
+  {
+    "file": "apps/web/src/app/layout/AppShell.scale.test.ts",
+    "identical": true,
+    "sha256": "1e1ef67a6e46a746d8dfea33dd41adc5ba584d26c9f9a9b3be6797350346fde9"
+  },
+  {
+    "file": "apps/web/src/app/layout/AppShell.theme-preview.test.tsx",
+    "identical": true,
+    "sha256": "69e7f4fba8fe50efb595c743a83216f36cfedafba0e25b0fee30549a96402845"
+  },
+  {
+    "file": "apps/web/src/shared/theme/overlay-scale.css",
+    "identical": true,
+    "sha256": "4955a0bf39fd6bb9edf9ec409eb36ac5d9a34ded2a039fc859c0519322d00225"
+  }
+]

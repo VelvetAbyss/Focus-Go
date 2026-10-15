@@ -469,7 +469,7 @@ const FeedbackForm = () => {
       transition={{ duration: DURATION.slow, ease: EASE.emphasized }}
     >
       <div>
-        <h2 className="text-xl font-semibold tracking-tight">{t('settings.feedback.title')}</h2>
+        <h2 className="type-section-title">{t('settings.feedback.title')}</h2>
         <p className="mt-1 text-sm leading-6 text-[color-mix(in_srgb,var(--text-primary)_68%,transparent)] dark:text-muted-foreground">{t('settings.feedback.description')}</p>
       </div>
 
@@ -707,7 +707,7 @@ const SettingRow = ({ icon: Icon, title, description, children }: SettingRowProp
         <Icon className="h-4 w-4" />
       </div>
       <div className="space-y-1">
-        <h3 className="font-body text-sm font-semibold text-foreground">{title}</h3>
+        <h3 className="type-label text-foreground">{title}</h3>
         <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>
       </div>
     </div>
@@ -782,7 +782,7 @@ const LegalDocumentView = ({
       <div className="mx-auto max-w-3xl space-y-8">
         <div className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[var(--tracking-caps)] text-[var(--text-tertiary)] dark:text-muted-foreground">Focus&go</p>
-          <h2 className="text-3xl font-semibold tracking-tight">{title}</h2>
+          <h2 className="type-section-title">{title}</h2>
           <p className="max-w-2xl text-sm leading-7 text-[color-mix(in_srgb,var(--text-primary)_72%,transparent)] dark:text-muted-foreground">{summary}</p>
           <div className="inline-flex rounded-full border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] bg-[color-mix(in_srgb,var(--bg-elevated)_70%,transparent)] px-3 py-1 text-xs text-[color-mix(in_srgb,var(--text-primary)_72%,transparent)] dark:border-white/10 dark:bg-white/10 dark:text-muted-foreground">
             {updatedAt}
@@ -792,7 +792,7 @@ const LegalDocumentView = ({
         <div className="space-y-6">
           {sections.map((section) => (
             <section key={section.heading} className="space-y-2">
-              <h3 className="text-lg font-semibold tracking-tight">{section.heading}</h3>
+              <h3 className="type-section-title">{section.heading}</h3>
               <div className="space-y-3">
                 {section.paragraphs.map((paragraph) => (
                   <p key={paragraph} className="text-sm leading-7 text-[color-mix(in_srgb,var(--text-primary)_78%,transparent)] dark:text-muted-foreground">
@@ -1304,7 +1304,7 @@ const SettingsRoute = () => {
           transition={{ duration: DURATION.slow, ease: EASE.emphasized }}
           className="flex flex-wrap items-end justify-between gap-4 rounded-xl bg-background/20 p-5 shadow-lg backdrop-blur"
         >
-          <div>
+          <div className="type-heading-stack">
             <p className="text-xs font-semibold uppercase tracking-[var(--tracking-caps)] text-muted-foreground">{t('settings.pageEyebrow')}</p>
             <h1 className="page-title mt-2 text-foreground">{t('settings.pageTitle')}</h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{t('settings.pageDescription')}</p>
@@ -1375,7 +1375,7 @@ const SettingsRoute = () => {
                                 <p className="text-xs font-semibold uppercase tracking-[var(--tracking-caps)] text-[var(--text-tertiary)] dark:text-muted-foreground">
                                   {t('settings.module.legal.title')}
                                 </p>
-                                <h2 className="text-2xl font-semibold tracking-tight">{t('settings.legal.title')}</h2>
+                                <h2 className="type-section-title">{t('settings.legal.title')}</h2>
                                 <p className="max-w-2xl text-sm leading-7 text-[color-mix(in_srgb,var(--text-primary)_72%,transparent)] dark:text-muted-foreground">
                                   {t('settings.legal.description')}
                                 </p>
@@ -1668,7 +1668,7 @@ const SettingsRoute = () => {
                             transition={{ duration: DURATION.slow, delay: 0.05, ease: EASE.emphasized }}
                           >
                             <div>
-                              <h3 className="font-body text-sm font-semibold text-foreground">{t('settings.weather.manualCity.title')}</h3>
+                              <h3 className="type-label text-foreground">{t('settings.weather.manualCity.title')}</h3>
                               <p className="text-sm text-muted-foreground">{t('settings.weather.manualCity.description')}</p>
                             </div>
 
@@ -2032,7 +2032,7 @@ const SettingsRoute = () => {
                             <div className="flex items-start gap-3">
                               <AlertTriangle className="mt-0.5 h-5 w-5 text-destructive" />
                               <div>
-                                <h3 className="font-body text-sm font-semibold text-foreground">{t('settings.data.danger.title')}</h3>
+                                <h3 className="type-label text-foreground">{t('settings.data.danger.title')}</h3>
                                 <p className="text-sm text-muted-foreground">{t('settings.data.danger.description')}</p>
                               </div>
                             </div>

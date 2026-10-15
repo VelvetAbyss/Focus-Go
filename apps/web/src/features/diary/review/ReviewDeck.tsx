@@ -31,15 +31,17 @@ type ReviewDeckProps = {
 }
 
 const fieldLabelStyle = {
-  fontFamily: 'var(--font-display)',
-  fontSize: '0.95rem',
-  fontWeight: 400,
+  fontFamily: 'var(--font-body)',
+  fontSize: 'var(--fs-label)',
+  fontWeight: 500,
+  lineHeight: 'var(--type-ui-leading)',
 }
 
 const helperTextStyle = {
   fontFamily: 'var(--font-body)',
-  fontSize: '0.76rem',
-  fontWeight: 300,
+  fontSize: 'var(--fs-meta)',
+  fontWeight: 400,
+  lineHeight: 'var(--type-ui-leading)',
 }
 
 const inputClassName =
@@ -107,7 +109,7 @@ const ReviewDeck = ({
           </div>
           <h1
             className="mb-1 text-[var(--text-primary)]"
-            style={{ fontFamily: 'var(--font-display)', fontSize: '1.6rem', fontWeight: 500 }}
+            style={{ fontFamily: 'var(--font-body)', fontSize: '1.6rem', fontWeight: 500 }}
           >
             {greeting}
           </h1>
@@ -133,7 +135,7 @@ const ReviewDeck = ({
                 placeholder={t('review.summaryPlaceholder')}
                 disabled={disabled}
                 className={inputClassName}
-                style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--fs-section)', fontWeight: 400 }}
+                style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--fs-section)', fontWeight: 400 }}
               />
             </div>
 
@@ -149,7 +151,7 @@ const ReviewDeck = ({
                 placeholder={t('review.tomorrowPlaceholder')}
                 disabled={disabled}
                 className={inputClassName}
-                style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--fs-section)', fontWeight: 400 }}
+                style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--fs-section)', fontWeight: 400 }}
               />
             </div>
 
@@ -223,7 +225,7 @@ const ReviewDeck = ({
                           placeholder={t('review.inboxPlaceholder')}
                           disabled={disabled}
                           className={subtleInputClassName}
-                          style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--fs-body)', fontWeight: 400 }}
+                          style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--fs-body)', fontWeight: 400 }}
                         />
                       </div>
 
@@ -345,7 +347,7 @@ const ReviewDeck = ({
                           disabled={disabled}
                           className="w-full resize-none rounded-lg border border-[var(--bg-muted)] bg-[var(--bg-muted)] px-4 py-3 text-[var(--text-secondary)] placeholder:text-[var(--text-secondary)] transition-all duration-300 focus:border-[var(--border)] focus:bg-[var(--bg-elevated)] focus:outline-none"
                           style={{
-                            fontFamily: 'var(--font-display)',
+                            fontFamily: 'var(--font-body)',
                             fontSize: 'var(--fs-section)',
                             fontWeight: 400,
                             lineHeight: '1.8',

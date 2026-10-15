@@ -398,7 +398,7 @@ const TripDetailPage = () => {
     return (
       <div ref={containerRef} style={pageWrapper}>
         <Card style={{ maxWidth: 620, margin: '80px auto 0', padding: 28 }}>
-          <h1 style={pf(28, 500)}>{t('life.trips.detail.tripNotFound')}</h1>
+          <h1 data-type-role="page" style={pf(28, 600)}>{t('life.trips.detail.tripNotFound')}</h1>
           <p style={{ ...tx(13, 400, muted), marginTop: 10 }}>{t('life.trips.detail.tripNotFoundDesc')}</p>
           <div style={{ marginTop: 18 }}>
             <ActionButton onClick={() => navigate(ROUTES.TRIPS)}>
@@ -421,7 +421,7 @@ const TripDetailPage = () => {
           </button>
           <div style={{ marginBottom: 16 }}>
             <p style={{ ...tx(10, 600, 'color-mix(in srgb, var(--text-primary) 38%, transparent)'), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase', marginBottom: 6 }}>{t('life.trips.detail.tripWorkspace')}</p>
-            <h1 style={{ ...pf(28, 500), lineHeight: 1.1 }}>{trip.title}</h1>
+            <h1 data-type-role="page" style={{ ...pf(28, 600) }}>{trip.title}</h1>
             <p style={{ ...tx(12, 400, muted), marginTop: 8 }}>{trip.destination || t('life.trips.detail.destinationPending')}</p>
           </div>
           <nav style={{ display: 'grid', gap: 6 }}>
@@ -535,7 +535,7 @@ const TripDetailPage = () => {
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 30%, color-mix(in srgb, var(--text-primary) 65%, transparent) 100%)' }} />
               <div style={{ position: 'absolute', left: 24, bottom: 22 }}>
                 <p style={{ ...tx(12, 400, 'rgba(255,255,255,0.72)'), marginBottom: 4 }}>{trip.destination || t('life.trips.detail.destinationPending')}</p>
-                <p style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 500, color: 'rgba(255,255,255,0.96)' }}>{trip.title}</p>
+                <p style={{ fontFamily: 'var(--font-body)', fontSize: 30, fontWeight: 500, color: 'rgba(255,255,255,0.96)' }}>{trip.title}</p>
               </div>
             </div>
 
@@ -743,7 +743,7 @@ const TripDetailPage = () => {
                   segments={breakdown.slices.map((slice, i) => ({ id: slice.id, value: slice.planned, color: CHART_PALETTE[i % CHART_PALETTE.length] }))}
                 >
                   <span style={tx(10, 600, muted)}>{t('life.trips.detail.breakdown')}</span>
-                  <span style={{ ...pf(22, 600, ink), lineHeight: 1.1 }}>${Math.round(splitBudget(breakdown.planned, budgetSplit, trip.travelers, splitDays)).toLocaleString()}</span>
+                  <span style={{ ...pf(22, 600, ink), lineHeight: 'var(--type-ui-leading)' }}>${Math.round(splitBudget(breakdown.planned, budgetSplit, trip.travelers, splitDays)).toLocaleString()}</span>
                 </Donut>
                 <div style={{ flex: 1, minWidth: 220, display: 'grid', gap: 12 }}>
                   <div style={{ display: 'grid', gap: 7 }}>

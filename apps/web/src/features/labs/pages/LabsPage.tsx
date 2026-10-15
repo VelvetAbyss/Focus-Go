@@ -36,7 +36,7 @@ const LabsPage = () => {
     <div className="labs-page">
       <header className="labs-page__header">
         <div className="labs-page__header-inner">
-          <div className="labs-page__intro">
+          <div className="labs-page__intro type-heading-stack">
             <div className="labs-page__eyebrow-row">
               <span className="labs-page__eyebrow">{i18n.labs.eyebrow}</span>
               <Badge variant="secondary" className="labs-page__tier-badge">

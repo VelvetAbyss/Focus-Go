@@ -9,10 +9,11 @@
      still. Pair with --num-features. */
   --font-numeral: 'Source Serif 4', 'Noto Serif SC', Georgia, serif;
   --num-features: tabular-nums lining-nums;
-  /* Reading bodies (diary, notes, review): Source Serif 4 is the Latin sibling
-     of Source Han Serif (= Noto Serif SC), so mixed text shares one voice. */
-  --font-reading: 'Source Serif 4', 'Noto Serif SC', Georgia, serif;
-  --font-body: 'Manrope', system-ui, -apple-system, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei', sans-serif;
+  /* Reading and operating text share the native sans stack. Serif remains an
+     explicit note appearance and a display accent, never a forced body face. */
+  --font-serif: 'Source Serif 4', 'Noto Serif SC', Georgia, serif;
+  --font-reading: var(--font-body);
+  --font-body: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI Variable Text', 'Segoe UI', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
   --color-ink: #3a3733;
   --control-height: 36px;
   --page-pad: 20px;
@@ -22,19 +23,25 @@
   --surface-radius-md: 20px;
   --control-height-compact: 34px;
   /* ── Paper & Ink scales (see apps/web/DESIGN.md) ─────────────────────── */
-  /* Type: 9 steps. --fs-meta is 11px for Latin/digits, 12px when the UI is
-     Chinese (CJK is never set below 12px). */
-  --fs-meta: 11px;
-  --fs-label: 12px;
-  --fs-ui: 13px;
-  --fs-body: 14px;
-  --fs-section: 16px;
-  --fs-subhead: 20px;
-  --fs-title: 30px;
-  --fs-hero: 44px;
-  --fs-display: 72px;
+  /* Native-size app typography, in rem so user font preferences are respected.
+     Metadata stays at least 12px at the default browser setting. */
+  --fs-meta: 0.75rem;
+  --fs-label: 0.8125rem;
+  --fs-ui: 0.875rem;
+  --fs-body: 1rem;
+  --fs-section: 1rem;
+  --fs-subhead: 1.25rem;
+  --fs-title: 2rem;
+  --fs-hero: 2.75rem;
+  --fs-display: 4.5rem;
   /* Tracking for uppercase Latin labels; Chinese never gets spread out. */
-  --tracking-caps: 0.1em;
+  --tracking-caps: 0.04em;
+  --leading-ui: 1.45;
+  --leading-reading: 1.5;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-heading: 600;
+  --reading-measure: 46rem;
   /* Radius: 4 steps + pill. */
   --radius-xs: 6px;
   --radius-sm: 10px;
@@ -42,14 +49,13 @@
   --radius-lg: 20px;
   --radius-pill: 999px;
   /* Route titles: every top-level page speaks with the same voice. */
-  --page-title-font: var(--font-display);
+  --page-title-font: var(--font-body);
   --page-title-size: var(--fs-title);
-  /* Latin titles render Instrument Serif's single 400; the weight only reaches
-     the Chinese fallback (Noto Serif SC 600). */
+  /* Route headings use the same real semibold face for Latin and CJK. */
   --page-title-weight: 600;
-  --page-title-tracking: -0.01em;
-  --page-title-leading: 1.06;
-  --page-subtitle-size: 13px;
+  --page-title-tracking: 0;
+  --page-title-leading: 1.25;
+  --page-subtitle-size: 0.875rem;
   --headline-size-xl: clamp(1.75rem, 2.2vw, 2.4rem);
   --headline-size-lg: clamp(1.4rem, 1.8vw, 1.9rem);
   --focus-ring: color-mix(in srgb, var(--accent) 35%, transparent);
@@ -93,8 +99,8 @@
   --cta-pad-x: 18px;
   --cta-gap: 7px;
   --cta-radius: 999px;
-  --cta-font-size: 13px;
-  --cta-font-weight: 600;
+  --cta-font-size: var(--fs-ui);
+  --cta-font-weight: 500;
   --cta-bg: var(--text-primary);
   --cta-fg: var(--bg-elevated);
   --cta-bg-hover: color-mix(in srgb, var(--text-primary) 86%, var(--bg-elevated));
@@ -114,8 +120,8 @@
 }
 
 html[lang='zh'] {
-  --fs-meta: 12px;
-  --tracking-caps: 0.02em;
+  --fs-meta: 0.75rem;
+  --tracking-caps: 0;
 }
 
 @media (max-width: 1512px) {
