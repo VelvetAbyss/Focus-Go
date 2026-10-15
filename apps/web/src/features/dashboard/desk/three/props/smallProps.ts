@@ -1,33 +1,29 @@
+import { staticSource } from '../sourceModels'
 import {
   BufferAttribute,
   BufferGeometry,
   CanvasTexture,
-  CatmullRomCurve3,
   Color,
-  ConeGeometry,
   CylinderGeometry,
-  DoubleSide,
   Group,
-  Mesh,
   Points,
   SRGBColorSpace,
   ShaderMaterial,
   Shape,
-  ShapeGeometry,
-  SphereGeometry,
+  ExtrudeGeometry,
   Sprite,
   SpriteMaterial,
-  TorusGeometry,
-  TubeGeometry,
   Vector3,
-  BoxGeometry,
   AdditiveBlending,
+  Box3,
+  type Mesh,
   NormalBlending,
 } from 'three'
 import { DETAIL, LINE, circle, createRisers, step, type Spring } from '../kit'
 import type { DeskProp, PropEnv, PropOptions } from './common'
+import { roundedBox, rodBetween, tube } from './modeling'
 
-// The small props (drinks, the plant, the kitchen timer, the candle, the cat).
+// The small props (drinks, the plant, the kitchen timer, the candle).
 // Each has an idle motion and one thing a click does.
 
 const BUBBLE_VERTEX = /* glsl */ `
@@ -75,19 +71,74 @@ const glowTexture = () => {
 /** A cup on a saucer with pencil steam. A click is a sip: the steam puffs up. */
 export const buildCoffee = ({ kit }: PropOptions): DeskProp => {
   const root = new Group()
+  const saucer = kit.hull(
+    kit.solid(
+      kit.lathe([
+        [0, 0],
+        [0.19, 0],
+        [0.2, 0.014],
+        [0.45, 0.035],
+        [0.47, 0.055],
+        [0.45, 0.069],
+        [0.23, 0.048],
+        [0, 0.048],
+      ]),
+    ),
+    DETAIL,
+  )
+  root.add(saucer)
   const cup = new Group()
+  cup.position.y = 0.048
   root.add(cup)
-  cup.add(kit.hull(kit.edges(kit.solid(kit.lathe([[0, 0], [0.19, 0], [0.21, 0.02], [0.45, 0.04], [0.49, 0.075], [0.465, 0.075], [0.22, 0.05], [0, 0.05]])), DETAIL, 25), DETAIL))
-  cup.add(kit.hull(kit.edges(kit.solid(kit.lathe([[0, 0.05], [0.17, 0.05], [0.19, 0.072], [0.27, 0.46], [0.285, 0.5], [0.262, 0.5], [0.25, 0.46], [0.17, 0.097], [0, 0.097]])), LINE, 35)))
-  const handle = kit.hull(kit.solid(new TorusGeometry(0.11, 0.024, 10, 28, Math.PI * 1.15)))
-  handle.rotation.z = -Math.PI * 0.575
-  handle.position.set(0.285, 0.28, 0)
+  const vessel = kit.hull(
+    kit.edges(
+      kit.solid(
+        kit.lathe([
+          [0, 0],
+          [0.16, 0],
+          [0.18, 0.02],
+          [0.255, 0.4],
+          [0.269, 0.44],
+          [0.247, 0.44],
+          [0.235, 0.4],
+          [0.155, 0.055],
+          [0, 0.055],
+        ]),
+      ),
+      DETAIL,
+      40,
+    ),
+  )
+  cup.add(vessel)
+  const coffee = kit.solid(new CylinderGeometry(0.228, 0.228, 0.004, 48), 'coffee')
+  coffee.position.y = 0.386
+  cup.add(coffee)
+  const handle = kit.hull(
+    kit.solid(
+      tube(
+        [
+          [0.244, 0.35, 0],
+          [0.36, 0.35, 0],
+          [0.4, 0.27, 0],
+          [0.36, 0.17, 0],
+          [0.207, 0.14, 0],
+        ],
+        0.022,
+      ),
+    ),
+    DETAIL,
+  )
   cup.add(handle)
-  const steam = createRisers(kit, cup, [
-    { x: -0.1, z: 0.3, offset: 0, phase: 0 },
-    { x: 0, z: 0.3, offset: 1.07, phase: 1.9 },
-    { x: 0.1, z: 0.3, offset: 2.13, phase: 3.8 },
-  ], { from: 0.56, rise: 0.68, sway: 0.034, period: 3.2 })
+  const steam = createRisers(
+    kit,
+    cup,
+    [
+      { x: -0.1, z: 0.3, offset: 0, phase: 0 },
+      { x: 0, z: 0.3, offset: 1.07, phase: 1.9 },
+      { x: 0.1, z: 0.3, offset: 2.13, phase: 3.8 },
+    ],
+    { from: 0.46, rise: 0.58, sway: 0.026, period: 3.2 },
+  )
   const amplitude: Spring = { x: 1, v: 0 }
   const tilt: Spring = { x: 0, v: 0 }
   return {
@@ -99,7 +150,8 @@ export const buildCoffee = ({ kit }: PropOptions): DeskProp => {
     frame(env) {
       settle(amplitude, env.hovered ? 1.25 : 1, 40, 9, env)
       settle(tilt, 0, 90, 10, env)
-      cup.rotation.z = tilt.x * 0.12
+      cup.rotation.z = tilt.x * 0.1
+      cup.position.y = 0.048 + Math.abs(Math.sin(cup.rotation.z)) * 0.18
       steam.draw(env.still ? 1.2 : env.t, Math.max(0.6, amplitude.x))
     },
   }
@@ -108,13 +160,53 @@ export const buildCoffee = ({ kit }: PropOptions): DeskProp => {
 /** A glass of iced cola: ice bobbing, bubbles rising. A click fizzes it. */
 export const buildCola = ({ kit }: PropOptions): DeskProp => {
   const root = new Group()
-  const glass = [...circle(0.26, 0.72), ...circle(0.21, 0), ...circle(0.19, 0.05), 0.21, 0, 0, 0.26, 0.72, 0, -0.21, 0, 0, -0.26, 0.72, 0]
-  root.add(kit.segments(glass, LINE))
-  const liquid = kit.edges(kit.solid(new CylinderGeometry(0.24, 0.2, 0.44, 40), 'cola'), DETAIL)
-  liquid.position.y = 0.27
+  // A closed, thin glass wall; the interior liquid never intersects the rim.
+  const wall = kit.solid(
+    kit.lathe([
+      [0, 0],
+      [0.205, 0],
+      [0.26, 0.72],
+      [0.242, 0.72],
+      [0.187, 0.045],
+      [0, 0.045],
+    ]),
+    'paper',
+    { opacity: 0.08 },
+  )
+  wall.name = 'glass-wall'
+  root.add(wall)
+  root.add(
+    kit.segments(
+      [
+        ...circle(0.26, 0.72),
+        ...circle(0.242, 0.72),
+        ...circle(0.205, 0),
+        ...circle(0.187, 0.045),
+        -0.205,
+        0,
+        0,
+        -0.26,
+        0.72,
+        0,
+        0.205,
+        0,
+        0,
+        0.26,
+        0.72,
+        0,
+      ],
+      LINE,
+    ),
+  )
+  const liquid = kit.edges(kit.solid(new CylinderGeometry(0.224, 0.188, 0.44, 40), 'cola'), DETAIL)
+  liquid.position.y = 0.265
   root.add(liquid)
-  const ice = [[-0.07, 0.04, 0.3], [0.08, -0.05, 1.1], [0.01, 0.08, 2.0]].map(([x, z, turn]) => {
-    const cube = kit.edges(kit.solid(new BoxGeometry(0.13, 0.11, 0.13), 'ice'), DETAIL)
+  const ice = [
+    [-0.07, 0.04, 0.3],
+    [0.08, -0.05, 1.1],
+    [0.01, 0.08, 2.0],
+  ].map(([x, z, turn]) => {
+    const cube = kit.hull(kit.solid(roundedBox(0.13, 0.11, 0.13, 0.014), 'ice'), 0.8)
     cube.position.set(x, 0.5, z)
     cube.rotation.set(0.3, turn, 0.2)
     root.add(cube)
@@ -134,16 +226,16 @@ export const buildCola = ({ kit }: PropOptions): DeskProp => {
     uniforms: { uColor: { value: new Vector3() }, uSize: { value: 4.2 * (window.devicePixelRatio || 1) } },
     vertexShader: BUBBLE_VERTEX,
     fragmentShader: BUBBLE_FRAGMENT,
-    depthTest: false,
+    depthTest: true,
+    depthWrite: false,
   })
   const points = new Points(geometry, material)
   points.frustumCulled = false
   points.renderOrder = 5
   points.raycast = () => {}
   root.add(points)
-  const straw = kit.hull(kit.solid(new CylinderGeometry(0.02, 0.02, 0.9, 10)), LINE * 0.9)
-  straw.position.set(0.05, 0.62, -0.05)
-  straw.rotation.z = -0.2
+  const straw = rodBetween(kit, [0.035, 0.31, -0.06], [0.15, 0.86, -0.06], 0.018)
+  straw.name = 'cola-straw'
   root.add(straw)
   let fizzUntil = 0
   let t = 0
@@ -160,8 +252,8 @@ export const buildCola = ({ kit }: PropOptions): DeskProp => {
       const fizz = env.t < fizzUntil ? 3 : 1
       ice.forEach(({ cube, turn, jiggle }, i) => {
         settle(jiggle, 0, 200, 8, env)
-        cube.position.y = 0.5 + Math.sin(env.t * 1.3 + i * 2) * 0.01 + jiggle.x * 0.01
-        cube.rotation.y = turn + Math.sin(env.t * 0.5 + i) * 0.15 + jiggle.x * 0.1
+        cube.position.y = 0.5 + Math.sin((env.still ? 0 : env.t) * 1.3 + i * 2) * 0.01 + jiggle.x * 0.01
+        cube.rotation.y = turn + Math.sin((env.still ? 0 : env.t) * 0.5 + i) * 0.15 + jiggle.x * 0.1
       })
       bubbles.forEach((b, i) => {
         if (!env.still) {
@@ -171,7 +263,9 @@ export const buildCola = ({ kit }: PropOptions): DeskProp => {
             b.x = (Math.random() - 0.5) * 0.28
           }
         }
-        positions.set([b.x + Math.sin(env.t * 3 + i) * 0.008, b.y, 0.25], i * 3)
+        const x = b.x + Math.sin((env.still ? 0 : env.t) * 3 + i) * 0.008
+        const r = 0.188 + ((b.y - 0.045) / 0.44) * 0.036
+        positions.set([x, b.y, Math.sqrt(Math.max(0, r * r - x * x)) + 0.003], i * 3)
       })
       geometry.attributes.position.needsUpdate = true
     },
@@ -188,7 +282,9 @@ const leafGeometry = (length: number, width: number) => {
   shape.moveTo(0, 0)
   shape.quadraticCurveTo(length * 0.45, width, length, 0)
   shape.quadraticCurveTo(length * 0.45, -width, 0, 0)
-  return new ShapeGeometry(shape, 10)
+  const geometry = new ExtrudeGeometry(shape, { depth: 0.008, bevelEnabled: false, curveSegments: 10 })
+  geometry.translate(0, 0, -0.004)
+  return geometry
 }
 
 /**
@@ -197,10 +293,48 @@ const leafGeometry = (length: number, width: number) => {
  */
 export const buildPlant = ({ kit }: PropOptions): DeskProp => {
   const root = new Group()
-  root.add(kit.hull(kit.edges(kit.solid(kit.lathe([[0, 0], [0.15, 0], [0.185, 0.27], [0.21, 0.27], [0.21, 0.32], [0.175, 0.32], [0.168, 0.29], [0, 0.29]])), LINE, 30)))
+  root.add(
+    kit.hull(
+      kit.edges(
+        kit.solid(
+          kit.lathe([
+            [0, 0],
+            [0.15, 0],
+            [0.185, 0.27],
+            [0.21, 0.27],
+            [0.21, 0.32],
+            [0.175, 0.32],
+            [0.168, 0.29],
+            [0, 0.29],
+          ]),
+        ),
+        LINE,
+        30,
+      ),
+    ),
+  )
+  const soil = kit.solid(new CylinderGeometry(0.167, 0.167, 0.008, 32), 'coffee')
+  soil.position.y = 0.29
+  root.add(soil)
   const stems = [
-    { x: -0.04, angle: 0.28, length: 0.42, leaves: [[0.2, -1], [0.36, 1]] },
-    { x: 0.02, angle: -0.06, length: 0.6, leaves: [[0.22, 1], [0.42, -1]] },
+    {
+      x: -0.04,
+      angle: 0.28,
+      length: 0.42,
+      leaves: [
+        [0.2, -1],
+        [0.36, 1],
+      ],
+    },
+    {
+      x: 0.02,
+      angle: -0.06,
+      length: 0.51,
+      leaves: [
+        [0.2, 1],
+        [0.37, -1],
+      ],
+    },
     { x: 0.06, angle: -0.36, length: 0.38, leaves: [[0.18, 1]] },
   ].map((spec, i) => {
     const pivot = new Group()
@@ -213,15 +347,27 @@ export const buildPlant = ({ kit }: PropOptions): DeskProp => {
       const b = (k + 1) / 8
       stem.push(Math.sin(a * Math.PI) * bend, a * spec.length, 0, Math.sin(b * Math.PI) * bend, b * spec.length, 0)
     }
-    pivot.add(kit.segments(stem, DETAIL))
+    pivot.add(
+      kit.hull(
+        kit.solid(
+          tube(
+            Array.from({ length: 9 }, (_, k) => [Math.sin((k / 8) * Math.PI) * bend, (k / 8) * spec.length, 0] as [number, number, number]),
+            0.009,
+            16,
+          ),
+        ),
+        0.7,
+      ),
+    )
     const leaves = [...spec.leaves, [spec.length, 0]].map(([at, side], j) => {
       const leaf = new Group()
       leaf.position.set(Math.sin((at / spec.length) * Math.PI) * bend, at, 0.004)
-      leaf.rotation.z = Math.PI / 2 - side * 0.95
-      const length = side === 0 ? 0.16 : 0.2 - j * 0.02
-      const blade = kit.solid(leafGeometry(length, length * 0.38), 'paper', { side: DoubleSide })
+      leaf.rotation.z = Math.PI / 2 - side * 1.05
+      leaf.rotation.y = j % 2 === 0 ? -0.15 : 0.15
+      const length = side === 0 ? 0.14 : 0.25 - j * 0.025
+      const blade = kit.solid(leafGeometry(length, length * 0.48))
       leaf.add(kit.edges(blade, DETAIL, 30))
-      leaf.add(kit.segments([0.01, 0, 0.002, length * 0.85, 0, 0.002], DETAIL * 0.8, 'ink3'))
+      leaf.add(kit.segments([0.01, 0, 0.006, length * 0.85, 0, 0.006], DETAIL * 0.8, 'ink3'))
       pivot.add(leaf)
       return { leaf, base: leaf.rotation.z, phase: Math.random() * 6 }
     })
@@ -233,6 +379,7 @@ export const buildPlant = ({ kit }: PropOptions): DeskProp => {
   drops.visible = false
   root.add(drops)
   let wateredAt = -10
+  let waterBounced = true
   let t = 0
   const lean: Spring = { x: 0, v: 0 }
   const here = new Vector3()
@@ -240,6 +387,7 @@ export const buildPlant = ({ kit }: PropOptions): DeskProp => {
     root,
     click() {
       wateredAt = t
+      waterBounced = false
     },
     frame(env) {
       t = env.t
@@ -257,8 +405,11 @@ export const buildPlant = ({ kit }: PropOptions): DeskProp => {
         }
         kit.markDirty(drops)
       }
+      if (!waterBounced && since >= 0.55) {
+        waterBounced = true
+        for (const stem of stems) stem.sway.v -= 2.5
+      }
       stems.forEach((stem, i) => {
-        if (since > 0.55 && since < 0.6) stem.sway.v -= 2.5
         settle(stem.sway, 0, 60, 4, env)
         const breeze = env.still ? 0 : Math.sin(env.t * (0.9 + i * 0.2) + i * 1.7) * 0.035
         stem.pivot.rotation.z = stem.base + breeze + lean.x + stem.sway.x * 0.15
@@ -268,7 +419,7 @@ export const buildPlant = ({ kit }: PropOptions): DeskProp => {
   }
 }
 
-const TIMER = { radius: 0.26, squash: 0.82, centre: 0.215 }
+const TIMER = { centre: 0.22 }
 
 /**
  * A tomato kitchen timer. Twist it (the wheel over it) to set up to an hour
@@ -280,34 +431,89 @@ export const buildTimer = ({ kit, timer }: PropOptions): DeskProp => {
   const root = new Group()
   const body = new Group()
   root.add(body)
-  const shell = kit.hull(kit.solid(new SphereGeometry(TIMER.radius, 36, 22)))
-  shell.scale.y = TIMER.squash
-  shell.position.y = TIMER.centre
+  const shell = kit.hull(
+    kit.solid(
+      kit.lathe([
+        [0, 0],
+        [0.14, 0],
+        ...Array.from({ length: 25 }, (_, i) => {
+          const a = -1.05 + (i / 24) * 1.05
+          return [0.3 * Math.cos(a), 0.215 + 0.24 * Math.sin(a)] as [number, number]
+        }),
+        [0, 0.215],
+      ]),
+    ),
+    DETAIL,
+  )
   body.add(shell)
   const dial = new Group()
-  dial.position.y = TIMER.centre
+  dial.name = 'timer-dial'
+  dial.position.y = 0.22
   body.add(dial)
+  const crown = kit.hull(
+    kit.solid(
+      kit.lathe([
+        [0, 0],
+        ...Array.from({ length: 25 }, (_, i) => {
+          const a = ((i / 24) * Math.PI) / 2
+          return [0.3 * Math.cos(a), 0.2 * Math.sin(a) - 0.008 * Math.pow(i / 24, 8)] as [number, number]
+        }),
+      ]),
+    ),
+    DETAIL,
+  )
+  dial.add(crown)
   const ticks: number[] = []
-  const r = TIMER.radius + 0.004
-  for (let m = 0; m < 60; m += 1) {
+  for (let m = 0; m < 60; m++) {
     const a = (m / 60) * Math.PI * 2
-    const long = m % 5 === 0
-    const x = Math.sin(a) * r
-    const z = Math.cos(a) * r
-    ticks.push(x, 0.005, z, x, long ? 0.05 : 0.028, z)
+    const y = m % 5 === 0 ? 0.036 : 0.021,
+      r = 0.3 * Math.sqrt(1 - (y / 0.2) ** 2) + 0.002
+    ticks.push(Math.sin(a) * 0.302, 0.004, Math.cos(a) * 0.302, Math.sin(a) * r, y, Math.cos(a) * r)
   }
-  dial.add(kit.segments(ticks, DETAIL, 'ink3'))
-  const stalk = kit.hull(kit.solid(new CylinderGeometry(0.018, 0.022, 0.06, 10)), DETAIL)
-  stalk.position.y = TIMER.radius * TIMER.squash + 0.02
+  dial.add(kit.segments(ticks, 0.7, 'ink3'))
+  // Small line digits wrap around the scale; they rotate with the numbered half.
+  const digitPaths = [
+    ['ab', 'bc', 'cd', 'de', 'ef', 'fa'],
+    ['bc', 'cd'],
+    ['ab', 'bc', 'fg', 'ed', 'dc'],
+    ['ab', 'bc', 'fg', 'cd', 'de'],
+    ['af', 'fg', 'bc', 'cd'],
+    ['ab', 'af', 'fg', 'cd', 'de'],
+    ['ab', 'af', 'fg', 'ef', 'de', 'cd'],
+    ['ab', 'bc', 'cd'],
+    ['ab', 'bc', 'cd', 'de', 'ef', 'fa', 'fg'],
+    ['ab', 'bc', 'cd', 'de', 'fa', 'fg'],
+  ]
+  const points: Record<string, [number, number]> = { a: [0, 1], b: [1, 1], c: [1, 0.5], d: [1, 0], e: [0, 0], f: [0, 0.5], g: [1, 0.5] }
+  const digits: number[] = []
+  for (let m = 0; m < 60; m += 5) {
+    const text = String(m),
+      a = (m / 60) * Math.PI * 2
+    for (let j = 0; j < text.length; j++)
+      for (const segment of digitPaths[Number(text[j])]) {
+        for (const k of segment) {
+          const [x, y] = points[k],
+            u = (j - (text.length - 1) / 2) * 0.026 + (x - 0.5) * 0.018
+          const theta = a + u / 0.295
+          const height = 0.052 + y * 0.027,
+            r = 0.3 * Math.sqrt(1 - (height / 0.2) ** 2) + 0.002
+          digits.push(Math.sin(theta) * r, height, Math.cos(theta) * r)
+        }
+      }
+  }
+  dial.add(kit.segments(digits, 0.65, 'ink3'))
+  const stalk = rodBetween(kit, [0, 0.19, 0], [0.012, 0.245, 0], 0.013)
   dial.add(stalk)
-  for (let i = 0; i < 5; i += 1) {
-    const leaf = kit.hull(kit.solid(new ConeGeometry(0.025, 0.12, 8)), DETAIL)
-    const a = (i / 5) * Math.PI * 2
-    leaf.position.set(Math.sin(a) * 0.05, TIMER.radius * TIMER.squash - 0.005, Math.cos(a) * 0.05)
-    leaf.rotation.set(Math.cos(a) * 1.25, 0, -Math.sin(a) * 1.25)
-    dial.add(leaf)
+  for (let i = 0; i < 5; i++) {
+    const leaf = kit.edges(kit.solid(leafGeometry(0.11, 0.026)), 0.7)
+    leaf.rotation.x = Math.PI / 2
+    const petal = new Group()
+    petal.position.y = 0.197
+    petal.rotation.y = (i / 5) * Math.PI * 2
+    petal.add(leaf)
+    dial.add(petal)
   }
-  const mark = kit.segments([0, TIMER.centre - 0.07, TIMER.radius * 0.97, 0, TIMER.centre - 0.005, TIMER.radius + 0.008], LINE, 'ink3')
+  const mark = kit.segments([-0.018, 0.181, 0.294, 0, 0.209, 0.294, 0, 0.209, 0.294, 0.018, 0.181, 0.294], DETAIL, 'ink3')
   body.add(mark)
   const ringPositions = new Float32Array(4 * 4 * 6)
   const rings = kit.segments(ringPositions, DETAIL, 'pencil')
@@ -325,9 +531,10 @@ export const buildTimer = ({ kit, timer }: PropOptions): DeskProp => {
     click() {
       twisting = null
       if (timer.get()) timer.set(null)
-      else timer.set(now + 25 * 60000)
+      else timer.set(Date.now() + 25 * 60000)
     },
     wheel(delta) {
+      now = Date.now()
       const endsAt = timer.get()
       const from = twisting?.minutes ?? (endsAt ? Math.max(0, (endsAt - now) / 60000) : 0)
       // Wheel up winds it on: a couple of minutes per notch of a mouse wheel.
@@ -361,10 +568,17 @@ export const buildTimer = ({ kit, timer }: PropOptions): DeskProp => {
             for (let j = 0; j < 2; j += 1) {
               const a0 = -0.5 + j * 0.5
               const a1 = a0 + 0.45
-              ringPositions.set([
-                side * Math.cos(a0) * radius, TIMER.centre + Math.sin(a0) * radius, 0.2,
-                side * Math.cos(a1) * radius, TIMER.centre + Math.sin(a1) * radius, 0.2,
-              ], n)
+              ringPositions.set(
+                [
+                  side * Math.cos(a0) * radius,
+                  TIMER.centre + Math.sin(a0) * radius,
+                  0.2,
+                  side * Math.cos(a1) * radius,
+                  TIMER.centre + Math.sin(a1) * radius,
+                  0.2,
+                ],
+                n,
+              )
               n += 6
             }
           }
@@ -375,7 +589,7 @@ export const buildTimer = ({ kit, timer }: PropOptions): DeskProp => {
   }
 }
 
-const CANDLE = { full: 0.55, stub: 0.12, burnSeconds: 40 * 60 }
+const CANDLE = { full: 0.61, stub: 0.12, burnSeconds: 40 * 60 }
 
 /**
  * A candle on a dish. A click lights it or blows it out (a curl of smoke);
@@ -384,19 +598,61 @@ const CANDLE = { full: 0.55, stub: 0.12, burnSeconds: 40 * 60 }
  */
 export const buildCandle = ({ kit }: PropOptions): DeskProp => {
   const root = new Group()
-  root.add(kit.hull(kit.edges(kit.solid(kit.lathe([[0, 0], [0.2, 0], [0.24, 0.03], [0.22, 0.04], [0.08, 0.035], [0, 0.035]])), DETAIL, 25), DETAIL))
-  const waxGeometry = new CylinderGeometry(0.075, 0.08, 1, 24)
-  waxGeometry.translate(0, 0.5, 0)
-  const wax = kit.hull(kit.edges(kit.solid(waxGeometry), DETAIL, 30))
+  root.add(
+    kit.hull(
+      kit.edges(
+        kit.solid(
+          kit.lathe([
+            [0, 0],
+            [0.2, 0],
+            [0.24, 0.03],
+            [0.22, 0.04],
+            [0.08, 0.035],
+            [0, 0.035],
+          ]),
+        ),
+        DETAIL,
+        25,
+      ),
+      DETAIL,
+    ),
+  )
+  const wax = staticSource('candle', 0.29, kit)
+  // The source's asymmetric melted rim remains real geometry. Normalize only
+  // its height so the existing burn-down/timekeeping code scales the whole wax.
+  wax.updateMatrixWorld(true)
+  const waxBounds = new Box3().setFromObject(wax)
+  for (const child of wax.children as Mesh[]) child.geometry.scale(1, 1 / waxBounds.max.y, 1)
+  // Source edges must receive the same normalization as their owning mesh.
+  wax.traverse((object) => {
+    if ('isLineSegments2' in object) object.scale.y = 1 / waxBounds.max.y
+  })
   wax.position.y = 0.035
   root.add(wax)
   const top = new Group()
   root.add(top)
-  top.add(kit.segments([0, 0, 0.01, 0.005, 0.045, 0.01], DETAIL))
   const flameGroup = new Group()
-  flameGroup.position.y = 0.035
+  // The source already contains the wick; the flame starts at its tip.
+  flameGroup.position.y = 0.002
   top.add(flameGroup)
-  const flame = kit.hull(kit.solid(kit.lathe([[0, 0], [0.028, 0.025], [0.04, 0.07], [0.028, 0.12], [0.01, 0.16], [0, 0.18]], 24), 'flame', { glow: 'flame' }), DETAIL * 0.8)
+  const flame = kit.hull(
+    kit.solid(
+      kit.lathe(
+        [
+          [0, 0],
+          [0.028, 0.025],
+          [0.04, 0.07],
+          [0.028, 0.12],
+          [0.01, 0.16],
+          [0, 0.18],
+        ],
+        24,
+      ),
+      'flame',
+      { glow: 'flame' },
+    ),
+    DETAIL * 0.8,
+  )
   flameGroup.add(flame)
   const texture = glowTexture()
   const haloMaterial = new SpriteMaterial({ map: texture, color: new Color('#ffcf8a'), transparent: true, opacity: 0, depthWrite: false })
@@ -405,16 +661,22 @@ export const buildCandle = ({ kit }: PropOptions): DeskProp => {
   halo.position.y = 0.09
   halo.renderOrder = 6
   flameGroup.add(halo)
-  const smoke = createRisers(kit, top, [
-    { x: 0, z: 0.1, offset: 0, phase: 0.4 },
-    { x: 0.03, z: 0.1, offset: 0.9, phase: 2.1 },
-  ], { from: 0.06, rise: 0.5, sway: 0.03, period: 2.2, px: 1 })
+  const smoke = createRisers(
+    kit,
+    top,
+    [
+      { x: 0, z: 0.1, offset: 0, phase: 0.4 },
+      { x: 0.03, z: 0.1, offset: 0.9, phase: 2.1 },
+    ],
+    { from: 0.06, rise: 0.5, sway: 0.03, period: 2.2, px: 1 },
+  )
 
   let lit = false
   let height = CANDLE.full
   let smokeUntil = -10
   let flicker = 1
   let t = 0
+  let lastBurnAt = 0
   const here = new Vector3()
   return {
     root,
@@ -425,11 +687,16 @@ export const buildCandle = ({ kit }: PropOptions): DeskProp => {
       } else {
         if (height <= CANDLE.stub + 0.01) height = CANDLE.full
         lit = true
+        lastBurnAt = Date.now()
       }
     },
     frame(env) {
       t = env.t
-      if (lit && !env.still) height = Math.max(CANDLE.stub, height - ((CANDLE.full - CANDLE.stub) / CANDLE.burnSeconds) * env.dt)
+      if (lit) {
+        const seconds = Math.max(0, (env.now - lastBurnAt) / 1000)
+        height = Math.max(CANDLE.stub, height - ((CANDLE.full - CANDLE.stub) / CANDLE.burnSeconds) * seconds)
+        lastBurnAt = env.now
+      }
       if (lit && height <= CANDLE.stub) {
         lit = false
         smokeUntil = env.t + 2.4
@@ -451,134 +718,10 @@ export const buildCandle = ({ kit }: PropOptions): DeskProp => {
       here.y += 0.08
       return { position: here, strength: 0.75 * flicker }
     },
+    needsTick: () => lit,
     dispose() {
       texture.dispose()
       haloMaterial.dispose()
-    },
-  }
-}
-
-const TAIL_POINTS = [
-  [0.4, 0.2, 0],
-  [0.54, 0.1, 0.12],
-  [0.36, 0.05, 0.26],
-  [0.05, 0.06, 0.28],
-  [-0.12, 0.14, 0.27],
-]
-
-/**
- * A cat asleep in a loaf, breathing, a pencil "z" now and then. Pointing at it
- * twitches an ear; a click wakes it for a moment: it lifts its head, opens an
- * eye and flicks its tail, then settles back down.
- */
-export const buildCat = ({ kit }: PropOptions): DeskProp => {
-  const root = new Group()
-  const cat = new Group()
-  root.add(cat)
-  const body = kit.hull(kit.solid(new SphereGeometry(1, 36, 22)))
-  body.scale.set(0.42, 0.22, 0.24)
-  body.position.set(0.05, 0.22, 0)
-  cat.add(body)
-  const head = new Group()
-  head.position.set(-0.32, 0.3, 0.06)
-  cat.add(head)
-  const skull = kit.hull(kit.solid(new SphereGeometry(1, 30, 20)))
-  skull.scale.set(0.16, 0.14, 0.15)
-  head.add(skull)
-  const ears = [[-0.06, 0.12, 0.02, 0.35], [0.05, 0.13, -0.05, -0.2]].map(([x, y, z, tilt]) => {
-    const ear = kit.hull(kit.solid(new ConeGeometry(0.05, 0.1, 10)), DETAIL)
-    ear.position.set(x, y, z)
-    ear.rotation.z = tilt
-    head.add(ear)
-    return { ear, tilt, twitch: { x: 0, v: 0 } as Spring }
-  })
-  const closedEye: number[] = []
-  for (let i = 0; i < 6; i += 1) {
-    const a0 = Math.PI * (1.1 + (i / 6) * 0.8)
-    const a1 = Math.PI * (1.1 + ((i + 1) / 6) * 0.8)
-    closedEye.push(-0.07 + Math.cos(a0) * 0.035, 0.02 + Math.sin(a0) * 0.025 + 0.025, 0.14, -0.07 + Math.cos(a1) * 0.035, 0.02 + Math.sin(a1) * 0.025 + 0.025, 0.14)
-  }
-  const eyeShut = kit.segments(closedEye, DETAIL)
-  head.add(eyeShut)
-  const eyeOpenPositions: number[] = []
-  for (let i = 0; i < 10; i += 1) {
-    const a0 = (i / 10) * Math.PI * 2
-    const a1 = ((i + 1) / 10) * Math.PI * 2
-    eyeOpenPositions.push(-0.07 + Math.cos(a0) * 0.02, 0.03 + Math.sin(a0) * 0.02, 0.14, -0.07 + Math.cos(a1) * 0.02, 0.03 + Math.sin(a1) * 0.02, 0.14)
-  }
-  const eyeOpen = kit.segments(eyeOpenPositions, DETAIL)
-  eyeOpen.visible = false
-  head.add(eyeOpen)
-
-  // The tail curls round the front; it is rebuilt only while it moves.
-  const tailMaterial = kit.fill('paper')
-  let tail: Mesh | null = null
-  const buildTail = (lift: number) => {
-    const points = TAIL_POINTS.map(([x, y, z], i) => new Vector3(x, y + (i === TAIL_POINTS.length - 1 ? lift : 0), z))
-    const geometry = new TubeGeometry(new CatmullRomCurve3(points), 32, 0.042, 10, false)
-    if (tail) {
-      tail.geometry.dispose()
-      tail.geometry = geometry
-      for (const child of tail.children) (child as Mesh).geometry = geometry
-    } else {
-      tail = kit.hull(new Mesh(geometry, tailMaterial))
-      cat.add(tail)
-    }
-  }
-  buildTail(0)
-
-  const zPositions = new Float32Array(3 * 3 * 6)
-  const zs = kit.segments(zPositions, DETAIL, 'pencil')
-  root.add(zs)
-  let awakeUntil = -10
-  let t = 0
-  let lastLift = 0
-  const lift: Spring = { x: 0, v: 0 }
-  const tailFlick: Spring = { x: 0, v: 0 }
-  let nextFlick = 4 + Math.random() * 5
-  return {
-    root,
-    click() {
-      awakeUntil = t + 3
-      tailFlick.v += 3
-    },
-    frame(env) {
-      t = env.t
-      const awake = env.t < awakeUntil
-      settle(lift, awake ? 1 : 0, 40, 9, env)
-      head.rotation.z = -0.3 * lift.x
-      head.position.y = 0.3 + 0.05 * lift.x
-      eyeShut.visible = !awake
-      eyeOpen.visible = awake
-      body.scale.y = 0.22 * (1 + (env.still ? 0 : Math.sin(env.t * 1.7) * 0.035))
-      for (const ear of ears) {
-        if (env.hovered && Math.abs(ear.twitch.v) < 0.1 && Math.random() < 0.02) ear.twitch.v += 6
-        settle(ear.twitch, 0, 300, 12, env)
-        ear.ear.rotation.z = ear.tilt + ear.twitch.x * 0.15
-      }
-      if (!env.still && env.t > nextFlick) {
-        tailFlick.v += 2
-        nextFlick = env.t + 4 + Math.random() * 6
-      }
-      settle(tailFlick, 0, 90, 6, env)
-      const tailLift = tailFlick.x * 0.08
-      if (Math.abs(tailLift - lastLift) > 0.002) {
-        buildTail(tailLift)
-        lastLift = tailLift
-      }
-      // Sleeping: a pencil "z", rising and growing, one after another.
-      zPositions.fill(0)
-      if (!awake && !env.still) {
-        for (let i = 0; i < 3; i += 1) {
-          const cycle = ((env.t + i * 1.1) / 3.3) % 1
-          if (cycle > 0.85) continue
-          const s = 0.03 + cycle * 0.04
-          const x = -0.3 + cycle * 0.18
-          const y = 0.5 + cycle * 0.45
-          zPositions.set([x, y + s, 0.1, x + s, y + s, 0.1, x + s, y + s, 0.1, x, y, 0.1, x, y, 0.1, x + s, y, 0.1], i * 18)
-        }
-      }
-      kit.markDirty(zs)
     },
   }
 }
@@ -589,6 +732,4 @@ export const smallPropBuilders = {
   plant: buildPlant,
   timer: buildTimer,
   candle: buildCandle,
-  cat: buildCat,
 }
-

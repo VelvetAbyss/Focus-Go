@@ -6,6 +6,7 @@ import {
   FrontSide,
   LatheGeometry,
   Mesh,
+  type Texture,
   type Object3D,
   SRGBColorSpace,
   ShaderMaterial,
@@ -29,7 +30,13 @@ import type { DeskColors } from '../deskTypes'
 
 const FILL_VERTEX = /* glsl */ `
 varying vec3 vWorld;
+#ifdef DESK_INK_MAP
+varying vec2 vSourceUv;
+#endif
 void main() {
+  #ifdef DESK_INK_MAP
+  vSourceUv = uv;
+  #endif
   vec4 w = modelMatrix * vec4(position, 1.0);
   vWorld = w.xyz;
   gl_Position = projectionMatrix * viewMatrix * w;
@@ -53,6 +60,12 @@ uniform vec4 uCandles[${CANDLE_LIGHTS}];
 uniform float uLight;
 uniform float uInner;
 uniform float uGlow;
+uniform float uAlpha;
+#ifdef DESK_INK_MAP
+uniform sampler2D uInkMap;
+uniform vec3 uInk;
+varying vec2 vSourceUv;
+#endif
 varying vec3 vWorld;
 void main() {
   vec3 toFrag = vWorld - uBulb;
@@ -67,15 +80,29 @@ void main() {
   if (uInner > 0.5 && !gl_FrontFacing) color = mix(color, uBulbColor, uLight * 0.85);
   if (uGlow > 0.5) color = mix(color, uBulbColor, uLight);
   if (uGlow > 1.5) color = uBase;
-  gl_FragColor = vec4(color, 1.0);
+  #ifdef DESK_INK_MAP
+  vec4 source = texture2D(uInkMap, vSourceUv);
+  if (source.a < 0.5) discard;
+  // Preserve dark source details, such as the candle wick, in theme ink.
+  float value = dot(source.rgb, vec3(0.2126, 0.7152, 0.0722));
+  float marks = (1.0 - smoothstep(0.025, 0.21, value)) * 0.78;
+  float detail = (1.0 - smoothstep(0.12, 0.5, value)) * 0.16;
+  color = mix(color, uInk, clamp(marks + detail, 0.0, 0.92));
+  #endif
+  gl_FragColor = vec4(color, uAlpha);
 }
 `
 
 const HULL_VERTEX = /* glsl */ `
-uniform float uThickness;
+uniform float uPixels;
+uniform vec2 uViewport;
 void main() {
-  vec3 p = position + normalize(normal) * uThickness;
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+  vec4 clip = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  vec3 n = normalMatrix * normal;
+  vec2 direction = (projectionMatrix * vec4(n, 0.0)).xy * uViewport;
+  float len = length(direction);
+  if (len > 0.00001) clip.xy += direction / len * (2.0 * uPixels / uViewport) * clip.w;
+  gl_Position = clip;
 }
 `
 const HULL_FRAGMENT = /* glsl */ `
@@ -91,7 +118,7 @@ const BULB_COLOR = hex('#fff4dc')
 export type FillKey = 'paper' | 'coffee' | 'cola' | 'ice' | 'vinyl' | 'flame'
 export type LineKey = 'ink' | 'ink3' | 'ink4' | 'pencil' | 'pen' | 'groove'
 /** 'bulb' glows with the lamp; 'flame' is always its own colour. */
-export type FillOptions = { side?: Side; inner?: boolean; glow?: 'bulb' | 'flame' }
+export type FillOptions = { side?: Side; inner?: boolean; glow?: 'bulb' | 'flame'; opacity?: number; inkMap?: Texture }
 
 const themed = (dark: boolean) =>
   dark
@@ -117,9 +144,11 @@ const themed = (dark: boolean) =>
 export type Kit = ReturnType<typeof createKit>
 
 export const createKit = (initial: { width: number; height: number; unit: number; colors: DeskColors }) => {
-  let { width, height, unit, colors } = initial
+  let { width, height, colors } = initial
+  const viewport = { value: new Vector2(width, height) }
 
   const shared = {
+    uInk: { value: new Vector3(...colors.ink) },
     uBulb: { value: new Vector3(0, 2, 0) },
     uDir: { value: new Vector3(0, -1, 0) },
     uWarmMul: { value: new Vector3() },
@@ -132,15 +161,20 @@ export const createKit = (initial: { width: number; height: number; unit: number
   const fills: { material: ShaderMaterial; key: FillKey }[] = []
   const fill = (key: FillKey = 'paper', options: FillOptions = {}) => {
     const material = new ShaderMaterial({
+      defines: options.inkMap ? { DESK_INK_MAP: 1 } : {},
       uniforms: {
         ...shared,
         uBase: { value: new Vector3() },
         uInner: { value: options.inner ? 1 : 0 },
         uGlow: { value: options.glow === 'bulb' ? 1 : options.glow === 'flame' ? 2 : 0 },
+        uAlpha: { value: options.opacity ?? 1 },
+        uInkMap: { value: options.inkMap ?? null },
       },
       vertexShader: FILL_VERTEX,
       fragmentShader: FILL_FRAGMENT,
       side: options.side ?? FrontSide,
+      transparent: (options.opacity ?? 1) < 1,
+      depthWrite: (options.opacity ?? 1) === 1,
       polygonOffset: true,
       polygonOffsetFactor: 1,
       polygonOffsetUnits: 1,
@@ -182,20 +216,23 @@ export const createKit = (initial: { width: number; height: number; unit: number
   const hulls: { material: ShaderMaterial; px: number }[] = []
   const hull = <T extends Mesh>(mesh: T, px = LINE): T => {
     const material = new ShaderMaterial({
-      uniforms: { uThickness: { value: px / unit }, uColor: hullColor },
+      uniforms: { uPixels: { value: px }, uViewport: viewport, uColor: hullColor },
       vertexShader: HULL_VERTEX,
       fragmentShader: HULL_FRAGMENT,
       side: BackSide,
     })
     hulls.push({ material, px })
     const outline = new Mesh(mesh.geometry, material)
+    outline.userData.outline = true
     outline.raycast = () => {}
     mesh.add(outline)
     return mesh
   }
   const edges = <T extends Mesh>(mesh: T, px = LINE, threshold = 30, key: LineKey = 'ink'): T => {
-    const positions = new EdgesGeometry(mesh.geometry, threshold).getAttribute('position').array as Float32Array
+    const edgeGeometry = new EdgesGeometry(mesh.geometry, threshold)
+    const positions = edgeGeometry.getAttribute('position').array as Float32Array
     mesh.add(segments(new Float32Array(positions), px, key))
+    edgeGeometry.dispose()
     return mesh
   }
   const solid = (geometry: BufferGeometry, key: FillKey = 'paper', options?: FillOptions) => new Mesh(geometry, fill(key, options))
@@ -225,6 +262,7 @@ export const createKit = (initial: { width: number; height: number; unit: number
     for (const { material, key } of fills) paintFill(material, key)
     for (const { material, key } of lines) paintLine(material, key)
     hullColor.value.set(...colors.ink)
+    shared.uInk.value.set(...colors.ink)
     const t = themed(colors.dark)
     shared.uWarmMul.value.set(...t.warmMul)
     shared.uWarmAdd.value.set(...t.warmAdd)
@@ -249,11 +287,11 @@ export const createKit = (initial: { width: number; height: number; unit: number
     keep(hulls)
   }
 
-  const resize = (w: number, h: number, u: number) => {
+  const resize = (w: number, h: number, _u: number) => {
+    void _u // Kept in the common call signature; strokes now use screen pixels.
     width = w
     height = h
-    unit = u
-    for (const { material, px } of hulls) material.uniforms.uThickness.value = px / unit
+    viewport.value.set(w, h)
     for (const { material } of lines) material.resolution.set(width, height)
   }
 

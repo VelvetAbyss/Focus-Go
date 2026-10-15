@@ -21,11 +21,11 @@ describe('findFreeSpot', () => {
 
   it('finds room nearest the middle without overlapping anything or the lamp', () => {
     const items = [{ kind: 'book' as const, x: 0 }, { kind: 'coffee' as const, x: -1.8 }]
-    const x = findFreeSpot('cat', items, LAMP_X, span)
-    expect(overlaps('cat', x, items)).toBe(false)
-    expect(Math.abs(x - LAMP_X)).toBeGreaterThan(PROP_FOOTPRINT.cat.half + 0.45)
-    expect(x).toBeGreaterThanOrEqual(span.left + PROP_FOOTPRINT.cat.half)
-    expect(x).toBeLessThanOrEqual(span.right - PROP_FOOTPRINT.cat.half)
+    const x = findFreeSpot('plant', items, LAMP_X, span)
+    expect(overlaps('plant', x, items)).toBe(false)
+    expect(Math.abs(x - LAMP_X)).toBeGreaterThan(PROP_FOOTPRINT.plant.half + 0.45)
+    expect(x).toBeGreaterThanOrEqual(span.left + PROP_FOOTPRINT.plant.half)
+    expect(x).toBeLessThanOrEqual(span.right - PROP_FOOTPRINT.plant.half)
   })
 
   it('still finds a spot on a full desk', () => {

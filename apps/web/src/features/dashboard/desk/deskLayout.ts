@@ -11,16 +11,15 @@ export const LAMP_BASE = { half: 0.45, top: 0.16 }
 
 /** Half its width and its height, for the lamp's limits and for finding room. */
 export const PROP_FOOTPRINT: Record<DeskPropId, { half: number; top: number }> = {
-  book: { half: 1.0, top: 0.34 },
-  laptop: { half: 0.95, top: 0.86 },
-  typewriter: { half: 0.75, top: 0.84 },
-  record: { half: 0.7, top: 0.86 },
+  book: { half: 1.0, top: 1.06 },
+  laptop: { half: 1.01, top: 1.12 },
+  typewriter: { half: 0.98, top: 0.84 },
+  record: { half: 0.72, top: 1.04 },
   coffee: { half: 0.5, top: 0.62 },
-  cola: { half: 0.3, top: 0.8 },
-  plant: { half: 0.4, top: 0.95 },
-  timer: { half: 0.3, top: 0.6 },
-  candle: { half: 0.25, top: 0.82 },
-  cat: { half: 0.5, top: 0.58 },
+  cola: { half: 0.3, top: 0.89 },
+  plant: { half: 0.43, top: 1.03 },
+  timer: { half: 0.33, top: 0.50 },
+  candle: { half: 0.25, top: 0.94 },
 }
 
 export const DESK_LAYOUT = {
