@@ -3,6 +3,8 @@
 import '@testing-library/jest-dom/vitest'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+const { play } = vi.hoisted(() => ({ play: vi.fn() }))
+vi.mock('../../../shared/sound/interactionSounds', () => ({ playInterfaceSound: play }))
 
 vi.mock('../TasksBoard', () => ({
   default: () => <div data-testid="tasks-board" />,
@@ -27,6 +29,7 @@ const setViewport = (width: number, height: number) => {
 
 describe('TasksPage viewport adaptation', () => {
   beforeEach(() => {
+    play.mockClear()
     window.localStorage.clear()
   })
 
@@ -87,5 +90,18 @@ describe('TasksPage viewport adaptation', () => {
     expect(panel?.className).not.toContain('overflow-hidden')
     expect(frame).toBeInTheDocument()
     expect(frame?.className).not.toContain('overflow-hidden')
+  })
+
+  it('sounds actual tab changes for click and keyboard, with no mount or repeated-selection feedback', () => {
+    render(<TasksPage />)
+    expect(play).not.toHaveBeenCalled()
+    const today = screen.getByRole('tab', { name: 'Today' })
+    fireEvent.click(today)
+    expect(play).toHaveBeenCalledTimes(1)
+    fireEvent.click(today)
+    expect(play).toHaveBeenCalledTimes(1)
+    fireEvent.keyDown(today, { key: 'ArrowRight' })
+    expect(play).toHaveBeenCalledTimes(2)
+    expect(screen.getByRole('tab', { name: 'Board' })).toHaveAttribute('aria-selected', 'true')
   })
 })

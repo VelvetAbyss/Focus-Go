@@ -7,6 +7,8 @@ import type { TaskItem } from '../tasks.types'
 
 const pushMock = vi.fn<(args: ToastPushArgs) => void>()
 const emitTasksChangedMock = vi.fn()
+const playMock = vi.fn()
+vi.mock('../../../shared/sound/interactionSounds', () => ({ playInteractionSound: (...args: unknown[]) => playMock(...args) }))
 
 vi.mock('../../../shared/i18n/useI18n', async () => {
   const { mockUseI18n } = await import('../../../shared/i18n/testMock')
@@ -36,6 +38,7 @@ const link = (taskId: string) => ({ id: `${taskId}:n1`, taskId, noteId: 'n1', or
 
 describe('useTaskDeletion', () => {
   beforeEach(() => {
+    playMock.mockReset()
     pushMock.mockReset()
     emitTasksChangedMock.mockReset()
     vi.mocked(tasksRepo.remove).mockReset()
@@ -62,6 +65,7 @@ describe('useTaskDeletion', () => {
 
     expect(tasksRepo.restore).toHaveBeenCalledWith(task, [link('t1')])
     expect(emitTasksChangedMock).toHaveBeenCalledWith('test:undo-delete')
+    expect(playMock.mock.calls).toEqual([['remove'], ['undo']])
   })
 
   it('counts several tasks in one notice and restores them all', async () => {
@@ -81,6 +85,7 @@ describe('useTaskDeletion', () => {
       toast.onAction?.()
     })
     expect(tasksRepo.restore).toHaveBeenCalledTimes(3)
+    expect(playMock.mock.calls).toEqual([['remove'], ['undo']])
   })
 
   it('says so when the undo fails', async () => {
@@ -96,6 +101,7 @@ describe('useTaskDeletion', () => {
 
     expect(pushMock).toHaveBeenLastCalledWith(expect.objectContaining({ variant: 'error' }))
     expect(emitTasksChangedMock).not.toHaveBeenCalledWith('test:undo-delete')
+    expect(playMock.mock.calls).toEqual([['remove']])
     consoleSpy.mockRestore()
   })
 
@@ -104,5 +110,6 @@ describe('useTaskDeletion', () => {
     await act(() => result.current([], 'test'))
     expect(tasksRepo.remove).not.toHaveBeenCalled()
     expect(pushMock).not.toHaveBeenCalled()
+    expect(playMock).not.toHaveBeenCalled()
   })
 })

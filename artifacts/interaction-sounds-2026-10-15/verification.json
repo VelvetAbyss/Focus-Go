@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-15",
+  "base": "origin/main 3524d30",
+  "defaultTheme": "wood",
+  "defaultVolume": 0.45,
+  "themes": 3,
+  "gesturesPerTheme": 13,
+  "assetBytes": 692916,
+  "tests": {
+    "passed": 52,
+    "skippedExisting": 2,
+    "files": 7
+  },
+  "lint": "passed",
+  "productionWebBuild": "passed",
+  "browser": {
+    "palettePreviews": 39,
+    "mute": "passed",
+    "persistedSettings": "passed",
+    "coreActions": [
+      "start",
+      "pause",
+      "resume",
+      "create-task",
+      "complete-task",
+      "undo-task"
+    ],
+    "mobileViewport": 390,
+    "mobileDocumentWidth": 390,
+    "panelClientWidth": 280,
+    "panelScrollWidth": 280
+  },
+  "limitations": [
+    "New gestures have not received human listening approval.",
+    "Desktop package build and installation not performed.",
+    "Source changes are uncommitted and not deployed.",
+    "Existing environment remote request failure in browser console; no audio playback errors."
+  ]
+}

@@ -1,3 +1,4 @@
+import { playInteractionSound, playInterfaceSound, playTaskStatusSound } from '../../shared/sound/interactionSounds'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { CalendarClock, CheckSquare, ChevronDown, LayoutGrid, Plus, Square, Tag, Trash2 } from 'lucide-react'
@@ -483,6 +484,7 @@ const TasksBoard = ({
     try {
       const updated = await tasksRepo.updateStatus(taskId, nextStatus)
       if (!updated) return
+      if (previousStatus) playTaskStatusSound(previousStatus, updated.status)
       emitTasksChanged('tasks-board:update-status')
       // A completed task leaves the list at once; one click away from undoing a mis-click.
       if (nextStatus === 'done' && previousStatus && previousStatus !== 'done') {
@@ -494,9 +496,13 @@ const TasksBoard = ({
           variant: 'success',
           actionLabel: t('tasks.undo'),
           onAction: () => {
-            void tasksRepo.updateStatus(taskId, previousStatus).then((reverted) => {
+            void tasksRepo.list().then(async (latest) => {
+              if (latest.find((task) => task.id === taskId)?.status !== 'done') return
+              return tasksRepo.updateStatus(taskId, previousStatus)
+            }).then((reverted) => {
               if (!reverted) return
               emitTasksChanged('tasks-board:undo-complete')
+              playInteractionSound('undo')
               setTasks((prev) => prev.map((item) => (item.id === taskId ? reverted : item)))
             })
           },
@@ -658,10 +664,11 @@ const TasksBoard = ({
     const updates = await Promise.all(ids.map((id) => tasksRepo.updateStatus(id, 'done')))
     const updatedById = new Map(updates.filter((item): item is TaskItem => Boolean(item)).map((item) => [item.id, item]))
     if (updatedById.size === 0) return
+    if (tasks.some((task) => updatedById.has(task.id) && task.status !== 'done')) playInteractionSound('complete')
     emitTasksChanged('tasks-board:bulk-done')
     setTasks((prev) => prev.map((task) => updatedById.get(task.id) ?? task))
     setSelectedTaskIds(new Set())
-  }, [selectedTaskIds])
+  }, [selectedTaskIds, tasks])
 
   const handleBulkDelete = useCallback(async () => {
     setBulkDeleteOpen(false)
@@ -1053,7 +1060,10 @@ const TasksBoard = ({
                           alert && `deadline-alert deadline-alert--${alert.level}`,
                         )}
                         title={alert ? deadlineAlertTitle(alert) : undefined}
-                        onClick={() => setActiveStatus(status.key)}
+                        onClick={() => {
+                          if (!isActive) playInterfaceSound()
+                          setActiveStatus(status.key)
+                        }}
                       >
                         <span aria-hidden="true" />
                         {t(cfg.labelKey)}

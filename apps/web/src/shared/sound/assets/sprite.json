@@ -1,0 +1,62 @@
+{
+  "tap-0": {
+    "offset": 0.0,
+    "duration": 0.25
+  },
+  "tap-1": {
+    "offset": 0.28,
+    "duration": 0.25
+  },
+  "tap-2": {
+    "offset": 0.56,
+    "duration": 0.25
+  },
+  "on": {
+    "offset": 0.84,
+    "duration": 0.25
+  },
+  "off": {
+    "offset": 1.12,
+    "duration": 0.25
+  },
+  "create": {
+    "offset": 1.4,
+    "duration": 0.297
+  },
+  "place": {
+    "offset": 1.727,
+    "duration": 0.286
+  },
+  "complete": {
+    "offset": 2.043,
+    "duration": 0.315
+  },
+  "undo": {
+    "offset": 2.388,
+    "duration": 0.305
+  },
+  "remove": {
+    "offset": 2.723,
+    "duration": 0.292
+  },
+  "start": {
+    "offset": 3.045,
+    "duration": 0.326
+  },
+  "pause": {
+    "offset": 3.401,
+    "duration": 0.25
+  },
+  "resume": {
+    "offset": 3.681,
+    "duration": 0.297
+  },
+  "reset": {
+    "offset": 4.008,
+    "duration": 0.308
+  },
+  "finish": {
+    "offset": 4.346,
+    "duration": 0.435
+  }
+}

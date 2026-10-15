@@ -1,4 +1,6 @@
 import { NavLink } from 'react-router-dom'
+import { useNavigationSound } from '../../shared/sound/useNavigationSound'
+import { playInterfaceSound } from '../../shared/sound/interactionSounds'
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import {
   Bot,
@@ -34,6 +36,7 @@ import SidebarPodcastPlayer from './SidebarPodcastPlayer'
 import SidebarWhiteNoise from './SidebarWhiteNoise'
 import SidebarFocusTimer from './SidebarFocusTimer'
 import SidebarThemeToggle from './SidebarThemeToggle'
+import SidebarSoundToggle from './SidebarSoundToggle'
 import { transitionSidebar } from './sidebarTransition'
 import './sidebar.css'
 import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../data/repositories/syncedPreferencesRepo'
@@ -80,6 +83,7 @@ type StaticSidebarItemProps = {
 }
 
 const StaticSidebarItem = ({ item, collapsed }: StaticSidebarItemProps) => {
+  const navigationSound = useNavigationSound(item.to)
   const discoveryTarget = SIDEBAR_DISCOVERY_TARGET_BY_ITEM_ID[item.id]
 
   return (
@@ -91,7 +95,10 @@ const StaticSidebarItem = ({ item, collapsed }: StaticSidebarItemProps) => {
       className={({ isActive }) =>
         `focus-sidebar__item${item.extraClassName ? ` ${item.extraClassName}` : ''}${isActive ? ' is-active' : ''}`
       }
-      onClick={() => { if (discoveryTarget) markDiscoveryNewTargetSeen(discoveryTarget) }}
+      onClick={(event) => {
+        navigationSound(event)
+        if (discoveryTarget) markDiscoveryNewTargetSeen(discoveryTarget)
+      }}
     >
       <item.Icon size={18} aria-hidden="true" />
       {!collapsed ? <span className="sidebar-reveal">{item.label}</span> : null}
@@ -256,7 +263,10 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
         <button
           type="button"
           className="focus-sidebar__toggle"
-          onClick={() => transitionSidebar(onToggle)}
+          onClick={() => {
+            playInterfaceSound(collapsed ? 'on' : 'off')
+            transitionSidebar(onToggle)
+          }}
           aria-expanded={!collapsed}
           aria-label={collapsed ? t('shell.expandNav') : t('shell.collapseNav')}
           title={collapsed ? t('shell.expandNav') : t('shell.collapseNav')}
@@ -298,14 +308,13 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
         <SidebarFocusTimer collapsed={collapsed} />
       </section>
 
-      {systemItems.length > 0 ? (
-        <nav className="focus-sidebar__nav focus-sidebar__nav--system" aria-label={t('shell.systemNav')}>
-          <ActiveIndicator selector=":scope > .focus-sidebar__item.is-active" />
-          {systemItems.map((item) => (
-            <StaticSidebarItem key={item.id} item={item} collapsed={collapsed} />
-          ))}
-        </nav>
-      ) : null}
+      <nav className="focus-sidebar__nav focus-sidebar__nav--system" aria-label={t('shell.systemNav')}>
+        <ActiveIndicator selector=":scope > .focus-sidebar__item.is-active" />
+        <SidebarSoundToggle collapsed={collapsed} />
+        {systemItems.map((item) => (
+          <StaticSidebarItem key={item.id} item={item} collapsed={collapsed} />
+        ))}
+      </nav>
       <Suspense fallback={null}>
         <PodcastCard standalone />
       </Suspense>

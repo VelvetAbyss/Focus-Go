@@ -1,0 +1,54 @@
+[
+  {
+    "name": "desktop expanded",
+    "collapsed": false,
+    "width": 158,
+    "height": 30.390625,
+    "contained": true,
+    "label": "音效",
+    "font": true,
+    "size": true,
+    "weight": true,
+    "radius": true,
+    "viewportOverflow": false
+  },
+  {
+    "name": "desktop collapsed",
+    "collapsed": true,
+    "width": 33.59375,
+    "height": 33.59375,
+    "contained": true,
+    "label": "",
+    "font": true,
+    "size": true,
+    "weight": true,
+    "radius": true,
+    "viewportOverflow": false
+  },
+  {
+    "name": "mobile expanded",
+    "collapsed": false,
+    "width": 85.75,
+    "height": 47.390625,
+    "contained": true,
+    "label": "音效",
+    "font": true,
+    "size": true,
+    "weight": true,
+    "radius": true,
+    "viewportOverflow": false
+  },
+  {
+    "name": "mobile collapsed",
+    "collapsed": true,
+    "width": 85.75,
+    "height": 36,
+    "contained": true,
+    "label": "",
+    "font": true,
+    "size": true,
+    "weight": true,
+    "radius": true,
+    "viewportOverflow": false
+  }
+]

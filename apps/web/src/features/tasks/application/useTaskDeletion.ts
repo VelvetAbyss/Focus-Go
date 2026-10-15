@@ -5,6 +5,7 @@ import { useI18n } from '../../../shared/i18n/useI18n'
 import { useToast } from '../../../shared/ui/toast/toast'
 import { emitTasksChanged } from '../taskSync'
 import type { TaskItem } from '../tasks.types'
+import { playInteractionSound } from '../../../shared/sound/interactionSounds'
 
 // Long enough to notice a mis-click and reach the button; hovering the toast pauses it.
 const UNDO_DELETE_MS = 8000
@@ -25,6 +26,7 @@ export const useTaskDeletion = () => {
       tasks.map(async (task) => ({ task, links: await tasksRepo.remove(task.id) })),
     )
     emitTasksChanged(`${source}:delete`)
+    playInteractionSound('remove')
     toast.push({
       message: removed.length === 1
         ? t('tasks.deletedToast', { title: removed[0].task.title.trim() || t('tasks.untitled') })
@@ -33,7 +35,10 @@ export const useTaskDeletion = () => {
       durationMs: UNDO_DELETE_MS,
       onAction: () => {
         void Promise.all(removed.map(({ task, links }) => tasksRepo.restore(task, links)))
-          .then(() => emitTasksChanged(`${source}:undo-delete`))
+          .then(() => {
+            emitTasksChanged(`${source}:undo-delete`)
+            playInteractionSound('undo')
+          })
           .catch((error) => {
             console.error('[useTaskDeletion] restore failed', error)
             toast.push({ variant: 'error', message: t('tasks.restoreFailed') })

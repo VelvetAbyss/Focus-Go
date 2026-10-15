@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import { useNavigationSound } from '../../shared/sound/useNavigationSound'
 import {
   closestCenter,
   DndContext,
@@ -29,6 +30,7 @@ type SortableSidebarItemProps = {
 }
 
 const SortableSidebarItem = ({ item, collapsed }: SortableSidebarItemProps) => {
+  const navigationSound = useNavigationSound(item.to)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
   const discoveryTarget = SIDEBAR_DISCOVERY_TARGET_BY_ITEM_ID[item.id]
   const style = {
@@ -47,7 +49,10 @@ const SortableSidebarItem = ({ item, collapsed }: SortableSidebarItemProps) => {
       className={({ isActive }) =>
         `focus-sidebar__item${item.extraClassName ? ` ${item.extraClassName}` : ''}${isActive ? ' is-active' : ''}${isDragging ? ' is-dragging' : ''}`
       }
-      onClick={() => { if (discoveryTarget) markDiscoveryNewTargetSeen(discoveryTarget) }}
+      onClick={(event) => {
+        navigationSound(event, isDragging)
+        if (discoveryTarget) markDiscoveryNewTargetSeen(discoveryTarget)
+      }}
       {...attributes}
       {...listeners}
     >

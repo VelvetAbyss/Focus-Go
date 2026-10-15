@@ -1,0 +1,39 @@
+[
+  {
+    "name": "initialization-is-silent",
+    "expected": 0,
+    "actual": 0,
+    "passed": true,
+    "events": []
+  },
+  {
+    "name": "cold-first-tab-after-ready-fix",
+    "expected": 1,
+    "actual": 1,
+    "passed": true,
+    "events": [
+      {
+        "offset": 0,
+        "duration": 0.25,
+        "state": "running",
+        "gain": 0.550000011920929,
+        "sampleRate": 48000
+      }
+    ]
+  },
+  {
+    "name": "second-tab-after-ready-fix",
+    "expected": 1,
+    "actual": 1,
+    "passed": true,
+    "events": [
+      {
+        "offset": 0.28,
+        "duration": 0.25,
+        "state": "running",
+        "gain": 0.550000011920929,
+        "sampleRate": 48000
+      }
+    ]
+  }
+]

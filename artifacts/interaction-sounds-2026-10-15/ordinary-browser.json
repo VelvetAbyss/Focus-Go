@@ -1,0 +1,633 @@
+{
+  "checks": [
+    {
+      "name": "settings-tab-change",
+      "expected": 1,
+      "actual": 0,
+      "passed": false,
+      "events": []
+    },
+    {
+      "name": "settings-tab-change-after-unlock",
+      "expected": 1,
+      "actual": 1,
+      "passed": true,
+      "events": [
+        {
+          "offset": 0.28,
+          "duration": 0.25,
+          "state": "running",
+          "gain": 0.550000011920929,
+          "sampleRate": 48000
+        }
+      ]
+    },
+    {
+      "name": "repeat-current-tab",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "events": []
+    },
+    {
+      "name": "sidebar-navigation",
+      "expected": 1,
+      "actual": 1,
+      "passed": true,
+      "events": [
+        {
+          "offset": 0.56,
+          "duration": 0.25,
+          "state": "running",
+          "gain": 0.550000011920929,
+          "sampleRate": 48000
+        }
+      ]
+    },
+    {
+      "name": "repeat-current-navigation",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "events": []
+    },
+    {
+      "name": "task-view-tab",
+      "expected": 1,
+      "actual": 0,
+      "passed": false,
+      "events": []
+    },
+    {
+      "name": "repeat-task-view-tab",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "events": []
+    },
+    {
+      "name": "task-view-back",
+      "expected": 1,
+      "actual": 0,
+      "passed": false,
+      "events": []
+    },
+    {
+      "name": "task-status-tab",
+      "expected": 1,
+      "actual": 0,
+      "passed": false,
+      "events": []
+    },
+    {
+      "name": "task-view-tab",
+      "expected": 1,
+      "actual": 1,
+      "passed": true,
+      "events": [
+        {
+          "offset": 0,
+          "duration": 0.25,
+          "state": "running",
+          "gain": 0.550000011920929,
+          "sampleRate": 48000
+        }
+      ]
+    },
+    {
+      "name": "repeat-task-view-tab",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "events": []
+    },
+    {
+      "name": "task-view-back",
+      "expected": 1,
+      "actual": 1,
+      "passed": true,
+      "events": [
+        {
+          "offset": 0.28,
+          "duration": 0.25,
+          "state": "running",
+          "gain": 0.550000011920929,
+          "sampleRate": 48000
+        }
+      ]
+    },
+    {
+      "name": "task-status-tab",
+      "expected": 1,
+      "actual": 1,
+      "passed": true,
+      "events": [
+        {
+          "offset": 0.56,
+          "duration": 0.25,
+          "state": "running",
+          "gain": 0.550000011920929,
+          "sampleRate": 48000
+        }
+      ]
+    },
+    {
+      "name": "repeat-task-status-tab",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "events": []
+    },
+    {
+      "name": "sidebar-collapse",
+      "expected": 1,
+      "actual": 1,
+      "passed": true,
+      "events": [
+        {
+          "offset": 1.12,
+          "duration": 0.25,
+          "state": "running",
+          "gain": 0.550000011920929,
+          "sampleRate": 48000
+        }
+      ]
+    },
+    {
+      "name": "sidebar-expand",
+      "expected": 1,
+      "actual": 1,
+      "passed": true,
+      "events": [
+        {
+          "offset": 0.84,
+          "duration": 0.25,
+          "state": "running",
+          "gain": 0.550000011920929,
+          "sampleRate": 48000
+        }
+      ]
+    },
+    {
+      "name": "settings-navigation",
+      "expected": 1,
+      "actual": 1,
+      "passed": true,
+      "events": [
+        {
+          "offset": 0,
+          "duration": 0.25,
+          "state": "running",
+          "gain": 0.550000011920929,
+          "sampleRate": 48000
+        }
+      ]
+    },
+    {
+      "name": "settings-tab-change",
+      "expected": 1,
+      "actual": 1,
+      "passed": true,
+      "events": [
+        {
+          "offset": 0.28,
+          "duration": 0.25,
+          "state": "running",
+          "gain": 0.550000011920929,
+          "sampleRate": 48000
+        }
+      ]
+    },
+    {
+      "name": "open-selector",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "events": []
+    },
+    {
+      "name": "select-new-value",
+      "expected": 1,
+      "actual": 1,
+      "passed": true,
+      "events": [
+        {
+          "offset": 0.56,
+          "duration": 0.25,
+          "state": "running",
+          "gain": 0.550000011920929,
+          "sampleRate": 48000
+        }
+      ]
+    },
+    {
+      "name": "reopen-selector",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "events": []
+    },
+    {
+      "name": "repeat-current-option",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "events": []
+    },
+    {
+      "name": "open-selector-to-restore",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "events": []
+    },
+    {
+      "name": "restore-select-value",
+      "expected": 1,
+      "actual": 1,
+      "passed": true,
+      "events": [
+        {
+          "offset": 0,
+          "duration": 0.25,
+          "state": "running",
+          "gain": 0.550000011920929,
+          "sampleRate": 48000
+        }
+      ]
+    },
+    {
+      "name": "ordinary-switch-off",
+      "expected": 1,
+      "actual": 1,
+      "passed": true,
+      "events": [
+        {
+          "offset": 1.12,
+          "duration": 0.25,
+          "state": "running",
+          "gain": 0.550000011920929,
+          "sampleRate": 48000
+        }
+      ]
+    },
+    {
+      "name": "ordinary-switch-on",
+      "expected": 1,
+      "actual": 1,
+      "passed": true,
+      "events": [
+        {
+          "offset": 0.84,
+          "duration": 0.25,
+          "state": "running",
+          "gain": 0.550000011920929,
+          "sampleRate": 48000
+        }
+      ]
+    },
+    {
+      "name": "master-mute",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "events": []
+    },
+    {
+      "name": "muted-tab",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "events": []
+    },
+    {
+      "name": "muted-navigation",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "events": []
+    },
+    {
+      "name": "muted-task-tab",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "events": []
+    },
+    {
+      "name": "master-unmute-once",
+      "expected": 1,
+      "actual": 1,
+      "passed": true,
+      "events": [
+        {
+          "offset": 0.84,
+          "duration": 0.25,
+          "state": "running",
+          "gain": 1,
+          "sampleRate": 48000
+        }
+      ]
+    }
+  ],
+  "latest": [
+    {
+      "name": "settings-tab-change",
+      "expected": 1,
+      "actual": 1,
+      "passed": true,
+      "events": [
+        {
+          "offset": 0.28,
+          "duration": 0.25,
+          "state": "running",
+          "gain": 0.550000011920929,
+          "sampleRate": 48000
+        }
+      ]
+    },
+    {
+      "name": "settings-tab-change-after-unlock",
+      "expected": 1,
+      "actual": 1,
+      "passed": true,
+      "events": [
+        {
+          "offset": 0.28,
+          "duration": 0.25,
+          "state": "running",
+          "gain": 0.550000011920929,
+          "sampleRate": 48000
+        }
+      ]
+    },
+    {
+      "name": "repeat-current-tab",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "events": []
+    },
+    {
+      "name": "sidebar-navigation",
+      "expected": 1,
+      "actual": 1,
+      "passed": true,
+      "events": [
+        {
+          "offset": 0.56,
+          "duration": 0.25,
+          "state": "running",
+          "gain": 0.550000011920929,
+          "sampleRate": 48000
+        }
+      ]
+    },
+    {
+      "name": "repeat-current-navigation",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "events": []
+    },
+    {
+      "name": "task-view-tab",
+      "expected": 1,
+      "actual": 1,
+      "passed": true,
+      "events": [
+        {
+          "offset": 0,
+          "duration": 0.25,
+          "state": "running",
+          "gain": 0.550000011920929,
+          "sampleRate": 48000
+        }
+      ]
+    },
+    {
+      "name": "repeat-task-view-tab",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "events": []
+    },
+    {
+      "name": "task-view-back",
+      "expected": 1,
+      "actual": 1,
+      "passed": true,
+      "events": [
+        {
+          "offset": 0.28,
+          "duration": 0.25,
+          "state": "running",
+          "gain": 0.550000011920929,
+          "sampleRate": 48000
+        }
+      ]
+    },
+    {
+      "name": "task-status-tab",
+      "expected": 1,
+      "actual": 1,
+      "passed": true,
+      "events": [
+        {
+          "offset": 0.56,
+          "duration": 0.25,
+          "state": "running",
+          "gain": 0.550000011920929,
+          "sampleRate": 48000
+        }
+      ]
+    },
+    {
+      "name": "repeat-task-status-tab",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "events": []
+    },
+    {
+      "name": "sidebar-collapse",
+      "expected": 1,
+      "actual": 1,
+      "passed": true,
+      "events": [
+        {
+          "offset": 1.12,
+          "duration": 0.25,
+          "state": "running",
+          "gain": 0.550000011920929,
+          "sampleRate": 48000
+        }
+      ]
+    },
+    {
+      "name": "sidebar-expand",
+      "expected": 1,
+      "actual": 1,
+      "passed": true,
+      "events": [
+        {
+          "offset": 0.84,
+          "duration": 0.25,
+          "state": "running",
+          "gain": 0.550000011920929,
+          "sampleRate": 48000
+        }
+      ]
+    },
+    {
+      "name": "settings-navigation",
+      "expected": 1,
+      "actual": 1,
+      "passed": true,
+      "events": [
+        {
+          "offset": 0,
+          "duration": 0.25,
+          "state": "running",
+          "gain": 0.550000011920929,
+          "sampleRate": 48000
+        }
+      ]
+    },
+    {
+      "name": "open-selector",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "events": []
+    },
+    {
+      "name": "select-new-value",
+      "expected": 1,
+      "actual": 1,
+      "passed": true,
+      "events": [
+        {
+          "offset": 0.56,
+          "duration": 0.25,
+          "state": "running",
+          "gain": 0.550000011920929,
+          "sampleRate": 48000
+        }
+      ]
+    },
+    {
+      "name": "reopen-selector",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "events": []
+    },
+    {
+      "name": "repeat-current-option",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "events": []
+    },
+    {
+      "name": "open-selector-to-restore",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "events": []
+    },
+    {
+      "name": "restore-select-value",
+      "expected": 1,
+      "actual": 1,
+      "passed": true,
+      "events": [
+        {
+          "offset": 0,
+          "duration": 0.25,
+          "state": "running",
+          "gain": 0.550000011920929,
+          "sampleRate": 48000
+        }
+      ]
+    },
+    {
+      "name": "ordinary-switch-off",
+      "expected": 1,
+      "actual": 1,
+      "passed": true,
+      "events": [
+        {
+          "offset": 1.12,
+          "duration": 0.25,
+          "state": "running",
+          "gain": 0.550000011920929,
+          "sampleRate": 48000
+        }
+      ]
+    },
+    {
+      "name": "ordinary-switch-on",
+      "expected": 1,
+      "actual": 1,
+      "passed": true,
+      "events": [
+        {
+          "offset": 0.84,
+          "duration": 0.25,
+          "state": "running",
+          "gain": 0.550000011920929,
+          "sampleRate": 48000
+        }
+      ]
+    },
+    {
+      "name": "master-mute",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "events": []
+    },
+    {
+      "name": "muted-tab",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "events": []
+    },
+    {
+      "name": "muted-navigation",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "events": []
+    },
+    {
+      "name": "muted-task-tab",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "events": []
+    },
+    {
+      "name": "master-unmute-once",
+      "expected": 1,
+      "actual": 1,
+      "passed": true,
+      "events": [
+        {
+          "offset": 0.84,
+          "duration": 0.25,
+          "state": "running",
+          "gain": 1,
+          "sampleRate": 48000
+        }
+      ]
+    }
+  ],
+  "notes": [
+    "Initial cold audio start missed; fixed readiness race with async resume regression coverage.",
+    "Early task tab probes used expired selectors; reruns with verified selectors supersede them."
+  ]
+}

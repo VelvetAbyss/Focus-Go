@@ -1,0 +1,21 @@
+# Focus & Go interaction sounds
+
+Three original materials: **warm wood (default)**, fine grain, soft bubble. Each has 13 gestures. The user approved the expressive wood V2 A/B on 2026-10-15: wood now has 6 shuffled tap variants and 18 clips, with clear open/close glides and shaped completion/focus phrases. Grain and bubble retain their original 3 tap variants and 15 clips each. The 48 clips still serve 39 material/gesture preview controls.
+
+The WAVs are original procedural synthesis, not game recordings or third-party samples. Regenerate with `python3 scripts/generate-interaction-sounds.py` (NumPy required); `scripts/wood_expression.py` retains the approved V2 synthesis. The 3 mono 24 kHz / 16-bit sprites total 802,308 bytes; Vite hashes them and the web service worker precaches them for offline use. Wood uses `wood-sprite.json`; the two other materials continue using `sprite.json`. `assets/measurements.json` records peak and duration. Matching uses approximate active RMS, not perceptual loudness measurement. Product wood is byte-identical to the approved study's raw `new.wav`, without baking the preview gain twice. Its SHA-256 is `05b0302cff57a830e88ed52fbc45bf7ae79dd2cd505d0b64c9b0f4b9a960b7ae`.
+
+## Behavior
+
+- Settings → Experience → Interaction sounds (`/workspace/settings#sounds`): master switch, 3 materials, volume and 13 preview controls. Device-local settings, default wood / 45%; the output gain retains the original demo's 0.72 headroom.
+- Sidebar → Sound effects (above Settings): a global interaction-sound switch synchronized with the settings panel. It preserves material and volume, supports keyboard use, and remains available when the sidebar is collapsed. Ambient audio retains its separate controls.
+- Creation uses the task application action. Completion, reopen, placement, deletion and undo use successful local UI mutations. Bulk changes sound once. Database loading, importing and background synchronization stay silent.
+- The shared focus hook owns start, pause, resume, reset and completion. Existing completion preference and session deduplication remain authoritative; master mute/zero volume also suppress completion.
+- Shared Tabs, Select and Switch controls sound on user value changes (opt out with `sound={false}`). Task view/status tabs, sidebar navigation and its collapse/expand button use the same quiet feedback. Routine cues play at 55% of the action cue gain. Wood's six taps shuffle without adjacent repeats, including across bag boundaries; cancelled requests do not consume variants. Current selections, programmatic updates, modified navigation clicks, dragging, typing, hover and background work stay silent; there is no global click sound.
+- Preload only fetches data. Trusted browser interaction unlocks the AudioContext before asynchronous local writes; the first cue waits for both decoding and audio resume. Playback is fire-and-forget, failures are silent, failed assets retry at most every 10 seconds, stale feedback is discarded after 300 ms, action cues are throttled to 75 ms and quiet cues to 100 ms, and at most 3 voices remain active. Task/timer feedback takes priority over routine cues for 300 ms. Muting and theme changes cancel pending cues. Brief gain fades avoid cutting waveforms abruptly.
+- The same shared code builds for web and desktop; no platform-specific imports or new dependencies.
+
+## Validation
+
+Release verification records: [interaction sound checks](../../../../../artifacts/interaction-sounds-2026-10-15/README.md).
+
+Unit coverage includes audio activation, all 39 material/gesture combinations, silence on failed writes and external refresh, bulk delete/undo, stale playback cancellation, interruption recovery, retry cooldown, cross-tab mute, and once-only timer completion with two mounted hooks. Browser QA uses actual AudioBufferSourceNode starts to verify settings previews and core user actions, not just click-handler invocation. Desktop packaging and prolonged human listening have not been validated in this change.

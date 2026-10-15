@@ -1,0 +1,20 @@
+[
+  {
+    "theme": "wood",
+    "asset": "wood-D_vdpILd.wav",
+    "sha256": "05b0302cff57a830e88ed52fbc45bf7ae79dd2cd505d0b64c9b0f4b9a960b7ae",
+    "precached": true
+  },
+  {
+    "theme": "grain",
+    "asset": "grain-DjqOj5Uy.wav",
+    "sha256": "bd13f88c9cb85ea95e8a9012edeb7a8ae054b1fafabc17acd29d69026979aa8b",
+    "precached": true
+  },
+  {
+    "theme": "soft",
+    "asset": "soft-vtcW3RFT.wav",
+    "sha256": "3a3e60fee3c82d466de03dd473bd77e9a5eb680b658f6684a3fbb2528b0382e3",
+    "precached": true
+  }
+]

@@ -1,0 +1,808 @@
+{
+  "previews": [
+    {
+      "theme": "wood",
+      "label": "Tap",
+      "events": [
+        {
+          "offset": 1.45,
+          "duration": 0.24,
+          "bufferDuration": 7.09,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 4.810666666666667,
+          "endedAt": 5.050666666666666
+        }
+      ]
+    },
+    {
+      "theme": "wood",
+      "label": "Switch on",
+      "events": [
+        {
+          "offset": 1.74,
+          "duration": 0.32,
+          "bufferDuration": 7.09,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 5.658666666666667,
+          "endedAt": 5.978666666666666
+        }
+      ]
+    },
+    {
+      "theme": "wood",
+      "label": "Switch off",
+      "events": [
+        {
+          "offset": 2.11,
+          "duration": 0.29,
+          "bufferDuration": 7.09,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 6.512,
+          "endedAt": 6.8053333333333335
+        }
+      ]
+    },
+    {
+      "theme": "wood",
+      "label": "Create task",
+      "events": [
+        {
+          "offset": 2.45,
+          "duration": 0.4,
+          "bufferDuration": 7.09,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 7.365333333333333,
+          "endedAt": 7.765333333333333
+        }
+      ]
+    },
+    {
+      "theme": "wood",
+      "label": "Place",
+      "events": [
+        {
+          "offset": 2.9,
+          "duration": 0.27,
+          "bufferDuration": 7.09,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 8.218666666666667,
+          "endedAt": 8.490666666666666
+        }
+      ]
+    },
+    {
+      "theme": "wood",
+      "label": "Complete task",
+      "events": [
+        {
+          "offset": 3.22,
+          "duration": 0.595,
+          "bufferDuration": 7.09,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 9.066666666666666,
+          "endedAt": 9.664
+        }
+      ]
+    },
+    {
+      "theme": "wood",
+      "label": "Undo / reopen",
+      "events": [
+        {
+          "offset": 3.865,
+          "duration": 0.41,
+          "bufferDuration": 7.09,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 9.92,
+          "endedAt": 10.330666666666668
+        }
+      ]
+    },
+    {
+      "theme": "wood",
+      "label": "Move to trash",
+      "events": [
+        {
+          "offset": 4.325,
+          "duration": 0.27,
+          "bufferDuration": 7.09,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 10.768,
+          "endedAt": 11.04
+        }
+      ]
+    },
+    {
+      "theme": "wood",
+      "label": "Start focus",
+      "events": [
+        {
+          "offset": 4.645,
+          "duration": 0.455,
+          "bufferDuration": 7.09,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 11.621333333333334,
+          "endedAt": 12.08
+        }
+      ]
+    },
+    {
+      "theme": "wood",
+      "label": "Pause",
+      "events": [
+        {
+          "offset": 5.15,
+          "duration": 0.28,
+          "bufferDuration": 7.09,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 12.474666666666666,
+          "endedAt": 12.757333333333333
+        }
+      ]
+    },
+    {
+      "theme": "wood",
+      "label": "Resume",
+      "events": [
+        {
+          "offset": 5.48,
+          "duration": 0.35,
+          "bufferDuration": 7.09,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 13.328,
+          "endedAt": 13.68
+        }
+      ]
+    },
+    {
+      "theme": "wood",
+      "label": "Reset",
+      "events": [
+        {
+          "offset": 5.88,
+          "duration": 0.38,
+          "bufferDuration": 7.09,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 14.176,
+          "endedAt": 14.56
+        }
+      ]
+    },
+    {
+      "theme": "wood",
+      "label": "Finish focus",
+      "events": [
+        {
+          "offset": 6.31,
+          "duration": 0.73,
+          "bufferDuration": 7.09,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 15.029333333333334,
+          "endedAt": 15.76
+        }
+      ]
+    },
+    {
+      "theme": "grain",
+      "label": "Tap",
+      "events": [
+        {
+          "offset": 0,
+          "duration": 0.25,
+          "bufferDuration": 4.811,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 16.805333333333333,
+          "endedAt": 17.056
+        }
+      ]
+    },
+    {
+      "theme": "grain",
+      "label": "Switch on",
+      "events": [
+        {
+          "offset": 0.84,
+          "duration": 0.25,
+          "bufferDuration": 4.811,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 17.658666666666665,
+          "endedAt": 17.909333333333333
+        }
+      ]
+    },
+    {
+      "theme": "grain",
+      "label": "Switch off",
+      "events": [
+        {
+          "offset": 1.12,
+          "duration": 0.25,
+          "bufferDuration": 4.811,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 18.506666666666668,
+          "endedAt": 18.75733333333333
+        }
+      ]
+    },
+    {
+      "theme": "grain",
+      "label": "Create task",
+      "events": [
+        {
+          "offset": 1.4,
+          "duration": 0.297,
+          "bufferDuration": 4.811,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 19.36,
+          "endedAt": 19.658666666666665
+        }
+      ]
+    },
+    {
+      "theme": "grain",
+      "label": "Place",
+      "events": [
+        {
+          "offset": 1.727,
+          "duration": 0.286,
+          "bufferDuration": 4.811,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 20.208,
+          "endedAt": 20.501333333333335
+        }
+      ]
+    },
+    {
+      "theme": "grain",
+      "label": "Complete task",
+      "events": [
+        {
+          "offset": 2.043,
+          "duration": 0.315,
+          "bufferDuration": 4.811,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 21.061333333333334,
+          "endedAt": 21.381333333333334
+        }
+      ]
+    },
+    {
+      "theme": "grain",
+      "label": "Undo / reopen",
+      "events": [
+        {
+          "offset": 2.388,
+          "duration": 0.305,
+          "bufferDuration": 4.811,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 21.914666666666665,
+          "endedAt": 22.224
+        }
+      ]
+    },
+    {
+      "theme": "grain",
+      "label": "Move to trash",
+      "events": [
+        {
+          "offset": 2.723,
+          "duration": 0.292,
+          "bufferDuration": 4.811,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 22.762666666666668,
+          "endedAt": 23.056
+        }
+      ]
+    },
+    {
+      "theme": "grain",
+      "label": "Start focus",
+      "events": [
+        {
+          "offset": 3.045,
+          "duration": 0.326,
+          "bufferDuration": 4.811,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 23.616,
+          "endedAt": 23.946666666666665
+        }
+      ]
+    },
+    {
+      "theme": "grain",
+      "label": "Pause",
+      "events": [
+        {
+          "offset": 3.401,
+          "duration": 0.25,
+          "bufferDuration": 4.811,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 24.469333333333335,
+          "endedAt": 24.72
+        }
+      ]
+    },
+    {
+      "theme": "grain",
+      "label": "Resume",
+      "events": [
+        {
+          "offset": 3.681,
+          "duration": 0.297,
+          "bufferDuration": 4.811,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 25.322666666666667,
+          "endedAt": 25.621333333333332
+        }
+      ]
+    },
+    {
+      "theme": "grain",
+      "label": "Reset",
+      "events": [
+        {
+          "offset": 4.008,
+          "duration": 0.308,
+          "bufferDuration": 4.811,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 26.170666666666666,
+          "endedAt": 26.48
+        }
+      ]
+    },
+    {
+      "theme": "grain",
+      "label": "Finish focus",
+      "events": [
+        {
+          "offset": 4.346,
+          "duration": 0.435,
+          "bufferDuration": 4.811,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 27.024,
+          "endedAt": 27.461333333333332
+        }
+      ]
+    },
+    {
+      "theme": "soft",
+      "label": "Tap",
+      "events": [
+        {
+          "offset": 0.28,
+          "duration": 0.25,
+          "bufferDuration": 4.811,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 28.78933333333333,
+          "endedAt": 29.04
+        }
+      ]
+    },
+    {
+      "theme": "soft",
+      "label": "Switch on",
+      "events": [
+        {
+          "offset": 0.84,
+          "duration": 0.25,
+          "bufferDuration": 4.811,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 29.648,
+          "endedAt": 29.898666666666667
+        }
+      ]
+    },
+    {
+      "theme": "soft",
+      "label": "Switch off",
+      "events": [
+        {
+          "offset": 1.12,
+          "duration": 0.25,
+          "bufferDuration": 4.811,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 30.506666666666668,
+          "endedAt": 30.75733333333333
+        }
+      ]
+    },
+    {
+      "theme": "soft",
+      "label": "Create task",
+      "events": [
+        {
+          "offset": 1.4,
+          "duration": 0.297,
+          "bufferDuration": 4.811,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 31.36,
+          "endedAt": 31.658666666666665
+        }
+      ]
+    },
+    {
+      "theme": "soft",
+      "label": "Place",
+      "events": [
+        {
+          "offset": 1.727,
+          "duration": 0.286,
+          "bufferDuration": 4.811,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 32.208,
+          "endedAt": 32.496
+        }
+      ]
+    },
+    {
+      "theme": "soft",
+      "label": "Complete task",
+      "events": [
+        {
+          "offset": 2.043,
+          "duration": 0.315,
+          "bufferDuration": 4.811,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 33.06666666666667,
+          "endedAt": 33.38666666666666
+        }
+      ]
+    },
+    {
+      "theme": "soft",
+      "label": "Undo / reopen",
+      "events": [
+        {
+          "offset": 2.388,
+          "duration": 0.305,
+          "bufferDuration": 4.811,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 33.92,
+          "endedAt": 34.22933333333334
+        }
+      ]
+    },
+    {
+      "theme": "soft",
+      "label": "Move to trash",
+      "events": [
+        {
+          "offset": 2.723,
+          "duration": 0.292,
+          "bufferDuration": 4.811,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 34.77333333333333,
+          "endedAt": 35.06666666666667
+        }
+      ]
+    },
+    {
+      "theme": "soft",
+      "label": "Start focus",
+      "events": [
+        {
+          "offset": 3.045,
+          "duration": 0.326,
+          "bufferDuration": 4.811,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 35.626666666666665,
+          "endedAt": 35.95733333333333
+        }
+      ]
+    },
+    {
+      "theme": "soft",
+      "label": "Pause",
+      "events": [
+        {
+          "offset": 3.401,
+          "duration": 0.25,
+          "bufferDuration": 4.811,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 36.48,
+          "endedAt": 36.730666666666664
+        }
+      ]
+    },
+    {
+      "theme": "soft",
+      "label": "Resume",
+      "events": [
+        {
+          "offset": 3.681,
+          "duration": 0.297,
+          "bufferDuration": 4.811,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 37.333333333333336,
+          "endedAt": 37.632
+        }
+      ]
+    },
+    {
+      "theme": "soft",
+      "label": "Reset",
+      "events": [
+        {
+          "offset": 4.008,
+          "duration": 0.308,
+          "bufferDuration": 4.811,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 38.18666666666667,
+          "endedAt": 38.496
+        }
+      ]
+    },
+    {
+      "theme": "soft",
+      "label": "Finish focus",
+      "events": [
+        {
+          "offset": 4.346,
+          "duration": 0.435,
+          "bufferDuration": 4.811,
+          "state": "running",
+          "gain": 1,
+          "startedAt": 39.034666666666666,
+          "endedAt": 39.472
+        }
+      ]
+    }
+  ],
+  "taps": [
+    {
+      "offset": 0,
+      "duration": 0.24,
+      "bufferDuration": 7.09,
+      "state": "running",
+      "gain": 1,
+      "startedAt": 40.81066666666667,
+      "endedAt": 41.050666666666665
+    },
+    {
+      "offset": 0.87,
+      "duration": 0.24,
+      "bufferDuration": 7.09,
+      "state": "running",
+      "gain": 1,
+      "startedAt": 41.16266666666667,
+      "endedAt": 41.40266666666667
+    },
+    {
+      "offset": 0.58,
+      "duration": 0.24,
+      "bufferDuration": 7.09,
+      "state": "running",
+      "gain": 1,
+      "startedAt": 41.51466666666666,
+      "endedAt": 41.754666666666665
+    },
+    {
+      "offset": 1.16,
+      "duration": 0.24,
+      "bufferDuration": 7.09,
+      "state": "running",
+      "gain": 1,
+      "startedAt": 41.86666666666667,
+      "endedAt": 42.10666666666667
+    },
+    {
+      "offset": 0.29,
+      "duration": 0.24,
+      "bufferDuration": 7.09,
+      "state": "running",
+      "gain": 1,
+      "startedAt": 42.218666666666664,
+      "endedAt": 42.458666666666666
+    },
+    {
+      "offset": 0.87,
+      "duration": 0.24,
+      "bufferDuration": 7.09,
+      "state": "running",
+      "gain": 1,
+      "startedAt": 42.57066666666667,
+      "endedAt": 42.81066666666667
+    },
+    {
+      "offset": 1.45,
+      "duration": 0.24,
+      "bufferDuration": 7.09,
+      "state": "running",
+      "gain": 1,
+      "startedAt": 42.922666666666665,
+      "endedAt": 43.16266666666667
+    },
+    {
+      "offset": 0,
+      "duration": 0.24,
+      "bufferDuration": 7.09,
+      "state": "running",
+      "gain": 1,
+      "startedAt": 43.27466666666667,
+      "endedAt": 43.51466666666666
+    },
+    {
+      "offset": 0.58,
+      "duration": 0.24,
+      "bufferDuration": 7.09,
+      "state": "running",
+      "gain": 1,
+      "startedAt": 43.626666666666665,
+      "endedAt": 43.86666666666667
+    },
+    {
+      "offset": 1.16,
+      "duration": 0.24,
+      "bufferDuration": 7.09,
+      "state": "running",
+      "gain": 1,
+      "startedAt": 43.97866666666667,
+      "endedAt": 44.218666666666664
+    },
+    {
+      "offset": 0.87,
+      "duration": 0.24,
+      "bufferDuration": 7.09,
+      "state": "running",
+      "gain": 1,
+      "startedAt": 44.330666666666666,
+      "endedAt": 44.57066666666667
+    },
+    {
+      "offset": 0,
+      "duration": 0.24,
+      "bufferDuration": 7.09,
+      "state": "running",
+      "gain": 1,
+      "startedAt": 44.68266666666667,
+      "endedAt": 44.922666666666665
+    },
+    {
+      "offset": 0.29,
+      "duration": 0.24,
+      "bufferDuration": 7.09,
+      "state": "running",
+      "gain": 1,
+      "startedAt": 45.034666666666666,
+      "endedAt": 45.27466666666667
+    },
+    {
+      "offset": 1.45,
+      "duration": 0.24,
+      "bufferDuration": 7.09,
+      "state": "running",
+      "gain": 1,
+      "startedAt": 45.392,
+      "endedAt": 45.632
+    },
+    {
+      "offset": 0.58,
+      "duration": 0.24,
+      "bufferDuration": 7.09,
+      "state": "running",
+      "gain": 1,
+      "startedAt": 45.744,
+      "endedAt": 45.984
+    },
+    {
+      "offset": 1.16,
+      "duration": 0.24,
+      "bufferDuration": 7.09,
+      "state": "running",
+      "gain": 1,
+      "startedAt": 46.096,
+      "endedAt": 46.336
+    },
+    {
+      "offset": 1.45,
+      "duration": 0.24,
+      "bufferDuration": 7.09,
+      "state": "running",
+      "gain": 1,
+      "startedAt": 46.448,
+      "endedAt": 46.688
+    },
+    {
+      "offset": 0.29,
+      "duration": 0.24,
+      "bufferDuration": 7.09,
+      "state": "running",
+      "gain": 1,
+      "startedAt": 46.8,
+      "endedAt": 47.04
+    }
+  ],
+  "ordinary": [
+    {
+      "action": "appearance",
+      "events": []
+    },
+    {
+      "action": "experience",
+      "events": []
+    }
+  ],
+  "completed": true,
+  "ordinaryTrusted": [
+    {
+      "action": "appearance",
+      "events": []
+    },
+    {
+      "action": "experience",
+      "events": [
+        {
+          "offset": 0,
+          "duration": 0.24,
+          "bufferDuration": 7.09,
+          "state": "running",
+          "gain": 0.550000011920929,
+          "startedAt": 120.83733333333333,
+          "endedAt": 121.07733333333333
+        }
+      ]
+    },
+    {
+      "action": "appearance-warm",
+      "events": [
+        {
+          "offset": 0.87,
+          "duration": 0.24,
+          "bufferDuration": 7.09,
+          "state": "running",
+          "gain": 0.550000011920929,
+          "startedAt": 212.03733333333332,
+          "endedAt": 212.27733333333333
+        }
+      ]
+    }
+  ],
+  "validation": {
+    "previews": 39,
+    "all_clip_ranges_match": true,
+    "all_previews_ended_at_full_duration": true,
+    "wood_taps": 18,
+    "six_variants_balanced_no_adjacent_repeats": true,
+    "latest_trusted_tab_switches": 2,
+    "ordinary_voice_gain": 0.55,
+    "limits": "HTMLElement.click did not switch Radix tabs. First trusted appearance switch captured no sound; subsequent experience and appearance switches passed. First omission cause was not instrumented; stale cues over 300ms are intentionally dropped."
+  }
+}

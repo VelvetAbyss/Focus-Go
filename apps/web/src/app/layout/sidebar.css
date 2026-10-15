@@ -66,6 +66,21 @@
   flex: none; overflow: visible; margin: 0 10px; padding: 6px 0 10px;
   border-top: 1px solid var(--rule);
 }
+.focus-sidebar .sidebar-sound-toggle {
+  width: 100%; background: transparent; text-align: left; touch-action: manipulation;
+}
+.focus-sidebar .sidebar-sound-toggle__label { flex: 1; min-width: 0; }
+.focus-sidebar .sidebar-sound-toggle__track {
+  display: inline-flex; flex: 0 0 28px; align-items: center;
+  width: 28px; height: 16px; padding: 2px; border-radius: 999px;
+  background: var(--rule-strong); transition: background-color var(--sidebar-feedback) var(--ease-standard);
+}
+.focus-sidebar .sidebar-sound-toggle__thumb {
+  width: 12px; height: 12px; border-radius: 50%; background: var(--paper-raised);
+  transition: transform var(--sidebar-feedback) var(--ease-standard);
+}
+.focus-sidebar .sidebar-sound-toggle[aria-checked='true'] .sidebar-sound-toggle__track { background: var(--accent); }
+.focus-sidebar .sidebar-sound-toggle[aria-checked='true'] .sidebar-sound-toggle__thumb { transform: translateX(12px); }
 
 /* One sheet: the tools sit on the same surface as the list, under a rule, on
    the list's grid. A row is a nav row (10px inset, 17px icon column, 11px gap,
@@ -231,6 +246,8 @@ html[data-motion='reduce'] .ambient-prefs-popover * { animation: none !important
   .focus-sidebar .focus-sidebar__item > span:not(.discovery-new-badge) { font-size: var(--fs-meta); }
   .focus-sidebar .focus-sidebar__item > .discovery-new-badge { position: absolute; top: 6px; right: 8px; }
   .focus-sidebar.is-collapsed .focus-sidebar__item { flex-direction: row; min-height: 36px; }
+  .focus-sidebar .sidebar-sound-toggle__label { flex: none; }
+  .focus-sidebar .sidebar-sound-toggle__track { display: none; }
   .focus-sidebar .focus-sidebar__nav:not(.focus-sidebar__nav--system) { padding-bottom: 6px; -webkit-mask-image: none; mask-image: none; }
   /* Tools: sound and timer side by side, the podcast across both. */
   .focus-sidebar .focus-sidebar__tools {

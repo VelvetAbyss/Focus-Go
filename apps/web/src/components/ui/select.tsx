@@ -5,8 +5,14 @@ import * as SelectPrimitive from "@radix-ui/react-select"
 import { Check, ChevronDown, ChevronUp } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { playInterfaceSound } from "@/shared/sound/interactionSounds"
 
-const Select = SelectPrimitive.Root
+const Select = ({ sound = true, onValueChange, ...props }: React.ComponentProps<typeof SelectPrimitive.Root> & { sound?: boolean }) => (
+  <SelectPrimitive.Root {...props} onValueChange={(value) => {
+    onValueChange?.(value)
+    if (sound) playInterfaceSound()
+  }} />
+)
 
 const SelectGroup = SelectPrimitive.Group
 

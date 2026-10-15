@@ -1,0 +1,9 @@
+{
+  "approved_wood_exact_match": true,
+  "unchanged": {
+    "grain.wav": true,
+    "soft.wav": true,
+    "sprite.json": true
+  },
+  "wood_sha256": "05b0302cff57a830e88ed52fbc45bf7ae79dd2cd505d0b64c9b0f4b9a960b7ae"
+}

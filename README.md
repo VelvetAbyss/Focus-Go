@@ -110,6 +110,7 @@ docs/
 
 ## Documentation
 
+- Interaction sounds: [materials, controls, and regeneration](./apps/web/src/shared/sound/README.md)
 - API configuration: [`apps/web/focus-go-api/.env.example`](./apps/web/focus-go-api/.env.example)
 - Self-hosting and credentials: [`docs/SELF_HOSTING.md`](./docs/SELF_HOSTING.md)
 - Security reporting: [`SECURITY.md`](./SECURITY.md)

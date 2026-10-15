@@ -52,6 +52,7 @@ import {
 } from '../../shared/theme/themePack'
 import type { DashboardLayout } from '../../data/models/types'
 import { usePreferences } from '../../shared/prefs/usePreferences'
+import InteractionSoundSettings from './InteractionSoundSettings'
 import {
   disableWebPush,
   enableWebPush,
@@ -820,7 +821,7 @@ const SettingsRoute = () => {
   const [syncConflicts, setSyncConflicts] = useState<SyncConflictRecord[]>([])
   const [restoringConflictId, setRestoringConflictId] = useState<string | null>(null)
   const { enabled: cloudSyncEnabled, setEnabled: setCloudSyncEnabled, syncNow } = useSyncActions()
-  const [activeSection, setActiveSection] = useState<BaseSettingsSection>('appearance')
+  const [activeSection, setActiveSection] = useState<BaseSettingsSection>(() => location.hash === '#sounds' ? 'experience' : 'appearance')
   const [layoutLocked, setLayoutLocked] = useState(() => readLayoutLocked())
   const [autoPage, setAutoPage] = useState(() => readAutoPageEnabled())
   const [theme, setTheme] = useState<ThemeSelection>('system')
@@ -1531,12 +1532,13 @@ const SettingsRoute = () => {
 
                       {resolvedSection === 'experience' ? (
                         <>
+                          <InteractionSoundSettings />
                           <SettingRow
                             icon={Sparkles}
                             title={t('settings.experience.uiAnimations.title')}
                             description={t('settings.experience.uiAnimations.description')}
                           >
-                            <Switch checked={uiAnimationsEnabled} onCheckedChange={(checked) => setUiAnimationsEnabled(checked)} />
+                            <Switch sound checked={uiAnimationsEnabled} onCheckedChange={(checked) => setUiAnimationsEnabled(checked)} />
                           </SettingRow>
 
                           <SettingRow
@@ -1544,7 +1546,7 @@ const SettingsRoute = () => {
                             title={t('settings.experience.numberAnimations.title')}
                             description={t('settings.experience.numberAnimations.description')}
                           >
-                            <Switch checked={numberAnimationsEnabled} onCheckedChange={(checked) => setNumberAnimationsEnabled(checked)} />
+                            <Switch sound checked={numberAnimationsEnabled} onCheckedChange={(checked) => setNumberAnimationsEnabled(checked)} />
                           </SettingRow>
 
                           <SettingRow
@@ -1552,7 +1554,7 @@ const SettingsRoute = () => {
                             title={t('settings.experience.completionSound.title')}
                             description={t('settings.experience.completionSound.description')}
                           >
-                            <Switch checked={focusCompletionSoundEnabled} onCheckedChange={(checked) => setFocusCompletionSoundEnabled(checked)} />
+                            <Switch sound checked={focusCompletionSoundEnabled} onCheckedChange={(checked) => setFocusCompletionSoundEnabled(checked)} />
                           </SettingRow>
 
                           <SettingRow
