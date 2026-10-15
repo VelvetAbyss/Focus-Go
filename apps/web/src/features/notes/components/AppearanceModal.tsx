@@ -40,7 +40,7 @@ export default function AppearanceModal({ open, settings, onClose, onUpdate }: P
   return (
     <div data-note-floating-panel="appearance" data-state={visible ? 'open' : 'closed'} className="note-page__panel note-page__panel--wide">
       <div className="flex items-center justify-between px-4 pb-2 pt-3">
-        <h2 className="text-section font-semibold">{t('notes.appearance')}</h2>
+        <h2 className="type-section-title">{t('notes.appearance')}</h2>
         <button type="button" onClick={onClose} className="rounded-lg p-1.5 transition-colors hover:bg-accent">
           <X size={16} />
         </button>

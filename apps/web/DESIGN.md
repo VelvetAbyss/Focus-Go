@@ -238,55 +238,51 @@ blocked/done → pencil mark/warn/urgent/ink mark.
 
 ## Typography
 
-**Source world:** books, notebooks and set type. **Faces** (all SIL OFL 1.1,
-verified 2026-09-28, all self-hosted because Google Fonts is unreliable in
-mainland China):
+Updated 2026-10-15, local preview; this section supersedes earlier type examples.
+Reference investigation: `artifacts/notion-typography-2026-10-15/README.md`.
 
-- **Display, Latin:** Instrument Serif 400, upright only. Page titles, the
-  wordmark and Latin dates. It replaces Fraunces, which gstack now flags as an
-  overused display face.
-- **Display, Chinese:** Noto Serif SC 600 (bundled). Page titles and dates in zh.
-- **Numerals:** Source Serif 4 (weight 300, optical size 60) with
-  `font-variant-numeric: tabular-nums lining-nums`. Used for the focus timer,
-  the hero date number and big stats. Tabular figures keep a ticking timer
-  still.
-- **Reading:** Source Serif 4 with Noto Serif SC at 16px, line-height 1.8, for
-  diary, notes and review bodies. Source Serif is the Latin sibling of Source
-  Han Serif (= Noto Serif SC), so mixed text shares one voice.
-- **UI:** Manrope, falling back to PingFang SC (macOS) and Microsoft YaHei
-  (Windows).
-- **Mono:** not part of the system. Code blocks keep the platform monospace.
-
-Loading: woff2 in `public/fonts` (built by `scripts/subset-fonts.py`),
-Latin-subset for Instrument Serif and Source Serif 4 (variable wght + opsz,
-core OpenType features only, ~370 KB), `font-display: swap`. Instrument Serif
-is declared for weights 100–900 so titles never get a faked bold, and drawn at
-`size-adjust: 110%` because it is condensed next to CJK and Manrope. Size
-measures in `em`, not `ch`: `ch` follows the width of "0", which differs by 40%
-between these serifs. Fraunces was removed on 2026-09-28.
-
-**Scale** (px; `--fs-*` tokens and Tailwind `text-*` names):
-
-| px | token / class | use |
-|---|---|---|
-| 11 | `meta` | timestamps, counts. **12 in Chinese**: `--fs-meta` switches on `html[lang=zh]` |
-| 12 | `label` | labels, chips, captions |
-| 13 | `ui` | default UI text, buttons, menus |
-| 14 | `body` | row titles, body copy |
-| 16 | `section` | section heads, reading body |
-| 20 | `subhead` | card and panel titles (Noto Serif SC / Instrument Serif) |
-| 30 | `title` | page titles (`--page-title-*`) |
-| 44 | `hero` | hero date, big stats (Source Serif 4 numerals) |
-| 72 | `display` | focus timer (Source Serif 4 numerals) |
-
-- **Chinese text:** never below 12px. No letter-spacing and no uppercase
-  transform on CJK. No monospace uppercase eyebrows. An eyebrow is `label`
-  size, weight 600, `--ink-3`.
-- **Weights are hundreds only** (400/500/600/700). Manrope is variable, but the
-  Chinese fallbacks are not: PingFang SC tops out at 600 and Microsoft YaHei
-  jumps from 400 to 700, so a 550 title renders Latin at 550 and Chinese at
-  600 (700 on Windows).
-- **No italic display.** Emphasis is weight or size.
+- Operating and reading surfaces share a native sans stack: ui-sans-serif /
+  Apple system fonts / Segoe UI, with PingFang SC and Microsoft YaHei for CJK.
+  No downloaded font is required for normal text. Explicit serif note settings
+  remain Source Serif 4 + Noto Serif SC; editorial moments and timers retain
+  Instrument Serif and Source Serif 4 respectively.
+- AppShell retains the original responsive scale: 0.8 through 1512px,
+  interpolating to 1 at 1920px; mobile uses 1. Portaled overlays share the
+  same scale. Restored on 2026-10-15 at the user's explicit request.
+  Typography changes must preserve this behavior.
+- Rem scale: metadata 0.75 (12px), labels 0.8125 (13px), controls 0.875 (14px),
+  body 1 (16px), section 1.125 (18px), route title 2 (32px).
+  Timers retain 2.75/4.5rem. Values in px assume the browser default of 16px.
+- Dashboard widget headers share CardHeading: 18px/1.4/600 for titles,
+  12px/1.4/400 for metadata, 4px between them, 20px top/inline inset.
+  Recap, tasks, todos and world clock must not substitute their own heading
+  font. World clock uses a real title and the city count as metadata.
+  Mobile dashboard cards use a full-width single-column derived layout;
+  never squeeze desktop columns into a phone or overwrite saved desktop layout.
+- All route titles use 32px/40px/600. Sections, card titles, dialog titles and
+  empty states use 18px/1.4/600. Record titles use 16px/1.5/500; labels
+  13px/1.4/500; metadata 12px/1.4/400; standard controls 14px/1.4/500.
+  Shared roles live in `shared/theme/typography.ts` and `typography.css`.
+  Desktop inputs use 14px and phone inputs 16px. Title/subtitle groups use
+  8px, compact card heading groups 4px, section groups 12px and field groups
+  6px. Set these roles at their source rather than adding blanket overrides.
+  Verification evidence: `artifacts/typography-system-2026-10-15/README.md`.
+- Regular 400 for prose, medium 500 for active labels, semibold 600 for
+  headings, bold 700 for explicit emphasis. Native Latin/CJK headings share
+  the same role; no synthetic static display-font bold is needed for UI.
+- Note defaults: sans, 1rem / 1.5. Existing saved font/size/leading settings
+  are respected. Document H1/H2/H3 use 1.875/1.5/1.25em with 1.3 leading,
+  paragraph gaps 0.375em, headings 1.5em above and 0.25em below.
+  The initial H1 supplies the note title: 2.5em/1.2/700 (2em on mobile).
+- Default note measure is 46rem, bounded by available width and adaptive
+  padding. The appearance slider ranges from 64rem (wide) to 34rem (narrow).
+  It no longer makes short lines proportionally narrower on a phone.
+- Chinese tracking is normal; avoid negative tracking on reading text.
+  Prose uses proportional numerals, time/count displays may use tabular nums.
+- Decorative fonts remain opt-in and self-hosted where already bundled.
+  Do not copy proprietary Notion font assets. Font-stack/size observations
+  are static evidence from the recorded public build, not a claim of identical
+  rendering on every OS.
 
 ## Layout
 

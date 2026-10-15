@@ -45,7 +45,7 @@ load from Google with a system-font fallback offline.
   ******************/
 
   overflow-wrap: break-word;
-  text-size-adjust: none;
+  text-size-adjust: 100%;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

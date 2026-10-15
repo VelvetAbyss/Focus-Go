@@ -189,7 +189,7 @@ const TripsPage = () => {
         <div className="trips-journal__inner">
           {/* Header */}
           <header className="trips-journal__header">
-            <div>
+            <div className="type-heading-stack">
               <button type="button" className="trips-journal__crumb" onClick={() => navigate(ROUTES.DASHBOARD)}>
                 <ArrowLeft size={13} /> {t('life.trips.dashboard')}
               </button>

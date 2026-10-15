@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import type { CSSProperties, ReactNode } from 'react'
+import { typography } from '../theme/typography'
 import { cn } from '../lib/utils'
 
 type DialogProps = {
@@ -97,7 +98,7 @@ const Dialog = ({ open, title, onClose, children, panelClassName, contentClassNa
       >
         {title && (
           <header className="dialog__header">
-            <h2>{title}</h2>
+            <h2 data-type-role="section" style={typography.section}>{title}</h2>
           </header>
         )}
         <div className={cn('dialog__content', contentClassName)}>{children}</div>

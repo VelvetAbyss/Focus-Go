@@ -1,0 +1,207 @@
+
+> focus-go-monorepo@0.1.0-beta.8 verify
+> npm run lint:web && npm run build:web
+
+
+> focus-go-monorepo@0.1.0-beta.8 lint:web
+> npm run lint --workspace @focus-go/web
+
+
+> @focus-go/web@0.1.0-beta.5 lint
+> npm exec -- eslint .
+
+
+> focus-go-monorepo@0.1.0-beta.8 build:web
+> npm run build --workspace @focus-go/web
+
+
+> @focus-go/web@0.1.0-beta.5 build
+> tsc -b && npm exec -- vite build
+
+vite v7.3.2 building client environment for production...
+transforming...
+✓ 6385 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/manifest.webmanifest                                0.24 kB
+dist/index.html                                          2.48 kB │ gzip:   1.07 kB
+dist/assets/Button-LVXwYaSW.css                          0.68 kB │ gzip:   0.26 kB
+dist/assets/AnimatedScrollList-nM_ZsJcB.css              0.70 kB │ gzip:   0.31 kB
+dist/assets/EmptyState-C_6Ew5Ko.css                      1.30 kB │ gzip:   0.50 kB
+dist/assets/WorldClockCard-CipUFU3n.css                  3.15 kB │ gzip:   1.01 kB
+dist/assets/WeatherWidgetCard-3cgnlHYq.css               5.12 kB │ gzip:   1.48 kB
+dist/assets/LabsPage-BkL8coeC.css                        7.27 kB │ gzip:   1.64 kB
+dist/assets/TimelinePage-B1FWs6Ma.css                    8.58 kB │ gzip:   1.95 kB
+dist/assets/salary-C5LXMFrm.css                          9.95 kB │ gzip:   2.35 kB
+dist/assets/TasksPage-yvbwxx0L.css                      13.23 kB │ gzip:   3.04 kB
+dist/assets/TaskProgressSummaryCard-Be-ar1J3.css        14.30 kB │ gzip:   3.17 kB
+dist/assets/index-Dgihpmma.css                          15.04 kB │ gzip:   6.38 kB
+dist/assets/DiaryPage-D_b_V1yp.css                      16.57 kB │ gzip:   3.13 kB
+dist/assets/TripsPage-B4j41K7p.css                      19.04 kB │ gzip:   3.83 kB
+dist/assets/TasksBoard-T8moSaVi.css                     20.48 kB │ gzip:   3.93 kB
+dist/assets/AdminPage-DA1UO7MA.css                      21.77 kB │ gzip:   3.85 kB
+dist/assets/HabitTrackerPage-D6aT2k7X.css               22.59 kB │ gzip:   3.46 kB
+dist/assets/TaskDrawer-jv2ZE52m.css                     24.71 kB │ gzip:   4.78 kB
+dist/assets/NotePage-D05-LfC7.css                       46.29 kB │ gzip:   7.71 kB
+dist/assets/unsavedEdit-eJ7rm1ry.css                    61.68 kB │ gzip:   7.95 kB
+dist/assets/DashboardRoute-BhLclxS2.css                 63.91 kB │ gzip:  10.20 kB
+dist/assets/projects-C-AK-r2w.css                       90.34 kB │ gzip:  13.45 kB
+dist/assets/index-6_jlAYpX.css                         460.36 kB │ gzip:  77.16 kB
+dist/assets/indicatorSelectors-BvLZVy8w.js               0.11 kB │ gzip:   0.11 kB
+dist/assets/chevron-up-DwwsoS01.js                       0.13 kB │ gzip:   0.14 kB
+dist/assets/chevron-left-Ba9Ih0tQ.js                     0.13 kB │ gzip:   0.14 kB
+dist/assets/clock-UEMrGHRm.js                            0.17 kB │ gzip:   0.16 kB
+dist/assets/check-check-tDUfEvT7.js                      0.18 kB │ gzip:   0.17 kB
+dist/assets/trending-up-BdCdH9rv.js                      0.18 kB │ gzip:   0.17 kB
+dist/assets/typeScale-CpBuniju.js                        0.18 kB │ gzip:   0.13 kB
+dist/assets/credit-card-x0Bt7oyh.js                      0.21 kB │ gzip:   0.19 kB
+dist/assets/target-DNE9pYL5.js                           0.22 kB │ gzip:   0.16 kB
+dist/assets/paperclip-uVfVjA8w.js                        0.23 kB │ gzip:   0.19 kB
+dist/assets/headphones-DfG8nnOy.js                       0.24 kB │ gzip:   0.18 kB
+dist/assets/wind-B9VzgUlW.js                             0.25 kB │ gzip:   0.19 kB
+dist/assets/external-link-Cmghje0a.js                    0.25 kB │ gzip:   0.20 kB
+dist/assets/archive-Bd3UOC5l.js                          0.25 kB │ gzip:   0.21 kB
+dist/assets/zap-Ch7vqF6X.js                              0.26 kB │ gzip:   0.21 kB
+dist/assets/image-Bpgatsxd.js                            0.27 kB │ gzip:   0.22 kB
+dist/assets/currency-BkFiADIk.js                         0.27 kB │ gzip:   0.23 kB
+dist/assets/typeof-QjJsDpFa.js                           0.27 kB │ gzip:   0.17 kB
+dist/assets/pencil-BluKU50T.js                           0.28 kB │ gzip:   0.23 kB
+dist/assets/book-open-CYLQ1Fsf.js                        0.28 kB │ gzip:   0.21 kB
+dist/assets/lightbulb-B02iLBzF.js                        0.28 kB │ gzip:   0.22 kB
+dist/assets/wallet-D0r8_FZo.js                           0.29 kB │ gzip:   0.21 kB
+dist/assets/bell-BZgQMnxl.js                             0.29 kB │ gzip:   0.24 kB
+dist/assets/list-BNAovt0o.js                             0.30 kB │ gzip:   0.19 kB
+dist/assets/coffee-dSj-31Nz.js                           0.31 kB │ gzip:   0.21 kB
+dist/assets/users-Bh5ugJC1.js                            0.31 kB │ gzip:   0.22 kB
+dist/assets/tag-BS8Dv1nx.js                              0.32 kB │ gzip:   0.25 kB
+dist/assets/pin-off-CNuGhL11.js                          0.34 kB │ gzip:   0.25 kB
+dist/assets/toPropertyKey-Be4Vmso6.js                    0.34 kB │ gzip:   0.25 kB
+dist/assets/layout-grid-YA92jAMd.js                      0.35 kB │ gzip:   0.19 kB
+dist/assets/pin-BJaNjDt7.js                              0.35 kB │ gzip:   0.24 kB
+dist/assets/use-is-breakpoint-BSL0G6D9.js                0.35 kB │ gzip:   0.26 kB
+dist/assets/key-round-DX_tQQIl.js                        0.35 kB │ gzip:   0.25 kB
+dist/assets/personalApiKeys-97es2ty8.js                  0.36 kB │ gzip:   0.24 kB
+dist/assets/bell-off-tWc40_-f.js                         0.37 kB │ gzip:   0.27 kB
+dist/assets/grip-vertical-WJkSBZ5u.js                    0.37 kB │ gzip:   0.19 kB
+dist/assets/Button-SRBi5be6.js                           0.37 kB │ gzip:   0.28 kB
+dist/assets/clipboard-BVsUEYSc.js                        0.44 kB │ gzip:   0.26 kB
+dist/assets/cloud-rain-D0e1k7Yj.js                       0.45 kB │ gzip:   0.28 kB
+dist/assets/keyboard-C4SdXCO2.js                         0.45 kB │ gzip:   0.25 kB
+dist/assets/palette-CBX9iLKY.js                          0.51 kB │ gzip:   0.27 kB
+dist/assets/brain-Q58uENwq.js                            0.58 kB │ gzip:   0.31 kB
+dist/assets/Card-BhjIoJ88.js                             0.59 kB │ gzip:   0.28 kB
+dist/assets/tabPressAnimation-DIfzAe3L.js                0.59 kB │ gzip:   0.32 kB
+dist/assets/eye-BhmaDR7H.js                              0.64 kB │ gzip:   0.34 kB
+dist/assets/input-BXOEDwsG.js                            0.66 kB │ gzip:   0.41 kB
+dist/assets/PremiumMark-KhhlJlvi.js                      0.67 kB │ gzip:   0.42 kB
+dist/assets/TaskProgressSummaryWidgetCard-CELQUGaX.js    0.74 kB │ gzip:   0.44 kB
+dist/assets/badge-DVUXAqQf.js                            0.76 kB │ gzip:   0.40 kB
+dist/assets/scroll-area-Cu-kCMeO.js                      0.85 kB │ gzip:   0.44 kB
+dist/assets/useDiscoveryHint-0ZPEG7wv.js                 0.87 kB │ gzip:   0.45 kB
+dist/assets/returnPath-CVNdMMG3.js                       0.89 kB │ gzip:   0.45 kB
+dist/assets/EmptyState-B4sqfCP8.js                       0.96 kB │ gzip:   0.44 kB
+dist/assets/textarea-DX7T2EpP.js                         1.08 kB │ gzip:   0.65 kB
+dist/assets/NotFoundPage-CVmAomxK.js                     1.37 kB │ gzip:   0.62 kB
+dist/assets/Dialog-B8SL2mEX.js                           1.45 kB │ gzip:   0.69 kB
+dist/assets/SidebarDndNav-BMvA6TUM.js                    1.52 kB │ gzip:   0.84 kB
+dist/assets/SupportPage-BxiV1iKB.js                      1.54 kB │ gzip:   0.71 kB
+dist/assets/ProgressTrack-CtCIBoM9.js                    1.79 kB │ gzip:   0.83 kB
+dist/assets/AnimatedScrollList-BZBZX-wv.js               1.82 kB │ gzip:   0.89 kB
+dist/assets/alert-dialog-nhrGm9AG.js                     2.22 kB │ gzip:   0.83 kB
+dist/assets/peopleRepo-Be_zrqcS.js                       2.33 kB │ gzip:   1.00 kB
+dist/assets/chineseDay-BtBJYFqc.js                       2.37 kB │ gzip:   1.25 kB
+dist/assets/citySuggestions-B0ceELzs.js                  2.46 kB │ gzip:   1.23 kB
+dist/assets/EarnedTodayCard-DTAs03jB.js                  3.16 kB │ gzip:   1.41 kB
+dist/assets/select-DE9OYrnT.js                           3.40 kB │ gzip:   1.28 kB
+dist/assets/weatherIcons-CKsA6Z5A.js                     3.53 kB │ gzip:   1.49 kB
+dist/assets/content-waxVwZzp.js                          3.56 kB │ gzip:   1.49 kB
+dist/assets/taskNoteLinksRepo-CN2ZpaiP.js                3.59 kB │ gzip:   1.30 kB
+dist/assets/BreakLogCard-Brl1Qb1e.js                     4.44 kB │ gzip:   1.91 kB
+dist/assets/useHabitTracker-DzbkFAy0.js                  4.53 kB │ gzip:   1.99 kB
+dist/assets/timeGridScene-5A5PezHi.js                    5.44 kB │ gzip:   2.43 kB
+dist/assets/web-vitals-BdaqXsPs.js                       5.45 kB │ gzip:   2.25 kB
+dist/assets/WorkTimePriceCard-CA1DYXyD.js                5.47 kB │ gzip:   2.23 kB
+dist/assets/weatherApi-BxF9v_2t.js                       5.49 kB │ gzip:   2.10 kB
+dist/assets/localBackup-l0IDKjwu.js                      5.89 kB │ gzip:   2.30 kB
+dist/assets/LabsPage-D9h6-HsG.js                         6.45 kB │ gzip:   1.56 kB
+dist/assets/sortable.esm-BY_JiO6F.js                     6.65 kB │ gzip:   2.79 kB
+dist/assets/taskPresentation-D1S0ujP6.js                 6.73 kB │ gzip:   2.65 kB
+dist/assets/LoginModal-Bo1n1-qh.js                       7.63 kB │ gzip:   2.97 kB
+dist/assets/SpendCard-h7F8jm0c.js                        8.75 kB │ gzip:   3.48 kB
+dist/assets/StocksCard-Bv2LLd61.js                       9.46 kB │ gzip:   3.25 kB
+dist/assets/WhiteNoise-DbxK446d.js                      10.30 kB │ gzip:   3.52 kB
+dist/assets/index-DGkUS52N.js                           10.88 kB │ gzip:   3.15 kB
+dist/assets/FocusHistory-D3uarfws.js                    11.17 kB │ gzip:   3.53 kB
+dist/assets/SpendChart-afSB4KA-.js                      11.97 kB │ gzip:   4.96 kB
+dist/assets/lifeDesignAdapters-CBnW9J0A.js              12.08 kB │ gzip:   4.37 kB
+dist/assets/DailyReviewCard-CArw4-YN.js                 12.15 kB │ gzip:   3.67 kB
+dist/assets/WorldClockCard-BJHZCt_n.js                  12.22 kB │ gzip:   4.89 kB
+dist/assets/salary-B0RkxnGF.js                          12.55 kB │ gzip:   4.91 kB
+dist/assets/ProjectsPage-CNDExbrJ.js                    12.64 kB │ gzip:   3.96 kB
+dist/assets/TaskAddComposer-COVsL9i8.js                 12.75 kB │ gzip:   4.40 kB
+dist/assets/WeatherWidgetCard-DbpQbFzr.js               12.80 kB │ gzip:   4.86 kB
+dist/assets/weatherSkyScene-DD0Q1EvZ.js                 13.36 kB │ gzip:   5.05 kB
+dist/assets/TripsCard-BOU-ICIz.js                       13.69 kB │ gzip:   3.57 kB
+dist/assets/PeopleCard-BDWunFy4.js                      14.62 kB │ gzip:   4.09 kB
+dist/assets/TimelinePage-Cs4CcHma.js                    15.11 kB │ gzip:   4.79 kB
+dist/assets/WidgetTodosCard-qM6CERBv.js                 16.18 kB │ gzip:   5.84 kB
+dist/assets/AppNumber-Dni_B56k.js                       17.74 kB │ gzip:   5.96 kB
+dist/assets/TaskProgressSummaryCard-Bs2YsTol.js         18.39 kB │ gzip:   6.21 kB
+dist/assets/HabitTrackerPage-KqsRlFb4.js                18.83 kB │ gzip:   5.68 kB
+dist/assets/DiaryPage-De8L1XQl.js                       21.62 kB │ gzip:   7.26 kB
+dist/assets/FocusPage-D2LTscJZ.js                       23.04 kB │ gzip:   7.01 kB
+dist/assets/purify.es-DSHCW8nm.js                       26.22 kB │ gzip:   9.77 kB
+dist/assets/MediaCard-BvfxxHx3.js                       26.55 kB │ gzip:   7.32 kB
+dist/assets/PodcastCard-C0uHJNg4.js                     27.72 kB │ gzip:   7.30 kB
+dist/assets/TripsPage-DKoN2Oms.js                       29.41 kB │ gzip:   8.40 kB
+dist/assets/BooksCard-smkSvww0.js                       30.76 kB │ gzip:   7.57 kB
+dist/assets/CalendarPage-C-FVRi3G.js                    31.31 kB │ gzip:  10.36 kB
+dist/assets/vendor-date-fns-Buttwibl.js                 31.31 kB │ gzip:   8.94 kB
+dist/assets/TasksPage-B5JWe3rD.js                       35.85 kB │ gzip:  11.22 kB
+dist/assets/lifeI18n-CIgZJW_d.js                        36.61 kB │ gzip:  10.15 kB
+dist/assets/ProjectDetailPage-Lsm08LC1.js               36.95 kB │ gzip:  11.48 kB
+dist/assets/core.esm-DR2ImBJ8.js                        43.17 kB │ gzip:  14.40 kB
+dist/assets/projects-DsYhu-Iu.js                        45.99 kB │ gzip:  15.40 kB
+dist/assets/browser-image-compression-DILJcqf6.js       53.16 kB │ gzip:  20.85 kB
+dist/assets/deskScene-Cibd8J11.js                       58.40 kB │ gzip:  21.75 kB
+dist/assets/SubscriptionsCard-CTINvk3i.js               58.99 kB │ gzip:  15.96 kB
+dist/assets/TasksBoard-C1km6zPM.js                      62.06 kB │ gzip:  17.40 kB
+dist/assets/SettingsRoute-BSe5Ukko.js                   64.18 kB │ gzip:  17.74 kB
+dist/assets/globeScene-GozENV85.js                      65.54 kB │ gzip:  26.09 kB
+dist/assets/AdminPage-BG4JIPwI.js                       76.29 kB │ gzip:  21.14 kB
+dist/assets/ical-DBeo3FCe.js                            77.84 kB │ gzip:  23.21 kB
+dist/assets/zh-cn6SxuFa.js                              81.22 kB │ gzip:  25.87 kB
+dist/assets/en-DceEFyXq.js                              81.75 kB │ gzip:  23.65 kB
+dist/assets/TripDetailPage-BA7qpKJb.js                  85.78 kB │ gzip:  23.72 kB
+dist/assets/jszip.min-DylgoJAj.js                       96.73 kB │ gzip:  29.73 kB
+dist/assets/vendor-motion-DoTMakGH.js                  120.09 kB │ gzip:  39.52 kB
+dist/assets/vendor-ui-3qY277hH.js                      135.76 kB │ gzip:  41.75 kB
+dist/assets/TaskDrawer-CZD6gFG8.js                     150.09 kB │ gzip:  42.06 kB
+dist/assets/DashboardRoute-CoCb_Iqw.js                 153.68 kB │ gzip:  56.80 kB
+dist/assets/index.es-DomkkHSz.js                       158.56 kB │ gzip:  52.82 kB
+dist/assets/index-BMatLpyu.js                          166.59 kB │ gzip:  53.12 kB
+dist/assets/unsavedEdit-BkHHgZWg.js                    167.93 kB │ gzip:  51.19 kB
+dist/assets/index-BZRDj1n8.js                          171.59 kB │ gzip:  41.23 kB
+dist/assets/vendor-dexie-keZmYKGH.js                   188.16 kB │ gzip:  61.89 kB
+dist/assets/rxdb-BkyK4Dax.js                           194.02 kB │ gzip:  60.96 kB
+dist/assets/html2canvas.esm-DXEQVQnt.js                201.04 kB │ gzip:  47.07 kB
+dist/assets/vendor-react-BBNec_hu.js                   233.04 kB │ gzip:  74.62 kB
+dist/assets/CartesianChart-CTngaZMZ.js                 321.43 kB │ gzip:  96.99 kB
+dist/assets/index-B17i2N9E.js                          325.22 kB │ gzip: 101.86 kB
+dist/assets/jspdf.es.min-C9FdRxFs.js                   385.68 kB │ gzip: 124.74 kB
+dist/assets/vendor-editor-pxpS-P1x.js                  474.07 kB │ gzip: 148.57 kB
+dist/assets/NotePage-BqmdX2oZ.js                       521.63 kB │ gzip: 138.06 kB
+dist/assets/runSurface-CBO71obU.js                     574.94 kB │ gzip: 145.54 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 1m 21s
+
+PWA v1.3.0
+mode      generateSW
+precache  178 entries (13311.52 KiB)
+files generated
+  dist/sw.js
+  dist/workbox-9c191d2f.js

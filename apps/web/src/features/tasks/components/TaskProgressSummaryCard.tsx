@@ -14,6 +14,7 @@ import RecapWeekGrid from './RecapWeekGrid'
 import '../../../shared/ui/HeaderPill.css'
 import './TaskProgressSummaryCard.css'
 import ActiveIndicator from '../../../shared/motion/ActiveIndicator'
+import { CardHeading } from '../../../shared/ui/Card'
 import { SELECTED_TAB } from '../../../shared/motion/indicatorSelectors'
 
 type TaskProgressSummaryCardProps = {
@@ -323,21 +324,6 @@ export const TaskProgressSummaryCard = ({ tasks, projects, className, compact, n
       : periodOffset === -1
         ? t(period === 'week' ? 'taskRecap.title.lastWeek' : 'taskRecap.title.lastMonth')
         : t(period === 'week' ? 'taskRecap.title.weeksAgo' : 'taskRecap.title.monthsAgo', { count: Math.abs(periodOffset) })
-  // The last token of the headline (e.g. "week" / "本周") is italicized in rust.
-  // Simple split heuristic: emphasize the trailing word; fall back to whole headline.
-  const headlineParts = (() => {
-    const trimmed = headlineText.trim()
-    const lastSpace = trimmed.lastIndexOf(' ')
-    if (lastSpace > 0) {
-      return { lead: trimmed.slice(0, lastSpace), accent: trimmed.slice(lastSpace + 1) }
-    }
-    // Chinese fallback: emphasize last 2 chars
-    if (trimmed.length > 2) {
-      return { lead: trimmed.slice(0, trimmed.length - 2), accent: trimmed.slice(-2) }
-    }
-    return { lead: '', accent: trimmed }
-  })()
-
   const tasksDirection = directionFromDelta(summary.delta.completedTaskCount)
   const subtasksDirection = directionFromDelta(summary.delta.completedSubtaskCount)
 
@@ -350,21 +336,11 @@ export const TaskProgressSummaryCard = ({ tasks, projects, className, compact, n
       data-testid="task-progress-summary-card"
     >
       <div className="recap-card__body">
-        <header className="recap-card__masthead">
-          <div>
-            <span className="recap-card__kicker">
-              <span className="recap-card__kicker-dot" aria-hidden />
-              {t('taskRecap.eyebrow')}
-              <span className="recap-card__kicker-wk">
-                — {formatIssueLabel(issueDate, period, language)}
-              </span>
-            </span>
-            <h1 className="recap-card__headline">
-              {headlineParts.lead}
-              {headlineParts.lead ? ' ' : ''}
-              <em>{headlineParts.accent}</em>
-            </h1>
-          </div>
+        <header className="card__header recap-card__masthead">
+          <CardHeading
+            eyebrow={<>{t('taskRecap.eyebrow')} — {formatIssueLabel(issueDate, period, language)}</>}
+            title={headlineText}
+          />
           <button
             type="button"
             className={`recap-card__copy${copied ? ' is-copied' : ''}`}

@@ -1,3 +1,4 @@
+import { typography } from '../../../shared/theme/typography'
 import { useCallback, useEffect, useState } from 'react'
 import { ArrowRight, Calendar, ChevronRight, Circle, Clock, MapPin, Sparkles, Users, Wallet } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -182,7 +183,7 @@ const TripsCard = () => {
             <span style={{ fontSize: 'var(--fs-ui)' }}>{trip.coverEmoji}</span>
             <span style={label10}>{t('life.card.trips')}</span>
           </div>
-          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--fs-subhead)', fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.2 }}>{trip.title}</h3>
+          <h3 style={{ ...typography.record, color: 'var(--text-primary)' }}>{trip.title}</h3>
         </div>
         <div style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)' }}>
           <ChevronRight size={15} />
@@ -359,7 +360,7 @@ const IdleCard = ({ t, navigate, prefetch }: { t: Translator; navigate: ReturnTy
         <span style={{ ...label10, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           <Sparkles size={11} /> {t('life.card.trips')}
         </span>
-        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--fs-subhead)', fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.2, margin: 0 }}>{t('life.trips.card.startTemplate')}</h3>
+        <h3 style={{ ...typography.section, color: 'var(--text-primary)', margin: 0 }}>{t('life.trips.card.startTemplate')}</h3>
         <p style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--fs-label)', color: 'var(--text-tertiary)', lineHeight: 1.6, margin: 0 }}>{t('life.trips.emptyDescription')}</p>
       </div>
 

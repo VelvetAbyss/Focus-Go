@@ -72,7 +72,7 @@ const TasksPage = () => {
       style={{ '--tasks-page-viewport-height': `${viewportProfile.viewportHeight}px` } as CSSProperties}
     >
       <div className="tasks-workspace-header">
-        <div className="tasks-workspace-heading">
+        <div className="tasks-workspace-heading type-heading-stack">
           <h1 className="tasks-page-shell__title text-foreground">{t(viewMode === 'board' ? 'modules.tasks.title' : viewMode === 'today' ? 'tasks.flow.planTitle' : viewMode === 'list' ? 'tasks.flow.boardTitle' : 'tasks.flow.reviewTitle')}</h1>
           <p className="tasks-workspace-intent">{t(viewMode === 'board' ? 'tasks.workspace.boardHint' : viewMode === 'today' ? 'tasks.flow.planHint' : viewMode === 'list' ? 'tasks.flow.boardHint' : 'tasks.flow.reviewHint')}</p>
         </div>

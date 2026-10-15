@@ -37,7 +37,7 @@ const EmptyState = ({
       <div className="mb-4 flex size-12 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] text-[var(--text-primary)]">
         {icon}
       </div>
-      <h3 className="font-display text-subhead font-semibold">{title}</h3>
+      <h3 className="type-section-title">{title}</h3>
       <p className="mt-2 max-w-sm text-sm text-[color-mix(in_srgb,var(--text-primary)_72%,transparent)]">{description}</p>
       {actionLabel && onAction ? (
         <Button type="button" className="mt-5 rounded-full bg-[var(--cta-bg)] px-5 text-[var(--cta-fg)] hover:bg-[var(--cta-bg-hover)]" onClick={onAction}>

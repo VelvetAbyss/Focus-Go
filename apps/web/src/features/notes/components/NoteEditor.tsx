@@ -104,7 +104,7 @@ const extractTitleFromMarkdown = (markdown: string) => {
 }
 
 const fontFamilyMap = {
-  uiSans: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif',
+  uiSans: 'var(--font-body)',
   humanistSans: '"Avenir Next", "Nunito", "Trebuchet MS", "Gill Sans", "Segoe UI", sans-serif',
   cnSans: '"PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", sans-serif',
   // The app's reading serif (DESIGN.md › Serif where you write), bundled offline.
@@ -246,8 +246,8 @@ const NoteEditor = ({
   const { t } = useI18n()
   const initialDoc = useMemo(() => ensureRichDoc(value.contentJson, value.contentMd), [value.contentJson, value.contentMd])
   const fontFamily = fontFamilyMap[appearance?.font ?? 'uiSans']
-  const widthScale = Math.max(0, Math.min(100, appearance?.contentWidth ?? 0)) / 100
-  const contentWidthPercent = 100 - widthScale * 42
+  const widthScale = Math.max(0, Math.min(100, appearance?.contentWidth ?? 60)) / 100
+  const contentMeasureRem = 64 - widthScale * 30
   const zoomLevel = Math.max(50, Math.min(200, appearance?.zoom ?? 100)) / 100
   const surfaceBg = appearance?.paperBg === 'white' ? 'var(--bg-elevated)' : undefined
   const [headings, setHeadings] = useState<HeadingNavItem[]>([])
@@ -796,12 +796,11 @@ const NoteEditor = ({
           className="note-editor__content"
           style={
             {
-              width: `${contentWidthPercent}%`,
-              maxWidth: 'none',
+              '--note-content-measure': `${contentMeasureRem}rem`,
               fontFamily,
               zoom: zoomLevel,
-              '--note-editor-font-size': `${appearance?.fontSize ?? 16}px`,
-              '--note-editor-line-height': `${appearance?.lineHeight ?? 1.7}`,
+              '--note-editor-font-size': `${(appearance?.fontSize ?? 16) / 16}rem`,
+              '--note-editor-line-height': `${appearance?.lineHeight ?? 1.5}`,
             } as CSSProperties
           }
         >

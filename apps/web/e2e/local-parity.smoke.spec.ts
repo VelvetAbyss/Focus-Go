@@ -13,7 +13,7 @@ test('a new visitor opens the same dashboard as local port 5174', async ({ page 
   await expect(page.locator('script[src="/registerSW.js"]')).toHaveCount(0)
   await expect(page.getByText('选择数据存放方式')).toHaveCount(0)
   await expect(page.getByText('仪表盘', { exact: true }).first()).toBeVisible()
-  await expect(page.getByRole('heading', { name: '本周 成果' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '本周成果' })).toBeVisible()
   await expect(page.getByRole('heading', { name: '待办列表' })).toBeVisible()
 
   // These dynamic CSS chunks were missing in the reported broken layout.

@@ -498,7 +498,8 @@ const WorldClockCard = () => {
   return (
     <Card
       className="dashboard-widget-card dashboard-widget-card--worldclock"
-      eyebrow={t('worldClock.eyebrow')}
+      title={t('worldClock.eyebrow')}
+      eyebrow={summary}
       actions={
         pending ? (
           <LoaderCircle size={13} className="wc-spinner" />
@@ -517,7 +518,6 @@ const WorldClockCard = () => {
     >
       <div className="wc-hero">
         <WorldClockGlobe cities={globeCities} highlightId={highlightId} theme={theme} />
-        <p className="wc-summary">{summary}</p>
       </div>
 
       {items.length > 0 ? (

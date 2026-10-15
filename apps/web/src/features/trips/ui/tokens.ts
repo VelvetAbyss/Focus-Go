@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react'
+import { typography } from '../../../shared/theme/typography'
 import { scaleFontSize } from '../../../shared/theme/typeScale'
 
 export const paper = 'var(--paper-raised)'
@@ -15,13 +16,15 @@ export const tx = (size = 13, weight: 400 | 500 | 600 | 700 = 400, color: string
   fontFamily: 'var(--font-body)',
   fontSize: scaleFontSize(size),
   fontWeight: weight,
+  lineHeight: 'var(--type-ui-leading)',
+  letterSpacing: 'normal',
   color,
 })
 
 export const pf = (size = 16, weight: 400 | 500 | 600 | 700 = 500, color: string = ink): CSSProperties => ({
-  fontFamily: 'var(--font-display)',
-  fontSize: scaleFontSize(size),
-  fontWeight: weight,
+  ...(size >= 26 ? typography.page : size >= 18 ? typography.section : { ...typography.record, fontSize: scaleFontSize(size) }),
+  // Explicit emphasis is supported without reintroducing arbitrary weights.
+  fontWeight: size >= 18 ? 600 : weight,
   color,
 })
 

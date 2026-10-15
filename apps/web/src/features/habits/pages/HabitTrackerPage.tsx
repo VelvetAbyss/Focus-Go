@@ -183,7 +183,7 @@ const HabitTrackerPage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: DURATION.medium }}
         >
-          <div>
+          <div className="type-heading-stack">
             <p className="hb-header__eyebrow">{i18n.eyebrow}</p>
             <h1 className="hb-header__title">{i18n.title}</h1>
             <p className="hb-header__subtitle">{i18n.subtitle}</p>

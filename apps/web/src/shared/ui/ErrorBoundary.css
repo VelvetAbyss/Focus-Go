@@ -33,8 +33,11 @@
 
 .error-boundary__title {
   margin: 0;
-  font-family: var(--font-display, serif);
-  font-size: var(--fs-subhead);
+  font-family: var(--font-body, system-ui);
+  font-size: var(--type-section-size, 1.125rem);
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: normal;
   color: var(--text-primary, #3a3733);
 }
 

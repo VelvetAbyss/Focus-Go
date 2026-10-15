@@ -23,7 +23,7 @@
   --td-moss: var(--tone-done);
   --td-lamp: var(--ink-4);
   --td-mono: var(--font-body);
-  --td-serif: var(--font-display);
+  --td-serif: var(--font-body);
 }
 
 /* ── Topbar ────────────────────────────────────────────────────────────── */

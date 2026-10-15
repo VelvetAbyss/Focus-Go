@@ -96,15 +96,14 @@ const DashboardPage = () => {
 
   const responsiveLayout = useMemo(() => {
     if (!isMobile) return layout
-    // Scale desktop layout (12 cols) to mobile layout (4 cols)
-    return layout.map((item) => {
-      const mobileW = Math.max(2, Math.round((item.w / 12) * 4))
-      const mobileX = Math.min(4 - mobileW, Math.round((item.x / 12) * 4))
-      return {
-        ...item,
-        w: mobileW,
-        x: mobileX,
-      }
+    // Full-width cards on a phone: scaling the desktop columns made titles
+    // wrap character-by-character. This derived layout never replaces the
+    // stored desktop arrangement.
+    let nextY = 0
+    return [...layout].sort((a, b) => a.y - b.y || a.x - b.x).map((item) => {
+      const mobileItem = { ...item, w: 4, x: 0, y: nextY }
+      nextY += item.h
+      return mobileItem
     })
   }, [isMobile, layout])
 

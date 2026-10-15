@@ -8,15 +8,20 @@ type CardProps = {
   className?: string
 } & ComponentProps<'section'>
 
+/** One title/metadata hierarchy for shared cards and custom widget headers. */
+export const CardHeading = ({ title, eyebrow }: { title?: ReactNode; eyebrow?: ReactNode }) => (
+  <div className="card__heading">
+    {eyebrow && <span className="card__eyebrow">{eyebrow}</span>}
+    {title && <h3 className="card__title">{title}</h3>}
+  </div>
+)
+
 const Card = ({ title, eyebrow, actions, children, className, ...props }: CardProps) => {
   return (
     <section className={`card ${className ?? ''}`} {...props}>
       {(title || eyebrow || actions) && (
         <header className="card__header">
-          <div>
-            {eyebrow && <span className="card__eyebrow">{eyebrow}</span>}
-            {title && <h3 className="card__title">{title}</h3>}
-          </div>
+          <CardHeading title={title} eyebrow={eyebrow} />
           {actions && <div className="card__actions">{actions}</div>}
         </header>
       )}

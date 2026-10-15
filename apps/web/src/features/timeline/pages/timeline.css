@@ -26,17 +26,22 @@
 .timeline-page__eyebrow {
   margin: 0 0 5px;
   color: var(--ink-3);
-  font-size: var(--fs-label);
-  font-weight: 600;
+  font-family: var(--font-body);
+  font-size: var(--fs-meta);
+  font-weight: 400;
+  line-height: var(--type-ui-leading);
+  letter-spacing: normal;
+  text-transform: none;
 }
 
 .timeline-page h1 {
-  margin: 0;
-  font-family: var(--page-title-font);
+  font-family: var(--font-body);
   font-size: var(--page-title-size);
-  font-weight: var(--page-title-weight);
-  letter-spacing: var(--page-title-tracking);
+  font-weight: 600;
   line-height: var(--page-title-leading);
+  letter-spacing: normal;
+  text-transform: none;
+  margin: 0;
 }
 
 .timeline-page button,
@@ -399,10 +404,13 @@
 }
 
 .timeline-empty h2 {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: var(--fs-subhead);
+  font-family: var(--font-body);
+  font-size: var(--type-section-size);
   font-weight: 600;
+  line-height: var(--type-ui-leading);
+  letter-spacing: normal;
+  text-transform: none;
+  margin: 0;
 }
 
 .timeline-empty p {

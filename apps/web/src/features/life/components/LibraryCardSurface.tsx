@@ -7,9 +7,8 @@ import { AppNumber } from '../../../shared/ui/AppNumber'
 import type { BookItem } from '../../../data/models/types'
 import type { LibraryPresentationModel } from '../cards/lifeDesignAdapters'
 import ProgressTrack from '../ProgressTrack'
-import { LifeCardLoader, LifePanelLoader, serifFontFor } from './lifeDesignPrimitives'
+import { LifeCardLoader, LifePanelLoader, inter, playfair } from './lifeDesignPrimitives'
 import { useLifeI18n } from '../lifeI18n'
-import { scaleFontSize } from '../../../shared/theme/typeScale'
 
 type SearchBook = {
   id: string
@@ -47,20 +46,6 @@ const ink = 'var(--text-primary)'
 const subtleBorder = 'color-mix(in srgb, var(--text-primary) 9%, transparent)'
 const mutedText = 'var(--text-tertiary)'
 const cardBg = 'var(--bg-elevated)'
-
-const inter = (size = 13, weight = 400, color = ink) => ({
-  fontFamily: 'var(--font-body)',
-  fontSize: scaleFontSize(size),
-  fontWeight: weight,
-  color,
-})
-
-const playfair = (size = 16, weight = 500, color = ink) => ({
-  fontFamily: serifFontFor(size),
-  fontSize: scaleFontSize(size),
-  fontWeight: weight,
-  color,
-})
 
 const statusConfig = {
   reading: { label: 'Reading', color: 'var(--tone-warn)', bg: 'var(--tone-warn-wash)' },
@@ -105,7 +90,7 @@ const CardRow = ({ book }: { book: LibraryPresentationModel['previewRows'][numbe
     </div>
     <div style={{ flex: 1, minWidth: 0 }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
-        <p style={{ ...playfair(13, 500), lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{book.title}</p>
+        <p style={{ ...playfair(13, 500), lineHeight: 'var(--type-ui-leading)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{book.title}</p>
       </div>
       <p style={{ ...inter(11, 400, 'var(--text-tertiary)'), lineHeight: 1, marginBottom: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
         {book.authorLine}
@@ -240,7 +225,7 @@ export const LibraryCardSurface = ({
               <BookOpen size={14} color="color-mix(in srgb, var(--text-primary) 40%, transparent)" />
               <span style={{ ...inter(10, 600, 'var(--text-tertiary)'), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase' }}>{model.header.eyebrow}</span>
             </div>
-            <h3 style={{ ...playfair(18, 500), lineHeight: 1.2 }}>{model.header.title}</h3>
+            <h3 style={{ ...playfair(18, 500), lineHeight: 'var(--type-ui-leading)' }}>{model.header.title}</h3>
           </div>
           <div style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 999, color: 'var(--text-tertiary)' }}>
             <ChevronRight size={15} />
@@ -469,7 +454,7 @@ export const LibraryCardSurface = ({
                     </div>
                     <div style={{ position: 'relative', display: 'flex', minWidth: 0, flex: 1, flexDirection: 'column', justifyContent: 'flex-end' }}>
                       <StatusPill status={selectedBook.status} />
-                      <h2 style={{ ...playfair(22, 500), lineHeight: 1.25, marginTop: 8, marginBottom: 4 }}>{selectedBook.title}</h2>
+                      <h2 style={{ ...playfair(22, 500), lineHeight: 'var(--type-ui-leading)', marginTop: 8, marginBottom: 4 }}>{selectedBook.title}</h2>
                       <p style={{ ...inter(14, 400, 'color-mix(in srgb, var(--text-primary) 60%, transparent)'), marginBottom: 12 }}>{selectedBook.authors.join(' & ')}</p>
                       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 16 }}>
                         {selectedBook.publisher ? <span style={inter(11, 400, mutedText)}><span style={{ opacity: 0.6 }}>{t('life.library.publishedBy')}</span>{selectedBook.publisher}</span> : null}

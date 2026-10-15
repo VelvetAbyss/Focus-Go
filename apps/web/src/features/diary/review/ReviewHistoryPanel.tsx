@@ -67,7 +67,7 @@ const ReviewHistoryPanel = ({
       </div>
       <h2
         className="text-[var(--text-secondary)]"
-        style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 500 }}
+        style={{ fontFamily: 'var(--font-body)', fontSize: '1rem', fontWeight: 500 }}
       >
         Your reflections
       </h2>
@@ -155,7 +155,7 @@ const ReviewHistoryPanel = ({
                       </div>
                       <p
                         className="truncate text-[var(--text-secondary)]"
-                        style={{ fontFamily: 'var(--font-display)', fontSize: '0.88rem', fontWeight: 400 }}
+                        style={{ fontFamily: 'var(--font-body)', fontSize: '0.88rem', fontWeight: 400 }}
                       >
                         {summaryLine || <span className="italic text-[var(--text-secondary)]">No summary</span>}
                       </p>
@@ -197,7 +197,7 @@ const ReviewHistoryPanel = ({
                                   </span>
                                   <p
                                     className="mt-0.5 text-[var(--text-secondary)]"
-                                    style={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem' }}
+                                    style={{ fontFamily: 'var(--font-body)', fontSize: '0.85rem' }}
                                   >
                                     {block.summary.tomorrow}
                                   </p>
@@ -234,7 +234,7 @@ const ReviewHistoryPanel = ({
                                   <p
                                     className="mt-0.5 text-[var(--text-secondary)]"
                                     style={{
-                                      fontFamily: 'var(--font-display)',
+                                      fontFamily: 'var(--font-body)',
                                       fontSize: '0.82rem',
                                       lineHeight: '1.6',
                                     }}

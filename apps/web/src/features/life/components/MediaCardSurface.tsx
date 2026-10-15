@@ -141,7 +141,7 @@ export const MediaCardSurface = ({
             <Film size={14} color="color-mix(in srgb, var(--text-primary) 40%, transparent)" />
             <span style={{ ...inter(10, 600, 'var(--text-tertiary)'), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase' }}>{model.header.eyebrow}</span>
           </div>
-          <h3 style={{ ...playfair(18, 500), lineHeight: 1.2 }}>{model.header.title}</h3>
+          <h3 style={{ ...playfair(18, 500), lineHeight: 'var(--type-ui-leading)' }}>{model.header.title}</h3>
         </div>
         <div style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 999, color: 'var(--text-tertiary)' }}>
           <ChevronRight size={15} />
@@ -389,7 +389,7 @@ export const MediaCardSurface = ({
                         <span style={inter(10, 700, statusTone[selected.status].color)}>{statusTone[selected.status].label.toUpperCase()}</span>
                       </div>
                     </div>
-                    <h3 style={{ ...playfair(22, 500), lineHeight: 1.15, marginTop: 6 }}>{selected.title}</h3>
+                    <h3 style={{ ...playfair(22, 500), lineHeight: 'var(--type-ui-leading)', marginTop: 6 }}>{selected.title}</h3>
                     <p style={{ ...inter(13, 400, 'var(--text-tertiary)'), marginTop: 4 }}>{itemMetaLine(selected)}</p>
                     {ratingLine(selected) ? (
                       <p style={{ ...inter(12, 500, 'var(--text-tertiary)'), marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -471,7 +471,7 @@ export const MediaCardSurface = ({
                       value={noteValue(selected)}
                       onChange={(val) => onPatchItem({ reflection: val })}
                       placeholder="Write a personal note..."
-                      style={{ ...textareaStyle, minHeight: 80, padding: '14px 16px', borderRadius: 10, background: 'color-mix(in srgb, var(--text-primary) 2.5%, transparent)', fontFamily: 'var(--font-display)', fontSize: 'var(--fs-ui)', lineHeight: 1.75, fontStyle: 'italic', color: 'var(--text-primary)' }}
+                      style={{ ...textareaStyle, minHeight: 80, padding: '14px 16px', borderRadius: 10, background: 'color-mix(in srgb, var(--text-primary) 2.5%, transparent)', fontFamily: 'var(--font-body)', fontSize: 'var(--fs-ui)', lineHeight: 1.75, fontStyle: 'italic', color: 'var(--text-primary)' }}
                     />
                   </div>
 

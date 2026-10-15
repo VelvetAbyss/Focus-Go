@@ -107,7 +107,7 @@ export const JourneyMode = ({ trip, t, onPatch, onClose, onExport }: Props) => {
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 30%, rgba(40,36,30,0.7) 100%)' }} />
           <div style={{ position: 'absolute', left: 28, bottom: 24, right: 28 }}>
             <div style={{ fontSize: 40, lineHeight: 1, marginBottom: 8 }}>{trip.coverEmoji || '✈️'}</div>
-            <p style={{ fontFamily: 'var(--font-display)', fontSize: 34, fontWeight: 600, color: 'rgba(255,255,255,0.97)', lineHeight: 1.1 }}>{trip.title}</p>
+            <p style={{ fontFamily: 'var(--font-body)', fontSize: 34, fontWeight: 600, color: 'rgba(255,255,255,0.97)', lineHeight: 1.1 }}>{trip.title}</p>
             <p style={{ ...tx(13, 400, 'rgba(255,255,255,0.78)'), marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
               {trip.destination ? <><MapPin size={13} /> {trip.destination} · </> : null}
               {trip.startDate} — {trip.endDate}
@@ -187,7 +187,7 @@ export const JourneyMode = ({ trip, t, onPatch, onClose, onExport }: Props) => {
                       value={entry?.body ?? ''}
                       onChange={(e) => setEntry(key, { body: e.target.value })}
                       placeholder={t('life.trips.journey.reflectionPlaceholder')}
-                      style={{ ...textareaStyle, minHeight: 92, fontFamily: 'var(--font-display)', fontSize: 'var(--fs-body)', lineHeight: 1.7 }}
+                      style={{ ...textareaStyle, minHeight: 92, fontFamily: 'var(--font-body)', fontSize: 'var(--fs-body)', lineHeight: 1.7 }}
                     />
                   </div>
                 </article>

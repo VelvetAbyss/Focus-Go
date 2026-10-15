@@ -135,7 +135,7 @@ export const PeopleCardSurface = ({
               <Users size={13} color="color-mix(in srgb, var(--text-primary) 38%, transparent)" />
               <span style={{ ...inter(10, 600, 'var(--text-tertiary)'), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase' }}>{t('life.card.people')}</span>
             </div>
-            <h3 style={{ ...playfair(18, 500), lineHeight: 1.2 }}>{t('life.card.people')}</h3>
+            <h3 style={{ ...playfair(18, 500), lineHeight: 'var(--type-ui-leading)' }}>{t('life.card.people')}</h3>
           </div>
           <div style={cardArrowStyle}><ChevronRight size={15} /></div>
         </div>
@@ -351,7 +351,7 @@ export const PeopleCardSurface = ({
                   {draft.avatarInitials || (draft.name ? draft.name.slice(0, 1).toUpperCase() : '?')}
                 </div>
                 <div>
-                  <p style={{ ...playfair(18, 500), lineHeight: 1.2, marginBottom: 3 }}>
+                  <p style={{ ...playfair(18, 500), lineHeight: 'var(--type-ui-leading)', marginBottom: 3 }}>
                     {draft.name || <span style={{ color: mutedText, fontStyle: 'italic' }}>{t('life.people.newPerson')}</span>}
                   </p>
                   <p style={{ ...inter(11, 400, mutedText) }}>

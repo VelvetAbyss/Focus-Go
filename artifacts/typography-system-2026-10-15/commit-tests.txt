@@ -1,0 +1,395 @@
+
+ RUN  v3.2.4 /private/tmp/focusgo-typography-commit-5lkm20fn/apps/web
+
+ ✓ src/features/notes/components/NoteEditor.test.tsx (7 tests) 1079ms
+   ✓ NoteEditor > renders toolbar and action buttons in the same topbar  927ms
+ ✓ src/app/layout/AppShell.theme-preview.test.tsx (5 tests | 1 skipped) 92ms
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > auto creates the first note when user starts typing in an empty workspace
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > auto creates the first note when user starts typing in an empty workspace
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > auto creates the first note when user starts typing in an empty workspace
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > auto creates the first note when user starts typing in an empty workspace
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > opens the info popover and shows statistics
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > opens the info popover and shows statistics
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > opens the info popover and shows statistics
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > opens the info popover and shows statistics
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > opens the info popover and shows statistics
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > toggles note fullscreen mode and exits on escape
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > toggles note fullscreen mode and exits on escape
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > toggles note fullscreen mode and exits on escape
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > toggles note fullscreen mode and exits on escape
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > toggles note fullscreen mode and exits on escape
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > toggles note fullscreen mode and exits on escape
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > exports the active note as markdown
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > exports the active note as markdown
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > exports the active note as markdown
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > exports the active note as markdown
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > exports the active note as markdown
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > exports the active note as markdown
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > exports the active note as pdf and closes the export panel
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > exports the active note as pdf and closes the export panel
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > exports the active note as pdf and closes the export panel
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > exports the active note as pdf and closes the export panel
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > exports the active note as pdf and closes the export panel
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > exports the active note as pdf and closes the export panel
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > exports the active note as pdf and closes the export panel
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > flushes pending note edits before exporting pdf
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > flushes pending note edits before exporting pdf
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > flushes pending note edits before exporting pdf
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > flushes pending note edits before exporting pdf
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > flushes pending note edits before exporting pdf
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > flushes pending note edits before exporting pdf
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > flushes pending note edits before exporting pdf
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > flushes pending note edits before exporting pdf
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > flushes pending note edits before exporting pdf
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > imports multiple supported files as new notes with an Imported tag
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > imports multiple supported files as new notes with an Imported tag
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > imports multiple supported files as new notes with an Imported tag
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > imports multiple supported files as new notes with an Imported tag
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > imports multiple supported files as new notes with an Imported tag
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > imports multiple supported files as new notes with an Imported tag
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > imports multiple supported files as new notes with an Imported tag
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > imports multiple supported files as new notes with an Imported tag
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > imports multiple supported files as new notes with an Imported tag
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > imports multiple supported files as new notes with an Imported tag
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > imports valid files from a mixed batch and leaves unsupported files visible
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > imports valid files from a mixed batch and leaves unsupported files visible
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > imports valid files from a mixed batch and leaves unsupported files visible
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > imports valid files from a mixed batch and leaves unsupported files visible
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > imports valid files from a mixed batch and leaves unsupported files visible
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > imports valid files from a mixed batch and leaves unsupported files visible
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > imports valid files from a mixed batch and leaves unsupported files visible
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > imports valid files from a mixed batch and leaves unsupported files visible
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > opens appearance controls and persists settings
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > opens appearance controls and persists settings
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > opens appearance controls and persists settings
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > opens appearance controls and persists settings
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > opens appearance controls and persists settings
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > opens appearance controls and persists settings
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > persists font and line-height changes from appearance modal
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > persists font and line-height changes from appearance modal
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > persists font and line-height changes from appearance modal
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > persists font and line-height changes from appearance modal
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > persists font and line-height changes from appearance modal
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > persists font and line-height changes from appearance modal
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > filters by selected tag from the sidebar tree
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > filters by selected tag from the sidebar tree
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > filters by selected tag from the sidebar tree
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > filters by selected tag from the sidebar tree
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > schedules saves when the editor changes
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > schedules saves when the editor changes
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > schedules saves when the editor changes
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > schedules saves when the editor changes
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > schedules saves when the editor changes
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > renders trash notes in editor layout and supports permanent delete from list
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > renders trash notes in editor layout and supports permanent delete from list
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > renders trash notes in editor layout and supports permanent delete from list
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > renders trash notes in editor layout and supports permanent delete from list
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > renders trash notes in editor layout and supports permanent delete from list
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > allows creating more than 20 notes for all users
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > allows creating more than 20 notes for all users
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > allows creating more than 20 notes for all users
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+
+stderr | src/features/notes/pages/NotePage.test.tsx > NotePage > allows creating more than 20 notes for all users
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+[i18n] Missing translation key: common.time.justNow
+
+ ✓ src/features/notes/pages/NotePage.test.tsx (17 tests) 14962ms
+   ✓ NotePage > exports the active note as markdown  358ms
+   ✓ NotePage > exports the active note as pdf and closes the export panel  763ms
+   ✓ NotePage > flushes pending note edits before exporting pdf  1578ms
+   ✓ NotePage > imports multiple supported files as new notes with an Imported tag  2213ms
+   ✓ NotePage > imports valid files from a mixed batch and leaves unsupported files visible  1834ms
+   ✓ NotePage > opens appearance controls and persists settings  1332ms
+   ✓ NotePage > persists font and line-height changes from appearance modal  1510ms
+   ✓ NotePage > filters by selected tag from the sidebar tree  558ms
+   ✓ NotePage > schedules saves when the editor changes  1136ms
+   ✓ NotePage > retains a recovery copy when replay fails, then clears it after a successful retry  852ms
+   ✓ NotePage > renders trash notes in editor layout and supports permanent delete from list  338ms
+   ✓ NotePage > allows creating more than 20 notes for all users  1598ms
+ ✓ src/features/habits/components/HabitFormDialog.test.tsx (2 tests) 539ms
+   ✓ HabitFormDialog > validates required title  343ms
+ ✓ src/shared/ui/EmptyState.test.tsx (1 test) 252ms
+ ✓ src/app/layout/AppShell.scale.test.ts (5 tests) 2ms
+stderr | src/data/services/DexieDatabaseService.test.ts > DexieDatabaseService > stores book records with reading progress and reflection
+-------------- RxDB Open Core RxStorage -------------------------------
+You are using the free Dexie.js based RxStorage implementation from RxDB https://rxdb.info/rx-storage-dexie.html?console=dexie
+While this is a great option, we want to let you know that there are faster storage solutions available in our premium plugins.
+For professional users and production environments, we highly recommend considering these premium options to enhance performance and reliability.
+ https://rxdb.info/premium/?console=dexie
+If you already purchased premium access you can disable this log by calling the setPremiumFlag() function from rxdb-premium/plugins/shared.
+---------------------------------------------------------------------
+
+ ✓ src/data/services/DexieDatabaseService.test.ts (21 tests) 991ms
+   ✓ DexieDatabaseService > stores book records with reading progress and reflection  392ms
+
+ Test Files  7 passed (7)
+      Tests  57 passed | 1 skipped (58)
+   Start at  18:17:08
+   Duration  54.88s (transform 11.45s, setup 5.18s, collect 22.17s, tests 17.92s, environment 6.23s, prepare 973ms)

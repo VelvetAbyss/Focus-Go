@@ -119,7 +119,7 @@ const ProjectsPage = () => {
         initial={shouldAnimateIn ? 'hidden' : false}
         animate="show"
       >
-        <div>
+        <div className="type-heading-stack">
           <div className="pj-header__title-row">
             <h1 className="pj-title">{i18n.page.title}</h1>
           </div>

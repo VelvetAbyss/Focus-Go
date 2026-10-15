@@ -310,7 +310,7 @@ function BreathingGuide({ onComplete, phaseLabels }: { onComplete: () => void; p
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         className="text-body text-tone-done"
-        style={{ fontFamily: 'var(--font-display)' }}
+        style={{ fontFamily: 'var(--font-body)' }}
       >
         {phaseLabels[phase]}
       </motion.p>
@@ -650,7 +650,7 @@ export function FocusTimer({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2.5">
+        <div className="focus-zip-timer__actions flex items-center gap-2.5">
           {status === "idle" || status === "completed" ? (
             <>
               {/* Breathe first button */}
