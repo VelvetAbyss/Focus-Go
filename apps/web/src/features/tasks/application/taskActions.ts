@@ -3,6 +3,7 @@ import { projectsRepo } from '../../../data/repositories/projectsRepo'
 import { tasksRepo } from '../../../data/repositories/tasksRepo'
 import type { TaskItem, TaskStatus } from '../tasks.types'
 import { parseQuickAdd, type ParsedQuickAdd } from '../parseQuickAdd'
+import { playInteractionSound } from '../../../shared/sound/interactionSounds'
 
 export type CreateTaskInput = {
   title: string
@@ -45,8 +46,8 @@ export const parseQuickAddTaskInput = (
   context: QuickAddTaskContext,
 ): Promise<ParsedQuickAdd> => parseQuickAdd(rawTitle, context.projects, context.fallbackProjectId)
 
-export const createTask = (input: CreateTaskInput) =>
-  tasksRepo.add({
+export const createTask = async (input: CreateTaskInput) => {
+  const created = await tasksRepo.add({
     title: input.title,
     description: input.description,
     pinned: input.pinned,
@@ -72,6 +73,9 @@ export const createTask = (input: CreateTaskInput) =>
     waitingOn: input.waitingOn,
     recurrence: input.recurrence,
   })
+  playInteractionSound('create')
+  return created
+}
 
 /**
  * One line in the quick-add syntax ("明天下午3点 开会 #工作 !1", "等 Lisa 回复报价") becomes a task.

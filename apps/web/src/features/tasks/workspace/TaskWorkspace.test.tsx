@@ -6,7 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
 import type { TaskItem } from '../../../data/models/types'
 import TaskWorkspace from './TaskWorkspace'
-const mocks=vi.hoisted(()=>({list:vi.fn(),update:vi.fn(),status:vi.fn(),push:vi.fn(),focus:vi.fn()}))
+const mocks=vi.hoisted(()=>({list:vi.fn(),update:vi.fn(),status:vi.fn(),push:vi.fn(),focus:vi.fn(),play:vi.fn(),statusSound:vi.fn()}))
+vi.mock('../../../shared/sound/interactionSounds',()=>({playInteractionSound:mocks.play,playTaskStatusSound:mocks.statusSound}))
 vi.mock('../../../data/repositories/tasksRepo',()=>({tasksRepo:{list:mocks.list,update:mocks.update,updateStatus:mocks.status}}))
 vi.mock('../../../data/repositories/projectsRepo',()=>({projectsRepo:{list:async()=>[]}}))
 vi.mock('../../../data/repositories/focusRepo',()=>({focusRepo:{listSessions:async()=>[]}}))
@@ -50,11 +51,13 @@ describe('Task workspace user workflows',()=>{
   await waitFor(()=>expect(records[0].status).toBe('done'))
   const notice=mocks.push.mock.calls.find(([notice])=>notice.onAction)?.[0]
   expect(notice).toBeDefined()
+  expect(mocks.statusSound).toHaveBeenCalledExactlyOnceWith('verify','done')
   await waitFor(()=>expect(mocks.list).toHaveBeenCalled())
   // Give the completed action time to release its per-task mutation lock.
   await waitFor(()=>expect(screen.queryByRole('button',{name:'tasks.flow.accept'})).not.toBeInTheDocument())
   notice.onAction()
   await waitFor(()=>expect(records[0].status).toBe('verify'))
+  expect(mocks.play).toHaveBeenCalledExactlyOnceWith('undo')
  })
  it('starts focus only after the task status write succeeds',async()=>{
   records=[task('selected',{isToday:true})];mount('today')
@@ -70,6 +73,8 @@ describe('Task workspace user workflows',()=>{
   fireEvent.click(within(region).getByRole('button',{name:'tasks.status.start'}))
   await waitFor(()=>expect(mocks.push).toHaveBeenCalledWith(expect.objectContaining({variant:'error'})))
   expect(records[0].status).toBe('todo')
+  expect(mocks.statusSound).not.toHaveBeenCalled()
+  expect(mocks.play).not.toHaveBeenCalled()
   expect(within(region).getByText('not-saved')).toBeInTheDocument()
  })
 })

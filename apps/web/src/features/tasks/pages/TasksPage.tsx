@@ -1,4 +1,5 @@
-import { useCallback, useDeferredValue, useMemo, useState } from 'react'
+import { useCallback, useDeferredValue, useMemo, useRef, useState } from 'react'
+import { playInterfaceSound } from '../../../shared/sound/interactionSounds'
 import type { CSSProperties } from 'react'
 import { BarChart3, Columns3, LayoutGrid, ListTodo } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -38,7 +39,11 @@ const TasksPage = () => {
       : 'board'
   })
 
+  const selectedView = useRef(viewMode)
   const switchView = useCallback((nextView: TasksPageViewMode) => {
+    if (selectedView.current === nextView) return
+    selectedView.current = nextView
+    playInterfaceSound()
     setViewMode(nextView)
     if (typeof window !== 'undefined') window.localStorage.setItem(STORAGE_VIEW_KEY, nextView)
     if (nextView === 'analytics') markDiscoveryNewTargetSeen('tasks-analytics-tab')

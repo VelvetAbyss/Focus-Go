@@ -1,3 +1,4 @@
+import { playInteractionSound, playTaskStatusSound } from '../../../shared/sound/interactionSounds'
 import { useCallback, useDeferredValue, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { tasksRepo } from '../../../data/repositories/tasksRepo'
@@ -82,8 +83,14 @@ export default function TaskWorkspace({ view, onViewChange }: { view: TaskWorksp
         previousStatus=latest.status
         result=await moveWorkflowTask(task.id,status)
       })
+      if(success&&result) playTaskStatusSound(previousStatus,result.status)
       if(success&&status==='done'&&previousStatus!=='done'&&result) toast.push({message:t('tasks.flow.completedToast',{title:result.title}),actionLabel:t('tasks.flow.undo'),onAction:()=>{
-        void run(task.id,async()=>{if(!await tasksRepo.updateStatus(task.id,previousStatus)) throw new WorkflowError('missingTask')})
+        void run(task.id,async()=>{
+          const latest=(await tasksRepo.list()).find(item=>item.id===task.id)
+          if(latest?.status!=='done') return
+          if(!await tasksRepo.updateStatus(task.id,previousStatus)) throw new WorkflowError('missingTask')
+          playInteractionSound('undo')
+        })
       }})
     })()
   }
@@ -113,7 +120,7 @@ export default function TaskWorkspace({ view, onViewChange }: { view: TaskWorksp
         :view==='list'?<WorkflowBoard tasks={scoped} allTasks={tasks} projects={projects} actions={actions}/>
         :<ReviewWorkspace tasks={scoped} allTasks={tasks} projects={projects} sessions={scopedSessions} sessionsAvailable={sessionsAvailable} now={now} actions={actions} onViewChange={onViewChange}/>}
     </div>}
-    {waiting?<form className="flow-waiting-form" onSubmit={event=>{event.preventDefault();const details:WaitingDetails={who:waiting.who,followUpDate:waiting.date};void run(waiting.task.id,()=>moveWorkflowTask(waiting.task.id,'waiting',details)).then(success=>{if(success) setWaiting(null)})}}>
+    {waiting?<form className="flow-waiting-form" onSubmit={event=>{event.preventDefault();const details:WaitingDetails={who:waiting.who,followUpDate:waiting.date};void run(waiting.task.id,()=>moveWorkflowTask(waiting.task.id,'waiting',details)).then(success=>{if(success) {playTaskStatusSound(waiting.task.status,'waiting');setWaiting(null)}})}}>
       <header><h2>{t('tasks.flow.waitingTitle')}</h2><button type="button" disabled={actions.busy(waiting.task.id)} onClick={()=>setWaiting(null)}>{t('tasks.flow.cancel')}</button></header><p>{waiting.task.title}</p>
       <label>{t('tasks.flow.waitingWho')}<input autoFocus required value={waiting.who} onChange={event=>setWaiting({...waiting,who:event.target.value})}/></label>
       <label>{t('tasks.flow.waitingDate')}<input type="date" required value={waiting.date} onChange={event=>setWaiting({...waiting,date:event.target.value})}/></label>

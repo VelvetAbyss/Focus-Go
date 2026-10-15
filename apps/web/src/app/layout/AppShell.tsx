@@ -19,6 +19,7 @@ import { useSharedNoise } from '../../features/focus/SharedNoiseProvider'
 import { findMatchingNoiseScenePreset } from '../../features/focus/noise'
 import { useAmbientPreferences } from '../../features/focus/ambientPreferences'
 import '../../shared/theme/ambient-theme.css'
+import { installInteractionSounds } from '../../shared/sound/interactionSounds'
 
 type AppShellProps = {
   children: ReactNode
@@ -65,6 +66,7 @@ const readShellScale = () => {
 
 
 const AppShell = ({ children }: AppShellProps) => {
+  useEffect(installInteractionSounds, [])
   const location = useLocation()
   const { noise } = useSharedNoise()
   const storedSidebarCollapsed = readSidebarCollapsed()

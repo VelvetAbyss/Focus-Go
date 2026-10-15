@@ -1,0 +1,30 @@
+[
+  {
+    "name": "mute persists after reload",
+    "result": "passed"
+  },
+  {
+    "name": "Enter enables",
+    "result": "passed"
+  },
+  {
+    "name": "desktop expanded",
+    "result": "{\"width\":158,\"height\":30.390625,\"contained\":true,\"label\":\"音效\",\"font\":true,\"size\":true,\"weight\":false,\"radius\":true,\"viewportOverflow\":false}"
+  },
+  {
+    "name": "dark expanded",
+    "result": "{\"width\":158,\"height\":30.390625,\"contained\":true,\"label\":\"音效\",\"font\":true,\"size\":true,\"weight\":false,\"radius\":true,\"viewportOverflow\":false}"
+  },
+  {
+    "name": "desktop collapsed",
+    "result": "{\"width\":33.59375,\"height\":33.59375,\"contained\":true,\"label\":\"\",\"font\":true,\"size\":true,\"weight\":false,\"radius\":true,\"viewportOverflow\":false}"
+  },
+  {
+    "name": "mobile expanded",
+    "result": "{\"width\":110.125,\"height\":28.796875,\"contained\":true,\"label\":\"\",\"font\":true,\"size\":true,\"weight\":false,\"radius\":true,\"viewportOverflow\":false}"
+  },
+  {
+    "name": "mobile collapsed",
+    "result": "{\"width\":85.75,\"height\":36,\"contained\":true,\"label\":\"\",\"font\":true,\"size\":true,\"weight\":false,\"radius\":true,\"viewportOverflow\":false}"
+  }
+]

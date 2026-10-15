@@ -5,7 +5,7 @@ import { usePageActivity, useVisibleInterval } from '../../shared/hooks/usePageA
 import { getPlatform } from '../../platform'
 import { t } from '../../shared/i18n/translator'
 import { readFocusCompletionSoundEnabled, readLanguage } from '../../shared/prefs/preferences'
-import { playChime } from '../../shared/utils/chime'
+import { playInteractionSound } from '../../shared/sound/interactionSounds'
 import { readFocusTaskId } from './focusTask'
 
 const FOCUS_TIMER_EVENT = 'focus:timer-updated'
@@ -48,7 +48,7 @@ const announceCompletion = (endsAt: number | undefined) => {
   // A session that ran out while the app was closed is just recorded, not announced late.
   if (endsAt && Date.now() - endsAt > 2 * 60 * 1000) return
   const language = readLanguage()
-  if (readFocusCompletionSoundEnabled()) playChime()
+  if (readFocusCompletionSoundEnabled()) playInteractionSound('finish')
   const body = t('focus.sessionComplete', language)
   const unseen = document.visibilityState !== 'visible' || !document.hasFocus()
   if (unseen && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
@@ -288,6 +288,7 @@ export const useSharedFocusTimer = ({ defaultDurationMinutes }: UseSharedFocusTi
     setSnapshot(next)
     await persistSnapshot(next)
     emitTimerUpdate()
+    playInteractionSound('start')
   }, [emitTimerUpdate, persistSnapshot])
 
   const pause = useCallback(async () => {
@@ -306,6 +307,7 @@ export const useSharedFocusTimer = ({ defaultDurationMinutes }: UseSharedFocusTi
     setSnapshot(next)
     await persistSnapshot(next)
     emitTimerUpdate()
+    playInteractionSound('pause')
   }, [emitTimerUpdate, persistSnapshot])
 
   const resume = useCallback(async () => {
@@ -337,6 +339,7 @@ export const useSharedFocusTimer = ({ defaultDurationMinutes }: UseSharedFocusTi
     setSnapshot(next)
     await persistSnapshot(next)
     emitTimerUpdate()
+    playInteractionSound(current.status === 'paused' ? 'resume' : 'start')
   }, [defaultDurationMinutes, emitTimerUpdate, persistSnapshot])
 
   const reset = useCallback(async () => {
@@ -348,6 +351,7 @@ export const useSharedFocusTimer = ({ defaultDurationMinutes }: UseSharedFocusTi
     setSnapshot(next)
     await persistSnapshot(next)
     emitTimerUpdate()
+    if (current.status !== 'idle') playInteractionSound('reset')
   }, [defaultDurationMinutes, emitTimerUpdate, persistSnapshot])
 
   const setDuration = useCallback(async (minutes: number) => {

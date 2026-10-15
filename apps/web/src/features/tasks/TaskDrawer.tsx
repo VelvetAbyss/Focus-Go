@@ -1,3 +1,4 @@
+import { playInteractionSound, playTaskStatusSound } from '../../shared/sound/interactionSounds'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useInRouterContext, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft, CalendarDays, Check, Clock3, ExternalLink, Flag, Link2, LoaderCircle, MoreHorizontal, Pin, Play, Plus, Repeat, RotateCcw, Send, Target, Trash2, X } from 'lucide-react'
@@ -552,6 +553,7 @@ const TaskDrawer = ({
       const updated = await tasksRepo.updateStatus(taskId, status)
       if (updated) {
         emitTasksChanged('task-drawer:update-status')
+        playTaskStatusSound(previousStatus, updated.status)
         onUpdated(updated)
         if (status === 'done' && previousStatus !== 'done') {
           toast.push({
@@ -564,6 +566,7 @@ const TaskDrawer = ({
                 void tasksRepo.updateStatus(taskId, previousStatus).then((reverted) => {
                   if (!reverted) return
                   emitTasksChanged('task-drawer:undo-complete')
+                  playInteractionSound('undo')
                   onUpdated(reverted)
                 })
               })

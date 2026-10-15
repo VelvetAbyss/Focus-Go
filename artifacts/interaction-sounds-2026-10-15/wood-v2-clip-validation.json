@@ -1,0 +1,242 @@
+[
+  {
+    "theme": "wood",
+    "clip": "tap-0",
+    "valid": true
+  },
+  {
+    "theme": "wood",
+    "clip": "tap-1",
+    "valid": true
+  },
+  {
+    "theme": "wood",
+    "clip": "tap-2",
+    "valid": true
+  },
+  {
+    "theme": "wood",
+    "clip": "tap-3",
+    "valid": true
+  },
+  {
+    "theme": "wood",
+    "clip": "tap-4",
+    "valid": true
+  },
+  {
+    "theme": "wood",
+    "clip": "tap-5",
+    "valid": true
+  },
+  {
+    "theme": "wood",
+    "clip": "on",
+    "valid": true
+  },
+  {
+    "theme": "wood",
+    "clip": "off",
+    "valid": true
+  },
+  {
+    "theme": "wood",
+    "clip": "create",
+    "valid": true
+  },
+  {
+    "theme": "wood",
+    "clip": "place",
+    "valid": true
+  },
+  {
+    "theme": "wood",
+    "clip": "complete",
+    "valid": true
+  },
+  {
+    "theme": "wood",
+    "clip": "undo",
+    "valid": true
+  },
+  {
+    "theme": "wood",
+    "clip": "remove",
+    "valid": true
+  },
+  {
+    "theme": "wood",
+    "clip": "start",
+    "valid": true
+  },
+  {
+    "theme": "wood",
+    "clip": "pause",
+    "valid": true
+  },
+  {
+    "theme": "wood",
+    "clip": "resume",
+    "valid": true
+  },
+  {
+    "theme": "wood",
+    "clip": "reset",
+    "valid": true
+  },
+  {
+    "theme": "wood",
+    "clip": "finish",
+    "valid": true
+  },
+  {
+    "theme": "grain",
+    "clip": "tap-0",
+    "valid": true
+  },
+  {
+    "theme": "grain",
+    "clip": "tap-1",
+    "valid": true
+  },
+  {
+    "theme": "grain",
+    "clip": "tap-2",
+    "valid": true
+  },
+  {
+    "theme": "grain",
+    "clip": "on",
+    "valid": true
+  },
+  {
+    "theme": "grain",
+    "clip": "off",
+    "valid": true
+  },
+  {
+    "theme": "grain",
+    "clip": "create",
+    "valid": true
+  },
+  {
+    "theme": "grain",
+    "clip": "place",
+    "valid": true
+  },
+  {
+    "theme": "grain",
+    "clip": "complete",
+    "valid": true
+  },
+  {
+    "theme": "grain",
+    "clip": "undo",
+    "valid": true
+  },
+  {
+    "theme": "grain",
+    "clip": "remove",
+    "valid": true
+  },
+  {
+    "theme": "grain",
+    "clip": "start",
+    "valid": true
+  },
+  {
+    "theme": "grain",
+    "clip": "pause",
+    "valid": true
+  },
+  {
+    "theme": "grain",
+    "clip": "resume",
+    "valid": true
+  },
+  {
+    "theme": "grain",
+    "clip": "reset",
+    "valid": true
+  },
+  {
+    "theme": "grain",
+    "clip": "finish",
+    "valid": true
+  },
+  {
+    "theme": "soft",
+    "clip": "tap-0",
+    "valid": true
+  },
+  {
+    "theme": "soft",
+    "clip": "tap-1",
+    "valid": true
+  },
+  {
+    "theme": "soft",
+    "clip": "tap-2",
+    "valid": true
+  },
+  {
+    "theme": "soft",
+    "clip": "on",
+    "valid": true
+  },
+  {
+    "theme": "soft",
+    "clip": "off",
+    "valid": true
+  },
+  {
+    "theme": "soft",
+    "clip": "create",
+    "valid": true
+  },
+  {
+    "theme": "soft",
+    "clip": "place",
+    "valid": true
+  },
+  {
+    "theme": "soft",
+    "clip": "complete",
+    "valid": true
+  },
+  {
+    "theme": "soft",
+    "clip": "undo",
+    "valid": true
+  },
+  {
+    "theme": "soft",
+    "clip": "remove",
+    "valid": true
+  },
+  {
+    "theme": "soft",
+    "clip": "start",
+    "valid": true
+  },
+  {
+    "theme": "soft",
+    "clip": "pause",
+    "valid": true
+  },
+  {
+    "theme": "soft",
+    "clip": "resume",
+    "valid": true
+  },
+  {
+    "theme": "soft",
+    "clip": "reset",
+    "valid": true
+  },
+  {
+    "theme": "soft",
+    "clip": "finish",
+    "valid": true
+  }
+]

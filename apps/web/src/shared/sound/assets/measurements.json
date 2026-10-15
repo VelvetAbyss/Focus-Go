@@ -1,0 +1,200 @@
+{
+  "wood": {
+    "tap-0": {
+      "peak_dbfs": -13.79,
+      "duration_ms": 240
+    },
+    "tap-1": {
+      "peak_dbfs": -13.83,
+      "duration_ms": 240
+    },
+    "tap-2": {
+      "peak_dbfs": -13.71,
+      "duration_ms": 240
+    },
+    "tap-3": {
+      "peak_dbfs": -13.69,
+      "duration_ms": 240
+    },
+    "tap-4": {
+      "peak_dbfs": -13.94,
+      "duration_ms": 240
+    },
+    "tap-5": {
+      "peak_dbfs": -13.98,
+      "duration_ms": 240
+    },
+    "on": {
+      "peak_dbfs": -13.88,
+      "duration_ms": 320
+    },
+    "off": {
+      "peak_dbfs": -13.68,
+      "duration_ms": 290
+    },
+    "create": {
+      "peak_dbfs": -12.9,
+      "duration_ms": 400
+    },
+    "place": {
+      "peak_dbfs": -13.99,
+      "duration_ms": 270
+    },
+    "complete": {
+      "peak_dbfs": -12.88,
+      "duration_ms": 595
+    },
+    "undo": {
+      "peak_dbfs": -13.3,
+      "duration_ms": 410
+    },
+    "remove": {
+      "peak_dbfs": -13.92,
+      "duration_ms": 270
+    },
+    "start": {
+      "peak_dbfs": -13.06,
+      "duration_ms": 455
+    },
+    "pause": {
+      "peak_dbfs": -13.94,
+      "duration_ms": 280
+    },
+    "resume": {
+      "peak_dbfs": -13.85,
+      "duration_ms": 350
+    },
+    "reset": {
+      "peak_dbfs": -13.33,
+      "duration_ms": 380
+    },
+    "finish": {
+      "peak_dbfs": -12.78,
+      "duration_ms": 730
+    }
+  },
+  "grain": {
+    "tap-0": {
+      "peak_dbfs": -13.49,
+      "duration_ms": 250
+    },
+    "tap-1": {
+      "peak_dbfs": -11.81,
+      "duration_ms": 250
+    },
+    "tap-2": {
+      "peak_dbfs": -12.29,
+      "duration_ms": 250
+    },
+    "on": {
+      "peak_dbfs": -12.51,
+      "duration_ms": 250
+    },
+    "off": {
+      "peak_dbfs": -11.82,
+      "duration_ms": 250
+    },
+    "create": {
+      "peak_dbfs": -11.85,
+      "duration_ms": 297
+    },
+    "place": {
+      "peak_dbfs": -13.89,
+      "duration_ms": 286
+    },
+    "complete": {
+      "peak_dbfs": -11.37,
+      "duration_ms": 315
+    },
+    "undo": {
+      "peak_dbfs": -12.8,
+      "duration_ms": 305
+    },
+    "remove": {
+      "peak_dbfs": -13.54,
+      "duration_ms": 292
+    },
+    "start": {
+      "peak_dbfs": -11.93,
+      "duration_ms": 326
+    },
+    "pause": {
+      "peak_dbfs": -12.24,
+      "duration_ms": 250
+    },
+    "resume": {
+      "peak_dbfs": -12.57,
+      "duration_ms": 297
+    },
+    "reset": {
+      "peak_dbfs": -11.37,
+      "duration_ms": 308
+    },
+    "finish": {
+      "peak_dbfs": -11.46,
+      "duration_ms": 435
+    }
+  },
+  "soft": {
+    "tap-0": {
+      "peak_dbfs": -14.08,
+      "duration_ms": 250
+    },
+    "tap-1": {
+      "peak_dbfs": -13.62,
+      "duration_ms": 250
+    },
+    "tap-2": {
+      "peak_dbfs": -13.7,
+      "duration_ms": 250
+    },
+    "on": {
+      "peak_dbfs": -13.77,
+      "duration_ms": 250
+    },
+    "off": {
+      "peak_dbfs": -14.01,
+      "duration_ms": 250
+    },
+    "create": {
+      "peak_dbfs": -13.2,
+      "duration_ms": 297
+    },
+    "place": {
+      "peak_dbfs": -13.96,
+      "duration_ms": 286
+    },
+    "complete": {
+      "peak_dbfs": -12.74,
+      "duration_ms": 315
+    },
+    "undo": {
+      "peak_dbfs": -13.94,
+      "duration_ms": 305
+    },
+    "remove": {
+      "peak_dbfs": -14.54,
+      "duration_ms": 292
+    },
+    "start": {
+      "peak_dbfs": -14.09,
+      "duration_ms": 326
+    },
+    "pause": {
+      "peak_dbfs": -13.33,
+      "duration_ms": 250
+    },
+    "resume": {
+      "peak_dbfs": -13.89,
+      "duration_ms": 297
+    },
+    "reset": {
+      "peak_dbfs": -13.75,
+      "duration_ms": 308
+    },
+    "finish": {
+      "peak_dbfs": -14.07,
+      "duration_ms": 435
+    }
+  }
+}

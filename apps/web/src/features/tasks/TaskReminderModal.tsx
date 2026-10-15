@@ -1,3 +1,4 @@
+import { playTaskStatusSound } from '../../shared/sound/interactionSounds'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AlarmClock, Check, ChevronDown } from 'lucide-react'
@@ -63,7 +64,8 @@ const TaskReminderModal = () => {
     if (busy) return
     setBusy(true)
     try {
-      await tasksRepo.updateStatus(head.taskId, 'done')
+      const updated = await tasksRepo.updateStatus(head.taskId, 'done')
+      if (updated) playTaskStatusSound(head.task.status, updated.status)
       emitTasksChanged('reminder-mark-done')
       dismiss()
     } catch (error) {
