@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Desk model inspection</title>
+    <style>
+      body {
+        margin: 0;
+        background: #fff;
+        color: #3a3733;
+        font: 14px system-ui;
+      }
+      header {
+        padding: 20px 28px;
+        display: flex;
+        gap: 20px;
+        align-items: center;
+      }
+      button {
+        background: transparent;
+        border: 1px solid #d6d0c5;
+        padding: 8px 16px;
+        border-radius: 6px;
+        color: inherit;
+        cursor: pointer;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        height: 840px;
+      }
+      #labels {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        position: absolute;
+        top: 326px;
+        width: 100%;
+        pointer-events: none;
+      }
+      #labels span {
+        text-align: center;
+        height: 280px;
+      }
+      small {
+        color: #77726b;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <strong>桌面物件 · 模型检查</strong><button id="angle">侧面 / 斜侧面</button><button id="theme">日 / 夜</button
+      ><button id="act">全部交互</button><small>实际模型 · 点击单个物件触发动作</small>
+    </header>
+    <canvas></canvas>
+    <div id="labels"></div>
+    <script type="module" src="./desk-models.ts"></script>
+  </body>
+</html>

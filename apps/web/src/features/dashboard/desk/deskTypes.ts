@@ -3,9 +3,9 @@
 import type { Rgb } from '../../../shared/three/surface'
 import type { LampPose } from './lampKinematics'
 
-export type DeskPropId = 'book' | 'laptop' | 'typewriter' | 'record' | 'coffee' | 'cola' | 'plant' | 'timer' | 'candle' | 'cat'
+export type DeskPropId = 'book' | 'laptop' | 'typewriter' | 'record' | 'coffee' | 'cola' | 'plant' | 'timer' | 'candle'
 
-export const DESK_PROPS: DeskPropId[] = ['book', 'laptop', 'typewriter', 'record', 'coffee', 'cola', 'plant', 'timer', 'candle', 'cat']
+export const DESK_PROPS: DeskPropId[] = ['book', 'laptop', 'typewriter', 'record', 'coffee', 'cola', 'plant', 'timer', 'candle']
 
 /**
  * One thing on the desk. `x` is in world units from the middle of the

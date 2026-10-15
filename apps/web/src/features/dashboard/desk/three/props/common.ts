@@ -30,6 +30,8 @@ export type DeskProp = {
   frame: (env: PropEnv) => void
   /** A light it gives off (the candle), for the paper around it. */
   emitter?: () => { position: Vector3; strength: number } | null
+  /** Wall-clock changes still need occasional redraws with reduced motion. */
+  needsTick?: () => boolean
   dispose?: () => void
 }
 

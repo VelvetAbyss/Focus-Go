@@ -18,8 +18,8 @@ describe('desk settings', () => {
       lampX: -0.5,
       pose: { a1: 0.1, a2: 1.5, a3: -1.2 },
       items: [
-        { id: 'a', kind: 'cat', x: -4.2 },
-        { id: 'b', kind: 'cat', x: 3.1 },
+        { id: 'a', kind: 'plant', x: -4.2 },
+        { id: 'b', kind: 'plant', x: 3.1 },
         { id: 'c', kind: 'timer', x: 1.2, endsAt: 1_800_000_000_000 },
         { id: 'd', kind: 'record', x: 0 },
       ],
@@ -30,11 +30,11 @@ describe('desk settings', () => {
   })
 
   it('stands the props of the desk with fixed places where those places were', () => {
-    const stored = { lampOn: true, slots: { center: 'record', left: 'timer', side: 'cat' }, timerEndsAt: 1_800_000_000_000 }
+    const stored = { lampOn: true, slots: { center: 'record', left: 'timer', side: 'plant' }, timerEndsAt: 1_800_000_000_000 }
     expect(parseDeskSettings(JSON.stringify(stored))).toMatchObject({
       lampOn: true,
       items: [
-        { kind: 'cat', x: -3.3 },
+        { kind: 'plant', x: -3.3 },
         { kind: 'timer', x: -1.8, endsAt: 1_800_000_000_000 },
         { kind: 'record', x: 0 },
       ],
@@ -48,16 +48,41 @@ describe('desk settings', () => {
     expect(parseDeskSettings(JSON.stringify({ items: [] })).items).toEqual([])
   })
 
+  it('removes all retired cats from storage while preserving other props and settings', () => {
+    const retained: DeskSettings = {
+      lampOn: true, lampX: -1, pose: { a1: 0.1, a2: 1.5, a3: -1.2 }, note: true,
+      items: [
+        { id: 'timer', kind: 'timer', x: 2, endsAt: 1_800_000_000_000 },
+        { id: 'book', kind: 'book', x: -2 },
+      ],
+    }
+    const items = [{ id: 'cat-a', kind: 'cat', x: 0 }, ...retained.items, { id: 'cat-b', kind: 'cat', x: 3 }]
+    window.localStorage.setItem(DESK_STORAGE_KEY, JSON.stringify({ ...retained, items }))
+    expect(readDeskSettings()).toEqual(retained)
+    expect(JSON.parse(window.localStorage.getItem(DESK_STORAGE_KEY)!)).toEqual(retained)
+    expect(parseDeskSettings(JSON.stringify({ items: [{ id: 'cat', kind: 'cat', x: 0 }] })).items).toEqual([])
+  })
+
+  it.each(['center', 'left', 'side'])('removes a retired cat from the legacy %s place without replacing it', (slot) => {
+    const slots = { center: 'book', left: 'timer', side: 'plant', [slot]: 'cat' }
+    window.localStorage.setItem(DESK_STORAGE_KEY, JSON.stringify({ slots, timerEndsAt: 1_800_000_000_000 }))
+    const settings = readDeskSettings()
+    expect(settings.items).toHaveLength(2)
+    expect(settings.items.some(item => item.id === slot)).toBe(false)
+    if (slot !== 'left') expect(settings.items.find(item => item.kind === 'timer')?.endsAt).toBe(1_800_000_000_000)
+    expect(JSON.parse(window.localStorage.getItem(DESK_STORAGE_KEY)!)).toEqual(settings)
+  })
+
   it('drops damaged props and falls back field by field', () => {
     expect(parseDeskSettings('{not json')).toEqual(DEFAULT_DESK)
     expect(parseDeskSettings(JSON.stringify({ lampOn: 'yes', lampX: 'left', pose: { a1: 'x' } }))).toEqual(DEFAULT_DESK)
     const items = [
       { id: 'a', kind: 'tea', x: 0 },
-      { id: 'b', kind: 'cat', x: Number.POSITIVE_INFINITY },
-      { id: 'c', kind: 'cat', x: 1, endsAt: 5 },
+      { id: 'b', kind: 'plant', x: Number.POSITIVE_INFINITY },
+      { id: 'c', kind: 'plant', x: 1, endsAt: 5 },
       { id: 'c', kind: 'book', x: 2 },
       { kind: 'book', x: 2 },
     ]
-    expect(parseDeskSettings(JSON.stringify({ items })).items).toEqual([{ id: 'c', kind: 'cat', x: 1 }])
+    expect(parseDeskSettings(JSON.stringify({ items })).items).toEqual([{ id: 'c', kind: 'plant', x: 1 }])
   })
 })

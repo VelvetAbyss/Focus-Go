@@ -23,7 +23,7 @@ describe('lampFrame', () => {
   it('puts the default shade over the book, pointing down at the task card', () => {
     const frame = lampFrame(DEFAULT_POSE)
     expect(frame.head[0]).toBeGreaterThan(0)
-    expect(frame.head[0]).toBeLessThan(0.6)
+    expect(frame.head[0]).toBeLessThan(0.8)
     expect(frame.head[1]).toBeGreaterThan(1)
     // Nearly straight down, leaning a touch toward the book's middle.
     expect(Math.abs(frame.angle)).toBeLessThan(0.2)
@@ -115,17 +115,19 @@ describe('deskFloor', () => {
   it('follows whatever stands where', () => {
     const book = deskFloor([{ kind: 'book', x: 0 }, { kind: 'plant', x: -3.3 }], LAMP_X)
     const record = deskFloor([{ kind: 'record', x: 0 }, { kind: 'plant', x: -3.3 }], LAMP_X)
-    expect(book(0)).toBeLessThan(record(0))
+    // A real page needs room above the book while it turns.
+    expect(book(0)).toBeGreaterThan(record(0))
     expect(book(-3.3)).toBe(record(-3.3))
     // The lamp's own base counts too.
     expect(book(LAMP_X)).toBeGreaterThan(book(-2.5))
   })
 
-  it('makes a lamp lowered over the book too low for a taller prop', () => {
+  it('keeps the lamp above the whole page-turn envelope', () => {
     const low = { ...DEFAULT_POSE, a2: 2.0 }
     const book = deskFloor([{ kind: 'book', x: 0 }], LAMP_X)
     const record = deskFloor([{ kind: 'record', x: 0 }], LAMP_X)
-    expect(isPoseValid(low, bounds, book)).toBe(true)
+    expect(isPoseValid(low, bounds, deskFloor([{ kind: 'coffee', x: 0 }], LAMP_X))).toBe(true)
+    expect(isPoseValid(low, bounds, book)).toBe(false)
     expect(isPoseValid(low, bounds, record)).toBe(false)
     // At rest over the book there's room for any prop with a little lift.
     expect(isPoseValid(DEFAULT_POSE, bounds, book)).toBe(true)

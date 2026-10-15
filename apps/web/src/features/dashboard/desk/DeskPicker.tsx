@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react'
-import { BookOpen, Cat, Coffee, CupSoda, Disc3, Flame, Keyboard, Laptop, Plus, Sprout, StickyNote, Timer, X } from 'lucide-react'
+import { BookOpen, Coffee, CupSoda, Disc3, Flame, Keyboard, Laptop, Plus, Sprout, StickyNote, Timer, X } from 'lucide-react'
 import { useI18n } from '../../../shared/i18n/useI18n'
 import type { TranslationKey } from '../../../shared/i18n/types'
 import { DESK_PROPS, type DeskItem, type DeskPropId } from './deskTypes'
@@ -14,7 +14,6 @@ const ICONS: Record<DeskPropId, ComponentType<{ size?: number; 'aria-hidden'?: b
   plant: Sprout,
   timer: Timer,
   candle: Flame,
-  cat: Cat,
 }
 
 type Props = {
@@ -100,6 +99,7 @@ const DeskPicker = ({ items, note, onAdd, onRemove, onClear, onNote, onHighlight
         </div>
       </div>
       <p className="desk-picker__hint">{t('dashboard.desk.hint')}</p>
+      <a className="desk-picker__hint" href="/licenses/desk-models.txt" target="_blank" rel="noreferrer">{t('dashboard.desk.credits')}</a>
     </div>
   )
 }

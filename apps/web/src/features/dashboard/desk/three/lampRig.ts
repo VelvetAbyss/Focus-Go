@@ -2,6 +2,7 @@ import {
   AdditiveBlending,
   BoxGeometry,
   BufferGeometry,
+  BufferAttribute,
   CanvasTexture,
   CircleGeometry,
   Color,
@@ -12,7 +13,6 @@ import {
   MeshBasicMaterial,
   NormalBlending,
   type Object3D,
-  PlaneGeometry,
   SRGBColorSpace,
   SphereGeometry,
   Sprite,
@@ -21,8 +21,9 @@ import {
 import type { Rgb } from '../../../../shared/three/surface'
 import { LAMP_X } from '../deskLayout'
 import type { DeskColors } from '../deskTypes'
-import { LAMP_RIG, type LampHandle } from '../lampKinematics'
-import { DETAIL, LINE, dashedCircle, segmentsOf, type Kit } from './kit'
+import { LAMP_RIG, LAMP_SHADE_PROFILE, type LampHandle } from '../lampKinematics'
+import { DETAIL, circle, dashedCircle, segmentsOf, type Kit } from './kit'
+import { roundedBox } from './props/modeling'
 
 /**
  * The balanced-arm lamp: base and switch, two sprung arms, the shade and its
@@ -59,57 +60,94 @@ export const buildLampRig = (kit: Kit) => {
   const root = new Group()
   root.userData.kind = 'lamp'
   root.position.set(LAMP_X, 0, -0.2)
-  root.add(kit.hull(kit.edges(kit.solid(kit.lathe([[0, 0], [0.36, 0], [0.37, 0.03], [0.3, 0.085], [0.12, 0.11], [0, 0.11]])), LINE, 25)))
+  const base = kit.hull(kit.solid(roundedBox(0.74, 0.09, 0.62, 0.025)))
+  base.position.y = 0.045
+  root.add(base)
+  const plinth = kit.hull(kit.solid(roundedBox(0.55, 0.035, 0.44, 0.018)), DETAIL)
+  plinth.position.y = 0.1075
+  root.add(plinth)
   const switchMaterial = kit.fill('paper')
   const lampSwitch = kit.edges(new Mesh(new CylinderGeometry(0.05, 0.05, 0.03, 24), switchMaterial), DETAIL)
   lampSwitch.position.set(-0.22, 0.075, 0)
   root.add(lampSwitch)
 
-  const joint = (radius: number) => kit.hull(kit.solid(new SphereGeometry(radius, 20, 14)), LINE * 0.9)
-  const rod = (length: number) => {
-    const geometry = new CylinderGeometry(0.03, 0.03, length, 12)
-    geometry.translate(0, length / 2, 0)
-    return kit.hull(kit.solid(geometry), LINE * 0.9)
+  const joint = (radius: number) => {
+    const geometry = new CylinderGeometry(radius, radius, 0.09, 32)
+    geometry.rotateX(Math.PI / 2)
+    const axle = kit.hull(kit.edges(kit.solid(geometry), DETAIL), DETAIL)
+    const screw = kit.segments([-radius * 0.45, 0, 0.047, radius * 0.45, 0, 0.047], 0.8, 'ink3')
+    axle.add(screw)
+    return axle
   }
+  const arm = (length: number) => {
+    const frame = new Group()
+    for (const x of [-0.055, 0.055]) {
+      const rail = kit.hull(kit.solid(roundedBox(0.028, length, 0.035, 0.008)), 0.8)
+      rail.position.set(x, length / 2, 0)
+      frame.add(rail)
+    }
+    for (const y of [0, length]) {
+      const end = kit.hull(kit.solid(roundedBox(0.15, 0.045, 0.055, 0.015)), 0.8)
+      end.position.y = y
+      frame.add(end)
+    }
+    return frame
+  }
+  // The tension springs are anchored between a lower crosshead and an upper
+  // crosshead on the parallel arm, rather than floating alongside a single rod.
   const spring = (length: number, side: number) => {
     const points: [number, number, number][] = []
-    const y0 = 0.16
-    const y1 = length * 0.6
-    for (let i = 0; i <= 160; i += 1) {
-      const s = i / 160
-      const a = s * 16 * Math.PI * 2
-      points.push([side * 0.075 + Math.cos(a) * 0.02, y0 + s * (y1 - y0), Math.sin(a) * 0.02])
+    const y0 = 0.14,
+      y1 = Math.min(0.69, length * 0.48)
+    for (let i = 0; i <= 112; i++) {
+      const s = i / 112,
+        a = s * 12 * Math.PI * 2
+      points.push([side * (0.13 - 0.065 * s) + Math.cos(a) * 0.022, y0 + s * (y1 - y0), 0.025 + Math.sin(a) * 0.022])
     }
     const out = segmentsOf(points)
-    out.push(side * 0.03, y0, 0, side * 0.075, y0, 0, side * 0.03, y1, 0, side * 0.075, y1, 0)
-    return kit.segments(out, DETAIL * 0.8, 'ink3')
+    out.push(side * 0.055, y0, 0.025, side * 0.15, y0, 0.025, side * 0.055, y1, 0.025, side * 0.087, y1, 0.025)
+    return kit.segments(out, 0.8, 'ink3')
   }
   const [shoulderX, shoulderY] = LAMP_RIG.shoulder
   const shoulder = new Group()
   shoulder.position.set(shoulderX - LAMP_X, shoulderY, 0)
   root.add(shoulder)
-  shoulder.add(joint(0.055), rod(LAMP_RIG.lowerArm), spring(LAMP_RIG.lowerArm, -1))
+  shoulder.add(joint(0.07), arm(LAMP_RIG.lowerArm), spring(LAMP_RIG.lowerArm, -1), spring(LAMP_RIG.lowerArm, 1))
   const elbow = new Group()
   elbow.position.y = LAMP_RIG.lowerArm
   shoulder.add(elbow)
-  elbow.add(joint(0.05), rod(LAMP_RIG.upperArm), spring(LAMP_RIG.upperArm, 1))
+  elbow.add(joint(0.065), arm(LAMP_RIG.upperArm))
   const head = new Group()
   head.position.y = LAMP_RIG.upperArm
   head.rotation.order = 'ZYX'
   elbow.add(head)
   head.add(joint(0.045))
-  head.add(kit.hull(kit.edges(kit.solid(kit.lathe([[0.06, 0], [0.09, -0.03], [0.14, -0.1], [0.22, -0.23], [0.29, -0.36], [0.305, -LAMP_RIG.mouth]]), 'paper', { side: DoubleSide, inner: true }), LINE, 25)))
+  // A closed shell with thickness: the outside winds upwards, the inner wall
+  // back down. The rim and the light origin share LAMP_RIG.mouth.
+  const shade = kit.hull(kit.solid(kit.lathe(LAMP_SHADE_PROFILE)))
+  shade.name = 'lamp-shade'
+  head.add(shade)
+  head.add(kit.segments(circle(LAMP_RIG.mouthRadius, -LAMP_RIG.mouth), DETAIL))
+  const socket = kit.hull(kit.solid(new CylinderGeometry(0.045, 0.045, 0.16, 24)), DETAIL)
+  socket.position.y = -0.3
+  head.add(socket)
   const cap = kit.edges(kit.solid(new CircleGeometry(0.06, 24)), DETAIL)
   cap.rotation.x = -Math.PI / 2
   head.add(cap)
   const bulb = kit.hull(kit.solid(new SphereGeometry(0.09, 20, 14), 'paper', { glow: 'bulb' }), DETAIL * 0.9)
-  bulb.position.y = -0.27
+  bulb.position.y = -0.47
   head.add(bulb)
   const haloTexture = glowTexture()
-  const haloMaterial = new SpriteMaterial({ map: haloTexture, color: new Color('#ffcf8a'), transparent: true, opacity: 0, depthWrite: false })
+  const haloMaterial = new SpriteMaterial({
+    map: haloTexture,
+    color: new Color('#ffcf8a'),
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+  })
   const halo = new Sprite(haloMaterial)
   halo.scale.set(0.85, 0.85, 1)
-  halo.position.y = -0.42
+  halo.position.y = -0.66
   halo.renderOrder = 6
   head.add(halo)
 
@@ -131,7 +169,7 @@ export const buildLampRig = (kit: Kit) => {
   proxy(upperTarget, 'head', elbow, 1)
   proxy(new SphereGeometry(0.17, 12, 8), 'elbow', elbow, 3)
   proxy(new SphereGeometry(0.17, 12, 8), 'head', head, 3)
-  proxy(new SphereGeometry(0.3, 12, 8), 'shade', head, 2).position.y = -0.24
+  proxy(new SphereGeometry(0.3, 12, 8), 'shade', head, 2).position.y = -0.43
   proxy(new BoxGeometry(0.9, 0.26, 0.9), 'base', root, 1).position.y = 0.1
 
   // Pencil hints: dashed rings on the hinges, a dashed arc for turning the shade.
@@ -140,10 +178,11 @@ export const buildLampRig = (kit: Kit) => {
   const arcPositions = new Float32Array(7 * 3 * 6)
   const shadeArc = kit.segments(arcPositions, DETAIL, 'pencil')
   // Pencil chevrons either side of the base: it slides along the desk.
-  const baseArrows = kit.segments([
-    -0.56, 0.16, 0, -0.66, 0.09, 0, -0.66, 0.09, 0, -0.56, 0.02, 0,
-    0.56, 0.16, 0, 0.66, 0.09, 0, 0.66, 0.09, 0, 0.56, 0.02, 0,
-  ], DETAIL, 'pencil')
+  const baseArrows = kit.segments(
+    [-0.56, 0.16, 0, -0.66, 0.09, 0, -0.66, 0.09, 0, -0.56, 0.02, 0, 0.56, 0.16, 0, 0.66, 0.09, 0, 0.66, 0.09, 0, 0.56, 0.02, 0],
+    DETAIL,
+    'pencil',
+  )
   for (const hint of [elbowRing, headRing, shadeArc, baseArrows]) {
     hint.material.transparent = true
     hint.material.opacity = 0
@@ -163,21 +202,84 @@ export const buildLampRig = (kit: Kit) => {
   note.rotation.z = 0.12
   note.visible = false
   shoulder.add(note)
-  const noteFace = new Mesh(new PlaneGeometry(NOTE_SIZE, NOTE_SIZE), new MeshBasicMaterial({ map: noteTexture, side: DoubleSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 }))
-  noteFace.position.y = -NOTE_SIZE / 2
+  const h = NOTE_SIZE / 2
+  const noteGeometry = new BufferGeometry()
+  noteGeometry.setAttribute(
+    'position',
+    new BufferAttribute(new Float32Array([-h, 0, 0, h, 0, 0, h, -NOTE_SIZE + 0.07, 0, h - 0.07, -NOTE_SIZE, 0, -h, -NOTE_SIZE, 0]), 3),
+  )
+  noteGeometry.setAttribute(
+    'uv',
+    new BufferAttribute(new Float32Array([0, 1, 1, 1, 1, 0.07 / NOTE_SIZE, 1 - 0.07 / NOTE_SIZE, 0, 0, 0]), 2),
+  )
+  noteGeometry.setIndex([0, 2, 1, 0, 3, 2, 0, 4, 3])
+  noteGeometry.computeVertexNormals()
+  const noteFace = new Mesh(
+    noteGeometry,
+    new MeshBasicMaterial({ map: noteTexture, side: DoubleSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 }),
+  )
   note.add(noteFace)
   const half = NOTE_SIZE / 2
-  note.add(kit.segments([
-    -half, 0, 0.002, half, 0, 0.002,
-    half, 0, 0.002, half, -NOTE_SIZE + 0.07, 0.002,
-    half, -NOTE_SIZE + 0.07, 0.002, half - 0.07, -NOTE_SIZE, 0.002,
-    half - 0.07, -NOTE_SIZE, 0.002, -half, -NOTE_SIZE, 0.002,
-    -half, -NOTE_SIZE, 0.002, -half, 0, 0.002,
-    half, -NOTE_SIZE + 0.07, 0.002, half - 0.06, -NOTE_SIZE + 0.06, 0.002,
-    half - 0.06, -NOTE_SIZE + 0.06, 0.002, half - 0.07, -NOTE_SIZE, 0.002,
-  ], DETAIL))
+  note.add(
+    kit.segments(
+      [
+        -half,
+        0,
+        0.002,
+        half,
+        0,
+        0.002,
+        half,
+        0,
+        0.002,
+        half,
+        -NOTE_SIZE + 0.07,
+        0.002,
+        half,
+        -NOTE_SIZE + 0.07,
+        0.002,
+        half - 0.07,
+        -NOTE_SIZE,
+        0.002,
+        half - 0.07,
+        -NOTE_SIZE,
+        0.002,
+        -half,
+        -NOTE_SIZE,
+        0.002,
+        -half,
+        -NOTE_SIZE,
+        0.002,
+        -half,
+        0,
+        0.002,
+        half,
+        -NOTE_SIZE + 0.07,
+        0.002,
+        half - 0.06,
+        -NOTE_SIZE + 0.06,
+        0.002,
+        half - 0.06,
+        -NOTE_SIZE + 0.06,
+        0.002,
+        half - 0.07,
+        -NOTE_SIZE,
+        0.002,
+      ],
+      DETAIL,
+    ),
+  )
   // A strip of tape at the top.
-  note.add(kit.segments([-0.07, 0.025, 0.003, 0.07, 0.025, 0.003, 0.07, 0.025, 0.003, 0.07, -0.02, 0.003, 0.07, -0.02, 0.003, -0.07, -0.02, 0.003, -0.07, -0.02, 0.003, -0.07, 0.025, 0.003], DETAIL * 0.8, 'pencil'))
+  note.add(
+    kit.segments(
+      [
+        -0.07, 0.025, 0.003, 0.07, 0.025, 0.003, 0.07, 0.025, 0.003, 0.07, -0.02, 0.003, 0.07, -0.02, 0.003, -0.07, -0.02, 0.003, -0.07,
+        -0.02, 0.003, -0.07, 0.025, 0.003,
+      ],
+      DETAIL * 0.8,
+      'pencil',
+    ),
+  )
 
   let noteKey = ''
   const drawNote = (text: string, colors: DeskColors) => {

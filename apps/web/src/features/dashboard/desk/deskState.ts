@@ -61,11 +61,13 @@ const parseItems = (value: unknown): DeskItem[] | null => {
  */
 const fromPlaces = (value: Record<string, unknown>): DeskItem[] | null => {
   const slots = value.slots && typeof value.slots === 'object' ? (value.slots as Record<string, unknown>) : null
-  if (!slots && !isProp(value.item) && !isProp(value.drink)) return null
+  if (!slots && !isProp(value.item) && !isProp(value.drink) && value.item !== 'cat' && value.drink !== 'cat') return null
   const place = slots ?? {}
-  const center = isProp(place.center) ? place.center : isProp(value.item) ? value.item : 'book'
-  const left = isProp(place.left) ? place.left : isProp(value.drink) ? value.drink : 'coffee'
-  const side = isProp(place.side) ? place.side : place.side === 'none' ? null : 'plant'
+  const centerValue = place.center ?? value.item
+  const leftValue = place.left ?? value.drink
+  const center = centerValue === 'cat' ? null : isProp(centerValue) ? centerValue : 'book'
+  const left = leftValue === 'cat' ? null : isProp(leftValue) ? leftValue : 'coffee'
+  const side = place.side === 'cat' || place.side === 'none' ? null : isProp(place.side) ? place.side : 'plant'
   const places: [string, DeskPropId | null, number][] = [['side', side, -3.3], ['left', left, -1.8], ['center', center, 0]]
   const items: DeskItem[] = []
   let endsAt = isTime(value.timerEndsAt) ? value.timerEndsAt : null
@@ -98,7 +100,17 @@ export const parseDeskSettings = (raw: string | null): DeskSettings => {
 
 export const readDeskSettings = (): DeskSettings => {
   try {
-    return parseDeskSettings(window.localStorage.getItem(DESK_STORAGE_KEY))
+    const raw = window.localStorage.getItem(DESK_STORAGE_KEY)
+    const settings = parseDeskSettings(raw)
+    const value = raw ? JSON.parse(raw) as Record<string, unknown> | null : null
+    if (value && typeof value === 'object') {
+      const hasCat = Array.isArray(value.items) && value.items.some(item => item?.kind === 'cat')
+      const hadCat = value.item === 'cat' || value.drink === 'cat'
+        || (value.slots && typeof value.slots === 'object' && Object.values(value.slots).includes('cat'))
+      // Persist the migration so removed props do not reappear on a later visit.
+      if (hasCat || hadCat) writeDeskSettings(settings)
+    }
+    return settings
   } catch {
     return DEFAULT_DESK
   }

@@ -1,151 +1,222 @@
-import { BoxGeometry, CircleGeometry, CylinderGeometry, DoubleSide, ExtrudeGeometry, Group, type Mesh, PlaneGeometry, Shape } from 'three'
-import { DETAIL, LINE, clamp01, easeInOut, rectangle, ring, step, type Spring } from '../kit'
+import { staticSource } from '../sourceModels'
+import {
+  BufferAttribute,
+  BufferGeometry,
+  CircleGeometry,
+  CylinderGeometry,
+  DoubleSide,
+  ExtrudeGeometry,
+  Group,
+  type Mesh,
+  PlaneGeometry,
+  Shape,
+} from 'three'
+import { DETAIL, easeInOut, rectangle, ring, step, type Spring } from '../kit'
 import type { DeskProp, PropEnv, PropOptions } from './common'
+import { roundedBox, rodBetween } from './modeling'
 
 // The wide props (book, laptop, typewriter, record player). Each is seen
 // exactly side on, or turned a little where its face matters (laptop, typewriter).
 
-const BOOK = { pageWidth: 0.95, segments: 24, spineLift: 0.75, gutter: 0.062, board: 0.04, depth: 1.3 }
+const BOOK = { width: 0.89, depth: 1.12, segments: 32, gutter: 0.1 }
 
-/** An open book seen end on: two page blocks rising from the gutter. A page
- *  turns every so often, or on a click; its corner lifts on hover. */
+/** A sewn spine, two independent boards, page blocks and a deforming 3D leaf. */
 export const buildBook = ({ kit }: PropOptions): DeskProp => {
   const root = new Group()
-  const restAngle = (u: number) => BOOK.spineLift * (1 - u) * (1 - u) - 0.03
-  const pageTop: [number, number][] = [[0, BOOK.gutter]]
-  {
-    let x = 0
-    let y = BOOK.gutter
-    for (let k = 0; k < BOOK.segments; k += 1) {
-      const a = restAngle((k + 0.5) / BOOK.segments)
-      x += (Math.cos(a) * BOOK.pageWidth) / BOOK.segments
-      y += (Math.sin(a) * BOOK.pageWidth) / BOOK.segments
-      pageTop.push([x, y])
-    }
-  }
-  const [foreX, foreY] = pageTop[BOOK.segments]
-  const boards = kit.edges(kit.solid(new BoxGeometry(2 * foreX + 0.12, BOOK.board, BOOK.depth + 0.08)), DETAIL)
-  boards.position.y = BOOK.board / 2
-  root.add(boards)
-  for (const side of [1, -1]) {
+  const profile = (u: number) => BOOK.gutter + 0.11 * Math.sin(u * Math.PI) - 0.035 * u
+  for (const side of [-1, 1]) {
+    const cover = kit.hull(kit.solid(roundedBox(0.94, 0.035, 1.2, 0.012)), DETAIL)
+    cover.position.set(side * 0.47, 0.0175, 0)
+    root.add(cover)
     const shape = new Shape()
-    shape.moveTo(0, BOOK.board)
-    shape.lineTo(0, BOOK.gutter)
-    for (let i = 1; i <= BOOK.segments; i += 1) shape.lineTo(side * pageTop[i][0], pageTop[i][1])
-    shape.quadraticCurveTo(side * (foreX + 0.035), (foreY + BOOK.board) / 2, side * foreX, BOOK.board)
-    const geometry = new ExtrudeGeometry(shape, { depth: BOOK.depth, bevelEnabled: false, curveSegments: 8 })
+    shape.moveTo(0, 0.048)
+    shape.lineTo(0, profile(0))
+    for (let i = 1; i <= BOOK.segments; i++) shape.lineTo((side * BOOK.width * i) / BOOK.segments, profile(i / BOOK.segments))
+    shape.lineTo(side * BOOK.width, 0.048)
+    shape.closePath()
+    const geometry = new ExtrudeGeometry(shape, { depth: BOOK.depth, bevelEnabled: false })
     geometry.translate(0, 0, -BOOK.depth / 2)
     root.add(kit.edges(kit.solid(geometry)))
     const fan: number[] = []
-    for (const t of [0.3, 0.55, 0.78]) {
-      for (let k = 1; k < BOOK.segments - 1; k += 1) {
-        const [x0, y0] = pageTop[k]
-        const [x1, y1] = pageTop[k + 1]
-        const z = BOOK.depth / 2 + 0.003
-        fan.push(side * x0, y0 - t * (y0 - BOOK.board), z, side * x1, y1 - t * (y1 - BOOK.board), z)
+    for (const fraction of [0.24, 0.48, 0.72])
+      for (let i = 0; i < BOOK.segments; i++) {
+        const u = i / BOOK.segments,
+          v = (i + 1) / BOOK.segments
+        for (const z of [-BOOK.depth / 2 - 0.002, BOOK.depth / 2 + 0.002])
+          fan.push(
+            side * u * BOOK.width,
+            0.048 + (profile(u) - 0.048) * fraction,
+            z,
+            side * v * BOOK.width,
+            0.048 + (profile(v) - 0.048) * fraction,
+            z,
+          )
       }
-    }
-    root.add(kit.segments(fan, DETAIL * 0.85, 'ink4'))
+    root.add(kit.segments(fan, 0.8, 'ink4'))
   }
-  // The turning page, edge on: one ink curve, its free edge leading.
-  const pagePositions = new Float32Array(BOOK.segments * 6)
-  const page = kit.segments(pagePositions, LINE)
+  root.add(kit.segments([0, 0.048, 0.602, 0, 0.096, 0.562], DETAIL, 'ink3'))
+  // A real two-sided sheet, with shared front/back edge samples. No per-frame allocation.
+  const vertices = new Float32Array((BOOK.segments + 1) * 2 * 3)
+  const indices: number[] = []
+  for (let i = 0; i < BOOK.segments; i++) {
+    const j = i * 2
+    indices.push(j, j + 1, j + 2, j + 1, j + 3, j + 2)
+  }
+  const geometry = new BufferGeometry()
+  geometry.setAttribute('position', new BufferAttribute(vertices, 3))
+  geometry.setIndex(indices)
+  const sheet = kit.solid(geometry, 'paper', { side: DoubleSide })
+  sheet.name = 'turning-page'
+  sheet.frustumCulled = false
+  const outline = new Float32Array((BOOK.segments * 2 + 2) * 6)
+  const edge = kit.segments(outline, DETAIL)
+  const page = new Group()
+  page.add(sheet, edge)
   page.visible = false
   root.add(page)
   const setPage = (progress: number, peek: number) => {
-    let x = 0
-    let y = BOOK.gutter + 0.004
-    const z = BOOK.depth / 2 + 0.006
-    for (let k = 0; k < BOOK.segments; k += 1) {
-      const u = (k + 0.5) / BOOK.segments
-      const rest = restAngle(u)
-      const a = peek ? rest + peek * u * u * 2.2 : rest + (Math.PI - 2 * rest) * easeInOut(clamp01(progress * 1.45 - (1 - u) * 0.45))
-      const nx = x + (Math.cos(a) * BOOK.pageWidth) / BOOK.segments
-      const ny = y + (Math.sin(a) * BOOK.pageWidth) / BOOK.segments
-      pagePositions.set([x, y, z, nx, ny, z], k * 6)
-      x = nx
-      y = ny
+    const angle = Math.PI * easeInOut(progress)
+    for (let i = 0; i <= BOOK.segments; i++) {
+      const u = i / BOOK.segments,
+        r = u * BOOK.width
+      const curl = Math.sin(Math.PI * progress) * Math.sin(Math.PI * u) * 0.12
+      const x = Math.cos(angle) * r
+      const y = profile(u) + 0.004 + Math.sin(angle) * r + curl + peek * u * u
+      vertices.set([x, y, -BOOK.depth / 2, x, y, BOOK.depth / 2], i * 6)
     }
-    kit.markDirty(page)
+    let n = 0
+    for (let i = 0; i < BOOK.segments; i++)
+      for (let side = 0; side < 2; side++) {
+        outline.set(vertices.subarray(i * 6 + side * 3, i * 6 + side * 3 + 3), n)
+        n += 3
+        outline.set(vertices.subarray((i + 1) * 6 + side * 3, (i + 1) * 6 + side * 3 + 3), n)
+        n += 3
+      }
+    for (const i of [0, BOOK.segments]) {
+      outline.set(vertices.subarray(i * 6, i * 6 + 6), n)
+      n += 6
+    }
+    geometry.attributes.position.needsUpdate = true
+    geometry.computeBoundingSphere()
+    kit.markDirty(edge)
   }
-
-  let flip = -1
-  let nextFlip = 9 + Math.random() * 6
+  let flip = -1,
+    nextFlip = 12,
+    requested = false
   const peek: Spring = { x: 0, v: 0 }
   return {
     root,
     click() {
-      if (flip < 0) flip = 0
+      requested = true
     },
     frame(env: PropEnv) {
+      if (requested) {
+        requested = false
+        if (!env.still && flip < 0) flip = 0
+      }
       if (flip >= 0) {
-        flip += env.still ? 1 : env.dt / 1.2
+        flip += env.still ? 1 : env.dt / 1.15
         if (flip >= 1) {
           flip = -1
+          nextFlip = env.t + 12
           page.visible = false
-          nextFlip = env.t + 9 + Math.random() * 6
         } else {
           page.visible = true
           setPage(flip, 0)
         }
         return
       }
-      const target = env.hovered ? 0.12 : 0
-      if (env.still) peek.x = target
-      else step(peek, target, 90, 14, env.dt)
-      page.visible = peek.x > 0.006
+      const target = env.hovered && !env.still ? 0.055 : 0
+      if (env.still) {
+        peek.x = target
+        peek.v = 0
+      } else step(peek, target, 90, 16, env.dt)
+      page.visible = peek.x > 0.001
       if (page.visible) setPage(0, peek.x)
-      if (!env.still && env.t > nextFlip) flip = 0
+      if (!env.still && env.t >= nextFlip) flip = 0
     },
   }
 }
 
-/** A laptop turned a little so its screen shows; a line types itself and the
- *  lid opens and closes on a click. */
+/** A milled base, key deck and a lid whose underside meets the base when shut. */
 export const buildLaptop = ({ kit }: PropOptions): DeskProp => {
-  const root = new Group()
-  const body = new Group()
-  body.rotation.y = -0.45
-  body.scale.setScalar(0.8)
+  const root = new Group(), body = new Group()
   root.add(body)
-  const base = kit.edges(kit.solid(new BoxGeometry(1.6, 0.05, 1.04)))
-  base.position.y = 0.025
-  body.add(base)
+  body.rotation.y = -0.28
+  const model = staticSource('laptop', 1.45, kit)
   const lid = new Group()
-  lid.position.set(0, 0.05, -0.52)
+  lid.name = 'laptop-hinge'
+  lid.position.set(0, 0.077, -0.485)
   body.add(lid)
-  const board = kit.edges(kit.solid(new BoxGeometry(1.6, 0.03, 1.02)))
-  board.position.set(0, 0.015, 0.51)
-  lid.add(board)
-  const y = -0.004
+  for (const mesh of [...model.children] as Mesh[]) {
+    if (mesh.name.startsWith('mesh256948792')) {
+      // The source is open at 90 degrees. Bake the panel into a closed local
+      // pose first; the animated hinge then uses the same hard stops as before.
+      mesh.geometry.translate(0, -0.0272, 0.500)
+      mesh.geometry.rotateX(Math.PI / 2)
+      // Crease geometry was constructed before the bake; rebuild its lines.
+      const lines = mesh.children.filter(c => !c.userData.outline)
+      for (const line of lines) { mesh.remove(line); kit.release(line) }
+      kit.edges(mesh, 0.55, 42, 'ink3')
+      lid.add(mesh)
+    } else body.add(mesh)
+  }
   const screen: number[] = []
-  rectangle(screen, -0.72, 0.06, 0.72, 0.96, y)
-  rectangle(screen, -0.64, 0.52, -0.25, 0.78, y)
-  rectangle(screen, -0.19, 0.52, 0.2, 0.78, y)
-  rectangle(screen, 0.26, 0.52, 0.64, 0.78, y)
-  screen.push(-0.64, y, 0.88, -0.18, y, 0.88)
-  for (const [z, length] of [[0.41, 0.82], [0.33, 0.56], [0.25, 0.68]]) screen.push(-0.64, y, z, -0.64 + length, y, z)
-  lid.add(kit.segments(screen, DETAIL * 0.9, 'ink3'))
-  const typingPositions = new Float32Array(12)
-  const typing = kit.segments(typingPositions, DETAIL * 1.1, 'ink3')
+  rectangle(screen, -0.68, 0.065, 0.68, 0.91, -0.019)
+  screen.push(-0.58, -0.021, 0.69, 0.02, -0.021, 0.69)
+  for (let i = 0; i < 3; i++) {
+    rectangle(screen, -0.58 + i * 0.4, 0.37, -0.25 + i * 0.4, 0.59, -0.021)
+  }
+  for (const [z, length] of [
+    [0.29, 0.95],
+    [0.22, 0.65],
+  ])
+    screen.push(-0.58, -0.021, z, -0.58 + length, -0.021, z)
+  lid.add(kit.segments(screen, 0.85, 'ink3'))
+  const camera = kit.solid(new CircleGeometry(0.012, 12), 'vinyl')
+  camera.rotation.x = Math.PI / 2
+  camera.position.set(0, -0.020, 0.955)
+  lid.add(camera)
+  const ports: number[] = []
+  for (const z of [-0.21, -0.08]) ports.push(-0.751, 0.025, z, -0.751, 0.025, z + 0.07)
+  body.add(kit.segments(ports, DETAIL, 'ink3'))
+  const typingPositions = new Float32Array(12),
+    typing = kit.segments(typingPositions, DETAIL, 'pen')
   lid.add(typing)
-
   let open = true
-  const angle: Spring = { x: -1.85, v: 0 }
+  const angle: Spring = { x: -1.87, v: 0 }
   return {
     root,
     click() {
       open = !open
     },
     frame(env) {
-      const target = open ? -1.85 : -0.03
-      if (env.still) angle.x = target
-      else step(angle, target, 80, 11, env.dt)
+      const target = open ? -1.87 : 0
+      if (env.still) {
+        angle.x = target
+        angle.v = 0
+      } else step(angle, target, 90, 19, env.dt)
+      // The physical hinge has a hard stop; the lid never passes through the base.
+      angle.x = Math.min(0, Math.max(-1.95, angle.x))
       lid.rotation.x = angle.x
-      const typed = Math.floor(((env.t / 3.2) % 1) * 14) / 14
-      const end = -0.64 + 0.9 * typed
-      const caret = (env.t * 2) % 1 < 0.6 && open
-      typingPositions.set([-0.64, y, 0.15, end, y, 0.15, end + 0.03, y, caret ? 0.11 : 0.15, end + 0.03, y, caret ? 0.19 : 0.15])
+      typing.visible = open
+      const t = env.still ? 1.6 : env.t,
+        end = -0.58 + (0.85 * Math.floor(((t / 3.2) % 1) * 14)) / 14
+      const caret = env.still || (t * 2) % 1 < 0.6
+      typingPositions.set([
+        -0.58,
+        -0.021,
+        0.14,
+        end,
+        -0.021,
+        0.14,
+        end + 0.025,
+        -0.021,
+        caret ? 0.11 : 0.14,
+        end + 0.025,
+        -0.021,
+        caret ? 0.17 : 0.14,
+      ])
       kit.markDirty(typing)
     },
   }
@@ -160,57 +231,27 @@ const TYPE_LINES = 5
  * creeps left, rings at the end of a line and returns. A click types a word.
  */
 export const buildTypewriter = ({ kit }: PropOptions): DeskProp => {
-  const root = new Group()
-  const body = new Group()
-  body.rotation.y = -0.42
-  body.scale.setScalar(0.8)
+  const root = new Group(), body = new Group()
+  body.rotation.y = -0.28
   root.add(body)
-  const base = kit.edges(kit.solid(new BoxGeometry(1.3, 0.14, 0.95)))
-  base.position.y = 0.07
-  body.add(base)
-  const housing = kit.edges(kit.solid(new BoxGeometry(1.25, 0.2, 0.36)))
-  housing.position.set(0, 0.24, -0.27)
-  body.add(housing)
-  const deck = new Group()
-  deck.position.set(0, 0.16, 0.16)
-  deck.rotation.x = 0.3
-  body.add(deck)
-  const plate = kit.edges(kit.solid(new BoxGeometry(1.2, 0.03, 0.56)), DETAIL)
-  deck.add(plate)
-  const keyGeometry = new CylinderGeometry(0.045, 0.045, 0.035, 18)
-  const keys: { mesh: Mesh; spring: Spring }[] = []
-  ;[0.17, 0.02, -0.13].forEach((z, row) => {
-    for (let i = 0; i < 7 - row; i += 1) {
-      const key = kit.edges(kit.solid(keyGeometry), DETAIL, 30)
-      key.position.set(-0.39 + i * 0.13 + row * 0.065, 0.045, z)
-      deck.add(key)
-      keys.push({ mesh: key, spring: { x: 0, v: 0 } })
-    }
-  })
-  const spacebar = kit.edges(kit.solid(new BoxGeometry(0.5, 0.03, 0.06)), DETAIL)
-  spacebar.position.set(0, 0.04, 0.25)
-  deck.add(spacebar)
-
-  // The carriage: platen, knobs, return lever and the paper riding on it.
+  const model = staticSource('typewriter', 1.24, kit)
   const carriage = new Group()
-  carriage.position.set(0, 0.45, -0.3)
+  carriage.name = 'typewriter-carriage'
   body.add(carriage)
-  const platenGeometry = new CylinderGeometry(0.085, 0.085, 1.4, 24)
-  platenGeometry.rotateZ(Math.PI / 2)
-  carriage.add(kit.hull(kit.solid(platenGeometry)))
-  for (const x of [-0.74, 0.74]) {
-    const knobGeometry = new CylinderGeometry(0.06, 0.06, 0.06, 18)
-    knobGeometry.rotateZ(Math.PI / 2)
-    const knob = kit.hull(kit.solid(knobGeometry))
-    knob.position.x = x
-    carriage.add(knob)
+  const keys: { mesh: Mesh; spring: Spring }[] = []
+  for (const mesh of [...model.children] as Mesh[]) {
+    if (/Key/.test(mesh.name) && !/KeyTHingy/.test(mesh.name)) {
+      keys.push({ mesh, spring: { x: 0, v: 0 } })
+      body.add(mesh)
+    } else if (/group2_Typewriter_(pCylinder[567]|pCube[45])$/.test(mesh.name)) {
+      carriage.add(mesh)
+    } else body.add(mesh)
   }
-  carriage.add(kit.segments([-0.74, 0.06, 0, -0.86, 0.2, 0.05, -0.86, 0.2, 0.05, -0.96, 0.22, 0.08], DETAIL))
   const paper = new Group()
-  paper.position.set(0, 0.27, -0.02)
-  paper.rotation.x = -0.15
+  paper.position.set(0.043, 0.44, -0.35)
+  paper.rotation.x = -0.12
   carriage.add(paper)
-  const sheet = kit.solid(new PlaneGeometry(0.8, 0.5), 'paper', { side: DoubleSide })
+  const sheet = kit.solid(new PlaneGeometry(0.8, 0.48), 'paper', { side: DoubleSide })
   paper.add(kit.edges(sheet, DETAIL))
   const glyph = 0.019
   const textPositions = new Float32Array(TYPE_LINES * TYPE_COLUMNS * 6)
@@ -227,7 +268,7 @@ export const buildTypewriter = ({ kit }: PropOptions): DeskProp => {
   let pendingAt = 0
   let returning = 0
   let bellUntil = 0
-  const carriageX: Spring = { x: 0.36, v: 0 }
+  const carriageX: Spring = { x: 0.18, v: 0 }
 
   // Each run of letters is drawn as one word; spaces leave gaps.
   const drawText = () => {
@@ -266,7 +307,7 @@ export const buildTypewriter = ({ kit }: PropOptions): DeskProp => {
   return {
     root,
     click() {
-      pending += 6
+      pending = Math.min(60, pending + 6)
     },
     frame(env) {
       // Typed keys plus a click's word, a few per frame at most.
@@ -274,6 +315,12 @@ export const buildTypewriter = ({ kit }: PropOptions): DeskProp => {
       while (budget > 0) {
         typeOne(env.t)
         budget -= 1
+      }
+      if (env.still) {
+        while (pending > 0) {
+          pending -= 1
+          typeOne(env.t)
+        }
       }
       if (pending > 0 && env.t - pendingAt > 0.07) {
         pending -= 1
@@ -283,19 +330,38 @@ export const buildTypewriter = ({ kit }: PropOptions): DeskProp => {
       for (const key of keys) {
         if (env.still) key.spring.x = 0
         else step(key.spring, 0, 400, 22, env.dt)
-        key.mesh.position.y = 0.045 + Math.max(-0.03, key.spring.x * 0.02)
+        key.mesh.position.y = Math.max(-0.006, key.spring.x * 0.02)
       }
       const column = lines[lines.length - 1].length
-      const target = 0.36 - column * glyph
+      const target = 0.18 - column * (0.36 / TYPE_COLUMNS)
       if (env.still || env.t - returning > 0.4) {
         if (env.still) carriageX.x = target
         else step(carriageX, target, 260, 26, env.dt)
       } else step(carriageX, target, 60, 12, env.dt)
       carriage.position.x = carriageX.x
-      bell.visible = env.t < bellUntil
+      bell.visible = !env.still && env.t < bellUntil
       if (bell.visible) {
         const s = 1 + (bellUntil - env.t) * 0.4
-        bellPositions.set([0.78, 0.12, 0.05, 0.86 * s, 0.2 * s, 0.05, 0.8, 0.16, 0.05, 0.92 * s, 0.17, 0.05, 0.8, 0.08, 0.05, 0.9 * s, 0.06, 0.05])
+        bellPositions.set([
+          0.78,
+          0.12,
+          0.05,
+          0.86 * s,
+          0.2 * s,
+          0.05,
+          0.8,
+          0.16,
+          0.05,
+          0.92 * s,
+          0.17,
+          0.05,
+          0.8,
+          0.08,
+          0.05,
+          0.9 * s,
+          0.06,
+          0.05,
+        ])
         kit.markDirty(bell)
       }
     },
@@ -309,53 +375,74 @@ export const buildTypewriter = ({ kit }: PropOptions): DeskProp => {
  */
 export const buildRecordPlayer = ({ kit }: PropOptions): DeskProp => {
   const root = new Group()
-  const base = kit.edges(kit.solid(new BoxGeometry(1.4, 0.1, 0.5)))
-  base.position.y = 0.05
-  root.add(base)
-  const postGeometry = new CylinderGeometry(0.04, 0.04, 0.34, 12)
-  postGeometry.translate(0, 0.17, 0)
-  const post = kit.hull(kit.solid(postGeometry), DETAIL)
-  post.position.set(0, 0.1, -0.12)
-  root.add(post)
-
-  const record = new Group()
-  record.position.set(0, 0.44, 0.02)
-  root.add(record)
-  const discGeometry = new CylinderGeometry(0.34, 0.34, 0.02, 64)
-  discGeometry.rotateX(Math.PI / 2)
-  record.add(kit.edges(kit.solid(discGeometry, 'vinyl'), DETAIL, 30))
-  const spin = new Group()
-  record.add(spin)
-  const grooves = [0.315, 0.275, 0.235, 0.195].flatMap((r) => ring(r, 0, 0, 0.012, 64))
-  spin.add(kit.segments(grooves, DETAIL * 0.8, 'groove'))
-  const label = kit.solid(new CircleGeometry(0.12, 36))
-  label.position.z = 0.0125
-  spin.add(label)
-  spin.add(kit.segments([...ring(0.12, 0, 0, 0.014, 36), -0.02, 0.055, 0.015, 0.065, 0.055, 0.015, ...ring(0.012, 0, 0, 0.015, 12)], DETAIL, 'ink'))
-  // The sheen doesn't turn, so the record visibly does.
-  const sheen: number[] = []
-  for (let i = 0; i < 8; i += 1) {
-    const a0 = 2.2 + i * 0.05
-    const a1 = a0 + 0.05
-    sheen.push(Math.cos(a0) * 0.26, Math.sin(a0) * 0.26, 0.016, Math.cos(a1) * 0.26, Math.sin(a1) * 0.26, 0.016)
+  const plinthShape = new Shape()
+  plinthShape.moveTo(-0.58, 0.075)
+  plinthShape.lineTo(0.48, 0.075)
+  plinthShape.quadraticCurveTo(0.6, 0.075, 0.6, 0.2)
+  plinthShape.lineTo(0.6, 0.88)
+  plinthShape.quadraticCurveTo(0.6, 1.02, 0.46, 1.02)
+  plinthShape.quadraticCurveTo(0.4, 1.02, 0.31, 0.97)
+  plinthShape.lineTo(-0.55, 0.31)
+  plinthShape.quadraticCurveTo(-0.66, 0.23, -0.66, 0.17)
+  plinthShape.quadraticCurveTo(-0.66, 0.075, -0.58, 0.075)
+  const plinthGeometry = new ExtrudeGeometry(plinthShape, { depth: 0.065, bevelEnabled: false, curveSegments: 16 })
+  plinthGeometry.translate(0, 0, -0.14)
+  const plinth = kit.edges(kit.solid(plinthGeometry), DETAIL)
+  plinth.name = 'record-plinth'
+  root.add(plinth)
+  for (const x of [-0.43, 0.45]) {
+    const foot = kit.hull(kit.edges(kit.solid(new CylinderGeometry(0.055, 0.07, 0.075, 24)), 0.8), DETAIL)
+    foot.position.set(x, 0.0375, -0.09)
+    root.add(foot)
   }
-  record.add(kit.segments(sheen, DETAIL, 'pencil'))
-
-  const armPostGeometry = new CylinderGeometry(0.03, 0.03, 0.76, 12)
-  armPostGeometry.translate(0, 0.38, 0)
-  const armPost = kit.hull(kit.solid(armPostGeometry), DETAIL)
-  armPost.position.set(-0.5, 0.1, 0.04)
-  root.add(armPost)
+  root.add(rodBetween(kit, [0.37, 0.75, -0.14], [0.37, 0.035, -0.45], 0.025))
+  const rearFoot = kit.hull(kit.edges(kit.solid(new CylinderGeometry(0.055, 0.065, 0.05, 24)), 0.8), DETAIL)
+  rearFoot.position.set(0.37, 0.025, -0.45)
+  root.add(rearFoot)
+  const record = new Group()
+  record.position.set(-0.12, 0.55, 0)
+  root.add(record)
+  const spin = new Group()
+  spin.name = 'record-spin'
+  record.add(spin)
+  const discGeometry = new CylinderGeometry(0.425, 0.425, 0.035, 64)
+  discGeometry.rotateX(Math.PI / 2)
+  spin.add(kit.edges(kit.solid(discGeometry, 'vinyl'), DETAIL))
+  spin.add(
+    kit.segments(
+      [0.4, 0.34, 0.28, 0.22].flatMap((r) => ring(r, 0, 0, 0.02, 64)),
+      0.7,
+      'groove',
+    ),
+  )
+  const label = kit.solid(new CircleGeometry(0.125, 40))
+  label.position.z = 0.021
+  spin.add(label)
+  spin.add(kit.segments([...ring(0.125, 0, 0, 0.023, 40), -0.06, 0.07, 0.024, 0.055, 0.07, 0.024], 0.8, 'ink3'))
+  const clamp = kit.hull(kit.edges(kit.solid(new CylinderGeometry(0.055, 0.06, 0.055, 32)), 0.8), DETAIL)
+  clamp.rotation.x = Math.PI / 2
+  clamp.position.z = 0.045
+  spin.add(clamp)
+  const motor = kit.hull(kit.edges(kit.solid(new CylinderGeometry(0.06, 0.06, 0.065, 24)), 0.8), DETAIL)
+  motor.rotation.x = Math.PI / 2
+  motor.position.set(-0.55, 0.18, -0.04)
+  root.add(motor)
   const pivot = new Group()
-  pivot.position.set(-0.5, 0.86, 0.06)
+  pivot.name = 'record-tonearm'
+  pivot.position.set(0.46, 0.87, 0.08)
   root.add(pivot)
-  pivot.add(kit.hull(kit.solid(new BoxGeometry(0.07, 0.07, 0.07)), DETAIL))
-  const rodGeometry = new CylinderGeometry(0.014, 0.014, 0.44, 8)
-  rodGeometry.translate(0, -0.22, 0)
-  pivot.add(kit.hull(kit.solid(rodGeometry), DETAIL))
-  const head = kit.edges(kit.solid(new BoxGeometry(0.09, 0.05, 0.05)), DETAIL)
-  head.position.y = -0.44
-  pivot.add(head)
+  const bearing = kit.hull(kit.edges(kit.solid(new CylinderGeometry(0.065, 0.065, 0.07, 24)), 0.8), DETAIL)
+  bearing.rotation.x = Math.PI / 2
+  pivot.add(bearing)
+  pivot.add(rodBetween(kit, [0, 0.13, 0], [0, -0.66, 0], 0.014))
+  const weight = kit.hull(kit.edges(kit.solid(new CylinderGeometry(0.035, 0.035, 0.07, 24)), 0.8), DETAIL)
+  weight.position.y = 0.12
+  pivot.add(weight)
+  const cartridge = kit.hull(kit.solid(roundedBox(0.06, 0.08, 0.05, 0.008)), DETAIL)
+  cartridge.position.set(0, -0.66, 0)
+  pivot.add(cartridge)
+  cartridge.add(rodBetween(kit, [0, -0.03, 0], [0, -0.045, -0.06], 0.005))
+  root.add(rodBetween(kit, [0.46, 0.26, -0.075], [0.46, 0.26, 0.08], 0.014))
 
   // Notes: an ink head and stem rising in pencil and fading.
   const notes = [0, 1, 2].map((i) => {
@@ -377,8 +464,8 @@ export const buildRecordPlayer = ({ kit }: PropOptions): DeskProp => {
       playing = !playing
     },
     frame(env) {
-      const armTarget = playing ? 0.55 : 0
-      const speedTarget = playing ? 0.55 * Math.PI * 2 : 0
+      const armTarget = playing ? -0.47 : 0
+      const speedTarget = playing ? (100 / 3 / 60) * Math.PI * 2 : 0
       if (env.still) {
         arm.x = armTarget
         speed.x = 0
@@ -387,7 +474,7 @@ export const buildRecordPlayer = ({ kit }: PropOptions): DeskProp => {
         step(speed, speedTarget, 6, 5, env.dt)
       }
       pivot.rotation.z = arm.x
-      turn -= speed.x * env.dt
+      turn = (turn - speed.x * env.dt) % (Math.PI * 2)
       spin.rotation.z = turn
       for (const note of notes) {
         const cycle = ((env.t + note.offset) / 2.7) % 1
@@ -406,4 +493,3 @@ export const centerPropBuilders = {
   typewriter: buildTypewriter,
   record: buildRecordPlayer,
 }
-

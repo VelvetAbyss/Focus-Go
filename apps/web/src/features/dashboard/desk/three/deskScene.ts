@@ -101,6 +101,7 @@ type Drag = {
   offset: number
   /** The base: where the lamp stood. A prop: how far its middle is from the pointer. */
   start: number
+  pose: LampPose
 }
 
 type Puff = { object: LineSegments2; positions: Float32Array; x: number; y: number; size: number; born: number }
@@ -447,6 +448,7 @@ const factory: SceneFactory<DeskParams> = (context, initial) => {
       from: at,
       offset: hinge ? handleAngle(hinge, pose) - pointerAngle(hinge, pose, at[0] - (lampX - LAMP_X), at[1]) : 0,
       start: hit.handle === 'base' ? lampX : 0,
+      pose: { ...rest },
     }
     try {
       canvas.setPointerCapture(event.pointerId)
@@ -511,14 +513,17 @@ const factory: SceneFactory<DeskParams> = (context, initial) => {
         params.onItemRemove(entry.id)
       } else {
         entry.removing = false
-        params.onItemMove(entry.id, entry.home)
+        if (cancelled) entry.home = onDesk(entry.stored, entry.half, span)
+        else params.onItemMove(entry.id, entry.home)
       }
     } else if (!finished.moved) {
       if (!cancelled) click(finished.hit)
     } else if (finished.hit.handle === 'base') {
-      params.onLampMove(lampX)
+      if (cancelled) lampX = finished.start
+      else params.onLampMove(lampX)
     } else if (finished.hit.handle) {
-      params.onPose({ ...rest })
+      if (cancelled) Object.assign(rest, finished.pose)
+      else params.onPose({ ...rest })
     }
     hover = pick(event)
     canvas.style.cursor = cursorFor(hover)
@@ -534,6 +539,7 @@ const factory: SceneFactory<DeskParams> = (context, initial) => {
     context.invalidate()
   }
   // The kitchen timer's dial turns with the wheel; everywhere else the page scrolls.
+  let wheelWake = 0
   const onWheel = (event: WheelEvent) => {
     const hit = drag ? null : pick(event)
     const entry = hit?.kind === 'prop' && hit.id ? placed.get(hit.id) : undefined
@@ -542,19 +548,21 @@ const factory: SceneFactory<DeskParams> = (context, initial) => {
     entry.prop.wheel(event.deltaY * (event.deltaMode === 1 ? 40 : event.deltaMode === 2 ? 400 : 1))
     context.invalidate()
     // It starts once the wheel rests, which a still desk only sees on its next frame.
-    window.setTimeout(() => context.invalidate(), 760)
+    window.clearTimeout(wheelWake)
+    wheelWake = window.setTimeout(() => context.invalidate(), 760)
   }
   // The typewriter types along with the app: only that a key went down, never which.
   const onKeyDown = (event: KeyboardEvent) => {
     if (MODIFIER_KEYS.has(event.key)) return
     keys += 1
+    context.invalidate()
   }
   // Reduced motion draws only on demand, but a kitchen timer still keeps time:
   // look in each second while one runs, so its dial winds back and it ends.
   const timekeeper = still
     ? window.setInterval(() => {
         for (const entry of placed.values()) {
-          if (entry.timer.endsAt !== null && !entry.leaving) {
+          if ((entry.timer.endsAt !== null || entry.prop.needsTick?.()) && !entry.leaving) {
             context.invalidate()
             return
           }
@@ -565,6 +573,7 @@ const factory: SceneFactory<DeskParams> = (context, initial) => {
   canvas.addEventListener('pointermove', onPointerMove)
   canvas.addEventListener('pointerup', onPointerUp)
   canvas.addEventListener('pointercancel', onPointerCancel)
+  canvas.addEventListener('lostpointercapture', onPointerCancel)
   canvas.addEventListener('pointerleave', onPointerLeave)
   canvas.addEventListener('wheel', onWheel, { passive: false })
   window.addEventListener('keydown', onKeyDown, { passive: true })
@@ -874,10 +883,12 @@ const factory: SceneFactory<DeskParams> = (context, initial) => {
       canvas.removeEventListener('pointermove', onPointerMove)
       canvas.removeEventListener('pointerup', onPointerUp)
       canvas.removeEventListener('pointercancel', onPointerCancel)
+      canvas.removeEventListener('lostpointercapture', onPointerCancel)
       canvas.removeEventListener('pointerleave', onPointerLeave)
       canvas.removeEventListener('wheel', onWheel)
       window.removeEventListener('keydown', onKeyDown)
       window.clearInterval(timekeeper)
+      window.clearTimeout(wheelWake)
       canvas.style.cursor = ''
       params.onBeam(null)
       for (const { prop } of placed.values()) prop.dispose?.()

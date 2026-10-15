@@ -1,0 +1,27 @@
+Focus & Go — Desk model credits
+
+Laptop / MacBook Pro — Alex Safayan
+Original: https://poly.pizza/m/27hcX_w47Jb
+License: Creative Commons Attribution 3.0
+https://creativecommons.org/licenses/by/3.0/
+Adaptation: normalized geometry; lid re-pivoted for opening/closing;
+new paper-and-ink materials, screen content and typing animation.
+
+Typewriter — Pat Siefring
+Original: https://poly.pizza/m/0wEEWpFFmdd
+License: Creative Commons Attribution 3.0
+https://creativecommons.org/licenses/by/3.0/
+Adaptation: normalized geometry, regrouped carriage and keys,
+new paper-and-ink materials, animated paper/text/keys/carriage.
+
+Candle Melted — Kay Lousberg
+Original: https://poly.pizza/m/tFTUlbLC3Q
+License: CC0 1.0 Universal
+https://creativecommons.org/publicdomain/zero/1.0/
+Adaptation: rescaled wax mesh, paper-and-ink material,
+new dish, flame, smoke and time-based burning.
+
+The remaining desk meshes are generated in Focus & Go. Their reference
+models and real-object references are documented in the repository's
+apps/web/src/features/dashboard/desk/MODELS.md.
+No endorsement by the original authors is implied.

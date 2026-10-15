@@ -19,7 +19,11 @@ import { newItemId, readDeskSettings, writeDeskSettings, type DeskSettings } fro
 import type { DeskColors, DeskItem, DeskParams, DeskPropId } from './deskTypes'
 import './desk.css'
 
-const loadDesk = () => import('./three/deskScene') as Promise<SurfaceModule<DeskParams>>
+const loadDesk = async (): Promise<SurfaceModule<DeskParams>> => {
+  const [scene, assets] = await Promise.all([import('./three/deskScene'), import('./three/sourceModels')])
+  await assets.prepareSourceModels()
+  return scene
+}
 
 /** Header-local layout px; `origin` is where the masthead's middle (world x = 0) falls on the desk. */
 type Placement = { left: number; width: number; height: number; unit: number; origin: number }

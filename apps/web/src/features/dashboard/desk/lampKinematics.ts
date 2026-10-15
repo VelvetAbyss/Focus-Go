@@ -15,23 +15,40 @@ export const LAMP_RIG = {
   /** World position of the shoulder hinge on the base. */
   shoulder: [1.99, 0.11] as Point,
   lowerArm: 1.45,
-  upperArm: 2.0,
+  upperArm: 1.65,
   /** From the head hinge to the middle of the shade's mouth. */
-  mouth: 0.385,
-  mouthRadius: 0.305,
+  mouth: 0.62,
+  mouthRadius: 0.275,
   /** The shade leans this far toward the viewer (radians, about its own pitch axis). */
   tilt: -0.32,
 } as const
 
 /** Lower arm leaning back, upper arm reaching over the book, shade pointing down. */
-export const DEFAULT_POSE: LampPose = { a1: -0.18, a2: 1.86, a3: -1.78 }
+export const DEFAULT_POSE: LampPose = { a1: -0.18, a2: 1.59, a3: -1.51 }
 
 /** The elbow can't fold flat or open past straight. */
 const ELBOW_MIN = 0.25
 const ELBOW_MAX = 2.95
 /** The shade can point anywhere from 40° above one horizontal to the other. */
 const SHADE_REACH = 2.3
-const RIM_CLEARANCE = 0.1
+const SHADE_CLEARANCE = 0.025
+
+/** The solid shade and its collision envelope use the same revolved section. */
+export const LAMP_SHADE_PROFILE: [number, number][] = [
+  [0.275, -LAMP_RIG.mouth], [0.265, -0.58], [0.22, -0.48],
+  [0.145, -0.35], [0.1, -0.24], [0.09, -0.07], [0.07, -0.025],
+  [0.045, 0], [0.03, 0], [0.055, -0.035], [0.074, -0.08],
+  [0.084, -0.245], [0.128, -0.36], [0.203, -0.49],
+  [0.248, -0.588], [0.257, -LAMP_RIG.mouth], [0.275, -LAMP_RIG.mouth],
+]
+// Include every outer vertex, including the near/far edges lowered by pitch.
+// Pitch is fixed, so only the final 2D rotation is needed during a drag.
+const SHADE_ENVELOPE: Point[] = LAMP_SHADE_PROFILE.slice(0, 8).flatMap(([r, y]) =>
+  Array.from({ length: 48 }, (_, i): Point => {
+    const angle = i / 48 * Math.PI * 2
+    return [r * Math.sin(angle), y * Math.cos(LAMP_RIG.tilt) - r * Math.cos(angle) * Math.sin(LAMP_RIG.tilt)]
+  }),
+)
 
 export type LampFrame = {
   elbow: Point
@@ -61,17 +78,15 @@ export type DeskFloor = (x: number) => number
 
 export const isPoseValid = (pose: LampPose, bounds: LampBounds, floor: DeskFloor): boolean => {
   if (pose.a2 < ELBOW_MIN || pose.a2 > ELBOW_MAX) return false
-  const { elbow, head, mouth, angle } = lampFrame(pose)
+  const { elbow, head, angle } = lampFrame(pose)
   const inside = ([x, y]: Point, margin = 0) => x >= bounds.left - margin && x <= bounds.right + margin && y <= bounds.top
   if (!inside(elbow) || elbow[1] < 0.35) return false
   if (!inside(head) || head[1] < floor(head[0]) + 0.32) return false
-  // The rim: both ends of the mouth seen side on, and its middle. The shade
-  // leans toward the viewer, so the mouth shows as an ellipse hanging about
-  // a tenth below them: that much clear of whatever stands underneath.
-  const rx = Math.cos(angle) * LAMP_RIG.mouthRadius
-  const ry = Math.sin(angle) * LAMP_RIG.mouthRadius
-  const rim: Point[] = [[mouth[0] + rx, mouth[1] + ry], [mouth[0] - rx, mouth[1] - ry], mouth]
-  return rim.every((p) => inside(p, 0.08) && p[1] >= floor(p[0]) + RIM_CLEARANCE)
+  const c = Math.cos(angle), s = Math.sin(angle)
+  return SHADE_ENVELOPE.every(([x, y]) => {
+    const p: Point = [head[0] + x * c - y * s, head[1] + x * s + y * c]
+    return inside(p) && p[1] >= floor(p[0]) + SHADE_CLEARANCE
+  })
 }
 
 const lerpPose = (a: LampPose, b: LampPose, t: number): LampPose => ({

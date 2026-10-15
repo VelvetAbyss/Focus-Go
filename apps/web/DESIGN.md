@@ -698,6 +698,16 @@ Two parts, read then operate.
 
 ## Desk — 2026-10-14
 
+Model revision, 2026-10-15: start from finished, licensed model files and real
+objects. Laptop, typewriter and candle use imported GLB geometry.
+The other meshes are rebuilt against downloaded models and physical references.
+Keep the side-on camera, unlimited instances and free placement. See
+`src/features/dashboard/desk/MODELS.md` for the source/adaptation matrix and
+`public/licenses/desk-models.txt` for distributed attribution. Reduced motion
+suppresses idle motion, never wall-clock timekeeping. Screen-pixel contours do
+not grow thicker just because a prop has non-uniform object scaling.
+
+
 A small still life on the masthead, standing on the toolbar rule anywhere in
 the gap between the date (and the view tabs) and the quote (and the layout
 actions). Code: `src/features/dashboard/desk/`.
@@ -708,8 +718,7 @@ actions). Code: `src/features/dashboard/desk/`.
   strokes that draw themselves upward and are taken back. Colour appears only
   in the light.
 - **Props, anywhere.** There are no fixed places. Any prop (book, laptop,
-  typewriter, record player, coffee, iced cola, plant, kitchen timer, candle,
-  cat) can be added as often as you like; it drops in from above at the free
+  typewriter, record player, coffee, iced cola, plant, kitchen timer, candle) can be added as often as you like; it drops in from above at the free
   spot nearest the middle (over the task card) and bounces. Drag a prop to
   carry it along the desk: it lifts, swings against the way it moves about
   where it's held, and falls back with a bounce. Lift it to the top of the
@@ -732,8 +741,7 @@ actions). Code: `src/features/dashboard/desk/`.
   - the timer starts 25 minutes, or is twisted with the wheel to set up to
     an hour (it starts once the wheel rests), rings with a shake, and its
     mark is the pen while it runs; each timer keeps its own time;
-  - the candle lights, burns down slowly and warms the paper around it;
-  - the cat wakes for a moment.
+  - the candle lights, burns down slowly and warms the paper around it.
 
   Quiet controls in the corner, shown on hover like "another quote", switch
   the lamp, open the picker and put the lamp back where and how it started.
