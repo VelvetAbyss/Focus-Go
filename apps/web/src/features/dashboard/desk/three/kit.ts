@@ -30,10 +30,18 @@ import type { DeskColors } from '../deskTypes'
 
 const FILL_VERTEX = /* glsl */ `
 varying vec3 vWorld;
+#ifdef DESK_INK_CAVITY
+varying vec2 vRadial;
+varying vec2 vRadialNormal;
+#endif
 #ifdef DESK_INK_MAP
 varying vec2 vSourceUv;
 #endif
 void main() {
+  #ifdef DESK_INK_CAVITY
+  vRadial = position.xz;
+  vRadialNormal = normal.xz;
+  #endif
   #ifdef DESK_INK_MAP
   vSourceUv = uv;
   #endif
@@ -61,6 +69,11 @@ uniform float uLight;
 uniform float uInner;
 uniform float uGlow;
 uniform float uAlpha;
+#ifdef DESK_INK_CAVITY
+uniform vec3 uCavityInk;
+varying vec2 vRadial;
+varying vec2 vRadialNormal;
+#endif
 #ifdef DESK_INK_MAP
 uniform sampler2D uInkMap;
 uniform vec3 uInk;
@@ -77,6 +90,13 @@ void main() {
     candle += pow(clamp(1.0 - length(vWorld - uCandles[i].xyz) / 1.1, 0.0, 1.0), 1.5) * uCandles[i].w;
   }
   vec3 color = mix(uBase, uBase * uWarmMul + uWarmAdd, clamp(lit + candle, 0.0, 1.0));
+  #ifdef DESK_INK_CAVITY
+  // Revolved shells have inward-facing normals in their real cavity. Keep
+  // the exterior paper, while the lamp lights its dark interior when on.
+  if (dot(vRadial, vRadialNormal) < -0.001) {
+    color = mix(uCavityInk, uBulbColor, uLight * 0.85);
+  }
+  #endif
   if (uInner > 0.5 && !gl_FrontFacing) color = mix(color, uBulbColor, uLight * 0.85);
   if (uGlow > 0.5) color = mix(color, uBulbColor, uLight);
   if (uGlow > 1.5) color = uBase;
@@ -115,14 +135,16 @@ export const LINE = 1.5
 export const DETAIL = 1
 const BULB_COLOR = hex('#fff4dc')
 
-export type FillKey = 'paper' | 'coffee' | 'cola' | 'ice' | 'vinyl' | 'flame'
-export type LineKey = 'ink' | 'ink3' | 'ink4' | 'pencil' | 'pen' | 'groove'
+export type FillKey = 'paper' | 'charcoal' | 'graphite' | 'coffee' | 'cola' | 'ice' | 'vinyl' | 'flame'
+export type LineKey = 'ink' | 'ink3' | 'ink4' | 'pencil' | 'pen' | 'groove' | 'knockout'
 /** 'bulb' glows with the lamp; 'flame' is always its own colour. */
-export type FillOptions = { side?: Side; inner?: boolean; glow?: 'bulb' | 'flame'; opacity?: number; inkMap?: Texture }
+export type FillOptions = { side?: Side; inner?: boolean; inkCavity?: boolean; glow?: 'bulb' | 'flame'; opacity?: number; inkMap?: Texture }
 
 const themed = (dark: boolean) =>
   dark
     ? {
+        charcoal: hex('#171614'),
+        graphite: hex('#49453f'),
         coffee: hex('#4e4034'),
         cola: hex('#24191a'),
         ice: hex('#3a3f3e'),
@@ -132,6 +154,8 @@ const themed = (dark: boolean) =>
         warmAdd: [0.07, 0.045, 0.012] as Rgb,
       }
     : {
+        charcoal: hex('#3a3733'),
+        graphite: hex('#77726b'),
         coffee: hex('#8a7563'),
         cola: hex('#3f2c27'),
         ice: hex('#eef3f3'),
@@ -149,6 +173,7 @@ export const createKit = (initial: { width: number; height: number; unit: number
 
   const shared = {
     uInk: { value: new Vector3(...colors.ink) },
+    uCavityInk: { value: new Vector3() },
     uBulb: { value: new Vector3(0, 2, 0) },
     uDir: { value: new Vector3(0, -1, 0) },
     uWarmMul: { value: new Vector3() },
@@ -161,7 +186,7 @@ export const createKit = (initial: { width: number; height: number; unit: number
   const fills: { material: ShaderMaterial; key: FillKey }[] = []
   const fill = (key: FillKey = 'paper', options: FillOptions = {}) => {
     const material = new ShaderMaterial({
-      defines: options.inkMap ? { DESK_INK_MAP: 1 } : {},
+      defines: { ...(options.inkMap ? { DESK_INK_MAP: 1 } : {}), ...(options.inkCavity ? { DESK_INK_CAVITY: 1 } : {}) },
       uniforms: {
         ...shared,
         uBase: { value: new Vector3() },
@@ -250,6 +275,7 @@ export const createKit = (initial: { width: number; height: number; unit: number
     if (key === 'ink3' || key === 'groove') return colors.ink3
     if (key === 'ink4') return colors.ink4
     if (key === 'pen') return colors.pen
+    if (key === 'knockout') return colors.dark ? hex('#c8c1b7') : hex('#fdfcfa')
     return colors.pencil
   }
   function paintLine(material: LineMaterial, key: LineKey) {
@@ -264,6 +290,7 @@ export const createKit = (initial: { width: number; height: number; unit: number
     hullColor.value.set(...colors.ink)
     shared.uInk.value.set(...colors.ink)
     const t = themed(colors.dark)
+    shared.uCavityInk.value.set(...t.charcoal)
     shared.uWarmMul.value.set(...t.warmMul)
     shared.uWarmAdd.value.set(...t.warmAdd)
   }

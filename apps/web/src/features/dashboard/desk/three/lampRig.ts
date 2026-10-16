@@ -60,7 +60,7 @@ export const buildLampRig = (kit: Kit) => {
   const root = new Group()
   root.userData.kind = 'lamp'
   root.position.set(LAMP_X, 0, -0.2)
-  const base = kit.hull(kit.solid(roundedBox(0.74, 0.09, 0.62, 0.025)))
+  const base = kit.hull(kit.solid(roundedBox(0.74, 0.09, 0.62, 0.025), 'charcoal'))
   base.position.y = 0.045
   root.add(base)
   const plinth = kit.hull(kit.solid(roundedBox(0.55, 0.035, 0.44, 0.018)), DETAIL)
@@ -74,15 +74,15 @@ export const buildLampRig = (kit: Kit) => {
   const joint = (radius: number) => {
     const geometry = new CylinderGeometry(radius, radius, 0.09, 32)
     geometry.rotateX(Math.PI / 2)
-    const axle = kit.hull(kit.edges(kit.solid(geometry), DETAIL), DETAIL)
-    const screw = kit.segments([-radius * 0.45, 0, 0.047, radius * 0.45, 0, 0.047], 0.8, 'ink3')
+    const axle = kit.hull(kit.edges(kit.solid(geometry, 'charcoal'), DETAIL), DETAIL)
+    const screw = kit.segments([-radius * 0.45, 0, 0.047, radius * 0.45, 0, 0.047], 0.8, 'knockout')
     axle.add(screw)
     return axle
   }
   const arm = (length: number) => {
     const frame = new Group()
     for (const x of [-0.055, 0.055]) {
-      const rail = kit.hull(kit.solid(roundedBox(0.028, length, 0.035, 0.008)), 0.8)
+      const rail = kit.hull(kit.solid(roundedBox(0.028, length, 0.035, 0.008), x < 0 ? 'charcoal' : 'paper'), 0.8)
       rail.position.set(x, length / 2, 0)
       frame.add(rail)
     }
@@ -124,14 +124,14 @@ export const buildLampRig = (kit: Kit) => {
   head.add(joint(0.045))
   // A closed shell with thickness: the outside winds upwards, the inner wall
   // back down. The rim and the light origin share LAMP_RIG.mouth.
-  const shade = kit.hull(kit.solid(kit.lathe(LAMP_SHADE_PROFILE)))
+  const shade = kit.hull(kit.solid(kit.lathe(LAMP_SHADE_PROFILE), 'paper', { inkCavity: true }))
   shade.name = 'lamp-shade'
   head.add(shade)
   head.add(kit.segments(circle(LAMP_RIG.mouthRadius, -LAMP_RIG.mouth), DETAIL))
-  const socket = kit.hull(kit.solid(new CylinderGeometry(0.045, 0.045, 0.16, 24)), DETAIL)
+  const socket = kit.hull(kit.solid(new CylinderGeometry(0.045, 0.045, 0.16, 24), 'graphite'), DETAIL)
   socket.position.y = -0.3
   head.add(socket)
-  const cap = kit.edges(kit.solid(new CircleGeometry(0.06, 24)), DETAIL)
+  const cap = kit.edges(kit.solid(new CircleGeometry(0.06, 24), 'charcoal'), DETAIL)
   cap.rotation.x = -Math.PI / 2
   head.add(cap)
   const bulb = kit.hull(kit.solid(new SphereGeometry(0.09, 20, 14), 'paper', { glow: 'bulb' }), DETAIL * 0.9)

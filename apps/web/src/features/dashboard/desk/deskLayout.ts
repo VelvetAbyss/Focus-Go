@@ -20,6 +20,8 @@ export const PROP_FOOTPRINT: Record<DeskPropId, { half: number; top: number }> =
   plant: { half: 0.43, top: 1.03 },
   timer: { half: 0.33, top: 0.50 },
   candle: { half: 0.25, top: 0.94 },
+  window: { half: 1.8, top: 0 },
+  frame: { half: 0.7, top: 0 },
 }
 
 export const DESK_LAYOUT = {
@@ -51,7 +53,7 @@ type Standing = { kind: DeskPropId; x: number }
 
 /** The height of whatever stands on the desk at x, so the lamp's shade can't sink into it. */
 export const deskFloor = (items: Standing[], lampX: number): DeskFloor => {
-  const standing = items.map((item) => ({ x: item.x, ...PROP_FOOTPRINT[item.kind] }))
+  const standing = items.filter(item => item.kind !== 'window' && item.kind !== 'frame').map((item) => ({ x: item.x, ...PROP_FOOTPRINT[item.kind] }))
   standing.push({ x: lampX, ...LAMP_BASE })
   return (x) => {
     let top = 0.04

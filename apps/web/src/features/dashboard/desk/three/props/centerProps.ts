@@ -25,7 +25,7 @@ export const buildBook = ({ kit }: PropOptions): DeskProp => {
   const root = new Group()
   const profile = (u: number) => BOOK.gutter + 0.11 * Math.sin(u * Math.PI) - 0.035 * u
   for (const side of [-1, 1]) {
-    const cover = kit.hull(kit.solid(roundedBox(0.94, 0.035, 1.2, 0.012)), DETAIL)
+    const cover = kit.hull(kit.solid(roundedBox(0.94, 0.035, 1.2, 0.012), 'charcoal'), DETAIL)
     cover.position.set(side * 0.47, 0.0175, 0)
     root.add(cover)
     const shape = new Shape()
@@ -157,7 +157,7 @@ export const buildLaptop = ({ kit }: PropOptions): DeskProp => {
       // Crease geometry was constructed before the bake; rebuild its lines.
       const lines = mesh.children.filter(c => !c.userData.outline)
       for (const line of lines) { mesh.remove(line); kit.release(line) }
-      kit.edges(mesh, 0.55, 42, 'ink3')
+      kit.edges(mesh, 0.55, 42, mesh.userData.sourceMaterial === 'mat23' ? 'knockout' : 'ink3')
       lid.add(mesh)
     } else body.add(mesh)
   }
@@ -391,7 +391,7 @@ export const buildRecordPlayer = ({ kit }: PropOptions): DeskProp => {
   plinth.name = 'record-plinth'
   root.add(plinth)
   for (const x of [-0.43, 0.45]) {
-    const foot = kit.hull(kit.edges(kit.solid(new CylinderGeometry(0.055, 0.07, 0.075, 24)), 0.8), DETAIL)
+    const foot = kit.hull(kit.edges(kit.solid(new CylinderGeometry(0.055, 0.07, 0.075, 24), 'charcoal'), 0.8), DETAIL)
     foot.position.set(x, 0.0375, -0.09)
     root.add(foot)
   }
@@ -438,7 +438,7 @@ export const buildRecordPlayer = ({ kit }: PropOptions): DeskProp => {
   const weight = kit.hull(kit.edges(kit.solid(new CylinderGeometry(0.035, 0.035, 0.07, 24)), 0.8), DETAIL)
   weight.position.y = 0.12
   pivot.add(weight)
-  const cartridge = kit.hull(kit.solid(roundedBox(0.06, 0.08, 0.05, 0.008)), DETAIL)
+  const cartridge = kit.hull(kit.solid(roundedBox(0.06, 0.08, 0.05, 0.008), 'charcoal'), DETAIL)
   cartridge.position.set(0, -0.66, 0)
   pivot.add(cartridge)
   cartridge.add(rodBetween(kit, [0, -0.03, 0], [0, -0.045, -0.06], 0.005))

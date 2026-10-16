@@ -4,6 +4,7 @@
 import { LAMP_X } from './deskLayout'
 import { DEFAULT_POSE, parsePose, type LampPose } from './lampKinematics'
 import { DESK_PROPS, type DeskItem, type DeskPropId } from './deskTypes'
+import { isPicture, parsePicture } from './pictureTypes'
 
 export type DeskSettings = {
   lampOn: boolean
@@ -49,7 +50,8 @@ const parseItems = (value: unknown): DeskItem[] | null => {
     const { id, kind, x, endsAt } = raw as Record<string, unknown>
     if (typeof id !== 'string' || !id || seen.has(id) || !isProp(kind) || !isX(x)) continue
     seen.add(id)
-    items.push(kind === 'timer' && isTime(endsAt) ? { id, kind, x, endsAt } : { id, kind, x })
+    items.push(isPicture(kind) ? { id, kind, x, picture: parsePicture(kind, raw.picture) }
+      : kind === 'timer' && isTime(endsAt) ? { id, kind, x, endsAt } : { id, kind, x })
   }
   return items
 }

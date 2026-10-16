@@ -2,10 +2,11 @@
 // scene, so the header never pulls three.js into its own chunk.
 import type { Rgb } from '../../../shared/three/surface'
 import type { LampPose } from './lampKinematics'
+import type { PictureSettings } from './pictureTypes'
 
-export type DeskPropId = 'book' | 'laptop' | 'typewriter' | 'record' | 'coffee' | 'cola' | 'plant' | 'timer' | 'candle'
+export type DeskPropId = 'book' | 'laptop' | 'typewriter' | 'record' | 'coffee' | 'cola' | 'plant' | 'timer' | 'candle' | 'window' | 'frame'
 
-export const DESK_PROPS: DeskPropId[] = ['book', 'laptop', 'typewriter', 'record', 'coffee', 'cola', 'plant', 'timer', 'candle']
+export const DESK_PROPS: DeskPropId[] = ['book', 'laptop', 'typewriter', 'record', 'coffee', 'cola', 'plant', 'timer', 'candle', 'window', 'frame']
 
 /**
  * One thing on the desk. `x` is in world units from the middle of the
@@ -13,7 +14,7 @@ export const DESK_PROPS: DeskPropId[] = ['book', 'laptop', 'typewriter', 'record
  * the cards as the window resizes. The kitchen timer keeps its ring time
  * (epoch ms) on itself.
  */
-export type DeskItem = { id: string; kind: DeskPropId; x: number; endsAt?: number }
+export type DeskItem = { id: string; kind: DeskPropId; x: number; endsAt?: number; picture?: PictureSettings }
 
 /** Display-space colours read from the design tokens. */
 export type DeskColors = {
@@ -71,6 +72,9 @@ export type DeskParams = {
   /** The user lifted a prop off the desk. */
   onItemRemove: (id: string) => void
   onItemTimer: (id: string, endsAt: number | null) => void
+  onItemPicture?: (id: string, picture: Partial<PictureSettings>, x?: number) => void
+  onSelectPicture?: (id: string | null) => void
+  onPictureStatus?: (id: string, status: 'loading' | 'ready' | 'error') => void
   /** Every change to the light; null once it is fully off. */
   onBeam: (beam: LampBeam | null) => void
 }

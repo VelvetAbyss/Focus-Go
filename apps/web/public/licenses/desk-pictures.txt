@@ -1,0 +1,50 @@
+Focus & Go — window and picture-frame presets
+Retrieved 2026-10-16. Images are served locally; no runtime stock-photo API.
+Edits: resized JPEG downloads; the application applies a user-adjustable crop.
+
+Window photography — Unsplash License, https://unsplash.com/license
+Free download and use, including commercial use. Attribution is retained here
+and in the picture settings. Do not redistribute as an unmodified stock library.
+
+mediterranean.jpg — Jaime Arrieta — Santorini, Greece
+https://unsplash.com/photos/OSzlbMcf9Hg
+https://images.unsplash.com/photo-1491955524898-bdbdb5668abb
+2560 x 3840 pixels
+
+nordic.jpg — Herman Aasly — Norwegian landscape
+https://unsplash.com/photos/6o_5C9_3K6E
+https://images.unsplash.com/photo-1720890136037-325745103bb1
+2560 x 3840 pixels
+
+city.jpg — Anders Krøgh Jørgensen — New York skyline
+https://unsplash.com/photos/nHFjUT6ZkAc
+https://images.unsplash.com/photo-1561917494-8db04a92e215
+2560 x 1161 pixels
+
+neon.jpg — Mario Tuzon — Japanese neon signs
+https://unsplash.com/photos/GjDijugwOc4
+https://images.unsplash.com/photo-1773496430244-5bda14ce2c73
+2560 x 3409 pixels
+
+Art — Art Institute of Chicago Open Access, CC0
+https://www.artic.edu/open-access/open-access-images
+The museum API marks each of these artworks is_public_domain: true.
+https://api.artic.edu/docs/
+
+monet.jpg — Claude Monet, Water Lilies (1906), artwork 16568
+https://www.artic.edu/artworks/16568
+Image id: 3c27b499-af56-f0d5-93b5-a7f2f1ad5813 — 1686 x 1619 pixels
+
+wave.jpg — Katsushika Hokusai, The Great Wave, artwork 24645
+https://www.artic.edu/artworks/24645
+Image id: b3974542-b9b4-7568-fc4b-966738f61d78 — 1686 x 1155 pixels
+
+bedroom.jpg — Vincent van Gogh, The Bedroom (1889), artwork 28560
+https://www.artic.edu/artworks/28560
+Image id: 6644829f-f292-c5c4-a73c-0356a6fdbf0d — 1686 x 1320 pixels
+
+Museum download pattern:
+https://www.artic.edu/iiif/2/{image_id}/full/1686,/0/default.jpg
+
+User imports are stored only on the user's device in IndexedDB, independently
+of these presets and of cloud-synchronized application data.

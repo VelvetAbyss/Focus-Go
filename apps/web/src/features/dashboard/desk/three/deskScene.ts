@@ -2,7 +2,7 @@ import { Group, Mesh, type Object3D, OrthographicCamera, Raycaster, Scene, Shade
 import type { LineSegments2 } from 'three/examples/jsm/lines/LineSegments2.js'
 import { runSurface } from '../../../../shared/three/runSurface'
 import type { SceneFactory, SurfaceModule } from '../../../../shared/three/surface'
-import { DESK_LINE_INSET, LAMP_BASE, LAMP_X, PROP_FOOTPRINT, deskFloor, onDesk, type DeskSpan } from '../deskLayout'
+import { DESK_LINE_INSET, LAMP_BASE, LAMP_X, PROP_FOOTPRINT, onDesk, type DeskSpan } from '../deskLayout'
 import type { DeskItem, DeskParams, DeskPropId, LampBeam } from '../deskTypes'
 import {
   LAMP_RIG,
@@ -20,6 +20,8 @@ import { buildLampRig, type RigHandle } from './lampRig'
 import type { DeskProp, PropEnv, PropOptions } from './props/common'
 import { centerPropBuilders } from './props/centerProps'
 import { smallPropBuilders } from './props/smallProps'
+import { picturePropBuilders } from './props/pictureProps'
+import { fitPicture, isPicture, parsePicture, pictureTop, type PictureSettings } from '../pictureTypes'
 
 /**
  * The masthead desk, seen exactly side on with the toolbar rule as the desk:
@@ -35,7 +37,7 @@ import { smallPropBuilders } from './props/smallProps'
  * is hidden or the desk is scrolled away.
  */
 
-const builders: Record<DeskPropId, (options: PropOptions) => DeskProp> = { ...centerPropBuilders, ...smallPropBuilders }
+const builders: Record<DeskPropId, (options: PropOptions) => DeskProp> = { ...centerPropBuilders, ...smallPropBuilders, ...picturePropBuilders }
 
 /** The bulb flickers on: [seconds, level]. */
 const FLICKER: [number, number][] = [[0, 0], [0.03, 0.75], [0.07, 0.08], [0.13, 0.9], [0.18, 0.3], [0.27, 1]]
@@ -74,6 +76,8 @@ type Entry = {
   stored: number
   home: number
   timer: { endsAt: number | null }
+  picture: PictureSettings | null
+  pictureStored: PictureSettings | null
   /** Where it is drawn: it glides to `home`. */
   x: Spring
   /** Height above the desk: held up by the hand, or falling back. */
@@ -188,7 +192,7 @@ const factory: SceneFactory<DeskParams> = (context, initial) => {
     pickables.length = 0
     const collect = (root: Object3D) =>
       root.traverse((object) => {
-        if (object instanceof Mesh && object.material instanceof ShaderMaterial && 'uBase' in object.material.uniforms) pickables.push(object)
+        if (object instanceof Mesh && (object.userData.pickable || (object.material instanceof ShaderMaterial && 'uBase' in object.material.uniforms))) pickables.push(object)
       })
     for (const entry of placed.values()) if (!entry.leaving) collect(entry.prop.root)
     collect(lamp.root)
@@ -196,11 +200,17 @@ const factory: SceneFactory<DeskParams> = (context, initial) => {
   }
 
   const place = (item: DeskItem, dropIn: boolean) => {
-    const { half, top: tall } = PROP_FOOTPRINT[item.kind]
+    const pictureStored = isPicture(item.kind) ? parsePicture(item.kind, item.picture) : null
+    const picture = pictureStored ? fitPicture(pictureStored, span, top, item.kind) : null
+    const { half, top: tall } = picture ? { half: picture.width * 0.53, top: pictureTop(picture, item.kind) } : PROP_FOOTPRINT[item.kind]
     const home = onDesk(item.x, half, span)
     const timer = { endsAt: item.endsAt ?? null }
     const prop = builders[item.kind]({
       kit,
+      picture: picture ?? undefined,
+      onPicture: patch => params.onItemPicture?.(item.id, patch),
+      onPictureStatus: status => params.onPictureStatus?.(item.id, status),
+      invalidate: context.invalidate,
       timer: {
         get: () => timer.endsAt,
         set: (endsAt) => {
@@ -209,7 +219,7 @@ const factory: SceneFactory<DeskParams> = (context, initial) => {
         },
       },
     })
-    const falling = dropIn && !still
+    const falling = dropIn && !still && !picture
     const entry: Entry = {
       id: item.id,
       kind: item.kind,
@@ -219,8 +229,9 @@ const factory: SceneFactory<DeskParams> = (context, initial) => {
       stored: item.x,
       home,
       timer,
+      picture, pictureStored,
       x: { x: home, v: 0 },
-      lift: { y: falling ? Math.min(DROP_HEIGHT, Math.max(0, top - 0.1 - tall)) : 0, v: 0, target: 0 },
+      lift: { y: picture?.y ?? (falling ? Math.min(DROP_HEIGHT, Math.max(0, top - 0.1 - tall)) : 0), v: 0, target: picture?.y ?? 0 },
       tilt: { x: 0, v: 0 },
       scale: { x: falling ? 0.35 : 1, v: 0 },
       press: { x: 0, v: 0 },
@@ -283,9 +294,16 @@ const factory: SceneFactory<DeskParams> = (context, initial) => {
       }
       entry.stored = item.x
       entry.timer.endsAt = item.endsAt ?? null
+      if (isPicture(item.kind)) {
+        entry.pictureStored = parsePicture(item.kind, item.picture)
+        entry.picture = fitPicture(entry.pictureStored, span, top, item.kind)
+        entry.half = entry.picture.width * 0.53
+        entry.top = pictureTop(entry.picture, item.kind)
+        entry.prop.setPicture?.(entry.picture)
+      }
       if (!entry.held) entry.home = onDesk(item.x, entry.half, span)
     }
-    layers = items.map((item) => item.id)
+    layers = [...items.filter(item => isPicture(item.kind)), ...items.filter(item => !isPicture(item.kind))].map(item => item.id)
     refreshPickables()
   }
 
@@ -294,9 +312,11 @@ const factory: SceneFactory<DeskParams> = (context, initial) => {
   // Its maths works around its own base at LAMP_X; it stands at lampX.
   const lampBounds = (x: number): LampBounds => ({ left: lampArea.left - (x - LAMP_X), right: lampArea.right - (x - LAMP_X), top: top - 0.1 })
   const lampFloor = (x: number): DeskFloor => {
-    const standing: { kind: DeskPropId; x: number }[] = []
-    for (const entry of placed.values()) if (!entry.leaving) standing.push({ kind: entry.kind, x: entry.home })
-    const floor = deskFloor(standing, x)
+    const standing = [...placed.values()].filter(entry => !entry.leaving && !entry.picture)
+    const floor = (at: number) => Math.max(
+      Math.abs(at - x) < LAMP_BASE.half ? LAMP_BASE.top : 0.04,
+      ...standing.filter(entry => Math.abs(at - entry.home) < entry.half).map(entry => entry.top),
+    )
     const shift = x - LAMP_X
     return (local) => floor(local + shift)
   }
@@ -382,7 +402,7 @@ const factory: SceneFactory<DeskParams> = (context, initial) => {
   /** Back to front, the carried prop last. */
   const drawOrder = () => {
     const carried = drag?.moved && drag.hit.id ? drag.hit.id : null
-    return carried ? [...layers.filter((id) => id !== carried), carried] : layers
+    return carried && !placed.get(carried)?.picture ? [...layers.filter((id) => id !== carried), carried] : layers
   }
   // Pointer coordinates are on-screen px; the shell may be zoomed, so measure
   // the canvas on screen rather than trusting its layout size.
@@ -429,12 +449,13 @@ const factory: SceneFactory<DeskParams> = (context, initial) => {
     }
     const entry = hit.id ? placed.get(hit.id) : undefined
     if (!entry) return
-    entry.press.v -= 1.6
+    if (!entry.picture) entry.press.v -= 1.6
     entry.prop.click()
   }
 
   const onPointerDown = (event: PointerEvent) => {
     if (event.button !== 0 || drag) return
+    params.onSelectPicture?.(null)
     const hit = pick(event)
     if (!hit) return
     const at = toWorld(event)
@@ -479,8 +500,8 @@ const factory: SceneFactory<DeskParams> = (context, initial) => {
       const entry = carriedEntry()
       if (entry?.held) {
         entry.home = onDesk(x + drag.start, entry.half, span)
-        entry.lift.target = Math.min(Math.max(0, top - 0.05 - entry.top), Math.max(0, y - drag.from[1]))
-        entry.removing = y > top - LIFT_OFF || event.clientY < canvas.getBoundingClientRect().top
+        entry.lift.target = Math.min(Math.max(0, top - 0.08 - entry.top), Math.max(entry.kind === 'frame' ? 0.12 : 0, y - drag.from[1]))
+        entry.removing = !entry.picture && (y > top - LIFT_OFF || event.clientY < canvas.getBoundingClientRect().top)
         refit()
       } else if (handle === 'base') {
         moveLamp(drag.start + x - drag.from[0])
@@ -513,8 +534,13 @@ const factory: SceneFactory<DeskParams> = (context, initial) => {
         params.onItemRemove(entry.id)
       } else {
         entry.removing = false
-        if (cancelled) entry.home = onDesk(entry.stored, entry.half, span)
-        else params.onItemMove(entry.id, entry.home)
+        if (cancelled) {
+          entry.home = onDesk(entry.stored, entry.half, span)
+          entry.lift.target = entry.picture?.y ?? 0
+        } else if (entry.picture) {
+          entry.picture = { ...entry.picture, y: entry.lift.target }
+          params.onItemPicture?.(entry.id, { y: entry.lift.target }, entry.home)
+        } else params.onItemMove(entry.id, entry.home)
       }
     } else if (!finished.moved) {
       if (!cancelled) click(finished.hit)
@@ -525,6 +551,8 @@ const factory: SceneFactory<DeskParams> = (context, initial) => {
       if (cancelled) Object.assign(rest, finished.pose)
       else params.onPose({ ...rest })
     }
+    const selected = finished.hit.id ? placed.get(finished.hit.id) : undefined
+    if (selected?.picture && !selected.leaving) params.onSelectPicture?.(selected.id)
     hover = pick(event)
     canvas.style.cursor = cursorFor(hover)
     refit()
@@ -634,6 +662,11 @@ const factory: SceneFactory<DeskParams> = (context, initial) => {
   /** Held up by the hand, or falling back to the desk with a bounce or two. */
   const moveLift = (entry: Entry, dt: number) => {
     const lift = entry.lift
+    if (entry.picture) {
+      lift.y = entry.held ? lift.target : entry.picture.y
+      lift.v = 0
+      return
+    }
     if (still || dt === 0) {
       lift.y = entry.held ? lift.target : 0
       lift.v = 0
@@ -760,7 +793,7 @@ const factory: SceneFactory<DeskParams> = (context, initial) => {
           refreshPickables()
           continue
         }
-      } else settle(entry.scale, entry.removing ? 0.6 : entry.held ? 1.05 : 1, 260, 22, dt)
+      } else settle(entry.scale, entry.picture ? 1 : entry.removing ? 0.6 : entry.held ? 1.05 : 1, 260, 22, dt)
       settle(entry.x, entry.home, entry.held ? 700 : 170, entry.held ? 52 : 24, dt)
       moveLift(entry, dt)
       // Carried, it swings back against the way it moves, about where it's held
@@ -770,13 +803,14 @@ const factory: SceneFactory<DeskParams> = (context, initial) => {
       settle(entry.tilt, swing, 140, 7, dt)
       settle(entry.press, 0, 300, 14, dt)
       const s = Math.max(entry.scale.x, 1e-4)
-      const angle = entry.tilt.x
+      const angle = entry.picture ? 0 : entry.tilt.x
       const pivot = entry.pivot * s
       const root = entry.prop.root
       root.visible = entry.scale.x > 0.01
       root.position.set(entry.x.x + pivot * Math.sin(angle), entry.lift.y + pivot - pivot * Math.cos(angle), ITEM_Z)
       root.rotation.z = angle
-      root.scale.set(s, s * (1 + entry.press.x), s)
+      if (entry.picture) root.scale.set(s * entry.picture.width, s * entry.picture.height, s * entry.picture.width)
+      else root.scale.set(s, s * (1 + entry.press.x), s)
       if (!root.visible) continue
       root.updateMatrixWorld()
       env.hovered = hover?.kind === 'prop' && hover.id === entry.id
@@ -813,7 +847,7 @@ const factory: SceneFactory<DeskParams> = (context, initial) => {
     // Back to front: each prop over the ones behind it, the lamp in front of
     // them, then whatever is in the hand or going away, then the pencil hints.
     renderer.clear()
-    const carried = drag?.moved && drag.hit.id ? drag.hit.id : null
+    const carried = drag?.moved && drag.hit.id && !placed.get(drag.hit.id)?.picture ? drag.hit.id : null
     const going = [...placed.values()].filter((entry) => entry.leaving).map((entry) => entry.id)
     const draw = (id: string) => {
       const entry = placed.get(id)
@@ -844,7 +878,15 @@ const factory: SceneFactory<DeskParams> = (context, initial) => {
 
   const reflow = () => {
     fitCamera()
-    for (const entry of placed.values()) if (!entry.held) entry.home = onDesk(entry.stored, entry.half, span)
+    for (const entry of placed.values()) {
+      if (entry.pictureStored) {
+        entry.picture = fitPicture(entry.pictureStored, span, top, entry.kind)
+        entry.half = entry.picture.width * 0.53
+        entry.top = pictureTop(entry.picture, entry.kind)
+        entry.prop.setPicture?.(entry.picture)
+      }
+      if (!entry.held) entry.home = onDesk(entry.stored, entry.half, span)
+    }
     if (drag?.hit.handle !== 'base') placeLamp()
     lastBeam = ''
   }

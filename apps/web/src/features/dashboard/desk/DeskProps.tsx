@@ -13,10 +13,12 @@ import { subscribeTasksChanged } from '../../tasks/taskSync'
 import DeskPicker from './DeskPicker'
 import LampLight from './LampLight'
 import { createLampLightStore } from './lampLightStore'
-import { DESK_LAYOUT, DESK_LINE_INSET, DESK_UNIT_MAX, DESK_UNIT_MIN, LAMP_X, findFreeSpot, type DeskSpan } from './deskLayout'
+import { DESK_LAYOUT, DESK_LINE_INSET, DESK_UNIT_MAX, DESK_UNIT_MIN, LAMP_X, findFreeSpot, onDesk, type DeskSpan } from './deskLayout'
 import { DEFAULT_POSE, type LampPose } from './lampKinematics'
 import { newItemId, readDeskSettings, writeDeskSettings, type DeskSettings } from './deskState'
 import type { DeskColors, DeskItem, DeskParams, DeskPropId } from './deskTypes'
+import { defaultPicture, fitPicture, isPicture, parsePicture, type PictureSettings } from './pictureTypes'
+import { PictureSelection } from './PictureEditor'
 import './desk.css'
 
 const loadDesk = async (): Promise<SurfaceModule<DeskParams>> => {
@@ -184,12 +186,17 @@ const DeskProps = ({ headerRef }: { headerRef: RefObject<HTMLElement | null> }) 
   return <DeskStage placement={placement} />
 }
 
-const DeskStage = ({ placement }: { placement: Placement }) => {
+const deviceSettings = { read: readDeskSettings, write: writeDeskSettings }
+/** The preview fixture uses an isolated settings store with this same production stage. */
+export const DeskStage = ({ placement, storage = deviceSettings }: { placement: Placement; storage?: typeof deviceSettings }) => {
   const { t } = useI18n()
   const theme = useThemeMode()
   const colors = useDeskColors(theme)
-  const [settings, setSettings] = useState<DeskSettings>(readDeskSettings)
+  const [settings, setSettings] = useState<DeskSettings>(storage.read)
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [selectedPicture, setSelectedPicture] = useState<string | null>(null)
+  const [pictureStatuses, setPictureStatuses] = useState<Record<string, 'loading' | 'ready' | 'error'>>({})
+  const onPictureStatus = useCallback((id: string, status: 'loading' | 'ready' | 'error') => setPictureStatuses(prev => prev[id] === status ? prev : { ...prev, [id]: status }), [])
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const store = useMemo(() => createLampLightStore(), [])
   const noteTitle = useTaskInProgress(settings.note)
@@ -198,10 +205,10 @@ const DeskStage = ({ placement }: { placement: Placement }) => {
   const update = useCallback((patch: (prev: DeskSettings) => Partial<DeskSettings>) => {
     setSettings((prev) => {
       const next = { ...prev, ...patch(prev) }
-      writeDeskSettings(next)
+      storage.write(next)
       return next
     })
-  }, [])
+  }, [storage])
   const toggleLamp = useCallback(() => update((prev) => ({ lampOn: !prev.lampOn })), [update])
   const onPose = useCallback((pose: LampPose) => update(() => ({ pose })), [update])
   const onLampMove = useCallback((lampX: number) => update(() => ({ lampX: Math.round(lampX * 100) / 100 })), [update])
@@ -216,9 +223,18 @@ const DeskStage = ({ placement }: { placement: Placement }) => {
     items: prev.items.map((item) => (item.id === id ? withTimer(item, endsAt) : item)),
   })), [update])
   const span = useMemo(() => spanOf(placement), [placement])
-  const addItem = useCallback((kind: DeskPropId) => update((prev) => ({
-    items: [...prev.items, { id: newItemId(), kind, x: findFreeSpot(kind, prev.items, prev.lampX, span) }],
-  })), [update, span])
+  const onItemPicture = useCallback((id: string, patch: Partial<PictureSettings>, x?: number) => update(prev => ({
+    items: prev.items.map(item => item.id === id && isPicture(item.kind)
+      ? { ...item, x: x ?? item.x, picture: parsePicture(item.kind, { ...parsePicture(item.kind, item.picture), ...patch }) }
+      : item),
+  })), [update])
+  const addItem = useCallback((kind: DeskPropId) => {
+    const id = newItemId()
+    update(prev => ({
+      items: [...prev.items, { id, kind, x: kind === 'window' ? -1.2 : findFreeSpot(kind, prev.items.filter(item => !isPicture(item.kind)), prev.lampX, span), ...(isPicture(kind) ? { picture: defaultPicture(kind) } : {}) }],
+    }))
+    if (isPicture(kind)) { setSelectedPicture(id); setPickerOpen(false) }
+  }, [update, span])
   const clearItems = useCallback(() => update(() => ({ items: [] })), [update])
   const setNote = useCallback((note: boolean) => update(() => ({ note })), [update])
   const [highlight, setHighlight] = useState<string | null>(null)
@@ -244,11 +260,18 @@ const DeskStage = ({ placement }: { placement: Placement }) => {
     onItemMove,
     onItemRemove,
     onItemTimer,
+    onItemPicture,
+    onSelectPicture: setSelectedPicture,
+    onPictureStatus,
     onBeam: store.set,
-  }), [colors, placement.unit, placement.origin, settings, note, highlight, toggleLamp, onPose, onLampMove, onItemMove, onItemRemove, onItemTimer, store])
+  }), [colors, placement.unit, placement.origin, settings, note, highlight, toggleLamp, onPose, onLampMove, onItemMove, onItemRemove, onItemTimer, onItemPicture, onPictureStatus, store])
 
   const status = useThreeSurface(canvasRef, loadDesk, params)
   const lampLabel = settings.lampOn ? t('dashboard.desk.lampOff') : t('dashboard.desk.lampOn')
+  const selected = settings.items.find(item => item.id === selectedPicture)
+  const selectedKind = selected && isPicture(selected.kind) ? selected.kind : null
+  const storedPicture = selectedKind ? parsePicture(selectedKind, selected?.picture) : null
+  const shownPicture = storedPicture ? fitPicture(storedPicture, span, (placement.height - DESK_LINE_INSET) / placement.unit, selectedKind ?? 'window') : null
 
   return (
     <div
@@ -257,6 +280,22 @@ const DeskStage = ({ placement }: { placement: Placement }) => {
       style={{ left: placement.left, width: placement.width, height: placement.height }}
     >
       <canvas ref={canvasRef} className="dash-desk__canvas" aria-hidden="true" />
+      {selected && selectedKind && storedPicture && shownPicture && status === 'ready' ? <PictureSelection
+        key={selected.id}
+        kind={selectedKind} picture={shownPicture} stored={storedPicture} unit={placement.unit}
+        x={onDesk(selected.x, shownPicture.width * 0.53, span)}
+        left={placement.origin + (onDesk(selected.x, shownPicture.width * 0.53, span) - shownPicture.width / 2) * placement.unit}
+        top={placement.height - DESK_LINE_INSET - (shownPicture.y + shownPicture.height) * placement.unit}
+        status={pictureStatuses[selected.id]}
+        onChange={(patch, x) => onItemPicture(selected.id, patch, x)}
+        onRemove={() => onItemRemove(selected.id)}
+        onClose={() => setSelectedPicture(null)}
+        onDuplicate={() => {
+          const id = newItemId()
+          update(prev => ({ items: [...prev.items, { ...selected, id, x: onDesk(selected.x + 0.4, shownPicture.width * 0.53, span) }] }))
+          setSelectedPicture(id)
+        }}
+      /> : null}
       {status === 'ready' ? (
         <div className="dash-desk__controls" role="group" aria-label={t('dashboard.desk.label')} data-open={pickerOpen ? 'true' : 'false'}>
           <button type="button" className="dash-desk__control" aria-pressed={settings.lampOn} aria-label={lampLabel} title={lampLabel} onClick={toggleLamp}>
