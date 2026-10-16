@@ -133,7 +133,10 @@ html[data-ambient-scene]:not([data-ambient-scene='idle']):not([data-ambient-scen
   --border: var(--rule);
   --accent: hsl(var(--environment-pen));
   --accent-ink: hsl(var(--environment-on-pen));
-  --accent-soft: color-mix(in srgb, var(--accent) 12%, var(--paper-raised));
+  /* Mixed into the sheet, not the raised paper: selections (the sidebar's
+     pen-wash pill) sit on the sheet, and in light scenes the raised paper plus
+     12% pen came out the sheet's own colour, so the selection vanished. */
+  --accent-soft: color-mix(in srgb, var(--accent) 16%, var(--paper-sheet));
   --accent-wash: var(--accent-soft);
   --sidebar-active-fg: var(--accent-ink);
   --focus-ring: hsl(var(--environment-pen) / 0.45);
