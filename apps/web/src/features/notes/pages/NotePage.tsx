@@ -478,6 +478,7 @@ export default function NotePage() {
         title: activeNote.title,
         contentMd: activeNote.contentMd,
         contentJson: activeNote.contentJson ?? null,
+        crdtState: activeNote.crdtState,
         editorMode: activeNote.editorMode,
         tags: activeNote.tags,
       }
@@ -647,6 +648,7 @@ export default function NotePage() {
   }
 
   const handleUpdateNote = (next: {
+    crdtState?: string
     title: string
     contentMd: string
     contentJson?: Record<string, unknown> | null
@@ -672,6 +674,7 @@ export default function NotePage() {
             title: derivedTitle,
             contentMd: next.contentMd,
             contentJson: next.contentJson ?? null,
+            crdtState: next.crdtState,
             editorMode: next.editorMode,
             tags: next.tags,
           })
@@ -693,6 +696,7 @@ export default function NotePage() {
       title: nextTitle,
       contentMd: next.contentMd,
       contentJson: next.contentJson ?? null,
+      crdtState: next.crdtState,
       editorMode: next.editorMode,
       tags: next.tags,
       excerpt: buildPreview(statsSource),
@@ -1176,6 +1180,8 @@ export default function NotePage() {
                 <div className="contents">
                   {isEditorReady ? (
                     <NoteEditor
+                      key={activeNote.id}
+                      noteId={activeNote.id}
                       surfaceRef={editorSurfaceRef}
                       value={activeNoteValue}
                       appearance={appearance}

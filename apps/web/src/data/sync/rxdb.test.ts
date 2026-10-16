@@ -180,6 +180,8 @@ describe('rxdb sync migration', () => {
     })
 
     await expect(runRxdbSyncCycle()).rejects.toThrow()
+    expect(await db.pendingSyncChanges.count()).toBeGreaterThan(0)
+    expect((await db.pendingSyncChanges.toArray()).some(change => change.handedOff)).toBe(true)
     expect((await db.notes.get(note.id))?.contentMd).toBe(note.contentMd)
     expect((await db.tasks.get(task.id))?.status).toBe('done')
 
@@ -189,8 +191,52 @@ describe('rxdb sync migration', () => {
     expect(pushed.get('tasks')).toEqual(new Set([task.id]))
     expect((await db.notes.toArray()).filter((row) => row.id === note.id)).toHaveLength(1)
     expect((await db.tasks.toArray()).filter((row) => row.id === task.id)).toHaveLength(1)
+    expect(await db.pendingSyncChanges.count()).toBe(0)
     onlineSpy.mockRestore()
   }, 30_000)
+
+  it('releases a failed HTTP cycle without losing pending writes, then retries successfully', async () => {
+    await db.notes.put({ id: 'retry-http', title: 'Retry', contentMd: 'Keep me', contentJson: null,
+      editorMode: 'document', collection: 'all-notes', tags: [], pinned: false, createdAt: 1, updatedAt: 2 } as never)
+    let failing = true
+    fetchMock.mockImplementation(async (input, init) => {
+      const body = init?.body ? JSON.parse(String(init.body)) : {}
+      if (failing) return { ok: false, status: 503, text: async () => '{"error":"temporarily_unavailable"}' } as Response
+      if (String(input).includes('/pull')) return { ok: true, json: async () => ({ documents: [], checkpoint: body.checkpoint ?? null, blobs: [] }) } as Response
+      return { ok: true, json: async () => ({ conflicts: [], blobs: [] }) } as Response
+    })
+    await expect(runRxdbSyncCycle(['notes'])).rejects.toThrow(/503/)
+    expect(await db.pendingSyncChanges.count()).toBeGreaterThan(0)
+    expect((await db.notes.get('retry-http'))?.contentMd).toBe('Keep me')
+    failing = false
+    await runRxdbSyncCycle(['notes'])
+    expect(await db.pendingSyncChanges.count()).toBe(0)
+  }, 15_000)
+
+  it('does not resurrect a note deleted while its push conflict was in flight', async () => {
+    const local = { id: 'delete-during-conflict', title: 'Delete me', contentMd: 'Local', contentJson: null,
+      editorMode: 'document' as const, collection: 'all-notes' as const, tags: [], pinned: false,
+      createdAt: 1, updatedAt: 10 }
+    await db.notes.put(local as never)
+    let conflicted = false
+    fetchMock.mockImplementation(async (input, init) => {
+      const body = init?.body ? JSON.parse(String(init.body)) : {}
+      if (String(input).includes('/pull')) return { ok: true, json: async () => ({ documents: [], checkpoint: body.checkpoint ?? null, blobs: [] }) } as Response
+      if (!conflicted && body.entityType === 'notes') {
+        conflicted = true
+        await db.notes.delete(local.id)
+        return { ok: true, json: async () => ({ conflicts: [{ ...local, contentMd: 'Remote', updatedAt: 20, _deleted: false }], blobs: [] }) } as Response
+      }
+      return { ok: true, json: async () => ({ conflicts: [], blobs: [] }) } as Response
+    })
+    await runRxdbSyncCycle(['notes'])
+    expect(conflicted).toBe(true)
+    expect(await db.notes.get(local.id)).toBeUndefined()
+    expect((await db.pendingSyncChanges.toArray()).some(change => change.entityId === local.id && change.op === 'delete')).toBe(true)
+    await runRxdbSyncCycle(['notes'])
+    expect(await db.notes.get(local.id)).toBeUndefined()
+    expect(await db.pendingSyncChanges.count()).toBe(0)
+  })
 
   it('backfills imported local notes into a non-empty RxDB notes queue', async () => {
     const existingNote = {

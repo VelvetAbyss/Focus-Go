@@ -785,6 +785,7 @@ export const createDexieDatabaseService = (): IDatabaseService => ({
         title: data?.title ?? '',
         contentMd: data?.contentMd ?? '',
         contentJson: data?.contentJson ?? null,
+        crdtState: data?.crdtState,
         editorMode: 'document',
         collection: data?.collection ?? DEFAULT_NOTE_COLLECTION,
         tags: data?.tags ?? [],

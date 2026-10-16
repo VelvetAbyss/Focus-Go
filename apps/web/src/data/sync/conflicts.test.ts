@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { syncNoteMetadataDiffer } from './conflicts'
 import 'fake-indexeddb/auto'
 import Dexie from 'dexie'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -91,5 +92,16 @@ describe('sync conflict recovery copies', () => {
     await db.open()
     expect((await db.notes.get('before-upgrade'))?.title).toBe('Keep me')
     expect(await db.syncConflicts.count()).toBe(0)
+  })
+})
+
+
+describe('CRDT acknowledgement metadata', () => {
+  it('keeps tags, pinning, collection and title pending even with identical CRDT state', () => {
+    const sent = { id: 'note', title: 'Title', tags: [], pinned: false, collection: 'all-notes', crdtState: 'same', contentMd: 'body' }
+    for (const change of [{ tags: ['new'] }, { pinned: true }, { collection: 'work' }, { title: 'New title' }]) {
+      expect(syncNoteMetadataDiffer(sent, { ...sent, ...change })).toBe(true)
+    }
+    expect(syncNoteMetadataDiffer(sent, { ...sent, contentMd: 'merged body', crdtState: 'merged', updatedAt: 99, wordCount: 4 })).toBe(false)
   })
 })

@@ -2,6 +2,7 @@ import { Router } from 'express'
 import db from '../db/init.js'
 import { requireAuth } from '../middleware/auth.js'
 import { getCloudStorageUsage, getRxdbPullState, pushRxdbRows, upsertSyncBlob } from '../sync/store.js'
+import { createSyncEvents } from '../sync/events.js'
 
 export const DEFAULT_CLOUD_SYNC_QUOTA_BYTES = 250 * 1024 * 1024
 // One client cycle pulls every entity type. Allow several active devices to
@@ -29,6 +30,7 @@ const createRateLimiter = ({ limits = DEFAULT_SYNC_RATE_LIMITS, now = () => Date
 export const createSyncRouter = ({
   database = db,
   authMiddleware = requireAuth,
+  events = createSyncEvents(),
   quotaBytes = readPositiveInt(process.env.FREE_SYNC_QUOTA_BYTES, DEFAULT_CLOUD_SYNC_QUOTA_BYTES),
   rateLimiter = createRateLimiter({
     limits: {
@@ -40,6 +42,23 @@ export const createSyncRouter = ({
   const router = Router()
 
   router.use(authMiddleware)
+  router.get('/events', (req, res) => {
+    let unsubscribe
+    try {
+      unsubscribe = events.subscribe(String(req.auth.user.id), (event) => {
+        if (!res.write(`data: ${JSON.stringify(event)}\n\n`)) res.end()
+      })
+    } catch {
+      return res.status(429).json({ error: 'sync_stream_limit' })
+    }
+    res.set({ 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache, no-transform', 'X-Accel-Buffering': 'no' })
+    res.flushHeaders()
+    res.write('data: {"type":"ready"}\n\n')
+    const heartbeat = setInterval(() => res.write(': heartbeat\n\n'), 20_000)
+    // Refresh authentication periodically using a fresh connection/token.
+    const lifetime = setTimeout(() => res.end(), 5 * 60_000)
+    res.on('close', () => { clearInterval(heartbeat); clearTimeout(lifetime); unsubscribe() })
+  })
   const enforceRateLimit = (kind) => (req, res, next) => {
     const decision = rateLimiter(kind, String(req.auth.user.id))
     if (decision.allowed) return next()
@@ -90,7 +109,9 @@ export const createSyncRouter = ({
         return { ...result, quota: { ...usage, limitBytes: quotaBytes } }
       })
 
-      res.json(tx(blobs, rows))
+      const result = tx(blobs, rows)
+      res.json(result)
+      if (rows.length > result.conflicts.length) events.publish(userId, entityType)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       if (error?.statusCode === 400 || message.startsWith('Unsupported sync entity type')) {

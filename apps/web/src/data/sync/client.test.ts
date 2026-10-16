@@ -1,9 +1,10 @@
 import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { db } from '../db'
+const auth = vi.hoisted(() => ({ accountId: 'account-a' }))
 
 vi.mock('../../store/auth', () => ({
-  getAuth: () => ({ accessToken: 'token' }),
+  getAuth: () => ({ accessToken: 'token', user: { id: auth.accountId } }),
 }))
 
 import { syncApi } from './client'
@@ -12,9 +13,22 @@ describe('syncApi rxdb endpoints', () => {
   const fetchMock = vi.fn<typeof fetch>()
 
   beforeEach(async () => {
+    auth.accountId = 'account-a'
     await db.delete({ disableAutoOpen: false })
     await db.open()
     vi.stubGlobal('fetch', fetchMock)
+  })
+
+  it.each(['pull', 'push'] as const)('discards an in-flight %s response after account switching before caching its blobs', async (kind) => {
+    let complete: (response: Response) => void = () => {}
+    fetchMock.mockImplementationOnce(() => new Promise(resolve => { complete = resolve }))
+    const pending = kind === 'pull'
+      ? syncApi.rxdbPull({ entityType: 'notes', checkpoint: null, limit: 100 })
+      : syncApi.rxdbPush({ entityType: 'notes', rows: [], blobs: [] })
+    auth.accountId = 'account-b'
+    complete({ ok: true, json: async () => ({ documents: [], conflicts: [], blobs: [{ hash: 'account-a-private', dataBase64: 'eA==' }] }) } as Response)
+    await expect(pending).rejects.toThrow('Sync account changed')
+    expect(await db.syncBlobCache.count()).toBe(0)
   })
 
   afterEach(async () => {

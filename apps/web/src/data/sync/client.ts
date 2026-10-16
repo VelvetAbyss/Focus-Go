@@ -103,6 +103,7 @@ const cacheBlobs = async (blobs: SyncWireBlob[]) => {
 
 export const syncApi = {
   async rxdbPull<T extends SyncEntityType>(request: RxdbPullRequest): Promise<RxdbPullResponse<T>> {
+    const accountId = getAuth()?.user?.id
     const headers = getAuthHeaders()
     if (!headers) throw new Error('Missing auth token')
     const response = await fetchJson<RxdbPullResponse<T>>('/sync/rxdb/pull', {
@@ -110,10 +111,12 @@ export const syncApi = {
       headers,
       body: JSON.stringify(request),
     })
+    if (getAuth()?.user?.id !== accountId || getAuthHeaders()?.Authorization !== headers.Authorization) throw new Error('Sync account changed')
     await cacheBlobs(response.blobs)
     return response
   },
   async rxdbPush<T extends SyncEntityType>(request: RxdbPushRequest<T>): Promise<RxdbPushResponse<T>> {
+    const accountId = getAuth()?.user?.id
     const headers = getAuthHeaders()
     if (!headers) throw new Error('Missing auth token')
     const response = await fetchJson<RxdbPushResponse<T>>('/sync/rxdb/push', {
@@ -121,6 +124,7 @@ export const syncApi = {
       headers,
       body: JSON.stringify(request),
     })
+    if (getAuth()?.user?.id !== accountId || getAuthHeaders()?.Authorization !== headers.Authorization) throw new Error('Sync account changed')
     await cacheBlobs(response.blobs)
     return response
   },

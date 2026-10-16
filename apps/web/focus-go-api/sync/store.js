@@ -315,7 +315,7 @@ export const pushRxdbRows = (db, userId, entityType, rows) => {
 
   for (const row of rows) {
     const next = row?.newDocumentState
-    if (!next || typeof next.id !== 'string' || !isNumber(next.updatedAt)) continue
+    if (!next || typeof next.id !== 'string' || !isNumber(next.updatedAt)) throw invalidBlob('sync_invalid_row')
     const current = db
       .prepare(`SELECT id, user_id, payload, updated_at, deleted_at FROM ${tableName} WHERE user_id = ? AND id = ?`)
       .get(userId, next.id)

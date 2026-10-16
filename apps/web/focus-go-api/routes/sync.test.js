@@ -51,6 +51,25 @@ const assertPushOk = async (response) => {
   return body
 }
 
+test('authenticated SSE announces committed changes and closes cleanly', async () => {
+  const ctx = await createServer()
+  const controller = new AbortController()
+  try {
+    const response = await fetch(`${ctx.baseUrl}/sync/events`, { signal: controller.signal })
+    assert.equal(response.headers.get('content-type'), 'text/event-stream; charset=utf-8')
+    const reader = response.body.getReader()
+    const first = await reader.read()
+    assert.match(new TextDecoder().decode(first.value), /"type":"ready"/)
+    await assertPushOk(await fetch(`${ctx.baseUrl}/sync/rxdb/push`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entityType: 'tasks', rows: [{ newDocumentState: { id: 'sse-task', title: 'Saved', updatedAt: 1 }, assumedMasterState: null }], blobs: [] }),
+    }))
+    const change = await reader.read()
+    assert.match(new TextDecoder().decode(change.value), /"entityType":"tasks"/)
+    await reader.cancel()
+  } finally { controller.abort(); await ctx.close() }
+})
+
 test('orphan blob quota overflow rolls back the actual bytes and forged size cannot evade it', async () => {
   const ctx = await createServer({ quotaBytes: 10 })
   try {

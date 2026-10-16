@@ -12,8 +12,10 @@ import TableRow from '@tiptap/extension-table-row'
 import { TextAlign } from '@tiptap/extension-text-align'
 import { Typography } from '@tiptap/extension-typography'
 import { StarterKit } from '@tiptap/starter-kit'
+import Collaboration from '@tiptap/extension-collaboration'
+import { ySyncPluginKey } from '@tiptap/y-tiptap'
+import { applyNoteCrdt, createNoteCrdt, hasSameNoteCrdtEpoch, isNoteCrdtSnapshot, noteCrdtProjection } from '../../../data/sync/noteCrdt'
 import { EditorContent, EditorContext, useEditor } from '@tiptap/react'
-import { closeHistory } from '@tiptap/pm/history'
 import { ArrowLeft, Download, Expand, FileUp, Info, ListTodo, Minimize2, Palette } from 'lucide-react'
 import type { CSSProperties, ReactNode, RefObject } from 'react'
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
@@ -49,9 +51,10 @@ import { matchNoteCommands, NoteCommands, type NoteCommandContext, type NoteComm
 import { NoteCommandMenu } from './NoteCommandMenu'
 import { NoteSelectionMenu } from './NoteSelectionMenu'
 import { NoteBlockTools } from './NoteBlockTools'
-import { applyNoteBlockType, NoteBlockMovement } from '../model/noteBlocks'
+import { applyNoteBlockType, runNoteAction, NoteBlockMovement } from '../model/noteBlocks'
 
 type NoteEditorValue = {
+  crdtState?: string
   title: string
   contentMd: string
   contentJson?: Record<string, unknown> | null
@@ -60,6 +63,7 @@ type NoteEditorValue = {
 }
 
 type NoteEditorProps = {
+  noteId?: string
   value: NoteEditorValue
   appearance?: {
     theme?: 'paper' | 'graphite'
@@ -239,12 +243,15 @@ const NoteEditor = ({
   onReturn,
   returnLabel,
   onChange,
+  noteId,
   isFullscreen = false,
   surfaceRef,
   autoFocus = false,
 }: NoteEditorProps) => {
   const { t } = useI18n()
   const initialDoc = useMemo(() => ensureRichDoc(value.contentJson, value.contentMd), [value.contentJson, value.contentMd])
+  // NotePage keys the editor by note ID. One Y.Doc lives for one editor session.
+  const [collaborationDoc] = useState(() => noteId ? createNoteCrdt(initialDoc, isNoteCrdtSnapshot(value) ? value.crdtState : null) : null)
   const fontFamily = fontFamilyMap[appearance?.font ?? 'uiSans']
   const widthScale = Math.max(0, Math.min(100, appearance?.contentWidth ?? 60)) / 100
   const contentMeasureRem = 64 - widthScale * 30
@@ -291,24 +298,28 @@ const NoteEditor = ({
   }, [onChange, value.tags])
 
   const flushEmitChange = useCallback(() => {
-    const doc = pendingDocRef.current
-    if (doc === undefined) return
+    if (pendingDocRef.current === undefined) return
+    // A remote merge may arrive during the save debounce. Serialize body and
+    // CRDT state from the same current Y.Doc, never an older pending JSON.
+    const crdtSnapshot = collaborationDoc ? noteCrdtProjection(collaborationDoc) : null
+    const doc = crdtSnapshot ? crdtSnapshot.contentJson : pendingDocRef.current
     pendingDocRef.current = undefined
     if (emitTimerRef.current) {
       window.clearTimeout(emitTimerRef.current)
       emitTimerRef.current = null
     }
-    const contentMd = richDocToMarkdown(doc)
+    const contentMd = crdtSnapshot ? crdtSnapshot.contentMd : richDocToMarkdown(doc)
     lastEditorDocRef.current = serializeDoc(doc)
     const { onChange: handleChange, tags } = changeMetaRef.current
     handleChange({
       title: extractTitleFromMarkdown(contentMd),
       contentMd,
       contentJson: (doc ?? null) as Record<string, unknown> | null,
+      ...(crdtSnapshot ? { crdtState: crdtSnapshot.crdtState } : {}),
       editorMode: 'document',
       tags,
     })
-  }, [])
+  }, [collaborationDoc])
 
   const scheduleEmitChange = useCallback(
     (doc: JSONContent | null | undefined) => {
@@ -358,7 +369,7 @@ const NoteEditor = ({
     immediatelyRender: false,
     extensions: [
       StarterKit.configure({
-        undoRedo: { newGroupDelay: 500 },
+        undoRedo: collaborationDoc ? false : { newGroupDelay: 500 },
         horizontalRule: false,
         link: {
           openOnClick: false,
@@ -366,6 +377,7 @@ const NoteEditor = ({
         },
       }),
       HorizontalRule,
+      ...(collaborationDoc ? [Collaboration.configure({ document: collaborationDoc })] : []),
       Placeholder.configure({ placeholder: t('notes.editorPlaceholder') }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       TaskList,
@@ -458,8 +470,13 @@ const NoteEditor = ({
         return true
       },
     },
-    content: initialDoc,
-    onUpdate: ({ editor }) => {
+    content: collaborationDoc ? undefined : initialDoc,
+    onUpdate: ({ editor, transaction }) => {
+      const syncMeta = transaction?.getMeta(ySyncPluginKey)
+      if (collaborationDoc && syncMeta?.isChangeOrigin && !syncMeta.isUndoRedoOperation) {
+        scheduleTocRefresh()
+        return
+      }
       localEditRevisionRef.current += 1
       const nextDoc = editor.getJSON()
       lastEditorDocRef.current = serializeDoc(nextDoc)
@@ -474,6 +491,10 @@ const NoteEditor = ({
 
   useEffect(() => {
     if (!editor) return
+    if (collaborationDoc && value.crdtState && isNoteCrdtSnapshot({ contentJson: value.contentJson, contentMd: value.contentMd, crdtState: value.crdtState }) && hasSameNoteCrdtEpoch(collaborationDoc, value.crdtState)) {
+      applyNoteCrdt(collaborationDoc, value.crdtState)
+      return
+    }
     const nextDoc = ensureRichDoc(value.contentJson, value.contentMd)
     const nextDocKey = serializeDoc(nextDoc)
     if (nextDocKey === serializeDoc(editor.getJSON())) {
@@ -497,7 +518,7 @@ const NoteEditor = ({
     lastEditorDocRef.current = nextDocKey
     lastAppliedExternalDocRef.current = nextDocKey
     setTocVersion((version) => version + 1)
-  }, [editor, flushEmitChange, value.contentJson, value.contentMd])
+  }, [editor, flushEmitChange, value.contentJson, value.contentMd, value.crdtState, collaborationDoc])
 
   useEffect(() => {
     if (!editor) return
@@ -554,14 +575,12 @@ const NoteEditor = ({
   }
   const chooseCommand = (id: NoteCommandId, context: NoteCommandContext) => {
     if (!editor || editor.view.composing) return
-    editor.view.dispatch(closeHistory(editor.state.tr))
-    const chain = editor.chain().focus().deleteRange({ from: context.from, to: context.to })
-    if (id === 'task' || id === 'waiting' || id === 'reminder') { chain.run(); requestTask(id) }
-    else {
-      // Trigger deletion and conversion must be a single transaction.
-      applyNoteBlockType(chain, id).run()
-    }
-    editor.view.dispatch(closeHistory(editor.state.tr))
+    const taskCommand = id === 'task' || id === 'waiting' || id === 'reminder'
+    runNoteAction(editor, chain => {
+      const cleared = chain.deleteRange({ from: context.from, to: context.to })
+      return taskCommand ? cleared : applyNoteBlockType(cleared, id)
+    })
+    if (taskCommand) requestTask(id)
     setCommandContext(null)
   }
   commandHandlersRef.current = {

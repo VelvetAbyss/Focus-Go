@@ -76,7 +76,7 @@ test.afterAll(async () => {
   apiProcess?.kill('SIGTERM')
 })
 
-test('two signed-in browsers keep offline edits as reviewable conflict copies', async ({ browser }) => {
+test('two signed-in browsers keep legacy offline edits as reviewable conflict copies', async ({ browser }) => {
   test.setTimeout(120_000)
   const credentials = { email: `sync-${crypto.randomUUID()}@example.test`, password: 'test-only-password-1234' }
   const cookieA = await authRequest('sign-up/email', { ...credentials, name: 'Sync Browser Test' })
@@ -112,6 +112,13 @@ test('two signed-in browsers keep offline edits as reviewable conflict copies', 
     await expect.poll(async () => pageB.evaluate(async (id) =>
       (await (await import('/src/data/db/index.ts')).db.notes.get(id))?.contentMd, noteId,
     )).toContain('Second device offline edit')
+    // Unmount the upgraded CRDT editor before simulating a legacy record.
+    await pageB.getByRole('button', { name: 'New note' }).first().click()
+    await expect(pageB).not.toHaveURL(new RegExp(`note=${noteId}`))
+    // Simulate a pre-CRDT client: its text is still preserved as a conflict copy.
+    await pageB.evaluate(async (id) => {
+      await (await import('/src/data/db/index.ts')).db.notes.update(id, { crdtState: '', updatedAt: Date.now() })
+    }, noteId)
 
     await editorA.fill('First device online edit')
     await expect.poll(async () => pageA.evaluate(async (id) =>
@@ -122,34 +129,37 @@ test('two signed-in browsers keep offline edits as reviewable conflict copies', 
     await contextB.setOffline(false)
     await pageB.evaluate(async () => (await import('/src/data/sync/rxdb.ts')).runRxdbSyncCycle())
     await expect.poll(async () => pageB.evaluate(async () =>
-      (await (await import('/src/data/db/index.ts')).db.syncConflicts.toArray()).length,
+      (await (await import('/src/data/db/index.ts')).db.syncConflicts.toArray()).filter(item => item.entityType === 'notes').length,
     )).toBe(1)
     await expect.poll(async () => pageB.evaluate(async (id) =>
       (await (await import('/src/data/db/index.ts')).db.notes.get(id))?.contentMd, noteId,
     )).toContain('First device online edit')
+    await pageB.goto(`/note?note=${noteId}`)
     await expect(editorB).toContainText('First device online edit')
     await pageB.reload()
     await expect(pageB.locator('.note-editor .ProseMirror')).toContainText('First device online edit')
-    await pageB.getByRole('navigation', { name: 'Main modules' }).getByRole('button', { name: 'Settings' }).click()
+    await pageB.getByRole('link', { name: 'Settings', exact: true }).click()
     await expect(pageB).toHaveURL(/\/settings/)
     await pageB.getByRole('tab', { name: /Data/ }).click()
     await expect(pageB.getByRole('heading', { name: 'Sync conflict copies' })).toBeVisible()
-    await pageB.getByText('Compare copies').click()
-    await expect(pageB.getByTestId('conflict-local-preview')).toContainText('Second device offline edit')
-    await expect(pageB.getByTestId('conflict-remote-preview')).toContainText('First device online edit')
+    const conflictId = await pageB.evaluate(async () => (await (await import('/src/data/db/index.ts')).db.syncConflicts.toArray()).find(item => item.entityType === 'notes')?.id)
+    const conflictCard = pageB.getByTestId(`sync-conflict-${conflictId}`)
+    await conflictCard.getByText('Compare copies').click()
+    await expect(conflictCard.getByTestId('conflict-local-preview')).toContainText('Second device offline edit')
+    await expect(conflictCard.getByTestId('conflict-remote-preview')).toContainText('First device online edit')
     const downloadPromise = pageB.waitForEvent('download')
-    await pageB.getByRole('button', { name: 'Download both copies' }).click()
+    await conflictCard.getByRole('button', { name: 'Download both copies' }).click()
     const download = await downloadPromise
     const savedPath = await download.path()
     const conflict = JSON.parse(await readFile(savedPath!, 'utf8'))
     expect(conflict.localDocument.contentMd).toContain('Second device offline edit')
     expect(conflict.remoteDocument.contentMd).toContain('First device online edit')
-    await pageB.getByRole('button', { name: 'Save local version as new note' }).click()
+    await conflictCard.getByRole('button', { name: 'Save local version as new note' }).click()
     await expect.poll(async () => pageB.evaluate(async () =>
-      (await (await import('/src/data/db/index.ts')).db.syncConflicts.toArray())[0]?.resolvedAt,
+      (await (await import('/src/data/db/index.ts')).db.syncConflicts.toArray()).find(item => item.entityType === 'notes')?.resolvedAt,
     )).toBeGreaterThan(0)
     const recoveredId = await pageB.evaluate(async () =>
-      (await (await import('/src/data/db/index.ts')).db.syncConflicts.toArray())[0]?.restoredEntityId,
+      (await (await import('/src/data/db/index.ts')).db.syncConflicts.toArray()).find(item => item.entityType === 'notes')?.restoredEntityId,
     )
     expect(recoveredId).toBeTruthy()
     expect(recoveredId).not.toBe(noteId)
@@ -159,12 +169,89 @@ test('two signed-in browsers keep offline edits as reviewable conflict copies', 
     expect(await pageB.evaluate(async (id) =>
       (await (await import('/src/data/db/index.ts')).db.notes.get(id))?.contentMd, noteId,
     )).toContain('First device online edit')
-    await pageB.getByRole('button', { name: 'Open recovered note' }).click()
+    await conflictCard.getByRole('button', { name: 'Open recovered note' }).click()
     await expect(pageB).toHaveURL(new RegExp(`note=${recoveredId}`))
     await expect(pageB.locator('.note-editor .ProseMirror')).toContainText('Second device offline edit')
   } finally {
     await contextA.close().catch(() => {})
     await contextB.close().catch(() => {})
+  }
+})
+
+test('realtime notifications deliver edits and offline CRDT edits converge across two signed-in browsers', async ({ browser }) => {
+  test.setTimeout(180_000)
+  const credentials = { email: `crdt-${crypto.randomUUID()}@example.test`, password: 'test-only-password-1234' }
+  const cookieA = await authRequest('sign-up/email', { ...credentials, name: 'CRDT Browser Test' })
+  const cookieB = await authRequest('sign-in/email', credentials)
+  const contexts = await Promise.all([browser.newContext({ serviceWorkers: 'block' }), browser.newContext({ serviceWorkers: 'block' })])
+  const syncLog: string[] = []
+  try {
+    await contexts[0].addCookies([cookieA]); await contexts[1].addCookies([cookieB])
+    for (const context of contexts) await context.addInitScript(() => localStorage.setItem('workbench.ui.language', 'en'))
+    const a = await contexts[0].newPage(); const b = await contexts[1].newPage()
+    for (const [label, page] of [['A', a], ['B', b]] as const) {
+      page.on('console', message => { if (message.text().includes('[sync]')) syncLog.push(`${label}: ${message.text()}`) })
+      page.on('pageerror', error => syncLog.push(`${label} ERROR: ${error.message}`))
+    }
+    await a.goto('/note')
+    await a.getByRole('button', { name: 'New note' }).first().click()
+    const first = a.locator('.note-editor .ProseMirror')
+    await first.fill('Shared baseline')
+    const id = new URL(a.url()).searchParams.get('note')!
+    await expect.poll(() => a.evaluate(async noteId => (await (await import('/src/data/db/index.ts')).db.notes.get(noteId))?.crdtState, id)).toBeTruthy()
+    await a.evaluate(async () => (await import('/src/data/sync/rxdb.ts')).runRxdbSyncCycle())
+    await b.goto('/workspace/settings')
+    await b.evaluate(async () => (await import('/src/data/sync/rxdb.ts')).runRxdbSyncCycle())
+    await b.goto(`/note?note=${id}`)
+    const second = b.locator('.note-editor .ProseMirror')
+    await expect(second).toContainText('Shared baseline')
+    await first.press('ControlOrMeta+End'); await first.press('End'); await first.pressSequentially(' realtime')
+    // No manual sync: local commit + authenticated invalidation must suffice.
+    await expect(second).toContainText('Shared baseline realtime', { timeout: 20_000 })
+    await contexts[1].setOffline(true)
+    await second.press('ControlOrMeta+End'); await second.press('End'); await second.pressSequentially(' BBBB')
+    await expect.poll(() => b.evaluate(async noteId => (await (await import('/src/data/db/index.ts')).db.notes.get(noteId))?.contentMd, id)).toContain('BBBB')
+    await first.press('ControlOrMeta+Home'); await first.press('Home'); await first.pressSequentially('AAAA ')
+    await expect.poll(() => a.evaluate(async noteId => (await (await import('/src/data/db/index.ts')).db.notes.get(noteId))?.contentMd, id)).toContain('AAAA')
+    await a.evaluate(async () => (await import('/src/data/sync/rxdb.ts')).runRxdbSyncCycle())
+    await contexts[1].setOffline(false)
+    try {
+      await expect(first).toContainText('BBBB', { timeout: 30_000 })
+      await expect(second).toContainText('AAAA', { timeout: 30_000 })
+    } catch (error) {
+      for (const [label, page] of [['A', a], ['B', b]] as const) {
+        const diagnostic = await page.evaluate(async noteId => {
+          const { db } = await import('/src/data/db/index.ts')
+          const { isNoteCrdtSnapshot } = await import('/src/data/sync/noteCrdt.ts')
+          const note = await db.notes.get(noteId)
+          return { note, valid: note ? isNoteCrdtSnapshot(note) : false, pending: await db.pendingSyncChanges.toArray(), conflicts: await db.syncConflicts.toArray(), state: await db.syncState.toArray() }
+        }, id)
+        await test.info().attach(`sync-${label}.json`, { body: JSON.stringify(diagnostic, null, 2), contentType: 'application/json' })
+      }
+      throw error
+    }
+    await expect.poll(async () => first.innerText()).toBe(await second.innerText())
+    await b.reload()
+    await expect(b.locator('.note-editor .ProseMirror')).toContainText('AAAA')
+    await expect(b.locator('.note-editor .ProseMirror')).toContainText('BBBB')
+    await expect.poll(() => b.evaluate(async noteId => (await (await import('/src/data/db/index.ts')).db.pendingSyncChanges.toArray()).filter(item => item.entityType === 'notes' && item.entityId === noteId).length, id)).toBe(0)
+    await b.screenshot({ path: resolve(process.cwd(), '../../artifacts/sync-upgrade-2026-10-16/two-device-merged.png'), fullPage: true })
+    expect(await b.evaluate(async () => (await (await import('/src/data/db/index.ts')).db.syncConflicts.toArray()).filter(item => item.entityType === 'notes').length)).toBe(0)
+  } finally {
+    await test.info().attach('sync-log.json', { body: JSON.stringify(syncLog, null, 2), contentType: 'application/json' })
+    for (const [index, context] of contexts.entries()) {
+      const page = context.pages()[0]
+      if (page) {
+        const state = await page.evaluate(async () => {
+          const { db } = await import('/src/data/db/index.ts')
+          const { isNoteCrdtSnapshot } = await import('/src/data/sync/noteCrdt.ts')
+          const notes = await db.notes.toArray()
+          return { notes, valid: notes.map(note => isNoteCrdtSnapshot(note)), pending: await db.pendingSyncChanges.toArray(), conflicts: await db.syncConflicts.toArray(), state: await db.syncState.toArray() }
+        }).catch(error => ({ error: String(error) }))
+        await test.info().attach(`final-device-${index}.json`, { body: JSON.stringify(state, null, 2), contentType: 'application/json' })
+      }
+    }
+    await Promise.all(contexts.map(context => context.close()))
   }
 })
 
