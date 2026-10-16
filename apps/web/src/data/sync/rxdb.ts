@@ -1,4 +1,5 @@
-import { drainPendingSyncChanges, hasPendingSyncChange } from './pendingChanges'
+import { hasPendingSyncChange, pendingForAccount, type PendingSyncChange } from './pendingChanges'
+import { suppressSyncCapture } from './capture'
 import { createRxDatabase, removeRxDatabase, type RxCollection } from 'rxdb'
 import { replicateRxCollection } from 'rxdb/plugins/replication'
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie'
@@ -9,7 +10,7 @@ import { syncApi } from './client'
 import { getAuth } from '../../store/auth'
 import { LOCAL_ACCOUNT_OWNER_KEY } from '../../config/accountOwnership'
 import { runDomainEventProjections } from '../events/projections'
-import { listOpenSyncConflicts, recordSyncConflict, syncDocumentsDiffer } from './conflicts'
+import { listOpenSyncConflicts, recordSyncConflict, syncDocumentsDiffer, syncNoteMetadataDiffer } from './conflicts'
 import type { DomainEvent } from '../models/types'
 import type { RxdbCheckpoint, RxdbPullDocument, RxdbPushRow, SyncEntityType, SyncPayload, SyncState, SyncStatus } from './types'
 
@@ -24,6 +25,10 @@ type SyncDocument = RxdbPullDocument
 let rxdbQueue = Promise.resolve()
 let syncValidationErrors: string[] = []
 let rxdbResetRequested = false
+let cycleAccountId: string | null = null
+let cycleAccessToken: string | undefined
+const isCycleAccountCurrent = () => !cycleAccountId || (getAuth()?.user?.id === cycleAccountId && getAuth()?.accessToken === cycleAccessToken)
+const cycleBaselines = new Map<SyncEntityType, Map<string, SyncDocument>>()
 
 const now = () => Date.now()
 const getCollectionName = (entityType: SyncEntityType) => `sync${entityType.toLowerCase()}`
@@ -45,7 +50,11 @@ export const extractSyncErrorMessage = (error: unknown) => {
 }
 
 const runQueued = async <T>(task: () => Promise<T>) => {
-  const next = rxdbQueue.then(task, task)
+  const lockedTask = async (): Promise<T> => {
+    if (typeof navigator !== 'undefined' && navigator.locks) return await navigator.locks.request(`focusgo-sync-${getAccountNamespace()}`, task)
+    return await task()
+  }
+  const next = rxdbQueue.then(lockedTask, lockedTask)
   rxdbQueue = next.then(
     () => undefined,
     () => undefined,
@@ -63,6 +72,8 @@ const emitWindowEvent = (eventName: string) => {
 const buildStatePatch = async (patch: Partial<SyncState>) => {
   const current = await db.syncState.get('cloud-sync')
   const timestamp = now()
+  const pending = await db.pendingSyncChanges.toArray()
+  const pendingLocalRecordCount = new Set(pending.map(change => `${change.entityType}/${change.entityId}`)).size
   const next: SyncState = {
     status: 'idle',
     lastPulledAt: null,
@@ -70,15 +81,15 @@ const buildStatePatch = async (patch: Partial<SyncState>) => {
     lastError: null,
     firstSyncResolved: true,
     pendingFirstSync: false,
-    pendingEntityPush: false,
     pendingBlobPush: false,
     missingBlobPull: false,
     migrationVersion: 3,
     restoreIntegrityStatus: 'ready',
-    pendingLocalRecordCount: 0,
     pendingRemoteRecordCount: 0,
     ...current,
     ...patch,
+    pendingLocalRecordCount,
+    pendingEntityPush: pendingLocalRecordCount > 0,
     createdAt: current?.createdAt ?? timestamp,
     id: 'cloud-sync',
     updatedAt: timestamp,
@@ -110,9 +121,23 @@ const collectionSchema = {
 const createConflictHandler = (entityType: SyncEntityType) => ({
   isEqual: (left: SyncDocument, right: SyncDocument) => !syncDocumentsDiffer(left, right),
   resolve: async (input: { newDocumentState: SyncDocument; realMasterState: SyncDocument }) => {
+    if (rxdbResetRequested || !isCycleAccountCurrent()) throw new Error('Sync account changed')
     const accountId = getAuth()?.user?.id
     if (typeof accountId !== 'string' || !accountId) {
       throw new Error('Cannot preserve sync conflict without an account ID')
+    }
+    if (entityType === 'notes' && typeof (input.newDocumentState as Record<string, unknown>).crdtState === 'string'
+      && typeof (input.realMasterState as Record<string, unknown>).crdtState === 'string') {
+      const { mergeNoteCrdt } = await import('./noteCrdt')
+      const merged = mergeNoteCrdt(input.newDocumentState, input.realMasterState)
+      if (merged) {
+        const metadata = (value: SyncDocument) => Object.fromEntries(['tags', 'collection', 'pinned', 'title'].map(key => [key, value[key as keyof SyncDocument]]))
+        if (!recordsEqual(metadata(input.newDocumentState), metadata(input.realMasterState))) {
+          await recordSyncConflict(accountId, entityType, input.newDocumentState, input.realMasterState)
+        }
+        if (await writeDexieEntity(entityType, merged as SyncDocument, input.newDocumentState)) dispatchSyncDataUpdated(entityType)
+        return merged as SyncDocument
+      }
     }
     await recordSyncConflict(accountId, entityType, input.newDocumentState, input.realMasterState)
     // RxDB does not always emit received$ for a push conflict it resolves.
@@ -218,15 +243,22 @@ const withCollection = async <T>(entityType: SyncEntityType, task: (collection: 
 
 const writeDexieEntityUnprotected = async (entityType: SyncEntityType, document: SyncDocument, expectedLocal?: SyncDocument) => {
   if (rxdbResetRequested) return false
+  if (!isCycleAccountCurrent()) return false
   const normalized = normalizeSyncDocument(entityType, document, 'pull')
   if (rxdbResetRequested) return false
   // A local edit/delete committed while this network cycle was in flight wins.
-  if (await hasPendingSyncChange(entityType, normalized.id)) return false
+  if (!expectedLocal && await hasPendingSyncChange(entityType, normalized.id)) return false
   const tableName = SYNC_ENTITY_TABLES[entityType]
   const table = db.table(tableName)
+  const baseline = cycleBaselines.get(entityType)
+  if (!expectedLocal && baseline) {
+    const current = await table.get(normalized.id)
+    const previous = baseline.get(normalized.id)
+    if (Boolean(current) !== Boolean(previous) || (current && previous && syncDocumentsDiffer(current, previous))) return false
+  }
   if (expectedLocal) {
     const current = (await table.get(normalized.id)) as Record<string, unknown> | undefined
-    if (current && syncDocumentsDiffer(current, expectedLocal)) return false
+    if (!current || syncDocumentsDiffer(current, expectedLocal)) return false
   }
   if (normalized._deleted) {
     if (entityType === 'domainEvents') {
@@ -235,6 +267,7 @@ const writeDexieEntityUnprotected = async (entityType: SyncEntityType, document:
     }
     if (!(await table.get(normalized.id))) return false
     await table.delete(normalized.id)
+    baseline?.delete(normalized.id)
     return true
   } else {
     const payload = { ...normalized } as Record<string, unknown>
@@ -254,6 +287,7 @@ const writeDexieEntityUnprotected = async (entityType: SyncEntityType, document:
     const merged: Record<string, unknown> = existing ? { ...existing, ...payload } : payload
     if (existing && recordsEqual(existing, merged)) return false
     await table.put(merged)
+    baseline?.set(normalized.id, merged as SyncDocument)
     if (entityType === 'domainEvents') await runDomainEventProjections(merged as DomainEvent)
     return true
   }
@@ -261,12 +295,14 @@ const writeDexieEntityUnprotected = async (entityType: SyncEntityType, document:
 
 // Serialize the pending-check and remote apply against local task transactions.
 const writeDexieEntity = (entityType: SyncEntityType, document: SyncDocument, expectedLocal?: SyncDocument) =>
-  entityType === 'tasks'
-    ? db.transaction('rw', db.tasks, db.pendingSyncChanges, () => writeDexieEntityUnprotected(entityType, document, expectedLocal))
-    : writeDexieEntityUnprotected(entityType, document, expectedLocal)
+  db.transaction('rw', [...new Set([db.table(SYNC_ENTITY_TABLES[entityType]), db.pendingSyncChanges, db.timelineItems])], async () => {
+    suppressSyncCapture()
+    return writeDexieEntityUnprotected(entityType, document, expectedLocal)
+  })
 
 const seedCollectionFromDexie = async (entityType: SyncEntityType, collection: RxCollection<SyncDocument>) => {
   const rows = await db.table(SYNC_ENTITY_TABLES[entityType]).toArray()
+  cycleBaselines.set(entityType, new Map(rows.map(row => [row.id, row])))
   if (rows.length === 0) return
   const missingOrStaleRows: SyncDocument[] = []
   for (const row of rows) {
@@ -285,6 +321,7 @@ const seedCollectionFromDexie = async (entityType: SyncEntityType, collection: R
 }
 
 const pullHandler = async (entityType: SyncEntityType, checkpoint: RxdbCheckpoint | undefined, batchSize: number) => {
+  if (!isCycleAccountCurrent()) throw new Error('Sync account changed')
   const response = await syncApi.rxdbPull({
     entityType,
     checkpoint: checkpoint ?? null,
@@ -292,6 +329,7 @@ const pullHandler = async (entityType: SyncEntityType, checkpoint: RxdbCheckpoin
   })
   const blobMap = createBlobMap(response.blobs)
   const documents: SyncDocument[] = []
+  let invalidDocument = false
   await Promise.all(
     response.documents.map(async (document) => {
       try {
@@ -302,10 +340,15 @@ const pullHandler = async (entityType: SyncEntityType, checkpoint: RxdbCheckpoin
           deletedAt: document.deletedAt,
         }, 'pull'))
       } catch (error) {
+        invalidDocument = true
         syncValidationErrors.push(`${entityType}: ${extractSyncErrorMessage(error)}`)
       }
     }),
   )
+  // Reject the page without advancing its checkpoint. Returning an empty page
+  // lets this one-shot replication finish; the cycle reports the validation
+  // error below and retries from the original cursor after repair.
+  if (invalidDocument) return { documents: [], checkpoint }
   return {
     documents,
     checkpoint: response.checkpoint ?? undefined,
@@ -313,6 +356,10 @@ const pullHandler = async (entityType: SyncEntityType, checkpoint: RxdbCheckpoin
 }
 
 const pushHandler = async (entityType: SyncEntityType, rows: Array<RxdbPushRow>) => {
+  if (!isCycleAccountCurrent()) throw new Error('Sync account changed')
+  // Snapshot operation IDs before the request: a later edit must never be ACKed
+  // merely because a previous state of the same record reached the cloud.
+  const outbox = (await db.pendingSyncChanges.toArray()).filter(change => change.entityType === entityType)
   const blobMap = new Map<string, Awaited<ReturnType<typeof encodeSyncPayload>>['blobs'][number]>()
   const encodedRows: Array<RxdbPushRow> = await Promise.all(
     rows.map(async (row) => {
@@ -365,19 +412,53 @@ const pushHandler = async (entityType: SyncEntityType, rows: Array<RxdbPushRow>)
       }
     }),
   )
+
+  if (conflicts.length !== response.conflicts.length) throw new Error(`Invalid ${entityType} conflict; outbox retained for retry`)
+  for (const row of rows) {
+    const conflict = conflicts.find(document => document.id === row.newDocumentState.id)
+    if (conflict && entityType !== 'notes') {
+      const accountId = getAuth()?.user?.id
+      if (!accountId) throw new Error('Cannot preserve sync conflict without an account ID')
+      await recordSyncConflict(accountId, entityType, row.newDocumentState, conflict)
+    }
+    await acknowledgeOutbox(entityType, row.newDocumentState, outbox)
+  }
   return conflicts
+}
+
+const acknowledgeOutbox = async (entityType: SyncEntityType, document: SyncDocument, outbox: PendingSyncChange[]) => {
+    if (!isCycleAccountCurrent()) throw new Error('Sync account changed')
+    const matching = []
+    for (const change of outbox.filter(change => change.entityId === document.id)) {
+      const original = { ...change.payload, _deleted: change.op === 'delete', ...(change.op === 'delete' ? { deletedAt: change.deletedAt } : {}) }
+      let included = !syncDocumentsDiffer(original, document)
+      const source = (change.payload as Record<string, unknown>).crdtState
+      const target = (document as Record<string, unknown>).crdtState
+      if (!included && entityType === 'notes' && change.op !== 'delete' && !document._deleted && typeof source === 'string' && typeof target === 'string') {
+        const { containsNoteCrdtState } = await import('./noteCrdt')
+        included = !syncNoteMetadataDiffer(original, document) && containsNoteCrdtState(target, source)
+      }
+      if (included) matching.push(change)
+    }
+    const throughId = Math.max(0, ...matching.map(change => change.id ?? 0))
+    const ids = outbox.filter(change => change.entityId === document.id && (change.id ?? Infinity) <= throughId).map(change => change.id!)
+    await db.pendingSyncChanges.bulkDelete(ids)
 }
 
 const syncEntity = async (entityType: SyncEntityType) =>
   withCollection(entityType, async (collection) => {
     await seedCollectionFromDexie(entityType, collection)
+    const outboxAtStart = (await db.pendingSyncChanges.toArray()).filter(change => change.entityType === entityType)
     const replication = replicateRxCollection<SyncDocument, RxdbCheckpoint>({
       // v2 starts a fresh pull cursor so existing clients move from device
       // timestamps to the server's monotonic sequence checkpoint.
       replicationIdentifier: `focusgo-${getAccountNamespace()}-${entityType}-server-sequence-v3`,
       collection,
       deletedField: '_deleted',
-      live: false,
+      // The provider owns cycle lifetime. RxDB's non-live start() waits for
+      // first success, so cancel() can queue behind it forever after an HTTP
+      // failure. Start live, await in-sync here, and always cancel in finally.
+      live: true,
       waitForLeadership: false,
       // Keep retryTime well above the per-cycle timeout so a single failure
       // doesn't trigger an in-cycle retry storm against a 500ing server.
@@ -425,6 +506,10 @@ const syncEntity = async (entityType: SyncEntityType) =>
         errorPromise,
         timeoutPromise,
       ])
+      for (const id of new Set(outboxAtStart.map(change => change.entityId))) {
+        const confirmed = await collection.findOne(id).exec()
+        if (confirmed) await acknowledgeOutbox(entityType, confirmed.toJSON() as SyncDocument, outboxAtStart)
+      }
     } finally {
       if (timeoutId) globalThis.clearTimeout(timeoutId)
       receivedSub.unsubscribe()
@@ -446,21 +531,29 @@ const syncEntity = async (entityType: SyncEntityType) =>
         await buildStatePatch({ lastPulledAt: now(), missingBlobPull: false }).catch(() => {})
       }
       await Promise.race([replication.cancel(), timeoutAfter(2_000)])
+      cycleBaselines.delete(entityType)
     }
   })
 
 const handoffPendingSyncChanges = async () => {
-  await drainPendingSyncChanges(async ({ entityType, op, payload, deletedAt }) => {
+  const accountId = getAuth()?.user?.id
+  if (!accountId) return
+  const changes = await pendingForAccount(accountId)
+  const latest = new Map(changes.map(change => [`${change.entityType}/${change.entityId}`, change]))
+  for (const { id, entityType, op, payload, deletedAt } of latest.values()) {
     await withCollection(entityType, async (collection) => {
-      const timestamp = deletedAt ?? payload.updatedAt
+      const current = op === 'upsert' ? await db.table(SYNC_ENTITY_TABLES[entityType]).get(payload.id) : null
+      const source = current ?? payload
+      const timestamp = deletedAt ?? source.updatedAt
       await collection.upsert({
-        ...payload,
+        ...source,
         updatedAt: timestamp,
         deletedAt: op === 'delete' ? timestamp : undefined,
         _deleted: op === 'delete',
       })
     })
-  })
+    await db.pendingSyncChanges.update(id!, { handedOff: true })
+  }
 }
 
 export const flushPendingSyncChanges = () => runQueued(handoffPendingSyncChanges)
@@ -471,8 +564,10 @@ export const ensureRxdbSyncReady = async () =>
     syncValidationErrors = []
   })
 
-export const runRxdbSyncCycle = async () =>
+export const runRxdbSyncCycle = async (requestedEntities?: SyncEntityType[]) =>
   runQueued(async () => {
+    cycleAccountId = getAuth()?.user?.id ?? null
+    cycleAccessToken = getAuth()?.accessToken
     await handoffPendingSyncChanges()
     await ensureSyncStateReady()
     syncValidationErrors = []
@@ -498,7 +593,10 @@ export const runRxdbSyncCycle = async () =>
     // Each worker pulls from the shared queue until it is empty, so we never
     // open more than RXDB_SYNC_PARALLEL_LIMIT databases at once while still
     // keeping all workers busy.
-    const queue = [...SYNC_ENTITY_TYPES]
+    const dirty = (await db.pendingSyncChanges.toArray()).map(change => change.entityType)
+    const queue = requestedEntities
+      ? [...new Set([...requestedEntities, ...dirty])].filter(entity => SYNC_ENTITY_TYPES.includes(entity))
+      : [...SYNC_ENTITY_TYPES]
     const runWorker = async () => {
       while (queue.length > 0) {
         if (rxdbResetRequested) return

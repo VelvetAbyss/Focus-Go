@@ -26,6 +26,11 @@ const stripInternalFields = (document: Record<string, unknown>) => {
 const comparable = (document: Record<string, unknown>) => {
   const result = stripInternalFields(document)
   delete result.updatedAt
+  // Body refs and note statistics are transport/derived representations. The
+  // decoded content is authoritative; those fields must not create a conflict.
+  if ('contentMd' in result || 'contentJson' in result) {
+    for (const key of ['bodyRefs', 'excerpt', 'wordCount', 'charCount', 'paragraphCount', 'imageCount', 'fileCount', 'headings', 'backlinks']) delete result[key]
+  }
   result._deleted = Boolean(result._deleted)
   // RxDB omits undefined optional fields while Dexie retains explicit nulls.
   // Treat both representations of an active record as the same document.
@@ -45,6 +50,13 @@ const stableStringify = (value: unknown): string => {
 
 export const syncDocumentsDiffer = (left: Record<string, unknown>, right: Record<string, unknown>) =>
   stableStringify(comparable(left)) !== stableStringify(comparable(right))
+
+// CRDT inclusion can confirm a merged body, but cannot confirm unrelated
+// note metadata such as tags or pinning that has never reached the server.
+export const syncNoteMetadataDiffer = (left: Record<string, unknown>, right: Record<string, unknown>) => {
+  const metadata = (value: Record<string, unknown>) => ({ ...value, contentMd: '', contentJson: null, crdtState: undefined })
+  return syncDocumentsDiffer(metadata(left), metadata(right))
+}
 
 export const recordSyncConflict = async (
   accountId: string,

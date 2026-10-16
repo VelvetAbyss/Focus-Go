@@ -1,5 +1,6 @@
 import type { PendingSyncChange } from '../sync/pendingChanges'
 import Dexie from 'dexie'
+import { installSyncCapture } from '../sync/capture'
 import type { Table } from 'dexie'
 import type {
   BookItem,
@@ -312,6 +313,7 @@ export class WorkbenchDb extends Dexie {
     this.domainEvents = this.table(TABLES.domainEvents)
     this.timelineItems = this.table(TABLES.timelineItems)
     this.taskTrash = this.table(TABLES.taskTrash)
+    installSyncCapture(this)
   }
 }
 

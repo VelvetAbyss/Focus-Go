@@ -6,6 +6,9 @@ import { syncStateRepo } from './repository'
 import type { SyncState } from './types'
 import { usePageActivity } from '../../shared/hooks/usePageActivity'
 import { seedDatabase } from '../seed'
+import { SYNC_LOCAL_COMMIT_EVENT } from './capture'
+import { subscribeSyncStream } from './stream'
+import { db } from '../db'
 
 type SyncContextValue = {
   state: SyncState | null
@@ -38,6 +41,22 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
   const [state, setState] = useState<SyncState | null>(null)
   const [enabled, setEnabledState] = useState(readCloudSyncEnabled)
   const runningRef = useRef(false)
+  const queuedEntitiesRef = useRef(new Set<SyncEntityType>())
+  const fullSyncRequestedRef = useRef(false)
+  const changeTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const syncNowRef = useRef<(trigger: string, entities?: SyncEntityType[]) => Promise<void>>(async () => {})
+  const queueSync = useCallback((entities?: SyncEntityType[], delay = 500) => {
+    if (!entities) fullSyncRequestedRef.current = true
+    else entities.forEach(entity => queuedEntitiesRef.current.add(entity))
+    if (changeTimerRef.current) return
+    changeTimerRef.current = setTimeout(() => {
+      changeTimerRef.current = undefined
+      const requested = fullSyncRequestedRef.current ? undefined : [...queuedEntitiesRef.current]
+      fullSyncRequestedRef.current = false
+      queuedEntitiesRef.current.clear()
+      void syncNowRef.current('change', requested)
+    }, delay)
+  }, [])
   const pageActivity = usePageActivity()
 
   const refreshState = useCallback(async () => {
@@ -51,8 +70,15 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
 
   const lastSyncEndedAtRef = useRef(0)
   const consecutiveErrorsRef = useRef(0)
-  const syncNow = useCallback(async (trigger: string = 'manual') => {
-    if (!enabled || !isLoggedIn || runningRef.current) return
+  const syncNow = useCallback(async (trigger: string = 'manual', entities?: SyncEntityType[]) => {
+    if (!enabled || !isLoggedIn) return
+    if (runningRef.current) {
+      if (trigger === 'change' || trigger === 'manual' || trigger === 'online') {
+        if (!entities) fullSyncRequestedRef.current = true
+        else entities.forEach(entity => queuedEntitiesRef.current.add(entity))
+      }
+      return
+    }
     // Cycle gate. Manual syncs and reconnects bypass; everything else waits:
     //  - 10s minimum between successful cycles
     //  - exponential backoff after errors (30s, 60s, 120s, ..., capped 5min)
@@ -61,9 +87,10 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
     const errorBackoffMs = consecutiveErrorsRef.current === 0
       ? 0
       : Math.min(30_000 * 2 ** (consecutiveErrorsRef.current - 1), 300_000)
-    const minGapMs = Math.max(10_000, errorBackoffMs)
+    const minGapMs = Math.max(trigger === 'change' ? 1000 : 10_000, errorBackoffMs)
     if (trigger !== 'manual' && trigger !== 'online' && sinceLast < minGapMs) {
       console.info('[sync] skipping', trigger, 'sinceLast', sinceLast, 'ms', 'errors', consecutiveErrorsRef.current, 'gap', minGapMs)
+      if (trigger === 'change') queueSync(entities, minGapMs - sinceLast)
       return
     }
     const startedAt = Date.now()
@@ -72,7 +99,7 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
     let cycleError: unknown = null
     try {
       const { runRxdbSyncCycle } = await loadRxdbSync()
-      await runRxdbSyncCycle()
+      await runRxdbSyncCycle(entities)
       await refreshAuthProfile()
       consecutiveErrorsRef.current = 0
     } catch (error) {
@@ -88,8 +115,39 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
         consecutiveErrors: consecutiveErrorsRef.current,
       })
       await refreshState()
+      if (fullSyncRequestedRef.current || queuedEntitiesRef.current.size) {
+        queueSync(fullSyncRequestedRef.current ? undefined : [...queuedEntitiesRef.current])
+      }
     }
-  }, [enabled, isLoggedIn, refreshState])
+  }, [enabled, isLoggedIn, refreshState, queueSync])
+
+  useEffect(() => { syncNowRef.current = syncNow }, [syncNow])
+
+  useEffect(() => {
+    if (!enabled || !isLoggedIn) return
+    const queuedEntities = queuedEntitiesRef.current
+    const onCommit = (event: Event) => {
+      const entities = (event as CustomEvent<{ entityTypes: SyncEntityType[] }>).detail?.entityTypes
+      queueSync(entities)
+      void db.pendingSyncChanges.toArray().then(entries => syncStateRepo.patch({
+        pendingEntityPush: entries.length > 0,
+        pendingLocalRecordCount: new Set(entries.map(entry => `${entry.entityType}/${entry.entityId}`)).size,
+      })).catch(error => console.error('[sync] pending status refresh failed', error))
+    }
+    window.addEventListener(SYNC_LOCAL_COMMIT_EVENT, onCommit)
+    return () => {
+      window.removeEventListener(SYNC_LOCAL_COMMIT_EVENT, onCommit)
+      clearTimeout(changeTimerRef.current)
+      changeTimerRef.current = undefined
+      queuedEntities.clear()
+      fullSyncRequestedRef.current = false
+    }
+  }, [enabled, isLoggedIn, queueSync])
+
+  useEffect(() => {
+    if (!enabled || !isLoggedIn || pageActivity !== 'visible') return
+    return subscribeSyncStream(entities => queueSync(entities))
+  }, [enabled, isLoggedIn, pageActivity, queueSync])
 
   const initialize = useCallback(async () => {
     if (!enabled || !isLoggedIn || runningRef.current) return

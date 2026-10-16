@@ -205,6 +205,7 @@ export type NoteAppearanceSettings = BaseEntity & {
 }
 
 export type NoteItem = BaseEntity & {
+  crdtState?: string
   title: string
   contentMd: string
   contentJson?: Record<string, unknown> | null

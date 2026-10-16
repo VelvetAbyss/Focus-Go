@@ -1933,7 +1933,7 @@ const SettingsRoute = () => {
                             >
                               <div className="flex w-full flex-col gap-3">
                                 {syncConflicts.filter((item) => item.accountId === getAuth()?.user?.id).map((item) => (
-                                  <div key={item.id} className="rounded-xl border border-border p-3 text-sm">
+                                  <div key={item.id} data-testid={`sync-conflict-${item.id}`} className="rounded-xl border border-border p-3 text-sm">
                                     <div className="font-medium">{item.entityType} · {String(item.localDocument.title ?? item.entityId)}</div>
                                     <div className="text-xs text-muted-foreground">
                                       {new Date(item.createdAt).toLocaleString(appIntlLocale())} · {item.resolvedAt

@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { encodeSyncPayload } from './content'
+import { decodeSyncPayload, encodeSyncPayload } from './content'
 
 describe('encodeSyncPayload', () => {
+  it('roundtrips CRDT state through compressed content-addressed note blobs', async () => {
+    const note = { id: 'crdt-note', createdAt: 1, updatedAt: 2, title: '', contentMd: 'body', contentJson: null,
+      crdtState: 'encoded-yjs-update', editorMode: 'document', collection: 'all-notes', tags: [], pinned: false } as const
+    const encoded = await encodeSyncPayload('notes', note as never)
+    expect(encoded.payload).not.toHaveProperty('crdtState')
+    expect(encoded.payload).toMatchObject({ bodyRefs: { crdtState: expect.any(String) } })
+    const decoded = await decodeSyncPayload('notes', encoded.payload, new Map(encoded.blobs.map(blob => [blob.hash, blob])))
+    expect(decoded).toMatchObject({ crdtState: note.crdtState, contentMd: note.contentMd })
+  })
   it('drops invalid optional ids from note payloads', async () => {
     const encoded = await encodeSyncPayload('notes', {
       id: 'note-1',

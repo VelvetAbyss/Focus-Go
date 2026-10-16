@@ -1,4 +1,5 @@
 import Dexie from 'dexie'
+import { suppressSyncCapture } from './capture'
 import { persistPendingSyncChange } from './pendingChanges'
 import { LOCAL_ACCOUNT_OWNER_KEY } from '../../config/accountOwnership'
 import { db } from '../db'
@@ -127,6 +128,7 @@ export const restampLocalSnapshotForRestore = async () => {
 export const clearLocalUserData = async () => {
   const entityTableObjects = Object.values(SYNC_ENTITY_TABLES).map((name) => db.table(name))
   await db.transaction('rw', [...entityTableObjects, db.syncState, db.syncBlobCache, db.taskTrash, db.pendingSyncChanges], async () => {
+    suppressSyncCapture()
     for (const tableName of Object.values(SYNC_ENTITY_TABLES)) {
       await db.table(tableName).clear()
     }

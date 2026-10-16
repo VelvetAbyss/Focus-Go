@@ -13,6 +13,7 @@ type NotesSyncPayload = Omit<
   bodyRefs?: {
     contentMd?: string
     contentJson?: string
+    crdtState?: string
   }
 }
 
@@ -118,6 +119,11 @@ const buildNotePayload = async (payload: NoteItem): Promise<{ payload: NotesSync
     blobs.push(blob)
     next.bodyRefs = { ...(next.bodyRefs ?? {}), contentJson: blob.hash }
   }
+  if (payload.crdtState) {
+    const blob = await buildBlob('note:crdtState', 'text/plain', payload.crdtState)
+    blobs.push(blob)
+    next.bodyRefs = { ...(next.bodyRefs ?? {}), crdtState: blob.hash }
+  }
   return { payload: next, blobs }
 }
 
@@ -207,10 +213,12 @@ export const decodeSyncPayload = async (
   if (entityType === 'notes' && bodyRefs) {
     const contentMd = bodyRefs.contentMd ? await ensureBlob(blobMap, bodyRefs.contentMd) : ''
     const contentJson = bodyRefs.contentJson ? JSON.parse(await ensureBlob(blobMap, bodyRefs.contentJson)) : null
+    const crdtState = bodyRefs.crdtState ? await ensureBlob(blobMap, bodyRefs.crdtState) : undefined
     return {
       ...payload,
       contentMd,
       contentJson,
+      crdtState,
       excerpt: '',
       wordCount: 0,
       charCount: 0,

@@ -5,6 +5,7 @@ export default defineConfig({
   testMatch: /auth-sync\.spec\.ts/,
   workers: 1,
   retries: 0,
+  expect: { timeout: 15_000 },
   reporter: 'list',
   use: {
     baseURL: 'http://127.0.0.1:5178',
