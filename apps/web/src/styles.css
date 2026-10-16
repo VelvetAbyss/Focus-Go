@@ -17588,6 +17588,18 @@ html[data-theme='dark'] .dashboard-widget-card--todo .widget-todos__item:hover {
   box-shadow: 0 2px 6px rgba(26, 23, 20, 0.08);
   font-weight: 600;
 }
+/* With the sliding indicator, the indicator is the selection: give it the
+   tab's pill, paper and rule, and drop the tab's own border, so the
+   selection reads as one shape (in dark too). */
+html .dashboard-widget-card--tasks .tasks-fg__status-group[data-active-indicator] {
+  --indicator-radius: 999px;
+  --indicator-bg: var(--tk-paper);
+  --indicator-border: var(--tk-rule);
+  --indicator-shadow: 0 2px 6px rgba(26, 23, 20, 0.08);
+}
+.dashboard-widget-card--tasks .tasks-fg__status-group[data-active-indicator] > .tasks-fg__status-tab[aria-selected="true"] {
+  border-color: transparent;
+}
 /* The count number after the tab label — mono for tabular precision */
 .dashboard-widget-card--tasks .tasks-fg__status-tab > span:last-child {
   margin-left: 7px;
