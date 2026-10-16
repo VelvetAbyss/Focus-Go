@@ -9,6 +9,7 @@ import { ownQuoteIndexForDay, QUOTE_COUNT, quoteForDay, skipToOwnQuote } from '.
 import { newQuoteId, updateQuoteState, useQuoteState } from './quote/useQuoteState'
 import { cleanOwnQuote, MAX_OWN_QUOTES } from './quote/quoteStorage'
 import QuoteLibraryPopover from './quote/QuoteLibraryPopover'
+import TodayNotesLine from '../calendar/dayNotes/TodayNotesLine'
 import { lunarDateLabel, lunarFestivalOn, solarTermOn } from './header/chineseDay'
 import PremiumMark from '../premium/PremiumMark'
 import '../life/life.css'
@@ -170,6 +171,7 @@ const DashboardHeader = ({
             <span className="dash-hero__sep" aria-hidden="true">·</span>
             <LiveClock className="dash-hero__time" showSeconds={false} />
           </div>
+          <TodayNotesLine dayKey={dayKey} className="dash-hero__day-notes" />
         </div>
         <figure className={`dash-hero__quote${quote ? '' : ' dash-hero__quote--empty'}`}>
           {quote ? (

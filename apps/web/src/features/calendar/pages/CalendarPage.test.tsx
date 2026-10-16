@@ -272,6 +272,48 @@ describe('CalendarPage', () => {
     expect(scoped.getByRole('textbox', { name: 'New task title' })).toHaveValue('')
   })
 
+  it('keeps a day note on its day without creating a task', async () => {
+    const user = userEvent.setup()
+    const view = renderCalendar()
+    const scoped = within(view.container)
+    const todayKey = toDateKey(new Date())
+
+    await user.type(scoped.getByRole('textbox', { name: 'New note' }), 'Mom birthday{Enter}')
+
+    expect(tasksRepo.add).not.toHaveBeenCalled()
+    expect(emitTasksChangedMock).not.toHaveBeenCalled()
+    expect(scoped.getByRole('button', { name: 'Edit note: Mom birthday' })).toBeInTheDocument()
+    expect(scoped.getByRole('textbox', { name: 'New note' })).toHaveValue('')
+    const tasksList = view.container.querySelector('[aria-label="Tasks list"]') as HTMLElement
+    expect(within(tasksList).queryByText('Mom birthday')).toBeNull()
+    const todayCell = view.container.querySelector('.calendar-month-grid__cell.is-today') as HTMLElement
+    expect(todayCell).toHaveClass('has-day-notes')
+    expect(todayCell).toHaveAttribute('data-note-tone', 'today')
+    // The note reads in the cell itself, as the first line, not as a task chip.
+    const noteLine = within(todayCell).getByText('Mom birthday')
+    expect(noteLine.closest('.calendar-chip')).toHaveClass('calendar-chip--note')
+    expect(noteLine.closest('.calendar-chip')).not.toHaveClass('calendar-chip--task')
+    expect(JSON.parse(window.localStorage.getItem('focusgo.calendar.dayNotes.v1') ?? '{}').notes).toEqual([
+      expect.objectContaining({ date: todayKey, text: 'Mom birthday' }),
+    ])
+  })
+
+  it("peeks at a day's notes when its folded cell is hovered", () => {
+    const todayKey = toDateKey(new Date())
+    window.localStorage.setItem(
+      'focusgo.calendar.dayNotes.v1',
+      JSON.stringify({ notes: [{ id: 'n1', date: todayKey, text: 'Bring umbrella', createdAt: 1, updatedAt: 1 }], showOnDashboard: true }),
+    )
+    const view = renderCalendar()
+    const todayCell = view.container.querySelector('.calendar-month-grid__cell.is-today') as HTMLElement
+
+    expect(screen.queryByRole('tooltip')).toBeNull()
+    fireEvent.mouseEnter(todayCell)
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Bring umbrella')
+    fireEvent.mouseLeave(todayCell)
+    expect(screen.queryByRole('tooltip')).toBeNull()
+  })
+
   it('renders added selected-day task in month grid cell', async () => {
     const user = userEvent.setup()
     const view = renderCalendar()

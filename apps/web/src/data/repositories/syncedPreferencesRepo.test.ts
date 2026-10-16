@@ -11,6 +11,7 @@ import { writeLayoutLocked } from '../../shared/prefs/dashboardLayoutLock'
 import { writeStoredSubscriptions } from '../../features/calendar/calendarStorage'
 import { readSalaryState, SALARY_STORAGE_KEY, writeSalaryState } from '../../features/salary/salaryStorage'
 import { QUOTE_STORAGE_KEY, readQuoteState, writeQuoteState } from '../../features/dashboard/quote/quoteStorage'
+import { DAY_NOTES_STORAGE_KEY, readDayNotesState, writeDayNotesState } from '../../features/calendar/dayNotes/dayNotesStorage'
 
 describe('syncedPreferencesRepo', () => {
   beforeEach(async () => {
@@ -133,6 +134,25 @@ describe('syncedPreferencesRepo', () => {
     await db.syncedPreferences.put({ ...stored!, quotes: undefined, language: 'en' })
     await syncedPreferencesRepo.hydrateLocalFromDb()
     expect(readQuoteState()).toEqual(quotes)
+  })
+
+  it('carries calendar day notes across devices, and keeps them when an older client sends none', async () => {
+    const dayNotes = {
+      notes: [{ id: 'n1', date: '2026-11-17', text: '妈妈生日', createdAt: Date.now() - 60_000, updatedAt: Date.now() - 60_000 }],
+      showOnDashboard: false,
+    }
+    writeDayNotesState(dayNotes)
+    await syncedPreferencesRepo.persistFromLocal()
+    const stored = await db.syncedPreferences.get(SYNCED_PREFERENCES_ID)
+    expect(stored?.calendarDayNotes).toEqual(dayNotes)
+
+    window.localStorage.removeItem(DAY_NOTES_STORAGE_KEY)
+    await syncedPreferencesRepo.hydrateLocalFromDb()
+    expect(readDayNotesState()).toEqual(dayNotes)
+
+    await db.syncedPreferences.put({ ...stored!, calendarDayNotes: undefined, language: 'en' })
+    await syncedPreferencesRepo.hydrateLocalFromDb()
+    expect(readDayNotesState()).toEqual(dayNotes)
   })
 
   it('marks the initial seed as completed without overwriting existing preferences', async () => {

@@ -1,0 +1,274 @@
+/* Day notes (便签) — DESIGN.md › Calendar day notes. A note is a dog-eared
+   corner on its day: the corner folds down, the flap shows the back of the
+   paper. Pencil for days ahead, the pen for today, ink for days gone. */
+
+:root {
+  --day-note-fold-size: 14px;
+}
+
+[data-note-tone='future'] {
+  --day-note-flap: var(--pencil-line);
+}
+
+[data-note-tone='today'] {
+  --day-note-flap: var(--accent);
+}
+
+[data-note-tone='past'] {
+  --day-note-flap: var(--ink-4);
+}
+
+/* The mark on its own (panel slips, the dashboard line). */
+.day-note-fold {
+  display: inline-block;
+  flex: none;
+  width: var(--day-note-fold-size);
+  height: var(--day-note-fold-size);
+  background: var(--day-note-flap, var(--pencil-line));
+  clip-path: polygon(0 0, 100% 100%, 0 100%);
+}
+
+/* On a month cell: the corner itself folds. */
+.calendar-month-grid__cell.has-day-notes {
+  position: relative;
+}
+
+.calendar-month-grid__cell.has-day-notes::before,
+.calendar-month-grid__cell.has-day-notes::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: var(--day-note-fold-size);
+  height: var(--day-note-fold-size);
+  pointer-events: none;
+}
+
+/* The torn-away corner shows the sheet under the grid. */
+.calendar-month-grid__cell.has-day-notes::before {
+  background: var(--paper-sunken);
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+
+.calendar-month-grid__cell.has-day-notes::after {
+  background: var(--day-note-flap);
+  clip-path: polygon(0 0, 100% 100%, 0 100%);
+}
+
+/* Hover peek: the day's notes, on paper above the grid. */
+.day-note-peek {
+  position: fixed;
+  z-index: 60;
+  width: max-content;
+  min-width: 140px;
+  max-width: 260px;
+  padding: 8px 12px 10px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  background: var(--paper-raised);
+  box-shadow: var(--elev-2);
+  pointer-events: none;
+  animation: day-note-peek-in var(--motion-duration-fast) var(--ease-standard);
+}
+
+.day-note-peek__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 4px;
+  font-family: var(--font-body);
+  font-size: var(--fs-meta);
+  color: var(--ink-3);
+}
+
+.day-note-peek__head .day-note-fold {
+  --day-note-fold-size: 9px;
+}
+
+.day-note-peek__list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.day-note-peek__item {
+  font-family: var(--font-reading);
+  font-size: var(--fs-ui);
+  line-height: 1.45;
+  color: var(--ink-1);
+  overflow-wrap: anywhere;
+}
+
+@keyframes day-note-peek-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -2px, 0);
+  }
+}
+
+html[data-motion='reduce'] .day-note-peek {
+  animation: none;
+}
+
+/* Day panel section. */
+.day-notes {
+  display: grid;
+  gap: 10px;
+}
+
+.day-notes__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.day-notes__dashboard {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-body);
+  font-size: var(--fs-meta);
+  color: var(--ink-3);
+  cursor: pointer;
+}
+
+.day-notes__list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A slip: a scrap of paper on the panel with its corner folded. */
+.day-note {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  min-height: 34px;
+  padding: 6px 6px 6px 12px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  background: var(--paper-raised);
+}
+
+.day-note > .day-note-fold {
+  position: absolute;
+  top: 0;
+  right: 0;
+  --day-note-fold-size: 10px;
+}
+
+.day-note__text,
+.day-note__edit {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-reading);
+  font-size: var(--calendar-text-body, var(--fs-ui));
+  line-height: 1.45;
+  color: var(--ink-1);
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.day-note__text {
+  cursor: text;
+}
+
+.day-note__edit {
+  outline: none;
+  border-bottom: 1px dashed var(--pencil-line);
+}
+
+.day-note__remove {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--ink-3);
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity var(--motion-duration-fast) var(--ease-standard);
+}
+
+.day-note:hover .day-note__remove,
+.day-note:focus-within .day-note__remove {
+  opacity: 1;
+}
+
+.day-note__remove:hover {
+  color: var(--ink-1);
+  background: color-mix(in srgb, var(--ink-1) 7%, transparent);
+}
+
+@media (hover: none) {
+  .day-note__remove {
+    opacity: 1;
+  }
+}
+
+/* The field is a pencil slip waiting to be written on. */
+.day-notes__composer input {
+  width: 100%;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px dashed var(--pencil-line);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-family: var(--font-reading);
+  font-size: var(--calendar-text-body, var(--fs-ui));
+  color: var(--ink-1);
+  outline: none;
+}
+
+.day-notes__composer input::placeholder {
+  color: var(--pencil);
+}
+
+.day-notes__composer input:focus {
+  border-style: solid;
+  border-color: var(--rule-strong);
+  background: var(--paper-raised);
+}
+
+/* A note's line in its day cell: not a chip (no fill, no source bar) but the
+   fold and the words, in the reading face; the cell keeps a line per note. */
+.calendar-chip.calendar-chip--note {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding-left: 1px;
+  background: transparent;
+  box-shadow: none;
+  font-family: var(--font-reading);
+  font-weight: 500;
+  color: var(--ink-1);
+}
+
+.calendar-chip.calendar-chip--note:hover {
+  transform: none;
+  background: transparent;
+}
+
+.calendar-chip--note .day-note-fold {
+  --day-note-fold-size: 8px;
+}
+
+.calendar-chip--note .calendar-chip__text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

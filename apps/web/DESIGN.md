@@ -348,6 +348,19 @@ Paper lies on the desk: shadows are short and tight.
   chip with a 2px left bar in the source color. Future scheduled blocks are
   dashed pencil outlines. Uncolored tasks get a neutral bar. Today is a filled
   pen mark.
+- **Calendar day notes (便签):** a reminder pinned to a day, never a task (no
+  mark, no status, not in any task list). A day with notes folds its top-right
+  corner: the cut shows `--paper-sunken`, the flap is pencil for days ahead,
+  the pen for today and `--ink-4` for days gone. Each note is also a line in
+  the cell, first, before tasks and events: an 8px fold in the same tone and
+  the words in the reading face, ink, cut with an ellipsis; no fill and no
+  source bar, so it never reads as a chip. Hovering (or keyboard focus) peeks
+  at the full notes on raised paper under the day's date line. In the day
+  panel, between events and tasks, each note is a raised slip with the same
+  fold; click to rewrite, × to remove with undo; a dashed pencil field adds one
+  on Enter. "仪表盘提示" (on by default) shows today's notes as one line under
+  the dashboard weekday line, with an ink fold, linking to the calendar. Notes
+  live in the synced preferences (`calendarDayNotes`).
 - **Timelines (day, activity):** a dashed pencil spine. Past nodes are filled
   ink, the current node is the pen with a wash ring, and future nodes are
   dashed pencil.
@@ -556,6 +569,7 @@ bezier arrays or durations.
 | 2026-10-12 | Batch 5: deleted tasks wait in 最近删除 for 30 days on this device (a pencil chip beside 批量编辑, shown only when something is there; deleting from it asks twice in place instead of a confirm box); restoring a backup first shows what it holds next to what is here, the backup's count in ochre where it has fewer, and saves this device's data as a download before writing; on the desktop, ⌥Space opens a small paper capture box (system font, pencil hint line) and the menu bar counts the focus session down | A trash is a way back, not a destination, so it stays out of the toolbar until it has something. The restore compare is a figure table, so it takes the numeral face; the one row that can lose work takes the warning tone. The capture box is served by the shell and cannot load the app's fonts, so it keeps the palette and the system face. |
 | 2026-10-14 | The masthead gets a desk: a lamp, an open book (or a laptop) and a coffee (or an iced cola) stand on the toolbar rule in a three.js scene, drawn as paper-white solids with ink outlines, seen exactly side on (style A of three sketched: pure ink line, paper model, pen sketch). Switching the lamp on dims the whole app, sidebar included, and its light falls where the shade points. The lamp's hinges can be dragged | The user asked for these props and the light link to focus the task card. They picked the ink line and then the side view, with the book centred under the lamp. They rejected a light pinned to the task card: the light must come out of the shade. The warm light and the bulb's halo are a deliberate exception to "no glows", shown only while the lamp is on. |
 | 2026-10-14 | The desk drops fixed places: props are added as often as wanted from the picker and carried anywhere along the masthead gap; lifted off its top they are taken away. The lamp slides by its base and raises its head over whatever is put under it. Props may overlap, drawn back to front with the lamp in front. | The user asked to cancel the slots: "move freely along the top bar, add freely, any number". |
+| 2026-10-16 | Calendar day notes (便签): a folded corner on the day, its notes on hover, slips in the day panel, and an optional line under the dashboard weekday (direction B of three sketched: margin line, folded corner, multi-day ribbon) | The user wanted reminders on a day that stay out of the task list. They picked the folded corner, which keeps the month grid clean, and asked for the dashboard line as an option. A click doesn't open the peek, because the panel already lists the selected day's notes. The user then asked to see the notes in the cell itself, so each note is also a line there (folded mark plus text, cut short); the peek shows the whole note. |
 
 ## Ambient environments — 2026-10-08
 

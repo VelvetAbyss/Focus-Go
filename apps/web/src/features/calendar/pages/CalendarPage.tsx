@@ -83,6 +83,10 @@ import {
 } from '../calendarStorage'
 import { syncedPreferencesRepo, SYNCED_PREFERENCES_UPDATED_EVENT } from '../../../data/repositories/syncedPreferencesRepo'
 import { appIntlLocale } from '../../../shared/i18n/format'
+import { useDayNotes } from '../dayNotes/useDayNotes'
+import DayNotesSection from '../dayNotes/DayNotesSection'
+import { dayNoteTone } from '../dayNotes/dayNotesStorage'
+import DayNotePeek, { type DayNotePeekAnchor } from '../dayNotes/DayNotePeek'
 
 // = --ink-4 in light; a mid-tone that also reads on dark paper. Hex (not a var) because the
 // task color popover feeds it to a color input.
@@ -480,6 +484,9 @@ const CalendarPage = () => {
   const weekLabels = [t('calendar.weekday.mo'), t('calendar.weekday.tu'), t('calendar.weekday.we'), t('calendar.weekday.th'), t('calendar.weekday.fr'), t('calendar.weekday.sa'), t('calendar.weekday.su')]
   const [anchorDate, setAnchorDate] = useState(() => new Date())
   const [selectedDateKey, setSelectedDateKey] = useState(() => toDateKey(new Date()))
+  // Day notes (便签): reminders pinned to a day, never tasks.
+  const dayNotes = useDayNotes()
+  const [notePeek, setNotePeek] = useState<DayNotePeekAnchor | null>(null)
   const [monthMotionDirection, setMonthMotionDirection] = useState<'forward' | 'back' | null>(null)
   const [subscriptions, setSubscriptions] = useState<CalendarSubscription[]>(readStoredSubscriptions)
   const [icsEventsBySubscription, setIcsEventsBySubscription] = useState<Record<string, CalendarEvent[]>>(readStoredIcsEvents)
@@ -1090,7 +1097,14 @@ const CalendarPage = () => {
             const date = new Date(`${dateKey}T12:00:00`)
             const dayEvents = sortedEventsByDate.get(dateKey) ?? []
             const dayTasks = (tasksByDate.get(dateKey) ?? []).slice()
+            const cellNotes = dayNotes.byDate.get(dateKey)
+            // Notes come first: they are what the day should remind you of.
             const dayItems = [
+              ...(cellNotes ?? []).map((note) => ({
+                id: `note-${note.id}`,
+                title: note.text,
+                type: 'note' as const,
+              })),
               ...dayTasks.map((task) => ({
                 id: `task-${task.id}`,
                 title: task.title.trim() || t('calendar.untitled'),
@@ -1114,19 +1128,48 @@ const CalendarPage = () => {
             // Pencil = intention: anything scheduled after today is drawn as a
             // dashed outline until the day arrives (DESIGN.md › Calendar events).
             const isFuture = dateKey > todayDateKey
+            // A day with notes folds its corner; hovering it peeks at them.
+            const peekProps = cellNotes
+              ? {
+                  'data-note-tone': dayNoteTone(dateKey, todayDateKey),
+                  onMouseEnter: (event: React.MouseEvent<HTMLButtonElement>) =>
+                    setNotePeek({ dateKey, rect: event.currentTarget.getBoundingClientRect() }),
+                  onMouseLeave: () => setNotePeek(null),
+                  // Keyboard focus only: a click selects the day, and the panel lists its notes.
+                  onFocus: (event: React.FocusEvent<HTMLButtonElement>) => {
+                    if (event.currentTarget.matches(':focus-visible'))
+                      setNotePeek({ dateKey, rect: event.currentTarget.getBoundingClientRect() })
+                  },
+                  onBlur: () => setNotePeek(null),
+                }
+              : {}
 
             return (
               <button
                 key={dateKey}
                 type="button"
-                className={`calendar-month-grid__cell${isCurrentMonth ? '' : ' is-outside'}${isSelected ? ' is-selected' : ''}${isToday ? ' is-today' : ''}`}
-                onClick={() => setSelectedDateKey(dateKey)}
+                className={`calendar-month-grid__cell${isCurrentMonth ? '' : ' is-outside'}${isSelected ? ' is-selected' : ''}${isToday ? ' is-today' : ''}${cellNotes ? ' has-day-notes' : ''}`}
+                onClick={() => {
+                  setSelectedDateKey(dateKey)
+                  setNotePeek(null)
+                }}
                 onDoubleClick={() => openCreateEvent(dateKey)}
+                {...peekProps}
               >
                 <div className="calendar-month-grid__date">{date.getDate()}</div>
+                {cellNotes ? (
+                  <span className="sr-only">
+                    {t('calendar.notes.cell', { count: cellNotes.length, text: cellNotes.map((note) => note.text).join('；') })}
+                  </span>
+                ) : null}
                 <div className="calendar-month-grid__events">
                   {visible.map((item) =>
-                    item.type === 'task' ? (
+                    item.type === 'note' ? (
+                      <span key={item.id} className="calendar-chip calendar-chip--note" aria-hidden="true">
+                        <span className="day-note-fold" />
+                        <span className="calendar-chip__text">{item.title}</span>
+                      </span>
+                    ) : item.type === 'task' ? (
                       <Badge
                         key={item.id}
                         variant="secondary"
@@ -1158,6 +1201,14 @@ const CalendarPage = () => {
             )
           })}
         </div>
+        {notePeek ? (
+          <DayNotePeek
+            anchor={notePeek}
+            heading={`${formatPanelDateKey(notePeek.dateKey)} · ${t('calendar.notes.title')}`}
+            notes={dayNotes.byDate.get(notePeek.dateKey) ?? []}
+            tone={dayNoteTone(notePeek.dateKey, todayDateKey)}
+          />
+        ) : null}
       </main>
 
       <aside className="calendar-v2__right calendar-v2__drawer" aria-label={t('calendar.eventsTools')}>
@@ -1207,6 +1258,15 @@ const CalendarPage = () => {
               )
             })}
           </ul>
+
+          <div className="calendar-side-panel__divider" />
+
+          <DayNotesSection
+            dateKey={selectedDateKey}
+            todayKey={todayDateKey}
+            notes={dayNotes.byDate.get(selectedDateKey) ?? []}
+            showOnDashboard={dayNotes.showOnDashboard}
+          />
 
           <div className="calendar-side-panel__divider" />
 
