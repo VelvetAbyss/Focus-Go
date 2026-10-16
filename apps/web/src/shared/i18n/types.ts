@@ -1811,6 +1811,7 @@ export type TranslationKey =
   | 'salary.settings.paydayPlaceholder'
   | 'salary.settings.errorPayday'
   | 'salary.settings.cnHolidays'
+  | 'salary.settings.currency'
   | 'salary.price.name'
   | 'salary.price.price'
   | 'salary.price.hint'

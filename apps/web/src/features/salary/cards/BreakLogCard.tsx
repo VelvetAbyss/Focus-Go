@@ -56,8 +56,8 @@ const paidDuring = (settings: SalarySettings | null, spans: Array<[number, numbe
 const BreakLogCard = () => {
   const { t, language } = useI18n()
   const { defaultCurrency } = usePreferences()
-  const symbol = currencyToSymbol(defaultCurrency)
   const { settings: savedSettings, breaks, activeBreakStartAt } = useSalaryState()
+  const symbol = currencyToSymbol(savedSettings?.currency ?? defaultCurrency)
   // Holidays and 调休 change which days pay; computed on the settings with them applied.
   const settings = useWorkingSalarySettings(savedSettings)
   const { openSettings, settingsDialog } = useSettingsDialog()

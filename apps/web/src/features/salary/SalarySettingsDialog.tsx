@@ -6,6 +6,7 @@ import { useI18n } from '../../shared/i18n/useI18n'
 import { usePreferences } from '../../shared/prefs/usePreferences'
 import { currencyToSymbol } from '../../lib/currency'
 import type { TranslationKey } from '../../shared/i18n/types'
+import type { CurrencyCode } from '../../shared/prefs/preferences'
 import { dailyPay, DEFAULT_WORK_HOURS, paidMinutesPerDay, workdaysInMonth, type SalarySettings } from './salaryModel'
 import { formatClock, formatMoney, localeOf, parseClock } from './salaryFormat'
 import { normalizeSalarySettings } from './salaryStorage'
@@ -13,6 +14,7 @@ import { updateSalaryState, useSalaryState } from './useSalaryState'
 
 type Draft = {
   salary: string
+  currency: CurrencyCode
   workStart: string
   workEnd: string
   lunchOn: boolean
@@ -26,11 +28,14 @@ type Draft = {
 // Monday first, as a work week is read.
 const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0]
 
-const toDraft = (settings: SalarySettings | null): Draft => {
+const CURRENCIES: CurrencyCode[] = ['CNY', 'USD']
+
+const toDraft = (settings: SalarySettings | null, defaultCurrency: CurrencyCode): Draft => {
   const base = settings ?? { monthlySalary: 0, ...DEFAULT_WORK_HOURS }
   const lunch = base.lunch ?? DEFAULT_WORK_HOURS.lunch!
   return {
     salary: settings ? String(settings.monthlySalary) : '',
+    currency: settings?.currency ?? defaultCurrency,
     workStart: formatClock(base.workStart),
     workEnd: formatClock(base.workEnd),
     lunchOn: settings ? Boolean(settings.lunch) : true,
@@ -59,7 +64,7 @@ const readDraft = (draft: Draft): { settings: SalarySettings } | { error: Transl
   const payday = draft.payday.trim() ? Number(draft.payday) : undefined
   if (payday !== undefined && (!Number.isInteger(payday) || payday < 1 || payday > 31)) return { error: 'salary.settings.errorPayday' }
   const settings = normalizeSalarySettings({
-    monthlySalary, workStart, workEnd, lunch, workdays: draft.workdays, payday, followCnHolidays: draft.followCnHolidays,
+    monthlySalary, currency: draft.currency, workStart, workEnd, lunch, workdays: draft.workdays, payday, followCnHolidays: draft.followCnHolidays,
   })
   return settings ? { settings } : { error: 'salary.settings.errorHours' }
 }
@@ -76,9 +81,9 @@ type SalarySettingsDialogProps = {
 const SalarySettingsDialog = ({ open, onClose }: SalarySettingsDialogProps) => {
   const { t, language } = useI18n()
   const { defaultCurrency } = usePreferences()
-  const symbol = currencyToSymbol(defaultCurrency)
   const { settings } = useSalaryState()
-  const [draft, setDraft] = useState(() => toDraft(settings))
+  const [draft, setDraft] = useState(() => toDraft(settings, defaultCurrency))
+  const symbol = currencyToSymbol(draft.currency)
   const [error, setError] = useState<TranslationKey | null>(null)
   const [openedAt] = useState(() => Date.now())
 
@@ -124,11 +129,30 @@ const SalarySettingsDialog = ({ open, onClose }: SalarySettingsDialogProps) => {
   return (
     <Dialog open={open} title={t('salary.settings.title')} onClose={onClose} panelClassName="salary-settings-dialog">
       <form className="salary-settings" onSubmit={submit} noValidate>
-        <label className="salary-field">
-          <span className="salary-field__label">{t('salary.settings.salary')}</span>
+        <div className="salary-field">
+          <div className="salary-switch-row">
+            <label className="salary-field__label" htmlFor="salary-settings-pay">
+              {t('salary.settings.salary')}
+            </label>
+            <div className="salary-currency" role="radiogroup" aria-label={t('salary.settings.currency')}>
+              {CURRENCIES.map((currency) => (
+                <button
+                  key={currency}
+                  type="button"
+                  role="radio"
+                  className="salary-currency__option"
+                  aria-checked={draft.currency === currency}
+                  onClick={() => update({ currency })}
+                >
+                  {currencyToSymbol(currency)} {currency}
+                </button>
+              ))}
+            </div>
+          </div>
           <span className="salary-input salary-input--money">
             <span className="salary-input__affix" aria-hidden="true">{symbol}</span>
             <input
+              id="salary-settings-pay"
               value={draft.salary}
               onChange={(event) => update({ salary: event.target.value })}
               inputMode="decimal"
@@ -138,7 +162,7 @@ const SalarySettingsDialog = ({ open, onClose }: SalarySettingsDialogProps) => {
               autoFocus
             />
           </span>
-        </label>
+        </div>
 
         <div className="salary-field-row">
           <label className="salary-field">

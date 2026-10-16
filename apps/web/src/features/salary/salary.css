@@ -179,6 +179,45 @@
   color: var(--ink-3);
 }
 
+/* The pay's currency: a small segmented control on the 月薪 label row. */
+.salary-currency {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--segmented-track-border);
+  border-radius: var(--radius-pill);
+  background: var(--segmented-track);
+}
+
+.salary-currency__option {
+  height: 22px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--segmented-fg);
+  font-size: var(--fs-meta);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-duration-fast) var(--ease-standard),
+    color var(--motion-duration-fast) var(--ease-standard);
+}
+
+.salary-currency__option:hover {
+  color: var(--ink-1);
+}
+
+/* The global button:focus rule drops box-shadow; keep the thumb raised. */
+.salary-currency__option[aria-checked='true'],
+.salary-currency__option[aria-checked='true']:is(:focus, :focus-visible) {
+  background: var(--segmented-thumb);
+  color: var(--segmented-fg-active);
+  font-weight: 600;
+  box-shadow: var(--segmented-thumb-shadow) !important;
+}
+
 /* Hover swaps a row's trailing value for its remove button, in place. */
 .salary-row-end {
   position: relative;

@@ -57,9 +57,10 @@ export const normalizeSalarySettings = (raw: unknown): SalarySettings | null => 
     : []
   if (days.length === 0) return null
   const validLunch = isRecord(lunch) && isMinute(lunch.start) && isMinute(lunch.end) && lunch.end > lunch.start
-  const { payday, followCnHolidays } = raw
+  const { payday, followCnHolidays, currency } = raw
   return {
     monthlySalary,
+    ...(currency === 'CNY' || currency === 'USD' ? { currency } : {}),
     workStart,
     workEnd,
     lunch: validLunch ? { start: lunch.start as number, end: lunch.end as number } : null,

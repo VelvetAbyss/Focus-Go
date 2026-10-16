@@ -9,6 +9,8 @@
  * hour's lunch, a day pays ¥521.74 and a second ¥0.01812.
  */
 
+import type { CurrencyCode } from '../../shared/prefs/preferences'
+
 export type SalaryLunch = {
   /** Minutes after midnight. */
   start: number
@@ -16,8 +18,10 @@ export type SalaryLunch = {
 }
 
 export type SalarySettings = {
-  /** Monthly pay, in the user's default currency. */
+  /** Monthly pay, in `currency`. */
   monthlySalary: number
+  /** The pay's currency; unset follows the app's default currency. */
+  currency?: CurrencyCode
   /** Minutes after midnight. */
   workStart: number
   workEnd: number

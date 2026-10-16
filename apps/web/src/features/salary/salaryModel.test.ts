@@ -102,6 +102,13 @@ describe('salary storage', () => {
     expect(normalizeSalarySettings({ ...settings, workdays: [5, 1, 1, 9] })?.workdays).toEqual([1, 5])
   })
 
+  it('keeps the pay currency, and leaves it unset to follow the app default', () => {
+    expect(normalizeSalarySettings({ ...settings, currency: 'CNY' })?.currency).toBe('CNY')
+    expect(normalizeSalarySettings({ ...settings, currency: 'USD' })?.currency).toBe('USD')
+    expect(normalizeSalarySettings({ ...settings, currency: 'EUR' })).not.toHaveProperty('currency')
+    expect(normalizeSalarySettings(settings)).not.toHaveProperty('currency')
+  })
+
   it('keeps about two months of breaks and drops malformed rows', () => {
     const now = at(15, 12)
     const state = normalizeSalaryState(

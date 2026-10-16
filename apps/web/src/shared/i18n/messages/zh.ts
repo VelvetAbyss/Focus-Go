@@ -1814,6 +1814,7 @@ export const zhMessages: TranslationMessages = {
   'salary.settings.paydayPlaceholder': '每月几号，如 10',
   'salary.settings.errorPayday': '发薪日填 1 到 31 之间的数字。',
   'salary.settings.cnHolidays': '按法定节假日和调休算',
+  'salary.settings.currency': '币种',
   'salary.price.name': '想买什么',
   'salary.price.price': '价格',
   'salary.price.hint': '输入价格，看看要工作多久。',

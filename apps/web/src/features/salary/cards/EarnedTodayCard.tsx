@@ -23,8 +23,8 @@ const MONEY_FORMAT = { minimumFractionDigits: 2, maximumFractionDigits: 2 } as c
 const EarnedTodayCard = () => {
   const { t, language } = useI18n()
   const { defaultCurrency } = usePreferences()
-  const symbol = currencyToSymbol(defaultCurrency)
   const { settings: savedSettings } = useSalaryState()
+  const symbol = currencyToSymbol(savedSettings?.currency ?? defaultCurrency)
   // Holidays and 调休 change which days pay; computed on the settings with them applied.
   const settings = useWorkingSalarySettings(savedSettings)
   const { openSettings, settingsDialog } = useSettingsDialog()

@@ -81,8 +81,8 @@ const PriceGrid = ({ hours, hoursPerDay }: { hours: number | null; hoursPerDay: 
 const WorkTimePriceCard = () => {
   const { t, language } = useI18n()
   const { defaultCurrency } = usePreferences()
-  const symbol = currencyToSymbol(defaultCurrency)
   const { settings: savedSettings, wishlist } = useSalaryState()
+  const symbol = currencyToSymbol(savedSettings?.currency ?? defaultCurrency)
   // Holidays and 调休 change which days pay; computed on the settings with them applied.
   const settings = useWorkingSalarySettings(savedSettings)
   const { openSettings, settingsDialog } = useSettingsDialog()

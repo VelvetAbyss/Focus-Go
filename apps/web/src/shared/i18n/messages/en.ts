@@ -1814,6 +1814,7 @@ export const enMessages: TranslationMessages = {
   'salary.settings.paydayPlaceholder': 'Day of month, e.g. 10',
   'salary.settings.errorPayday': 'Payday is a day of the month, 1 to 31.',
   'salary.settings.cnHolidays': 'Follow China holidays and 调休',
+  'salary.settings.currency': 'Currency',
   'salary.price.name': 'What is it',
   'salary.price.price': 'Price',
   'salary.price.hint': 'Type a price to see the work time.',
