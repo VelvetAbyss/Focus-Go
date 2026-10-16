@@ -5,7 +5,7 @@ import { prepareSourceModels } from '../sourceModels'
 import { Box3, Mesh, Vector3 } from 'three'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PROP_FOOTPRINT } from '../../deskLayout'
-import type { DeskColors, DeskPropId } from '../../deskTypes'
+import type { DeskColors } from '../../deskTypes'
 import { createKit } from '../kit'
 import { buildLampRig } from '../lampRig'
 import { DEFAULT_POSE, LAMP_RIG, lampFrame } from '../../lampKinematics'
@@ -45,7 +45,7 @@ const physicalBounds = (prop: DeskProp) => {
   })
   return bounds
 }
-const make = (kind: DeskPropId) => {
+const make = (kind: keyof typeof builders) => {
   let endsAt: number | null = null
   const kit = createKit({ width: 800, height: 300, unit: 60, colors })
   const prop = builders[kind]({
@@ -108,7 +108,7 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks())
 
 describe('physical model envelopes', () => {
-  for (const kind of Object.keys(builders) as DeskPropId[])
+  for (const kind of Object.keys(builders) as (keyof typeof builders)[])
     it(`${kind}: grounded, finite, and inside its placement envelope throughout actions`, () => {
       const { prop, kit } = make(kind),
         limit = PROP_FOOTPRINT[kind]

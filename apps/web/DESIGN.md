@@ -692,7 +692,45 @@ Two parts, read then operate.
 - Below 960px the epigraph drops under the date, left-aligned, and the tabs
   scroll sideways.
 
+## Desk ink masses — 2026-10-16
+
+- Keep large shells and pages in paper. Use warm charcoal (`#3a3733`) for
+  small, structurally meaningful areas: book boards, laptop bezels and rubber,
+  typewriter keys/rollers, cup foot, selected leaves, candle dish, and lamp
+  base, bearings and rear rail. Existing cola and vinyl retain their own tones.
+- Dark faces carry restrained pale engraved lines; paper faces keep ink lines.
+  Charcoal stays dark at night, with the theme's light outlines preserving the
+  silhouette. Do not invert filled parts into solid white shapes.
+- The lampshade's actual inner surface is inked by its inward radial normals;
+  the outside stays paper. Switching on warms the cavity with the same lamp
+  intensity as the bulb, so the dark fill continues to explain its structure.
+- The timer only gains a dark seam and leaf cap. Ink coverage varies by object;
+  avoid filling an equal percentage of every object or obscuring its controls.
+- Geometry and interactions remain unchanged except for a fitted cup-foot band
+  and timer seam. Validate at masthead size as well as in the model gallery.
+
 ## Desk — 2026-10-14
+
+Picture revision, 2026-10-16: windows and wall-hung art frames use the same
+free-placement desk, with no slot or instance-count limit. Both sit behind
+the desk props and move in both axes. Frames have hanging wire and a nail,
+with no stand or foot; the wire is included in their vertical bounds.
+Click a window to open or close its two casements about their outer
+hinges. Selection exposes a corner resize handle and a compact image/settings
+popover, with aspect lock, fill/fit, zoom and crop position, duplicate and remove.
+The full sill is included when fitting to a narrower header. Window leaves
+finish immediately with reduced motion; picture loading still invalidates the
+canvas. Photos keep their colour; the frame uses the surrounding paper/ink.
+
+Four local scenic photos and three CC0 museum artworks are credited in
+`public/licenses/desk-pictures.txt` and in the picker. Imported images are
+downsampled to at most 2560px on the long edge and stored as blobs in the
+separate `focusgo.desk.media` IndexedDB database; settings keep only the source
+id and crop, never image data or a cloud-sync record. Uploads accept JPEG, PNG,
+WebP and AVIF up to 20MB. Shared textures are reference-counted and released
+when the last instance is removed. The interactive development fixture at
+`/e2e/fixtures/desk-pictures.html` uses the production stage but saves its layout
+under `focusgo.preview.pictures`, independently of the actual Dashboard.
 
 Model revision, 2026-10-15: start from finished, licensed model files and real
 objects. Laptop, typewriter and candle use imported GLB geometry.

@@ -1,5 +1,6 @@
 import type { Group, Vector3 } from 'three'
 import type { Kit } from '../kit'
+import type { PictureSettings } from '../../pictureTypes'
 
 /** What a prop sees each frame. */
 export type PropEnv = {
@@ -33,10 +34,15 @@ export type DeskProp = {
   /** Wall-clock changes still need occasional redraws with reduced motion. */
   needsTick?: () => boolean
   dispose?: () => void
+  setPicture?: (settings: PictureSettings) => void
 }
 
 export type PropOptions = {
   kit: Kit
   /** This kitchen timer's ring time, kept by the host so it survives a reload. */
   timer: { get: () => number | null; set: (endsAt: number | null) => void }
+  picture?: PictureSettings
+  onPicture?: (patch: Partial<PictureSettings>) => void
+  onPictureStatus?: (status: 'loading' | 'ready' | 'error') => void
+  invalidate?: () => void
 }

@@ -3,7 +3,22 @@ import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import laptopUrl from '../assets/laptop.glb?url'
 import typewriterUrl from '../assets/typewriter.glb?url'
 import candleUrl from '../assets/candle.glb?url'
-import type { Kit } from './kit'
+import type { FillKey, Kit } from './kit'
+
+// Preserve the shipped model's material boundaries: metal stays paper, while
+// rubber, key caps and mechanical recesses carry the ink mass.
+const sourceFill = (id: SourceModel, name: string, material: string): FillKey => {
+  if (id === 'laptop') {
+    if (material === 'mat23') return 'charcoal'
+    if (material === 'mat17' && !name.startsWith('mesh256948792')) return 'graphite'
+  }
+  if (id === 'typewriter') {
+    if (/Key/.test(name) && !/KeyTHingy/.test(name)) return 'charcoal'
+    if (/pCylinder[4567]$/.test(name) || /KeyTHingy/.test(name)) return 'charcoal'
+    if (/pCube[78]$/.test(name)) return 'graphite'
+  }
+  return 'paper'
+}
 
 const urls = { laptop: laptopUrl, typewriter: typewriterUrl, candle: candleUrl }
 export type SourceModel = keyof typeof urls
@@ -44,13 +59,13 @@ export const staticSource = (id: SourceModel, width: number, kit: Kit) => {
     geometry.translate(-center.x, -bounds.min.y, -center.z)
     geometry.scale(scale, scale, scale)
     const material = object.material as MeshStandardMaterial
-    const key = id === 'typewriter' && object.name === 'group2_Typewriter_pCylinder5' ? 'vinyl' : 'paper'
+    const key = sourceFill(id, object.name, material.name)
     const mesh = kit.solid(geometry, key, id === 'candle' ? { inkMap: material.map ?? undefined } : undefined)
     mesh.name = object.name
     mesh.userData.sourceMaterial = material.name
     // Creases describe keys, bezels and seams; hulls retain curved silhouettes.
     kit.hull(mesh, 0.85)
-    kit.edges(mesh, 0.55, 42, 'ink3')
+    kit.edges(mesh, 0.55, 42, key === 'charcoal' ? 'knockout' : 'ink3')
     root.add(mesh)
   })
   return root

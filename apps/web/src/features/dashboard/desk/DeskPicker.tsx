@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react'
-import { BookOpen, Coffee, CupSoda, Disc3, Flame, Keyboard, Laptop, Plus, Sprout, StickyNote, Timer, X } from 'lucide-react'
+import { BookOpen, Coffee, CupSoda, Disc3, Flame, Keyboard, Laptop, Plus, Sprout, StickyNote, Timer, X, PanelsTopLeft, Frame } from 'lucide-react'
 import { useI18n } from '../../../shared/i18n/useI18n'
 import type { TranslationKey } from '../../../shared/i18n/types'
 import { DESK_PROPS, type DeskItem, type DeskPropId } from './deskTypes'
@@ -14,6 +14,8 @@ const ICONS: Record<DeskPropId, ComponentType<{ size?: number; 'aria-hidden'?: b
   plant: Sprout,
   timer: Timer,
   candle: Flame,
+  window: PanelsTopLeft,
+  frame: Frame,
 }
 
 type Props = {

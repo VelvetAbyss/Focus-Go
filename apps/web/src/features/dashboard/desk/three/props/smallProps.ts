@@ -110,6 +110,11 @@ export const buildCoffee = ({ kit }: PropOptions): DeskProp => {
     ),
   )
   cup.add(vessel)
+  // A fired dark foot on the cup, following its real taper. The thin paper
+  // rim above it separates the ink band from the white porcelain body.
+  const footBand = kit.solid(kit.lathe([[0.181, 0.02], [0.197, 0.1]]), 'charcoal')
+  footBand.name = 'cup-ink-foot'
+  cup.add(footBand)
   const coffee = kit.solid(new CylinderGeometry(0.228, 0.228, 0.004, 48), 'coffee')
   coffee.position.y = 0.386
   cup.add(coffee)
@@ -313,7 +318,7 @@ export const buildPlant = ({ kit }: PropOptions): DeskProp => {
       ),
     ),
   )
-  const soil = kit.solid(new CylinderGeometry(0.167, 0.167, 0.008, 32), 'coffee')
+  const soil = kit.solid(new CylinderGeometry(0.167, 0.167, 0.008, 32), 'charcoal')
   soil.position.y = 0.29
   root.add(soil)
   const stems = [
@@ -365,9 +370,10 @@ export const buildPlant = ({ kit }: PropOptions): DeskProp => {
       leaf.rotation.z = Math.PI / 2 - side * 1.05
       leaf.rotation.y = j % 2 === 0 ? -0.15 : 0.15
       const length = side === 0 ? 0.14 : 0.25 - j * 0.025
-      const blade = kit.solid(leafGeometry(length, length * 0.48))
+      const inked = (i + j) % 3 === 0
+      const blade = kit.solid(leafGeometry(length, length * 0.48), inked ? 'charcoal' : 'paper')
       leaf.add(kit.edges(blade, DETAIL, 30))
-      leaf.add(kit.segments([0.01, 0, 0.006, length * 0.85, 0, 0.006], DETAIL * 0.8, 'ink3'))
+      leaf.add(kit.segments([0.01, 0, 0.006, length * 0.85, 0, 0.006], DETAIL * 0.8, inked ? 'knockout' : 'ink3'))
       pivot.add(leaf)
       return { leaf, base: leaf.rotation.z, phase: Math.random() * 6 }
     })
@@ -446,6 +452,9 @@ export const buildTimer = ({ kit, timer }: PropOptions): DeskProp => {
     DETAIL,
   )
   body.add(shell)
+  const seam = kit.solid(new CylinderGeometry(0.3, 0.3, 0.012, 48), 'charcoal')
+  seam.position.y = 0.216
+  body.add(seam)
   const dial = new Group()
   dial.name = 'timer-dial'
   dial.position.y = 0.22
@@ -505,7 +514,7 @@ export const buildTimer = ({ kit, timer }: PropOptions): DeskProp => {
   const stalk = rodBetween(kit, [0, 0.19, 0], [0.012, 0.245, 0], 0.013)
   dial.add(stalk)
   for (let i = 0; i < 5; i++) {
-    const leaf = kit.edges(kit.solid(leafGeometry(0.11, 0.026)), 0.7)
+    const leaf = kit.edges(kit.solid(leafGeometry(0.11, 0.026), 'charcoal'), 0.7)
     leaf.rotation.x = Math.PI / 2
     const petal = new Group()
     petal.position.y = 0.197
@@ -610,6 +619,7 @@ export const buildCandle = ({ kit }: PropOptions): DeskProp => {
             [0.08, 0.035],
             [0, 0.035],
           ]),
+          'charcoal',
         ),
         DETAIL,
         25,
