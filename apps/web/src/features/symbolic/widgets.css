@@ -1,0 +1,15 @@
+.symbolic-widget{container: symbolic-widget / size}
+.symbolic-widget__open{display:grid;place-items:center;width:26px;height:26px;border:1px solid var(--border);border-radius:50%;color:var(--text-secondary)}
+.symbolic-widget__content{display:flex;flex-direction:column;gap:10px;height:100%;min-height:0;overflow:hidden}
+.symbolic-widget__note{font-size:12px;line-height:1.5;color:var(--text-tertiary);overflow-wrap:anywhere}
+.symbolic-widget__content h4{font:600 20px/1.35 var(--font-display);color:var(--text-primary);margin:0;overflow-wrap:anywhere}
+.symbolic-widget__summary{font-size:13px;line-height:1.7;color:var(--text-secondary);margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.symbolic-widget__pillars{display:flex;gap:18px;font-size:17px;color:var(--text-primary)}
+.symbolic-widget__bottom{display:flex;justify-content:space-between;align-items:center;gap:9px;margin-top:auto;padding-top:9px;border-top:1px solid var(--border);font-size:11px;color:var(--text-tertiary)}
+.symbolic-widget__bottom a,.symbolic-widget__empty a{color:var(--text-primary);white-space:nowrap;font-size:12px}
+.symbolic-widget__empty{display:flex;flex-direction:column;justify-content:center;gap:16px;height:100%;color:var(--text-secondary);font-size:13px;line-height:1.75}
+.symbolic-widget__draw{border:1px solid var(--border);border-radius:999px;padding:6px 13px;font-size:12px;align-self:flex-start;color:var(--text-primary);background:var(--bg-elevated)}
+.symbolic-widget__draw:disabled{opacity:.5}.symbolic-widget :is(a,button):focus-visible{outline:2px solid var(--text-primary);outline-offset:3px}
+@container symbolic-widget (max-width:240px){.symbolic-widget__content h4{font-size:17px}.symbolic-widget__pillars{gap:9px;font-size:14px}.symbolic-widget__summary{-webkit-line-clamp:2;font-size:12px}.symbolic-widget__bottom>span{display:none}.symbolic-widget__note{font-size:11px}.symbolic-widget__content{gap:8px}}
+@container symbolic-widget (max-height:230px){.symbolic-widget__summary,.symbolic-widget__pillars{display:none}.symbolic-widget__content{gap:5px}.symbolic-widget__content h4{font-size:16px}.symbolic-widget__bottom{padding-top:4px}}
+@container symbolic-widget (max-height:160px){.symbolic-widget__note,.symbolic-widget__bottom{display:none}.symbolic-widget__draw{padding:3px 8px}}

@@ -34,6 +34,7 @@ type LabsMessages = {
     removed: string
     premiumLocked: string
     install: string
+    open: string
     openHabits: string
     openProject: string
     remove: string
@@ -60,12 +61,16 @@ type LabsMessages = {
 const messages: Record<LabsLang, LabsMessages> = {
   en: {
     featureTitles: {
+      bazi: 'BaZi', astrology: 'Astrology', tarot: 'Tarot',
       'habit-tracker': 'Habit Tracker',
       'project-workspace': 'Project',
       'ai-digest': 'AI Digest',
       automation: 'Automation Flows',
     },
     featureDescriptions: {
+      bazi: 'Four pillars, luck cycles and transparent rule-based readings.',
+      astrology: 'Sun-sign overviews, personal charts and daily to yearly readings.',
+      tarot: 'Choose cards by hand, explore questions and keep complete readings.',
       'habit-tracker': 'Identity-first habit dashboard with streaks, progress ring, and heatmap.',
       'project-workspace': 'Dedicated workspace for complex projects with clear goals and timelines.',
       'ai-digest': 'Weekly summarization digest for your subscriptions.',
@@ -98,6 +103,7 @@ const messages: Record<LabsLang, LabsMessages> = {
       removed: 'Removed',
       premiumLocked: 'Premium required',
       install: 'Install',
+      open: 'Open',
       openHabits: 'Open Habits',
       openProject: 'Open Project',
       remove: 'Remove',
@@ -122,12 +128,16 @@ const messages: Record<LabsLang, LabsMessages> = {
   },
   zh: {
     featureTitles: {
+      bazi: '八字 · 四时', astrology: '星座 · 星图', tarot: '塔罗 · 一刻',
       'habit-tracker': '习惯追踪',
       'project-workspace': '项目',
       'ai-digest': 'AI Digest',
       automation: '自动化流程',
     },
     featureDescriptions: {
+      bazi: '多人八字排盘与完整解读，查看今日及各阶段运势。',
+      astrology: '十二星座速览与个人星盘，阅读日、周、月、年趋势。',
+      tarot: '每日一牌与主题问事，亲手选牌，保存解读与心得。',
       'habit-tracker': '以身份认同为核心的习惯仪表盘，带有连续记录、进度环和热力图。',
       'project-workspace': '为复杂项目打造的专属工作区，目标清晰，时间线明确。',
       'ai-digest': '每周自动汇总你的订阅内容摘要。',
@@ -160,6 +170,7 @@ const messages: Record<LabsLang, LabsMessages> = {
       removed: '已移除',
       premiumLocked: '需要 Premium',
       install: '安装',
+      open: '打开',
       openHabits: '打开习惯追踪',
       openProject: '打开项目',
       remove: '移除',

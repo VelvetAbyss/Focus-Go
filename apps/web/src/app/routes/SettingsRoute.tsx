@@ -41,6 +41,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { fetchApi } from '../../shared/apiBase'
+import { pauseSymbolicSyncForReset, resumeSymbolicSyncAfterResetFailure } from '../../features/symbolic/sync'
 import { dashboardRepo } from '../../data/repositories/dashboardRepo'
 import { db, requestCrossTabDbReset } from '../../data/db'
 import { DB_NAME, DB_VERSION, TABLES } from '../../data/db/schema'
@@ -872,6 +873,7 @@ const SettingsRoute = () => {
 
   const resetApp = async () => {
     setIsResetting(true)
+    pauseSymbolicSyncForReset()
     try {
       // If signed in, wipe the server copy FIRST. Otherwise the next sync cycle
       // after the local reset pulls every "old" row back down and the user sees
@@ -911,6 +913,7 @@ const SettingsRoute = () => {
       sessionStorage.clear()
       window.location.reload()
     } catch (error) {
+      resumeSymbolicSyncAfterResetFailure()
       toast.push({
         variant: 'error',
         message: error instanceof Error

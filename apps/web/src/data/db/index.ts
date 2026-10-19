@@ -4,6 +4,7 @@ import { installSyncCapture } from '../sync/capture'
 import type { Table } from 'dexie'
 import type {
   BookItem,
+  LocalSymbolicRecord,
   DashboardLayout,
   DiaryEntry,
   DomainEvent,
@@ -65,6 +66,7 @@ import {
   schemaV45,
   schemaV46,
   schemaV47,
+  schemaV48,
   schemaV2,
   schemaV3,
   schemaV4,
@@ -77,6 +79,7 @@ import {
 } from './schema'
 
 export class WorkbenchDb extends Dexie {
+  localSymbolic!: Table<LocalSymbolicRecord, [string, string]>
   pendingSyncChanges!: Table<PendingSyncChange, number>
   tasks!: Table<TaskItem, string>
   notes!: Table<NoteItem, string>
@@ -275,7 +278,10 @@ export class WorkbenchDb extends Dexie {
       .upgrade(async () => {})
 
     this.version(46).stores(schemaV46)
-    this.version(DB_VERSION).stores(schemaV47)
+    this.version(47).stores(schemaV47)
+    this.version(DB_VERSION).stores(schemaV48)
+
+    this.localSymbolic = this.table(TABLES.localSymbolic)
 
     this.pendingSyncChanges = this.table(TABLES.pendingSyncChanges)
     this.tasks = this.table(TABLES.tasks)

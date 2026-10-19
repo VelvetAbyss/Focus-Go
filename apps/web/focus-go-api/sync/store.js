@@ -156,6 +156,9 @@ const getStoredRowsForUser = (db, userId) => {
 export const getCloudStorageUsage = (db, userId) => {
   let payloadBytes = 0
   for (const row of getStoredRowsForUser(db, userId)) payloadBytes += Buffer.byteLength(row.payload, 'utf8')
+  if (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='symbolic_records'").get()) {
+    payloadBytes += Number(db.prepare('SELECT COALESCE(SUM(COALESCE(length(CAST(payload AS BLOB)), 0) + length(CAST(id AS BLOB)) + 128), 0) AS bytes FROM symbolic_records WHERE user_id=?').get(userId).bytes)
+  }
 
   // SQLite retains base64 text and metadata, not just the decoded file bytes.
   // A conservative per-record allowance also prevents millions of empty blobs

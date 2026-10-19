@@ -4,6 +4,8 @@ import { SYNC_ENTITY_TABLES } from '../../data/sync/constants'
 import type { SyncEntityType, SyncWireBlob } from '../../data/sync/types'
 import { PERSONAL_API_KEY_STORAGE_KEYS } from '../integrations/personalApiKeys'
 import { LOCAL_ACCOUNT_OWNER_KEY } from '../../config/accountOwnership'
+import { getAuth } from '../../store/auth'
+import { TABLES } from '../../data/db/schema'
 
 export const LOCAL_BACKUP_FORMAT = 'focus-go-local-backup'
 export const LOCAL_BACKUP_V2_FORMAT = 'focus-go-local-backup-v2'
@@ -16,8 +18,12 @@ export const PROTECTED_STORAGE_KEYS = new Set([
   LOCAL_ACCOUNT_OWNER_KEY,
   'oauth_state',
   'pkce_verifier',
+  'focusgo:symbolic-reset',
   ...Object.values(PERSONAL_API_KEY_STORAGE_KEYS),
 ])
+
+// Account-scoped view preferences stay on this device and never cross backup owners.
+const isProtectedStorageKey = (key: string) => PROTECTED_STORAGE_KEYS.has(key) || key.startsWith('focusgo:astrology-selection:')
 
 type SerializablePrimitive = string | number | boolean | null
 type SerializedBlob = {
@@ -87,6 +93,7 @@ type TableLike = {
 
 type TableDatabaseLike = {
   table: (name: string) => TableLike
+  transaction?: (mode: 'rw', tableNames: string[], work: () => Promise<void>) => Promise<void>
 }
 
 type StorageLike = Pick<Storage, 'length' | 'key' | 'getItem' | 'clear' | 'setItem'>
@@ -253,7 +260,7 @@ export const exportLocalBackup = async ({
       ),
     },
     localStorage: Object.fromEntries(
-      Object.entries(storage.readAll()).filter(([key]) => !PROTECTED_STORAGE_KEYS.has(key)),
+      Object.entries(storage.readAll()).filter(([key]) => !isProtectedStorageKey(key)),
     ),
     blobs: Object.fromEntries(Array.from(blobMap.values()).map((blob) => [blob.hash, blob])),
   }
@@ -313,11 +320,11 @@ export const importLocalBackup = async (payload: ParsedLocalBackup, { db, storag
     await db.replaceTables(restoredTables)
     const currentStorageEntries = storage.readAll()
     const protectedStorageEntries = Object.fromEntries(
-      Object.entries(currentStorageEntries).filter(([key, value]) => PROTECTED_STORAGE_KEYS.has(key) && typeof value === 'string'),
+      Object.entries(currentStorageEntries).filter(([key, value]) => isProtectedStorageKey(key) && typeof value === 'string'),
     ) as Record<string, string>
     const nextStorageEntries = {
       ...Object.fromEntries(
-        Object.entries(payload.localStorage).filter(([key, value]) => !PROTECTED_STORAGE_KEYS.has(key) && typeof value === 'string'),
+        Object.entries(payload.localStorage).filter(([key, value]) => !isProtectedStorageKey(key) && typeof value === 'string'),
       ),
       ...protectedStorageEntries,
     }
@@ -346,10 +353,10 @@ export const importLocalBackup = async (payload: ParsedLocalBackup, { db, storag
 
   const currentStorageEntries = storage.readAll()
   const protectedStorageEntries = Object.fromEntries(
-    Object.entries(currentStorageEntries).filter(([key, value]) => PROTECTED_STORAGE_KEYS.has(key) && typeof value === 'string'),
+    Object.entries(currentStorageEntries).filter(([key, value]) => isProtectedStorageKey(key) && typeof value === 'string'),
   ) as Record<string, string>
   storage.replaceAll({
-    ...payload.localStorage,
+    ...Object.fromEntries(Object.entries(payload.localStorage).filter(([key, value]) => !isProtectedStorageKey(key) && typeof value === 'string')),
     ...protectedStorageEntries,
   })
 }
@@ -384,19 +391,56 @@ export const createTableDatabaseAdapter = (
   tableNames: string[],
 ): LocalBackupDatabaseAdapter => ({
   async exportTables(names) {
+    const owner = getAuth()?.user?.id || 'guest'
     const entries = await Promise.all(
-      names.map(async (name) => [name, await database.table(name).toArray()] as const),
+      names.map(async (name) => {
+        const rows = await database.table(name).toArray()
+        return [name, name === TABLES.localSymbolic ? rows.filter(row => isPlainObject(row) && row.ownerId === owner && row.kind !== 'sync-meta').map(row => {
+          return Object.fromEntries(Object.entries(row as Record<string, unknown>).filter(([key]) => !['revision', 'dirty', 'operationId', 'pending', 'conflict'].includes(key)))
+        }) : rows] as const
+      }),
     )
+    if (owner !== (getAuth()?.user?.id || 'guest')) throw new Error('Account changed during backup')
     return Object.fromEntries(entries)
   },
   async replaceTables(tables) {
-    await Promise.all(tableNames.map((name) => database.table(name).clear()))
+    const owner = getAuth()?.user?.id || 'guest'
+    const symbolicRows = tables[TABLES.localSymbolic]
+    let replacement: unknown[] | null = null
+    if (symbolicRows !== undefined) {
+      const { validSymbolicRecord } = await import('../../features/symbolic/validation')
+      // Reject foreign-account or corrupt private records before clearing any tables.
+      if (symbolicRows.some(row => !validSymbolicRecord(row) || row.ownerId !== owner)) throw new Error('Backup contains incompatible private records')
+      replacement = symbolicRows
+    }
+    if (owner !== (getAuth()?.user?.id || 'guest')) throw new Error('Account changed during restore')
+    // Private records are merged. Old backups and other accounts never erase them.
+    await Promise.all(tableNames.filter(name => name !== TABLES.localSymbolic).map((name) => database.table(name).clear()))
     await Promise.all(
-      Object.entries(tables).map(async ([name, rows]) => {
+      Object.entries(tables).filter(([name]) => name !== TABLES.localSymbolic).map(async ([name, rows]) => {
         if (rows.length === 0) return
         await database.table(name).bulkPut(rows)
       }),
     )
+    if (replacement !== null) {
+      if (owner !== (getAuth()?.user?.id || 'guest')) throw new Error('Account changed during restore')
+      if (replacement.length) {
+        const { prepareSymbolicRestore, signalSymbolicChange } = await import('../../features/symbolic/storage')
+        const mergePrivateRecords = async () => {
+          const current = await database.table(TABLES.localSymbolic).toArray()
+          const merged = prepareSymbolicRestore(
+            replacement as import('../../data/models/types').LocalSymbolicRecord[],
+            current.filter(row => isPlainObject(row) && row.ownerId === owner) as import('../../data/models/types').LocalSymbolicRecord[],
+            owner,
+          )
+          if (owner !== (getAuth()?.user?.id || 'guest')) throw new Error('Account changed during restore')
+          if (merged.length) await database.table(TABLES.localSymbolic).bulkPut(merged)
+        }
+        if (database.transaction) await database.transaction('rw', [TABLES.localSymbolic], mergePrivateRecords)
+        else await mergePrivateRecords()
+        signalSymbolicChange()
+      }
+    }
   },
 })
 

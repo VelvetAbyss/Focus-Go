@@ -9,6 +9,7 @@ import { ensureIntegrationTokenTable } from './auth/integrationTokens.js'
 import integrationsRouter from './routes/integrations.js'
 import userRouter from './routes/user.js'
 import syncRouter from './routes/sync.js'
+import { createSymbolicRouter } from './routes/symbolic.js'
 import podcastsRouter from './routes/podcasts.js'
 import adminRouter from './routes/admin.js'
 import feedbackRouter from './routes/feedback.js'
@@ -122,6 +123,9 @@ export const createApp = () => {
   app.use('/api/user', userRouter)
   app.use('/sync', syncRouter)
   app.use('/api/sync', syncRouter)
+  const symbolicRouter = createSymbolicRouter({ database: db, authMiddleware: requireAuth })
+  app.use('/symbolic', symbolicRouter)
+  app.use('/api/symbolic', symbolicRouter)
   app.use('/integrations', integrationsRouter)
   app.use('/api/integrations', integrationsRouter)
   app.use('/podcasts', podcastsRouter)

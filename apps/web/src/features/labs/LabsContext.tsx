@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useContext, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   canAccessFeature,
   ensureLabsSeed,
@@ -13,6 +13,8 @@ import {
 } from './labsApi'
 import { canAccessHabitTracker } from './accessRules'
 import type { FeatureKey } from '../../data/models/types'
+import { liveQuery } from 'dexie'
+import { db } from '../../data/db'
 import { subscribeAuth } from '../../store/auth'
 
 type LabsContextValue = {
@@ -37,18 +39,25 @@ export const LabsProvider = ({ children }: { children: React.ReactNode }) => {
   const [subscription, setSubscription] = useState<UserSubscriptionRecord | null>(null)
   const [catalog, setCatalog] = useState<FeatureCatalogItem[]>([])
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     await ensureLabsSeed()
     const [nextSubscription, nextCatalog] = await Promise.all([getSubscription(), getFeatureCatalog()])
     setSubscription(nextSubscription)
     setCatalog(nextCatalog)
-  }
+  }, [])
 
   useEffect(() => {
     void refresh().finally(() => setReady(true))
-  }, [])
+  }, [refresh])
 
-  useEffect(() => subscribeAuth(() => void refresh()), [])
+  useEffect(() => subscribeAuth(() => void refresh()), [refresh])
+
+  useEffect(() => {
+    const subscription = liveQuery(() => db.featureInstallations.toArray()).subscribe({
+      next: () => { void refresh() },
+    })
+    return () => subscription.unsubscribe()
+  }, [refresh])
 
   const habitState = (catalog.find((item) => item.featureKey === 'habit-tracker')?.state ?? defaultHabitState)
 
@@ -74,7 +83,7 @@ export const LabsProvider = ({ children }: { children: React.ReactNode }) => {
       },
       canAccessFeature: async (featureKey) => canAccessFeature(featureKey),
     }
-  }, [catalog, habitState, ready, subscription])
+  }, [catalog, habitState, ready, subscription, refresh])
 
   return <LabsContext.Provider value={value}>{children}</LabsContext.Provider>
 }

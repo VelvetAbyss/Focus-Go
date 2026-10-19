@@ -7,6 +7,9 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 
 const getMock = vi.fn()
 
+const labsState = vi.hoisted(() => ({ catalog: [] as { featureKey:string; state:string }[] }))
+vi.mock('../labs/LabsContext', () => ({ useLabs: () => ({ ready:true, catalog:labsState.catalog }) }))
+
 vi.mock('../../shared/i18n/useI18n', () => ({
   useI18n: () => ({
     t: (key: string) =>
@@ -85,6 +88,7 @@ vi.mock('./registry', () => ({
       defaultSize: { w: 4, h: 4 },
       render: () => <div>Tasks card</div>,
     },
+    { id:'bazi', title:'BaZi', featureKey:'bazi', defaultVisible:false, defaultSize:{w:4,h:4}, render:()=> <div>BaZi widget</div> },
   ],
 }))
 
@@ -122,6 +126,7 @@ describe('DashboardPage onboarding', () => {
   beforeEach(() => {
     window.localStorage.clear()
     window.sessionStorage.clear()
+    labsState.catalog=[]
     getMock.mockReset()
     getMock.mockResolvedValue({
       items: [{ key: 'tasks', x: 0, y: 0, w: 4, h: 4 }],
@@ -172,4 +177,31 @@ describe('DashboardPage onboarding', () => {
     expect(screen.getByText('News dashboard')).toBeInTheDocument()
     expect(screen.queryByText('Tasks card')).not.toBeInTheDocument()
   })
+})
+
+it('adds an installed module from its page link without losing existing widgets', async () => {
+  labsState.catalog=[{featureKey:'bazi',state:'installed'}]
+  getMock.mockResolvedValue({items:[{key:'tasks',x:0,y:0,w:4,h:4}],hiddenCardIds:['bazi'],themeOverride:'dark',layoutVersion:1})
+  renderDashboard(['/?symbolicWidget=bazi'])
+  expect(await screen.findByText('BaZi widget')).toBeInTheDocument()
+  expect(screen.getByText('Tasks card')).toBeInTheDocument()
+  cleanup()
+})
+it('does not add an uninstalled module from a URL', async () => {
+  labsState.catalog=[]
+  getMock.mockResolvedValue({items:[{key:'tasks',x:0,y:0,w:4,h:4}],hiddenCardIds:['bazi'],layoutVersion:1})
+  renderDashboard(['/?symbolicWidget=bazi'])
+  await screen.findByText('Tasks card')
+  expect(screen.queryByText('BaZi widget')).not.toBeInTheDocument()
+  cleanup()
+})
+it('keeps a removed module visible in the manager so its placeholder can be hidden', async () => {
+  labsState.catalog=[{featureKey:'bazi',state:'removed'}]
+  getMock.mockResolvedValue({items:[{key:'tasks',x:0,y:0,w:4,h:4},{key:'bazi',x:4,y:0,w:4,h:4}],hiddenCardIds:[],layoutVersion:1})
+  renderDashboard()
+  await screen.findByText('BaZi widget')
+  fireEvent.click(screen.getByRole('button',{name:'Edit layout'}))
+  fireEvent.click(screen.getByRole('button',{name:'Manage widgets'}))
+  expect(screen.getByText('BaZi')).toBeInTheDocument()
+  cleanup()
 })

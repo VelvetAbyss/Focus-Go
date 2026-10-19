@@ -1,0 +1,14 @@
+.bazi-calendar-note{font-size:12px;color:var(--text-tertiary);margin:13px 0 0;line-height:1.7}
+.bazi-element-details{border-bottom:1px solid var(--symbolic-rule);padding:20px 0;color:var(--text-secondary);font-size:13px}
+.bazi-element-details .bazi-elements{max-width:560px}
+.bazi-stage-context{padding:22px 0 8px}
+.bazi-stage-context h2{font:500 22px/1.4 var(--font-reading);margin:0}
+.bazi-luck-picker{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin:20px 0 0;border-top:1px solid var(--symbolic-rule);border-left:1px solid var(--symbolic-rule)}
+.bazi-luck-picker button{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:18px 14px;border:0;border-right:1px solid var(--symbolic-rule);border-bottom:1px solid var(--symbolic-rule);background:none;color:var(--text-secondary);text-align:left}
+.bazi-luck-picker button[aria-pressed=true]{background:var(--symbolic-wash);box-shadow:inset 0 2px var(--symbolic-accent)}
+.bazi-luck-picker strong{font:500 28px/1.2 var(--font-reading);color:var(--symbolic-accent)}
+.bazi-luck-picker small{font-size:10px;line-height:1.6}.bazi-luck-picker span{font-size:11px}
+@media(max-width:700px){.bazi-luck-picker{grid-template-columns:repeat(2,minmax(0,1fr))}.bazi-luck-picker button{padding:14px 12px}}
+
+.bazi-luck-picker button:disabled{cursor:not-allowed;color:var(--text-tertiary);background:var(--symbolic-wash)}
+.bazi-luck-picker button:disabled strong{color:var(--text-tertiary)}

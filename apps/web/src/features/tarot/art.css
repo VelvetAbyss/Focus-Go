@@ -1,0 +1,11 @@
+.tarot-art{width:100%;display:block;height:auto}
+.tarot-art--reversed{transform:rotate(180deg)}
+.tarot-art-paper{fill:#efe9d7;stroke:#c5bea3}
+.tarot-art-back{fill:#344638;stroke:#b5bd98}
+.tarot-art-border{fill:none;stroke:#abb48e;stroke-width:.7}
+.tarot-art-ink{fill:none;stroke:#7a8660;stroke-width:1.4;stroke-linejoin:round;stroke-linecap:round}
+.tarot-art-ink text{fill:#62714e;stroke:none;font-size:12px;letter-spacing:2px;font-family:var(--font-body)}
+.tarot-card-scene{stroke-width:1.25}
+.tarot-card-scene .tarot-scene-fill{fill:#dedbc3;stroke:none}
+.tarot-card-scene .tarot-scene-paper{fill:#efe9d7}
+.tarot-card-scene text{font-size:9px;letter-spacing:0}

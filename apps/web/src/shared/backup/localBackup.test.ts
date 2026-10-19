@@ -24,6 +24,19 @@ const createStorageAdapter = (entries: Record<string, string> = {}): LocalBackup
 })
 
 describe('localBackup', () => {
+  it('keeps account-scoped astrology preferences out of backups and preserves them during restore', async () => {
+    const key = 'focusgo:astrology-selection:v2:other-account'
+    const db = createDbAdapter()
+    const storage = createStorageAdapter({[key]:'current', theme:'light'})
+    const backup = await exportLocalBackup({db,storage,tableNames:[],dbName:'test',dbVersion:48})
+    expect(backup.localStorage).toEqual({theme:'light'})
+    backup.localStorage[key] = 'foreign'
+    backup.localStorage['focusgo:astrology-selection:v2:injected-account'] = 'foreign'
+    await importLocalBackup(backup,{db,storage,tableNames:[]})
+    expect(storage.entries[key]).toBe('current')
+    expect(storage.entries['focusgo:astrology-selection:v2:injected-account']).toBeUndefined()
+  })
+
   it('exports indexeddb tables and localStorage entries into one backup payload', async () => {
     const db = createDbAdapter({
       tasks: [{ id: 'task-1', title: 'Ship backup' }],

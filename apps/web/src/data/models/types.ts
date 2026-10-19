@@ -727,7 +727,7 @@ export type TaskTrashEntry = {
   deletedAt: number
 }
 
-export type FeatureKey = 'ai-digest' | 'automation' | 'habit-tracker' | 'project-workspace'
+export type FeatureKey = 'ai-digest' | 'automation' | 'bazi' | 'astrology' | 'tarot' | 'habit-tracker' | 'project-workspace'
 export type FeatureInstallState = 'installed' | 'removed'
 
 export type FeatureInstallation = BaseEntity & {
@@ -789,4 +789,16 @@ export type SyncedPreferences = BaseEntity & {
   /** The calendar's day notes (便签); absent from older clients. */
   calendarDayNotes?: DayNotesState
   initialSeedCompletedAt?: number | null
+}
+
+/** Account-scoped Labs records use their own sync channel, outside SyncEntityType. */
+export type SymbolicWireRow = {
+  id: string; kind: LocalSymbolicRecord['kind']; payload: unknown; revision: number; operationId: string; updatedAt: number; deleted: boolean
+}
+export type SymbolicMutation = Omit<SymbolicWireRow, 'revision'> & { baseRevision: number }
+export type LocalSymbolicRecord = {
+  ownerId: string; id: string; kind: 'profile' | 'birth-profile' | 'profile-version' | 'tarot' | 'tarot-session' | 'settings' | 'sync-meta'
+  schemaVersion: 1; updatedAt: number; payload: unknown
+  revision?: number; dirty?: boolean; operationId?: string; deleted?: boolean
+  pending?: SymbolicMutation; conflict?: SymbolicWireRow | null
 }

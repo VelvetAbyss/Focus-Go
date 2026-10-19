@@ -1,0 +1,8 @@
+.tarot-widget-reading{display:flex;gap:14px;align-items:flex-start;min-width:0}
+.tarot-widget-copy{display:flex;flex-direction:column;gap:8px;min-width:0;flex:1}
+.tarot-widget-card{width:clamp(36px,15cqw,52px);flex:none;pointer-events:none}
+.tarot-widget-content .symbolic-widget__summary{display:-webkit-box;-webkit-line-clamp:3}
+.tarot-widget-practice{margin:0}
+.tarot-widget-content .symbolic-widget__bottom{flex-shrink:0}
+@container symbolic-widget (max-height:270px){.tarot-widget-practice{display:none}.tarot-widget-content .symbolic-widget__summary{-webkit-line-clamp:2}}
+@container symbolic-widget (max-width:240px){.tarot-widget-reading{gap:9px}.tarot-widget-card{width:36px}.tarot-widget-copy{gap:5px}}
