@@ -64,6 +64,8 @@ describe('localBackup', () => {
     })
     const storage = createStorageAdapter({
       auth: '{"accessToken":"current-token"}',
+      'focusgo.accountProfile.v1': 'current-account-draft',
+      'focus_go.userProfile.v1': 'current-profile-cache',
       oauth_state: 'state-1',
       pkce_verifier: 'verifier-1',
       [PERSONAL_API_KEY_STORAGE_KEYS.tmdb]: 'current-tmdb-key',
@@ -99,6 +101,8 @@ describe('localBackup', () => {
         localStorage: {
           'workbench.ui.language': 'en',
           auth: '{"accessToken":"stale-token"}',
+          'focusgo.accountProfile.v1': 'stale-account-draft',
+          'focus_go.userProfile.v1': 'stale-profile-cache',
           oauth_state: 'state-2',
           pkce_verifier: 'verifier-2',
           [PERSONAL_API_KEY_STORAGE_KEYS.tmdb]: 'stale-tmdb-key',
@@ -115,6 +119,8 @@ describe('localBackup', () => {
     expect(db.tables.tasks).toEqual([{ id: 'task-2', title: 'Restored task' }])
     expect(storage.entries).toEqual({
       auth: '{"accessToken":"current-token"}',
+      'focusgo.accountProfile.v1': 'current-account-draft',
+      'focus_go.userProfile.v1': 'current-profile-cache',
       oauth_state: 'state-1',
       pkce_verifier: 'verifier-1',
       [PERSONAL_API_KEY_STORAGE_KEYS.tmdb]: 'current-tmdb-key',

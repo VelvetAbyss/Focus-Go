@@ -61,4 +61,19 @@ describe('authClient', () => {
       }))
     } finally { clearAuth() }
   })
+  it('carries explicit current confirmation through native and Google registration', async () => {
+    const { authClient } = await import('./authClient')
+    const policyAcceptance = { termsAccepted: true as const, privacyAcknowledged: true as const, termsVersion: '2026-10-19', privacyVersion: '2026-10-19', locale: 'zh' as const }
+    await authClient.signUp({ email: 'policy@example.test', username: 'policy', name: 'Policy', password: 'test-password-123', policyAcceptance })
+    expect(JSON.parse(fetchMock.mock.calls[0][1]!.body as string).policyAcceptance).toEqual(policyAcceptance)
+    await authClient.signInGoogle('https://app.nestflow.art/?auth=google', policyAcceptance)
+    expect(JSON.parse(fetchMock.mock.calls[1][1]!.body as string).additionalData).toEqual({ policyAcceptance })
+  })
+
+  it('preserves a stale policy error so the UI can request a refresh', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 400, text: () => Promise.resolve('{"code":"POLICY_CONFIRMATION_REQUIRED","message":"Read current policies"}'), headers: new Headers({ 'content-type': 'application/json' }) } as Response)
+    const { authClient } = await import('./authClient')
+    await expect(authClient.signInGoogle('https://app.nestflow.art')).rejects.toThrow('POLICY_CONFIRMATION_REQUIRED')
+  })
+
 })

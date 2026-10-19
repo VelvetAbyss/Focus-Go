@@ -10,6 +10,9 @@ export const LOCAL_BACKUP_V2_FORMAT = 'focus-go-local-backup-v2'
 export const LOCAL_BACKUP_SCHEMA_VERSION = 2
 export const PROTECTED_STORAGE_KEYS = new Set([
   'auth',
+  // Account identity and pending profile uploads must not travel in document backups.
+  'focus_go.userProfile.v1',
+  'focusgo.accountProfile.v1',
   LOCAL_ACCOUNT_OWNER_KEY,
   'oauth_state',
   'pkce_verifier',

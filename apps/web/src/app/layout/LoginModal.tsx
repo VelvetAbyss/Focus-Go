@@ -1,3 +1,5 @@
+import { PolicyConfirmationFields } from '../../shared/legal/PolicyConfirmationFields'
+import { policyConfirmation } from '../../shared/legal/policies'
 import { X, LogIn, UserPlus, Mail, KeyRound, Eye, EyeOff } from 'lucide-react'
 import type { FormEvent } from 'react'
 import { useState, useEffect } from 'react'
@@ -21,6 +23,7 @@ const REMEMBER_KEY = 'fg_remembered_account'
 
 const LoginModal = ({ onClose, reason }: LoginModalProps) => {
   const { language } = useI18n()
+  const [policyAccepted, setPolicyAccepted] = useState(false)
   const [mode, setMode] = useState<Mode>('login')
   const [account, setAccount] = useState(() => localStorage.getItem(REMEMBER_KEY) ?? '')
   const [email, setEmail] = useState('')
@@ -41,7 +44,7 @@ const LoginModal = ({ onClose, reason }: LoginModalProps) => {
     eyebrow: 'Focus&go',
     title: reason === 'expired'
       ? (language === 'zh' ? '登录已过期' : 'Your session expired')
-      : (language === 'zh' ? '登录你的账号' : 'Sign in to your account'),
+      : mode === 'signup' ? (language === 'zh' ? '创建你的账号' : 'Create your account') : (language === 'zh' ? '登录你的账号' : 'Sign in to your account'),
     subtitle: reason === 'expired'
       ? (language === 'zh' ? '重新登录后继续同步，这台设备上的数据都还在。' : 'Sign in again to keep syncing. Everything on this device is still here.')
       : (language === 'zh' ? '使用邮箱、用户名或 Google 继续。' : 'Continue with email, username, or Google.'),
@@ -74,11 +77,13 @@ const LoginModal = ({ onClose, reason }: LoginModalProps) => {
     setLoading(true)
     try {
       if (mode === 'signup') {
+        if (!policyAccepted) throw new Error(language === 'zh' ? '请先阅读并确认当前条款和隐私告知。' : 'Please read and confirm the current terms and privacy notice.')
         const result = await authClient.signUp({
           email: email.trim(),
           username: username.trim(),
           name: name.trim() || username.trim() || email.trim(),
           password,
+          policyAcceptance: policyConfirmation(language),
         })
         await finishAuth(result.token, result.user)
       } else if (looksLikeEmail(account.trim())) {
@@ -99,7 +104,7 @@ const LoginModal = ({ onClose, reason }: LoginModalProps) => {
         await finishAuth(result.token, result.user)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : (language === 'zh' ? '登录失败。' : 'Sign in failed.'))
+      setError(err instanceof Error && err.message === 'POLICY_CONFIRMATION_REQUIRED' ? (language === 'zh' ? '政策版本已变化，请刷新页面、阅读新版后重新确认。' : 'The policy edition changed. Refresh, review the new edition and confirm again.') : err instanceof Error ? err.message : (language === 'zh' ? '登录失败。' : 'Sign in failed.'))
     } finally {
       setLoading(false)
     }
@@ -107,6 +112,7 @@ const LoginModal = ({ onClose, reason }: LoginModalProps) => {
 
   const handleGoogle = async () => {
     if (loading) return
+    if (!policyAccepted) { setError(language === 'zh' ? 'Google 首次登录可能创建账号，请先阅读并确认条款和隐私告知。' : 'Google may create an account on first sign-in. Read and confirm the terms and privacy notice first.'); return }
     setError(null)
     setLoading(true)
     try {
@@ -115,7 +121,7 @@ const LoginModal = ({ onClose, reason }: LoginModalProps) => {
       // webviews). The global deep-link handler completes the session on return.
       const platform = getPlatform()
       const callbackURL = platform.isDesktop ? await desktopOAuthCallbackURL() : getGoogleAuthCallbackURL()
-      const result = await authClient.signInGoogle(callbackURL)
+      const result = await authClient.signInGoogle(callbackURL, policyConfirmation(language))
       if (result.url) {
         if (platform.isDesktop) {
           await platform.openExternal(result.url)
@@ -127,7 +133,7 @@ const LoginModal = ({ onClose, reason }: LoginModalProps) => {
       }
       await finishAuth(result.token, result.user)
     } catch (err) {
-      setError(err instanceof Error ? err.message : (language === 'zh' ? 'Google 登录失败。' : 'Google sign in failed.'))
+      setError(err instanceof Error && err.message === 'POLICY_CONFIRMATION_REQUIRED' ? (language === 'zh' ? '政策版本已变化，请刷新页面、阅读新版后重新确认。' : 'The policy edition changed. Refresh, review the new edition and confirm again.') : err instanceof Error ? err.message : (language === 'zh' ? 'Google 登录失败。' : 'Google sign in failed.'))
       setLoading(false)
     }
   }
@@ -227,9 +233,10 @@ const LoginModal = ({ onClose, reason }: LoginModalProps) => {
               </label>
             )}
 
+            <PolicyConfirmationFields language={language} checked={policyAccepted} onChange={setPolicyAccepted} required={mode === 'signup'} disabled={loading} />
             {error ? <p className="login-modal__error">{error}</p> : null}
 
-            <button type="submit" className="login-modal__cta" disabled={loading}>
+            <button type="submit" className="login-modal__cta" disabled={loading || (mode === 'signup' && !policyAccepted)}>
               {loading ? (
                 <span className="login-modal__spinner" />
               ) : mode === 'signup' ? (

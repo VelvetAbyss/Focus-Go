@@ -1,10 +1,10 @@
-import { useEffect } from 'react'
+import { useEffect, lazy, Suspense, type ReactNode } from 'react'
 import AppShell from './app/layout/AppShell'
 import AppRoutes from './app/routes/AppRoutes'
 import AppBootGate from './app/AppBootGate'
 import ErrorBoundary from './shared/ui/ErrorBoundary'
 import { applyTheme, resolveInitialTheme } from './shared/theme/theme'
-import { BrowserRouter } from 'react-router-dom'
+import { BrowserRouter, useLocation } from 'react-router-dom'
 import { PreferencesProvider } from './shared/prefs/PreferencesProvider'
 import { MotionProvider } from './shared/motion/MotionProvider'
 import { ToastProvider } from './shared/ui/toast/ToastProvider'
@@ -24,6 +24,12 @@ import './shared/theme/typography.css'
 import './shared/theme/overlay-scale.css'
 import './shared/theme/marks.css'
 import './shared/theme/charts.css'
+
+const PublicLegalPage = lazy(() => import('./shared/legal/PublicLegalPage'))
+const AppSurface = ({ children }: { children: ReactNode }) => {
+  const { pathname } = useLocation()
+  return pathname.startsWith('/legal/') ? <Suspense fallback={<p>…</p>}><PublicLegalPage /></Suspense> : <AppShell>{children}</AppShell>
+}
 
 const App = () => {
   const isLoggedIn = useIsLoggedIn()
@@ -74,9 +80,9 @@ const App = () => {
                 <DiscoveryHintProvider>
                   <LabsProvider>
                     <SharedNoiseProvider>
-                      <AppShell>
+                      <AppSurface>
                         <AppRoutes key={isLoggedIn ? 'authenticated' : 'guest'} />
-                      </AppShell>
+                      </AppSurface>
                     </SharedNoiseProvider>
                   </LabsProvider>
                   </DiscoveryHintProvider>

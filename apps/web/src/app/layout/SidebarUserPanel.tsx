@@ -1,15 +1,16 @@
-import { lazy, Suspense, useState, useEffect, useRef } from 'react'
+import { PolicyNotice } from '../../shared/legal/PolicyNotice'
+import { lazy, Suspense, useState, useEffect, useRef, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import {
   User, LogOut, Crown, X, Timer, FileText, ArrowRight,
-  ChevronRight, Flame, CheckSquare, Mail, Shield, Download, Heart,
-  HelpCircle, ArrowLeft, Check, Loader2, AlertTriangle, Copy,
-  Camera, MapPin, Cake, Sparkles,
+  ChevronRight, Flame, CheckSquare, Mail, Shield, Download, Heart, Settings,
+  HelpCircle, ArrowLeft, Check, Loader2, Copy,
+  Camera,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { clearAuth, getAuth, setAuth, useIsLoggedIn } from '../../store/auth'
+import { clearAuth, getAuth, subscribeAuth, useIsLoggedIn } from '../../store/auth'
 import {
-  updateProfile, processAvatarFile, useUserProfile,
+  clearAccountProfile, saveAccountProfile, syncAccountProfile, startAccountProfileSync, useProfileSaveState, processAvatarFile, useUserProfile,
 } from '../../store/userProfile'
 import { authClient } from '../../config/authClient'
 import { getPlatform } from '../../platform'
@@ -20,6 +21,9 @@ import type { FocusSession } from '../../data/models/types'
 import { db, requestCrossTabDbReset } from '../../data/db'
 import { DB_NAME, DB_VERSION, TABLES } from '../../data/db/schema'
 import { ROUTES } from '../routes/routes'
+
+import { EmailLoginPanel, SecurityPanel, DeleteAccountPanel } from './AccountSecurityPanels'
+import { useAccountCopy } from './accountCopy'
 
 const LoginModal = lazy(() => import('./LoginModal'))
 
@@ -34,6 +38,8 @@ type ActivePanel =
   | 'security'
   | 'helpFeedback'
   | 'deleteAccount'
+  | 'growth'
+  | 'data'
 
 type ExtendedUserStats = {
   tasksCompleted: number
@@ -96,8 +102,8 @@ function computeStreak(sessions: FocusSession[]): number {
 
 // ─── Sub-panel: Edit Profile ──────────────────────────────────────────────────
 
-const EditProfilePanel = ({ userId, displayName, email, initial }: {
-  userId: string; displayName: string; email: string; initial: string
+const EditProfilePanel = ({ userId, displayName, email, initial, onDirtyChange }: {
+  userId: string; displayName: string; email: string; initial: string; onDirtyChange: (dirty: boolean) => void
 }) => {
   const { t } = useI18n()
   const profile = useUserProfile(userId)
@@ -111,41 +117,42 @@ const EditProfilePanel = ({ userId, displayName, email, initial }: {
   const [avatar, setAvatar] = useState<string | null | undefined>(profile.avatar ?? null)
   const [avatarError, setAvatarError] = useState<string | null>(null)
   const [avatarBusy, setAvatarBusy] = useState(false)
-  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const saveState = useProfileSaveState(userId)
+  const copy = useAccountCopy()
+  const touched = useRef(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { inputRef.current?.focus() }, [])
 
-  const dirty =
-    editName.trim() !== displayName.trim() ||
-    (pronouns.trim() || '') !== (profile.pronouns ?? '') ||
-    (role.trim() || '') !== (profile.role ?? '') ||
-    (location.trim() || '') !== (profile.location ?? '') ||
-    (birthday || '') !== (profile.birthday ?? '') ||
-    (bio.trim() || '') !== (profile.bio ?? '') ||
-    (avatar ?? null) !== (profile.avatar ?? null)
+  const baseline = useRef({ name: displayName, avatar: profile.avatar ?? null, pronouns: profile.pronouns ?? '', role: profile.role ?? '', location: profile.location ?? '', birthday: profile.birthday ?? '', bio: profile.bio ?? '' })
+  const currentFields = { name: editName.trim(), avatar: avatar ?? null, pronouns: pronouns.trim(), role: role.trim(), location: location.trim(), birthday, bio: bio.trim() }
+  const dirty = Object.entries(currentFields).some(([key, value]) => value !== baseline.current[key as keyof typeof currentFields])
+
+  useEffect(() => { onDirtyChange(dirty); return () => onDirtyChange(false) }, [dirty, onDirtyChange])
+  useEffect(() => {
+    if (touched.current) return
+    baseline.current = { name: displayName, avatar: profile.avatar ?? null, pronouns: profile.pronouns ?? '', role: profile.role ?? '', location: profile.location ?? '', birthday: profile.birthday ?? '', bio: profile.bio ?? '' }
+    setEditName(displayName)
+    setPronouns(profile.pronouns ?? '')
+    setRole(profile.role ?? '')
+    setLocation(profile.location ?? '')
+    setBirthday(profile.birthday ?? '')
+    setBio(profile.bio ?? '')
+    setAvatar(profile.avatar ?? null)
+  }, [displayName, profile])
 
   const handleSave = () => {
-    if (saveState !== 'idle' || !dirty) return
-    setSaveState('saving')
-    const auth = getAuth()
-    if (auth?.user) {
-      const nextName = editName.trim() || displayName
-      setAuth({ ...auth, user: { ...auth.user, name: nextName, nickname: nextName } })
-    }
-    updateProfile(userId, {
-      avatar: avatar ?? '',
-      pronouns: pronouns.trim(),
-      role: role.trim(),
-      location: location.trim(),
-      birthday: birthday.trim(),
-      bio: bio.trim(),
-    })
-    setTimeout(() => {
-      setSaveState('saved')
-      setTimeout(() => setSaveState('idle'), 1800)
-    }, 400)
+    if (!dirty || !editName.trim()) return
+    const next = { name: editName.trim(), avatar: avatar ?? null, pronouns: pronouns.trim(), role: role.trim(), location: location.trim(), birthday, bio: bio.trim() }
+    const previous = baseline.current
+    const patch = Object.fromEntries(Object.entries(next).filter(([key, value]) => value !== previous[key as keyof typeof previous]))
+    try {
+      saveAccountProfile(userId, patch)
+      baseline.current = next
+      touched.current = false
+      setAvatarError(null)
+    } catch { setAvatarError(copy('localSaveFailed')) }
   }
 
   const handleAvatarPick = async (file: File) => {
@@ -153,6 +160,7 @@ const EditProfilePanel = ({ userId, displayName, email, initial }: {
     setAvatarBusy(true)
     try {
       const dataUrl = await processAvatarFile(file)
+      touched.current = true
       setAvatar(dataUrl)
     } catch (err) {
       const code = (err as Error)?.message || ''
@@ -165,7 +173,7 @@ const EditProfilePanel = ({ userId, displayName, email, initial }: {
   }
 
   return (
-    <div className="acct-subpanel-body acct-edit-body">
+    <div className="acct-subpanel-body acct-edit-body" onChangeCapture={() => { touched.current = true }}>
       <div className="acct-edit-avatar-row">
         <button
           type="button"
@@ -195,7 +203,7 @@ const EditProfilePanel = ({ userId, displayName, email, initial }: {
               <button
                 type="button"
                 className="acct-edit-avatar-btn acct-edit-avatar-btn--ghost"
-                onClick={() => { setAvatar(null); setAvatarError(null) }}
+                onClick={() => { touched.current = true; setAvatar(null); setAvatarError(null) }}
                 disabled={avatarBusy}
               >
                 {t('auth.account.edit.avatarRemove')}
@@ -221,19 +229,21 @@ const EditProfilePanel = ({ userId, displayName, email, initial }: {
       <h4 className="acct-edit-section-title">{t('auth.account.edit.sectionIdentity')}</h4>
       <div className="acct-field-grid">
         <div className="acct-field">
-          <label className="acct-field-label">{t('auth.account.displayName')}</label>
+          <label className="acct-field-label" htmlFor="account-editName">{t('auth.account.displayName')}</label>
           <input
             ref={inputRef}
             className="acct-field-input"
+            id="account-editName"
             value={editName}
             onChange={e => setEditName(e.target.value)}
             maxLength={40}
           />
         </div>
         <div className="acct-field">
-          <label className="acct-field-label">{t('auth.account.edit.pronouns')}</label>
+          <label className="acct-field-label" htmlFor="account-pronouns">{t('auth.account.edit.pronouns')}</label>
           <input
             className="acct-field-input"
+            id="account-pronouns"
             value={pronouns}
             onChange={e => setPronouns(e.target.value)}
             placeholder={t('auth.account.edit.pronounsPlaceholder')}
@@ -241,9 +251,10 @@ const EditProfilePanel = ({ userId, displayName, email, initial }: {
           />
         </div>
         <div className="acct-field acct-field--full">
-          <label className="acct-field-label">{t('auth.account.edit.role')}</label>
+          <label className="acct-field-label" htmlFor="account-role">{t('auth.account.edit.role')}</label>
           <input
             className="acct-field-input"
+            id="account-role"
             value={role}
             onChange={e => setRole(e.target.value)}
             placeholder={t('auth.account.edit.rolePlaceholder')}
@@ -251,9 +262,10 @@ const EditProfilePanel = ({ userId, displayName, email, initial }: {
           />
         </div>
         <div className="acct-field">
-          <label className="acct-field-label">{t('auth.account.edit.location')}</label>
+          <label className="acct-field-label" htmlFor="account-location">{t('auth.account.edit.location')}</label>
           <input
             className="acct-field-input"
+            id="account-location"
             value={location}
             onChange={e => setLocation(e.target.value)}
             placeholder={t('auth.account.edit.locationPlaceholder')}
@@ -261,10 +273,11 @@ const EditProfilePanel = ({ userId, displayName, email, initial }: {
           />
         </div>
         <div className="acct-field">
-          <label className="acct-field-label">{t('auth.account.edit.birthday')}</label>
+          <label className="acct-field-label" htmlFor="account-birthday">{t('auth.account.edit.birthday')}</label>
           <input
             type="date"
             className="acct-field-input"
+            id="account-birthday"
             value={birthday}
             onChange={e => setBirthday(e.target.value)}
           />
@@ -273,10 +286,11 @@ const EditProfilePanel = ({ userId, displayName, email, initial }: {
 
       <h4 className="acct-edit-section-title">{t('auth.account.edit.sectionAbout')}</h4>
       <div className="acct-field">
-        <label className="acct-field-label">{t('auth.account.edit.bio')}</label>
+        <label className="acct-field-label" htmlFor="account-bio">{t('auth.account.edit.bio')}</label>
         <textarea
           className="acct-field-input acct-field-textarea"
-          value={bio}
+          id="account-bio"
+            value={bio}
           onChange={e => setBio(e.target.value.slice(0, 200))}
           placeholder={t('auth.account.edit.bioPlaceholder')}
           rows={3}
@@ -294,64 +308,15 @@ const EditProfilePanel = ({ userId, displayName, email, initial }: {
 
       <button
         type="button"
-        className={`acct-save-btn${saveState === 'saved' ? ' acct-save-btn--saved' : ''}`}
+        className="acct-save-btn"
         onClick={handleSave}
-        disabled={saveState !== 'idle' || !dirty}
+        disabled={!dirty || !editName.trim() || avatarBusy}
       >
-        {saveState === 'saving' && <Loader2 size={14} className="acct-spin" />}
-        {saveState === 'saved' && <Check size={14} />}
-        {saveState === 'idle' && t('auth.account.saveChanges')}
-        {saveState === 'saving' && '…'}
-        {saveState === 'saved' && t('auth.account.changesSaved')}
+        {t('auth.account.saveChanges')}
       </button>
-    </div>
-  )
-}
-
-// ─── Sub-panel: Email & Login ─────────────────────────────────────────────────
-
-const EmailLoginPanel = ({ email }: { email: string }) => {
-  const { t } = useI18n()
-
-  return (
-    <div className="acct-subpanel-body">
-      <div className="acct-info-card">
-        <div className="acct-info-row">
-          <span className="acct-info-label">{t('auth.account.currentEmail')}</span>
-          <span className="acct-info-value">{email || '—'}</span>
-        </div>
-        <div className="acct-info-row">
-          <span className="acct-info-label">{t('auth.account.loginProvider')}</span>
-          <span className="acct-info-value">Focus&go / Google</span>
-        </div>
-      </div>
-      <p className="acct-subpanel-hint">{t('auth.account.providerManaged')}</p>
-    </div>
-  )
-}
-
-// ─── Sub-panel: Account Security ─────────────────────────────────────────────
-
-const SecurityPanel = () => {
-  const { language, t } = useI18n()
-
-  return (
-    <div className="acct-subpanel-body">
-      <div className="acct-info-card">
-        <div className="acct-info-row">
-          <span className="acct-info-label">{t('auth.account.loginProvider')}</span>
-          <span className="acct-info-value">Better Auth</span>
-        </div>
-        <div className="acct-info-row">
-          <span className="acct-info-label">Protocol</span>
-          <span className="acct-info-value">Session + Google OAuth</span>
-        </div>
-      </div>
-      <p className="acct-subpanel-hint">
-        {language === 'zh'
-          ? '密码登录已由 Focus&go 托管。邮箱验证、手机号验证和设备管理会在后续版本开放。'
-          : 'Password sign-in is now managed by Focus&go. Email verification, phone verification, and device management will arrive later.'}
-      </p>
+      {!editName.trim() && <p role="alert">{copy('nameRequired')}</p>}
+      <p className="acct-subpanel-hint" role="status">{copy(saveState)}</p>
+      {(saveState === 'error' || saveState === 'pending') && <button className="acct-help-btn" type="button" onClick={() => void syncAccountProfile(userId)}>{copy('retry')}</button>}
     </div>
   )
 }
@@ -399,55 +364,6 @@ const HelpFeedbackPanel = () => {
   )
 }
 
-// ─── Sub-panel: Delete Account ────────────────────────────────────────────────
-
-const DeleteAccountPanel = ({ email }: { email: string }) => {
-  const { t } = useI18n()
-  const [input, setInput] = useState('')
-  const [deleting, setDeleting] = useState(false)
-  const confirmed = input.trim().toLowerCase() === email.trim().toLowerCase() && email !== ''
-
-  const handleDelete = async () => {
-    if (!confirmed || deleting) return
-    setDeleting(true)
-    // No backend deletion API yet — clear auth and log out
-    await signOutBestEffort()
-    await clearLocalUserData()
-    clearAuth()
-    window.location.href = '/'
-  }
-
-  return (
-    <div className="acct-subpanel-body">
-      <div className="acct-delete-warning">
-        <AlertTriangle size={16} />
-        <p>{t('auth.account.deleteWarning')}</p>
-      </div>
-      <div className="acct-field">
-        <label className="acct-field-label">{t('auth.account.deleteConfirmLabel')}</label>
-        <input
-          className="acct-field-input acct-field-input--danger"
-          type="email"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          placeholder={email}
-          autoComplete="off"
-        />
-      </div>
-      <button
-        type="button"
-        className="acct-delete-btn"
-        disabled={!confirmed || deleting}
-        onClick={handleDelete}
-      >
-        {deleting ? <Loader2 size={14} className="acct-spin" /> : null}
-        {t('auth.account.deleteConfirmBtn')}
-      </button>
-      <p className="acct-subpanel-hint acct-subpanel-hint--sm">{t('auth.account.deleteNote')}</p>
-    </div>
-  )
-}
-
 // ─── Main UserModal ───────────────────────────────────────────────────────────
 
 const UserModal = ({ onClose }: { onClose: () => void }) => {
@@ -465,7 +381,29 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
   const initial = displayName[0].toUpperCase()
   const userId: string = user?.id || user?.email || 'guest'
   const profile = useUserProfile(userId)
-  const hasMeta = Boolean(profile.pronouns || profile.location)
+  const copy = useAccountCopy()
+  const saveState = useProfileSaveState(userId)
+  const [profileDirty, setProfileDirty] = useState(false)
+  const modalRef = useRef<HTMLDivElement>(null)
+  const close = () => { if (!profileDirty || window.confirm(copy('unsaved'))) onClose() }
+  const changePanel = (panel: ActivePanel) => { if (!profileDirty || window.confirm(copy('unsaved'))) { setProfileDirty(false); setActivePanel(panel) } }
+  const closeRef = useRef(close)
+  closeRef.current = close
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null
+    modalRef.current?.querySelector<HTMLElement>('button')?.focus()
+    const keydown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeRef.current() }
+      if (event.key !== 'Tab') return
+      const items = Array.from(modalRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input:not(:disabled), textarea:not(:disabled), [tabindex="0"]') ?? []).filter(item => item.getClientRects().length > 0)
+      const first = items[0], last = items[items.length - 1]
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+    }
+    document.addEventListener('keydown', keydown, true)
+    void syncAccountProfile(userId)
+    return () => { document.removeEventListener('keydown', keydown, true); previous?.focus() }
+  }, [userId])
 
   useEffect(() => {
     let cancelled = false
@@ -577,7 +515,9 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
     emailLogin: t('auth.account.panel.emailLogin'),
     security: t('auth.account.panel.security'),
     helpFeedback: t('auth.account.panel.helpFeedback'),
-    deleteAccount: t('auth.account.panel.deleteAccount'),
+    deleteAccount: copy('deleteTitle'),
+    growth: copy('growth'),
+    data: copy('data'),
   }
 
   const exportIcon = () => {
@@ -591,129 +531,54 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
     return t('auth.account.exportData')
   }
 
-  const settingsItems: {
-    key: 'editProfile' | 'emailLogin' | 'security' | 'support' | 'exportData' | 'helpFeedback'
-    icon: React.FC<{ size?: number; className?: string }>
-    onClick: () => void
-    trailingNode?: React.ReactNode
-  }[] = [
-    { key: 'editProfile', icon: User, onClick: () => setActivePanel('editProfile') },
-    { key: 'emailLogin', icon: Mail, onClick: () => setActivePanel('emailLogin') },
-    { key: 'security', icon: Shield, onClick: () => setActivePanel('security') },
-    { key: 'support', icon: Heart, onClick: handleSupport },
-    {
-      key: 'exportData',
-      icon: () => exportIcon(),
-      onClick: handleExport,
-      trailingNode: exportState !== 'idle' ? null : <ChevronRight size={13} className="acct-menu-arrow" />,
-    },
-    { key: 'helpFeedback', icon: HelpCircle, onClick: () => setActivePanel('helpFeedback') },
+  const navigation = [
+    { key: 'editProfile' as const, label: t('auth.account.panel.editProfile'), icon: User },
+    { key: 'emailLogin' as const, label: t('auth.account.panel.emailLogin'), icon: Mail },
+    { key: 'security' as const, label: t('auth.account.panel.security'), icon: Shield },
+    { key: 'data' as const, label: copy('data'), icon: Download },
   ]
+  const finishDeletion = async () => {
+    await clearLocalUserDataBestEffort()
+    try { await getPlatform().clearAuthToken() } finally {
+      clearAuth()
+      try { clearAccountProfile(userId) } catch { /* Continue signing out if browser storage is unavailable. */ }
+      onClose()
+      window.location.href = '/'
+    }
+  }
 
   return createPortal(
-    <div className="user-modal-backdrop" onClick={onClose} role="dialog" aria-modal="true" aria-label={t('auth.userInfo')}>
-      <div className="user-modal user-modal--account-center" onClick={e => e.stopPropagation()}>
-
-        {activePanel ? (
-          /* ── Sub-panel view ── */
-          <>
-            <div className="acct-subpanel-header">
-              <button type="button" className="acct-subpanel-back" onClick={() => setActivePanel(null)}>
-                <ArrowLeft size={15} />
-                {t('auth.account.backBtn')}
-              </button>
-              <h2 className="acct-subpanel-title">{subPanelTitleMap[activePanel]}</h2>
-              <button type="button" className="user-modal__close acct-subpanel-close" onClick={onClose} aria-label="Close">
-                <X size={15} />
-              </button>
-            </div>
-
-            {activePanel === 'editProfile' && (
-              <EditProfilePanel
-                userId={userId}
-                displayName={displayName}
-                email={email}
-                initial={initial}
-              />
-            )}
+    <div className="user-modal-backdrop" onClick={close}>
+      <div ref={modalRef} className={`user-modal user-modal--account-center acct-center-v2${activePanel ? '' : ' acct-center-v2--menu'}`} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="account-dialog-title">
+        <div className="acct-subpanel-header">
+          {activePanel && <button type="button" className="acct-subpanel-back" onClick={() => changePanel(null)}><ArrowLeft size={15} />{t('auth.account.backBtn')}</button>}
+          <h2 id="account-dialog-title" className="acct-subpanel-title">{activePanel ? subPanelTitleMap[activePanel] : displayName}</h2>
+          <button type="button" className="user-modal__close acct-subpanel-close" onClick={close} aria-label={t('common.close')}><X size={15} /></button>
+        </div>
+        {activePanel ? <div className="acct-center-layout">
+          {navigation.some(item => item.key === activePanel) || activePanel === 'deleteAccount' ? <nav className="acct-center-nav" aria-label={copy('settings')}>
+            {navigation.map(({ key, label, icon: Icon }) => <button key={key} type="button" aria-current={activePanel === key ? 'page' : undefined} onClick={() => changePanel(key)}><Icon size={15} />{label}</button>)}
+          </nav> : null}
+          <div className="acct-center-content" key={activePanel}>
+            {activePanel === 'editProfile' && <EditProfilePanel userId={userId} displayName={displayName} email={email} initial={initial} onDirtyChange={setProfileDirty} />}
             {activePanel === 'emailLogin' && <EmailLoginPanel email={email} />}
             {activePanel === 'security' && <SecurityPanel />}
             {activePanel === 'helpFeedback' && <HelpFeedbackPanel />}
-            {activePanel === 'deleteAccount' && (
-              <DeleteAccountPanel email={email} />
-            )}
-          </>
-        ) : (
-          /* ── Main account center ── */
-          <>
-            <button type="button" className="user-modal__close" onClick={onClose} aria-label={t('common.close')}>
-              <X size={15} />
-            </button>
-
-            {/* Section 1: Profile hero (two-column on wide) */}
-            <div className="acct-profile acct-profile--editorial">
-              <button
-                type="button"
-                className="acct-avatar acct-avatar--clickable"
-                onClick={() => setActivePanel('editProfile')}
-                aria-label={t('auth.account.edit.avatarUpload')}
-              >
-                {profile.avatar
-                  ? <img src={profile.avatar} alt="" className="acct-avatar-img" />
-                  : <span>{initial}</span>}
-                <span className="acct-avatar-overlay">
-                  <Camera size={14} />
-                </span>
-              </button>
-              <div className="acct-profile-text">
-                <div className="acct-name">{displayName}</div>
-                {profile.role && <div className="acct-role">{profile.role}</div>}
-                {(email || hasMeta) && (
-                  <div className="acct-meta-row">
-                    {email && <span className="acct-meta-item acct-meta-item--email">{email}</span>}
-                    {profile.pronouns && (
-                      <span className="acct-meta-item">
-                        <Sparkles size={11} />
-                        {profile.pronouns}
-                      </span>
-                    )}
-                    {profile.location && (
-                      <span className="acct-meta-item">
-                        <MapPin size={11} />
-                        {profile.location}
-                      </span>
-                    )}
-                    {profile.birthday && (
-                      <span className="acct-meta-item">
-                        <Cake size={11} />
-                        {profile.birthday.slice(5)}
-                      </span>
-                    )}
-                  </div>
-                )}
-                <div className="acct-plan-row">
-                  <span className="acct-plan-badge acct-plan-badge--free">
-                    {authState?.isSupporter ? <Crown size={11} /> : null}
-                    {authState?.isSupporter ? 'Early supporter' : 'Free for everyone'}
-                  </span>
-                  {stats && stats.streak > 1 && (
-                    <span className="acct-streak-line acct-streak-line--inline">
-                      <Flame size={13} />
-                      {t('auth.account.streakLine', { n: stats.streak })}
-                    </span>
-                  )}
-                </div>
-                {profile.bio && <p className="acct-bio">{profile.bio}</p>}
-              </div>
-            </div>
-
+            {activePanel === 'deleteAccount' && <DeleteAccountPanel email={email} onDeleted={finishDeletion} />}
+            {activePanel === 'data' && <div className="acct-subpanel-body">
+              <p className="acct-subpanel-hint">{copy('dataHint')}</p>
+              <button type="button" className="acct-help-btn" onClick={handleExport} disabled={exportState === 'exporting'}>{exportIcon()}{exportLabel()}</button>
+              <hr />
+              <button type="button" className="acct-footer-btn acct-footer-btn--danger" onClick={() => changePanel('deleteAccount')}>{copy('deleteTitle')}<ChevronRight size={14} /></button>
+            </div>}
+            {activePanel === 'growth' && <>
             {/* Section 2: Weekly Progress */}
             <div className="acct-section">
-              <h3 className="acct-section-title">{t('auth.account.section.progress')}</h3>
+              <h3 className="acct-section-title">{copy('recentDays')}</h3>
               <div className="acct-stats-grid">
                 <div className="acct-stat">
                   <div className="acct-stat-value">{stats != null ? `${stats.weeklyFocusHours}h` : '—'}</div>
-                  <div className="acct-stat-label"><Timer size={11} />{t('auth.account.weeklyFocus')}</div>
+                  <div className="acct-stat-label"><Timer size={11} />{copy('focusHours')}</div>
                 </div>
                 <div className="acct-stat">
                   <div className="acct-stat-value">{stats?.weeklyTasks ?? '—'}</div>
@@ -725,7 +590,7 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
                 </div>
                 <div className="acct-stat">
                   <div className="acct-stat-value">{stats?.notesCount ?? '—'}</div>
-                  <div className="acct-stat-label"><FileText size={11} />{t('auth.account.notesOut')}</div>
+                  <div className="acct-stat-label"><FileText size={11} />{copy('totalNotes')}</div>
                 </div>
               </div>
               {stats && (
@@ -746,7 +611,7 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
               <h3 className="acct-section-title">{t('auth.account.section.achievements')}</h3>
               {recentBadge && (
                 <div className="acct-recent-badge">
-                  <span className="acct-recent-label">{t('auth.account.recentBadge')}</span>
+                  <span className="acct-recent-label">{copy('earned')}</span>
                   <span className="acct-recent-name">{recentBadge.label}</span>
                 </div>
               )}
@@ -765,46 +630,30 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
               </button>
             </div>
 
-            {/* Section 4: Account & Settings */}
-            <div className="acct-section">
-              <h3 className="acct-section-title">{t('auth.account.section.settings')}</h3>
-              <ul className="acct-menu">
-                {settingsItems.map(({ key, icon: Icon, onClick, trailingNode }) => (
-                  <li key={key} className="acct-menu-item" onClick={onClick} role="button" tabIndex={0}
-                    onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onClick()}>
-                    <span className="acct-menu-icon"><Icon size={14} /></span>
-                    <span className="acct-menu-label">
-                      {key === 'exportData' ? exportLabel() : t(`auth.account.${key}`)}
-                    </span>
-                    {trailingNode !== undefined
-                      ? trailingNode
-                      : <ChevronRight size={13} className="acct-menu-arrow" />}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Section 5: Footer */}
-            <div className="acct-section acct-section--footer">
-              <div className="acct-footer-actions">
-                <button type="button" className="acct-footer-btn" onClick={handleSwitchAccount} disabled={accountAction !== null}>
-                  {accountAction === 'switch' ? '…' : t('auth.account.switchAccount')}
-                </button>
-                <button type="button" className="acct-footer-btn acct-footer-btn--logout" onClick={handleLogout} disabled={accountAction !== null}>
-                  <LogOut size={13} />
-                  {accountAction === 'logout' ? '…' : t('auth.signOut')}
-                </button>
-                <button type="button" className="acct-footer-btn acct-footer-btn--danger"
-                  onClick={() => setActivePanel('deleteAccount')}>
-                  {t('auth.account.deleteAccount')}
-                </button>
-              </div>
-            </div>
-          </>
-        )}
+            </>}
+          </div>
+        </div> : <>
+          <div className="acct-menu-profile">
+            <button type="button" className="acct-avatar acct-avatar--clickable" onClick={() => changePanel('editProfile')} aria-label={t('auth.account.panel.editProfile')}>
+              {profile.avatar ? <img src={profile.avatar} alt="" className="acct-avatar-img" /> : <span>{initial}</span>}
+            </button>
+            <div><p>{email}</p><span className="acct-plan-badge">{authState?.isSupporter ? <><Crown size={11} /> Early supporter</> : 'Free for everyone'}</span></div>
+          </div>
+          <p className="acct-menu-sync" role="status">{copy(saveState)}</p>
+          <div className="acct-quick-menu">
+            <button type="button" onClick={() => changePanel('editProfile')}><User size={16} />{copy('settings')}<ChevronRight size={14} /></button>
+            <button type="button" onClick={() => changePanel('growth')}><Flame size={16} />{copy('growth')}<ChevronRight size={14} /></button>
+            <button type="button" onClick={() => { navigate(ROUTES.SETTINGS); onClose() }}><Settings size={16} />{copy('preferences')}<ChevronRight size={14} /></button>
+            <button type="button" onClick={handleSupport}><Heart size={16} />{t('auth.account.support')}<ChevronRight size={14} /></button>
+            <button type="button" onClick={() => changePanel('helpFeedback')}><HelpCircle size={16} />{t('auth.account.helpFeedback')}<ChevronRight size={14} /></button>
+          </div>
+          <div className="acct-section acct-section--footer"><div className="acct-footer-actions">
+            <button type="button" className="acct-footer-btn" onClick={handleSwitchAccount} disabled={accountAction !== null}>{accountAction === 'switch' ? '…' : t('auth.account.switchAccount')}</button>
+            <button type="button" className="acct-footer-btn acct-footer-btn--logout" onClick={handleLogout} disabled={accountAction !== null}><LogOut size={13} />{accountAction === 'logout' ? '…' : t('auth.signOut')}</button>
+          </div></div>
+        </>}
       </div>
-    </div>,
-    document.body,
+    </div>, document.body,
   )
 }
 
@@ -843,6 +692,9 @@ const SidebarUserPanel = ({ collapsed }: SidebarUserPanelProps) => {
   const [showUserModal, setShowUserModal] = useState(false)
   const { t } = useI18n()
   const isLoggedIn = useIsLoggedIn()
+  const authSnapshot = useSyncExternalStore(subscribeAuth, () => JSON.stringify(getAuth()?.user ?? null), () => 'null')
+  const accountId = (JSON.parse(authSnapshot) as { id?: string } | null)?.id
+  useEffect(() => accountId ? startAccountProfileSync(accountId) : undefined, [accountId])
 
   if (isLoggedIn) {
     const authState = getAuth()
@@ -861,6 +713,7 @@ const SidebarUserPanel = ({ collapsed }: SidebarUserPanelProps) => {
           userId={userId}
           onClick={() => setShowUserModal(true)}
         />
+        <PolicyNotice key={userId} userId={userId} />
         {showUserModal && <UserModal onClose={() => setShowUserModal(false)} />}
       </>
     )
