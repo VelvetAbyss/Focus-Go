@@ -27,6 +27,7 @@ import {
   DEFAULT_DASHBOARD_THEME_OVERRIDE,
 } from '../../data/defaultDashboardLayout'
 import { usePremiumGate } from '../premium/PremiumProvider'
+import { useLabs } from '../labs/LabsContext'
 import LifeDashboard from '../life/LifeDashboard'
 import { initialDashboardPage, rememberManualPage } from './autoPage'
 import NewsDashboard from '../news/NewsDashboard'
@@ -38,6 +39,9 @@ import { DASHBOARD_CARD_DISCOVERY_TARGET_BY_ID } from '../../shared/discovery/ne
 
 const DashboardPage = () => {
   const { t, language } = useI18n()
+  const { ready: labsReady, catalog: labsCatalog } = useLabs()
+  const [symbolicError, setSymbolicError] = useState('')
+  const symbolicAdding = useRef(false)
   const { t: lifeT } = useLifeI18n()
   const zh = language === 'zh'
   const { canUse, openUpgradeModal } = usePremiumGate()
@@ -318,6 +322,18 @@ const DashboardPage = () => {
     })
   }, [cards])
 
+  useEffect(() => {
+    const id = searchParams.get('symbolicWidget')
+    if (!id || !['bazi','astrology','tarot'].includes(id) || !layoutLoaded || !labsReady || symbolicAdding.current) return
+    if (!labsCatalog.some(item => item.featureKey === id && item.state === 'installed')) return
+    symbolicAdding.current = true
+    const next = appendCardToEnd(id, layout)
+    void persistLayout(next, hiddenCardIds.filter(key => key !== id)).then(() => {
+      setPage('main')
+      setSearchParams(prev => { const params = new URLSearchParams(prev); params.delete('symbolicWidget'); return params }, { replace: true })
+    }).catch(() => { setSymbolicError(zh ? '组件布局未能保存，请刷新后重试。' : 'Widget layout could not be saved. Refresh and retry.') })
+  }, [searchParams, layoutLoaded, labsReady, labsCatalog, layout, hiddenCardIds, appendCardToEnd, persistLayout, setSearchParams, zh])
+
   const requestHideCard = useCallback(
     (cardId: string) => {
       if (layout.length <= 1) return
@@ -403,17 +419,18 @@ const DashboardPage = () => {
         {/* News page */}
         {page === 'news' && <NewsDashboard />}
 
+        {symbolicError && <p role="alert">{symbolicError}</p>}
         {/* Main dashboard */}
         {page === 'main' && layoutEdit && widgetsPanelOpen && (
           <section className="dashboard-widgets" aria-label={t('dashboard.manageVisibility')}>
-            {cards.map((card) => {
+            {cards.filter(card => !card.featureKey || layout.some(item => item.key === card.id) || labsCatalog.some(item => item.featureKey === card.featureKey && item.state === 'installed')).map((card) => {
               const visible = layout.some((item) => item.key === card.id)
               const disableHide = visible && layout.length <= 1
               const switchId = `widget-toggle-${card.id}`
               return (
                 <div key={card.id} className="dashboard-widgets__row">
                   <Label htmlFor={switchId} className="dashboard-widgets__title">
-                    {card.title}
+                    {zh ? ({bazi:'八字 · 今日',astrology:'星座 · 今日',tarot:'塔罗 · 每日一张'} as Record<string,string>)[card.id] || card.title : card.title}
                   </Label>
                   <Switch
                     id={switchId}

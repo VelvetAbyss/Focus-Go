@@ -11,6 +11,7 @@ import { getDashboardCards, getLifeCards } from './registry'
 import { useDashboardGridEdit } from './useDashboardGridEdit'
 import { appendViewWidget, uniqueViewName, viewNameError, type CustomView } from './customViews'
 import './custom-views.css'
+import { useLabs } from '../labs/LabsContext'
 
 type Props = {
   view: CustomView
@@ -23,10 +24,12 @@ type Props = {
   onDirtyChange: (dirty: boolean) => void
 }
 
-const zhTitles: Record<string, string> = { 'task-progress-summary': '本周成果', tasks: '任务', spend: '支出', weather: '天气', 'widget-todos': '待办列表', world_clock: '世界时钟', stocks: '股票' }
+const zhTitles: Record<string, string> = { bazi:'八字 · 今日', astrology:'星座 · 今日', tarot:'塔罗 · 每日一张', 'task-progress-summary': '本周成果', tasks: '任务', spend: '支出', weather: '天气', 'widget-todos': '待办列表', world_clock: '世界时钟', stocks: '股票' }
 
 export default function CustomDashboard({ view, views, isNew, onSave, onDelete, onCopy, onCancel, onDirtyChange }: Props) {
   const { language } = useI18n()
+  const { catalog } = useLabs()
+  const available = (card: ReturnType<typeof getDashboardCards>[number]) => !card.featureKey || catalog.some(item => item.featureKey === card.featureKey && item.state === 'installed')
   const { t: lifeT } = useLifeI18n()
   const zh = language === 'zh'
   const text = (cn: string, en: string) => zh ? cn : en
@@ -104,12 +107,12 @@ export default function CustomDashboard({ view, views, isNew, onSave, onDelete, 
         <Input type="search" aria-label={text('搜索组件', 'Search widgets')} placeholder={text('搜索组件…', 'Search widgets…')} value={query} onChange={e => setQuery(e.target.value)} />
         {(['main', 'life'] as const).map(scope => <div key={scope}>
           <h4>{scope === 'main' ? 'Focus' : 'Life'}</h4>
-          {cards.filter(card => card.pageScope === scope && title(card.id).toLocaleLowerCase().includes(query.toLocaleLowerCase())).map(card => {
+          {cards.filter(card => available(card) && card.pageScope === scope && title(card.id).toLocaleLowerCase().includes(query.toLocaleLowerCase())).map(card => {
             const added = draft.items.some(item => item.key === card.id)
             return <button type="button" key={card.id} className="custom-view__widget-option" aria-label={text(`${added ? '移除' : '添加'} ${title(card.id)}`, `${added ? 'Remove' : 'Add'} ${title(card.id)}`)} aria-pressed={added} onClick={() => toggle(card.id)}><span>{title(card.id)}</span>{added ? <X size={14} /> : <Plus size={14} />}<span className="sr-only">{added ? text('移除', 'Remove') : text('添加', 'Add')}</span></button>
           })}
         </div>)}
-        {!cards.some(card => title(card.id).toLocaleLowerCase().includes(query.toLocaleLowerCase())) && <p>{text('没有匹配的组件', 'No matching widgets')}</p>}
+        {!cards.some(card => available(card) && title(card.id).toLocaleLowerCase().includes(query.toLocaleLowerCase())) && <p>{text('没有匹配的组件', 'No matching widgets')}</p>}
       </div>
       <div className="custom-view__arrange">
         <h3>{text('组件布局', 'Widget layout')}</h3>

@@ -1,0 +1,5 @@
+.astro-sign-intro{max-width:620px;padding:12px 0 0}.astro-sign-intro h2{font:500 27px/1.4 var(--font-reading);margin:0 0 15px}.astro-sign-intro p{color:var(--text-secondary);font-size:14px;line-height:1.9}
+.astro-sign-portrait .symbolic-eyebrow{display:block;margin:0 0 9px}.astro-sign-grid span:first-child,.astro-sign-portrait>span{font-variant-emoji:text}
+.astro-data-details{border-bottom:1px solid var(--symbolic-rule);padding:22px 0;font-size:13px;color:var(--text-secondary)}
+.astro-data-details>.symbolic-table-wrap{margin-top:18px}.astro-data-details .astro-aspect-list{padding-block:16px}
+.astro-source-tabs button:focus-visible,.astro-sign-grid button:focus-visible{outline:2px solid var(--symbolic-accent);outline-offset:3px}

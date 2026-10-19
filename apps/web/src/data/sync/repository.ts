@@ -1,4 +1,5 @@
 import Dexie from 'dexie'
+import { getAuth } from '../../store/auth'
 import { suppressSyncCapture } from './capture'
 import { persistPendingSyncChange } from './pendingChanges'
 import { LOCAL_ACCOUNT_OWNER_KEY } from '../../config/accountOwnership'
@@ -126,8 +127,12 @@ export const restampLocalSnapshotForRestore = async () => {
 }
 
 export const clearLocalUserData = async () => {
+  const authOwner = getAuth()?.user?.id
+  const symbolicOwner = typeof authOwner === 'string' && authOwner ? authOwner : null
+  // The account menu closes this connection through requestCrossTabDbReset first.
+  if (!db.isOpen()) await db.open()
   const entityTableObjects = Object.values(SYNC_ENTITY_TABLES).map((name) => db.table(name))
-  await db.transaction('rw', [...entityTableObjects, db.syncState, db.syncBlobCache, db.taskTrash, db.pendingSyncChanges], async () => {
+  await db.transaction('rw', [...entityTableObjects, db.syncState, db.syncBlobCache, db.taskTrash, db.pendingSyncChanges, db.localSymbolic], async () => {
     suppressSyncCapture()
     for (const tableName of Object.values(SYNC_ENTITY_TABLES)) {
       await db.table(tableName).clear()
@@ -137,7 +142,12 @@ export const clearLocalUserData = async () => {
     await db.pendingSyncChanges.clear()
     // Deleted tasks belong to the account too.
     await db.taskTrash.clear()
+    if (symbolicOwner) await db.localSymbolic.where('ownerId').equals(symbolicOwner).delete()
   })
+  if (symbolicOwner) {
+    const { clearAstrologySelection } = await import('../../features/astrology/useAstrologySelection')
+    clearAstrologySelection(symbolicOwner)
+  }
   const { resetRxdbSyncDatabase } = await import('./rxdb')
   await resetRxdbSyncDatabase()
   localStorage.removeItem(LOCAL_ACCOUNT_OWNER_KEY)

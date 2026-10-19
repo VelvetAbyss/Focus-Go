@@ -4,6 +4,9 @@ import { playInterfaceSound } from '../../shared/sound/interactionSounds'
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import {
   Bot,
+  Columns3,
+  Orbit,
+  Layers,
   Beaker,
   CalendarDays,
   Crown,
@@ -140,6 +143,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
   const [dragNavReady, setDragNavReady] = useState(false)
 
   const FEATURE_ICONS: Record<FeatureKey, LucideIcon> = {
+    bazi: Columns3, astrology: Orbit, tarot: Layers,
     'habit-tracker': Flame,
     'ai-digest': Sparkles,
     automation: Bot,
@@ -147,6 +151,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
   }
 
   const FEATURE_ROUTES: Record<FeatureKey, string> = {
+    bazi: ROUTES.BAZI, astrology: ROUTES.ASTROLOGY, tarot: ROUTES.TAROT,
     'habit-tracker': ROUTES.HABITS,
     'ai-digest': ROUTES.LABS,
     automation: ROUTES.LABS,

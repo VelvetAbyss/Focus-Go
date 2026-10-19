@@ -7,6 +7,7 @@ import { backfillRegion } from '../middleware/region.js'
 import { isAdminIdentity } from '../middleware/admin.js'
 import { SYNC_TABLES } from '../sync/config.js'
 import { getCloudStorageUsage } from '../sync/store.js'
+import { resetSymbolic } from '../symbolic/store.js'
 import { DEFAULT_CLOUD_SYNC_QUOTA_BYTES } from './sync.js'
 
 export const createUserRouter = ({ database = db, authMiddleware = requireAuth } = {}) => {
@@ -171,6 +172,7 @@ export const createUserRouter = ({ database = db, authMiddleware = requireAuth }
       let rowsDeleted = 0
 
       db.transaction(() => {
+        rowsDeleted += resetSymbolic(db, userId)
         for (const tableName of Object.values(SYNC_TABLES)) {
           try {
             const result = db.prepare(`DELETE FROM ${tableName} WHERE user_id = ?`).run(userId)

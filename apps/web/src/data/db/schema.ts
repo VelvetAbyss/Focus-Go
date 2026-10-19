@@ -1,7 +1,8 @@
 export const DB_NAME = 'workbench-app'
-export const DB_VERSION = 47
+export const DB_VERSION = 48
 
 export const TABLES = {
+  localSymbolic: 'local_symbolic',
   tasks: 'tasks',
   notes: 'notes',
   noteTags: 'note_tags',
@@ -272,4 +273,10 @@ export const schemaV46 = {
 export const schemaV47 = {
   ...schemaV46,
   [TABLES.pendingSyncChanges]: '++id, [entityType+entityId]',
+} as const
+
+// Dedicated account-scoped Labs records; separate from generic replication.
+export const schemaV48 = {
+  ...schemaV47,
+  [TABLES.localSymbolic]: '[ownerId+id], ownerId, kind, updatedAt, [ownerId+kind]',
 } as const

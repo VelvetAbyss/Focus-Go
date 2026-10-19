@@ -1,6 +1,11 @@
 import { Suspense, lazy } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
+import type { FeatureKey } from '../../data/models/types'
 import type { LifeTranslate } from '../life/lifeI18n'
+
+const BaziWidget = lazy(() => import('../bazi/BaziWidget'))
+const AstrologyWidget = lazy(() => import('../astrology/AstrologyWidget'))
+const TarotWidget = lazy(() => import('../tarot/TarotWidget'))
 
 // Main page cards — lazy so each becomes its own chunk and hidden cards don't parse at all
 const TasksBoard = lazy(() => import('../tasks/TasksBoard'))
@@ -43,11 +48,15 @@ export type DashboardCard = {
   title: string
   defaultSize: { w: number; h: number }
   defaultVisible?: boolean
+  featureKey?: FeatureKey
   pageScope?: 'main' | 'life'
   render: () => ReactNode
 }
 
 export const getDashboardCards = (): DashboardCard[] => [
+  { id:'bazi', title:'BaZi · Today', defaultSize:{w:4,h:4}, defaultVisible:false, pageScope:'main', featureKey:'bazi', render:()=>renderLazyCard(<BaziWidget/>) },
+  { id:'astrology', title:'Astrology · Today', defaultSize:{w:4,h:4}, defaultVisible:false, pageScope:'main', featureKey:'astrology', render:()=>renderLazyCard(<AstrologyWidget/>) },
+  { id:'tarot', title:'Tarot · Daily card', defaultSize:{w:4,h:4}, defaultVisible:false, pageScope:'main', featureKey:'tarot', render:()=>renderLazyCard(<TarotWidget/>) },
   {
     id: 'task-progress-summary',
     title: 'Progress Summary',

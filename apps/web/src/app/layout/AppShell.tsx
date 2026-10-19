@@ -102,7 +102,7 @@ const AppShell = ({ children }: AppShellProps) => {
   const isFocusRoute = location.pathname === ROUTES.FOCUS
   const isTasksRoute = location.pathname === ROUTES.TASKS
   const isTripsRoute = location.pathname === ROUTES.TRIPS || location.pathname.startsWith('/trips/')
-  const isFullBleedRoute = isNoteRoute || isTimelineRoute || isDiaryRoute || isCalendarRoute || isFocusRoute || isTasksRoute || isTripsRoute
+  const isFullBleedRoute = [ROUTES.BAZI, ROUTES.ASTROLOGY, ROUTES.TAROT].some(route => location.pathname === route) || isNoteRoute || isTimelineRoute || isDiaryRoute || isCalendarRoute || isFocusRoute || isTasksRoute || isTripsRoute
 
   useEffect(() => {
     if (compactViewport) return

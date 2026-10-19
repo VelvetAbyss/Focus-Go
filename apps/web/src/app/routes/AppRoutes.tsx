@@ -1,8 +1,21 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, type ReactNode } from 'react'
+import { useLabs } from '../../features/labs/LabsContext'
+import type { SymbolicModule } from '../../features/symbolic/types'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { LEGACY_ROUTES, ROUTES } from './routes'
 import BrandLoader from '../../shared/ui/loading/BrandLoader'
 import ErrorBoundary from '../../shared/ui/ErrorBoundary'
+
+const BaziPage = lazy(() => import('../../features/bazi/BaziPage'))
+const AstrologyPage = lazy(() => import('../../features/astrology/AstrologyPage'))
+const TarotPage = lazy(() => import('../../features/tarot/TarotPage'))
+
+function InstalledSymbolicRoute({ feature, children }: { feature: SymbolicModule; children: ReactNode }) {
+  const { ready, catalog } = useLabs()
+  if (!ready) return <RouteFallback />
+  if (!catalog.some(item => item.featureKey === feature && item.state === 'installed')) return <Navigate to={ROUTES.LABS} replace />
+  return <Suspense fallback={<RouteFallback />}>{children}</Suspense>
+}
 
 const NotFoundPage = lazy(() => import('./NotFoundPage'))
 const DashboardRoute = lazy(() => import('./DashboardRoute'))
@@ -47,6 +60,9 @@ const AppRoutes = () => {
         <Route path={ROUTES.REVIEW} element={<Navigate to={ROUTES.DIARY} replace />} />
         <Route path={ROUTES.DIARY} element={<Suspense fallback={<RouteFallback />}><DiaryPage /></Suspense>} />
         <Route path={`${ROUTES.SETTINGS}/*`} element={<Suspense fallback={<RouteFallback />}><SettingsRoute /></Suspense>} />
+        <Route path={ROUTES.BAZI} element={<InstalledSymbolicRoute feature="bazi"><BaziPage /></InstalledSymbolicRoute>} />
+        <Route path={ROUTES.ASTROLOGY} element={<InstalledSymbolicRoute feature="astrology"><AstrologyPage /></InstalledSymbolicRoute>} />
+        <Route path={ROUTES.TAROT} element={<InstalledSymbolicRoute feature="tarot"><TarotPage /></InstalledSymbolicRoute>} />
         <Route path={ROUTES.LABS} element={<Suspense fallback={<RouteFallback />}><LabsPage /></Suspense>} />
         <Route path={ROUTES.SUPPORT} element={<Suspense fallback={<RouteFallback />}><SupportPage /></Suspense>} />
         <Route path={ROUTES.MEMBERSHIP} element={<Navigate to={ROUTES.DASHBOARD} replace />} />

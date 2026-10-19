@@ -1,0 +1,626 @@
+{
+  "major-0": {
+    "upright": "New beginnings, spontaneity, innocence, leap of faith, free spirit.",
+    "reversed": "Recklessness, hesitation, naivety, poor judgment, fear of change.",
+    "career": "new career path, taking a professional risk, entrepreneurial leap, learning through experience",
+    "careerReversed": "reckless decisions, poor planning, fear of starting, missed timing",
+    "love": "new romance, emotional openness, spontaneous connection, taking a chance on love",
+    "loveReversed": "reckless romance, fear of commitment, naive expectations, leaping without looking"
+  },
+  "major-1": {
+    "upright": "Manifestation, willpower, resourcefulness, skill, focused action.",
+    "reversed": "Manipulation, untapped talent, scattered energy, trickery, illusion.",
+    "career": "skillful execution, using available resources, career initiative, turning ideas into results",
+    "careerReversed": "wasted talent, scattered focus, misused skills, unrealized plans",
+    "love": "strong attraction, romantic initiative, clear intentions, creating the relationship you desire",
+    "loveReversed": "manipulation, mixed signals, unfulfilled potential, deception in romance"
+  },
+  "major-2": {
+    "upright": "Intuition, inner wisdom, mystery, the subconscious, stillness.",
+    "reversed": "Ignored intuition, secrets, disconnection from self, hidden agendas, surface knowledge.",
+    "career": "trusting professional intuition, working behind the scenes, confidential matters, patient observation",
+    "careerReversed": "overlooked information, surface knowledge, hidden agendas, ignored instincts",
+    "love": "unspoken feelings, emotional intuition, hidden attraction, a private or mysterious connection",
+    "loveReversed": "ignored intuition, hidden feelings, secrecy, emotional disconnection"
+  },
+  "major-3": {
+    "upright": "Abundance, nurturing, fertility, creativity, sensuality.",
+    "reversed": "Creative block, smothering, self-neglect, dependence, stagnation.",
+    "career": "creative growth, supportive workplace, productive abundance, nurturing a project",
+    "careerReversed": "creative block, stagnation, lack of support, unproductive effort",
+    "love": "nurturing love, affection, sensuality, emotional abundance",
+    "loveReversed": "smothering, neglect, dependence, blocked affection"
+  },
+  "major-4": {
+    "upright": "Structure, authority, stability, leadership, discipline.",
+    "reversed": "Rigidity, control issues, domination, lack of discipline, abuse of power.",
+    "career": "leadership, structure, authority, long-term career stability",
+    "careerReversed": "abuse of power, inflexibility, lack of discipline, unstable authority",
+    "love": "commitment, stability, protection, a structured relationship",
+    "loveReversed": "control issues, rigidity, domination, emotional coldness"
+  },
+  "major-5": {
+    "upright": "Tradition, guidance, shared values, institutions, mentorship.",
+    "reversed": "Rebellion, questioning convention, restriction, dogma, breaking rules.",
+    "career": "established institutions, mentorship, formal training, conventional career path",
+    "careerReversed": "rebellion against structure, rejecting convention, restrictive institution, dogmatic workplace",
+    "love": "traditional commitment, shared values, marriage, spiritual partnership",
+    "loveReversed": "unconventional bond, mismatched values, questioning commitment, breaking tradition"
+  },
+  "major-6": {
+    "upright": "Love, union, alignment, meaningful choice, harmony.",
+    "reversed": "Disharmony, misalignment, avoidance of choice, temptation, imbalance.",
+    "career": "aligned career choice, productive partnership, values-based decision, important professional commitment",
+    "careerReversed": "misaligned decision, conflicting priorities, broken partnership, poor commitment",
+    "love": "deep connection, mutual attraction, relationship choices, emotional alignment",
+    "loveReversed": "disharmony, misalignment, avoided choices, values clash"
+  },
+  "major-7": {
+    "upright": "Determination, victory, willpower, self-control, momentum.",
+    "reversed": "Lack of direction, aggression, obstacles, scattered forces, loss of control.",
+    "career": "ambition, focused progress, overcoming competition, taking control of your career",
+    "careerReversed": "scattered forces, stalled ambition, loss of control, aggressive competition",
+    "love": "pursuing love, relationship progress, shared direction, overcoming romantic obstacles",
+    "loveReversed": "loss of direction, opposing goals, romantic obstacles, lack of control"
+  },
+  "major-8": {
+    "upright": "Courage, inner strength, patience, compassion, gentle power.",
+    "reversed": "Self-doubt, raw emotion, impatience, insecurity, forcing.",
+    "career": "quiet leadership, professional confidence, patience under pressure, managing challenges with composure",
+    "careerReversed": "low confidence, impatience, pressure mishandled, self-doubt",
+    "love": "patience in love, gentle devotion, emotional courage, compassionate support",
+    "loveReversed": "self-doubt, impatience, emotional insecurity, forcing connection"
+  },
+  "major-9": {
+    "upright": "Introspection, solitude, inner guidance, wisdom, searching.",
+    "reversed": "Isolation, loneliness, withdrawal, lost direction, avoidance.",
+    "career": "independent work, career reflection, specialist expertise, seeking meaningful direction",
+    "careerReversed": "isolation at work, lost direction, avoidance, excessive solitude",
+    "love": "time alone, romantic introspection, emotional distance, understanding personal needs",
+    "loveReversed": "isolation, emotional withdrawal, loneliness, avoiding connection"
+  },
+  "major-10": {
+    "upright": "Change, cycles, destiny, turning point, luck.",
+    "reversed": "Resistance to change, bad luck, repeating cycles, setbacks, clinging.",
+    "career": "changing opportunities, career turning point, unexpected progress, adapting to professional cycles",
+    "careerReversed": "setbacks, missed opportunities, bad luck, clinging to the past",
+    "love": "change in love, unexpected encounter, relationship turning point, repeating romantic cycles",
+    "loveReversed": "repeating patterns, bad timing, romantic setbacks, resistance to change"
+  },
+  "major-11": {
+    "upright": "Fairness, truth, accountability, cause and effect, clarity.",
+    "reversed": "Unfairness, dishonesty, avoiding accountability, bias, imbalance.",
+    "career": "fair evaluation, contracts and legal matters, accountable decisions, merit-based outcome",
+    "careerReversed": "unfair outcome, dishonest dealings, avoided responsibility, bias",
+    "love": "honesty, relationship balance, accountability, fair decisions in love",
+    "loveReversed": "dishonesty, imbalance, avoided accountability, unfairness"
+  },
+  "major-12": {
+    "upright": "Surrender, new perspective, pause, letting go, suspension.",
+    "reversed": "Stalling, resistance, martyrdom, indecision, wasted sacrifice.",
+    "career": "career pause, delayed progress, new perspective, reconsidering professional priorities",
+    "careerReversed": "stalled progress, resistance to change, wasted delay, indecision",
+    "love": "romantic pause, changing perspective, emotional surrender, waiting for clarity",
+    "loveReversed": "stalling, resistance, needless sacrifice, indecision"
+  },
+  "major-13": {
+    "upright": "Endings, transformation, transition, release, renewal.",
+    "reversed": "Resistance to endings, stagnation, fear of change, holding on, incomplete closure.",
+    "career": "career transition, ending an outdated role, professional reinvention, making space for change",
+    "careerReversed": "clinging to an outdated role, fear of change, stagnation, delayed transition",
+    "love": "relationship transformation, ending a romantic chapter, emotional release, a new beginning after change",
+    "loveReversed": "resisting an ending, holding on, stagnation, incomplete closure"
+  },
+  "major-14": {
+    "upright": "Balance, moderation, patience, blending, healing.",
+    "reversed": "Excess, imbalance, impatience, friction, overcorrection.",
+    "career": "work-life balance, collaborative teamwork, steady progress, integrating different skills",
+    "careerReversed": "overwork, imbalance, friction, poor integration",
+    "love": "emotional harmony, patient love, healthy compromise, gradual relationship growth",
+    "loveReversed": "imbalance, impatience, friction, mismatched pace"
+  },
+  "major-15": {
+    "upright": "Attachment, temptation, unhealthy patterns, materialism, feeling trapped.",
+    "reversed": "Breaking free, reclaiming power, awareness, release, recovery.",
+    "career": "unhealthy attachment to work, material ambition, restrictive job, workplace power dynamics",
+    "careerReversed": "leaving a restrictive job, breaking unhealthy patterns, reclaiming freedom, recovery",
+    "love": "intense attraction, unhealthy attachment, temptation, controlling relationship patterns",
+    "loveReversed": "breaking free, releasing attachment, reclaiming power, healthier bonds"
+  },
+  "major-16": {
+    "upright": "Sudden upheaval, revelation, collapse of the false, disruption, awakening.",
+    "reversed": "Averted disaster, fear of change, delayed collapse, resisting the inevitable, internal upheaval.",
+    "career": "sudden career disruption, organizational upheaval, job loss or major change, rebuilding professionally",
+    "careerReversed": "averted disruption, delayed collapse, resisting the inevitable, internal upheaval",
+    "love": "sudden breakup, shocking revelation, relationship upheaval, rebuilding after conflict",
+    "loveReversed": "averted breakup, delayed reckoning, resisting change, gradual upheaval"
+  },
+  "major-17": {
+    "upright": "Hope, renewal, healing, inspiration, faith.",
+    "reversed": "Discouragement, lost faith, disconnection, self-doubt, dimmed hope.",
+    "career": "renewed career hope, inspired work, visibility for your talents, promising long-term direction",
+    "careerReversed": "lost inspiration, self-doubt, discouragement, dimmed direction",
+    "love": "hope in love, emotional healing, renewed trust, an inspiring connection",
+    "loveReversed": "lost faith, discouragement, disconnection, dimmed hope"
+  },
+  "major-18": {
+    "upright": "Illusion, intuition, uncertainty, the subconscious, dreams.",
+    "reversed": "Clarity emerging, released fear, truth surfacing, confusion lifting, self-deception ending.",
+    "career": "career uncertainty, unclear workplace dynamics, hidden information, cautious professional intuition",
+    "careerReversed": "clarity returning, hidden information revealed, confusion lifting, released doubt",
+    "love": "romantic uncertainty, hidden emotions, mixed signals, trusting emotional intuition",
+    "loveReversed": "clarity emerging, truth surfacing, released fear, confusion lifting"
+  },
+  "major-19": {
+    "upright": "Joy, success, vitality, clarity, confidence.",
+    "reversed": "Dimmed joy, temporary setbacks, pessimism, burnout, delayed success.",
+    "career": "career success, recognition, professional confidence, rewarding collaboration",
+    "careerReversed": "delayed success, dimmed recognition, burnout, temporary setbacks",
+    "love": "happiness in love, mutual warmth, joyful partnership, openness and affection",
+    "loveReversed": "dimmed joy, temporary distance, guarded warmth, delayed happiness"
+  },
+  "major-20": {
+    "upright": "Awakening, reckoning, renewal, calling, self-evaluation.",
+    "reversed": "Self-criticism, ignoring the call, stuck in the past, harsh judgment, avoidance.",
+    "career": "career calling, performance review, second chance, decisive professional awakening",
+    "careerReversed": "ignoring the calling, harsh self-judgment, stuck in the past, avoided decision",
+    "love": "relationship renewal, reconciliation, emotional awakening, an important romantic decision",
+    "loveReversed": "avoided reckoning, stuck in the past, self-criticism, missed reconciliation"
+  },
+  "major-21": {
+    "upright": "Completion, fulfillment, wholeness, achievement, integration.",
+    "reversed": "Incompletion, loose ends, delayed closure, shortcuts, unfinished business.",
+    "career": "career achievement, project completion, professional mastery, international opportunities",
+    "careerReversed": "unfinished business, delayed completion, shortcuts, loose ends",
+    "love": "lasting fulfillment, relationship completion, mature partnership, reaching a shared milestone",
+    "loveReversed": "incompletion, loose ends, delayed commitment, unfinished chapter"
+  },
+  "wands-1": {
+    "upright": "Inspiration, new opportunity, creative spark, enthusiasm, potential.",
+    "reversed": "Delays, false start, lack of motivation, blocked creativity, hesitation.",
+    "career": "creative spark, new business venture, inspired career beginning, taking initiative",
+    "careerReversed": "delays, lack of motivation, blocked creativity, false start",
+    "love": "passionate beginning, strong chemistry, romantic excitement, renewed desire",
+    "loveReversed": "false start, lost spark, hesitation, blocked passion"
+  },
+  "wands-2": {
+    "upright": "Planning, future vision, decision, expansion, the world in hand.",
+    "reversed": "Fear of the unknown, playing it safe, poor planning, restlessness, indecision.",
+    "career": "career planning, future expansion, choosing between opportunities, ambitious professional vision",
+    "careerReversed": "poor planning, fear of risk, indecision, limited vision",
+    "love": "planning a romantic future, considering relationship options, shared ambitions, deciding what comes next",
+    "loveReversed": "fear of the unknown, playing it safe, indecision, restlessness"
+  },
+  "wands-3": {
+    "upright": "Progress, expansion, foresight, ships coming in, momentum.",
+    "reversed": "Delays, obstacles to plans, limited vision, setbacks, impatience.",
+    "career": "business expansion, international work, long-term growth, waiting for results",
+    "careerReversed": "obstacles to plans, delays, limited vision, setbacks",
+    "love": "relationship expansion, waiting for love to develop, long-distance connection, looking toward the future together",
+    "loveReversed": "delays, limited vision, romantic setbacks, impatience"
+  },
+  "wands-4": {
+    "upright": "Celebration, homecoming, milestone, community, stability.",
+    "reversed": "Instability at home, postponed celebration, transition, lack of support, shaky foundations.",
+    "career": "workplace milestone, successful launch, team celebration, stable professional foundation",
+    "careerReversed": "unstable footing, postponed milestone, transition, weak foundation",
+    "love": "relationship celebration, engagement, marriage, creating a happy home",
+    "loveReversed": "postponed celebration, instability at home, shaky foundation, lack of support"
+  },
+  "wands-5": {
+    "upright": "Conflict, competition, friction, clashing egos, scattered effort.",
+    "reversed": "Avoiding conflict, resolution, inner conflict, release of tension, picking battles.",
+    "career": "workplace competition, conflicting ideas, professional rivalry, productive challenge",
+    "careerReversed": "avoided conflict, released tension, inner competition, resolution near",
+    "love": "romantic tension, disagreements, competition for attention, conflicting desires",
+    "loveReversed": "avoiding conflict, unresolved tension, inner disagreement, picking battles"
+  },
+  "wands-6": {
+    "upright": "Victory, recognition, success, confidence, public acclaim.",
+    "reversed": "Private victory, fall from grace, self-doubt, lack of recognition, ego inflation.",
+    "career": "career recognition, promotion, public success, growing leadership credibility",
+    "careerReversed": "lack of recognition, fall from grace, self-doubt, ego inflation",
+    "love": "romantic success, feeling admired, public recognition of a relationship, winning someone’s affection",
+    "loveReversed": "lack of recognition, self-doubt, private struggle, wounded pride"
+  },
+  "wands-7": {
+    "upright": "Defense, standing your ground, perseverance, conviction, holding advantage.",
+    "reversed": "Overwhelm, giving up ground, exhaustion, defensiveness, yielding.",
+    "career": "defending your position, professional persistence, maintaining boundaries, standing your ground",
+    "careerReversed": "overwhelm, yielding position, exhaustion, defensiveness",
+    "love": "defending a relationship, maintaining boundaries, fighting for love, resisting outside pressure",
+    "loveReversed": "overwhelm, giving up ground, defensiveness, exhaustion"
+  },
+  "wands-8": {
+    "upright": "Swift movement, momentum, news arriving, alignment, rapid progress.",
+    "reversed": "Delays, frustration, scattered energy, missed timing, slowdown.",
+    "career": "rapid career developments, fast communication, work-related travel, accelerated progress",
+    "careerReversed": "delays, scattered energy, missed timing, frustration",
+    "love": "rapid romantic developments, passionate communication, unexpected messages, relationship momentum",
+    "loveReversed": "delays, miscommunication, missed timing, stalled momentum"
+  },
+  "wands-9": {
+    "upright": "Resilience, last stand, persistence, guardedness, nearly there.",
+    "reversed": "Burnout, paranoia, giving up at the end, rigid defenses, battle fatigue.",
+    "career": "professional resilience, cautious persistence, nearing completion, protecting previous gains",
+    "careerReversed": "burnout, rigid defensiveness, giving up at the end, exhaustion",
+    "love": "emotional guardedness, relationship resilience, cautious trust, protecting the heart",
+    "loveReversed": "battle fatigue, rigid defenses, paranoia, giving up near the end"
+  },
+  "wands-10": {
+    "upright": "Burden, overload, responsibility, carrying too much, final effort.",
+    "reversed": "Release, delegation, putting burdens down, collapse, learning to say no.",
+    "career": "overwork, excessive responsibility, burnout risk, need to delegate",
+    "careerReversed": "putting burdens down, delegation, collapse, learning to say no",
+    "love": "relationship burdens, emotional pressure, carrying too much responsibility, love feeling demanding",
+    "loveReversed": "releasing burdens, collapse under pressure, learning to say no, delegating"
+  },
+  "wands-11": {
+    "upright": "Enthusiasm, exploration, free spirit, exciting news, curiosity.",
+    "reversed": "Scattered energy, hasty starts, boredom, unreliable news, restlessness.",
+    "career": "career curiosity, exciting opportunity, learning through action, creative professional news",
+    "careerReversed": "hasty starts, boredom, unreliable news, scattered focus",
+    "love": "flirtation, exciting messages, playful attraction, curiosity about a new romance",
+    "loveReversed": "scattered interest, boredom, unreliable messages, restlessness"
+  },
+  "wands-12": {
+    "upright": "Action, adventure, passion, bold pursuit, charisma.",
+    "reversed": "Impulsiveness, recklessness, scattered passion, delays in action, hot temper.",
+    "career": "ambitious action, bold career change, entrepreneurial drive, impulsive professional decisions",
+    "careerReversed": "impulsive decisions, recklessness, delays in action, hot temper",
+    "love": "passionate pursuit, intense chemistry, impulsive romance, an exciting but inconsistent lover",
+    "loveReversed": "impulsive romance, hot and cold, recklessness, scattered passion"
+  },
+  "wands-13": {
+    "upright": "Confidence, warmth, determination, magnetism, independence.",
+    "reversed": "Insecurity, jealousy, demanding nature, burnout, dimmed confidence.",
+    "career": "career confidence, creative leadership, professional charisma, independent success",
+    "careerReversed": "insecurity, burnout, jealousy, dimmed confidence",
+    "love": "confidence in love, magnetic attraction, warmth and passion, independent partnership",
+    "loveReversed": "insecurity, jealousy, demanding energy, dimmed confidence"
+  },
+  "wands-14": {
+    "upright": "Visionary leadership, boldness, entrepreneurship, mastery of fire, inspiration.",
+    "reversed": "Arrogance, tyranny, impulsive leadership, unfulfilled vision, domineering.",
+    "career": "visionary leadership, business growth, decisive action, inspiring others",
+    "careerReversed": "arrogance, impulsive leadership, tyranny, unrealized vision",
+    "love": "bold romantic leadership, passionate commitment, protective affection, pursuing love with confidence",
+    "loveReversed": "domineering, impulsive, arrogance, unfulfilled promises"
+  },
+  "cups-1": {
+    "upright": "New love, emotional beginning, compassion, overflowing heart, spiritual opening.",
+    "reversed": "Blocked emotions, emptiness, repressed feelings, emotional loss, self-love needed.",
+    "career": "fulfilling opportunity, creative inspiration, emotionally rewarding work, positive workplace beginning",
+    "careerReversed": "unfulfilling opportunity, emotional emptiness at work, blocked inspiration, missed connection",
+    "love": "new love, emotional opening, overflowing affection, deepening feelings",
+    "loveReversed": "blocked emotions, repressed feelings, emotional loss, needing self-love"
+  },
+  "cups-2": {
+    "upright": "Partnership, mutual attraction, connection, harmony, union of equals.",
+    "reversed": "Imbalance, broken connection, tension, miscommunication, self-partnership needed.",
+    "career": "successful partnership, strong collaboration, professional agreement, shared career goals",
+    "careerReversed": "broken partnership, tension, misaligned goals, poor collaboration",
+    "love": "mutual love, emotional partnership, shared attraction, balanced connection",
+    "loveReversed": "imbalance, broken connection, tension, miscommunication"
+  },
+  "cups-3": {
+    "upright": "Celebration, friendship, community, joy shared, creative collaboration.",
+    "reversed": "Overindulgence, third-party interference, isolation from friends, gossip, excess.",
+    "career": "teamwork, professional networking, workplace celebration, supportive colleagues",
+    "careerReversed": "isolation from the team, gossip, overindulgence, workplace cliques",
+    "love": "dating and socializing, joyful reunion, celebration with a partner, friendship becoming romantic",
+    "loveReversed": "third-party interference, isolation, gossip, overindulgence"
+  },
+  "cups-4": {
+    "upright": "Apathy, contemplation, disconnection, missed offer, reevaluation.",
+    "reversed": "Renewed interest, accepting the offer, emerging from withdrawal, new motivation, openness.",
+    "career": "career dissatisfaction, workplace boredom, overlooked opportunity, need for renewed motivation",
+    "careerReversed": "renewed motivation, accepting an opportunity, re-engagement, fresh interest",
+    "love": "emotional withdrawal, romantic dissatisfaction, overlooking an opportunity, feeling disconnected",
+    "loveReversed": "renewed interest, accepting an offer, emerging from withdrawal, openness"
+  },
+  "cups-5": {
+    "upright": "Loss, grief, regret, focusing on what's gone, disappointment.",
+    "reversed": "Acceptance, moving on, forgiveness, seeing what remains, healing.",
+    "career": "professional disappointment, missed opportunity, career regret, learning from setbacks",
+    "careerReversed": "moving on from setbacks, acceptance, learning from loss, recovery",
+    "love": "heartbreak, regret in love, grieving a relationship, focusing on emotional loss",
+    "loveReversed": "acceptance, moving on, forgiveness, healing"
+  },
+  "cups-6": {
+    "upright": "Nostalgia, childhood, innocence, reunion, simple kindness.",
+    "reversed": "Stuck in the past, rose-tinted memory, leaving home, growing up, releasing old ties.",
+    "career": "returning to a former career, familiar workplace, mentoring others, nostalgia influencing career choices",
+    "careerReversed": "clinging to the familiar, releasing old roles, nostalgia fading, moving forward",
+    "love": "past love, romantic nostalgia, reunion with an ex, innocent affection",
+    "loveReversed": "stuck in the past, idealized memory, releasing old ties, growing up"
+  },
+  "cups-7": {
+    "upright": "Choices, fantasy, illusion, wishful thinking, options.",
+    "reversed": "Clarity, decision made, cutting through illusion, overwhelm ending, realism.",
+    "career": "many career options, unrealistic expectations, scattered focus, choosing a practical path",
+    "careerReversed": "clear choice, focus returning, cutting through options, realism",
+    "love": "romantic options, fantasy and idealization, unclear intentions, difficulty choosing a partner",
+    "loveReversed": "clarity, decision made, illusions fading, realism"
+  },
+  "cups-8": {
+    "upright": "Walking away, seeking deeper meaning, leaving behind, disillusionment, quest.",
+    "reversed": "Fear of leaving, returning, avoidance, staying too long, unfinished departure.",
+    "career": "leaving an unfulfilling job, seeking meaningful work, career transition, moving beyond stagnation",
+    "careerReversed": "fear of leaving, staying in stagnation, avoidance, unfinished transition",
+    "love": "walking away from a relationship, seeking deeper fulfillment, emotional detachment, leaving what no longer satisfies",
+    "loveReversed": "fear of leaving, staying too long, avoidance, unfinished departure"
+  },
+  "cups-9": {
+    "upright": "Wishes fulfilled, contentment, satisfaction, pleasure, gratitude.",
+    "reversed": "Superficial happiness, greed, unfulfilled wishes, smugness, inner lack.",
+    "career": "career satisfaction, desired professional outcome, rewarding achievement, enjoying success",
+    "careerReversed": "hollow success, unmet goals, complacency, inner dissatisfaction",
+    "love": "romantic satisfaction, emotional pleasure, receiving desired affection, enjoying love",
+    "loveReversed": "superficial satisfaction, unmet wishes, inner lack, complacency"
+  },
+  "cups-10": {
+    "upright": "Lasting happiness, family harmony, emotional fulfillment, love realized, belonging.",
+    "reversed": "Family discord, broken harmony, unrealistic ideals, disconnection at home, strained bonds.",
+    "career": "harmonious workplace, meaningful career, supportive team, long-term professional fulfillment",
+    "careerReversed": "disconnection at work, broken team harmony, misaligned values, strain",
+    "love": "lasting happiness, emotional security, harmonious family life, fulfilled partnership",
+    "loveReversed": "family discord, broken harmony, strained bonds, unrealistic ideals"
+  },
+  "cups-11": {
+    "upright": "Emotional openness, creative message, intuition budding, sensitivity, sweet surprise.",
+    "reversed": "Emotional immaturity, moodiness, blocked creativity, escapism, oversensitivity.",
+    "career": "creative study, encouraging career news, beginner opportunity, intuitive professional idea",
+    "careerReversed": "blocked creativity, moody messages, immaturity, escapism",
+    "love": "sweet romantic message, innocent crush, emotional vulnerability, unexpected expression of affection",
+    "loveReversed": "emotional immaturity, moodiness, oversensitivity, escapism"
+  },
+  "cups-12": {
+    "upright": "Romance, charm, invitation, following the heart, idealism.",
+    "reversed": "Unrealistic promises, moodiness, disillusionment, flattery, heart over head gone wrong.",
+    "career": "following a vocation, persuasive proposal, creative profession, idealistic career move",
+    "careerReversed": "unrealistic proposals, moodiness, disillusionment, wavering commitment",
+    "love": "romantic proposal, heartfelt pursuit, charm and affection, following the heart",
+    "loveReversed": "unrealistic promises, moodiness, disillusionment, empty charm"
+  },
+  "cups-13": {
+    "upright": "Compassion, emotional depth, intuition, nurturing presence, empathy.",
+    "reversed": "Emotional overwhelm, codependency, martyrdom, boundaries dissolved, manipulation through feeling.",
+    "career": "empathetic leadership, caring profession, emotional intelligence, supportive workplace",
+    "careerReversed": "emotional overwhelm, poor boundaries, over-giving, depletion",
+    "love": "deep emotional support, intuitive love, compassion, strong emotional connection",
+    "loveReversed": "emotional overwhelm, codependency, dissolved boundaries, martyrdom"
+  },
+  "cups-14": {
+    "upright": "Emotional mastery, calm authority, diplomacy, balance of heart and head, wise counsel.",
+    "reversed": "Repressed emotion, coldness, manipulation, moodiness in power, emotional volatility.",
+    "career": "diplomatic leadership, calm management, emotional maturity, balancing people and results",
+    "careerReversed": "emotional volatility, coldness, manipulation, poor composure",
+    "love": "emotionally mature love, steady affection, balanced feelings, compassionate partnership",
+    "loveReversed": "repressed emotion, coldness, moodiness, emotional volatility"
+  },
+  "swords-1": {
+    "upright": "Clarity, breakthrough, truth, new idea, mental sharpness.",
+    "reversed": "Confusion, clouded judgment, misused intellect, harsh words, false clarity.",
+    "career": "breakthrough idea, decisive communication, intellectual clarity, new professional strategy",
+    "careerReversed": "confusion, clouded strategy, harsh communication, misused intellect",
+    "love": "honest communication, relationship clarity, revealing the truth, a decisive romantic conversation",
+    "loveReversed": "clouded judgment, harsh words, miscommunication, false clarity"
+  },
+  "swords-2": {
+    "upright": "Stalemate, difficult choice, avoidance, blocked feelings, truce.",
+    "reversed": "Decision forced, information revealed, stalemate breaking, anxiety, release of denial.",
+    "career": "career indecision, stalled negotiation, avoiding a professional choice, limited information",
+    "careerReversed": "decision forced, stalemate breaking, revealed information, anxiety",
+    "love": "romantic indecision, emotional stalemate, avoiding a decision, blocked communication",
+    "loveReversed": "forced decision, anxiety, information revealed, ending denial"
+  },
+  "swords-3": {
+    "upright": "Heartbreak, painful truth, grief, sorrow, separation.",
+    "reversed": "Healing heartbreak, forgiveness, releasing pain, recovery, old wounds resurfacing.",
+    "career": "professional disappointment, workplace conflict, job rejection, difficult feedback",
+    "careerReversed": "recovery from setbacks, releasing resentment, healing conflict, moving on",
+    "love": "heartbreak, separation, painful truth, emotional betrayal",
+    "loveReversed": "healing heartbreak, forgiveness, releasing pain, old wounds resurfacing"
+  },
+  "swords-4": {
+    "upright": "Rest, recovery, retreat, stillness, recharging.",
+    "reversed": "Burnout, restlessness, forced rest, returning to action, exhaustion ignored.",
+    "career": "career break, recovery from burnout, strategic pause, preparing your next move",
+    "careerReversed": "burnout, restlessness, forced pause, returning to action",
+    "love": "taking space in a relationship, emotional recovery, temporary separation, time to reflect",
+    "loveReversed": "restlessness, forced rest, returning too soon, ignored exhaustion"
+  },
+  "swords-5": {
+    "upright": "Hollow victory, conflict, winning at all costs, discord, self-interest.",
+    "reversed": "Reconciliation, making amends, releasing resentment, lingering grudges, lesson learned.",
+    "career": "workplace conflict, unethical competition, damaged professional trust, hollow victory",
+    "careerReversed": "making amends, releasing conflict, lingering tension, lesson learned",
+    "love": "relationship conflict, hurtful communication, selfish behavior, winning at the cost of intimacy",
+    "loveReversed": "reconciliation, making amends, lingering resentment, lesson learned"
+  },
+  "swords-6": {
+    "upright": "Transition, moving on, calmer waters, passage, gradual healing.",
+    "reversed": "Resisting transition, unfinished business, rough crossing, returning to trouble, stuck baggage.",
+    "career": "moving to a better role, gradual career recovery, relocation for work, leaving difficulties behind",
+    "careerReversed": "resisting change, rough transition, unfinished business, stuck baggage",
+    "love": "moving on from conflict, emotional transition, healing together, leaving relationship difficulties behind",
+    "loveReversed": "resisting transition, unfinished business, returning to trouble, stuck"
+  },
+  "swords-7": {
+    "upright": "Deception, strategy, acting alone, getting away with it, cunning.",
+    "reversed": "Confession, conscience, exposure, coming clean, self-deception revealed.",
+    "career": "strategic planning, office politics, working independently, questionable professional tactics",
+    "careerReversed": "exposure of tactics, coming clean, conscience, revealed deception",
+    "love": "secrecy, dishonesty in love, avoiding commitment, hidden motives",
+    "loveReversed": "confession, coming clean, exposed secrets, conscience"
+  },
+  "swords-8": {
+    "upright": "Feeling trapped, self-restriction, victim mindset, mental prison, paralysis.",
+    "reversed": "Liberation, new perspective, self-empowerment, blindfold removed, taking responsibility.",
+    "career": "feeling trapped at work, professional self-doubt, limited options, need for a new perspective",
+    "careerReversed": "new perspective, breaking free, self-empowerment, taking responsibility",
+    "love": "feeling trapped in a relationship, fear of leaving, limiting beliefs about love, emotional powerlessness",
+    "loveReversed": "liberation, new perspective, self-empowerment, releasing limiting beliefs"
+  },
+  "swords-9": {
+    "upright": "Anxiety, sleepless nights, worry, dread, mental anguish.",
+    "reversed": "Easing anxiety, facing fears, seeking help, perspective returning, recovery from despair.",
+    "career": "job anxiety, fear of failure, work-related stress, overthinking career problems",
+    "careerReversed": "easing worry, facing fears, seeking help, recovery from stress",
+    "love": "relationship anxiety, fear of rejection, guilt or regret, overthinking love",
+    "loveReversed": "easing anxiety, facing fears, seeking support, perspective returning"
+  },
+  "swords-10": {
+    "upright": "Painful ending, rock bottom, betrayal, collapse, the worst is over.",
+    "reversed": "Recovery, rising again, surviving the ending, old wounds closing, refusing the final lesson.",
+    "career": "job ending, failed project, professional betrayal, final career closure",
+    "careerReversed": "recovery, rising again, surviving closure, slow rebuilding",
+    "love": "painful ending, betrayal, relationship collapse, accepting that a romantic chapter is over",
+    "loveReversed": "recovery, rising again, surviving an ending, refusing the final lesson"
+  },
+  "swords-11": {
+    "upright": "Curiosity, vigilance, new ideas, mental energy, truth-seeking.",
+    "reversed": "Gossip, hasty words, scattered thinking, spying, all talk.",
+    "career": "professional research, sharp communication, new learning, monitoring opportunities",
+    "careerReversed": "scattered thinking, gossip, hasty communication, spying",
+    "love": "curious communication, watching from a distance, cautious interest, questioning a partner’s intentions",
+    "loveReversed": "hasty words, gossip, scattered thinking, all talk"
+  },
+  "swords-12": {
+    "upright": "Decisive action, ambition, directness, charging ahead, intellectual drive.",
+    "reversed": "Recklessness, aggression, rushing past details, burnout sprint, verbal attacks.",
+    "career": "fast career decisions, forceful ambition, intense debate, rushing into action",
+    "careerReversed": "recklessness, aggression, rushing past details, burnout sprint",
+    "love": "direct romantic pursuit, intense conversations, rushing into a relationship, conflict through impulsive words",
+    "loveReversed": "recklessness, verbal conflict, rushing in, burnout"
+  },
+  "swords-13": {
+    "upright": "Clear judgment, independence, honest communication, boundaries, experienced wisdom.",
+    "reversed": "Coldness, bitterness, harsh criticism, isolation, cynicism.",
+    "career": "objective judgment, clear professional boundaries, independent expertise, direct communication",
+    "careerReversed": "cynicism, harsh criticism, isolation, cold judgment",
+    "love": "clear boundaries, emotional independence, honest expectations, discerning relationship choices",
+    "loveReversed": "coldness, bitterness, harsh criticism, isolation"
+  },
+  "swords-14": {
+    "upright": "Intellectual authority, truth, impartial judgment, strategy, ethical clarity.",
+    "reversed": "Abuse of intellect, cold ruthlessness, manipulation, rigid logic, unjust judgment.",
+    "career": "strategic leadership, authority through knowledge, ethical decisions, analytical mastery",
+    "careerReversed": "abuse of intellect, cold ruthlessness, rigid logic, unjust decisions",
+    "love": "rational approach to love, serious communication, emotional restraint, fair and thoughtful partnership",
+    "loveReversed": "cold logic, emotional restraint, harsh judgment, manipulation"
+  },
+  "pentacles-1": {
+    "upright": "New opportunity, prosperity, manifestation, solid start, material gift.",
+    "reversed": "Missed opportunity, shaky foundation, scarcity thinking, delayed reward, poor investment.",
+    "career": "new job opportunity, financial potential, practical career beginning, building professional security",
+    "careerReversed": "missed opportunity, shaky foundation, scarcity thinking, delayed reward",
+    "love": "stable new relationship, practical commitment, building a secure future, dependable romantic opportunity",
+    "loveReversed": "shaky foundation, missed opportunity, insecurity, poor timing"
+  },
+  "pentacles-2": {
+    "upright": "Juggling priorities, adaptability, balance in motion, flexibility, managing change.",
+    "reversed": "Overcommitment, dropped balls, disorganization, financial strain, overwhelm.",
+    "career": "balancing priorities, multiple jobs or projects, flexible workload, adapting to professional change",
+    "careerReversed": "overcommitment, disorganization, financial strain, dropped balls",
+    "love": "balancing love and responsibilities, changing relationship priorities, adapting as a couple, romantic uncertainty",
+    "loveReversed": "overcommitment, dropped priorities, imbalance, romantic overwhelm"
+  },
+  "pentacles-3": {
+    "upright": "Teamwork, craftsmanship, skill recognized, collaboration, building together.",
+    "reversed": "Poor teamwork, mediocrity, lack of recognition, misaligned goals, working alone.",
+    "career": "skilled teamwork, craftsmanship, professional collaboration, recognition for quality",
+    "careerReversed": "poor collaboration, mediocrity, lack of recognition, misaligned goals",
+    "love": "teamwork in love, building a relationship together, mutual effort, learning how to support one another",
+    "loveReversed": "poor teamwork, misaligned effort, lack of appreciation, working alone"
+  },
+  "pentacles-4": {
+    "upright": "Security, holding on, control, saving, possessiveness.",
+    "reversed": "Letting go, generosity, loosening control, financial release, spending.",
+    "career": "protecting your position, financial caution, resistance to career change, controlling resources",
+    "careerReversed": "loosening control, financial release, generosity, letting go of security",
+    "love": "possessiveness, fear of vulnerability, holding tightly to a relationship, emotional control",
+    "loveReversed": "letting go, loosening control, generosity, fear easing"
+  },
+  "pentacles-5": {
+    "upright": "Hardship, scarcity, feeling left out in the cold, financial loss, isolation.",
+    "reversed": "Recovery, help accepted, hardship ending, finding shelter, renewed hope.",
+    "career": "unemployment or financial strain, workplace exclusion, difficult career period, seeking support",
+    "careerReversed": "recovery, help accepted, hardship ending, financial improvement",
+    "love": "feeling rejected, loneliness in love, relationship hardship, supporting each other through difficulty",
+    "loveReversed": "recovery, support accepted, hardship ending, renewed hope"
+  },
+  "pentacles-6": {
+    "upright": "Generosity, giving and receiving, support, fairness, charity.",
+    "reversed": "Strings attached, power imbalance, one-sided giving, debt, self-neglect in giving.",
+    "career": "fair compensation, professional mentoring, workplace support, balanced exchange",
+    "careerReversed": "one-sided exchange, strings attached, power imbalance, unfair terms",
+    "love": "equal give and take, generosity in love, mutual support, balanced emotional effort",
+    "loveReversed": "power imbalance, strings attached, one-sided giving, debt"
+  },
+  "pentacles-7": {
+    "upright": "Patience, assessment, long-term view, slow growth, waiting for harvest.",
+    "reversed": "Impatience, wasted effort, poor returns, giving up early, misdirected work.",
+    "career": "long-term career investment, reviewing progress, patient growth, waiting for results",
+    "careerReversed": "impatience, wasted effort, poor returns, giving up early",
+    "love": "patience in a relationship, evaluating romantic progress, long-term investment, waiting for love to grow",
+    "loveReversed": "impatience, wasted effort, giving up too early, poor returns"
+  },
+  "pentacles-8": {
+    "upright": "Diligence, skill-building, craftsmanship, dedication, mastery through repetition.",
+    "reversed": "Perfectionism, tedium, cut corners, misplaced effort, burnout from grind.",
+    "career": "skill development, disciplined work, apprenticeship, mastering a profession",
+    "careerReversed": "perfectionism, tedium, cut corners, burnout from the grind",
+    "love": "working on a relationship, consistent effort, improving communication, dedication to a partner",
+    "loveReversed": "cut corners, misplaced effort, going through the motions, neglect"
+  },
+  "pentacles-9": {
+    "upright": "Self-sufficiency, earned luxury, independence, refinement, enjoying success.",
+    "reversed": "Overdependence, hollow success, overwork without enjoyment, financial insecurity, self-worth tied to wealth.",
+    "career": "independent success, financial self-sufficiency, refined expertise, enjoying earned rewards",
+    "careerReversed": "hollow success, overwork without enjoyment, financial insecurity, overdependence",
+    "love": "independence in love, enjoying single life, healthy self-worth, a relationship that respects personal freedom",
+    "loveReversed": "overdependence, hollow independence, self-worth tied to status, insecurity"
+  },
+  "pentacles-10": {
+    "upright": "Legacy, lasting wealth, family security, inheritance, long-term foundations.",
+    "reversed": "Family disputes over resources, unstable foundations, short-term thinking, lost inheritance, wealth without belonging.",
+    "career": "lasting career stability, family business, wealth building, established professional legacy",
+    "careerReversed": "unstable foundations, disputes over resources, short-term thinking, lost security",
+    "love": "long-term commitment, family stability, shared financial security, building a lasting legacy together",
+    "loveReversed": "family disputes, unstable foundation, short-term thinking, strained legacy"
+  },
+  "pentacles-11": {
+    "upright": "Studiousness, new practical skill, opportunity to learn, grounded ambition, diligent beginnings.",
+    "reversed": "Procrastination, lack of progress, daydreaming without doing, short-lived focus, missed lessons.",
+    "career": "career training, entry-level opportunity, practical study, promising financial news",
+    "careerReversed": "procrastination, lack of progress, daydreaming without doing, missed lessons",
+    "love": "sincere romantic interest, slowly developing relationship, practical offer of commitment, dependable new connection",
+    "loveReversed": "procrastination, lack of progress, unfulfilled potential, short-lived interest"
+  },
+  "pentacles-12": {
+    "upright": "Reliability, methodical progress, hard work, patience, commitment to routine.",
+    "reversed": "Stagnation, boredom, stubbornness, workaholism, stuck in a rut.",
+    "career": "reliable progress, consistent work, long-term commitment, methodical career growth",
+    "careerReversed": "stagnation, boredom, workaholism, stuck in a rut",
+    "love": "loyal partner, slow and steady romance, reliable commitment, building trust over time",
+    "loveReversed": "stagnation, boredom, stubbornness, stuck routine"
+  },
+  "pentacles-13": {
+    "upright": "Nurturing practicality, resourcefulness, warmth and security, working provider, down-to-earth care.",
+    "reversed": "Self-neglect, work-home imbalance, smothering through providing, financial codependence, depleted caregiver.",
+    "career": "practical leadership, resource management, work-life balance, creating a secure workplace",
+    "careerReversed": "work-home imbalance, self-neglect, depletion, financial codependence",
+    "love": "nurturing partnership, practical affection, emotional and material security, creating a comfortable home",
+    "loveReversed": "self-neglect, smothering through providing, imbalance, depletion"
+  },
+  "pentacles-14": {
+    "upright": "Material mastery, abundance, steady leadership, business acumen, reliable provider.",
+    "reversed": "Greed, materialism, rigid control of resources, status obsession, corruption of comfort.",
+    "career": "business success, financial leadership, dependable authority, long-term prosperity",
+    "careerReversed": "greed, materialism, rigid control of resources, status obsession",
+    "love": "dependable commitment, protective partnership, long-term stability, providing security in love",
+    "loveReversed": "materialism, control through providing, status obsession, rigidity"
+  }
+}

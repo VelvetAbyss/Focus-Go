@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { purgeSymbolic } from '../symbolic/store.js'
 import { statSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
@@ -523,13 +524,14 @@ router.get('/users/:userId/deletion-preview', (req, res) => {
     const user = db.prepare('SELECT id, email, plan, status, created_at, premium_expires_at, authing_id FROM users WHERE id = ?').get(req.params.userId)
     if (!user) return res.status(404).json({ error: 'user not found' })
 
-    // all 27 sync counts in a single read transaction
+    // Count generic and dedicated Labs records in one read transaction
     const syncCounts = db.transaction(() => {
       const counts = {}
       for (const [entityType, tableName] of Object.entries(SYNC_TABLES)) {
         try { counts[entityType] = db.prepare(`SELECT COUNT(*) as cnt FROM ${tableName} WHERE user_id = ?`).get(String(user.id))?.cnt ?? 0 }
         catch { counts[entityType] = 0 }
       }
+      counts.symbolic = db.prepare('SELECT COUNT(*) as cnt FROM symbolic_records WHERE user_id = ?').get(String(user.id))?.cnt ?? 0
       return counts
     })()
 
@@ -548,7 +550,7 @@ router.get('/users/:userId/deletion-preview', (req, res) => {
       blobCount: blobRow?.cnt ?? 0, blobBytes: blobRow?.total_bytes ?? 0,
       feedbackCount, adminNoteCount: noteCount, auditLogCount: auditCount, sessionCount,
       willRetain: { auditLogs: auditCount, paymentOrders: 'minimum audit fields only' },
-      willPurge: ['sync rows', 'blobs', 'auth sessions', 'better-auth user/account records'],
+      willPurge: ['sync rows including Labs records', 'Labs account metadata', 'blobs', 'auth sessions', 'better-auth user/account records'],
     })
   } catch (err) {
     console.error('[admin/deletion-preview]', err)
@@ -618,6 +620,7 @@ router.post('/users/:userId/purge', (req, res) => {
       }
       try { db.prepare('DELETE FROM sync_user_blobs WHERE user_id = ?').run(String(user.id)) } catch { /* ignore */ }
       deleteAllPushSubscriptionsForUser(db, String(user.id))
+      purgeSymbolic(db, String(user.id))
 
       const betterAuthUser = db.prepare('SELECT id FROM user WHERE email = ?').get(user.email)
       if (betterAuthUser) db.prepare('DELETE FROM user WHERE id = ?').run(betterAuthUser.id)

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
-import { Archive, LayoutGrid, Sparkles, Brain, Zap, Target, RotateCcw, PanelsTopLeft } from 'lucide-react'
+import { Columns3, Orbit, Layers, Archive, LayoutGrid, Sparkles, Brain, Zap, Target, RotateCcw, PanelsTopLeft } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
@@ -11,7 +11,9 @@ import type { FeatureCatalogItem } from '../labsApi'
 import { useToast } from '../../../shared/ui/toast/toast'
 import '../labs.css'
 
+const SYMBOLIC_ROUTES: Record<string, string> = { bazi: ROUTES.BAZI, astrology: ROUTES.ASTROLOGY, tarot: ROUTES.TAROT }
 const FEATURE_ICONS: Record<string, React.ElementType> = {
+  bazi: Columns3, astrology: Orbit, tarot: Layers,
   'ai-digest': Brain,
   'automation': Zap,
   'habit-tracker': Target,
@@ -136,7 +138,9 @@ const LabsPage = () => {
                     <span className="labs-row__desc">{i18n.featureDescriptions[feature.featureKey] ?? feature.description}</span>
                   </div>
                   <div className="labs-row__actions">
-                    {feature.featureKey === 'habit-tracker' ? (
+                    {SYMBOLIC_ROUTES[feature.featureKey] ? (
+                      <Button size="sm" asChild><Link to={SYMBOLIC_ROUTES[feature.featureKey]}>{i18n.labs.open}</Link></Button>
+                    ) : feature.featureKey === 'habit-tracker' ? (
                       <Button size="sm" asChild>
                         <Link to={ROUTES.HABITS}>{i18n.labs.openHabits}</Link>
                       </Button>
