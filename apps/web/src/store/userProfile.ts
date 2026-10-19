@@ -1,4 +1,6 @@
 import { useSyncExternalStore } from 'react'
+import { getAuth, setAuth } from './auth'
+import { fetchApi } from '../shared/apiBase'
 
 export const USER_PROFILE_CHANGED_EVENT = 'focusgo:user-profile-changed'
 const STORAGE_KEY = 'focus_go.userProfile.v1'
@@ -137,3 +139,124 @@ export const processAvatarFile = (file: File): Promise<string> =>
     }
     reader.readAsDataURL(file)
   })
+
+
+// Profile is account data, separate from document sync and login credentials.
+const ACCOUNT_PROFILE_KEY = 'focusgo.accountProfile.v1'
+type ProfilePatch = UserProfile & { name?: string }
+type AccountProfile = { id: string; name: string; image: string | null; profile: UserProfile; revision: number }
+type CachedAccount = { name: string; revision: number; dirty: ProfilePatch; sequence: number }
+const pendingRequests = new Map<string, Promise<void>>()
+const saveStates = new Map<string, 'saved' | 'pending' | 'saving' | 'error'>()
+const readAccounts = (): Record<string, CachedAccount> => {
+  try { const value = JSON.parse(localStorage.getItem(ACCOUNT_PROFILE_KEY) ?? '{}'); return value && typeof value === 'object' && !Array.isArray(value) ? value : {} } catch { return {} }
+}
+const persistAccount = (id: string, value: CachedAccount) => {
+  const accounts = readAccounts(); accounts[id] = value
+  localStorage.setItem(ACCOUNT_PROFILE_KEY, JSON.stringify(accounts))
+}
+const notifyProfile = () => window.dispatchEvent(new Event(USER_PROFILE_CHANGED_EVENT))
+type ProfileSaveState = 'saved' | 'pending' | 'saving' | 'error' | 'loading'
+export const profileSaveState = (id: string): ProfileSaveState => saveStates.get(id) ?? (Object.keys(readAccounts()[id]?.dirty ?? {}).length ? 'pending' : 'loading')
+export const useProfileSaveState = (id: string) => useSyncExternalStore(subscribeProfile, () => profileSaveState(id), (): ProfileSaveState => 'loading')
+const setSaveState = (id: string, state: 'saved' | 'pending' | 'saving' | 'error') => { saveStates.set(id, state); notifyProfile() }
+
+export const requestAccount = async <T>(path: string, init?: RequestInit): Promise<T> => {
+  const auth = getAuth(), id = auth?.user?.id, token = auth?.accessToken
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), 15_000)
+  try {
+    const response = await fetchApi('/user' + path, { ...init, signal: controller.signal, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...init?.headers } })
+    if (!id || getAuth()?.user?.id !== id || getAuth()?.accessToken !== token) throw new Error('account_changed')
+    const body = await response.json()
+    if (getAuth()?.user?.id !== id || getAuth()?.accessToken !== token) throw new Error('account_changed')
+    if (!response.ok) throw Object.assign(new Error(body.error ?? 'account_request_failed'), { status: response.status, account: body.account })
+    return body as T
+  } finally { window.clearTimeout(timeout) }
+}
+
+const applyAccount = (id: string, account: AccountProfile, dirty: ProfilePatch) => {
+  const profile = { ...account.profile, avatar: account.image, ...dirty }
+  delete (profile as ProfilePatch).name
+  const map = readMap(); map[id] = profile; writeMap(map)
+  const current = getAuth()
+  if (current?.user?.id === id) {
+    const name = dirty.name ?? account.name
+    setAuth({ ...current, user: { ...current.user, name, nickname: name, image: profile.avatar } })
+  }
+}
+
+/** Persist immediately. The network can fail without discarding the draft. */
+export const saveAccountProfile = (id: string, patch: ProfilePatch) => {
+  if (getAuth()?.user?.id !== id) throw new Error('account_changed')
+  const current = readAccounts()[id] ?? { name: getAuth().user.name ?? '', revision: 0, dirty: {}, sequence: 0 }
+  const next = { ...current, dirty: { ...current.dirty, ...patch }, sequence: current.sequence + 1 }
+  persistAccount(id, next)
+  const fields = { ...patch }; delete fields.name
+  updateProfile(id, fields)
+  if (patch.name) { const auth = getAuth(); setAuth({ ...auth, user: { ...auth.user, name: patch.name, nickname: patch.name } }) }
+  setSaveState(id, 'pending')
+  void syncAccountProfile(id)
+}
+
+export const syncAccountProfile = (id: string): Promise<void> => {
+  if (pendingRequests.has(id)) return pendingRequests.get(id)!
+  const task = (async () => {
+    if (getAuth()?.user?.id !== id) return
+    try {
+      setSaveState(id, 'saving')
+      for (let retry = 0; retry < 3; retry++) {
+        const { account } = await requestAccount<{ account?: AccountProfile }>('/profile')
+        if (!account || account.id !== id) throw new Error('profile_service_unavailable')
+        let cached = readAccounts()[id]
+        if (!cached) {
+          // Adopt legacy local metadata only when this account has no cloud
+          // profile yet. Never replace another device's existing cloud profile.
+          const legacy = account.revision === 0 ? getProfile(id) : {}
+          cached = { name: account.name, revision: account.revision, dirty: { ...legacy }, sequence: 0 }
+          persistAccount(id, cached)
+        }
+        applyAccount(id, account, cached.dirty)
+        if (!Object.keys(cached.dirty).length) {
+          persistAccount(id, { ...cached, name: account.name, revision: account.revision })
+          setSaveState(id, 'saved'); return
+        }
+        const sent = { ...cached.dirty }, sequence = cached.sequence
+        let confirmed: AccountProfile
+        try {
+          confirmed = (await requestAccount<{ account: AccountProfile }>('/profile', { method: 'PATCH', body: JSON.stringify({ revision: account.revision, patch: sent }) })).account
+        } catch (error) {
+          if ((error as { status?: number }).status === 409) continue
+          throw error
+        }
+        const latest = readAccounts()[id] ?? cached
+        const dirty = latest.sequence === sequence ? {} : { ...latest.dirty }
+        for (const key of Object.keys(sent) as (keyof ProfilePatch)[]) if (dirty[key] === sent[key]) delete dirty[key]
+        persistAccount(id, { ...latest, name: confirmed.name, revision: confirmed.revision, dirty })
+        applyAccount(id, confirmed, dirty)
+        if (!Object.keys(dirty).length) { setSaveState(id, 'saved'); return }
+      }
+      setSaveState(id, 'pending')
+    } catch {
+      if (getAuth()?.user?.id === id) setSaveState(id, navigator.onLine === false ? 'pending' : 'error')
+    }
+  })().finally(() => { pendingRequests.delete(id) })
+  pendingRequests.set(id, task)
+  return task
+}
+
+export const clearAccountProfile = (id: string) => {
+  const accounts = readAccounts(); delete accounts[id]
+  localStorage.setItem(ACCOUNT_PROFILE_KEY, JSON.stringify(accounts))
+  clearProfile(id)
+  saveStates.delete(id)
+}
+
+export const startAccountProfileSync = (id: string) => {
+  const refresh = () => { void syncAccountProfile(id) }
+  refresh()
+  window.addEventListener('online', refresh)
+  window.addEventListener('focus', refresh)
+  const timer = window.setInterval(refresh, 60_000)
+  return () => { clearInterval(timer); window.removeEventListener('online', refresh); window.removeEventListener('focus', refresh) }
+}

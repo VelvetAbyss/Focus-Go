@@ -4,6 +4,7 @@ import dotenv from 'dotenv'
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
 import db from '../db/init.js'
+import { createPolicyAuthOptions } from '../legal/policyConsent.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 if (process.env.NODE_ENV !== 'test') dotenv.config({ path: join(__dirname, '../.env') })
@@ -50,6 +51,7 @@ if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
 
 export const auth = betterAuth({
   appName: 'Focus & Go',
+  ...createPolicyAuthOptions(db),
   database: db,
   secret: process.env.BETTER_AUTH_SECRET || devSecret,
   baseURL: process.env.BETTER_AUTH_URL || `${API_BASE_URL}/api/auth`,

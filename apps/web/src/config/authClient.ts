@@ -1,3 +1,4 @@
+import type { LanguageCode } from '../shared/i18n/types'
 import { getApiBase } from '../shared/apiBase'
 import { getAuth } from '../store/auth'
 import { beginDesktopLogin } from './authBinding'
@@ -28,6 +29,7 @@ type AuthErrorPayload = {
 }
 
 const normalizeAuthErrorMessage = (error: AuthErrorPayload | null, fallback: string) => {
+  if (error?.code === 'POLICY_CONFIRMATION_REQUIRED') return 'POLICY_CONFIRMATION_REQUIRED'
   const message = error?.message || error?.error || error?.code || fallback
   if (/provider not found/i.test(message)) {
     return 'Google sign in is not configured on the server. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET for the API.'
@@ -79,7 +81,7 @@ const requestAuth = async <T>(path: string, init?: RequestInit): Promise<T> => {
 }
 
 export const authClient = {
-  signUp: (input: { email: string; username: string; password: string; name: string }) =>
+  signUp: (input: { email: string; username: string; password: string; name: string; policyAcceptance: { termsAccepted: boolean; privacyAcknowledged: boolean; termsVersion: string; privacyVersion: string; locale: LanguageCode } }) =>
     requestAuth<AuthResponse>('/sign-up/email', {
       method: 'POST',
       body: JSON.stringify(input),
@@ -97,11 +99,12 @@ export const authClient = {
       body: JSON.stringify(input),
     }),
 
-  signInGoogle: (callbackURL: string) =>
+  signInGoogle: (callbackURL: string, policyAcceptance?: { termsAccepted: boolean; privacyAcknowledged: boolean; termsVersion: string; privacyVersion: string; locale: LanguageCode }) =>
     requestAuth<AuthResponse>('/sign-in/social', {
       method: 'POST',
       body: JSON.stringify({
         provider: 'google',
+        ...(policyAcceptance ? { additionalData: { policyAcceptance } } : {}),
         callbackURL,
         disableRedirect: true,
       }),

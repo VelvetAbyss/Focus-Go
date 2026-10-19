@@ -49,11 +49,20 @@ describe('LoginModal', () => {
     mocks.finishBetterAuthSession.mockResolvedValue(undefined)
     render(<LoginModal onClose={vi.fn()} />)
 
+    await userEvent.click(screen.getByRole('checkbox', { name: /I have read and agree/i }))
     await userEvent.click(screen.getByRole('button', { name: /continue with google/i }))
 
     await waitFor(() => {
-      expect(mocks.signInGoogle).toHaveBeenCalledWith('http://localhost:5173/?auth=google')
+      expect(mocks.signInGoogle).toHaveBeenCalledWith('http://localhost:5173/?auth=google', expect.objectContaining({ termsAccepted: true, privacyAcknowledged: true, locale: 'en' }))
     })
     expect(mocks.finishBetterAuthSession).toHaveBeenCalledWith('google-token', { id: 'user-1' })
   })
+})
+
+it('does not start Google registration before an explicit policy confirmation', async () => {
+  mocks.signInGoogle.mockReset()
+  render(<LoginModal onClose={vi.fn()} />)
+  await userEvent.click(screen.getByRole('button', { name: /continue with google/i }))
+  expect(mocks.signInGoogle).not.toHaveBeenCalled()
+  expect(screen.getByText(/Google may create an account/)).toBeTruthy()
 })
