@@ -31,6 +31,7 @@ import '@/components/tiptap-node/image-node/image-node.scss'
 import '@/components/tiptap-node/heading-node/heading-node.scss'
 import '@/components/tiptap-node/paragraph-node/paragraph-node.scss'
 import { useI18n } from '../../../shared/i18n/useI18n'
+import { onPrepareAppUpdate } from '../../../shared/runtime/updateLifecycle'
 import { BlockquoteButton } from '@/components/tiptap-ui/blockquote-button'
 import { CodeBlockButton } from '@/components/tiptap-ui/code-block-button'
 import { ImageUploadButton } from '@/components/tiptap-ui/image-upload-button'
@@ -258,6 +259,8 @@ const NoteEditor = ({
     },
     [flushEmitChange],
   )
+
+  useEffect(() => onPrepareAppUpdate(flushEmitChange), [flushEmitChange])
 
   const scheduleTocRefresh = useCallback(() => {
     if (tocTimerRef.current) window.clearTimeout(tocTimerRef.current)

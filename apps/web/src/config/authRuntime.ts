@@ -45,14 +45,16 @@ export const finishBetterAuthSession = async (token?: string, user?: unknown): P
   const profile = await fetchAuthProfile(token)
   if (!profile) throw new Error('Unable to validate account session.')
   const previousId = getAuth()?.user?.id
-  const nextId = (user as BetterAuthUser).id
-  if (!localStorage.getItem(LOCAL_ACCOUNT_OWNER_KEY) && previousId && previousId !== nextId) {
+  const nextId = String(profile.id)
+  const authUser = user as BetterAuthUser
+  if (!localStorage.getItem(LOCAL_ACCOUNT_OWNER_KEY) && previousId && previousId !== nextId && previousId !== authUser.id) {
     throw new Error('请先退出当前账号再切换账号。')
   }
   bindLocalAccountOwner(String(profile.id))
   const nextAuth = {
     accessToken: token,
-    user,
+    // Sync ownership uses the validated business account, not Better Auth's ID.
+    user: { ...authUser, id: nextId },
     isSupporter: profile?.isSupporter ?? false,
     cloudSync: profile?.cloudSync,
     isAdmin: profile?.isAdmin ?? false,
