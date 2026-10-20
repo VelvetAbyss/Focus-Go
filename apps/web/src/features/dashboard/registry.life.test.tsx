@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getLifeCards } from './registry'
+import { getDashboardCards, getLifeCards } from './registry'
 import { lifeT } from '../life/lifeI18n'
 
 describe('getLifeCards', () => {
@@ -12,4 +12,8 @@ describe('getLifeCards', () => {
     expect(cards.some((card) => card.id === 'podcast_card')).toBe(true)
     expect(cards.some((card) => card.id === 'people_card')).toBe(true)
   })
+})
+
+it('keeps translation hidden until the user adds it', () => {
+  expect(getDashboardCards().find(card => card.id === 'translation')?.defaultVisible).toBe(false)
 })

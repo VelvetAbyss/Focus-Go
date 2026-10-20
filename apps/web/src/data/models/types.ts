@@ -727,7 +727,7 @@ export type TaskTrashEntry = {
   deletedAt: number
 }
 
-export type FeatureKey = 'ai-digest' | 'automation' | 'bazi' | 'astrology' | 'tarot' | 'habit-tracker' | 'project-workspace'
+export type FeatureKey = 'ai-digest' | 'automation' | 'bazi' | 'astrology' | 'tarot' | 'habit-tracker' | 'project-workspace' | 'translation'
 export type FeatureInstallState = 'installed' | 'removed'
 
 export type FeatureInstallation = BaseEntity & {

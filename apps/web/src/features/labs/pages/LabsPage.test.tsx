@@ -47,6 +47,7 @@ const i18n = {
     removed: 'Removed',
     premiumLocked: 'Premium required',
     install: 'Install',
+    openTranslation: 'Open Translate',
     openHabits: 'Open Habits',
     remove: 'Remove',
     restore: 'Restore',
@@ -111,6 +112,17 @@ describe('LabsPage', () => {
 
   afterEach(() => {
     cleanup()
+  })
+
+  it('installs translation and opens its dedicated page after installation', async () => {
+    const state = { ready: true, catalog: [makeFeature('available', { featureKey: 'translation', title: 'Translate' })], install: mockInstall, remove: mockRemove, restore: mockRestore }
+    mockUseLabs.mockReturnValue(state)
+    const { rerender } = renderPage()
+    await userEvent.click(screen.getByRole('button', { name: 'Install' }))
+    expect(mockInstall).toHaveBeenCalledWith('translation')
+    mockUseLabs.mockReturnValue({ ...state, catalog: [makeFeature('installed', { featureKey: 'translation', title: 'Translate' })] })
+    rerender(<MemoryRouter><LabsPage /></MemoryRouter>)
+    expect(screen.getByRole('link', { name: 'Open Translate' })).toHaveAttribute('href', '/translation')
   })
 
   it('installs Habit Tracker', async () => {

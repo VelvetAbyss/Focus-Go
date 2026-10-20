@@ -47,6 +47,17 @@ describe('labsApi', () => {
     expect(aiDigest?.requiresPremium).toBe(false)
   })
 
+  it('keeps translation opt-in and supports free install, remove and restore', async () => {
+    const translation = async () => (await getFeatureCatalog()).find(item => item.featureKey === 'translation')
+    expect(await translation()).toMatchObject({ state: 'available', comingSoon: false, requiresPremium: false })
+    await installFeature('translation')
+    expect((await translation())?.state).toBe('installed')
+    await removeFeature('translation')
+    expect((await translation())?.state).toBe('removed')
+    await restoreFeature('translation')
+    expect((await translation())?.state).toBe('installed')
+  })
+
   it('ignores legacy premium hints', async () => {
     await ensureLabsSeed()
     localStorage.setItem('auth', JSON.stringify({ plan: 'premium' }))

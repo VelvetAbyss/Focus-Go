@@ -20,6 +20,7 @@ export const ROUTES = {
   BAZI: '/bazi',
   ASTROLOGY: '/astrology',
   TAROT: '/tarot',
+  TRANSLATION: '/translation',
   SUPPORT: '/support',
   MEMBERSHIP: '/membership',
   PREMIUM: '/premium',
