@@ -3,7 +3,7 @@ import { Editor } from '@tiptap/core'
 import { StarterKit } from '@tiptap/starter-kit'
 import { TaskItem, TaskList } from '@tiptap/extension-list'
 import { afterEach, describe, expect, it } from 'vitest'
-import { convertNoteBlock, moveCurrentNoteBlock, moveNoteBlock, NoteBlockMovement, convertWholeNoteBlock, topLevelBlocks } from './noteBlocks'
+import { convertNoteBlock, deleteNoteBlock, duplicateNoteBlock, duplicateSelectedNoteBlocks, moveCurrentNoteBlock, moveNoteBlock, NoteBlockMovement, convertWholeNoteBlock, topLevelBlocks, toggleNoteMark } from './noteBlocks'
 let editor: Editor
 let mount: HTMLElement
 const start = (content: string) => {
@@ -14,6 +14,58 @@ const start = (content: string) => {
 afterEach(() => { editor?.destroy(); mount?.remove() })
 
 describe('note block transactions', () => {
+  it('duplicates every selected top-level block, preserving their order and one-step undo', () => {
+    const current = start('<p>First</p><blockquote><p><strong>Quote</strong></p></blockquote><p>Last</p>')
+    const before = current.getJSON()
+    const blocks = topLevelBlocks(current.state.doc)
+    current.commands.setTextSelection({ from: 1, to: blocks[1].pos + 4 })
+    expect(duplicateSelectedNoteBlocks(current)).toBe(true)
+    expect(current.getJSON().content?.slice(2, 4)).toEqual(before.content?.slice(0, 2))
+    current.commands.undo()
+    expect(current.getJSON()).toEqual(before)
+  })
+  it('duplicates a complete nested block and deletes exactly one copy with separate undo steps', () => {
+    const current = start('<p>Before</p><blockquote><p><strong>Rich</strong></p><p>Context</p></blockquote><p>After</p>')
+    const before = current.getJSON()
+    const block = topLevelBlocks(current.state.doc)[1]
+    expect(duplicateNoteBlock(current, block.pos)).toBe(true)
+    expect(current.getJSON().content?.[2]).toEqual(before.content?.[1])
+    const duplicated = current.getJSON()
+    expect(deleteNoteBlock(current, topLevelBlocks(current.state.doc)[2].pos)).toBe(true)
+    expect(current.getJSON()).toEqual(before)
+    current.commands.undo()
+    expect(current.getJSON()).toEqual(duplicated)
+    current.commands.undo()
+    expect(current.getJSON()).toEqual(before)
+    current.commands.redo()
+    expect(current.getJSON()).toEqual(duplicated)
+  })
+
+  it('leaves an editable paragraph when deleting the only block and restores the exact original on undo', () => {
+    const current = start('<p><strong>Only block</strong></p>')
+    const before = current.getJSON()
+    expect(deleteNoteBlock(current, 0)).toBe(true)
+    expect(current.state.doc.firstChild?.type.name).toBe('paragraph')
+    expect(current.getText()).toBe('')
+    current.commands.insertContent('New')
+    current.commands.undo()
+    expect(current.getText()).toBe('')
+    current.commands.undo()
+    expect(current.getJSON()).toEqual(before)
+  })
+
+  it('separates rapid typing and formatting so undo does not discard the typed words', () => {
+    const current = start('<p>Before</p>')
+    current.commands.setTextSelection(7)
+    current.commands.insertContent(' typed')
+    current.commands.setTextSelection({ from: 8, to: 13 })
+    expect(toggleNoteMark(current, 'bold')).toBe(true)
+    current.commands.undo()
+    expect(current.getText()).toBe('Before typed')
+    expect(current.getHTML()).not.toContain('<strong>')
+    current.commands.undo()
+    expect(current.getText()).toBe('Before')
+  })
   it('moves a rich block intact, preserves selection, and supports exact undo/redo', () => {
     const current = start('<p>First</p><blockquote><p><strong>Second</strong></p><p>Context</p></blockquote><p>Third</p>')
     const before = current.getJSON()

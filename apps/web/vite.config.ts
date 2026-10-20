@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config'
+import { isolatedDevCache } from './tooling/devCache'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { visualizer } from 'rollup-plugin-visualizer'
@@ -44,6 +45,7 @@ const platformInjection = (mode: string) => {
 export default defineConfig(({ mode }) => ({
   worker: { format: 'es' },
   plugins: [
+    isolatedDevCache(),
     react(),
     platformInjection(mode),
     mode === 'desktop' ? null : versionedServiceWorker,

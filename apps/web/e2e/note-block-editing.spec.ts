@@ -16,6 +16,73 @@ const setup = async (page: Page, contentMd = 'First paragraph\n\nSecond paragrap
   return page.locator('.ProseMirror')
 }
 
+const selectFirstParagraph = async (page: Page) => {
+  const paragraph = page.locator('.ProseMirror p').first()
+  await paragraph.click()
+  await paragraph.evaluate((element) => {
+    const range = document.createRange()
+    range.selectNodeContents(element)
+    const selection = window.getSelection()!
+    selection.removeAllRanges()
+    selection.addRange(range)
+  })
+  await expect(page.locator('.note-selection-menu')).toBeVisible()
+}
+
+test('text color retains selection, supports undo/redo and survives save and reload', async ({ page }) => {
+  const editor = await setup(page)
+  await selectFirstParagraph(page)
+  await page.locator('.note-selection-menu').getByRole('button', { name: 'Text color', exact: true }).click()
+  await page.locator('.note-text-color-menu').getByRole('button', { name: 'Red', exact: false }).click()
+  await expect(editor.locator('p').first().locator('span')).toHaveCSS('color', 'rgb(212, 76, 71)')
+  await expect(editor.locator('p').nth(1).locator('span')).toHaveCount(0)
+  await expect(editor).toBeFocused()
+  await page.keyboard.press('ControlOrMeta+Z')
+  await expect(editor.locator('span[style*="color"]')).toHaveCount(0)
+  await page.keyboard.press('ControlOrMeta+Shift+Z')
+  await expect(editor.locator('p').first().locator('span')).toHaveCSS('color', 'rgb(212, 76, 71)')
+  await expect.poll(() => page.evaluate(async () => {
+    const { notesRepo } = await import('/src/data/repositories/notesRepo.ts')
+    const id = new URL(location.href).searchParams.get('note')!
+    const note = (await notesRepo.list()).find((note) => note.id === id)
+    return JSON.stringify(note?.contentJson).includes('#d44c47')
+  })).toBe(true)
+  await page.reload()
+  await expect(editor.locator('p').first().locator('span')).toHaveCSS('color', 'rgb(212, 76, 71)')
+  await selectFirstParagraph(page)
+  await page.locator('.note-editor__toolbar-inline').getByRole('button', { name: 'Text color', exact: true }).click()
+  await page.locator('.note-text-color-menu').getByRole('button', { name: 'Default', exact: false }).click()
+  await expect(editor.locator('span[style*="color"]')).toHaveCount(0)
+  await selectFirstParagraph(page)
+  await page.locator('.note-selection-menu').getByRole('button', { name: 'Text color', exact: true }).click()
+  const search = page.getByPlaceholder('Search title, content, or tag')
+  await search.click()
+  await expect(page.locator('.note-text-color-menu')).toHaveCount(0)
+  await expect(search).toBeFocused()
+})
+
+test('Chinese text color palette fits mobile and keyboard Escape returns to the selection', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.addInitScript(() => localStorage.setItem('workbench.ui.language', 'zh'))
+  const editor = await setup(page)
+  await selectFirstParagraph(page)
+  await page.locator('.note-selection-menu').getByRole('button', { name: '文字颜色', exact: true }).click()
+  const palette = page.locator('.note-text-color-menu')
+  await expect(palette).toBeVisible()
+  await expect(palette.getByRole('button').first()).toBeFocused()
+  await page.keyboard.press('End')
+  await expect(palette.getByRole('button', { name: '红色' })).toBeFocused()
+  const rect = (await palette.boundingBox())!
+  expect(rect.x).toBeGreaterThanOrEqual(0)
+  expect(rect.x + rect.width).toBeLessThanOrEqual(390)
+  expect(rect.y + rect.height).toBeLessThanOrEqual(844)
+  await page.screenshot({ path: '../../artifacts/note-text-color-2026-10-19/palette-zh-mobile.png' })
+  await page.keyboard.press('Escape')
+  await expect(palette).toHaveCount(0)
+  await expect(editor).toBeFocused()
+  await expect.poll(() => page.evaluate(() => window.getSelection()?.toString())).toBe('First paragraph')
+})
+
 test('selection menu applies formatting and conversion in place, retaining text and undo', async ({ page }) => {
   const editor = await setup(page)
   await editor.locator('p').first().click()

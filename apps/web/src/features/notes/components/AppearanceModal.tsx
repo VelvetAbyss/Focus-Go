@@ -2,6 +2,7 @@ import { X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { NoteAppearanceSettings, NoteFontFamily, NotePaperBg } from '../../../data/models/types'
 import { useI18n } from '../../../shared/i18n/useI18n'
+import { useNotePanelBounds } from './useNotePanelBounds'
 
 type Props = {
   open: boolean
@@ -23,6 +24,7 @@ export default function AppearanceModal({ open, settings, onClose, onUpdate }: P
   const { t } = useI18n()
   const [rendered, setRendered] = useState(open)
   const [visible, setVisible] = useState(open)
+  const panelRef = useNotePanelBounds(rendered && open, 'appearance')
 
   useEffect(() => {
     if (open) {
@@ -38,10 +40,10 @@ export default function AppearanceModal({ open, settings, onClose, onUpdate }: P
   if (!rendered) return null
 
   return (
-    <div data-note-floating-panel="appearance" data-state={visible ? 'open' : 'closed'} className="note-page__panel note-page__panel--wide">
+    <div ref={panelRef} data-note-floating-panel="appearance" data-state={visible ? 'open' : 'closed'} className="note-page__panel note-page__panel--wide">
       <div className="flex items-center justify-between px-4 pb-2 pt-3">
         <h2 className="type-section-title">{t('notes.appearance')}</h2>
-        <button type="button" onClick={onClose} className="rounded-lg p-1.5 transition-colors hover:bg-accent">
+        <button type="button" onClick={onClose} aria-label={t('common.close')} className="rounded-lg p-1.5 transition-colors hover:bg-accent">
           <X size={16} />
         </button>
       </div>
@@ -156,7 +158,7 @@ function SliderSetting({
         <label className="text-label font-medium text-muted-foreground">{label}</label>
         <span className="text-meta text-muted-foreground">{display}</span>
       </div>
-      <input type="range" min={min} max={max} step={step} value={value} onChange={(event) => onChange(parseFloat(event.target.value))} className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-accent accent-foreground" />
+      <input type="range" aria-label={label} min={min} max={max} step={step} value={value} onChange={(event) => onChange(parseFloat(event.target.value))} className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-accent accent-foreground" />
     </div>
   )
 }

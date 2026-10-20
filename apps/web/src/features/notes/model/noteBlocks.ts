@@ -11,6 +11,15 @@ const historyEditors = new WeakSet<Editor>()
 const actionSelectionKey = Symbol('focusgo-note-action-selection')
 const snapshot = (editor: Editor): ActionSnapshot => ({ doc: editor.state.doc, selection: editor.state.selection.toJSON() })
 
+/** A popover can blur contenteditable; establish the clicked caret before it refocuses. */
+export const setNoteSelectionFromPointer = (editor: Editor, event: PointerEvent) => {
+  if (event.button !== 0 || !(event.target instanceof Node) || !editor.view.dom.contains(event.target)) return
+  const hit = editor.view.posAtCoords({ left: event.clientX, top: event.clientY })
+  if (!hit) return
+  const anchor = event.shiftKey ? editor.state.selection.anchor : hit.pos
+  editor.commands.setTextSelection({ from: anchor, to: hit.pos })
+}
+
 const restoreActionSelection = (editor: Editor, selection: Record<string, unknown>) => {
   try {
     const next = Selection.fromJSON(editor.state.doc, selection)
@@ -209,12 +218,62 @@ export const moveCurrentNoteBlock = (editor: Editor, direction: -1 | 1) => {
   return moveNoteBlock(editor, blocks[index].pos, direction === -1 ? blocks[index - 1].pos : blocks[index + 1].pos + blocks[index + 1].node.nodeSize)
 }
 
+export const duplicateNoteBlock = (editor: Editor, pos: number) => {
+  if (editor.view.composing || !editor.isEditable) return false
+  const source = topLevelBlocks(editor.state.doc).find(block => block.pos === pos)
+  if (!source) return false
+  const end = pos + source.node.nodeSize
+  return runNoteAction(editor, chain => chain.command(({ tr }) => {
+    // A duplicate needs fresh node identities for the Yjs binding; reusing the
+    // source subtree aliases the two copies in its ProseMirror-to-Y mapping.
+    tr.insert(end, editor.schema.nodeFromJSON(source.node.toJSON()))
+    tr.setSelection(Selection.near(tr.doc.resolve(end + 1)))
+    return true
+  }))
+}
+
+export const duplicateSelectedNoteBlocks = (editor: Editor) => {
+  if (editor.view.composing || !editor.isEditable) return false
+  const { selection } = editor.state
+  if (selection.empty) return selection.$from.depth > 0 && duplicateNoteBlock(editor, selection.$from.before(1))
+  const blocks = topLevelBlocks(editor.state.doc).filter(block => block.pos < selection.to && block.pos + block.node.nodeSize > selection.from)
+  if (!blocks.length) return false
+  const end = blocks.at(-1)!.pos + blocks.at(-1)!.node.nodeSize
+  const fragment = Fragment.fromArray(blocks.map(block => editor.schema.nodeFromJSON(block.node.toJSON())))
+  return runNoteAction(editor, chain => chain.command(({ tr }) => {
+    tr.insert(end, fragment)
+    tr.setSelection(TextSelection.between(tr.doc.resolve(end + 1), tr.doc.resolve(end + fragment.size - 1)))
+    return true
+  }))
+}
+
+export const deleteNoteBlock = (editor: Editor, pos: number) => {
+  if (editor.view.composing || !editor.isEditable) return false
+  const source = topLevelBlocks(editor.state.doc).find(block => block.pos === pos)
+  if (!source) return false
+  return runNoteAction(editor, chain => chain.command(({ tr }) => {
+    tr.delete(pos, pos + source.node.nodeSize)
+    tr.setSelection(Selection.near(tr.doc.resolve(Math.min(pos, tr.doc.content.size))))
+    return true
+  }))
+}
+
+export const toggleNoteMark = (editor: Editor, type: string) => {
+  if (editor.view.composing || !editor.isEditable || !editor.schema.marks[type]) return false
+  return runNoteAction(editor, chain => chain.toggleMark(type))
+}
+
 export const NoteBlockMovement = Extension.create({
   name: 'focusgoNoteBlockMovement',
   addKeyboardShortcuts() {
     return {
+      ...Object.fromEntries([
+        ['Mod-b', 'bold'], ['Mod-i', 'italic'], ['Mod-u', 'underline'], ['Mod-e', 'code'],
+        ['Mod-Shift-s', 'strike'], ['Mod-.', 'superscript'], ['Mod-,', 'subscript'],
+      ].map(([key, mark]) => [key, () => toggleNoteMark(this.editor, mark)])),
       'Alt-Shift-ArrowUp': () => moveCurrentNoteBlock(this.editor, -1),
       'Alt-Shift-ArrowDown': () => moveCurrentNoteBlock(this.editor, 1),
+      'Mod-d': () => duplicateSelectedNoteBlocks(this.editor),
     }
   },
 })

@@ -33,6 +33,7 @@ export interface HeadingDropdownMenuProps
    * Whether the dropdown should use a modal
    */
   modal?: boolean
+  contentProps?: React.ComponentProps<typeof DropdownMenuContent>
 }
 
 /**
@@ -52,6 +53,7 @@ export const HeadingDropdownMenu = forwardRef<
       onOpenChange,
       children,
       modal = true,
+      contentProps,
       ...buttonProps
     },
     ref
@@ -106,7 +108,7 @@ export const HeadingDropdownMenu = forwardRef<
           </Button>
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent align="start">
+        <DropdownMenuContent align="start" {...contentProps}>
           <DropdownMenuGroup>
             {levels.map((level) => (
               <DropdownMenuItem key={`heading-${level}`} asChild>

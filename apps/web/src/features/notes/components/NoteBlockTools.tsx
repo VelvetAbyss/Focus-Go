@@ -2,10 +2,11 @@ import { autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/react
 import { createPortal } from 'react-dom'
 import type { Editor } from '@tiptap/core'
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model'
-import { ArrowDown, ArrowUp, GripVertical } from 'lucide-react'
+import { ArrowDown, ArrowUp, Copy, GripVertical, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../../../shared/i18n/useI18n'
-import { convertWholeNoteBlock, moveNoteBlock, NOTE_BLOCK_TYPES, noteBlockLabels, topLevelBlocks } from '../model/noteBlocks'
+import { convertWholeNoteBlock, deleteNoteBlock, duplicateNoteBlock, moveNoteBlock, NOTE_BLOCK_TYPES, noteBlockLabels, topLevelBlocks } from '../model/noteBlocks'
+import { noteLocalRect } from '../model/noteOverlayGeometry'
 
 type Anchor = { pos: number; left: number; top: number }
 type Drag = { pos: number; doc: ProseMirrorNode }
@@ -20,6 +21,7 @@ export const NoteBlockTools = ({ editor, disabled }: { editor: Editor; disabled:
     middleware: [offset(4), flip(), shift({ padding: 12 })], whileElementsMounted: autoUpdate,
   })
   const openRef = useRef(false)
+  const anchorPos = useRef<number | null>(null)
   const dragRef = useRef<Drag | null>(null)
   const dropRef = useRef<{ boundary: number; top: number; left: number; width: number } | null>(null)
   const [drop, setDrop] = useState<{ boundary: number; top: number; left: number; width: number } | null>(null)
@@ -33,8 +35,14 @@ export const NoteBlockTools = ({ editor, disabled }: { editor: Editor; disabled:
       const node = editor.view.nodeDOM(pos)
       if (!(node instanceof HTMLElement) || editor.view.composing) { setAnchor(null); return }
       const bounds = node.getBoundingClientRect()
-      const owner = parent.getBoundingClientRect()
-      setAnchor({ pos, left: Math.max(0, bounds.left - owner.left - 30), top: bounds.top - owner.top })
+      const surface = editor.view.dom.closest('.note-editor__surface')?.getBoundingClientRect()
+      if (surface && (bounds.top < surface.top - 4 || bounds.top >= surface.bottom)) {
+        setAnchor(null); setOpen(false); openRef.current = false
+        return
+      }
+      const local = noteLocalRect(parent, bounds)
+      anchorPos.current = pos
+      setAnchor({ pos, left: Math.max(0, local.left - 30), top: local.top })
     }
     const fromSelection = () => {
       if (openRef.current || dragRef.current) return
@@ -48,7 +56,11 @@ export const NoteBlockTools = ({ editor, disabled }: { editor: Editor; disabled:
     }
     let frame = 0
     const reposition = () => {
-      if (!frame) frame = requestAnimationFrame(() => { frame = 0; fromSelection() })
+      if (!frame) frame = requestAnimationFrame(() => {
+        frame = 0
+        if (openRef.current && anchorPos.current !== null) locate(anchorPos.current)
+        else fromSelection()
+      })
     }
     const startComposition = () => { setAnchor(null); setOpen(false); openRef.current = false; dragRef.current = null; setDrop(null) }
     const outside = (event: PointerEvent) => {
@@ -89,17 +101,17 @@ export const NoteBlockTools = ({ editor, disabled }: { editor: Editor; disabled:
       event.preventDefault()
       if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
       const blocks = topLevelBlocks(editor.state.doc)
-      const owner = parent.getBoundingClientRect()
       let candidate: { boundary: number; top: number; left: number; width: number } | null = null
       for (const block of blocks) {
         const element = editor.view.nodeDOM(block.pos)
         if (!(element instanceof HTMLElement)) continue
         const rect = element.getBoundingClientRect()
+        const local = noteLocalRect(parent, rect)
         if (event.clientY < rect.top + rect.height / 2) {
-          candidate = { boundary: block.pos, top: rect.top - owner.top, left: rect.left - owner.left, width: rect.width }
+          candidate = { boundary: block.pos, top: local.top, left: local.left, width: local.width }
           break
         }
-        candidate = { boundary: block.pos + block.node.nodeSize, top: rect.bottom - owner.top, left: rect.left - owner.left, width: rect.width }
+        candidate = { boundary: block.pos + block.node.nodeSize, top: local.top + local.height, left: local.left, width: local.width }
       }
       dropRef.current = candidate
       setDrop(candidate)
@@ -165,14 +177,17 @@ export const NoteBlockTools = ({ editor, disabled }: { editor: Editor; disabled:
           setOpen(false); openRef.current = false
         }}
         onDragEnd={() => { dragRef.current = null; setDrop(null) }}><GripVertical size={16} /></button>
-      {open ? createPortal(<div ref={refs.setFloating} style={floatingStyles} className="note-block-tools__menu" role="menu" aria-label={t('notes.block.actions')}>
+      {open ? createPortal(<div ref={refs.setFloating} style={{ ...floatingStyles, zIndex: 66 }}>
+      <div className="note-block-tools__menu" role="menu" aria-label={t('notes.block.actions')}>
         <button type="button" role="menuitem" disabled={index <= 0} onPointerDown={(event) => event.preventDefault()} onClick={() => move(-1)}><ArrowUp size={15} />{t('notes.block.up')}</button>
         <button type="button" role="menuitem" disabled={index >= blocks.length - 1} onPointerDown={(event) => event.preventDefault()} onClick={() => move(1)}><ArrowDown size={15} />{t('notes.block.down')}</button>
+        <button type="button" role="menuitem" onClick={() => { duplicateNoteBlock(editor, anchor.pos); setOpen(false); openRef.current = false }}><Copy size={15} />{t('notes.block.duplicate')}</button>
+        <button type="button" role="menuitem" onClick={() => { deleteNoteBlock(editor, anchor.pos); setOpen(false); openRef.current = false }}><Trash2 size={15} />{t('notes.block.delete')}</button>
         {canConvert ? <><div className="note-block-tools__heading">{t('notes.block.convert')}</div>
           {NOTE_BLOCK_TYPES.map((type) => <button type="button" role="menuitem" key={type} onPointerDown={(event) => event.preventDefault()}
             onClick={() => { convertWholeNoteBlock(editor, anchor.pos, type); setOpen(false); openRef.current = false }}>{t(noteBlockLabels[type])}</button>)}
         </> : null}
-      </div>, document.body) : null}
+      </div></div>, document.body) : null}
     </div> : null}
     {drop ? <div className="note-block-drop" aria-hidden style={{ left: drop.left, top: drop.top, width: drop.width }} /> : null}
   </>

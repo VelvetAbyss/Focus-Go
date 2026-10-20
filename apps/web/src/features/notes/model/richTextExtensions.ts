@@ -1,5 +1,6 @@
 import type { AnyExtension } from '@tiptap/core'
 import { Highlight } from '@tiptap/extension-highlight'
+import { Color, TextStyle } from '@tiptap/extension-text-style'
 import { HorizontalRule } from '@tiptap/extension-horizontal-rule'
 import { TaskItem, TaskList } from '@tiptap/extension-list'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -29,6 +30,8 @@ export const createRichTextExtensions = (placeholder?: string): AnyExtension[] =
     TaskList,
     TaskItem.configure({ nested: true }),
     Highlight.configure({ multicolor: true }),
+    TextStyle,
+    Color,
     ResizableImage,
     Typography,
 

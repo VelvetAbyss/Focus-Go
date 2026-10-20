@@ -187,6 +187,35 @@ export default function NotePage() {
   const sidebarScrollRef = useRef<HTMLDivElement | null>(null)
   const browserScrollRef = useRef<HTMLDivElement | null>(null)
   const editorSurfaceRef = useRef<HTMLDivElement | null>(null)
+  const panelSelectionRef = useRef<{ range: Range; backward: boolean } | null>(null)
+  const closeNotePanel = useCallback(() => {
+    setOpenPanel(null)
+    const editable = editorSurfaceRef.current?.querySelector<HTMLElement>('.ProseMirror')
+    const snapshot = panelSelectionRef.current
+    window.requestAnimationFrame(() => {
+      if (!editable?.isConnected) return
+      editable.focus({ preventScroll: true })
+      const range = snapshot?.range
+      if (range && editable.contains(range.commonAncestorContainer)) {
+        const selection = window.getSelection()
+        if (snapshot?.backward) selection?.setBaseAndExtent(range.endContainer, range.endOffset, range.startContainer, range.startOffset)
+        else { selection?.removeAllRanges(); selection?.addRange(range) }
+      }
+    })
+  }, [])
+  useEffect(() => {
+    panelSelectionRef.current = null
+    const remember = () => {
+      const editable = editorSurfaceRef.current?.querySelector('.ProseMirror')
+      const selection = window.getSelection()
+      if (selection?.rangeCount && editable?.contains(selection.getRangeAt(0).commonAncestorContainer)) {
+        const range = selection.getRangeAt(0).cloneRange()
+        panelSelectionRef.current = { range, backward: !range.collapsed && selection.anchorNode === range.endContainer && selection.anchorOffset === range.endOffset }
+      }
+    }
+    document.addEventListener('selectionchange', remember)
+    return () => document.removeEventListener('selectionchange', remember)
+  }, [selectedNoteId])
   const creatingFromBlankRef = useRef(false)
   const activeCollectionRef = useRef<NoteSystemCollection>('notes')
   // Guards default-tag creation against racing with the first sync pull.
@@ -1089,6 +1118,9 @@ export default function NotePage() {
 
   useEffect(() => {
     if (!openPanel) return
+    const frame = window.requestAnimationFrame(() => {
+      document.querySelector<HTMLElement>(`[data-note-floating-panel="${openPanel}"][data-state="open"] button:not(:disabled)`)?.focus()
+    })
     const onPointerDown = (event: MouseEvent) => {
       const target = event.target as HTMLElement | null
       if (!target) return
@@ -1099,26 +1131,29 @@ export default function NotePage() {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing || event.keyCode === 229) return
       if (event.target instanceof Element && event.target.closest('[role="dialog"]')) return
-      setOpenPanel(null)
+      event.preventDefault()
+      closeNotePanel()
     }
     document.addEventListener('mousedown', onPointerDown)
     document.addEventListener('keydown', onKeyDown)
     return () => {
       document.removeEventListener('mousedown', onPointerDown)
       document.removeEventListener('keydown', onKeyDown)
+      window.cancelAnimationFrame(frame)
     }
-  }, [openPanel])
+  }, [openPanel, closeNotePanel])
 
   useEffect(() => {
     if (!isFullscreen) return
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing || event.keyCode === 229) return
+      if (openPanel) return
       if (event.target instanceof Element && event.target.closest('[role="dialog"]')) return
       setIsFullscreen(false)
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [isFullscreen])
+  }, [isFullscreen, openPanel])
 
   return (
     <section className="note-page-shell flex h-full max-h-full min-h-0" data-note-theme={effectiveTheme} aria-busy={isInitialLoading}>
@@ -1214,18 +1249,18 @@ export default function NotePage() {
                   <InfoPopover
                     open={openPanel === 'info'}
                     note={activeNoteForInfo}
-                    onClose={() => setOpenPanel(null)}
+                    onClose={closeNotePanel}
                     onNavigateToHeading={handleNavigateToHeading}
                     onNavigateToNote={(id) => {
                       setSelectedNoteId(id)
                       writeNoteUrl(id)
                     }}
                   />
-                  <AppearanceModal open={openPanel === 'appearance'} settings={appearance} onClose={() => setOpenPanel(null)} onUpdate={handleUpdateAppearance} />
+                  <AppearanceModal open={openPanel === 'appearance'} settings={appearance} onClose={closeNotePanel} onUpdate={handleUpdateAppearance} />
                   <ExportModal
                     open={openPanel === 'export'}
                     noteTitle={activeNote?.title.trim() || t('notes.trash.untitled')}
-                    onClose={() => setOpenPanel(null)}
+                    onClose={closeNotePanel}
                     onExportMarkdown={handleExportMarkdown}
                     onExportPdf={handleExportPdf}
                     isExportingPdf={isExportingPdf}
@@ -1258,7 +1293,7 @@ export default function NotePage() {
                 items={importItems}
                 importing={isImporting}
                 notice={importNotice}
-                onClose={() => setOpenPanel(null)}
+                onClose={closeNotePanel}
                 onFiles={handleQueueImportFiles}
                 onImport={handleRunImport}
                 onClear={() => {
