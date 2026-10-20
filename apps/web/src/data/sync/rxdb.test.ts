@@ -184,6 +184,7 @@ describe('rxdb sync migration', () => {
     expect((await db.pendingSyncChanges.toArray()).some(change => change.handedOff)).toBe(true)
     expect((await db.notes.get(note.id))?.contentMd).toBe(note.contentMd)
     expect((await db.tasks.get(task.id))?.status).toBe('done')
+    expect((await db.syncState.get('cloud-sync'))?.lastCloudConfirmedAt).toBeFalsy()
 
     connected = true
     await runRxdbSyncCycle()
@@ -192,6 +193,7 @@ describe('rxdb sync migration', () => {
     expect((await db.notes.toArray()).filter((row) => row.id === note.id)).toHaveLength(1)
     expect((await db.tasks.toArray()).filter((row) => row.id === task.id)).toHaveLength(1)
     expect(await db.pendingSyncChanges.count()).toBe(0)
+    expect((await db.syncState.get('cloud-sync'))?.lastCloudConfirmedAt).toBeGreaterThan(0)
     onlineSpy.mockRestore()
   }, 30_000)
 
@@ -297,6 +299,24 @@ describe('rxdb sync migration', () => {
       return (body.rows ?? []).map((row: { newDocumentState: { id: string } }) => row.newDocumentState.id)
     })
     expect(pushedIds).toContain('note-imported')
+  })
+
+  it('withholds cloud confirmation if a received record cannot be saved locally', async () => {
+    let delivered = false
+    fetchMock.mockImplementation(async (input, init) => {
+      const body = init?.body ? JSON.parse(String(init.body)) : {}
+      if (String(input).includes('/sync/rxdb/pull')) {
+        const documents = body.entityType === 'tasks' && !delivered
+          ? [{ id: 'failed-local-save', title: 'Cloud task', updatedAt: 20, createdAt: 1, _deleted: false }] : []
+        if (documents.length) delivered = true
+        return { ok: true, json: async () => ({ documents, checkpoint: documents.length ? { id: 'failed-local-save', updatedAt: 20 } : body.checkpoint ?? null, blobs: [] }) } as Response
+      }
+      return { ok: true, json: async () => ({ conflicts: [], blobs: [] }) } as Response
+    })
+    vi.spyOn(db.tasks, 'put').mockRejectedValueOnce(new Error('QuotaExceededError'))
+    await expect(runRxdbSyncCycle()).rejects.toThrow('save failed')
+    expect((await db.syncState.get('cloud-sync'))?.status).toBe('error')
+    expect((await db.syncState.get('cloud-sync'))?.lastCloudConfirmedAt).toBeFalsy()
   })
 
   it('pulls remote rows through the new endpoint and writes them back to Dexie tables', async () => {

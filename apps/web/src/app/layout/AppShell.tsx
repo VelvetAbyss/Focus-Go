@@ -7,6 +7,7 @@ import {
   resolveTheme,
 } from '../../shared/theme/theme'
 import Sidebar from './Sidebar'
+import SyncSafetyStatus from './SyncSafetyStatus'
 import AmbientSceneStage from './AmbientSceneStage'
 import { useTaskReminderEngine } from '../../features/tasks/useTaskReminderEngine'
 import { useQuickCapture } from '../../features/tasks/application/useQuickCapture'
@@ -224,6 +225,7 @@ const AppShell = ({ children }: AppShellProps) => {
             />
             <main className="focus-shell__main flex min-h-0 flex-1 flex-col">
               <section className={`focus-shell__route-layer flex min-h-0 flex-1 flex-col ${isFullBleedRoute ? 'focus-shell__route-layer--full-bleed' : ''}`}>
+                <SyncSafetyStatus />
                 <AuthInteractionGate>
                   {children}
                 </AuthInteractionGate>

@@ -44,3 +44,6 @@ jobs:
 
       - name: Smoke test production build
         run: npm run test:smoke --workspace @focus-go/web
+
+      - name: Verify data safety and recovery in Chromium
+        run: npm exec --workspace @focus-go/web -- playwright test --config playwright.sync-safety.config.ts

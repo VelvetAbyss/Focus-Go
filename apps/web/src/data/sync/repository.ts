@@ -1,4 +1,5 @@
 import Dexie from 'dexie'
+import { assertLocalDataSafeToRemove } from './safety'
 import { getAuth } from '../../store/auth'
 import { suppressSyncCapture } from './capture'
 import { persistPendingSyncChange } from './pendingChanges'
@@ -38,21 +39,21 @@ const buildInitialState = (): SyncState => {
 
 export const syncStateRepo = {
   async get(): Promise<SyncState> {
-    const current = await db.syncState.get(SYNC_STATE_ID)
-    if (current) return current
-    const created = buildInitialState()
-    await db.syncState.put(created)
-    return created
+    return db.transaction('rw', db.syncState, async () => {
+      const current = await db.syncState.get(SYNC_STATE_ID)
+      if (current) return current
+      const created = buildInitialState()
+      await db.syncState.put(created)
+      return created
+    })
   },
   async patch(patch: Partial<SyncState>): Promise<SyncState> {
-    const current = await this.get()
-    const next: SyncState = {
-      ...current,
-      ...patch,
-      id: SYNC_STATE_ID,
-      updatedAt: now(),
-    }
-    await db.syncState.put(next)
+    const next = await db.transaction('rw', db.syncState, async () => {
+      const current = await this.get()
+      const value: SyncState = { ...current, ...patch, id: SYNC_STATE_ID, updatedAt: now() }
+      await db.syncState.put(value)
+      return value
+    })
     emitWindowEvent(SYNC_STATUS_CHANGED_EVENT)
     return next
   },
@@ -126,14 +127,19 @@ export const restampLocalSnapshotForRestore = async () => {
   })
 }
 
-export const clearLocalUserData = async () => {
+export const clearLocalUserData = async (allTables = false) => {
   const authOwner = getAuth()?.user?.id
   const symbolicOwner = typeof authOwner === 'string' && authOwner ? authOwner : null
-  // The account menu closes this connection through requestCrossTabDbReset first.
+  // Do not close the connection until the safety check and clear succeed.
   if (!db.isOpen()) await db.open()
-  const entityTableObjects = Object.values(SYNC_ENTITY_TABLES).map((name) => db.table(name))
-  await db.transaction('rw', [...entityTableObjects, db.syncState, db.syncBlobCache, db.taskTrash, db.pendingSyncChanges, db.localSymbolic], async () => {
+  const entityTableObjects = allTables ? db.tables : Object.values(SYNC_ENTITY_TABLES).map((name) => db.table(name))
+  await db.transaction('rw', [...entityTableObjects, db.syncState, db.syncConflicts, db.syncBlobCache, db.taskTrash, db.pendingSyncChanges, db.localSymbolic], async () => {
+    await assertLocalDataSafeToRemove(allTables)
     suppressSyncCapture()
+    if (allTables) {
+      for (const table of db.tables) await table.clear()
+      return
+    }
     for (const tableName of Object.values(SYNC_ENTITY_TABLES)) {
       await db.table(tableName).clear()
     }
@@ -151,4 +157,25 @@ export const clearLocalUserData = async () => {
   const { resetRxdbSyncDatabase } = await import('./rxdb')
   await resetRxdbSyncDatabase()
   localStorage.removeItem(LOCAL_ACCOUNT_OWNER_KEY)
+}
+
+/** A remote wipe was attempted but a new local edit prevented the final local clear. */
+export const recoverAfterInterruptedReset = async () => {
+  await db.transaction('rw', [db.syncState, db.localSymbolic], async () => {
+    await syncStateRepo.patch({ lastCloudConfirmedAt: null, cloudConfirmedAccountId: null, status: 'error',
+      lastError: 'Data reset interrupted; local records retained and full upload required' })
+    const owner = getAuth()?.user?.id
+    if (typeof owner === 'string' && owner) {
+      for (const row of await db.localSymbolic.where('ownerId').equals(owner).toArray()) {
+        if (row.kind === 'sync-meta') await db.localSymbolic.delete([owner, row.id])
+        else if (!(row.kind === 'profile' && row.deleted && row.dirty === false)) {
+          await db.localSymbolic.put({ ...row, dirty: true, revision: 0, pending: undefined, operationId: crypto.randomUUID() })
+        }
+      }
+    }
+  })
+  // Forget replication assumptions, never the durable outbox or local entities.
+  // The next full cycle seeds every collection again against the now-empty server.
+  const { resetRxdbSyncDatabase } = await import('./rxdb')
+  await resetRxdbSyncDatabase()
 }

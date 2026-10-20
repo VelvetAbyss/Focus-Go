@@ -79,7 +79,10 @@ import {
 import { BACKUP_SUMMARY_KINDS, countLocalData, summarizeBackup, type BackupCounts } from '../../shared/backup/backupSummary'
 import { useSyncActions, useSyncStatus } from '../../data/sync/service'
 import { restampLocalSnapshotForRestore } from '../../data/sync/repository'
-import { requestRxdbSyncReset, resetRxdbSyncDatabase } from '../../data/sync/rxdb'
+import DataSafetyNotice from '../layout/DataSafetyNotice'
+import { prepareLocalDataRemoval } from '../../data/sync/safety'
+import { clearLocalUserData, recoverAfterInterruptedReset } from '../../data/sync/repository'
+import { resetRxdbSyncDatabase } from '../../data/sync/rxdb'
 import { wipeServerData } from '../../data/sync/wipeServerData'
 import { listSyncConflicts, markSyncConflictReviewed, restoreNoteConflictAsCopy, type SyncConflictRecord } from '../../data/sync/conflicts'
 import { getAuth, useCloudSyncQuota, useIsLoggedIn } from '../../store/auth'
@@ -109,7 +112,6 @@ const LoginModal = lazy(() => import('../layout/LoginModal'))
 import { appIntlLocale } from '../../shared/i18n/format'
 import ActiveIndicator from '../../shared/motion/ActiveIndicator'
 import { DURATION, EASE } from '../../shared/motion/tokens'
-const RESET_TIMEOUT_MS = 30_000
 
 const conflictPreview = (document: Record<string, unknown>, entityType: string) => {
   if (entityType === 'notes') {
@@ -600,7 +602,10 @@ const SettingsRoute = () => {
   const [syncConflicts, setSyncConflicts] = useState<SyncConflictRecord[]>([])
   const [restoringConflictId, setRestoringConflictId] = useState<string | null>(null)
   const { enabled: cloudSyncEnabled, setEnabled: setCloudSyncEnabled, syncNow } = useSyncActions()
-  const [activeSection, setActiveSection] = useState<BaseSettingsSection>(() => location.hash === '#sounds' ? 'experience' : 'appearance')
+  const [activeSection, setActiveSection] = useState<BaseSettingsSection>(() => new URLSearchParams(location.search).get('section') === 'data' ? 'data' : location.hash === '#sounds' ? 'experience' : 'appearance')
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get('section') === 'data') setActiveSection('data')
+  }, [location.search])
   const [layoutLocked, setLayoutLocked] = useState(() => readLayoutLocked())
   const [autoPage, setAutoPage] = useState(() => readAutoPageEnabled())
   const [theme, setTheme] = useState<ThemeSelection>('system')
@@ -709,9 +714,10 @@ const SettingsRoute = () => {
   const syncStatusLabel = !cloudSyncEnabled
     ? t('settings.data.sync.status.paused')
     : syncState ? t(`settings.data.sync.status.${syncState.status}`) : t('settings.data.sync.status.idle')
-  const lastSyncedLabel = syncState?.lastPulledAt
-    ? t('settings.data.sync.lastSynced', { time: new Date(syncState.lastPulledAt).toLocaleString(appIntlLocale()) })
-    : t('settings.data.sync.lastSynced.never')
+  const lastSyncedLabel = syncState?.lastCloudConfirmedAt && syncState.cloudConfirmedAccountId === getAuth()?.user?.id
+    ? `${language === 'zh' ? '最近云端确认：' : 'Last cloud confirmation: '}${new Date(syncState.lastCloudConfirmedAt).toLocaleString(appIntlLocale())}`
+    : (language === 'zh' ? '尚未获得云端确认' : 'Awaiting cloud confirmation')
+
 
   const openSection = (section: SettingsSection) => {
     if (section === 'legal') {
@@ -871,16 +877,21 @@ const SettingsRoute = () => {
     setWeatherManualCity(committed)
   }
 
+  const [showDataSafety, setShowDataSafety] = useState(false)
+
   const resetApp = async () => {
+    let wipeAttempted = false
     setIsResetting(true)
-    pauseSymbolicSyncForReset()
     try {
+      await prepareLocalDataRemoval(true)
+      pauseSymbolicSyncForReset()
       // If signed in, wipe the server copy FIRST. Otherwise the next sync cycle
       // after the local reset pulls every "old" row back down and the user sees
       // their reset undone. Bail loudly on failure rather than silently leaving
       // local + server out of sync.
       if (getAuth()?.user) {
         try {
+          wipeAttempted = true
           await wipeServerData()
         } catch (err) {
           throw new Error(
@@ -890,34 +901,22 @@ const SettingsRoute = () => {
           )
         }
       }
-      requestRxdbSyncReset()
+      await clearLocalUserData(true)
       requestCrossTabDbReset()
-      await new Promise((resolve) => window.setTimeout(resolve, 150))
-      await Promise.race([
-        resetRxdbSyncDatabase(),
-        new Promise((_, reject) => window.setTimeout(() => reject(new Error(
-          language === 'zh'
-            ? '重置被其他 Focus&go 标签页阻塞，请关闭其他标签页后重试。'
-            : 'Reset is blocked by another Focus&go tab. Close the other tabs and try again.'
-        )), RESET_TIMEOUT_MS)),
-      ])
-      await Promise.race([
-        db.delete({ disableAutoOpen: false }),
-        new Promise((_, reject) => window.setTimeout(() => reject(new Error(
-          language === 'zh'
-            ? '本地数据库仍被占用，请关闭其他 Focus&go 标签页后重试。'
-            : 'Local database is still in use. Close the other Focus&go tabs and try again.'
-        )), RESET_TIMEOUT_MS)),
-      ])
       localStorage.clear()
       sessionStorage.clear()
       window.location.reload()
     } catch (error) {
+      setShowDataSafety(true)
+      if (wipeAttempted) {
+        try { await recoverAfterInterruptedReset(); void syncNow() }
+        catch { /* The confirmation was invalidated; the retained data remains available for export. */ }
+      }
       resumeSymbolicSyncAfterResetFailure()
       toast.push({
         variant: 'error',
         message: error instanceof Error
-          ? error.message
+          ? (error.message === 'local_data_not_cloud_confirmed' ? (language === 'zh' ? '重置已暂停：请先核对同步或导出本机备份。' : 'Reset paused. Review sync or export a device backup first.') : error.message)
           : (language === 'zh' ? '重置失败，请稍后重试。' : 'Reset failed. Please try again.'),
       })
     } finally {
@@ -1659,6 +1658,7 @@ const SettingsRoute = () => {
 
                       {resolvedSection === 'data' ? (
                         <>
+                          {showDataSafety ? <DataSafetyNotice onClose={() => setShowDataSafety(false)} /> : null}
                           <SettingRow
                             icon={Database}
                             title={t('settings.data.sync.title')}

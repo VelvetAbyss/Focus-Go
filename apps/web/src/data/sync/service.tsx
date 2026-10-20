@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { refreshAuthProfile, useIsLoggedIn } from '../../store/auth'
+import { getAuth, refreshAuthProfile, useIsLoggedIn } from '../../store/auth'
 import { dispatchSyncDataUpdated, SYNC_DATA_UPDATED_EVENT, SYNC_STATUS_CHANGED_EVENT, type SyncDataUpdatedDetail } from './constants'
 import type { SyncEntityType } from './types'
 import { syncStateRepo } from './repository'
@@ -9,6 +9,7 @@ import { seedDatabase } from '../seed'
 import { SYNC_LOCAL_COMMIT_EVENT } from './capture'
 import { subscribeSyncStream } from './stream'
 import { db } from '../db'
+import { symbolicNeedsUpload } from './safety'
 
 type SyncContextValue = {
   state: SyncState | null
@@ -68,6 +69,14 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
     setEnabledState(nextEnabled)
   }, [])
 
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === CLOUD_SYNC_ENABLED_KEY) setEnabledState(readCloudSyncEnabled())
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
+
   const lastSyncEndedAtRef = useRef(0)
   const consecutiveErrorsRef = useRef(0)
   const syncNow = useCallback(async (trigger: string = 'manual', entities?: SyncEntityType[]) => {
@@ -100,11 +109,20 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { runRxdbSyncCycle } = await loadRxdbSync()
       await runRxdbSyncCycle(entities)
+      const accountId = getAuth()?.user?.id
+      if (accountId) {
+        const symbolic = await db.localSymbolic.where('ownerId').equals(accountId).toArray()
+        if (symbolic.some(symbolicNeedsUpload)) {
+          const { syncSymbolicNow } = await import('../../features/symbolic/sync')
+          await syncSymbolicNow(accountId)
+        }
+      }
       await refreshAuthProfile()
       consecutiveErrorsRef.current = 0
     } catch (error) {
       cycleError = error
       consecutiveErrorsRef.current += 1
+      await syncStateRepo.markStatus('error', error instanceof Error ? error.message : String(error)).catch(() => {})
     } finally {
       runningRef.current = false
       lastSyncEndedAtRef.current = Date.now()
@@ -155,6 +173,9 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { ensureRxdbSyncReady } = await loadRxdbSync()
       await ensureRxdbSyncReady()
+    } catch (error) {
+      await syncStateRepo.markStatus('error', error instanceof Error ? error.message : String(error)).catch(() => {})
+      return
     } finally {
       runningRef.current = false
       await refreshState()
