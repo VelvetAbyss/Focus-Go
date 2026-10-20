@@ -13,6 +13,7 @@ const startApi = async () => {
   let buffer = ''
   const port = await new Promise<number>((resolvePort, reject) => {
     const timeout = setTimeout(() => reject(new Error(`Sync test API did not start: ${buffer}`)), 15_000)
+    apiProcess.stderr?.on('data', chunk => { buffer += String(chunk) })
     apiProcess.stdout?.on('data', (chunk) => {
       buffer += String(chunk)
       const match = buffer.match(/\{"port":(\d+)\}/)
@@ -303,4 +304,118 @@ test('Chinese narrow dark conflict recovery works with keyboard and reduced moti
   } finally {
     await context.close().catch(() => {})
   }
+})
+
+test('data safety: unsent tasks survive logout/switch/reset attempts, then restore after clearing site data', async ({ browser }) => {
+  test.setTimeout(180_000)
+  const credentials = { email: `safety-${crypto.randomUUID()}@example.test`, password: 'test-only-password-1234' }
+  const cookie = await authRequest('sign-up/email', { ...credentials, name: 'Data Safety Test' })
+  const context = await browser.newContext({ acceptDownloads: true, serviceWorkers: 'block' })
+  try {
+    await context.addCookies([cookie])
+    await context.addInitScript(() => localStorage.setItem('workbench.ui.language', 'en'))
+    const page = await context.newPage()
+    let destructiveRequests = 0
+    page.on('request', request => { if (request.url().includes('/sign-out') || (request.method() === 'DELETE' && request.url().endsWith('/user/data'))) destructiveRequests++ })
+    console.log('DATA SAFETY: initial page')
+    await page.goto('/workspace/settings?section=data')
+    await expect(page.getByTestId('sync-safety-status')).toContainText('Cloud confirmed', { timeout: 45000 })
+    // Disable automatic scheduling and fail upload, without blocking auth or browser navigation.
+    await page.getByRole('switch', { name: 'Toggle cloud sync' }).uncheck()
+    console.log('DATA SAFETY: offline')
+    await context.setOffline(true)
+    console.log('DATA SAFETY: create task')
+    const task = await page.evaluate(async () => {
+      const { createDexieDatabaseService } = await import('/src/data/services/DexieDatabaseService.ts')
+      return createDexieDatabaseService().tasks.add({ title: 'Inspect Bestbuy image quality – recovery sentinel', description: 'Compare full-size originals and listing thumbnails', status: 'todo', priority: null, dueDate: '2026-10-21', tags: ['image-quality'], subtasks: [{ id: 'sentinel-step', title: 'Check the original image', done: false }] })
+    })
+    await expect(page.getByTestId('sync-safety-status')).toContainText(/Saved on device.*pending/)
+    await page.screenshot({ path: resolve(process.cwd(), '../../artifacts/sync-safety-2026-10-20/offline-pending-status.png'), fullPage: true })
+    console.log('DATA SAFETY: attempt logout')
+    await page.locator('.sidebar-user-panel').click()
+    const account = page.getByRole('dialog')
+    await account.getByRole('button', { name: 'Sign out', exact: true }).click()
+    await expect(page.getByTestId('data-safety-notice')).toBeVisible()
+    expect(await page.evaluate(async id => (await (await import('/src/data/db/index.ts')).db.tasks.get(id))?.title, task.id)).toBe(task.title)
+    await account.getByRole('button', { name: 'Switch Account', exact: true }).click()
+    await expect(page.getByTestId('data-safety-notice')).toBeVisible()
+    expect((await context.cookies()).some(c => c.name === cookie.name && c.value === cookie.value)).toBe(true)
+    console.log('DATA SAFETY: export')
+    await page.screenshot({ path: resolve(process.cwd(), '../../artifacts/sync-safety-2026-10-20/unsent-task-protected.png'), fullPage: true })
+    const downloadPromise = page.waitForEvent('download')
+    await page.getByRole('button', { name: 'Export device backup', exact: true }).click()
+    const backup = await downloadPromise
+    expect((await readFile((await backup.path())!)).length).toBeGreaterThan(100)
+    // Inspect the exported ZIP manifest: the sentinel and its durable upload record are both present.
+    const JSZip = (await import('jszip')).default
+    const zip = await JSZip.loadAsync(await readFile((await backup.path())!))
+    const manifest = JSON.parse(await zip.file('manifest.json')!.async('string'))
+    expect(manifest.db.tables.tasks.find((row: { id: string }) => row.id === task.id)?.title).toBe(task.title)
+    expect(manifest.db.tables.pending_sync_changes.some((row: { entityId: string }) => row.entityId === task.id)).toBe(true)
+    console.log('DATA SAFETY: reset guard')
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: 'Reset App' }).click()
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Confirm reset', exact: true }).click()
+    await expect(page.getByTestId('data-safety-notice')).toBeVisible()
+    expect(await page.evaluate(async id => !!await (await import('/src/data/db/index.ts')).db.tasks.get(id), task.id)).toBe(true)
+    expect(destructiveRequests).toBe(0)
+    console.log('DATA SAFETY: reconnect')
+    await context.setOffline(false)
+    await page.getByRole('switch', { name: 'Toggle cloud sync' }).check()
+    await expect(page.getByTestId('sync-safety-status')).toContainText('Cloud confirmed', { timeout: 45000 })
+    // Actual browser site-data removal in an isolated test context. No production user data is touched.
+    console.log('DATA SAFETY: clear site data')
+    const cdp = await context.newCDPSession(page)
+    await page.goto('about:blank')
+    await cdp.send('Storage.clearDataForOrigin', { origin: 'http://127.0.0.1:5178', storageTypes: 'all' })
+    await context.clearCookies()
+    await expect.poll(async () => cdp.send('Storage.getUsageAndQuota', { origin: 'http://127.0.0.1:5178' }).then(r => r.usage)).toBe(0)
+    const newCookie = await authRequest('sign-in/email', credentials)
+    await context.addCookies([newCookie])
+    console.log('DATA SAFETY: restore')
+    await page.goto(`/tasks?task=${task.id}`)
+    await expect(page.locator('.task-detail-title-input')).toHaveValue(task.title, { timeout: 45000 })
+    const restored = await page.evaluate(async id => (await (await import('/src/data/db/index.ts')).db.tasks.get(id)), task.id)
+    expect(restored?.id).toBe(task.id)
+    expect(restored?.title).toBe(task.title)
+    expect(restored).toMatchObject({ description: task.description, dueDate: task.dueDate, tags: task.tags, subtasks: task.subtasks, status: task.status, createdAt: task.createdAt })
+    await page.goto(`/tasks?task=${task.id}`)
+    await expect(page.locator('.task-detail-title-input')).toHaveValue(task.title)
+    await page.screenshot({ path: resolve(process.cwd(), '../../artifacts/sync-safety-2026-10-20/cleared-site-restored-task.png'), fullPage: true })
+  } finally { await context.close() }
+})
+
+
+test('data safety: interrupted reset preserves local content and rebuilds the wiped cloud', async ({ browser }) => {
+  test.setTimeout(120_000)
+  const cookie = await authRequest('sign-up/email', { email: `reset-safety-${crypto.randomUUID()}@example.test`, password: 'test-only-password-1234', name: 'Reset Safety Test' })
+  const context = await browser.newContext({ serviceWorkers: 'block' })
+  try {
+    await context.addCookies([cookie])
+    await context.addInitScript(() => localStorage.setItem('workbench.ui.language', 'en'))
+    const page = await context.newPage()
+    await page.goto('/workspace/settings?section=data')
+    await expect(page.getByTestId('sync-safety-status')).toContainText('Cloud confirmed', { timeout: 45000 })
+    const task = await page.evaluate(async () => {
+      const { createDexieDatabaseService } = await import('/src/data/services/DexieDatabaseService.ts')
+      return createDexieDatabaseService().tasks.add({ title: 'Inspect Bestbuy image quality – recovery sentinel', status: 'todo', priority: null, tags: [], subtasks: [] })
+    })
+    await expect.poll(async () => page.evaluate(async id =>
+      (await (await import('/src/data/sync/client.ts')).syncApi.rxdbPull({ entityType: 'tasks', checkpoint: null, limit: 100 })).documents.some(row => row.id === id), task.id,
+    )).toBe(true)
+    // A committed server wipe with a bad response must retain local content,
+    // invalidate confirmation, and rebuild server data when sync is re-enabled.
+    await expect(page.getByTestId('sync-safety-status')).toContainText('Cloud confirmed', { timeout: 45000 })
+    await page.getByRole('switch', { name: 'Toggle cloud sync' }).uncheck()
+    await page.getByRole('button', { name: 'Reset App' }).click()
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Confirm reset', exact: true }).click()
+    await expect(page.getByTestId('data-safety-notice')).toBeVisible()
+    expect(await page.evaluate(async () => (await (await import('/src/data/db/index.ts')).db.syncState.get('cloud-sync'))?.lastCloudConfirmedAt)).toBeNull()
+    expect(await page.evaluate(async id => (await (await import('/src/data/db/index.ts')).db.tasks.get(id))?.title, task.id)).toBe(task.title)
+    expect(await page.evaluate(async () => (await (await import('/src/data/sync/client.ts')).syncApi.rxdbPull({ entityType: 'tasks', checkpoint: null, limit: 100 })).documents.length)).toBe(0)
+    await page.getByRole('switch', { name: 'Toggle cloud sync' }).check()
+    await expect(page.getByTestId('sync-safety-status')).toContainText('Cloud confirmed', { timeout: 45000 })
+    expect(await page.evaluate(async () => (await (await import('/src/data/sync/client.ts')).syncApi.rxdbPull({ entityType: 'tasks', checkpoint: null, limit: 100 })).documents.some(row => row.title === 'Inspect Bestbuy image quality – recovery sentinel'))).toBe(true)
+
+  } finally { await context.close() }
 })

@@ -46,13 +46,13 @@ export const SecurityPanel = () => {
     <button className="acct-footer-btn" disabled={busy || !details.sessions.some(session => !session.current)} type="button" onClick={() => { if (window.confirm(copy('revokeOthersConfirm'))) void run(() => requestAccount('/sessions/revoke-others', { method: 'POST', body: '{}' })) }}>{copy('revokeOthers')}</button>
   </div>
 }
-export const DeleteAccountPanel = ({ email, onDeleted }: { email: string; onDeleted: () => Promise<void> }) => {
+export const DeleteAccountPanel = ({ email, onDeleted, beforeDelete }: { email: string; onDeleted: () => Promise<void>; beforeDelete: () => Promise<void> }) => {
   const copy = useAccountCopy(), { details, error, load } = useAccountDetails()
   const [confirmEmail, setConfirmEmail] = useState(''), [password, setPassword] = useState(''), [busy, setBusy] = useState(false), [failure, setFailure] = useState('')
   return <form className="acct-subpanel-body acct-security-form" onSubmit={async event => {
     event.preventDefault(); if (busy || !details) return; setBusy(true); setFailure('')
-    try { await requestAccount('/account/deletion', { method: 'POST', body: JSON.stringify({ confirmEmail, password }) }) } catch (error) { setFailure(accountError(error, copy)); setBusy(false); return }
-    await onDeleted()
+    try { await beforeDelete(); await requestAccount('/account/deletion', { method: 'POST', body: JSON.stringify({ confirmEmail, password }) }) } catch (error) { setFailure(accountError(error, copy)); setBusy(false); return }
+    try { await onDeleted() } catch { setFailure(copy('actionFailed')); setBusy(false) }
   }}>
     <p className="acct-delete-warning">{copy('deleteWarning')}</p>
     {error ? <p role="alert">{copy('failed')} <button type="button" onClick={load}>{copy('retry')}</button></p> : !details ? <p role="status">{copy('loading')}</p> : <>

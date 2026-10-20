@@ -14,6 +14,8 @@ import {
 } from '../../store/userProfile'
 import { authClient } from '../../config/authClient'
 import { getPlatform } from '../../platform'
+import DataSafetyNotice from './DataSafetyNotice'
+import { prepareLocalDataRemoval } from '../../data/sync/safety'
 import { clearLocalUserData } from '../../data/sync/repository'
 import { useI18n } from '../../shared/i18n/useI18n'
 import { dbService } from '../../data/services/dbService'
@@ -54,20 +56,10 @@ type ExtendedUserStats = {
   sessionsToNextLevel: number
 }
 
-const ACCOUNT_ACTION_TIMEOUT_MS = 1200
-
-const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms))
-
-const clearLocalUserDataBestEffort = async () => {
+const clearLocalUserDataSafely = async () => {
+  await prepareLocalDataRemoval()
+  await clearLocalUserData()
   requestCrossTabDbReset()
-  try {
-    await Promise.race([
-      clearLocalUserData(),
-      wait(ACCOUNT_ACTION_TIMEOUT_MS),
-    ])
-  } catch {
-    // ignore and continue auth transition
-  }
 }
 
 const signOutBestEffort = async () => {
@@ -374,6 +366,7 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
   const [stats, setStats] = useState<ExtendedUserStats | null>(null)
   const [activePanel, setActivePanel] = useState<ActivePanel>(null)
   const [exportState, setExportState] = useState<'idle' | 'exporting' | 'done'>('idle')
+  const [showDataSafety, setShowDataSafety] = useState(false)
   const [accountAction, setAccountAction] = useState<'logout' | 'switch' | null>(null)
 
   const displayName = user?.name || user?.nickname || user?.email?.split('@')[0] || 'U'
@@ -444,15 +437,20 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
     return () => { cancelled = true }
   }, [])
 
-  const handleLogout = async () => {
+  const leaveAccount = async (action: 'logout' | 'switch') => {
     if (accountAction) return
-    setAccountAction('logout')
-    await signOutBestEffort()
-    await clearLocalUserDataBestEffort()
-    clearAuth()
-    onClose()
-    window.location.href = '/'
+    setAccountAction(action)
+    try {
+      await clearLocalUserDataSafely()
+      await signOutBestEffort()
+      clearAuth()
+      onClose()
+      if (action === 'logout') window.location.href = '/'
+    } catch {
+      setShowDataSafety(true)
+    } finally { setAccountAction(null) }
   }
+  const handleLogout = () => leaveAccount('logout')
 
   const handleExport = async () => {
     if (exportState !== 'idle') return
@@ -481,14 +479,7 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
     }
   }
 
-  const handleSwitchAccount = async () => {
-    if (accountAction) return
-    setAccountAction('switch')
-    await signOutBestEffort()
-    await clearLocalUserDataBestEffort()
-    clearAuth()
-    onClose()
-  }
+  const handleSwitchAccount = () => leaveAccount('switch')
 
   const handleViewGrowth = () => {
     navigate(ROUTES.DIARY)
@@ -538,7 +529,7 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
     { key: 'data' as const, label: copy('data'), icon: Download },
   ]
   const finishDeletion = async () => {
-    await clearLocalUserDataBestEffort()
+    await clearLocalUserDataSafely()
     try { await getPlatform().clearAuthToken() } finally {
       clearAuth()
       try { clearAccountProfile(userId) } catch { /* Continue signing out if browser storage is unavailable. */ }
@@ -550,6 +541,7 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
   return createPortal(
     <div className="user-modal-backdrop" onClick={close}>
       <div ref={modalRef} className={`user-modal user-modal--account-center acct-center-v2${activePanel ? '' : ' acct-center-v2--menu'}`} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="account-dialog-title">
+        {showDataSafety ? <DataSafetyNotice onClose={() => setShowDataSafety(false)} /> : null}
         <div className="acct-subpanel-header">
           {activePanel && <button type="button" className="acct-subpanel-back" onClick={() => changePanel(null)}><ArrowLeft size={15} />{t('auth.account.backBtn')}</button>}
           <h2 id="account-dialog-title" className="acct-subpanel-title">{activePanel ? subPanelTitleMap[activePanel] : displayName}</h2>
@@ -564,7 +556,7 @@ const UserModal = ({ onClose }: { onClose: () => void }) => {
             {activePanel === 'emailLogin' && <EmailLoginPanel email={email} />}
             {activePanel === 'security' && <SecurityPanel />}
             {activePanel === 'helpFeedback' && <HelpFeedbackPanel />}
-            {activePanel === 'deleteAccount' && <DeleteAccountPanel email={email} onDeleted={finishDeletion} />}
+            {activePanel === 'deleteAccount' && <DeleteAccountPanel beforeDelete={async () => { try { await prepareLocalDataRemoval() } catch (error) { setShowDataSafety(true); throw error } }} email={email} onDeleted={finishDeletion} />}
             {activePanel === 'data' && <div className="acct-subpanel-body">
               <p className="acct-subpanel-hint">{copy('dataHint')}</p>
               <button type="button" className="acct-help-btn" onClick={handleExport} disabled={exportState === 'exporting'}>{exportIcon()}{exportLabel()}</button>

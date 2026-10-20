@@ -99,6 +99,9 @@ export type SyncState = {
   id: 'cloud-sync'
   status: SyncStatus
   lastPulledAt: number | null
+  /** Set only after a successful full sync and no unacknowledged edits/conflicts. */
+  lastCloudConfirmedAt?: number | null
+  cloudConfirmedAccountId?: string | null
   lastPushedAt: number | null
   lastError: string | null
   firstSyncResolved: boolean

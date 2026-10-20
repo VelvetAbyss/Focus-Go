@@ -4,6 +4,7 @@ import Database from 'better-sqlite3'
 import { betterAuth } from 'better-auth'
 import { toNodeHandler } from 'better-auth/node'
 import { createSyncRouter } from '../../routes/sync.js'
+import { SYNC_TABLES } from '../../sync/config.js'
 import { ensureSyncTables } from '../../sync/store.js'
 
 // Isolated in-memory API for the two-browser sync regression. It never uses
@@ -55,7 +56,16 @@ app.get('/user/profile', requireTestAccount, (req, res) => res.json({
   isAdmin: false,
   cloudSync: { usedBytes: 0, payloadBytes: 0, blobBytes: 0, limitBytes: 250 * 1024 * 1024 },
 }))
-app.post('/seed/claim', requireTestAccount, (_req, res) => res.json({ shouldSeed: false, seededAt: null }))
+// Regression fixture: commit the wipe, then simulate a corrupted/lost success response.
+// This endpoint is only available in this isolated in-memory test server.
+app.delete('/user/data', requireTestAccount, (req, res) => {
+  if (req.body?.confirm !== 'wipe-my-data') return res.status(400).json({ error: 'missing confirmation' })
+  database.transaction(() => {
+    for (const name of Object.values(SYNC_TABLES)) database.prepare(`DELETE FROM ${name} WHERE user_id = ?`).run(req.auth.user.id)
+  })()
+  res.type('application/json').send('committed wipe; response interrupted')
+})
+app.post('/seed/claim' , requireTestAccount, (_req, res) => res.json({ shouldSeed: false, seededAt: null }))
 app.use('/sync', createSyncRouter({ database, authMiddleware: requireTestAccount }))
 
 const server = app.listen(0, '127.0.0.1', () => {

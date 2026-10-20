@@ -4,12 +4,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SyncProvider } from './service'
 import { SYNC_LOCAL_COMMIT_EVENT } from './capture'
 
-const mocks = vi.hoisted(() => ({ cycle: vi.fn(), ready: vi.fn(), stop: vi.fn() }))
-vi.mock('../../store/auth', () => ({ useIsLoggedIn: () => true, refreshAuthProfile: async () => {} }))
+const mocks = vi.hoisted(() => ({ cycle: vi.fn(), ready: vi.fn(), stop: vi.fn(), markStatus: vi.fn().mockResolvedValue({}) }))
+vi.mock('../../store/auth', () => ({ getAuth: () => ({ user: { id: 'account-a' } }), useIsLoggedIn: () => true, refreshAuthProfile: async () => {} }))
 vi.mock('../../shared/hooks/usePageActivity', () => ({ usePageActivity: () => 'visible' }))
 vi.mock('../seed', () => ({ seedDatabase: async () => false }))
-vi.mock('../db', () => ({ db: { pendingSyncChanges: { toArray: async () => [] } } }))
-vi.mock('./repository', () => ({ syncStateRepo: { get: async () => ({}), patch: async () => ({}) } }))
+vi.mock('../db', () => ({ db: { localSymbolic: { where: () => ({ equals: () => ({ toArray: async () => [] }) }) }, pendingSyncChanges: { toArray: async () => [] } } }))
+vi.mock('./repository', () => ({ syncStateRepo: { markStatus: mocks.markStatus, get: async () => ({}), patch: async () => ({}) } }))
 vi.mock('./rxdb', () => ({ runRxdbSyncCycle: mocks.cycle, ensureRxdbSyncReady: mocks.ready }))
 vi.mock('./stream', () => ({ subscribeSyncStream: () => mocks.stop }))
 
@@ -57,5 +57,21 @@ describe('sync scheduling', () => {
     act(commit)
     await tick(2000)
     expect(mocks.cycle).toHaveBeenCalledTimes(2)
+  })
+})
+
+
+describe('sync failures are visible even before replication starts', () => {
+  it('persists account/outbox errors rather than leaving an idle status', async () => {
+    mocks.cycle.mockRejectedValue(new Error('Sync outbox belongs to another account'))
+    render(<SyncProvider><div /></SyncProvider>)
+    await tick(0)
+    expect(mocks.markStatus).toHaveBeenCalledWith('error', 'Sync outbox belongs to another account')
+  })
+  it('handles initialization errors without starting a sync or dropping data', async () => {
+    mocks.ready.mockRejectedValueOnce(new Error('IndexedDB unavailable'))
+    render(<SyncProvider><div /></SyncProvider>)
+    await tick(0)
+    expect(mocks.markStatus).toHaveBeenCalledWith('error', 'IndexedDB unavailable')
   })
 })

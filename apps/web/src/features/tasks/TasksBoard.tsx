@@ -69,7 +69,6 @@ type BoardScope = { kind: 'all' } | { kind: 'project'; projectId: string } | { k
 
 const STORAGE_TAB_KEY = 'tasks_active_tab'
 const STORAGE_SORT_KEY = 'tasks_sort_mode'
-const STORAGE_TAGS_MIGRATION_KEY = 'tasks_tags_select_v2_migrated'
 const STORAGE_GROUP_BY_KEY = 'tasks_group_by_v1'
 const STORAGE_PROJECT_FILTER_KEY = 'tasks_project_filter_v1'
 const STORAGE_OVERDUE_COLLAPSED_KEY = 'tasks_today_overdue_collapsed_v1'
@@ -250,10 +249,8 @@ const TasksBoard = ({
 
   useEffect(() => {
     const bootstrap = async () => {
-      if (typeof window !== 'undefined' && !window.localStorage.getItem(STORAGE_TAGS_MIGRATION_KEY)) {
-        await tasksRepo.clearAllTags()
-        window.localStorage.setItem(STORAGE_TAGS_MIGRATION_KEY, '1')
-      }
+      // Browser preferences can disappear independently of task data. Never use
+      // a missing preference/migration flag as permission to erase task tags.
       // Daily refresh: clear completed tasks from today list when a new day starts.
       // Incomplete today-tasks are kept so nothing gets lost.
       const storedBucket = readTaskTodayBucket()

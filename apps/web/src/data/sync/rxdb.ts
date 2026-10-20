@@ -70,31 +70,34 @@ const emitWindowEvent = (eventName: string) => {
 }
 
 const buildStatePatch = async (patch: Partial<SyncState>) => {
-  const current = await db.syncState.get('cloud-sync')
-  const timestamp = now()
-  const pending = await db.pendingSyncChanges.toArray()
-  const pendingLocalRecordCount = new Set(pending.map(change => `${change.entityType}/${change.entityId}`)).size
-  const next: SyncState = {
-    status: 'idle',
-    lastPulledAt: null,
-    lastPushedAt: null,
-    lastError: null,
-    firstSyncResolved: true,
-    pendingFirstSync: false,
-    pendingBlobPush: false,
-    missingBlobPull: false,
-    migrationVersion: 3,
-    restoreIntegrityStatus: 'ready',
-    pendingRemoteRecordCount: 0,
-    ...current,
-    ...patch,
-    pendingLocalRecordCount,
-    pendingEntityPush: pendingLocalRecordCount > 0,
-    createdAt: current?.createdAt ?? timestamp,
-    id: 'cloud-sync',
-    updatedAt: timestamp,
-  }
-  await db.syncState.put(next)
+  const next = await db.transaction('rw', [db.syncState, db.pendingSyncChanges], async () => {
+    const current = await db.syncState.get('cloud-sync')
+    const timestamp = now()
+    const pending = await db.pendingSyncChanges.toArray()
+    const pendingLocalRecordCount = new Set(pending.map(change => `${change.entityType}/${change.entityId}`)).size
+    const next: SyncState = {
+      status: 'idle',
+      lastPulledAt: null,
+      lastPushedAt: null,
+      lastError: null,
+      firstSyncResolved: true,
+      pendingFirstSync: false,
+      pendingBlobPush: false,
+      missingBlobPull: false,
+      migrationVersion: 3,
+      restoreIntegrityStatus: 'ready',
+      pendingRemoteRecordCount: 0,
+      ...current,
+      ...patch,
+      pendingLocalRecordCount,
+      pendingEntityPush: pendingLocalRecordCount > 0,
+      createdAt: current?.createdAt ?? timestamp,
+      id: 'cloud-sync',
+      updatedAt: timestamp,
+    }
+    await db.syncState.put(next)
+    return next
+  })
   emitWindowEvent(SYNC_STATUS_CHANGED_EVENT)
   return next
 }
@@ -478,12 +481,15 @@ const syncEntity = async (entityType: SyncEntityType) =>
     const receivedSub = replication.received$.subscribe({
       next: (document) => {
         receivedDocumentCount++
-        pendingWrites.push(writeDexieEntity(entityType, document as SyncDocument))
+        const write = writeDexieEntity(entityType, document as SyncDocument)
+        // Observe rejection immediately while replication is still running; report it below.
+        void write.catch(() => {})
+        pendingWrites.push(write)
       },
     })
     const sentSub = replication.sent$.subscribe({
       next: () => {
-        void buildStatePatch({ lastPushedAt: now() })
+        void buildStatePatch({ lastPushedAt: now() }).catch(() => {})
       },
     })
     let rejectSync: ((reason?: unknown) => void) | null = null
@@ -500,6 +506,7 @@ const syncEntity = async (entityType: SyncEntityType) =>
       timeoutId = globalThis.setTimeout(() => reject(new Error(`Sync timed out for ${entityType}`)), RXDB_SYNC_TIMEOUT_MS)
     })
 
+    let localWriteFailed = false
     try {
       await Promise.race([
         replication.awaitInSync(),
@@ -518,12 +525,16 @@ const syncEntity = async (entityType: SyncEntityType) =>
       // Flush Dexie writes with a safety timeout — guards against db.close() leaving ops hanging.
       // During app reset, do not wait on or issue more Dexie writes because the local DB
       // is being closed and deleted by the settings reset flow.
+      let writesTimedOut = false
+      let writeTimer: ReturnType<typeof setTimeout> | undefined
       const writeResults = rxdbResetRequested
         ? []
         : await Promise.race([
             Promise.allSettled(pendingWrites),
-            new Promise<PromiseSettledResult<boolean>[]>(resolve => globalThis.setTimeout(() => resolve([]), 5_000)),
+            new Promise<PromiseSettledResult<boolean>[]>(resolve => { writeTimer = globalThis.setTimeout(() => { writesTimedOut = true; resolve([]) }, 5_000) }),
           ])
+      clearTimeout(writeTimer)
+      localWriteFailed = writesTimedOut || writeResults.some(result => result.status === 'rejected')
       if (!rxdbResetRequested && writeResults.some((result) => result.status === 'fulfilled' && result.value)) {
         dispatchSyncDataUpdated(entityType)
       }
@@ -533,6 +544,7 @@ const syncEntity = async (entityType: SyncEntityType) =>
       await Promise.race([replication.cancel(), timeoutAfter(2_000)])
       cycleBaselines.delete(entityType)
     }
+    if (!rxdbResetRequested && localWriteFailed) throw new Error(`Local ${entityType} save failed; cloud confirmation withheld`)
   })
 
 const handoffPendingSyncChanges = async () => {
@@ -631,6 +643,12 @@ export const runRxdbSyncCycle = async (requestedEntities?: SyncEntityType[]) =>
       return
     }
     await setStatus('idle')
+    const pending = await db.pendingSyncChanges.count()
+    const state = await db.syncState.get('cloud-sync')
+    if (isCycleAccountCurrent() && pending === 0 && !state?.pendingBlobPush && !state?.missingBlobPull
+      && (!requestedEntities || (state?.lastCloudConfirmedAt && state.cloudConfirmedAccountId === accountId))) {
+      await buildStatePatch({ lastCloudConfirmedAt: now(), cloudConfirmedAccountId: accountId })
+    }
   })
 
 export const enqueueRxdbSyncChange = async <T extends SyncEntityType>(

@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render as rtlRender, screen, waitFor, within } from
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import type { ReactElement, ReactNode } from 'react'
+import { tasksRepo } from '../../data/repositories/tasksRepo'
 import type { TaskItem } from './tasks.types'
 
 const { mockT } = vi.hoisted(() => {
@@ -210,6 +211,17 @@ describe('TasksBoard sync', () => {
     tasksChangedHandler = null
     window.localStorage.clear()
     window.localStorage.setItem('tasks_tags_select_v2_migrated', '1')
+  })
+
+  it('preserves restored task tags when browser migration preferences were cleared', async () => {
+    window.localStorage.removeItem('tasks_tags_select_v2_migrated')
+    vi.mocked(tasksRepo.clearAllTags).mockClear()
+    const task = { ...makeTask('restored-tagged', 'Recovered tagged task'), tags: ['image-quality'] }
+    listMock.mockResolvedValue([task])
+    render(<TasksBoard asCard={false} />)
+    expect(await screen.findByText('Recovered tagged task')).toBeInTheDocument()
+    expect(tasksRepo.clearAllTags).not.toHaveBeenCalled()
+    expect(task.tags).toEqual(['image-quality'])
   })
 
   it('supports bulk done on currently visible tasks and renders tag selector', async () => {
