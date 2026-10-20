@@ -13,6 +13,7 @@ import TableRow from '@tiptap/extension-table-row'
 import { TextAlign } from '@tiptap/extension-text-align'
 import { Typography } from '@tiptap/extension-typography'
 import StarterKit from '@tiptap/starter-kit'
+import { ImageUploadSchema } from './imageUploadSchema'
 import { ResizableImage } from './resizableImage'
 
 export const createRichTextExtensions = (placeholder?: string): AnyExtension[] => {
@@ -33,6 +34,7 @@ export const createRichTextExtensions = (placeholder?: string): AnyExtension[] =
     TextStyle,
     Color,
     ResizableImage,
+    ImageUploadSchema,
     Typography,
 
     Superscript,
