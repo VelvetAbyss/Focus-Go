@@ -56,4 +56,14 @@ describe('note command boundary and keyboard ownership', () => {
     current.view.dom.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }))
     expect(onKey).toHaveBeenCalledTimes(1)
   })
+
+  it('leaves modified Enter and selection/navigation keys to the editor', () => {
+    const onKey = vi.fn(() => true)
+    const current = openEditor('<p>/quote</p>', onKey)
+    for (const modifier of ['shiftKey', 'ctrlKey', 'metaKey', 'altKey']) {
+      current.view.dom.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', [modifier]: true, bubbles: true, cancelable: true }))
+    }
+    expect(onKey).not.toHaveBeenCalled()
+    expect(current.getHTML()).not.toContain('<blockquote>')
+  })
 })

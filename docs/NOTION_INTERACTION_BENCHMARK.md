@@ -27,7 +27,7 @@
 | --- | --- | --- | --- |
 | 全局搜索与捕捉 | ⌘K 可打开命令面板；可搜索任务、笔记、日记、项目，并可直接新建任务。第一轮改造已加入最近打开内容，覆盖命令面板与各模块直接打开的记录。 | 尚无跨模块收藏；搜索索引每次打开都从多个仓库加载，较大数据集的响应时间待测。 | `src/shared/ui/CommandPalette.tsx`、`src/shared/ui/recentCommandTargets.ts` |
 | 侧栏 | 模块入口可排序、可折叠。 | 它是固定模块列表；项目、任务、笔记等内容没有统一的最近/收藏/层级导航。笔记模块内部有标签和置顶，但入口分散。 | `src/app/layout/Sidebar.tsx`、`src/features/notes/pages/NotePage.tsx` |
-| 笔记编辑 | TipTap 编辑器支持富文本、待办、表格、图片、粘贴；新建后可直接输入；保存队列处理页面隐藏和退出；笔记有回收站与恢复。 | 当前编辑器扩展表中未见块级 `/` 菜单、块拖动手柄和块转换入口；需用真实文档验证键盘选择、长文性能、撤销与粘贴边界。 | `src/features/notes/components/NoteEditor.tsx`、`src/features/notes/pages/NotePage.tsx` |
+| 笔记编辑 | 已有 `/` 菜单、块手柄移动与转换；本轮补齐复制/删除、紧凑选区工具栏、文字颜色、链接、粘贴和操作撤销，并统一弹层的锚点、选区及缩放行为。 | 已覆盖 Chromium 模拟窄屏与正文缩放；真实触摸、系统中文输入法、Safari/Firefox 和原生桌面安装包仍需单独验收；不代表已达到 Notion 的整体编辑体验。 | `src/features/notes/`、`e2e/note-overlay-audit.spec.ts`、`artifacts/note-release-2026-10-20/README.md` |
 | 任务视图 | 卡片、今日、看板、分析四个入口；任务可按状态/项目/标签筛选，存在排序与分组；视图偏好保存在本地。完成任务后提供撤销。 | 视图配置散布在任务页面与看板实现中，尚未形成可命名、可保存、可分享链接的统一视图模型；跨项目/日历保持同一筛选上下文需验证。 | `src/features/tasks/pages/TasksPage.tsx`、`src/features/tasks/TasksBoard.tsx` |
 | 任务、项目、笔记串联 | Task 是单一生命周期来源；笔记选中文字可创建关联任务并指定项目，任务详情可返回原笔记。隔离浏览器已验证项目与全局任务视图读取同一状态。 | 其余组合路径、跨设备同步与离线恢复仍需验证；当前不能把单条旅程的通过视作整个产品达到 Notion 水平。 | `docs/domain-boundaries.md`、`src/features/notes/pages/NotePage.tsx`、`src/features/tasks/TaskDrawer.tsx` |
 | 安全感与恢复 | 笔记回收站、部分任务撤销、离线本地存储已经存在。 | 删除/批量操作、同步冲突、跨设备恢复、离线改动回放、页面刷新后的编辑恢复，需要统一验收；现阶段不能宣称等同 Notion 的恢复能力。 | `src/features/notes/pages/NotePage.tsx`、`src/features/tasks/TasksBoard.tsx` |

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { MAX_NOTE_IMPORT_FILES, MAX_NOTE_IMPORT_FILE_SIZE, type NoteImportWarning } from '../model/noteImport'
 import { useI18n } from '../../../shared/i18n/useI18n'
 import type { TranslationKey } from '../../../shared/i18n/types'
+import { useNotePanelBounds } from './useNotePanelBounds'
 
 export type NoteImportQueueStatus = 'ready' | 'importing' | 'imported' | 'warning' | 'error' | 'unsupported'
 
@@ -52,6 +53,7 @@ export default function NoteImportPanel({ open, items, importing, notice, onClos
   const { t } = useI18n()
   const [rendered, setRendered] = useState(open)
   const [visible, setVisible] = useState(open)
+  const panelRef = useNotePanelBounds(rendered && open, 'import')
   const inputRef = useRef<HTMLInputElement | null>(null)
   const canImport = items.some((item) => item.status === 'ready') && !importing
   const importableCount = items.filter((item) => item.status === 'ready').length
@@ -76,7 +78,7 @@ export default function NoteImportPanel({ open, items, importing, notice, onClos
   }
 
   return (
-    <div data-note-floating-panel="import" data-state={visible ? 'open' : 'closed'} className="note-page__panel note-page__panel--wide note-import-panel">
+    <div ref={panelRef} data-note-floating-panel="import" data-state={visible ? 'open' : 'closed'} className="note-page__panel note-page__panel--wide note-import-panel">
       <div className="note-page__panel-header">
         <div>
           <h2>{t('notes.importModal.title')}</h2>

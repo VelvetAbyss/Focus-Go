@@ -61,7 +61,7 @@ export const NoteCommands = Extension.create<{
       },
       props: {
         handleKeyDown: (view, event) => {
-          if (view.composing || event.isComposing || event.keyCode === 229) return false
+          if (view.composing || event.isComposing || event.keyCode === 229 || event.shiftKey || event.metaKey || event.ctrlKey || event.altKey) return false
           const state = noteCommandKey.getState(view.state)
           if (!state?.context || state.dismissedAt === state.context.from) return false
           if (event.key === 'Escape') {

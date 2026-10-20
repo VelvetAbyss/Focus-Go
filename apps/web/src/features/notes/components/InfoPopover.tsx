@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import type { NoteItem } from '../../../data/models/types'
 import { countCharactersInMarkdown, countCharactersNoSpacesInMarkdown, countWordsInMarkdown } from '../model/noteStats'
 import { useI18n } from '../../../shared/i18n/useI18n'
+import { useNotePanelBounds } from './useNotePanelBounds'
 
 type InfoTab = 'stats' | 'toc' | 'backlinks'
 
@@ -20,6 +21,7 @@ export default function InfoPopover({ open, note, onClose, onNavigateToHeading, 
   const [tab, setTab] = useState<InfoTab>('stats')
   const [rendered, setRendered] = useState(open)
   const [visible, setVisible] = useState(open)
+  const panelRef = useNotePanelBounds(rendered && open, 'info')
 
   useEffect(() => {
     if (open) {
@@ -42,10 +44,10 @@ export default function InfoPopover({ open, note, onClose, onNavigateToHeading, 
   const charsNoSpaces = countCharactersNoSpacesInMarkdown(note.contentMd)
 
   return (
-    <div data-note-floating-panel="info" data-state={visible ? 'open' : 'closed'} className="note-page__panel">
+    <div ref={panelRef} data-note-floating-panel="info" data-state={visible ? 'open' : 'closed'} className="note-page__panel">
       <div className="flex items-center justify-between px-4 pb-2 pt-3">
         <h3 className="text-ui font-semibold">{t('notes.info')}</h3>
-        <button type="button" onClick={onClose} className="rounded p-1 transition-colors hover:bg-accent">
+        <button type="button" onClick={onClose} aria-label={t('common.close')} className="rounded p-1 transition-colors hover:bg-accent">
           <X size={14} />
         </button>
       </div>
@@ -68,7 +70,7 @@ export default function InfoPopover({ open, note, onClose, onNavigateToHeading, 
           </button>
         ))}
       </div>
-      <div className="max-h-[300px] overflow-y-auto px-4 py-3">
+      <div className="note-page__panel-scroll max-h-[300px] px-4 py-3">
         {tab === 'stats' ? (
           <div className="space-y-2">
             <StatRow label={t('notes.infoPanel.words')} value={words.toLocaleString()} />

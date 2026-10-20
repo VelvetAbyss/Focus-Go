@@ -1,6 +1,7 @@
 import { Code, FileDown, FileText, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useI18n } from '../../../shared/i18n/useI18n'
+import { useNotePanelBounds } from './useNotePanelBounds'
 
 type Props = {
   open: boolean
@@ -15,6 +16,7 @@ export default function ExportModal({ open, noteTitle, onClose, onExportMarkdown
   const { t } = useI18n()
   const [rendered, setRendered] = useState(open)
   const [visible, setVisible] = useState(open)
+  const panelRef = useNotePanelBounds(rendered && open, 'export')
 
   useEffect(() => {
     if (open) {
@@ -42,17 +44,17 @@ export default function ExportModal({ open, noteTitle, onClose, onExportMarkdown
   }
 
   return (
-    <div data-note-floating-panel="export" data-state={visible ? 'open' : 'closed'} className="note-page__panel">
+    <div ref={panelRef} data-note-floating-panel="export" data-state={visible ? 'open' : 'closed'} className="note-page__panel">
       <div className="flex items-center justify-between px-4 pb-2 pt-3">
         <div>
           <h2 className="type-section-title">{t('notes.exportModal.title')}</h2>
           <p className="mt-0.5 max-w-[200px] truncate text-label text-muted-foreground">{noteTitle}</p>
         </div>
-        <button type="button" onClick={onClose} className="rounded-lg p-1.5 transition-colors hover:bg-accent">
+        <button type="button" onClick={onClose} aria-label={t('common.close')} className="rounded-lg p-1.5 transition-colors hover:bg-accent">
           <X size={16} />
         </button>
       </div>
-      <div className="space-y-1.5 px-3 pb-4">
+      <div className="note-page__panel-scroll space-y-1.5 px-3 pb-4">
         {formats.map((format) => (
           <button
             key={format.id}

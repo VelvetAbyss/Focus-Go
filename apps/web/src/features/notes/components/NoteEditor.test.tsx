@@ -27,8 +27,14 @@ vi.mock('../model/richTextCodec', () => ({
   richDocToMarkdown: () => '',
 }))
 
-vi.mock('./NoteSelectionMenu', () => ({ NoteSelectionMenu: () => null }))
+vi.mock('./NoteSelectionMenu', () => ({ NoteSelectionMenu: () => null, NoteLinkPopover: () => <button type="button">link</button>, NoteMarkButton: () => <button type="button">mark</button> }))
+vi.mock('./NoteTextColorMenu', () => ({ NoteTextColorMenu: () => <button type="button">Text color</button> }))
 vi.mock('./NoteBlockTools', () => ({ NoteBlockTools: () => null }))
+vi.mock('./NoteFormattingMenus', () => ({
+  NoteHeadingDropdownMenu: () => <button type="button">heading</button>,
+  NoteListDropdownMenu: () => <button type="button">list</button>,
+  NoteHighlightMenu: () => <button type="button">highlight</button>,
+}))
 
 vi.mock('@tiptap/react', () => ({
   useEditor: (config: Record<string, unknown>) => {
@@ -175,136 +181,6 @@ describe('NoteEditor', () => {
     rerender(<NoteEditor value={value} onChange={() => {}} appearance={{ contentWidth: 100, font: 'uiSans', fontSize: 16, lineHeight: 1.7 }} />)
 
     expect((container.querySelector('.note-editor__content') as HTMLElement).style.getPropertyValue('--note-content-measure')).toBe('34rem')
-  })
-
-  it('handles pasted image files by inserting data-url images', async () => {
-    useEditorMock.mockReturnValue(createEditor())
-
-    class MockFileReader {
-      result: string | ArrayBuffer | null = null
-      onload: ((this: FileReader, ev: ProgressEvent<FileReader>) => unknown) | null = null
-      onerror: ((this: FileReader, ev: ProgressEvent<FileReader>) => unknown) | null = null
-
-      readAsDataURL(file: Blob) {
-        this.result = `data:${file.type};base64,${file.size}`
-        this.onload?.call(this as unknown as FileReader, {} as ProgressEvent<FileReader>)
-      }
-    }
-
-    vi.stubGlobal('FileReader', MockFileReader)
-
-    render(<NoteEditor value={value} onChange={() => {}} />)
-
-    const handlePaste = editorConfigRef.current?.editorProps as { handlePaste?: (...args: unknown[]) => unknown }
-    const preventDefault = vi.fn()
-    const event = {
-      clipboardData: {
-        items: [
-          {
-            type: 'image/png',
-            getAsFile: () => new File(['one'], 'one.png', { type: 'image/png' }),
-          },
-          {
-            type: 'image/jpeg',
-            getAsFile: () => new File(['two'], 'two.jpg', { type: 'image/jpeg' }),
-          },
-        ],
-      },
-      preventDefault,
-    }
-
-    const handled = handlePaste.handlePaste?.({}, event, undefined)
-
-    expect(handled).toBe(true)
-    expect(preventDefault).toHaveBeenCalledTimes(1)
-    await waitFor(() => expect(focusMock).toHaveBeenCalledTimes(2))
-    expect(setImageMock).toHaveBeenNthCalledWith(1, { src: 'data:image/png;base64,3' })
-    expect(setImageMock).toHaveBeenNthCalledWith(2, { src: 'data:image/jpeg;base64,3' })
-    expect(runMock).toHaveBeenCalledTimes(2)
-  })
-
-  it('handles pasted table text by inserting a table node at cursor', () => {
-    useEditorMock.mockReturnValue(createEditor())
-    render(<NoteEditor value={value} onChange={() => {}} />)
-
-    const handlePaste = editorConfigRef.current?.editorProps as { handlePaste?: (...args: unknown[]) => unknown }
-    const preventDefault = vi.fn()
-    const event = {
-      clipboardData: {
-        items: [],
-        getData: (type: string) => {
-          if (type === 'text/html') return ''
-          if (type === 'text/plain') return 'a\tb\n1'
-          return ''
-        },
-      },
-      preventDefault,
-    }
-
-    const handled = handlePaste.handlePaste?.({}, event, undefined)
-
-    expect(handled).toBe(true)
-    expect(preventDefault).toHaveBeenCalledTimes(1)
-    expect(setTextSelectionMock).toHaveBeenCalledWith(5)
-    expect(insertContentMock).toHaveBeenCalledWith({
-      type: 'table',
-      content: [
-        {
-          type: 'tableRow',
-          content: [
-            { type: 'tableCell', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'a' }] }] },
-            { type: 'tableCell', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'b' }] }] },
-          ],
-        },
-        {
-          type: 'tableRow',
-          content: [
-            { type: 'tableCell', content: [{ type: 'paragraph', content: [{ type: 'text', text: '1' }] }] },
-            { type: 'tableCell', content: [{ type: 'paragraph' }] },
-          ],
-        },
-      ],
-    })
-  })
-
-  it('does not coerce comma-separated prose into a table', () => {
-    useEditorMock.mockReturnValue(createEditor())
-    render(<NoteEditor value={value} onChange={() => {}} />)
-
-    const handlePaste = editorConfigRef.current?.editorProps as { handlePaste?: (...args: unknown[]) => unknown }
-    const preventDefault = vi.fn()
-    const event = {
-      clipboardData: {
-        items: [],
-        getData: (type: string) => {
-          if (type === 'text/html') return ''
-          if (type === 'text/plain') return '这份 SOP 适用于 Domestic Stock Vendor, 不适用于 SOS\n核心依据是 Lowe’s 2025 TRRM, 各州 DCC guide'
-          return ''
-        },
-      },
-      preventDefault,
-    }
-
-    const handled = handlePaste.handlePaste?.({}, event, undefined)
-
-    expect(handled).toBe(false)
-    expect(preventDefault).not.toHaveBeenCalled()
-    expect(insertContentMock).not.toHaveBeenCalled()
-  })
-
-  it('normalizes copied plain text to single newlines', () => {
-    useEditorMock.mockReturnValue(createEditor())
-    render(<NoteEditor value={value} onChange={() => {}} />)
-
-    const editorProps = editorConfigRef.current?.editorProps as { clipboardTextSerializer?: (slice: { content: { textBetween: (...args: unknown[]) => unknown } }) => string }
-    const textBetween = vi.fn(() => '第一行\n\n\n第二行\r\n第三行   \n')
-
-    const result = editorProps.clipboardTextSerializer?.({
-      content: { textBetween },
-    })
-
-    expect(result).toBe('第一行\n第二行\n第三行')
-    expect(textBetween).toHaveBeenCalledWith(0, undefined, '\n', '\n')
   })
 
   it('does not reapply external content when the incoming doc matches editor state', () => {

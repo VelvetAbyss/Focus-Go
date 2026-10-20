@@ -2,6 +2,7 @@ import type { JSONContent } from '@tiptap/core'
 import { Placeholder } from '@tiptap/extension-placeholder'
 import { Selection } from '@tiptap/extensions'
 import { Highlight } from '@tiptap/extension-highlight'
+import { Color, TextStyle } from '@tiptap/extension-text-style'
 import { TaskItem, TaskList } from '@tiptap/extension-list'
 import { Subscript } from '@tiptap/extension-subscript'
 import { Superscript } from '@tiptap/extension-superscript'
@@ -21,7 +22,7 @@ import type { CSSProperties, ReactNode, RefObject } from 'react'
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { HorizontalRule } from '@/components/tiptap-node/horizontal-rule-node/horizontal-rule-node-extension'
 import { ImageUploadNode } from '@/components/tiptap-node/image-upload-node/image-upload-node-extension'
-import { getPastedImageFiles } from '../../../shared/util/clipboard'
+import { cancelPendingNoteImagePaste, NoteClipboard } from '../model/noteClipboard'
 import '@/components/tiptap-node/blockquote-node/blockquote-node.scss'
 import '@/components/tiptap-node/code-block-node/code-block-node.scss'
 import '@/components/tiptap-node/horizontal-rule-node/horizontal-rule-node.scss'
@@ -32,15 +33,10 @@ import '@/components/tiptap-node/paragraph-node/paragraph-node.scss'
 import { useI18n } from '../../../shared/i18n/useI18n'
 import { BlockquoteButton } from '@/components/tiptap-ui/blockquote-button'
 import { CodeBlockButton } from '@/components/tiptap-ui/code-block-button'
-import { ColorHighlightPopover } from '@/components/tiptap-ui/color-highlight-popover'
-import { HeadingDropdownMenu } from '@/components/tiptap-ui/heading-dropdown-menu'
 import { ImageUploadButton } from '@/components/tiptap-ui/image-upload-button'
-import { LinkPopover } from '@/components/tiptap-ui/link-popover'
-import { ListDropdownMenu } from '@/components/tiptap-ui/list-dropdown-menu'
-import { MarkButton } from '@/components/tiptap-ui/mark-button'
 import { TextAlignButton } from '@/components/tiptap-ui/text-align-button'
 import { UndoRedoButton } from '@/components/tiptap-ui/undo-redo-button'
-import { Toolbar, ToolbarGroup, ToolbarSeparator } from '@/components/tiptap-ui-primitive/toolbar'
+import { ToolbarGroup, ToolbarSeparator } from '@/components/tiptap-ui-primitive/toolbar'
 import { MAX_FILE_SIZE } from '@/lib/tiptap-utils'
 import type { NoteFontFamily } from '../../../data/models/types'
 import { ensureRichDoc, richDocToMarkdown } from '../model/richTextCodec'
@@ -49,9 +45,12 @@ import { DiscoveryNewBadge } from '../../../shared/ui/DiscoveryNewBadge'
 import { markDiscoveryNewTargetSeen, type DiscoveryNewTargetId } from '../../../shared/discovery/discoveryNewTargetActions'
 import { matchNoteCommands, NoteCommands, type NoteCommandContext, type NoteCommandId, type NoteTaskIntent } from '../model/noteCommands'
 import { NoteCommandMenu } from './NoteCommandMenu'
-import { NoteSelectionMenu } from './NoteSelectionMenu'
+import { NoteSelectionMenu, NoteMarkButton as MarkButton, NoteLinkPopover } from './NoteSelectionMenu'
+import { NoteTextColorMenu } from './NoteTextColorMenu'
+import { NoteHeadingDropdownMenu, NoteListDropdownMenu, NoteHighlightMenu } from './NoteFormattingMenus'
+import { NoteToolbar } from './NoteToolbar'
 import { NoteBlockTools } from './NoteBlockTools'
-import { applyNoteBlockType, runNoteAction, NoteBlockMovement } from '../model/noteBlocks'
+import { applyNoteBlockType, duplicateSelectedNoteBlocks, runNoteAction, setNoteSelectionFromPointer, toggleNoteMark, NoteBlockMovement } from '../model/noteBlocks'
 
 type NoteEditorValue = {
   crdtState?: string
@@ -128,6 +127,9 @@ const ActionButton = ({ icon, label, onClick, panelId }: { icon: ReactNode; labe
   <button
     type="button"
     className="note-editor__action-button"
+    aria-label={label}
+    title={label}
+    onMouseDown={event => event.preventDefault()}
     onClick={() => {
       markDiscoveryNewTargetSeen(PANEL_DISCOVERY_TARGETS[panelId])
       onClick?.()
@@ -152,83 +154,7 @@ const uploadImageAsDataUrl = async (file: File): Promise<string> => {
   })
 }
 
-const hasStructuredTableShape = (rows: string[][]) => {
-  const maxCols = rows.reduce((max, row) => Math.max(max, row.length), 0)
-  if (maxCols < 2 || rows.length < 2) return false
-
-  const columnNonEmptyCounts = Array.from({ length: maxCols }, () => 0)
-  let rowsWithMultipleNonEmptyCells = 0
-
-  for (const row of rows) {
-    let nonEmptyCells = 0
-    for (let index = 0; index < maxCols; index += 1) {
-      if ((row[index] ?? '').trim().length === 0) continue
-      nonEmptyCells += 1
-      columnNonEmptyCounts[index] += 1
-    }
-    if (nonEmptyCells >= 2) rowsWithMultipleNonEmptyCells += 1
-  }
-
-  const columnsWithAnyContent = columnNonEmptyCounts.filter((count) => count > 0).length
-  return rowsWithMultipleNonEmptyCells >= 1 && columnsWithAnyContent >= 2
-}
-
-const normalizeTableRows = (rows: string[][]) => {
-  const maxCols = rows.reduce((max, row) => Math.max(max, row.length), 0)
-  if (maxCols < 2 || rows.length < 2) return null
-  const normalized = rows.map((row) => {
-    const padded = [...row]
-    while (padded.length < maxCols) padded.push('')
-    return padded
-  })
-  return hasStructuredTableShape(normalized) ? normalized : null
-}
-
-const parseHtmlTable = (html: string) => {
-  if (!html || !html.includes('<table')) return null
-  const parser = new DOMParser()
-  const doc = parser.parseFromString(html, 'text/html')
-  const table = doc.querySelector('table')
-  if (!table) return null
-  const rows = Array.from(table.querySelectorAll('tr')).map((tr) =>
-    Array.from(tr.querySelectorAll('th,td')).map((cell) => cell.textContent?.trim() ?? ''),
-  )
-  return normalizeTableRows(rows.filter((row) => row.length > 0))
-}
-
-const parseTextTable = (text: string) => {
-  if (!text) return null
-  const lines = text
-    .split(/\r?\n/)
-    .map((line) => line.trimEnd())
-    .filter((line) => line.length > 0)
-  if (lines.length < 2) return null
-  if (lines.some((line) => line.includes('\t'))) {
-    return normalizeTableRows(lines.map((line) => line.split('\t').map((cell) => cell.trim())))
-  }
-  return null
-}
-
-const normalizeClipboardText = (text: string) =>
-  text
-    .replace(/\r\n?/g, '\n')
-    .replace(/\u2028|\u2029/g, '\n')
-    .replace(/[ \t]+\n/g, '\n')
-    .replace(/\n{2,}/g, '\n')
-    .trimEnd()
-
 const serializeDoc = (doc: JSONContent | null | undefined) => JSON.stringify(doc ?? null)
-
-const createTableNode = (rows: string[][]): JSONContent => ({
-  type: 'table',
-  content: rows.map((row) => ({
-    type: 'tableRow',
-    content: row.map((cell) => ({
-      type: 'tableCell',
-      content: cell ? [{ type: 'paragraph', content: [{ type: 'text', text: cell }] }] : [{ type: 'paragraph' }],
-    })),
-  })),
-})
 
 const NoteEditor = ({
   value,
@@ -257,6 +183,7 @@ const NoteEditor = ({
   const contentMeasureRem = 64 - widthScale * 30
   const zoomLevel = Math.max(50, Math.min(200, appearance?.zoom ?? 100)) / 100
   const surfaceBg = appearance?.paperBg === 'white' ? 'var(--bg-elevated)' : undefined
+  const [pasteError, setPasteError] = useState(false)
   const [headings, setHeadings] = useState<HeadingNavItem[]>([])
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null)
   const MAX_NAV_ITEMS = 12
@@ -383,12 +310,15 @@ const NoteEditor = ({
       TaskList,
       TaskItem.configure({ nested: true }),
       Highlight.configure({ multicolor: true }),
+      TextStyle,
+      Color,
       ResizableImage,
       Typography,
       Superscript,
       Subscript,
       Selection,
       NoteBlockMovement,
+      NoteClipboard.configure({ uploadImage: uploadImageAsDataUrl, onError: () => setPasteError(true) }),
       NoteCommands.configure({
         onContext: (context) => setCommandContext((previous) => {
           if (previous?.from === context?.from && previous?.to === context?.to && previous?.query === context?.query) return previous
@@ -413,62 +343,45 @@ const NoteEditor = ({
       }),
     ],
     editorProps: {
+      handleDOMEvents: {
+        pointerdown: (view, event) => {
+          // Re-entering from a toolbar/panel must use the clicked caret.
+          if (editor && !view.hasFocus() && !view.composing) setNoteSelectionFromPointer(editor, event as PointerEvent)
+          return false
+        },
+      },
       attributes: {
         class: 'note-editor__body simple-editor',
         role: 'textbox',
         'aria-multiline': 'true',
         'aria-label': t('notes.editorPlaceholder'),
       },
-      handleKeyDown: (view, event) => {
+      handleKeyDown: (view, event): boolean => {
         if (view.composing || event.isComposing || event.keyCode === 229 || event.altKey) return false
         if (!(event.metaKey || event.ctrlKey)) return false
         const key = event.key.toLowerCase()
+        const mark = ({ b: 'bold', i: 'italic', u: 'underline', e: 'code', 'shift-s': 'strike', '.': 'superscript', ',': 'subscript' } as Record<string, string>)[`${event.shiftKey ? 'shift-' : ''}${key}`]
+        if (editor && mark) {
+          event.preventDefault()
+          event.stopPropagation()
+          return toggleNoteMark(editor, mark)
+        }
+        if (editor && key === 'd' && !event.shiftKey) {
+          event.preventDefault()
+          event.stopPropagation()
+          return duplicateSelectedNoteBlocks(editor)
+        }
         if (key !== 'z' && key !== 'y') return false
         // Explicitly own history keys in this editor, including browsers whose
         // platform detection disagrees with the physical modifier key.
         event.preventDefault()
         event.stopPropagation()
+        if (key === 'z' && !event.shiftKey && editor && cancelPendingNoteImagePaste(editor)) return true
         if (key === 'y' || event.shiftKey) editor?.commands.redo()
         else editor?.commands.undo()
         return true
       },
-      clipboardTextSerializer: (slice) => normalizeClipboardText(slice.content.textBetween(0, slice.content.size, '\n', '\n')),
-      handlePaste: (_view, event) => {
-        const imageFiles = getPastedImageFiles(event)
-        if (imageFiles.length > 0) {
-          event.preventDefault()
-          void Promise.all(imageFiles.map((file) => uploadImageAsDataUrl(file)))
-            .then((sources) => {
-              for (const src of sources) {
-                editor?.chain().focus().setImage({ src }).run()
-              }
-            })
-            .catch((error) => console.error('Paste image failed:', error))
-          return true
-        }
 
-        const html = event.clipboardData?.getData('text/html') ?? ''
-        const text = event.clipboardData?.getData('text/plain') ?? ''
-
-        // If HTML contains mixed content (table + paragraphs/headings/lists), let
-        // Tiptap's native HTML paste handle it so all content is preserved.
-        const hasHtmlTable = html.includes('<table')
-        const hasNonTableBlocks = /<p[\s>]|<h[1-6][\s>]|<ul[\s>]|<ol[\s>]|<blockquote[\s>]|<pre[\s>]/i.test(html)
-        if (hasHtmlTable && hasNonTableBlocks) return false
-
-        const rows = parseHtmlTable(html) ?? parseTextTable(text)
-        if (!rows) return false
-
-        event.preventDefault()
-        const to = editor?.state.selection.to
-        if (to == null) return false
-        editor?.chain()
-          .focus()
-          .setTextSelection(to)
-          .insertContent(createTableNode(rows))
-          .run()
-        return true
-      },
     },
     content: collaborationDoc ? undefined : initialDoc,
     onUpdate: ({ editor, transaction }) => {
@@ -588,6 +501,7 @@ const NoteEditor = ({
     key: (event, context) => {
       const commands = matchNoteCommands(context.query, Boolean(onCreateTask))
       if (!commands.length) return false
+      if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return false
       if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
         event.preventDefault()
         event.stopPropagation()
@@ -605,25 +519,6 @@ const NoteEditor = ({
     },
   }
   const commands = useMemo(() => commandContext ? matchNoteCommands(commandContext.query, Boolean(onCreateTask)) : [], [commandContext, onCreateTask])
-  const [, refreshMenuPosition] = useState(0)
-  useEffect(() => {
-    if (!commandContext) return
-    let frame = 0
-    const refresh = () => {
-      if (frame) return
-      frame = window.requestAnimationFrame(() => {
-        frame = 0
-        refreshMenuPosition((version) => version + 1)
-      })
-    }
-    window.addEventListener('scroll', refresh, true)
-    window.addEventListener('resize', refresh)
-    return () => {
-      window.removeEventListener('scroll', refresh, true)
-      window.removeEventListener('resize', refresh)
-      window.cancelAnimationFrame(frame)
-    }
-  }, [commandContext])
   useEffect(() => {
     if (!editor) return
     const dom = editor.view.dom
@@ -639,15 +534,6 @@ const NoteEditor = ({
     if (active) dom.setAttribute('aria-activedescendant', `${commandMenuId}-${active.id}`)
     else dom.removeAttribute('aria-activedescendant')
   }, [commandContext, commandIndex, commandMenuId, commands, editor])
-  let menuPosition = { left: 0, top: 0 }
-  if (commandContext && editor && editorRootRef.current) {
-    const caret = editor.view.coordsAtPos(commandContext.to)
-    const bounds = editorRootRef.current.getBoundingClientRect()
-    const height = Math.min(360, Math.max(1, commands.length) * 38 + 40)
-    const below = caret.bottom + 6
-    const top = below + height <= window.innerHeight - 8 ? below : Math.max(8, caret.top - height - 6)
-    menuPosition = { left: Math.max(0, Math.min(caret.left - bounds.left, bounds.width - 240)), top: top - bounds.top }
-  }
 
   useEffect(() => {
     if (!editor) return
@@ -712,7 +598,8 @@ const NoteEditor = ({
   return (
     <div className="note-editor" ref={editorRootRef}>
       {editor ? <><NoteSelectionMenu editor={editor} disabled={taskDialogOpen} /><NoteBlockTools editor={editor} disabled={taskDialogOpen} /></> : null}
-      {commandContext ? <NoteCommandMenu menuId={commandMenuId} commands={commands} activeIndex={commandIndex} {...menuPosition}
+      {pasteError ? <div className="note-editor__paste-error" role="alert">{t('notes.paste.failed')}<button type="button" onClick={() => setPasteError(false)} aria-label={t('common.close')}>×</button></div> : null}
+      {commandContext && editor ? <NoteCommandMenu menuId={commandMenuId} commands={commands} activeIndex={commandIndex} editor={editor} position={commandContext.to}
         onChoose={(id) => commandHandlersRef.current.choose(id, commandContext)} /> : null}
       <div className="note-editor__topbar">
         {onReturn ? (
@@ -723,32 +610,33 @@ const NoteEditor = ({
         ) : null}
         <div className="note-editor__toolbar-wrap">
           <EditorContext.Provider value={{ editor }}>
-            <Toolbar className="note-editor__toolbar-inline">
+            <NoteToolbar editor={editor}>
               <ToolbarGroup>
                 <UndoRedoButton action="undo" />
                 <UndoRedoButton action="redo" />
               </ToolbarGroup>
               <ToolbarSeparator />
               <ToolbarGroup>
-                <HeadingDropdownMenu modal={false} levels={[1, 2, 3]} />
-                <ListDropdownMenu modal={false} types={['bulletList', 'orderedList', 'taskList']} />
+                <NoteHeadingDropdownMenu editor={editor ?? undefined} modal={false} levels={[1, 2, 3]} />
+                <NoteListDropdownMenu editor={editor ?? undefined} modal={false} types={['bulletList', 'orderedList', 'taskList']} />
                 <BlockquoteButton />
                 <CodeBlockButton />
               </ToolbarGroup>
               <ToolbarSeparator />
               <ToolbarGroup>
-                <MarkButton type="bold" />
-                <MarkButton type="italic" />
-                <MarkButton type="strike" />
-                <MarkButton type="code" />
-                <MarkButton type="underline" />
-                <ColorHighlightPopover />
-                <LinkPopover />
+                <MarkButton editor={editor} type="bold" />
+                <MarkButton editor={editor} type="italic" />
+                <MarkButton editor={editor} type="strike" />
+                <MarkButton editor={editor} type="code" />
+                <MarkButton editor={editor} type="underline" />
+                {editor ? <NoteHighlightMenu editor={editor} /> : null}
+                {editor ? <NoteTextColorMenu editor={editor} /> : null}
+                <NoteLinkPopover editor={editor} />
               </ToolbarGroup>
               <ToolbarSeparator />
               <ToolbarGroup>
-                <MarkButton type="superscript" />
-                <MarkButton type="subscript" />
+                <MarkButton editor={editor} type="superscript" />
+                <MarkButton editor={editor} type="subscript" />
               </ToolbarGroup>
               <ToolbarSeparator />
               <ToolbarGroup>
@@ -761,7 +649,7 @@ const NoteEditor = ({
               <ToolbarGroup>
                 <ImageUploadButton text={t('notes.add')} />
               </ToolbarGroup>
-            </Toolbar>
+            </NoteToolbar>
           </EditorContext.Provider>
         </div>
         <div className="note-editor__actions">

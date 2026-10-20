@@ -46,6 +46,7 @@ export interface ListDropdownMenuProps extends Omit<ButtonProps, "type"> {
    * Whether the dropdown should use a modal
    */
   modal?: boolean
+  contentProps?: React.ComponentProps<typeof DropdownMenuContent>
 }
 
 export function ListDropdownMenu({
@@ -54,6 +55,7 @@ export function ListDropdownMenu({
   hideWhenUnavailable = false,
   onOpenChange,
   modal = true,
+  contentProps,
   ...props
 }: ListDropdownMenuProps) {
   const { t } = useI18n()
@@ -99,7 +101,7 @@ export function ListDropdownMenu({
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="start">
+      <DropdownMenuContent align="start" {...contentProps}>
         <DropdownMenuGroup>
           {filteredLists.map((option) => (
             <DropdownMenuItem key={option.type} asChild>

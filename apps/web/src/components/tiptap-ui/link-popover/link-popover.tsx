@@ -74,6 +74,9 @@ export interface LinkPopoverProps
    * @default true
    */
   autoOpenOnLinkActive?: boolean
+  onBeforeLinkChange?: () => void
+  onAfterLinkChange?: () => void
+  popoverContentProps?: React.ComponentProps<typeof PopoverContent>
 }
 
 /**
@@ -115,6 +118,7 @@ const LinkMain: React.FC<LinkMainProps> = ({
   const isMobile = useIsBreakpoint()
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return
     if (event.key === "Enter") {
       event.preventDefault()
       setLink()
@@ -217,6 +221,9 @@ export const LinkPopover = forwardRef<HTMLButtonElement, LinkPopoverProps>(
       onSetLink,
       onOpenChange,
       autoOpenOnLinkActive = true,
+      onBeforeLinkChange,
+      onAfterLinkChange,
+      popoverContentProps,
       onClick,
       children,
       ...buttonProps
@@ -252,17 +259,26 @@ export const LinkPopover = forwardRef<HTMLButtonElement, LinkPopoverProps>(
     )
 
     const handleSetLink = useCallback(() => {
+      onBeforeLinkChange?.()
       setLink()
-      setIsOpen(false)
-    }, [setLink])
+      onAfterLinkChange?.()
+      handleOnOpenChange(false)
+    }, [setLink, handleOnOpenChange, onBeforeLinkChange, onAfterLinkChange])
+
+    const handleRemoveLink = useCallback(() => {
+      onBeforeLinkChange?.()
+      removeLink()
+      onAfterLinkChange?.()
+      handleOnOpenChange(false)
+    }, [removeLink, handleOnOpenChange, onBeforeLinkChange, onAfterLinkChange])
 
     const handleClick = useCallback(
       (event: React.MouseEvent<HTMLButtonElement>) => {
         onClick?.(event)
         if (event.defaultPrevented) return
-        setIsOpen(!isOpen)
+        handleOnOpenChange(!isOpen)
       },
-      [onClick, isOpen]
+      [onClick, isOpen, handleOnOpenChange]
     )
 
     useEffect(() => {
@@ -292,12 +308,12 @@ export const LinkPopover = forwardRef<HTMLButtonElement, LinkPopoverProps>(
           </LinkButton>
         </PopoverTrigger>
 
-        <PopoverContent>
+        <PopoverContent {...popoverContentProps}>
           <LinkMain
             url={url}
             setUrl={setUrl}
             setLink={handleSetLink}
-            removeLink={removeLink}
+            removeLink={handleRemoveLink}
             openLink={openLink}
             isActive={isActive}
           />

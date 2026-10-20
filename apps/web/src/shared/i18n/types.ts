@@ -1,6 +1,11 @@
 export type LanguageCode = 'en' | 'zh'
 
 export type TranslationKey =
+  | 'notes.paste.failed'
+  | 'notes.block.delete'
+  | 'notes.block.duplicate'
+  | 'notes.selection.more'
+  | 'notes.toolbar.label'
   | 'settings.sound.title'
   | 'shell.sound.label'
   | 'shell.sound.enable'
