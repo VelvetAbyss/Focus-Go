@@ -7,15 +7,20 @@ import { fileURLToPath, URL } from 'node:url'
 
 const shouldAnalyzeBundle = process.env.FOCUSGO_BUNDLE_ANALYZE === '1'
 const releaseSha = process.env.VITE_RELEASE_SHA || process.env.GITHUB_SHA || 'local'
-const swVersion = /^[a-f0-9]{7,40}$/i.test(releaseSha) ? releaseSha : 'local'
+const swVersion = /^[a-f0-9]{7,40}$/i.test(releaseSha) ? releaseSha : Date.now().toString(16)
 
-// The CDN may retain an older /sw.js after a release. Register a URL unique to
-// this build so a new page can always fetch and activate its matching worker.
+// Give already-open tabs a network-only release marker and an update coordinator.
 const versionedServiceWorker = {
   name: 'focusgo-versioned-service-worker',
   apply: 'build' as const,
-  transformIndexHtml(html: string) {
-    return html.replace('</head>', `<script>if('serviceWorker'in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js?v=${swVersion}',{scope:'/',updateViaCache:'none'}).catch(()=>{})},{once:true})}</script></head>`)
+  transformIndexHtml: {
+    order: 'pre' as const,
+    handler(html: string) {
+      return html.replace('</head>', `<meta name="focusgo-release" content="${swVersion}"><script type="module" src="/src/shared/runtime/webUpdates.ts"></script></head>`)
+    },
+  },
+  generateBundle(this: { emitFile: (file: { type: 'asset'; fileName: string; source: string }) => void }) {
+    this.emitFile({ type: 'asset', fileName: 'release.json', source: JSON.stringify({ version: swVersion }) })
   },
 }
 

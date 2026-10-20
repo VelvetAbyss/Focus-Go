@@ -9,7 +9,7 @@ test('a new visitor opens the same dashboard as local port 5174', async ({ page 
   await page.goto('/')
 
   await expect(page).toHaveTitle('Focus&go')
-  expect(await page.content()).toContain('/sw.js?v=')
+  await expect(page.locator('meta[name="focusgo-release"]')).toHaveAttribute('content', /^[a-f0-9]{7,40}$/i)
   await expect(page.locator('script[src="/registerSW.js"]')).toHaveCount(0)
   await expect(page.getByText('选择数据存放方式')).toHaveCount(0)
   await expect(page.getByText('仪表盘', { exact: true }).first()).toBeVisible()

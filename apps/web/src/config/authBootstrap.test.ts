@@ -70,7 +70,7 @@ describe('bootstrapAuth', () => {
 
     expect(setAuthMock).toHaveBeenCalledWith({
       accessToken: 'oauth-token',
-      user: { id: 'user-1', email: 'user@example.com' },
+      user: { id: 'business-user-1', email: 'user@example.com' },
       isSupporter: true,
       cloudSync: { usedBytes: 1024, payloadBytes: 512, blobBytes: 512, limitBytes: 262144000 },
       isAdmin: true,
@@ -102,7 +102,7 @@ describe('bootstrapAuth', () => {
     expect(getSessionMock).toHaveBeenCalledTimes(1)
     expect(setAuthMock).toHaveBeenCalledWith({
       accessToken: 'cookie-token',
-      user: { id: 'user-1', email: 'user@example.com' },
+      user: { id: 'business-user-1', email: 'user@example.com' },
       isSupporter: false,
       cloudSync: undefined,
       isAdmin: false,

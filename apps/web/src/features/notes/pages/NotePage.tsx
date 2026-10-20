@@ -24,6 +24,7 @@ import { countCharactersInMarkdown, countWordsInMarkdown } from '../model/noteSt
 import { MAX_NOTE_IMPORT_FILES, MAX_NOTE_IMPORT_FILE_SIZE, describeNoteImportError, getNoteImportFormat, parseNoteImportFile } from '../model/noteImport'
 import { exportNoteAsPdf } from '../model/notePdfExport'
 import { useI18n } from '../../../shared/i18n/useI18n'
+import { onPrepareAppUpdate } from '../../../shared/runtime/updateLifecycle'
 import { usePremiumGate } from '../../premium/PremiumProvider'
 import BrandLoader from '../../../shared/ui/loading/BrandLoader'
 import Dialog from '../../../shared/ui/Dialog'
@@ -426,6 +427,12 @@ export default function NotePage() {
   // on the same events, in whichever order the listeners run.
   const flushPendingSaveRef = useRef(flushPendingSave)
   flushPendingSaveRef.current = flushPendingSave
+  useEffect(() => onPrepareAppUpdate(async () => {
+    // Editor listeners flush synchronously before the queued repository save is awaited.
+    await Promise.resolve()
+    await flushPendingSaveRef.current()
+    await saveQueueRef.current
+  }), [])
   useEffect(() => {
     const onHide = () => {
       pageHidingRef.current = true

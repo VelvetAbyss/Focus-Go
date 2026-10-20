@@ -50,7 +50,7 @@ const bootstrapDesktopSession = async () => {
   setAuth({
     ...hint,
     accessToken: token,
-    user: hint.user ?? { id: profile.id, email: profile.email },
+    user: { ...(hint.user ?? { email: profile.email }), id: String(profile.id) },
     isSupporter: profile.isSupporter,
     cloudSync: profile.cloudSync,
     isAdmin: profile.isAdmin,

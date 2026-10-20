@@ -37,3 +37,26 @@ it('does not accept a token when the protected profile cannot be validated', asy
   await expect(finishBetterAuthSession('bad', { id: 'auth-b' })).rejects.toThrow(/validate account/)
   expect(mocks.setAuth).not.toHaveBeenCalled()
 })
+
+
+it('restores the same business identity after cookies are renewed without changing the local outbox owner', async () => {
+  localStorage.setItem(LOCAL_ACCOUNT_OWNER_KEY, 'business-b')
+  mocks.getAuth.mockReturnValue({ user: { id: 'auth-b' } })
+  const { finishBetterAuthSession } = await import('./authRuntime')
+  const restored = await finishBetterAuthSession('renewed-token', { id: 'auth-b', name: 'Existing user' })
+  expect(restored.user).toEqual({ id: 'business-b', name: 'Existing user' })
+  expect(localStorage.getItem(LOCAL_ACCOUNT_OWNER_KEY)).toBe('business-b')
+})
+
+it('accepts a canonical business identity hint without an owner marker for the same validated account', async () => {
+  mocks.getAuth.mockReturnValue({ user: { id: 'business-b' } })
+  const { finishBetterAuthSession } = await import('./authRuntime')
+  await expect(finishBetterAuthSession('token-b', { id: 'auth-b' })).resolves.toMatchObject({ user: { id: 'business-b' } })
+})
+
+it('still rejects a different identity hint when the local owner marker is absent', async () => {
+  mocks.getAuth.mockReturnValue({ user: { id: 'business-a' } })
+  const { finishBetterAuthSession } = await import('./authRuntime')
+  await expect(finishBetterAuthSession('token-b', { id: 'auth-b' })).rejects.toThrow()
+  expect(mocks.setAuth).not.toHaveBeenCalled()
+})
