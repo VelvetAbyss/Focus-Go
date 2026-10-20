@@ -224,12 +224,14 @@ const AppShell = ({ children }: AppShellProps) => {
               onToggle={() => setSidebarCollapsed((prev) => !prev)}
             />
             <main className="focus-shell__main flex min-h-0 flex-1 flex-col">
-              <section className={`focus-shell__route-layer flex min-h-0 flex-1 flex-col ${isFullBleedRoute ? 'focus-shell__route-layer--full-bleed' : ''}`}>
-                <SyncSafetyStatus />
-                <AuthInteractionGate>
-                  {children}
-                </AuthInteractionGate>
-              </section>
+              <SyncSafetyStatus />
+              <div className="relative min-h-0 flex-1">
+                <section className={`focus-shell__route-layer flex min-h-0 flex-1 flex-col ${isFullBleedRoute ? 'focus-shell__route-layer--full-bleed' : ''}`}>
+                  <AuthInteractionGate>
+                    {children}
+                  </AuthInteractionGate>
+                </section>
+              </div>
             </main>
           </div>
         </div>
