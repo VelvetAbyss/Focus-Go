@@ -373,8 +373,20 @@ test('data safety: unsent tasks survive logout/switch/reset attempts, then resto
     const newCookie = await authRequest('sign-in/email', credentials)
     await context.addCookies([newCookie])
     console.log('DATA SAFETY: restore')
+    await page.goto('/tasks')
+    // Restoration is asynchronous. Verify persisted recovery before opening a
+    // deep link, which the board discards if its first local load is empty.
+    await expect.poll(async () => page.evaluate(async id =>
+      (await (await import('/src/data/db/index.ts')).db.tasks.get(id))?.title, task.id,
+    ), { timeout: 45000 }).toBe(task.title)
+    console.log('DATA SAFETY: persisted task restored')
     await page.goto(`/tasks?task=${task.id}`)
     await expect(page.locator('.task-detail-title-input')).toHaveValue(task.title, { timeout: 45000 })
+    const safetyBounds = await page.getByTestId('sync-safety-status').boundingBox()
+    const headingBounds = await page.locator('.tasks-workspace-header').boundingBox()
+    expect(safetyBounds!.height).toBeLessThan(150)
+    expect(headingBounds!.y).toBeGreaterThanOrEqual(safetyBounds!.y + safetyBounds!.height - 1)
+    expect(headingBounds!.y + headingBounds!.height).toBeLessThan(page.viewportSize()!.height)
     const restored = await page.evaluate(async id => (await (await import('/src/data/db/index.ts')).db.tasks.get(id)), task.id)
     expect(restored?.id).toBe(task.id)
     expect(restored?.title).toBe(task.title)
