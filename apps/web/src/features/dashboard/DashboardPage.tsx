@@ -40,6 +40,7 @@ import { DASHBOARD_CARD_DISCOVERY_TARGET_BY_ID } from '../../shared/discovery/ne
 const DashboardPage = () => {
   const { t, language } = useI18n()
   const { ready: labsReady, catalog: labsCatalog } = useLabs()
+  const translationInstalled = labsCatalog.some(item => item.featureKey === 'translation' && item.state === 'installed')
   const [symbolicError, setSymbolicError] = useState('')
   const symbolicAdding = useRef(false)
   const { t: lifeT } = useLifeI18n()
@@ -191,7 +192,7 @@ const DashboardPage = () => {
     layoutSnapshotRef.current = { layout, hiddenCardIds }
   }, [hiddenCardIds, layout, gridEdit.activeId])
 
-  const cards = useMemo(() => getDashboardCards(), [])
+  const cards = useMemo(() => getDashboardCards().filter(card => card.id !== 'translation' || translationInstalled), [translationInstalled])
   const cardsById = useMemo(() => new Map(cards.map((card) => [card.id, card])), [cards])
   const visibleCards = useMemo(
     () => layout.map((item) => cardsById.get(item.key)).filter((card): card is NonNullable<typeof card> => Boolean(card)),
@@ -235,6 +236,7 @@ const DashboardPage = () => {
   )
 
   useEffect(() => {
+    if (!labsReady) return
     const allowed = new Set(cards.map((card) => card.id))
     const registryDefaultHidden = cards.filter((card) => card.defaultVisible === false).map((card) => card.id)
 
@@ -320,7 +322,7 @@ const DashboardPage = () => {
         layoutVersion: CURRENT_DASHBOARD_LAYOUT_VERSION,
       })
     })
-  }, [cards])
+  }, [cards, labsReady])
 
   useEffect(() => {
     const id = searchParams.get('symbolicWidget')

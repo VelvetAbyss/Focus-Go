@@ -7,9 +7,8 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 
 const getMock = vi.fn()
 
-const labsState = vi.hoisted(() => ({ catalog: [] as { featureKey:string; state:string }[] }))
-vi.mock('../labs/LabsContext', () => ({ useLabs: () => ({ ready:true, catalog:labsState.catalog }) }))
-
+const labs = vi.hoisted(() => ({ ready: true, catalog: [] as { featureKey: string; state: string }[] }))
+vi.mock('../labs/LabsContext', () => ({ useLabs: () => labs }))
 vi.mock('../../shared/i18n/useI18n', () => ({
   useI18n: () => ({
     t: (key: string) =>
@@ -81,6 +80,7 @@ vi.mock('../../data/repositories/syncedPreferencesRepo', () => ({
 
 vi.mock('./registry', () => ({
   getDashboardCards: () => [
+    { id: 'translation', title: 'Translate', defaultVisible: false, defaultSize: { w: 4, h: 9 }, render: () => <div>Translation card</div> },
     {
       id: 'tasks',
       title: 'Tasks',
@@ -124,9 +124,9 @@ const renderDashboard = (initialEntries = ['/']) =>
 
 describe('DashboardPage onboarding', () => {
   beforeEach(() => {
+    labs.catalog = []
     window.localStorage.clear()
     window.sessionStorage.clear()
-    labsState.catalog=[]
     getMock.mockReset()
     getMock.mockResolvedValue({
       items: [{ key: 'tasks', x: 0, y: 0, w: 4, h: 4 }],
@@ -137,6 +137,23 @@ describe('DashboardPage onboarding', () => {
 
   afterEach(() => {
     cleanup()
+  })
+
+  it('only offers translation in widget management after Labs installation', async () => {
+    const { unmount } = renderDashboard()
+    await screen.findByText('Tasks card')
+    fireEvent.click(screen.getByRole('button', { name: 'Edit layout' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Manage widgets' }))
+    expect(screen.queryByText('Translate')).toBeNull()
+    unmount()
+    labs.catalog = [{ featureKey: 'translation', state: 'installed' }]
+    window.localStorage.setItem('workbench.dashboard.layoutLocked', 'true')
+    renderDashboard()
+    await screen.findByText('Tasks card')
+    expect(screen.queryByText('Translation card')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Edit layout' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Manage widgets' }))
+    expect(await screen.findByText('Translate')).toBeInTheDocument()
   })
 
   it('renders stored dashboard cards', async () => {
@@ -180,7 +197,7 @@ describe('DashboardPage onboarding', () => {
 })
 
 it('adds an installed module from its page link without losing existing widgets', async () => {
-  labsState.catalog=[{featureKey:'bazi',state:'installed'}]
+  labs.catalog=[{featureKey:'bazi',state:'installed'}]
   getMock.mockResolvedValue({items:[{key:'tasks',x:0,y:0,w:4,h:4}],hiddenCardIds:['bazi'],themeOverride:'dark',layoutVersion:1})
   renderDashboard(['/?symbolicWidget=bazi'])
   expect(await screen.findByText('BaZi widget')).toBeInTheDocument()
@@ -188,7 +205,7 @@ it('adds an installed module from its page link without losing existing widgets'
   cleanup()
 })
 it('does not add an uninstalled module from a URL', async () => {
-  labsState.catalog=[]
+  labs.catalog=[]
   getMock.mockResolvedValue({items:[{key:'tasks',x:0,y:0,w:4,h:4}],hiddenCardIds:['bazi'],layoutVersion:1})
   renderDashboard(['/?symbolicWidget=bazi'])
   await screen.findByText('Tasks card')
@@ -196,7 +213,7 @@ it('does not add an uninstalled module from a URL', async () => {
   cleanup()
 })
 it('keeps a removed module visible in the manager so its placeholder can be hidden', async () => {
-  labsState.catalog=[{featureKey:'bazi',state:'removed'}]
+  labs.catalog=[{featureKey:'bazi',state:'removed'}]
   getMock.mockResolvedValue({items:[{key:'tasks',x:0,y:0,w:4,h:4},{key:'bazi',x:4,y:0,w:4,h:4}],hiddenCardIds:[],layoutVersion:1})
   renderDashboard()
   await screen.findByText('BaZi widget')

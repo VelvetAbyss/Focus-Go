@@ -2,8 +2,7 @@
 import '@testing-library/jest-dom/vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
-vi.mock('../labs/LabsContext', () => ({ useLabs: () => ({ ready:true, catalog:[] }) }))
-
+vi.mock('../labs/LabsContext', () => ({ useLabs: () => ({ ready: true, catalog: [] }) }))
 vi.mock('../../shared/i18n/useI18n', () => ({ useI18n: () => ({ language: 'en' }) }))
 vi.mock('../life/lifeI18n', () => ({ useLifeI18n: () => ({ t: (key: string) => key }) }))
 vi.mock('../../hooks/use-is-breakpoint', () => ({ useIsBreakpoint: () => false }))

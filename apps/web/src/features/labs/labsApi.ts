@@ -36,6 +36,13 @@ const FEATURE_META: FeatureMeta[] = [
   { featureKey: 'astrology', title: 'Astrology', description: 'A personal natal chart with planetary positions and current transits.', premiumOnly: false, comingSoon: false },
   { featureKey: 'tarot', title: 'Tarot', description: 'Daily cards, three-card spreads and a private reflection journal.', premiumOnly: false, comingSoon: false },
   {
+    featureKey: 'translation',
+    title: 'Translate',
+    description: 'Free online and offline translation, with business expressions and downloadable language packs.',
+    premiumOnly: false,
+    comingSoon: false,
+  },
+  {
     featureKey: 'ai-digest',
     title: 'AI Digest',
     description: 'Weekly summarization digest for your subscriptions.',

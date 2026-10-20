@@ -42,6 +42,7 @@ const platformInjection = (mode: string) => {
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => ({
+  worker: { format: 'es' },
   plugins: [
     react(),
     platformInjection(mode),
@@ -62,7 +63,7 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         skipWaiting: true,
         clientsClaim: true,
-        globPatterns: ['**/*.{js,css,html,woff2,glb,wav}', 'licenses/desk-models.txt'],
+        globPatterns: ['**/*.{js,mjs,css,html,woff2,glb,wav}', 'licenses/desk-models.txt'],
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api(?:\/|$)/],

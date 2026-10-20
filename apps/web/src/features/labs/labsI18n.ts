@@ -36,6 +36,7 @@ type LabsMessages = {
     install: string
     open: string
     openHabits: string
+    openTranslation: string
     openProject: string
     remove: string
     restore: string
@@ -63,6 +64,7 @@ const messages: Record<LabsLang, LabsMessages> = {
     featureTitles: {
       bazi: 'BaZi', astrology: 'Astrology', tarot: 'Tarot',
       'habit-tracker': 'Habit Tracker',
+      translation: 'Translate',
       'project-workspace': 'Project',
       'ai-digest': 'AI Digest',
       automation: 'Automation Flows',
@@ -72,6 +74,7 @@ const messages: Record<LabsLang, LabsMessages> = {
       astrology: 'Sun-sign overviews, personal charts and daily to yearly readings.',
       tarot: 'Choose cards by hand, explore questions and keep complete readings.',
       'habit-tracker': 'Identity-first habit dashboard with streaks, progress ring, and heatmap.',
+      translation: 'Free online and offline translation, business expressions and language packs downloaded as needed.',
       'project-workspace': 'Dedicated workspace for complex projects with clear goals and timelines.',
       'ai-digest': 'Weekly summarization digest for your subscriptions.',
       automation: 'Composable productivity automations and triggers.',
@@ -105,6 +108,7 @@ const messages: Record<LabsLang, LabsMessages> = {
       install: 'Install',
       open: 'Open',
       openHabits: 'Open Habits',
+      openTranslation: 'Open Translate',
       openProject: 'Open Project',
       remove: 'Remove',
       restore: 'Restore',
@@ -130,6 +134,7 @@ const messages: Record<LabsLang, LabsMessages> = {
     featureTitles: {
       bazi: '八字 · 四时', astrology: '星座 · 星图', tarot: '塔罗 · 一刻',
       'habit-tracker': '习惯追踪',
+      translation: '翻译',
       'project-workspace': '项目',
       'ai-digest': 'AI Digest',
       automation: '自动化流程',
@@ -139,6 +144,7 @@ const messages: Record<LabsLang, LabsMessages> = {
       astrology: '十二星座速览与个人星盘，阅读日、周、月、年趋势。',
       tarot: '每日一牌与主题问事，亲手选牌，保存解读与心得。',
       'habit-tracker': '以身份认同为核心的习惯仪表盘，带有连续记录、进度环和热力图。',
+      translation: '免费在线与离线翻译，支持商务表达，离线语言包按需下载。',
       'project-workspace': '为复杂项目打造的专属工作区，目标清晰，时间线明确。',
       'ai-digest': '每周自动汇总你的订阅内容摘要。',
       automation: '可组合的生产力自动化流程与触发器。',
@@ -172,6 +178,7 @@ const messages: Record<LabsLang, LabsMessages> = {
       install: '安装',
       open: '打开',
       openHabits: '打开习惯追踪',
+      openTranslation: '打开翻译',
       openProject: '打开项目',
       remove: '移除',
       restore: '恢复',

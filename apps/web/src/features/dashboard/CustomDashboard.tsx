@@ -29,11 +29,12 @@ const zhTitles: Record<string, string> = { bazi:'八字 · 今日', astrology:'�
 export default function CustomDashboard({ view, views, isNew, onSave, onDelete, onCopy, onCancel, onDirtyChange }: Props) {
   const { language } = useI18n()
   const { catalog } = useLabs()
+  const translationInstalled = catalog.some(item => item.featureKey === 'translation' && item.state === 'installed')
   const available = (card: ReturnType<typeof getDashboardCards>[number]) => !card.featureKey || catalog.some(item => item.featureKey === card.featureKey && item.state === 'installed')
   const { t: lifeT } = useLifeI18n()
   const zh = language === 'zh'
   const text = (cn: string, en: string) => zh ? cn : en
-  const cards = useMemo(() => [...getDashboardCards(), ...getLifeCards(lifeT)], [lifeT])
+  const cards = useMemo(() => [...getDashboardCards(), ...getLifeCards(lifeT)].filter(card => card.id !== 'translation' || translationInstalled), [lifeT, translationInstalled])
   const title = (id: string) => (zh && zhTitles[id]) || cards.find(card => card.id === id)?.title || id
   const [draft, setDraft] = useState<CustomView>(() => structuredClone(view))
   const [editing, setEditing] = useState(isNew)

@@ -13,6 +13,7 @@ const TaskProgressSummaryWidgetCard = lazy(() => import('../tasks/components/Tas
 const SpendCard = lazy(() => import('../spend/SpendCard'))
 const WidgetTodosCard = lazy(() => import('./cards/WidgetTodosCard'))
 const WeatherWidgetCard = lazy(() => import('./cards/WeatherWidgetCard'))
+const TranslationCard = lazy(() => import('../translation/TranslationCard'))
 const EarnedTodayCard = lazy(() => import('../salary/cards/EarnedTodayCard'))
 const WorkTimePriceCard = lazy(() => import('../salary/cards/WorkTimePriceCard'))
 const BreakLogCard = lazy(() => import('../salary/cards/BreakLogCard'))
@@ -57,6 +58,15 @@ export const getDashboardCards = (): DashboardCard[] => [
   { id:'bazi', title:'BaZi · Today', defaultSize:{w:4,h:4}, defaultVisible:false, pageScope:'main', featureKey:'bazi', render:()=>renderLazyCard(<BaziWidget/>) },
   { id:'astrology', title:'Astrology · Today', defaultSize:{w:4,h:4}, defaultVisible:false, pageScope:'main', featureKey:'astrology', render:()=>renderLazyCard(<AstrologyWidget/>) },
   { id:'tarot', title:'Tarot · Daily card', defaultSize:{w:4,h:4}, defaultVisible:false, pageScope:'main', featureKey:'tarot', render:()=>renderLazyCard(<TarotWidget/>) },
+  {
+    id: 'translation',
+    featureKey: 'translation',
+    defaultVisible: false,
+    title: '翻译 / Translate',
+    defaultSize: { w: 4, h: 9 },
+    pageScope: 'main',
+    render: () => renderLazyCard(<TranslationCard />),
+  },
   {
     id: 'task-progress-summary',
     title: 'Progress Summary',
