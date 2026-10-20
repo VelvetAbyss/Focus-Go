@@ -1,4 +1,4 @@
-import { mergeAttributes, Node } from "@tiptap/react"
+import { ImageUploadSchema } from "../../../features/notes/model/imageUploadSchema"
 import { ReactNodeViewRenderer } from "@tiptap/react"
 import { ImageUploadNode as ImageUploadNodeComponent } from "@/components/tiptap-node/image-upload-node/image-upload-node"
 import type { NodeType } from "@tiptap/pm/model"
@@ -63,17 +63,7 @@ declare module "@tiptap/react" {
  * A Tiptap node extension that creates an image upload component.
  * @see registry/tiptap-node/image-upload-node/image-upload-node
  */
-export const ImageUploadNode = Node.create<ImageUploadNodeOptions>({
-  name: "imageUpload",
-
-  group: "block",
-
-  draggable: true,
-
-  selectable: true,
-
-  atom: true,
-
+export const ImageUploadNode = ImageUploadSchema.extend<ImageUploadNodeOptions>({
   addOptions() {
     return {
       type: "image",
@@ -85,31 +75,6 @@ export const ImageUploadNode = Node.create<ImageUploadNodeOptions>({
       onSuccess: undefined,
       HTMLAttributes: {},
     }
-  },
-
-  addAttributes() {
-    return {
-      accept: {
-        default: this.options.accept,
-      },
-      limit: {
-        default: this.options.limit,
-      },
-      maxSize: {
-        default: this.options.maxSize,
-      },
-    }
-  },
-
-  parseHTML() {
-    return [{ tag: 'div[data-type="image-upload"]' }]
-  },
-
-  renderHTML({ HTMLAttributes }) {
-    return [
-      "div",
-      mergeAttributes({ "data-type": "image-upload" }, HTMLAttributes),
-    ]
   },
 
   addNodeView() {

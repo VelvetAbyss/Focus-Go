@@ -431,3 +431,60 @@ test('data safety: interrupted reset preserves local content and rebuilds the wi
 
   } finally { await context.close() }
 })
+
+test('data safety: image upload placeholders survive opening, editing and reloading a synced note', async ({ page }) => {
+  const cookie = await authRequest('sign-up/email', { email: `image-schema-${crypto.randomUUID()}@example.test`, password: 'test-only-password-1234', name: 'Image Schema Test' })
+  await page.context().addCookies([cookie])
+  await page.addInitScript(() => localStorage.setItem('workbench.ui.language', 'en'))
+  const errors: string[] = []
+  page.on('pageerror', error => errors.push(error.message))
+  await page.goto('/note')
+  const noteId = await page.evaluate(async () => {
+    const { notesRepo } = await import('/src/data/repositories/notesRepo.ts')
+    const image = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j8l8AAAAASUVORK5CYII='
+    const note = await notesRepo.create({
+      title: 'Image upload schema regression', collection: 'all-notes', tags: [],
+      contentMd: '# Image upload schema regression\n\nBefore the upload\n\nAfter the upload',
+      contentJson: { type: 'doc', content: [
+        { type: 'heading', attrs: { level: 1 }, content: [{ type: 'text', text: 'Image upload schema regression' }] },
+        { type: 'paragraph', content: [{ type: 'text', text: 'Before the upload' }] },
+        { type: 'imageUpload', attrs: { accept: 'image/*', limit: 3, maxSize: 10485760 } },
+        { type: 'image', attrs: { src: image, alt: 'Existing attachment' } },
+        { type: 'paragraph', content: [{ type: 'text', text: 'After the upload' }] },
+      ] },
+    })
+    return note.id
+  })
+  await page.goto(`/note?note=${noteId}`)
+  const editor = page.locator('.note-editor .ProseMirror')
+  await expect(editor).toContainText('Before the upload')
+  await expect(editor).toContainText('After the upload')
+  await expect(editor.locator('.tiptap-image-upload')).toBeVisible()
+  await expect(editor.locator('img[alt="Existing attachment"]')).toBeVisible()
+  await editor.locator('p').last().click()
+  await page.keyboard.press('ControlOrMeta+End')
+  await page.keyboard.type(' - continued after opening')
+  await expect.poll(async () => page.evaluate(async id => {
+    const { db } = await import('/src/data/db/index.ts')
+    const note = await db.notes.get(id)
+    return { saved: note?.contentMd.includes('continued after opening'), crdt: !!note?.crdtState }
+  }, noteId)).toEqual({ saved: true, crdt: true })
+  await page.reload()
+  await expect(editor).toContainText('After the upload - continued after opening')
+  await expect(editor.locator('.tiptap-image-upload')).toBeVisible()
+  await expect(editor.locator('img[alt="Existing attachment"]')).toBeVisible()
+  expect(await editor.locator('img[alt="Existing attachment"]').evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true)
+  expect(await page.evaluate(async id => {
+    const { db } = await import('/src/data/db/index.ts')
+    return (await db.notes.get(id))?.title
+  }, noteId)).toBe('Image upload schema regression')
+  expect(await page.evaluate(async id => {
+    const { db } = await import('/src/data/db/index.ts')
+    return (await db.notes.get(id))?.contentJson?.content
+  }, noteId)).toEqual(expect.arrayContaining([
+    expect.objectContaining({ type: 'imageUpload', attrs: { accept: 'image/*', limit: 3, maxSize: 10485760 } }),
+    expect.objectContaining({ type: 'image', attrs: expect.objectContaining({ alt: 'Existing attachment' }) }),
+  ]))
+  expect(errors).toEqual([])
+  await page.screenshot({ path: '../../artifacts/note-image-upload-2026-10-20/reopened-note.png', fullPage: true })
+})
