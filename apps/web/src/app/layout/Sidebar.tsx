@@ -29,6 +29,7 @@ import {
 } from 'lucide-react'
 import { BASE_NAV_ITEMS, ROUTES, type RouteKey } from '../routes/routes'
 import SidebarUserPanel from './SidebarUserPanel'
+import SyncSafetyStatus from './SyncSafetyStatus'
 import ActiveIndicator from '../../shared/motion/ActiveIndicator'
 import { useLabs } from '../../features/labs/LabsContext'
 import { useLabsI18n } from '../../features/labs/labsI18n'
@@ -267,6 +268,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
         <div className="focus-sidebar__user focus-sidebar__user--top">
           <SidebarUserPanel collapsed={collapsed} />
         </div>
+        <SyncSafetyStatus />
         <SidebarThemeToggle />
         <button
           type="button"
