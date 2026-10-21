@@ -7,7 +7,6 @@ import {
   resolveTheme,
 } from '../../shared/theme/theme'
 import Sidebar from './Sidebar'
-import SyncSafetyStatus from './SyncSafetyStatus'
 import AmbientSceneStage from './AmbientSceneStage'
 import { useTaskReminderEngine } from '../../features/tasks/useTaskReminderEngine'
 import { useQuickCapture } from '../../features/tasks/application/useQuickCapture'
@@ -224,7 +223,6 @@ const AppShell = ({ children }: AppShellProps) => {
               onToggle={() => setSidebarCollapsed((prev) => !prev)}
             />
             <main className="focus-shell__main flex min-h-0 flex-1 flex-col">
-              <SyncSafetyStatus />
               <div className="relative min-h-0 flex-1">
                 <section className={`focus-shell__route-layer flex min-h-0 flex-1 flex-col ${isFullBleedRoute ? 'focus-shell__route-layer--full-bleed' : ''}`}>
                   <AuthInteractionGate>
