@@ -17,7 +17,7 @@ Focus&go brings them together so individuals can plan, execute, and review in on
 
 ## Free and open source
 
-Every current product feature is free under the MIT license. Local use never requires an account. Signing in enables the optional official cloud-sync service, which includes **250 MiB per account** by default; self-hosted deployments control their own limits.
+Every current product feature is free under the MIT license. The official Web app requires sign-in for protected interactions and saves supported content to the device first. On a new device, official cloud sync is enabled by default and attempts to sync after sign-in; it can be disabled in Settings after sign-in. Official cloud storage includes **250 MiB per account** by default; self-hosted deployments control their own limits.
 
 Past paid users are recognised as early supporters. Optional GitHub Sponsors, PayPal, and Z-Pay links never unlock features or change account access.
 
@@ -44,7 +44,7 @@ device first, and cloud sync only adds a server copy on top.
 - Daily diary entry panel to capture progress, outcomes, and reflection.
 - Spend tracking widgets for quick personal finance awareness.
 - Weather widget and city controls to keep daily context visible.
-- Local-first data that works with no account at all, plus optional authenticated cloud sync.
+- Local-first saving with configurable cloud sync; the official Web app requires sign-in for protected interactions.
 - Web client, macOS/Windows desktop app, and self-hostable API source.
 
 ## Product Preview
