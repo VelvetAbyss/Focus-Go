@@ -13,14 +13,14 @@
 <link rel="canonical" href="https://nestflow.art/">
 <link rel="icon" href="/favicon.ico">
 <meta name="color-scheme" content="light dark">
-<link rel="preload" href="assets/Fraunces-variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="assets/Manrope-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/Fraunces-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/Manrope-variable.woff2" as="font" type="font/woff2" crossorigin>
 <style>
 /* Self-hosted fonts — same files as the app. No Google Fonts dependency,
    so the page loads reliably in mainland China. Chinese text falls back
    to system fonts (PingFang SC / Microsoft YaHei), which stay sharp. */
-@font-face{font-family:'Manrope';src:url('assets/Manrope-variable.woff2') format('woff2');font-weight:200 800;font-style:normal;font-display:swap}
-@font-face{font-family:'Fraunces';src:url('assets/Fraunces-variable.woff2') format('woff2');font-weight:100 900;font-style:normal;font-display:swap}
+@font-face{font-family:'Manrope';src:url('/assets/Manrope-variable.woff2') format('woff2');font-weight:200 800;font-style:normal;font-display:swap}
+@font-face{font-family:'Fraunces';src:url('/assets/Fraunces-variable.woff2') format('woff2');font-weight:100 900;font-style:normal;font-display:swap}
 
 /* ── Tokens (shared with the app's design system) ─────────────── */
 :root{
@@ -81,7 +81,7 @@ body::after{content:'';position:fixed;inset:0;z-index:99;pointer-events:none;opa
 .blob{position:absolute;border-radius:50%;pointer-events:none;opacity:.5}
 .section[data-ghost]{position:relative}
 .section[data-ghost]::before{content:attr(data-ghost);position:absolute;top:56px;right:3%;font-family:var(--font-display);font-weight:700;font-size:clamp(5rem,11vw,9.5rem);line-height:1;color:color-mix(in srgb, var(--ink-1) 4.5%, transparent);pointer-events:none}
-.watermark{font-family:var(--font-display);font-weight:700;font-size:clamp(4.5rem,14vw,11rem);line-height:.9;text-align:center;color:color-mix(in srgb, var(--ink-1) 5%, transparent);user-select:none;margin-top:44px}
+.watermark{font-family:var(--font-display);font-weight:700;font-size:clamp(2.4rem,14vw,11rem);line-height:.9;text-align:center;color:color-mix(in srgb, var(--ink-1) 5%, transparent);user-select:none;margin-top:44px}
 .friction-card,.stat,.chart-card,.how-card,.eco-chip,.price-card{transition:transform .25s var(--ease),box-shadow .25s var(--ease),border-color .25s}
 .friction-card:hover,.stat:hover,.chart-card:hover,.how-card:hover,.price-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-soft);border-color:rgba(27,79,74,.3)}
 .btn-primary{position:relative;overflow:hidden}
@@ -161,9 +161,12 @@ body::after{content:'';position:fixed;inset:0;z-index:99;pointer-events:none;opa
 .nav-links a:hover{color:var(--ink-1)}
 .nav-right{display:flex;align-items:center;gap:12px}
 .lang-toggle{border:1px solid color-mix(in srgb, var(--ink-1) 15%, transparent);border-radius:999px;background:transparent;height:32px;padding:0 12px;font:600 .78rem var(--font-body);color:var(--ink-3);cursor:pointer}
-.lang-toggle:hover{color:var(--ink-1)}
+.lang-toggle{display:inline-flex;align-items:center;text-decoration:none}.lang-toggle:hover{color:var(--ink-1)}
+html[lang="zh-CN"] .hero h1{font-family:"Noto Serif SC","Songti SC",serif;line-height:1.3}html[lang="zh-CN"] .hero h1 em{font-style:normal}
 .nav .btn{height:38px;padding:0 16px;font-size:.85rem}
 @media(max-width:760px){.nav-links{display:none}}
+.nav .btn{white-space:nowrap}
+@media(max-width:380px){.nav-inner{padding-inline:16px;gap:8px}.logo{font-size:1rem;gap:5px;flex-shrink:0}.logo img{width:20px;height:20px}.nav-right{gap:8px}.nav .btn{font-size:.72rem;padding-inline:10px}.lang-toggle{padding-inline:8px;font-size:.72rem}}
 
 /* ── Hero ── */
 .hero{padding:84px 0 60px;position:relative;overflow:hidden}
@@ -319,7 +322,7 @@ footer{border-top:1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);pad
 
 <nav class="nav">
   <div class="wrap nav-inner">
-    <a class="logo" href="#"><img src="assets/logo.png" alt="" width="24" height="24">Focus&amp;go</a>
+    <a class="logo" href="#"><img src="/assets/logo.png" alt="" width="24" height="24">Focus&amp;go</a>
     <div class="nav-links">
       <a href="#science" data-i18n="nav.science">The science</a>
       <a href="#how" data-i18n="nav.how">How</a>
@@ -327,7 +330,7 @@ footer{border-top:1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);pad
       <a href="#pricing" data-i18n="nav.pricing">Open source</a>
     </div>
     <div class="nav-right">
-      <button class="lang-toggle" id="langToggle" type="button">中文</button>
+      <a class="lang-toggle" id="langToggle" href="/zh/" lang="zh-CN" hreflang="zh-CN">中文</a>
       <a class="btn btn-primary" href="https://app.nestflow.art" data-i18n="cta.open">Open Focus&amp;go</a>
     </div>
   </div>
@@ -345,7 +348,7 @@ footer{border-top:1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);pad
     <div class="shot-wrap">
       <figure class="hero-shot reveal">
         <div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>app.nestflow.art</span></div>
-        <video id="heroDemo" src="assets/hero-demo.mp4" poster="assets/product-dashboard.png"
+        <video id="heroDemo" src="/assets/hero-demo.mp4" poster="/assets/product-dashboard.png"
           autoplay muted loop playsinline width="1440" height="900"
           aria-label="Focus&go demo: open the dashboard, type a task, press Enter, start the focus timer"></video>
       </figure>
@@ -508,7 +511,7 @@ footer{border-top:1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);pad
   </div>
 </section>
 
-<section class="section founder">
+<section class="section founder" id="maintainer">
   <div class="wrap">
     <span class="kicker" data-i18n="founder.kicker">Why this exists</span>
     <p class="founder-note reveal" data-i18n="founder.note">"I didn't build Focus&go to sell productivity. I built it because I kept losing my mornings to tools that asked me to design a system before I could write a single line. Every feature here exists because I needed it on an actual Tuesday. If it ever asks you to configure something before you can start, I've failed."</p>
@@ -558,8 +561,8 @@ footer{border-top:1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);pad
   <div class="wrap foot-inner">
     <span data-i18n="foot.tag">© <span id="year">2026</span> Focus&amp;go · nestflow.art.</span>
     <span>
-      <a href="https://app.nestflow.art/workspace/settings/legal/privacy-policy" data-i18n="foot.privacy">Privacy</a>
-      <a href="https://app.nestflow.art/workspace/settings/legal/terms-of-service" data-i18n="foot.terms">Terms</a>
+      <a href="/privacy/" data-i18n="foot.privacy">Privacy</a>
+      <a href="/terms/" data-i18n="foot.terms">Terms</a>
       <a href="mailto:support@nestflow.art" data-i18n="foot.contact">Contact</a>
     </span>
   </div>
@@ -701,32 +704,7 @@ const TIPS = {
   mood:   {en:'Highest friction: <b>pre-start tension</b>. Try the ambient scenes and diary — name the feeling, then start small.', zh:'阻力最高的一项：<b>开始前的紧绷</b>。试试环境音场景和日记——先给情绪命名，再从小处开始。'}
 };
 
-let lang = localStorage.getItem('nestflow.lang') || (navigator.language||'').toLowerCase().startsWith('zh') ? (localStorage.getItem('nestflow.lang')||'zh') : (localStorage.getItem('nestflow.lang')||'en');
-const EN_CACHE = {};
-function applyLang(){
-  document.documentElement.lang = lang==='zh'?'zh-CN':'en';
-  document.body.classList.toggle('zh', lang==='zh');
-  document.getElementById('langToggle').textContent = lang==='zh' ? 'EN' : '中文';
-  document.querySelectorAll('[data-i18n]').forEach(el=>{
-    const k=el.getAttribute('data-i18n');
-    if(!(k in EN_CACHE)) EN_CACHE[k]=el.innerHTML;
-    if(lang==='zh' && ZH[k]!==undefined) el.innerHTML=ZH[k]; else if(lang==='en') el.innerHTML=EN_CACHE[k];
-  });
-  document.querySelectorAll('[data-i18n-html]').forEach(el=>{
-    const k=el.getAttribute('data-i18n-html');
-    if(!(k in EN_CACHE)) EN_CACHE[k]=el.innerHTML;
-    if(lang==='zh' && ZH[k]!==undefined) el.innerHTML=ZH[k]; else if(lang==='en') el.innerHTML=EN_CACHE[k];
-  });
-  renderLoopNodes(); renderQuiz();
-  document.title = lang==='zh' ? 'Focus&go — 免费任务管理、番茄钟与笔记工作台' : 'Focus&go — Free task manager, Pomodoro timer & notes';
-  document.querySelector('meta[name="description"]').content = lang==='zh'
-    ? 'Focus&go 将任务、番茄钟、笔记与日记整合在同一个个人工作台。所有当前功能免费，内容优先保存在本机，官方 Web 版的受保护交互需要登录。'
-    : 'Focus&go brings tasks, a Pomodoro timer, notes and a diary into one personal workspace. All current features are free, with local-first saving and configurable cloud sync.';
-  document.querySelector('meta[property="og:title"]').content = document.title;
-  document.querySelector('meta[property="og:description"]').content = document.querySelector('meta[name="description"]').content;
-  document.querySelectorAll('[data-feature-path]').forEach(el=>{ el.href = (lang==='zh'?'/zh':'') + el.dataset.featurePath; });
-}
-document.getElementById('langToggle').addEventListener('click',()=>{ lang = lang==='zh'?'en':'zh'; localStorage.setItem('nestflow.lang',lang); applyLang(); });
+const lang = document.documentElement.lang === 'zh-CN' ? 'zh' : 'en';
 
 /* ── Loop diagram ─────────────────────────────────────────────── */
 const stage=document.getElementById('loopStage');
@@ -816,7 +794,7 @@ addEventListener('keydown',e=>{
 document.getElementById('ckBackdrop').addEventListener('click',()=>{ ck.hidden=true; });
 
 document.getElementById('year').textContent=new Date().getFullYear();
-applyLang();
+renderLoopNodes(); renderQuiz();
 </script>
 </body>
 </html>

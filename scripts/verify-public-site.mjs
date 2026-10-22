@@ -60,7 +60,10 @@ const html = await load(website, 'index.html', /^text\/html\b/i)
 const pricing = html.match(/<section\b[^>]*\bid="pricing"[^>]*>[\s\S]*?<\/section>/)?.[0]
 assert(pricing, 'Missing public pricing section')
 assert(pricing.includes('Every current feature is free.'), 'English free-feature policy missing')
-assert(html.includes("'price.title':'所有当前功能，全部免费。'"), 'Chinese free-feature policy missing')
+const chinese = website.base
+  ? await (async () => { const response = await fetch(new URL('zh/', `${website.base.replace(/\/$/, '')}/`)); assert.equal(response.status, 200, 'Chinese homepage missing'); return response.text() })()
+  : await readFile(path.join(root, website.dir, 'zh/index.html'), 'utf8')
+assert(chinese.includes('所有当前功能，全部免费。'), 'Chinese free-feature policy missing')
 assert(!/\$(?:4\.99|39\.99|89)\b|\bPremium\b|\bLifetime\b|\/membership\b|data-price=/i.test(pricing), 'Retired paid plan or upgrade link in pricing')
 assert(!/['"]price\.(?:premium|lifetime)\b/.test(html), 'Retired plan in translations')
 assert(!/href=["'][^"']*\/membership\b/i.test(html), 'Retired upgrade link on website')

@@ -43,7 +43,7 @@ disabled; the copy makes that default explicit. No auth configuration, callback 
 website served at the root of a local preview, run:
 
 ```sh
-node scripts/verify-discovery.mjs --base-url http://127.0.0.1:4598/
+npm run verify:discovery -- --base-url http://127.0.0.1:4598/
 ```
 
 Check all seven routes without JavaScript, reciprocal language navigation,
@@ -80,3 +80,9 @@ Before choosing the content architecture, public GitHub options Astro
 (withastro/astro) and vite-ssg (antfu-collective/vite-ssg) were checked. This
 small content addition keeps the existing static HTML pipeline and adds no
 runtime dependency or framework migration.
+
+## P2 continuation
+
+See [P2 implementation](P2.md) for the twelve-route build, static policy source,
+URL-based language selection and structured-data verification. Prepared source
+is not proof of a production release.
