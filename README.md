@@ -6,7 +6,7 @@
 
 All-in-one personal productivity workspace that reduces context switching across planning, focus, reflection, and daily signals.
 
-[![Try Web](https://img.shields.io/badge/Try-Web-black?style=for-the-badge)](https://focus-go.vercel.app)
+[![Try Web](https://img.shields.io/badge/Try-Web-black?style=for-the-badge)](https://app.nestflow.art)
 [![Download Desktop](https://img.shields.io/badge/Download-Desktop-1f2937?style=for-the-badge)](https://github.com/VelvetAbyss/Focus-Go/releases)
 [![Quick Start](https://img.shields.io/badge/Quick-Start-0ea5e9?style=for-the-badge)](#quick-start)
 

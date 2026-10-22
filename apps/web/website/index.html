@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Nestflow — Open it. Start. That's it.</title>
-<meta name="description" content="A calm, modular workspace built around one idea: lowering the friction of starting. Backed by research on start friction, procrastination and anxiety.">
-<meta property="og:title" content="Nestflow — Open it. Start. That's it.">
-<meta property="og:description" content="Procrastination isn't laziness. It's start friction. Focus&go is built to lower it.">
+<title>Focus&amp;go — Free task manager, Pomodoro timer &amp; notes</title>
+<meta name="description" content="Focus&go brings tasks, a Pomodoro timer, notes and a diary into one personal workspace. All current features are free, with local-first saving and configurable cloud sync.">
+<meta property="og:title" content="Focus&amp;go — Free task manager, Pomodoro timer &amp; notes">
+<meta property="og:description" content="Free tasks, focus sessions, notes and diary in one workspace. Official Web interactions require sign-in; saving happens on the device first.">
 <meta property="og:image" content="https://nestflow.art/assets/product-dashboard.png">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://nestflow.art/">
+<link rel="canonical" href="https://nestflow.art/">
 <link rel="icon" href="/favicon.ico">
 <meta name="color-scheme" content="light dark">
 <link rel="preload" href="assets/Fraunces-variable.woff2" as="font" type="font/woff2" crossorigin>
@@ -318,7 +319,7 @@ footer{border-top:1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);pad
 
 <nav class="nav">
   <div class="wrap nav-inner">
-    <a class="logo" href="#"><img src="assets/logo.png" alt="" width="24" height="24">Nestflow</a>
+    <a class="logo" href="#"><img src="assets/logo.png" alt="" width="24" height="24">Focus&amp;go</a>
     <div class="nav-links">
       <a href="#science" data-i18n="nav.science">The science</a>
       <a href="#how" data-i18n="nav.how">How</a>
@@ -335,8 +336,8 @@ footer{border-top:1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);pad
 <header class="hero">
   <div class="wrap">
     <span class="hero-badge" data-i18n="hero.badge">Now available · Focus&amp;go</span>
-    <h1 data-i18n-html="hero.title">Open it. Start.<br><em>That's it.</em></h1>
-    <p class="hero-sub" data-i18n="hero.sub">No setup. No streaks. No guilt. A modular workspace that's ready before you are.</p>
+    <h1 data-i18n-html="hero.title">Tasks, focus and notes.<br><em>One workspace.</em></h1>
+    <p class="hero-sub" data-i18n="hero.sub">Focus&go is a personal workspace for tasks, a Pomodoro timer, notes and a diary. All current features are free; official Web interactions require sign-in.</p>
     <div class="hero-ctas">
       <a class="btn btn-primary" href="https://app.nestflow.art" data-i18n="cta.open">Open Focus&amp;go</a>
       <a class="btn btn-ghost" href="#science" data-i18n="hero.cta2">Why starting is hard ↓</a>
@@ -383,9 +384,9 @@ footer{border-top:1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);pad
     <p class="section-sub reveal" data-i18n="sci.intro">Research on procrastination keeps landing on the same point: people don't lack intention — they get stuck at the exact moment of beginning. Scientists call it the intention–action gap. We call it start friction, and it's the one thing this product is built to lower.</p>
 
     <div class="stat-row">
-      <div class="stat reveal"><b data-count="20"><span class="n">0</span><i>%</i></b><span data-i18n="stat.a">of adults are chronic procrastinators</span></div>
-      <div class="stat reveal"><b data-count="75"><span class="n">0</span><i>%</i></b><span data-i18n="stat.b">of students say procrastination is habitual for them</span></div>
-      <div class="stat reveal"><b data-count="301"><span class="n">0</span><i>M</i></b><span data-i18n="stat.c">people worldwide live with an anxiety disorder (WHO, 2019)</span></div>
+      <div class="stat reveal"><b data-count="20"><span class="n">20</span><i>%</i></b><span data-i18n="stat.a">of adults are chronic procrastinators</span></div>
+      <div class="stat reveal"><b data-count="75"><span class="n">75</span><i>%</i></b><span data-i18n="stat.b">of students say procrastination is habitual for them</span></div>
+      <div class="stat reveal"><b data-count="301"><span class="n">301</span><i>M</i></b><span data-i18n="stat.c">people worldwide live with an anxiety disorder (WHO, 2019)</span></div>
       <div class="stat reveal"><b>r&nbsp;=&nbsp;.34</b><span data-i18n="stat.d">the measured link between procrastination and anxiety — 88 studies, 63,323 people</span></div>
     </div>
 
@@ -468,12 +469,26 @@ footer{border-top:1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);pad
   </div>
 </section>
 
+<section class="section" id="product-guides">
+  <div class="wrap">
+    <span class="kicker" data-i18n="guides.kicker">Explore Focus&amp;go</span>
+    <h2 class="section-title" data-i18n="guides.title">What it does. How to use it.</h2>
+    <p class="section-sub" data-i18n="guides.intro">Focus&amp;go is the product. Nestflow is its home at nestflow.art. These guides explain features, data boundaries and a complete workflow.</p>
+    <div class="how-grid">
+      <article class="how-card"><h3><a href="/features/pomodoro/" data-feature-path="/features/pomodoro/" data-i18n="guides.focus">Pomodoro timer and tasks</a></h3><p data-i18n="guides.focusDesc">Choose a focus mode, connect a task and review the session.</p></article>
+      <article class="how-card"><h3><a href="/features/local-first/" data-feature-path="/features/local-first/" data-i18n="guides.local">Local-first saving and cloud sync</a></h3><p data-i18n="guides.localDesc">Where content lives, when an account is required, and what needs a connection.</p></article>
+      <article class="how-card"><h3><a href="/guides/task-to-focus/" data-feature-path="/guides/task-to-focus/" data-i18n="guides.workflow">From a task to a focus session</a></h3><p data-i18n="guides.workflowDesc">Capture one task, choose the next action and start the timer.</p></article>
+    </div>
+    <p class="sources"><a href="https://github.com/VelvetAbyss/Focus-Go">GitHub</a> · MIT · <a href="mailto:support@nestflow.art">support@nestflow.art</a></p>
+  </div>
+</section>
+
 <section class="section" id="how" data-ghost="03">
   <div class="wrap">
     <span class="kicker" data-i18n="how.kicker">How it works</span>
     <h2 class="section-title reveal" data-i18n="how.title">Three steps. None of them are setup.</h2>
     <div class="how-grid">
-      <div class="how-card reveal"><b>01</b><h4 data-i18n="how.a.t">Open</h4><p data-i18n="how.a.p">Nothing to configure. The dashboard is already a workspace.</p></div>
+      <div class="how-card reveal"><b>01</b><h4 data-i18n="how.a.t">Open</h4><p data-i18n="how.a.p">Open the official Web app and sign in when prompted before using protected interactions.</p></div>
       <div class="how-card reveal"><b>02</b><h4 data-i18n="how.b.t">Pick one thing</h4><p data-i18n="how.b.p">Start a timer. Write a line. Check off a task. Whatever's lightest.</p></div>
       <div class="how-card reveal"><b>03</b><h4 data-i18n="how.c.t">Come back tomorrow</h4><p data-i18n="how.c.p">Nothing's lost. Nothing's demanding. It's just there.</p></div>
     </div>
@@ -487,7 +502,7 @@ footer{border-top:1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);pad
     <div class="eco-row">
       <div class="eco-chip now reveal"><b>Focus&amp;go</b><span data-i18n="eco.now">Available now</span></div>
       <div class="eco-chip reveal"><b>Notes&amp;go</b><span data-i18n="eco.preview">In preview</span></div>
-      <div class="eco-chip reveal"><b>Track&amp;go</b><span>2026 Q3</span></div>
+      <div class="eco-chip reveal"><b>Track&amp;go</b><span data-i18n="eco.planned">Planned · date to be confirmed</span></div>
       <div class="eco-chip reveal"><b>?</b><span data-i18n="eco.tell"><a href="mailto:support@nestflow.art?subject=Nestflow%20module%20idea" style="text-decoration:none">Tell us</a></span></div>
     </div>
   </div>
@@ -497,7 +512,7 @@ footer{border-top:1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);pad
   <div class="wrap">
     <span class="kicker" data-i18n="founder.kicker">Why this exists</span>
     <p class="founder-note reveal" data-i18n="founder.note">"I didn't build Focus&go to sell productivity. I built it because I kept losing my mornings to tools that asked me to design a system before I could write a single line. Every feature here exists because I needed it on an actual Tuesday. If it ever asks you to configure something before you can start, I've failed."</p>
-    <p class="founder-sig" data-i18n="founder.sig">— the person who opens it every morning</p>
+    <p class="founder-sig" data-i18n="founder.sig">— Dylan Feng, maintainer of Focus&amp;go</p>
   </div>
 </section>
 
@@ -510,14 +525,14 @@ footer{border-top:1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);pad
       <div class="price-card reveal">
         <h4 data-i18n="price.free.t">Free, local-first</h4>
         <div class="amt">$0</div>
-        <p data-i18n="price.free.p">Every current feature is free. No account is needed for local use; sign in only if you want official cloud sync.</p>
+        <p data-i18n="price.free.p">Every current feature is free. Official Web interactions require sign-in. Content is saved locally first; cloud sync defaults to enabled on a new device and can be disabled in Settings.</p>
         <a class="btn btn-ghost" href="https://app.nestflow.art" data-i18n="price.free.cta">Open the app</a>
       </div>
       <div class="price-card hot reveal">
         <span class="hot-badge" data-i18n="price.badge">✳ Included</span>
         <h4 data-i18n="price.sync.t">Cloud sync</h4>
         <div class="amt">250 MiB</div>
-        <p data-i18n="price.sync.p">Sign in only when you want official cloud sync. It is free, private to your account, and has a 250 MiB storage allowance.</p>
+        <p data-i18n="price.sync.p">Cloud sync is free, with 250 MiB per account. It defaults to enabled on a new device and runs after sign-in; you can disable it in Settings. Check sync status before relying on another device.</p>
         <a class="btn btn-primary" href="https://app.nestflow.art" data-i18n="price.sync.cta">Sync your workspace</a>
       </div>
       <div class="price-card reveal">
@@ -534,21 +549,21 @@ footer{border-top:1px solid color-mix(in srgb, var(--ink-1) 8%, transparent);pad
 <section class="final">
   <div class="wrap">
     <h2 class="reveal" data-i18n-html="final.title">Stop configuring.<br>Start <em>working</em>.</h2>
-    <p class="reveal" data-i18n="final.sub">No signup wall. Your data stays in your browser until you choose to sync.</p>
+    <p class="reveal" data-i18n="final.sub">All current features are free. Sign in to use protected interactions on the official Web app; cloud sync is enabled by default on a new device and can be disabled in Settings after sign-in.</p>
     <a class="btn btn-primary reveal" href="https://app.nestflow.art" data-i18n="cta.open">Open Focus&amp;go</a>
   </div>
 </section>
 
 <footer>
   <div class="wrap foot-inner">
-    <span data-i18n="foot.tag">© <span id="year">2026</span> Nestflow. A calm place to work.</span>
+    <span data-i18n="foot.tag">© <span id="year">2026</span> Focus&amp;go · nestflow.art.</span>
     <span>
       <a href="https://app.nestflow.art/workspace/settings/legal/privacy-policy" data-i18n="foot.privacy">Privacy</a>
       <a href="https://app.nestflow.art/workspace/settings/legal/terms-of-service" data-i18n="foot.terms">Terms</a>
       <a href="mailto:support@nestflow.art" data-i18n="foot.contact">Contact</a>
     </span>
   </div>
-  <div class="wrap"><div class="watermark" aria-hidden="true">Nestflow</div></div>
+  <div class="wrap"><div class="watermark" aria-hidden="true">Focus&amp;go</div></div>
 </footer>
 
 <div class="ck" id="ck" hidden>
@@ -569,11 +584,12 @@ document.documentElement.classList.add('js');
 
 /* ── i18n ─────────────────────────────────────────────────────── */
 const ZH = {
+  'guides.kicker':'了解 Focus&go','guides.title':'功能、边界与使用方法。','guides.intro':'Focus&go 是产品名称，Nestflow 是它在 nestflow.art 的归属名称。以下指南说明具体功能、数据边界和完整使用流程。','guides.focus':'番茄钟与任务','guides.focusDesc':'选择专注模式、关联一项任务，再查看会话记录。','guides.local':'本地优先保存与云同步','guides.localDesc':'内容在哪里、何时需要账号，以及哪些功能依赖网络。','guides.workflow':'从一项任务到一次专注','guides.workflowDesc':'记下一项任务，确定下一步，再启动计时器。',
   'nav.science':'启动的科学','nav.how':'怎么用','nav.modules':'模块','nav.pricing':'开源',
   'cta.open':'打开 Focus&go',
   'hero.badge':'现已可用 · Focus&go 模块',
-  'hero.title':'打开。开始。<br><em>就这么简单。</em>',
-  'hero.sub':'不用配置，没有连胜打卡，没有负罪感。一个先于你准备好的模块化工作台。',
+  'hero.title':'任务、专注与笔记。<br><em>一个工作台。</em>',
+  'hero.sub':'Focus&go 把任务、番茄钟、笔记与日记放进一个个人工作台。所有当前功能免费；官方 Web 版的受保护交互需要登录。',
   'hero.cta2':'为什么"开始"这么难 ↓',
   'hero.note':'一镜到底：打开、输入任务、开始。整个教程就这么长。',
   'friction.kicker':'那种熟悉的卡住',
@@ -614,24 +630,24 @@ const ZH = {
   'ana.d.t':'一步之遥的计时器','ana.d.p':'无论在应用哪里，番茄钟都在角落。点击开始——教程到此结束。',
   'how.kicker':'怎么用',
   'how.title':'三步。没有一步是配置。',
-  'how.a.t':'打开','how.a.p':'没有要设置的东西。仪表盘本身就是工作台。',
+  'how.a.t':'打开','how.a.p':'打开官方 Web 版；需要时先登录，再使用受保护交互。',
   'how.b.t':'挑一件事','how.b.p':'开个计时器，写一行字，勾掉一个任务。哪个最轻就从哪个开始。',
   'how.c.t':'明天再来','how.c.p':'什么都不会丢，什么都不催你。它就在那里。',
   'eco.kicker':'Nestflow 生态',
   'eco.title':'一个工作台，模块逐步生长。',
-  'eco.now':'现已可用','eco.preview':'预览中','eco.tell':'<a href="mailto:support@nestflow.art?subject=Nestflow%20module%20idea" style="text-decoration:none">告诉我们</a>',
+  'eco.planned':'规划中 · 日期待确认','eco.now':'现已可用','eco.preview':'预览中','eco.tell':'<a href="mailto:support@nestflow.art?subject=Nestflow%20module%20idea" style="text-decoration:none">告诉我们</a>',
   'founder.kicker':'它为什么存在',
   'founder.note':'"我做 Focus&go 不是为了贩卖效率。是因为我受够了那些让我先设计一套系统、才允许我写下第一行字的工具。这里的每个功能，都是因为我在某个真实的周二早晨需要它。如果它哪天要求你先配置才能开始——那就是我失败了。"',
-  'founder.sig':'—— 每天早上打开它的那个人',
+  'founder.sig':'—— Dylan Feng，Focus&go 维护者',
   'price.kicker':'开源',
   'price.title':'所有当前功能，全部免费。',
-  'price.free.t':'免费，本地优先','price.free.p':'所有当前功能均免费。本地使用无需账号；需要官方云同步时再登录。','price.free.cta':'打开应用',
-  'price.sync.t':'云同步','price.sync.p':'只在需要官方云同步时登录。它免费、仅属于你的账号，并提供 250 MiB 存储额度。','price.sync.cta':'同步工作台',
+  'price.free.t':'免费，本地优先','price.free.p':'所有当前功能均免费。官方 Web 版的受保护交互需要登录，内容优先在本机保存；新设备的云同步默认开启，可在设置关闭。','price.free.cta':'打开应用',
+  'price.sync.t':'云同步','price.sync.p':'云同步免费，每账号默认 250 MiB。新设备默认开启，登录后尝试同步，可在设置关闭。依赖另一台设备内容前请先确认同步状态。','price.sync.cta':'同步工作台',
   'price.support.t':'支持项目','price.support.p':'可选赞助帮助项目持续维护，不会解锁功能，也不会改变你的存储额度。','price.support.cta':'支持 Focus&go',
   'price.note':'Focus&go 采用 MIT 许可。你可以查看、贡献，或自行部署 Web 与 API 代码。',
   'final.title':'别再配置了。<br>开始<em>工作</em>。',
-  'final.sub':'没有注册墙。在你选择同步之前，数据只存在你的浏览器里。',
-  'foot.tag':'© 2026 Nestflow。一个安静的工作之地。',
+  'final.sub':'所有当前功能免费。官方 Web 版的受保护交互需要登录，云同步可在设置中关闭。',
+  'foot.tag':'© 2026 Focus&go · nestflow.art。',
   'foot.privacy':'隐私政策','foot.terms':'服务条款','foot.contact':'联系我们',
   'chip.focus':'专注','chip.task':'写发布随笔','price.badge':'✳ 已包含',
   'ck.ph':'在应用里，这样搜索一切——或者直接记下一个任务。',
@@ -702,7 +718,13 @@ function applyLang(){
     if(lang==='zh' && ZH[k]!==undefined) el.innerHTML=ZH[k]; else if(lang==='en') el.innerHTML=EN_CACHE[k];
   });
   renderLoopNodes(); renderQuiz();
-  document.title = lang==='zh' ? 'Nestflow — 打开。开始。就这么简单。' : "Nestflow — Open it. Start. That's it.";
+  document.title = lang==='zh' ? 'Focus&go — 免费任务管理、番茄钟与笔记工作台' : 'Focus&go — Free task manager, Pomodoro timer & notes';
+  document.querySelector('meta[name="description"]').content = lang==='zh'
+    ? 'Focus&go 将任务、番茄钟、笔记与日记整合在同一个个人工作台。所有当前功能免费，内容优先保存在本机，官方 Web 版的受保护交互需要登录。'
+    : 'Focus&go brings tasks, a Pomodoro timer, notes and a diary into one personal workspace. All current features are free, with local-first saving and configurable cloud sync.';
+  document.querySelector('meta[property="og:title"]').content = document.title;
+  document.querySelector('meta[property="og:description"]').content = document.querySelector('meta[name="description"]').content;
+  document.querySelectorAll('[data-feature-path]').forEach(el=>{ el.href = (lang==='zh'?'/zh':'') + el.dataset.featurePath; });
 }
 document.getElementById('langToggle').addEventListener('click',()=>{ lang = lang==='zh'?'en':'zh'; localStorage.setItem('nestflow.lang',lang); applyLang(); });
 
@@ -758,12 +780,7 @@ const io=new IntersectionObserver(es=>es.forEach(e=>{
   if(!e.isIntersecting) return;
   e.target.classList.add('in');
   e.target.querySelectorAll('.fill').forEach(f=>{ f.style.width=f.dataset.w+'%'; });
-  e.target.querySelectorAll('[data-count]').forEach(c=>{
-    const end=+c.dataset.count, n=c.querySelector('.n'); if(!n||n.dataset.done) return; n.dataset.done=1;
-    const t0=performance.now(), dur=1200;
-    const step=t=>{ const p=Math.min(1,(t-t0)/dur); n.textContent=Math.round(end*(1-Math.pow(1-p,3))); if(p<1) requestAnimationFrame(step); };
-    requestAnimationFrame(step);
-  });
+  // Research figures are final in HTML; visibility animation never changes facts.
   io.unobserve(e.target);
 },{threshold:.18}));
 document.querySelectorAll('.reveal,.chart-card,.stat').forEach(el=>io.observe(el));

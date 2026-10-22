@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://nestflow.art/</loc>
-  </url>
+  <url><loc>https://nestflow.art/</loc></url>
+  <url><loc>https://nestflow.art/features/pomodoro/</loc></url>
+  <url><loc>https://nestflow.art/zh/features/pomodoro/</loc></url>
+  <url><loc>https://nestflow.art/features/local-first/</loc></url>
+  <url><loc>https://nestflow.art/zh/features/local-first/</loc></url>
+  <url><loc>https://nestflow.art/guides/task-to-focus/</loc></url>
+  <url><loc>https://nestflow.art/zh/guides/task-to-focus/</loc></url>
 </urlset>

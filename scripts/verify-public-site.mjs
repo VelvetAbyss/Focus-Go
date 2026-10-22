@@ -47,9 +47,11 @@ for (const site of sites) {
   assert(/<urlset\s+xmlns="http:\/\/www\.sitemaps\.org\/schemas\/sitemap\/0\.9">/.test(sitemap), `${site.name}: invalid sitemap namespace`)
   assert(/<\/urlset>\s*$/.test(sitemap), `${site.name}: incomplete sitemap`)
   const locations = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(match => match[1])
-  // Each site currently has only one public discovery entry. Workbench routes,
-  // personal entities and language-switch fragments are deliberately excluded.
-  assert.deepEqual(locations, [site.canonical], `${site.name}: unexpected sitemap URLs`)
+  // Only published content routes belong in discovery; personal entities are excluded.
+  const routes = site.name === 'website'
+    ? JSON.parse(await readFile(path.join(root, site.dir, 'public-pages.json'), 'utf8'))
+    : ['/']
+  assert.deepEqual(locations, routes.map(route => new URL(route, site.canonical).href), `${site.name}: unexpected sitemap URLs`)
   console.log(`PASS ${site.name}: robots.txt and sitemap.xml${site.base ? ' over HTTP' : ' in release'}`)
 }
 
