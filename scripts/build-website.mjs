@@ -1,3 +1,4 @@
+import { addWebsiteCounts } from './website-counts.mjs'
 import { cp, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
@@ -27,6 +28,7 @@ await writeFile(path.join(output, 'release.json'), JSON.stringify({ version: rel
 await cp(path.join(root, 'apps/web/public/fonts/InstrumentSerif-regular.woff2'), path.join(output, 'assets/InstrumentSerif-regular.woff2'))
 const routes = [...homeRoutes, ...await buildContentPages(output, release), ...await buildLegalPages(output, release)]
 await writeFile(path.join(output, 'public-pages.json'), JSON.stringify(routes))
+await addWebsiteCounts(output, routes, release)
 await writeFile(path.join(output, '404.html'), (await readFile(path.join(source, '404.html'), 'utf8')).replace('/assets/content.css', `/assets/content.css?v=${release}`))
 if (!homeSource.includes('Every current feature is free.')) {
   throw new Error('Website build is missing the current free-feature policy')

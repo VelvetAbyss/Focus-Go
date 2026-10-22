@@ -56,7 +56,8 @@ for (const route of routes) {
     assert.equal(article(html), article(local), `${route}: static body differs from verified build`)
     assert(!/<script\b/i.test(article(html)), `${route}: answer body must not depend on JavaScript`)
     const executable = [...local.matchAll(/<script\b([^>]*)>/gi)].filter(([, attrs]) => !/type="application\/ld\+json"/.test(attrs))
-    assert.equal(executable.length, 0, `${route}: source content must be static`)
+    assert.equal(executable.length, 1, `${route}: only the disclosed counter module may execute`)
+    assert(/type="module"/.test(executable[0][1]) && /src="\/assets\/anonymous-counts\.js\?v=(?:[a-f0-9]{7,40}|local)"/.test(executable[0][1]), `${route}: unexpected executable script`)
     // A CDN can inject email decoding or security scripts outside the article.
     // Compare the raw answer with the build rather than rejecting all scripts.
     assert(html.includes('class="breadcrumbs"'), `${route}: missing visible breadcrumbs`)

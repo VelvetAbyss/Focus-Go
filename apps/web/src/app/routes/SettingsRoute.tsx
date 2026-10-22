@@ -1,3 +1,4 @@
+import AnonymousCountsSetting from '../../shared/metrics/AnonymousCountsSetting'
 import { LEGAL_DOCUMENTS, policyUrl, type LegalDocument, type LegalDocumentKey } from '../../shared/legal/policies'
 import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from 'react'
 import { motion } from 'motion/react'
@@ -1133,6 +1134,7 @@ const SettingsRoute = () => {
               <ScrollArea className="h-full min-h-0 flex-1">
                 <div className="p-5 md:p-6">
                   <div className="space-y-4">
+                      {resolvedSection === 'legal' ? <AnonymousCountsSetting language={language} /> : null}
                       {resolvedSection === 'legal' ? (
                         legalDocument ? (
                           <div data-auth-preview-allowed="true"><p className="policy-links"><a href={policyUrl(legalDocumentKey!, language)} target="_blank" rel="noreferrer">{language === 'zh' ? '在独立页面查看当前版本与历史文本' : 'Open current edition and history'}</a></p><LegalDocumentView
