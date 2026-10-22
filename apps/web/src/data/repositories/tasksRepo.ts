@@ -1,3 +1,4 @@
+import { recordFirstSuccessfulUse } from '../../shared/metrics/anonymousCounts'
 import type { TaskItem, TaskNoteLink, TaskProgressEntry, TaskStatus } from '../models/types'
 import { db } from '../db'
 import { dbService } from '../services/dbService'
@@ -38,7 +39,9 @@ export const tasksRepo = {
     return dbService.tasks.list()
   },
   async add(data: TaskCreateInput) {
-    return dbService.tasks.add(data)
+    const saved = await dbService.tasks.add(data)
+    recordFirstSuccessfulUse()
+    return saved
   },
   async update(task: TaskItem) {
     return dbService.tasks.update(task)

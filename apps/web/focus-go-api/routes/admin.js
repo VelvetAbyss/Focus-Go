@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { readAnonymousCounts } from './anonymousCounts.js'
 import { purgeSymbolic } from '../symbolic/store.js'
 import { statSync } from 'fs'
 import { join, dirname } from 'path'
@@ -26,6 +27,12 @@ router.use((req, res, next) => {
 router.use((req, res, next) => {
   if (isLocalhostRequest(req)) return requireAdmin(req, res, next)
   return requireAuth(req, res, () => requireAdmin(req, res, next))
+})
+
+// Uses the existing admin guard above; aggregate reporting is never public.
+router.get('/anonymous-counts', (req, res) => {
+  res.set('Cache-Control', 'no-store')
+  res.json(readAnonymousCounts(db, req.query.days))
 })
 
 const __dirname = dirname(fileURLToPath(import.meta.url))

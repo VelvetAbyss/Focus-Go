@@ -1,5 +1,6 @@
 import 'dotenv/config'
 import express from 'express'
+import { createAnonymousCountsRouter, pruneAnonymousCounts } from './routes/anonymousCounts.js'
 import cors from 'cors'
 import helmet from 'helmet'
 import { toNodeHandler } from 'better-auth/node'
@@ -85,6 +86,9 @@ export const createApp = () => {
     allowedHeaders: ['Content-Type', 'Authorization'],
   }))
 
+  // Public aggregate counters parse their own small body before the app JSON parser.
+  app.use('/api/public-counts', createAnonymousCountsRouter({ database: db }))
+
   // Desktop (Tauri) Google sign-in routes. MUST be registered before the
   // better-auth catch-all below, or they'd be swallowed by it.
   ensureDesktopAuthTable(db)
@@ -165,6 +169,7 @@ const syncCleanupTimer = setInterval(() => {
   } catch (error) {
     console.error('[sync] scheduled storage cleanup failed', error)
   }
+  try { pruneAnonymousCounts(db) } catch { console.error('[anonymous-counts] scheduled cleanup failed') }
 }, 24 * 60 * 60 * 1000)
 syncCleanupTimer.unref?.()
 

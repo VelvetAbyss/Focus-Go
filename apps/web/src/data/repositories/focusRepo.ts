@@ -1,3 +1,4 @@
+import { recordFirstSuccessfulUse } from '../../shared/metrics/anonymousCounts'
 import type { FocusSettings, FocusTimerSnapshot, NoiseSettings } from '../models/types'
 import { dbService } from '../services/dbService'
 
@@ -54,6 +55,8 @@ export const focusRepo = {
     return dbService.focusSessions.start(data)
   },
   async completeSession(id: string, data?: { actualMinutes?: number; completedAt?: number }) {
-    return dbService.focusSessions.complete(id, data)
+    const saved = await dbService.focusSessions.complete(id, data)
+    if (saved?.status === 'completed' && (saved.actualMinutes ?? 0) > 0) recordFirstSuccessfulUse()
+    return saved
   },
 }

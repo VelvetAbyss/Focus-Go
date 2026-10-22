@@ -68,6 +68,8 @@ assert(!/\$(?:4\.99|39\.99|89)\b|\bPremium\b|\bLifetime\b|\/membership\b|data-pr
 assert(!/['"]price\.(?:premium|lifetime)\b/.test(html), 'Retired plan in translations')
 assert(!/href=["'][^"']*\/membership\b/i.test(html), 'Retired upgrade link on website')
 const assets = {
+  'assets/anonymous-counts.js': /^(?:application|text)\/javascript\b/i,
+  'assets/anonymous-counts.css': /^text\/css\b/i,
   'favicon.ico': /^image\/(?:x-icon|vnd\.microsoft\.icon)\b/i,
   'assets/logo.png': /^image\/png\b/i,
   'assets/product-dashboard.png': /^image\/png\b/i,
