@@ -5,7 +5,7 @@ import { anonymousCountsEnabled, setAnonymousCountsEnabled, subscribeAnonymousCo
 export default function AnonymousCountsSetting({ language }: { language: string }) {
   const enabled = useSyncExternalStore(subscribeAnonymousCounts, anonymousCountsEnabled, () => false)
   const zh = language === 'zh'
-  return <section className="rounded-[var(--radius-lg)] border p-5" aria-labelledby="anonymous-counts-title">
+  return <section className="rounded-[var(--radius-lg)] border p-5" aria-labelledby="anonymous-counts-title" data-auth-preview-allowed="true">
     <div className="flex items-center justify-between gap-4">
       <h3 id="anonymous-counts-title" className="font-semibold">{zh ? '匿名使用计数' : 'Anonymous usage counts'}</h3>
       <Switch aria-labelledby="anonymous-counts-title" checked={enabled} onCheckedChange={setAnonymousCountsEnabled} />
