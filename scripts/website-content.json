@@ -1,0 +1,279 @@
+[
+  {
+    "path": "features/pomodoro",
+    "en": {
+      "title": "Free Pomodoro timer with tasks | Focus&go",
+      "h1": "A Pomodoro timer connected to your tasks",
+      "description": "Use Focus&go for task-linked Pomodoro sessions, focus modes and session history. All current features are free; protected official Web interactions require sign-in.",
+      "summary": "Focus&go combines tasks, a focus timer and session history. Select a task from its details, open Focus and choose a session. Current features are free; the official Web app requires sign-in for protected interactions.",
+      "sections": [
+        {
+          "title": "Choose a session that fits the next action",
+          "paragraphs": [
+            "The focus page offers four named modes: Pomodoro (25 minutes), Deep Work (50), Sprint (15) and Flow (90). You can pause, resume or reset the timer.",
+            "A running timer is a work aid, not a guarantee of productivity. Browser suspension, notification permission and device settings can affect alerts."
+          ]
+        },
+        {
+          "title": "Keep the task connected to the session",
+          "paragraphs": [
+            "Open a task and use its Focus action. The selected task appears on the focus page; sessions started with it selected record the task association.",
+            "Selecting a task does not start a timer automatically. Check the task shown on the timer, then start the session."
+          ]
+        },
+        {
+          "title": "Review what happened",
+          "paragraphs": [
+            "Focus history distinguishes completed and abandoned sessions. Treat a timer record as a session record, rather than proof that the task itself was completed.",
+            "The app also includes notes and a diary, so a short outcome can sit alongside the next action."
+          ]
+        }
+      ],
+      "faq": [
+        {
+          "q": "Is the Focus&go Pomodoro timer free?",
+          "a": "All current features are free. Optional sponsorship does not unlock features. The official Web app requires sign-in for protected interactions."
+        },
+        {
+          "q": "Can I use the timer with a specific task?",
+          "a": "Yes. Open the task details, choose Focus, check the selected task on the focus page and start the timer."
+        },
+        {
+          "q": "Does it guarantee background notifications?",
+          "a": "No. Delivery depends on browser and operating-system behavior, notification permission and whether resources remain available."
+        }
+      ]
+    },
+    "zh": {
+      "title": "免费番茄钟与任务管理 | Focus&go",
+      "h1": "让番茄钟与正在做的任务保持关联",
+      "description": "了解 Focus&go 的任务关联、四种专注模式和会话记录。所有当前功能免费；官方 Web 版的受保护交互需要登录。",
+      "summary": "Focus&go 将任务、专注计时和会话记录放在同一个工作台。打开任务详情，选择“专注”，再启动计时器。所有当前功能免费；官方 Web 版的受保护交互需要登录。",
+      "sections": [
+        {
+          "title": "为下一步选择一次专注",
+          "paragraphs": [
+            "专注页有四种具名模式：番茄钟 25 分钟、深度工作 50 分钟、冲刺 15 分钟、心流 90 分钟；可以暂停、继续和重置。",
+            "计时器是一种工作辅助，不保证效率提升。浏览器休眠、通知权限和设备设置会影响提醒。"
+          ]
+        },
+        {
+          "title": "让会话对应一项具体任务",
+          "paragraphs": [
+            "打开任务详情并选择“专注”，任务会显示在专注页中；在选中状态下开始的会话会记录这项任务的关联。",
+            "选择任务不会自动启动计时。先确认计时器显示的任务，再开始专注。"
+          ]
+        },
+        {
+          "title": "回看实际发生的事情",
+          "paragraphs": [
+            "专注历史区分已完成和放弃的会话。一次计时记录不等于任务已经完成。",
+            "还可以用笔记或日记记下一句结果，让下一次开始有上下文。"
+          ]
+        }
+      ],
+      "faq": [
+        {
+          "q": "Focus&go 的番茄钟免费吗？",
+          "a": "所有当前功能免费；赞助不解锁功能。官方 Web 版的受保护交互需要登录。"
+        },
+        {
+          "q": "番茄钟可以关联具体任务吗？",
+          "a": "可以。在任务详情中选择“专注”，核对专注页上的任务，再启动计时器。"
+        },
+        {
+          "q": "可以保证后台通知吗？",
+          "a": "不能。提醒受浏览器、系统、权限和资源可用性影响。"
+        }
+      ]
+    }
+  },
+  {
+    "path": "features/local-first",
+    "en": {
+      "title": "Local-first saving and cloud-sync defaults | Focus&go",
+      "h1": "Local saving first. Know the sync default.",
+      "description": "Understand Focus&go local storage, official Web sign-in, configurable cloud sync, export and offline limits before choosing a workflow.",
+      "summary": "Focus&go saves supported content on the device first. On the official Web app, protected interactions require sign-in and cloud sync is enabled by default unless disabled in Settings. Local saving and confirmed cloud upload are separate states.",
+      "sections": [
+        {
+          "title": "Where your content lives",
+          "paragraphs": [
+            "Tasks, notes, diary entries and supported workspace content are stored on the device first. Cloud sync is enabled by default on a new device; once signed in, the app attempts to sync supported copies unless you turn sync off in Settings.",
+            "Clearing browser site data or losing a device can remove local content. A local save message does not prove that a cloud upload completed.",
+            "Turning content sync off is a device setting. It does not disable sign-in, account-profile requests or online features you request."
+          ]
+        },
+        {
+          "title": "When you need an account and a connection",
+          "paragraphs": [
+            "The official hosted Web app requires sign-in for protected interactions. Running the Web app on localhost has a different access path; do not assume every self-hosted domain has the same behavior.",
+            "Initial loading, sign-in, cross-device sync and online features such as weather need connectivity. Offline behavior depends on previously loaded resources, session state and browser storage; not every feature works offline."
+          ]
+        },
+        {
+          "title": "Cloud allowance and exports",
+          "paragraphs": [
+            "Official cloud sync currently includes 250 MiB per account. Self-hosted deployments control their own limits. Sponsorship does not change the official allowance.",
+            "An export covers content available on that device. Check what the export contains before treating it as a complete cloud archive. Local clearing, cloud clearing and account deletion are different actions."
+          ]
+        }
+      ],
+      "faq": [
+        {
+          "q": "Does local-first mean no account is required on the official website?",
+          "a": "No. The official Web app currently requires sign-in for protected interactions. Local-first describes saving order, not account access."
+        },
+        {
+          "q": "Does “saved on device” mean cloud sync is finished?",
+          "a": "No. Local saving and cloud confirmation are separate. Check the sync status before relying on another device."
+        },
+        {
+          "q": "Is the official cloud allowance unlimited?",
+          "a": "No. The current default is 250 MiB per account. Self-hosted limits can differ."
+        },
+        {
+          "q": "Is cloud sync off until I separately enable it?",
+          "a": "No. It defaults to enabled on a new device. After sign-in, supported content sync is attempted unless you disable it in Settings."
+        }
+      ]
+    },
+    "zh": {
+      "title": "本地优先保存与云同步默认设置 | Focus&go",
+      "h1": "先在本机保存，了解同步默认设置。",
+      "description": "了解 Focus&go 的本地保存、官方网页登录、云同步额度、导出与离线边界，再选择适合自己的使用方式。",
+      "summary": "Focus&go 优先在设备上保存受支持的内容。官方 Web 版的受保护交互需要登录；新设备的云同步默认开启，可在设置中关闭。本地保存与云端上传完成是不同状态。",
+      "sections": [
+        {
+          "title": "内容保存在哪里",
+          "paragraphs": [
+            "任务、笔记、日记和受支持的工作台内容先保存在设备上。新设备的云同步默认开启；登录后会尝试同步受支持的副本，除非你已在设置中关闭。",
+            "清理站点数据、设备损坏或丢失可能造成本地内容丢失。“已保存到设备”不证明云端上传已经完成。",
+            "关闭内容同步是设备设置，不会关闭登录、账号资料请求或你主动使用的在线功能。"
+          ]
+        },
+        {
+          "title": "何时需要账号与网络",
+          "paragraphs": [
+            "官方托管 Web 版的受保护交互需要登录。本机 localhost 运行有不同的访问路径，不能假定所有自托管域名都相同。",
+            "首次加载、登录、跨设备同步及天气等在线功能需要网络。离线行为取决于已加载资源、会话状态和浏览器存储，不是所有功能都能离线使用。"
+          ]
+        },
+        {
+          "title": "云空间和导出的边界",
+          "paragraphs": [
+            "官方云同步当前默认每账号 250 MiB；自托管部署自行控制额度。赞助不会增加官方存储额度。",
+            "导出包含该设备上可用的内容；使用前应核对范围，不能直接视为完整云端归档。清理本地、清理云端和删除账号是不同操作。"
+          ]
+        }
+      ],
+      "faq": [
+        {
+          "q": "本地优先是否意味着官方网页无需账号？",
+          "a": "不是。官方 Web 版的受保护交互目前需要登录；本地优先说明保存顺序，不等于账号访问规则。"
+        },
+        {
+          "q": "“已保存到设备”代表同步结束吗？",
+          "a": "不代表。本地保存和云端确认分开，需要查看同步状态后再依赖另一台设备。"
+        },
+        {
+          "q": "官方云空间无限吗？",
+          "a": "不是，当前默认每账号 250 MiB。自托管额度可能不同。"
+        },
+        {
+          "q": "云同步会等我另行开启后才上传吗？",
+          "a": "不会。新设备默认开启，登录后会尝试同步；登录后可在设置中关闭。是否完成上传仍要看同步状态。"
+        }
+      ]
+    }
+  },
+  {
+    "path": "guides/task-to-focus",
+    "en": {
+      "title": "From a task to a focus session: a practical guide | Focus&go",
+      "h1": "Turn one task into the next focus session",
+      "description": "A concrete Focus&go workflow: capture a task, write its next action, use the task Focus shortcut, start a timer and record the outcome.",
+      "summary": "Capture one task, make its next action concrete, open Focus from the task details and start a session. Afterward, update the task and leave a short outcome. The official Web app requires sign-in for protected interactions.",
+      "sections": [
+        {
+          "title": "1. Capture one task",
+          "paragraphs": [
+            "Open Tasks and add a short title. Use the task details for context, a project, due date or subtasks when they help. You do not need to organize the entire backlog first.",
+            "For example, replace “finish the launch” with “write the first paragraph of the launch note”. This is a suggested workflow, not a special automatic planning feature."
+          ]
+        },
+        {
+          "title": "2. Open Focus from the task",
+          "paragraphs": [
+            "Use the Focus action in the task details. Check that the focus page displays the intended task, choose a session and start the timer.",
+            "The action opens the focus page with task context. It does not automatically start work or mark the task complete."
+          ]
+        },
+        {
+          "title": "3. Close the session with an outcome",
+          "paragraphs": [
+            "At the end, check the session record and update the task status separately. Add one sentence to a note or diary: what changed, and what the next action is.",
+            "If an interruption ends the session, record the stopping point. A shorter session is still a record; there is no promise of a streak or productivity score."
+          ]
+        }
+      ],
+      "faq": [
+        {
+          "q": "Does clicking Focus complete my task?",
+          "a": "No. It opens the focus page with task context. Start the timer and update task status separately."
+        },
+        {
+          "q": "Do I have to use a 25-minute interval?",
+          "a": "No. Focus&go also offers named 15-, 50- and 90-minute modes. Choose the one that fits the next action."
+        },
+        {
+          "q": "Will this method prevent procrastination?",
+          "a": "No outcome is guaranteed. The workflow makes a next action explicit; it is not a clinical intervention or treatment."
+        }
+      ]
+    },
+    "zh": {
+      "title": "从一项任务到一次专注：操作指南 | Focus&go",
+      "h1": "把一项任务，变成下一次专注。",
+      "description": "用 Focus&go 完成一条具体流程：记下任务、写清下一步、从任务详情进入专注、启动计时并记录结果。",
+      "summary": "先记下一项任务，写清下一步动作；从任务详情进入专注并启动计时。结束后单独更新任务状态，留下一句结果。官方 Web 版的受保护交互需要登录。",
+      "sections": [
+        {
+          "title": "1. 先记下一项任务",
+          "paragraphs": [
+            "打开任务页，输入一个短标题。需要时再在详情中补充上下文、项目、日期或子任务，不必先整理完整待办系统。",
+            "例如，将“完成发布”缩成“写发布说明的第一段”。这是使用建议，不是自动规划功能。"
+          ]
+        },
+        {
+          "title": "2. 从任务进入专注",
+          "paragraphs": [
+            "在任务详情中选择“专注”，核对专注页显示的任务，选择时长，再启动计时器。",
+            "这个操作会带着任务上下文打开专注页，不会自动开始计时，也不会自动完成任务。"
+          ]
+        },
+        {
+          "title": "3. 用一句结果结束会话",
+          "paragraphs": [
+            "结束后查看会话记录，并单独更新任务状态。可以在笔记或日记里写一句：完成了什么，下一步是什么。",
+            "如果中途被打断，记下停止的位置。计时记录不保证效率提升，也不代表临床干预效果。"
+          ]
+        }
+      ],
+      "faq": [
+        {
+          "q": "点“专注”会自动完成任务吗？",
+          "a": "不会。它会带着任务上下文打开专注页；计时启动和任务状态更新需要分别操作。"
+        },
+        {
+          "q": "一定要使用 25 分钟吗？",
+          "a": "不必。还有 15、50 和 90 分钟等具名模式，可按下一步动作选择。"
+        },
+        {
+          "q": "这个流程保证不再拖延吗？",
+          "a": "不保证。它帮助明确下一步，不是临床干预或治疗。"
+        }
+      ]
+    }
+  }
+]

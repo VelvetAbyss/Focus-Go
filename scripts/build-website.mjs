@@ -1,6 +1,7 @@
 import { cp, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
+import { buildContentPages } from './website-pages.mjs'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 const source = path.join(root, 'apps/web/website')
@@ -22,6 +23,10 @@ const html = (await readFile(path.join(output, 'index.html'), 'utf8'))
   .replace('</head>', `<meta name="focusgo-site-release" content="${release}">\n</head>`)
 await writeFile(path.join(output, 'index.html'), html)
 await writeFile(path.join(output, 'release.json'), JSON.stringify({ version: release }))
+await cp(path.join(root, 'apps/web/public/fonts/InstrumentSerif-regular.woff2'), path.join(output, 'assets/InstrumentSerif-regular.woff2'))
+const routes = await buildContentPages(output, release)
+await writeFile(path.join(output, 'public-pages.json'), JSON.stringify(['/', ...routes]))
+await cp(path.join(source, '404.html'), path.join(output, '404.html'))
 if (!html.includes('Every current feature is free.')) {
   throw new Error('Website build is missing the current free-feature policy')
 }
