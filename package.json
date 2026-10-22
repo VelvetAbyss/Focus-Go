@@ -15,14 +15,14 @@
     "dev:desktop": "npm run dev --workspace @focus-go/desktop",
     "dev:screenshot": "pnpm --dir ./apps/ai-screenshot-tool tauri dev",
     "build:web": "npm run build --workspace @focus-go/web && npm run build:website",
-    "build:website": "node scripts/build-website.mjs",
+    "build:website": "node --experimental-strip-types scripts/build-website.mjs",
     "verify:public-site": "node scripts/verify-public-site.mjs",
-    "verify:discovery": "node scripts/verify-discovery.mjs",
+    "verify:discovery": "node --experimental-strip-types scripts/verify-discovery.mjs",
     "build:desktop": "npm run build --workspace @focus-go/desktop",
     "build:screenshot": "pnpm --dir ./apps/ai-screenshot-tool tauri build --debug --bundles app",
     "lint:web": "npm run lint --workspace @focus-go/web",
     "test:screenshot": "pnpm --dir ./apps/ai-screenshot-tool test",
-    "verify": "npm run lint:web && npm run build:web && npm run verify:public-site && npm run verify:discovery",
+    "verify": "npm run lint:web && npm run build:web && npm run verify:public-site && npm run verify:discovery && npm run test:discovery",
     "release:bundle": "node scripts/oss/build-release-bundle.mjs",
     "release:oss:upload": "node scripts/oss/upload-release.mjs",
     "release:oss:verify": "node scripts/oss/verify-release.mjs",
@@ -41,7 +41,8 @@
     "social:publish-due": "npm --prefix tools/social-publisher-agent run publish-due",
     "social:linkedin:verify": "npm --prefix tools/social-publisher-agent run linkedin:verify",
     "social:xhs-publish": "npm --prefix tools/social-publisher-agent run xhs-publish",
-    "social:monday": "npm --prefix tools/social-publisher-agent run monday"
+    "social:monday": "npm --prefix tools/social-publisher-agent run monday",
+    "test:discovery": "node --test scripts/verify-discovery.test.mjs"
   },
   "devDependencies": {
     "shadcn": "^3.8.5"

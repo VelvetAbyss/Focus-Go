@@ -46,7 +46,7 @@ npm run verify:public-site -- --website-url https://nestflow.art/ --app-url http
 
 The HTTP check rejects homepage rewrites, wrong content types, stale pricing and
 wrong-domain sitemap entries, stale assets and mismatched release identifiers. Also inspect English and Chinese pricing in a
-browser, including mobile. The marketing sitemap lists the homepage and six English/Chinese content
+browser, including mobile. The marketing sitemap lists two home languages, six English/Chinese guides and four static policy
 routes; the app sitemap lists its public root only. Private workbench routes are
 not submitted. See [P1 discovery operations](../seo/README.md) for the website-only
 404 configuration, canonical-host redirects and remaining search measurements. This does not change the
