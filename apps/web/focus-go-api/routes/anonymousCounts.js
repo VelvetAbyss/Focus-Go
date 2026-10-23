@@ -1,6 +1,6 @@
 import { Router, json } from 'express'
 
-export const PUBLIC_PAGES = ['/', '/zh/', '/features/pomodoro/', '/zh/features/pomodoro/', '/features/local-first/', '/zh/features/local-first/', '/guides/task-to-focus/', '/zh/guides/task-to-focus/', '/privacy/', '/zh/privacy/', '/terms/', '/zh/terms/']
+export const PUBLIC_PAGES = ['/', '/zh/', '/features/pomodoro/', '/zh/features/pomodoro/', '/features/local-first/', '/zh/features/local-first/', '/guides/task-to-focus/', '/zh/guides/task-to-focus/', '/about/', '/zh/about/', '/privacy/', '/zh/privacy/', '/terms/', '/zh/terms/']
 const WEBSITE = 'https://nestflow.art'
 const APPLICATION = 'https://app.nestflow.art'
 const RETENTION_DAYS = 90

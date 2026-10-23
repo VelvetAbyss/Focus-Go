@@ -65,3 +65,16 @@ test('prunes aggregates older than ninety UTC days and bounds report window', as
     assert.equal(readAnonymousCounts(f.database, 10000, clock).days, 90)
   } finally { await f.close() }
 })
+
+
+test('counts public identity pages but rejects nested or query-bearing variants', async () => {
+  const f = await fixture()
+  try {
+    for (const [page, language] of [['/about/', 'en'], ['/zh/about/', 'zh-CN']]) {
+      assert.equal((await f.post({ event: 'website_view', page, language })).status, 204)
+    }
+    assert.equal((await f.post({ event: 'website_view', page: '/about/private', language: 'en' })).status, 400)
+    assert.equal((await f.post({ event: 'website_view', page: '/about/?token=excluded', language: 'en' })).status, 400)
+    assert.equal(readAnonymousCounts(f.database, 28, clock).rows.reduce((sum, row) => sum + row.count, 0), 2)
+  } finally { await f.close() }
+})
