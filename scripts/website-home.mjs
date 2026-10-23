@@ -34,7 +34,7 @@ export async function buildHomePages(output, source, release) {
       html = html.replace('<html lang="en">', '<html lang="zh-CN">').replace('<body>', '<body class="zh">')
       html = html.replace('href="/zh/" lang="zh-CN" hreflang="zh-CN"', 'href="/" lang="en" hreflang="en"')
       html = html.replace(/(<a\b[^>]*\bid="langToggle"[^>]*>)[\s\S]*?<\/a>/, '$1EN</a>')
-      for (const route of ['/features/pomodoro/', '/features/local-first/', '/guides/task-to-focus/', '/privacy/', '/terms/']) html = html.replaceAll(`href="${route}"`, `href="/zh${route}"`)
+      for (const route of ['/features/pomodoro/', '/features/local-first/', '/guides/task-to-focus/', '/privacy/', '/terms/', '/about/']) html = html.replaceAll(`href="${route}"`, `href="/zh${route}"`)
     }
     html = html.replace(/<title>[\s\S]*?<\/title>/, `<title>${escape(c.title)}</title>`)
       .replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${escape(c.description)}">`)

@@ -34,6 +34,8 @@ describe('anonymous browser counter', () => {
   it('rejects dev hosts and private/query paths rather than transmit them', async () => {
     const dev = fixture('http://localhost:5173'); await dev.counter.firstSuccess('en'); await dev.counter.website('website_view','/'); expect(dev.sent).toEqual([])
     const site = fixture('https://nestflow.art'); await site.counter.website('website_view','/tasks/private'); await site.counter.website('app_open','/?q=private'); expect(site.sent).toEqual([])
-    await site.counter.website('app_open','/zh/features/pomodoro/'); expect(site.sent).toEqual([{ event: 'app_open', page: '/zh/features/pomodoro/', language: 'zh-CN' }])
+    await site.counter.website('app_open','/zh/features/pomodoro/');
+    await site.counter.website('website_view','/about/'); await site.counter.website('website_view','/zh/about/');
+    expect(site.sent).toEqual([{ event: 'app_open', page: '/zh/features/pomodoro/', language: 'zh-CN' }, { event: 'website_view', page: '/about/', language: 'en' }, { event: 'website_view', page: '/zh/about/', language: 'zh-CN' }])
   })
 })

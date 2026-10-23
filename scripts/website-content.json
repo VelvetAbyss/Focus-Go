@@ -275,5 +275,153 @@
         }
       ]
     }
+  },
+  {
+    "path": "about",
+    "pageType": "AboutPage",
+    "checked": "2026-10-23",
+    "sourceRef": "a3bec9f9a1fded2ed167f36098dcb07a79cc5a42",
+    "en": {
+      "title": "About Focus&go | Official website, app and open-source project",
+      "h1": "About Focus&go",
+      "description": "Focus&go is a local-first workspace for tasks, a Pomodoro timer, notes and a diary, maintained by Dylan Feng. Find its official website, Web app and MIT-licensed source project.",
+      "summary": "Focus&go is an open-source personal workspace for tasks, a Pomodoro timer, notes and a diary, maintained personally by Dylan Feng. Its official website is nestflow.art; the Web app is app.nestflow.art. Open the app, sign in and add a task.",
+      "sections": [
+        {
+          "title": "The product and its official home",
+          "paragraphs": [
+            "Focus&go is the product name. Nestflow is retained in the official domain nestflow.art. The website explains the product; app.nestflow.art is the official Web app.",
+            "Use the official domain and the source repository together to identify this project when a similar name appears in search results. The repository is VelvetAbyss/Focus-Go on GitHub."
+          ]
+        },
+        {
+          "title": "What you can do",
+          "paragraphs": [
+            "Add a task, connect it to a focus session and keep notes alongside the next action. The workspace also includes a diary. The guides below explain the task and timer workflow.",
+            "All current features are free. Optional sponsorship does not unlock features or change account access. The source code is available under the MIT license."
+          ]
+        },
+        {
+          "title": "Sign-in, local saving and sync",
+          "paragraphs": [
+            "The official Web app requires sign-in for protected interactions. Supported content is saved to the device first. Offline availability depends on cached resources and the applicable sign-in state.",
+            "On a new device, official cloud sync is enabled by default and attempts to sync after sign-in. It can be disabled in Settings after sign-in. Local saving and a cloud copy are separate parts of this behavior."
+          ]
+        },
+        {
+          "title": "Maintainer and contact",
+          "paragraphs": [
+            "Dylan Feng maintains and operates Focus&go personally. Product and privacy questions can be sent to support@nestflow.art. The current Privacy Policy and Terms identify the service provider and contact details."
+          ]
+        }
+      ],
+      "links": [
+        {
+          "label": "Official website",
+          "href": "https://nestflow.art/"
+        },
+        {
+          "label": "Official Web app",
+          "href": "https://app.nestflow.art/"
+        },
+        {
+          "label": "Source project on GitHub",
+          "href": "https://github.com/VelvetAbyss/Focus-Go"
+        },
+        {
+          "label": "MIT license at the checked source version",
+          "href": "https://github.com/VelvetAbyss/Focus-Go/blob/a3bec9f9a1fded2ed167f36098dcb07a79cc5a42/LICENSE"
+        }
+      ],
+      "faq": [
+        {
+          "q": "What is the official website for Focus&go?",
+          "a": "The official website is https://nestflow.art/. The official Web app is https://app.nestflow.art/."
+        },
+        {
+          "q": "Is Nestflow a different name for the product?",
+          "a": "Focus&go is the product name. Nestflow is retained in its official domain, nestflow.art. Use that domain and the linked source project to identify it."
+        },
+        {
+          "q": "Who maintains Focus&go?",
+          "a": "Dylan Feng maintains and operates it personally. Contact support@nestflow.art or consult the linked source repository."
+        },
+        {
+          "q": "Is Focus&go free, and does the Web app need an account?",
+          "a": "All current features are free. Protected interactions on the official Web app require sign-in. Optional sponsorship does not unlock features."
+        }
+      ]
+    },
+    "zh": {
+      "title": "关于 Focus&go｜官方网站、在线应用与开源项目",
+      "h1": "关于 Focus&go",
+      "description": "Focus&go 是整合任务、番茄钟、笔记和日记的本地优先个人工作台，由 Dylan Feng 以个人身份维护。本页列出官网、在线应用、MIT 开源项目及联系信息。",
+      "summary": "Focus&go 是整合任务、番茄钟、笔记和日记的开源个人工作台，由 Dylan Feng 以个人身份维护。官网是 nestflow.art，在线应用是 app.nestflow.art。打开应用，登录后添加任务，再开始专注。",
+      "sections": [
+        {
+          "title": "产品名称与官方归属",
+          "paragraphs": [
+            "Focus&go 是产品主名称，Nestflow 保留在官网域名 nestflow.art 中。官网用于了解产品，app.nestflow.art 是官方在线应用。",
+            "搜索结果出现相似名称时，可以同时核对官网域名与开源仓库。此项目的 GitHub 仓库为 VelvetAbyss/Focus-Go。"
+          ]
+        },
+        {
+          "title": "从一项任务开始",
+          "paragraphs": [
+            "添加任务，将任务关联到一次专注，再用笔记留下结果或下一步。工作台也提供日记；下方指南说明任务与番茄钟的具体操作。",
+            "所有当前功能免费，源代码使用 MIT 许可证。可选赞助不会解锁功能，也不会改变账户访问权限。"
+          ]
+        },
+        {
+          "title": "登录、本地保存与同步",
+          "paragraphs": [
+            "官方 Web 版的受保护交互需要登录。支持的内容优先保存在本机；离线能否使用，取决于已缓存的资源和适用的登录状态。",
+            "新设备的官方云同步默认开启，登录后会尝试同步；登录后可以在设置中关闭。本地保存和云端副本是两个不同环节。"
+          ]
+        },
+        {
+          "title": "维护者与联系信息",
+          "paragraphs": [
+            "Focus&go 由 Dylan Feng 以个人身份维护和运营。产品或隐私问题可以联系 support@nestflow.art；现行隐私政策和服务条款列明服务提供者与联系信息。"
+          ]
+        }
+      ],
+      "links": [
+        {
+          "label": "官方网站",
+          "href": "https://nestflow.art/"
+        },
+        {
+          "label": "官方在线应用",
+          "href": "https://app.nestflow.art/"
+        },
+        {
+          "label": "GitHub 开源项目",
+          "href": "https://github.com/VelvetAbyss/Focus-Go"
+        },
+        {
+          "label": "核对版本的 MIT 许可证",
+          "href": "https://github.com/VelvetAbyss/Focus-Go/blob/a3bec9f9a1fded2ed167f36098dcb07a79cc5a42/LICENSE"
+        }
+      ],
+      "faq": [
+        {
+          "q": "Focus&go 的官方网站是哪个？",
+          "a": "官网是 https://nestflow.art/，官方在线应用是 https://app.nestflow.art/。"
+        },
+        {
+          "q": "Focus&go 和 Nestflow 是什么关系？",
+          "a": "Focus&go 是产品主名称，Nestflow 保留在官网域名 nestflow.art 中。可以通过域名与本页开源仓库核对产品身份。"
+        },
+        {
+          "q": "谁在维护 Focus&go？",
+          "a": "Dylan Feng 以个人身份维护和运营。联系邮箱为 support@nestflow.art，源代码位于本页链接的 GitHub 仓库。"
+        },
+        {
+          "q": "Focus&go 免费吗，是否需要登录？",
+          "a": "所有当前功能免费；官方 Web 版的受保护交互需要登录。可选赞助不会解锁功能。"
+        }
+      ]
+    }
   }
 ]

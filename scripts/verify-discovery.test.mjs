@@ -24,7 +24,8 @@ async function check(t, transform) {
 }
 test('accepts JSON-LD and CDN scripts outside unchanged static articles', async t => {
   const result = await check(t, response => ({ ...response, html: response.html.replace('</body>', '<script src="/cdn-cgi/email-decode.js"></script></body>') }))
-  assert.match(result.stdout, /PASS 12 public routes/)
+  const publishedRoutes = JSON.parse(await readFile(path.join(output, 'public-pages.json'), 'utf8'))
+  assert(result.stdout.includes(`PASS ${publishedRoutes.length} public routes`))
 })
 test('rejects policy text that differs from the verified build', async t => {
   await assert.rejects(check(t, response => ({ ...response, html: response.route === '/privacy/' ? response.html.replace('</article>', '<p>Unexpected policy change</p></article>') : response.html })), error => /static body differs/.test(error.stderr))
@@ -34,4 +35,8 @@ test('rejects a missing-page response that returns HTTP 200', async t => {
 })
 test('rejects a Chinese page canonicalized to English', async t => {
   await assert.rejects(check(t, response => ({ ...response, html: response.route === '/zh/' ? response.html.replace('rel="canonical" href="https://nestflow.art/zh/"', 'rel="canonical" href="https://nestflow.art/"') : response.html })), error => /canonical mismatch/.test(error.stderr))
+})
+
+test('rejects an identity page whose main entity is an unrelated product', async t => {
+  await assert.rejects(check(t, response => ({ ...response, html: response.route === '/about/' ? response.html.replace('"mainEntity":{"@id":"https://nestflow.art/#application"}', '"mainEntity":{"@id":"https://example.invalid/other"}') : response.html })), error => /main identity/.test(error.stderr))
 })

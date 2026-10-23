@@ -87,6 +87,12 @@ for (const route of routes) {
     assert.equal(trail[0].item, `https://nestflow.art${zh ? '/zh/' : '/'}`)
     assert.equal(trail[1].item, `https://nestflow.art${route}`)
   }
+  if (/\/about\/$/.test(route)) {
+    assert(typed('AboutPage'), `${route}: official identity page type missing`)
+    assert.equal(typed('AboutPage').mainEntity?.['@id'], typed('SoftwareApplication')['@id'], `${route}: main identity must reference the official app`)
+    assert(typed('SoftwareApplication').sameAs.includes('https://github.com/VelvetAbyss/Focus-Go'))
+    for (const link of ['https://nestflow.art/', 'https://app.nestflow.art/', 'https://github.com/VelvetAbyss/Focus-Go']) assert(html.includes(`href="${link}"`), `${route}: visible official link missing`)
+  }
   if (policy) {
     const key = policy === 'privacy' ? 'privacy-policy' : 'terms-of-service', document = LEGAL_DOCUMENTS[lang][key]
     assert(html.includes(`data-policy-version="${POLICY_VERSION}"`), `${route}: policy version changed`)

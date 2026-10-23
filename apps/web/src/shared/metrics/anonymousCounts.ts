@@ -2,7 +2,7 @@ const PREFERENCE = 'focusgo.anonymous-counts.enabled'
 const FIRST_SUCCESS = 'focusgo.anonymous-counts.first-success'
 const ENDPOINT = 'https://api.nestflow.art/api/public-counts'
 const CHANGE_EVENT = 'focusgo-anonymous-counts-change'
-const PAGES = ['/', '/zh/', '/features/pomodoro/', '/zh/features/pomodoro/', '/features/local-first/', '/zh/features/local-first/', '/guides/task-to-focus/', '/zh/guides/task-to-focus/', '/privacy/', '/zh/privacy/', '/terms/', '/zh/terms/']
+const PAGES = ['/', '/zh/', '/features/pomodoro/', '/zh/features/pomodoro/', '/features/local-first/', '/zh/features/local-first/', '/guides/task-to-focus/', '/zh/guides/task-to-focus/', '/about/', '/zh/about/', '/privacy/', '/zh/privacy/', '/terms/', '/zh/terms/']
 
 type CounterRuntime = {
   origin: string
