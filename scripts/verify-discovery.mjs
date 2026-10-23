@@ -88,6 +88,7 @@ for (const route of routes) {
     assert.equal(trail[1].item, `https://nestflow.art${route}`)
   }
   if (/\/about\/$/.test(route)) {
+    assert(local.includes('<!--email_off--><article') && local.includes('</article><!--/email_off-->'), `${route}: identity answer must survive CDN email protection`)
     assert(typed('AboutPage'), `${route}: official identity page type missing`)
     assert.equal(typed('AboutPage').mainEntity?.['@id'], typed('SoftwareApplication')['@id'], `${route}: main identity must reference the official app`)
     assert(typed('SoftwareApplication').sameAs.includes('https://github.com/VelvetAbyss/Focus-Go'))
