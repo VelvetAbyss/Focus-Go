@@ -40,3 +40,9 @@ test('rejects a Chinese page canonicalized to English', async t => {
 test('rejects an identity page whose main entity is an unrelated product', async t => {
   await assert.rejects(check(t, response => ({ ...response, html: response.route === '/about/' ? response.html.replace('"mainEntity":{"@id":"https://nestflow.art/#application"}', '"mainEntity":{"@id":"https://example.invalid/other"}') : response.html })), error => /main identity/.test(error.stderr))
 })
+
+test('keeps identity contact readable when CDN email protection runs', async t => {
+  const result = await check(t, response => ({ ...response, html: response.html.split(/(<!--email_off-->[\s\S]*?<!--\/email_off-->)/g).map(part => part.startsWith('<!--email_off-->') ? part : part.replaceAll('support@nestflow.art', '<a class="__cf_email__">[email&#160;protected]</a>')).join('') }))
+  assert(result.stdout.includes('PASS discovery: /about/'))
+  assert(result.stdout.includes('PASS discovery: /zh/about/'))
+})
