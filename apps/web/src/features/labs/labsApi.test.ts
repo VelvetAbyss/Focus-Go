@@ -58,6 +58,17 @@ describe('labsApi', () => {
     expect((await translation())?.state).toBe('installed')
   })
 
+  it('supports installing, removing and restoring currency exchange', async () => {
+    const feature = async () => (await getFeatureCatalog()).find(item => item.featureKey === 'currency-exchange')
+    expect(await feature()).toMatchObject({ state: 'available', comingSoon: false })
+    await installFeature('currency-exchange')
+    expect((await feature())?.state).toBe('installed')
+    await removeFeature('currency-exchange')
+    expect((await feature())?.state).toBe('removed')
+    await restoreFeature('currency-exchange')
+    expect((await feature())?.state).toBe('installed')
+  })
+
   it('ignores legacy premium hints', async () => {
     await ensureLabsSeed()
     localStorage.setItem('auth', JSON.stringify({ plan: 'premium' }))

@@ -21,6 +21,7 @@ export const ROUTES = {
   ASTROLOGY: '/astrology',
   TAROT: '/tarot',
   TRANSLATION: '/translation',
+  CURRENCY_EXCHANGE: '/currency-exchange',
   SUPPORT: '/support',
   MEMBERSHIP: '/membership',
   PREMIUM: '/premium',
