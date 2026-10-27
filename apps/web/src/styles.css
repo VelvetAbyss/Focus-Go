@@ -11100,6 +11100,14 @@ textarea:focus-visible,
     flex-direction: column;
   }
 
+  @supports (zoom: 1) {
+    .focus-shell__scale-wrap {
+      /* A column flex child already resolves percentage widths through zoom.
+         Dividing again clips the header and controls at tablet widths. */
+      width: 100%;
+    }
+  }
+
   .focus-shell__main {
     min-height: auto;
     flex: 1 1 auto;
