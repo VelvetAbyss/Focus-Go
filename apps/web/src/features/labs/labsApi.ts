@@ -32,6 +32,7 @@ export type UserSubscriptionRecord = {
 }
 
 const FEATURE_META: FeatureMeta[] = [
+  { featureKey: 'currency-exchange', title: 'Currency Exchange', description: 'Convert currencies and explore historical exchange rates.', premiumOnly: false, comingSoon: false },
   { featureKey: 'bazi', title: 'BaZi', description: 'Four pillars, luck cycles and transparent rule-based readings.', premiumOnly: false, comingSoon: false },
   { featureKey: 'astrology', title: 'Astrology', description: 'A personal natal chart with planetary positions and current transits.', premiumOnly: false, comingSoon: false },
   { featureKey: 'tarot', title: 'Tarot', description: 'Daily cards, three-card spreads and a private reflection journal.', premiumOnly: false, comingSoon: false },

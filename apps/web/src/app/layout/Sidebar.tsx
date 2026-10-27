@@ -4,6 +4,7 @@ import { playInterfaceSound } from '../../shared/sound/interactionSounds'
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import {
   Languages,
+  ArrowLeftRight,
   Bot,
   Columns3,
   Orbit,
@@ -147,6 +148,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
   const FEATURE_ICONS: Record<FeatureKey, LucideIcon> = {
     bazi: Columns3, astrology: Orbit, tarot: Layers,
     translation: Languages,
+    'currency-exchange': ArrowLeftRight,
     'habit-tracker': Flame,
     'ai-digest': Sparkles,
     automation: Bot,
@@ -156,6 +158,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
   const FEATURE_ROUTES: Record<FeatureKey, string> = {
     bazi: ROUTES.BAZI, astrology: ROUTES.ASTROLOGY, tarot: ROUTES.TAROT,
     translation: ROUTES.TRANSLATION,
+    'currency-exchange': ROUTES.CURRENCY_EXCHANGE,
     'habit-tracker': ROUTES.HABITS,
     'ai-digest': ROUTES.LABS,
     automation: ROUTES.LABS,
