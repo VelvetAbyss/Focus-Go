@@ -16,6 +16,11 @@ import '../life/life.css'
 import './header/dashboard-header.css'
 import ActiveIndicator from '../../shared/motion/ActiveIndicator'
 import DeskProps from './desk/DeskProps'
+import CloudTrain from './header/CloudTrain'
+import SpringField from './header/SpringField'
+import HeaderSceneControls from './header/HeaderSceneControls'
+import { useHeaderScene, useSceneReducedMotion } from './header/useHeaderScene'
+import { useThemeMode } from '../../shared/theme/useThemeMode'
 
 export type DashboardPage = 'main' | 'life' | 'news' | 'custom'
 
@@ -81,6 +86,13 @@ const DashboardHeader = ({
   onSetPage,
 }: DashboardHeaderProps) => {
   const { language, t } = useI18n()
+  const [scene, updateScene] = useHeaderScene()
+  const reducedMotion = useSceneReducedMotion()
+  const theme = useThemeMode()
+  const trainPalette = scene.palette === 'auto' ? (theme === 'dark' ? 'night' : 'sunset') : scene.palette
+  const springPalette = scene.spring.palette === 'auto' ? (theme === 'dark' ? 'night' : 'day') : scene.spring.palette
+  const scenery = scene.mode !== 'desk'
+  const activeSettings = scene.mode === 'spring' ? scene.spring : scene
   const headerRef = useRef<HTMLElement | null>(null)
   const today = useToday()
   const dayKey = dayKeyOf(today)
@@ -142,8 +154,10 @@ const DashboardHeader = ({
   // its epigraph), then a ruled toolbar to operate: the views as tabs on the
   // left, the layout actions on the right (DESIGN.md › Dashboard header).
   return (
-    <header ref={headerRef} className="app-shell__header dash-header">
-      <div className="dash-hero">
+    <header ref={headerRef} className={`app-shell__header dash-header${scenery ? ' dash-header--scenery' : ''}`} data-header-scene={scene.mode} style={scenery ? { minHeight: activeSettings.sceneHeight } : undefined}>
+      {scene.mode === 'cloudtrain' && <CloudTrain settings={scene} anchor={scene.sceneAnchor} palette={trainPalette} paused={scene.paused || reducedMotion} />}
+      {scene.mode === 'spring' && <SpringField settings={scene.spring} palette={springPalette} paused={scene.spring.paused || reducedMotion} />}
+      <div className="dash-hero" style={scenery && activeSettings.height > 80 ? { minHeight: activeSettings.height } : undefined}>
         <div className="dash-hero__day">
           <time className="dash-hero__date" dateTime={dayKey}>
             {zh ? (
@@ -282,8 +296,9 @@ const DashboardHeader = ({
           </div>
         ) : <span />}
 
-        {showLayoutActions ? (
-          <div className="dash-toolbar__actions">
+        <div className="dash-toolbar__actions">
+          <HeaderSceneControls scene={scene} update={updateScene} reduced={reducedMotion} />
+          {showLayoutActions ? <>
             {layoutEdit ? (
               <button
                 type="button"
@@ -309,10 +324,10 @@ const DashboardHeader = ({
               <span>{layoutEdit ? t('dashboard.done') : t('dashboard.editLayout')}</span>
               {!layoutEdit && layoutEditLocked ? <PremiumMark /> : null}
             </button>
-          </div>
-        ) : null}
+          </> : null}
+        </div>
       </div>
-      <DeskProps headerRef={headerRef} />
+      {scene.mode === 'desk' && <DeskProps headerRef={headerRef} />}
     </header>
   )
 }
