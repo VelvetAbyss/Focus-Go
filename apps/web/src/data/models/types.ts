@@ -727,7 +727,9 @@ export type TaskTrashEntry = {
   deletedAt: number
 }
 
-export type FeatureKey = 'ai-digest' | 'automation' | 'bazi' | 'astrology' | 'tarot' | 'habit-tracker' | 'project-workspace' | 'translation' | 'currency-exchange'
+export type { CrmCustomer, CrmDeal, CrmActivity } from './crm'
+
+export type FeatureKey = 'crm' | 'ai-digest' | 'automation' | 'bazi' | 'astrology' | 'tarot' | 'habit-tracker' | 'project-workspace' | 'translation' | 'currency-exchange'
 export type FeatureInstallState = 'installed' | 'removed'
 
 export type FeatureInstallation = BaseEntity & {

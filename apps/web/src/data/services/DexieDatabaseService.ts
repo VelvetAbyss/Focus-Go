@@ -1,3 +1,4 @@
+import Dexie from 'dexie'
 import type {
   TripCreateInput,
   TripUpdateInput,
@@ -595,7 +596,13 @@ const enqueueUpsertInBackground = <
 }
 
 const finalizeDomainEventInBackground = (event: DomainEvent | undefined) => {
-  void finalizeDomainEvent(event).catch((error) => reportBackgroundSyncError(`domain event ${event?.id ?? 'unknown'} finalize`, error))
+  const finalize = () => {
+    void finalizeDomainEvent(event).catch((error) => reportBackgroundSyncError(`domain event ${event?.id ?? 'unknown'} finalize`, error))
+  }
+  let transaction = Dexie.currentTransaction
+  while (transaction?.parent) transaction = transaction.parent
+  if (transaction) transaction.on('complete', () => Dexie.ignoreTransaction(finalize))
+  else finalize()
 }
 
 const enqueueDelete = async <

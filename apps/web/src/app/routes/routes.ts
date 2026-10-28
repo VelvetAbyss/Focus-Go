@@ -16,6 +16,7 @@ export const ROUTES = {
   SETTINGS: '/workspace/settings',
   SETTINGS_LEGAL_PRIVACY: '/workspace/settings/legal/privacy-policy',
   SETTINGS_LEGAL_TERMS: '/workspace/settings/legal/terms-of-service',
+  CRM: '/crm',
   LABS: '/labs',
   BAZI: '/bazi',
   ASTROLOGY: '/astrology',

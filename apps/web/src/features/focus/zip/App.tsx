@@ -139,7 +139,7 @@ export default function App() {
           onClick={() => navigate(returnPath)}
         >
           <ArrowLeft size={13} />
-          {t(returnPath.startsWith('/projects/') ? 'navigation.backToProject' : 'navigation.backToTask')}
+          {t(returnPath.startsWith('/crm?') ? 'navigation.backToCustomer' : returnPath.startsWith('/projects/') ? 'navigation.backToProject' : 'navigation.backToTask')}
         </button>
       ) : null}
       {/* Paper & Ink: the page sits on the shell's sheet; no decorative light spots. */}

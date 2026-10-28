@@ -13,6 +13,10 @@ const mockResolveInitialTheme = vi.fn()
 const mockResolveTheme = vi.fn()
 const mockWriteStoredThemePreference = vi.fn()
 
+vi.mock('../../features/labs/LabsContext', () => ({
+  useLabs: () => ({ ready: true, catalog: [] }),
+}))
+
 vi.mock('../../shared/prefs/usePreferences', () => ({
   usePreferences: () => ({
     uiAnimationsEnabled: false,

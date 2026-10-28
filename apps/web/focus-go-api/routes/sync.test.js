@@ -51,6 +51,36 @@ const assertPushOk = async (response) => {
   return body
 }
 
+test('CRM records round-trip through sync and remain isolated between accounts', async () => {
+  const ctx = await createServer({ authMiddleware: (req, _res, next) => {
+    req.auth = { user: { id: req.headers['x-test-account'] ?? 'crm-account-a', plan: 'free' } }
+    next()
+  } })
+  const records = {
+    crmCustomers: { id: 'customer-1', mode: 'b2b', name: 'CRM example', contacts: [], tags: [], archivedAt: null },
+    crmDeals: { id: 'deal-1', customerId: 'customer-1', stage: 'proposal', amount: 250, currency: 'USD', closedAt: null },
+    crmActivities: { id: 'activity-1', customerId: 'customer-1', kind: 'call', body: 'Send proposal', taskId: 'task-1', occurredAt: 10 },
+  }
+  try {
+    for (const [entityType, record] of Object.entries(records)) {
+      const document = { ...record, createdAt: 10, updatedAt: 10, _deleted: false }
+      await assertPushOk(await fetch(`${ctx.baseUrl}/sync/rxdb/push`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entityType, rows: [{ newDocumentState: document, assumedMasterState: null }], blobs: [] }),
+      }))
+      for (const account of ['crm-account-a', 'crm-account-b']) {
+        const response = await fetch(`${ctx.baseUrl}/sync/rxdb/pull`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'x-test-account': account },
+          body: JSON.stringify({ entityType, checkpoint: null, limit: 100 }),
+        })
+        assert.equal(response.status, 200)
+        const result = await response.json()
+        assert.deepEqual(result.documents, account === 'crm-account-a' ? [document] : [])
+      }
+    }
+  } finally { await ctx.close() }
+})
+
 test('authenticated SSE announces committed changes and closes cleanly', async () => {
   const ctx = await createServer()
   const controller = new AbortController()

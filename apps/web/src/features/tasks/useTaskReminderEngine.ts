@@ -1,3 +1,4 @@
+import { isTaskClosed } from './domain/taskRules'
 import { useEffect, useRef } from 'react'
 import { tasksRepo } from '../../data/repositories/tasksRepo'
 import { usePreferences } from '../../shared/prefs/usePreferences'
@@ -14,14 +15,14 @@ const MAX_TIMEOUT_MS = 6 * 60 * 60 * 1000
 const sortByReminderAt = (tasks: TaskItem[]) =>
   tasks
     .slice()
-    .filter((task) => typeof task.reminderAt === 'number')
+    .filter((task) => !isTaskClosed(task) && typeof task.reminderAt === 'number')
     .sort((a, b) => (a.reminderAt ?? 0) - (b.reminderAt ?? 0))
 
 /** When the next unfired reminder is due (lead time applied), or null if none. */
 export const getNextReminderDueAt = (tasks: TaskItem[], leadMs: number): number | null => {
   let next: number | null = null
   for (const task of tasks) {
-    if (typeof task.reminderAt !== 'number' || typeof task.reminderFiredAt === 'number') continue
+    if (isTaskClosed(task) || typeof task.reminderAt !== 'number' || typeof task.reminderFiredAt === 'number') continue
     const dueAt = task.reminderAt - leadMs
     if (next === null || dueAt < next) next = dueAt
   }
@@ -110,7 +111,7 @@ export const useTaskReminderEngine = () => {
 
       const now = Date.now()
       const dueTasks = tasksRef.current.filter((task) => {
-        if (typeof task.reminderAt !== 'number') return false
+        if (isTaskClosed(task) || typeof task.reminderAt !== 'number') return false
         if (typeof task.reminderFiredAt === 'number') return false
         return now >= task.reminderAt - leadMs
       })

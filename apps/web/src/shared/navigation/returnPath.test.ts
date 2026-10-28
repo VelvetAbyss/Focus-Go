@@ -27,3 +27,10 @@ describe('return paths', () => {
     }
   })
 })
+
+it('returns to a selected CRM customer without permitting unrelated CRM URLs', () => {
+  const from = '/crm?mode=b2c&customer=c%201'
+  expect(readReturnPath(new URL(withReturnPath('/focus', from), 'https://focusgo.local').search)).toBe(from)
+  expect(readReturnPath(`?from=${encodeURIComponent('/crm')}`)).toBeNull()
+  expect(readReturnPath(`?from=${encodeURIComponent('/crm?customer=')}`)).toBeNull()
+})

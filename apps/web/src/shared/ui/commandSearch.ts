@@ -1,7 +1,7 @@
 import { markdownToPreview } from '../utils/markdownPreview'
 
 /** Everything ⌘K can find, flattened to title + searchable body. */
-export type SearchKind = 'task' | 'note' | 'diary' | 'project'
+export type SearchKind = 'task' | 'note' | 'diary' | 'project' | 'customer'
 
 export type SearchDoc = {
   kind: SearchKind

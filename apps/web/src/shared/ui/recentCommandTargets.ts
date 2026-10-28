@@ -5,7 +5,7 @@ export type RecentCommandTarget = { kind: SearchKind; id: string }
 
 const STORAGE_PREFIX = 'focusgo.command.recent.v1'
 const MAX_RECENT_TARGETS = 8
-const KINDS = new Set<SearchKind>(['task', 'note', 'diary', 'project'])
+const KINDS = new Set<SearchKind>(['task', 'note', 'diary', 'project', 'customer'])
 
 const storageKey = (ownerId: string) => `${STORAGE_PREFIX}:${ownerId}`
 

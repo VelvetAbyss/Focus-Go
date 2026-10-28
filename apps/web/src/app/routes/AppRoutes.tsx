@@ -32,6 +32,7 @@ const DiaryPage = lazy(() => import('../../features/diary/pages/DiaryPage'))
 const SettingsRoute = lazy(() => import('./SettingsRoute'))
 const TranslationPage = lazy(() => import('../../features/translation/TranslationPage'))
 const CurrencyExchangePage = lazy(() => import('../../features/currency-exchange/CurrencyExchangePage'))
+const CrmPage = lazy(() => import('../../features/crm/CrmPage'))
 const LabsPage = lazy(() => import('../../features/labs/pages/LabsPage'))
 const SupportPage = lazy(() => import('../../features/support/SupportPage'))
 const HabitTrackerPage = lazy(() => import('../../features/habits/pages/HabitTrackerPage'))
@@ -67,6 +68,7 @@ const AppRoutes = () => {
         <Route path={ROUTES.TAROT} element={<InstalledSymbolicRoute feature="tarot"><TarotPage /></InstalledSymbolicRoute>} />
         <Route path={ROUTES.TRANSLATION} element={<Suspense fallback={<RouteFallback />}><TranslationPage /></Suspense>} />
         <Route path={ROUTES.CURRENCY_EXCHANGE} element={<Suspense fallback={<RouteFallback />}><CurrencyExchangePage /></Suspense>} />
+        <Route path={ROUTES.CRM} element={<Suspense fallback={<RouteFallback />}><CrmPage /></Suspense>} />
         <Route path={ROUTES.LABS} element={<Suspense fallback={<RouteFallback />}><LabsPage /></Suspense>} />
         <Route path={ROUTES.SUPPORT} element={<Suspense fallback={<RouteFallback />}><SupportPage /></Suspense>} />
         <Route path={ROUTES.MEMBERSHIP} element={<Navigate to={ROUTES.DASHBOARD} replace />} />

@@ -68,8 +68,10 @@ export const requestSyncHandoff = () => {
       console.error('[sync] local handoff failed; retained for retry', error)
     })
   }
-  const transaction = Dexie.currentTransaction
-  if (transaction) transaction.on('complete', flush)
+  let transaction = Dexie.currentTransaction
+  // Nested writes are not durable until their outer transaction commits.
+  while (transaction?.parent) transaction = transaction.parent
+  if (transaction) transaction.on('complete', () => Dexie.ignoreTransaction(flush))
   else flush()
 }
 

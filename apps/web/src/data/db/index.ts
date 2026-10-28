@@ -3,6 +3,9 @@ import Dexie from 'dexie'
 import { installSyncCapture } from '../sync/capture'
 import type { Table } from 'dexie'
 import type {
+  CrmCustomer,
+  CrmDeal,
+  CrmActivity,
   BookItem,
   LocalSymbolicRecord,
   DashboardLayout,
@@ -67,6 +70,7 @@ import {
   schemaV46,
   schemaV47,
   schemaV48,
+  schemaV49,
   schemaV2,
   schemaV3,
   schemaV4,
@@ -79,6 +83,9 @@ import {
 } from './schema'
 
 export class WorkbenchDb extends Dexie {
+  crmCustomers!: Table<CrmCustomer, string>
+  crmDeals!: Table<CrmDeal, string>
+  crmActivities!: Table<CrmActivity, string>
   localSymbolic!: Table<LocalSymbolicRecord, [string, string]>
   pendingSyncChanges!: Table<PendingSyncChange, number>
   tasks!: Table<TaskItem, string>
@@ -279,7 +286,12 @@ export class WorkbenchDb extends Dexie {
 
     this.version(46).stores(schemaV46)
     this.version(47).stores(schemaV47)
-    this.version(DB_VERSION).stores(schemaV48)
+    this.version(48).stores(schemaV48)
+    this.version(DB_VERSION).stores(schemaV49)
+
+    this.crmCustomers = this.table(TABLES.crmCustomers)
+    this.crmDeals = this.table(TABLES.crmDeals)
+    this.crmActivities = this.table(TABLES.crmActivities)
 
     this.localSymbolic = this.table(TABLES.localSymbolic)
 
