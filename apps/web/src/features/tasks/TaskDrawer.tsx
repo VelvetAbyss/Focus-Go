@@ -1,3 +1,4 @@
+import CrmTaskLink from '../crm/CrmTaskLink'
 import { playInteractionSound, playTaskStatusSound } from '../../shared/sound/interactionSounds'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useInRouterContext, useLocation, useNavigate } from 'react-router-dom'
@@ -47,7 +48,7 @@ import { useAuthGate } from '../auth/AuthGateContext'
 import { usePremiumGate } from '../premium/PremiumProvider'
 import PremiumMark from '../premium/PremiumMark'
 import FocusOnTaskButton from '../focus/FocusOnTaskButton'
-import { buildNoteRouteWithReturn, readNoteReturnPath, withTaskContext } from '../../shared/navigation/returnPath'
+import { buildNoteRouteWithReturn, readCrmReturnPath, readNoteReturnPath, withTaskContext } from '../../shared/navigation/returnPath'
 import './task-detail-theme.css'
 import './tasks-workspace.css'
 
@@ -65,12 +66,12 @@ const RoutedTaskReturn = ({ taskId }: { taskId: string }) => {
   const { t } = useI18n()
   const location = useLocation()
   const navigate = useNavigate()
-  const source = readNoteReturnPath(location.search)
+  const source = readNoteReturnPath(location.search) ?? readCrmReturnPath(location.search)
   if (!source || new URLSearchParams(location.search).get('task') !== taskId) return null
   return (
     <Button variant="outline" size="sm" className="h-8 rounded-full px-3 text-meta" onClick={() => navigate(source)}>
       <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
-      {t('navigation.backToNote')}
+      {t(source.startsWith('/crm?') ? 'navigation.backToCustomer' : 'navigation.backToNote')}
     </Button>
   )
 }
@@ -839,7 +840,7 @@ const TaskDrawer = ({
                 </div>
               ) : null}
               <div className={cn('task-detail-actions flex items-center gap-1.5', confirmingDelete && 'hidden')}>
-                {canLaunchFocus ? <RoutedTaskReturn taskId={currentTask.id} /> : null}
+                {canLaunchFocus ? <><RoutedTaskReturn taskId={currentTask.id} /><CrmTaskLink taskId={currentTask.id} /></> : null}
                 {canLaunchFocus && currentTask.status !== 'done' && currentTask.status !== 'dropped' ? (
                   <FocusOnTaskButton
                     taskId={currentTask.id}

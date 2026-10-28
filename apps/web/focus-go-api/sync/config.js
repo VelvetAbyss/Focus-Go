@@ -1,4 +1,7 @@
 export const SYNC_TABLES = {
+  crmCustomers: 'sync_crm_customers',
+  crmDeals: 'sync_crm_deals',
+  crmActivities: 'sync_crm_activities',
   tasks: 'sync_tasks',
   notes: 'sync_notes',
   noteTags: 'sync_note_tags',

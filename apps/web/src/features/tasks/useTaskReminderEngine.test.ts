@@ -20,3 +20,7 @@ describe('getNextReminderDueAt', () => {
     expect(getNextReminderDueAt([], 0)).toBeNull()
   })
 })
+
+it('never schedules notifications for completed or dropped follow-ups', () => {
+  expect(getNextReminderDueAt([task({ status: 'done', reminderAt: 1 }), task({ status: 'dropped', reminderAt: 2 })], 0)).toBeNull()
+})

@@ -1,4 +1,7 @@
 import type {
+  CrmCustomer,
+  CrmDeal,
+  CrmActivity,
   BookItem,
   DiaryEntry,
   DomainEvent,
@@ -29,6 +32,9 @@ import type {
 } from '../models/types'
 
 export const SYNC_ENTITY_TYPES = [
+  'crmCustomers',
+  'crmDeals',
+  'crmActivities',
   'tasks',
   'notes',
   'noteTags',
@@ -64,6 +70,9 @@ export type SyncOp = 'upsert' | 'delete'
 export type SyncStatus = 'idle' | 'syncing' | 'error' | 'blocked'
 
 export type SyncEntityMap = {
+  crmCustomers: CrmCustomer
+  crmDeals: CrmDeal
+  crmActivities: CrmActivity
   tasks: TaskItem
   notes: NoteItem
   noteTags: NoteTag

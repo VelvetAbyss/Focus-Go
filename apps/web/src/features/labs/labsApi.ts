@@ -32,6 +32,7 @@ export type UserSubscriptionRecord = {
 }
 
 const FEATURE_META: FeatureMeta[] = [
+  { featureKey: 'crm', title: 'Customer workspace', description: 'B2B and B2C customers, opportunities and follow-ups connected to Tasks, Calendar and Notes.', premiumOnly: false, comingSoon: false },
   { featureKey: 'currency-exchange', title: 'Currency Exchange', description: 'Convert currencies and explore historical exchange rates.', premiumOnly: false, comingSoon: false },
   { featureKey: 'bazi', title: 'BaZi', description: 'Four pillars, luck cycles and transparent rule-based readings.', premiumOnly: false, comingSoon: false },
   { featureKey: 'astrology', title: 'Astrology', description: 'A personal natal chart with planetary positions and current transits.', premiumOnly: false, comingSoon: false },

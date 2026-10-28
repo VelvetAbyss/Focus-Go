@@ -40,6 +40,7 @@ device first, and cloud sync only adds a server copy on top.
 
 - Unified dashboard with configurable widgets for everyday planning and execution.
 - Task management with status flow, subtasks, due date, priorities, tags, and activity history.
+- Optional Customer workspace in Labs: B2B/B2C customers, opportunities and follow-ups connected to Tasks, Calendar, Notes and Focus.
 - Focus Center with Pomodoro timer, break rhythm, and white-noise controls.
 - Daily diary entry panel to capture progress, outcomes, and reflection.
 - Spend tracking widgets for quick personal finance awareness.

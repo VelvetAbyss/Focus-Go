@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Command } from 'cmdk'
 import {
+  Users,
   Calendar,
   CalendarDays,
   CalendarPlus,
@@ -26,6 +27,8 @@ import {
   Circle,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { db } from '../../data/db'
+import { useLabs } from '../../features/labs/LabsContext'
 import { tasksRepo } from '../../data/repositories/tasksRepo'
 import { notesRepo } from '../../data/repositories/notesRepo'
 import { diaryRepo } from '../../data/repositories/diaryRepo'
@@ -51,6 +54,7 @@ type CommandPaletteProps = {
 
 // `keywords` keep English search terms working in every UI language.
 const ACTIONS: Array<{ id: string; labelKey: TranslationKey; keywords: string; icon: typeof ListTodo; to: string }> = [
+  { id: 'crm', labelKey: 'commandPalette.nav.crm', keywords: 'crm customers 客户 销售', icon: Users, to: ROUTES.CRM },
   { id: 'dashboard', labelKey: 'commandPalette.nav.dashboard', keywords: 'dashboard home', icon: Home, to: ROUTES.DASHBOARD },
   { id: 'timeline', labelKey: 'commandPalette.nav.timeline', keywords: 'timeline activity', icon: SquareActivity, to: ROUTES.TIMELINE },
   { id: 'tasks', labelKey: 'commandPalette.nav.tasks', keywords: 'tasks todo', icon: ListTodo, to: ROUTES.TASKS },
@@ -64,6 +68,7 @@ const ACTIONS: Array<{ id: string; labelKey: TranslationKey; keywords: string; i
 ]
 
 const RESULT_GROUPS: Array<{ kind: SearchKind; headingKey: TranslationKey }> = [
+  { kind: 'customer', headingKey: 'commandPalette.group.customers' },
   { kind: 'task', headingKey: 'commandPalette.group.tasks' },
   { kind: 'note', headingKey: 'commandPalette.group.notes' },
   { kind: 'diary', headingKey: 'commandPalette.group.diary' },
@@ -71,6 +76,7 @@ const RESULT_GROUPS: Array<{ kind: SearchKind; headingKey: TranslationKey }> = [
 ]
 
 const RESULT_LABEL_KEYS: Record<SearchKind, TranslationKey> = {
+  customer: 'commandPalette.group.customers',
   task: 'commandPalette.group.tasks',
   note: 'commandPalette.group.notes',
   diary: 'commandPalette.group.diary',
@@ -78,17 +84,19 @@ const RESULT_LABEL_KEYS: Record<SearchKind, TranslationKey> = {
 }
 
 /** Loads everything ⌘K can find: tasks, notes, diary entries and projects (all local). */
-const loadSearchDocs = async (untitled: string): Promise<SearchDoc[]> => {
-  const [tasks, notes, diary, projects] = await Promise.all([
+const loadSearchDocs = async (untitled: string, crmInstalled: boolean): Promise<SearchDoc[]> => {
+  const [tasks, notes, diary, projects, customers] = await Promise.all([
     tasksRepo.list(),
     notesRepo.list(),
     diaryRepo.listActive(),
     projectsRepo.list(),
+    crmInstalled ? db.crmCustomers.toArray() : Promise.resolve([]),
   ])
   const locale = appIntlLocale()
   const dayLabel = (dateKey: string) =>
     new Date(`${dateKey}T12:00:00`).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })
   return [
+    ...customers.map((c): SearchDoc => ({ kind: 'customer', id: c.id, title: c.name, body: [c.email, c.phone, c.source, c.needs, c.owner, ...c.tags, ...c.contacts.flatMap(p => [p.name, p.email, p.phone])].join(' '), closed: !!c.archivedAt, updatedAt: c.updatedAt })),
     ...tasks.map((task): SearchDoc => ({
       kind: 'task',
       id: task.id,
@@ -132,6 +140,8 @@ const VIEW_OPTIONS = [
 
 const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
   const { t } = useI18n()
+  const { catalog } = useLabs()
+  const crmInstalled = catalog.some(f => f.featureKey === 'crm' && f.state === 'installed')
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const tripCtx = useTripCommandContext()
@@ -183,13 +193,13 @@ const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
     void tripsRepo.list().then((rows) => {
       if (!cancelled) setTrips(rows)
     })
-    void loadSearchDocs(t('notes.trash.untitled')).then((docs) => {
+    void loadSearchDocs(t('notes.trash.untitled'), crmInstalled).then((docs) => {
       if (!cancelled) setSearchIndex(docs)
     })
     return () => {
       cancelled = true
     }
-  }, [open, t])
+  }, [open, t, crmInstalled])
 
   const createTask = async () => {
     const raw = query.trim()
@@ -204,6 +214,7 @@ const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
 
   const openHit = (hit: SearchDoc) => {
     setRecentTargets(rememberCurrentUserRecentCommandTarget({ kind: hit.kind, id: hit.id }))
+    if (hit.kind === 'customer') { navigate(`${ROUTES.CRM}?customer=${encodeURIComponent(hit.id)}`); return }
     if (hit.kind === 'project') {
       navigate(`${ROUTES.PROJECTS}/${hit.id}`)
       return
@@ -237,7 +248,7 @@ const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
   const matches = (text: string) => !needle || text.toLowerCase().includes(needle)
   const currentTripId = tripCtx?.trip.id
   const otherTrips = trips.filter((trip) => trip.id !== currentTripId && matches(`${trip.title} ${trip.destination ?? ''} trip`))
-  const visibleActions = ACTIONS.filter((action) => matches(`${t(action.labelKey)} ${action.keywords}`))
+  const visibleActions = ACTIONS.filter((action) => (action.id !== 'crm' || crmInstalled) && matches(`${t(action.labelKey)} ${action.keywords}`))
 
   return (
     <div className="command-palette" role="dialog" aria-modal="true" aria-label={t('commandPalette.aria')}>
@@ -276,7 +287,7 @@ const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
           {!trimmed && recentDocs.length > 0 ? (
             <Command.Group heading={t('commandPalette.group.recent')} className="command-palette__group">
               {recentDocs.map((doc) => {
-                const Icon = doc.kind === 'task' ? (doc.closed ? CircleCheck : Circle) : doc.kind === 'note' ? FileText : doc.kind === 'diary' ? NotebookPen : FolderKanban
+                const Icon = doc.kind === 'task' ? (doc.closed ? CircleCheck : Circle) : doc.kind === 'note' ? FileText : doc.kind === 'diary' ? NotebookPen : doc.kind === 'customer' ? Users : FolderKanban
                 return (
                   <Command.Item
                     key={`recent:${doc.kind}:${doc.id}`}
@@ -298,7 +309,7 @@ const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
             return (
               <Command.Group key={kind} heading={t(headingKey)} className="command-palette__group">
                 {groupHits.map((hit) => {
-                  const Icon = kind === 'task' ? (hit.closed ? CircleCheck : Circle) : kind === 'note' ? FileText : kind === 'diary' ? NotebookPen : FolderKanban
+                  const Icon = kind === 'task' ? (hit.closed ? CircleCheck : Circle) : kind === 'note' ? FileText : kind === 'diary' ? NotebookPen : kind === 'customer' ? Users : FolderKanban
                   return (
                     <Command.Item
                       key={`${kind}:${hit.id}`}

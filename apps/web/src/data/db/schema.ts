@@ -1,7 +1,10 @@
 export const DB_NAME = 'workbench-app'
-export const DB_VERSION = 48
+export const DB_VERSION = 49
 
 export const TABLES = {
+  crmCustomers: 'crm_customers',
+  crmDeals: 'crm_deals',
+  crmActivities: 'crm_activities',
   localSymbolic: 'local_symbolic',
   tasks: 'tasks',
   notes: 'notes',
@@ -279,4 +282,12 @@ export const schemaV47 = {
 export const schemaV48 = {
   ...schemaV47,
   [TABLES.localSymbolic]: '[ownerId+id], ownerId, kind, updatedAt, [ownerId+kind]',
+} as const
+
+// Customer workspace uses the same durable synchronization as Tasks and Notes.
+export const schemaV49 = {
+  ...schemaV48,
+  [TABLES.crmCustomers]: 'id, mode, name, archivedAt, createdAt, updatedAt',
+  [TABLES.crmDeals]: 'id, customerId, stage, expectedCloseDate, createdAt, updatedAt',
+  [TABLES.crmActivities]: 'id, customerId, taskId, noteId, dealId, occurredAt, createdAt, updatedAt',
 } as const

@@ -1241,7 +1241,7 @@ export default function NotePage() {
                         await flushPendingSave()
                         navigate(returnPath)
                       } : undefined}
-                      returnLabel={returnPath ? t(returnPath.startsWith('/projects/') ? 'navigation.backToProject' : 'navigation.backToTask') : undefined}
+                      returnLabel={returnPath ? t(returnPath.startsWith('/crm?') ? 'navigation.backToCustomer' : returnPath.startsWith('/projects/') ? 'navigation.backToProject' : 'navigation.backToTask') : undefined}
                     />
                   ) : (
                     <div className="note-page__loading" data-testid="note-editor-loader">

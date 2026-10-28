@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
-import { ArrowLeftRight, Languages, Columns3, Orbit, Layers, Archive, LayoutGrid, Sparkles, Brain, Zap, Target, RotateCcw, PanelsTopLeft } from 'lucide-react'
+import { Users, ArrowLeftRight, Languages, Columns3, Orbit, Layers, Archive, LayoutGrid, Sparkles, Brain, Zap, Target, RotateCcw, PanelsTopLeft } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
@@ -13,6 +13,7 @@ import '../labs.css'
 
 const SYMBOLIC_ROUTES: Record<string, string> = { bazi: ROUTES.BAZI, astrology: ROUTES.ASTROLOGY, tarot: ROUTES.TAROT }
 const FEATURE_ICONS: Record<string, React.ElementType> = {
+  crm: Users,
   bazi: Columns3, astrology: Orbit, tarot: Layers,
   translation: Languages,
   'currency-exchange': ArrowLeftRight,
@@ -140,7 +141,9 @@ const LabsPage = () => {
                     <span className="labs-row__desc">{i18n.featureDescriptions[feature.featureKey] ?? feature.description}</span>
                   </div>
                   <div className="labs-row__actions">
-                    {feature.featureKey === 'currency-exchange' ? (
+                    {feature.featureKey === 'crm' ? (
+                      <Button size="sm" asChild><Link to={ROUTES.CRM}>{i18n.labs.open}</Link></Button>
+                    ) : feature.featureKey === 'currency-exchange' ? (
                       <Button size="sm" asChild><Link to={ROUTES.CURRENCY_EXCHANGE}>{i18n.labs.open}</Link></Button>
                     ) : feature.featureKey === 'translation' ? (
                       <Button size="sm" asChild>

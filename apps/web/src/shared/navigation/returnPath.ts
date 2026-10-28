@@ -15,7 +15,7 @@ const readSafeReturnUrl = (search: string): URL | null => {
 /** Only routes that can restore their selected object are valid return targets. */
 export const readReturnPath = (search: string): string | null => {
   const url = readSafeReturnUrl(search)
-  if (!url || (url.pathname !== '/tasks' && !/^\/projects\/[^/]+$/.test(url.pathname))) return null
+  if (!url || (url.pathname !== '/tasks' && !/^\/projects\/[^/]+$/.test(url.pathname) && !(url.pathname === '/crm' && url.searchParams.get('customer')))) return null
   return `${url.pathname}${url.search}`
 }
 
@@ -38,4 +38,9 @@ export const withTaskContext = (from: string, taskId: string): string => {
   if (url.pathname !== '/tasks' && !/^\/projects\/[^/]+$/.test(url.pathname)) return buildTaskDetailRoute(taskId)
   url.searchParams.set('task', taskId)
   return `${url.pathname}${url.search}`
+}
+
+export const readCrmReturnPath = (search: string): string | null => {
+  const path = readReturnPath(search)
+  return path?.startsWith('/crm?') ? path : null
 }

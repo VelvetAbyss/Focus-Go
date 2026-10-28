@@ -22,14 +22,19 @@ export const dispatchSyncDataUpdated = (topic: SyncDataUpdatedTopic | 'all') => 
   // transaction they would inherit its table scope (NotFoundError for any
   // table outside it — e.g. App re-hydrating synced_preferences after a
   // note/task write) and could observe uncommitted data. Notify on commit.
-  const transaction = Dexie.currentTransaction
+  let transaction = Dexie.currentTransaction
+  // Nested writes are not durable until their outer transaction commits.
+  while (transaction?.parent) transaction = transaction.parent
   if (transaction) {
-    transaction.on('complete', fire)
+    transaction.on('complete', () => Dexie.ignoreTransaction(fire))
     return
   }
   fire()
 }
 export const SYNC_ENTITY_TABLES: Record<SyncEntityType, string> = {
+  crmCustomers: TABLES.crmCustomers,
+  crmDeals: TABLES.crmDeals,
+  crmActivities: TABLES.crmActivities,
   tasks: TABLES.tasks,
   notes: TABLES.notes,
   noteTags: TABLES.noteTags,
