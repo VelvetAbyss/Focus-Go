@@ -1456,18 +1456,15 @@ const TaskDrawer = ({
 
                 {/* ── TAGS ── */}
                 <section
-                  className="task-detail-card tdv2-section-enter rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] p-5 shadow-[var(--shadow-card-lg)]"
+                  className="task-detail-card task-detail-tags tdv2-section-enter rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] p-5 shadow-[var(--shadow-card-lg)]"
                   style={{ animationDelay: '80ms' }}
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="task-detail-kicker">{t('tasks.drawer.tags')}</p>
-                      <h2 className="task-detail-title mt-0.5">{t('tasks.drawer.tagContext')}</h2>
-                    </div>
+                  <div className="task-detail-property-heading">
+                    <p className="task-detail-kicker">{t('tasks.drawer.tags')}</p>
                     <Popover open={tagPickerOpen} onOpenChange={setTagPickerOpen}>
                       <PopoverTrigger asChild>
-                        <Button type="button" variant="outline" size="sm"
-                          className="h-8 rounded-full border-[color-mix(in_srgb,var(--text-primary)_12%,transparent)] px-3.5 text-meta font-semibold hover:bg-[color:var(--surface-hover)]">
+                        <Button type="button" variant="ghost" size="sm"
+                          className="task-detail-tags__add">
                           <Plus className="mr-1.5 h-3.5 w-3.5" />
                           {t('tasks.drawer.newTag')}
                         </Button>
@@ -1515,7 +1512,7 @@ const TaskDrawer = ({
                       </PopoverContent>
                     </Popover>
                   </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
+                  <div className="task-detail-tags__values flex flex-wrap gap-2">
                     {tags.length > 0 ? (
                       tags.map((tagName) => {
                         const tone = getTaskTagTone(tagName)
