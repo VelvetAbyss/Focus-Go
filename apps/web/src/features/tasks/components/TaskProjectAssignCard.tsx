@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { Check, ChevronDown, Folder, FolderPlus, Search, X } from 'lucide-react'
+import { useId, useMemo, useState } from 'react'
+import { Check, ChevronDown, Folder, Search, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '../../../shared/ui/popover'
@@ -17,6 +17,7 @@ const TaskProjectAssignCard = ({ projectId, projects, onChange }: TaskProjectAss
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
+  const labelId = useId()
 
   const activeProjects = useMemo(
     () => projects.filter((project) => project.status !== 'archived'),
@@ -39,152 +40,60 @@ const TaskProjectAssignCard = ({ projectId, projects, onChange }: TaskProjectAss
 
   const showSearch = activeProjects.length > 6
 
-  // ASSIGNED STATE
-  if (currentProject && !isOrphan) {
-    return (
-      <section
-        className="task-detail-card tdv2-section-enter rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] bg-[color:var(--bg)] p-4 shadow-[var(--shadow-card)]"
-        style={{ animationDelay: '20ms' }}
-      >
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-paper-sunken text-ink-3">
-              <Folder className="h-5 w-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="task-detail-kicker">{t('tasks.drawer.project')}</p>
-              <p className="mt-0.5 truncate text-body font-semibold text-[color:var(--text-primary)]">
-                {currentProject.title}
-              </p>
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-1.5">
-            <Popover open={open} onOpenChange={setOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 rounded-full border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] px-3 text-meta font-semibold"
-                >
-                  <ChevronDown className="mr-1 h-3.5 w-3.5" />
-                  {t('tasks.drawer.changeProject')}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent
-                align="end"
-                sideOffset={8}
-                className="w-[280px] rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] p-2 shadow-[var(--shadow-card-lg)]"
-              >
-                <ProjectPickerList
-                  projects={filtered}
-                  showSearch={showSearch}
-                  query={query}
-                  setQuery={setQuery}
-                  currentProjectId={projectId}
-                  onSelect={select}
-                />
-              </PopoverContent>
-            </Popover>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={t('tasks.drawer.removeProject')}
-              className="h-8 w-8 rounded-full text-[color:var(--text-secondary)] hover:bg-tone-urgent-wash hover:text-tone-urgent"
-              onClick={() => select(undefined)}
-            >
-              <X className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        </div>
-      </section>
-    )
-  }
+  const projectLabel = currentProject
+    ? `${currentProject.title}${isOrphan ? ` ${t('tasks.drawer.projectArchivedSuffix')}` : ''}`
+    : t(projectId ? 'tasks.drawer.projectMissing' : 'tasks.drawer.projectUnassigned')
 
-  // ORPHAN STATE
-  if (isOrphan && currentProject) {
-    return (
-      <section
-        className="task-detail-card tdv2-section-enter rounded-[var(--radius-lg)] border border-rule bg-paper-sunken p-4"
-        style={{ animationDelay: '20ms' }}
-      >
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-paper-sunken text-ink-2">
-              <Folder className="h-5 w-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="task-detail-kicker">{t('tasks.drawer.project')}</p>
-              <p className="mt-0.5 truncate text-body font-semibold text-[color:var(--text-primary)]">
-                {currentProject.title} {t('tasks.drawer.projectArchivedSuffix')}
-              </p>
-            </div>
-          </div>
-          <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 rounded-full px-3 text-meta font-semibold">
-                {t('tasks.drawer.changeProject')}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent
-              align="end"
-              sideOffset={8}
-              className="w-[280px] rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] p-2 shadow-[var(--shadow-card-lg)]"
-            >
-              <ProjectPickerList
-                projects={filtered}
-                showSearch={showSearch}
-                query={query}
-                setQuery={setQuery}
-                currentProjectId={projectId}
-                onSelect={select}
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-      </section>
-    )
-  }
-
-  // UNASSIGNED STATE — eye-catching CTA
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className={cn(
-            'task-detail-card tdv2-section-enter group flex w-full items-center gap-3 rounded-[var(--radius-lg)] border-2 border-dashed border-[color-mix(in_srgb,var(--text-primary)_15%,transparent)] bg-[color:var(--bg-muted)] p-4 text-left transition-all duration-200 hover:border-rule-strong hover:bg-paper-sunken',
-          )}
-          style={{ animationDelay: '20ms' }}
+    <section className="task-detail-card task-detail-project tdv2-section-enter">
+      <div className="task-detail-property-heading">
+        <p id={labelId} className="task-detail-kicker">{t('tasks.drawer.project')}</p>
+        {projectId ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={t('tasks.drawer.removeProject')}
+            className="task-detail-project__remove"
+            onClick={() => select(undefined)}
+          >
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        ) : null}
+      </div>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="task-detail-project__trigger"
+            aria-labelledby={`${labelId} ${labelId}-value`}
+            title={projectLabel}
+          >
+            <Folder className="h-4 w-4 shrink-0 text-ink-3" aria-hidden="true" />
+            <span
+              id={`${labelId}-value`}
+              className={cn('task-detail-project__value', (!projectId || isOrphan) && 'text-ink-3')}
+            >
+              {projectLabel}
+            </span>
+            <ChevronDown className="task-detail-project__chevron h-4 w-4 shrink-0 text-ink-3" aria-hidden="true" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent
+          align="start"
+          sideOffset={8}
+          className="w-[320px] max-w-[calc(100vw-32px)] rounded-[var(--radius-md)] border border-rule p-2 shadow-[var(--shadow-card-lg)]"
         >
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--bg-elevated)] text-[color:var(--text-secondary)] transition-colors group-hover:bg-paper-sunken group-hover:text-ink-3">
-            <FolderPlus className="h-5 w-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-body font-semibold text-[color:var(--text-primary)]">
-              {t('tasks.drawer.assignProjectTitle')}
-            </p>
-            <p className="mt-0.5 text-label text-[color:var(--text-secondary)]">
-              {t('tasks.drawer.assignProjectHint')}
-            </p>
-          </div>
-          <ChevronDown className="h-4 w-4 shrink-0 text-[color:var(--text-secondary)] transition-transform group-data-[state=open]:rotate-180" />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent
-        align="start"
-        sideOffset={8}
-        className="w-[320px] rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] p-2 shadow-[var(--shadow-card-lg)]"
-      >
-        <ProjectPickerList
-          projects={filtered}
-          showSearch={showSearch}
-          query={query}
-          setQuery={setQuery}
-          currentProjectId={projectId}
-          onSelect={select}
-        />
-      </PopoverContent>
-    </Popover>
+          <ProjectPickerList
+            projects={filtered}
+            showSearch={showSearch}
+            query={query}
+            setQuery={setQuery}
+            currentProjectId={projectId}
+            onSelect={select}
+          />
+        </PopoverContent>
+      </Popover>
+    </section>
   )
 }
 

@@ -70,6 +70,8 @@
 .task-detail-workspace .task-detail-column { padding:24px 28px; }
 .task-detail-workspace .task-detail-aside { background:color-mix(in srgb,var(--paper-sunken) 60%,var(--paper-raised)); }
 .task-detail-workspace .task-detail-aside .task-detail-column { padding:24px 20px; }
+/* Radix's measurement table otherwise grows to a long project name's width. */
+.task-detail-workspace .task-detail-pane--right > [data-radix-scroll-area-viewport] > div { display:block !important; width:100%; }
 .task-detail-workspace .task-detail-card,
 .task-detail-workspace .task-detail-progress { border:0 !important; border-radius:0 !important; box-shadow:none !important; background:transparent !important; padding:0 0 24px; border-bottom:1px solid var(--rule) !important; }
 .task-detail-workspace .task-detail-card--hero { padding-bottom:20px; }
@@ -90,6 +92,28 @@
 .task-detail-workspace .task-detail-topbar button { border-radius:6px; }
 .task-detail-workspace .task-detail-aside label span { text-transform:none; letter-spacing:0; }
 .task-detail-workspace .task-detail-tag { padding:3px 8px; border-radius:5px; }
+/* Project and tags are inspector fields. Keep the section rule separate from
+   the project trigger so card/empty-state styles cannot flatten the control. */
+.task-detail-workspace .task-detail-property-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:32px; margin-bottom:8px; }
+.task-detail-workspace .task-detail-project__trigger { display:flex; align-items:center; gap:8px; width:100%; min-width:0; min-height:40px; padding:8px 12px; border:1px solid var(--rule); border-radius:6px; background:var(--paper-raised); color:var(--ink-1); font:inherit; font-size:var(--fs-ui); line-height:var(--type-ui-leading); text-align:left; cursor:pointer; transition:background-color 160ms ease-out,border-color 160ms ease-out; }
+.task-detail-workspace .task-detail-project__trigger:is(:hover,[data-state='open']) { border-color:var(--rule-strong); background:var(--surface-hover); }
+.task-detail-workspace :is(.task-detail-project__trigger,.task-detail-project__remove,.task-detail-tags__add):focus-visible { outline:2px solid var(--accent) !important; outline-offset:-3px; }
+.task-detail-project__value { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.task-detail-project__chevron { transition:transform 160ms ease-out; }
+.task-detail-project__trigger[data-state='open'] .task-detail-project__chevron { transform:rotate(180deg); }
+.task-detail-workspace .task-detail-project__remove,
+.task-detail-workspace .task-detail-tags__add { min-height:32px; height:32px; border:0; border-radius:6px; padding:4px 8px; background:transparent; color:var(--ink-2); box-shadow:none; font-size:var(--fs-meta); font-weight:500; }
+.task-detail-workspace .task-detail-project__remove { width:32px; }
+.task-detail-workspace .task-detail-project__remove:hover,
+.task-detail-workspace .task-detail-tags__add:hover { background:var(--surface-hover); color:var(--ink-1); }
+.task-detail-tags__values { min-width:0; }
+.task-detail-workspace .task-detail-tags__values > p { color:var(--ink-3); font-size:var(--fs-label); }
+.task-detail-workspace .task-detail-tags__values .task-detail-tag { max-width:100%; overflow-wrap:anywhere; }
+@media (pointer:coarse) {
+  .task-detail-workspace .task-detail-project__trigger,
+  .task-detail-workspace .task-detail-tags__add { min-height:44px; }
+  .task-detail-workspace .task-detail-project__remove { width:44px; height:44px; }
+}
 @container (max-width:760px) {
   .tasks-workspace-header { align-items:flex-start; flex-direction:column; gap:16px; padding:20px 18px 16px; }
   .tasks-page .tasks-page-shell__panel { padding:0 18px 16px; }
