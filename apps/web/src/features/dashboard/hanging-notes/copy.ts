@@ -1,4 +1,7 @@
 export const noteTranslations: Record<string, string> = {
+  "移动便签悬挂位置": "Move hanging note anchor",
+  "拖动固定点，左右调整悬挂位置；方向键微调，双击复位。": "Drag to move along the top. Arrow keys fine-tune; double-click resets.",
+  "悬挂位置已调整。": "Hanging position adjusted.",
   "保存中…": "Saving…",
   "已保存": "Saved",
   "尚未保存，点击重试": "Not saved · Retry",

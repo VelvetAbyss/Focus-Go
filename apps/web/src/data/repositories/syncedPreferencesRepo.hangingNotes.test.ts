@@ -3,7 +3,7 @@ import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { db } from '../db'
 import { syncedPreferencesRepo as repo, SYNCED_PREFERENCES_ID } from './syncedPreferencesRepo'
-import { normalizeHangingNotes } from '../models/hangingNotes'
+import { normalizeHangingNotes, normalizeHangingAnchor } from '../models/hangingNotes'
 import type { HangingNote } from '../models/types'
 import { writeLanguage } from '../../shared/prefs/preferences'
 vi.mock('../sync/repository', () => ({ requestSyncHandoff: vi.fn(), enqueueSyncOperationInBackground: vi.fn() }))
@@ -39,5 +39,32 @@ describe('persisting dashboard notes', () => {
   })
   it('validates restored content and positions', () => {
     expect(normalizeHangingNotes([null,a,a,{...b,pin:{u:5,y:-1,tilt:2}},{id:'bad',text:'x',color:'unknown'}])).toEqual([a,{...b,pin:{u:1,y:0,tilt:.08}}])
+  })
+})
+
+
+describe('persisting the hanging anchor', () => {
+  it('validates optional positions while leaving legacy placement automatic', () => {
+    expect([undefined, null, NaN, Infinity, '0.5'].map(normalizeHangingAnchor)).toEqual([undefined, undefined, undefined, undefined, undefined])
+    expect([-.2, .4, 2].map(normalizeHangingAnchor)).toEqual([0, .4, 1])
+  })
+  it('merges anchor, note, and preference changes from stale tabs', async () => {
+    await repo.saveHangingNotes([a], [], () => true, { next: .3 })
+    writeLanguage('en')
+    await Promise.all([
+      repo.saveHangingNotes([a], [a], () => true, { next: .7, previous: .3 }),
+      repo.saveHangingNotes([{ ...a, text: 'edited' }], [a], () => true, { next: .3, previous: .3 }),
+      repo.persistFromLocal(),
+    ])
+    const saved = await repo.get()
+    expect(saved?.hangingNotesAnchor).toBe(.7)
+    expect(saved?.hangingNotes).toEqual([{ ...a, text: 'edited' }])
+    expect(saved?.language).toBe('en')
+  })
+  it('saves an empty hanger and restores its automatic position without creating a note', async () => {
+    await repo.saveHangingNotes([], [], () => true, { next: .7 })
+    await repo.saveHangingNotes([], [], () => true, { next: undefined, previous: .7 })
+    expect((await repo.get())?.hangingNotesAnchor).toBeUndefined()
+    expect((await repo.get())?.hangingNotes).toEqual([])
   })
 })

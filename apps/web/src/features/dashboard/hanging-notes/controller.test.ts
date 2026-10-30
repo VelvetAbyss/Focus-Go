@@ -103,3 +103,44 @@ describe('hanging note interaction state', () => {
     expect(root.childElementCount).toBe(0)
   })
 })
+
+
+describe('hanging anchor state', () => {
+  it('retains a failed anchor move when the next action edits a note', async () => {
+    const save = vi.fn().mockRejectedValueOnce(new Error('disk unavailable')).mockResolvedValue(undefined)
+    engine = createHangingNotes(root, [a], (next, before, anchor) => save(next, before(), anchor.next, anchor.before()), true, .5)
+    fireEvent.keyDown(get('pin'), { key: 'ArrowRight' }); await flush()
+    click('paper-stack'); fireEvent.input(get('note-text'), { target: { value: 'changed' } }); await flush()
+    expect(save.mock.calls[1]).toEqual([[{ ...a, text: 'changed' }], [a], .508, .5])
+    expect(get('save-status').textContent).toBe('已保存')
+  })
+  it('resolves queued anchor baselines after the previous write completes', async () => {
+    let release!: () => void
+    const barrier = new Promise<void>(resolve => { release = resolve })
+    const writes: { next: number | undefined; before: number | undefined }[] = []
+    let queue = Promise.resolve()
+    engine = createHangingNotes(root, [a], (_next, _before, anchor) => {
+      const save = queue.then(async () => {
+        writes.push({ next: anchor.next, before: anchor.before() })
+        if (writes.length === 1) await barrier
+      })
+      queue = save
+      return save
+    }, true, .5)
+    fireEvent.keyDown(get('pin'), { key: 'ArrowRight' })
+    fireEvent.keyDown(get('pin'), { key: 'ArrowLeft' })
+    await flush(); release(); await flush(); await flush()
+    expect(writes).toEqual([{ next: .508, before: .5 }, { next: .5, before: .508 }])
+  })
+  it('defers incoming anchor changes while reading a note and keeps pinned papers in place', async () => {
+    const pinned = { ...b, pin: { u: .4, y: 350, tilt: 0 } }
+    engine = createHangingNotes(root, [a, pinned], async () => undefined, true, .2)
+    expect(get('pin').style.left).toBe('200px')
+    const paper = root.querySelector<HTMLElement>('.loose-note')!, pose = paper.style.transform
+    click('paper-stack'); engine.update([a, pinned], .6)
+    expect(get('pin').style.left).toBe('200px')
+    click('close-note')
+    expect(get('pin').style.left).toBe('600px')
+    expect(paper.style.transform).toBe(pose)
+  })
+})

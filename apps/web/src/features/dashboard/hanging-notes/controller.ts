@@ -1,6 +1,7 @@
 import type { HangingNote } from '../../../data/models/types';
 import { noteTemplate } from './template';
 import { noteTranslations } from './copy';
+import { normalizeHangingAnchor } from './model';
 type Point = {
     x: number;
     y: number;
@@ -63,7 +64,7 @@ type Drag = {
     originPoint: Point;
 };
 /** A scoped imperative animation island: React owns mount/unmount, never frame state. */
-export function createHangingNotes(root: HTMLElement, initial: HangingNote[], onSave: (next: HangingNote[], before: () => HangingNote[]) => Promise<unknown>, zh = true) {
+export function createHangingNotes(root: HTMLElement, initial: HangingNote[], onSave: (next: HangingNote[], before: () => HangingNote[], anchor: { next: number | undefined; before: () => number | undefined }) => Promise<unknown>, zh = true, initialAnchor?: number) {
     const copy = (value: string) => zh ? value : noteTranslations[value] ?? value;
     root.innerHTML = zh ? noteTemplate : Object.entries(noteTranslations).sort((a, b) => b[0].length - a[0].length).reduce((html, [from, to]) => html.replaceAll(from, to), noteTemplate);
     let disposed = false;
@@ -82,7 +83,8 @@ export function createHangingNotes(root: HTMLElement, initial: HangingNote[], on
     const COLORS = { butter: '#eee5c9', sage: '#dbe3d2', rose: '#ecd6ca' };
     const clamp = (n: number, a: number, b: number) => Math.min(Math.max(n, a), Math.max(a, b));
     let notes = structuredClone(initial), persisted = structuredClone(initial);
-    let storageOK = true, saveVersion = 0, saving = 0, pending: HangingNote[] | null = null;
+    let anchorU = normalizeHangingAnchor(initialAnchor), persistedAnchor = anchorU;
+    let storageOK = true, saveVersion = 0, saving = 0, pending: { notes: HangingNote[]; anchor?: number } | null = null;
     const stage = root, stack = $<HTMLButtonElement>('#fg-notes-paper-stack'), detail = $('#fg-notes-note-detail'), input = $<HTMLTextAreaElement>('#fg-notes-note-text');
     const dashboard = root.parentElement!;
     let scroller: HTMLElement = document.scrollingElement as HTMLElement || document.documentElement;
@@ -121,6 +123,9 @@ export function createHangingNotes(root: HTMLElement, initial: HangingNote[], on
     let elapsed = 0, frontId: string | undefined = notes.find(n => !n.pin)?.id;
     let editId: string | null = null, editorSource: HTMLElement | null = null;
     let drag: Drag | null = null, suppressClick = false, geometry: Geometry, frame: number | undefined, lastFrame = 0;
+    let anchorDrag: { id: number; origin: number | undefined; offset: number; startX: number; moved: boolean } | null = null;
+    let defaultAnchorX = 0, publishedAnchor = '';
+    const anchorPin = $<HTMLButtonElement>('#fg-notes-pin');
     let snap: Snap | null = null, undoEntry: {
         note: HangingNote;
         index: number;
@@ -161,13 +166,15 @@ export function createHangingNotes(root: HTMLElement, initial: HangingNote[], on
     }
     function persist() {
         const version = ++saveVersion, next = structuredClone(notes), before = () => structuredClone(persisted);
+        const anchor = { next: anchorU, before: () => persistedAnchor };
         // Only an acknowledged write advances the baseline. Later saves retry earlier failures.
         pending = null;
         saving++;
         saveStatus();
-        void onSave(next, before).then(() => {
+        void onSave(next, before, anchor).then(() => {
             saving--;
             persisted = next;
+            persistedAnchor = anchor.next;
             if (disposed)
                 return;
             if (version === saveVersion)
@@ -293,9 +300,9 @@ export function createHangingNotes(root: HTMLElement, initial: HangingNote[], on
         if (!w || !h || !anchor)
             return;
         const slot = localBox(anchor), q = dashboard.querySelector('.dash-hero__quote');
-        geometry = { w, h, scale: .4, ax: (slot.left + slot.right) / 2, ay: slot.top + 4, length: 25, quote: q ? localBox(q) : null };
-        $('#fg-notes-pin').style.left = `${geometry.ax}px`;
-        $('#fg-notes-pin').style.top = `${geometry.ay}px`;
+        defaultAnchorX = (slot.left + slot.right) / 2;
+        geometry = { w, h, scale: .4, ax: defaultAnchorX, ay: slot.top + 4, length: 25, quote: q ? localBox(q) : null };
+        placeAnchor();
         for (const note of notes) {
             if (!note.pin)
                 continue;
@@ -313,6 +320,99 @@ export function createHangingNotes(root: HTMLElement, initial: HangingNote[], on
         render();
         wake();
     }
+    function placeAnchor(impulse = false) {
+        const previous = geometry.ax, b = bounds(), q = geometry.quote, half = 160 * geometry.scale;
+        let x = clamp(anchorU === undefined ? defaultAnchorX : anchorU * geometry.w, b.left, b.right);
+        const top = geometry.ay + geometry.length - 27 * geometry.scale;
+        const bottom = geometry.ay + geometry.length + 194 * geometry.scale;
+        if (q && top < q.bottom && bottom > q.top && x + half > q.left && x - half < q.right) {
+            const choices = [q.left - half - 12, q.right + half + 12].filter(value => value >= b.left && value <= b.right);
+            x = choices.sort((a, c) => Math.abs(a - x) - Math.abs(c - x))[0] ?? clamp(defaultAnchorX, b.left, b.right);
+        }
+        geometry.ax = x;
+        anchorPin.style.left = `${x}px`;
+        anchorPin.style.top = `${geometry.ay}px`;
+        anchorPin.setAttribute('aria-valuenow', String(Math.round(x / geometry.w * 100)));
+        if (impulse && !reduced && !paused)
+            pendulum.velocity = clamp(pendulum.velocity - clamp((x - previous) * .012, -.15, .15), -1.2, 1.2);
+        const header = dashboard.querySelector<HTMLElement>('.dash-header');
+        const slot = dashboard.querySelector<HTMLElement>('.dash-notes-anchor');
+        if (header && slot) {
+            const center = (x - localBox(header).left).toFixed(2);
+            slot.dataset.noteAnchorX = center;
+            // Move the desk once on release, keeping it still while the pin is dragged.
+            if (!anchorDrag && publishedAnchor !== center) {
+                publishedAnchor = center;
+                header.dispatchEvent(new Event('focusgo:notes-anchor-moved'));
+            }
+        }
+    }
+    function moveAnchor(event: PointerPosition) {
+        if (!anchorDrag || event.pointerId !== anchorDrag.id)
+            return;
+        if (!anchorDrag.moved && Math.abs(event.clientX - anchorDrag.startX) < 3)
+            return;
+        anchorDrag.moved = true;
+        anchorU = clamp((pointerLocal(event).x - anchorDrag.offset) / geometry.w, 0, 1);
+        placeAnchor(true);
+        render();
+        wake();
+    }
+    function endAnchor(cancel = false) {
+        if (!anchorDrag)
+            return;
+        const { id, origin, moved } = anchorDrag;
+        anchorDrag = null;
+        root.classList.remove('is-moving-anchor');
+        if (cancel)
+            anchorU = origin;
+        if (anchorPin.hasPointerCapture?.(id))
+            anchorPin.releasePointerCapture(id);
+        placeAnchor();
+        if (!cancel && moved && anchorU !== origin) {
+            persist();
+            announce(copy('悬挂位置已调整。'));
+        }
+        else if (pending)
+            applyIncoming(pending.notes, pending.anchor);
+        render();
+        wake();
+    }
+    listen(anchorPin, 'pointerdown', event => {
+        if (event.button !== 0 || event.isPrimary === false || drag || anchorDrag)
+            return;
+        event.preventDefault();
+        closeEditor(false);
+        anchorPin.focus({ preventScroll: true });
+        anchorDrag = { id: event.pointerId, origin: anchorU, offset: pointerLocal(event).x - geometry.ax, startX: event.clientX, moved: false };
+        anchorPin.setPointerCapture?.(event.pointerId);
+        root.classList.add('is-moving-anchor');
+    });
+    listen(anchorPin, 'pointermove', moveAnchor);
+    listen(anchorPin, 'pointerup', event => { if (anchorDrag?.id === event.pointerId) { moveAnchor(event); endAnchor(); } });
+    listen(anchorPin, 'pointercancel', event => { if (anchorDrag?.id === event.pointerId) endAnchor(true); });
+    listen(anchorPin, 'lostpointercapture', event => { if (anchorDrag?.id === event.pointerId) endAnchor(true); });
+    listen(anchorPin, 'keydown', event => {
+        if (drag || anchorDrag || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key))
+            return;
+        event.preventDefault();
+        closeEditor(false);
+        const step = event.shiftKey ? 24 : 8;
+        anchorU = event.key === 'Home' ? 0 : event.key === 'End' ? 1 : clamp((geometry.ax + (event.key === 'ArrowLeft' ? -step : step)) / geometry.w, 0, 1);
+        placeAnchor(true);
+        persist();
+        render();
+        wake();
+    });
+    listen(anchorPin, 'dblclick', () => {
+        if (drag || anchorDrag)
+            return;
+        anchorU = undefined;
+        placeAnchor(true);
+        persist();
+        render();
+        wake();
+    });
     function positionEditor() {
         const body = bodies.get(editId ?? ''), point = body || { x: geometry.ax, y: geometry.ay + 34 };
         const view = localViewport();
@@ -392,7 +492,7 @@ export function createHangingNotes(root: HTMLElement, initial: HangingNote[], on
             stack.focus({ preventScroll: true });
         editorSource = null;
         if (pending)
-            applyIncoming(pending);
+            applyIncoming(pending.notes, pending.anchor);
         wake();
     }
     function addNote() {
@@ -546,6 +646,7 @@ export function createHangingNotes(root: HTMLElement, initial: HangingNote[], on
         wake();
     }
     function pointerDown(event: PointerEvent, body: Body | null = null) {
+        if (anchorDrag) return;
         if (event.button !== 0 || drag || event.isPrimary === false)
             return;
         if (editId)
@@ -669,7 +770,7 @@ export function createHangingNotes(root: HTMLElement, initial: HangingNote[], on
         updateUI();
         render();
         if (pending)
-            applyIncoming(pending);
+            applyIncoming(pending.notes, pending.anchor);
         wake();
         if (previous.moved)
             setTimeout(() => { suppressClick = false; }, 100);
@@ -701,7 +802,7 @@ export function createHangingNotes(root: HTMLElement, initial: HangingNote[], on
         resetPendulum();
         suppressClick = true;
         if (pending)
-            applyIncoming(pending);
+            applyIncoming(pending.notes, pending.anchor);
         updateUI();
         render();
         wake();
@@ -915,9 +1016,11 @@ export function createHangingNotes(root: HTMLElement, initial: HangingNote[], on
     listen(document, 'keydown', e => {
         if (e.defaultPrevented || e.isComposing)
             return;
-        if (e.key === 'Escape' && (drag || editId)) {
+        if (e.key === 'Escape' && (drag || editId || anchorDrag)) {
             e.preventDefault();
-            if (drag)
+            if (anchorDrag)
+                endAnchor(true);
+            else if (drag)
                 cancelDrag();
             else
                 closeEditor();
@@ -937,7 +1040,7 @@ export function createHangingNotes(root: HTMLElement, initial: HangingNote[], on
     media.addEventListener('change', syncMotion, { signal: controller.signal });
     const motionObserver = new MutationObserver(syncMotion);
     motionObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-motion'] });
-    listen(window, 'blur', () => cancelDrag());
+    listen(window, 'blur', () => { cancelDrag(); endAnchor(true); });
     window.addEventListener('scroll', event => {
         if (event.target instanceof Node && detail.contains(event.target))
             return;
@@ -949,8 +1052,8 @@ export function createHangingNotes(root: HTMLElement, initial: HangingNote[], on
             positionToast();
     }, { passive: true, capture: true, signal: controller.signal });
     listen(document, 'visibilitychange', () => { if (frame)
-        cancelAnimationFrame(frame); frame = undefined; lastFrame = 0; if (document.hidden)
-        cancelDrag();
+        cancelAnimationFrame(frame); frame = undefined; lastFrame = 0; if (document.hidden) {
+        cancelDrag(); endAnchor(true); }
     else
         wake(); });
     const observer = new ResizeObserver(() => { measure(); });
@@ -968,20 +1071,22 @@ export function createHangingNotes(root: HTMLElement, initial: HangingNote[], on
     measure();
     updateUI();
     wake();
-    function applyIncoming(next: HangingNote[]) {
+    function applyIncoming(next: HangingNote[], nextAnchor?: number) {
+        nextAnchor = normalizeHangingAnchor(nextAnchor);
         if (disposed)
             return;
-        if (JSON.stringify(next) === JSON.stringify(notes)) {
+        if (JSON.stringify(next) === JSON.stringify(notes) && anchorU === nextAnchor) {
             pending = null;
             return;
         }
-        if (drag || editId || saving || !storageOK) {
-            pending = next;
+        if (drag || anchorDrag || editId || saving || !storageOK) {
+            pending = { notes: next, anchor: nextAnchor };
             return;
         }
         pending = null;
         notes = structuredClone(next);
         persisted = structuredClone(next);
+        anchorU = persistedAnchor = nextAnchor;
         for (const [id, body] of bodies) {
             if (!notes.find(n => n.id === id)?.pin) {
                 body.el.remove();
@@ -1002,6 +1107,7 @@ export function createHangingNotes(root: HTMLElement, initial: HangingNote[], on
                 cancelAnimationFrame(frame);
             clearTimeout(toastTimer);
             root.getAnimations({ subtree: true }).forEach(a => a.cancel());
+            root.classList.remove('is-moving-anchor');
             root.replaceChildren();
         },
     };
