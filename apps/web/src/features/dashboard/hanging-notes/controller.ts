@@ -64,7 +64,7 @@ type Drag = {
     originPoint: Point;
 };
 /** A scoped imperative animation island: React owns mount/unmount, never frame state. */
-export function createHangingNotes(root: HTMLElement, initial: HangingNote[], onSave: (next: HangingNote[], before: () => HangingNote[], anchor: { next: number | undefined; before: () => number | undefined }) => Promise<unknown>, zh = true, initialAnchor?: number) {
+export function createHangingNotes(root: HTMLElement, initial: HangingNote[], onSave: (next: HangingNote[], before: () => HangingNote[], anchor: { next: number | undefined; before: () => number | undefined }) => Promise<unknown>, zh = true, initialAnchor?: number, requireAuth: (action: () => void) => void = action => action()) {
     const copy = (value: string) => zh ? value : noteTranslations[value] ?? value;
     root.innerHTML = zh ? noteTemplate : Object.entries(noteTranslations).sort((a, b) => b[0].length - a[0].length).reduce((html, [from, to]) => html.replaceAll(from, to), noteTemplate);
     let disposed = false;
@@ -382,11 +382,13 @@ export function createHangingNotes(root: HTMLElement, initial: HangingNote[], on
         if (event.button !== 0 || event.isPrimary === false || drag || anchorDrag)
             return;
         event.preventDefault();
-        closeEditor(false);
-        anchorPin.focus({ preventScroll: true });
-        anchorDrag = { id: event.pointerId, origin: anchorU, offset: pointerLocal(event).x - geometry.ax, startX: event.clientX, moved: false };
-        anchorPin.setPointerCapture?.(event.pointerId);
-        root.classList.add('is-moving-anchor');
+        requireAuth(() => {
+            closeEditor(false);
+            anchorPin.focus({ preventScroll: true });
+            anchorDrag = { id: event.pointerId, origin: anchorU, offset: pointerLocal(event).x - geometry.ax, startX: event.clientX, moved: false };
+            anchorPin.setPointerCapture?.(event.pointerId);
+            root.classList.add('is-moving-anchor');
+        });
     });
     listen(anchorPin, 'pointermove', moveAnchor);
     listen(anchorPin, 'pointerup', event => { if (anchorDrag?.id === event.pointerId) { moveAnchor(event); endAnchor(); } });
@@ -396,22 +398,26 @@ export function createHangingNotes(root: HTMLElement, initial: HangingNote[], on
         if (drag || anchorDrag || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key))
             return;
         event.preventDefault();
-        closeEditor(false);
-        const step = event.shiftKey ? 24 : 8;
-        anchorU = event.key === 'Home' ? 0 : event.key === 'End' ? 1 : clamp((geometry.ax + (event.key === 'ArrowLeft' ? -step : step)) / geometry.w, 0, 1);
-        placeAnchor(true);
-        persist();
-        render();
-        wake();
+        requireAuth(() => {
+            closeEditor(false);
+            const step = event.shiftKey ? 24 : 8;
+            anchorU = event.key === 'Home' ? 0 : event.key === 'End' ? 1 : clamp((geometry.ax + (event.key === 'ArrowLeft' ? -step : step)) / geometry.w, 0, 1);
+            placeAnchor(true);
+            persist();
+            render();
+            wake();
+        });
     });
     listen(anchorPin, 'dblclick', () => {
         if (drag || anchorDrag)
             return;
-        anchorU = undefined;
-        placeAnchor(true);
-        persist();
-        render();
-        wake();
+        requireAuth(() => {
+            anchorU = undefined;
+            placeAnchor(true);
+            persist();
+            render();
+            wake();
+        });
     });
     function positionEditor() {
         const body = bodies.get(editId ?? ''), point = body || { x: geometry.ax, y: geometry.ay + 34 };

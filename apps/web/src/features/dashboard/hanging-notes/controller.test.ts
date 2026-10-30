@@ -28,6 +28,35 @@ beforeEach(() => {
 afterEach(() => { engine?.destroy(); vi.restoreAllMocks(); vi.unstubAllGlobals() })
 
 describe('hanging note interaction state', () => {
+  it.each(['ArrowLeft', 'ArrowRight', 'Home', 'End', 'reset'])('requires sign-in before changing the anchor with %s', async key => {
+    let allowed = false
+    const save = vi.fn().mockResolvedValue(undefined)
+    const gate = vi.fn((action: () => void) => { if (allowed) action() })
+    engine = createHangingNotes(root, [a], save, true, .35, gate)
+    const pin = root.querySelector<HTMLElement>('.pin')!, original = pin.style.left
+    const change = () => key === 'reset' ? fireEvent.doubleClick(pin) : fireEvent.keyDown(pin, { key })
+    change(); await flush()
+    expect(gate).toHaveBeenCalledTimes(1)
+    expect(pin.style.left).toBe(original)
+    expect(save).not.toHaveBeenCalled()
+    allowed = true
+    change(); await flush()
+    expect(save).toHaveBeenCalledTimes(1)
+    expect(pin.style.left).not.toBe(original)
+  })
+  it('cannot start or save an anchor drag when sign-in is required', async () => {
+    const save = vi.fn(), gate = vi.fn()
+    engine = createHangingNotes(root, [a], save, true, .35, gate)
+    const pin = root.querySelector<HTMLElement>('.pin')!, original = pin.style.left
+    for (const [type, clientX] of [['pointerdown', 350], ['pointermove', 450], ['pointerup', 450]] as const) {
+      fireEvent(pin, Object.assign(new MouseEvent(type, { button: 0, clientX, bubbles: true }), { pointerId: 1, isPrimary: true }))
+    }
+    await flush()
+    expect(gate).toHaveBeenCalledTimes(1)
+    expect(root.classList.contains('is-moving-anchor')).toBe(false)
+    expect(pin.style.left).toBe(original)
+    expect(save).not.toHaveBeenCalled()
+  })
   it('retries an earlier failed edit when saving a different sheet', async () => {
     const save = vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValue(undefined)
     engine = createHangingNotes(root, [a, b], (next, before) => save(next, before()))

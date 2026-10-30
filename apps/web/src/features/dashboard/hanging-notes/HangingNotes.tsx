@@ -5,6 +5,7 @@ import { syncedPreferencesRepo } from '../../../data/repositories/syncedPreferen
 import { createHangingNotes } from './controller'
 import { useI18n } from '../../../shared/i18n/useI18n'
 import { onPrepareAppUpdate } from '../../../shared/runtime/updateLifecycle'
+import { useAuthGate } from '../../auth/AuthGateContext'
 import { normalizeHangingNotes, normalizeHangingAnchor } from './model'
 import './hanging-notes.css'
 
@@ -12,6 +13,7 @@ const account = () => String(getAuth()?.user?.id ?? 'local')
 
 export default function HangingNotes() {
   const { language } = useI18n()
+  const { requireAuth } = useAuthGate()
   const zh = language === 'zh'
   const root = useRef<HTMLDivElement>(null)
   const owner = useSyncExternalStore(subscribeAuth, account, () => 'local')
@@ -40,11 +42,11 @@ export default function HangingNotes() {
             }
           }, () => { pendingSaves-- })
           return save
-        }, zh, anchor)
+        }, zh, anchor, requireAuth)
       },
       error: () => { if (!disposed) { engine?.destroy(); engine = undefined; element.textContent = zh ? '便签暂时无法读取，请重新打开仪表盘。' : 'Notes could not load. Please reopen Dashboard.' } },
     })
     return () => { disposed = true; subscription.unsubscribe(); engine?.destroy(); stopPreparing() }
-  }, [owner, zh])
+  }, [owner, zh, requireAuth])
   return <div ref={root} className="dashboard-notes" aria-label={zh ? '风中便签' : 'Hanging notes'} />
 }
