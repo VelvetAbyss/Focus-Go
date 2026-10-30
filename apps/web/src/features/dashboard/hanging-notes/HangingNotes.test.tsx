@@ -27,7 +27,7 @@ describe('hanging note update preparation', () => {
     mocks.save.mockReturnValue(new Promise<void>(resolve => { finish = resolve }))
     render(<HangingNotes />)
     let save!: Promise<unknown>
-    await act(async () => { save = mocks.create.mock.calls[0][2]([], () => []) })
+    await act(async () => { save = mocks.create.mock.calls[0][2]([], () => [], { next: undefined, before: () => undefined }) })
     let prepared = false
     const preparation = prepareAppUpdate().then(() => { prepared = true })
     await act(async () => { await Promise.resolve() })
@@ -40,7 +40,7 @@ describe('hanging note update preparation', () => {
     mocks.save.mockRejectedValue(new Error('disk unavailable'))
     const view = render(<HangingNotes />)
     await act(async () => {
-      await expect(mocks.create.mock.calls[0][2]([], () => [])).rejects.toThrow('disk unavailable')
+      await expect(mocks.create.mock.calls[0][2]([], () => [], { next: undefined, before: () => undefined })).rejects.toThrow('disk unavailable')
     })
     await expect(prepareAppUpdate()).rejects.toThrow('disk unavailable')
     view.unmount()

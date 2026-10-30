@@ -28,6 +28,35 @@ beforeEach(() => {
 afterEach(() => { engine?.destroy(); vi.restoreAllMocks(); vi.unstubAllGlobals() })
 
 describe('hanging note interaction state', () => {
+  it.each(['ArrowLeft', 'ArrowRight', 'Home', 'End', 'reset'])('requires sign-in before changing the anchor with %s', async key => {
+    let allowed = false
+    const save = vi.fn().mockResolvedValue(undefined)
+    const gate = vi.fn((action: () => void) => { if (allowed) action() })
+    engine = createHangingNotes(root, [a], save, true, .35, gate)
+    const pin = root.querySelector<HTMLElement>('.pin')!, original = pin.style.left
+    const change = () => key === 'reset' ? fireEvent.doubleClick(pin) : fireEvent.keyDown(pin, { key })
+    change(); await flush()
+    expect(gate).toHaveBeenCalledTimes(1)
+    expect(pin.style.left).toBe(original)
+    expect(save).not.toHaveBeenCalled()
+    allowed = true
+    change(); await flush()
+    expect(save).toHaveBeenCalledTimes(1)
+    expect(pin.style.left).not.toBe(original)
+  })
+  it('cannot start or save an anchor drag when sign-in is required', async () => {
+    const save = vi.fn(), gate = vi.fn()
+    engine = createHangingNotes(root, [a], save, true, .35, gate)
+    const pin = root.querySelector<HTMLElement>('.pin')!, original = pin.style.left
+    for (const [type, clientX] of [['pointerdown', 350], ['pointermove', 450], ['pointerup', 450]] as const) {
+      fireEvent(pin, Object.assign(new MouseEvent(type, { button: 0, clientX, bubbles: true }), { pointerId: 1, isPrimary: true }))
+    }
+    await flush()
+    expect(gate).toHaveBeenCalledTimes(1)
+    expect(root.classList.contains('is-moving-anchor')).toBe(false)
+    expect(pin.style.left).toBe(original)
+    expect(save).not.toHaveBeenCalled()
+  })
   it('retries an earlier failed edit when saving a different sheet', async () => {
     const save = vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValue(undefined)
     engine = createHangingNotes(root, [a, b], (next, before) => save(next, before()))
@@ -101,5 +130,46 @@ describe('hanging note interaction state', () => {
     engine = createHangingNotes(root, [a], vi.fn().mockResolvedValue(undefined))
     engine.destroy(); document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
     expect(root.childElementCount).toBe(0)
+  })
+})
+
+
+describe('hanging anchor state', () => {
+  it('retains a failed anchor move when the next action edits a note', async () => {
+    const save = vi.fn().mockRejectedValueOnce(new Error('disk unavailable')).mockResolvedValue(undefined)
+    engine = createHangingNotes(root, [a], (next, before, anchor) => save(next, before(), anchor.next, anchor.before()), true, .5)
+    fireEvent.keyDown(get('pin'), { key: 'ArrowRight' }); await flush()
+    click('paper-stack'); fireEvent.input(get('note-text'), { target: { value: 'changed' } }); await flush()
+    expect(save.mock.calls[1]).toEqual([[{ ...a, text: 'changed' }], [a], .508, .5])
+    expect(get('save-status').textContent).toBe('已保存')
+  })
+  it('resolves queued anchor baselines after the previous write completes', async () => {
+    let release!: () => void
+    const barrier = new Promise<void>(resolve => { release = resolve })
+    const writes: { next: number | undefined; before: number | undefined }[] = []
+    let queue = Promise.resolve()
+    engine = createHangingNotes(root, [a], (_next, _before, anchor) => {
+      const save = queue.then(async () => {
+        writes.push({ next: anchor.next, before: anchor.before() })
+        if (writes.length === 1) await barrier
+      })
+      queue = save
+      return save
+    }, true, .5)
+    fireEvent.keyDown(get('pin'), { key: 'ArrowRight' })
+    fireEvent.keyDown(get('pin'), { key: 'ArrowLeft' })
+    await flush(); release(); await flush(); await flush()
+    expect(writes).toEqual([{ next: .508, before: .5 }, { next: .5, before: .508 }])
+  })
+  it('defers incoming anchor changes while reading a note and keeps pinned papers in place', async () => {
+    const pinned = { ...b, pin: { u: .4, y: 350, tilt: 0 } }
+    engine = createHangingNotes(root, [a, pinned], async () => undefined, true, .2)
+    expect(get('pin').style.left).toBe('200px')
+    const paper = root.querySelector<HTMLElement>('.loose-note')!, pose = paper.style.transform
+    click('paper-stack'); engine.update([a, pinned], .6)
+    expect(get('pin').style.left).toBe('200px')
+    click('close-note')
+    expect(get('pin').style.left).toBe('600px')
+    expect(paper.style.transform).toBe(pose)
   })
 })

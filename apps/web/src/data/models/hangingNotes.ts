@@ -1,5 +1,8 @@
 import type { HangingNote } from './types'
 
+export const normalizeHangingAnchor = (value: unknown): number | undefined =>
+  typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : undefined
+
 export function normalizeHangingNotes(value: unknown): HangingNote[] {
   if (!Array.isArray(value)) return []
   const result: HangingNote[] = [], ids = new Set<string>()

@@ -5,13 +5,15 @@ import { syncedPreferencesRepo } from '../../../data/repositories/syncedPreferen
 import { createHangingNotes } from './controller'
 import { useI18n } from '../../../shared/i18n/useI18n'
 import { onPrepareAppUpdate } from '../../../shared/runtime/updateLifecycle'
-import { normalizeHangingNotes } from './model'
+import { useAuthGate } from '../../auth/AuthGateContext'
+import { normalizeHangingNotes, normalizeHangingAnchor } from './model'
 import './hanging-notes.css'
 
 const account = () => String(getAuth()?.user?.id ?? 'local')
 
 export default function HangingNotes() {
   const { language } = useI18n()
+  const { requireAuth } = useAuthGate()
   const zh = language === 'zh'
   const root = useRef<HTMLDivElement>(null)
   const owner = useSyncExternalStore(subscribeAuth, account, () => 'local')
@@ -26,24 +28,25 @@ export default function HangingNotes() {
       next: preferences => {
         if (disposed) return
         const notes = normalizeHangingNotes(preferences?.hangingNotes)
-        if (engine) { if (!pendingSaves) engine.update(notes); return }
-        engine = createHangingNotes(element, notes, (next, before) => {
+        const anchor = normalizeHangingAnchor(preferences?.hangingNotesAnchor)
+        if (engine) { if (!pendingSaves) engine.update(notes, anchor); return }
+        engine = createHangingNotes(element, notes, (next, before, anchorChange) => {
           pendingSaves++
           const revision = ++saveRevision
-          const save = queue.catch(() => undefined).then(() => syncedPreferencesRepo.saveHangingNotes(next, before(), () => account() === owner))
+          const save = queue.catch(() => undefined).then(() => syncedPreferencesRepo.saveHangingNotes(next, before(), () => account() === owner, { next: anchorChange.next, previous: anchorChange.before() }))
           queue = save
           void save.then(() => {
             pendingSaves--
             if (!disposed && !pendingSaves) {
-              void syncedPreferencesRepo.get().then(value => { if (!disposed && !pendingSaves && revision === saveRevision) engine?.update(normalizeHangingNotes(value?.hangingNotes)) }).catch(() => undefined)
+              void syncedPreferencesRepo.get().then(value => { if (!disposed && !pendingSaves && revision === saveRevision) engine?.update(normalizeHangingNotes(value?.hangingNotes), normalizeHangingAnchor(value?.hangingNotesAnchor)) }).catch(() => undefined)
             }
           }, () => { pendingSaves-- })
           return save
-        }, zh)
+        }, zh, anchor, requireAuth)
       },
       error: () => { if (!disposed) { engine?.destroy(); engine = undefined; element.textContent = zh ? '便签暂时无法读取，请重新打开仪表盘。' : 'Notes could not load. Please reopen Dashboard.' } },
     })
     return () => { disposed = true; subscription.unsubscribe(); engine?.destroy(); stopPreparing() }
-  }, [owner, zh])
+  }, [owner, zh, requireAuth])
   return <div ref={root} className="dashboard-notes" aria-label={zh ? '风中便签' : 'Hanging notes'} />
 }

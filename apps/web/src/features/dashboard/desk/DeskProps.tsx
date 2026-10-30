@@ -54,6 +54,12 @@ const measurePlacement = (header: HTMLElement): Placement | null => {
   if (!day || !toolbar) return null
   const quote = local('.dash-hero__quote')
   const notes = local('.dash-notes-anchor')
+  const movedAnchor = header.querySelector<HTMLElement>('.dash-notes-anchor')?.dataset.noteAnchorX
+  if (notes && movedAnchor !== undefined && Number.isFinite(Number(movedAnchor))) {
+    const halfWidth = (notes.right - notes.left) / 2
+    notes.left = Number(movedAnchor) - halfWidth
+    notes.right = Number(movedAnchor) + halfWidth
+  }
   const views = local('.dash-toolbar__views')
   const actions = local('.dash-toolbar__actions')
   // The desk line is the middle of the toolbar's 1px rule.
@@ -104,11 +110,13 @@ const useDeskPlacement = (headerRef: RefObject<HTMLElement | null>) => {
       if (el) observer.observe(el)
     }
     window.addEventListener('resize', schedule)
+    header.addEventListener('focusgo:notes-anchor-moved', schedule)
     void document.fonts?.ready.then(schedule)
     schedule()
     return () => {
       observer.disconnect()
       window.removeEventListener('resize', schedule)
+      header.removeEventListener('focusgo:notes-anchor-moved', schedule)
       if (raf) cancelAnimationFrame(raf)
     }
   }, [headerRef])

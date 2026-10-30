@@ -1,6 +1,6 @@
 import { db } from '../db'
 import type { HangingNote, SyncedPreferences } from '../models/types'
-import { normalizeHangingNotes } from '../models/hangingNotes'
+import { normalizeHangingNotes, normalizeHangingAnchor } from '../models/hangingNotes'
 import { enqueueSyncOperationInBackground, requestSyncHandoff } from '../sync/repository'
 import {
   readDefaultCurrency,
@@ -127,7 +127,7 @@ export const syncedPreferencesRepo = {
     return next
   },
   /** Merge just this edit into the latest record; unrelated preferences/sheets survive. */
-  async saveHangingNotes(notes: HangingNote[], previous: HangingNote[], isCurrentAccount = () => true) {
+  async saveHangingNotes(notes: HangingNote[], previous: HangingNote[], isCurrentAccount = () => true, anchor?: { next?: number; previous?: number }) {
     const next = await db.transaction('rw', db.syncedPreferences, async () => {
       if (!isCurrentAccount()) throw new Error('Account changed')
       const existing = await this.get()
@@ -142,6 +142,9 @@ export const syncedPreferencesRepo = {
       const hangingNotes = [...current.filter(note => !removed.has(note.id)).map(note => updates.get(note.id) ?? note), ...changed.filter(note => !currentIds.has(note.id))]
       const timestamp = now()
       const record: SyncedPreferences = { ...(existing ?? { ...buildLocalSnapshot(), createdAt: timestamp }), hangingNotes, updatedAt: timestamp }
+      if (anchor && normalizeHangingAnchor(anchor.next) !== normalizeHangingAnchor(anchor.previous)) {
+        record.hangingNotesAnchor = normalizeHangingAnchor(anchor.next)
+      }
       await db.syncedPreferences.put(record)
       return record
     })

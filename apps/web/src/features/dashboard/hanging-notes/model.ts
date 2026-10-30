@@ -1,1 +1,1 @@
-export { normalizeHangingNotes } from '../../../data/models/hangingNotes'
+export { normalizeHangingNotes, normalizeHangingAnchor } from '../../../data/models/hangingNotes'

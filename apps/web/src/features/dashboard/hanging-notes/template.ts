@@ -23,7 +23,7 @@ export const noteTemplate = `  <svg class="icon-library" aria-hidden="true"><def
           <path class="rope-fiber rope-loose" id="fg-notes-rope-loose-fiber"/>
           <g id="fg-notes-snap-fibers" class="snap-fibers"></g>
         </svg>
-        <div class="pin" id="fg-notes-pin" aria-hidden="true"></div>
+        <button type="button" class="pin" id="fg-notes-pin" role="slider" aria-label="移动便签悬挂位置" aria-orientation="horizontal" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" title="拖动固定点，左右调整悬挂位置；方向键微调，双击复位。"></button>
         <div class="return-target" id="fg-notes-return-target" aria-hidden="true" hidden><span>拖回这里，可重新挂上</span></div>
         <div class="ground-shadow" id="fg-notes-ground-shadow" aria-hidden="true"></div>
         <button class="paper-stack" id="fg-notes-paper-stack" aria-label="打开便签，也可以按住拖动" aria-expanded="false" aria-controls="fg-notes-note-detail" aria-describedby="fg-notes-gesture-hint">

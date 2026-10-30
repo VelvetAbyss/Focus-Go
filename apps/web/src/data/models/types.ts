@@ -774,6 +774,7 @@ export type HangingNote = {
 
 export type SyncedPreferences = BaseEntity & {
   hangingNotes?: HangingNote[]
+  hangingNotesAnchor?: number
   id: 'synced_preferences'
   language: LanguageCode
   uiAnimationsEnabled: boolean
