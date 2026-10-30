@@ -38,6 +38,8 @@ vi.mock('../../shared/ui/Dialog', () => ({
   default: ({ open, children }: { open: boolean; children: React.ReactNode }) => (open ? <div>{children}</div> : null),
 }))
 
+vi.mock('./hanging-notes/HangingNotes', () => ({ default: () => <div data-testid="hanging-notes" /> }))
+
 vi.mock('./DashboardHeader', () => ({
   default: ({
     onToggleLayoutEdit,

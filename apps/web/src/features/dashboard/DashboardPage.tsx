@@ -13,6 +13,7 @@ import type { DashboardLayoutItem } from '../../data/models/types'
 import { useSearchParams } from 'react-router-dom'
 import DashboardHeader, { type DashboardPage as DashboardPageKind } from './DashboardHeader'
 import CustomDashboard from './CustomDashboard'
+import HangingNotes from './hanging-notes/HangingNotes'
 import { appendViewWidget, readCustomViews, saveCustomViews, uniqueViewName, viewNameError, type CustomView } from './customViews'
 import { Input } from '@/components/ui/input'
 import { Dialog as ViewDialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
@@ -397,6 +398,8 @@ const DashboardPage = () => {
           onSelectView={selectView}
           onCreateView={() => switchSafely(() => { setCreateName(uniqueViewName(zh ? '我的视图' : 'My view', views)); setCreateTemplate('blank'); setCreateError(''); setCreateOpen(true) })}
         />
+
+        <HangingNotes />
 
         <div aria-live="polite" aria-atomic="true">
         </div>

@@ -53,16 +53,25 @@ const measurePlacement = (header: HTMLElement): Placement | null => {
   const toolbar = local('.dash-toolbar')
   if (!day || !toolbar) return null
   const quote = local('.dash-hero__quote')
+  const notes = local('.dash-notes-anchor')
   const views = local('.dash-toolbar__views')
   const actions = local('.dash-toolbar__actions')
   // The desk line is the middle of the toolbar's 1px rule.
   const height = Math.round(toolbar.bottom - 0.5 + DESK_LINE_INSET)
-  const from = Math.max(day.right, views?.right ?? toolbar.left) + CLEARANCE
-  const to = Math.min(quote?.left ?? toolbar.right, actions?.left ?? toolbar.right) - CLEARANCE
-  const unit = Math.round(Math.min(DESK_UNIT_MAX, height / DESK_LAYOUT.height) * 100) / 100
-  if (!(unit >= DESK_UNIT_MIN) || to - from < DESK_LAYOUT.minWidth * unit) return null
-  const left = Math.round(from)
-  return { left, width: Math.round(to - from), height, unit, origin: Math.round(header.offsetWidth / 2) - left }
+  let from = Math.max(day.right, views?.right ?? toolbar.left) + CLEARANCE
+  let to = Math.min(quote?.left ?? toolbar.right, actions?.left ?? toolbar.right) - CLEARANCE
+  // Leave the hanging paper's column clear; use the larger free side for the desk.
+  if (notes && notes.right > from && notes.left < to) {
+    const leftEnd = Math.max(from, notes.left - CLEARANCE)
+    const rightStart = Math.min(to, notes.right + CLEARANCE)
+    if (leftEnd - from >= to - rightStart) to = leftEnd
+    else from = rightStart
+  }
+  const unit = Math.floor(Math.min(DESK_UNIT_MAX, height / DESK_LAYOUT.height, (to - from) / DESK_LAYOUT.minWidth) * 100) / 100
+  if (!(unit >= DESK_UNIT_MIN)) return null
+  const left = Math.round(from), width = Math.round(to - from)
+  const origin = notes ? Math.round(width / 2) : Math.round(header.offsetWidth / 2) - left
+  return { left, width, height, unit, origin }
 }
 
 const samePlacement = (a: Placement | null, b: Placement | null) =>
@@ -90,7 +99,7 @@ const useDeskPlacement = (headerRef: RefObject<HTMLElement | null>) => {
     }
     const observer = new ResizeObserver(schedule)
     observer.observe(header)
-    for (const selector of ['.dash-hero__day', '.dash-hero__quote', '.dash-toolbar__views', '.dash-toolbar__actions']) {
+    for (const selector of ['.dash-hero__day', '.dash-hero__quote', '.dash-notes-anchor', '.dash-toolbar__views', '.dash-toolbar__actions']) {
       const el = header.querySelector(selector)
       if (el) observer.observe(el)
     }

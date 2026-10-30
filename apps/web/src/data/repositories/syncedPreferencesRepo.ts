@@ -1,6 +1,7 @@
 import { db } from '../db'
-import type { SyncedPreferences } from '../models/types'
-import { enqueueSyncOperationInBackground } from '../sync/repository'
+import type { HangingNote, SyncedPreferences } from '../models/types'
+import { normalizeHangingNotes } from '../models/hangingNotes'
+import { enqueueSyncOperationInBackground, requestSyncHandoff } from '../sync/repository'
 import {
   readDefaultCurrency,
   readDiaryFont,
@@ -104,22 +105,47 @@ export const syncedPreferencesRepo = {
     return (await db.syncedPreferences.get(SYNCED_PREFERENCES_ID)) ?? null
   },
   async persistFromLocal() {
-    const existing = await this.get()
-    const snapshot = buildLocalSnapshot()
-    const timestamp = now()
-    const next: SyncedPreferences = existing
-      ? {
-          ...existing,
-          ...snapshot,
-          updatedAt: timestamp,
-        }
-      : {
-          ...snapshot,
-          createdAt: timestamp,
-          updatedAt: timestamp,
-    }
-    await db.syncedPreferences.put(next)
+    const next = await db.transaction('rw', db.syncedPreferences, async () => {
+      const existing = await this.get()
+      const snapshot = buildLocalSnapshot()
+      const timestamp = now()
+      const next: SyncedPreferences = existing
+        ? {
+            ...existing,
+            ...snapshot,
+            updatedAt: timestamp,
+          }
+        : {
+            ...snapshot,
+            createdAt: timestamp,
+            updatedAt: timestamp,
+      }
+      await db.syncedPreferences.put(next)
+      return next
+    })
     enqueueSyncOperationInBackground('syncedPreferences', 'upsert', next)
+    return next
+  },
+  /** Merge just this edit into the latest record; unrelated preferences/sheets survive. */
+  async saveHangingNotes(notes: HangingNote[], previous: HangingNote[], isCurrentAccount = () => true) {
+    const next = await db.transaction('rw', db.syncedPreferences, async () => {
+      if (!isCurrentAccount()) throw new Error('Account changed')
+      const existing = await this.get()
+      if (!isCurrentAccount()) throw new Error('Account changed')
+      const before = new Map(previous.map(note => [note.id, note]))
+      const after = new Map(notes.map(note => [note.id, note]))
+      const changed = notes.filter(note => JSON.stringify(note) !== JSON.stringify(before.get(note.id)))
+      const removed = new Set(previous.filter(note => !after.has(note.id)).map(note => note.id))
+      const updates = new Map(changed.map(note => [note.id, note]))
+      const current = normalizeHangingNotes(existing?.hangingNotes)
+      const currentIds = new Set(current.map(note => note.id))
+      const hangingNotes = [...current.filter(note => !removed.has(note.id)).map(note => updates.get(note.id) ?? note), ...changed.filter(note => !currentIds.has(note.id))]
+      const timestamp = now()
+      const record: SyncedPreferences = { ...(existing ?? { ...buildLocalSnapshot(), createdAt: timestamp }), hangingNotes, updatedAt: timestamp }
+      await db.syncedPreferences.put(record)
+      return record
+    })
+    requestSyncHandoff()
     return next
   },
   async hydrateLocalFromDb() {
@@ -137,21 +163,24 @@ export const syncedPreferencesRepo = {
     return stored?.initialSeedCompletedAt ?? null
   },
   async markInitialSeedCompleted(timestamp = now()) {
-    const existing = await this.get()
-    if (existing?.initialSeedCompletedAt) return existing
-    const next: SyncedPreferences = existing
-      ? {
-          ...existing,
-          initialSeedCompletedAt: timestamp,
-          updatedAt: timestamp,
-        }
-      : {
-          ...buildLocalSnapshot(),
-          initialSeedCompletedAt: timestamp,
-          createdAt: timestamp,
-          updatedAt: timestamp,
-    }
-    await db.syncedPreferences.put(next)
+    const next = await db.transaction('rw', db.syncedPreferences, async () => {
+      const existing = await this.get()
+      if (existing?.initialSeedCompletedAt) return existing
+      const next: SyncedPreferences = existing
+        ? {
+            ...existing,
+            initialSeedCompletedAt: timestamp,
+            updatedAt: timestamp,
+          }
+        : {
+            ...buildLocalSnapshot(),
+            initialSeedCompletedAt: timestamp,
+            createdAt: timestamp,
+            updatedAt: timestamp,
+      }
+      await db.syncedPreferences.put(next)
+      return next
+    })
     enqueueSyncOperationInBackground('syncedPreferences', 'upsert', next)
     return next
   },

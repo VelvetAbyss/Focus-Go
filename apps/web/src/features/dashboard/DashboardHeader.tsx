@@ -157,7 +157,7 @@ const DashboardHeader = ({
     <header ref={headerRef} className={`app-shell__header dash-header${scenery ? ' dash-header--scenery' : ''}`} data-header-scene={scene.mode} style={scenery ? { minHeight: activeSettings.sceneHeight } : undefined}>
       {scene.mode === 'cloudtrain' && <CloudTrain settings={scene} anchor={scene.sceneAnchor} palette={trainPalette} paused={scene.paused || reducedMotion} />}
       {scene.mode === 'spring' && <SpringField settings={scene.spring} palette={springPalette} paused={scene.spring.paused || reducedMotion} />}
-      <div className="dash-hero" style={scenery && activeSettings.height > 80 ? { minHeight: activeSettings.height } : undefined}>
+      <div className="dash-hero dash-hero--notes" style={scenery && activeSettings.height > 80 ? { minHeight: activeSettings.height } : undefined}>
         <div className="dash-hero__day">
           <time className="dash-hero__date" dateTime={dayKey}>
             {zh ? (
@@ -187,6 +187,7 @@ const DashboardHeader = ({
           </div>
           <TodayNotesLine dayKey={dayKey} className="dash-hero__day-notes" />
         </div>
+        <div className="dash-notes-anchor" aria-hidden="true" />
         <figure className={`dash-hero__quote${quote ? '' : ' dash-hero__quote--empty'}`}>
           {quote ? (
             <blockquote
