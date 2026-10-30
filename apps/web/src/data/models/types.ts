@@ -764,7 +764,16 @@ export type HabitLog = BaseEntity & {
   status: HabitStatus
 }
 
+export type HangingNote = {
+  id: string
+  text: string
+  color: 'butter' | 'sage' | 'rose'
+  /** Horizontal proportion and vertical CSS pixels, independent of view height. */
+  pin?: { u: number; y: number; tilt: number }
+}
+
 export type SyncedPreferences = BaseEntity & {
+  hangingNotes?: HangingNote[]
   id: 'synced_preferences'
   language: LanguageCode
   uiAnimationsEnabled: boolean
