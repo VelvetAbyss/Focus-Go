@@ -488,8 +488,15 @@ export function createHangingNotes(root: HTMLElement, initial: HangingNote[], on
         if (source?.isConnected) {
             const to = animationRect(source);
             if (!reduced) {
+                const scale = Math.min(2, from.width / to.width);
+                const [originX, originY] = getComputedStyle(source).transformOrigin.split(' ').map(Number.parseFloat);
+                const centerX = to.x + to.width / 2;
+                // Individual CSS scale also scales the positioning transform. Cancel that
+                // displacement so the first frame stays at the editor, including under zoom.
+                const dx = from.x + from.width / 2 - centerX - (scale - 1) * (centerX - source.offsetLeft - originX);
+                const dy = from.y - to.y - (scale - 1) * (to.y - source.offsetTop - originY);
                 transitionSource = source;
-                transition = source.animate([{ translate: `${from.x + from.width / 2 - to.x - to.width / 2}px ${from.y - to.y}px`, scale: Math.min(2, from.width / to.width), opacity: .3 }, { translate: '0px 0px', scale: 1, opacity: 1 }], { duration: 280, easing: 'cubic-bezier(.16,1,.3,1)' });
+                transition = source.animate([{ translate: `${dx}px ${dy}px`, scale, opacity: .3 }, { translate: '0px 0px', scale: 1, opacity: 1 }], { duration: 280, easing: 'cubic-bezier(.16,1,.3,1)' });
             }
             if (focus)
                 source.focus({ preventScroll: true });
