@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import type { TrainPalette, TrainRenderer } from './cloudtrain/renderer'
 import { TRAIN_DEFAULTS, type TrainSettings } from './sceneSettings'
 
-export default function CloudTrain({ palette, paused, settings = TRAIN_DEFAULTS, anchor = 'bottom' }: { palette: TrainPalette; paused: boolean; settings?: TrainSettings; anchor?: 'top' | 'bottom' }) {
+export default function CloudTrain({ palette, paused, settings = TRAIN_DEFAULTS, anchor = 'bottom', panorama = false }: { palette: TrainPalette; paused: boolean; settings?: TrainSettings; anchor?: 'top' | 'bottom'; panorama?: boolean }) {
   const canvas = useRef<HTMLCanvasElement>(null)
   const renderer = useRef<TrainRenderer | null>(null)
   const options = useRef({ ...settings, palette, paused })
@@ -27,7 +27,7 @@ export default function CloudTrain({ palette, paused, settings = TRAIN_DEFAULTS,
         '--scene-x': `${settings.sceneX}%`, '--scene-y': `${settings.sceneY}%`,
         '--scene-height': `${settings.sceneHeight}px`,
       } as CSSProperties}>
-        <svg className="dash-cloudtrain__still" viewBox="400 135 340 110" preserveAspectRatio="xMidYMid meet">
+        <svg className="dash-cloudtrain__still" viewBox={panorama ? "0 80 1200 180" : "400 135 340 110"} preserveAspectRatio={panorama ? "xMidYMid slice" : "xMidYMid meet"}>
           <path className="dash-cloudtrain__cloud-back" d="M0 140 Q70 60 140 130 Q210 80 290 150 Q380 40 470 120 Q550 65 630 140 Q730 40 820 115 Q920 75 1000 140 Q1100 50 1200 110V300H0Z" />
           <path className="dash-cloudtrain__cloud-front" d="M0 205 Q90 125 170 200 Q270 150 350 220 Q440 140 520 195 Q630 135 720 205 Q820 160 900 210 Q1030 120 1200 200V300H0Z" />
           <g fill="none" stroke="currentColor" strokeWidth="2"><path d="M0 185Q150 270 300 185Q450 270 600 185Q750 270 900 185Q1050 270 1200 185" /><path strokeWidth="5" d="M0 228H1200M300 180V300M600 180V300M900 180V300" /></g>

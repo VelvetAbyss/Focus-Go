@@ -149,13 +149,14 @@ const DashboardHeader = ({
   }
 
   const showLayoutActions = page !== 'news' && page !== 'custom'
+  const panorama = scenery && activeSettings.framing === 'panorama'
 
   // A masthead to read (the date on the left, the day's line on the right as
   // its epigraph), then a ruled toolbar to operate: the views as tabs on the
   // left, the layout actions on the right (DESIGN.md › Dashboard header).
   return (
-    <header ref={headerRef} className={`app-shell__header dash-header${scenery ? ' dash-header--scenery' : ''}`} data-header-scene={scene.mode} style={scenery ? { minHeight: activeSettings.sceneHeight } : undefined}>
-      {scene.mode === 'cloudtrain' && <CloudTrain settings={scene} anchor={scene.sceneAnchor} palette={trainPalette} paused={scene.paused || reducedMotion} />}
+    <header ref={headerRef} className={`app-shell__header dash-header${scenery ? ' dash-header--scenery' : ''}`} data-header-scene={scene.mode} data-scene-framing={scenery ? activeSettings.framing : undefined} style={scenery ? { minHeight: activeSettings.sceneHeight } : undefined}>
+      {scene.mode === 'cloudtrain' && <CloudTrain panorama={panorama} settings={scene} anchor={scene.sceneAnchor} palette={trainPalette} paused={scene.paused || reducedMotion} />}
       {scene.mode === 'spring' && <SpringField settings={scene.spring} palette={springPalette} paused={scene.spring.paused || reducedMotion} />}
       <div className="dash-hero dash-hero--notes" style={scenery && activeSettings.height > 80 ? { minHeight: activeSettings.height } : undefined}>
         <div className="dash-hero__day">
