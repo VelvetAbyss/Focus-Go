@@ -1,5 +1,6 @@
 export type TrainPalette = 'sunset' | 'morning' | 'night'
 export type SpringPalette = 'day' | 'dusk' | 'night'
+export type SceneFraming = 'panorama' | 'custom'
 
 export const TRAIN_DEFAULTS = {
   speed: .65, billow: 65, detail: 75, steam: 100,
@@ -35,19 +36,19 @@ export const SPRING_RANGES = {
   zoom: { min: 75, max: 150, step: 5 }, clouds: { min: 0, max: 100, step: 5 }, texture: { min: 0, max: 100, step: 5 },
 } satisfies Record<SpringNumericSetting, { min: number; max: number; step: number }>
 export type SpringSettings = typeof SPRING_NUMERIC_DEFAULTS & {
-  palette: SpringPalette | 'auto'; paused: boolean; plane: boolean; sceneAnchor: 'top' | 'bottom'
+  palette: SpringPalette | 'auto'; paused: boolean; plane: boolean; sceneAnchor: 'top' | 'bottom'; framing: SceneFraming
 }
 export const SPRING_DEFAULTS: SpringSettings = {
-  ...SPRING_NUMERIC_DEFAULTS, palette: 'auto', paused: false, plane: true, sceneAnchor: 'bottom',
+  ...SPRING_NUMERIC_DEFAULTS, palette: 'auto', paused: false, plane: true, sceneAnchor: 'bottom', framing: 'panorama',
 }
 export type HeaderScene = TrainSettings & {
   mode: 'cloudtrain' | 'spring' | 'desk'; palette: TrainPalette | 'auto'; paused: boolean
-  sceneAnchor: 'top' | 'bottom'
+  sceneAnchor: 'top' | 'bottom'; framing: SceneFraming
   spring: SpringSettings
 }
 export type HeaderScenePatch = Omit<Partial<HeaderScene>, 'spring'> & { spring?: Partial<SpringSettings> }
 export const DEFAULT_HEADER_SCENE: HeaderScene = {
-  ...TRAIN_DEFAULTS, mode: 'cloudtrain', palette: 'auto', paused: false, sceneAnchor: 'bottom',
+  ...TRAIN_DEFAULTS, mode: 'cloudtrain', palette: 'auto', paused: false, sceneAnchor: 'bottom', framing: 'panorama',
   spring: { ...SPRING_DEFAULTS },
 }
 
@@ -59,6 +60,7 @@ function normalizeSpring(value: unknown): SpringSettings {
     if (typeof number === 'number' && Number.isFinite(number)) spring[key] = Math.min(range.max, Math.max(range.min, number))
   }
   if (saved.palette === 'day' || saved.palette === 'dusk' || saved.palette === 'night') spring.palette = saved.palette
+  spring.framing = saved.framing === 'custom' ? 'custom' : 'panorama'
   spring.paused = saved.paused === true
   spring.plane = saved.plane !== false
   spring.sceneAnchor = saved.sceneAnchor === 'top' ? 'top' : 'bottom'
@@ -72,6 +74,7 @@ export function normalizeHeaderScene(value: unknown): HeaderScene {
   scene.mode = saved.mode === 'desk' || saved.mode === 'spring' ? saved.mode : 'cloudtrain'
   scene.spring = normalizeSpring(saved.spring)
   if (saved.palette === 'auto' || saved.palette === 'sunset' || saved.palette === 'morning' || saved.palette === 'night') scene.palette = saved.palette
+  scene.framing = saved.framing === 'custom' ? 'custom' : 'panorama'
   scene.paused = saved.paused === true
   scene.sceneAnchor = saved.sceneAnchor === 'top' ? 'top' : 'bottom'
   for (const key of Object.keys(TRAIN_RANGES) as TrainSetting[]) {

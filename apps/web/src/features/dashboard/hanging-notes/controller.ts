@@ -1074,10 +1074,10 @@ export function createHangingNotes(root: HTMLElement, initial: HangingNote[], on
     const header = dashboard.querySelector('.dash-header');
     if (header)
         observer.observe(header);
-    // Quote swaps replace the figure; header size alone can remain unchanged.
+    // Quotes and scenery framing can move the hanger without resizing the header.
     const headerObserver = new MutationObserver(() => measure());
     if (header)
-        headerObserver.observe(header, { childList: true, subtree: true, characterData: true });
+        headerObserver.observe(header, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['data-scene-framing'] });
     listen(window, 'resize', measure);
     void document.fonts?.ready.then(() => { if (!disposed)
         measure(); });

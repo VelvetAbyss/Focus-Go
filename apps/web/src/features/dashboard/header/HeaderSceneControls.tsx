@@ -13,6 +13,7 @@ export default function HeaderSceneControls({ scene, update, reduced }: {
   const id = useId()
   const spring = scene.mode === 'spring'
   const active = spring ? scene.spring : scene
+  const custom = active.framing === 'custom'
   // All numeric fields have explicit ranges; only the active scene's controls render.
   const values = spring ? { ...scene, ...scene.spring } : { ...scene.spring, ...scene }
   const ranges = spring ? { ...TRAIN_RANGES, ...SPRING_RANGES } : { ...SPRING_RANGES, ...TRAIN_RANGES }
@@ -76,8 +77,17 @@ export default function HeaderSceneControls({ scene, update, reduced }: {
                 {([['auto', zh ? '跟随主题' : 'Match theme'], ['day', zh ? '春日' : 'Daylight'], ['dusk', zh ? '晚霞' : 'Dusk'], ['night', zh ? '月色' : 'Moonlight']] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={scene.spring.palette === value} onClick={() => update({ spring: { palette: value } })}><span className="dash-scene-swatch" data-palette={`spring-${value}`} aria-hidden="true" />{label}</button>)}
               </div>
             </>}
+            <div className="dash-scene-framing" role="group" aria-label={zh ? '画面构图' : 'Scenery framing'}>
+              <button type="button" aria-pressed={!custom} onClick={() => updateActive({ framing: 'panorama' })}>
+                <span>{zh ? '全景铺满' : 'Panorama'}</span><small>{zh ? '铺满原有顶栏' : 'Fill the existing header'}</small>
+              </button>
+              <button type="button" aria-pressed={custom} onClick={() => updateActive({ framing: 'custom' })}>
+                <span>{zh ? '自由摆放' : 'Free placement'}</span><small>{zh ? '自己调整尺寸与位置' : 'Your size & position'}</small>
+              </button>
+            </div>
             <details className="dash-scene-section" open>
-              <summary>{zh ? '尺寸与位置' : 'Size & placement'}</summary>
+              <summary>{zh ? (custom ? '尺寸与位置' : '画面细节') : (custom ? 'Size & placement' : 'Scene details')}</summary>
+              {custom && <>
               <div className="dash-scene-anchor" role="group" aria-label={zh ? '动画对齐方式' : 'Scenery alignment'}>
                 <button type="button" aria-pressed={active.sceneAnchor === 'bottom' && active.sceneY === 0} onClick={() => updateActive({ sceneAnchor: 'bottom', sceneY: 0 })}>{zh ? '贴紧顶栏底部' : 'Pin to header bottom'}</button>
                 <button type="button" aria-pressed={active.sceneAnchor === 'top' && active.sceneY === 0} onClick={() => updateActive({ sceneAnchor: 'top', sceneY: 0 })}>{zh ? '靠顶部' : 'Align to top'}</button>
@@ -88,10 +98,11 @@ export default function HeaderSceneControls({ scene, update, reduced }: {
               {slider('sceneY', zh ? '动画上下位置' : 'Scenery vertical position')}
               <div className="dash-scene-position-reset"><button type="button" onClick={() => updateActive({ sceneX: 0, sceneY: 0, sceneAnchor: 'bottom' })}>{zh ? '动画位置归位' : 'Reset scenery position'}</button></div>
               <p className="dash-scene-hint">{zh ? '贴底时调整高度会向上展开。宽高可直接输入，放大时顶栏自动留出空间。' : 'Pinned scenery grows upward. Enter a width or height; the header makes room as needed.'}</p>
+              </>}
               {spring ? slider('zoom', zh ? '景物大小' : 'Landscape scale') : <>{slider('trainScale', zh ? '列车大小' : 'Train size')}{slider('railOffset', zh ? '列车上下位置' : 'Train vertical position')}</>}
               {slider('opacity', zh ? '风景浓度' : 'Scenery opacity')}
-              {slider('height', zh ? '顶栏高度' : 'Header height')}
-              <p className="dash-scene-hint">{zh ? '默认沿用原顶栏尺寸，窄屏会自动留出文字空间。' : 'Original header size by default. Small screens keep room for text.'}</p>
+              {custom && slider('height', zh ? '顶栏高度' : 'Header height')}
+              <p className="dash-scene-hint">{zh ? (custom ? '尺寸与位置会独立保留，随时可以切回全景。' : '保持顶栏原有高度，风景铺满背景，文字下方轻柔留白。') : (custom ? 'Your placement is kept when switching back to panorama.' : 'Scenery fills the existing header without changing its height, with soft space beneath the text.')}</p>
             </details>
             <details className="dash-scene-section">
               <summary>{zh ? (spring ? '田野与动画' : '云海与动画') : (spring ? 'Fields & motion' : 'Clouds & motion')}</summary>
@@ -105,7 +116,7 @@ export default function HeaderSceneControls({ scene, update, reduced }: {
             </details>
             <div className="dash-scene-footer">
               <span>{zh ? '各场景分别保存在此设备' : 'Saved separately for each scene'}</span>
-              <button type="button" onClick={() => update(spring ? { spring: { ...SPRING_DEFAULTS } } : { ...TRAIN_DEFAULTS, palette: 'auto', sceneAnchor: 'bottom', paused: false })}><RotateCcw size={12} aria-hidden="true" />{zh ? '恢复默认' : 'Reset defaults'}</button>
+              <button type="button" onClick={() => update(spring ? { spring: { ...SPRING_DEFAULTS } } : { ...TRAIN_DEFAULTS, palette: 'auto', sceneAnchor: 'bottom', paused: false, framing: 'panorama' })}><RotateCcw size={12} aria-hidden="true" />{zh ? '恢复默认' : 'Reset defaults'}</button>
             </div>
           </>}
         </PopoverContent>

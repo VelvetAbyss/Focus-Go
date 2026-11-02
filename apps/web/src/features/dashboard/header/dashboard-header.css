@@ -738,3 +738,87 @@ html[data-motion='reduce'] .dash-hero__quote-author {
 .dash-scene-swatch[data-palette='spring-night'] { background: linear-gradient(135deg, #455f68, #8a7b8b); }
 .dash-scene-toggle { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; color: var(--text-secondary); font-size: var(--fs-label); cursor: pointer; }
 .dash-scene-toggle input { accent-color: var(--accent); width: 16px; height: 16px; }
+
+/* Panorama is a background-only treatment. Keep the original hero, toolbar,
+   spacing and responsive layout so changing framing never adds header height.
+   Only scenery is clipped; notes keep the Dashboard-sized drag surface. */
+.dash-header[data-scene-framing='panorama'] .dash-cloudtrain-frame {
+  inset-inline: 18px var(--dash-header-inset-end, 24px);
+}
+.dash-header[data-scene-framing='panorama'] :is(.dash-cloudtrain, .dash-springfield) {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: none;
+  opacity: var(--train-opacity, .84);
+  mask-image: linear-gradient(90deg, transparent, #000 1.5%, #000 98.5%, transparent), linear-gradient(180deg, transparent, #000 4%, #000 96%, transparent);
+}
+.dash-header[data-scene-framing='panorama'] .dash-cloudtrain__still {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  transform: none;
+}
+.dash-header[data-scene-framing='panorama'] :is(.dash-hero__day, .dash-hero__quote, .dash-toolbar) {
+  position: relative;
+  isolation: isolate;
+  z-index: 0;
+}
+.dash-header[data-scene-framing='panorama'] :is(.dash-hero__day, .dash-hero__quote)::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: -16px;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 12% 50%, color-mix(in srgb, var(--bg) 94%, transparent) 12%, color-mix(in srgb, var(--bg) 68%, transparent) 48%, transparent 78%);
+}
+.dash-header[data-scene-framing='panorama'] .dash-hero__quote::before {
+  background: radial-gradient(ellipse at 88% 50%, color-mix(in srgb, var(--bg) 94%, transparent) 12%, color-mix(in srgb, var(--bg) 68%, transparent) 48%, transparent 78%);
+}
+.dash-header[data-scene-framing='panorama'] .dash-hero__quote-text {
+  color: var(--text-primary);
+}
+.dash-header[data-scene-framing='panorama'] .dash-hero__quote-by {
+  color: var(--text-secondary);
+}
+.dash-header[data-scene-framing='panorama'] .dash-toolbar::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: -8px 0 0;
+  pointer-events: none;
+  background: linear-gradient(transparent, color-mix(in srgb, var(--bg) 78%, transparent) 35%, var(--bg));
+}
+.dash-scene-framing {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 16px;
+}
+.dash-scene-framing button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--paper);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--fs-label);
+  text-align: left;
+  cursor: pointer;
+}
+.dash-scene-framing button[aria-pressed='true'] {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--rule));
+  background: var(--accent-soft);
+}
+.dash-scene-framing small { font-size: 10px; color: var(--text-secondary); line-height: 1.4; }
+@container (max-width: 780px) {
+  .dash-header[data-scene-framing='panorama'] .dash-hero__quote::before {
+    background: radial-gradient(ellipse, color-mix(in srgb, var(--bg) 88%, transparent) 10%, color-mix(in srgb, var(--bg) 58%, transparent) 46%, transparent 72%);
+  }
+}
