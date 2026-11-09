@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto'
 import { beforeEach, afterAll, describe, it, expect, vi } from 'vitest'
-const auth = vi.hoisted(() => ({ owner: 'guest', session: 'test' }))
+const auth = vi.hoisted(() => ({ owner: 'guest', session: 'test', paused: false }))
+vi.mock('../../data/sync/auth', async importOriginal => ({ ...(await importOriginal<typeof import('../../data/sync/auth')>()), isSyncAuthRequired: () => auth.paused }))
 const fetchApi = vi.hoisted(() => vi.fn())
 vi.mock('../../store/auth', () => ({ getAuth: () => auth.owner === 'guest' ? null : { user: { id: auth.owner }, accessToken: auth.session } }))
 vi.mock('../../shared/apiBase', () => ({ fetchApi }))
@@ -41,10 +42,30 @@ function useServer() {
 const browserStorage = new Map<string, string>()
 vi.stubGlobal('localStorage', { getItem: (key: string) => browserStorage.get(key) ?? null, setItem: (key: string, value: string) => browserStorage.set(key, value), clear: () => browserStorage.clear() })
 beforeEach(async () => {
-  auth.owner = 'guest'; auth.session = 'test'; localStorage.clear(); resumeSymbolicSyncAfterResetFailure(); await db.localSymbolic.clear(); fetchApi.mockReset(); useServer()
+  auth.owner = 'guest'; auth.session = 'test'; auth.paused = false; localStorage.clear(); resumeSymbolicSyncAfterResetFailure(); await db.localSymbolic.clear(); fetchApi.mockReset(); useServer()
 })
 afterAll(() => db.close())
 describe('symbolic rebuild persistence and sync', () => {
+  it('does not send independent timer requests while authentication is paused', async () => {
+    auth.owner = 'owner'
+    const profile = await saveBirthProfile('owner', birth, null, null)
+    auth.paused = true
+    vi.useFakeTimers()
+    const stop = startSymbolicSync('owner')
+    try {
+      await vi.advanceTimersByTimeAsync(90_000)
+      expect(fetchApi).not.toHaveBeenCalled()
+    } finally { stop(); vi.useRealTimers() }
+    expect((await db.localSymbolic.get(['owner', profile.id!]))?.dirty).toBe(true)
+  })
+  it('classifies a server 401 as authentication failure and preserves pending records', async () => {
+    auth.owner = 'owner'
+    const profile = await saveBirthProfile('owner', birth, null, null)
+    fetchApi.mockResolvedValue(Response.json({ error: 'expired' }, { status: 401 }))
+    const { SyncAuthError } = await import('../../data/sync/auth')
+    await expect(syncSymbolicNow('owner')).rejects.toBeInstanceOf(SyncAuthError)
+    expect((await db.localSymbolic.get(['owner', profile.id!]))?.dirty).toBe(true)
+  })
   it('resumes after switching accounts but keeps explicit resets paused', async () => {
     auth.owner = 'owner-a'; pauseSymbolicSyncForAccountCleanup()
     const same = startSymbolicSync('owner-a'); same()

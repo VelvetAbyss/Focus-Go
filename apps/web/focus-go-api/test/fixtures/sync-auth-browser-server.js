@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import Database from 'better-sqlite3'
 import { betterAuth } from 'better-auth'
+import { bearer } from 'better-auth/plugins'
 import { toNodeHandler } from 'better-auth/node'
 import { createSyncRouter } from '../../routes/sync.js'
 import { SYNC_TABLES } from '../../sync/config.js'
@@ -71,6 +72,7 @@ app.use('/sync', createSyncRouter({ database, authMiddleware: requireTestAccount
 const server = app.listen(0, '127.0.0.1', () => {
   const port = server.address().port
   auth = betterAuth({
+    plugins: [bearer()],
     database,
     secret: 'focusgo-browser-sync-test-secret-32chars',
     baseURL: `http://127.0.0.1:${port}/api/auth`,

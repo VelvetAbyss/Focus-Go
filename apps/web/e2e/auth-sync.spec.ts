@@ -589,3 +589,49 @@ test('data safety: CRM customers, deals and follow-up tasks sync between two sig
     await contextB.close()
   }
 })
+
+test('data safety: expired session pauses once and same-account sign-in uploads preserved edits', async ({ browser }) => {
+  test.setTimeout(150_000)
+  const credentials = { email: `expiry-${crypto.randomUUID()}@example.test`, password: 'test-only-password-1234' }
+  const cookie = await authRequest('sign-up/email', { ...credentials, name: 'Session Recovery Test' })
+  const context = await browser.newContext({ serviceWorkers: 'block' })
+  try {
+    await context.addCookies([cookie])
+    await context.addInitScript(() => localStorage.setItem('workbench.ui.language', 'en'))
+    const page = await context.newPage()
+    await page.goto('/workspace/settings?section=data')
+    await expect(page.getByTestId('sync-safety-status')).toContainText('Cloud confirmed', { timeout: 45000 })
+    await page.getByRole('switch', { name: 'Toggle cloud sync' }).uncheck()
+    const task = await page.evaluate(async () => {
+      const { createDexieDatabaseService } = await import('/src/data/services/DexieDatabaseService.ts')
+      return createDexieDatabaseService().tasks.add({ title: 'Preserve this edit across session expiry', description: 'Not uploaded yet', status: 'todo', priority: null, tags: [], subtasks: [] })
+    })
+    // Revoke the isolated server session without invoking client logout or data clearing.
+    await page.evaluate(async () => { await (await import('/src/config/authClient.ts')).authClient.signOut() })
+    let syncRequests = 0
+    page.on('request', request => { if (request.url().includes('/sync/rxdb/')) syncRequests++ })
+    await page.getByRole('switch', { name: 'Toggle cloud sync' }).check()
+    await expect(page.getByRole('button', { name: 'Sign in again', exact: true })).toBeVisible({ timeout: 45000 })
+    await expect(page.getByText('Your session has expired. Sync is paused and local changes are preserved. Sign in to the same account to resume.', { exact: true })).toBeVisible()
+    expect(await page.evaluate(async id => (await (await import('/src/data/db/index.ts')).db.tasks.get(id))?.title, task.id)).toBe(task.title)
+    await expect.poll(() => page.evaluate(async () => (await import('/src/data/db/index.ts')).db.pendingSyncChanges.count())).toBeGreaterThan(0)
+    const stoppedAt = syncRequests
+    await page.evaluate(() => { window.dispatchEvent(new Event('online')); window.dispatchEvent(new Event('focus')) })
+    await page.waitForTimeout(1500)
+    expect(syncRequests).toBe(stoppedAt)
+    await page.getByRole('button', { name: 'Sign in again', exact: true }).click()
+    const login = page.locator('.login-modal')
+    await login.locator('input[autocomplete="username"]').fill(credentials.email)
+    await login.locator('input[autocomplete="current-password"]').fill(credentials.password)
+    await login.locator('button[type="submit"]').click()
+    await expect(login).not.toBeVisible()
+    await expect(page.getByTestId('sync-safety-status')).toContainText('Cloud confirmed', { timeout: 45000 })
+    expect(await page.evaluate(async id => (await (await import('/src/data/db/index.ts')).db.tasks.get(id))?.title, task.id)).toBe(task.title)
+    const cloudHasTask = await page.evaluate(async id => {
+      const { syncApi } = await import('/src/data/sync/client.ts')
+      const result = await syncApi.rxdbPull({ entityType: 'tasks', checkpoint: null, limit: 100 })
+      return result.documents.some(row => row.id === id)
+    }, task.id)
+    expect(cloudHasTask).toBe(true)
+  } finally { await context.close() }
+})

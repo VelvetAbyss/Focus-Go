@@ -1,5 +1,6 @@
+import { ensureSyncSession, isSyncAuthError, isSyncAuthRequired, pauseSyncForAuth, useSyncAuthRequired } from './auth'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { getAuth, refreshAuthProfile, useIsLoggedIn } from '../../store/auth'
+import { getAuth, refreshAuthProfile, subscribeAuth, useIsLoggedIn } from '../../store/auth'
 import { dispatchSyncDataUpdated, SYNC_DATA_UPDATED_EVENT, SYNC_STATUS_CHANGED_EVENT, type SyncDataUpdatedDetail } from './constants'
 import type { SyncEntityType } from './types'
 import { syncStateRepo } from './repository'
@@ -39,6 +40,7 @@ const loadRxdbSync = () => import('./rxdb')
 
 export const SyncProvider = ({ children }: { children: ReactNode }) => {
   const isLoggedIn = useIsLoggedIn()
+  const authRequired = useSyncAuthRequired()
   const [state, setState] = useState<SyncState | null>(null)
   const [enabled, setEnabledState] = useState(readCloudSyncEnabled)
   const runningRef = useRef(false)
@@ -80,7 +82,7 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
   const lastSyncEndedAtRef = useRef(0)
   const consecutiveErrorsRef = useRef(0)
   const syncNow = useCallback(async (trigger: string = 'manual', entities?: SyncEntityType[]) => {
-    if (!enabled || !isLoggedIn) return
+    if (!enabled || !isLoggedIn || isSyncAuthRequired()) return
     if (runningRef.current) {
       if (trigger === 'change' || trigger === 'manual' || trigger === 'online') {
         if (!entities) fullSyncRequestedRef.current = true
@@ -106,23 +108,39 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
     console.info('[sync] cycle start', { trigger })
     runningRef.current = true
     let cycleError: unknown = null
+    let attemptedToken = getAuth()?.accessToken
     try {
       const { runRxdbSyncCycle } = await loadRxdbSync()
-      await runRxdbSyncCycle(entities)
-      const accountId = getAuth()?.user?.id
-      if (accountId) {
-        const symbolic = await db.localSymbolic.where('ownerId').equals(accountId).toArray()
-        if (symbolic.some(symbolicNeedsUpload)) {
-          const { syncSymbolicNow } = await import('../../features/symbolic/sync')
-          await syncSymbolicNow(accountId)
+      await ensureSyncSession()
+      attemptedToken = getAuth()?.accessToken
+      const runAuthenticatedCycle = async () => {
+        await runRxdbSyncCycle(entities)
+        const accountId = getAuth()?.user?.id
+        if (accountId) {
+          const symbolic = await db.localSymbolic.where('ownerId').equals(accountId).toArray()
+          if (symbolic.some(symbolicNeedsUpload)) {
+            const { syncSymbolicNow } = await import('../../features/symbolic/sync')
+            await syncSymbolicNow(accountId)
+          }
         }
+      }
+      try {
+        await runAuthenticatedCycle()
+      } catch (error) {
+        if (!isSyncAuthError(error)) throw error
+        await ensureSyncSession(true)
+        attemptedToken = getAuth()?.accessToken
+        await runAuthenticatedCycle()
       }
       await refreshAuthProfile()
       consecutiveErrorsRef.current = 0
     } catch (error) {
       cycleError = error
       consecutiveErrorsRef.current += 1
-      await syncStateRepo.markStatus('error', error instanceof Error ? error.message : String(error)).catch(() => {})
+      if (getAuth()?.accessToken === attemptedToken) {
+        if (isSyncAuthError(error)) pauseSyncForAuth()
+        await syncStateRepo.markStatus('error', error instanceof Error ? error.message : String(error)).catch(() => {})
+      }
     } finally {
       runningRef.current = false
       lastSyncEndedAtRef.current = Date.now()
@@ -140,6 +158,23 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
   }, [enabled, isLoggedIn, refreshState, queueSync])
 
   useEffect(() => { syncNowRef.current = syncNow }, [syncNow])
+
+  useEffect(() => {
+    let token = getAuth()?.accessToken
+    let accountId = getAuth()?.user?.id
+    return subscribeAuth(() => {
+      const auth = getAuth()
+      if (auth?.accessToken === token && auth?.user?.id === accountId) return
+      token = auth?.accessToken
+      accountId = auth?.user?.id
+      if (token && !isSyncAuthRequired()) {
+        consecutiveErrorsRef.current = 0
+        lastSyncEndedAtRef.current = 0
+        queueSync()
+      }
+    })
+  }, [queueSync])
+
 
   useEffect(() => {
     if (!enabled || !isLoggedIn) return
@@ -163,9 +198,9 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
   }, [enabled, isLoggedIn, queueSync])
 
   useEffect(() => {
-    if (!enabled || !isLoggedIn || pageActivity !== 'visible') return
+    if (!enabled || !isLoggedIn || authRequired || pageActivity !== 'visible') return
     return subscribeSyncStream(entities => queueSync(entities))
-  }, [enabled, isLoggedIn, pageActivity, queueSync])
+  }, [enabled, isLoggedIn, authRequired, pageActivity, queueSync])
 
   const initialize = useCallback(async () => {
     if (!enabled || !isLoggedIn || runningRef.current) return

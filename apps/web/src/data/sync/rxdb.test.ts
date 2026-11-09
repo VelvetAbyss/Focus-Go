@@ -53,6 +53,17 @@ describe('rxdb sync migration', () => {
     await db.delete({ disableAutoOpen: false })
   })
 
+  it('stops launching entities on 401, shows one error, and retains pending local edits', async () => {
+    const { SYNC_AUTH_REQUIRED } = await import('./auth')
+    await db.pendingSyncChanges.add({ accountId: 'test-account', entityType: 'notes', entityId: 'local', op: 'upsert', payload: { id: 'local', title: 'Keep me', updatedAt: 1, createdAt: 1 }, createdAt: 1 } as never)
+    fetchMock.mockResolvedValue({ ok: false, status: 401 } as Response)
+    await expect(runRxdbSyncCycle()).rejects.toThrow(SYNC_AUTH_REQUIRED)
+    const entityTypes = new Set(fetchMock.mock.calls.map(([, init]) => JSON.parse(String(init?.body)).entityType))
+    expect(entityTypes.size).toBeLessThanOrEqual(6)
+    expect((await db.syncState.get('cloud-sync'))?.lastError).toBe(SYNC_AUTH_REQUIRED)
+    expect(await db.pendingSyncChanges.count()).toBe(1)
+  })
+
   it('migrates existing Dexie rows into RxDB and pushes them through the new endpoint', async () => {
     await db.tasks.put({
       id: 'task-local',

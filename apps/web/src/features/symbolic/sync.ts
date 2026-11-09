@@ -1,3 +1,4 @@
+import { isSyncAuthRequired, SyncAuthError } from '../../data/sync/auth'
 import { db } from '../../data/db'
 import { getAuth } from '../../store/auth'
 import { fetchApi } from '../../shared/apiBase'
@@ -68,12 +69,13 @@ if (typeof window !== 'undefined') {
   window.addEventListener('focusgo:db-reset-requested', pauseSymbolicSyncForAccountCleanup)
   window.addEventListener('focusgo:auth-changed', handleSymbolicOwnerChange)
 }
-const guard = (owner: string, captured: number) => { assertSymbolicOwner(owner); if (stopped || captured !== epoch) throw new Error('Symbolic sync was reset'); if (!symbolicCloudEnabled()) throw new Error('Cloud sync is off') }
+const guard = (owner: string, captured: number) => { assertSymbolicOwner(owner); if (isSyncAuthRequired()) throw new SyncAuthError(); if (stopped || captured !== epoch) throw new Error('Symbolic sync was reset'); if (!symbolicCloudEnabled()) throw new Error('Cloud sync is off') }
 const request = async <T>(owner: string, captured: number, path: string, body: unknown): Promise<T> => {
   guard(owner, captured)
   const token = getAuth()?.accessToken
   const response = await fetchApi('/symbolic/' + path, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) }, body: JSON.stringify(body) })
   guard(owner, captured)
+  if (response.status === 401) throw new SyncAuthError()
   const data = await response.json()
   guard(owner, captured)
   if (!response.ok) throw new Error(typeof data?.error === 'string' ? data.error : 'Symbolic sync failed')
@@ -117,6 +119,11 @@ async function mergeRemote(owner: string, remote: SymbolicWireRow) {
 const runners = new Map<string, Promise<void>>()
 export function syncSymbolicNow(owner: string): Promise<void> {
   if (owner === 'guest' || !symbolicCloudEnabled() || stopped) { setStatus(owner, { status: 'local', conflicts: 0 }); return Promise.resolve() }
+  if (isSyncAuthRequired()) {
+    const error = new SyncAuthError()
+    setStatus(owner, { status: 'error', message: error.message, conflicts: 0 })
+    return Promise.reject(error)
+  }
   const running = runners.get(owner)
   if (running) return running
   const promise = runSync(owner).finally(() => { if (runners.get(owner) === promise) runners.delete(owner) })

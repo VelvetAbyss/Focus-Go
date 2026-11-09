@@ -1,4 +1,5 @@
 import AnonymousCountsSetting from '../../shared/metrics/AnonymousCountsSetting'
+import { useSyncAuthRequired } from '../../data/sync/auth'
 import { LEGAL_DOCUMENTS, policyUrl, type LegalDocument, type LegalDocumentKey } from '../../shared/legal/policies'
 import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from 'react'
 import { motion } from 'motion/react'
@@ -597,6 +598,7 @@ const SettingsRoute = () => {
   const { requireAuth, isGated } = useAuthGate()
   const isLoggedIn = useIsLoggedIn()
   const [showLoginModal, setShowLoginModal] = useState(false)
+  const syncAuthRequired = useSyncAuthRequired()
   const cloudSyncQuota = useCloudSyncQuota()
   const toast = useToast()
   const syncState = useSyncStatus()
@@ -1685,7 +1687,7 @@ const SettingsRoute = () => {
                                   aria-label={t('settings.data.sync.toggle')}
                                 />
                               </label>
-                              <div className="text-sm text-muted-foreground">{syncStatusLabel}</div>
+                              <div className="text-sm text-muted-foreground">{syncAuthRequired ? t('settings.data.sync.authStatus') : syncStatusLabel}</div>
                               <div className="text-xs text-muted-foreground">{lastSyncedLabel}</div>
                               {cloudSyncQuota ? <div className="text-xs text-muted-foreground">{t('settings.data.sync.quota', { used: (cloudSyncQuota.usedBytes / 1024 / 1024).toFixed(1), limit: (cloudSyncQuota.limitBytes / 1024 / 1024).toFixed(0) })}</div> : null}
                               {cloudSyncEnabled && syncState?.status === 'blocked' && syncConflicts.some((item) => item.accountId === getAuth()?.user?.id && !item.resolvedAt) ? (
@@ -1694,15 +1696,15 @@ const SettingsRoute = () => {
                                 </div>
                               ) : cloudSyncEnabled && syncState?.status === 'error' && syncState.lastError ? (
                                 <div className="max-w-[360px] text-right text-xs text-destructive">
-                                  {t('settings.data.sync.error', { message: syncState.lastError })}
+                                  {syncAuthRequired ? t('settings.data.sync.authRequired') : t('settings.data.sync.error', { message: syncState.lastError })}
                                 </div>
                               ) : null}
                               <Button
                                 variant="outline"
-                                disabled={!cloudSyncEnabled || syncState?.status === 'syncing'}
-                                onClick={() => { void syncNow() }}
+                                disabled={!syncAuthRequired && (!cloudSyncEnabled || syncState?.status === 'syncing')}
+                                onClick={() => { if (syncAuthRequired) setShowLoginModal(true); else void syncNow() }}
                               >
-                                {t('settings.data.sync.action')}
+                                {syncAuthRequired ? t('settings.data.sync.signInAgain') : t('settings.data.sync.action')}
                               </Button>
                             </div>
                             )}
