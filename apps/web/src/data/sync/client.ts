@@ -1,3 +1,4 @@
+import { SyncAuthError } from './auth'
 import { getAuth } from '../../store/auth'
 import { db } from '../db'
 import { buildApiUrl, fetchApi } from '../../shared/apiBase'
@@ -35,7 +36,7 @@ const runSyncConnectivityDiagnosis = async () => {
       body: JSON.stringify({ entityType: 'notes', checkpoint: null, limit: 1 }),
     })
     if (syncProbe.status === 401) {
-      return new Error('Sync auth token invalid or expired — please log in again')
+      return new Error(`Sync request blocked by browser or network: ${base}`)
     }
   } catch {
     return new Error(`Sync request blocked by browser or network: ${base}`)
@@ -60,7 +61,7 @@ const fetchJson = async <T>(path: string, init?: RequestInit): Promise<T> => {
     throw await normalizeSyncFetchError(error)
   }
   if (!response.ok) {
-    if (response.status === 401) throw new Error('Sync failed: session expired, please log in again')
+    if (response.status === 401) throw new SyncAuthError()
     // Capture server body to surface in entityErrors so the user can see *why*
     // it 500'd (e.g. unknown entityType, malformed checkpoint). Without this
     // the client just retries forever against a broken endpoint.

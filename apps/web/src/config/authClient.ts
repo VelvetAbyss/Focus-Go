@@ -75,7 +75,7 @@ const requestAuth = async <T>(path: string, init?: RequestInit): Promise<T> => {
   const payload = parseAuthPayload(text, response.headers.get('content-type'))
   if (!response.ok) {
     const error = payload as AuthErrorPayload | null
-    throw new Error(normalizeAuthErrorMessage(error, `Auth request failed (${response.status})`))
+    throw Object.assign(new Error(normalizeAuthErrorMessage(error, `Auth request failed (${response.status})`)), { status: response.status })
   }
   return payload as T
 }
@@ -120,7 +120,7 @@ export const authClient = {
       body: JSON.stringify({ code, state, verifier }),
     }),
 
-  getSession: () => requestAuth<AuthResponse>('/get-session'),
+  getSession: (token?: string) => requestAuth<AuthResponse | null>('/get-session', { signal: AbortSignal.timeout(10_000), ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}) }),
 
   signOut: () =>
     requestAuth<unknown>('/sign-out', {

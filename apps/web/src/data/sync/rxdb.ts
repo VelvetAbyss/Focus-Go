@@ -1,3 +1,4 @@
+import { isSyncAuthError, SyncAuthError } from './auth'
 import { hasPendingSyncChange, pendingForAccount, type PendingSyncChange } from './pendingChanges'
 import { suppressSyncCapture } from './capture'
 import { createRxDatabase, removeRxDatabase, type RxCollection } from 'rxdb'
@@ -585,9 +586,9 @@ export const runRxdbSyncCycle = async (requestedEntities?: SyncEntityType[]) =>
     syncValidationErrors = []
 
     if (!getAuth()?.accessToken) {
-      const message = 'Sync failed: session expired, please log in again'
-      await setStatus('error', message)
-      throw new Error(message)
+      const error = new SyncAuthError()
+      await setStatus('error', error.message)
+      throw error
     }
 
     // No remote request can succeed in a known-offline browser. Keep RxDB's local
@@ -600,6 +601,7 @@ export const runRxdbSyncCycle = async (requestedEntities?: SyncEntityType[]) =>
 
     await setStatus('syncing')
     const entityErrors: string[] = []
+    let authFailed = false
 
     // Process entities in parallel using a bounded worker pool.
     // Each worker pulls from the shared queue until it is empty, so we never
@@ -611,13 +613,14 @@ export const runRxdbSyncCycle = async (requestedEntities?: SyncEntityType[]) =>
       : [...SYNC_ENTITY_TYPES]
     const runWorker = async () => {
       while (queue.length > 0) {
-        if (rxdbResetRequested) return
+        if (rxdbResetRequested || authFailed) return
         const entityType = queue.shift()
         if (!entityType) return
         try {
           await syncEntity(entityType)
         } catch (error) {
-          entityErrors.push(`${entityType}: ${extractSyncErrorMessage(error)}`)
+          if (isSyncAuthError(error)) authFailed = true
+          else entityErrors.push(`${entityType}: ${extractSyncErrorMessage(error)}`)
         }
       }
     }
@@ -628,7 +631,12 @@ export const runRxdbSyncCycle = async (requestedEntities?: SyncEntityType[]) =>
 
     if (rxdbResetRequested) return
 
-    const errors = [...entityErrors, ...syncValidationErrors]
+    if (authFailed) {
+      const error = new SyncAuthError()
+      await setStatus('error', error.message)
+      throw error
+    }
+    const errors = [...new Set([...entityErrors, ...syncValidationErrors])]
     if (errors.length > 0) {
       const message = errors.join('; ')
       await setStatus('error', message)

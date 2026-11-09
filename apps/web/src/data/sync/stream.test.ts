@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { consumeSyncStream, subscribeSyncStream } from './stream'
+const authState = vi.hoisted(() => ({ paused: false }))
+vi.mock('./auth', () => ({ isSyncAuthRequired: () => authState.paused }))
 vi.mock('../../store/auth', () => ({ getAuth: () => ({ accessToken: 'stream-test-token' }) }))
 
 describe('authenticated sync notifications', () => {
@@ -10,6 +12,24 @@ describe('authenticated sync notifications', () => {
     const body = new ReadableStream({ start(controller) { chunks.forEach(chunk => controller.enqueue(encoder.encode(chunk))); controller.close() } })
     await consumeSyncStream(body, onChange)
     expect(onChange.mock.calls).toEqual([[], [['notes']]])
+  })
+
+  it('hands a 401 to recovery and does not reconnect while authentication is paused', async () => {
+    vi.useFakeTimers()
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 401 })
+    vi.stubGlobal('fetch', fetchMock)
+    const onChange = vi.fn(() => { authState.paused = true })
+    const unsubscribe = subscribeSyncStream(onChange)
+    try {
+      await vi.advanceTimersByTimeAsync(60_000)
+      expect(onChange).toHaveBeenCalledOnce()
+      expect(fetchMock).toHaveBeenCalledOnce()
+    } finally {
+      unsubscribe()
+      authState.paused = false
+      vi.unstubAllGlobals()
+      vi.useRealTimers()
+    }
   })
 
   it('aborts streaming requests and cancels retries on unsubscribe', async () => {

@@ -8,6 +8,11 @@ import SettingsRoute from './SettingsRoute'
 import { THEME_BEFORE_MODE_TOGGLE_EVENT, clearThemePackPreview, getThemePalette } from '../../shared/theme/themePack'
 import { applyTheme, writeStoredThemePreference } from '../../shared/theme/theme'
 
+const syncMocks = vi.hoisted(() => ({ expired: false, sync: vi.fn() }))
+vi.mock('../../data/sync/auth', () => ({ useSyncAuthRequired: () => syncMocks.expired }))
+vi.mock('../../data/sync/service', () => ({ useSyncActions: () => ({ enabled: true, setEnabled: vi.fn(), syncNow: syncMocks.sync }), useSyncStatus: () => syncMocks.expired ? ({ status: 'error', lastError: 'internal error repeated', lastSyncedAt: null }) : null }))
+vi.mock('../layout/LoginModal', () => ({ default: () => <div role="dialog" aria-label="Reauthenticate" /> }))
+
 const mockDashboardGet = vi.fn()
 const mockDashboardUpsert = vi.fn()
 
@@ -22,6 +27,8 @@ vi.mock('../../data/repositories/dashboardRepo', () => ({
     upsert: (...args: unknown[]) => mockDashboardUpsert(...args),
   },
 }))
+
+vi.mock('../../data/sync/conflicts', () => ({ listSyncConflicts: async () => [], markSyncConflictReviewed: vi.fn(), restoreSyncConflictAsCopy: vi.fn() }))
 
 vi.mock('../../data/db', () => ({
   db: {
@@ -98,6 +105,7 @@ const chooseThemePack = async (optionText: string) => {
 
 describe('SettingsRoute theme pack preview', () => {
   beforeEach(() => {
+    syncMocks.expired = false
     window.localStorage.clear()
     applyTheme('light')
     globalThis.ResizeObserver = class ResizeObserver {
@@ -129,6 +137,23 @@ describe('SettingsRoute theme pack preview', () => {
     cleanup()
     clearThemePackPreview()
     vi.clearAllMocks()
+  })
+
+  it('replaces repeated auth errors with a safe re-login action', async () => {
+    const { setAuth } = await import('../../store/auth')
+    setAuth({ accessToken: 'expired-test', user: { id: 'same-account' } })
+    syncMocks.expired = true
+    const user = userEvent.setup()
+    renderRoute()
+    try {
+      await user.click(screen.getByRole('tab', { name: /settings.module.data.title/ }))
+      expect(await screen.findByText('settings.data.sync.authRequired')).toBeVisible()
+      expect(screen.getByText('settings.data.sync.authStatus')).toBeVisible()
+      expect(screen.queryByText('internal error repeated')).not.toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'settings.data.sync.signInAgain' }))
+      expect(await screen.findByRole('dialog', { name: 'Reauthenticate' })).toBeVisible()
+      expect(syncMocks.sync).not.toHaveBeenCalled()
+    } finally { setAuth(null) }
   })
 
   it('previews selected theme pack immediately and does not persist it', async () => {

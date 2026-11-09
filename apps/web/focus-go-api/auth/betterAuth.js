@@ -1,5 +1,5 @@
 import { betterAuth } from 'better-auth'
-import { username } from 'better-auth/plugins'
+import { bearer, username } from 'better-auth/plugins'
 import dotenv from 'dotenv'
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
@@ -62,6 +62,7 @@ export const auth = betterAuth({
   },
   socialProviders: googleProvider,
   plugins: [
+    bearer(),
     username({
       minUsernameLength: 3,
       maxUsernameLength: 30,

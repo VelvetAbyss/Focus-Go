@@ -1,3 +1,4 @@
+import { isSyncAuthRequired } from './auth'
 import { getAuth } from '../../store/auth'
 import { fetchApi } from '../../shared/apiBase'
 import { SYNC_ENTITY_TYPES, type SyncEntityType } from './types'
@@ -34,12 +35,13 @@ export const subscribeSyncStream = (onChange: (entities?: SyncEntityType[]) => v
   let timer: ReturnType<typeof setTimeout> | undefined
   let failures = 0
   const connect = async () => {
-    if (stopped) return
+    if (stopped || isSyncAuthRequired()) return
     controller = new AbortController()
     try {
       const token = getAuth()?.accessToken
       if (!token) return
       const response = await fetchApi('/sync/events', { headers: { Authorization: `Bearer ${token}` }, signal: controller.signal })
+      if (response.status === 401) onChange() // Let the cycle recover once or pause; reconnect checks the pause gate.
       if (!response.ok || !response.body) throw new Error('Sync notification unavailable')
       failures = 0
       await consumeSyncStream(response.body, onChange)

@@ -4,8 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SyncProvider } from './service'
 import { SYNC_LOCAL_COMMIT_EVENT } from './capture'
 
-const mocks = vi.hoisted(() => ({ cycle: vi.fn(), ready: vi.fn(), stop: vi.fn(), markStatus: vi.fn().mockResolvedValue({}) }))
-vi.mock('../../store/auth', () => ({ getAuth: () => ({ user: { id: 'account-a' } }), useIsLoggedIn: () => true, refreshAuthProfile: async () => {} }))
+const mocks = vi.hoisted(() => ({ cycle: vi.fn(), ready: vi.fn(), stop: vi.fn(), session: vi.fn(), paused: false, token: 'token', authListener: (() => {}) as () => void, markStatus: vi.fn().mockResolvedValue({}) }))
+vi.mock('./auth', async importOriginal => ({ ...(await importOriginal<typeof import('./auth')>()), ensureSyncSession: mocks.session, isSyncAuthRequired: () => mocks.paused, useSyncAuthRequired: () => mocks.paused, pauseSyncForAuth: () => { mocks.paused = true } }))
+vi.mock('../../store/auth', () => ({ getAuth: () => ({ accessToken: mocks.token, user: { id: 'account-a' } }), subscribeAuth: (listener: () => void) => { mocks.authListener = listener; return () => {} }, useIsLoggedIn: () => true, refreshAuthProfile: async () => {} }))
 vi.mock('../../shared/hooks/usePageActivity', () => ({ usePageActivity: () => 'visible' }))
 vi.mock('../seed', () => ({ seedDatabase: async () => false }))
 vi.mock('../db', () => ({ db: { localSymbolic: { where: () => ({ equals: () => ({ toArray: async () => [] }) }) }, pendingSyncChanges: { toArray: async () => [] } } }))
@@ -16,7 +17,7 @@ vi.mock('./stream', () => ({ subscribeSyncStream: () => mocks.stop }))
 const commit = () => window.dispatchEvent(new CustomEvent(SYNC_LOCAL_COMMIT_EVENT, { detail: { entityTypes: ['notes'] } }))
 const tick = async (milliseconds: number) => { await act(async () => { await vi.advanceTimersByTimeAsync(milliseconds) }) }
 
-beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-16T12:00:00Z')); vi.clearAllMocks(); mocks.cycle.mockResolvedValue(undefined); mocks.ready.mockResolvedValue(undefined); localStorage.clear() })
+beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-16T12:00:00Z')); vi.clearAllMocks(); mocks.paused = false; mocks.token = 'token'; mocks.session.mockReset().mockResolvedValue(undefined); mocks.cycle.mockReset().mockResolvedValue(undefined); mocks.ready.mockResolvedValue(undefined); localStorage.clear() })
 afterEach(() => { cleanup(); vi.useRealTimers() })
 
 describe('sync scheduling', () => {
@@ -73,5 +74,31 @@ describe('sync failures are visible even before replication starts', () => {
     render(<SyncProvider><div /></SyncProvider>)
     await tick(0)
     expect(mocks.markStatus).toHaveBeenCalledWith('error', 'IndexedDB unavailable')
+  })
+})
+describe('expired sync session', () => {
+  it('stops periodic, reconnect and edit retries until a new login, then resumes', async () => {
+    const { SyncAuthError } = await import('./auth')
+    mocks.session.mockRejectedValueOnce(new SyncAuthError())
+    render(<SyncProvider><div /></SyncProvider>)
+    await tick(0)
+    expect(mocks.paused).toBe(true)
+    act(() => { commit(); window.dispatchEvent(new Event('online')) })
+    await tick(600_000)
+    expect(mocks.cycle).not.toHaveBeenCalled()
+    expect(mocks.session).toHaveBeenCalledTimes(1)
+    act(() => { mocks.paused = false; mocks.token = 'new-token'; mocks.authListener() })
+    await tick(1000)
+    expect(mocks.cycle).toHaveBeenCalledTimes(1)
+  })
+
+  it('recovers a rejected session once, and stops when the retried cycle is still unauthorized', async () => {
+    const { SyncAuthError } = await import('./auth')
+    mocks.cycle.mockRejectedValue(new SyncAuthError())
+    render(<SyncProvider><div /></SyncProvider>)
+    await tick(0)
+    expect(mocks.session.mock.calls).toEqual([[], [true]])
+    expect(mocks.cycle).toHaveBeenCalledTimes(2)
+    expect(mocks.paused).toBe(true)
   })
 })

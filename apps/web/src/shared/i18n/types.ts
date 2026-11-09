@@ -1,6 +1,9 @@
 export type LanguageCode = 'en' | 'zh'
 
 export type TranslationKey =
+  | 'settings.data.sync.authRequired'
+  | 'settings.data.sync.authStatus'
+  | 'settings.data.sync.signInAgain'
   | 'notes.paste.failed'
   | 'notes.block.delete'
   | 'notes.block.duplicate'
