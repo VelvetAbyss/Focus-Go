@@ -635,3 +635,60 @@ test('data safety: expired session pauses once and same-account sign-in uploads 
     expect(cloudHasTask).toBe(true)
   } finally { await context.close() }
 })
+
+test('data safety: large notes cross a 1 MiB proxy limit and preserve pending content on interruption', async ({ browser }) => {
+  test.setTimeout(150_000)
+  const cookie = await authRequest('sign-up/email', { email: `large-${crypto.randomUUID()}@example.test`, password: 'test-only-password-1234', name: 'Large Note Test' })
+  const context = await browser.newContext({ serviceWorkers: 'block' })
+  try {
+    await context.addCookies([cookie])
+    await context.addInitScript(() => localStorage.setItem('workbench.ui.language', 'en'))
+    const page = await context.newPage()
+    await page.goto('/workspace/settings?section=data')
+    await expect(page.getByTestId('sync-safety-status')).toContainText('Cloud confirmed', { timeout: 45000 })
+    await page.getByRole('switch', { name: 'Toggle cloud sync' }).uncheck()
+    const noteId = await page.evaluate(async () => {
+      const { notesRepo } = await import('/src/data/repositories/notesRepo.ts')
+      // Incompressible content reproduces an image-heavy note's wire size.
+      const parts: string[] = []
+      for (let part = 0; part < 20; part++) {
+        const bytes = crypto.getRandomValues(new Uint8Array(65536))
+        let binary = ''; for (const byte of bytes) binary += String.fromCharCode(byte)
+        parts.push(btoa(binary))
+      }
+      const contentMd = parts.join('')
+      const note = await notesRepo.create({ title: 'Large sync regression', collection: 'all-notes', tags: [], contentMd, contentJson: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: contentMd }] }] } })
+      return note.id
+    })
+    let interrupt = true
+    const sizes: number[] = []
+    await page.route('**/sync/**', async route => {
+      const request = route.request()
+      if (request.method() !== 'POST') return route.continue()
+      const size = request.postDataBuffer()?.byteLength ?? 0
+      sizes.push(size)
+      if (size > 1024 * 1024) return route.fulfill({ status: 413, contentType: 'text/html', body: '<h1>Request Entity Too Large</h1>' })
+      if (interrupt && request.url().endsWith('/blobs/chunk') && JSON.parse(request.postData() ?? '{}').offset >= 262144) return route.fulfill({ status: 503, contentType: 'application/json', body: '{}' })
+      await route.continue()
+    })
+    await expect(page.evaluate(async () => (await import('/src/data/sync/rxdb.ts')).runRxdbSyncCycle())).rejects.toThrow()
+    const pending = await page.evaluate(async id => {
+      const { db } = await import('/src/data/db/index.ts')
+      return { length: (await db.notes.get(id))?.contentMd.length, pending: (await db.pendingSyncChanges.toArray()).some(change => change.entityId === id) }
+    }, noteId)
+    expect(pending.length).toBeGreaterThan(1024 * 1024)
+    expect(pending.pending).toBe(true)
+    interrupt = false
+    await page.evaluate(async () => (await import('/src/data/sync/rxdb.ts')).runRxdbSyncCycle())
+    expect(await page.evaluate(async id => {
+      const { db } = await import('/src/data/db/index.ts')
+      const { syncApi } = await import('/src/data/sync/client.ts')
+      const { decodeSyncPayload, createBlobMap } = await import('/src/data/sync/content.ts')
+      const result = await syncApi.rxdbPull({ entityType: 'notes', checkpoint: null, limit: 100 })
+      const remote = result.documents.find(doc => doc.id === id)
+      const restored = await decodeSyncPayload('notes', remote!, createBlobMap(result.blobs))
+      return { same: restored.contentMd === (await db.notes.get(id))?.contentMd, pending: (await db.pendingSyncChanges.toArray()).some(change => change.entityId === id) }
+    }, noteId)).toEqual({ same: true, pending: false })
+    expect(Math.max(...sizes)).toBeLessThan(1024 * 1024)
+  } finally { await context.close() }
+})

@@ -3,6 +3,7 @@ import db from '../db/init.js'
 import { requireAuth } from '../middleware/auth.js'
 import { getCloudStorageUsage, getRxdbPullState, pushRxdbRows, upsertSyncBlob } from '../sync/store.js'
 import { createSyncEvents } from '../sync/events.js'
+import { createBlobUploader } from '../sync/blobUploads.js'
 
 export const DEFAULT_CLOUD_SYNC_QUOTA_BYTES = 250 * 1024 * 1024
 // One client cycle pulls every entity type. Allow several active devices to
@@ -66,6 +67,26 @@ export const createSyncRouter = ({
     return res.status(429).json({ error: 'sync_rate_limited', retryAfterSeconds: decision.retryAfterSeconds })
   }
 
+  const uploadBlobChunk = createBlobUploader(database, quotaBytes)
+  router.post('/blobs/known', enforceRateLimit('pull'), (req, res) => {
+    try {
+      res.json({ hashes: uploadBlobChunk.known(String(req.auth.user.id), req.body?.hashes) })
+    } catch (error) {
+      res.status(error?.statusCode ?? 500).json({ error: error?.statusCode ? error.message : 'sync_blob_lookup_failed' })
+    }
+  })
+  router.post('/blobs/chunk', enforceRateLimit('push'), (req, res) => {
+    try {
+      res.json(uploadBlobChunk.accept(String(req.auth.user.id), req.body))
+    } catch (error) {
+      const status = error?.statusCode ?? 500
+      res.status(status).json({
+        error: status === 500 ? 'sync_blob_upload_failed' : error.message,
+        ...(error?.usage ? { usedBytes: error.usage.usedBytes, limitBytes: quotaBytes } : {}),
+      })
+    }
+  })
+
   router.post('/rxdb/pull', enforceRateLimit('pull'), (req, res) => {
     const userId = String(req.auth.user.id)
     const entityType = typeof req.body?.entityType === 'string' ? req.body.entityType : ''
@@ -98,6 +119,7 @@ export const createSyncRouter = ({
         for (const blob of blobItems) {
           upsertSyncBlob(database, userId, blob)
         }
+        uploadBlobChunk.commit(userId, entityType, writeRows)
         const result = pushRxdbRows(database, userId, entityType, writeRows)
         const usage = getCloudStorageUsage(database, userId)
         if (usage.usedBytes > quotaBytes) {

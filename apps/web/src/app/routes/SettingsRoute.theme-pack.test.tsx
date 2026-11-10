@@ -147,7 +147,7 @@ describe('SettingsRoute theme pack preview', () => {
     renderRoute()
     try {
       await user.click(screen.getByRole('tab', { name: /settings.module.data.title/ }))
-      expect(await screen.findByText('settings.data.sync.authRequired')).toBeVisible()
+      await waitFor(() => expect(screen.getByText('settings.data.sync.authRequired')).toBeVisible())
       expect(screen.getByText('settings.data.sync.authStatus')).toBeVisible()
       expect(screen.queryByText('internal error repeated')).not.toBeInTheDocument()
       await user.click(screen.getByRole('button', { name: 'settings.data.sync.signInAgain' }))
