@@ -5,6 +5,7 @@ import cors from 'cors'
 import helmet from 'helmet'
 import { toNodeHandler } from 'better-auth/node'
 import { auth } from './auth/betterAuth.js'
+import { DESKTOP_ORIGINS } from './auth/desktopOrigins.js'
 import { ensureDesktopAuthTable, registerDesktopAuthRoutes, registerBearerSignOut } from './auth/desktopAuth.js'
 import { ensureIntegrationTokenTable } from './auth/integrationTokens.js'
 import integrationsRouter from './routes/integrations.js'
@@ -42,14 +43,6 @@ const DEV_ORIGINS = [
   'http://127.0.0.1:5173',
   'http://127.0.0.1:5174',
   'http://127.0.0.1:5180',
-]
-// Tauri desktop webview origins. macOS/Linux use the custom `tauri://` scheme;
-// Windows (WebView2) uses `http(s)://tauri.localhost`. Allowed in all envs
-// because the packaged desktop app talks to the production API.
-const DESKTOP_ORIGINS = [
-  'tauri://localhost',
-  'http://tauri.localhost',
-  'https://tauri.localhost',
 ]
 const EXTRA_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
   .split(',')

@@ -41,7 +41,15 @@ jobs:
         run: npm run verify
 
       - name: Install smoke test browser
-        run: npm exec --workspace @focus-go/web -- playwright install --with-deps chromium
+        timeout-minutes: 8
+        run: |
+          # Azure's apt mirror can stall indefinitely before Playwright starts.
+          # Keep Ubuntu signature verification and all browser checks enabled.
+          grep -qF 'mirror+file:/etc/apt/apt-mirrors.txt' /etc/apt/sources.list.d/ubuntu.sources
+          printf 'https://archive.ubuntu.com/ubuntu/\tpriority:1\nhttps://security.ubuntu.com/ubuntu/\tpriority:2\n' | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
+          printf '%s\n' 'Acquire::Retries "2";' 'Acquire::http::Timeout "30";' 'Acquire::https::Timeout "30";' | sudo tee /etc/apt/apt.conf.d/zzzz-focusgo-ci >/dev/null
+          apt-config dump Acquire::Retries Acquire::http::Timeout Acquire::https::Timeout
+          npm exec --workspace @focus-go/web -- playwright install --with-deps chromium
 
       - name: Smoke test production build
         run: npm run test:smoke --workspace @focus-go/web

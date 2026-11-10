@@ -2,6 +2,7 @@ import crypto from 'crypto'
 import express from 'express'
 import { fromNodeHeaders } from 'better-auth/node'
 import { auth } from './betterAuth.js'
+import { validatePolicyConfirmation } from '../legal/policyConsent.js'
 
 // Desktop (Tauri) Google sign-in: the OAuth callbackURL points at the same-origin
 // `/api/auth/desktop/callback` (so it carries the better-auth session cookie). That
@@ -11,7 +12,11 @@ import { auth } from './betterAuth.js'
 // See apps/desktop/DESKTOP_AUTH.md.
 
 const CODE_TTL_MS = 60_000
-const DEEP_LINK = 'focusgo://auth-callback'
+// Destinations are fixed server-side: a query parameter can never choose a URL.
+const CALLBACK_DESTINATIONS = [
+  ['/api/auth/desktop/callback', 'focusgo://auth-callback'],
+  ['/api/auth/desktop/validation/callback', 'focusgo-mail-validation://auth-callback'],
+]
 
 export const ensureDesktopAuthTable = (db) => {
   db.exec(`
@@ -32,26 +37,87 @@ export const desktopCallbackPath = '/api/auth/desktop/callback'
 
 // MUST be registered before the better-auth catch-all (`app.all('/api/auth/*')`).
 export const registerDesktopAuthRoutes = (app, db, authInstance = auth) => {
+  // Start OAuth in the same external browser that will receive Google's
+  // callback. Starting it inside WKWebView strands the state cookie there.
+  for (const [callbackPath] of CALLBACK_DESTINATIONS) app.get(callbackPath.replace(/callback$/, 'start'), async (req, res) => {
+    res.set('Cache-Control', 'no-store')
+    res.set('Referrer-Policy', 'no-referrer')
+    const state = req.query.state, challenge = req.query.code_challenge
+    if (typeof state !== 'string' || !/^[a-f0-9]{64}$/.test(state)
+        || typeof challenge !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(challenge)) {
+      return res.status(400).send('登录链接已失效。请回到 FocusGO，重新点击 Google 登录。')
+    }
+    try {
+      const policyAcceptance = validatePolicyConfirmation({
+        termsAccepted: req.query.termsAccepted === '1',
+        privacyAcknowledged: req.query.privacyAcknowledged === '1',
+        termsVersion: req.query.termsVersion, privacyVersion: req.query.privacyVersion, locale: req.query.locale,
+      })
+      const { baseURL } = await authInstance.$context
+      const callback = new URL(callbackPath, baseURL)
+      callback.searchParams.set('state', state)
+      callback.searchParams.set('code_challenge', challenge)
+      const headers = fromNodeHeaders(req.headers)
+      headers.set('Content-Type', 'application/json')
+      // This server constructs the fixed same-origin request after validating
+      // its input. Keep BetterAuth's handler, rate limit and cookie checks.
+      headers.set('Origin', new URL(baseURL).origin)
+      headers.delete('content-length')
+      headers.delete('host')
+      const response = await authInstance.handler(new Request(`${baseURL}/sign-in/social`, {
+        method: 'POST', headers, body: JSON.stringify({
+          provider: 'google', callbackURL: callback.href, errorCallbackURL: callback.href,
+          disableRedirect: true, additionalData: { policyAcceptance },
+        }),
+      }))
+      const payload = await response.json()
+      if (!response.ok || typeof payload.url !== 'string') {
+        if (response.status === 429) {
+          const retry = response.headers.get('x-retry-after')
+          if (retry) res.set('Retry-After', retry)
+          return res.status(429).send('登录尝试过于频繁。请稍后回到 FocusGO 重试。')
+        }
+        return res.status(response.ok ? 502 : response.status).send('未能开始 Google 登录。请回到 FocusGO 重试。')
+      }
+      const providerUrl = new URL(payload.url)
+      if (providerUrl.protocol !== 'https:' || providerUrl.hostname !== 'accounts.google.com') {
+        return res.status(502).send('登录服务返回了无效地址。请稍后重试。')
+      }
+      const cookies = response.headers.getSetCookie()
+      if (cookies.length) res.setHeader('Set-Cookie', cookies)
+      return res.redirect(providerUrl.href)
+    } catch (error) {
+      const status = error?.body?.code === 'POLICY_CONFIRMATION_REQUIRED' ? 400 : 502
+      return res.status(status).send(status === 400
+        ? '请回到 FocusGO，阅读并确认当前条款和隐私告知后重试。'
+        : '暂时无法开始 Google 登录。请回到 FocusGO 重试。')
+    }
+  })
+
   // Step 2: better-auth redirects here after Google auth (same origin → cookie set).
-  app.get(desktopCallbackPath, async (req, res) => {
+  // The isolated validation app uses its own scheme and credential store. Both
+  // routes retain the same session, state, PKCE and one-time exchange checks.
+  for (const [path, deepLink] of CALLBACK_DESTINATIONS) app.get(path, async (req, res) => {
+    res.set('Cache-Control', 'no-store')
     const state = req.query.state
     const challenge = req.query.code_challenge
     if (typeof state !== 'string' || !/^[a-f0-9]{64}$/.test(state)
         || typeof challenge !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(challenge)) {
       return res.status(400).json({ error: 'invalid_desktop_login_binding' })
     }
+    if (req.query.error) return res.redirect(`${deepLink}?error=google_login_failed&state=${state}`)
     try {
       const session = await authInstance.api.getSession({ headers: fromNodeHeaders(req.headers) })
       const token = session?.session?.token
-      if (!token) return res.redirect(`${DEEP_LINK}?error=no_session&state=${state}`)
+      if (!token) return res.redirect(`${deepLink}?error=no_session&state=${state}`)
 
       const code = crypto.randomBytes(32).toString('hex')
       db.prepare(
         'INSERT INTO desktop_auth_code (code, session_token, expires_at, state, code_challenge) VALUES (?, ?, ?, ?, ?)',
       ).run(code, token, Date.now() + CODE_TTL_MS, state, challenge)
-      return res.redirect(`${DEEP_LINK}?code=${code}&state=${state}`)
+      return res.redirect(`${deepLink}?code=${code}&state=${state}`)
     } catch {
-      return res.redirect(`${DEEP_LINK}?error=callback_failed&state=${state}`)
+      return res.redirect(`${deepLink}?error=callback_failed&state=${state}`)
     }
   })
 
