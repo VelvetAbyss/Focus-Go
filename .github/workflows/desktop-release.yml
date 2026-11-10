@@ -39,6 +39,22 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Verify desktop release versions
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const read = (path) => JSON.parse(fs.readFileSync(path, 'utf8'));
+          const root = read('package.json').version;
+          const lock = read('package-lock.json');
+          const versions = [root, read('apps/desktop/package.json').version,
+            read('apps/desktop/src-tauri/tauri.conf.json').version,
+            lock.version, lock.packages[''].version, lock.packages['apps/desktop'].version];
+          if (new Set(versions).size !== 1) throw new Error('Desktop version files differ');
+          if (process.env.GITHUB_REF_TYPE === 'tag' && process.env.GITHUB_REF_NAME !== `v${root}`)
+            throw new Error('Release tag does not match desktop version');
+          console.log(`Desktop release version verified: ${root}`);
+          NODE
       - run: npm ci
       - name: Run verify gates
         run: npm run verify
@@ -62,30 +78,27 @@ jobs:
     runs-on: ${{ matrix.platform }}
     env:
       RELEASE_BODY: |
-        Desktop build of Focus & Go for macOS and Windows.
+        将 2026-11-10 已发布的网页版更新带到 macOS 和 Windows 桌面版。
+        网页源码基线：`620feac838cdf660af1d41075aa60972650bdff3`。
 
-        ### Install
+        ### 本次更新
 
-        **macOS** — download the `.dmg`, drag the app to Applications. The build is
-        not notarized yet, so the first launch needs one extra step: right-click the
-        app → **Open** → **Open**. If macOS says the app is damaged instead, clear
-        the download quarantine flag and open it again:
+        - 同步最新笔记编辑、任务详情、客户管理、汇率工具和工作台顶栏更新。
+        - 包含会话恢复及大内容上传修复，保留尚未上传的本机内容。
+        - 邮箱仍处于独立原型阶段，本安装包不包含邮箱功能。
 
-        ```
-        xattr -dr com.apple.quarantine "/Applications/Focus & Go.app"
-        ```
+        ### 安装与更新
 
-        **Windows** — download the `-setup.exe`. SmartScreen will warn about an
-        unrecognised publisher: click **More info** → **Run anyway**.
+        - **macOS**：下载 universal `.dmg`，支持 Apple 芯片和 Intel Mac。
+        - **Windows**：下载 x64 `-setup.exe`。
+        - 已安装用户重新打开应用后会检查更新。正常更新保留原有本机数据；无需清理缓存或卸载旧数据。
+        - 邮箱安装引导尚未接入，本次发布只更新现有桌面功能。
 
-        ### Your data
+        ### 安装包信任状态
 
-        On first launch the app asks where your data should live:
-
-        - **Local only** — no account, nothing leaves your machine, works fully offline.
-        - **Cloud sync** — sign in and the same workspace follows you across devices.
-
-        You can switch at any time in **Settings → Data → Storage mode**.
+        更新文件使用既有更新签名密钥签名。系统发行者签名和 Apple 公证是独立事项；
+        未配置相应证书时，macOS Gatekeeper 或 Windows SmartScreen 可能显示开发者未验证提示。
+        请仅从本仓库的对应版本页面下载安装包，并核对下载来源。
     steps:
       - uses: actions/checkout@v4
 

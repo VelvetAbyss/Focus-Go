@@ -72,11 +72,14 @@ using a `.pfx`. Until configured, Windows builds are unsigned (SmartScreen warni
 
 `.github/workflows/desktop-release.yml` builds the matrix (macOS universal + Windows)
 on a `v*` tag via `tauri-apps/tauri-action`, signs/notarizes (when secrets are set),
-creates a **draft** GitHub release with installers + `latest.json`, and the updater
-plugin reads that `latest.json`. Flip `releaseDraft: false` when ready to auto-publish.
+publishes a **non-draft prerelease** with installers, then refreshes the fixed
+`updater/latest.json` feed after both platforms succeed. Pushing the release tag
+is the publication step; review and verify the exact commit before tagging.
 
 ### Release checklist
-1. Bump `version` in `tauri.conf.json` and keep `apps/desktop/package.json` in sync.
+1. Bump `version` in `tauri.conf.json`, `apps/desktop/package.json`, root
+   `package.json`, and the matching root/desktop entries in `package-lock.json`.
+   The workflow checks these versions against the tag before publishing.
    The bundle targets are `app`, `dmg`, `nsis` — deliberately not `msi`, because WiX
    rejects prerelease versions like `0.1.0-beta.5`. Add `msi` back only if you also
    drop the prerelease suffix.
