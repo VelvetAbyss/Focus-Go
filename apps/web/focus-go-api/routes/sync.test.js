@@ -625,3 +625,103 @@ test('sync route rate limits repeated pushes', async () => {
     await ctx.close()
   }
 })
+
+test('large blob chunks survive router restart and publish only after complete validation', async () => {
+  const ctx = await createServer()
+  const post = (path, body) => fetch(`${ctx.baseUrl}/sync/${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+  const data = Buffer.alloc(900_000, 'x').toString('base64')
+  const metadata = { hash: 'chunk-large', contentType: 'text/plain', compression: 'none' }
+  try {
+    for (let offset = 0; offset < data.length; offset += 262144) {
+      const response = await post('blobs/chunk', { uploadId: 'upload-large', blob: metadata, totalLength: data.length, offset, dataBase64: data.slice(offset, offset + 262144) })
+      assert.equal(response.status, 200, await response.clone().text())
+      const complete = offset + 262144 >= data.length
+      assert.equal((await response.json()).complete, complete)
+      assert.equal(ctx.db.prepare('SELECT COUNT(*) AS count FROM sync_user_blobs').get().count, 0)
+      if (!complete) createSyncRouter({ database: ctx.db })
+    }
+    assert.equal(ctx.db.prepare('SELECT COUNT(*) AS count FROM sync_blob_uploads').get().count, 1)
+    await assertPushOk(await post('rxdb/push', { entityType: 'notes', rows: [{ newDocumentState: { id: 'large-note', title: 'Large', updatedAt: 1, bodyRefs: { contentMd: metadata.hash } }, assumedMasterState: null }], blobs: [] }))
+    const pull = await post('rxdb/pull', { entityType: 'notes', checkpoint: null, limit: 1 })
+    assert.equal((await pull.json()).blobs[0].dataBase64, data)
+  } finally { await ctx.close() }
+})
+
+test('chunk uploads are account isolated, retryable, bounded and roll back quota failures', async () => {
+  const ctx = await createServer({ quotaBytes: 1500, authMiddleware: (req, _res, next) => { req.auth = { user: { id: req.headers['x-account'] ?? 'one' } }; next() } })
+  const metadata = { hash: 'blob', contentType: 'text/plain', compression: 'none' }
+  const chunk = { uploadId: 'upload', blob: metadata, totalLength: 400, offset: 0, dataBase64: 'eHh4'.repeat(50) }
+  const post = (body, account = 'one') => fetch(`${ctx.baseUrl}/sync/blobs/chunk`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-account': account }, body: JSON.stringify(body) })
+  try {
+    assert.equal((await post(chunk)).status, 200)
+    assert.equal((await post(chunk)).status, 200)
+    assert.equal((await post({ ...chunk, offset: 200 }, 'two')).status, 409)
+    assert.equal(ctx.db.prepare('SELECT length(data) AS size FROM sync_blob_uploads WHERE user_id = ?').get('one').size, 200)
+    assert.equal((await post({ ...chunk, offset: 200 })).status, 200)
+    assert.equal((await post({ ...chunk, offset: 200 })).status, 200)
+    const overflow = await post({ ...chunk, uploadId: 'over-quota', totalLength: 800 })
+    assert.equal(overflow.status, 413)
+    assert.equal((await overflow.json()).error, 'cloud_storage_quota_exceeded')
+    assert.equal(ctx.db.prepare('SELECT COUNT(*) AS count FROM sync_user_blobs').get().count, 0)
+    assert.equal((await post({ ...chunk, dataBase64: 'a'.repeat(262148), totalLength: 300000 })).status, 400)
+    assert.equal((await post({ ...chunk, totalLength: 13 * 1024 * 1024 })).status, 400)
+  } finally { await ctx.close() }
+})
+
+test('staged content validates atomically with its record and is removed by account lifecycle', async () => {
+  const { createBlobUploader } = await import('../sync/blobUploads.js')
+  const database = createDb()
+  database.exec("CREATE TABLE users (id TEXT PRIMARY KEY, initial_seeded_at INTEGER, status TEXT)")
+  const uploader = createBlobUploader(database, 1_000_000)
+  const body = { uploadId: 'stage', blob: { hash: 'bad-gzip', contentType: 'text/plain', compression: 'gzip' }, totalLength: 4, offset: 0, dataBase64: 'eA==' }
+  try {
+    for (const id of ['reset', 'deletion', 'delete']) {
+      database.prepare("INSERT INTO users VALUES (?, 1, 'active')").run(id)
+      uploader.accept(id, body)
+    }
+    const rows = [{ newDocumentState: { id: 'note', bodyRefs: { contentMd: 'bad-gzip' } } }]
+    assert.throws(() => database.transaction(() => uploader.commit('reset', 'notes', rows))(), /invalid_sync_blob_compression/)
+    assert.equal(database.prepare('SELECT COUNT(*) AS count FROM sync_user_blobs').get().count, 0)
+    database.exec("UPDATE users SET initial_seeded_at = NULL WHERE id='reset'; UPDATE users SET status='deletion_pending' WHERE id='deletion'; DELETE FROM users WHERE id='delete'")
+    assert.equal(database.prepare('SELECT COUNT(*) AS count FROM sync_blob_uploads').get().count, 0)
+  } finally { database.close() }
+})
+
+test('a task with nine staged attachments commits atomically without a fixed slot limit', async () => {
+  const ctx = await createServer({ quotaBytes: 2_000_000 })
+  const post = (path, body) => fetch(`${ctx.baseUrl}/sync/${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+  const attachments = Array.from({ length: 9 }, (_, index) => ({ hash: `attachment-${index}`, name: `file-${index}.txt`, size: 60_000, type: 'text/plain' }))
+  try {
+    for (const attachment of attachments) {
+      const response = await post('blobs/chunk', { uploadId: attachment.hash, blob: { hash: attachment.hash, contentType: 'text/plain', compression: 'none' }, totalLength: 80_000, offset: 0, dataBase64: 'eHh4'.repeat(20_000) })
+      assert.equal(response.status, 200, await response.clone().text())
+    }
+    const known = await post('blobs/known', { hashes: attachments.map(item => item.hash) })
+    assert.deepEqual((await known.json()).hashes, attachments.map(item => item.hash))
+    await assertPushOk(await post('rxdb/push', { entityType: 'tasks', rows: [{ newDocumentState: { id: 'nine-attachments', title: 'Keep every attachment', updatedAt: 1, attachments }, assumedMasterState: null }], blobs: [] }))
+    const pull = await post('rxdb/pull', { entityType: 'tasks', checkpoint: null, limit: 100 })
+    const result = await pull.json()
+    assert.equal(result.documents[0].attachments.length, 9)
+    assert.equal(result.blobs.length, 9)
+    assert.equal(ctx.db.prepare('SELECT COUNT(*) AS count FROM sync_blob_uploads').get().count, 0)
+  } finally { await ctx.close() }
+})
+
+test('known content avoids double reservation near quota and remains account isolated', async () => {
+  const ctx = await createServer({ quotaBytes: 1_000_000, authMiddleware: (req, _res, next) => { req.auth = { user: { id: req.headers['x-account'] ?? 'one' } }; next() } })
+  const post = (path, body, account = 'one') => fetch(`${ctx.baseUrl}/sync/${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-account': account }, body: JSON.stringify(body) })
+  const blob = { hash: 'existing-large', contentType: 'text/plain', compression: 'none', dataBase64: Buffer.alloc(600_000, 'x').toString('base64') }
+  const first = { id: 'existing-note', title: 'Before', updatedAt: 1, bodyRefs: { contentMd: blob.hash }, _deleted: false }
+  try {
+    await assertPushOk(await post('rxdb/push', { entityType: 'notes', rows: [{ newDocumentState: first, assumedMasterState: null }], blobs: [blob] }))
+    assert.deepEqual(await (await post('blobs/known', { hashes: [blob.hash] })).json(), { hashes: [blob.hash] })
+    assert.deepEqual(await (await post('blobs/known', { hashes: [blob.hash] }, 'two')).json(), { hashes: [] })
+    const next = { ...first, title: 'Changed title, same content', updatedAt: 2 }
+    await assertPushOk(await post('rxdb/push', { entityType: 'notes', rows: [{ newDocumentState: next, assumedMasterState: first }], blobs: [] }))
+    const pull = await post('rxdb/pull', { entityType: 'notes', checkpoint: null, limit: 100 })
+    const result = await pull.json()
+    assert.equal(result.documents[0].title, next.title)
+    assert.equal(result.blobs[0].dataBase64, blob.dataBase64)
+    assert.equal(ctx.db.prepare('SELECT COUNT(*) AS count FROM sync_blob_uploads').get().count, 0)
+  } finally { await ctx.close() }
+})

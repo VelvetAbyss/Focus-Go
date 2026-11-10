@@ -11,7 +11,8 @@ vi.mock('../../store/auth', () => ({
   getAuth: () => ({ accessToken: 'token', user: { id: 'test-account' } }),
 }))
 
-vi.mock('./content', () => ({
+vi.mock('./content', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./content')>()),
   createBlobMap: (blobs: Array<{ hash: string }>) => new Map(blobs.map((blob) => [blob.hash, blob])),
   encodeSyncPayload: async (_entityType: string, payload: Record<string, unknown>) => ({ payload, blobs: [] }),
   decodeSyncPayload: async (_entityType: string, payload: Record<string, unknown>) => payload,
