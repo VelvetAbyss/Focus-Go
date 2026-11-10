@@ -5,6 +5,7 @@ import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
 import db from '../db/init.js'
 import { createPolicyAuthOptions } from '../legal/policyConsent.js'
+import { DESKTOP_ORIGINS } from './desktopOrigins.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 if (process.env.NODE_ENV !== 'test') dotenv.config({ path: join(__dirname, '../.env') })
@@ -21,6 +22,7 @@ if (!process.env.BETTER_AUTH_SECRET) {
   console.warn('[auth] BETTER_AUTH_SECRET not set — using dev-only fallback. DO NOT use in production.')
 }
 const TRUSTED_ORIGINS = [
+  ...DESKTOP_ORIGINS,
   APP_BASE_URL,
   'https://app.nestflow.art',
   'http://app.nestflow.art',

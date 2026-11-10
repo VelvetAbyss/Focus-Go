@@ -11,7 +11,11 @@ import { auth } from './betterAuth.js'
 // See apps/desktop/DESKTOP_AUTH.md.
 
 const CODE_TTL_MS = 60_000
-const DEEP_LINK = 'focusgo://auth-callback'
+// Destinations are fixed server-side: a query parameter can never choose a URL.
+const CALLBACK_DESTINATIONS = [
+  ['/api/auth/desktop/callback', 'focusgo://auth-callback'],
+  ['/api/auth/desktop/validation/callback', 'focusgo-mail-validation://auth-callback'],
+]
 
 export const ensureDesktopAuthTable = (db) => {
   db.exec(`
@@ -33,7 +37,10 @@ export const desktopCallbackPath = '/api/auth/desktop/callback'
 // MUST be registered before the better-auth catch-all (`app.all('/api/auth/*')`).
 export const registerDesktopAuthRoutes = (app, db, authInstance = auth) => {
   // Step 2: better-auth redirects here after Google auth (same origin → cookie set).
-  app.get(desktopCallbackPath, async (req, res) => {
+  // The isolated validation app uses its own scheme and credential store. Both
+  // routes retain the same session, state, PKCE and one-time exchange checks.
+  for (const [path, deepLink] of CALLBACK_DESTINATIONS) app.get(path, async (req, res) => {
+    res.set('Cache-Control', 'no-store')
     const state = req.query.state
     const challenge = req.query.code_challenge
     if (typeof state !== 'string' || !/^[a-f0-9]{64}$/.test(state)
@@ -43,15 +50,15 @@ export const registerDesktopAuthRoutes = (app, db, authInstance = auth) => {
     try {
       const session = await authInstance.api.getSession({ headers: fromNodeHeaders(req.headers) })
       const token = session?.session?.token
-      if (!token) return res.redirect(`${DEEP_LINK}?error=no_session&state=${state}`)
+      if (!token) return res.redirect(`${deepLink}?error=no_session&state=${state}`)
 
       const code = crypto.randomBytes(32).toString('hex')
       db.prepare(
         'INSERT INTO desktop_auth_code (code, session_token, expires_at, state, code_challenge) VALUES (?, ?, ?, ?, ?)',
       ).run(code, token, Date.now() + CODE_TTL_MS, state, challenge)
-      return res.redirect(`${DEEP_LINK}?code=${code}&state=${state}`)
+      return res.redirect(`${deepLink}?code=${code}&state=${state}`)
     } catch {
-      return res.redirect(`${DEEP_LINK}?error=callback_failed&state=${state}`)
+      return res.redirect(`${deepLink}?error=callback_failed&state=${state}`)
     }
   })
 
