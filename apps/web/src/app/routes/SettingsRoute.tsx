@@ -478,11 +478,10 @@ const WebPushRow = () => {
 const SettingRow = ({ icon: Icon, title, description, children }: SettingRowProps) => (
   <motion.div
     layout
-    className="grid gap-4 rounded-xl bg-background/40 p-4 shadow-sm backdrop-blur-sm transition-shadow hover:shadow-md lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center"
+    className="settings-field-row grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center"
     initial={{ opacity: 0, y: 18, scale: 0.98 }}
     animate={{ opacity: 1, y: 0, scale: 1 }}
     transition={{ duration: DURATION.slow, ease: EASE.emphasized }}
-    whileHover={{ y: -2 }}
   >
     <div className="flex gap-3">
       <div className="mt-0.5 rounded-md border border-border/80 bg-muted/60 p-2 text-muted-foreground">
@@ -1079,13 +1078,13 @@ const SettingsRoute = () => {
   }
 
   return (
-    <div className="relative h-full min-h-0 p-3 sm:p-4 lg:p-6">
+    <div className="settings-page relative h-full min-h-0 p-3 sm:p-4 lg:p-6">
       <div className="relative z-10 flex h-full min-h-0 flex-col gap-5">
         <motion.header
           initial={pageEntered ? { opacity: 0, y: -16 } : false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: DURATION.slow, ease: EASE.emphasized }}
-          className="flex flex-wrap items-end justify-between gap-4 rounded-xl bg-background/20 p-5 shadow-lg backdrop-blur"
+          className="settings-page__header flex flex-wrap items-end justify-between gap-4 rounded-xl bg-background/20 p-5 shadow-lg backdrop-blur"
         >
           <div className="type-heading-stack">
             <p className="text-xs font-semibold uppercase tracking-[var(--tracking-caps)] text-muted-foreground">{t('settings.pageEyebrow')}</p>
@@ -1094,20 +1093,20 @@ const SettingsRoute = () => {
           </div>
         </motion.header>
 
-        <Tabs value={resolvedSection} onValueChange={(value) => openSection(value as SettingsSection)} className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
-          <Card className="h-full min-h-0 bg-background/20 shadow-xl backdrop-blur dark:border-transparent">
-            <CardHeader className="pb-3">
+        <Tabs value={resolvedSection} onValueChange={(value) => openSection(value as SettingsSection)} className="settings-page__layout grid min-h-0 flex-1 gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
+          <Card className="settings-page__navigation h-full min-h-0 bg-background/20 shadow-xl backdrop-blur dark:border-transparent">
+            <CardHeader className="settings-page__nav-heading pb-3">
               <CardTitle className="text-base">{t('settings.modulesTitle')}</CardTitle>
               <CardDescription>{t('settings.modulesDescription')}</CardDescription>
             </CardHeader>
-            <CardContent className="pt-0">
+            <CardContent className="settings-page__nav-body pt-0">
               <TabsList className="settings-nav h-auto w-full flex-col items-stretch gap-2 bg-transparent p-0">
                 <ActiveIndicator selector=':scope > div > [role="tab"][data-state="active"]' />
                 {SECTION_META_KEYS.map((section) => {
                   const Icon = section.icon
                   const active = resolvedSection === section.key
                   return (
-                    <motion.div key={section.key} layout>
+                    <motion.div className="settings-page__nav-item" key={section.key} layout>
                       <TabsTrigger
                         value={section.key}
                         className="relative h-auto w-full justify-start rounded-xl bg-background/40 px-3 py-3 text-left data-[state=active]:bg-primary/10 data-[state=active]:shadow-lg"
@@ -1116,9 +1115,9 @@ const SettingsRoute = () => {
                           <Icon className="h-4 w-4 shrink-0" />
                           <div className="min-w-0 flex-1">
                             <div className="text-sm font-semibold">{t(section.titleKey)}</div>
-                            <div className="truncate text-xs text-muted-foreground">{t(section.hintKey)}</div>
+                            <div className="settings-page__nav-hint truncate text-xs text-muted-foreground">{t(section.hintKey)}</div>
                           </div>
-                          <Badge variant={active ? 'default' : 'secondary'} className="h-6 px-2 text-meta">
+                          <Badge variant={active ? 'default' : 'secondary'} className="settings-page__nav-badge h-6 px-2 text-meta">
                             {t(section.badgeKey)}
                           </Badge>
                         </div>
@@ -1131,7 +1130,7 @@ const SettingsRoute = () => {
             </CardContent>
           </Card>
 
-          <Card className="flex h-full min-h-0 flex-col bg-background/20 shadow-xl backdrop-blur dark:border-transparent">
+          <Card className="settings-page__content flex h-full min-h-0 flex-col bg-background/20 shadow-xl backdrop-blur dark:border-transparent">
             <CardContent className="flex min-h-0 flex-1 p-0">
               <ScrollArea className="h-full min-h-0 flex-1">
                 <div className="p-5 md:p-6">

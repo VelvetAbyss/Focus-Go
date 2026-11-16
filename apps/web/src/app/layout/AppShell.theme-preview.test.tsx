@@ -66,8 +66,10 @@ vi.mock('../../data/repositories/syncedPreferencesRepo', () => ({
 }))
 
 vi.mock('./Sidebar', () => ({
-  default: ({ collapsed, onToggleTheme }: { collapsed: boolean; onToggleTheme: () => void }) => (
+  default: ({ collapsed, onToggle, onToggleTheme }: { collapsed: boolean; onToggle: () => void; onToggleTheme: () => void }) => (
     <div>
+      <button type="button" onClick={onToggle}>toggle-navigation</button>
+      <a href="/tasks">Tasks</a>
       <div data-testid="sidebar-collapsed">{String(collapsed)}</div>
       <button type="button" onClick={onToggleTheme}>
         toggle-theme
@@ -158,7 +160,7 @@ describe('AppShell theme preview event flow', () => {
     window.removeEventListener(THEME_BEFORE_MODE_TOGGLE_EVENT, onBeforeModeToggle)
   })
 
-  it('updates shell scale css variable on viewport resize', async () => {
+  it('preserves browser zoom when the viewport resizes', async () => {
     const { container, unmount } = render(
       <MemoryRouter>
         <AppShell>
@@ -175,7 +177,7 @@ describe('AppShell theme preview event flow', () => {
     window.dispatchEvent(new Event('resize'))
 
     await waitFor(() => {
-      expect(shell.style.getPropertyValue('--shell-scale')).toBe('0.9')
+      expect(shell.style.getPropertyValue('--shell-scale')).toBe('1')
     })
     unmount()
     expect(document.documentElement).not.toHaveAttribute('data-ambient-scene')
@@ -213,7 +215,7 @@ describe('AppShell theme preview event flow', () => {
     const shell = container.querySelector('.focus-shell') as HTMLElement
 
     await waitFor(() => {
-      expect(shell.style.getPropertyValue('--shell-scale')).toBe('0.9')
+      expect(shell.style.getPropertyValue('--shell-scale')).toBe('1')
     })
     const before = shell.style.cssText
 
@@ -224,7 +226,7 @@ describe('AppShell theme preview event flow', () => {
     })
   })
 
-  it('keeps sidebar expanded on first load even in compact viewport', () => {
+  it('starts the intermediate rail compact without overwriting the desktop preference', () => {
     setViewportWidth(1200)
     installMatchMediaMock()
     render(
@@ -234,6 +236,37 @@ describe('AppShell theme preview event flow', () => {
         </AppShell>
       </MemoryRouter>,
     )
-    expect(screen.getByTestId('sidebar-collapsed')).toHaveTextContent('false')
+    expect(screen.getByTestId('sidebar-collapsed')).toHaveTextContent('true')
+    expect(localStorage.getItem('focusgo.sidebar.collapsed.v1')).toBeNull()
   })
+  it('allows expanding the intermediate rail without replacing the saved desktop choice', async () => {
+    setViewportWidth(1200)
+    localStorage.setItem('focusgo.sidebar.collapsed.v1', '1')
+    const user = userEvent.setup()
+    render(<MemoryRouter><AppShell><div>child</div></AppShell></MemoryRouter>)
+    await user.click(screen.getByRole('button', { name: 'toggle-navigation' }))
+    expect(screen.getByTestId('sidebar-collapsed')).toHaveTextContent('false')
+    expect(localStorage.getItem('focusgo.sidebar.collapsed.v1')).toBe('1')
+  })
+
+  it('opens and closes navigation without unmounting the tools or route', async () => {
+    setViewportWidth(615)
+    const user = userEvent.setup()
+    const { container } = render(<MemoryRouter><AppShell><input aria-label="draft" defaultValue="unsaved work" /></AppShell></MemoryRouter>)
+    const route = screen.getByLabelText('draft')
+    const sidebar = screen.getByTestId('sidebar-collapsed')
+    const trigger = container.querySelector('.focus-shell__mobile-bar button') as HTMLButtonElement
+    expect(container.querySelector('#workspace-navigation')).toHaveAttribute('inert')
+    await user.click(trigger)
+    expect(container.querySelector('main')).toHaveAttribute('inert')
+    expect(container.querySelector('#workspace-navigation')).not.toHaveAttribute('inert')
+    await user.keyboard('{Escape}')
+    expect(container.querySelector('main')).not.toHaveAttribute('inert')
+    expect(container.querySelector('#workspace-navigation')).toHaveAttribute('inert')
+    expect(screen.getByLabelText('draft')).toBe(route)
+    expect(screen.getByTestId('sidebar-collapsed')).toBe(sidebar)
+    expect(route).toHaveValue('unsaved work')
+    expect(trigger).toHaveFocus()
+  })
+
 })

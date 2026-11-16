@@ -1,0 +1,273 @@
+/* Focus&go V2 — shared workspace composition. Feature behavior, persisted
+   layouts and user-authored content remain owned by their original modules. */
+
+/* The rail is an inverse surface, including its nested controls. Body portals
+   deliberately keep the global palette rather than inheriting these colors. */
+html .focus-shell .focus-sidebar {
+  --ink-1: var(--workspace-rail-ink);
+  --ink-2: var(--workspace-rail-secondary);
+  --ink-3: var(--workspace-rail-secondary);
+  --text-primary: var(--workspace-rail-ink);
+  --text-secondary: var(--workspace-rail-secondary);
+  --text-tertiary: var(--workspace-rail-secondary);
+  --paper-raised: var(--workspace-rail-raised);
+  --paper-sheet: var(--workspace-rail);
+  --paper-sunken: var(--workspace-rail-muted);
+  --bg-elevated: var(--workspace-rail-raised);
+  --bg-muted: var(--workspace-rail-muted);
+  --surface: var(--workspace-rail);
+  --surface-hover: var(--workspace-rail-raised);
+  --accent: var(--workspace-rail-accent);
+  --accent-soft: var(--workspace-rail-raised);
+  --accent-ink: var(--workspace-rail-muted);
+  --rule: var(--workspace-rail-line);
+  --rule-strong: var(--workspace-rail-line);
+  --border: var(--workspace-rail-line);
+  color: var(--ink-1);
+  background: var(--workspace-rail);
+  border-color: var(--workspace-rail-line);
+  box-shadow: 0 5px 20px -12px rgb(35 29 23 / 32%);
+}
+
+html .focus-shell .focus-sidebar__nav { gap: 5px; padding-block: 16px; }
+html .focus-shell .focus-sidebar__nav--system { padding-block: 8px; }
+html .focus-shell .focus-sidebar__item { min-height: 42px; font-weight: 400; }
+html .focus-shell .focus-sidebar__item.is-active { font-weight: 600; }
+html .focus-shell .focus-sidebar__item.is-active > svg { color: var(--workspace-rail-accent); }
+html .focus-shell .focus-sidebar__tools { padding-block: 10px; }
+html .focus-shell .focus-sidebar__top { padding-block: 16px; }
+html .focus-shell .sidebar-user-panel__hint { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Keep environment selection as a real alternative palette. */
+html[data-ambient-scene]:not([data-ambient-scene='idle']):not([data-ambient-scene='window-light']):not([data-theme-pack-preview]) {
+  --workspace-rail: color-mix(in srgb, hsl(var(--environment-ink)) 88%, #242320);
+  --workspace-rail-raised: color-mix(in srgb, hsl(var(--environment-ink)) 76%, hsl(var(--environment-sheet)));
+  --workspace-info: color-mix(in srgb, hsl(var(--environment-pen)) 14%, hsl(var(--environment-sheet)));
+  --workspace-info-ink: hsl(var(--environment-ink));
+  --workspace-panel: hsl(var(--environment-sunken));
+}
+
+html[data-theme='dark'][data-ambient-scene]:not([data-ambient-scene='idle']):not([data-ambient-scene='window-light']):not([data-theme-pack-preview]) {
+  --workspace-rail: color-mix(in srgb, hsl(var(--environment-sunken)) 85%, #181715);
+  --workspace-rail-raised: hsl(var(--environment-sheet));
+}
+
+/* Existing theme packs stay temporary previews. Surface aliases travel with
+   the seven preview variables, and disappear together when preview ends. */
+html[data-theme-pack-preview] {
+  --paper-desk: var(--bg);
+  --paper-sheet: var(--bg-elevated);
+  --paper-raised: var(--bg-elevated);
+  --paper-sunken: var(--bg-muted);
+  --surface: var(--bg-elevated);
+  --surface-hover: var(--bg-muted);
+  --workspace-panel: var(--bg-muted);
+  --accent-wash: var(--accent-soft);
+  --workspace-info: color-mix(in srgb, var(--accent) 10%, var(--bg-elevated));
+  --workspace-info-ink: var(--text-primary);
+}
+
+html .focus-shell__main {
+  background: var(--paper-desk);
+  border-color: var(--rule-strong);
+  box-shadow: 0 1px 2px rgb(55 45 34 / 5%);
+}
+
+/* Route headers share alignment, not a repeated dashboard masthead. */
+.focus-shell :is(.pj-page, .trips-journal) { padding: var(--workspace-inset); }
+.focus-shell :is(.habits-page-design__container, .timeline-page, .admin-deck) {
+  padding: var(--workspace-inset);
+}
+.focus-shell :is(.pj-header, .trips-journal__header, .hb-header, .timeline-page__header, .currency-header, .translation-page__header, .crm-header) {
+  gap: 20px;
+  margin-bottom: 24px;
+}
+.focus-shell :is(.pj-title, .pd-hero__title, .trips-journal__title, .calendar-main-title, .tasks-page-shell__title) {
+  letter-spacing: normal;
+  font-weight: var(--weight-heading);
+}
+
+/* Dashboard: the working list is a surface; contextual tools are lighter.
+   Grid positions and widget dimensions continue to come from saved layout. */
+html .focus-shell .dashboard { background: transparent; }
+html .focus-shell .dashboard .card:not(.dashboard-widget-card--weather) {
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  box-shadow: var(--elev-1);
+}
+html .focus-shell .dashboard .card.dashboard-widget-card--worldclock,
+html .focus-shell .dashboard .card.dashboard-widget-card--todo {
+  background: var(--workspace-panel);
+  box-shadow: none;
+}
+.focus-shell .dashboard .card__header { padding: 20px 22px 14px; }
+.focus-shell .dashboard .card__body { padding-inline: 22px; }
+html .focus-shell .dashboard .card.dashboard-widget-card--tasks { border-color: var(--rule-strong); }
+.focus-shell .dashboard-widget-card--tasks .tasks-fg__card-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
+.focus-shell .dashboard-widget-card--tasks .task-card-shell {
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.focus-shell .dashboard-widget-card--tasks .task-card-shell:last-child { border-bottom: 0; }
+.focus-shell .dashboard-widget-card--tasks .task-card__head { padding-bottom: 6px; }
+.focus-shell .dashboard-widget-card--tasks .task-card__foot { border-top: 0; padding-top: 6px; }
+.focus-shell .dashboard-widget-card--tasks .task-card__title { font-size: var(--fs-body); font-weight: 500; line-height: 1.5; }
+.focus-shell .dash-toolbar { border-color: var(--rule); background: transparent; }
+.focus-shell .dash-hero { border-color: var(--rule); }
+.focus-shell .dash-hero__num { font-size: clamp(52px, 4vw, 64px); }
+.focus-shell .dashboard .weather-card { border-color: var(--workspace-info-line); box-shadow: var(--elev-1); }
+.focus-shell .dashboard .weather-card:not([data-sky='dark']) { background: var(--workspace-info); }
+.focus-shell .dashboard .weather-card > .card__body { padding: 0; }
+
+/* Execution: a primary workspace and secondary planning region. */
+.focus-shell .tasks-page { background: var(--paper-desk); }
+.focus-shell .tasks-workspace-header { padding: 28px var(--workspace-inset) 22px; }
+.focus-shell .tasks-page .tasks-page-shell__panel { padding-inline: var(--workspace-inset); }
+.focus-shell .tasks-page .tasks-page-shell__switch { border-radius: 10px; padding: 4px; }
+.focus-shell .tasks-page .tasks-page-shell__tab { min-height: 36px; border-radius: 7px; }
+.focus-shell .tasks-page .tasks-board-surface { background: transparent; }
+.focus-shell .tasks-page .task-card-shell { border-color: var(--rule); background: var(--paper-raised); box-shadow: var(--elev-1); }
+.focus-shell .flow-today { gap: 24px; }
+.focus-shell .flow-today-main {
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  box-shadow: var(--elev-1);
+}
+.focus-shell .flow-planning-shelf { padding: 20px; border: 0; background: var(--workspace-panel); border-radius: var(--radius-md); }
+.focus-shell .flow-queue { background: var(--workspace-panel); border-radius: 12px; padding: 16px 12px; }
+.focus-shell .flow-queue[data-status='doing'] { background: color-mix(in srgb, var(--workspace-info) 65%, var(--paper-desk)); }
+.focus-shell .flow-queue .flow-task { border-radius: 9px; box-shadow: var(--elev-1); margin-bottom: 12px; }
+.focus-shell .flow-controls { border-top: 0; padding-bottom: 18px; }
+.focus-shell .flow-next-title { letter-spacing: normal; }
+.focus-shell .flow-review-metrics { border-radius: 12px; background: var(--workspace-panel); padding: 16px; }
+.task-detail-workspace .task-detail-aside { background: var(--workspace-panel); }
+.task-detail-workspace .task-detail-topbar { background: var(--paper-raised); border-bottom: 1px solid var(--rule); }
+.task-detail-workspace .task-detail-card--hero { border: 0; box-shadow: none; }
+
+.focus-shell .dashboard-widget-card--tasks .task-card__title { min-height: 0; }
+.focus-shell .dashboard-widget-card--tasks .task-card__body { gap: 8px; }
+.focus-shell .dashboard-widget-card--tasks .task-card-shell:hover { translate: none; }
+
+/* Notes retain three functional panes and saved content appearance. */
+.focus-shell .note-page:not([data-fullscreen='true']) { --note-sidebar-width: 210px; --note-browser-width: 264px; }
+.focus-shell .note-page-shell[data-note-theme='paper'] .note-page-column--sidebar { background: var(--workspace-panel); }
+.focus-shell .note-page-shell[data-note-theme='paper'] .note-page-column--browser { background: var(--paper-desk); }
+.focus-shell .note-page-shell[data-note-theme='paper'] .note-page-column--editor { background: var(--paper-raised); }
+.focus-shell :is(.note-page-column--sidebar, .note-page-column--browser) { width: 100%; min-width: 0; }
+.focus-shell .note-page-shell[data-note-theme='paper'] .note-card { border-radius: 9px; border-color: transparent; background: transparent; box-shadow: none; }
+.focus-shell .note-page-shell[data-note-theme='paper'] .note-card:is(.is-active, .is-selected, [aria-selected='true']) {
+  border-color: var(--rule-strong); background: var(--paper-raised); box-shadow: var(--elev-1);
+}
+.focus-shell .note-editor__topbar { border-bottom: 1px solid var(--note-border, var(--rule)); background: var(--note-workspace-bg); }
+.note-mobile-navigation { display: none; }
+.note-card:focus-within .note-card__actions { opacity: 1; }
+@media (max-width: 980px), (hover: none) {
+  .note-card .note-card__actions { position: static; justify-content: flex-end; margin-top: 8px; opacity: 1; }
+  .note-card__actions button { display: grid; place-items: center; min-width: 40px; min-height: 40px; }
+}
+
+/* Calendar preserves the real month/subscription model. Grid cells form a
+   continuous working surface, with dates and selection carrying the accents. */
+.focus-shell .calendar-v2 { background: var(--paper-desk); }
+.focus-shell .calendar-v2__left { background: var(--workspace-panel); }
+.focus-shell .calendar-v2__main { background: var(--paper-raised); padding: 24px; }
+.focus-shell .calendar-v2__right { background: var(--workspace-panel); }
+.focus-shell .calendar-month-grid { gap: 0; border-top: 1px solid var(--rule); border-left: 1px solid var(--rule); border-radius: 10px; overflow: hidden; }
+.focus-shell .calendar-month-grid__cell {
+  border: 0; border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+  border-radius: 0; background: var(--paper-raised); box-shadow: none;
+}
+.focus-shell .calendar-month-grid__cell:hover { background: var(--surface-hover); }
+.focus-shell .calendar-month-grid__cell.is-selected { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.focus-shell .calendar-month-grid__cell.is-outside { background: var(--workspace-panel); }
+.focus-shell .calendar-side-panel { background: var(--paper-raised); border-radius: 12px; box-shadow: var(--elev-1); }
+.focus-shell .calendar-task-card { background: var(--paper-raised); border-color: var(--rule); border-radius: 9px; }
+
+/* Secondary modules use the same material roles while retaining their
+   domain layouts: record lists, timelines, maps, boards and reading panes. */
+.focus-shell :is(.pj-card-hero, .habit-card-design, .currency-panel, .labs-card, .admin-panel) {
+  background: var(--paper-raised); border-color: var(--rule); border-radius: var(--radius-md); box-shadow: var(--elev-1);
+}
+.focus-shell .pj-page { background: var(--paper-desk); }
+.focus-shell .pd-hero { background: var(--workspace-panel); border-bottom: 1px solid var(--rule); }
+.focus-shell .trips-journal__summary { background: var(--workspace-panel); border-radius: 12px; padding: 18px 22px; }
+.focus-shell .trips-journal__card { box-shadow: var(--elev-1); border-color: var(--rule); }
+.focus-shell .timeline-page { --tl-panel: var(--paper-raised); background: var(--paper-desk); }
+.focus-shell .diary-page__rail { background: var(--workspace-panel); border-right: 1px solid var(--rule); }
+.focus-shell .diary-page .diary-page__editor-pane { background: var(--paper-raised) !important; }
+.focus-shell .habits-page-design { background: var(--paper-desk); }
+.focus-shell .crm-page { --crm-cover: var(--workspace-info); --crm-cover-ink: var(--workspace-info-ink); }
+.focus-shell :is(.currency-page, .translation-page, .labs-page) {
+  padding: max(0px, calc(var(--workspace-inset) - var(--route-pad, 16px)));
+  min-width: 0;
+}
+.focus-shell :is(.currency-page, .labs-page) { gap: 24px; }
+.focus-shell .translation-page { width: 100%; }
+.focus-shell .labs-page__header-inner { padding: 0; }
+.focus-shell .labs-page__header { background: transparent; border: 0; box-shadow: none; padding: 0; }
+.focus-shell .currency-header { background: transparent; box-shadow: none; border: 0; padding: 0; margin: 0; }
+.focus-shell .translation-page__workspace { border-color: var(--rule-strong); box-shadow: var(--elev-1); }
+.focus-shell .admin-deck__hero { background: transparent; border: 0; box-shadow: none; }
+.focus-shell .focus-zip-app { background: var(--paper-desk); }
+.focus-shell .focus-zip-app__panel { border-color: var(--rule-strong); }
+
+/* Settings: quiet navigation and a single working surface. */
+.focus-shell .settings-page { padding: var(--workspace-inset); }
+.focus-shell .settings-page__header { padding: 0 0 8px; border-radius: 0; background: transparent; box-shadow: none; backdrop-filter: none; }
+.focus-shell .settings-page__navigation { background: var(--workspace-panel); box-shadow: none; backdrop-filter: none; border-color: var(--rule); }
+.focus-shell .settings-page__content { background: var(--paper-raised); box-shadow: var(--elev-1); backdrop-filter: none; border-color: var(--rule); }
+.focus-shell .settings-nav [role='tab'] { background: transparent; border-radius: 8px; }
+.focus-shell .settings-field-row { padding: 18px 4px; border-bottom: 1px solid var(--rule); background: transparent; box-shadow: none; }
+.focus-shell .settings-field-row:last-child { border-bottom: 0; }
+.focus-shell .support-page { margin-inline: auto; padding: var(--workspace-inset); }
+
+/* A visible focus state is part of the redesign. This intentionally supersedes
+   the legacy global outline:none !important rule without affecting pointer focus. */
+html body :is(.focus-shell, [role='dialog'], [data-radix-popper-content-wrapper]) :is(button, a[href], input, select, textarea, [role='tab'], [role='button'], [tabindex]:not([contenteditable='true'])):focus-visible {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 3px;
+}
+.focus-shell .btn--pressable:not(:disabled):hover { box-shadow: var(--elev-1); }
+.focus-shell :is(.task-card-shell, .pj-card-hero, .labs-card) { transition: border-color 140ms var(--ease-standard), box-shadow 140ms var(--ease-standard); }
+.focus-shell :is(.task-card-shell, .pj-card-hero, .labs-card):hover { border-color: var(--rule-strong); }
+
+@media (max-width: 980px) {
+  .focus-shell .note-page:not([data-fullscreen='true']) { grid-template-columns: minmax(0, 1fr); }
+  .note-mobile-navigation { display: flex; gap: 6px; padding: 10px 14px; flex: none; background: var(--workspace-panel); border-bottom: 1px solid var(--rule); }
+  .note-mobile-navigation button { flex: 1; min-height: 40px; padding: 8px; border: 1px solid transparent; border-radius: 8px; font-size: var(--fs-ui); color: var(--ink-2); }
+  .note-mobile-navigation button[aria-pressed='true'] { background: var(--paper-raised); border-color: var(--rule); color: var(--ink-1); box-shadow: var(--elev-1); }
+  .focus-shell .note-page[data-mobile-pane] .note-page-column { display: none; }
+  .focus-shell .note-page[data-mobile-pane='collections'] .note-page-column--sidebar,
+  .focus-shell .note-page[data-mobile-pane='list'] .note-page-column--browser,
+  .focus-shell .note-page[data-mobile-pane='editor'] .note-page-column--editor { display: flex; width: 100%; min-width: 0; max-width: 100%; }
+  .focus-shell .note-page-shell__content { flex: 1 1 auto; height: auto; min-height: 0; max-height: none; }
+  .focus-shell .calendar-v2__main { padding: 18px; }
+}
+
+@media (max-width: 767px) {
+  :root { --workspace-inset: 18px; --workspace-section-gap: 18px; }
+  html .focus-shell .focus-sidebar__top { padding-block: 10px; }
+  html .focus-shell .focus-sidebar__nav { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 76px; overflow-x: auto; flex: none; padding-block: 8px; }
+  html .focus-shell .focus-sidebar__nav--system { display: flex; gap: 8px; padding-block: 6px; }
+  html .focus-shell .focus-sidebar__nav--system .focus-sidebar__item { flex-direction: row; flex: 1; }
+  html .focus-shell .focus-sidebar__tools { padding-block: 6px; }
+  .focus-shell .tasks-workspace-header { padding: 22px 18px 18px; }
+  .focus-shell .tasks-page .tasks-page-shell__panel { padding-inline: 18px; }
+  .focus-shell .flow-today-main, .focus-shell .flow-planning-shelf { padding: 18px; }
+  .focus-shell .calendar-v2__main { padding: 12px; }
+  .focus-shell .dashboard .card__header { padding: 18px 18px 12px; }
+  .focus-shell .dashboard .card__body { padding-inline: 18px; }
+  .focus-shell .dashboard .weather-card > .card__body { padding: 0; }
+  .focus-shell .settings-page { padding: 14px; }
+  .focus-shell .trips-journal__summary { padding: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .focus-shell :is(.task-card-shell, .pj-card-hero, .labs-card, .btn) { transition: none; }
+}

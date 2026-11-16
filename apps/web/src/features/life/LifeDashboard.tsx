@@ -4,7 +4,7 @@ import { GridLayout, useContainerWidth } from 'react-grid-layout'
 import { absoluteStrategy } from 'react-grid-layout/core'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import { useIsBreakpoint } from '../../hooks/use-is-breakpoint'
+import { reflowDashboardLayout } from '../dashboard/responsiveLayout'
 import { getLifeCards, type DashboardCard } from '../dashboard/registry'
 import type { DashboardLayoutItem } from '../../data/models/types'
 import { useDashboardGridEdit } from '../dashboard/useDashboardGridEdit'
@@ -73,9 +73,9 @@ const DEFAULT_LIFE_HIDDEN_CARD_IDS = ['stocks']
 
 const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => {
   const { t } = useLifeI18n()
-  const isMobile = useIsBreakpoint('max', 768)
-  const columns = isMobile ? 8 : 24
   const { width, containerRef, mounted } = useContainerWidth({ initialWidth: window.innerWidth })
+  const isMobile = width < 1120
+  const columns = isMobile ? 8 : 24
   const [layout, setLayout] = useState<DashboardLayoutItem[]>([])
   const [hiddenCardIds, setHiddenCardIds] = useState<string[]>([])
   const layoutSnapshotRef = useRef<{ layout: DashboardLayoutItem[]; hiddenCardIds: string[] }>({ layout: [], hiddenCardIds: [] })
@@ -83,14 +83,7 @@ const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => 
   const cards = useMemo(() => getLifeCards(t), [t])
   const cardsById = useMemo(() => new Map<string, DashboardCard>(cards.map((c) => [c.id, c])), [cards])
 
-  const responsiveLayout = useMemo(() => {
-    if (!isMobile) return layout
-    return layout.map((item) => {
-      const mobileW = Math.max(4, Math.round((item.w / 24) * 8))
-      const mobileX = Math.min(8 - mobileW, Math.round((item.x / 24) * 8))
-      return { ...item, w: mobileW, x: mobileX }
-    })
-  }, [isMobile, layout])
+  const responsiveLayout = useMemo(() => reflowDashboardLayout(layout, width, columns), [layout, width, columns])
 
   const persistLayout = useCallback(async (nextLayout: DashboardLayoutItem[], nextHiddenCardIds: string[]) => {
     setLayout(nextLayout)
@@ -110,12 +103,12 @@ const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => 
 
   const gridEdit = useDashboardGridEdit({
     layout: responsiveLayout,
-    enabled: layoutEdit,
+    enabled: layoutEdit && !isMobile,
     cols: columns,
     rowHeight: 30,
     margin: [18, 18] as [number, number],
     padding: [18, 18] as [number, number],
-    width: Math.max(width, 320),
+    width: Math.max(width, 1),
     minW: isMobile ? 4 : 4,
     minH: 4,
     onUpdate: setLayout,
@@ -231,13 +224,13 @@ const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => 
             cols: columns,
             rowHeight: 30,
             margin: [18, 18],
-            containerPadding: [18, 18],
+            containerPadding: isMobile ? [6, 12] : [18, 18],
             maxRows: 200,
           }}
           dragConfig={{ enabled: false }}
           resizeConfig={{ enabled: false }}
           positionStrategy={absoluteStrategy}
-          width={Math.max(width, 320)}
+          width={Math.max(width, 1)}
         >
           {renderedCards.map((card) => {
             const discoveryTarget = LIFE_CARD_DISCOVERY_TARGET_BY_ID[card.id]

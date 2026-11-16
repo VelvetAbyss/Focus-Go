@@ -42,6 +42,8 @@
   --weight-medium: 500;
   --weight-heading: 600;
   --reading-measure: 46rem;
+  --workspace-inset: clamp(20px, 2.4vw, 36px);
+  --workspace-section-gap: 24px;
   /* Radius: 4 steps + pill. */
   --radius-xs: 6px;
   --radius-sm: 10px;
@@ -98,12 +100,12 @@
   --cta-height: 38px;
   --cta-pad-x: 18px;
   --cta-gap: 7px;
-  --cta-radius: 999px;
+  --cta-radius: 9px;
   --cta-font-size: var(--fs-ui);
   --cta-font-weight: 500;
-  --cta-bg: var(--text-primary);
-  --cta-fg: var(--bg-elevated);
-  --cta-bg-hover: color-mix(in srgb, var(--text-primary) 86%, var(--bg-elevated));
+  --cta-bg: var(--accent);
+  --cta-fg: var(--accent-ink);
+  --cta-bg-hover: color-mix(in srgb, var(--accent) 88%, var(--text-primary));
   --cta2-bg: var(--bg-elevated);
   --cta2-fg: var(--text-primary);
   /* Discovery components */
@@ -168,26 +170,37 @@ html[data-motion='reduce'] {
 }
 
 html[data-theme='light'] {
-  /* Paper */
-  --bg: #f6f5f2;
-  --paper-desk: #ffffff;
-  --paper-sheet: #fdfcfa;
-  --paper-raised: #ffffff;
-  --paper-sunken: #f0ede7;
-  --bg-elevated: #ffffff;
-  --bg-muted: #f0ede7;
+  /* Approved V2: warm stone canvas, ivory work surfaces, clay actions. */
+  --workspace-rail: #3c3935;
+  --workspace-rail-raised: #514a42;
+  --workspace-rail-muted: #302e2a;
+  --workspace-rail-ink: #f4f0e8;
+  --workspace-rail-secondary: #d0c8bd;
+  --workspace-rail-accent: #e3b79c;
+  --workspace-rail-line: #5b554d;
+  --workspace-info: #dce5e9;
+  --workspace-info-ink: #4d6572;
+  --workspace-info-line: #c6d1d5;
+  --workspace-panel: #f1ede6;
+  --bg: #e8e4dd;
+  --paper-desk: #e8e4dd;
+  --paper-sheet: #fcfbf7;
+  --paper-raised: #fcfbf7;
+  --paper-sunken: #efebe4;
+  --bg-elevated: #fcfbf7;
+  --bg-muted: #efebe4;
   /* Ink (ink-2 used to be a cool #5d6168 — the one cool gray in a warm system) */
-  --ink-1: #3a3733;
-  --ink-2: #5e5a54;
-  --ink-3: #77726b;
+  --ink-1: #35332f;
+  --ink-2: #605b54;
+  --ink-3: #68625b;
   --ink-4: #a8a298;
   /* Pencil = intention (open checkboxes, goals, planned dates). --pencil is the
      only pencil text colour (5.2:1 on the sheet); --pencil-line draws marks
      only (3.2:1) and never sits on the desk. */
   --pencil: #6f6a63;
   --pencil-line: #948e84;
-  --text-primary: #3a3733;
-  --text-secondary: #5e5a54;
+  --text-primary: #35332f;
+  --text-secondary: #605b54;
   /* Rules: translucent so they read on paper and on scene glass alike. */
   --rule: rgba(84, 70, 48, 0.13);
   --rule-strong: rgba(84, 70, 48, 0.22);
@@ -195,23 +208,23 @@ html[data-theme='light'] {
   --tone-urgent: #b5412c;
   --tone-warn: #9a6a17;
   --tone-done: #4f7a3a;
-  --tone-info: #3d5a8c;
+  --tone-info: #4d6572;
   --tone-urgent-wash: #f7e8e4;
   --tone-warn-wash: #f5eddc;
   --tone-done-wash: #e9efe4;
-  --tone-info-wash: #e7ecf4;
-  --accent-wash: #e4edeb;
+  --tone-info-wash: #dce5e9;
+  --accent-wash: #f0e0d6;
   /* Paper lies on the desk: a contact shadow for resting cards, a short lift
      for menus and dragged items. */
-  --elev-1: 0 1px 0 var(--rule), 0 2px 6px rgba(58, 55, 51, 0.06);
+  --elev-1: 0 1px 2px rgba(67, 54, 41, 0.06), 0 7px 18px -12px rgba(67, 54, 41, 0.2);
   --elev-2: 0 1px 0 var(--rule), 0 10px 28px -12px rgba(58, 55, 51, 0.22);
   --elev-3: 0 2px 6px rgba(58, 55, 51, 0.08), 0 30px 80px -20px rgba(22, 20, 18, 0.35);
-  --accent: #1b4f4a;
-  --accent-ink: #ffffff; /* text/icons on an accent fill */
-  --accent-soft: #e0edea;
+  --accent: #a65d43;
+  --accent-ink: #fcfbf7; /* text/icons on an accent fill */
+  --accent-soft: #f0e0d6;
   --border: var(--rule);
-  --surface: #ffffff;
-  --surface-hover: #f5f5f5;
+  --surface: #fcfbf7;
+  --surface-hover: #f0ece5;
   --shadow-md: 0 4px 12px rgba(58, 55, 51, 0.08);
   /* Semantic card/pop shadows — replace scattered hard-coded shadow-[…rgba…].
      Resting cards sit flat (contact shadow); only menus and dialogs float. */
@@ -225,7 +238,7 @@ html[data-theme='light'] {
   --cta2-bg-hover: color-mix(in srgb, var(--text-primary) 5%, var(--bg-elevated));
   /* Tertiary text (timestamps, captions, meta): the quietest text that still
      clears ~4.5:1 on the page surface. Use instead of ad-hoc 40–50% inks. */
-  --text-tertiary: #77726b;
+  --text-tertiary: #68625b;
   /* Segmented controls / view switchers: one track + raised thumb everywhere. */
   --segmented-track: color-mix(in srgb, var(--text-primary) 5%, var(--bg-elevated));
   --segmented-track-border: color-mix(in srgb, var(--text-primary) 8%, transparent);
@@ -236,12 +249,23 @@ html[data-theme='light'] {
 }
 
 html[data-theme='dark'] {
+  --workspace-rail: #201f1d;
+  --workspace-rail-raised: #3b3630;
+  --workspace-rail-muted: #282522;
+  --workspace-rail-ink: #f4eee5;
+  --workspace-rail-secondary: #c8bfb3;
+  --workspace-rail-accent: #e8b194;
+  --workspace-rail-line: #494138;
+  --workspace-info: #2c3a40;
+  --workspace-info-ink: #c1d5dd;
+  --workspace-info-line: #43535b;
+  --workspace-panel: #2c2925;
   --bg: #242320;
   --paper-desk: #242320;
-  --paper-sheet: #282623;
-  --paper-raised: #2d2b27;
+  --paper-sheet: #2b2925;
+  --paper-raised: #34312c;
   --paper-sunken: #211f1c;
-  --bg-elevated: #2d2b27;
+  --bg-elevated: #34312c;
   --bg-muted: #35322e;
   --ink-1: #f2f0ec;
   --ink-2: #c8c1b7;
@@ -261,17 +285,17 @@ html[data-theme='dark'] {
   --tone-warn-wash: rgba(217, 169, 80, 0.14);
   --tone-done-wash: rgba(151, 187, 123, 0.14);
   --tone-info-wash: rgba(149, 173, 217, 0.14);
-  --accent-wash: rgba(126, 219, 199, 0.12);
+  --accent-wash: rgba(227, 163, 129, 0.14);
   /* Dark: no drop shadows on resting paper. Elevation is a rule on a lighter
      surface (rule-strong for menus); only overlays keep a soft depth. */
   --elev-1: 0 1px 0 var(--rule);
   --elev-2: 0 0 0 1px var(--rule-strong);
   --elev-3: 0 2px 6px rgba(0, 0, 0, 0.45), 0 30px 80px -20px rgba(0, 0, 0, 0.7);
-  --accent: #7edbc7;
-  --accent-ink: #0f2622;
-  --accent-soft: #18322d;
+  --accent: #e3a381;
+  --accent-ink: #332217;
+  --accent-soft: #4b352b;
   --border: var(--rule);
-  --surface: #2d2b27;
+  --surface: #34312c;
   --surface-hover: #3a3733;
   --shadow-md: 0 12px 28px rgba(0, 0, 0, 0.32);
   --shadow-card: var(--elev-1);

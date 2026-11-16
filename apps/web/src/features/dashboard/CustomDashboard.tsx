@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useI18n } from '../../shared/i18n/useI18n'
 import { useLifeI18n } from '../life/lifeI18n'
-import { useIsBreakpoint } from '../../hooks/use-is-breakpoint'
+import { reflowDashboardLayout } from './responsiveLayout'
 import { getDashboardCards, getLifeCards } from './registry'
 import { useDashboardGridEdit } from './useDashboardGridEdit'
 import { appendViewWidget, uniqueViewName, viewNameError, type CustomView } from './customViews'
@@ -48,10 +48,10 @@ export default function CustomDashboard({ view, views, isNew, onSave, onDelete, 
     window.addEventListener('beforeunload', beforeUnload)
     return () => window.removeEventListener('beforeunload', beforeUnload)
   }, [editing, isNew, draft, view])
-  const mobile = useIsBreakpoint('max', 768)
   const { width, containerRef, mounted } = useContainerWidth({ initialWidth: window.innerWidth })
+  const mobile = width < 1120
   const items = editing ? draft.items : view.items
-  const grid = useDashboardGridEdit({ layout: items, enabled: editing && !mobile, cols: 12, rowHeight: 60, margin: [18, 18], padding: [18, 18], width: Math.max(width, 320), minW: 2, minH: 2,
+  const grid = useDashboardGridEdit({ layout: items, enabled: editing && !mobile, cols: 12, rowHeight: 60, margin: [18, 18], padding: [18, 18], width: Math.max(width, 1), minW: 2, minH: 2,
     onUpdate: next => setDraft(prev => ({ ...prev, items: next })),
     onCommit: next => setDraft(prev => ({ ...prev, items: next })),
   })
@@ -81,7 +81,7 @@ export default function CustomDashboard({ view, views, isNew, onSave, onDelete, 
     })
   }
   const ordered = [...items].sort((a, b) => a.y - b.y || a.x - b.x)
-  const mobileLayout = ordered.map((item, index) => ({ ...item, x: 0, w: 4, y: ordered.slice(0, index).reduce((y, previous) => y + previous.h, 0) }))
+  const mobileLayout = reflowDashboardLayout(ordered, width, 4)
   return <section className="custom-view" ref={containerRef} aria-label={text('自定义视图', 'Custom view')}>
     <div className="custom-view__toolbar">
       <div className="custom-view__heading">
@@ -131,7 +131,7 @@ export default function CustomDashboard({ view, views, isNew, onSave, onDelete, 
       </div>
     </div>}
     {items.length === 0 && <div className="custom-view__empty"><h3>{text('留一页给你自己的节奏', 'A page for your own rhythm')}</h3><p>{text('把任务、天气、书籍或世界时钟放在一起。', 'Bring tasks, weather, books or world clocks together.')}</p>{!editing && <Button variant="outline" onClick={() => setEditing(true)}><Plus size={14} />{text('添加组件', 'Add widgets')}</Button>}</div>}
-    {mounted && items.length > 0 && <GridLayout className={`dashboard__grid${editing && !mobile ? ' dashboard__grid--edit-mode' : ''}`} width={Math.max(width, 1)} layout={(mobile ? mobileLayout : items).map(item => ({ i: item.key, x: item.x, y: item.y, w: item.w, h: item.h }))} gridConfig={{ cols: mobile ? 4 : 12, rowHeight: 60, margin: [18, 18], containerPadding: [18, 18] }} dragConfig={{ enabled: false }} resizeConfig={{ enabled: false }} positionStrategy={absoluteStrategy}>
+    {mounted && items.length > 0 && <GridLayout className={`dashboard__grid${editing && !mobile ? ' dashboard__grid--edit-mode' : ''}`} width={Math.max(width, 1)} layout={(mobile ? mobileLayout : items).map(item => ({ i: item.key, x: item.x, y: item.y, w: item.w, h: item.h }))} gridConfig={{ cols: mobile ? 4 : 12, rowHeight: 60, margin: [18, 18], containerPadding: mobile ? [6, 12] : [18, 18] }} dragConfig={{ enabled: false }} resizeConfig={{ enabled: false }} positionStrategy={absoluteStrategy}>
       {items.map(item => <div key={item.key} className={`dashboard__item${editing && !mobile ? ' is-layout-edit' : ''}${grid.activeId === item.key ? ' is-dragging' : ''}`}>
         {cards.find(card => card.id === item.key)?.render() ?? <p>{text('此组件暂不可用，可在编辑中移除。', 'This widget is unavailable. Remove it in the editor.')}</p>}
         {editing && !mobile && <><div className="dashboard__edit-overlay" {...grid.dragProps(item.key)}><span>{title(item.key)}</span></div><div className="dashboard__resize-handle" {...grid.resizeProps(item.key)} /></>}

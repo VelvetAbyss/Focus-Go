@@ -246,6 +246,32 @@ describe('NotePage', () => {
       </MemoryRouter>,
     )
 
+  it('keeps the selected editor mounted while switching compact navigation', async () => {
+    listMock.mockResolvedValue([createNote({ id: 'compact-1', title: 'Reading draft' })])
+    listTrashMock.mockResolvedValue([])
+    const { container } = renderPage()
+    const editor = await screen.findByText('Editor:Reading draft')
+    await userEvent.click(screen.getByRole('button', { name: 'Notes' }))
+    expect(container.querySelector('.note-page')).toHaveAttribute('data-mobile-pane', 'list')
+    expect(screen.getByText('Editor:Reading draft')).toBe(editor)
+    await userEvent.click(screen.getByRole('button', { name: 'Editor' }))
+    expect(container.querySelector('.note-page')).toHaveAttribute('data-mobile-pane', 'editor')
+    expect(screen.getByText('Editor:Reading draft')).toBe(editor)
+    expect(createMock).not.toHaveBeenCalled()
+  })
+
+  it('opens the filtered list after choosing a collection on compact navigation', async () => {
+    listMock.mockResolvedValue([createNote({ id: 'compact-2', title: 'Research draft', tags: ['Research'] })])
+    listTrashMock.mockResolvedValue([])
+    listTagsMock.mockResolvedValue([createTag({ id: 'research', name: 'Research' })])
+    const { container } = renderPage()
+    await screen.findByText('Editor:Research draft')
+    await userEvent.click(screen.getByRole('button', { name: 'Collections' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Research' }))
+    await waitFor(() => expect(container.querySelector('.note-page')).toHaveAttribute('data-mobile-pane', 'list'))
+    expect(screen.getByText('Research draft')).toBeInTheDocument()
+  })
+
   it('does not auto create a blank note when the workspace is empty', async () => {
     listMock.mockResolvedValueOnce([])
     listTrashMock.mockResolvedValue([])

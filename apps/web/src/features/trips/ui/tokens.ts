@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react'
 import { typography } from '../../../shared/theme/typography'
 import { scaleFontSize } from '../../../shared/theme/typeScale'
 
-export const paper = 'var(--paper-raised)'
+export const paper = 'var(--paper-desk)'
 export const cardBg = 'var(--paper-raised)'
 export const ink = 'var(--ink-1)'
 // Secondary text must stay ≥4.5:1 (DESIGN.md › Color): ink-3, not a 45% tint.

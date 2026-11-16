@@ -114,13 +114,10 @@ export default function App() {
     };
   }, [sessions]);
 
-  // Panels follow the dashboard card language: theme surface + hairline
-  // border, slightly translucent so the ambient-scene glass still reads.
-  const panelBackground = "color-mix(in srgb, var(--bg-elevated) 92%, transparent)";
-  const panelBackgroundStrong = "color-mix(in srgb, var(--bg-elevated) 96%, transparent)";
-  const shellShadow = isDark
-    ? "0 18px 44px rgba(0, 0, 0, 0.22), 0 1px 4px rgba(0, 0, 0, 0.18)"
-    : "0 4px 32px rgba(58, 55, 51, 0.05), 0 1px 4px rgba(58, 55, 51, 0.04)";
+  // The timer is the primary surface; sound and history are contextual panels.
+  const panelBackground = "var(--workspace-panel)";
+  const panelBackgroundStrong = "var(--paper-raised)";
+  const shellShadow = "var(--elev-1)";
   const panelFallback = (
     <div
       className="h-full rounded-2xl"

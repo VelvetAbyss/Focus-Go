@@ -9,7 +9,7 @@ export const PaperCard = ({ children, style, tape }: { children: ReactNode; styl
       background: cardBg,
       border: `1px solid ${subtleBorder}`,
       borderRadius: 16,
-      boxShadow: '0 1px 6px rgba(0, 0, 0, 0.05)',
+      boxShadow: 'var(--elev-1)',
       ...style,
     }}
   >

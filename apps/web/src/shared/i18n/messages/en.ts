@@ -195,7 +195,7 @@ export const enMessages: TranslationMessages = {
   'shell.systemNav': 'System',
   'settings.pageEyebrow': 'Workbench',
   'settings.pageTitle': 'Settings',
-  'settings.pageDescription': 'Use the left rail to switch modules. Changes apply immediately.',
+  'settings.pageDescription': 'Choose a settings category. Changes apply immediately.',
   'settings.modulesTitle': 'Setting Modules',
   'settings.modulesDescription': 'Switch sections from this navigation rail.',
   'settings.module.appearance.title': 'Appearance',

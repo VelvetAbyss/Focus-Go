@@ -102,7 +102,7 @@ const TripDetailSkeleton = () => (
       <div style={skeletonBlock({ width: 260, height: 42 })} />
       <div style={skeletonBlock({ width: '100%', height: 14, borderRadius: 999 })} />
     </div>
-    <div style={{ display: 'grid', gridTemplateColumns: '280px minmax(0, 1fr)', gap: 18 }}>
+    <div className="trip-detail-layout">
       <div style={{ ...skeletonBlock({ minHeight: 520 }), border: `1px solid ${subtleBorder}`, background: cardBg }} />
       <div style={{ display: 'grid', gap: 18 }}>
         <div style={{ ...skeletonBlock({ minHeight: 220 }), border: `1px solid ${subtleBorder}`, background: cardBg }} />
@@ -381,22 +381,22 @@ const TripDetailPage = () => {
   }, [trip])
 
   const pageWrapper: CSSProperties = {
-    margin: -18,
-    height: 'calc(100% + 36px)',
-    minHeight: 'calc(100% + 36px)',
+    margin: 0,
+    height: '100%',
+    minHeight: 0,
     boxSizing: 'border-box',
     overflowY: 'auto',
     background: paper,
-    padding: 46,
+    padding: 'var(--workspace-inset)',
   }
 
   if (loading) {
-    return <div ref={containerRef} style={pageWrapper}><TripDetailSkeleton /></div>
+    return <div className="trip-detail-page" ref={containerRef} style={pageWrapper}><TripDetailSkeleton /></div>
   }
 
   if (!trip) {
     return (
-      <div ref={containerRef} style={pageWrapper}>
+      <div className="trip-detail-page" ref={containerRef} style={pageWrapper}>
         <Card style={{ maxWidth: 620, margin: '80px auto 0', padding: 28 }}>
           <h1 data-type-role="page" style={pf(28, 600)}>{t('life.trips.detail.tripNotFound')}</h1>
           <p style={{ ...tx(13, 400, muted), marginTop: 10 }}>{t('life.trips.detail.tripNotFoundDesc')}</p>
@@ -412,9 +412,9 @@ const TripDetailPage = () => {
   }
 
   return (
-    <div ref={containerRef} style={pageWrapper}>
+    <div className="trip-detail-page" ref={containerRef} style={pageWrapper}>
       <AuthInteractionGate>
-      <div style={{ display: 'grid', gridTemplateColumns: '220px minmax(0, 1fr)', gap: 24, maxWidth: 1480, margin: '0 auto' }}>
+      <div className="trip-detail-layout">
         <aside style={{ position: 'sticky', top: 46, alignSelf: 'start', background: paper, borderRadius: 18, padding: 18 }}>
           <button type="button" onClick={() => navigate(ROUTES.TRIPS)} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18, border: 'none', background: 'transparent', cursor: 'pointer', ...tx(12, 500, muted) }}>
             <ArrowLeft size={14} /> {t('life.trips.detail.allTrips')}
@@ -539,7 +539,7 @@ const TripDetailPage = () => {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 }}>
+            <div className="trip-detail-stats">
               <Card style={{ padding: '18px 20px' }}><p style={{ ...tx(10, 600, muted), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase', marginBottom: 8 }}>{t('life.trips.detail.duration')}</p><p style={{ ...tx(28, 600), lineHeight: 1 }}>{duration}<span style={{ ...tx(14, 400, muted) }}> days</span></p></Card>
               <Card style={{ padding: '18px 20px' }}><p style={{ ...tx(10, 600, muted), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase', marginBottom: 8 }}>{t('life.trips.detail.travelersLabel')}</p><p style={{ ...tx(28, 600), lineHeight: 1 }}>{trip.travelers}<span style={{ ...tx(14, 400, muted) }}> pax</span></p></Card>
               <Card style={{ padding: '18px 20px' }}><p style={{ ...tx(10, 600, muted), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase', marginBottom: 8 }}>{t('life.trips.detail.budget')}</p><p style={{ ...tx(22, 600), lineHeight: 1 }}>{fmtUSD(trip.budgetPlanned)}</p><p style={{ ...tx(10, 400, muted), marginTop: 8 }}>{fmtUSD(estimated)} estimated</p></Card>
@@ -547,7 +547,7 @@ const TripDetailPage = () => {
             </div>
 
             <Card style={{ padding: '20px 22px', display: 'grid', gap: 16 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14 }}>
+              <div className="trip-detail-overview">
                 <div style={{ display: 'grid', gap: 6 }}><Label>Title</Label><input value={trip.title} onChange={(event) => updateTitle(event.target.value)} style={inputStyle} /></div>
                 <div style={{ display: 'grid', gap: 6 }}><Label>Destination</Label><input value={trip.destination} onChange={(event) => updateDestination(event.target.value)} style={inputStyle} /></div>
                 <div style={{ display: 'grid', gap: 6 }}><Label>Status</Label><select value={trip.status} onChange={(event) => patchTrip({ status: event.target.value as TripRecord['status'] })} style={inputStyle}>{tripStatusOptions.map((status) => <option key={status} value={status}>{status}</option>)}</select></div>
@@ -621,7 +621,7 @@ const TripDetailPage = () => {
                     <span style={tx(11, 500, sc.text)}>{item.status}</span>
                     <ActionButton danger onClick={() => updateTransport(removeFrom(trip.transport, item.id))}><Trash2 size={14} /> {t('life.trips.detail.remove')}</ActionButton>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 140px', gap: 12 }}>
+                  <div className="trip-detail-fields">
                     <input value={item.from} onChange={(e) => patch({ from: e.target.value })} style={inputStyle} placeholder="From" />
                     <input value={item.to} onChange={(e) => patch({ to: e.target.value })} style={inputStyle} placeholder="To" />
                     <select value={item.method} onChange={(e) => patch({ method: e.target.value as TripTransportItem['method'] })} style={inputStyle}>{transportMethodOptions.map((o) => <option key={o} value={o}>{o}</option>)}</select>
@@ -651,13 +651,13 @@ const TripDetailPage = () => {
                     <span style={tx(11, 500, sc.text)}>{stay.status}</span>
                     <ActionButton danger onClick={() => updateStays(removeFrom(trip.stays, stay.id))}><Trash2 size={14} /> {t('life.trips.detail.remove')}</ActionButton>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px 140px 120px 140px', gap: 12 }}>
+                  <div className="trip-detail-fields">
                     <input value={stay.name} onChange={(e) => patch({ name: e.target.value })} style={inputStyle} placeholder="Stay name" />
                     <input value={stay.checkIn} onChange={(e) => patch({ checkIn: e.target.value })} style={inputStyle} placeholder="Check-in" />
                     <input value={stay.checkOut} onChange={(e) => patch({ checkOut: e.target.value })} style={inputStyle} placeholder="Check-out" />
                     <input type="number" min={1} value={stay.nights} onChange={(e) => patch({ nights: Math.max(1, Number(e.target.value) || 1) })} style={numberStyle} />
                     <select value={stay.status} onChange={(e) => patch({ status: e.target.value as TripStayItem['status'] })} style={inputStyle}>{bookingStatusOptions.map((o) => <option key={o} value={o}>{o}</option>)}</select>
-                    <input value={stay.address} onChange={(e) => patch({ address: e.target.value })} style={{ ...inputStyle, gridColumn: 'span 3' }} placeholder="Address" />
+                    <input value={stay.address} onChange={(e) => patch({ address: e.target.value })} className="trip-detail-fields__wide" style={inputStyle} placeholder="Address" />
                     <input value={stay.currency} onChange={(e) => patch({ currency: e.target.value })} style={inputStyle} placeholder="USD" />
                     <input type="number" min={0} value={stay.cost} onChange={(e) => patch({ cost: Math.max(0, Number(e.target.value) || 0) })} style={numberStyle} />
                   </div>
@@ -679,7 +679,7 @@ const TripDetailPage = () => {
                     <span style={{ ...tx(10, 600, sc.text), background: sc.bg, borderRadius: 999, padding: '4px 8px' }}>{item.status}</span>
                     <ActionButton danger onClick={() => updateFood(removeFrom(trip.food, item.id))}><Trash2 size={14} /> {t('life.trips.detail.remove')}</ActionButton>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 120px 120px', gap: 12 }}>
+                  <div className="trip-detail-fields">
                     <input value={item.name} onChange={(e) => patch({ name: e.target.value })} style={inputStyle} placeholder="Place" />
                     <input value={item.area} onChange={(e) => patch({ area: e.target.value })} style={inputStyle} placeholder="Area" />
                     <input value={item.cuisine} onChange={(e) => patch({ cuisine: e.target.value })} style={inputStyle} placeholder="Cuisine" />
@@ -724,7 +724,7 @@ const TripDetailPage = () => {
                   : t('life.trips.detail.split.perDayNote', { count: splitDays })}
               </p>
             ) : null}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 }}>
+            <div className="trip-detail-stats">
               {([
                 [t('life.trips.detail.planned'), trip.budgetPlanned, ink],
                 [t('life.trips.detail.estimated'), estimated, 'var(--ink-2)'],
@@ -783,7 +783,7 @@ const TripDetailPage = () => {
                     <span style={tx(12, 500)}>{item.label || 'New budget item'}</span>
                     <ActionButton danger onClick={() => updateBudget(removeFrom(trip.budget, item.id))}><Trash2 size={14} /> {t('life.trips.detail.remove')}</ActionButton>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '72px 1fr 160px 160px', gap: 12 }}>
+                  <div className="trip-detail-fields">
                     <input value={item.emoji} onChange={(e) => patch({ emoji: e.target.value })} style={inputStyle} placeholder="💸" />
                     <input value={item.label} onChange={(e) => patch({ label: e.target.value })} style={inputStyle} placeholder="Label" />
                     <input type="number" min={0} value={item.planned} onChange={(e) => patch({ planned: Math.max(0, Number(e.target.value) || 0) })} style={numberStyle} placeholder="Planned" />
