@@ -1,0 +1,318 @@
+/* One layout coordinate system: browser zoom changes the available CSS width,
+   and workspaces reflow into it. No internal zoom or viewport-sized children. */
+html .focus-shell {
+  --shell-window-height: 100dvh;
+  --shell-content-height: calc(100dvh - 2 * var(--page-pad, 14px));
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+html .focus-shell__scale-wrap {
+  width: 100%; height: 100%; min-width: 0; min-height: 0;
+  flex-direction: row; zoom: 1; transform: none;
+}
+html .focus-shell__main {
+  container: workspace / inline-size;
+  height: 100%; min-height: 0; max-height: 100%;
+}
+html .focus-shell__route-layer {
+  height: 100%; min-height: 0 !important; max-height: 100%;
+  overscroll-behavior: contain;
+}
+html .focus-shell__route-content { min-width: 0; min-height: 100%; }
+html .focus-shell__route-layer--full-bleed > .focus-shell__route-content {
+  height: 100%; min-height: 0 !important;
+}
+.focus-shell__navigation { flex: none; height: 100%; min-height: 0; }
+html .focus-shell .focus-sidebar { height: 100%; min-height: 0; max-height: 100%; margin: 0; }
+.focus-shell__mobile-bar, .focus-shell__nav-close { display: none; }
+
+/* The drawer keeps the same sidebar/tool instances mounted as the viewport
+   changes. Closed navigation is inert, and the open drawer owns keyboard focus. */
+html .focus-shell[data-layout='drawer'] {
+  --page-pad: 8px; --panel-gap: 8px;
+  --shell-content-height: calc(100dvh - 72px);
+}
+html .focus-shell[data-layout='drawer'] .focus-shell__scale-wrap { flex-direction: column; }
+.focus-shell[data-layout='drawer'] .focus-shell__mobile-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  height: 48px; flex: 0 0 48px; padding: 0 4px;
+}
+.focus-shell__mobile-bar button, .focus-shell__nav-close {
+  align-items: center; justify-content: center; gap: 6px; min-width: 44px; min-height: 44px;
+  color: var(--ink-1); border-radius: 10px; font-size: var(--fs-ui);
+}
+.focus-shell__mobile-bar button { display: inline-flex; }
+.focus-shell__mobile-bar button:hover { background: var(--paper-sunken); }
+.focus-shell__brand { font-size: 18px; font-weight: 650; letter-spacing: -.5px; }
+.focus-shell__brand span { color: var(--accent); }
+html .focus-shell[data-layout='drawer'] .focus-shell__main { height: 0; flex: 1 1 0; }
+.focus-shell[data-layout='drawer'] .focus-shell__navigation {
+  position: fixed; z-index: 61; inset: 0 auto 0 0;
+  width: min(360px, 100%); height: 100dvh; visibility: hidden;
+  transform: translateX(-100%); transition: transform 180ms ease;
+}
+.focus-shell[data-layout='drawer'][data-navigation-open='true'] .focus-shell__navigation { visibility: visible; transform: none; }
+.focus-shell__nav-backdrop { position: fixed; z-index: 60; inset: 0; background: rgb(35 29 23 / 42%); }
+.focus-shell[data-layout='drawer'] .focus-shell__nav-close {
+  display: inline-flex; position: absolute; z-index: 2; right: 10px; top: 12px;
+  color: var(--workspace-rail-ink); background: var(--workspace-rail-raised);
+}
+html .focus-shell[data-layout='drawer'] .focus-sidebar {
+  height: 100% !important; min-height: 0 !important; max-height: 100% !important;
+  width: 100% !important; border-radius: 0; overflow-y: auto; overscroll-behavior: contain;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+html .focus-shell[data-layout='drawer'] .focus-sidebar__top { padding: 12px 60px 12px 12px; flex: none; }
+html .focus-shell[data-layout='drawer'] .focus-sidebar__toggle { display: none; }
+html .focus-shell[data-layout='drawer'] .focus-sidebar .focus-sidebar__nav {
+  display: grid; grid-template-columns: minmax(0, 1fr); grid-auto-flow: row; grid-auto-columns: auto;
+  flex: none; overflow: visible; padding: 10px; gap: 4px; mask-image: none; -webkit-mask-image: none;
+}
+html .focus-shell[data-layout='drawer'] .focus-sidebar .focus-sidebar__item {
+  flex-direction: row; justify-content: flex-start; min-height: 44px; height: auto; width: 100%;
+  padding: 10px 14px; gap: 12px; touch-action: pan-y;
+}
+html .focus-shell[data-layout='drawer'] .focus-sidebar .focus-sidebar__item > span { font-size: var(--fs-ui); }
+html .focus-shell[data-layout='drawer'] .focus-sidebar .focus-sidebar__tools { display: flex; flex-direction: column; max-height: none; overflow: visible; }
+html .focus-shell[data-layout='drawer'] .sidebar-tool__play,
+html .focus-shell[data-layout='drawer'] .sidebar-noise-mini__gear { min-width: 44px; min-height: 44px; }
+html .focus-shell[data-layout='drawer'] .focus-sidebar .focus-sidebar__nav--system { margin: 0 10px; }
+
+/* Settings: an independent scrollable work surface on wide screens; a compact
+   horizontal section picker above the content when the rail would crowd it. */
+.focus-shell .settings-page { height: 100%; min-width: 0; container: settings / inline-size; }
+.focus-shell .settings-page__layout { grid-template-columns: 220px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+.focus-shell .settings-page__navigation { overflow-y: auto; }
+.focus-shell .settings-page__content { min-width: 0; }
+.focus-shell .settings-page__header { flex: none; }
+@container workspace (max-width: 1050px) {
+  .focus-shell .settings-page__layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: 12px; }
+  .focus-shell .settings-page__navigation { height: auto; min-width: 0; overflow: hidden; border: 0; border-radius: 10px; }
+  .focus-shell .settings-page__nav-heading { display: none; }
+  .focus-shell .settings-page__nav-body { padding: 6px; }
+  .focus-shell .settings-nav { display: flex; flex-direction: row; justify-content: flex-start; gap: 4px; overflow-x: auto; scrollbar-width: thin; padding: 2px; }
+  .focus-shell .settings-page__nav-item { flex: none; }
+  .focus-shell .settings-nav [role='tab'] { padding: 10px 12px; min-height: 44px; white-space: nowrap; }
+  .focus-shell .settings-nav [role='tab'] > div { gap: 7px; }
+  .focus-shell .settings-page__nav-hint, .focus-shell .settings-page__nav-badge { display: none; }
+}
+
+/* Feature workspaces respond to the space after navigation, not screen size. */
+.focus-shell :is(.tasks-page, .habits-page-design, .diary-page) { height: 100%; min-height: 0; max-height: 100%; }
+.focus-shell .calendar-v2__main { min-width: 0; min-height: 0; overflow-y: auto; }
+.focus-shell .calendar-month-grid { flex: none; min-height: 450px; }
+.focus-shell .calendar-month-grid__cell { min-width: 0; }
+.focus-shell .focus-zip-app__column { min-width: 0; }
+.focus-shell .focus-zip-app__column--center .focus-zip-app__panel { overflow-y: auto; }
+.focus-shell .focus-zip-timer { min-height: 560px; }
+.focus-shell .pj-card-list--grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
+.focus-shell .trips-journal__grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); }
+.focus-shell :is(.translation-page__header, .timeline-page__header, .pj-header, .trips-journal__header) { flex-wrap: wrap; }
+.focus-shell :is(.crm-workspace, .crm-list-pane, .crm-detail, .currency-layout) { min-width: 0; }
+.focus-shell .currency-layout { grid-template-columns: minmax(0, .85fr) minmax(0, 1.45fr); }
+
+@container workspace (max-width: 1160px) {
+  .focus-shell .focus-page--zip-bleed { overflow-y: auto; }
+  .focus-shell .focus-page--zip-bleed .focus-zip-app { height: auto; overflow: visible; }
+  .focus-shell .focus-zip-app__layout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); height: auto; padding: var(--workspace-inset); }
+  .focus-shell .focus-zip-app__column { width: 100%; min-width: 0; }
+  .focus-shell .focus-zip-app__column--center { order: -1; grid-column: 1 / -1; }
+  .focus-shell .focus-zip-app__panel { height: auto; }
+  .focus-shell .focus-zip-app__column--center .focus-zip-app__panel { min-height: 560px; }
+  .focus-shell .focus-zip-timer__actions { flex-wrap: wrap; justify-content: center; max-width: 100%; }
+  .focus-shell .pj-row { grid-template-columns: 14px minmax(120px, 2fr) repeat(3, minmax(0, 1fr)); }
+  .focus-shell .pj-row > * { min-width: 0; }
+  .focus-shell .pj-row__pri, .focus-shell .pj-row__owner, .focus-shell .pj-row__status { display: block; }
+}
+@container workspace (max-width: 1000px) {
+  .focus-shell .note-page:not([data-fullscreen='true']) { grid-template-columns: minmax(0, 1fr); }
+  .focus-shell .note-mobile-navigation { display: flex; gap: 6px; padding: 8px 12px; flex: none; background: var(--workspace-panel); border-bottom: 1px solid var(--rule); }
+  .focus-shell .note-mobile-navigation button { flex: 1; min-height: 44px; padding: 8px; border: 1px solid transparent; border-radius: 8px; color: var(--ink-2); font-size: var(--fs-ui); }
+  .focus-shell .note-mobile-navigation button[aria-pressed='true'] { background: var(--paper-raised); border-color: var(--rule); color: var(--ink-1); }
+  .focus-shell .note-page[data-mobile-pane] .note-page-column { display: none; }
+  .focus-shell .note-page[data-mobile-pane='collections'] .note-page-column--sidebar,
+  .focus-shell .note-page[data-mobile-pane='list'] .note-page-column--browser,
+  .focus-shell .note-page[data-mobile-pane='editor'] .note-page-column--editor { display: flex; width: 100%; min-width: 0; max-width: 100%; }
+  .focus-shell .note-page-shell__content { flex: 1 1 auto; height: auto; min-height: 0; max-height: none; }
+  .focus-shell .timeline-page__toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .focus-shell .timeline-page__toolbar > :first-child { grid-column: 1 / -1; }
+}
+@container workspace (max-width: 840px) {
+  .focus-shell .flow-today { grid-template-columns: minmax(0, 1fr); }
+  .focus-shell .flow-planning-shelf { max-height: none; }
+  .focus-shell .currency-layout { grid-template-columns: minmax(0, 1fr); }
+  .focus-shell .crm-workspace, .focus-shell .crm-workspace.is-pipeline.has-detail { display: block; min-height: 0; }
+  .focus-shell .crm-workspace.has-detail .crm-list-pane,
+  .focus-shell .crm-workspace:not(.has-detail) .crm-detail { display: none; }
+  .focus-shell .crm-page .crm-back { display: inline-flex; min-height: 44px; }
+  .focus-shell .crm-page .crm-close-detail { display: none; }
+  .focus-shell .crm-header { flex-wrap: wrap; }
+  .focus-shell .translation-page .translation-texts { grid-template-columns: minmax(0, 1fr); }
+}
+@container workspace (max-width: 620px) {
+  .focus-shell .settings-page__header .type-heading-stack > p { display: none; }
+  .focus-shell .settings-page__header h1 { font-size: 26px; margin-top: 0; }
+  .focus-shell .settings-page > div { gap: 12px; }
+  .focus-shell .settings-page__content [data-radix-scroll-area-viewport] > div > div { padding: 16px; }
+  .focus-shell .focus-zip-app__layout { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .focus-shell .focus-zip-app__column--center { grid-column: auto; }
+  .focus-shell .timeline-page__toolbar { grid-template-columns: minmax(0, 1fr); }
+  .focus-shell .pj-row { position: relative; grid-template-columns: 14px minmax(0, 1fr); gap: 6px 10px; padding: 14px; }
+  .focus-shell .pj-row > :not(.pj-row__health-dot):not(.pj-row__arrow) { grid-column: 2; }
+  .focus-shell .pj-row__title { white-space: normal; padding-right: 18px; }
+  .focus-shell .pj-row__arrow { position: absolute; right: 14px; top: 18px; }
+  .focus-shell .pj-row__progress { display: flex; }
+  .focus-shell .translation-page__workspace { padding: 14px; }
+  .focus-shell .flow-today-main, .focus-shell .flow-planning-shelf { padding: 14px; }
+  .focus-shell .calendar-month-grid { min-height: 450px; }
+  .focus-shell .calendar-v2__main { padding: 10px; }
+}
+
+/* Travel detail form grids have real intrinsic minimums; do not squeeze five
+   fields into a phone or preserve an implicit span after changing columns. */
+.trip-detail-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 24px; max-width: 1480px; margin: 0 auto; }
+.trip-detail-page .trip-detail-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 12px; }
+.trip-detail-fields > * { min-width: 0; width: 100%; }
+.trip-detail-fields__wide { grid-column: 1 / -1; }
+.trip-detail-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.trip-detail-overview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+@container workspace (max-width: 1000px) {
+  .trip-detail-layout { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .trip-detail-layout > aside { position: static !important; }
+  .trip-detail-layout > aside nav { display: flex !important; overflow-x: auto; gap: 6px; }
+  .trip-detail-layout > aside nav button { flex: none; min-height: 44px; }
+  .trip-detail-overview { grid-template-columns: minmax(0, 1fr); }
+}
+@container workspace (max-width: 620px) {
+  .trip-detail-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .trip-detail-page :is(input, select, textarea) { min-width: 0; max-width: 100%; }
+  .trip-detail-fields { grid-template-columns: minmax(0, 1fr) !important; }
+  .trip-detail-fields > * { grid-column: auto !important; }
+}
+
+/* A short landscape/zoomed viewport has room to scroll, not to squeeze a
+   header, filter strip, task list and composer into a zero-height middle. */
+@media (max-height: 560px) {
+  html .focus-shell:not([data-layout='drawer']) .focus-sidebar { overflow-y: auto; }
+  html .focus-shell:not([data-layout='drawer']) .focus-sidebar__nav { flex: none; overflow: visible; }
+  html .focus-shell:not([data-layout='drawer']) .focus-sidebar__tools { max-height: none; overflow: visible; }
+  .focus-shell .settings-page, .focus-shell .settings-page > div { height: auto; min-height: 100%; }
+  .focus-shell .settings-page__layout { flex: none; grid-template-rows: auto; }
+  .focus-shell .settings-page__content, .focus-shell .settings-page__content > div,
+  .focus-shell .settings-page__content [data-radix-scroll-area-viewport] { height: auto !important; overflow: visible !important; }
+  .focus-shell .settings-page__header .type-heading-stack > p { display: none; }
+  .focus-shell .settings-page__header h1 { font-size: 26px; }
+  .focus-shell .tasks-page { overflow-y: auto; }
+  .focus-shell :is(.tasks-page-shell, .tasks-page-shell__panel, .flow-workspace, .flow-content, .flow-today, .flow-review) { height: auto; min-height: 0; max-height: none; overflow: visible; flex: none; }
+  .focus-shell .flow-board { height: auto; min-height: 280px; }
+  .focus-shell .tasks-workspace-header { padding-block: 14px; }
+  .focus-shell .flow-today-main { overflow: visible; }
+}
+@media (max-width: 380px) {
+  html .focus-shell { --workspace-inset: 12px; --route-pad: 8px; }
+  .focus-shell .tasks-workspace-header { padding-inline: 12px; }
+  .focus-shell .tasks-page .tasks-page-shell__panel { padding-inline: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .focus-shell__navigation { transition: none !important; }
+}
+
+/* A binary choice can sit beside its description even on a phone. Longer
+   selects/forms keep a full-width row when the content needs it. */
+.focus-shell .settings-field-row:has(> div > [role='switch']) { grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 14px; }
+.focus-shell .settings-field-row > div:first-child { min-width: 0; }
+.focus-shell .settings-field-row > div:first-child > div:first-child { align-self: flex-start; }
+.focus-shell .settings-field-row:has(> div > [role='switch']) > div:last-child { width: auto; }
+@container workspace (max-width: 700px) {
+  .focus-shell .custom-view__editor { grid-template-columns: minmax(0, 1fr); padding: 14px; gap: 18px; }
+  .focus-shell .custom-view__toolbar { flex-wrap: wrap; }
+  .focus-shell .custom-view__layout-row { flex-wrap: wrap; }
+  .focus-shell .custom-view__layout-row > span { flex-basis: 100%; }
+  .focus-shell .flow-controls > input { min-width: 0; flex-basis: 100%; }
+}
+@media (max-height: 560px) {
+  .focus-shell .task-flow { height: auto; flex: none; }
+  .focus-shell :is(.flow-shelf-list, .flow-queue-body) { overflow: visible; }
+  .focus-shell .custom-view__catalog { max-height: none; }
+}
+
+.focus-shell .focus-zip-app__column--center .focus-zip-app__panel { container: timer / inline-size; }
+@container timer (max-width: 600px) {
+  .focus-shell .focus-zip-timer { height: auto; min-height: 620px; justify-content: flex-start; padding: 22px 16px 30px; }
+  .focus-shell .focus-zip-timer__goal { position: static; align-self: flex-start; margin-bottom: 24px; padding-right: 30px; }
+  .focus-shell .focus-zip-timer__shortcuts { top: 22px; right: 12px; }
+  .focus-shell .focus-zip-timer__body { width: 100%; min-width: 0; }
+  .focus-shell .focus-zip-timer__body > * { max-width: 100%; }
+  .focus-shell .focus-zip-timer__modes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; gap: 6px; }
+  .focus-shell .focus-zip-timer__modes button { justify-content: center; min-height: 40px; padding: 8px; white-space: nowrap; }
+  .focus-shell .focus-zip-timer__actions { flex-wrap: wrap; justify-content: center; gap: 8px; }
+}
+@container workspace (max-width: 620px) {
+  .focus-shell .tasks-workspace-composer-field { flex-wrap: wrap; gap: 8px; padding: 10px; }
+  .focus-shell .tasks-workspace-composer-field > .tasks-fg__input { order: -1; flex: 0 0 100%; width: 100%; min-width: 0; min-height: 36px; }
+  .focus-shell .tasks-workspace-composer-field > .tasks-fg__hero-plus { display: none; }
+  .focus-shell .tasks-workspace-composer-field > .tasks-fg__project-picker { flex: 1; min-width: 0; }
+  .focus-shell .tasks-workspace-composer-field > .tasks-fg__add-btn { margin-left: auto; min-height: 40px; }
+  .focus-shell .tasks-workspace-composer-field > .tasks-fg__paperclip { width: 40px; height: 40px; }
+}
+@container workspace (max-width: 620px) {
+  .focus-shell .pj-card-hero__footer { flex-wrap: wrap; }
+  .focus-shell .pj-card-hero__members { flex: 1 1 100%; }
+  .focus-shell .pj-card-hero__cta { margin-left: auto; min-height: 40px; }
+  .focus-shell .dash-toolbar { flex-wrap: wrap; gap: 2px 8px; overflow: visible; margin-inline: 8px; }
+  .focus-shell .dash-toolbar__views { flex: 1 1 100%; overflow-x: auto; }
+  .focus-shell .dash-toolbar__actions { margin-left: auto; flex-wrap: wrap; }
+  .focus-shell .dash-hero { padding-inline: 8px; }
+  .focus-shell .dash-hero__num, .focus-shell .dash-hero__month { font-size: 40px; }
+}
+
+/* Optional reading modules follow their actual canvas, including a collapsed
+   or expanded rail. Preserve each module's own color and chart language. */
+.focus-shell .symbolic-page { container: symbolic / inline-size; min-width: 0; }
+.focus-shell .symbolic-page .symbolic-profile-toolbar select { min-width: 0; max-width: 100%; }
+.focus-shell .astro-triad { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.focus-shell :is(.astro-triad > div, .astro-map, .astro-interpretation) { min-width: 0; }
+.focus-shell .astro-triad strong { max-width: 100%; overflow-wrap: anywhere; text-align: center; }
+.focus-shell .tarot-slot > :is(small, strong, span) { max-width: 100%; overflow-wrap: anywhere; }
+.focus-shell .tarot-reveal-preview { grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
+@container symbolic (max-width: 820px) {
+  .focus-shell .tarot-spread--5 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); justify-items: center; }
+  .focus-shell .tarot-spread--5 .tarot-slot { width: 100%; max-width: 145px; min-width: 0; }
+  .focus-shell .tarot-spread--5 .tarot-slot:nth-child(4) { grid-column: 1; }
+  .focus-shell .tarot-spread--5 .tarot-slot:nth-child(5) { grid-column: 3; }
+}
+@container symbolic (max-width: 780px) {
+  .focus-shell .astro-layout { grid-template-columns: minmax(0, 1fr); }
+  .focus-shell .astro-interpretation { padding: 22px 0 0; border-left: 0; border-top: 1px solid var(--symbolic-rule); }
+  .focus-shell .astro-wheel { max-width: 510px; }
+}
+@container symbolic (max-width: 700px) {
+  .focus-shell .symbolic-profile-toolbar { align-items: stretch; flex-direction: column; }
+  .focus-shell .symbolic-profile-toolbar > label { justify-content: space-between; }
+  .focus-shell .symbolic-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .focus-shell .tarot-deck-grid { grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 7px; }
+}
+@container symbolic (max-width: 680px) {
+  .focus-shell .bazi-chart-grid { grid-template-columns: minmax(0, 1fr); }
+  .focus-shell .bazi-daymaster { border-right: 0; border-bottom: 1px solid var(--symbolic-rule); display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 0 18px; padding: 20px 0; }
+  .focus-shell .bazi-daymaster > .symbolic-eyebrow { grid-column: 1 / -1; }
+  .focus-shell .bazi-master-character { grid-column: 1; grid-row: 2 / 4; margin: 6px 0; }
+  .focus-shell .bazi-daymaster > p { margin: 4px 0; max-width: none; }
+  .focus-shell .bazi-daymaster > .symbolic-note { grid-column: 1 / -1; margin-top: 13px; }
+  .focus-shell .bazi-seal { display: none; }
+  .focus-shell .bazi-pillars { padding: 15px 0; }
+}
+@container symbolic (max-width: 600px) {
+  .focus-shell :is(.bazi-luck-picker, .bazi-cycle-track) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .focus-shell .symbolic-two-columns { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .focus-shell .symbolic-heading { display: block; }
+  .focus-shell .symbolic-actions { flex-direction: row; justify-content: flex-start; margin-top: 18px; }
+}
+@container symbolic (max-width: 480px) {
+  .focus-shell .symbolic-form-grid, .focus-shell .reading-actions { grid-template-columns: minmax(0, 1fr); }
+  .focus-shell .reading-scores { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+}
+@container symbolic (max-width: 430px) {
+  .focus-shell .tarot-deck-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+}

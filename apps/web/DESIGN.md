@@ -126,6 +126,37 @@ Always read this before a visual or UI change. Tokens live in
 `src/shared/motion/tokens.ts`. The approved preview (2026-09-28) is kept in
 the gstack design folder (`designs/design-system-20260928/preview.html`).
 
+## Approved workspace direction — 2026-11-16
+
+The user approved visual proposal 02 and requested implementation across the
+actual application, including palette, layout, typography and interaction while
+preserving all existing functions. This section supersedes the older white desk,
+flat surfaces and teal-only requirements below; historical decisions remain for
+context.
+
+- Warm stone canvas `#e8e4dd`, ivory work surfaces `#fcfbf7`, charcoal brown
+  navigation `#3c3935`. Clay `#a65d43` identifies primary actions; mist blue
+  `#dce5e9` supports contextual information. Success/warning/error retain meaning.
+- Depth comes from distinct surface values, a clear main working region,
+  restrained contact shadows and recessed controls. Do not nest decorative cards.
+- Page headers align title, description and actions. Tasks stay dense and useful;
+  notes/diary retain their reading measure and saved appearance; calendar keeps
+  its month grid, subscriptions, birthdays and task integration.
+- Keep the original shell/overlay scaling and Dashboard masthead height. Preserve
+  saved widget positions and custom views. The revised default layout applies to
+  new/reset layouts; never increment the layout version to force a visual reset.
+- Dark mode, ambient environments and temporary theme previews remain supported.
+  Inverse navigation has its own readable text/control palette; body portals use
+  the global palette. User-authored colors and fonts are not replaced.
+- Keyboard focus, hover/press feedback and narrow layouts are part of the design.
+  Compact notes must offer collection/list/editor navigation with the editor kept
+  mounted; switching navigation does not clear the selected note or its content.
+
+Implementation: `shared/theme/tokens.css` and `workspace-design.css`, with
+feature-owned hooks for layout and interaction. Proposal and before/after
+artifacts are under `artifacts/visual-depth-2026-11-16` and
+`artifacts/visual-implementation-2026-11-16`.
+
 ## Overview
 
 **Creative North Star:** a quiet white paper desk where every detail feels
@@ -246,10 +277,10 @@ Reference investigation: `artifacts/notion-typography-2026-10-15/README.md`.
   No downloaded font is required for normal text. Explicit serif note settings
   remain Source Serif 4 + Noto Serif SC; editorial moments and timers retain
   Instrument Serif and Source Serif 4 respectively.
-- AppShell retains the original responsive scale: 0.8 through 1512px,
-  interpolating to 1 at 1920px; mobile uses 1. Portaled overlays share the
-  same scale. Restored on 2026-10-15 at the user's explicit request.
-  Typography changes must preserve this behavior.
+- Since the user's 2026-11-17 responsive redesign request, AppShell and
+  portaled overlays use scale 1 at every width. The browser owns zoom;
+  components reflow against their available container width. This supersedes
+  the 2026-10-15 internal scaling rule.
 - Rem scale: metadata 0.75 (12px), labels 0.8125 (13px), controls 0.875 (14px),
   body 1 (16px), section 1.125 (18px), route title 2 (32px).
   Timers retain 2.75/4.5rem. Values in px assume the browser default of 16px.
@@ -293,7 +324,7 @@ Reference investigation: `artifacts/notion-typography-2026-10-15/README.md`.
   asymmetric date line and a wide measure.
 - Read surfaces cap the measure at about 720px, with generous side margins.
 - Empty states are centered in their container: the drawing, the line and the sentence stack on one axis.
-- The shell zooms below 1920px (see Built-in behaviors).
+- The shell reflows without internal zoom (see Built-in behaviors).
 
 ## Elevation & Depth
 
@@ -479,18 +510,18 @@ bezier arrays or durations.
   any tab bar, segmented control or nav. Set `--indicator-*` on the container.
 - **Route enter:** page roots fade up once when they mount
   (`shared/theme/page.css`).
-- **Shell and overlay scale:** below 1920px wide the shell renders through
-  `zoom: var(--shell-scale)`, which is 0.8 at ≤1512px (a 13–14" laptop) and
-  reaches 1 at 1920px. Overlays portal to `<body>`, so AppShell publishes the
-  same factor as `--overlay-scale` and `shared/theme/overlay-scale.css`
-  applies it. For a new overlay:
-  - use the shared Dialog, Drawer or Radix components, or add the
-    `overlay-panel` class;
-  - never zoom the element that floating-ui positions with pixel transforms;
-  - divide `vh`/`px` caps of large panels by `--overlay-scale`.
-
-  Otherwise dialogs render about 25% larger than the page and run off short
-  screens.
+- **Responsive shell and overlays:** scale stays 1 so browser zoom, text and
+  focus indicators remain consistent. Above 1280px the saved sidebar preference
+  applies; at 961–1279px a compact rail can be expanded temporarily; at ≤960px
+  a 48px header opens a modal navigation drawer. The same Sidebar stays mounted
+  across breakpoints, preserving timers, sound and open account UI.
+  - Adapt route layouts with the main `workspace` container, not viewport width.
+  - Dashboard cards reflow to two tracks below 1120px of content width and one
+    below 720px without rewriting saved desktop positions.
+  - Use the shared Dialog, Drawer or Radix components for bounded, scrollable
+    overlays. Keep focus inside open navigation and restore it on close.
+  - Short windows must retain reachable controls through scrolling; never rely
+    on fixed minimum panel heights to fit the entire viewport.
 - **Interaction layer** (`shared/theme/interaction.css`): color transitions,
   a visible `:focus-visible`, and themed native widgets and scrollbars.
 - **Reduced motion:** the in-app switch and the OS setting both collapse

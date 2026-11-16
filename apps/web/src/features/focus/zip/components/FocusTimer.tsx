@@ -493,7 +493,7 @@ export function FocusTimer({
       />
 
       {/* Daily goal ring - top left */}
-      <div className="absolute top-5 left-6 z-10">
+      <div className="focus-zip-timer__goal absolute top-5 left-6 z-10">
         <div className="flex items-center gap-3">
           <DailyGoalRing completedMinutes={todayMinutes} goalMinutes={dailyGoal} minLabel={t("focus.minUnit")} />
           <div>
@@ -508,11 +508,12 @@ export function FocusTimer({
       </div>
 
       {/* Shortcut hint - top right */}
-      <div className="absolute top-6 right-6 z-10">
+      <div className="focus-zip-timer__shortcuts absolute top-6 right-6 z-10">
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setShowShortcuts(!showShortcuts)}
+          aria-label={t("focus.shortcuts")}
           className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer"
           style={{ background: "color-mix(in srgb, var(--text-primary) 2.5%, transparent)" }}
         >
@@ -560,9 +561,9 @@ export function FocusTimer({
       </div>
 
       {/* Timer Area */}
-      <div className="relative z-10 flex flex-col items-center">
+      <div className="focus-zip-timer__body relative z-10 flex flex-col items-center">
         {/* Focus Mode Selector */}
-        <div className="flex items-center gap-1.5 mb-6">
+        <div className="focus-zip-timer__modes flex items-center gap-1.5 mb-6">
           {focusModes.map((mode) => (
             <motion.button
               key={mode.id}

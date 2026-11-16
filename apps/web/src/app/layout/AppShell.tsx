@@ -1,5 +1,7 @@
-import { useEffect, useLayoutEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useState, useRef, type CSSProperties, type ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
+import { Menu, Search, X } from 'lucide-react'
+import { useI18n } from '../../shared/i18n/useI18n'
 import { ROUTES } from '../routes/routes'
 import {
   applyTheme,
@@ -20,22 +22,14 @@ import { findMatchingNoiseScenePreset } from '../../features/focus/noise'
 import { useAmbientPreferences } from '../../features/focus/ambientPreferences'
 import '../../shared/theme/ambient-theme.css'
 import { installInteractionSounds } from '../../shared/sound/interactionSounds'
+import '../../shared/theme/workspace-design.css'
+import '../../shared/theme/workspace-responsive.css'
 
 type AppShellProps = {
   children: ReactNode
 }
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'focusgo.sidebar.collapsed.v1'
-const COMPACT_SIDEBAR_MEDIA_QUERY = '(max-width: 1536px)'
-// The shell zooms only in its side-by-side layout. At 960px and below the sidebar stacks above
-// the page (styles.css), and zoom on that column layout resolved the width twice: the page drew
-// about 22% wider than the window and its right side was cut off.
-const SCALED_LAYOUT_MEDIA_QUERY = '(min-width: 961px)'
-const SHELL_SCALE_MIN_WIDTH = 1512
-const SHELL_SCALE_MAX_WIDTH = 1920
-const SHELL_SCALE_MIN = 0.8
-const SHELL_SCALE_MAX = 1
-
 const readSidebarCollapsed = () => {
   if (typeof localStorage === 'undefined') return false
   const raw = localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY)
@@ -43,37 +37,27 @@ const readSidebarCollapsed = () => {
   return raw === '1'
 }
 
-const readCompactViewport = () =>
-  typeof window !== 'undefined' && typeof window.matchMedia === 'function'
-    ? Boolean(window.matchMedia(COMPACT_SIDEBAR_MEDIA_QUERY)?.matches)
-    : false
-
-// eslint-disable-next-line react-refresh/only-export-components
-export const resolveShellScale = (viewportWidth: number) => {
-  const safeWidth = Number.isFinite(viewportWidth) ? viewportWidth : SHELL_SCALE_MAX_WIDTH
-  if (safeWidth <= SHELL_SCALE_MIN_WIDTH) return SHELL_SCALE_MIN
-  if (safeWidth >= SHELL_SCALE_MAX_WIDTH) return SHELL_SCALE_MAX
-  const progress = (safeWidth - SHELL_SCALE_MIN_WIDTH) / (SHELL_SCALE_MAX_WIDTH - SHELL_SCALE_MIN_WIDTH)
-  const next = SHELL_SCALE_MIN + progress * (SHELL_SCALE_MAX - SHELL_SCALE_MIN)
-  return Number(next.toFixed(4))
-}
-
-const readShellScale = () => {
-  if (typeof window === 'undefined') return SHELL_SCALE_MAX
-  if (typeof window.matchMedia === 'function' && window.matchMedia(SCALED_LAYOUT_MEDIA_QUERY)?.matches === false) return SHELL_SCALE_MAX
-  return resolveShellScale(window.innerWidth)
-}
-
+// Browser zoom owns text scaling. Reflow never counter-scales the user's zoom.
+// eslint-disable-next-line react-refresh/only-export-components, @typescript-eslint/no-unused-vars
+export const resolveShellScale = (_viewportWidth: number) => 1
 
 const AppShell = ({ children }: AppShellProps) => {
   useEffect(installInteractionSounds, [])
   const location = useLocation()
   const { noise } = useSharedNoise()
-  const storedSidebarCollapsed = readSidebarCollapsed()
-  const [compactViewport, setCompactViewport] = useState(() => readCompactViewport())
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => storedSidebarCollapsed ?? false)
+  const { language } = useI18n()
+  const zh = language === 'zh'
+  const [viewportWidth, setViewportWidth] = useState(() => typeof window === 'undefined' ? 1920 : window.innerWidth)
+  const compactViewport = viewportWidth < 1280
+  const drawerLayout = viewportWidth <= 960
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => readSidebarCollapsed() ?? false)
+  const [navigationOpen, setNavigationOpen] = useState(false)
+  const [compactSidebarExpanded, setCompactSidebarExpanded] = useState(false)
+  const navigationRef = useRef<HTMLDivElement>(null)
+  const navigationTriggerRef = useRef<HTMLButtonElement>(null)
+  const navigationCloseRef = useRef<HTMLButtonElement>(null)
   const [sidebarDimmed, setSidebarDimmed] = useState(false)
-  const [shellScale, setShellScale] = useState(() => readShellScale())
+  const shellScale = resolveShellScale(viewportWidth)
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const ambientPrefs = useAmbientPreferences()
   // With no sound scene playing, the desk stays plain unless an idle effect
@@ -111,54 +95,54 @@ const AppShell = ({ children }: AppShellProps) => {
   }, [compactViewport, sidebarCollapsed])
 
   useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
-    const media = window.matchMedia(COMPACT_SIDEBAR_MEDIA_QUERY)
-    const handleViewportChange = (event: MediaQueryListEvent | MediaQueryList) => {
-      const nextCompact = 'matches' in event ? event.matches : media.matches
-      setCompactViewport(nextCompact)
-      if (!nextCompact) {
-        const stored = readSidebarCollapsed()
-        if (stored !== null) setSidebarCollapsed(stored)
-      }
+    if (!compactViewport) {
+      const stored = readSidebarCollapsed()
+      if (stored !== null) setSidebarCollapsed(stored)
     }
-
-    handleViewportChange(media)
-
-    if (typeof media.addEventListener === 'function') {
-      media.addEventListener('change', handleViewportChange)
-      return () => media.removeEventListener('change', handleViewportChange)
-    }
-
-    media.addListener(handleViewportChange)
-    return () => media.removeListener(handleViewportChange)
-  }, [])
+  }, [compactViewport])
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
-    let frame = 0
-    const syncScale = () => {
-      setShellScale((prev) => {
-        const next = readShellScale()
-        if (prev === next) return prev
-        return next
-      })
-    }
-    const scheduleSync = () => {
-      if (frame) cancelAnimationFrame(frame)
-      frame = window.requestAnimationFrame(syncScale)
-    }
-    scheduleSync()
-    window.addEventListener('resize', scheduleSync)
-    const media = typeof window.matchMedia === 'function' ? window.matchMedia(SCALED_LAYOUT_MEDIA_QUERY) : null
-    if (media && typeof media.addEventListener === 'function') media.addEventListener('change', scheduleSync)
-    else if (media) media.addListener(scheduleSync)
-    return () => {
-      if (frame) cancelAnimationFrame(frame)
-      window.removeEventListener('resize', scheduleSync)
-      if (media && typeof media.removeEventListener === 'function') media.removeEventListener('change', scheduleSync)
-      else if (media) media.removeListener(scheduleSync)
-    }
+    const onResize = () => setViewportWidth(window.innerWidth)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
   }, [])
+
+  useEffect(() => { setNavigationOpen(false) }, [location.pathname, drawerLayout])
+
+  useEffect(() => {
+    if (!drawerLayout || !navigationOpen) return
+    const trigger = navigationTriggerRef.current
+    const focusFrame = window.requestAnimationFrame(() => navigationCloseRef.current?.focus())
+    const outsideDialog = () => Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"][aria-modal="true"]'))
+      .find((node) => node !== navigationRef.current && !navigationRef.current?.contains(node))
+    // Account dialogs portal outside the rail. Dismiss the underlying drawer,
+    // keep its tools mounted, and hand focus to the dialog instead of trapping it.
+    const observer = new MutationObserver(() => { if (outsideDialog()) setNavigationOpen(false) })
+    observer.observe(document.body, { childList: true, subtree: true })
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || outsideDialog()) return
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        setNavigationOpen(false)
+      }
+      // Portaled pickers/dialogs manage their own focus while open.
+      if (event.key !== 'Tab' || !navigationRef.current?.contains(document.activeElement)) return
+      const controls = Array.from(navigationRef.current.querySelectorAll<HTMLElement>('a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), [tabindex="0"]'))
+        .filter((node) => node.getClientRects().length > 0)
+      const first = controls[0]
+      const last = controls[controls.length - 1]
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
+      if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      observer.disconnect()
+      window.cancelAnimationFrame(focusFrame)
+      window.removeEventListener('keydown', onKeyDown)
+      const dialogControl = outsideDialog()?.querySelector<HTMLElement>('button, input, [tabindex="0"]')
+      ;(dialogControl ?? trigger)?.focus()
+    }
+  }, [drawerLayout, navigationOpen])
 
   useEffect(() => {
     const toggleHandler = () => setSidebarCollapsed((prev) => !prev)
@@ -215,20 +199,27 @@ const AppShell = ({ children }: AppShellProps) => {
   return (
     <AuthGateProvider>
       <>
-        <div className={`focus-shell ${sidebarDimmed ? 'focus-shell--sidebar-dimmed' : ''}`} data-ambient-scene={ambientScene} style={shellStyle}>
+        <div className={`focus-shell ${sidebarDimmed ? 'focus-shell--sidebar-dimmed' : ''}`} data-ambient-scene={ambientScene} data-layout={drawerLayout ? 'drawer' : compactViewport ? 'compact' : 'wide'} data-navigation-open={navigationOpen} style={shellStyle}>
           {showAmbientStage ? <AmbientSceneStage scene={ambientScene} /> : null}
           <div className="focus-shell__scale-wrap">
-            <Sidebar
-              collapsed={sidebarCollapsed}
-              onToggle={() => setSidebarCollapsed((prev) => !prev)}
-            />
-            <main className="focus-shell__main flex min-h-0 flex-1 flex-col">
+            <header className="focus-shell__mobile-bar" inert={drawerLayout && navigationOpen}>
+              <button ref={navigationTriggerRef} type="button" aria-label={zh ? '打开导航' : 'Open navigation'} aria-expanded={navigationOpen} aria-controls="workspace-navigation" onClick={() => setNavigationOpen(true)}><Menu size={20} /><span>{zh ? '菜单' : 'Menu'}</span></button>
+              <span className="focus-shell__brand">Focus<span>&</span>go</span>
+              <button type="button" aria-label={zh ? '搜索与命令' : 'Search and commands'} onClick={() => setCommandPaletteOpen(true)}><Search size={20} /></button>
+            </header>
+            {drawerLayout && navigationOpen ? <button className="focus-shell__nav-backdrop" aria-label={zh ? '关闭导航' : 'Close navigation'} tabIndex={-1} onClick={() => setNavigationOpen(false)} /> : null}
+            <div id="workspace-navigation" ref={navigationRef} className="focus-shell__navigation" inert={drawerLayout && !navigationOpen} role={drawerLayout && navigationOpen ? 'dialog' : undefined} aria-modal={drawerLayout && navigationOpen ? true : undefined} aria-label={drawerLayout ? (zh ? '工作区导航' : 'Workspace navigation') : undefined}
+              onClickCapture={(event) => { if (drawerLayout && (event.target as HTMLElement).closest('a[href]')) setNavigationOpen(false) }}>
+              <button className="focus-shell__nav-close" ref={navigationCloseRef} type="button" aria-label={zh ? '关闭导航' : 'Close navigation'} onClick={() => setNavigationOpen(false)}><X size={20} /></button>
+              <Sidebar collapsed={drawerLayout ? false : compactViewport ? !compactSidebarExpanded : sidebarCollapsed} onToggle={() => drawerLayout ? setNavigationOpen(false) : compactViewport ? setCompactSidebarExpanded((prev) => !prev) : setSidebarCollapsed((prev) => !prev)} drawer={drawerLayout} />
+            </div>
+            <main className="focus-shell__main flex min-h-0 flex-1 flex-col" inert={drawerLayout && navigationOpen}>
               <div className="relative min-h-0 flex-1">
-                <section className={`focus-shell__route-layer flex min-h-0 flex-1 flex-col ${isFullBleedRoute ? 'focus-shell__route-layer--full-bleed' : ''}`}>
-                  <AuthInteractionGate>
-                    {children}
-                  </AuthInteractionGate>
-                </section>
+              <section className={`focus-shell__route-layer flex min-h-0 flex-1 flex-col ${isFullBleedRoute ? 'focus-shell__route-layer--full-bleed' : ''}`}>
+                <AuthInteractionGate className="focus-shell__route-content">
+                  {children}
+                </AuthInteractionGate>
+              </section>
               </div>
             </main>
           </div>

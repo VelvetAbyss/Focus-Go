@@ -57,6 +57,7 @@ const SidebarDndNav = lazy(() => import('./SidebarDndNav'))
 type SidebarProps = {
   collapsed: boolean
   onToggle: () => void
+  drawer?: boolean
 }
 
 const ICONS: Record<RouteKey, LucideIcon> = {
@@ -138,7 +139,7 @@ const StaticSidebarNav = ({
   </nav>
 )
 
-const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
+const Sidebar = ({ collapsed, onToggle, drawer = false }: SidebarProps) => {
   const { catalog } = useLabs()
   const i18n = useLabsI18n()
   const { t } = useI18n()
@@ -291,7 +292,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
         </button>
       </div>
 
-      {dragNavReady ? (
+      {dragNavReady && !drawer ? (
         <Suspense
           fallback={(
             <StaticSidebarNav

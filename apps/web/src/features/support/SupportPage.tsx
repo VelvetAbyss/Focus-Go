@@ -13,7 +13,7 @@ const SupportPage = () => {
   const { t } = useI18n()
   const destinations = links()
   return (
-    <div className="mx-auto max-w-2xl space-y-5 px-5 py-10 text-[var(--text-primary)]">
+    <div className="support-page mx-auto max-w-2xl space-y-5 px-5 py-10 text-[var(--text-primary)]">
       <div className="space-y-2">
         <div className="flex items-center gap-2 text-sm font-medium text-[var(--text-secondary)]"><Heart size={16} /> {t('support.eyebrow')}</div>
         <h1 className="page-title">{t('support.title')}</h1>

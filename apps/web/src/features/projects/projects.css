@@ -765,7 +765,7 @@
   padding: 0 12px 0 34px;
   border-radius: var(--radius-md);
   border: 1.5px solid color-mix(in srgb, var(--text-primary) 10%, transparent);
-  background: white;
+  background: var(--paper-raised);
   color: var(--text-primary);
   font-size: var(--fs-ui);
   outline: none;
@@ -785,7 +785,7 @@
   overflow-y: auto;
   border-radius: var(--radius-md);
   border: 1.5px solid color-mix(in srgb, var(--text-primary) 8%, transparent);
-  background: white;
+  background: var(--paper-raised);
   padding: 4px;
 }
 
@@ -2497,7 +2497,7 @@ html[data-theme='dark'] .project-dialog {
   gap: 5px;
   padding: 6px 12px;
   border-radius: 999px;
-  background: white;
+  background: var(--paper-raised);
   border: 1px solid var(--pd-border);
   font-size: var(--fs-label);
   font-weight: 600;

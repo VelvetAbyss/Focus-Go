@@ -195,7 +195,7 @@ export const zhMessages: TranslationMessages = {
   'shell.systemNav': '系统',
   'settings.pageEyebrow': '工作台',
   'settings.pageTitle': '设置',
-  'settings.pageDescription': '通过左侧导航切换模块，修改会立即生效。',
+  'settings.pageDescription': '选择设置分类，修改会立即生效。',
   'settings.modulesTitle': '设置模块',
   'settings.modulesDescription': '从此导航栏切换设置分组。',
   'settings.module.appearance.title': '外观',

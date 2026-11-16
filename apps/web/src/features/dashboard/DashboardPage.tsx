@@ -1,10 +1,10 @@
+import { reflowDashboardLayout } from './responsiveLayout'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { GridLayout, useContainerWidth } from 'react-grid-layout'
 import { absoluteStrategy } from 'react-grid-layout/core'
-import { useIsBreakpoint } from '../../hooks/use-is-breakpoint'
 import Dialog from '../../shared/ui/Dialog'
 import { dashboardRepo } from '../../data/repositories/dashboardRepo'
 import { getDashboardCards } from './registry'
@@ -76,9 +76,9 @@ const DashboardPage = () => {
   }
   const [layout, setLayout] = useState<DashboardLayoutItem[]>([])
   const [hiddenCardIds, setHiddenCardIds] = useState<string[]>([])
-  const isMobile = useIsBreakpoint('max', 768)
-  const columns = isMobile ? 4 : 12
   const { width, containerRef, mounted } = useContainerWidth({ initialWidth: window.innerWidth })
+  const isMobile = width < 1120
+  const columns = isMobile ? 4 : 12
   const [searchParams, setSearchParams] = useSearchParams()
   const [layoutEdit, setLayoutEdit] = useState(() => !isMobile && !readLayoutLocked())
   useEffect(() => {
@@ -100,18 +100,7 @@ const DashboardPage = () => {
     hiddenCardIds: [],
   })
 
-  const responsiveLayout = useMemo(() => {
-    if (!isMobile) return layout
-    // Full-width cards on a phone: scaling the desktop columns made titles
-    // wrap character-by-character. This derived layout never replaces the
-    // stored desktop arrangement.
-    let nextY = 0
-    return [...layout].sort((a, b) => a.y - b.y || a.x - b.x).map((item) => {
-      const mobileItem = { ...item, w: 4, x: 0, y: nextY }
-      nextY += item.h
-      return mobileItem
-    })
-  }, [isMobile, layout])
+  const responsiveLayout = useMemo(() => reflowDashboardLayout(layout, width, columns), [layout, width, columns])
 
   const toggleLayoutEdit = useCallback(() => {
     if (isMobile) return
@@ -179,7 +168,7 @@ const DashboardPage = () => {
     rowHeight: 60,
     margin: [18, 18] as [number, number],
     padding: [18, 18] as [number, number],
-    width: Math.max(width, 320),
+    width: Math.max(width, 1),
     minW: isMobile ? 2 : 2,
     minH: 2,
     onUpdate: setLayout,
@@ -471,13 +460,13 @@ const DashboardPage = () => {
               cols: columns,
               rowHeight: 60,
               margin: [18, 18],
-              containerPadding: [18, 18],
+              containerPadding: isMobile ? [6, 12] : [18, 18],
               maxRows: 100,
             }}
             dragConfig={{ enabled: false }}
             resizeConfig={{ enabled: false }}
             positionStrategy={absoluteStrategy}
-            width={Math.max(width, 320)}
+            width={Math.max(width, 1)}
           >
             {visibleCards.map((card) => (
               (() => {

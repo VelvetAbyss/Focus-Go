@@ -137,7 +137,7 @@ const containsTagName = (tags: string[], name: string) => tags.some((tag) => tag
 const buildNoteTextForStats = (contentMd: string) => contentMd
 
 export default function NotePage() {
-  const { t } = useI18n()
+  const { t, language } = useI18n()
   const toast = useToast()
   const location = useLocation()
   const navigate = useNavigate()
@@ -170,6 +170,7 @@ export default function NotePage() {
   const [isExportingPdf, setIsExportingPdf] = useState(false)
   const [importNotice, setImportNotice] = useState<string | null>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [mobilePane, setMobilePane] = useState<'collections' | 'list' | 'editor'>('editor')
   const [isInitialLoading, setIsInitialLoading] = useState(true)
   const [isEditorReady, setIsEditorReady] = useState(false)
   const [todayKey, setTodayKey] = useState(() => dateKey(Date.now()))
@@ -402,7 +403,8 @@ export default function NotePage() {
     setActiveTagId(null)
     setSearch('')
     setSelectedNoteId(id)
-  }, [isInitialLoading, location.search, notes, writeNoteUrl])
+    if (id !== selectedNoteId) setMobilePane('editor')
+  }, [isInitialLoading, location.search, notes, selectedNoteId, writeNoteUrl])
 
   useEffect(() => {
     if (isInitialLoading || activeCollection !== 'notes' || !selectedNoteId) return
@@ -416,6 +418,7 @@ export default function NotePage() {
     setActiveTagId(null)
     setSearch('')
     setSelectedNoteId(id)
+    setMobilePane('editor')
     setFocusNoteId(id)
     // Also handles opening the note that was already selected: its editor stays
     // mounted, so changing the autoFocus prop alone may not refocus it.
@@ -587,6 +590,7 @@ export default function NotePage() {
     if (blank) {
       setActiveCollection('notes')
       setSelectedNoteId(blank.id)
+      setMobilePane('editor')
       writeNoteUrl(blank.id)
       setFocusNoteId(blank.id)
       setSearch('')
@@ -600,6 +604,7 @@ export default function NotePage() {
     setNotes((current) => [created, ...current])
     setActiveCollection('notes')
     setSelectedNoteId(created.id)
+    setMobilePane('editor')
     writeNoteUrl(created.id)
     setFocusNoteId(created.id)
     setSearch('')
@@ -717,6 +722,7 @@ export default function NotePage() {
           setNotes((current) => [created, ...current])
           setActiveCollection('notes')
           setSelectedNoteId(created.id)
+          setMobilePane('editor')
           writeNoteUrl(created.id)
           setSearch('')
         } finally {
@@ -943,14 +949,18 @@ export default function NotePage() {
     setTags(recomputeTagCounts(normalizedTags, notes))
   }
 
-  const handleSelectCollection = (collection: NoteSystemCollection) => {
+  const handleSelectCollection = async (collection: NoteSystemCollection) => {
+    await flushPendingSave()
+    setMobilePane('list')
     setActiveCollection(collection)
     setActiveTagId(null)
     setSelectedNoteId(null)
     writeNoteUrl(null)
   }
 
-  const handleSelectTag = (tagId: string) => {
+  const handleSelectTag = async (tagId: string) => {
+    await flushPendingSave()
+    setMobilePane('list')
     setActiveTagId(tagId)
     setActiveCollection('notes')
     setSelectedNoteId(null)
@@ -1084,6 +1094,7 @@ export default function NotePage() {
       setActiveCollection('notes')
       setActiveTagId(importedTag.id)
       setSelectedNoteId(createdNotes[0]?.id ?? null)
+      setMobilePane('editor')
       writeNoteUrl(createdNotes[0]?.id ?? null)
       setSearch('')
     }
@@ -1164,7 +1175,14 @@ export default function NotePage() {
 
   return (
     <section className="note-page-shell flex h-full max-h-full min-h-0" data-note-theme={effectiveTheme} aria-busy={isInitialLoading}>
-      <div className="note-page-shell__content note-page" data-fullscreen={isFullscreen ? 'true' : 'false'}>
+      {!isFullscreen && <nav className="note-mobile-navigation" aria-label={language === 'zh' ? '笔记视图' : 'Note views'}>
+        {(['collections', 'list', 'editor'] as const).map(pane => (
+          <button key={pane} type="button" aria-pressed={mobilePane === pane} onClick={() => { setOpenPanel(null); setMobilePane(pane) }}>
+            {language === 'zh' ? { collections: '标签与分类', list: '笔记列表', editor: '编辑笔记' }[pane] : { collections: 'Collections', list: 'Notes', editor: 'Editor' }[pane]}
+          </button>
+        ))}
+      </nav>}
+      <div className="note-page-shell__content note-page" data-mobile-pane={isFullscreen ? 'editor' : mobilePane} data-fullscreen={isFullscreen ? 'true' : 'false'}>
         {isInitialLoading ? (
           <div className="note-page__loading" data-testid="note-page-loader">
             <BrandLoader
@@ -1205,6 +1223,7 @@ export default function NotePage() {
               onSelectNote={async (id) => {
                 await flushPendingSave()
                 setSelectedNoteId(id)
+                setMobilePane('editor')
                 writeNoteUrl(activeCollection === 'trash' ? null : id)
               }}
               onNewNote={handleCreate}
@@ -1228,7 +1247,7 @@ export default function NotePage() {
                       value={activeNoteValue}
                       appearance={appearance}
                       isFullscreen={isFullscreen}
-                      onToggleFullscreen={() => setIsFullscreen((current) => !current)}
+                      onToggleFullscreen={() => { setMobilePane('editor'); setIsFullscreen((current) => !current) }}
                       onOpenInfo={() => setOpenPanel((current) => (current === 'info' ? null : 'info'))}
                       onOpenAppearance={() => setOpenPanel((current) => (current === 'appearance' ? null : 'appearance'))}
                       onImport={() => setOpenPanel((current) => (current === 'import' ? null : 'import'))}
@@ -1260,6 +1279,7 @@ export default function NotePage() {
                     onNavigateToHeading={handleNavigateToHeading}
                     onNavigateToNote={(id) => {
                       setSelectedNoteId(id)
+                      setMobilePane('editor')
                       writeNoteUrl(id)
                     }}
                   />

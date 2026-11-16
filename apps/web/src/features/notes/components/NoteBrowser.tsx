@@ -294,9 +294,9 @@ function NoteCard({
       }}
       onClick={onSelect}
       className={cn(
-        'group relative mb-1 cursor-pointer rounded-[var(--radius-sm)] border px-3 py-2.5 transition-[background-color,border-color,box-shadow,transform] [transition-duration:180ms]',
+        'note-card group relative mb-1 cursor-pointer rounded-[var(--radius-sm)] border px-3 py-2.5 transition-[background-color,border-color,box-shadow,transform] [transition-duration:180ms]',
         selected
-          ? 'translate-x-[1px] border-[color-mix(in_srgb,var(--ink-1)_10%,transparent)] bg-[color-mix(in_srgb,var(--ink-1)_5.5%,transparent)] shadow-[inset_2.5px_0_0_var(--accent),var(--shadow-card)] dark:shadow-none'
+          ? 'is-selected translate-x-[1px] border-[color-mix(in_srgb,var(--ink-1)_10%,transparent)] bg-[color-mix(in_srgb,var(--ink-1)_5.5%,transparent)] shadow-[inset_2.5px_0_0_var(--accent),var(--shadow-card)] dark:shadow-none'
           : 'border-transparent hover:-translate-y-[1px] hover:border-[color-mix(in_srgb,var(--ink-1)_6%,transparent)] hover:bg-[color-mix(in_srgb,var(--ink-1)_3.8%,transparent)] hover:shadow-[var(--shadow-pop)]',
       )}
       style={{ minHeight: '101px' }}
@@ -344,7 +344,7 @@ function NoteCard({
       ) : null}
 
       {/* Action buttons */}
-      <div className="absolute right-2 top-2 flex items-center gap-0.5 opacity-0 transition-[opacity,transform] duration-150 group-hover:opacity-100">
+      <div className="note-card__actions absolute right-2 top-2 flex items-center gap-0.5 opacity-0 transition-[opacity,transform] duration-150 group-hover:opacity-100">
         {mode === 'notes' ? (
           <button
             type="button"
