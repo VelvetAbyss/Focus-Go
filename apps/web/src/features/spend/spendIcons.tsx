@@ -1,5 +1,9 @@
 import type { ComponentProps } from 'react'
 import {
+  Bus,
+  Gamepad2,
+  HeartPulse,
+  WalletCards,
   Circle,
   Coffee,
   CreditCard,
@@ -10,6 +14,10 @@ import {
 } from 'lucide-react'
 
 const ICONS = {
+  Bus,
+  Gamepad2,
+  HeartPulse,
+  WalletCards,
   Circle,
   Coffee,
   CreditCard,

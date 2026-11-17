@@ -6,7 +6,7 @@ import { useI18n } from '../../shared/i18n/useI18n'
 import type { DashboardLayoutItem } from '../../data/models/types'
 import type { DashboardCard } from './registry'
 import { fitDashboardLayout, type WidgetRect } from './fitDashboardLayout'
-import { WidgetPresentationContext, type WidgetSummary } from './widgetPresentation'
+import { WidgetExpandedContext, WidgetPresentationContext, type WidgetSummary } from './widgetPresentation'
 import { widgetProfiles } from './widgetCatalog'
 import './adaptive-dashboard.css'
 
@@ -71,6 +71,7 @@ function AdaptiveWidget({ card, rect, overview }: { card: DashboardCard; rect: W
       restoreTriggerFocus()
     }
   }, [expanded, restoreTriggerFocus])
+  const isSpend = card.id === 'spend'
   const content = useMemo(() => card.render(), [card])
   const openLabel = zh ? `展开${title}` : `Open ${title}`
   return (
@@ -88,9 +89,11 @@ function AdaptiveWidget({ card, rect, overview }: { card: DashboardCard; rect: W
           {typeof summary.progress === 'number' ? <span className="widget-glance__progress" aria-hidden="true"><span style={{ width: `${Math.max(0, Math.min(100, summary.progress))}%` }} /></span> : null}
         </button>
       ) : <button ref={triggerRef} type="button" className="adaptive-widget__expand" aria-label={openLabel} title={openLabel} onClick={() => setExpanded(true)} data-auth-preview-allowed="true"><Maximize2 size={16} /></button>}
-      <WidgetPresentationContext.Provider value={setSummary}>{createPortal(content, host)}</WidgetPresentationContext.Provider>
-      <Dialog open={expanded} onClose={() => setExpanded(false)} panelClassName="widget-detail" contentClassName="widget-detail__content">
-        <header className="widget-detail__heading"><h2>{title}</h2><p>{zh ? '完成后关闭，回到工作台。' : 'Close when you’re ready to return to your desk.'}</p>
+      <WidgetPresentationContext.Provider value={setSummary}>
+        <WidgetExpandedContext.Provider value={expanded}>{createPortal(content, host)}</WidgetExpandedContext.Provider>
+      </WidgetPresentationContext.Provider>
+      <Dialog open={expanded} onClose={() => setExpanded(false)} panelClassName={isSpend ? 'widget-detail widget-detail--spend' : 'widget-detail'} contentClassName="widget-detail__content">
+        <header className="widget-detail__heading"><h2>{title}</h2>{!isSpend && <p>{zh ? '完成后关闭，回到工作台。' : 'Close when you’re ready to return to your desk.'}</p>}
           <button type="button" data-widget-close data-auth-preview-allowed="true" className="widget-detail__close" aria-label={zh ? '关闭' : 'Close'} onClick={() => setExpanded(false)}><X size={20} /></button>
         </header>
         <div ref={attachDetail} className="widget-detail__body" />

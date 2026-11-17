@@ -4,15 +4,18 @@
  */
 export type ParsedSpend = { amount: number; currency?: 'CNY' | 'USD'; note: string }
 
-const AMOUNT = /([$¥￥])?\s*(\d+(?:[.,]\d{1,2})?)\s*(元|块|rmb|cny|usd|美元|刀)?/i
+const AMOUNT = /([−-])?\s*([$¥￥])?\s*([−-])?\s*(\d+(?:[.,]\d+)*)\s*(元|块|rmb|cny|usd|美元|刀)?/i
 
 export const parseSpendInput = (raw: string): ParsedSpend | null => {
   const text = raw.trim()
   const match = AMOUNT.exec(text)
-  if (!match) return null
-  const amount = Number(match[2].replace(',', '.'))
-  if (!(amount > 0)) return null
-  const mark = (match[1] ?? '') + (match[3] ?? '').toLowerCase()
+  if (!match || match[1] || match[3]) return null
+  const numeric = match[4]
+  const grouped = /^\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?$/.test(numeric)
+  if (!grouped && !/^\d+(?:[.,]\d{1,2})?$/.test(numeric)) return null
+  const amount = Number(grouped ? numeric.replace(/,/g, '') : numeric.replace(',', '.'))
+  if (!Number.isFinite(amount) || amount <= 0) return null
+  const mark = (match[2] ?? '') + (match[5] ?? '').toLowerCase()
   const currency = /\$|usd|美元|刀/.test(mark) ? 'USD' : /[¥￥]|元|块|rmb|cny/.test(mark) ? 'CNY' : undefined
   const note = (text.slice(0, match.index) + ' ' + text.slice(match.index + match[0].length)).replace(/\s+/g, ' ').trim()
   return { amount, currency, note }

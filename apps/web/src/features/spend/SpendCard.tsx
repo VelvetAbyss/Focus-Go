@@ -1,5 +1,5 @@
-import { useWidgetSummary } from '../dashboard/widgetPresentation'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { WidgetExpandedContext, useWidgetSummary } from '../dashboard/widgetPresentation'
+import { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { matchSpendCategory, parseSpendInput } from './parseSpend'
 import type { CSSProperties } from 'react'
 import { Button } from '@/components/ui/button'
@@ -12,16 +12,20 @@ import { AppNumber } from '../../shared/ui/AppNumber'
 import { useI18n } from '../../shared/i18n/useI18n'
 import { convertToBase, currencyToSymbol } from '../../lib/currency'
 import { usePreferences } from '../../shared/prefs/usePreferences'
-import { EMOJI_TO_ICON_KEY, renderSpendIcon } from './spendIcons'
+import { renderSpendIcon } from './spendIcons'
 import { Trash2 } from 'lucide-react'
 import AnimatedScrollList from '../../shared/ui/AnimatedScrollList'
 import { triggerTabGroupSwitchAnimation, triggerTabPressAnimation } from '../../shared/ui/tabPressAnimation'
 import { DiscoveryEmptyState } from '../../shared/ui/EmptyState'
+import SpendDetail from './SpendDetail'
+import { getSpendCategoryOptions } from './spendCategories'
+
 type SpendView = 'today' | 'trend'
 type SpendChartComponentType = typeof import('./SpendChart')['default']
 
 const SpendCard = () => {
-  const { t } = useI18n()
+  const { t, language } = useI18n()
+  const expanded = useContext(WidgetExpandedContext)
   const tabs = useMemo(
     () =>
       [
@@ -35,8 +39,16 @@ const SpendCard = () => {
   const [categories, setCategories] = useState<SpendCategory[]>([])
   // What was typed: "午饭 28", "28 打车", "$12". Parsed into amount, currency, category and note.
   const [draft, setDraft] = useState('')
-  const [currency, setCurrency] = useState('CNY')
-  const [categoryId, setCategoryId] = useState('')
+  const [currencyChoice, setCurrency] = useState('')
+  const [categoryChoice, setCategoryId] = useState('')
+  const [lastSelection, setLastSelection] = useState({ categoryId: '', currency: '' })
+  const [detailDate, setDetailDate] = useState<string | null>(null)
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<'amount' | 'save' | null>(null)
+  const [announcement, setAnnouncement] = useState<string | null>(null)
+  const writePending = useRef(false)
+  const resolvedPresets = useRef(new Map<string, Promise<string>>())
   const [view, setView] = useState<SpendView>('today')
   const [SpendChartComponent, setSpendChartComponent] = useState<SpendChartComponentType | null>(null)
   const [activeEntryId, setActiveEntryId] = useState<string | null>(null)
@@ -45,25 +57,16 @@ const SpendCard = () => {
   const listRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
-    Promise.all([spendRepo.listEntries(), spendRepo.listCategories()]).then(([data, cats]) => {
+    let active = true
+    void Promise.all([spendRepo.listEntries(), spendRepo.listCategories()]).then(([data, cats]) => {
+      if (!active) return
       setEntries(data)
       setCategories(cats)
-      setCategoryId(cats[0]?.id ?? '')
-
-      const needsMigration = cats.some((c) => c.icon && c.icon in EMOJI_TO_ICON_KEY)
-      if (needsMigration) {
-        void Promise.all(
-          cats.map(async (category) => {
-            if (!category.icon) return
-            const mapped = EMOJI_TO_ICON_KEY[category.icon]
-            if (!mapped) return
-            await spendRepo.updateCategory({ ...category, icon: mapped })
-          })
-        ).then(() => {
-          void spendRepo.listCategories().then((next) => setCategories(next))
-        })
-      }
+      setLoadState('ready')
+    }, () => {
+      if (active) setLoadState('error')
     })
+    return () => { active = false }
   }, [])
 
   useEffect(() => {
@@ -139,46 +142,93 @@ const SpendCard = () => {
     setEntries((prev) => prev.filter((entry) => entry.id !== id))
   }
 
+  const { options, fallbackId } = useMemo(() => getSpendCategoryOptions(categories, language), [categories, language])
   const parsedDraft = parseSpendInput(draft)
-  const draftCategory = parsedDraft ? matchSpendCategory(parsedDraft.note, categories) : null
-  // While you type, the selectors show what the words were read as ("午饭" → 餐饮, "$" → USD),
-  // so the form itself says what will be saved; nothing grows in a small card.
-  const draftCategoryId = draftCategory?.id
-  const draftCurrency = parsedDraft?.currency
-  useEffect(() => {
-    if (draftCategoryId) setCategoryId(draftCategoryId)
-  }, [draftCategoryId])
-  useEffect(() => {
-    if (draftCurrency) setCurrency(draftCurrency)
-  }, [draftCurrency])
+  const suggestedCategory = parsedDraft ? matchSpendCategory(parsedDraft.note, options) : null
+  const categoryId = categoryChoice || suggestedCategory?.id || lastSelection.categoryId || fallbackId
+  const currency = currencyChoice || parsedDraft?.currency || lastSelection.currency || (defaultCurrency === 'USD' ? 'USD' : 'CNY')
 
-  const addEntry = async () => {
-    if (!parsedDraft) {
+  const changeDraft = (value: string) => {
+    setDraft(value)
+    setError(null)
+    setAnnouncement(null)
+  }
+
+  const resolveCategoryId = async (pickedId: string) => {
+    const option = options.find(category => category.id === pickedId)
+    const existing = resolvedPresets.current.get(pickedId)
+    if (existing) return existing
+    if (!option?.preset) return pickedId
+    const pending = spendRepo.addCategory({ name: option.name, icon: option.icon }).then(created => {
+      setCategories(prev => [...prev, created])
+      return created.id
+    }, (failure: unknown) => {
+      resolvedPresets.current.delete(pickedId)
+      throw failure
+    })
+    resolvedPresets.current.set(pickedId, pending)
+    return pending
+  }
+
+  const addEntry = async (dateKey = todayKey) => {
+    if (writePending.current || loadState !== 'ready') return
+    const parsed = parsedDraft
+    if (!parsed) {
+      setError('amount')
       amountRef.current?.focus()
       return
     }
-    // The words pick the category when they can; otherwise the last one used stays.
-    const nextCategoryId = draftCategory?.id ?? categoryId
-    if (!nextCategoryId) return
-    const nextCurrency = parsedDraft.currency ?? currency
-    const created = await spendRepo.addEntry({
-      amount: parsedDraft.amount,
-      currency: nextCurrency,
-      categoryId: nextCategoryId,
-      ...(parsedDraft.note ? { note: parsedDraft.note.slice(0, 60) } : {}),
-      dateKey: todayKey,
-    })
-    setEntries((prev) => [...prev, created])
-    setCategoryId(nextCategoryId)
-    setCurrency(nextCurrency)
-    setDraft('')
-    requestAnimationFrame(() => {
-      if (listRef.current) listRef.current.scrollTo({ top: 0, behavior: 'auto' })
-    })
-    amountRef.current?.focus()
+    writePending.current = true
+    setSaving(true)
+    setError(null)
+    try {
+      const nextCategoryId = await resolveCategoryId(categoryId)
+      const created = await spendRepo.addEntry({
+        amount: parsed.amount,
+        currency,
+        categoryId: nextCategoryId,
+        ...(parsed.note ? { note: parsed.note.slice(0, 60) } : {}),
+        dateKey,
+      })
+      setEntries(prev => [...prev, created])
+      setLastSelection({ categoryId: nextCategoryId, currency })
+      setCategoryId('')
+      setCurrency('')
+      setDraft('')
+      setAnnouncement(language === 'zh' ? '已记下这一笔' : 'Expense recorded')
+      listRef.current?.scrollTo({ top: 0, behavior: 'auto' })
+      if (document.activeElement === amountRef.current || window.matchMedia('(pointer: fine)').matches) {
+        amountRef.current?.focus()
+      }
+    } catch {
+      setError('save')
+    } finally {
+      writePending.current = false
+      setSaving(false)
+    }
+  }
+
+  const updateEntry = async (entry: SpendEntry) => {
+    const categoryId = await resolveCategoryId(entry.categoryId)
+    const saved = await spendRepo.updateEntry({ ...entry, categoryId })
+    setEntries(prev => prev.map(item => item.id === saved.id ? saved : item))
   }
 
   useWidgetSummary({ value: `${currencyToSymbol(defaultCurrency)}${totalTodayBase.total.toFixed(2)}`, detail: t('spend.today'), items: todayEntries.slice(0, 3).map(entry => `${currencyToSymbol(entry.currency)}${entry.amount}`) })
+
+  if (expanded) {
+    return (
+      <SpendDetail
+        today={todayKey} date={detailDate ?? todayKey}
+        onDate={date => setDetailDate(date === todayKey ? null : date)}
+        entries={sortedEntries} categories={options} baseCurrency={defaultCurrency}
+        draft={draft} onDraft={changeDraft} inputRef={amountRef}
+        currency={currency} onCurrency={setCurrency} categoryId={categoryId} onCategory={setCategoryId}
+        loadState={loadState} saving={saving} error={error} announcement={announcement}
+        onAdd={addEntry} onUpdate={updateEntry} onDelete={deleteEntry}
+      />
+    )
+  }
 
   return (
     <Card title={t('spend.title')} eyebrow={t('spend.today')}>
@@ -223,12 +273,13 @@ const SpendCard = () => {
                   </div>
                 </div>
 
-                <div className="spend__form">
+                <div className="spend__form" aria-busy={saving}>
                   <input
                     ref={amountRef}
                     type="text"
+                    readOnly={saving}
                     value={draft}
-                    onChange={(event) => setDraft(event.target.value)}
+                    onChange={(event) => changeDraft(event.target.value)}
                     onKeyDown={(event) => {
                       if (event.key !== 'Enter' || event.nativeEvent.isComposing) return
                       event.preventDefault()
@@ -248,17 +299,18 @@ const SpendCard = () => {
                   />
                   <Select
                     value={categoryId}
-                    options={categories.map((category) => ({
+                    options={options.map((category) => ({
                       value: category.id,
                       label: (
                         <span className="spend__category-option">
                           <span className="spend__category-icon">{renderSpendIcon(category.icon, { size: 16 })}</span>
+                          <span>{category.name}</span>
                         </span>
                       ),
                     }))}
                     onChange={(v) => setCategoryId(v)}
                   />
-                  <Button size="sm" className="spend__add-btn" onClick={addEntry}>
+                  <Button size="sm" className="spend__add-btn" onClick={() => void addEntry()} disabled={saving || loadState !== 'ready'}>
                     {t('spend.add')}
                   </Button>
                 </div>
@@ -327,7 +379,7 @@ const SpendCard = () => {
             <section className="spend-fg__panel" role="tabpanel" aria-label={t('spend.trend')}>
               <div className="spend__trend">
                 {view === 'trend' ? (
-                  SpendChartComponent ? <SpendChartComponent /> : <div className="min-h-[160px] sm:min-h-[200px]" aria-hidden="true" />
+                  SpendChartComponent ? <SpendChartComponent entries={entries} now={now} /> : <div className="min-h-[160px] sm:min-h-[200px]" aria-hidden="true" />
                 ) : null}
               </div>
             </section>
