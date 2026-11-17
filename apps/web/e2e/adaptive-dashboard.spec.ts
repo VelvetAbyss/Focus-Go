@@ -168,3 +168,99 @@ test('default desktop task cards and mobile summaries retain the working data', 
   await page.locator('.widget-detail [data-widget-close]').click()
   await expect(page.locator('[data-widget="tasks"] .widget-glance__value')).toHaveText('4')
 })
+
+test('short desktop weather and pay cards keep their own controls and content', async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 928 })
+  await page.clock.setFixedTime(new Date(2026, 10, 17, 14, 20))
+  const forecastURL = 'https://api.open-meteo.com/v1/forecast?**'
+  await page.addInitScript(() => {
+    localStorage.setItem('focusgo.dashboard.headerScene', JSON.stringify({ mode: 'desk' }))
+    localStorage.setItem('workbench.weather.autoLocation', 'false')
+  })
+  await page.route(forecastURL, route => route.fulfill({
+    json: {
+      current: {
+        time: '2026-11-17T14:20', temperature_2m: 13, weather_code: 1, is_day: 1,
+        apparent_temperature: 12, relative_humidity_2m: 64, wind_speed_10m: 8,
+      },
+      daily: {
+        time: ['2026-11-17', '2026-11-18', '2026-11-19'],
+        weather_code: [1, 61, 2],
+        temperature_2m_max: [15, 17, 18],
+        temperature_2m_min: [10, 11, 12],
+        precipitation_probability_max: [0, 80, 20],
+      },
+    },
+  }))
+  await seed(page, false)
+  await page.evaluate(async () => {
+    const dashboardPath = '/src/data/repositories/dashboardRepo.ts'
+    const salaryPath = '/src/features/salary/salaryStorage.ts'
+    const { dashboardRepo } = await import(/* @vite-ignore */ dashboardPath)
+    const { writeSalaryState } = await import(/* @vite-ignore */ salaryPath)
+    // Match the reported three-column layout with two three-row cards.
+    await dashboardRepo.upsert({
+      items: [
+        { key: 'salary-earned', x: 0, y: 0, w: 3, h: 3 },
+        { key: 'world_clock', x: 0, y: 3, w: 3, h: 6 },
+        { key: 'tasks', x: 3, y: 0, w: 6, h: 9 },
+        { key: 'weather', x: 9, y: 0, w: 3, h: 3 },
+        { key: 'widget-todos', x: 9, y: 3, w: 3, h: 6 },
+      ],
+      hiddenCardIds: ['spend', 'task-progress-summary'], layoutVersion: 1, themeOverride: null,
+    })
+    writeSalaryState({
+      settings: {
+        monthlySalary: 12_000, currency: 'CNY', workStart: 540, workEnd: 1080,
+        lunch: { start: 720, end: 780 }, workdays: [1, 2, 3, 4, 5], payday: 30,
+        followCnHolidays: false,
+      },
+      breaks: [], wishlist: [], activeBreakStartAt: null,
+    })
+  })
+  await page.reload()
+  await expect(page.locator('.adaptive-widget')).toHaveCount(5)
+  const weather = page.locator('[data-widget="weather"]')
+  const pay = page.locator('[data-widget="salary-earned"]')
+  const forecast = weather.getByRole('tablist', { name: '三日预报' })
+  const refreshWeather = weather.getByRole('button', { name: '重新加载天气' })
+  const paySettings = pay.getByRole('button', { name: '计薪设置' })
+  const before = await savedLayouts(page)
+
+  for (const [width, height] of [[1920, 928], [1920, 872], [1440, 900], [1440, 840]]) {
+    await test.step(`Both cards fit at ${width}×${height}`, async () => {
+      await page.setViewportSize({ width, height })
+      await expect(weather.locator('.weather-sky')).toBeInViewport()
+      await expect(forecast).toBeInViewport({ ratio: 1 })
+      await expect(pay.locator('.salary-earned__amount')).toBeInViewport({ ratio: 1 })
+      await expect(pay.getByText(/^今日预计/)).toBeInViewport({ ratio: 1 })
+      await expect(pay.getByText(/距发薪/)).toBeInViewport({ ratio: 1 })
+      await expect(paySettings).toBeInViewport({ ratio: 1 })
+      expect((await geometry(page)).routeOverflow).toBe(false)
+    })
+  }
+  await page.setViewportSize({ width: 1920, height: 928 })
+  await expect(pay.locator('.salary-grid--day')).toBeInViewport({ ratio: 1 })
+  const tomorrow = forecast.getByRole('tab', { name: /^明天/ })
+  await tomorrow.click()
+  await expect(tomorrow).toHaveAttribute('aria-selected', 'true')
+  await expect(weather.locator('.weather-card__temp-value')).toHaveText('17')
+  await Promise.all([page.waitForResponse(forecastURL), refreshWeather.click()])
+  await paySettings.click()
+  const payDialog = page.getByRole('dialog').filter({
+    has: page.getByRole('heading', { name: '计薪设置', exact: true }),
+  })
+  await expect(payDialog).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(payDialog).toBeHidden()
+
+  for (const [width, height] of [[390, 844], [820, 1180]]) {
+    await page.setViewportSize({ width, height })
+    await expect(weather.getByRole('button', { name: '展开天气', exact: true })).toBeVisible()
+    await expect(weather.locator('.weather-card')).toBeHidden()
+    await expect(pay.locator('.salary-card--earned')).toBeHidden()
+  }
+  await page.setViewportSize({ width: 1920, height: 928 })
+  await expect(tomorrow).toHaveAttribute('aria-selected', 'true')
+  expect(await savedLayouts(page)).toEqual(before)
+})
