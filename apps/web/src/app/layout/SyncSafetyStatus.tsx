@@ -10,16 +10,21 @@ import { useI18n } from '../../shared/i18n/useI18n'
 import { Button } from '@/components/ui/button'
 
 export default function SyncSafetyStatus() {
+  const [open, setOpen] = useState(false)
   const [compact, setCompact] = useState(false)
   useEffect(() => {
     const media = window.matchMedia?.('(max-width: 960px)')
     if (!media) return
-    const update = () => setCompact(media.matches)
+    const update = () => {
+      setCompact(media.matches)
+      // The mobile drawer hides the desktop anchor. Do not leave its portal
+      // open and positioned against a trigger that has moved off-screen.
+      setOpen(false)
+    }
     update()
     media.addEventListener('change', update)
     return () => media.removeEventListener('change', update)
   }, [])
-  const [open, setOpen] = useState(false)
   const [retrying, setRetrying] = useState(false)
   const [retryFailed, setRetryFailed] = useState(false)
   const headingId = useId()
