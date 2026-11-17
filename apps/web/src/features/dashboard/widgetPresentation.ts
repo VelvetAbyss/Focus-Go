@@ -7,6 +7,8 @@ export type WidgetSummary = {
   progress?: number
 }
 
+export const WidgetExpandedContext = createContext(false)
+
 export const WidgetPresentationContext = createContext<((summary: WidgetSummary) => void) | null>(null)
 
 /** Report the same live state the full widget uses; no second data loader. */

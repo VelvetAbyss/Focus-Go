@@ -17,6 +17,14 @@ describe('parseSpendInput', () => {
   it('needs a positive amount', () => {
     expect(parseSpendInput('午饭')).toBeNull()
     expect(parseSpendInput('0')).toBeNull()
+    expect(parseSpendInput('咖啡 -18')).toBeNull()
+    expect(parseSpendInput('$−18 coffee')).toBeNull()
+  })
+
+  it('reads grouped amounts without silently truncating precision', () => {
+    expect(parseSpendInput('房租 1,200.50')).toEqual({ amount: 1200.5, currency: undefined, note: '房租' })
+    expect(parseSpendInput('coffee 4,50')).toEqual({ amount: 4.5, currency: undefined, note: 'coffee' })
+    expect(parseSpendInput('咖啡 18.123')).toBeNull()
   })
 })
 

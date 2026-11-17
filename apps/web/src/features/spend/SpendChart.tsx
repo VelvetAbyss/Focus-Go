@@ -1,24 +1,18 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo } from 'react'
 import { ResponsiveContainer, LineChart, Line, XAxis, Tooltip, CartesianGrid } from 'recharts'
-import { spendRepo } from '../../data/repositories/spendRepo'
 import type { SpendEntry } from '../../data/models/types'
 import { convertToBase, currencyToSymbol } from '../../lib/currency'
 import { subDays, format, parseISO, startOfDay, isAfter } from 'date-fns'
 import { usePreferences } from '../../shared/prefs/usePreferences'
 import { useI18n } from '../../shared/i18n/useI18n'
 
-const SpendChart = () => {
+const SpendChart = ({ entries, now }: { entries: SpendEntry[]; now: Date }) => {
   const { t } = useI18n()
-  const [entries, setEntries] = useState<SpendEntry[]>([])
   const { defaultCurrency } = usePreferences()
-
-  useEffect(() => {
-    spendRepo.listEntries().then(setEntries)
-  }, [])
 
   const data = useMemo(() => {
     const days = 30
-    const cutoff = startOfDay(subDays(new Date(), days))
+    const cutoff = startOfDay(subDays(now, days))
     
     // Filter by date cutoff
     const filtered = entries.filter(e => {
@@ -30,7 +24,7 @@ const SpendChart = () => {
     
     // Fill all dates in range with 0 for continuity
     for (let i = 0; i < days; i++) {
-        const d = subDays(new Date(), i)
+        const d = subDays(now, i)
         const key = format(d, 'yyyy-MM-dd')
         aggregated[key] = 0
     }
@@ -47,7 +41,7 @@ const SpendChart = () => {
         amount
       }))
       .sort((a, b) => a.date.localeCompare(b.date))
-  }, [defaultCurrency, entries])
+  }, [defaultCurrency, entries, now])
 
   const currencySymbol = currencyToSymbol(defaultCurrency)
 
