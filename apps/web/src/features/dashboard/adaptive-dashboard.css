@@ -46,6 +46,40 @@ html .dashboard.dashboard--fixed { --compact-header-height: 138px; position: rel
 .adaptive-widget[data-density='micro'] :is(.widget-glance__body, .widget-glance__list, .widget-glance__progress, .widget-glance__arrow) { display: none; }
 .adaptive-widget[data-density='micro'] .widget-glance__heading { font-size: 13px; gap: 5px; }
 
+/* Keep the original weather and pay cards usable in short desktop slots. */
+.adaptive-widget:is([data-widget='weather'], [data-widget='salary-earned']) > .adaptive-widget__inline {
+  container: focus-widget / size;
+}
+.adaptive-widget__inline .weather-card__head { padding-inline-end: 44px; }
+.dashboard .adaptive-widget__inline .salary-card--earned > .card__header { padding-inline-end: 64px; }
+.adaptive-widget__inline .salary-card--earned > .card__body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@container focus-widget (max-height: 240px) {
+  .dashboard .adaptive-widget__inline .salary-card--earned > .card__header {
+    align-items: center;
+    padding: 8px 64px 6px 16px;
+  }
+  .dashboard .adaptive-widget__inline .salary-card--earned > .card__body { padding: 0 16px 10px; }
+  .adaptive-widget__inline .salary-earned__amount { font-size: 2.25rem; margin-bottom: 4px; }
+  .adaptive-widget__inline .salary-grid--day { width: 96px; height: 72px; margin-top: 0; }
+  .adaptive-widget__inline .salary-earned__foot { padding-top: 5px; }
+}
+
+@container focus-widget (max-height: 200px) {
+  .adaptive-widget__inline .weather-card__content { padding-block: 10px; }
+  .adaptive-widget__inline .weather-card__temp-value { font-size: 46px; }
+  .adaptive-widget__inline .weather-card__meta { margin-top: 5px; }
+  .adaptive-widget__inline .weather-card__days { margin-top: 7px; }
+  .dashboard .adaptive-widget__inline .salary-card--earned > .card__header { padding-block: 6px 3px; }
+  .dashboard .adaptive-widget__inline .salary-card--earned > .card__body { padding-bottom: 8px; }
+  .adaptive-widget__inline .salary-earned__amount { font-size: 2.125rem; }
+  .adaptive-widget__inline .salary-earned .salary-meta { line-height: 1.35; }
+  .adaptive-widget__inline .salary-earned__foot { padding-top: 3px; }
+}
+
 /* The original, single widget instance moves into this reading surface. */
 .dialog__panel.widget-detail { display: flex; flex-direction: column; gap: 0; width: min(1000px, calc(100% - 48px)); max-width: none; height: calc(100dvh - 48px); max-height: none; padding: 0; overflow: hidden; background: var(--paper-desk); color: var(--ink-1); }
 .widget-detail__heading { flex: none; padding: 18px 60px 14px 22px; border-bottom: 1px solid var(--rule); }
