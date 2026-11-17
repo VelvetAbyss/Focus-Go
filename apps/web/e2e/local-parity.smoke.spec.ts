@@ -74,6 +74,9 @@ async function expectNoteToCloseInPlace(page: Page) {
 }
 
 test.describe('hanging note close animation', () => {
+  // Two animated open/close cycles plus a real drag can exceed 45s on CI.
+  // Keep the geometry assertions and action sequence intact.
+  test.describe.configure({ timeout: 90_000 })
   // Keep both scales in the desktop paper layout; compact notes have a toolbar
   // entry and are covered by the adaptive dashboard interaction suite.
   test.use({ viewport: { width: 1600, height: 1000 }, reducedMotion: 'no-preference' })
