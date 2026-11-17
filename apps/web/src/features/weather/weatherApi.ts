@@ -98,8 +98,11 @@ function buildCityQueryCandidates(input: string) {
   return unique([query, primarySegment, normalized, ...suffixCandidates].filter(Boolean))
 }
 
-async function fetchJson<T>(url: string): Promise<T> {
+export async function fetchWeatherJson<T>(url: string, signal?: AbortSignal): Promise<T> {
   const controller = new AbortController()
+  const abort = () => controller.abort()
+  if (signal?.aborted) abort()
+  else signal?.addEventListener('abort', abort, { once: true })
   const timeout = globalThis.setTimeout(() => controller.abort(), 8000)
   try {
     const response = await fetch(url, { signal: controller.signal })
@@ -107,11 +110,12 @@ async function fetchJson<T>(url: string): Promise<T> {
     return (await response.json()) as T
   } finally {
     globalThis.clearTimeout(timeout)
+    signal?.removeEventListener('abort', abort)
   }
 }
 
 async function fetchGeocodeResult(cityQuery: string, language: 'en' | 'zh'): Promise<WeatherLocation | null> {
-  const response = await fetchJson<OpenMeteoGeocodeResponse>(
+  const response = await fetchWeatherJson<OpenMeteoGeocodeResponse>(
     `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityQuery)}&count=1&language=${language}&format=json`
   )
   const match = response.results?.[0]
@@ -148,7 +152,7 @@ export async function searchCityLocation(city: string): Promise<WeatherLocation 
 }
 
 export async function reverseGeocodeLocation(latitude: number, longitude: number): Promise<WeatherLocation | null> {
-  const response = await fetchJson<OpenMeteoGeocodeResponse>(
+  const response = await fetchWeatherJson<OpenMeteoGeocodeResponse>(
     `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${latitude}&longitude=${longitude}&count=1&language=en&format=json`
   )
   const match = response.results?.[0]
@@ -195,7 +199,7 @@ async function fetchThreeDayForecastFallback(
   location: WeatherLocation,
   unit: TemperatureUnit
 ): Promise<WeatherForecast> {
-  const response = await fetchJson<WttrForecastResponse>(
+  const response = await fetchWeatherJson<WttrForecastResponse>(
     `https://wttr.in/${location.latitude},${location.longitude}?format=j1`
   )
   const days = response.weather ?? []
@@ -238,7 +242,7 @@ export async function fetchThreeDayForecast(
   unit: TemperatureUnit
 ): Promise<WeatherForecast> {
   try {
-    const response = await fetchJson<OpenMeteoForecastResponse>(
+    const response = await fetchWeatherJson<OpenMeteoForecastResponse>(
       `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,weather_code,is_day,apparent_temperature,relative_humidity_2m,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max&forecast_days=3&timezone=auto&temperature_unit=${unit}&wind_speed_unit=${unit === 'fahrenheit' ? 'mph' : 'kmh'}`
     )
     const times = response.daily?.time ?? []

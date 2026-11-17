@@ -3,12 +3,10 @@ import { ResponsiveContainer, LineChart, Line, XAxis, Tooltip, CartesianGrid } f
 import type { SpendEntry } from '../../data/models/types'
 import { convertToBase, currencyToSymbol } from '../../lib/currency'
 import { subDays, format, parseISO, startOfDay, isAfter } from 'date-fns'
-import { usePreferences } from '../../shared/prefs/usePreferences'
 import { useI18n } from '../../shared/i18n/useI18n'
 
-const SpendChart = ({ entries, now }: { entries: SpendEntry[]; now: Date }) => {
+const SpendChart = ({ entries, now, baseCurrency }: { entries: SpendEntry[]; now: Date; baseCurrency: string }) => {
   const { t } = useI18n()
-  const { defaultCurrency } = usePreferences()
 
   const data = useMemo(() => {
     const days = 30
@@ -30,7 +28,7 @@ const SpendChart = ({ entries, now }: { entries: SpendEntry[]; now: Date }) => {
     }
 
     filtered.forEach(entry => {
-        const val = convertToBase(entry.amount, entry.currency, defaultCurrency)
+        const val = convertToBase(entry.amount, entry.currency, baseCurrency)
         aggregated[entry.dateKey] = (aggregated[entry.dateKey] || 0) + val
     })
 
@@ -41,9 +39,9 @@ const SpendChart = ({ entries, now }: { entries: SpendEntry[]; now: Date }) => {
         amount
       }))
       .sort((a, b) => a.date.localeCompare(b.date))
-  }, [defaultCurrency, entries, now])
+  }, [baseCurrency, entries, now])
 
-  const currencySymbol = currencyToSymbol(defaultCurrency)
+  const currencySymbol = currencyToSymbol(baseCurrency)
 
   if (entries.length === 0) {
       return (
