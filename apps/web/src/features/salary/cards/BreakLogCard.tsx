@@ -1,3 +1,4 @@
+import { useWidgetSummary } from '../../dashboard/widgetPresentation'
 import { useMemo, useState } from 'react'
 import { X } from 'lucide-react'
 import Card from '../../../shared/ui/Card'
@@ -100,6 +101,8 @@ const BreakLogCard = () => {
     const grid = dayGrid(settings, now, taken, activeBreakStartAt ? [activeBreakStartAt, now] : null)
     return grid ? { kind: 'day', grid, colors } : null
   }, [activeBreakStartAt, breaks, colors, now, settings])
+
+  useWidgetSummary({ value: running ? formatStopwatch(now - (activeBreakStartAt ?? now)) : formatWorkDuration(today.ms / 1000, t), detail: todayPay !== null ? money(todayPay) : t('salary.breaks.todayTotal'), items: todaysBreaks.slice(0, 3).map(item => formatWorkDuration((item.endAt - item.startAt) / 1000, t)) })
 
   return (
     <Card

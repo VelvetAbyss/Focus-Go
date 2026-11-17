@@ -1,3 +1,4 @@
+import { useWidgetSummary } from '../dashboard/widgetPresentation'
 import { useEffect, useId, useRef, useState } from 'react'
 import { ArrowLeftRight, Copy, Maximize2, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -244,6 +245,8 @@ export default function TranslationCard({ fullPage = false }: { fullPage?: boole
       </details>
     </div>
   )
+
+  useWidgetSummary({ value: `${source === 'auto' ? label('自动', 'Auto') : languageName(source)} → ${languageName(target)}`, detail: error || progress || result || input || label('随手译一段', 'Across languages') })
 
   if (fullPage) return editor
 

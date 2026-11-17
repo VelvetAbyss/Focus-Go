@@ -1972,3 +1972,26 @@ html[data-motion='reduce'] .life-card {
   background: rgba(157, 76, 76, 0.10);
   color: var(--tone-urgent);
 }
+
+/* App-sized editors: a master/detail pair on tablets, a readable sequence
+   on phones. Only the opened editor scrolls; dashboard overviews stay fixed. */
+.life-detail-split > * { min-width: 0; }
+@media (min-width: 701px) and (max-width: 1100px) {
+  .life-detail-split { display: grid !important; grid-template-columns: minmax(240px, 38%) minmax(0, 1fr) !important; }
+  .life-detail-split > * { width: auto !important; }
+}
+@media (max-width: 700px) {
+  .life-modal__panel.dialog__panel { width: 100%; height: 100dvh; max-height: 100dvh; border-radius: 0; margin: 0; }
+  .life-modal__content { min-height: 0; overflow: hidden; }
+  .life-modal__content > div > div:first-child { padding: 12px 16px !important; flex-shrink: 0; }
+  .life-detail-split { display: flex !important; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; }
+  .life-detail-split > :first-child { width: 100% !important; min-width: 0 !important; max-height: 42dvh; flex: 0 0 auto !important; overflow-y: auto; border-right: 0 !important; border-bottom: 1px solid var(--rule); }
+  .life-detail-split > :last-child { width: 100% !important; flex: 1 0 auto !important; overflow: visible !important; min-height: 260px !important; }
+  .life-modal__panel :is(button, [role='button']) { min-height: 44px; }
+  .life-modal__panel button[aria-label] { min-width: 44px; }
+  .life-modal__panel input, .life-modal__panel textarea, .life-modal__panel select { font-size: 16px !important; min-width: 0; }
+  .life-library-status { flex-wrap: wrap; }
+  .life-library-status > p { flex-basis: 100%; white-space: nowrap; }
+  .life-library-status > button { white-space: nowrap; }
+  .life-sidebar-item__delete { opacity: 1; width: 44px; height: 44px; right: 0; }
+}

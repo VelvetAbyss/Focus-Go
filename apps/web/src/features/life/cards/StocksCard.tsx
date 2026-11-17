@@ -1,3 +1,4 @@
+import { useWidgetSummary } from '../../dashboard/widgetPresentation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'motion/react'
 import Card from '../../../shared/ui/Card'
@@ -27,6 +28,8 @@ const StocksCard = () => {
     setStocks(rows)
     setSelectedId((current) => current ?? rows[0]?.id ?? null)
   }
+
+  useWidgetSummary({ value: String(stocks.length), detail: selected ? `${selected.symbol} · ${typeof selected.lastPrice === 'number' ? '$' + selected.lastPrice.toFixed(2) : '—'}` : '', items: stocks.slice(0, 3).map(item => `${item.symbol} · ${typeof item.lastPrice === 'number' ? '$' + item.lastPrice.toFixed(2) : '—'}`) })
 
   useEffect(() => {
     void loadStocks()

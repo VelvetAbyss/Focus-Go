@@ -1,3 +1,4 @@
+import { useWidgetSummary } from '../../dashboard/widgetPresentation'
 import { useEffect, useState } from 'react'
 import { RotateCcw } from 'lucide-react'
 import Card from '../../../shared/ui/Card'
@@ -50,6 +51,8 @@ const FxCard = () => {
   const updated = snapshot
     ? new Intl.DateTimeFormat(language === 'zh' ? 'zh-CN' : 'en-US', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).format(snapshot.updatedAt)
     : null
+
+  useWidgetSummary({ value: rate ? `1 ${foreign} = ${rate.toFixed(4)} CNY` : t('fx.unavailable'), detail: snapshot ? t('fx.updated', { time: updated! }) : failed ? t('fx.estimate') : t('fx.loading') })
 
   return (
     <Card

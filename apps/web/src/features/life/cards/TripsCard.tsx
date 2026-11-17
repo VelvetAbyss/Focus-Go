@@ -1,3 +1,4 @@
+import { useWidgetSummary } from '../../dashboard/widgetPresentation'
 import { typography } from '../../../shared/theme/typography'
 import { useCallback, useEffect, useState } from 'react'
 import { ArrowRight, Calendar, ChevronRight, Circle, Clock, MapPin, Sparkles, Users, Wallet } from 'lucide-react'
@@ -106,6 +107,8 @@ const TripsCard = () => {
   useSyncDataRefresh(() => {
     void loadTrip()
   }, ['trips'])
+
+  useWidgetSummary({ value: trip?.destination ?? '', detail: trip ? `${trip.title} · ${trip.startDate}` : loading ? '…' : '', items: trip ? topTodos(trip, 3) : [] })
 
   if (loading) {
     return (

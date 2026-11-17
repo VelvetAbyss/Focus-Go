@@ -1,3 +1,4 @@
+import { useWidgetSummary } from '../../dashboard/widgetPresentation'
 import { useMemo, useState } from 'react'
 import Card from '../../../shared/ui/Card'
 import { AppNumber } from '../../../shared/ui/AppNumber'
@@ -115,6 +116,8 @@ const EarnedTodayCard = () => {
       </div>
     )
   }
+
+  useWidgetSummary({ value: status ? money(status.earned) : '—', detail: settings ? countdown.join(' · ') : t('salary.setup.earned') })
 
   return (
     <Card

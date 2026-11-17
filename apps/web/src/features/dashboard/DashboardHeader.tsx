@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { useRef, useState } from 'react'
 import { Bookmark, BookmarkCheck, Check, LayoutGrid, Plus, RefreshCw } from 'lucide-react'
 import { useI18n } from '../../shared/i18n/useI18n'
@@ -25,6 +26,8 @@ import { useThemeMode } from '../../shared/theme/useThemeMode'
 export type DashboardPage = 'main' | 'life' | 'news' | 'custom'
 
 type DashboardHeaderProps = {
+  navigationHost?: HTMLElement | null
+  compactLayout?: boolean
   customViews?: { id: string; name: string }[]
   selectedViewId?: string
   onSelectView?: (id: string) => void
@@ -75,7 +78,7 @@ const writeQuoteSkip = (next: QuoteSkip) => {
 }
 
 const DashboardHeader = ({
-  customViews = [], selectedViewId, onSelectView, onCreateView,
+  navigationHost, compactLayout = false, customViews = [], selectedViewId, onSelectView, onCreateView,
   layoutEdit,
   widgetsPanelOpen,
   onToggleLayoutEdit,
@@ -150,6 +153,65 @@ const DashboardHeader = ({
 
   const showLayoutActions = page !== 'news' && page !== 'custom'
   const panorama = scenery && activeSettings.framing === 'panorama'
+
+  const navigation = onSetPage ? (
+          <div className="dash-toolbar__views">
+            <ActiveIndicator selector={`:scope [role="tab"][aria-selected="true"], :scope > .is-active`} />
+            <div className="dash-toolbar__tabs" role="tablist" aria-label={t('dashboard.views.aria')}>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={page === 'main'}
+                className="dash-toolbar__tab"
+                onClick={() => handleSetPage('main')}
+              >
+                {t('dashboard.page.focus')}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={page === 'life'}
+                className="dash-toolbar__tab"
+                onClick={() => handleSetPage('life')}
+              >
+                {t('dashboard.page.life')}
+                <DiscoveryNewBadge target="dashboard-life-tab" />
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={page === 'news'}
+                className="dash-toolbar__tab"
+                onClick={() => handleSetPage('news')}
+              >
+                {t('dashboard.page.news')}
+                <DiscoveryNewBadge target="dashboard-news-tab" />
+              </button>
+            </div>
+            {customViews.length > 0 ? (
+              <select
+                className={`dash-toolbar__tab dash-toolbar__select${page === 'custom' ? ' is-active' : ''}`}
+                aria-label={t('dashboard.views.mine')}
+                value={page === 'custom' ? selectedViewId : ''}
+                onChange={(event) => onSelectView?.(event.target.value)}
+              >
+                <option value="" disabled>{t('dashboard.views.mine')}</option>
+                {customViews.map((view) => <option key={view.id} value={view.id}>{view.name}</option>)}
+              </select>
+            ) : null}
+            {onCreateView ? (
+              <button
+                type="button"
+                className="dash-toolbar__add"
+                onClick={onCreateView}
+                aria-label={t('dashboard.views.new')}
+                title={t('dashboard.views.new')}
+              >
+                <Plus size={14} aria-hidden="true" />
+              </button>
+            ) : null}
+          </div>
+        ) : <span />
 
   // A masthead to read (the date on the left, the day's line on the right as
   // its epigraph), then a ruled toolbar to operate: the views as tabs on the
@@ -239,64 +301,7 @@ const DashboardHeader = ({
       </div>
 
       <div className="dash-toolbar">
-        {onSetPage ? (
-          <div className="dash-toolbar__views">
-            <ActiveIndicator selector={`:scope [role="tab"][aria-selected="true"], :scope > .is-active`} />
-            <div className="dash-toolbar__tabs" role="tablist" aria-label={t('dashboard.views.aria')}>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={page === 'main'}
-                className="dash-toolbar__tab"
-                onClick={() => handleSetPage('main')}
-              >
-                {t('dashboard.page.focus')}
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={page === 'life'}
-                className="dash-toolbar__tab"
-                onClick={() => handleSetPage('life')}
-              >
-                {t('dashboard.page.life')}
-                <DiscoveryNewBadge target="dashboard-life-tab" />
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={page === 'news'}
-                className="dash-toolbar__tab"
-                onClick={() => handleSetPage('news')}
-              >
-                {t('dashboard.page.news')}
-                <DiscoveryNewBadge target="dashboard-news-tab" />
-              </button>
-            </div>
-            {customViews.length > 0 ? (
-              <select
-                className={`dash-toolbar__tab dash-toolbar__select${page === 'custom' ? ' is-active' : ''}`}
-                aria-label={t('dashboard.views.mine')}
-                value={page === 'custom' ? selectedViewId : ''}
-                onChange={(event) => onSelectView?.(event.target.value)}
-              >
-                <option value="" disabled>{t('dashboard.views.mine')}</option>
-                {customViews.map((view) => <option key={view.id} value={view.id}>{view.name}</option>)}
-              </select>
-            ) : null}
-            {onCreateView ? (
-              <button
-                type="button"
-                className="dash-toolbar__add"
-                onClick={onCreateView}
-                aria-label={t('dashboard.views.new')}
-                title={t('dashboard.views.new')}
-              >
-                <Plus size={14} aria-hidden="true" />
-              </button>
-            ) : null}
-          </div>
-        ) : <span />}
+        {navigationHost ? createPortal(navigation, navigationHost) : navigation}
 
         <div className="dash-toolbar__actions">
           <HeaderSceneControls scene={scene} update={updateScene} reduced={reducedMotion} />
@@ -317,13 +322,13 @@ const DashboardHeader = ({
             <button
               type="button"
               className={`dash-toolbar__action${layoutEdit ? ' is-primary' : ''}`}
-              onClick={onToggleLayoutEdit}
+              onClick={compactLayout ? onToggleWidgetsPanel : onToggleLayoutEdit}
               data-locked={layoutEditLocked ? 'true' : 'false'}
-              aria-label={layoutEdit ? t('dashboard.layoutEdit') : t('dashboard.editLayout')}
-              aria-expanded={layoutEdit}
+              aria-label={compactLayout ? t('dashboard.manageVisibility') : layoutEdit ? t('dashboard.layoutEdit') : t('dashboard.editLayout')}
+              aria-expanded={compactLayout ? widgetsPanelOpen : layoutEdit}
             >
               {layoutEdit ? <Check size={14} aria-hidden="true" /> : <LayoutGrid size={14} aria-hidden="true" />}
-              <span>{layoutEdit ? t('dashboard.done') : t('dashboard.editLayout')}</span>
+              <span>{compactLayout ? t('dashboard.manageWidgets') : layoutEdit ? t('dashboard.done') : t('dashboard.editLayout')}</span>
               {!layoutEdit && layoutEditLocked ? <PremiumMark /> : null}
             </button>
           </> : null}

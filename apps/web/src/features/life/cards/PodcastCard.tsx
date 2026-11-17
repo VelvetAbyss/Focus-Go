@@ -1,3 +1,4 @@
+import { useWidgetSummary } from '../../dashboard/widgetPresentation'
 import { useEffect, useMemo, useState } from 'react'
 import { podcastsRepo } from '../../../data/repositories/podcastsRepo'
 import type { LifePodcast } from '../../../data/models/types'
@@ -75,6 +76,8 @@ const PodcastCard = ({ standalone }: { standalone?: boolean } = {}) => {
 
   const selected = useMemo(() => items.find((item) => item.id === selectedId) ?? null, [items, selectedId])
   const model = useMemo(() => buildPodcastPresentationModel(items, t), [items, t])
+  useWidgetSummary({ value: model.nowPlaying?.title ?? '', detail: model.nowPlaying?.podcastName ?? model.statsLabel, items: model.recentEpisodes.slice(0, 3).map(item => item.title) })
+
   const presetChannels = useMemo(
     () =>
       NETEASE_CHANNEL_PRESETS.filter(

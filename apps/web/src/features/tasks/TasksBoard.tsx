@@ -1,3 +1,4 @@
+import { useWidgetSummary } from '../dashboard/widgetPresentation'
 import { playInteractionSound, playInterfaceSound, playTaskStatusSound } from '../../shared/sound/interactionSounds'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
@@ -1325,6 +1326,8 @@ const TasksBoard = ({
       ) : null}
     </div>
   )
+
+  useWidgetSummary({ value: String(tasks.filter(isTaskOpen).length), detail: t('tasks.status.todo'), items: tasks.filter(isTaskOpen).slice(0, 3).map(task => task.title) })
 
   return (
     <>

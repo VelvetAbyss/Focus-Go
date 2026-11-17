@@ -1,3 +1,4 @@
+import AdaptiveDashboardGrid from './AdaptiveDashboardGrid'
 import { reflowDashboardLayout } from './responsiveLayout'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -40,6 +41,7 @@ import { DASHBOARD_CARD_DISCOVERY_TARGET_BY_ID } from '../../shared/discovery/ne
 
 const DashboardPage = () => {
   const { t, language } = useI18n()
+  const [navigationHost, setNavigationHost] = useState<HTMLDivElement | null>(null)
   const { ready: labsReady, catalog: labsCatalog } = useLabs()
   const translationInstalled = labsCatalog.some(item => item.featureKey === 'translation' && item.state === 'installed')
   const [symbolicError, setSymbolicError] = useState('')
@@ -80,7 +82,9 @@ const DashboardPage = () => {
   const isMobile = width < 1120
   const columns = isMobile ? 4 : 12
   const [searchParams, setSearchParams] = useSearchParams()
-  const [layoutEdit, setLayoutEdit] = useState(() => !isMobile && !readLayoutLocked())
+  const [requestedLayoutEdit, setLayoutEdit] = useState(() => !readLayoutLocked())
+  const layoutEdit = requestedLayoutEdit && !isMobile && page !== 'news'
+  const fixedPage = page === 'main' || page === 'life'
   useEffect(() => {
     setSearchParams(prev => {
       const next = new URLSearchParams(prev)
@@ -94,7 +98,6 @@ const DashboardPage = () => {
   const [confirmHideCardId, setConfirmHideCardId] = useState<string | null>(null)
   const [hideSubmitting, setHideSubmitting] = useState(false)
   const [layoutLoaded, setLayoutLoaded] = useState(false)
-  const layoutLockHydratedRef = useRef(false)
   const layoutSnapshotRef = useRef<{ layout: DashboardLayoutItem[]; hiddenCardIds: string[] }>({
     layout: [],
     hiddenCardIds: [],
@@ -108,8 +111,12 @@ const DashboardPage = () => {
       openUpgradeModal('button', 'dashboard.custom-layout')
       return
     }
-    setLayoutEdit((prev) => !prev)
-  }, [canUse, isMobile, openUpgradeModal])
+    const next = !requestedLayoutEdit
+    setLayoutEdit(next)
+    if (!next) setSearchParams(previous => { const params = new URLSearchParams(previous); params.delete('widgetsPanel'); return params })
+    writeLayoutLocked(!next)
+    void syncedPreferencesRepo.persistFromLocal()
+  }, [canUse, isMobile, openUpgradeModal, requestedLayoutEdit, setSearchParams])
 
   const toggleWidgetsPanel = useCallback(() => {
     if (!canUse('dashboard.extra-widgets').allowed) {
@@ -125,41 +132,10 @@ const DashboardPage = () => {
   }, [canUse, openUpgradeModal, setSearchParams, widgetsPanelOpen])
 
   useEffect(() => {
-    if (isMobile) setLayoutEdit(false)
-  }, [isMobile])
-
-  useEffect(() => {
-    if (page === 'news') setLayoutEdit(false)
-  }, [page])
-
-  useEffect(() => {
-    writeLayoutLocked(!layoutEdit)
-    if (layoutLockHydratedRef.current) {
-      void syncedPreferencesRepo.persistFromLocal()
-    } else {
-      layoutLockHydratedRef.current = true
-    }
-    if (!layoutEdit) {
-      setSearchParams((prev) => {
-        if (!prev.has('widgetsPanel')) return prev
-        const next = new URLSearchParams(prev)
-        next.delete('widgetsPanel')
-        return next
-      })
-    }
-  }, [layoutEdit, setSearchParams])
-
-  useEffect(() => {
-    const handleSyncedPreferencesUpdated = () => {
-      if (isMobile) {
-        setLayoutEdit(false)
-        return
-      }
-      setLayoutEdit(!readLayoutLocked())
-    }
+    const handleSyncedPreferencesUpdated = () => setLayoutEdit(!readLayoutLocked())
     window.addEventListener(SYNCED_PREFERENCES_UPDATED_EVENT, handleSyncedPreferencesUpdated)
     return () => window.removeEventListener(SYNCED_PREFERENCES_UPDATED_EVENT, handleSyncedPreferencesUpdated)
-  }, [isMobile])
+  }, [])
 
   const gridEdit = useDashboardGridEdit({
     layout: responsiveLayout,
@@ -372,8 +348,10 @@ const DashboardPage = () => {
   )
 
   return (
-    <main className={`dashboard${layoutLoaded ? ' is-layout-loaded' : ''}`} ref={containerRef} aria-label={t('dashboard.page')}>
+    <main className={`dashboard${fixedPage ? ' dashboard--fixed' : ''}${layoutLoaded ? ' is-layout-loaded' : ''}`} ref={containerRef} aria-label={t('dashboard.page')}>
         <DashboardHeader
+          compactLayout={isMobile}
+          navigationHost={fixedPage && isMobile ? navigationHost : null}
           layoutEdit={layoutEdit}
           widgetsPanelOpen={widgetsPanelOpen}
           onToggleLayoutEdit={toggleLayoutEdit}
@@ -389,6 +367,7 @@ const DashboardPage = () => {
         />
 
         <HangingNotes />
+        {fixedPage && isMobile && <div ref={setNavigationHost} className="dashboard-bottom-navigation" />}
 
         <div aria-live="polite" aria-atomic="true">
         </div>
@@ -415,7 +394,7 @@ const DashboardPage = () => {
 
         {symbolicError && <p role="alert">{symbolicError}</p>}
         {/* Main dashboard */}
-        {page === 'main' && layoutEdit && widgetsPanelOpen && (
+        {page === 'main' && widgetsPanelOpen && (
           <section className="dashboard-widgets" aria-label={t('dashboard.manageVisibility')}>
             {cards.filter(card => !card.featureKey || layout.some(item => item.key === card.id) || labsCatalog.some(item => item.featureKey === card.featureKey && item.state === 'installed')).map((card) => {
               const visible = layout.some((item) => item.key === card.id)
@@ -443,7 +422,9 @@ const DashboardPage = () => {
           <DashboardSkeleton columns={columns} rowHeight={60} margin={18} />
         )}
 
-        {page === 'main' && mounted && layoutLoaded && (
+        {page === 'main' && mounted && layoutLoaded && <div className="dashboard-view-surface" hidden={layoutEdit}><AdaptiveDashboardGrid layout={layout} cards={cards} columns={12} label={zh ? '专注组件' : 'Focus widgets'} /></div>}
+        {page === 'main' && mounted && layoutLoaded && layoutEdit && (
+          <div className="dashboard-layout-editor" aria-label={zh ? '编辑布局工作区' : 'Layout editor'}>
           <GridLayout
             className={`dashboard__grid${layoutEdit ? ' dashboard__grid--edit-mode' : ''}`}
             layout={responsiveLayout.map((item) => ({
@@ -477,7 +458,7 @@ const DashboardPage = () => {
                     className={`dashboard__item${layoutEdit ? ' is-layout-edit' : ''}${gridEdit.activeId === card.id ? ' is-dragging' : ''}`}
                     onPointerDownCapture={() => { if (discoveryTarget) markDiscoveryNewTargetSeen(discoveryTarget) }}
                   >
-                    {card.render()}
+                    <div className="dashboard-layout-preview"><strong>{card.title}</strong><span>{zh ? '拖动排列 · 拖动右下角调整大小' : 'Drag to arrange · Resize from the corner'}</span></div>
                     {discoveryTarget ? <DiscoveryNewBadge target={discoveryTarget} className="discovery-new-badge--card" /> : null}
                 {layoutEdit && (
                   <>
@@ -499,6 +480,7 @@ const DashboardPage = () => {
               })()
             ))}
           </GridLayout>
+          </div>
         )}
 
         <Dialog

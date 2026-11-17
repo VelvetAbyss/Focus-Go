@@ -1,3 +1,4 @@
+import { useWidgetSummary } from '../../dashboard/widgetPresentation'
 import { useEffect, useMemo, useState } from 'react'
 import { diaryRepo } from '../../../data/repositories/diaryRepo'
 import { focusRepo } from '../../../data/repositories/focusRepo'
@@ -62,6 +63,8 @@ const DailyReviewCard = () => {
     () => buildDailyReviewPresentationModel(todayAnalytics, weekAnalytics, monthAnalytics, t),
     [monthAnalytics, t, todayAnalytics, weekAnalytics],
   )
+
+  useWidgetSummary({ value: String(todayAnalytics.summary.completedTasks), detail: designModel.todayMetrics.filter(item => item.key === 'focus' || item.key === 'diary').map(item => `${item.label} ${item.value}`).join(' · '), items: designModel.detailRanges[activeRange].tasks.slice(0, 3).map(item => item.title) })
 
   return (
     <DailyReviewCardSurface

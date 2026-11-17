@@ -1,3 +1,4 @@
+import { useWidgetSummary } from '../widgetPresentation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent, PointerEvent as ReactPointerEvent } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
@@ -780,6 +781,8 @@ const WidgetTodosCard = () => {
       </div>
     )
   }
+
+  useWidgetSummary({ value: `${completionStats.done}/${completionStats.total}`, detail: completionLabel, items: scopeItems.filter(item => !item.done).slice(0, 3).map(item => item.title), progress: completionRatio * 100 })
 
   return (
     <Card

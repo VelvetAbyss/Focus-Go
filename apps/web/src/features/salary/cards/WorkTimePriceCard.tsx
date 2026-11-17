@@ -1,3 +1,4 @@
+import { useWidgetSummary } from '../../dashboard/widgetPresentation'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Plus, X } from 'lucide-react'
 import Card from '../../../shared/ui/Card'
@@ -109,6 +110,8 @@ const WorkTimePriceCard = () => {
 
   const removeWish = (id: string) =>
     updateSalaryState((current) => ({ ...current, wishlist: current.wishlist.filter((item) => item.id !== id) }))
+
+  useWidgetSummary({ value: cost ? formatWorkDuration(cost.seconds, t) : String(wishlist.length), detail: name || t('salary.price.wishlist'), items: wishlist.slice(0, 3).map(wish => `${wish.name} · ${formatMoney(wish.price, symbol, language)}`) })
 
   return (
     <Card

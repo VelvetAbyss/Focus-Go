@@ -1,3 +1,4 @@
+import { useWidgetSummary } from '../../dashboard/widgetPresentation'
 import { useEffect, useMemo, useState } from 'react'
 import type { LifeSubscription } from '../../../data/models/types'
 import { subscriptionsRepo } from '../../../data/repositories/subscriptionsRepo'
@@ -14,6 +15,8 @@ const SubscriptionsCard = () => {
   const [loading, setLoading] = useState(false)
 
   const designModel = useMemo(() => buildSubscriptionPresentationModel(subscriptions, t), [subscriptions, t])
+
+  useWidgetSummary({ value: designModel.monthlyTotalLabel, detail: designModel.annualTotalLabel, items: designModel.previewRows.map(item => `${item.name} · ${item.priceLabel}`) })
 
   useEffect(() => {
     const loadSubscriptions = async () => {

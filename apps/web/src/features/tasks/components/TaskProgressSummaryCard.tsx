@@ -1,3 +1,4 @@
+import { useWidgetSummary } from '../../dashboard/widgetPresentation'
 import { Check, ChevronLeft, ChevronRight, Clipboard, ListChecks, RotateCcw } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type { ProjectItem } from '../../../data/models/types'
@@ -324,6 +325,8 @@ export const TaskProgressSummaryCard = ({ tasks, projects, className, compact, n
       : periodOffset === -1
         ? t(period === 'week' ? 'taskRecap.title.lastWeek' : 'taskRecap.title.lastMonth')
         : t(period === 'week' ? 'taskRecap.title.weeksAgo' : 'taskRecap.title.monthsAgo', { count: Math.abs(periodOffset) })
+  useWidgetSummary({ value: String(summary.totals.completedTaskCount), detail: headlineText, items: summary.projects.slice(0, 3).map(project => `${project.projectTitle} · ${project.completedTaskCount}`) })
+
   const tasksDirection = directionFromDelta(summary.delta.completedTaskCount)
   const subtasksDirection = directionFromDelta(summary.delta.completedSubtaskCount)
 
