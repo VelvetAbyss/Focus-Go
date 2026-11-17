@@ -103,19 +103,77 @@ html .focus-shell .dashboard .card.dashboard-widget-card--todo {
 }
 .focus-shell .dashboard .card__header { padding: 20px 22px 14px; }
 .focus-shell .dashboard .card__body { padding-inline: 22px; }
-html .focus-shell .dashboard .card.dashboard-widget-card--tasks { border-color: var(--rule-strong); }
-.focus-shell .dashboard-widget-card--tasks .tasks-fg__card-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
+/* The widget owns the column count so resizing it on the same screen
+   reflows the original task cards without touching saved widget positions. */
+html .focus-shell .dashboard .card.dashboard-widget-card--tasks {
+  container: dashboard-tasks / inline-size;
+  border-color: var(--rule-strong);
+}
+.focus-shell .dashboard-widget-card--tasks .tasks-fg__card-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 10px;
+}
 .focus-shell .dashboard-widget-card--tasks .task-card-shell {
-  border: 0;
-  border-bottom: 1px solid var(--rule);
-  border-radius: 0;
-  background: transparent;
+  min-width: 0;
+  background: color-mix(in srgb, var(--paper-raised) 65%, var(--workspace-panel));
   box-shadow: none;
 }
-.focus-shell .dashboard-widget-card--tasks .task-card-shell:last-child { border-bottom: 0; }
-.focus-shell .dashboard-widget-card--tasks .task-card__head { padding-bottom: 6px; }
-.focus-shell .dashboard-widget-card--tasks .task-card__foot { border-top: 0; padding-top: 6px; }
-.focus-shell .dashboard-widget-card--tasks .task-card__title { font-size: var(--fs-body); font-weight: 500; line-height: 1.5; }
+.focus-shell .dashboard-widget-card--tasks .task-card-shell:is(:hover, :focus-within) {
+  background: var(--paper-raised);
+  border-color: var(--rule-strong);
+  box-shadow: var(--elev-1);
+  translate: none;
+}
+.focus-shell .dashboard-widget-card--tasks .task-card__body {
+  height: 100%;
+  padding: 11px 12px 8px;
+  gap: 4px;
+}
+.focus-shell .dashboard-widget-card--tasks .task-card__title {
+  font-size: var(--fs-ui);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.focus-shell .dashboard-widget-card--tasks .task-card__foot { margin-top: auto; }
+.focus-shell .dashboard-widget-card--tasks .task-card__foot-rest { gap: 8px; }
+.focus-shell .dashboard-widget-card--tasks :is(.task-card__meta, .task-card__project-chip) {
+  font-size: var(--fs-meta);
+}
+.focus-shell .dashboard-widget-card--tasks .task-card__project-mark { width: 6px; height: 6px; }
+
+@container dashboard-tasks (max-width: 500px) {
+  .focus-shell .dashboard-widget-card--tasks .card__header { padding: 16px 14px 10px; }
+  .focus-shell .dashboard-widget-card--tasks .card__body { padding-inline: 12px; }
+  .focus-shell .dashboard-widget-card--tasks .tasks-fg__card-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  .focus-shell .dashboard-widget-card--tasks .task-card__title { min-height: 0; }
+}
+
+@media (hover: none) {
+  .focus-shell .dashboard-widget-card--tasks .task-card__foot { height: auto; row-gap: 4px; }
+  .focus-shell .dashboard-widget-card--tasks .task-card__foot > * { grid-area: auto; }
+  .focus-shell .dashboard-widget-card--tasks .task-card__foot .task-card__foot-rest {
+    opacity: 1;
+    translate: none;
+    pointer-events: auto;
+  }
+  .focus-shell .dashboard-widget-card--tasks .task-card__foot .task-card__actions {
+    width: auto;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    margin-inline: -4px;
+    opacity: 1;
+    translate: none;
+    pointer-events: auto;
+  }
+  .focus-shell .dashboard-widget-card--tasks .task-card__action-btn {
+    min-width: 36px;
+    min-height: 36px;
+  }
+}
 .focus-shell .dash-toolbar { border-color: var(--rule); background: transparent; }
 .focus-shell .dash-hero { border-color: var(--rule); }
 .focus-shell .dash-hero__num { font-size: clamp(52px, 4vw, 64px); }
@@ -149,10 +207,6 @@ html .focus-shell .dashboard .card.dashboard-widget-card--tasks { border-color: 
 .task-detail-workspace .task-detail-aside { background: var(--workspace-panel); }
 .task-detail-workspace .task-detail-topbar { background: var(--paper-raised); border-bottom: 1px solid var(--rule); }
 .task-detail-workspace .task-detail-card--hero { border: 0; box-shadow: none; }
-
-.focus-shell .dashboard-widget-card--tasks .task-card__title { min-height: 0; }
-.focus-shell .dashboard-widget-card--tasks .task-card__body { gap: 8px; }
-.focus-shell .dashboard-widget-card--tasks .task-card-shell:hover { translate: none; }
 
 /* Notes retain three functional panes and saved content appearance. */
 .focus-shell .note-page:not([data-fullscreen='true']) { --note-sidebar-width: 210px; --note-browser-width: 264px; }
