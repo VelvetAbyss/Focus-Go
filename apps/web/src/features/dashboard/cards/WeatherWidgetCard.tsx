@@ -1,5 +1,5 @@
-import { useWidgetSummary } from '../widgetPresentation'
-import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { WidgetExpandedContext, useWidgetSummary } from '../widgetPresentation'
+import { lazy, Suspense, useContext, useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { ArrowDown, ArrowUp, RotateCcw } from 'lucide-react'
 import Card from '../../../shared/ui/Card'
 import { usePreferences } from '../../../shared/prefs/usePreferences'
@@ -17,6 +17,8 @@ import { tomorrowChange } from '../../weather/tomorrowChange'
 import WeatherSky from '../../weather/sky/WeatherSky'
 import { useI18n } from '../../../shared/i18n/useI18n'
 import '../../weather/weather-card.css'
+
+const WeatherDetail = lazy(() => import('../../weather/WeatherDetail'))
 
 const dayLabel = (index: number) => {
   if (index === 0) return 'weather.today'
@@ -41,6 +43,7 @@ const cityOf = (name?: string) => (name ? name.split(',')[0].trim() : '')
 const WeatherWidgetCard = () => {
   const { t, language } = useI18n()
   const theme = useThemeMode()
+  const expanded = useContext(WidgetExpandedContext)
   const { weatherAutoLocationEnabled, weatherManualCity, weatherTemperatureUnit } = usePreferences()
   const [snapshot, setSnapshot] = useState<WeatherSnapshot>(() => getWeatherSnapshot())
   const [selectedIndex, setSelectedIndex] = useState(0)
@@ -142,6 +145,14 @@ const WeatherWidgetCard = () => {
   const hasData = Boolean(snapshot.data)
 
   useWidgetSummary({ value: typeof temperature === 'number' ? `${Math.round(temperature)}°${unitSymbol}` : '—', detail: [cityOf(snapshot.data?.location.name), meta ? (language === 'zh' ? meta.labelZh : meta.label) : ''].filter(Boolean).join(' · '), items: tomorrowNote ? [tomorrowNote] : [] })
+
+  if (expanded) {
+    return (
+      <Suspense fallback={<p role="status" className="p-4">{loadingLabel}</p>}>
+        <WeatherDetail snapshot={snapshot} unit={weatherTemperatureUnit} />
+      </Suspense>
+    )
+  }
 
   return (
     <Card

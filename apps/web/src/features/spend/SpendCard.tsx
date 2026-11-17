@@ -1,6 +1,6 @@
 import { WidgetExpandedContext, useWidgetSummary } from '../dashboard/widgetPresentation'
-import { useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { matchSpendCategory, parseSpendInput } from './parseSpend'
+import { useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { matchSpendCategory, parseSpendInput, type ParsedSpend } from './parseSpend'
 import type { CSSProperties } from 'react'
 import { Button } from '@/components/ui/button'
 import Card from '../../shared/ui/Card'
@@ -12,6 +12,9 @@ import { AppNumber } from '../../shared/ui/AppNumber'
 import { useI18n } from '../../shared/i18n/useI18n'
 import { convertToBase, currencyToSymbol } from '../../lib/currency'
 import { usePreferences } from '../../shared/prefs/usePreferences'
+import type { CurrencyCode } from '../../shared/prefs/preferences'
+import { subscribeAuth } from '../../store/auth'
+import { readSpendSummaryCurrency, spendPreferenceScope, writeSpendSummaryCurrency, type FixedExpense } from './spendPreferences'
 import { renderSpendIcon } from './spendIcons'
 import { Trash2 } from 'lucide-react'
 import AnimatedScrollList from '../../shared/ui/AnimatedScrollList'
@@ -39,6 +42,7 @@ const SpendCard = () => {
   const [categories, setCategories] = useState<SpendCategory[]>([])
   // What was typed: "午饭 28", "28 打车", "$12". Parsed into amount, currency, category and note.
   const [draft, setDraft] = useState('')
+  const [fixedDraft, setFixedDraft] = useState<ParsedSpend | null>(null)
   const [currencyChoice, setCurrency] = useState('')
   const [categoryChoice, setCategoryId] = useState('')
   const [lastSelection, setLastSelection] = useState({ categoryId: '', currency: '' })
@@ -53,6 +57,15 @@ const SpendCard = () => {
   const [SpendChartComponent, setSpendChartComponent] = useState<SpendChartComponentType | null>(null)
   const [activeEntryId, setActiveEntryId] = useState<string | null>(null)
   const { defaultCurrency } = usePreferences()
+  const scope = useSyncExternalStore(subscribeAuth, spendPreferenceScope, () => 'guest')
+  const [summarySelection, setSummarySelection] = useState<{ scope: string; currency: CurrencyCode }>()
+  const summaryCurrency = summarySelection?.scope === scope
+    ? summarySelection.currency
+    : (readSpendSummaryCurrency(scope) ?? (language === 'zh' ? 'CNY' : defaultCurrency))
+  const changeSummaryCurrency = (currency: CurrencyCode) => {
+    writeSpendSummaryCurrency(scope, currency)
+    setSummarySelection({ scope, currency })
+  }
   const amountRef = useRef<HTMLInputElement | null>(null)
   const listRef = useRef<HTMLDivElement | null>(null)
 
@@ -102,11 +115,11 @@ const SpendCard = () => {
   const totalTodayBase = useMemo(() => {
     const todayEntries = entries.filter((entry) => entry.dateKey === todayKey)
     const total = todayEntries.reduce(
-      (sum, entry) => sum + convertToBase(entry.amount, entry.currency, defaultCurrency),
+      (sum, entry) => sum + convertToBase(entry.amount, entry.currency, summaryCurrency),
       0
     )
     return { total, count: todayEntries.length }
-  }, [defaultCurrency, entries, todayKey])
+  }, [summaryCurrency, entries, todayKey])
 
   const categoriesById = useMemo(() => {
     return new Map(categories.map((category) => [category.id, category]))
@@ -143,15 +156,25 @@ const SpendCard = () => {
   }
 
   const { options, fallbackId } = useMemo(() => getSpendCategoryOptions(categories, language), [categories, language])
-  const parsedDraft = parseSpendInput(draft)
+  const parsedDraft = fixedDraft ?? parseSpendInput(draft)
   const suggestedCategory = parsedDraft ? matchSpendCategory(parsedDraft.note, options) : null
   const categoryId = categoryChoice || suggestedCategory?.id || lastSelection.categoryId || fallbackId
-  const currency = currencyChoice || parsedDraft?.currency || lastSelection.currency || (defaultCurrency === 'USD' ? 'USD' : 'CNY')
+  const currency = currencyChoice || parsedDraft?.currency || lastSelection.currency || summaryCurrency
 
   const changeDraft = (value: string) => {
     setDraft(value)
+    setFixedDraft(null)
     setError(null)
     setAnnouncement(null)
+  }
+
+  const fillFixedExpense = (expense: FixedExpense) => {
+    if (draft.trim() || writePending.current) return
+    changeDraft(`${expense.amount.toFixed(2)} ${expense.name}`)
+    setFixedDraft({ amount: expense.amount, currency: expense.currency, note: expense.name })
+    setCategoryId('')
+    setCurrency(expense.currency)
+    amountRef.current?.focus()
   }
 
   const resolveCategoryId = async (pickedId: string) => {
@@ -195,6 +218,7 @@ const SpendCard = () => {
       setCategoryId('')
       setCurrency('')
       setDraft('')
+      setFixedDraft(null)
       setAnnouncement(language === 'zh' ? '已记下这一笔' : 'Expense recorded')
       listRef.current?.scrollTo({ top: 0, behavior: 'auto' })
       if (document.activeElement === amountRef.current || window.matchMedia('(pointer: fine)').matches) {
@@ -214,14 +238,15 @@ const SpendCard = () => {
     setEntries(prev => prev.map(item => item.id === saved.id ? saved : item))
   }
 
-  useWidgetSummary({ value: `${currencyToSymbol(defaultCurrency)}${totalTodayBase.total.toFixed(2)}`, detail: t('spend.today'), items: todayEntries.slice(0, 3).map(entry => `${currencyToSymbol(entry.currency)}${entry.amount}`) })
+  useWidgetSummary({ value: `${currencyToSymbol(summaryCurrency)}${totalTodayBase.total.toFixed(2)}`, detail: t('spend.today'), items: todayEntries.slice(0, 3).map(entry => `${currencyToSymbol(entry.currency)}${entry.amount}`) })
 
   if (expanded) {
     return (
       <SpendDetail
         today={todayKey} date={detailDate ?? todayKey}
         onDate={date => setDetailDate(date === todayKey ? null : date)}
-        entries={sortedEntries} categories={options} baseCurrency={defaultCurrency}
+        entries={sortedEntries} categories={options} baseCurrency={summaryCurrency}
+        onBaseCurrency={changeSummaryCurrency} preferenceScope={scope} onFillFixed={fillFixedExpense}
         draft={draft} onDraft={changeDraft} inputRef={amountRef}
         currency={currency} onCurrency={setCurrency} categoryId={categoryId} onCategory={setCategoryId}
         loadState={loadState} saving={saving} error={error} announcement={announcement}
@@ -264,7 +289,7 @@ const SpendCard = () => {
                     ) : (
                       <div className="spend__amount-row spend__amount-row--main">
                         <AppNumber
-                          prefix={`${currencyToSymbol(defaultCurrency)} `}
+                          prefix={`${currencyToSymbol(summaryCurrency)} `}
                           value={totalTodayBase.total}
                           format={{ minimumFractionDigits: 2, maximumFractionDigits: 2 }}
                         />
@@ -379,7 +404,7 @@ const SpendCard = () => {
             <section className="spend-fg__panel" role="tabpanel" aria-label={t('spend.trend')}>
               <div className="spend__trend">
                 {view === 'trend' ? (
-                  SpendChartComponent ? <SpendChartComponent entries={entries} now={now} /> : <div className="min-h-[160px] sm:min-h-[200px]" aria-hidden="true" />
+                  SpendChartComponent ? <SpendChartComponent entries={entries} now={now} baseCurrency={summaryCurrency} /> : <div className="min-h-[160px] sm:min-h-[200px]" aria-hidden="true" />
                 ) : null}
               </div>
             </section>

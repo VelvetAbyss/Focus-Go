@@ -2,11 +2,14 @@ import { useMemo, useRef, useState, type FormEvent, type RefObject } from 'react
 import { ArrowDownRight, ChevronLeft, ChevronRight, Pencil, Plus, ReceiptText, Trash2 } from 'lucide-react'
 import { format, parseISO, addDays } from 'date-fns'
 import type { SpendEntry } from '../../data/models/types'
-import { convertToBase, currencyToSymbol } from '../../lib/currency'
+import { convertToBase } from '../../lib/currency'
 import { useI18n } from '../../shared/i18n/useI18n'
 import { toDateKey } from '../../shared/utils/time'
 import type { SpendCategoryOption } from './spendCategories'
 import { renderSpendIcon } from './spendIcons'
+import type { CurrencyCode } from '../../shared/prefs/preferences'
+import DailyFixedSpend from './DailyFixedSpend'
+import { currencyLabel, formatSpendMoney as money, type FixedExpense } from './spendPreferences'
 import './spend-detail.css'
 
 type Props = {
@@ -15,7 +18,10 @@ type Props = {
   onDate: (date: string) => void
   entries: SpendEntry[]
   categories: SpendCategoryOption[]
-  baseCurrency: string
+  baseCurrency: CurrencyCode
+  onBaseCurrency: (currency: CurrencyCode) => void
+  preferenceScope: string
+  onFillFixed: (item: FixedExpense) => void
   draft: string
   onDraft: (value: string) => void
   inputRef: RefObject<HTMLInputElement | null>
@@ -32,15 +38,10 @@ type Props = {
   onDelete: (id: string) => Promise<void>
 }
 
-const money = (amount: number, currency: string, locale: string) => {
-  const value = amount.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  const symbol = currencyToSymbol(currency)
-  return `${symbol}${symbol.length === 1 ? '' : ' '}${value}`
-}
-
 function CurrencyOptions({ current }: { current: string }) {
+  const { language } = useI18n()
   return [...new Set(['CNY', 'USD', current])].map(code => (
-    <option key={code} value={code}>{currencyToSymbol(code)} {code}</option>
+    <option key={code} value={code}>{currencyLabel(code, language === 'zh')}</option>
   ))
 }
 
@@ -181,7 +182,7 @@ function SpendingInsights({ entries, today, categories, baseCurrency, loadState,
 }
 
 export default function SpendDetail(props: Props) {
-  const { today, date, onDate, entries, categories, baseCurrency, draft, onDraft, inputRef, currency, onCurrency, categoryId, onCategory, loadState, saving, error, announcement, onAdd, onUpdate, onDelete } = props
+  const { today, date, onDate, entries, categories, baseCurrency, onBaseCurrency, preferenceScope, onFillFixed, draft, onDraft, inputRef, currency, onCurrency, categoryId, onCategory, loadState, saving, error, announcement, onAdd, onUpdate, onDelete } = props
   const { language, t } = useI18n()
   const zh = language === 'zh'
   const locale = zh ? 'zh-CN' : 'en-US'
@@ -226,6 +227,12 @@ export default function SpendDetail(props: Props) {
         <div>
           <div className="spend-detail__kicker"><ReceiptText size={15} aria-hidden="true" />{date === today ? (zh ? '今日支出' : 'SPENT TODAY') : (zh ? '当日支出' : 'DAILY SPENDING')}</div>
           <p className="spend-detail__total" aria-live="polite">{loadState === 'ready' ? money(total, baseCurrency, locale) : '—'}</p>
+          <div className="spend-detail__currency-picker">
+            <label htmlFor="spend-summary-currency">{zh ? '汇总币种' : 'Summary currency'}</label>
+            <select id="spend-summary-currency" value={baseCurrency} onChange={event => onBaseCurrency(event.target.value === 'USD' ? 'USD' : 'CNY')}>
+              <CurrencyOptions current={baseCurrency} />
+            </select>
+          </div>
           <span className="spend-detail__meta">{loadState === 'ready' ? (zh ? `${dayEntries.length} 笔记录` : `${dayEntries.length} ${dayEntries.length === 1 ? 'entry' : 'entries'}`) : '—'}{converted ? (zh ? ` · 折合 ${baseCurrency}，供参考` : ` · Estimated in ${baseCurrency}`) : ''}</span>
         </div>
         <div className="spend-detail__date">
@@ -302,7 +309,11 @@ export default function SpendDetail(props: Props) {
             )}
           </section>
         </div>
-        <SpendingInsights entries={entries} today={today} categories={categories} baseCurrency={baseCurrency} loadState={loadState} onDate={openChartDay} />
+        <div className="spend-detail__side">
+          <DailyFixedSpend key={preferenceScope} scope={preferenceScope} baseCurrency={baseCurrency}
+            fillDisabled={saving || Boolean(draft.trim())} onFill={onFillFixed} />
+          <SpendingInsights entries={entries} today={today} categories={categories} baseCurrency={baseCurrency} loadState={loadState} onDate={openChartDay} />
+        </div>
       </div>
     </div>
   )

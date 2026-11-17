@@ -17,7 +17,10 @@ function AdaptiveWidget({ card, rect, overview }: { card: DashboardCard; rect: W
   const title = profile ? (zh ? profile.zh : profile.en) : card.title
   const hint = profile ? (zh ? profile.hintZh : profile.hintEn) : ''
   const Icon = profile?.icon ?? Maximize2
-  const compact = overview || rect.width < (profile?.minWidth ?? 320) || rect.height < (profile?.minHeight ?? 300)
+  // A wide weather slot can hold the sky and forecast even in the overview layout.
+  const showWideWeather = card.id === 'weather' && rect.width >= 360
+  const compact = (overview && !showWideWeather)
+    || rect.width < (profile?.minWidth ?? 320) || rect.height < (profile?.minHeight ?? 300)
   const density = rect.height < 76 ? 'micro' : rect.height < 145 ? 'small' : 'comfortable'
   const [summary, setSummary] = useState<WidgetSummary>({})
   const summaryRows = density === 'comfortable' ? Math.max(0, Math.min(3, Math.floor((rect.height - (summary.value ? 132 : 105)) / 34))) : 0
@@ -71,7 +74,7 @@ function AdaptiveWidget({ card, rect, overview }: { card: DashboardCard; rect: W
       restoreTriggerFocus()
     }
   }, [expanded, restoreTriggerFocus])
-  const isSpend = card.id === 'spend'
+  const detailVariant = card.id === 'spend' || card.id === 'weather' ? ` widget-detail--${card.id}` : ''
   const content = useMemo(() => card.render(), [card])
   const openLabel = zh ? `展开${title}` : `Open ${title}`
   return (
@@ -92,8 +95,8 @@ function AdaptiveWidget({ card, rect, overview }: { card: DashboardCard; rect: W
       <WidgetPresentationContext.Provider value={setSummary}>
         <WidgetExpandedContext.Provider value={expanded}>{createPortal(content, host)}</WidgetExpandedContext.Provider>
       </WidgetPresentationContext.Provider>
-      <Dialog open={expanded} onClose={() => setExpanded(false)} panelClassName={isSpend ? 'widget-detail widget-detail--spend' : 'widget-detail'} contentClassName="widget-detail__content">
-        <header className="widget-detail__heading"><h2>{title}</h2>{!isSpend && <p>{zh ? '完成后关闭，回到工作台。' : 'Close when you’re ready to return to your desk.'}</p>}
+      <Dialog open={expanded} onClose={() => setExpanded(false)} panelClassName={`widget-detail${detailVariant}`} contentClassName="widget-detail__content">
+        <header className="widget-detail__heading"><h2>{title}</h2>{!detailVariant && <p>{zh ? '完成后关闭，回到工作台。' : 'Close when you’re ready to return to your desk.'}</p>}
           <button type="button" data-widget-close data-auth-preview-allowed="true" className="widget-detail__close" aria-label={zh ? '关闭' : 'Close'} onClick={() => setExpanded(false)}><X size={20} /></button>
         </header>
         <div ref={attachDetail} className="widget-detail__body" />
