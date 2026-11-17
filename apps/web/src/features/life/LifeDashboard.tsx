@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { ReactNode } from 'react'
 import { GridLayout, useContainerWidth } from 'react-grid-layout'
 import { absoluteStrategy } from 'react-grid-layout/core'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import AdaptiveDashboardGrid from '../dashboard/AdaptiveDashboardGrid'
 import { reflowDashboardLayout } from '../dashboard/responsiveLayout'
 import { getLifeCards, type DashboardCard } from '../dashboard/registry'
 import type { DashboardLayoutItem } from '../../data/models/types'
@@ -19,44 +19,6 @@ import './life.css'
 type LifeDashboardProps = {
   layoutEdit: boolean
   widgetsPanelOpen: boolean
-}
-
-const DeferredLifeCard = ({ id, eager, children }: { id: string; eager: boolean; children: ReactNode }) => {
-  const hostRef = useRef<HTMLDivElement | null>(null)
-  const [visible, setVisible] = useState(eager)
-
-  useEffect(() => {
-    if (eager || visible) return
-    const node = hostRef.current
-    if (!node) return
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (!entries.some((entry) => entry.isIntersecting)) return
-        setVisible(true)
-        observer.disconnect()
-      },
-      { rootMargin: '240px 0px' },
-    )
-    observer.observe(node)
-    return () => observer.disconnect()
-  }, [eager, visible])
-
-  return (
-    <div ref={hostRef} data-life-card={id} style={{ width: '100%', height: '100%' }}>
-      {visible ? children : (
-        <div
-          aria-hidden="true"
-          style={{
-            width: '100%',
-            height: '100%',
-            borderRadius: 24,
-            background: 'var(--bg-elevated)',
-            boxShadow: 'var(--shadow-card)',
-          }}
-        />
-      )}
-    </div>
-  )
 }
 
 const DEFAULT_LIFE_LAYOUT: DashboardLayoutItem[] = [
@@ -156,16 +118,6 @@ const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => 
     () => layout.map((item) => item.key).filter((id) => cardsById.has(id)),
     [layout, cardsById],
   )
-  const renderedCards = useMemo(
-    () =>
-      visibleCardIds.reduce<Array<{ id: string; node: ReactNode }>>((result, id) => {
-        const card = cardsById.get(id)
-        if (card) result.push({ id, node: card.render() })
-        return result
-      }, []),
-    [cardsById, visibleCardIds],
-  )
-
   const handleWidgetToggle = useCallback((cardId: string, visible: boolean) => {
     if (visible) {
       void persistLayout(appendCardToEnd(cardId, layout), hiddenCardIds.filter((id) => id !== cardId))
@@ -193,8 +145,8 @@ const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => 
 
   return (
     <div className="life-dashboard" ref={containerRef}>
-      <AuthInteractionGate>
-      {layoutEdit && widgetsPanelOpen ? (
+      <AuthInteractionGate className="life-dashboard__content">
+      {widgetsPanelOpen ? (
         <section className="dashboard-widgets" aria-label={t('life.dashboard.manageWidgets')}>
           {cards.map((card) => {
             const visible = layout.some((item) => item.key === card.id)
@@ -208,6 +160,8 @@ const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => 
           })}
         </section>
       ) : null}
+      <div className="dashboard-view-surface" hidden={layoutEdit && !isMobile}><AdaptiveDashboardGrid layout={layout} cards={cards} columns={24} label={t('life.dashboard.manageWidgets')} /></div>
+      {layoutEdit && !isMobile && <div className="dashboard-layout-editor">
       <GridLayout
           className="life-dashboard__grid"
           layout={responsiveLayout.map((item) => ({
@@ -232,7 +186,8 @@ const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => 
           positionStrategy={absoluteStrategy}
           width={Math.max(width, 1)}
         >
-          {renderedCards.map((card) => {
+          {visibleCardIds.map((id) => {
+            const card = cardsById.get(id)!
             const discoveryTarget = LIFE_CARD_DISCOVERY_TARGET_BY_ID[card.id]
             return (
             <div
@@ -240,7 +195,7 @@ const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => 
               className={`dashboard__item${layoutEdit ? ' is-layout-edit' : ''}${gridEdit.activeId === card.id ? ' is-dragging' : ''}`}
               onPointerDownCapture={() => { if (discoveryTarget) markDiscoveryNewTargetSeen(discoveryTarget) }}
             >
-              <DeferredLifeCard id={card.id} eager={layoutEdit}>{card.node}</DeferredLifeCard>
+              <div className="dashboard-layout-preview"><strong>{card.title}</strong></div>
               {discoveryTarget ? <DiscoveryNewBadge target={discoveryTarget} className="discovery-new-badge--card" /> : null}
               {layoutEdit ? (
                 <>
@@ -254,6 +209,7 @@ const LifeDashboard = ({ layoutEdit, widgetsPanelOpen }: LifeDashboardProps) => 
             )
           })}
         </GridLayout>
+        </div>}
       </AuthInteractionGate>
     </div>
   )

@@ -1,3 +1,4 @@
+import { useWidgetSummary } from '../../dashboard/widgetPresentation'
 import { useEffect, useMemo, useState } from 'react'
 import type { MediaItem } from '../../../data/models/types'
 import { mediaRepo } from '../../../data/repositories/mediaRepo'
@@ -43,6 +44,8 @@ const MediaCard = () => {
 
   const selected = useMemo(() => media.find((item) => item.id === selectedId) ?? null, [media, selectedId])
   const designModel = useMemo(() => buildMediaPresentationModel(media, t), [media, t])
+
+  useWidgetSummary({ value: String(designModel.stats.watchingNow), detail: designModel.previewRows[0]?.title ?? t('life.card.media'), items: designModel.previewRows.map(item => `${item.title} · ${item.progress}%`), progress: designModel.previewRows[0]?.progress })
 
   useEffect(() => {
     const loadMedia = async () => {

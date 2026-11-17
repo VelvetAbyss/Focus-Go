@@ -260,7 +260,7 @@ export const MediaCardSurface = ({
           </button>
         </div>
 
-        <div style={{ display: 'flex', minHeight: 0, flex: 1, borderTop: `1px solid ${sectionBorder}` }}>
+        <div className="life-detail-split" style={{ display: 'flex', minHeight: 0, flex: 1, borderTop: `1px solid ${sectionBorder}` }}>
           <aside style={{ ...sidebarStyle, width: 314, padding: 18 }}>
             <div ref={searchAreaRef}>
             <div style={{ position: 'relative' }}>

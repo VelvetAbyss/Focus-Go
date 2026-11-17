@@ -125,7 +125,7 @@ export const DailyReviewCardSurface = ({ model, open, activeRange, onOpen, onClo
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', minHeight: 0, flex: 1, marginTop: 16, borderTop: `1px solid ${sectionBorder}` }}>
+          <div className="life-detail-split" style={{ display: 'grid', gridTemplateColumns: '360px 1fr', minHeight: 0, flex: 1, marginTop: 16, borderTop: `1px solid ${sectionBorder}` }}>
             <div style={{ borderRight: `1px solid ${sectionBorder}`, padding: 24, overflowY: 'auto' }}>
               <p style={{ ...inter(10, 500, 'var(--text-tertiary)'), letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase', marginBottom: 16 }}>
                 {activeRange === 'week' ? t('life.daily.summary7days') : t('life.daily.summary30days')}

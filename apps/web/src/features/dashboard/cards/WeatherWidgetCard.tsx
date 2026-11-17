@@ -1,3 +1,4 @@
+import { useWidgetSummary } from '../widgetPresentation'
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { ArrowDown, ArrowUp, RotateCcw } from 'lucide-react'
 import Card from '../../../shared/ui/Card'
@@ -139,6 +140,8 @@ const WeatherWidgetCard = () => {
 
   const loadingLabel = language === 'zh' ? '正在获取天气…' : 'Loading weather…'
   const hasData = Boolean(snapshot.data)
+
+  useWidgetSummary({ value: typeof temperature === 'number' ? `${Math.round(temperature)}°${unitSymbol}` : '—', detail: [cityOf(snapshot.data?.location.name), meta ? (language === 'zh' ? meta.labelZh : meta.label) : ''].filter(Boolean).join(' · '), items: tomorrowNote ? [tomorrowNote] : [] })
 
   return (
     <Card

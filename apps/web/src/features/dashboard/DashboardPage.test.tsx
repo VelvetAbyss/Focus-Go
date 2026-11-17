@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 
@@ -23,6 +23,10 @@ vi.mock('../../shared/i18n/useI18n', () => ({
         'tasks.cancel': 'Cancel',
       }[key] ?? key),
   }),
+}))
+
+vi.mock('./AdaptiveDashboardGrid', () => ({
+  default: ({ layout, cards }: { layout: { key: string }[]; cards: { id: string; render: () => React.ReactNode }[] }) => <div>{layout.map(item => <div key={item.key}>{cards.find(card => card.id === item.key)?.render()}</div>)}</div>,
 }))
 
 vi.mock('react-grid-layout', () => ({
@@ -221,6 +225,6 @@ it('keeps a removed module visible in the manager so its placeholder can be hidd
   await screen.findByText('BaZi widget')
   fireEvent.click(screen.getByRole('button',{name:'Edit layout'}))
   fireEvent.click(screen.getByRole('button',{name:'Manage widgets'}))
-  expect(screen.getByText('BaZi')).toBeInTheDocument()
+  expect(within(screen.getByRole('region', { name: 'Manage widgets visibility' })).getByText('BaZi')).toBeInTheDocument()
   cleanup()
 })

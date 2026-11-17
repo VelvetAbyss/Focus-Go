@@ -13,11 +13,17 @@ test('a new visitor opens the same dashboard as local port 5174', async ({ page 
   await expect(page.locator('script[src="/registerSW.js"]')).toHaveCount(0)
   await expect(page.getByText('选择数据存放方式')).toHaveCount(0)
   await expect(page.getByText('仪表盘', { exact: true }).first()).toBeVisible()
+  await expect(page.locator('.adaptive-widget')).toHaveCount(5)
+  await page.locator('[data-widget="task-progress-summary"] > button').click()
   await expect(page.getByRole('heading', { name: '本周成果' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: '待办列表' })).toBeVisible()
-
-  // These dynamic CSS chunks were missing in the reported broken layout.
   await expect(page.locator('.recap-card__stats')).toHaveCSS('display', 'grid')
+  await page.locator('.widget-detail [data-widget-close]').click()
+  await expect(page.locator('.widget-detail')).toBeHidden()
+  await page.locator('[data-widget="widget-todos"] > button').click()
+  await expect(page.getByRole('heading', { name: '待办列表' })).toBeVisible()
+  await page.locator('.widget-detail [data-widget-close]').click()
+  await expect(page.locator('.widget-detail')).toBeHidden()
+  // Hidden live instances retain their asynchronously loaded component CSS.
   await expect(page.locator('.weather-sky')).toHaveCSS('position', 'absolute')
   await expect(page.locator('.wc-hero')).toHaveCSS('position', 'relative')
   await expect(page.getByRole('button', { name: '新建视图' })).toBeVisible()
@@ -68,7 +74,9 @@ async function expectNoteToCloseInPlace(page: Page) {
 }
 
 test.describe('hanging note close animation', () => {
-  test.use({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'no-preference' })
+  // Keep both scales in the desktop paper layout; compact notes have a toolbar
+  // entry and are covered by the adaptive dashboard interaction suite.
+  test.use({ viewport: { width: 1600, height: 1000 }, reducedMotion: 'no-preference' })
 
   for (const zoom of ['default', '1.1']) {
     test(`returns hanging and pinned notes without jumping at ${zoom} zoom`, async ({ page }) => {
@@ -95,7 +103,7 @@ test.describe('hanging note close animation', () => {
       const rect = (await pinned.boundingBox())!
       await page.mouse.move(rect.x + rect.width / 2, rect.y + rect.height / 2)
       await page.mouse.down()
-      await page.mouse.move(1410, 540, { steps: 18 })
+      await page.mouse.move(1590, 540, { steps: 18 })
       await page.mouse.up()
       // Let the drag's accidental-click suppression expire before opening.
       await page.waitForTimeout(300)

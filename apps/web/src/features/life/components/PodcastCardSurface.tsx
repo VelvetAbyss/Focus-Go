@@ -329,7 +329,7 @@ export const PodcastCardSurface = ({
             </div>
             <button type="button" onClick={onClose} style={iconButtonStyle}><X size={18} /></button>
           </div>
-          <div style={{ display: 'flex', minHeight: 0, flex: 1 }}>
+          <div className="life-detail-split" style={{ display: 'flex', minHeight: 0, flex: 1 }}>
             <aside ref={sidebarRef} style={sidebarStyle}>
               <div style={{ display: 'grid', gap: 10, gridTemplateColumns: '1fr', minWidth: 0 }}>
                 <Field label={t('life.podcast.search')}>

@@ -1,3 +1,4 @@
+import { useWidgetSummary } from '../dashboard/widgetPresentation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { matchSpendCategory, parseSpendInput } from './parseSpend'
 import type { CSSProperties } from 'react'
@@ -176,6 +177,8 @@ const SpendCard = () => {
     })
     amountRef.current?.focus()
   }
+
+  useWidgetSummary({ value: `${currencyToSymbol(defaultCurrency)}${totalTodayBase.total.toFixed(2)}`, detail: t('spend.today'), items: todayEntries.slice(0, 3).map(entry => `${currencyToSymbol(entry.currency)}${entry.amount}`) })
 
   return (
     <Card title={t('spend.title')} eyebrow={t('spend.today')}>

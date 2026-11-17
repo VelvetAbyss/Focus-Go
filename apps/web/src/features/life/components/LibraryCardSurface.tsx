@@ -332,7 +332,7 @@ export const LibraryCardSurface = ({
             </button>
           </div>
 
-          <div style={{ display: 'flex', minHeight: 0, flex: 1 }}>
+          <div className="life-detail-split" style={{ display: 'flex', minHeight: 0, flex: 1 }}>
             <div ref={sidebarRef} style={{ width: 300, display: 'flex', flexDirection: 'column', flexShrink: 0, borderRight: `1px solid ${subtleBorder}`, background: 'var(--bg-muted)' }}>
               <div style={{ padding: '20px 16px 12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, height: 38, borderRadius: 12, padding: '0 12px', background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--text-primary) 9%, transparent)' }}>
@@ -474,7 +474,7 @@ export const LibraryCardSurface = ({
                   </div>
 
                   <div style={{ padding: '24px 40px', borderBottom: `1px solid ${subtleBorder}` }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+                    <div className="life-library-status" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
                       <p style={{ ...inter(11, 500, mutedText), marginRight: 8, letterSpacing: '0.07em', textTransform: 'uppercase' }}>{t('life.library.status')}</p>
                       {(['want-to-read', 'reading', 'finished'] as BookItem['status'][]).map((status) => {
                         const cfg = statusConfig[status]

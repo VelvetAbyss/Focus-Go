@@ -1,3 +1,4 @@
+import { useWidgetSummary } from '../../dashboard/widgetPresentation'
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { AnimatePresence, motion, Reorder, useDragControls } from 'motion/react'
 import { LoaderCircle, Pencil, Plus, Search, X } from 'lucide-react'
@@ -492,6 +493,8 @@ const WorldClockCard = () => {
   const summary = items.length > 0
     ? t('worldClock.summaryCount', { count: items.length })
     : t('worldClock.summaryEmpty')
+
+  useWidgetSummary({ value: nowLabel, detail: summary, items: items.slice(0, 3).map(item => `${item.alias || item.label.split(',')[0]} · ${getFormatter(locale, item.timeZone, { hour: '2-digit', minute: '2-digit', hour12: false }).format(now)}`) })
 
   const canAddCity = !adding && items.length < MAX_WORLD_CLOCK_ITEMS
 

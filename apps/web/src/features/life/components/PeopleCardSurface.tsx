@@ -248,7 +248,7 @@ export const PeopleCardSurface = ({
             <button type="button" onClick={onClose} style={iconButtonStyle}><X size={18} /></button>
           </div>
 
-          <div style={{ display: 'flex', minHeight: 0, flex: 1 }}>
+          <div className="life-detail-split" style={{ display: 'flex', minHeight: 0, flex: 1 }}>
             {/* Sidebar */}
             <aside style={sidebarStyle}>
               <button

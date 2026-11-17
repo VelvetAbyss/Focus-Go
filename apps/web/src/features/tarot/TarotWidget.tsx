@@ -1,3 +1,4 @@
+import { useWidgetSummary } from '../dashboard/widgetPresentation'
 import { Link } from 'react-router-dom'
 import { SymbolicWidget } from '../symbolic/SymbolicWidget'
 import { useSymbolic, useSymbolicCopy, useSymbolicNow } from '../symbolic/useSymbolic'
@@ -13,6 +14,8 @@ function TarotWidgetBody() {
  const entry = reading?.cards[0], card = entry ? tarotById.get(entry.id) : null
  const report = reading?.reports?.[language]
  const session = data.sessions.find(s => s.spread === 'daily' && !s.completedReadingId && s.timeZone === data.timeZone && s.dateKey === localDateKey(now, data.timeZone))
+ useWidgetSummary({ value: entry?.revealed && card ? cardName(card, language) : text('等待抽取', 'Ready to draw'), detail: entry?.revealed && card ? report?.summary ?? cardMeaning(card, entry.reversed, language) : text('今天的牌，等你亲手选择', 'Today’s card is yours to choose') })
+
  return <div className="symbolic-widget__content tarot-widget-content">
   <span className="symbolic-widget__note">{localDateKey(now, data.timeZone)} · {text('每日一牌','Daily card')}</span>
   {!ready || error ? <p>{error ? text('记录暂时无法读取。','Records are unavailable.') : text('正在读取…','Loading…')}</p> : <>

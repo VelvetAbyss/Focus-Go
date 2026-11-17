@@ -1,3 +1,4 @@
+import { useWidgetSummary } from '../../dashboard/widgetPresentation'
 import { useEffect, useMemo, useState } from 'react'
 import type { LifePerson } from '../../../data/models/types'
 import { peopleRepo } from '../../../data/repositories/peopleRepo'
@@ -22,6 +23,8 @@ const PeopleCard = () => {
 
   const selected = useMemo(() => items.find((item) => item.id === selectedId) ?? null, [items, selectedId])
   const model = useMemo(() => buildPeoplePresentationModel(items, t), [items, t])
+
+  useWidgetSummary({ value: model.statsLabel, detail: model.rows[0] ? `${model.rows[0].name} · ${model.rows[0].secondary}` : '', items: model.rows.slice(0, 3).map(item => `${item.name} · ${item.secondary}`) })
 
   useEffect(() => {
     const load = async () => {

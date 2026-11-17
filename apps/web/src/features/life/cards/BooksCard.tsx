@@ -1,3 +1,4 @@
+import { useWidgetSummary } from '../../dashboard/widgetPresentation'
 import { useEffect, useMemo, useState } from 'react'
 import type { BookItem } from '../../../data/models/types'
 import { booksRepo } from '../../../data/repositories/booksRepo'
@@ -46,6 +47,8 @@ const BooksCard = () => {
 
   const selectedBook = useMemo(() => books.find((item) => item.id === selectedBookId) ?? null, [books, selectedBookId])
   const designModel = useMemo(() => buildLibraryPresentationModel(books, t), [books, t])
+
+  useWidgetSummary({ value: String(designModel.stats.reading), detail: t('life.library.reading'), items: designModel.previewRows.map(item => `${item.title} · ${item.progress}%`), progress: designModel.previewRows[0]?.progress })
 
   useEffect(() => {
     const loadBooks = async () => {

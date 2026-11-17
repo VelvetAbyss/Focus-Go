@@ -545,7 +545,7 @@ export const SubscriptionCardSurface = ({ model, subscriptions, open, loading, o
             </div>
             <button type="button" onClick={onClose} aria-label={t('life.subscriptions.close')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 999, border: 'none', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer' }}><X size={16} /></button>
           </div>
-          <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+          <div className="life-detail-split" style={{ display: 'flex', flex: 1, minHeight: 0 }}>
             <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0, width: 370, borderRight: `1px solid ${subtleBorder}`, background: 'var(--bg-muted)' }}>
               <SummaryBar subs={subscriptions} onOverview={handleOverview} showingOverview={showingOverview && !isAdding} />
               <div style={{ padding: '12px 16px', borderBottom: `1px solid ${subtleBorder}` }}>
