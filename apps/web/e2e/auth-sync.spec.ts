@@ -430,6 +430,13 @@ test('data safety: unsent tasks survive logout/switch/reset attempts, then resto
       await expect(previewPage.locator('.sidebar-sync__popover')).toBeVisible()
       await previewPage.screenshot({ animations: 'disabled', path: 'artifacts/sidebar-sync-status/preview-zh.png', clip: { x: 0, y: 0, width: 600, height: 350 } })
       await previewPage.setViewportSize({ width: 390, height: 844 })
+      // The desktop anchor moves into a closed navigation drawer. Dismiss
+      // its old portal, then exercise the actual mobile navigation path.
+      await expect(previewPage.locator('.sidebar-sync__popover')).toBeHidden()
+      await previewPage.getByRole('button', { name: '打开导航', exact: true }).click()
+      await expect(previewPage.locator('#workspace-navigation')).toBeVisible()
+      await previewPage.getByTestId('sync-status-trigger').click()
+      await expect(previewPage.locator('.sidebar-sync__popover')).toBeVisible()
       await expect.poll(async () => {
         const bounds = await previewPage.locator('.sidebar-sync__popover').boundingBox()
         return !!bounds && bounds.x >= 0 && bounds.x + bounds.width <= 390
