@@ -53,6 +53,9 @@ import { NoteToolbar } from './NoteToolbar'
 import { NoteBlockTools } from './NoteBlockTools'
 import { applyNoteBlockType, duplicateSelectedNoteBlocks, runNoteAction, setNoteSelectionFromPointer, toggleNoteMark, NoteBlockMovement } from '../model/noteBlocks'
 
+import { deriveEditedNoteTitle } from '../model/noteListText'
+import { ImageUploadSchema } from '../model/imageUploadSchema'
+
 type NoteEditorValue = {
   crdtState?: string
   title: string
@@ -64,6 +67,7 @@ type NoteEditorValue = {
 
 type NoteEditorProps = {
   noteId?: string
+  readOnly?: boolean
   value: NoteEditorValue
   appearance?: {
     theme?: 'paper' | 'graphite'
@@ -96,15 +100,6 @@ type HeadingNavItem = {
   text: string
   level: 1 | 2 | 3
   top: number
-}
-
-const extractTitleFromMarkdown = (markdown: string) => {
-  const lines = markdown.split('\n')
-  for (const line of lines) {
-    const match = line.match(/^\s{0,3}#{1,3}\s+(.+?)\s*#*\s*$/)
-    if (match?.[1]) return match[1].trim()
-  }
-  return ''
 }
 
 const fontFamilyMap = {
@@ -172,13 +167,14 @@ const NoteEditor = ({
   onChange,
   noteId,
   isFullscreen = false,
+  readOnly = false,
   surfaceRef,
   autoFocus = false,
 }: NoteEditorProps) => {
-  const { t } = useI18n()
+  const { language, t } = useI18n()
   const initialDoc = useMemo(() => ensureRichDoc(value.contentJson, value.contentMd), [value.contentJson, value.contentMd])
   // NotePage keys the editor by note ID. One Y.Doc lives for one editor session.
-  const [collaborationDoc] = useState(() => noteId ? createNoteCrdt(initialDoc, isNoteCrdtSnapshot(value) ? value.crdtState : null) : null)
+  const [collaborationDoc] = useState(() => noteId && !readOnly ? createNoteCrdt(initialDoc, isNoteCrdtSnapshot(value) ? value.crdtState : null) : null)
   const fontFamily = fontFamilyMap[appearance?.font ?? 'uiSans']
   const widthScale = Math.max(0, Math.min(100, appearance?.contentWidth ?? 60)) / 100
   const contentMeasureRem = 64 - widthScale * 30
@@ -219,11 +215,11 @@ const NoteEditor = ({
   const pendingDocRef = useRef<JSONContent | null | undefined>(undefined)
   const lastEditorDocRef = useRef(serializeDoc(initialDoc))
   const lastAppliedExternalDocRef = useRef(serializeDoc(initialDoc))
-  const changeMetaRef = useRef({ onChange, tags: value.tags })
+  const changeMetaRef = useRef({ onChange, value, language })
 
   useEffect(() => {
-    changeMetaRef.current = { onChange, tags: value.tags }
-  }, [onChange, value.tags])
+    changeMetaRef.current = { onChange, value, language }
+  }, [onChange, value, language])
 
   const flushEmitChange = useCallback(() => {
     if (pendingDocRef.current === undefined) return
@@ -238,14 +234,14 @@ const NoteEditor = ({
     }
     const contentMd = crdtSnapshot ? crdtSnapshot.contentMd : richDocToMarkdown(doc)
     lastEditorDocRef.current = serializeDoc(doc)
-    const { onChange: handleChange, tags } = changeMetaRef.current
+    const { onChange: handleChange, value: previous, language: currentLanguage } = changeMetaRef.current
     handleChange({
-      title: extractTitleFromMarkdown(contentMd),
+      title: deriveEditedNoteTitle(contentMd, previous, currentLanguage),
       contentMd,
       contentJson: (doc ?? null) as Record<string, unknown> | null,
       ...(crdtSnapshot ? { crdtState: crdtSnapshot.crdtState } : {}),
       editorMode: 'document',
-      tags,
+      tags: previous.tags,
     })
   }, [collaborationDoc])
 
@@ -297,6 +293,7 @@ const NoteEditor = ({
 
   const editor = useEditor({
     immediatelyRender: false,
+    editable: !readOnly,
     extensions: [
       StarterKit.configure({
         undoRedo: collaborationDoc ? false : { newGroupDelay: 500 },
@@ -320,24 +317,26 @@ const NoteEditor = ({
       Superscript,
       Subscript,
       Selection,
-      NoteBlockMovement,
-      NoteClipboard.configure({ uploadImage: uploadImageAsDataUrl, onError: () => setPasteError(true) }),
-      NoteCommands.configure({
-        onContext: (context) => setCommandContext((previous) => {
-          if (previous?.from === context?.from && previous?.to === context?.to && previous?.query === context?.query) return previous
-          commandIndexRef.current = 0
-          setCommandIndex(0)
-          return context
+      ...(readOnly ? [] : [
+        NoteBlockMovement,
+        NoteClipboard.configure({ uploadImage: uploadImageAsDataUrl, onError: () => setPasteError(true) }),
+        NoteCommands.configure({
+          onContext: (context) => setCommandContext((previous) => {
+            if (previous?.from === context?.from && previous?.to === context?.to && previous?.query === context?.query) return previous
+            commandIndexRef.current = 0
+            setCommandIndex(0)
+            return context
+          }),
+          onKey: (event, context) => commandHandlersRef.current.key(event, context),
         }),
-        onKey: (event, context) => commandHandlersRef.current.key(event, context),
-      }),
+      ]),
       Table.configure({
         resizable: false,
       }),
       TableRow,
       TableHeader,
       TableCell,
-      ImageUploadNode.configure({
+      readOnly ? ImageUploadSchema : ImageUploadNode.configure({
         accept: 'image/*',
         maxSize: MAX_FILE_SIZE,
         limit: 3,
@@ -349,7 +348,7 @@ const NoteEditor = ({
       handleDOMEvents: {
         pointerdown: (view, event) => {
           // Re-entering from a toolbar/panel must use the clicked caret.
-          if (editor && !view.hasFocus() && !view.composing) setNoteSelectionFromPointer(editor, event as PointerEvent)
+          if (!readOnly && editor && !view.hasFocus() && !view.composing) setNoteSelectionFromPointer(editor, event as PointerEvent)
           return false
         },
       },
@@ -357,10 +356,11 @@ const NoteEditor = ({
         class: 'note-editor__body simple-editor',
         role: 'textbox',
         'aria-multiline': 'true',
+        'aria-readonly': String(readOnly),
         'aria-label': t('notes.editorPlaceholder'),
       },
       handleKeyDown: (view, event): boolean => {
-        if (view.composing || event.isComposing || event.keyCode === 229 || event.altKey) return false
+        if (readOnly || view.composing || event.isComposing || event.keyCode === 229 || event.altKey) return false
         if (!(event.metaKey || event.ctrlKey)) return false
         const key = event.key.toLowerCase()
         const mark = ({ b: 'bold', i: 'italic', u: 'underline', e: 'code', 'shift-s': 'strike', '.': 'superscript', ',': 'subscript' } as Record<string, string>)[`${event.shiftKey ? 'shift-' : ''}${key}`]
@@ -388,6 +388,7 @@ const NoteEditor = ({
     },
     content: collaborationDoc ? undefined : initialDoc,
     onUpdate: ({ editor, transaction }) => {
+      if (readOnly) return
       const syncMeta = transaction?.getMeta(ySyncPluginKey)
       if (collaborationDoc && syncMeta?.isChangeOrigin && !syncMeta.isUndoRedoOperation) {
         scheduleTocRefresh()
@@ -402,8 +403,8 @@ const NoteEditor = ({
   })
 
   useEffect(() => {
-    if (autoFocus && editor) editor.commands.focus('end')
-  }, [autoFocus, editor])
+    if (autoFocus && !readOnly && editor) editor.commands.focus('end')
+  }, [autoFocus, readOnly, editor])
 
   useEffect(() => {
     if (!editor) return
@@ -600,7 +601,7 @@ const NoteEditor = ({
 
   return (
     <div className="note-editor" ref={editorRootRef}>
-      {editor ? <><NoteSelectionMenu editor={editor} disabled={taskDialogOpen} /><NoteBlockTools editor={editor} disabled={taskDialogOpen} /></> : null}
+      {editor && !readOnly ? <><NoteSelectionMenu editor={editor} disabled={taskDialogOpen} /><NoteBlockTools editor={editor} disabled={taskDialogOpen} /></> : null}
       {pasteError ? <div className="note-editor__paste-error" role="alert">{t('notes.paste.failed')}<button type="button" onClick={() => setPasteError(false)} aria-label={t('common.close')}>×</button></div> : null}
       {commandContext && editor ? <NoteCommandMenu menuId={commandMenuId} commands={commands} activeIndex={commandIndex} editor={editor} position={commandContext.to}
         onChoose={(id) => commandHandlersRef.current.choose(id, commandContext)} /> : null}
@@ -612,7 +613,7 @@ const NoteEditor = ({
           </button>
         ) : null}
         <div className="note-editor__toolbar-wrap">
-          <EditorContext.Provider value={{ editor }}>
+          {readOnly ? <span className="px-3 text-meta text-ink-2">{language === 'zh' ? '回收站 · 只读' : 'Trash · Read only'}</span> : <EditorContext.Provider value={{ editor }}>
             <NoteToolbar editor={editor}>
               <ToolbarGroup>
                 <UndoRedoButton action="undo" />
@@ -653,7 +654,7 @@ const NoteEditor = ({
                 <ImageUploadButton text={t('notes.add')} />
               </ToolbarGroup>
             </NoteToolbar>
-          </EditorContext.Provider>
+          </EditorContext.Provider>}
         </div>
         <div className="note-editor__actions">
           {onCreateTask ? (
@@ -680,8 +681,8 @@ const NoteEditor = ({
           </button>
           <ActionButton icon={<Info size={14} />} label={t('notes.info')} panelId="info" onClick={onOpenInfo} />
           <ActionButton icon={<Palette size={14} />} label={t('notes.appearance')} panelId="appearance" onClick={onOpenAppearance} />
-          <ActionButton icon={<FileUp size={14} />} label={t('notes.import')} panelId="import" onClick={onImport} />
-          <ActionButton icon={<Download size={14} />} label={t('notes.export')} panelId="export" onClick={onExport} />
+          {!readOnly && <ActionButton icon={<FileUp size={14} />} label={t('notes.import')} panelId="import" onClick={onImport} />}
+          <ActionButton icon={<Download size={14} />} label={t('notes.export')} panelId="export" onClick={() => { flushEmitChange(); onExport?.() }} />
         </div>
       </div>
 
@@ -690,7 +691,7 @@ const NoteEditor = ({
         className="note-editor__surface"
         style={surfaceBg ? { background: surfaceBg } : undefined}
         onMouseDown={(event) => {
-          if (!editor) return
+          if (!editor || readOnly) return
           const target = event.target as HTMLElement | null
           // If the click already lands inside the actual editable content,
           // let ProseMirror handle it as usual (caret-on-character behavior).

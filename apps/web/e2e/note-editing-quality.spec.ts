@@ -173,7 +173,7 @@ test('toolbar: Chinese narrow menu resets color, edits and removes links, and re
   await page.setViewportSize({ width: 390, height: 844 })
   // Leave an exposed paragraph below the toolbar and its now-correctly
   // anchored submenu for the outside-click continuation check.
-  const editor = await setup(page, ['First paragraph', ...Array(4).fill('Context paragraph'), 'Second paragraph'].join('\n\n'))
+  const editor = await setup(page, ['First paragraph', ...Array(10).fill('Context paragraph'), 'Second paragraph'].join('\n\n'))
   await selectFirst(page)
   const menu = page.locator('.note-selection-menu')
   await menu.getByRole('button', { name: '文字颜色', exact: true }).click()
@@ -184,7 +184,7 @@ test('toolbar: Chinese narrow menu resets color, edits and removes links, and re
   await menu.getByRole('button', { name: '文字颜色', exact: true }).click()
   await page.locator('.note-text-color-menu').getByRole('button', { name: '默认', exact: false }).click()
   await expect(editor.locator('span[style*="color"]')).toHaveCount(0)
-  const input = page.getByPlaceholder('Paste a link...')
+  const input = page.getByPlaceholder('粘贴链接…')
   for (const url of ['https://example.com/first', 'https://example.com/updated']) {
     await menu.getByRole('button', { name: '链接', exact: true }).click()
     await input.fill(url)
@@ -193,7 +193,7 @@ test('toolbar: Chinese narrow menu resets color, edits and removes links, and re
     await expect(editor.locator('a')).toHaveText('First paragraph')
   }
   await menu.getByRole('button', { name: '链接', exact: true }).click()
-  await page.getByTitle('Remove link', { exact: true }).click()
+  await page.getByTitle('移除链接', { exact: true }).click()
   await expect(editor.locator('a')).toHaveCount(0)
   await menu.getByRole('button', { name: '更多格式' }).click()
   await editor.locator('p').last().click()

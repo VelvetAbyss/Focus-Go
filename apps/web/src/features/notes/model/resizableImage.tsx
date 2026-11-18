@@ -26,13 +26,14 @@ export const clampImageWidth = (width: number, maxWidth: number) => Math.round(M
 // eslint-disable-next-line react-refresh/only-export-components
 export const clampImageWidthPercent = (width: number) => Math.round(Math.max(MIN_IMAGE_WIDTH_PERCENT, Math.min(width, MAX_IMAGE_WIDTH_PERCENT)))
 
-export const ResizableImageView = ({ node, selected, updateAttributes }: Pick<NodeViewProps, 'node' | 'selected' | 'updateAttributes'>) => {
+export const ResizableImageView = ({ node, selected, updateAttributes, editor }: Pick<NodeViewProps, 'node' | 'selected' | 'updateAttributes'> & Partial<Pick<NodeViewProps, 'editor'>>) => {
   const frameRef = useRef<HTMLDivElement | null>(null)
   const width = parseWidth(node.attrs.width)
   const widthUnit = node.attrs.widthUnit === 'percent' ? 'percent' : 'px'
   const caption = typeof node.attrs.caption === 'string' ? node.attrs.caption : ''
   const hasCaption = caption.trim().length > 0
-  const showCaption = selected || hasCaption
+  const editable = editor?.isEditable !== false
+  const showCaption = (editable && selected) || hasCaption
 
   const handleResizeStart = (handle: ResizeHandle) => (event: ReactPointerEvent<HTMLButtonElement>) => {
     event.preventDefault()
@@ -80,7 +81,7 @@ export const ResizableImageView = ({ node, selected, updateAttributes }: Pick<No
           title={node.attrs.title ?? ''}
           draggable={false}
         />
-        {selected ? (
+        {selected && editable ? (
           <div className="note-editor__image-resizer">
             {(['nw', 'ne', 'sw', 'se'] as const).map((handle) => (
               <button
@@ -98,6 +99,7 @@ export const ResizableImageView = ({ node, selected, updateAttributes }: Pick<No
         <input
           className="note-editor__image-caption"
           value={caption}
+          readOnly={!editable}
           placeholder="Add caption"
           aria-label="Image caption"
           onChange={(event) => updateAttributes({ caption: event.target.value })}

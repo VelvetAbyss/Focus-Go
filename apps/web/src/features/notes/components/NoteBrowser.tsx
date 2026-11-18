@@ -1,18 +1,20 @@
-import { useCallback, useMemo, useRef, useState, type RefObject } from 'react'
+import { useCallback, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from 'react'
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { CheckSquare2, ChevronDown, Pin, PinOff, Plus, RotateCcw, Search, Trash2 } from 'lucide-react'
+import { CheckSquare2, ChevronDown, Pin, PinOff, Plus, RotateCcw, Search, Trash2, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useI18n } from '../../../shared/i18n/useI18n'
 import { formatRelativeTime } from '../../../shared/i18n/format'
 import type { NoteItem } from '../../../data/models/types'
-import { markdownToPreview } from '../../../shared/utils/markdownPreview'
 
 export type NoteSortOption = 'edited' | 'created' | 'title'
 export type NoteBrowserMode = 'notes' | 'trash'
-
+type NotePreview = { title: string; excerpt: string }
 
 type Props = {
   notes: NoteItem[]
+  totalCount: number
+  previews: Map<string, NotePreview>
   selectedNoteId: string | null
   collectionLabel: string
   mode?: NoteBrowserMode
@@ -40,6 +42,8 @@ type NoteBrowserRow =
 
 export default function NoteBrowser({
   notes,
+  totalCount,
+  previews,
   selectedNoteId,
   collectionLabel,
   mode = 'notes',
@@ -64,23 +68,14 @@ export default function NoteBrowser({
     created: t('tasks.sort.created'),
     title: language === 'zh' ? '标题' : 'Title',
   }
-  const [showSortMenu, setShowSortMenu] = useState(false)
   const [scrollNode, setScrollNode] = useState<HTMLDivElement | null>(null)
-  const normalizedSearch = useMemo(() => search.trim().toLowerCase(), [search])
-  const filtered = useMemo(
-    () =>
-      notes.filter(
-        (note) =>
-          note.title.toLowerCase().includes(normalizedSearch) ||
-          note.excerpt.toLowerCase().includes(normalizedSearch) ||
-          note.tags.some((tag) => tag.toLowerCase().includes(normalizedSearch)),
-      ),
-    [notes, normalizedSearch],
-  )
+  const searchRef = useRef<HTMLInputElement>(null)
+  const pendingFocusId = useRef<string | null>(null)
+  const searching = search.trim().length > 0
   const { pinnedNotes, otherNotes } = useMemo(() => ({
-    pinnedNotes: filtered.filter((note) => note.pinned),
-    otherNotes: filtered.filter((note) => !note.pinned),
-  }), [filtered])
+    pinnedNotes: notes.filter((note) => note.pinned),
+    otherNotes: notes.filter((note) => !note.pinned),
+  }), [notes])
   const rows = useMemo<NoteBrowserRow[]>(() => {
     const next: NoteBrowserRow[] = []
     if (pinnedNotes.length > 0) next.push({ type: 'label', key: 'label:pinned', label: t('notes.pinned') })
@@ -97,18 +92,93 @@ export default function NoteBrowser({
     getItemKey: (index) => rows[index]?.key ?? index,
     overscan: 8,
   })
-  const shouldVirtualize = filtered.length > VIRTUALIZE_NOTE_COUNT
+  const shouldVirtualize = notes.length > VIRTUALIZE_NOTE_COUNT
   const assignScrollRef = useCallback((node: HTMLDivElement | null) => {
     setScrollNode(node)
     if (scrollContainerRef) {
       ;(scrollContainerRef as { current: HTMLDivElement | null }).current = node
     }
   }, [scrollContainerRef])
-  const renderRow = (row: NoteBrowserRow) => {
+  const findNoteRow = (from: number, step: 1 | -1) => {
+    for (let index = from; index >= 0 && index < rows.length; index += step) {
+      if (rows[index]?.type === 'note') return index
+    }
+    return -1
+  }
+
+  const focusRow = (index: number) => {
+    const row = rows[index]
+    if (row?.type !== 'note') return
+    const button = scrollNode?.querySelector<HTMLButtonElement>(`[data-note-open="${index}"]`)
+    if (button) {
+      pendingFocusId.current = null
+      button.focus()
+    } else if (shouldVirtualize) {
+      pendingFocusId.current = row.note.id
+      rowVirtualizer.scrollToIndex(index, { align: 'auto' })
+    }
+  }
+
+  const clearSearch = () => {
+    pendingFocusId.current = null
+    onSearchChange('')
+    searchRef.current?.focus()
+  }
+
+  const handleSearchKey = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229 || event.altKey || event.ctrlKey || event.metaKey) return
+    if (event.key === 'Escape' && search) {
+      event.preventDefault()
+      clearSearch()
+      return
+    }
+    const fromEnd = event.key === 'ArrowUp'
+    if (!fromEnd && event.key !== 'ArrowDown' && event.key !== 'Enter') return
+    const index = fromEnd ? findNoteRow(rows.length - 1, -1) : findNoteRow(0, 1)
+    const row = rows[index]
+    if (row?.type !== 'note') return
+    event.preventDefault()
+    if (event.key === 'Enter') onSelectNote(row.note.id)
+    else focusRow(index)
+  }
+
+  const handleRowKey = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
+    let nextIndex: number
+    switch (event.key) {
+      case 'ArrowDown':
+        nextIndex = findNoteRow(index + 1, 1)
+        break
+      case 'ArrowUp':
+        nextIndex = findNoteRow(index - 1, -1)
+        break
+      case 'Home':
+        nextIndex = findNoteRow(0, 1)
+        break
+      case 'End':
+        nextIndex = findNoteRow(rows.length - 1, -1)
+        break
+      default:
+        return
+    }
+    event.preventDefault()
+    focusRow(nextIndex)
+  }
+
+  const renderRow = (row: NoteBrowserRow, rowIndex: number) => {
     if (row.type === 'label') return <SectionLabel>{row.label}</SectionLabel>
     return (
       <NoteCard
         note={row.note}
+        preview={previews.get(row.note.id)}
+        rowIndex={rowIndex}
+        onRowKeyDown={handleRowKey}
+        registerOpenButton={(button) => {
+          if (button && pendingFocusId.current === row.note.id) {
+            pendingFocusId.current = null
+            button.focus({ preventScroll: true })
+          }
+        }}
         mode={mode}
         tagLabelMap={tagLabelMap}
         linkedTaskTitle={linkedTaskTitles?.get(row.note.id)}
@@ -124,6 +194,7 @@ export default function NoteBrowser({
 
   return (
     <section
+      aria-label={collectionLabel}
       className={cn(
         'flex h-full min-h-0 w-[300px] min-w-[300px] flex-col overflow-hidden border-r border-rule bg-paper-sunken',
         className,
@@ -132,65 +203,78 @@ export default function NoteBrowser({
       <div className="flex items-center gap-2 px-4 pb-2 pt-4">
         <div className="flex flex-1 items-center gap-2">
           <span className="rounded-md bg-[color-mix(in_srgb,var(--ink-1)_5.5%,transparent)] px-2.5 py-[3px] text-label font-[500] tracking-[-0.01em] text-ink-1 dark:bg-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] dark:text-[var(--text-primary)]">{collectionLabel}</span>
-          <span className="text-meta tabular-nums text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)]">{notes.length}</span>
+          <span aria-live="polite" className="text-meta tabular-nums text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)]">{searching ? `${notes.length} / ${totalCount}` : totalCount}</span>
         </div>
-        <button
-          type="button"
-          onClick={onNewNote}
-          className="rounded-lg p-1.5 text-ink-1 transition-[background-color,transform,box-shadow] [transition-duration:160ms] hover:-translate-y-0.5 hover:bg-[color-mix(in_srgb,var(--ink-1)_6%,transparent)] hover:shadow-[var(--shadow-pop)] active:translate-y-0"
-          title={t('modules.note.new')}
-        >
-          <Plus size={15} strokeWidth={2.2} />
-        </button>
+        {mode !== 'trash' && (
+          <button
+            type="button"
+            onClick={onNewNote}
+            className="rounded-lg p-1.5 text-ink-1 transition-[background-color,transform,box-shadow] [transition-duration:160ms] hover:-translate-y-0.5 hover:bg-[color-mix(in_srgb,var(--ink-1)_6%,transparent)] hover:shadow-[var(--shadow-pop)] active:translate-y-0"
+            title={t('modules.note.new')}
+          >
+            <Plus size={15} strokeWidth={2.2} />
+          </button>
+        )}
       </div>
 
       <div className="flex items-center gap-2 px-4 pb-3">
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setShowSortMenu((current) => !current)}
-            className="flex items-center gap-1 rounded-md px-2 py-1 text-meta font-medium text-ink-2 transition-colors hover:bg-[color-mix(in_srgb,var(--ink-1)_5%,transparent)]"
-          >
-            {sortLabels[sortBy]}
-            <ChevronDown size={11} strokeWidth={2.4} />
-          </button>
-          {showSortMenu ? (
-            <div className="absolute left-0 top-full z-20 mt-1 w-32 rounded-lg border border-[color-mix(in_srgb,var(--ink-1)_10%,transparent)] bg-paper-raised p-1 shadow-[var(--elev-2)]">
-              {(['edited', 'created', 'title'] as NoteSortOption[]).map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => {
-                    onSortChange(option)
-                    setShowSortMenu(false)
-                  }}
-                  className={cn(
-                    'w-full rounded-md px-2.5 py-1.5 text-left text-meta font-medium text-ink-1 transition-colors hover:bg-[color-mix(in_srgb,var(--ink-1)_6%,transparent)]',
-                    sortBy === option && 'bg-[color-mix(in_srgb,var(--ink-1)_6%,transparent)]',
-                  )}
-                >
-                  {sortLabels[option]}
-                </button>
-              ))}
-            </div>
-          ) : null}
-        </div>
+        <DropdownMenu.Root modal={false}>
+          <DropdownMenu.Trigger asChild>
+            <button
+              type="button"
+              aria-label={`${t('tasks.sortBy')} · ${sortLabels[sortBy]}`}
+              className="flex items-center gap-1 rounded-md px-2 py-1 text-meta font-medium text-ink-2 transition-colors hover:bg-[color-mix(in_srgb,var(--ink-1)_5%,transparent)]"
+            >
+              {sortLabels[sortBy]}
+              <ChevronDown size={11} strokeWidth={2.4} />
+            </button>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content align="start" sideOffset={4} className="z-50 w-32 rounded-lg border border-rule bg-paper-raised p-1 shadow-[var(--elev-2)]">
+              <DropdownMenu.RadioGroup value={sortBy}>
+                {(['edited', 'created', 'title'] as const).map((option) => (
+                  <DropdownMenu.RadioItem
+                    key={option}
+                    value={option}
+                    onSelect={() => onSortChange(option)}
+                    className="cursor-pointer rounded-md px-2.5 py-1.5 text-meta font-medium text-ink-1 outline-none data-[highlighted]:bg-paper-sunken data-[state=checked]:bg-paper-sunken"
+                  >
+                    {sortLabels[option]}
+                  </DropdownMenu.RadioItem>
+                ))}
+              </DropdownMenu.RadioGroup>
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
         <div className="relative flex-1">
           <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)]" />
+          {search && (
+            <button
+              type="button"
+              aria-label={language === 'zh' ? '清除搜索' : 'Clear search'}
+              onClick={clearSearch}
+              className="absolute right-0.5 top-1/2 z-10 -translate-y-1/2 rounded p-1 text-ink-2 hover:bg-paper-sunken"
+            >
+              <X size={13} />
+            </button>
+          )}
           <input
+            ref={searchRef}
+            aria-label={t('notes.searchPlaceholder')}
+            onKeyDown={handleSearchKey}
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
             placeholder={t('notes.searchPlaceholder')}
-            className="w-full rounded-lg border border-transparent bg-[color-mix(in_srgb,var(--ink-1)_4%,transparent)] py-[5px] pl-7 pr-2.5 text-meta text-ink-1 outline-none transition-[background-color,border-color,box-shadow] placeholder:text-[var(--text-tertiary)] focus:border-[color-mix(in_srgb,var(--ink-1)_10%,transparent)] focus:bg-white/72 focus:shadow-[var(--shadow-pop)]"
+            className="w-full rounded-lg border border-transparent bg-[color-mix(in_srgb,var(--ink-1)_4%,transparent)] py-[5px] pl-7 pr-7 text-meta text-ink-1 outline-none transition-[background-color,border-color,box-shadow] placeholder:text-[var(--text-tertiary)] focus:border-[color-mix(in_srgb,var(--ink-1)_10%,transparent)] focus:bg-white/72 focus:shadow-[var(--shadow-pop)]"
           />
         </div>
       </div>
 
       <div ref={assignScrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-4">
-        {filtered.length > 0 && !shouldVirtualize ? rows.map((row) => (
-          <div key={row.key}>{renderRow(row)}</div>
+        {notes.length > 0 && !shouldVirtualize ? rows.map((row, index) => (
+          <div key={row.key}>{renderRow(row, index)}</div>
         )) : null}
-        {filtered.length > 0 && shouldVirtualize ? (
+        {notes.length > 0 && shouldVirtualize ? (
           <div
             className="relative"
             style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
@@ -206,15 +290,15 @@ export default function NoteBrowser({
                   className="absolute left-0 right-0 top-0"
                   style={{ transform: `translateY(${virtualRow.start}px)` }}
                 >
-                  {renderRow(row)}
+                  {renderRow(row, virtualRow.index)}
                 </div>
               )
             })}
           </div>
         ) : null}
-        {filtered.length === 0 ? (
+        {notes.length === 0 ? (
           <div className="mx-2 mt-4 px-2 py-2 text-left">
-            <p className="text-ui font-medium text-[var(--text-tertiary)]">{t('notes.noNotesFound')}</p>
+            <p className="text-ui font-medium text-[var(--text-tertiary)]">{t(mode === 'trash' && !searching ? 'notes.trash.empty' : 'notes.noNotesFound')}</p>
           </div>
         ) : null}
       </div>
@@ -235,6 +319,10 @@ function SectionLabel({ children }: { children: string }) {
 
 function NoteCard({
   note,
+  preview,
+  rowIndex,
+  registerOpenButton,
+  onRowKeyDown,
   mode,
   tagLabelMap,
   linkedTaskTitle,
@@ -246,6 +334,10 @@ function NoteCard({
   onDelete,
 }: {
   note: NoteItem
+  preview?: NotePreview
+  rowIndex: number
+  registerOpenButton: (node: HTMLButtonElement | null) => void
+  onRowKeyDown: (event: KeyboardEvent<HTMLButtonElement>, rowIndex: number) => void
   mode: NoteBrowserMode
   tagLabelMap?: Map<string, string>
   linkedTaskTitle?: string
@@ -258,14 +350,16 @@ function NoteCard({
 }) {
   const dragImageRef = useRef<HTMLElement | null>(null)
   const { language, t } = useI18n()
-  const preview = note.excerpt ? markdownToPreview(note.excerpt, note.title) : ''
+  const title = preview?.title || t('notes.trash.untitled')
+  const pinLabel = note.pinned ? (language === 'zh' ? '取消置顶' : 'Unpin') : (language === 'zh' ? '置顶' : 'Pin')
+  const deleteLabel = mode === 'trash' ? (language === 'zh' ? '永久删除' : 'Delete permanently') : t('modules.note.moveToTrash')
 
   return (
     <div
       draggable={mode === 'notes'}
       onDragStart={(event) => {
         if (mode !== 'notes') return
-        event.dataTransfer.effectAllowed = 'move'
+        event.dataTransfer.effectAllowed = 'copy'
         event.dataTransfer.setData('text/plain', note.id)
         event.dataTransfer.setData('application/x-focus-note-id', note.id)
         const source = event.currentTarget as HTMLDivElement
@@ -292,7 +386,6 @@ function NoteCard({
           dragImageRef.current = null
         }
       }}
-      onClick={onSelect}
       className={cn(
         'note-card group relative mb-1 cursor-pointer rounded-[var(--radius-sm)] border px-3 py-2.5 transition-[background-color,border-color,box-shadow,transform] [transition-duration:180ms]',
         selected
@@ -304,15 +397,25 @@ function NoteCard({
       {/* Title row */}
       <div className="flex items-start gap-1.5 pr-12">
         {note.pinned ? <Pin size={9} className="mt-[3px] shrink-0 text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)]" /> : null}
-        <h4 className="line-clamp-2 font-body text-ui font-semibold leading-[1.42] text-ink-1">
-          {markdownToPreview(note.title) || <span className="text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)]">{t('notes.trash.untitled')}</span>}
+        <h4 className="min-w-0 font-body text-ui font-semibold leading-[1.42] text-ink-1">
+          <button
+            type="button"
+            ref={registerOpenButton}
+            data-note-open={rowIndex}
+            aria-current={selected ? 'true' : undefined}
+            onClick={onSelect}
+            onKeyDown={(event) => onRowKeyDown(event, rowIndex)}
+            className="text-left outline-none after:absolute after:inset-0 after:rounded-[var(--radius-sm)] focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-[var(--accent)]"
+          >
+            <span className="line-clamp-2">{title}</span>
+          </button>
         </h4>
       </div>
 
       {/* Excerpt */}
-      {preview ? (
+      {preview?.excerpt ? (
         <p className="mt-0.5 line-clamp-2 text-label leading-[1.58] text-ink-3">
-          {preview}
+          {preview.excerpt}
         </p>
       ) : null}
 
@@ -344,13 +447,13 @@ function NoteCard({
       ) : null}
 
       {/* Action buttons */}
-      <div className="note-card__actions absolute right-2 top-2 flex items-center gap-0.5 opacity-0 transition-[opacity,transform] duration-150 group-hover:opacity-100">
+      <div className="note-card__actions absolute z-10 right-2 top-2 flex items-center gap-0.5 opacity-0 transition-[opacity,transform] duration-150 group-hover:opacity-100">
         {mode === 'notes' ? (
           <button
             type="button"
             onClick={(event) => { event.stopPropagation(); onTogglePin() }}
-            className="rounded-md p-1.5 text-[var(--text-tertiary)] transition-colors hover:bg-[color-mix(in_srgb,var(--ink-1)_8%,transparent)] hover:text-ink-1 dark:text-[var(--text-tertiary)] dark:hover:bg-white/10"
-            title={note.pinned ? 'Unpin' : 'Pin'}
+            className="relative z-10 rounded-md p-1.5 text-[var(--text-tertiary)] transition-colors hover:bg-[color-mix(in_srgb,var(--ink-1)_8%,transparent)] hover:text-ink-1 dark:text-[var(--text-tertiary)] dark:hover:bg-white/10"
+            title={pinLabel}
           >
             {note.pinned ? <PinOff size={11} /> : <Pin size={11} />}
           </button>
@@ -359,8 +462,8 @@ function NoteCard({
           <button
             type="button"
             onClick={(event) => { event.stopPropagation(); onRestore() }}
-            className="rounded-md p-1.5 text-[var(--text-tertiary)] transition-colors hover:bg-[color-mix(in_srgb,var(--ink-1)_8%,transparent)] hover:text-ink-1 dark:text-[var(--text-primary)] dark:hover:bg-white/10"
-            title="Restore"
+            className="relative z-10 rounded-md p-1.5 text-[var(--text-tertiary)] transition-colors hover:bg-[color-mix(in_srgb,var(--ink-1)_8%,transparent)] hover:text-ink-1 dark:text-[var(--text-primary)] dark:hover:bg-white/10"
+            title={t('notes.trash.restore')}
           >
             <RotateCcw size={11} />
           </button>
@@ -372,8 +475,8 @@ function NoteCard({
             if (mode === 'trash') { onDelete(); return }
             onTrash()
           }}
-          className="rounded-md p-1.5 text-tone-urgent transition-colors hover:bg-tone-urgent-wash"
-          title={mode === 'trash' ? 'Delete permanently' : 'Move to trash'}
+          className="relative z-10 rounded-md p-1.5 text-tone-urgent transition-colors hover:bg-tone-urgent-wash"
+          title={deleteLabel}
         >
           <Trash2 size={11} />
         </button>
