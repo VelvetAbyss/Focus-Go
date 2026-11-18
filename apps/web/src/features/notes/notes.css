@@ -564,11 +564,16 @@
 
 .note-card__actions {
   position: absolute;
+  top: 8px;
   right: 8px;
-  bottom: 8px;
+  pointer-events: none;
   opacity: 0;
   transform: translateY(2px);
   transition: opacity var(--motion-duration-fast) var(--note-ease-out-quart), transform var(--motion-duration-base) var(--note-ease-out-quart);
+}
+
+.note-card__actions button {
+  pointer-events: auto;
 }
 
 .note-card:hover .note-card__actions,
