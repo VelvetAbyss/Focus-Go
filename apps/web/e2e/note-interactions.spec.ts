@@ -149,12 +149,35 @@ test('reading through a tag preserves its four cards, search, context history an
   await lowes.click()
   const cards = browser.locator('.note-card')
   await expect(cards).toHaveCount(4)
-  for (const n of ['01', '02']) {
-    await browser.getByRole('button', { name: 'Audit note ' + n, exact: true }).click()
-    await expect(editor).toContainText('Audit note ' + n)
+  for (const [n, region] of [
+    ['01', 'excerpt'], ['02', 'tag'], ['03', 'time'], ['01', 'padding'], ['02', 'below actions'],
+  ]) {
+    const title = 'Audit note ' + n
+    const card = cards.filter({ has: page.getByRole('heading', { name: title, exact: true }) })
+    await card.hover()
+    const point = await card.evaluate((node, region) => {
+      const rect = node.getBoundingClientRect()
+      if (region === 'padding') return { x: rect.left + 6, y: rect.bottom - 6 }
+      if (region === 'below actions') return { x: rect.right - 22, y: rect.bottom - 9 }
+      const target = region === 'excerpt' ? node.querySelector('p')
+        : region === 'tag' ? [...node.querySelectorAll('span')].find(span => span.textContent === 'Lowes')
+        : node.querySelector('.tabular-nums')
+      if (!target) throw new Error('Missing card region: ' + region)
+      const part = target.getBoundingClientRect()
+      return { x: part.left + part.width / 2, y: part.top + part.height / 2 }
+    }, region)
+    // Hold through the press animation, just as a physical pointer would.
+    await page.mouse.click(point.x, point.y, { delay: 120 })
+    await expect(editor).toContainText(title)
     await expect(cards).toHaveCount(4)
-    await expect(browser.getByText('Lowes', { exact: true }).first()).toBeVisible()
+    await expect(lowes).toHaveAttribute('aria-current', 'true')
   }
+  const otherCard = cards.filter({ has: page.getByRole('heading', { name: 'Audit note 00', exact: true }) })
+  await otherCard.hover()
+  await otherCard.getByRole('button', { name: 'Pin', exact: true }).click()
+  await expect(editor).toContainText('Audit note 02')
+  await otherCard.getByRole('button', { name: 'Unpin', exact: true }).click()
+  await expect(editor).toContainText('Audit note 02')
   await page.goBack()
   await expect(editor).toContainText('Audit note 01')
   await expect(cards).toHaveCount(4)

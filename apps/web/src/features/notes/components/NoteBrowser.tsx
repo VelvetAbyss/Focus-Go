@@ -401,6 +401,8 @@ function NoteCard({
           <button
             type="button"
             ref={registerOpenButton}
+            // A press transform would shrink the stretched hit area to the title.
+            data-press="off"
             data-note-open={rowIndex}
             aria-current={selected ? 'true' : undefined}
             onClick={onSelect}
@@ -447,7 +449,7 @@ function NoteCard({
       ) : null}
 
       {/* Action buttons */}
-      <div className="note-card__actions absolute z-10 right-2 top-2 flex items-center gap-0.5 opacity-0 transition-[opacity,transform] duration-150 group-hover:opacity-100">
+      <div className="note-card__actions z-10 flex items-center gap-0.5 opacity-0 transition-[opacity,transform] duration-150 group-hover:opacity-100">
         {mode === 'notes' ? (
           <button
             type="button"
