@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest'
 import mammoth from 'mammoth'
+import { htmlToRichDoc, noteExportMarkdown } from './richTextCodec'
 import { NoteImportError, getNoteImportFormat, parseNoteImportFile } from './noteImport'
 
 vi.mock('mammoth', () => ({
@@ -32,6 +33,35 @@ describe('noteImport', () => {
     expect(payload.contentMd).toContain('- Limits')
     expect(payload.contentJson?.type).toBe('doc')
     expect(payload.warnings).toEqual([])
+  })
+
+  it('keeps nested checked and unchecked items, text color, and links through Markdown export and import', async () => {
+    const rich = htmlToRichDoc('<ul data-type="taskList"><li data-type="taskItem" data-checked="true"><div><p><a href="https://example.com"><span style="color: rgb(51, 126, 169)">Read</span></a></p><ul data-type="taskList"><li data-type="taskItem" data-checked="false"><div><p>Next</p></div></li></ul></div></li></ul>')
+    const markdown = noteExportMarkdown(rich, 'Older saved projection')
+    expect(markdown).toMatch(/- \[x\] .*Read/)
+    expect(markdown).toMatch(/ {2,}- \[ \] Next/)
+    const imported = await parseNoteImportFile(new File([markdown], 'tasks.md'))
+    expect(imported.contentJson).toEqual(rich)
+  })
+
+  it('round-trips an empty parent task and a final empty child', async () => {
+    const file = new File(['- [x]\n    - [ ]'], 'empty-tasks.md')
+    const result = await parseNoteImportFile(file)
+    expect(result.contentJson?.content).toMatchObject([{ type: 'taskList', content: [
+      { type: 'taskItem', attrs: { checked: true }, content: [{ type: 'paragraph' },
+        { type: 'taskList', content: [{ type: 'taskItem', attrs: { checked: false } }] }] },
+    ] }])
+    const output = noteExportMarkdown(result.contentJson, '')
+    expect((await parseNoteImportFile(new File([output], 'reimport.md'))).contentJson).toEqual(result.contentJson)
+  })
+
+  it('preserves ordinary bullets on both sides of a Markdown task', async () => {
+    const imported = await parseNoteImportFile(new File(['- A\n- [x] B\n- C'], 'mixed.md'))
+    expect(imported.contentJson?.content).toMatchObject([
+      { type: 'bulletList' },
+      { type: 'taskList', content: [{ type: 'taskItem', attrs: { checked: true } }] },
+      { type: 'bulletList' },
+    ])
   })
 
   it('imports txt using the filename as title and escapes markdown syntax', async () => {

@@ -119,7 +119,7 @@ vi.mock('../components/NoteEditor', () => ({
       editorMode: 'document'
     }) => void
   }) => (
-    <div data-testid="note-editor">
+    <div data-testid="note-editor" className="note-editor__body">
       <div>Editor:{value.title || 'Untitled'}</div>
       <div>Mode:{value.editorMode}</div>
       <div>Fullscreen:{isFullscreen ? 'on' : 'off'}</div>
@@ -349,7 +349,9 @@ describe('NotePage', () => {
     expect(screen.getByText('Fullscreen:on')).toBeInTheDocument()
     expect(container.querySelector('.note-page')?.getAttribute('data-fullscreen')).toBe('true')
 
-    fireEvent.keyDown(document, { key: 'Escape' })
+    const escape = new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27, bubbles: true, cancelable: true })
+    escape.preventDefault() // ProseMirror suppresses native Escape inside its body.
+    fireEvent(screen.getByTestId('note-editor'), escape)
 
     await waitFor(() => expect(screen.getByText('Fullscreen:off')).toBeInTheDocument())
     expect(container.querySelector('.note-page')?.getAttribute('data-fullscreen')).toBe('false')
@@ -566,11 +568,16 @@ describe('NotePage', () => {
     renderPage()
 
     expect(await screen.findByText('Trash me')).toBeInTheDocument()
-    await userEvent.click((await screen.findAllByTitle('Move to trash'))[0]!)
+    await userEvent.click((await screen.findAllByTitle('modules.note.moveToTrash'))[0]!)
     await waitFor(() => expect(softDeleteMock).toHaveBeenCalledWith('trash-1'))
 
     await userEvent.click(screen.getByRole('button', { name: /^modules\.note\.collection\.trash/i }))
-    await userEvent.click((await screen.findAllByTitle('Delete permanently'))[0]!)
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true)
+    const remove = (await screen.findAllByTitle('Delete permanently'))[0]!
+    await userEvent.click(remove)
+    expect(hardDeleteMock).not.toHaveBeenCalled()
+    await userEvent.click(remove)
+    confirm.mockRestore()
     await waitFor(() => expect(hardDeleteMock).toHaveBeenCalledWith('trash-1'))
   })
 
@@ -582,7 +589,7 @@ describe('NotePage', () => {
     renderPage()
 
     expect(await screen.findByText('Note 1')).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'modules.note.new' }))
+    await userEvent.click(screen.getByTitle('modules.note.new'))
 
     await waitFor(() => expect(createMock).toHaveBeenCalled())
   })

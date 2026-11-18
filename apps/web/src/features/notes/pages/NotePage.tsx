@@ -22,7 +22,9 @@ import NoteEditor from '../components/NoteEditor'
 import NoteSidebar, { type NoteSystemCollection } from '../components/NoteSidebar'
 import { countCharactersInMarkdown, countWordsInMarkdown } from '../model/noteStats'
 import { MAX_NOTE_IMPORT_FILES, MAX_NOTE_IMPORT_FILE_SIZE, describeNoteImportError, getNoteImportFormat, parseNoteImportFile } from '../model/noteImport'
+import { noteExportMarkdown } from '../model/richTextCodec'
 import { exportNoteAsPdf } from '../model/notePdfExport'
+import { getNoteListText } from '../model/noteListText'
 import { useI18n } from '../../../shared/i18n/useI18n'
 import { onPrepareAppUpdate } from '../../../shared/runtime/updateLifecycle'
 import { usePremiumGate } from '../../premium/PremiumProvider'
@@ -66,13 +68,11 @@ const DEFAULT_TAGS: Array<Pick<NoteTag, 'name' | 'icon' | 'pinned' | 'sortOrder'
 type NotePanel = 'info' | 'appearance' | 'import' | 'export' | null
 type NoteTaskDraft = { noteId: string; title: string; projectId: string; intent: NoteTaskIntent; waitingOn: string; reminderLocal: string }
 
+type NoteScope = { collection: NoteSystemCollection; tagId: string | null; search: string }
+type NoteHistory = NoteScope & { trashNoteId: string | null; pane: 'list' | 'editor' }
+const allNotesScope: NoteScope = { collection: 'notes', tagId: null, search: '' }
+const scopeKey = (scope: NoteScope) => scope.tagId ? `tag:${scope.tagId}` : scope.collection
 const IMPORTED_TAG_NAME = 'Imported'
-
-const buildPreview = (content: string) => {
-  const compact = content.replace(/\s+/g, ' ').trim()
-  if (!compact) return ''
-  return compact.length > 140 ? `${compact.slice(0, 140)}…` : compact
-}
 
 const slugifyHeading = (value: string) =>
   value
@@ -113,11 +113,11 @@ const dateKey = (value: number) => {
   return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
 }
 
-const sortNotes = (notes: NoteItem[], sortBy: NoteSortOption) => {
+const sortNotes = (notes: NoteItem[], sortBy: NoteSortOption, previews: Map<string, { title: string }>) => {
   const next = [...notes]
   next.sort((left, right) => {
     if (sortBy === 'created') return right.createdAt - left.createdAt
-    if (sortBy === 'title') return left.title.trim().localeCompare(right.title.trim())
+    if (sortBy === 'title') return (previews.get(left.id)?.title ?? '').localeCompare(previews.get(right.id)?.title ?? '')
     return right.updatedAt - left.updatedAt
   })
   return next
@@ -155,14 +155,15 @@ export default function NotePage() {
   const [taskProjectOptions, setTaskProjectOptions] = useState<ProjectItem[]>([])
   const [isCreatingTask, setIsCreatingTask] = useState(false)
   const [appearance, setAppearance] = useState<NoteAppearanceSettings>(DEFAULT_APPEARANCE)
-  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(() =>
-    typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('note') : null,
-  )
-  // The note that was just created: its editor takes focus so typing starts right away.
+  const history: NoteHistory | undefined = location.state?.noteBrowser
+  const scope = history ?? allNotesScope
+  const { collection: activeCollection, tagId: activeTagId, search } = scope
+  const urlNoteId = new URLSearchParams(location.search).get('note')
+  const selectedNoteId = activeCollection === 'trash' ? history?.trashNoteId ?? null : urlNoteId
+  const rememberedScopes = useRef(new Map<string, { id: string | null; search: string }>())
+  const [searchTarget, setSearchTarget] = useState<{ id: string; query: string } | null>(null)
+  // A freshly created note takes focus so typing starts right away.
   const [focusNoteId, setFocusNoteId] = useState<string | null>(null)
-  const [activeCollection, setActiveCollection] = useState<NoteSystemCollection>('notes')
-  const [activeTagId, setActiveTagId] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<NoteSortOption>('edited')
   const [openPanel, setOpenPanel] = useState<NotePanel>(null)
   const [importItems, setImportItems] = useState<NoteImportQueueItem[]>([])
@@ -218,8 +219,6 @@ export default function NotePage() {
     document.addEventListener('selectionchange', remember)
     return () => document.removeEventListener('selectionchange', remember)
   }, [selectedNoteId])
-  const creatingFromBlankRef = useRef(false)
-  const activeCollectionRef = useRef<NoteSystemCollection>('notes')
   // Guards default-tag creation against racing with the first sync pull.
   // When the user is logged in we must wait for the first sync cycle to
   // complete before deciding to seed defaults — otherwise local tags created
@@ -228,20 +227,39 @@ export default function NotePage() {
   const isLoggedInRef = useRef(isLoggedIn)
   const hasSyncedOnceRef = useRef(false)
   const prevSyncStatusRef = useRef<string | null>(null)
-  const handledNoteSearchRef = useRef<string | null>(null)
-
-  const writeNoteUrl = useCallback((id: string | null, replace = false) => {
-    setSearchParams((current) => {
-      const next = new URLSearchParams(current)
-      if (id) next.set('note', id)
-      else next.delete('note')
-      return next
-    }, { replace })
-  }, [setSearchParams])
+  const writeNoteUrl = useCallback((
+    id: string | null,
+    nextScope: NoteScope = scope,
+    replace = false,
+    pane: 'list' | 'editor' = 'editor',
+  ) => {
+    const next: NoteHistory = {
+      collection: nextScope.collection,
+      tagId: nextScope.tagId,
+      search: nextScope.search,
+      trashNoteId: nextScope.collection === 'trash' ? id : null,
+      pane,
+    }
+    const nextId = next.collection === 'trash' ? null : id
+    if (history && urlNoteId === nextId && history.collection === next.collection &&
+      history.tagId === next.tagId && history.search === next.search &&
+      history.trashNoteId === next.trashNoteId && history.pane === pane) return
+    const params = new URLSearchParams(location.search)
+    if (nextId) params.set('note', nextId)
+    else params.delete('note')
+    setSearchParams(params, { replace, state: { ...location.state, noteBrowser: next }, preventScrollReset: true })
+  }, [history, location.search, location.state, scope, setSearchParams, urlNoteId])
 
   useEffect(() => {
-    activeCollectionRef.current = activeCollection
-  }, [activeCollection])
+    setMobilePane(history?.pane ?? 'editor')
+  }, [location.key, history?.pane])
+
+  useEffect(() => {
+    const key = scopeKey(scope)
+    // Clearing a search should be able to return to the last open note in this collection.
+    const id = selectedNoteId ?? rememberedScopes.current.get(key)?.id ?? null
+    rememberedScopes.current.set(key, { id, search })
+  }, [scope, search, selectedNoteId])
 
   useEffect(() => {
     isLoggedInRef.current = isLoggedIn
@@ -346,11 +364,6 @@ export default function NotePage() {
       setNotes(visibleNotes)
       setTrash(trashedOnly)
 
-      setSelectedNoteId((current) => {
-        const source = activeCollectionRef.current === 'trash' ? trashedOnly : visibleNotes
-        if (current && [...visibleNotes, ...trashedOnly].some((note) => note.id === current)) return current
-        return source[0]?.id ?? null
-      })
     } finally {
       setIsInitialLoading(false)
     }
@@ -358,7 +371,7 @@ export default function NotePage() {
 
   const flushPendingSave = async () => {
     const pending = pendingSaveRef.current
-    if (!pending) return
+    if (!pending) return saveQueueRef.current.catch(() => undefined)
     pendingSaveRef.current = null
     if (saveTimerRef.current) {
       window.clearTimeout(saveTimerRef.current)
@@ -386,38 +399,20 @@ export default function NotePage() {
   useSyncDataRefresh(refresh, ['notes', 'noteTags', 'noteAppearance'])
 
   useEffect(() => {
-    if (isInitialLoading || handledNoteSearchRef.current === location.search) return
-    const previousSearch = handledNoteSearchRef.current
-    handledNoteSearchRef.current = location.search
-    const id = new URLSearchParams(location.search).get('note')
-    if (!id) {
-      if (previousSearch !== null) setSelectedNoteId(null)
-      return
+    if (isInitialLoading) return
+    const source = activeCollection === 'trash' ? trash : notes
+    if (selectedNoteId && !source.some((note) => note?.id === selectedNoteId)) {
+      // A deep link can arrive before a signed-in user's first sync pull.
+      if (isLoggedIn && !hasSyncedOnceRef.current) return
+      writeNoteUrl(null, scope, true, history?.pane ?? 'list')
+    } else if (!history && !selectedNoteId && notes[0]) {
+      writeNoteUrl(notes[0].id, allNotesScope, true)
     }
-    if (!notes.some((note) => note.id === id)) {
-      setSelectedNoteId(null)
-      writeNoteUrl(null, true)
-      return
-    }
-    setActiveCollection('notes')
-    setActiveTagId(null)
-    setSearch('')
-    setSelectedNoteId(id)
-    if (id !== selectedNoteId) setMobilePane('editor')
-  }, [isInitialLoading, location.search, notes, selectedNoteId, writeNoteUrl])
+  }, [activeCollection, history, isInitialLoading, isLoggedIn, notes, scope, selectedNoteId, trash, writeNoteUrl])
 
-  useEffect(() => {
-    if (isInitialLoading || activeCollection !== 'notes' || !selectedNoteId) return
-    if (!new URLSearchParams(window.location.search).has('note')) writeNoteUrl(selectedNoteId, true)
-  }, [activeCollection, isInitialLoading, selectedNoteId, writeNoteUrl])
-
-  // ⌘K search → "open this note": show it in the full list, whatever filter was active.
+  // The command palette also navigates to the public detail URL, outside any list filter.
   useOpenRequest('note', !isInitialLoading, (id) => {
     if (!notes.some((note) => note.id === id)) return
-    setActiveCollection('notes')
-    setActiveTagId(null)
-    setSearch('')
-    setSelectedNoteId(id)
     setMobilePane('editor')
     setFocusNoteId(id)
     // Also handles opening the note that was already selected: its editor stays
@@ -494,19 +489,47 @@ export default function NotePage() {
     return () => observer.disconnect()
   }, [])
 
-  const sourceNotes = (activeCollection === 'trash' ? trash : notes).filter(Boolean)
   const tagNameById = useMemo(() => new Map(tags.map((tag) => [tag.id, tag.name])), [tags])
-  const filteredNotes = useMemo(() => {
-    const next = sourceNotes.filter((note) => {
-      if (activeCollection === 'today' && dateKey(note.updatedAt) !== todayKey) return false
-      if (activeCollection === 'untagged' && note.tags.length > 0) return false
-      if (activeTagId && !note.tags.includes(tagNameById.get(activeTagId) ?? '')) return false
-      return true
-    })
-    return sortNotes(next, sortBy)
-  }, [activeCollection, activeTagId, tagNameById, sortBy, sourceNotes, todayKey])
+  const readListText = useMemo(() => {
+    const cache = new WeakMap<NoteItem, ReturnType<typeof getNoteListText>>()
+    return (note: NoteItem) => {
+      let data = cache.get(note)
+      if (!data) {
+        data = getNoteListText(note, language)
+        cache.set(note, data)
+      }
+      return data
+    }
+  }, [language])
+  const previews = useMemo(() => {
+    const result = new Map<string, { title: string; excerpt: string; searchable: string }>()
+    for (const note of [...notes, ...trash]) {
+      if (!note) continue
+      const { title, excerpt, text } = readListText(note)
+      const labels = note.tags.map((tag) => projectTagLabels.get(tag) ?? tag)
+      result.set(note.id, { title, excerpt, searchable: [title, text, ...note.tags, ...labels].join('\n').toLowerCase() })
+    }
+    return result
+  }, [notes, trash, projectTagLabels, readListText])
 
-  const activeNote = useMemo(() => filteredNotes.find((note) => note.id === selectedNoteId) ?? null, [filteredNotes, selectedNoteId])
+  const notesInScope = useCallback((collection: NoteSystemCollection, tagId: string | null) => {
+    const source = collection === 'trash' ? trash : notes
+    return source.filter((note) => note &&
+      (collection !== 'today' || dateKey(note.updatedAt) === todayKey) &&
+      (collection !== 'untagged' || note.tags.length === 0) &&
+      (!tagId || note.tags.includes(tagNameById.get(tagId) ?? '')))
+  }, [notes, trash, tagNameById, todayKey])
+  const activeTagName = activeTagId ? tagNameById.get(activeTagId) : undefined
+  const collectionLabel = activeTagName ? (projectTagLabels.get(activeTagName) ?? activeTagName) : collectionLabelMap[activeCollection]
+  const collectionNotes = useMemo(() => sortNotes(notesInScope(activeCollection, activeTagId), sortBy, previews),
+    [activeCollection, activeTagId, notesInScope, previews, sortBy])
+  const searchNotes = useCallback((candidates: NoteItem[], term: string) => {
+    const query = term.trim().toLowerCase()
+    return query ? candidates.filter((note) => previews.get(note.id)?.searchable.includes(query)) : candidates
+  }, [previews])
+  const filteredNotes = useMemo(() => searchNotes(collectionNotes, search), [collectionNotes, search, searchNotes])
+  const activeNote = useMemo(() => collectionNotes.find((note) => note.id === selectedNoteId) ?? null,
+    [collectionNotes, selectedNoteId])
   const activeNoteId = activeNote?.id ?? null
 
   useEffect(() => {
@@ -576,11 +599,12 @@ export default function NotePage() {
   }
 
   const handleCreate = async () => {
+    if (activeCollection === 'trash') return
     await flushPendingSave()
-    const activeTagName = activeTagId ? tagNameById.get(activeTagId) : undefined
     // Reuse a blank note instead of stacking up empty "untitled" cards.
     const blank = notes.find(
       (note) =>
+        (activeCollection !== 'today' || dateKey(note.updatedAt) === todayKey) &&
         !note.title.trim() &&
         !note.contentMd.trim() &&
         (activeTagName ? note.tags.includes(activeTagName) : note.tags.length === 0) &&
@@ -588,12 +612,9 @@ export default function NotePage() {
         (note.id !== selectedNoteId || !editorSurfaceRef.current?.textContent?.trim()),
     )
     if (blank) {
-      setActiveCollection('notes')
-      setSelectedNoteId(blank.id)
+      writeNoteUrl(blank.id, { ...scope, search: '' })
       setMobilePane('editor')
-      writeNoteUrl(blank.id)
       setFocusNoteId(blank.id)
-      setSearch('')
       return
     }
     if (!canUse('notes.max-count', { noteCount: notes.length + 1 }).allowed) {
@@ -602,12 +623,9 @@ export default function NotePage() {
     }
     const created = await notesRepo.create(activeTagName ? { tags: [activeTagName] } : undefined)
     setNotes((current) => [created, ...current])
-    setActiveCollection('notes')
-    setSelectedNoteId(created.id)
+    writeNoteUrl(created.id, { ...scope, search: '' })
     setMobilePane('editor')
-    writeNoteUrl(created.id)
     setFocusNoteId(created.id)
-    setSearch('')
   }
 
   const openTaskDraft = (suggestedTitle: string, intent: NoteTaskIntent = 'task') => {
@@ -663,20 +681,17 @@ export default function NotePage() {
     if (!removed) return
     setNotes((current) => current.filter((note) => note.id !== id))
     setTrash((current) => [removed, ...current])
-    if (selectedNoteId === id) {
-      setSelectedNoteId(null)
-      writeNoteUrl(null, true)
-    }
+    if (selectedNoteId === id) writeNoteUrl(null, scope, true, 'list')
   }
 
   const handleDeletePermanently = async (id: string) => {
+    const note = trash.find((candidate) => candidate.id === id)
+    if (!note || !window.confirm(t('notes.trash.deleteConfirm', {
+      title: previews.get(id)?.title || t('notes.trash.untitled'),
+    }))) return
     await notesRepo.hardDelete(id)
-    if (selectedNoteId === id) writeNoteUrl(null, true)
-    setTrash((current) => {
-      const next = current.filter((note) => note.id !== id)
-      if (selectedNoteId === id) setSelectedNoteId(next[0]?.id ?? null)
-      return next
-    })
+    setTrash((current) => current.filter((item) => item.id !== id))
+    if (selectedNoteId === id) writeNoteUrl(null, scope, true, 'list')
   }
 
   const handleRestoreNote = async (id: string) => {
@@ -685,7 +700,7 @@ export default function NotePage() {
     if (!restored) return
     setTrash((current) => current.filter((note) => note.id !== id))
     setNotes((current) => [restored, ...current.filter((note) => note.id !== id)])
-    if (selectedNoteId === id) setSelectedNoteId(restored.id)
+    if (selectedNoteId === id) writeNoteUrl(null, scope, true, 'list')
   }
 
   const handleUpdateNote = (next: {
@@ -696,41 +711,8 @@ export default function NotePage() {
     editorMode: 'document'
     tags: string[]
   }) => {
-    if (!activeNote) {
-      if (activeCollection === 'trash') return
-      const hasContent =
-        next.title.trim().length > 0 ||
-        next.contentMd.trim().length > 0 ||
-        next.tags.length > 0
-      if (!hasContent || creatingFromBlankRef.current) return
-      if (!canUse('notes.max-count', { noteCount: notes.length + 1 }).allowed) {
-        openUpgradeModal('limit-reached', 'notes.max-count')
-        return
-      }
-      creatingFromBlankRef.current = true
-      void (async () => {
-        try {
-          const derivedTitle = next.title.trim()
-          const created = await notesRepo.create({
-            title: derivedTitle,
-            contentMd: next.contentMd,
-            contentJson: next.contentJson ?? null,
-            crdtState: next.crdtState,
-            editorMode: next.editorMode,
-            tags: next.tags,
-          })
-          setNotes((current) => [created, ...current])
-          setActiveCollection('notes')
-          setSelectedNoteId(created.id)
-          setMobilePane('editor')
-          writeNoteUrl(created.id)
-          setSearch('')
-        } finally {
-          creatingFromBlankRef.current = false
-        }
-      })()
-      return
-    }
+    // Only a mounted, live note may write. Empty searches and trash previews never create records.
+    if (!activeNote || activeCollection === 'trash') return
     const statsSource = buildNoteTextForStats(next.contentMd)
     const stats = buildNoteStats(statsSource)
     const nextTitle = next.title.trim()
@@ -740,8 +722,8 @@ export default function NotePage() {
       contentJson: next.contentJson ?? null,
       crdtState: next.crdtState,
       editorMode: next.editorMode,
-      tags: next.tags,
-      excerpt: buildPreview(statsSource),
+      // Tag operations own this field; an editor flush must not restore older tags.
+      excerpt: getNoteListText({ title: nextTitle, contentMd: next.contentMd, excerpt: '' }, language).excerpt,
       wordCount: stats.wordCount,
       charCount: stats.charCount,
       paragraphCount: stats.paragraphCount,
@@ -749,17 +731,7 @@ export default function NotePage() {
       fileCount: stats.fileCount,
       headings: stats.headings,
     }
-    setNotes((current) =>
-      current.map((note) =>
-        note.id === activeNote.id
-          ? {
-              ...note,
-              ...patch,
-              excerpt: buildPreview(statsSource),
-            }
-          : note,
-      ),
-    )
+    setNotes((current) => current.map((note) => note.id === activeNote.id ? { ...note, ...patch } : note))
     scheduleSave(activeNote.id, patch)
   }
 
@@ -849,35 +821,20 @@ export default function NotePage() {
         nextNotes,
       ),
     )
-    if (activeTagId === tagId) setActiveTagId(null)
+    if (activeTagId === tagId) writeNoteUrl(selectedNoteId, allNotesScope, true)
   }
 
   const handleDropNoteOnTag = async (noteId: string, tagId: string) => {
-    void flushPendingSave()
+    await flushPendingSave()
     const targetTag = tags.find((tag) => tag.id === tagId)
-    if (!targetTag) return
     const targetNote = notes.find((note) => note.id === noteId)
-    if (!targetNote) return
-    setActiveCollection('notes')
-    setActiveTagId(tagId)
-    setSelectedNoteId(noteId)
-    writeNoteUrl(noteId)
-    const alreadyOnlyTarget = targetNote.tags.length === 1 && containsTagName(targetNote.tags, targetTag.name)
-    if (!alreadyOnlyTarget) {
-      const nextTags = [targetTag.name]
-      const optimistic = { ...targetNote, tags: nextTags }
-      const optimisticNotes = notes.map((note) => (note.id === noteId ? optimistic : note))
-      setNotes(optimisticNotes)
-      setTags((current) => recomputeTagCounts(current, optimisticNotes))
-      void notesRepo.update(noteId, { tags: nextTags }).then((updated) => {
-        if (!updated) return
-        setNotes((current) => {
-          const next = current.map((note) => (note.id === noteId ? updated : note))
-          setTags((tagCurrent) => recomputeTagCounts(tagCurrent, next))
-          return next
-        })
-      })
+    if (!targetTag || !targetNote) return
+    if (!containsTagName(targetNote.tags, targetTag.name)) {
+      const updated = await notesRepo.update(noteId, { tags: [...targetNote.tags, targetTag.name] })
+      if (!updated) return
+      setNotes((current) => current.map((note) => note.id === noteId ? { ...note, tags: updated.tags } : note))
     }
+    writeNoteUrl(noteId, { collection: 'notes', tagId, search: '' })
   }
 
   const handleDropTag = async (dragTagId: string, targetTagId: string | null, mode: 'before' | 'after' | 'inside' | 'root') => {
@@ -949,22 +906,32 @@ export default function NotePage() {
     setTags(recomputeTagCounts(normalizedTags, notes))
   }
 
-  const handleSelectCollection = async (collection: NoteSystemCollection) => {
+  const handleSelectScope = async (collection: NoteSystemCollection, tagId: string | null) => {
     await flushPendingSave()
+    const next = { collection, tagId, search: '' }
+    const remembered = rememberedScopes.current.get(scopeKey(next))
+    next.search = remembered?.search ?? ''
+    const candidates = searchNotes(notesInScope(collection, tagId), next.search)
+    const id = candidates.find((note) => note.id === remembered?.id)?.id ??
+      (candidates.length === 1 ? candidates[0].id : null)
+    setOpenPanel(null)
     setMobilePane('list')
-    setActiveCollection(collection)
-    setActiveTagId(null)
-    setSelectedNoteId(null)
-    writeNoteUrl(null)
+    writeNoteUrl(id, next, false, 'list')
   }
 
-  const handleSelectTag = async (tagId: string) => {
+  const changeSearch = (value: string) => {
+    const candidates = searchNotes(collectionNotes, value)
+    const previousId = selectedNoteId ?? (!value.trim() ? rememberedScopes.current.get(scopeKey(scope))?.id : null)
+    const id = candidates.find((note) => note.id === previousId)?.id ?? null
+    writeNoteUrl(id, { ...scope, search: value }, true, 'list')
+  }
+
+  const selectFromList = async (id: string) => {
     await flushPendingSave()
-    setMobilePane('list')
-    setActiveTagId(tagId)
-    setActiveCollection('notes')
-    setSelectedNoteId(null)
-    writeNoteUrl(null)
+    setOpenPanel(null)
+    setMobilePane('editor')
+    writeNoteUrl(id)
+    setSearchTarget(search.trim() ? { id, query: search.trim().toLowerCase() } : null)
   }
 
   const handleUpdateAppearance = async (patch: Partial<NoteAppearanceSettings>) => {
@@ -1091,26 +1058,24 @@ export default function NotePage() {
       const nextTags = tags.some((tag) => tag.id === importedTag?.id) ? tags : [...tags, importedTag]
       setNotes(nextNotes)
       setTags(recomputeTagCounts(nextTags, nextNotes))
-      setActiveCollection('notes')
-      setActiveTagId(importedTag.id)
-      setSelectedNoteId(createdNotes[0]?.id ?? null)
       setMobilePane('editor')
-      writeNoteUrl(createdNotes[0]?.id ?? null)
-      setSearch('')
+      writeNoteUrl(createdNotes[0]?.id ?? null, { collection: 'notes', tagId: importedTag.id, search: '' })
     }
   }
 
   const handleExportMarkdown = async () => {
-    await flushPendingSave()
     if (!activeNote) return
-    // contentMd already opens with the title heading; only add one when it doesn't.
-    const title = activeNote.title.trim() || t('notes.trash.untitled')
-    const body = /^#{1,6}\s/.test(activeNote.contentMd.trimStart()) ? activeNote.contentMd : `# ${title}\n\n${activeNote.contentMd}`
+    const pendingPatch = pendingSaveRef.current?.id === activeNote.id ? pendingSaveRef.current.patch : null
+    const note = pendingPatch ? { ...activeNote, ...pendingPatch } : activeNote
+    await flushPendingSave()
+    const markdown = noteExportMarkdown(note.contentJson, note.contentMd)
+    const title = note.title.trim() || t('notes.trash.untitled')
+    const body = /^#{1,6}\s/.test(markdown.trimStart()) ? markdown : `# ${title}\n\n${markdown}`
     const blob = new Blob([body], { type: 'text/markdown;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
-    anchor.download = `${(activeNote.title.trim() || 'untitled').replace(/\s+/g, '-').toLowerCase()}.md`
+    anchor.download = `${(note.title.trim() || 'untitled').replace(/\s+/g, '-').toLowerCase()}.md`
     anchor.click()
     URL.revokeObjectURL(url)
   }
@@ -1129,10 +1094,19 @@ export default function NotePage() {
   }
 
   useEffect(() => {
-    if (sidebarScrollRef.current) sidebarScrollRef.current.scrollTop = 0
-    if (browserScrollRef.current) browserScrollRef.current.scrollTop = 0
     if (editorSurfaceRef.current) editorSurfaceRef.current.scrollTop = 0
   }, [selectedNoteId])
+
+  useEffect(() => {
+    if (!isEditorReady || !searchTarget || activeNoteId !== searchTarget.id) return
+    const frame = window.requestAnimationFrame(() => {
+      const blocks = editorSurfaceRef.current?.querySelectorAll<HTMLElement>('.ProseMirror :is(p,h1,h2,h3,h4,h5,h6,pre,td,th)')
+      const match = Array.from(blocks ?? []).find((block) => block.textContent?.toLowerCase().includes(searchTarget.query))
+      match?.scrollIntoView?.({ block: 'nearest' })
+      setSearchTarget(null)
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [activeNoteId, isEditorReady, searchTarget])
 
   useEffect(() => {
     if (!openPanel) return
@@ -1164,9 +1138,12 @@ export default function NotePage() {
   useEffect(() => {
     if (!isFullscreen) return
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing || event.keyCode === 229) return
-      if (openPanel) return
-      if (event.target instanceof Element && event.target.closest('[role="dialog"]')) return
+      if (event.key !== 'Escape' || event.isComposing || event.keyCode === 229 || openPanel) return
+      const target = event.target instanceof Element ? event.target : null
+      if (target?.closest('[role="dialog"]')) return
+      // ProseMirror prevents native Escape even when no command consumes it.
+      // Slash and selection menus stop propagation when handling their own Esc.
+      if (event.defaultPrevented && !target?.closest('.note-editor__body')) return
       setIsFullscreen(false)
     }
     document.addEventListener('keydown', onKeyDown)
@@ -1199,11 +1176,11 @@ export default function NotePage() {
               scrollContainerRef={sidebarScrollRef}
               tags={tagsWithCounts}
               tagLabelMap={projectTagLabels}
-              activeCollection={activeCollection}
+              activeCollection={activeTagId ? null : activeCollection}
               activeTagId={activeTagId}
               noteCounts={noteCounts}
-              onSelectCollection={handleSelectCollection}
-              onSelectTag={handleSelectTag}
+              onSelectCollection={(collection) => handleSelectScope(collection, null)}
+              onSelectTag={(tagId) => handleSelectScope('notes', tagId)}
               onTogglePinTag={handleTogglePinTag}
               onCreateTag={handleCreateTag}
               onRenameTag={handleRenameTag}
@@ -1215,17 +1192,14 @@ export default function NotePage() {
               className="note-page-column note-page-column--browser"
               scrollContainerRef={browserScrollRef}
               notes={filteredNotes}
+              totalCount={collectionNotes.length}
+              previews={previews}
               selectedNoteId={activeNote?.id ?? null}
-              collectionLabel={collectionLabelMap[activeCollection]}
+              collectionLabel={collectionLabel}
               tagLabelMap={projectTagLabels}
               linkedTaskTitles={linkedTaskTitles}
               mode={activeCollection === 'trash' ? 'trash' : 'notes'}
-              onSelectNote={async (id) => {
-                await flushPendingSave()
-                setSelectedNoteId(id)
-                setMobilePane('editor')
-                writeNoteUrl(activeCollection === 'trash' ? null : id)
-              }}
+              onSelectNote={selectFromList}
               onNewNote={handleCreate}
               onTogglePin={handleTogglePinNote}
               onTrashNote={handleTrashNote}
@@ -1234,7 +1208,7 @@ export default function NotePage() {
               sortBy={sortBy}
               onSortChange={setSortBy}
               search={search}
-              onSearchChange={setSearch}
+              onSearchChange={changeSearch}
             />
             <div className="note-page-column note-page-column--editor relative flex min-w-0 flex-1">
               {activeNote ? (
@@ -1243,6 +1217,7 @@ export default function NotePage() {
                     <NoteEditor
                       key={activeNote.id}
                       noteId={activeNote.id}
+                      readOnly={activeCollection === 'trash'}
                       surfaceRef={editorSurfaceRef}
                       value={activeNoteValue}
                       appearance={appearance}
@@ -1250,7 +1225,7 @@ export default function NotePage() {
                       onToggleFullscreen={() => { setMobilePane('editor'); setIsFullscreen((current) => !current) }}
                       onOpenInfo={() => setOpenPanel((current) => (current === 'info' ? null : 'info'))}
                       onOpenAppearance={() => setOpenPanel((current) => (current === 'appearance' ? null : 'appearance'))}
-                      onImport={() => setOpenPanel((current) => (current === 'import' ? null : 'import'))}
+                      onImport={activeCollection === 'trash' ? undefined : () => setOpenPanel((current) => (current === 'import' ? null : 'import'))}
                       onExport={() => setOpenPanel((current) => (current === 'export' ? null : 'export'))}
                       onCreateTask={activeCollection === 'trash' ? undefined : openTaskDraft}
                       taskDialogOpen={Boolean(taskDraft)}
@@ -1277,10 +1252,11 @@ export default function NotePage() {
                     note={activeNoteForInfo}
                     onClose={closeNotePanel}
                     onNavigateToHeading={handleNavigateToHeading}
-                    onNavigateToNote={(id) => {
-                      setSelectedNoteId(id)
+                    onNavigateToNote={async (id) => {
+                      await flushPendingSave()
+                      setOpenPanel(null)
                       setMobilePane('editor')
-                      writeNoteUrl(id)
+                      writeNoteUrl(id, filteredNotes.some((note) => note.id === id) ? scope : allNotesScope)
                     }}
                   />
                   <AppearanceModal open={openPanel === 'appearance'} settings={appearance} onClose={closeNotePanel} onUpdate={handleUpdateAppearance} />
@@ -1297,9 +1273,15 @@ export default function NotePage() {
                 <div className="note-page__unselected" role="status" aria-live="polite">
                   <div className="note-page__unselected-card">
                     <Doodle name="sitting-reading" className="note-page__unselected-art" />
-                    <h2>{t('notes.unselected.title')}</h2>
-                    <p>{t('notes.unselected.description')}</p>
-                    <div className="note-page__unselected-actions">
+                    <h2>{search.trim() && !filteredNotes.length
+                      ? (language === 'zh' ? '没有匹配的笔记' : 'No matching notes')
+                      : activeCollection === 'trash' && !trash.length ? t('notes.trash.empty') : t('notes.unselected.title')}</h2>
+                    <p>{search.trim() && !filteredNotes.length
+                      ? (language === 'zh' ? '更换关键词或清除搜索。' : 'Try another keyword or clear your search.')
+                      : activeCollection === 'trash'
+                        ? (language === 'zh' ? '移入回收站的笔记可在此预览和恢复。' : 'Preview or restore notes from the trash here.')
+                        : t('notes.unselected.description')}</p>
+                    {activeCollection !== 'trash' && !search.trim() && <div className="note-page__unselected-actions">
                       <button type="button" className="note-page__unselected-action" onClick={handleCreate}>
                         {t('modules.note.new')}
                       </button>
@@ -1311,7 +1293,7 @@ export default function NotePage() {
                       >
                         {t('notes.import')}
                       </button>
-                    </div>
+                    </div>}
                   </div>
                 </div>
               )}

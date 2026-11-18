@@ -4,7 +4,7 @@ import type { Editor } from '@tiptap/core'
 import { createPortal } from 'react-dom'
 import { autoUpdate, flip, offset, shift, size, useFloating } from '@floating-ui/react'
 import { useI18n } from '../../../shared/i18n/useI18n'
-import type { NoteCommandId } from '../model/noteCommands'
+import { noteCommandKey, type NoteCommandId } from '../model/noteCommands'
 
 const icons = { task: ListTodo, waiting: Clock, reminder: Bell, quote: Quote, paragraph: Type, heading1: Heading1, heading2: Heading2, heading3: Heading3, bulletList: List, orderedList: ListOrdered, taskList: ListChecks, codeBlock: Code }
 const labels = {
@@ -34,13 +34,39 @@ export const NoteCommandMenu = ({ commands, activeIndex, editor, position, menuI
     } })],
   })
   useLayoutEffect(() => {
-    refs.setReference({ contextElement: editor.view.dom, getBoundingClientRect: () => {
+    const caretRect = () => {
       const caret = editor.view.coordsAtPos(Math.min(position, editor.state.doc.content.size))
       return new DOMRect(caret.left, caret.top, 1, caret.bottom - caret.top)
-    } })
+    }
+    const surface = editor.view.dom.closest<HTMLElement>('.note-editor__surface')
+    refs.setReference({ contextElement: editor.view.dom, getBoundingClientRect: caretRect })
+    if (!surface) return
+    // Native keyboard scrolling can continue after typing resumes. Keep the
+    // active insertion point visible, but yield immediately to manual scrolling.
+    const revealCaret = () => {
+      const caret = caretRect()
+      const bounds = surface.getBoundingClientRect()
+      const delta = Math.min(0, caret.top - bounds.top - 12) + Math.max(0, caret.bottom - bounds.bottom + 12)
+      if (Math.abs(delta) > 1) surface.scrollBy({ top: delta, behavior: 'instant' })
+    }
+    const dismiss = () => editor.view.dispatch(editor.state.tr.setMeta(noteCommandKey, 'dismiss'))
+    revealCaret()
+    surface.addEventListener('scroll', revealCaret, { passive: true })
+    surface.addEventListener('wheel', dismiss, { passive: true })
+    surface.addEventListener('pointerdown', dismiss)
+    return () => {
+      surface.removeEventListener('scroll', revealCaret)
+      surface.removeEventListener('wheel', dismiss)
+      surface.removeEventListener('pointerdown', dismiss)
+    }
   }, [editor, position, refs])
   useEffect(() => {
-    menuRef.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' })
+    const menu = menuRef.current
+    const option = menu?.querySelector<HTMLElement>('[aria-selected="true"]')
+    if (!menu || !option) return
+    const bottom = option.offsetTop + option.offsetHeight
+    if (option.offsetTop < menu.scrollTop) menu.scrollTop = option.offsetTop
+    else if (bottom > menu.scrollTop + menu.clientHeight) menu.scrollTop = bottom - menu.clientHeight
   }, [activeIndex])
   return createPortal(
     <div ref={refs.setFloating} style={{ ...floatingStyles, zIndex: 60, width: 'max-content' }}>

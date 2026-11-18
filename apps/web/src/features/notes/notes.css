@@ -842,7 +842,6 @@
   min-height: 0;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
-  scroll-behavior: smooth;
   overscroll-behavior: contain;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.36) 0px, rgba(255, 255, 255, 0.12) 80px, transparent 180px),

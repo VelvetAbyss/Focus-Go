@@ -86,9 +86,14 @@ export const NoteSelectionMenu = ({ editor, disabled }: { editor: Editor; disabl
     }
   }, [editor, disabled])
   const blockType = useEditorState({ editor, selector: ({ editor: current }) => currentBlockType(current) })
+  // Keep the first paragraph's formatting bubble inside the reading surface.
+  // The persistent toolbar immediately above it must stay clickable.
+  // EditorContent attaches the ProseMirror element after the initial render.
+  const readingSurface = () => editor.view.dom.closest<HTMLElement>('.note-editor__surface')
+  const collision = () => ({ boundary: readingSurface() ?? undefined, padding: 6 })
   return <BubbleMenu ref={menuRef} editor={editor} appendTo={document.body} pluginKey="focusgoNoteSelectionMenu" updateDelay={80}
     className="note-selection-menu" role="toolbar" aria-label={t('notes.selection.label')}
-    options={{ strategy: 'fixed', placement: 'top', offset: 8, flip: true, shift: { padding: 12 }, scrollTarget: editor.view.dom.closest<HTMLElement>('.note-editor__surface') ?? window }}
+    options={{ strategy: 'fixed', placement: 'top', offset: 8, flip: collision, shift: collision, scrollTarget: readingSurface() ?? window }}
     shouldShow={({ state, view }) => {
       const selection = `${state.selection.from}:${state.selection.to}`
       if (selection !== previousSelection.current) { dismissed.current = ''; previousSelection.current = selection }

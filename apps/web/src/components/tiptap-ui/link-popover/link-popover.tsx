@@ -4,6 +4,7 @@ import { forwardRef, useCallback, useEffect, useState } from "react"
 import type { Editor } from "@tiptap/react"
 
 // --- Hooks ---
+import { useI18n } from "@/shared/i18n/useI18n"
 import { useIsBreakpoint } from "@/hooks/use-is-breakpoint"
 import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
 
@@ -84,6 +85,7 @@ export interface LinkPopoverProps
  */
 export const LinkButton = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, children, ...props }, ref) => {
+    const { t } = useI18n()
     return (
       <Button
         type="button"
@@ -91,8 +93,8 @@ export const LinkButton = forwardRef<HTMLButtonElement, ButtonProps>(
         variant="ghost"
         role="button"
         tabIndex={-1}
-        aria-label="Link"
-        tooltip="Link"
+        aria-label={t("notes.selection.link")}
+        tooltip={t("notes.selection.link")}
         ref={ref}
         {...props}
       >
@@ -116,6 +118,8 @@ const LinkMain: React.FC<LinkMainProps> = ({
   isActive,
 }) => {
   const isMobile = useIsBreakpoint()
+  const { language } = useI18n()
+  const zh = language === "zh"
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return
@@ -139,7 +143,7 @@ const LinkMain: React.FC<LinkMainProps> = ({
         <CardItemGroup orientation="horizontal">
           <Input
             type="url"
-            placeholder="Paste a link..."
+            placeholder={zh ? "粘贴链接…" : "Paste a link..."}
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -154,7 +158,7 @@ const LinkMain: React.FC<LinkMainProps> = ({
             <Button
               type="button"
               onClick={setLink}
-              title="Apply link"
+              title={zh ? "应用链接" : "Apply link"}
               disabled={!url && !isActive}
               variant="ghost"
             >
@@ -169,7 +173,7 @@ const LinkMain: React.FC<LinkMainProps> = ({
               <Button
                 type="button"
                 onClick={openLink}
-                title="Open in new window"
+                title={zh ? "在新窗口打开" : "Open in new window"}
                 disabled={!url && !isActive}
                 variant="ghost"
               >
@@ -181,7 +185,7 @@ const LinkMain: React.FC<LinkMainProps> = ({
               <Button
                 type="button"
                 onClick={removeLink}
-                title="Remove link"
+                title={zh ? "移除链接" : "Remove link"}
                 disabled={!url && !isActive}
                 variant="ghost"
               >
@@ -242,7 +246,6 @@ export const LinkPopover = forwardRef<HTMLButtonElement, LinkPopoverProps>(
       setLink,
       removeLink,
       openLink,
-      label,
       Icon,
     } = useLinkPopover({
       editor,
@@ -298,7 +301,6 @@ export const LinkPopover = forwardRef<HTMLButtonElement, LinkPopoverProps>(
             disabled={!canSet}
             data-active-state={isActive ? "on" : "off"}
             data-disabled={!canSet}
-            aria-label={label}
             aria-pressed={isActive}
             onClick={handleClick}
             {...buttonProps}

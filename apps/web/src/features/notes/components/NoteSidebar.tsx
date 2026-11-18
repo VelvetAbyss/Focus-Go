@@ -104,7 +104,7 @@ export default function NoteSidebar({
       </div>
 
       <div className="mt-2 px-3">
-        <CollectionButton icon={FileText} label={t('modules.note.collection.notes')} count={noteCounts.all} active={activeCollection === 'notes'} onClick={() => onSelectCollection('notes')} />
+        <CollectionButton icon={FileText} label={t('modules.note.collection.notes')} count={noteCounts.all} active={activeCollection === 'notes' && !activeTagId} onClick={() => onSelectCollection('notes')} />
         <CollectionButton icon={Sun} label={t('modules.note.collection.today')} count={noteCounts.today} active={activeCollection === 'today'} onClick={() => onSelectCollection('today')} />
         <CollectionButton icon={TagIcon} label={t('modules.note.collection.untagged')} count={noteCounts.untagged} active={activeCollection === 'untagged'} onClick={() => onSelectCollection('untagged')} />
         <CollectionButton icon={Trash2} label={t('modules.note.collection.trash')} count={noteCounts.trash} active={activeCollection === 'trash'} onClick={() => onSelectCollection('trash')} />
@@ -200,6 +200,7 @@ function CollectionButton({
   return (
     <button
       type="button"
+      aria-current={active ? 'true' : undefined}
       onClick={onClick}
       className={cn(
         'relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-left transition-[background-color,color] duration-150',
@@ -245,6 +246,7 @@ function TagRow({
   onDropTag: (dragTagId: string, targetTagId: string, mode: 'before' | 'after' | 'inside') => void
   enableTagDnd: boolean
 }) {
+  const { language } = useI18n()
   const [expanded, setExpanded] = useState(true)
   const [isRenaming, setIsRenaming] = useState(false)
   const [draftName, setDraftName] = useState(tag.name)
@@ -255,6 +257,8 @@ function TagRow({
   const isActive = activeTagId === tag.id
   const Icon = tag.icon ? iconMap[tag.icon as keyof typeof iconMap] ?? TagIcon : TagIcon
   const tagLabel = tagLabelMap?.get(tag.name) ?? tag.name
+  const pinLabel = tag.pinned ? (language === 'zh' ? '取消置顶标签' : 'Unpin tag') : (language === 'zh' ? '置顶标签' : 'Pin tag')
+  const expandLabel = expanded ? (language === 'zh' ? '收起' : 'Collapse') : (language === 'zh' ? '展开' : 'Expand')
   useEffect(() => {
     if (!isRenaming) setDraftName(tag.name)
   }, [isRenaming, tag.name])
@@ -312,6 +316,7 @@ function TagRow({
           if (!incomingTag && !incomingNote) return
           event.preventDefault()
           if (incomingNote && !incomingTag) {
+            event.dataTransfer.dropEffect = 'copy'
             setIsNoteHover(true)
             setDragPlacement(null)
             return
@@ -353,19 +358,17 @@ function TagRow({
           setIsNoteHover(false)
         }}
         style={{ paddingLeft: `${10 + depth * 16}px`, paddingRight: '8px' }}
-        role="button"
-        tabIndex={0}
-        aria-label={tagLabel}
-        onClick={() => onSelect(tag.id)}
       >
         {hasChildren ? (
           <button
             type="button"
+            aria-label={`${expandLabel} ${tagLabel}`}
+            aria-expanded={expanded}
             onClick={(event) => {
               event.stopPropagation()
               setExpanded((current) => !current)
             }}
-            className="rounded p-0.5 hover:bg-[color-mix(in_srgb,var(--ink-1)_5%,transparent)] dark:hover:bg-white/10"
+            className="relative z-10 rounded p-0.5 hover:bg-[color-mix(in_srgb,var(--ink-1)_5%,transparent)] dark:hover:bg-white/10"
           >
             {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
           </button>
@@ -383,6 +386,7 @@ function TagRow({
             onBlur={commitRename}
             onKeyDown={(event) => {
               event.stopPropagation()
+              if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return
               if (event.key === 'Enter') {
                 event.preventDefault()
                 commitRename()
@@ -396,24 +400,28 @@ function TagRow({
             className="h-6 flex-1 rounded border border-rule-strong bg-transparent px-1 text-body outline-none"
           />
         ) : (
-          <span
-            className="flex-1 truncate text-ui tracking-[-0.005em]"
+          <button
+            type="button"
+            aria-label={tagLabel}
+            aria-current={isActive ? 'true' : undefined}
+            onClick={() => onSelect(tag.id)}
+            className="min-w-0 flex-1 text-left text-ui tracking-[-0.005em] outline-none after:absolute after:inset-0 after:rounded-lg focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-[var(--accent)]"
             style={{ fontWeight: isActive ? 520 : 400 }}
             onDoubleClick={(event) => {
               event.stopPropagation()
               setIsRenaming(true)
             }}
           >
-            {tagLabel}
-          </span>
+            <span className="block truncate">{tagLabel}</span>
+          </button>
         )}
         {dragPlacement === 'before' ? <span className="pointer-events-none absolute left-2 right-2 top-0 h-[2px] rounded-full bg-[color-mix(in_srgb,var(--ink-1)_45%,transparent)]" /> : null}
         {dragPlacement === 'after' ? <span className="pointer-events-none absolute bottom-0 left-2 right-2 h-[2px] rounded-full bg-[color-mix(in_srgb,var(--ink-1)_45%,transparent)]" /> : null}
         {dragPlacement === 'inside' || isNoteHover ? (
           <span className="mr-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--cta-bg)] px-1 text-meta font-semibold leading-none text-[color:var(--cta-fg)]">+</span>
         ) : null}
-        <span className="text-label tabular-nums text-[var(--text-tertiary)] transition-opacity group-hover:opacity-0 dark:text-[var(--text-tertiary)]">{tag.noteCount}</span>
-        <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+        <span className="text-label tabular-nums text-[var(--text-tertiary)] transition-opacity group-hover:opacity-0 group-focus-within:opacity-0 dark:text-[var(--text-tertiary)]">{tag.noteCount}</span>
+        <div className="pointer-events-none absolute right-2 top-1/2 z-10 flex -translate-y-1/2 items-center gap-0.5 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100">
           <button
             type="button"
             onClick={(event) => {
@@ -421,7 +429,7 @@ function TagRow({
               onTogglePin(tag.id)
             }}
             className="rounded p-1 hover:bg-[color-mix(in_srgb,var(--ink-1)_5%,transparent)] dark:hover:bg-white/10"
-            title={tag.pinned ? 'Unpin' : 'Pin'}
+            title={pinLabel}
           >
             {tag.pinned ? <PinOff size={12} /> : <Pin size={12} />}
           </button>
@@ -432,7 +440,7 @@ function TagRow({
               onDeleteTag(tag.id)
             }}
             className="rounded p-1 text-destructive hover:bg-destructive/10"
-            title="Delete"
+            title={language === 'zh' ? '删除标签' : 'Delete tag'}
           >
             <Trash2 size={12} />
           </button>

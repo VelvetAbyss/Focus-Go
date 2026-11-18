@@ -126,3 +126,171 @@ test('Chinese reminder command works at 390px and saves an explicit reminder tim
   expect(task?.title).toBe('提醒跟进客户')
   expect(task?.reminderAt).toBeGreaterThan(Date.now())
 })
+
+
+test('reading through a tag preserves its four cards, search, context history and list scroll', async ({ page }) => {
+  await page.goto('/note')
+  const first = await page.evaluate(async () => {
+    const { notesRepo } = await import('/src/data/repositories/notesRepo.ts')
+    const { noteTagsRepo } = await import('/src/data/repositories/noteTagsRepo.ts')
+    await noteTagsRepo.create({ name: 'Lowes', icon: 'tag', pinned: false, sortOrder: 20 })
+    let id = ''
+    for (let n = 0; n < 18; n++) {
+      const title = 'Audit note ' + String(n).padStart(2, '0')
+      const note = await notesRepo.create({ title, contentMd: '# ' + title + '\n\n' + 'Plain body. '.repeat(35) + 'amber lighthouse ' + n, tags: n < 4 ? ['Lowes'] : [] })
+      if (n === 0) id = note.id
+    }
+    return id
+  })
+  await page.goto('/note?note=' + first)
+  const browser = page.locator('.note-page-column--browser')
+  const editor = page.locator('.note-editor .ProseMirror')
+  const lowes = page.getByRole('button', { name: 'Lowes', exact: true })
+  await lowes.click()
+  const cards = browser.locator('.note-card')
+  await expect(cards).toHaveCount(4)
+  for (const n of ['01', '02']) {
+    await browser.getByRole('button', { name: 'Audit note ' + n, exact: true }).click()
+    await expect(editor).toContainText('Audit note ' + n)
+    await expect(cards).toHaveCount(4)
+    await expect(browser.getByText('Lowes', { exact: true }).first()).toBeVisible()
+  }
+  await page.goBack()
+  await expect(editor).toContainText('Audit note 01')
+  await expect(cards).toHaveCount(4)
+  await page.goForward()
+  await expect(editor).toContainText('Audit note 02')
+  await expect(cards).toHaveCount(4)
+  const search = browser.getByRole('textbox')
+  await search.fill('amber lighthouse 3')
+  await expect(cards).toHaveCount(1)
+  await search.press('ArrowDown')
+  await page.keyboard.press('Enter')
+  await expect(editor).toContainText('Audit note 03')
+  await expect(search).toHaveValue('amber lighthouse 3')
+  await expect(cards).toHaveCount(1)
+  await search.fill('absent query')
+  await expect(cards).toHaveCount(0)
+  await expect(editor).toHaveCount(0)
+  await search.press('Escape')
+  await expect(cards).toHaveCount(4)
+  await page.locator('.note-page-column--sidebar').getByRole('button', { name: /^Notes \d+/i }).click()
+  await expect.poll(() => cards.count()).toBeGreaterThanOrEqual(18)
+  const list = browser.locator('.overflow-y-auto')
+  await list.evaluate(node => { node.scrollTop = node.scrollHeight })
+  const lastVisible = cards.filter({ hasText: 'Audit note' }).last()
+  const lastTitle = await lastVisible.locator('h4').innerText()
+  const offset = await list.evaluate(node => node.scrollTop)
+  expect(offset).toBeGreaterThan(0)
+  await lastVisible.getByRole('button', { name: lastTitle, exact: true }).click()
+  await expect(editor).toContainText(lastTitle)
+  await expect.poll(() => list.evaluate(node => node.scrollTop)).toBeGreaterThan(offset - 5)
+})
+
+test('tag drops add a label and trash previews are read only and recoverable', async ({ page }) => {
+  const { noteId, projectId } = await createNote(page, 'Keep the most recent edit')
+  await page.evaluate(async () => {
+    const { noteTagsRepo } = await import('/src/data/repositories/noteTagsRepo.ts')
+    await noteTagsRepo.create({ name: 'QA review', icon: 'tag', sortOrder: 30 })
+  })
+  await page.reload()
+  const sidebar = page.locator('.note-page-column--sidebar')
+  const browser = page.locator('.note-page-column--browser')
+  const editor = page.locator('.note-editor .ProseMirror')
+  const card = browser.locator('.note-card').filter({ hasText: 'Interaction test' })
+  await card.dragTo(sidebar.getByRole('button', { name: 'QA review', exact: true }))
+  await expect.poll(() => page.evaluate(async (id) => {
+    const { notesRepo } = await import('/src/data/repositories/notesRepo.ts')
+    return (await notesRepo.list()).find(n => n.id === id)?.tags
+  }, noteId)).toEqual(expect.arrayContaining(['project:' + projectId, 'QA review']))
+  await card.hover()
+  await card.getByRole('button', { name: 'Move to trash' }).click()
+  await sidebar.getByRole('button', { name: /^Trash\s+1$/ }).click()
+  await browser.getByRole('button', { name: 'Interaction test', exact: true }).click()
+  await expect(editor).toHaveAttribute('contenteditable', 'false')
+  await expect(page.locator('.note-editor__toolbar-wrap [role=toolbar]')).toHaveCount(0)
+  await expect(browser.getByRole('button', { name: 'New note' })).toHaveCount(0)
+  await card.hover()
+  let prompt = ''
+  page.once('dialog', async dialog => { prompt = dialog.message(); await dialog.dismiss() })
+  await card.getByRole('button', { name: 'Delete permanently' }).click()
+  expect(prompt).toContain('Interaction test')
+  await expect(card).toBeVisible()
+  await card.getByRole('button', { name: 'Restore' }).click()
+  await expect(sidebar.getByRole('button', { name: /^Trash\s+0$/ })).toBeVisible()
+  await sidebar.getByRole('button', { name: 'QA review', exact: true }).click()
+  await expect(editor).toHaveAttribute('contenteditable', 'true')
+  await expect(editor).toContainText('Keep the most recent edit')
+})
+
+test('keyboard navigation reaches virtualized cards and sorting dismisses normally', async ({ page }) => {
+  await page.goto('/note')
+  const id = await page.evaluate(async () => {
+    const { notesRepo } = await import('/src/data/repositories/notesRepo.ts')
+    let first = ''
+    for (let i = 0; i < 55; i++) {
+      const title = 'Virtual card ' + String(i).padStart(2, '0')
+      const note = await notesRepo.create({ title, contentMd: title })
+      if (!first) first = note.id
+    }
+    return first
+  })
+  await page.goto('/note?note=' + id)
+  const browser = page.locator('.note-page-column--browser')
+  const search = browser.getByRole('textbox')
+  const sort = browser.getByRole('button', {name:/Sort by/})
+  await sort.click()
+  await expect(page.getByRole('menu')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('menu')).toHaveCount(0)
+  await sort.click()
+  await search.click()
+  await expect(page.getByRole('menu')).toHaveCount(0)
+  await sort.click()
+  await page.getByRole('menuitemradio', {name:'Title', exact:true}).click()
+  await search.fill('Virtual card')
+  await search.press('ArrowDown')
+  await expect(browser.getByRole('button', {name:'Virtual card 00', exact:true})).toBeFocused()
+  await page.keyboard.press('End')
+  const last = browser.getByRole('button', {name:'Virtual card 54', exact:true})
+  await expect(last).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(page.locator('.note-editor .ProseMirror')).toHaveText('Virtual card 54')
+  await expect(search).toHaveValue('Virtual card')
+  await page.getByRole('button', {name:'Clear search', exact:true}).click()
+  await expect(search).toBeFocused()
+  await expect(search).toHaveValue('')
+})
+
+test('Markdown export and reimport retain checked items, link destinations and text color', async ({ page }, testInfo) => {
+  await page.goto('/note')
+  const id = await page.evaluate(async () => {
+    const { notesRepo } = await import('/src/data/repositories/notesRepo.ts')
+    const contentJson = { type: 'doc', content: [
+      { type: 'heading', attrs: { level: 1 }, content: [{ type: 'text', text: 'Meeting checklist' }] },
+      { type: 'taskList', content: [{ type: 'taskItem', attrs: { checked: true }, content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'Review draft', marks: [
+          { type: 'link', attrs: { href: 'https://example.com/review' } },
+          { type: 'textStyle', attrs: { color: '#337ea9' } },
+        ] }] },
+      ] }] },
+    ] }
+    return (await notesRepo.create({ title: 'Meeting checklist', contentMd: '# Meeting checklist\n\n- Review draft', contentJson })).id
+  })
+  await page.goto('/note?note=' + id)
+  const editor = page.locator('.note-editor .ProseMirror')
+  await expect(editor.locator('input[type=checkbox]')).toBeChecked()
+  await page.getByRole('button', { name: 'Export', exact: true }).click()
+  const download = page.waitForEvent('download')
+  await page.getByRole('button', { name: /Markdown.*\.md/ }).click()
+  const file = await download
+  const path = testInfo.outputPath(file.suggestedFilename())
+  await file.saveAs(path)
+  await page.getByRole('button', { name: 'Import', exact: true }).click()
+  await page.locator('input[type=file]').setInputFiles(path)
+  await page.getByRole('button', { name: 'Import 1', exact: true }).click()
+  await expect.poll(() => new URL(page.url()).searchParams.get('note')).not.toBe(id)
+  await expect(editor.locator('input[type=checkbox]')).toBeChecked()
+  await expect(editor.locator('a')).toHaveAttribute('href', 'https://example.com/review')
+  await expect(editor.locator('span[style*="color"]')).toHaveText('Review draft')
+})
